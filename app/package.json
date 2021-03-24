@@ -8,14 +8,20 @@
     "start": "next start"
   },
   "dependencies": {
+    "@nothing/core": "0.0.1",
+    "canvaskit-oc": "0.0.1-alpha.1",
+    "canvaskit-wasm": "^0.25.0",
     "next": "10.0.9",
     "react": "17.0.2",
-    "react-dom": "17.0.2",
-    "@nothing/core": "0.0.1"
+    "react-canvaskit": "0.0.1-alpha.7",
+    "react-dom": "17.0.2"
   },
   "devDependencies": {
+    "@babel/core": "^7.13.10",
+    "@babel/preset-env": "^7.13.12",
     "@types/node": "^14.14.35",
     "@types/react": "^17.0.3",
+    "copy-webpack-plugin": "^6.2.1",
     "typescript": "^4.2.3"
   }
 }
