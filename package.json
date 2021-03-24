@@ -1,13 +1,9 @@
 {
-  "name": "nothing",
-  "version": "0.0.1",
-  "description": "nothing engine skia canvaskit demo",
-  "main": "index.js",
-  "repository": "https://github.com/bridgedxyz/nothing.git",
-  "author": "bridged.xyz authors",
-  "license": "MIT",
-  "private": false,
-  "dependencies": {
-    "canvaskit-wasm": "^0.25.0"
-  }
+    "name": "nothing",
+    "description": "nothing engine & demo repository",
+    "private": true,
+    "workspaces": [
+        "app",
+        "packages/*"
+    ]
 }
