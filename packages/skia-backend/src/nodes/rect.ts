@@ -1,6 +1,6 @@
-import type { CanvasKit, SkPaint } from "canvaskit-oc";
+import type { CanvasKit, SkFont, SkPaint } from "canvaskit-oc";
 import { isCkCanvas } from "./canvas";
-import { toSkPaint } from "../skia-element-mapping";
+import { toSkFont, toSkPaint } from "../skia-element-mapping";
 import {
   CkElement,
   CkElementContainer,
@@ -10,26 +10,25 @@ import {
   Paint,
 } from "../skia-element-types";
 
-export interface CkLineProps extends CkElementProps<never> {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
+export interface CkRectProps extends CkElementProps<never> {
+  x?: number;
+  y?: number;
   paint?: Paint;
+  children: string;
 }
 
-class CkLine implements CkElement<"ck-line"> {
+class CkRect implements CkElement<"ck-text"> {
   readonly canvasKit: CanvasKit;
-  readonly props: CkObjectTyping["ck-line"]["props"];
-  readonly skObjectType: CkObjectTyping["ck-line"]["name"] = "Line";
-  readonly type: "ck-line" = "ck-line";
+  readonly props: CkObjectTyping["ck-text"]["props"];
+  readonly skObjectType: CkObjectTyping["ck-text"]["name"] = "Text";
+  readonly type: "ck-text" = "ck-text";
 
   private readonly defaultPaint: SkPaint;
 
   private renderPaint?: SkPaint;
   deleted = false;
 
-  constructor(canvasKit: CanvasKit, props: CkObjectTyping["ck-line"]["props"]) {
+  constructor(canvasKit: CanvasKit, props: CkObjectTyping["ck-text"]["props"]) {
     this.canvasKit = canvasKit;
     this.props = props;
 
@@ -38,21 +37,23 @@ class CkLine implements CkElement<"ck-line"> {
     this.defaultPaint.setAntiAlias(true);
   }
 
-  render(parent: CkElementContainer<any>): void {
+  render(parent?: CkElementContainer<any>): void {
     if (this.deleted) {
-      throw new Error("BUG. line element deleted.");
+      throw new Error("BUG. Rect element deleted.");
     }
 
     if (parent && isCkCanvas(parent)) {
       // TODO we can be smart and only recreate the paint object if the paint props have changed.
       this.renderPaint?.delete();
       this.renderPaint = toSkPaint(this.canvasKit, this.props.paint);
-      parent.skObject?.drawLine(
-        this.props.x1,
-        this.props.y1,
-        this.props.x2,
-        this.props.y2,
-        this.renderPaint ?? this.defaultPaint
+      parent.skObject?.drawRect(
+        {
+          fLeft: 0,
+          fTop: 0,
+          fRight: 100,
+          fBottom: 100,
+        },
+        this.defaultPaint
       );
     }
   }
@@ -67,8 +68,8 @@ class CkLine implements CkElement<"ck-line"> {
   }
 }
 
-export const createCkLine: CkElementCreator<"ck-line"> = (
+export const createCkRect: CkElementCreator<"ck-text"> = (
   type,
   props,
   canvasKit
-) => new CkLine(canvasKit, props);
+) => new CkRect(canvasKit, props);
