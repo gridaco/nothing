@@ -11,24 +11,21 @@ import {
 } from "../skia-element-types";
 
 export interface CkRectProps extends CkElementProps<never> {
-  x?: number;
-  y?: number;
   paint?: Paint;
-  children: string;
 }
 
-class CkRect implements CkElement<"ck-text"> {
+class CkRect implements CkElement<"ck-rect"> {
   readonly canvasKit: CanvasKit;
-  readonly props: CkObjectTyping["ck-text"]["props"];
-  readonly skObjectType: CkObjectTyping["ck-text"]["name"] = "Text";
-  readonly type: "ck-text" = "ck-text";
+  readonly props: CkObjectTyping["ck-rect"]["props"];
+  readonly skObjectType: CkObjectTyping["ck-rect"]["name"] = "Rect";
+  readonly type: "ck-rect" = "ck-rect";
 
   private readonly defaultPaint: SkPaint;
 
   private renderPaint?: SkPaint;
   deleted = false;
 
-  constructor(canvasKit: CanvasKit, props: CkObjectTyping["ck-text"]["props"]) {
+  constructor(canvasKit: CanvasKit, props: CkObjectTyping["ck-rect"]["props"]) {
     this.canvasKit = canvasKit;
     this.props = props;
 
@@ -68,7 +65,7 @@ class CkRect implements CkElement<"ck-text"> {
   }
 }
 
-export const createCkRect: CkElementCreator<"ck-text"> = (
+export const createCkRect: CkElementCreator<"ck-rect"> = (
   type,
   props,
   canvasKit

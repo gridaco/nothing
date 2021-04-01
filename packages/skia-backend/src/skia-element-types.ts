@@ -17,6 +17,7 @@ import { createCkSurface } from "./nodes/surface";
 import type { CkTextProps } from "./nodes/text";
 import { createCkText } from "./nodes/text";
 import type { SkObjectRef } from "./canvaskit";
+import { CkRectProps, createCkRect } from "./nodes/rect";
 
 export type CkElementProps<T extends SkObject<any> | never> = {
   ref?: RefObject<SkObjectRef<T>>;
@@ -26,6 +27,7 @@ export interface CkObjectTyping {
   "ck-surface": { type: SkSurface; name: "SkSurface"; props: CkSurfaceProps };
   "ck-canvas": { type: SkCanvas; name: "SkCanvas"; props: CkCanvasProps };
   "ck-line": { type: never; name: "Line"; props: CkLineProps };
+  "ck-rect": { type: never; name: "Rect"; props: CkRectProps };
   "ck-text": { type: never; name: "Text"; props: CkTextProps };
   "ck-paragraph": {
     type: SkParagraph;
@@ -438,6 +440,7 @@ export interface ParagraphProps {
 const CkElements: { [key in CkElementType]: CkElementCreator<any> } = {
   "ck-text": createCkText,
   "ck-line": createCkLine,
+  "ck-rect": createCkRect,
   "ck-surface": createCkSurface,
   "ck-canvas": createCkCanvas,
   "ck-paragraph": createCkParagraph,
@@ -458,6 +461,7 @@ declare global {
       "ck-canvas": CkCanvasProps;
       "ck-surface": CkSurfaceProps;
       "ck-line": CkLineProps;
+      "ck-rect": CkRectProps;
       "ck-paragraph": CkParagraphProps;
     }
   }
