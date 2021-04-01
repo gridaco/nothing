@@ -9,14 +9,17 @@
   },
   "dependencies": {
     "@nothing/core": "0.0.1",
+    "@nothing.app/skia-backend": "^0.0.0",
+    "canvaskit-oc": "^0.0.1-alpha.1",
     "next": "10.0.9",
-    "react": "17.0.2",
-    "react-dom": "17.0.2"
+    "react": "^0.0.0-b48b38af6",
+    "react-dom": "^0.0.0-b48b38af6"
   },
   "devDependencies": {
     "@types/node": "^14.14.35",
     "@types/react": "^17.0.3",
     "copy-webpack-plugin": "^6.3.2",
+    "next-transpile-modules": "^6.4.0",
     "typescript": "^4.2.3"
   }
 }

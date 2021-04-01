@@ -1,6 +1,7 @@
 const CopyPlugin = require("copy-webpack-plugin");
+const withTM = require("next-transpile-modules")(["@nothing.app/skia-backend"]);
 
-module.exports = {
+module.exports = withTM({
   webpack(config) {
     config.node = {
       fs: "empty",
@@ -19,4 +20,4 @@ module.exports = {
 
     return config;
   },
-};
+});
