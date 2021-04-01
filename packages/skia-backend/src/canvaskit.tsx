@@ -3,7 +3,7 @@ import { init as canvasKitInit } from "canvaskit-oc";
 import type { FunctionComponent, ReactNode } from "react";
 import * as React from "react";
 import type { HostConfig, ReactNodeList } from "react-reconciler";
-import * as ReactReconciler from "react-reconciler";
+import ReactReconciler from "react-reconciler";
 import {
   CkElement,
   CkElementContainer,
