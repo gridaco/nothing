@@ -18,18 +18,18 @@ export interface CkLineProps extends CkElementProps<never> {
   paint?: Paint;
 }
 
-class CkLine implements CkElement<"ck-line"> {
+class CkLine implements CkElement<"cg-line"> {
   readonly canvasKit: CanvasKit;
-  readonly props: CkObjectTyping["ck-line"]["props"];
-  readonly skObjectType: CkObjectTyping["ck-line"]["name"] = "Line";
-  readonly type: "ck-line" = "ck-line";
+  readonly props: CkObjectTyping["cg-line"]["props"];
+  readonly skObjectType: CkObjectTyping["cg-line"]["name"] = "Line";
+  readonly type: "cg-line" = "cg-line";
 
   private readonly defaultPaint: SkPaint;
 
   private renderPaint?: SkPaint;
   deleted = false;
 
-  constructor(canvasKit: CanvasKit, props: CkObjectTyping["ck-line"]["props"]) {
+  constructor(canvasKit: CanvasKit, props: CkObjectTyping["cg-line"]["props"]) {
     this.canvasKit = canvasKit;
     this.props = props;
 
@@ -67,7 +67,7 @@ class CkLine implements CkElement<"ck-line"> {
   }
 }
 
-export const createCkLine: CkElementCreator<"ck-line"> = (
+export const createCkLine: CkElementCreator<"cg-line"> = (
   type,
   props,
   canvasKit

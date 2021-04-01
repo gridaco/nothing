@@ -19,11 +19,11 @@ export interface CkTextProps extends CkElementProps<never> {
   children: string;
 }
 
-class CkText implements CkElement<"ck-text"> {
+class CkText implements CkElement<"cg-text"> {
   readonly canvasKit: CanvasKit;
-  readonly props: CkObjectTyping["ck-text"]["props"];
-  readonly skObjectType: CkObjectTyping["ck-text"]["name"] = "Text";
-  readonly type: "ck-text" = "ck-text";
+  readonly props: CkObjectTyping["cg-text"]["props"];
+  readonly skObjectType: CkObjectTyping["cg-text"]["name"] = "Text";
+  readonly type: "cg-text" = "cg-text";
 
   private readonly defaultPaint: SkPaint;
   private readonly defaultFont: SkFont;
@@ -32,7 +32,7 @@ class CkText implements CkElement<"ck-text"> {
   private renderFont?: SkFont;
   deleted = false;
 
-  constructor(canvasKit: CanvasKit, props: CkObjectTyping["ck-text"]["props"]) {
+  constructor(canvasKit: CanvasKit, props: CkObjectTyping["cg-text"]["props"]) {
     this.canvasKit = canvasKit;
     this.props = props;
 
@@ -73,7 +73,7 @@ class CkText implements CkElement<"ck-text"> {
   }
 }
 
-export const createCkText: CkElementCreator<"ck-text"> = (
+export const createCkText: CkElementCreator<"cg-text"> = (
   type,
   props,
   canvasKit

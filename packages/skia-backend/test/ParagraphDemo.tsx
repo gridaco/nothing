@@ -46,17 +46,17 @@ export default () => {
   // The default skia canvaskit font manager has only one font (Noto Mono).
   if (fontManager.getFamilyName(0) === "Noto Mono") {
     return (
-      <ck-canvas clear="#FFFFFF">
-        <ck-text x={5} y={450} paint={fontPaint}>
+      <cg-canvas clear="#FFFFFF">
+        <cg-text x={5} y={450} paint={fontPaint}>
           Fetching Font data...
-        </ck-text>
-      </ck-canvas>
+        </cg-text>
+      </cg-canvas>
     );
   }
 
   return (
-    <ck-canvas clear="#FFFFFF">
-      <ck-paragraph
+    <cg-canvas clear="#FFFFFF">
+      <cg-paragraph
         fontManager={fontManager}
         ref={skParagraphRef}
         textStyle={{
@@ -70,11 +70,11 @@ export default () => {
         layout={wrapTo}
       >
         {paragraphText}
-      </ck-paragraph>
-      <ck-line x1={wrapTo} y1={0} x2={wrapTo} y2={400} paint={fontPaint} />
-      <ck-text x={5} y={450} paint={fontPaint}>{`At (${X.toFixed(
+      </cg-paragraph>
+      <cg-line x1={wrapTo} y1={0} x2={wrapTo} y2={400} paint={fontPaint} />
+      <cg-text x={5} y={450} paint={fontPaint}>{`At (${X.toFixed(
         2
-      )}, ${Y.toFixed(2)}) glyph is '${glyph}'`}</ck-text>
-    </ck-canvas>
+      )}, ${Y.toFixed(2)}) glyph is '${glyph}'`}</cg-text>
+    </cg-canvas>
   );
 };

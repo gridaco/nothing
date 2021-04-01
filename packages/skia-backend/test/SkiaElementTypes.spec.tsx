@@ -37,28 +37,28 @@ describe("canvaskit canvas", () => {
 
     await ReactCanvasKit.init();
     await ReactCanvasKit.render(
-      <ck-canvas clear={{ red: 255, green: 165, blue: 0 }}>
-        <ck-text
+      <cg-canvas clear={{ red: 255, green: 165, blue: 0 }}>
+        <cg-text
           x={5}
           y={50}
           paint={{ color: "#00FFFF", antiAlias: true }}
           font={{ size: 24 }}
         >
           Hello React-CanvasKit!
-        </ck-text>
+        </cg-text>
         <SKSurface width={100} height={100} dx={100} dy={100}>
-          <ck-canvas clear="#FF00FF" rotate={{ degree: 45 }}>
-            <ck-text> React-CanvasKit.</ck-text>
-            <ck-line
+          <cg-canvas clear="#FF00FF" rotate={{ degree: 45 }}>
+            <cg-text> React-CanvasKit.</cg-text>
+            <cg-line
               x1={0}
               y1={10}
               x2={142}
               y2={10}
               paint={{ antiAlias: true, color: "#FFFFFF", strokeWidth: 10 }}
             />
-          </ck-canvas>
+          </cg-canvas>
         </SKSurface>
-      </ck-canvas>,
+      </cg-canvas>,
       // @ts-ignore
       {
         tagName: "CANVAS",

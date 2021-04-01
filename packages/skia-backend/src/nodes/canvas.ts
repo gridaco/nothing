@@ -17,21 +17,21 @@ export interface CkCanvasProps extends CkElementProps<SkCanvas> {
   children?: ReactNode;
 }
 
-type CkCanvasChild = CkElement<"ck-surface"> | CkElement<"ck-text">;
+type CkCanvasChild = CkElement<"cg-surface"> | CkElement<"cg-text">;
 
-export class CkCanvas implements CkElementContainer<"ck-canvas"> {
+export class CkCanvas implements CkElementContainer<"cg-canvas"> {
   readonly canvasKit: CanvasKit;
-  readonly props: CkObjectTyping["ck-canvas"]["props"];
-  skObject?: CkObjectTyping["ck-canvas"]["type"];
-  readonly skObjectType: CkObjectTyping["ck-canvas"]["name"] = "SkCanvas";
-  readonly type: "ck-canvas" = "ck-canvas";
+  readonly props: CkObjectTyping["cg-canvas"]["props"];
+  skObject?: CkObjectTyping["cg-canvas"]["type"];
+  readonly skObjectType: CkObjectTyping["cg-canvas"]["name"] = "SkCanvas";
+  readonly type: "cg-canvas" = "cg-canvas";
   children: CkCanvasChild[] = [];
 
   private deleted = false;
 
   constructor(
     canvasKit: CanvasKit,
-    props: CkObjectTyping["ck-canvas"]["props"]
+    props: CkObjectTyping["cg-canvas"]["props"]
   ) {
     this.canvasKit = canvasKit;
     this.props = props;
@@ -48,7 +48,7 @@ export class CkCanvas implements CkElementContainer<"ck-canvas"> {
       }
     } else {
       throw new Error(
-        "Expected an initialized SKSurface as parent of ck-canvas"
+        "Expected an initialized SKSurface as parent of cg-canvas"
       );
     }
 
@@ -83,11 +83,11 @@ export class CkCanvas implements CkElementContainer<"ck-canvas"> {
 }
 
 export function isCkCanvas(ckElement: CkElement<any>): ckElement is CkCanvas {
-  return ckElement.type === "ck-canvas";
+  return ckElement.type === "cg-canvas";
 }
 
-export const createCkCanvas: CkElementCreator<"ck-canvas"> = (
+export const createCkCanvas: CkElementCreator<"cg-canvas"> = (
   type,
   props,
   canvasKit: CanvasKit
-): CkElementContainer<"ck-canvas"> => new CkCanvas(canvasKit, props);
+): CkElementContainer<"cg-canvas"> => new CkCanvas(canvasKit, props);

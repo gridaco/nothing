@@ -72,7 +72,7 @@ interface ReactCanvasKitHostConfig
     CkElementProps<any>,
     CkElementContainer<any>,
     CkElement<any>,
-    CkElement<"ck-text"> | CkElement<"ck-paragraph">,
+    CkElement<"cg-text"> | CkElement<"cg-paragraph">,
     any,
     SkObjectRef<any>,
     ContainerContext,
@@ -155,7 +155,7 @@ const hostConfig: ReactCanvasKitHostConfig = {
    * @return This should be a boolean value.
    */
   shouldSetTextContent(type, props): boolean {
-    return type === "ck-text" || type === "ck-paragraph";
+    return type === "cg-text" || type === "cg-paragraph";
   },
 
   /**
@@ -174,9 +174,9 @@ const hostConfig: ReactCanvasKitHostConfig = {
     rootContainerInstance,
     hostContext,
     internalInstanceHandle
-  ): CkElement<"ck-text"> | CkElement<"ck-paragraph"> {
+  ): CkElement<"cg-text"> | CkElement<"cg-paragraph"> {
     throw new Error(
-      `The text '${text}' must be wrapped in a ck-text or ck-paragraph element.`
+      `The text '${text}' must be wrapped in a cg-text or cg-paragraph element.`
     );
   },
 
@@ -269,7 +269,7 @@ const hostConfig: ReactCanvasKitHostConfig = {
   },
 
   getPublicInstance(
-    instance: CkElement<any> | CkElement<"ck-text">
+    instance: CkElement<any> | CkElement<"cg-text">
   ): SkObjectRef<any> {
     return { ref: () => instance.skObject };
   },
@@ -331,9 +331,9 @@ export function render(
   const hydrate = false;
 
   const skSurface = canvasKit.MakeCanvasSurface(canvas);
-  const ckSurfaceElement: CkElementContainer<"ck-surface"> = {
+  const ckSurfaceElement: CkElementContainer<"cg-surface"> = {
     canvasKit,
-    type: "ck-surface",
+    type: "cg-surface",
     // @ts-ignore
     props: { width: canvas.width, height: canvas.height, renderCallback },
     skObjectType: "SkSurface",

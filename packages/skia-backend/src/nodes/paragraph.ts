@@ -25,18 +25,18 @@ export interface CkParagraphProps
   fontManager?: SkFontManager;
 }
 
-class CkParagraph implements CkElement<"ck-paragraph"> {
+class CkParagraph implements CkElement<"cg-paragraph"> {
   readonly canvasKit: CanvasKit;
-  readonly props: CkObjectTyping["ck-paragraph"]["props"];
-  skObject?: CkObjectTyping["ck-paragraph"]["type"];
-  readonly skObjectType: CkObjectTyping["ck-paragraph"]["name"] = "SkParagraph";
-  readonly type: "ck-paragraph" = "ck-paragraph";
+  readonly props: CkObjectTyping["cg-paragraph"]["props"];
+  skObject?: CkObjectTyping["cg-paragraph"]["type"];
+  readonly skObjectType: CkObjectTyping["cg-paragraph"]["name"] = "SkParagraph";
+  readonly type: "cg-paragraph" = "cg-paragraph";
 
   deleted = false;
 
   constructor(
     canvasKit: CanvasKit,
-    props: CkObjectTyping["ck-paragraph"]["props"]
+    props: CkObjectTyping["cg-paragraph"]["props"]
   ) {
     this.canvasKit = canvasKit;
     this.props = props;
@@ -76,8 +76,8 @@ class CkParagraph implements CkElement<"ck-paragraph"> {
   }
 }
 
-export const createCkParagraph: CkElementCreator<"ck-paragraph"> = (
+export const createCkParagraph: CkElementCreator<"cg-paragraph"> = (
   type,
   props,
   canvasKit
-): CkElement<"ck-paragraph"> => new CkParagraph(canvasKit, props);
+): CkElement<"cg-paragraph"> => new CkParagraph(canvasKit, props);

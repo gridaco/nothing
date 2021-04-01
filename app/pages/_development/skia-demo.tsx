@@ -11,30 +11,30 @@ import useAnimationFrame from "../../components/use-animation-frame";
 import { Stage } from "@nothing.app/skia-backend/src/stage";
 function Comp() {
   return (
-    <ck-canvas clear={{ red: 255, green: 165, blue: 0 }}>
-      <ck-text
+    <cg-canvas clear={{ red: 255, green: 165, blue: 0 }}>
+      <cg-text
         x={5}
         y={50}
         paint={{ color: "#00FFFF", antiAlias: true }}
         font={{ size: 24 }}
       >
         Nothing engine
-      </ck-text>
-      {/* <ck-rect /> */}
+      </cg-text>
+      {/* <cg-rect /> */}
       <cg-rrect />
-      <ck-surface width={100} height={100} dx={100} dy={100}>
-        <ck-canvas clear="#FF00FF" rotate={{ degree: 45 }}>
-          <ck-text>Nothing engine with skia backend, running on react</ck-text>
-          <ck-line
+      <cg-surface width={100} height={100} dx={100} dy={100}>
+        <cg-canvas clear="#FF00FF" rotate={{ degree: 45 }}>
+          <cg-text>Nothing engine with skia backend, running on react</cg-text>
+          <cg-line
             x1={0}
             y1={10}
             x2={142}
             y2={10}
             paint={{ antiAlias: true, color: "#FFFFFF", strokeWidth: 10 }}
           />
-        </ck-canvas>
-      </ck-surface>
-    </ck-canvas>
+        </cg-canvas>
+      </cg-surface>
+    </cg-canvas>
   );
 }
 

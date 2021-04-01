@@ -25,7 +25,7 @@ class CGRRect implements CkElement<"cg-rrect"> {
   private renderPaint?: SkPaint;
   deleted = false;
 
-  constructor(canvasKit: CanvasKit, props: CkObjectTyping["ck-rect"]["props"]) {
+  constructor(canvasKit: CanvasKit, props: CkObjectTyping["cg-rect"]["props"]) {
     this.canvasKit = canvasKit;
     this.props = props;
 

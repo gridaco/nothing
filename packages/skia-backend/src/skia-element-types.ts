@@ -25,13 +25,13 @@ export type CkElementProps<T extends SkObject<any> | never> = {
 };
 
 export interface CkObjectTyping {
-  "ck-surface": { type: SkSurface; name: "SkSurface"; props: CkSurfaceProps };
-  "ck-canvas": { type: SkCanvas; name: "SkCanvas"; props: CkCanvasProps };
-  "ck-line": { type: never; name: "Line"; props: CkLineProps };
-  "ck-rect": { type: never; name: "Rect"; props: CkRectProps };
+  "cg-surface": { type: SkSurface; name: "SkSurface"; props: CkSurfaceProps };
+  "cg-canvas": { type: SkCanvas; name: "SkCanvas"; props: CkCanvasProps };
+  "cg-line": { type: never; name: "Line"; props: CkLineProps };
+  "cg-rect": { type: never; name: "Rect"; props: CkRectProps };
   "cg-rrect": { type: never; name: "RRect"; props: CGRRectProps };
-  "ck-text": { type: never; name: "Text"; props: CkTextProps };
-  "ck-paragraph": {
+  "cg-text": { type: never; name: "Text"; props: CkTextProps };
+  "cg-paragraph": {
     type: SkParagraph;
     name: "SkParagraph";
     props: CkParagraphProps;
@@ -440,13 +440,13 @@ export interface ParagraphProps {
 }
 
 const CkElements: { [key in CkElementType]: CkElementCreator<any> } = {
-  "ck-text": createCkText,
-  "ck-line": createCkLine,
-  "ck-rect": createCkRect,
+  "cg-text": createCkText,
+  "cg-line": createCkLine,
+  "cg-rect": createCkRect,
   "cg-rrect": createCgRRect,
-  "ck-surface": createCkSurface,
-  "ck-canvas": createCkCanvas,
-  "ck-paragraph": createCkParagraph,
+  "cg-surface": createCkSurface,
+  "cg-canvas": createCkCanvas,
+  "cg-paragraph": createCkParagraph,
 };
 
 export function createCkElement(
@@ -460,13 +460,13 @@ export function createCkElement(
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      "ck-text": CkTextProps;
-      "ck-canvas": CkCanvasProps;
-      "ck-surface": CkSurfaceProps;
-      "ck-line": CkLineProps;
-      "ck-rect": CkRectProps;
+      "cg-text": CkTextProps;
+      "cg-canvas": CkCanvasProps;
+      "cg-surface": CkSurfaceProps;
+      "cg-line": CkLineProps;
+      "cg-rect": CkRectProps;
       "cg-rrect": CGRRectProps;
-      "ck-paragraph": CkParagraphProps;
+      "cg-paragraph": CkParagraphProps;
     }
   }
 }

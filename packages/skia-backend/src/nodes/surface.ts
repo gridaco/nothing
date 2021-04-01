@@ -22,13 +22,13 @@ export interface CkSurfaceProps extends CkElementProps<SkSurface> {
   children?: ReactElement<CkCanvasProps> | ReactElement<CkCanvasProps>[];
 }
 
-export class CkSurface implements CkElementContainer<"ck-surface"> {
+export class CkSurface implements CkElementContainer<"cg-surface"> {
   readonly canvasKit: CanvasKit;
-  readonly props: CkObjectTyping["ck-surface"]["props"];
-  skObject?: CkObjectTyping["ck-surface"]["type"];
-  readonly skObjectType: CkObjectTyping["ck-surface"]["name"] = "SkSurface";
-  readonly type: "ck-surface" = "ck-surface";
-  children: CkElementContainer<"ck-canvas">[] = [];
+  readonly props: CkObjectTyping["cg-surface"]["props"];
+  skObject?: CkObjectTyping["cg-surface"]["type"];
+  readonly skObjectType: CkObjectTyping["cg-surface"]["name"] = "SkSurface";
+  readonly type: "cg-surface" = "cg-surface";
+  children: CkElementContainer<"cg-canvas">[] = [];
 
   readonly defaultPaint: SkPaint;
   private renderPaint?: SkPaint;
@@ -36,7 +36,7 @@ export class CkSurface implements CkElementContainer<"ck-surface"> {
 
   constructor(
     canvasKit: CanvasKit,
-    props: CkObjectTyping["ck-surface"]["props"]
+    props: CkObjectTyping["cg-surface"]["props"]
   ) {
     this.canvasKit = canvasKit;
     this.props = props;
@@ -55,7 +55,7 @@ export class CkSurface implements CkElementContainer<"ck-surface"> {
       }
     } else {
       throw new Error(
-        "Expected an initialized ck-canvas as parent of ck-surface"
+        "Expected an initialized cg-canvas as parent of cg-surface"
       );
     }
 
@@ -90,14 +90,14 @@ export class CkSurface implements CkElementContainer<"ck-surface"> {
   }
 }
 
-export const createCkSurface: CkElementCreator<"ck-surface"> = (
+export const createCkSurface: CkElementCreator<"cg-surface"> = (
   type,
   props,
   canvasKit
-): CkElementContainer<"ck-surface"> => {
+): CkElementContainer<"cg-surface"> => {
   return new CkSurface(canvasKit, props);
 };
 
 export function isCkSurface(ckElement: CkElement<any>): ckElement is CkSurface {
-  return ckElement.type === "ck-surface";
+  return ckElement.type === "cg-surface";
 }

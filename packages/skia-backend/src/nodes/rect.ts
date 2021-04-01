@@ -14,18 +14,18 @@ export interface CkRectProps extends CkElementProps<never> {
   paint?: Paint;
 }
 
-class CkRect implements CkElement<"ck-rect"> {
+class CkRect implements CkElement<"cg-rect"> {
   readonly canvasKit: CanvasKit;
-  readonly props: CkObjectTyping["ck-rect"]["props"];
-  readonly skObjectType: CkObjectTyping["ck-rect"]["name"] = "Rect";
-  readonly type: "ck-rect" = "ck-rect";
+  readonly props: CkObjectTyping["cg-rect"]["props"];
+  readonly skObjectType: CkObjectTyping["cg-rect"]["name"] = "Rect";
+  readonly type: "cg-rect" = "cg-rect";
 
   private readonly defaultPaint: SkPaint;
 
   private renderPaint?: SkPaint;
   deleted = false;
 
-  constructor(canvasKit: CanvasKit, props: CkObjectTyping["ck-rect"]["props"]) {
+  constructor(canvasKit: CanvasKit, props: CkObjectTyping["cg-rect"]["props"]) {
     this.canvasKit = canvasKit;
     this.props = props;
 
@@ -65,7 +65,7 @@ class CkRect implements CkElement<"ck-rect"> {
   }
 }
 
-export const createCkRect: CkElementCreator<"ck-rect"> = (
+export const createCkRect: CkElementCreator<"cg-rect"> = (
   type,
   props,
   canvasKit
