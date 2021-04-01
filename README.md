@@ -26,7 +26,10 @@ All in one, brand new experience you will have. don't imagine, try it now.
 
 ## References
 
+- https://skia.org/
 - https://api.skia.org/
+- https://skia.org/docs/user/modules/canvaskit/
+- https://groups.google.com/g/skia-discuss
 - https://dbdiagram.io/
 - https://draw.io/
 - https://miro.com/
