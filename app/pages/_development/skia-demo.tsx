@@ -1,13 +1,4 @@
-import type { SkParagraph } from "canvaskit-oc";
 import React, { useEffect } from "react";
-import {
-  init,
-  render,
-  PaintStyle,
-  TextAlignEnum,
-  useFontManager,
-} from "@nothing.app/skia-backend";
-import useAnimationFrame from "../../components/use-animation-frame";
 import { Stage } from "@nothing.app/skia-backend/src/stage";
 function Comp() {
   return (
@@ -21,7 +12,8 @@ function Comp() {
         Nothing engine
       </cg-text>
       {/* <cg-rect /> */}
-      <cg-rrect />
+      {/* <cg-rrect /> */}
+      <cg-image />
       <cg-surface width={100} height={100} dx={100} dy={100}>
         <cg-canvas clear="#FF00FF" rotate={{ degree: 45 }}>
           <cg-text>Nothing engine with skia backend, running on react</cg-text>
@@ -45,18 +37,3 @@ export default function Page() {
     </Stage>
   );
 }
-
-// export default function Skia3rdPartyDemoPage() {
-//   useEffect(() => {
-//     if (process.browser) {
-//       const htmlCanvasElement = document.createElement("canvas");
-//       const rootElement = document.getElementById("root");
-//       rootElement.appendChild(htmlCanvasElement);
-//       document.body.appendChild(htmlCanvasElement);
-//       htmlCanvasElement.width = 400;
-//       htmlCanvasElement.height = 300;
-//       init().then(() => render(<Comp />, htmlCanvasElement));
-//     }
-//   }, []);
-//   return <div id="root"></div>;
-// }
