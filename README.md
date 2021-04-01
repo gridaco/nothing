@@ -1,3 +1,5 @@
+![nothing graphics engine logo](./branding/cover.png)
+
 # nothing
 
 nothing but drawing. everything drawable engine.
