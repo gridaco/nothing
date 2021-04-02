@@ -1,0 +1,32 @@
+{
+    "name": "@nothing.app/use-image",
+    "version": "1.0.0",
+    "description": "Custom React Hook for loading images.",
+    "main": "index.js",
+    "files": [
+        "index.js",
+        "index.d.ts"
+    ],
+    "scripts": {},
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/bridgedxyz/nothing.git"
+    },
+    "keywords": [
+        "react",
+        "react-hooks",
+        "canvas",
+        "image",
+        "nothing",
+        "skia"
+    ],
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/bridgedxyz/nothing/issues"
+    },
+    "homepage": "https://nothing.app",
+    "peerDependencies": {
+        "react": "^16.8.0 || ^17",
+        "react-dom": "^16.8.0 || ^17"
+    }
+}
