@@ -12,10 +12,10 @@ import {
 
 export interface CkRectProps extends CkElementProps<never> {
   paint?: Paint;
-  width?: number;
-  height?: number;
-  x?: number;
-  y?: number;
+  fLeft: number;
+  fTop: number;
+  fRight: number;
+  fBottom: number;
 }
 
 class CkRect implements CkElement<"cg-rect"> {
@@ -44,18 +44,20 @@ class CkRect implements CkElement<"cg-rect"> {
     }
 
     if (parent && isCkCanvas(parent)) {
+      const { fLeft, fRight, fTop, fBottom } = this.props;
+
       // TODO we can be smart and only recreate the paint object if the paint props have changed.
       this.renderPaint?.delete();
       this.renderPaint = toSkPaint(this.canvasKit, this.props.paint);
 
       parent.skObject?.drawRect(
         {
-          fLeft: 0,
-          fTop: 0,
-          fRight: this.props.width ?? 100,
-          fBottom: this.props.height ?? 100,
+          fLeft,
+          fTop,
+          fRight,
+          fBottom,
         },
-        this.defaultPaint
+        this.renderPaint ?? this.defaultPaint
       );
     }
   }

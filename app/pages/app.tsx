@@ -16,10 +16,40 @@ enum StorableLayerType {
   rect = "RECT",
 }
 
+function returnRGBAcolor(fill) {
+  let { r, g, b, a: alpha } = fill;
+
+  const hex =
+    ((alpha * 255) | (1 << 8)).toString(16).slice(1) +
+    ((r * 255) | (1 << 8)).toString(16).slice(1) +
+    ((g * 255) | (1 << 8)).toString(16).slice(1) +
+    ((b * 255) | (1 << 8)).toString(16).slice(1);
+
+  var _r = parseInt(hex.slice(1, 3), 16),
+    _g = parseInt(hex.slice(3, 5), 16),
+    _b = parseInt(hex.slice(5, 7), 16);
+
+  let a = 1;
+
+  try {
+    if (hex.length >= 8) {
+      // 8 or 9 if '#' included in hex, then 9, if not, 8
+      a = parseInt(hex.slice(7, 9), 16);
+    }
+  } catch (_) {}
+
+  return {
+    red: _r,
+    green: _g,
+    blue: _b,
+    alpha: a,
+  };
+}
+
 function CanvasComposition(props: { data: any }) {
   return (
     <cg-canvas>
-      <cg-rect width={props.data.width} height={props.data.height} />
+      {/* <cg-rect width={props.data.width} height={props.data.height} /> */}
       {props.data.layers
         .sort((a, b) => a.index - b.index)
         .map((e) => {
@@ -46,9 +76,37 @@ function CanvasComposition(props: { data: any }) {
               </cg-surface>
             );
           } else if (e.type == StorableLayerType.rect) {
-            if (e.data.fill) {
-              return <cg-rect paint={{ style: 1 }} />;
-            }
+            return e.data.fill ? (
+              <cg-rect
+                fBottom={e.width + e.y}
+                fTop={e.y}
+                fLeft={e.x}
+                fRight={e.height + e.x}
+                paint={{ color: returnRGBAcolor(e.data.fill) }}
+              />
+            ) : (
+              <cg-rect
+                fBottom={e.width + e.y}
+                fTop={e.y}
+                fLeft={e.x}
+                fRight={e.height + e.x}
+              />
+            );
+
+            // p1 = x, y
+
+            //   return (
+            //     <cg-rect
+            //       width={e.width}
+            //       height={e.height}
+            //     />
+            //   );
+            // } else {
+            //   console.log(e);
+            //   return (
+            //     <cg-rect x={e.x} y={e.y} width={e.width} height={e.height} />
+            //   );
+            // }
           }
         })}
     </cg-canvas>

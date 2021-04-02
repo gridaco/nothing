@@ -64,9 +64,10 @@ export class CkSurface implements CkElementContainer<"cg-surface"> {
   }
 
   private drawSelf(parent: SkCanvas, skSurface: SkSurface) {
-    const skImage = skSurface.makeImageSnapshot();
     const { dx, dy, paint } = this.props;
+
     // TODO we can be smart and only recreate the paint object if the paint props have changed.
+    const skImage = skSurface.makeImageSnapshot();
     this.renderPaint?.delete();
     this.renderPaint = toSkPaint(this.canvasKit, paint);
     parent.drawImage(
