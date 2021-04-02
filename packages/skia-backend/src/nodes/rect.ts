@@ -12,6 +12,10 @@ import {
 
 export interface CkRectProps extends CkElementProps<never> {
   paint?: Paint;
+  width?: number;
+  height?: number;
+  x?: number;
+  y?: number;
 }
 
 class CkRect implements CkElement<"cg-rect"> {
@@ -30,7 +34,7 @@ class CkRect implements CkElement<"cg-rect"> {
     this.props = props;
 
     this.defaultPaint = new this.canvasKit.SkPaint();
-    this.defaultPaint.setStyle(this.canvasKit.PaintStyle.Fill);
+    this.defaultPaint.setStyle(this.canvasKit.PaintStyle.Stroke);
     this.defaultPaint.setAntiAlias(true);
   }
 
@@ -43,12 +47,13 @@ class CkRect implements CkElement<"cg-rect"> {
       // TODO we can be smart and only recreate the paint object if the paint props have changed.
       this.renderPaint?.delete();
       this.renderPaint = toSkPaint(this.canvasKit, this.props.paint);
+
       parent.skObject?.drawRect(
         {
-          fLeft: 0,
-          fTop: 0,
-          fRight: 100,
-          fBottom: 100,
+          fLeft: this.props.x ?? 0,
+          fTop: this.props.y ?? 0,
+          fRight: this.props.width ?? 100,
+          fBottom: this.props.height ?? 100,
         },
         this.defaultPaint
       );

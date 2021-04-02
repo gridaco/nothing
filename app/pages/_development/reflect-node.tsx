@@ -17,6 +17,8 @@ enum StorableLayerType {
   rect = "RECT",
 }
 
+let ix = 0;
+
 function CanvasComposition(props: { data: any }) {
   return (
     <cg-canvas>
@@ -58,7 +60,18 @@ function CanvasComposition(props: { data: any }) {
                   </cg-surface>
                 );
               } else if (e.type == StorableLayerType.rect) {
-                // return <cg-rect paint={{ color: "red" }} />;
+                if (e.data.fill) {
+                  ix++;
+                  return (
+                    <cg-rect
+                      width={e.width}
+                      height={e.height}
+                      x={e.x}
+                      y={e.y}
+                      paint={{ style: 1 }}
+                    />
+                  );
+                }
               }
             })}
         </cg-canvas>
