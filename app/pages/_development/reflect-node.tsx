@@ -40,23 +40,23 @@ function CanvasComposition(props: { data: any }) {
                       x={e.x}
                       y={e.y + ix * e.data.style.fontSize}
                       font={{ size: e.data.style.fontSize }}
-                      paint={{ color: e.data.style.color }}
+                      paint={{ color: { red: 255, green: 0, blue: 0 } }}
                     >
                       {i}
                     </cg-text>
                   );
                 });
               } else if (e.type == StorableLayerType.vanilla) {
-                // return (
-                //   <cg-surface
-                //     width={e.width}
-                //     height={e.height}
-                //     dx={e.x}
-                //     dy={e.y}
-                //   >
-                //     <cg-canvas clear="#000" />
-                //   </cg-surface>
-                // );
+                return (
+                  <cg-surface
+                    width={e.width}
+                    height={e.height}
+                    dx={e.x}
+                    dy={e.y}
+                  >
+                    <cg-canvas clear="#000" />
+                  </cg-surface>
+                );
               } else if (e.type == StorableLayerType.rect) {
                 // return <cg-rect paint={{ color: "red" }} />;
               }
