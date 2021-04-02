@@ -11,8 +11,6 @@ function Comp() {
       >
         Nothing engine
       </cg-text>
-      {/* <cg-rect /> */}
-      {/* <cg-rrect /> */}
       <cg-image />
       <cg-surface width={100} height={100} dx={100} dy={100}>
         <cg-canvas clear="#FF00FF" rotate={{ degree: 45 }}>
@@ -29,6 +27,7 @@ function Comp() {
       <cg-circle cx={50} cy={150} radius={50} />
       <cg-point mode={2} points={[[10, 10]]} />
       <cg-rrect rx={20} ry={20} fTop={0} fRight={0} fBottom={100} fLeft={100} />
+      <cg-rect fTop={50} fRight={150} fBottom={100} fLeft={100} />
     </cg-canvas>
   );
 }
