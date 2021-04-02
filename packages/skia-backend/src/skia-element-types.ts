@@ -20,6 +20,8 @@ import type { SkObjectRef } from "./canvaskit";
 import { CkRectProps, createCkRect } from "./nodes/rect";
 import { CGRRectProps, createCgRRect } from "./nodes/rrect";
 import { CGImageProps, createCgImage } from "./nodes/image";
+import { CkCircleProps, createCkCircle } from "./nodes/circle";
+import { CkPointProps, createCkPoint } from "./nodes/point";
 
 export type CkElementProps<T extends SkObject<any> | never> = {
   ref?: RefObject<SkObjectRef<T>>;
@@ -31,6 +33,8 @@ export interface CkObjectTyping {
   "cg-line": { type: never; name: "Line"; props: CkLineProps };
   "cg-rect": { type: never; name: "Rect"; props: CkRectProps };
   "cg-rrect": { type: never; name: "RRect"; props: CGRRectProps };
+  "cg-circle": { type: never; name: "Circle"; props: CkCircleProps };
+  "cg-point": { type: never; name: "Point"; props: CkPointProps };
   "cg-image": { type: never; name: "Image"; props: CGImageProps };
   "cg-text": { type: never; name: "Text"; props: CkTextProps };
   "cg-paragraph": {
@@ -447,9 +451,11 @@ const CkElements: { [key in CkElementType]: CkElementCreator<any> } = {
   "cg-rect": createCkRect,
   "cg-rrect": createCgRRect,
   "cg-image": createCgImage,
+  "cg-circle": createCkCircle,
   "cg-surface": createCkSurface,
   "cg-canvas": createCkCanvas,
   "cg-paragraph": createCkParagraph,
+  "cg-point": createCkPoint,
 };
 
 export function createCkElement(
@@ -469,8 +475,10 @@ declare global {
       "cg-line": CkLineProps;
       "cg-rect": CkRectProps;
       "cg-rrect": CGRRectProps;
+      "cg-circle": CkCircleProps;
       "cg-image": CGImageProps;
       "cg-paragraph": CkParagraphProps;
+      "cg-point": CkPointProps;
     }
   }
 }

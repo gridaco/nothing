@@ -26,6 +26,8 @@ function Comp() {
           />
         </cg-canvas>
       </cg-surface>
+      <cg-circle cx={50} cy={150} radius={50} />
+      <cg-point mode={2} points={[[10, 10]]} />
     </cg-canvas>
   );
 }

@@ -25,7 +25,10 @@ class CGImage implements CkElement<"cg-image"> {
   private renderPaint?: SkPaint;
   deleted = false;
 
-  constructor(canvasKit: CanvasKit, props: CkObjectTyping["cg-rect"]["props"]) {
+  constructor(
+    canvasKit: CanvasKit,
+    props: CkObjectTyping["cg-image"]["props"]
+  ) {
     this.canvasKit = canvasKit;
     this.props = props;
 

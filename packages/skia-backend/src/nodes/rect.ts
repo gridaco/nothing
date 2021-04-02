@@ -12,10 +12,10 @@ import {
 
 export interface CkRectProps extends CkElementProps<never> {
   paint?: Paint;
-  fLeft?: number;
-  fTop?: number;
-  fRight?: number;
-  fBottom?: number;
+  fLeft: number;
+  fTop: number;
+  fRight: number;
+  fBottom: number;
 }
 
 class CkRect implements CkElement<"cg-rect"> {
@@ -52,10 +52,10 @@ class CkRect implements CkElement<"cg-rect"> {
 
       parent.skObject?.drawRect(
         {
-          fLeft: fLeft ?? 0,
-          fTop: fTop ?? 0,
-          fRight: fRight ?? 0,
-          fBottom: fBottom ?? 0,
+          fLeft,
+          fTop,
+          fRight,
+          fBottom,
         },
         this.renderPaint ?? this.defaultPaint
       );
