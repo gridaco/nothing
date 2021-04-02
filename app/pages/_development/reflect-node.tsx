@@ -31,11 +31,21 @@ function CanvasComposition(props: { data: any }) {
             .sort((a, b) => a.index - b.index)
             .map((e) => {
               if (e.type == StorableLayerType.text) {
-                return (
-                  <cg-text x={e.x} y={e.y}>
-                    {e.data.text}
-                  </cg-text>
-                );
+                /**
+                 * @description line break is not working on the skia engine, I've taken care of it like this.
+                 */
+                return e.data.text.split("\n").map((i, ix) => {
+                  return (
+                    <cg-text
+                      x={e.x}
+                      y={e.y + ix * e.data.style.fontSize}
+                      font={{ size: e.data.style.fontSize }}
+                      paint={{ color: e.data.style.color }}
+                    >
+                      {i}
+                    </cg-text>
+                  );
+                });
               } else if (e.type == StorableLayerType.vanilla) {
                 // return (
                 //   <cg-surface
