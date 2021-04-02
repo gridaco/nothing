@@ -34,9 +34,12 @@ export async function init() {
 
   CanvasKitContext = React.createContext(ck);
   useCanvasKit = () => React.useContext(CanvasKitContext);
-  CanvasKitProvider = ({ children }) => (
-    <CanvasKitContext.Provider value={ck}>children</CanvasKitContext.Provider>
+  CanvasKitProvider = () => (
+    <CanvasKitContext.Provider value={ck}></CanvasKitContext.Provider>
   );
+  // CanvasKitProvider = ({ children }) => (
+  //   <CanvasKitContext.Provider value={ck}>{children}</CanvasKitContext.Provider>
+  // );
 
   FontManagerContext = React.createContext(ck.SkFontMgr.RefDefault());
   useFontManager = () => React.useContext(FontManagerContext);
