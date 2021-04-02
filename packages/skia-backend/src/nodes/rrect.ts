@@ -16,6 +16,10 @@ export interface CGRRectProps extends CkElementProps<never> {
   fTop: number;
   fRight: number;
   fBottom: number;
+  /**
+   * @description [topLeft, topRight, bottomRight, bottomLeft]
+   */
+  cornerRadius?: number[];
   rx?: number;
   ry?: number;
 }
@@ -46,13 +50,21 @@ class CGRRect implements CkElement<"cg-rrect"> {
     }
 
     if (parent && isCkCanvas(parent)) {
-      const { fLeft, fRight, fTop, fBottom, rx, ry } = this.props;
+      const {
+        fLeft,
+        fRight,
+        fTop,
+        fBottom,
+        rx,
+        ry,
+        cornerRadius = [0, 0, 0, 0],
+      } = this.props;
       // TODO we can be smart and only recreate the paint object if the paint props have changed.
 
       this.renderPaint?.delete();
       this.renderPaint = toSkPaint(this.canvasKit, this.props.paint);
       // drawRoundRect also works. It's just coding style choice. - choosing rrect for naming convention solidity.
-      if (rx || ry || (rx && ry)) {
+      if (rx && ry) {
         parent.skObject?.drawRoundRect(
           {
             fLeft,
@@ -74,14 +86,14 @@ class CGRRect implements CkElement<"cg-rrect"> {
               fRight,
               fBottom,
             },
-            rx1: 24,
-            rx2: 24,
-            rx3: 24,
-            rx4: 24,
-            ry1: 24,
-            ry2: 24,
-            ry3: 24,
-            ry4: 24,
+            rx1: cornerRadius[0],
+            rx2: cornerRadius[1],
+            rx3: cornerRadius[2],
+            rx4: cornerRadius[3],
+            ry1: cornerRadius[0],
+            ry2: cornerRadius[1],
+            ry3: cornerRadius[2],
+            ry4: cornerRadius[3],
           },
           this.renderPaint ?? this.defaultPaint
         );
