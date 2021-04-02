@@ -32,28 +32,23 @@ function CanvasComposition(props: { data: any }) {
             .map((e) => {
               if (e.type == StorableLayerType.text) {
                 return (
-                  <cg-text
-                    x={e.x}
-                    y={e.y}
-                    paint={{ color: "#000", antiAlias: true }}
-                    font={{ size: e.data.style.fontSize }}
-                  >
+                  <cg-text x={e.x} y={e.y}>
                     {e.data.text}
                   </cg-text>
                 );
               } else if (e.type == StorableLayerType.vanilla) {
-                return (
-                  <cg-surface
-                    width={e.width}
-                    height={e.height}
-                    dx={e.x}
-                    dy={e.y}
-                  >
-                    <cg-canvas clear="#000" />
-                  </cg-surface>
-                );
+                // return (
+                //   <cg-surface
+                //     width={e.width}
+                //     height={e.height}
+                //     dx={e.x}
+                //     dy={e.y}
+                //   >
+                //     <cg-canvas clear="#000" />
+                //   </cg-surface>
+                // );
               } else if (e.type == StorableLayerType.rect) {
-                return <cg-rect />;
+                // return <cg-rect paint={{ color: "red" }} />;
               }
             })}
         </cg-canvas>
