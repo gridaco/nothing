@@ -26,6 +26,7 @@ function Comp() {
           />
         </cg-canvas>
       </cg-surface>
+      <cg-circle cx={50} cy={150} radius={50} />
     </cg-canvas>
   );
 }
