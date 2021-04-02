@@ -28,7 +28,7 @@ function Comp() {
       </cg-surface>
       <cg-circle cx={50} cy={150} radius={50} />
       <cg-point mode={2} points={[[10, 10]]} />
-      <cg-rrect rx={25} ry={25} fTop={0} fRight={0} fBottom={100} fLeft={100} />
+      <cg-rrect rx={20} ry={20} fTop={0} fRight={0} fBottom={100} fLeft={100} />
     </cg-canvas>
   );
 }
