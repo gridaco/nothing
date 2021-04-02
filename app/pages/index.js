@@ -15,7 +15,7 @@ export default function Home() {
         <p className={styles.description}>Nothing Graphics Engine</p>
 
         <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
+          <a href="/app" className={styles.card}>
             <h3>Quick Start &rarr;</h3>
             <p>Open new empty editor</p>
           </a>

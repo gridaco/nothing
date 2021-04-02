@@ -1,7 +1,7 @@
 import React from "react";
 import useImage from "use-image";
 import { Stage } from "@nothing.app/skia-backend/src/stage";
-import MockData from "../../mock/export-node.json";
+import MockData from "../mock/export-node.json";
 
 const canvasWidth = 500;
 const canvasHeight = 1000;
@@ -56,7 +56,7 @@ function CanvasComposition(props: { data: any }) {
                     dx={e.x}
                     dy={e.y}
                   >
-                    <cg-canvas clear="#000" />
+                    <cg-canvas clear="#999" />
                   </cg-surface>
                 );
               } else if (e.type == StorableLayerType.rect) {
