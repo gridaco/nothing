@@ -50,8 +50,8 @@ class CkRect implements CkElement<"cg-rect"> {
 
       parent.skObject?.drawRect(
         {
-          fLeft: this.props.x ?? 0,
-          fTop: this.props.y ?? 0,
+          fLeft: 0,
+          fTop: 0,
           fRight: this.props.width ?? 100,
           fBottom: this.props.height ?? 100,
         },
