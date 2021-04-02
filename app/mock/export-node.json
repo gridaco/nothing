@@ -1,0 +1,1384 @@
+{
+    "id": "5476:310",
+    "scene": {
+        "name": "demo-app",
+        "description": "",
+        "tags": [],
+        "nodeId": "5476:310",
+        "cachedPreview": "bridged://temp-asset/current-vanilla-scene",
+        "sceneType": "SCREEN",
+        "width": 375,
+        "height": 824,
+        "layers": [
+            {
+                "nodeId": "I4920:23003;4900:16297;4900:16208",
+                "index": 5,
+                "x": 36,
+                "y": 699,
+                "type": "VANILLA",
+                "width": 65,
+                "height": 65,
+                "name": "Rectangle 813",
+                "data": {
+                    "src": "bridged://url-reservation/image-hosting/I4920:23003;4900:16297;4900:16208",
+                    "width": 65,
+                    "height": 65
+                }
+            },
+            {
+                "nodeId": "I4920:23003;4900:16297;4900:16209",
+                "index": 6,
+                "x": 39.611114501953125,
+                "y": 731.5,
+                "type": "TEXT",
+                "name": "LO FI",
+                "width": 50,
+                "height": 64,
+                "data": {
+                    "text": "LO\nFI",
+                    "textAlign": "left",
+                    "textAlignVertical": "start",
+                    "style": {
+                        "fontFamily": "Helvetica",
+                        "fontWeight": "w700",
+                        "fontSize": 36,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 1,
+                            "g": 1,
+                            "b": 1,
+                            "a": 1
+                        }
+                    }
+                }
+            },
+            {
+                "index": -4,
+                "nodeId": "I4920:23003;4900:16297",
+                "name": "(bg-converted) demo-app/album-cover-1",
+                "x": 36,
+                "y": 699,
+                "type": "RECT",
+                "width": 65,
+                "height": 65,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 65,
+                    "height": 65,
+                    "opacity": 1
+                }
+            },
+            {
+                "nodeId": "I4920:23003;4874:20249",
+                "index": 4,
+                "x": 119,
+                "y": 699,
+                "type": "TEXT",
+                "name": "Sweet",
+                "width": 53,
+                "height": 16,
+                "data": {
+                    "text": "Falling",
+                    "textAlign": "left",
+                    "textAlignVertical": "start",
+                    "style": {
+                        "fontFamily": "Roboto",
+                        "fontWeight": "w900",
+                        "fontSize": 18,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 0,
+                            "g": 0,
+                            "b": 0,
+                            "a": 1
+                        }
+                    }
+                }
+            },
+            {
+                "nodeId": "I4920:23003;4874:20248",
+                "index": 5,
+                "x": 119,
+                "y": 720,
+                "type": "TEXT",
+                "name": "Morning Slowbeats - LoFi",
+                "width": 150,
+                "height": 14,
+                "data": {
+                    "text": "Morning Slowbeats - LoFi",
+                    "textAlign": "left",
+                    "textAlignVertical": "start",
+                    "style": {
+                        "fontFamily": "Roboto",
+                        "fontWeight": "w400",
+                        "fontSize": 12,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 0,
+                            "g": 0,
+                            "b": 0,
+                            "a": 0.6000000238418579
+                        }
+                    }
+                }
+            },
+            {
+                "index": -3,
+                "nodeId": "I4920:23003;4874:20412",
+                "name": "(bg-converted) Frame 298",
+                "x": 119,
+                "y": 699,
+                "type": "RECT",
+                "width": 150,
+                "height": 35,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 150,
+                    "height": 35,
+                    "opacity": 1
+                }
+            },
+            {
+                "nodeId": "I4920:23003;5279:27393",
+                "index": 5,
+                "x": 291,
+                "y": 719,
+                "type": "VANILLA",
+                "width": 24,
+                "height": 24,
+                "name": "music-play-button",
+                "data": {
+                    "src": "bridged://url-reservation/image-hosting/I4920:23003;5279:27393",
+                    "width": 24,
+                    "height": 24
+                }
+            },
+            {
+                "index": -5,
+                "nodeId": "I4920:23003;5279:27393",
+                "name": "(bg-converted) music-play-button",
+                "x": 291,
+                "y": 719,
+                "type": "RECT",
+                "width": 24,
+                "height": 24,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 24,
+                    "height": 24,
+                    "opacity": 1
+                }
+            },
+            {
+                "index": -2,
+                "nodeId": "I4920:23003;4874:20242",
+                "name": "(bg-converted) Rectangle 819",
+                "x": 28,
+                "y": 691,
+                "type": "RECT",
+                "width": 315,
+                "height": 81,
+                "data": {
+                    "borderRadius": {
+                        "all": 4
+                    },
+                    "width": 315,
+                    "height": 81,
+                    "fill": {
+                        "r": 1,
+                        "g": 1,
+                        "b": 1,
+                        "a": 1
+                    }
+                }
+            },
+            {
+                "index": -1,
+                "nodeId": "4920:23003",
+                "name": "(bg-converted) Group 527",
+                "x": 28,
+                "y": 691,
+                "type": "RECT",
+                "width": 315,
+                "height": 81,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 315,
+                    "height": 81,
+                    "opacity": 1
+                }
+            },
+            {
+                "nodeId": "4920:23004",
+                "index": 2,
+                "x": 28,
+                "y": 64,
+                "type": "TEXT",
+                "name": "Saturday Morning Mix",
+                "width": 292,
+                "height": 64,
+                "data": {
+                    "text": "Saturday Morning Mix",
+                    "textAlign": "left",
+                    "textAlignVertical": "start",
+                    "style": {
+                        "fontFamily": "Sen",
+                        "fontWeight": "w400",
+                        "fontSize": 36,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 0,
+                            "g": 0,
+                            "b": 0,
+                            "a": 1
+                        }
+                    }
+                }
+            },
+            {
+                "nodeId": "4920:23005",
+                "index": 3,
+                "x": 28,
+                "y": 459,
+                "type": "TEXT",
+                "name": "Lauren is listening",
+                "width": 232,
+                "height": 22,
+                "data": {
+                    "text": "Lauren is listening",
+                    "textAlign": "left",
+                    "textAlignVertical": "start",
+                    "style": {
+                        "fontFamily": "Roboto",
+                        "fontWeight": "w900",
+                        "fontSize": 24,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 0.2291666716337204,
+                            "g": 0.2291666716337204,
+                            "b": 0.2291666716337204,
+                            "a": 1
+                        }
+                    }
+                }
+            },
+            {
+                "nodeId": "4920:23006",
+                "index": 4,
+                "x": 28,
+                "y": 144,
+                "type": "TEXT",
+                "name": "Here are some tunes for you to start your morning. Mostly quiet and slow-beat, some of them are mood changer.",
+                "width": 315,
+                "height": 48,
+                "data": {
+                    "text": "Here are some tunes for you to start your morning. Mostly quiet and slow-beat, some of them are mood changer.",
+                    "textAlign": "left",
+                    "textAlignVertical": "start",
+                    "style": {
+                        "fontFamily": "Roboto",
+                        "fontWeight": "w400",
+                        "fontSize": 14,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 0.6416666507720947,
+                            "g": 0.6416666507720947,
+                            "b": 0.6416666507720947,
+                            "a": 1
+                        }
+                    }
+                }
+            },
+            {
+                "nodeId": "4920:23007",
+                "index": 5,
+                "x": 295,
+                "y": 64,
+                "type": "VANILLA",
+                "width": 48,
+                "height": 48,
+                "name": "avatar-source",
+                "data": {
+                    "src": "bridged://url-reservation/image-hosting/4920:23007",
+                    "width": 48,
+                    "height": 48
+                }
+            },
+            {
+                "nodeId": "4920:23010",
+                "index": 8,
+                "x": 291,
+                "y": 807,
+                "type": "VANILLA",
+                "width": 24,
+                "height": 24,
+                "name": "Group 519",
+                "data": {
+                    "src": "bridged://url-reservation/image-hosting/4920:23010",
+                    "width": 24,
+                    "height": 24
+                }
+            },
+            {
+                "index": -8,
+                "nodeId": "4920:23010",
+                "name": "(bg-converted) Group 519",
+                "x": 291,
+                "y": 807,
+                "type": "RECT",
+                "width": 24,
+                "height": 24,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 24,
+                    "height": 24
+                }
+            },
+            {
+                "nodeId": "4920:23015",
+                "index": 9,
+                "x": 110,
+                "y": 810,
+                "type": "TEXT",
+                "name": "Morning Slowbeats - LoFi",
+                "width": 150,
+                "height": 14,
+                "data": {
+                    "text": "Morning Slowbeats - LoFi",
+                    "textAlign": "left",
+                    "textAlignVertical": "start",
+                    "style": {
+                        "fontFamily": "Roboto",
+                        "fontWeight": "w400",
+                        "fontSize": 12,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 0,
+                            "g": 0,
+                            "b": 0,
+                            "a": 0.6000000238418579
+                        }
+                    }
+                }
+            },
+            {
+                "nodeId": "4920:23016",
+                "index": 10,
+                "x": 110,
+                "y": 789,
+                "type": "TEXT",
+                "name": "TRIPPE",
+                "width": 61,
+                "height": 16,
+                "data": {
+                    "text": "TRIPPE",
+                    "textAlign": "left",
+                    "textAlignVertical": "start",
+                    "style": {
+                        "fontFamily": "Roboto",
+                        "fontWeight": "w900",
+                        "fontSize": 18,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 0,
+                            "g": 0,
+                            "b": 0,
+                            "a": 1
+                        }
+                    }
+                }
+            },
+            {
+                "nodeId": "4920:23017",
+                "index": 11,
+                "x": 38,
+                "y": 789,
+                "type": "VANILLA",
+                "width": 60,
+                "height": 60,
+                "name": "Rectangle 825",
+                "data": {
+                    "src": "bridged://url-reservation/image-hosting/4920:23017",
+                    "width": 60,
+                    "height": 60
+                }
+            },
+            {
+                "index": -7,
+                "nodeId": "4920:23009",
+                "name": "(bg-converted) Rectangle 819",
+                "x": 28,
+                "y": 778,
+                "type": "RECT",
+                "width": 315,
+                "height": 81,
+                "data": {
+                    "borderRadius": {
+                        "all": 4
+                    },
+                    "width": 315,
+                    "height": 81,
+                    "fill": {
+                        "r": 1,
+                        "g": 1,
+                        "b": 1,
+                        "a": 1
+                    }
+                }
+            },
+            {
+                "nodeId": "I4920:23024;4900:16262;4900:16260",
+                "index": 13,
+                "x": 50.27587890625,
+                "y": 529.2995586395264,
+                "type": "TEXT",
+                "name": "TRP LVE",
+                "width": 37.462493896484375,
+                "height": 32.399993896484375,
+                "data": {
+                    "text": "TRP\nLVE",
+                    "textAlign": "center",
+                    "textAlignVertical": "center",
+                    "style": {
+                        "fontFamily": "Roboto",
+                        "fontWeight": "w900",
+                        "fontSize": 18.22499656677246,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 1,
+                            "g": 1,
+                            "b": 1,
+                            "a": 1
+                        }
+                    }
+                }
+            },
+            {
+                "index": -12,
+                "nodeId": "I4920:23024;4900:16262;4900:16259",
+                "name": "(bg-converted) Rectangle 825",
+                "x": 28,
+                "y": 505,
+                "type": "RECT",
+                "width": 80.99999237060547,
+                "height": 80.99999237060547,
+                "data": {
+                    "borderRadius": {
+                        "all": 4.049999237060547
+                    },
+                    "width": 80.99999237060547,
+                    "height": 80.99999237060547,
+                    "fill": {
+                        "r": 0,
+                        "g": 0,
+                        "b": 0,
+                        "a": 1
+                    }
+                }
+            },
+            {
+                "index": -11,
+                "nodeId": "I4920:23024;4900:16262",
+                "name": "(bg-converted) demo-app/album-cover-2",
+                "x": 28,
+                "y": 505,
+                "type": "RECT",
+                "width": 80.99999237060547,
+                "height": 80.99999237060547,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 80.99999237060547,
+                    "height": 80.99999237060547,
+                    "opacity": 1
+                }
+            },
+            {
+                "nodeId": "I4920:23024;4874:20238",
+                "index": 11,
+                "x": 120,
+                "y": 516,
+                "type": "TEXT",
+                "name": "TRIPPE",
+                "width": 61,
+                "height": 16,
+                "data": {
+                    "text": "TRIPPE",
+                    "textAlign": "left",
+                    "textAlignVertical": "start",
+                    "style": {
+                        "fontFamily": "Roboto",
+                        "fontWeight": "w900",
+                        "fontSize": 18,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 0,
+                            "g": 0,
+                            "b": 0,
+                            "a": 1
+                        }
+                    }
+                }
+            },
+            {
+                "nodeId": "I4920:23024;4874:20237",
+                "index": 12,
+                "x": 120,
+                "y": 537,
+                "type": "TEXT",
+                "name": "Morning Slowbeats - LoFi",
+                "width": 150,
+                "height": 14,
+                "data": {
+                    "text": "Morning Slowbeats - LoFi",
+                    "textAlign": "left",
+                    "textAlignVertical": "start",
+                    "style": {
+                        "fontFamily": "Roboto",
+                        "fontWeight": "w400",
+                        "fontSize": 12,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 0,
+                            "g": 0,
+                            "b": 0,
+                            "a": 0.6000000238418579
+                        }
+                    }
+                }
+            },
+            {
+                "index": -10,
+                "nodeId": "I4920:23024;5680:726",
+                "name": "(bg-converted) Frame 301",
+                "x": 120,
+                "y": 516,
+                "type": "RECT",
+                "width": 150,
+                "height": 35,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 150,
+                    "height": 35,
+                    "opacity": 1
+                }
+            },
+            {
+                "nodeId": "I4920:23024;4900:16244",
+                "index": 9,
+                "x": 291,
+                "y": 533,
+                "type": "VANILLA",
+                "width": 24,
+                "height": 24,
+                "name": "music-play-button",
+                "data": {
+                    "src": "bridged://url-reservation/image-hosting/I4920:23024;4900:16244",
+                    "width": 24,
+                    "height": 24
+                }
+            },
+            {
+                "index": -9,
+                "nodeId": "I4920:23024;4900:16244",
+                "name": "(bg-converted) music-play-button",
+                "x": 291,
+                "y": 533,
+                "type": "RECT",
+                "width": 24,
+                "height": 24,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 24,
+                    "height": 24,
+                    "opacity": 1
+                }
+            },
+            {
+                "index": -8,
+                "nodeId": "I4920:23024;4874:20231",
+                "name": "(bg-converted) Rectangle 819",
+                "x": 28,
+                "y": 505,
+                "type": "RECT",
+                "width": 315,
+                "height": 81,
+                "data": {
+                    "borderRadius": {
+                        "all": 4
+                    },
+                    "width": 315,
+                    "height": 81,
+                    "shadow": {
+                        "spreadRadius": 4,
+                        "blurRadius": 24,
+                        "color": {
+                            "r": 0.4333333373069763,
+                            "g": 0.4333333373069763,
+                            "b": 0.4333333373069763,
+                            "a": 0.07999999821186066
+                        },
+                        "offset": {
+                            "dx": 0,
+                            "dy": 4
+                        }
+                    },
+                    "fill": {
+                        "r": 1,
+                        "g": 1,
+                        "b": 1,
+                        "a": 1
+                    }
+                }
+            },
+            {
+                "index": -7,
+                "nodeId": "4920:23024",
+                "name": "(bg-converted) demo-app/music-card-1",
+                "x": 28,
+                "y": 505,
+                "type": "RECT",
+                "width": 315,
+                "height": 81,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 315,
+                    "height": 81,
+                    "opacity": 1
+                }
+            },
+            {
+                "nodeId": "4920:23025",
+                "index": 8,
+                "x": 0,
+                "y": 729,
+                "type": "VANILLA",
+                "width": 375,
+                "height": 97,
+                "name": "demo-app/tab-bar",
+                "data": {
+                    "src": "bridged://url-reservation/image-hosting/4920:23025",
+                    "width": 375,
+                    "height": 97
+                }
+            },
+            {
+                "index": -8,
+                "nodeId": "4920:23025",
+                "name": "(bg-converted) demo-app/tab-bar",
+                "x": 0,
+                "y": 729,
+                "type": "RECT",
+                "width": 375,
+                "height": 97,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 375,
+                    "height": 97,
+                    "opacity": 1
+                }
+            },
+            {
+                "nodeId": "I5101:29049;4900:16215;4900:16209",
+                "index": 12,
+                "x": 36,
+                "y": 306,
+                "type": "TEXT",
+                "name": "LO FI",
+                "width": 50,
+                "height": 64,
+                "data": {
+                    "text": "LO\nFI",
+                    "textAlign": "left",
+                    "textAlignVertical": "start",
+                    "style": {
+                        "fontFamily": "Helvetica",
+                        "fontWeight": "w700",
+                        "fontSize": 36,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 1,
+                            "g": 1,
+                            "b": 1,
+                            "a": 1
+                        }
+                    }
+                }
+            },
+            {
+                "index": -11,
+                "nodeId": "I5101:29049;4900:16215;4900:16208",
+                "name": "(bg-converted) Rectangle 813",
+                "x": 28,
+                "y": 234,
+                "type": "RECT",
+                "width": 144,
+                "height": 144,
+                "data": {
+                    "borderRadius": {
+                        "all": 8
+                    },
+                    "width": 144,
+                    "height": 144,
+                    "fill": {
+                        "r": 0,
+                        "g": 0,
+                        "b": 0,
+                        "a": 1
+                    }
+                }
+            },
+            {
+                "index": -10,
+                "nodeId": "I5101:29049;4900:16215",
+                "name": "(bg-converted) demo-app/album-cover-1",
+                "x": 28,
+                "y": 234,
+                "type": "RECT",
+                "width": 144,
+                "height": 144,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 144,
+                    "height": 144,
+                    "opacity": 1
+                }
+            },
+            {
+                "nodeId": "I5101:29049;4900:16205",
+                "index": 11,
+                "x": 28,
+                "y": 382,
+                "type": "TEXT",
+                "name": "Morning Slowbeats - LoFi",
+                "width": 138.239990234375,
+                "height": 32,
+                "data": {
+                    "text": "Morning Slowbeats - LoFi",
+                    "textAlign": "left",
+                    "textAlignVertical": "start",
+                    "style": {
+                        "fontFamily": "Roboto",
+                        "fontWeight": "w400",
+                        "fontSize": 14,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 0.6416666507720947,
+                            "g": 0.6416666507720947,
+                            "b": 0.6416666507720947,
+                            "a": 1
+                        }
+                    }
+                }
+            },
+            {
+                "nodeId": "I5101:29049;5744:0",
+                "index": 12,
+                "x": 130,
+                "y": 336,
+                "type": "VANILLA",
+                "width": 28,
+                "height": 28,
+                "name": "music-play-button",
+                "data": {
+                    "src": "bridged://url-reservation/image-hosting/I5101:29049;5744:0",
+                    "width": 28,
+                    "height": 28
+                }
+            },
+            {
+                "index": -12,
+                "nodeId": "I5101:29049;5744:0",
+                "name": "(bg-converted) music-play-button",
+                "x": 130,
+                "y": 336,
+                "type": "RECT",
+                "width": 28,
+                "height": 28,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 28,
+                    "height": 28,
+                    "opacity": 1
+                }
+            },
+            {
+                "index": -9,
+                "nodeId": "5101:29049",
+                "name": "(bg-converted) demo-app/some-component",
+                "x": 28,
+                "y": 234,
+                "type": "RECT",
+                "width": 144,
+                "height": 178,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 144,
+                    "height": 178,
+                    "opacity": 1
+                }
+            },
+            {
+                "nodeId": "I5101:29058;4900:16215",
+                "index": 11,
+                "x": 188,
+                "y": 234,
+                "type": "VANILLA",
+                "width": 144,
+                "height": 144,
+                "name": "demo-app/album-cover-3",
+                "data": {
+                    "src": "bridged://url-reservation/image-hosting/I5101:29058;4900:16215",
+                    "width": 144,
+                    "height": 144
+                }
+            },
+            {
+                "index": -11,
+                "nodeId": "I5101:29058;4900:16215",
+                "name": "(bg-converted) demo-app/album-cover-3",
+                "x": 188,
+                "y": 234,
+                "type": "RECT",
+                "width": 144,
+                "height": 144,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 144,
+                    "height": 144,
+                    "opacity": 1
+                }
+            },
+            {
+                "nodeId": "I5101:29058;4900:16205",
+                "index": 12,
+                "x": 188,
+                "y": 382,
+                "type": "TEXT",
+                "name": "Morning Slowbeats - LoFi",
+                "width": 138.239990234375,
+                "height": 32,
+                "data": {
+                    "text": "Morning Slowbeats - LoFi",
+                    "textAlign": "left",
+                    "textAlignVertical": "start",
+                    "style": {
+                        "fontFamily": "Roboto",
+                        "fontWeight": "w400",
+                        "fontSize": 14,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 0.6416666507720947,
+                            "g": 0.6416666507720947,
+                            "b": 0.6416666507720947,
+                            "a": 1
+                        }
+                    }
+                }
+            },
+            {
+                "nodeId": "I5101:29058;5744:0",
+                "index": 13,
+                "x": 290,
+                "y": 336,
+                "type": "VANILLA",
+                "width": 28,
+                "height": 28,
+                "name": "music-play-button",
+                "data": {
+                    "src": "bridged://url-reservation/image-hosting/I5101:29058;5744:0",
+                    "width": 28,
+                    "height": 28
+                }
+            },
+            {
+                "index": -13,
+                "nodeId": "I5101:29058;5744:0",
+                "name": "(bg-converted) music-play-button",
+                "x": 290,
+                "y": 336,
+                "type": "RECT",
+                "width": 28,
+                "height": 28,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 28,
+                    "height": 28,
+                    "opacity": 1
+                }
+            },
+            {
+                "index": -10,
+                "nodeId": "5101:29058",
+                "name": "(bg-converted) demo-app/some-component",
+                "x": 188,
+                "y": 234,
+                "type": "RECT",
+                "width": 144,
+                "height": 178,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 144,
+                    "height": 178,
+                    "opacity": 1
+                }
+            },
+            {
+                "nodeId": "I5101:29067;4900:16215;4900:16260",
+                "index": 14,
+                "x": 387.6015625,
+                "y": 277.19921875,
+                "type": "TEXT",
+                "name": "TRP LVE",
+                "width": 66.5999984741211,
+                "height": 57.599998474121094,
+                "data": {
+                    "text": "TRP\nLVE",
+                    "textAlign": "center",
+                    "textAlignVertical": "center",
+                    "style": {
+                        "fontFamily": "Roboto",
+                        "fontWeight": "w900",
+                        "fontSize": 32.39999771118164,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 1,
+                            "g": 1,
+                            "b": 1,
+                            "a": 1
+                        }
+                    }
+                }
+            },
+            {
+                "index": -13,
+                "nodeId": "I5101:29067;4900:16215;4900:16259",
+                "name": "(bg-converted) Rectangle 825",
+                "x": 348,
+                "y": 234,
+                "type": "RECT",
+                "width": 144,
+                "height": 144,
+                "data": {
+                    "borderRadius": {
+                        "all": 7.199999809265137
+                    },
+                    "width": 144,
+                    "height": 144,
+                    "fill": {
+                        "r": 0,
+                        "g": 0,
+                        "b": 0,
+                        "a": 1
+                    }
+                }
+            },
+            {
+                "index": -12,
+                "nodeId": "I5101:29067;4900:16215",
+                "name": "(bg-converted) demo-app/album-cover-2",
+                "x": 348,
+                "y": 234,
+                "type": "RECT",
+                "width": 144,
+                "height": 144,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 144,
+                    "height": 144,
+                    "opacity": 1
+                }
+            },
+            {
+                "nodeId": "I5101:29067;4900:16205",
+                "index": 13,
+                "x": 348,
+                "y": 382,
+                "type": "TEXT",
+                "name": "Morning Slowbeats - LoFi",
+                "width": 138.239990234375,
+                "height": 32,
+                "data": {
+                    "text": "Morning Slowbeats - LoFi",
+                    "textAlign": "left",
+                    "textAlignVertical": "start",
+                    "style": {
+                        "fontFamily": "Roboto",
+                        "fontWeight": "w400",
+                        "fontSize": 14,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 0.6416666507720947,
+                            "g": 0.6416666507720947,
+                            "b": 0.6416666507720947,
+                            "a": 1
+                        }
+                    }
+                }
+            },
+            {
+                "nodeId": "I5101:29067;5744:0",
+                "index": 14,
+                "x": 450,
+                "y": 336,
+                "type": "VANILLA",
+                "width": 28,
+                "height": 28,
+                "name": "music-play-button",
+                "data": {
+                    "src": "bridged://url-reservation/image-hosting/I5101:29067;5744:0",
+                    "width": 28,
+                    "height": 28
+                }
+            },
+            {
+                "index": -14,
+                "nodeId": "I5101:29067;5744:0",
+                "name": "(bg-converted) music-play-button",
+                "x": 450,
+                "y": 336,
+                "type": "RECT",
+                "width": 28,
+                "height": 28,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 28,
+                    "height": 28,
+                    "opacity": 1
+                }
+            },
+            {
+                "index": -11,
+                "nodeId": "5101:29067",
+                "name": "(bg-converted) demo-app/some-component",
+                "x": 348,
+                "y": 234,
+                "type": "RECT",
+                "width": 144,
+                "height": 178,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 144,
+                    "height": 178,
+                    "opacity": 1
+                }
+            },
+            {
+                "nodeId": "I5279:27439;4900:16297",
+                "index": 15,
+                "x": 36,
+                "y": 610,
+                "type": "VANILLA",
+                "width": 65,
+                "height": 65,
+                "name": "demo-app/album-cover-3",
+                "data": {
+                    "src": "bridged://url-reservation/image-hosting/I5279:27439;4900:16297",
+                    "width": 65,
+                    "height": 65
+                }
+            },
+            {
+                "index": -15,
+                "nodeId": "I5279:27439;4900:16297",
+                "name": "(bg-converted) demo-app/album-cover-3",
+                "x": 36,
+                "y": 610,
+                "type": "RECT",
+                "width": 65,
+                "height": 65,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 65,
+                    "height": 65,
+                    "opacity": 1
+                }
+            },
+            {
+                "nodeId": "I5279:27439;4874:20249",
+                "index": 15,
+                "x": 119,
+                "y": 610,
+                "type": "TEXT",
+                "name": "Sweet",
+                "width": 50,
+                "height": 16,
+                "data": {
+                    "text": "Sweet",
+                    "textAlign": "left",
+                    "textAlignVertical": "start",
+                    "style": {
+                        "fontFamily": "Roboto",
+                        "fontWeight": "w900",
+                        "fontSize": 18,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 0,
+                            "g": 0,
+                            "b": 0,
+                            "a": 1
+                        }
+                    }
+                }
+            },
+            {
+                "nodeId": "I5279:27439;4874:20248",
+                "index": 16,
+                "x": 119,
+                "y": 631,
+                "type": "TEXT",
+                "name": "Morning Slowbeats - LoFi",
+                "width": 150,
+                "height": 14,
+                "data": {
+                    "text": "Morning Slowbeats - LoFi",
+                    "textAlign": "left",
+                    "textAlignVertical": "start",
+                    "style": {
+                        "fontFamily": "Roboto",
+                        "fontWeight": "w400",
+                        "fontSize": 12,
+                        "decoration": 0,
+                        "letterSpacing": 0,
+                        "color": {
+                            "r": 0,
+                            "g": 0,
+                            "b": 0,
+                            "a": 0.6000000238418579
+                        }
+                    }
+                }
+            },
+            {
+                "index": -14,
+                "nodeId": "I5279:27439;4874:20412",
+                "name": "(bg-converted) Frame 298",
+                "x": 119,
+                "y": 610,
+                "type": "RECT",
+                "width": 150,
+                "height": 35,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 150,
+                    "height": 35,
+                    "opacity": 1
+                }
+            },
+            {
+                "nodeId": "I5279:27439;5279:27393",
+                "index": 16,
+                "x": 291,
+                "y": 630,
+                "type": "VANILLA",
+                "width": 24,
+                "height": 24,
+                "name": "music-play-button",
+                "data": {
+                    "src": "bridged://url-reservation/image-hosting/I5279:27439;5279:27393",
+                    "width": 24,
+                    "height": 24
+                }
+            },
+            {
+                "index": -16,
+                "nodeId": "I5279:27439;5279:27393",
+                "name": "(bg-converted) music-play-button",
+                "x": 291,
+                "y": 630,
+                "type": "RECT",
+                "width": 24,
+                "height": 24,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 24,
+                    "height": 24,
+                    "opacity": 1
+                }
+            },
+            {
+                "index": -13,
+                "nodeId": "I5279:27439;4874:20242",
+                "name": "(bg-converted) Rectangle 819",
+                "x": 28,
+                "y": 602,
+                "type": "RECT",
+                "width": 315,
+                "height": 81,
+                "data": {
+                    "borderRadius": {
+                        "all": 4
+                    },
+                    "width": 315,
+                    "height": 81,
+                    "fill": {
+                        "r": 1,
+                        "g": 1,
+                        "b": 1,
+                        "a": 1
+                    }
+                }
+            },
+            {
+                "index": -12,
+                "nodeId": "5279:27439",
+                "name": "(bg-converted) demo-app/music-card-2",
+                "x": 28,
+                "y": 602,
+                "type": "RECT",
+                "width": 315,
+                "height": 81,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 315,
+                    "height": 81,
+                    "opacity": 1
+                }
+            },
+            {
+                "index": -999,
+                "nodeId": "5476:310",
+                "name": "(bg-converted) demo-app",
+                "x": 0,
+                "y": 0,
+                "type": "RECT",
+                "width": 375,
+                "height": 824,
+                "data": {
+                    "borderRadius": {
+                        "all": 0
+                    },
+                    "width": 375,
+                    "height": 824,
+                    "fill": {
+                        "r": 1,
+                        "g": 1,
+                        "b": 1,
+                        "a": 1
+                    },
+                    "opacity": 1
+                }
+            }
+        ],
+        "backgroundColor": "ffffffff"
+    },
+    "repository": {
+        "buildId": "vanilla-image-repository",
+        "images": {
+            "I4920:23003;4900:16297;4900:16208": {
+                "key": "I4920:23003;4900:16297;4900:16208",
+                "url": "bridged://url-reservation/image-hosting/I4920:23003;4900:16297;4900:16208"
+            },
+            "I4920:23003;5279:27393": {
+                "key": "I4920:23003;5279:27393",
+                "url": "bridged://url-reservation/image-hosting/I4920:23003;5279:27393"
+            },
+            "4920:23007": {
+                "key": "4920:23007",
+                "url": "bridged://url-reservation/image-hosting/4920:23007"
+            },
+            "4920:23010": {
+                "key": "4920:23010",
+                "url": "bridged://url-reservation/image-hosting/4920:23010"
+            },
+            "4920:23017": {
+                "key": "4920:23017",
+                "url": "bridged://url-reservation/image-hosting/4920:23017"
+            },
+            "I4920:23024;4900:16244": {
+                "key": "I4920:23024;4900:16244",
+                "url": "bridged://url-reservation/image-hosting/I4920:23024;4900:16244"
+            },
+            "4920:23025": {
+                "key": "4920:23025",
+                "url": "bridged://url-reservation/image-hosting/4920:23025"
+            },
+            "I5101:29049;5744:0": {
+                "key": "I5101:29049;5744:0",
+                "url": "bridged://url-reservation/image-hosting/I5101:29049;5744:0"
+            },
+            "I5101:29058;4900:16215": {
+                "key": "I5101:29058;4900:16215",
+                "url": "bridged://url-reservation/image-hosting/I5101:29058;4900:16215"
+            },
+            "I5101:29058;5744:0": {
+                "key": "I5101:29058;5744:0",
+                "url": "bridged://url-reservation/image-hosting/I5101:29058;5744:0"
+            },
+            "I5101:29067;5744:0": {
+                "key": "I5101:29067;5744:0",
+                "url": "bridged://url-reservation/image-hosting/I5101:29067;5744:0"
+            },
+            "I5279:27439;4900:16297": {
+                "key": "I5279:27439;4900:16297",
+                "url": "bridged://url-reservation/image-hosting/I5279:27439;4900:16297"
+            },
+            "I5279:27439;5279:27393": {
+                "key": "I5279:27439;5279:27393",
+                "url": "bridged://url-reservation/image-hosting/I5279:27439;5279:27393"
+            }
+        }
+    }
+}
