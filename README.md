@@ -25,6 +25,33 @@ Engine for people to make things real.
 All in one, brand new experience you will have. don't imagine, try it now.
 
 
+
+## Structure - Packages & Modules
+
+![](./branding/project-map.png)
+
+- [@nothing.app/skia](./packages/skia-backend) - Skia Backend
+  - Skia backend with offscrean canvas support
+- [@nothing.app/core](packages/nothing-core) - Skia Node Api
+  - Skia SDK Wrapped with Beautifully designed API
+- [@nothing.app/react-core](./packages/nothing-react-core) - React Core
+  - React Core - Skia (core) Wrapped with React JSX. Best for only drawing
+- [@nothing.app/react-compact](packages/nothing-react-compact) - React Compact
+  - React Compact - Fully built graphics tools for drawing, editing. Best for light-weight graphics tool
+- [@nothing.app/react](packages/nothing-react) - Nothing React
+  - React SDK - Fully built, all-in-one graphics tools for drawing, editing and sharing
+- [@nothing.app/vue-core](./packages/nothing-vue-core) - Vue Core
+  - Vue Core - Skia (core) Wrapped with Vue JSX. Best for only drawing
+- [@nothing.app/vue-compact](./packages/nothing-vue-compact) - Vue Compact
+  - Vue Compact - Fully built graphics tools for drawing, editing. Best for light-weight graphics tool
+- [@nothing.app/vue](packages/nothing-vue) - Nothing Vue
+  - Vue SDK - Fully built, all-in-one graphics tools for drawing, editing and sharing
+- [@nothing.app/commands](./packages/nothing-util-commands) - Command util
+  - Graphics Commands Definitions and handling util. You can extend this to register your own commands.
+
+
+
+
 ## Philosophy
 
 - Ready to use - Comparing to figma or sketch, there must not be a limitations in usablity. this software will be enterprise standard opensourced UI Graphics tool.
