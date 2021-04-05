@@ -2805,11 +2805,6 @@ canvaskit-oc@0.0.1-alpha.1, canvaskit-oc@^0.0.1-alpha.1:
   resolved "https://registry.yarnpkg.com/canvaskit-oc/-/canvaskit-oc-0.0.1-alpha.1.tgz#283ffaca30021b802551b92e88cf7b0fc11bbf37"
   integrity sha512-Ii0x2+JE3DzYakoi9QJ5bhpX+H8kD6U10HRgYBwY7jtTg9Jjmf4cAGlLFHC1lL+L0YznUQDicGiI3WYuh9piOQ==
 
-canvaskit-wasm@^0.25.0:
-  version "0.25.0"
-  resolved "https://registry.yarnpkg.com/canvaskit-wasm/-/canvaskit-wasm-0.25.0.tgz#fa5f3eab6180d64470f6e9a2c30bc84b7288bbe8"
-  integrity sha512-gORw+wsma2twkiu6S1ZwliMoqcc2ehwuHCXcHtfiTn3R/j63w9iW752kbNs+h9RPOhudUJB+ZlojPU+0rYhMtA==
-
 capture-exit@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/capture-exit/-/capture-exit-2.0.0.tgz#fb953bfaebeb781f62898239dabb426d08a509a4"

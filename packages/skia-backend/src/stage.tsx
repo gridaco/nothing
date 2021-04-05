@@ -4,6 +4,7 @@ import { init, render } from "./canvaskit";
 
 const SK_CANVAS_ID = "__skia_backend_canvas";
 export function Stage(props: {
+  className?: string;
   width: number;
   height: number;
   children: ReactNodeList;
@@ -23,7 +24,12 @@ export function Stage(props: {
   }, []);
   return (
     <>
-      <canvas id={SK_CANVAS_ID} width={props.width} height={props.height} />
+      <canvas
+        className={props.className}
+        id={SK_CANVAS_ID}
+        width={props.width}
+        height={props.height}
+      />
     </>
   );
 }
