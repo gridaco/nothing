@@ -64,6 +64,20 @@ All in one, brand new experience you will have. don't imagine, try it now.
 - Largely built-in features - such as live collaboration support
 - Fully customizable - from self hosting to extending functionality.
 
+
+
+## Roadmap
+
+1. Skia's Canvaskit based React interface
+2. Interactive drawing based on React's statemanagement (tree handing on browser) (**We are here**)
+3. Performance shaking - Write Design Document Tree Parser (IO) based on C++ - directly communicating to skia (**in 2021 Winter**)
+   1. On this level, React (App) will only provide full Design document tree initially, givving only the command events. (E.g. On Dragging, App will only provide the pointer event and everything else will be handled inside c++ bridge)
+4. Complete Packaging & Continuous updates with best api experience for webapp developers (**In early 2022**)
+
+
+
+
+
 ## References
 
 - https://skia.org/
