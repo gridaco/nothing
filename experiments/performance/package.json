@@ -3,9 +3,7 @@
     "version": "0.0.0",
     "description": "Nothing Skia Graphics Engine Performance Experiemtns",
     "dependencies": {
-        "canvaskit-wasm": "0.25.1"
+        "canvaskit-wasm": "0.25.0"
     },
-    "devDependencies": {
-        "@types/canvaskit-wasm": "0.9.0"
-    }
+    "devDependencies": {}
 }
