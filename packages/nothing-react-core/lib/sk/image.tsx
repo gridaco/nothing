@@ -1,4 +1,4 @@
-import memoize from "@nothing.app/core-utils/lib/memoize";
+import { memoize } from "@reflect-ui/uiutils/lib";
 import { CanvasKit, Paint, Image } from "canvaskit-wasm";
 import { createElement, memo, useMemo } from "react";
 import makePaint, { PaintParameters } from "../sk-utils/make-paint";
