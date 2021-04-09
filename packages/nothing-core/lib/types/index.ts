@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import { CanvasKitContext } from "./contexts/canvaskit-context";
 import {
   ClipOp,
   Image,
@@ -10,7 +9,14 @@ import {
   Rect,
   RRect,
   Surface,
+  CanvasKit,
+  Canvas,
 } from "canvaskit-wasm";
+
+export interface CanvasKitContext {
+  CanvasKit: CanvasKit;
+  canvas: Canvas;
+}
 
 // region rect
 export interface SKRectComponentProps {

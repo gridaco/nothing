@@ -3,7 +3,7 @@ export * from "./types";
 export { render, unmount } from "./reconciler";
 
 // Contexts
-export { useCanvaskit as useReactCanvasKit } from "./contexts/canvaskit-context";
+export { useCanvaskit } from "./contexts/canvaskit-context";
 export { useFontManager } from "./contexts/font-manager-context";
 
 // Skia graphics

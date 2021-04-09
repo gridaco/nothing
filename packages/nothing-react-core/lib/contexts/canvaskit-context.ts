@@ -1,10 +1,5 @@
-import { Canvas, CanvasKit } from "canvaskit-wasm";
 import { createContext, useContext } from "react";
-
-export interface CanvasKitContext {
-  CanvasKit: CanvasKit;
-  canvas: Canvas;
-}
+import { CanvasKitContext } from "@nothing.app/core/lib";
 
 const CKContext = createContext<CanvasKitContext | undefined>(undefined);
 

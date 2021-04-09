@@ -9,10 +9,8 @@ import type { ReactNode } from "react";
 import type { HostConfig } from "react-reconciler";
 import ReactReconciler from "react-reconciler";
 import { FontManagerProvider } from "./contexts/font-manager-context";
-import {
-  CanvasKitContext,
-  CanvasKitProvider,
-} from "./contexts/canvaskit-context";
+import { CanvasKitProvider } from "./contexts/canvaskit-context";
+import { CanvasKitContext } from "@nothing.app/core/lib";
 import {
   AnySKElementInstance,
   AnySKElementProps,
@@ -20,7 +18,7 @@ import {
   SKElementType,
   SKElementTypeMap,
   RootComponent,
-} from "./types";
+} from "@nothing.app/core/lib/types";
 import { skrender } from "./sk-renderers";
 
 // TODO - add more CG, Root handy components
