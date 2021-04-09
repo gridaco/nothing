@@ -22,7 +22,7 @@ export { default as Rect } from "./components/rect";
 export { default as Stage } from "./components/stage";
 
 // SK Utils
-export { default as useBlurMaskFilter } from "./sk-utils/use-blur-mask-filter";
+export { default as useBlurMaskFilter } from "./sk-utils/make-blur-mask-filter";
 export { default as useColor } from "./sk-utils/make-color";
 export { default as useDeletable } from "./hooks/use-deletable";
 export { default as usePaint } from "./sk-utils/make-paint";
