@@ -4,9 +4,9 @@ const fs = require("fs");
 const withTM = require("next-transpile-modules")(
   [
     "@nothing.app/react-core",
-    "@nothing.app/react-compact",
-    "@nothing.app/react",
-    "@nothing.app/react-state",
+    // "@nothing.app/react-compact",
+    // "@nothing.app/react",
+    // "@nothing.app/react-state",
   ],
   {
     debug: false,
