@@ -42,7 +42,7 @@ interface StageState {
 export default memo(function Stage(props: {
   children: React.ReactNode;
   canvasSize: { width: number; height: number };
-  canvasInsets: { left: number; right: number };
+  canvasInsets?: { left: number; right: number };
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);

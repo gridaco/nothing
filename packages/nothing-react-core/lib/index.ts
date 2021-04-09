@@ -1,13 +1,14 @@
 // Core
 export * from "./types";
 export { render, unmount } from "./reconciler";
+export { fontManager } from "./sk/loader";
 
 // Contexts
 export { useCanvaskit } from "./contexts/canvaskit-context";
 export { useFontManager } from "./contexts/font-manager-context";
 
 // Skia graphics
-export { default as SKRect } from "./sk/rect";
+export { SKRect } from "./sk/rect";
 export { default as SKPath } from "./sk/path";
 export { default as SKImage } from "./sk/image";
 export { default as SKText } from "./sk/text";
@@ -15,7 +16,7 @@ export { default as SKPolyline } from "./sk/polyline";
 
 // Core graphics
 export { default as Group } from "./cg/group";
-export { default as CGRect } from "./cg/cg-rect";
+export * from "./cg";
 
 // Components
 export { default as Rect } from "./components/rect";

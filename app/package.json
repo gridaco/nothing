@@ -8,17 +8,16 @@
     "start": "next start"
   },
   "dependencies": {
-    "@nothing.app/skia-backend": "^0.0.0",
-    "@nothing/core": "0.0.1",
-    "canvaskit-oc": "^0.0.1-alpha.1",
-    "next": "10.0.9",
-    "react": "^0.0.0-b48b38af6",
-    "react-dom": "^0.0.0-b48b38af6",
+    "@nothing.app/react-core": "^0.0.0",
+    "@nothing.app/core": "0.0.0",
+    "next": "10.1.3",
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1",
     "use-image": "^1.0.7"
   },
   "devDependencies": {
     "@types/node": "^14.14.35",
-    "@types/react": "^17.0.3",
+    "@types/react": "^17.0.0",
     "copy-webpack-plugin": "^6.3.2",
     "next-transpile-modules": "^6.4.0",
     "typescript": "^4.2.3"

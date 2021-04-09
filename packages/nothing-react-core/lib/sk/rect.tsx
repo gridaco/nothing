@@ -9,7 +9,7 @@ interface SKRectProps {
   paint: Paint | PaintParameters;
 }
 
-export default memo(function SKRect(props: SKRectProps) {
+export const SKRect = memo(function SKRect(props: SKRectProps) {
   const rect = makeRect(props.rect);
   const paint = makePaint(props.paint);
 
