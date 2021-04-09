@@ -4,7 +4,7 @@
     "license": "Apache 2.0",
     "dependencies": {
         "canvaskit-wasm": "0.25.0",
-        "@reflect-ui/core": "0.0.2-rc.5",
+        "@reflect-ui/core": "0.0.2-rc.6",
         "@reflect-ui/uiutils": "0.0.5"
     }
 }
