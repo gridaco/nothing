@@ -1,0 +1,6 @@
+#ifndef NOTHING_SKIA_LIBRARY_H
+#define NOTHING_SKIA_LIBRARY_H
+
+void hello();
+
+#endif //NOTHING_SKIA_LIBRARY_H
