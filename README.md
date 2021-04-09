@@ -32,6 +32,8 @@ All in one, brand new experience you will have. don't imagine, try it now.
 
 - [@nothing.app/skia](./packages/skia-backend) - Skia Backend
   - Skia backend with offscrean canvas support
+- [nothing-skia](./packages/nothing-skia) - Skia Bridge
+  - Skia Bridge with C++ for higher performance on interactive design platforms
 - [@nothing.app/core](packages/nothing-core) - Skia Node Api
   - Skia SDK Wrapped with Beautifully designed API
 - [@nothing.app/react-core](./packages/nothing-react-core) - React Core
