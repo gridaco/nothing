@@ -137,6 +137,11 @@
   resolved "https://registry.yarnpkg.com/@reflect-ui/core/-/core-0.0.2-rc.5.tgz#eb99ee1892fbad6cb5e9201d15f18baae78e5f3d"
   integrity sha512-9ohCsnK5rvl1CFd/LzoBA2Z9VUr+Rc07mJl4BRUzjbrCh8/ARcdfjBHg/GmmBny6rmF3jxbH3W/Nv7aL4mV6CA==
 
+"@reflect-ui/uiutils@0.0.5":
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/@reflect-ui/uiutils/-/uiutils-0.0.5.tgz#ea38fab48dcfa4a490e678756ebc3c11e8bc1978"
+  integrity sha512-Tqsn7Y6Q32ERfvxIkCnLFU+sGDIArMWHHHrVoAWTk6i11+Ppxl1JlKNLplEFvRbq15KtCr3G2w8LO3k3xWtH1Q==
+
 "@sketch-hq/sketch-file-format-1@npm:@sketch-hq/sketch-file-format@1.1.7":
   version "1.1.7"
   resolved "https://registry.yarnpkg.com/@sketch-hq/sketch-file-format/-/sketch-file-format-1.1.7.tgz#7de3cdfda10c97d21bbe261e0544ca581d27366e"
