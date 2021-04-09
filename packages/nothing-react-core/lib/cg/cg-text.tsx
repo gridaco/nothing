@@ -1,4 +1,4 @@
-import { RGBAF } from "@reflect-ui/core/lib/color";
+import { color } from "@reflect-ui/core";
 import { SKText, useCanvaskit, fontManager } from "@nothing.app/react-core/lib";
 import { Rect as TRect } from "@reflect-ui/uiutils/lib";
 
@@ -11,7 +11,7 @@ export function CGText(props: {
   width: number;
   height?: number;
   fontSize?: number;
-  color?: RGBAF;
+  color?: color.RGBAF;
   fontFamily?: string;
 }) {
   const { CanvasKit } = useCanvaskit();

@@ -465,10 +465,10 @@
   resolved "https://registry.yarnpkg.com/@opentelemetry/context-base/-/context-base-0.14.0.tgz#c67fc20a4d891447ca1a855d7d70fa79a3533001"
   integrity sha512-sDOAZcYwynHFTbLo6n8kIbLiVF3a3BLkrmehJUyEbT9F+Smbi47kLGS2gG2g0fjBLR/Lr1InPD7kXL7FaTqEkw==
 
-"@reflect-ui/core@0.0.2-rc.6":
-  version "0.0.2-rc.6"
-  resolved "https://registry.yarnpkg.com/@reflect-ui/core/-/core-0.0.2-rc.6.tgz#33048d80e26befb8a62a00d696ff50441d86fbfc"
-  integrity sha512-DpVxRxnkmZGz/QhRAD1E3Pvsf4poKFJ/ZBVytC4h6cMktQQXyhDguBOi7nZhgnydeAwoxtyUv08f/Xs+hjDrzg==
+"@reflect-ui/core@0.0.2-rc.7":
+  version "0.0.2-rc.7"
+  resolved "https://registry.yarnpkg.com/@reflect-ui/core/-/core-0.0.2-rc.7.tgz#9d531f5a0b9caab31e7563020044b753700e2bbc"
+  integrity sha512-EqF4SRU57bfa5DOPET1rv5lROFyMVHLv1xTEIlN6N2gDpXt71QceImWfQp3z3Khqnb4R/p9OhNK6DXGUpozWKw==
 
 "@reflect-ui/uiutils@0.0.6":
   version "0.0.6"
