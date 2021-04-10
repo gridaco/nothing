@@ -20,7 +20,7 @@ interface CGRectProps {
   x: number;
   y: number;
   width: number;
-  background: SolidFill;
+  background?: SolidFill;
   borderRadius?: number;
   strokeWidth?: number;
   height: number;
@@ -50,6 +50,9 @@ export function CGRect(props: CGRectProps) {
   const paint = new CanvasKit.Paint();
   paint.setStyle(CanvasKit.PaintStyle.Fill);
   paint.setColor(fillColor);
+
+  // const imageFilter = CanvasKit.ImageFilter()
+  // paint.setImageFilter()
 
   const rect = CanvasKit.XYWHRect(trect.x, trect.y, trect.width, trect.height);
 
