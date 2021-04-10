@@ -1,33 +1,21 @@
-import { BlurStyle, MaskFilter } from "canvaskit-wasm";
 import { useMemo } from "react";
 import { useCanvaskit } from "../contexts/canvaskit-context";
 import useDeletable from "../hooks/use-deletable";
-
-export type BlurMaskFilterParameters = {
-  style: BlurStyle;
-  sigma: number;
-  respectCTM: boolean;
-};
+import {
+  makeBlurMaskFilter as _makeBlurMaskFilter,
+  BlurMaskFilterParameters,
+  MaskFilter,
+} from "@nothing.app/core/lib/sk-utils/make-blur-mask-filter";
 
 export default function makeBlurMaskFilter(
   parameters: BlurMaskFilterParameters
 ): MaskFilter {
   const { CanvasKit } = useCanvaskit();
 
-  const maskFilter = useMemo(
-    () =>
-      CanvasKit.MaskFilter.MakeBlur(
-        parameters.style,
-        parameters.sigma,
-        parameters.respectCTM
-      ),
-    [
-      CanvasKit.MaskFilter,
-      parameters.respectCTM,
-      parameters.sigma,
-      parameters.style,
-    ]
-  );
+  const maskFilter = useMemo(() => _makeBlurMaskFilter(CanvasKit, parameters), [
+    CanvasKit.MaskFilter,
+    Object.values(parameters),
+  ]);
 
   return useDeletable(maskFilter);
 }

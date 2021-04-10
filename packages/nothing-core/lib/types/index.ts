@@ -32,7 +32,7 @@ interface SKRectComponent {
 
 // region rrect
 export interface SKRRectComponentProps {
-  rect: RRect;
+  rrect: RRect;
   paint: Paint;
 }
 

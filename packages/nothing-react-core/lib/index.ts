@@ -9,6 +9,7 @@ export { useFontManager } from "./contexts/font-manager-context";
 
 // Skia graphics
 export { SKRect } from "./sk/rect";
+export { SKRRect } from "./sk/rrect";
 export { default as SKPath } from "./sk/path";
 export { default as SKImage } from "./sk/image";
 export { default as SKText } from "./sk/text";

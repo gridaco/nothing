@@ -1,6 +1,14 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import MockData from "../../mock/export-node.json";
-import { Stage, CGText, CGRect } from "@nothing.app/react-core/lib";
+import {
+  Stage,
+  CGText,
+  CGRect,
+  SKImage,
+  useCanvaskit,
+} from "@nothing.app/react-core/lib";
+import useImage from "@nothing.app/use-image";
+import makePaint from "@nothing.app/react-core/lib/sk-utils/make-paint";
 
 const canvasWidth = 500;
 const canvasHeight = 1000;
@@ -34,12 +42,14 @@ function DemoDesignComposition(props: { data: any }) {
               />
             );
           } else if (e.type == StorableLayerType.rect) {
-            // e.data.fill ?
             return (
               <CGRect
                 x={e.x}
                 y={e.y}
-                background={{}}
+                borderRadius={e.data.borderRadius?.all}
+                background={{
+                  color: e.data.fill,
+                }}
                 width={e.width}
                 height={e.height}
                 // paint={{ color: returnRGBAcolor(e.data.fill) }}
@@ -47,17 +57,10 @@ function DemoDesignComposition(props: { data: any }) {
             );
           } else if (e.type == StorableLayerType.vanilla) {
             return (
-              <CGRect
-                x={e.x}
-                y={e.y}
-                background={{}}
-                width={e.width}
-                height={e.height}
-              />
+              <CGImage x={e.x} y={e.y} width={e.width} height={e.height} />
             );
           }
         })}
-      <CGRect x={10} y={10} width={100} height={100} background={{}} />
     </>
   );
 }
@@ -86,3 +89,32 @@ function SkiaReflectNode() {
 }
 
 export default SkiaReflectNode;
+
+const DUMMY_IMAGE =
+  "https://d1csarkz8obe9u.cloudfront.net/posterpreviews/artistic-album-cover-design-template-d12ef0296af80b58363dc0deef077ecc_screen.jpg?ts=1561488440";
+const DUMMY_IMAGE_CORS = `https://cors.bridged.cc/${DUMMY_IMAGE}`;
+function CGImage(props: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}) {
+  const { CanvasKit: ck } = useCanvaskit();
+
+  // const [image] = useImage(DUMMY_IMAGE);
+  const [image, setImage] = useState<ArrayBuffer>();
+  useEffect(() => {
+    fetch(DUMMY_IMAGE_CORS).then((r) => {
+      r.arrayBuffer().then((ab) => {
+        setImage(ab);
+      });
+    });
+  }, []);
+
+  const rect = ck.XYWHRect(props.x, props.y, props.width, props.height);
+
+  // const paint = makePaint({colo})
+  const paint = new ck.Paint();
+
+  return <SKImage image={image} rect={rect} paint={paint} />;
+}

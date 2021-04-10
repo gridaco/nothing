@@ -6,9 +6,11 @@ import makePaint, {
 } from "@nothing.app/react-core/lib/sk-utils/make-paint";
 import { useCanvaskit } from "../contexts/canvaskit-context";
 import { SKRect } from "../sk/rect";
+import { color } from "@reflect-ui/core";
+import { SKRRect } from "../sk/rrect";
 
 interface SolidFill {
-  // color: string;
+  color: color.RGBAF;
 }
 
 /**
@@ -19,6 +21,7 @@ interface CGRectProps {
   y: number;
   width: number;
   background: SolidFill;
+  borderRadius?: number;
   strokeWidth?: number;
   height: number;
   paint?: Paint | PaintParameters;
@@ -34,13 +37,27 @@ export function CGRect(props: CGRectProps) {
     height: props.height,
   };
 
-  const paint = makePaint({
-    style: CanvasKit.PaintStyle.Stroke,
-    color: CanvasKit.Color(0, 0, 0, 1),
-    strokeWidth: props.strokeWidth,
-  });
+  const fillColor =
+    props.background?.color !== undefined
+      ? CanvasKit.Color4f(
+          props.background.color.r,
+          props.background.color.g,
+          props.background.color.b,
+          props.background.color.a
+        )
+      : CanvasKit.Color4f(0, 0, 0, 0);
+
+  const paint = new CanvasKit.Paint();
+  paint.setStyle(CanvasKit.PaintStyle.Fill);
+  paint.setColor(fillColor);
 
   const rect = CanvasKit.XYWHRect(trect.x, trect.y, trect.width, trect.height);
 
-  return <SKRect rect={rect} paint={paint} />;
+  if (props.borderRadius) {
+    return (
+      <SKRRect borderRadius={props.borderRadius} rect={rect} paint={paint} />
+    );
+  } else {
+    return <SKRect rect={rect} paint={paint} />;
+  }
 }

@@ -4,7 +4,7 @@ import { renderRect } from "./rect";
 import { renderPath } from "./path";
 import { renderImageRect } from "./image";
 import { renderParagraph } from "./paragraph";
-
+import { renderRRect } from "./rrect";
 export function skrender(
   element: AnySKElementInstance,
   canvas: Canvas,
@@ -13,6 +13,10 @@ export function skrender(
   switch (element.type) {
     case "SKRect": {
       renderRect(element.props, canvas);
+      break;
+    }
+    case "SKRRect": {
+      renderRRect(element.props, canvas);
       break;
     }
     case "SKPath": {

@@ -12,7 +12,7 @@ export async function load() {
     console.error("init failed", init);
     throw "Canvaskit not loaded";
   }
-  const [CanvasKit, fontBuffer] = await Promise.all([
+  const [CanvasKit, fontBuffer] = await Promise.all<CanvasKit, ArrayBuffer>([
     init({
       locateFile: (file: string) =>
         "https://unpkg.com/canvaskit-wasm@0.25.0/bin/" + file,
