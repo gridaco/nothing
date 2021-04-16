@@ -24,8 +24,6 @@ Engine for people to make things real.
 
 All in one, brand new experience you will have. don't imagine, try it now.
 
-
-
 ## Structure - Packages & Modules
 
 ![](./branding/project-map.png)
@@ -51,8 +49,13 @@ All in one, brand new experience you will have. don't imagine, try it now.
 - [@nothing.app/commands](./packages/nothing-util-commands) - Command util
   - Graphics Commands Definitions and handling util. You can extend this to register your own commands.
 
+## Building
 
-
+```
+git pull --recurse-submodules
+yarn
+yarn app
+```
 
 ## Philosophy
 
@@ -61,12 +64,10 @@ All in one, brand new experience you will have. don't imagine, try it now.
 - Modularity - all features and functionality are provided in modular shape
 - Performant - based on skia engine (which chrome is based on), Nothing is performant and highly optimized, givving all native performance. cannot be compared to html5 canvas based applications.
 - Reusability - all components are built to be used on other projects. you can build your entirely new projects from it.
-- Extansibility - from extending a theme, to extending a 
+- Extansibility - from extending a theme, to extending a
 - Composable - Components are composable, same as code components. Now you can finally design as the code is.
 - Largely built-in features - such as live collaboration support
 - Fully customizable - from self hosting to extending functionality.
-
-
 
 ## Roadmap
 
@@ -75,10 +76,6 @@ All in one, brand new experience you will have. don't imagine, try it now.
 3. Performance shaking - Write Design Document Tree Parser (IO) based on C++ - directly communicating to skia (**in 2021 Winter**)
    1. On this level, React (App) will only provide full Design document tree initially, givving only the command events. (E.g. On Dragging, App will only provide the pointer event and everything else will be handled inside c++ bridge)
 4. Complete Packaging & Continuous updates with best api experience for webapp developers (**In early 2022**)
-
-
-
-
 
 ## References
 
