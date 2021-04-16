@@ -1,3 +1,6 @@
 [submodule "packages/design-sdk"]
 	path = packages/design-sdk
 	url = https://github.com/bridgedxyz/design-sdk
+[submodule "packages/design-lint"]
+	path = packages/design-lint
+	url = https://github.com/bridgedxyz/lint
