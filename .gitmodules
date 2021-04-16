@@ -4,3 +4,6 @@
 [submodule "packages/design-lint"]
 	path = packages/design-lint
 	url = https://github.com/bridgedxyz/lint
+[submodule "packages/reflect-core"]
+	path = packages/reflect-core
+	url = https://github.com/bridgedxyz/reflect-core-ts
