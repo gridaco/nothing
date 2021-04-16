@@ -1,0 +1,3 @@
+[submodule "packages/design-sdk"]
+	path = packages/design-sdk
+	url = https://github.com/bridgedxyz/design-sdk
