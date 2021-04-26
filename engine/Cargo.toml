@@ -1,0 +1,9 @@
+[package]
+name = "nothing-engine"
+description = "An opensource industry graphics tool for both designers and developers"
+version = "0.0.0"
+authors = ["Bridged.xyz Authors"]
+edition = "2018"
+
+[dependencies]
+skia-safe = "0"
