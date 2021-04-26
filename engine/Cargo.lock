@@ -317,7 +317,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "nothing_engine"
+name = "nothing-engine"
 version = "0.0.0"
 dependencies = [
  "skia-safe",
