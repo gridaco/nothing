@@ -3,8 +3,8 @@
   "version": "0.0.1",
   "description": "nothing engine skia canvaskit demo",
   "main": "index.js",
-  "repository": "https://github.com/bridgedxyz/nothing.git",
-  "author": "bridged.xyz authors",
+  "repository": "https://github.com/gridaco/nothing.git",
+  "author": "Grida authors",
   "license": "MIT",
   "private": false,
   "dependencies": {}

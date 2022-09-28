@@ -3,7 +3,7 @@
  *
  * Original work Copyright (C) 2011 - 2013 by Eric Rowell (KineticJS)
  * Second work Copyright (C) 2014 - 2020 by Anton Lavrenov (Konva)
- * Modified work Copyright (C) 2021 - bridged.xyz and nothing.app authors
+ * Modified work Copyright (C) 2021 - grida.co and nothing.app authors
  *
  * @license
  */

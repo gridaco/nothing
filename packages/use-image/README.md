@@ -34,4 +34,4 @@ function ComplexApp() {
 
 ## Related
 
-For Loading CORS Images, you can use https://cors.bridged.cc
+For Loading CORS Images, you can use https://cors.sh

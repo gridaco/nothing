@@ -1,8 +1,6 @@
-# Nothing Skia Bridged Written in C++
+# Nothing Skia Grida Written in C++
 
 > This is a library to be used by nothing web platforms, enabling the most performant design tree data handling via native Skia API Access.
-
-
 
 ## This project is experimental, under development.
 

@@ -43,25 +43,25 @@ module.exports = withTM({
       config.externals = ["react", ...config.externals];
     }
 
-    // resolving bridgedxyz/bridged 's node_modules (as this being used as submodule package)
+    // resolving gridaco/grida 's node_modules (as this being used as submodule package)
     let reactPath;
-    const bridgedReactPath = path.resolve(
+    const grida_react_path = path.resolve(
       __dirname,
-      "../../../", // this file's placement under relative to bridged's submodule package
+      "../../../", // this file's placement under relative to grida's submodule package
       "node_modules",
       "react"
     );
-    const nothingReactPath = path.resolve(
+    const nothing_react_path = path.resolve(
       __dirname,
       "../", // this fil'es placement under nothing's git repo
       "node_modules",
       "react"
     );
-    // if this is a package of bridged, use bridged's node_modules
-    if (fs.existsSync(bridgedReactPath)) {
-      reactPath = bridgedReactPath;
+    // if this is a package of grida, use grida's node_modules
+    if (fs.existsSync(grida_react_path)) {
+      reactPath = grida_react_path;
     } else {
-      reactPath = nothingReactPath;
+      reactPath = nothing_react_path;
     }
     console.log("reactPath", reactPath);
     config.resolve.alias["react"] = reactPath;

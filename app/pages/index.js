@@ -37,9 +37,9 @@ export default function Home() {
             href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
             className={styles.card}
           >
-            <h3>Bridged &rarr;</h3>
+            <h3>Grida &rarr;</h3>
             <p>
-              Visit Bridged - A Nothing based Collaborative Realtime Graphics
+              Visit Grida - A Nothing based Collaborative Realtime Graphics
               editor
             </p>
           </a>

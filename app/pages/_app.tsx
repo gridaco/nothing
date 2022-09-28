@@ -11,7 +11,7 @@ function SafeHydrate({ children }) {
   );
 }
 
-function BridgedRootWebApp({ Component, pageProps }) {
+function RootWebApp({ Component, pageProps }) {
   return (
     <SafeHydrate>
       <StrictMode>
@@ -23,4 +23,4 @@ function BridgedRootWebApp({ Component, pageProps }) {
   );
 }
 
-export default BridgedRootWebApp;
+export default RootWebApp;

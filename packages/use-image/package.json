@@ -10,7 +10,7 @@
     "scripts": {},
     "repository": {
         "type": "git",
-        "url": "https://github.com/bridgedxyz/nothing.git"
+        "url": "https://github.com/gridaco/nothing.git"
     },
     "keywords": [
         "react",
@@ -22,7 +22,7 @@
     ],
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/bridgedxyz/nothing/issues"
+        "url": "https://github.com/gridaco/nothing/issues"
     },
     "homepage": "https://nothing.app",
     "peerDependencies": {
