@@ -2,8 +2,12 @@
 name = "nothing-engine"
 description = "An opensource industry graphics tool for both designers and developers"
 version = "0.0.0"
-authors = ["Bridged.xyz Authors"]
-edition = "2018"
+authors = ["Grida", "Nothing Graphics Foundation"]
+edition = "2021"
+
+[features]
+default = ["skia-safe/gl"]
 
 [dependencies]
-skia-safe = "0"
+skia-safe = "0.54.0"
+gl = "0.14.0"
