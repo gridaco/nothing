@@ -1,4 +1,4 @@
-import { AffineTransform } from "@reflect-ui/uiutils/lib";
+import { AffineTransform } from "@reflect-ui/uiutils/dist/lib/geometry";
 import { createElement, memo, ReactNode, useMemo } from "react";
 import { ClipProps, GroupComponentProps } from "../types";
 

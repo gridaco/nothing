@@ -1,5 +1,5 @@
 import { CanvasKit, Paint, Path } from "canvaskit-wasm";
-import { Point } from "@reflect-ui/uiutils/lib";
+import { Point } from "@reflect-ui/uiutils/dist/lib/types";
 import React, { memo, useMemo } from "react";
 import { useCanvaskit } from "../contexts/canvaskit-context";
 import useDeletable from "../hooks/use-deletable";
@@ -32,10 +32,10 @@ function makePath(CanvasKit: CanvasKit, points: Point[]): Path {
 export default memo(function SKPolyline(props: SKPolylineProps) {
   const { CanvasKit } = useCanvaskit();
   const paint = makePaint(props.paint);
-  const path = useMemo(() => makePath(CanvasKit, props.points), [
-    CanvasKit,
-    props.points,
-  ]);
+  const path = useMemo(
+    () => makePath(CanvasKit, props.points),
+    [CanvasKit, props.points]
+  );
   useDeletable(path);
 
   return <SKPath paint={paint} path={path} />;

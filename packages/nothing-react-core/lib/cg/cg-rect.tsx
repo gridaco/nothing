@@ -1,5 +1,5 @@
 import React from "react";
-import { Rect as TRect } from "@reflect-ui/uiutils/lib/types";
+import { Rect as TRect } from "@reflect-ui/uiutils/dist/lib/types";
 import { Paint } from "canvaskit-wasm";
 import makePaint, {
   PaintParameters,
