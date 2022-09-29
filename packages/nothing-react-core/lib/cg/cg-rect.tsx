@@ -3,7 +3,7 @@ import { Rect as TRect } from "@reflect-ui/uiutils/dist/lib/types";
 import { Paint } from "canvaskit-wasm";
 import makePaint, {
   PaintParameters,
-} from "@nothing.app/react-core/lib/sk-utils/make-paint";
+} from "@nothing-sdk/react-core/lib/sk-utils/make-paint";
 import { useCanvaskit } from "../contexts/canvaskit-context";
 import { SKRect } from "../sk/rect";
 import { color } from "@reflect-ui/core";

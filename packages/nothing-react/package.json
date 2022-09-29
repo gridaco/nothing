@@ -1,5 +1,5 @@
 {
-    "name": "@nothing.app/react",
+    "name": "@nothing-sdk/react",
     "version": "0.0.0",
     "main": "lib"
 }

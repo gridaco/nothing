@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import { CanvasKitContext } from "@nothing.app/core/lib";
+import { CanvasKitContext } from "@nothing-sdk/core/lib";
 
 const CKContext = createContext<CanvasKitContext | undefined>(undefined);
 

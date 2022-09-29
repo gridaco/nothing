@@ -10,8 +10,8 @@ import type { ReactNode } from "react";
 import ReactReconciler from "react-reconciler";
 import { FontManagerProvider } from "./contexts/font-manager-context";
 import { CanvasKitProvider } from "./contexts/canvaskit-context";
-import { CanvasKitContext } from "@nothing.app/core/lib";
-import { RootComponent } from "@nothing.app/core/lib/types";
+import { CanvasKitContext } from "@nothing-sdk/core/lib";
+import { RootComponent } from "@nothing-sdk/core/lib/types";
 import { _hostConfig } from "./hostconfig";
 
 const EXPECTED_REACT_VERSION = "17";
@@ -22,7 +22,7 @@ export const __matchRectVersion =
 if (!__matchRectVersion) {
   const command = `yarn add react@${EXPECTED_REACT_VERSION} react-dom@${EXPECTED_REACT_VERSION}`;
   console.warn(
-    `Version mismatch detected for @nothing.app/react-core and react. react-konva expects to have react version ${EXPECTED_REACT_VERSION}, but it has version ${React.version}. Make sure versions are matched, otherwise, @nothing.app/react-core work is not guaranteed. You can use this command: "${command}"`
+    `Version mismatch detected for @nothing-sdk/react-core and react. react-konva expects to have react version ${EXPECTED_REACT_VERSION}, but it has version ${React.version}. Make sure versions are matched, otherwise, @nothing-sdk/react-core work is not guaranteed. You can use this command: "${command}"`
   );
 }
 

@@ -1,5 +1,5 @@
 {
-    "name": "@nothing.app/use-image",
+    "name": "@nothing-sdk/use-image",
     "version": "1.0.0",
     "description": "Custom React Hook for loading images.",
     "main": "index.js",

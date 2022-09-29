@@ -10,8 +10,8 @@
   "dependencies": {
     "@emotion/react": "^11.1.5",
     "@emotion/styled": "^11.3.0",
-    "@nothing.app/core": "0.0.0",
-    "@nothing.app/react-core": "^0.0.0",
+    "@nothing-sdk/core": "0.0.0",
+    "@nothing-sdk/react-core": "^0.0.0",
     "@reflect-ui/core": "^0.0.9",
     "next": "10.1.3",
     "react": "^17.0.1",

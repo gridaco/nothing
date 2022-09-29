@@ -1,11 +1,11 @@
-# @nothing.app/react-core
+# @nothing-sdk/react-core
 
 nothing graphics engine core library for react. runs on skia 2d graphics engine
 
 ## Installation
 
 ```
-yarn add @nothing.app/react-core
+yarn add @nothing-sdk/react-core
 ```
 
 ## Usage

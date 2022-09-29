@@ -5,17 +5,17 @@ import {
   makeBlurMaskFilter as _makeBlurMaskFilter,
   BlurMaskFilterParameters,
   MaskFilter,
-} from "@nothing.app/core/lib/sk-utils/make-blur-mask-filter";
+} from "@nothing-sdk/core/lib/sk-utils/make-blur-mask-filter";
 
 export default function makeBlurMaskFilter(
   parameters: BlurMaskFilterParameters
 ): MaskFilter {
   const { CanvasKit } = useCanvaskit();
 
-  const maskFilter = useMemo(() => _makeBlurMaskFilter(CanvasKit, parameters), [
-    CanvasKit.MaskFilter,
-    Object.values(parameters),
-  ]);
+  const maskFilter = useMemo(
+    () => _makeBlurMaskFilter(CanvasKit, parameters),
+    [CanvasKit.MaskFilter, Object.values(parameters)]
+  );
 
   return useDeletable(maskFilter);
 }

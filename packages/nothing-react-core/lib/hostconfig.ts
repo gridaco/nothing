@@ -7,8 +7,8 @@ import {
   SKElementType,
   SKElementTypeMap,
   RootComponent,
-} from "@nothing.app/core/lib/types";
-import { CanvasKitContext } from "@nothing.app/core/lib";
+} from "@nothing-sdk/core/lib/types";
+import { CanvasKitContext } from "@nothing-sdk/core/lib";
 
 // TODO - add more CG, Root handy components
 export type PublicInstance = AnySKElementInstance;
@@ -24,7 +24,7 @@ function createElementInstance<K extends keyof SKElementTypeMap>(
   type: K,
   props: SKElementTypeMap[K]["props"]
 ): SKElementTypeMap[K] {
-  const instance = ({ type, props } as unknown) as SKElementTypeMap[K];
+  const instance = { type, props } as unknown as SKElementTypeMap[K];
 
   if (isContainerElement(instance)) {
     instance._elements = [];

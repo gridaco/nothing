@@ -6,9 +6,9 @@ import {
   CGRect,
   SKImage,
   useCanvaskit,
-} from "@nothing.app/react-core/lib";
-import useImage from "@nothing.app/use-image";
-import makePaint from "@nothing.app/react-core/lib/sk-utils/make-paint";
+} from "@nothing-sdk/react-core/lib";
+import useImage from "@nothing-sdk/use-image";
+import makePaint from "@nothing-sdk/react-core/lib/sk-utils/make-paint";
 
 const canvasWidth = 500;
 const canvasHeight = 1000;

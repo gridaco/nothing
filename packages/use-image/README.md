@@ -1,7 +1,7 @@
 ## Installation
 
 ```sh
-yarn add @nothing.app/use-image
+yarn add @nothing-sdk/use-image
 ```
 
 ## Usage

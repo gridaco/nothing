@@ -1,5 +1,5 @@
 {
-    "name": "@nothing.app/experiments",
+    "name": "@nothing-sdk/experiments",
     "version": "0.0.0",
     "description": "Nothing Skia Graphics Engine Performance Experiemtns",
     "dependencies": {

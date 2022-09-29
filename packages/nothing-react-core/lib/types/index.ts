@@ -1,1 +1,1 @@
-export * from "@nothing.app/core/lib/types";
+export * from "@nothing-sdk/core/lib/types";

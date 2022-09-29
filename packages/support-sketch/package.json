@@ -1,5 +1,5 @@
 {
-    "name": "@nothing.app/sketch-support",
+    "name": "@nothing-sdk/sketch-support",
     "version": "0.0.0",
     "devDependencies": {
         "@types/jszip": "^3.4.1"

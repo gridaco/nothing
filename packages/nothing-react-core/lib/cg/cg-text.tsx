@@ -1,5 +1,5 @@
 import { color } from "@reflect-ui/core";
-import { SKText, useCanvaskit, fontManager } from "@nothing.app/react-core/lib";
+import { SKText, useCanvaskit, fontManager } from "@nothing-sdk/react-core/lib";
 import { Rect as TRect } from "@reflect-ui/uiutils/dist/lib/types";
 
 // TODO make CGText, CGTextSpan, CGRichText - reference flutter's

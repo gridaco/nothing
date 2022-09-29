@@ -1,11 +1,11 @@
 {
-    "name": "@nothing.app/react-core",
+    "name": "@nothing-sdk/react-core",
     "version": "0.0.0",
     "main": "lib",
     "dependencies": {
         "nanoid": "^3.1.22",
         "react-reconciler": "0.26.1",
-        "@nothing.app/core": "0.0.0"
+        "@nothing-sdk/core": "0.0.0"
     },
     "scripts": {
         "prepack": "tsc"

@@ -1,4 +1,4 @@
-import { CGRect, Stage } from "@nothing.app/react-core/lib";
+import { CGRect, Stage } from "@nothing-sdk/react-core/lib";
 import { useState } from "react";
 
 export function DemoInteractiveApp() {
