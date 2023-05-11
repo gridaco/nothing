@@ -2,7 +2,7 @@
 
 # [nothing](https://nothing.graphics)
 
-nothing but drawing. everything drawable engine.
+nothing but drawing. everything drawable engine. Powered by WebGPU and Rust.
 
 ## Graphics engine
 
@@ -77,7 +77,12 @@ yarn app
    1. On this level, React (App) will only provide full Design document tree initially, givving only the command events. (E.g. On Dragging, App will only provide the pointer event and everything else will be handled inside c++ bridge)
 4. Complete Packaging & Continuous updates with best api experience for webapp developers (**In early 2022**)
 
-## References
+## References (Technical)
+
+<details>
+  <summary>
+    Technical References  
+  </summary>
 
 - https://skia.org/
 - https://api.skia.org/
@@ -92,3 +97,4 @@ yarn app
 - https://docs.microsoft.com/en-us/dotnet/api/skiasharp
 - https://konvajs.org/
 - https://github.com/rowsncolumns/grid/tree/master/packages/grid
+</details>
