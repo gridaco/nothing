@@ -76,7 +76,7 @@ async function init(canvas: HTMLCanvasElement) {
     return pipeline;
   }
 
-  async function drawRectangle(
+  async function drawTriangle(
     width: number,
     height: number,
     color: [number, number, number, number]
@@ -85,16 +85,12 @@ async function init(canvas: HTMLCanvasElement) {
 
     const vertexData = new Float32Array([
       -width / 2,
-      -height / 2, // First triangle
+      -height / 2,
       width / 2,
       -height / 2,
-      -width / 2,
+      width / 2,
       height / 2,
       -width / 2,
-      height / 2, // Second triangle
-      width / 2,
-      -height / 2,
-      width / 2,
       height / 2,
     ]);
 
@@ -142,7 +138,7 @@ async function init(canvas: HTMLCanvasElement) {
     renderPass.setPipeline(pipeline);
     renderPass.setVertexBuffer(0, vertexBuffer);
     renderPass.setBindGroup(0, bindGroup);
-    renderPass.draw(6, 1, 0, 0);
+    renderPass.draw(4, 1, 0, 0);
     renderPass.end();
 
     const colorBuffer = new Float32Array(color);
@@ -157,7 +153,7 @@ async function init(canvas: HTMLCanvasElement) {
     device.queue.submit([commandEncoder.finish()]);
   }
 
-  drawRectangle(1, 1, [0, 0, 1, 1.0]);
+  drawTriangle(1, 1, [0, 0, 1, 1.0]);
 }
 
 export default function Rectangle() {

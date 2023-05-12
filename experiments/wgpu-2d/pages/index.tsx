@@ -10,7 +10,38 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className={styles.main}>{/*  */}</main>
+      <main className={styles.main}>
+        <div className={styles.grid}>
+          <a href="/rectangle" className={styles.card}>
+            <h2>
+              Rectangle <span>-&gt;</span>
+            </h2>
+            <p>NRect</p>
+          </a>
+
+          <a href="/triangle" className={styles.card}>
+            <h2>
+              Triangle <span>-&gt;</span>
+            </h2>
+            <p>NTriangle</p>
+          </a>
+
+          <a href="/poligon" className={styles.card}>
+            <h2>Poligon</h2>
+            <p>NVector</p>
+          </a>
+
+          <a href="/text" className={styles.card}>
+            <h2>Text</h2>
+            <p>NText</p>
+          </a>
+
+          <a href="/text" className={styles.card}>
+            <h2>Text</h2>
+            <p>NText</p>
+          </a>
+        </div>
+      </main>
     </>
   );
 }
