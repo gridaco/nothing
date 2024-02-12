@@ -4,6 +4,16 @@
 
 nothing but drawing. everything drawable engine. Powered by WebGPU and Rust.
 
+## Install
+
+```bash
+npm install @wgpu/nothing
+# yarn
+yarn add @wgpu/nothing
+# pnpm
+pnpm install @wgpu/nothing
+```
+
 ## Graphics engine
 
 Engine for people eager to create, draw something on the canvas.
