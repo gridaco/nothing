@@ -1,9 +1,13 @@
+use bytemuck;
 use std::borrow::Cow;
+use wgpu::util::DeviceExt;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::EventLoop,
     window::Window,
 };
+
+const RECT_DAT_1: [f32; 4] = [0.0, 0.0, 0.5, 0.5]; // Example data
 
 async fn run(event_loop: EventLoop<()>, window: Window) {
     let mut size = window.inner_size();
@@ -44,14 +48,46 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("rectangle.wgsl"))),
     });
 
-    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: None,
-        bind_group_layouts: &[],
-        push_constant_ranges: &[],
-    });
-
     let swapchain_capabilities = surface.get_capabilities(&adapter);
     let swapchain_format = swapchain_capabilities.formats[0];
+
+    let rect_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Rectangle Buffer"),
+        contents: bytemuck::cast_slice(&RECT_DAT_1),
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+    });
+
+    // Create a bind group layout
+    let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        entries: &[wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::VERTEX,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: None,
+            },
+            count: None,
+        }],
+        label: Some("bind_group_layout"),
+    });
+
+    // Create the bind group
+    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        layout: &bind_group_layout,
+        entries: &[wgpu::BindGroupEntry {
+            binding: 0,
+            resource: rect_buffer.as_entire_binding(),
+        }],
+        label: Some("bind_group"),
+    });
+
+    // Update the pipeline layout to include the bind group layout
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("Pipeline Layout"),
+        bind_group_layouts: &[&bind_group_layout],
+        push_constant_ranges: &[],
+    });
 
     let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: None,
@@ -127,8 +163,9 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                                     occlusion_query_set: None,
                                 });
                             rpass.set_pipeline(&render_pipeline);
-                            // rantangle
+                            rpass.set_bind_group(0, &bind_group, &[]);
                             rpass.draw(0..6, 0..1);
+
                             // triangle
                             // rpass.draw(0..3, 0..1);
                         }
