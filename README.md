@@ -72,7 +72,7 @@ yarn app
 - Ready to use - Comparing to figma or sketch, there must not be a limitations in usablity. this software will be enterprise standard opensourced UI Graphics tool.
 - Opensourced - Yep it's here on github.
 - Modularity - all features and functionality are provided in modular shape
-- Performant - based on skia engine (which chrome is based on), Nothing is performant and highly optimized, givving all native performance. cannot be compared to html5 canvas based applications.
+- Performant - based on the new WebGPU, Nothing is performant and highly optimized, givving all native performance. cannot be compared to html5 canvas based applications.
 - Reusability - all components are built to be used on other projects. you can build your entirely new projects from it.
 - Extansibility - from extending a theme, to extending a
 - Composable - Components are composable, same as code components. Now you can finally design as the code is.
@@ -81,11 +81,77 @@ yarn app
 
 ## Roadmap
 
-1. Skia's Canvaskit based React interface
-2. Interactive drawing based on React's statemanagement (tree handing on browser) (**We are here**)
-3. Performance shaking - Write Design Document Tree Parser (IO) based on C++ - directly communicating to skia (**in 2021 Winter**)
-   1. On this level, React (App) will only provide full Design document tree initially, givving only the command events. (E.g. On Dragging, App will only provide the pointer event and everything else will be handled inside c++ bridge)
-4. Complete Packaging & Continuous updates with best api experience for webapp developers (**In early 2022**)
+- Canvas / Camera
+  - Zoom
+  - Pan
+- primal
+  - shapes
+    - rectangle
+    - circle
+    - line
+    - polygon
+    - star
+    - arrow
+  - border
+  - fill
+    - solid
+    - gradient
+    - image
+- shadow
+- Glyph
+  - span
+  - text
+  - paragraph
+  - text-decoration
+    - underline
+    - overline
+    - line-through
+- Vector
+  - svg
+  - icon
+- Image
+  - image/jpeg
+  - image/png
+  - image/webp
+  - image/gif
+- Video
+  - video/mp4
+  - video/webm
+- UI
+  - layouts
+    - flex
+    - grid
+    - stack
+    - column
+    - row
+  - length
+    - px
+    - em
+    - rem
+    - vw
+    - vh
+    - %
+- State
+  - editing capabilities
+- component/instance
+- abstractions
+  - masking
+  - grouping
+  - clipping
+  - connections
+- user interaction
+  - pointer enter
+  - pointer hover
+  - pointer click
+- I/O
+  - commands
+- Export
+  - png
+  - svg
+  - pdf
+- Optimizations
+  - baking
+  - image cache with prefered size
 
 ## References (Technical)
 
