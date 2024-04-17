@@ -7,7 +7,20 @@ use winit::{
     window::Window,
 };
 
-const RECT_DAT_1: [f32; 4] = [0.0, 0.0, 0.5, 0.5]; // Example data
+// Updated rectangle data in pixels
+const RECT_DAT_1: [f32; 4] = [100.0, 100.0, 50.0, 500.0];
+// Define the color in RGBA format
+const RECT_COLOR: Color = [1.0, 1.0, 0.0, 1.0]; // Red
+
+type Color = [f32; 4];
+struct RectangleNode {
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    color: Color,
+    opacity: f32,
+}
 
 async fn run(event_loop: EventLoop<()>, window: Window) {
     let mut size = window.inner_size();
@@ -57,35 +70,92 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
     });
 
+    let color_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Color Buffer"),
+        contents: bytemuck::cast_slice(&RECT_COLOR),
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+    });
+
+    // for NDC space
+    let size_data = [size.width as f32, size.height as f32];
+    let size_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Size Buffer"),
+        contents: bytemuck::cast_slice(&size_data),
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+    });
+
     // Create a bind group layout
     let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        entries: &[wgpu::BindGroupLayoutEntry {
-            binding: 0,
-            visibility: wgpu::ShaderStages::VERTEX,
-            ty: wgpu::BindingType::Buffer {
-                ty: wgpu::BufferBindingType::Uniform,
-                has_dynamic_offset: false,
-                min_binding_size: None,
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
             },
-            count: None,
-        }],
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,                               // Use the next available binding index
+                visibility: wgpu::ShaderStages::FRAGMENT, // Color is used in the fragment shader
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+        ],
         label: Some("bind_group_layout"),
     });
+
+    let size_bind_group_layout =
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+            label: Some("size_bind_group_layout"),
+        });
 
     // Create the bind group
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
         layout: &bind_group_layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: rect_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1, // Match the binding index specified in the layout
+                resource: color_buffer.as_entire_binding(),
+            },
+        ],
+        label: Some("bind_group"),
+    });
+
+    // Create the size bind group
+    let size_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        layout: &size_bind_group_layout,
         entries: &[wgpu::BindGroupEntry {
             binding: 0,
-            resource: rect_buffer.as_entire_binding(),
+            resource: size_buffer.as_entire_binding(),
         }],
-        label: Some("bind_group"),
+        label: Some("size_bind_group"),
     });
 
     // Update the pipeline layout to include the bind group layout
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("Pipeline Layout"),
-        bind_group_layouts: &[&bind_group_layout],
+        bind_group_layouts: &[&bind_group_layout, &size_bind_group_layout], // Include both layouts
         push_constant_ranges: &[],
     });
 
@@ -164,6 +234,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                                 });
                             rpass.set_pipeline(&render_pipeline);
                             rpass.set_bind_group(0, &bind_group, &[]);
+                            rpass.set_bind_group(1, &size_bind_group, &[]); // Set the second bind group
                             rpass.draw(0..6, 0..1);
 
                             // triangle
