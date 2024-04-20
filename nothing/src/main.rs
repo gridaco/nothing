@@ -1,4 +1,5 @@
 use bytemuck;
+mod render_backend;
 use std::borrow::Cow;
 use wgpu::util::DeviceExt;
 use winit::{
@@ -6,21 +7,6 @@ use winit::{
     event_loop::EventLoop,
     window::Window,
 };
-
-// Updated rectangle data in pixels
-const RECT_DAT_1: [f32; 4] = [100.0, 100.0, 50.0, 500.0];
-// Define the color in RGBA format
-const RECT_COLOR: Color = [1.0, 1.0, 0.0, 1.0]; // Red
-
-type Color = [f32; 4];
-struct RectangleNode {
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-    color: Color,
-    opacity: f32,
-}
 
 async fn run(event_loop: EventLoop<()>, window: Window) {
     let mut size = window.inner_size();
@@ -66,13 +52,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
 
     let rect_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("Rectangle Buffer"),
-        contents: bytemuck::cast_slice(&RECT_DAT_1),
-        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-    });
-
-    let color_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("Color Buffer"),
-        contents: bytemuck::cast_slice(&RECT_COLOR),
+        contents: bytemuck::cast_slice(&[-0.5, -0.5, 0.0, 1.0]),
         usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
     });
 
@@ -129,16 +109,10 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
     // Create the bind group
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
         layout: &bind_group_layout,
-        entries: &[
-            wgpu::BindGroupEntry {
-                binding: 0,
-                resource: rect_buffer.as_entire_binding(),
-            },
-            wgpu::BindGroupEntry {
-                binding: 1, // Match the binding index specified in the layout
-                resource: color_buffer.as_entire_binding(),
-            },
-        ],
+        entries: &[wgpu::BindGroupEntry {
+            binding: 0,
+            resource: rect_buffer.as_entire_binding(),
+        }],
         label: Some("bind_group"),
     });
 

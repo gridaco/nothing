@@ -1,10 +1,5 @@
 mod types;
 
-// First number is the size of Rectangle struct (with padding).
-// Second is in this case maximum number of allowed elements (can easily go into
-// high thousands).
-pub static RECTANGLE_BUFFER_SIZE: i32 = 16 * 1024;
-
 pub const rect_1: types::RectangleNode = types::RectangleNode {
     x: 0.0,
     y: 0.0,
