@@ -29,7 +29,6 @@ async fn demo_n_shapes(n: usize) -> Scene {
         let col = (i as i32) % grid_width;
 
         let mut rect = nf.create_rectangle_node();
-        rect.base.name = format!("Shape_{}", i);
         rect.transform = AffineTransform::new(
             start_x + (col as f32 * (shape_size + spacing)),
             start_y + (row as f32 * (shape_size + spacing)),
@@ -39,7 +38,7 @@ async fn demo_n_shapes(n: usize) -> Scene {
             width: shape_size,
             height: shape_size,
         };
-        rect.corner_radius = RectangularCornerRadius::all(10.0);
+        rect.corner_radius = RectangularCornerRadius::circular(10.0);
 
         // Create rainbow effect from top-left to bottom-right
         // Calculate diagonal position (0.0 to 1.0 across the diagonal)
@@ -52,11 +51,11 @@ async fn demo_n_shapes(n: usize) -> Scene {
         let (r, g, b) = hsv_to_rgb(hue, 1.0, 1.0);
 
         rect.set_fill(Paint::Solid(SolidPaint {
-            color: Color(r, g, b, 255),
+            color: CGColor(r, g, b, 255),
             opacity: 1.0,
         }));
 
-        all_shape_ids.push(rect.base.id.clone());
+        all_shape_ids.push(rect.id.clone());
         repository.insert(Node::Rectangle(rect));
     }
 

@@ -11,19 +11,19 @@ async fn demo_clip() -> Scene {
 
     // Create a single container with solid fill
     let mut container = nf.create_container_node();
-    container.base.name = "Simple Container".to_string();
+    container.name = Some("Simple Container".to_string());
     container.transform = AffineTransform::new(100.0, 100.0, 0.0);
     container.size = Size {
         width: 300.0,
         height: 300.0,
     };
-    container.corner_radius = RectangularCornerRadius::all(20.0);
+    container.corner_radius = RectangularCornerRadius::circular(20.0);
     container.set_fill(Paint::Solid(SolidPaint {
-        color: Color(240, 100, 100, 255), // Light red
+        color: CGColor(240, 100, 100, 255), // Light red
         opacity: 1.0,
     }));
     container.strokes = vec![Paint::Solid(SolidPaint {
-        color: Color(200, 50, 50, 255), // Darker red
+        color: CGColor(200, 50, 50, 255), // Darker red
         opacity: 1.0,
     })];
     container.effects = LayerEffects::from_array(vec![FilterEffect::DropShadow(FeShadow {
@@ -31,37 +31,37 @@ async fn demo_clip() -> Scene {
         dy: 0.0,
         blur: 10.0,
         spread: 0.0,
-        color: Color(0, 0, 0, 255),
+        color: CGColor(0, 0, 0, 255),
     })]);
     container.clip = true;
     container.stroke_width = 2.0;
 
     // Create an ellipse
     let mut ellipse = nf.create_ellipse_node();
-    ellipse.base.name = "Simple Ellipse".to_string();
+    ellipse.name = Some("Simple Ellipse".to_string());
     ellipse.transform = AffineTransform::new(100.0, 150.0, 0.0); // Position below container
     ellipse.size = Size {
         width: 300.0,
         height: 200.0,
     };
     ellipse.fills = vec![Paint::Solid(SolidPaint {
-        color: Color(100, 200, 100, 255), // Light green
+        color: CGColor(100, 200, 100, 255), // Light green
         opacity: 1.0,
     })];
     ellipse.strokes = vec![Paint::Solid(SolidPaint {
-        color: Color(50, 150, 50, 255), // Darker green
+        color: CGColor(50, 150, 50, 255), // Darker green
         opacity: 1.0,
     })];
     ellipse.stroke_width = 2.0;
 
     // Add nodes to repository and collect their IDs
-    let ellipse_id = ellipse.base.id.clone();
+    let ellipse_id = ellipse.id.clone();
     repository.insert(Node::Ellipse(ellipse));
 
     // Add ellipse as child of container
     container.children = vec![ellipse_id];
 
-    let container_id = container.base.id.clone();
+    let container_id = container.id.clone();
     repository.insert(Node::Container(container));
 
     Scene {

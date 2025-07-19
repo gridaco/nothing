@@ -20,12 +20,12 @@ async fn demo_image() -> Scene {
 
     // Root container
     let mut root = nf.create_container_node();
-    root.base.name = "Root".to_string();
+    root.name = Some("Root".to_string());
     root.size = image8ksize.clone();
 
     // First example: Rectangle with ImagePaint fill
     let mut rect1 = nf.create_rectangle_node();
-    rect1.base.name = "ImageFillRect".to_string();
+    rect1.name = Some("ImageFillRect".to_string());
     rect1.transform = AffineTransform::identity();
     rect1.size = image8ksize.clone();
     rect1.set_fill(Paint::Image(ImagePaint {
@@ -35,19 +35,19 @@ async fn demo_image() -> Scene {
         fit: BoxFit::Cover,
     }));
     rect1.strokes = vec![Paint::Solid(SolidPaint {
-        color: Color(255, 0, 0, 255),
+        color: CGColor(255, 0, 0, 255),
         opacity: 1.0,
     })];
     rect1.stroke_width = 2.0;
 
     let mut repository = NodeRepository::new();
 
-    let rect1_id = rect1.base.id.clone();
+    let rect1_id = rect1.id.clone();
 
     repository.insert(Node::Rectangle(rect1));
 
     root.children = vec![rect1_id];
-    let root_id = root.base.id.clone();
+    let root_id = root.id.clone();
     repository.insert(Node::Container(root));
 
     Scene {
@@ -55,7 +55,7 @@ async fn demo_image() -> Scene {
         name: "Images Demo".to_string(),
         children: vec![root_id],
         nodes: repository,
-        background_color: Some(Color(250, 250, 250, 255)),
+        background_color: Some(CGColor(250, 250, 250, 255)),
     }
 }
 

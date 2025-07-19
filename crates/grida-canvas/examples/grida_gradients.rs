@@ -11,7 +11,7 @@ async fn demo_gradients() -> Scene {
 
     // root container
     let mut root = nf.create_container_node();
-    root.base.name = "Root".to_string();
+    root.name = Some("Root".to_string());
     root.size = Size {
         width: 1200.0,
         height: 800.0,
@@ -25,42 +25,42 @@ async fn demo_gradients() -> Scene {
     // Linear gradient fills
     for i in 0..5 {
         let mut rect = nf.create_rectangle_node();
-        rect.base.name = format!("Linear Fill {}", i);
+        rect.name = Some(format!("Linear Fill {}", i));
         rect.transform = AffineTransform::new(start_x + spacing * i as f32, 80.0, 0.0);
         rect.size = Size {
             width: base,
             height: base,
         };
-        rect.corner_radius = RectangularCornerRadius::all(8.0);
+        rect.corner_radius = RectangularCornerRadius::circular(8.0);
         let angle = (i as f32) * 45.0;
         rect.set_fill(Paint::LinearGradient(LinearGradientPaint {
             transform: AffineTransform::from_rotatation(angle),
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: Color(255, 0, 0, 255),
+                    color: CGColor(255, 0, 0, 255),
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: Color(0, 0, 255, 255),
+                    color: CGColor(0, 0, 255, 255),
                 },
             ],
             opacity: 1.0,
         }));
-        ids.push(rect.base.id.clone());
+        ids.push(rect.id.clone());
         repository.insert(Node::Rectangle(rect));
     }
 
     // Radial gradient fills
     for i in 0..5 {
         let mut rect = nf.create_rectangle_node();
-        rect.base.name = format!("Radial Fill {}", i);
+        rect.name = Some(format!("Radial Fill {}", i));
         rect.transform = AffineTransform::new(start_x + spacing * i as f32, 280.0, 0.0);
         rect.size = Size {
             width: base,
             height: base,
         };
-        rect.corner_radius = RectangularCornerRadius::all(8.0);
+        rect.corner_radius = RectangularCornerRadius::circular(8.0);
         let offset = -0.25 + 0.125 * i as f32;
         rect.set_fill(Paint::RadialGradient(RadialGradientPaint {
             transform: AffineTransform {
@@ -69,31 +69,31 @@ async fn demo_gradients() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: Color(255, 255, 0, 255),
+                    color: CGColor(255, 255, 0, 255),
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: Color(0, 255, 0, 255),
+                    color: CGColor(0, 255, 0, 255),
                 },
             ],
             opacity: 1.0,
         }));
-        ids.push(rect.base.id.clone());
+        ids.push(rect.id.clone());
         repository.insert(Node::Rectangle(rect));
     }
 
     // Linear gradient strokes
     for i in 0..5 {
         let mut rect = nf.create_rectangle_node();
-        rect.base.name = format!("Linear Stroke {}", i);
+        rect.name = Some(format!("Linear Stroke {}", i));
         rect.transform = AffineTransform::new(start_x + spacing * i as f32, 480.0, 0.0);
         rect.size = Size {
             width: base,
             height: base,
         };
-        rect.corner_radius = RectangularCornerRadius::all(8.0);
+        rect.corner_radius = RectangularCornerRadius::circular(8.0);
         rect.set_fill(Paint::Solid(SolidPaint {
-            color: Color(0, 0, 0, 0),
+            color: CGColor(0, 0, 0, 0),
             opacity: 1.0,
         }));
         let angle = (i as f32) * 45.0;
@@ -102,32 +102,32 @@ async fn demo_gradients() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: Color(255, 0, 255, 255),
+                    color: CGColor(255, 0, 255, 255),
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: Color(0, 255, 255, 255),
+                    color: CGColor(0, 255, 255, 255),
                 },
             ],
             opacity: 1.0,
         })];
         rect.stroke_width = 8.0;
-        ids.push(rect.base.id.clone());
+        ids.push(rect.id.clone());
         repository.insert(Node::Rectangle(rect));
     }
 
     // Radial gradient strokes
     for i in 0..5 {
         let mut rect = nf.create_rectangle_node();
-        rect.base.name = format!("Radial Stroke {}", i);
+        rect.name = Some(format!("Radial Stroke {}", i));
         rect.transform = AffineTransform::new(start_x + spacing * i as f32, 680.0, 0.0);
         rect.size = Size {
             width: base,
             height: base,
         };
-        rect.corner_radius = RectangularCornerRadius::all(8.0);
+        rect.corner_radius = RectangularCornerRadius::circular(8.0);
         rect.set_fill(Paint::Solid(SolidPaint {
-            color: Color(0, 0, 0, 0),
+            color: CGColor(0, 0, 0, 0),
             opacity: 1.0,
         }));
         let offset = -0.25 + 0.125 * i as f32;
@@ -138,22 +138,22 @@ async fn demo_gradients() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: Color(255, 128, 0, 255),
+                    color: CGColor(255, 128, 0, 255),
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: Color(0, 128, 255, 255),
+                    color: CGColor(0, 128, 255, 255),
                 },
             ],
             opacity: 1.0,
         })];
         rect.stroke_width = 8.0;
-        ids.push(rect.base.id.clone());
+        ids.push(rect.id.clone());
         repository.insert(Node::Rectangle(rect));
     }
 
     root.children = ids.clone();
-    let root_id = root.base.id.clone();
+    let root_id = root.id.clone();
     repository.insert(Node::Container(root));
 
     Scene {
@@ -161,7 +161,7 @@ async fn demo_gradients() -> Scene {
         name: "Gradients Demo".to_string(),
         children: vec![root_id],
         nodes: repository,
-        background_color: Some(Color(250, 250, 250, 255)),
+        background_color: Some(CGColor(250, 250, 250, 255)),
     }
 }
 
