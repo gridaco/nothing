@@ -106,7 +106,10 @@ pub trait TextLayoutEngine {
     /// visual line or line fragment). Empty-line invariant: every selected
     /// line produces at least one visible rect even if it has no glyphs.
     fn selection_rects_for_range(
-        &mut self, text: &str, start: usize, end: usize
+        &mut self,
+        text: &str,
+        start: usize,
+        end: usize,
     ) -> Vec<SelectionRect>;
 
     /// Return the x coordinate (layout-local) of the caret at `offset`.
@@ -144,7 +147,7 @@ pub trait ManagedTextLayout: TextLayoutEngine {
     ///
     /// Implementations may cache and skip rebuild if content hasn't changed
     /// (e.g. by checking `AttributedText::generation()`).
-    fn ensure_layout(&mut self, content: &crate::attributed_text::AttributedText);
+    fn ensure_layout(&mut self, content: &super::attributed_text::AttributedText);
 
     /// Invalidate all cached layout. The next `ensure_layout` call will
     /// rebuild from scratch.

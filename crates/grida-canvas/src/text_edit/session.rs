@@ -100,13 +100,13 @@
 //!
 //! - [ ] Visual-order bidi cursor movement
 
-use crate::time::{Duration, Instant};
+use super::time::{Duration, Instant};
 
-use crate::{
+use super::{
     apply_command_mut,
     attributed_text::{
         html::{html_to_attributed_text, runs_to_html},
-        AttributedText, TextDecorationLine, TextFill, TextStyle as AttrTextStyle, RGBA,
+        AttributedText, CGColor, Paint, TextDecorationLine, TextStyle as AttrTextStyle,
     },
     history::{EditKind, GenericEditHistory},
     layout::{line_index_for_offset, CaretRect, ManagedTextLayout},
@@ -153,18 +153,42 @@ pub enum KeyAction {
     DeleteLine,
 
     // -- Movement (`extend` = Shift held → extend selection) --
-    MoveLeft { extend: bool },
-    MoveRight { extend: bool },
-    MoveUp { extend: bool },
-    MoveDown { extend: bool },
-    MoveWordLeft { extend: bool },
-    MoveWordRight { extend: bool },
-    MoveHome { extend: bool },
-    MoveEnd { extend: bool },
-    MoveDocStart { extend: bool },
-    MoveDocEnd { extend: bool },
-    MovePageUp { extend: bool },
-    MovePageDown { extend: bool },
+    MoveLeft {
+        extend: bool,
+    },
+    MoveRight {
+        extend: bool,
+    },
+    MoveUp {
+        extend: bool,
+    },
+    MoveDown {
+        extend: bool,
+    },
+    MoveWordLeft {
+        extend: bool,
+    },
+    MoveWordRight {
+        extend: bool,
+    },
+    MoveHome {
+        extend: bool,
+    },
+    MoveEnd {
+        extend: bool,
+    },
+    MoveDocStart {
+        extend: bool,
+    },
+    MoveDocEnd {
+        extend: bool,
+    },
+    MovePageUp {
+        extend: bool,
+    },
+    MovePageDown {
+        extend: bool,
+    },
 
     // -- Selection --
     SelectAll,
@@ -292,12 +316,18 @@ pub enum KeyName {
     /// A-Z (lowercase). For shortcut matching only — actual character
     /// insertion uses [`Character`](Self::Character).
     Letter(char),
+    /// 0-9. For shortcut matching (e.g. Shift+1 = zoom to fit).
+    /// The bridge normalizes shifted symbols (`!@#…`) back to digits.
+    Digit(u8),
     /// `.` key (for Cmd+Shift+> = increase font size).
     Period,
     /// `,` key (for Cmd+Shift+< = decrease font size).
     Comma,
     /// A printable character or string (from the OS key event).
     Character(String),
+    /// Escape key. Not used for text editing commands, but useful for
+    /// the application layer to detect exit-edit-mode intent.
+    Escape,
 }
 
 // ---------------------------------------------------------------------------
@@ -311,6 +341,7 @@ pub enum KeyName {
 ///
 /// The tracker uses a time window and distance threshold to determine
 /// whether consecutive clicks form a sequence.
+#[derive(Debug, Clone)]
 pub struct ClickTracker {
     count: u32,
     last_time: Option<Instant>,
@@ -598,7 +629,9 @@ impl<L: ManagedTextLayout> TextEditSession<L> {
                 display.push_str(&text[cursor..]);
                 self.layout.caret_rect_at(&display, cursor + preedit.len())
             }
-            _ => self.layout.caret_rect_at(&self.state.text, self.state.cursor),
+            _ => self
+                .layout
+                .caret_rect_at(&self.state.text, self.state.cursor),
         };
         self.cached_caret_rect = Some(cr.clone());
         cr
@@ -760,12 +793,17 @@ impl<L: ManagedTextLayout> TextEditSession<L> {
             });
             self.layout.invalidate();
         } else {
-            let current = self
-                .caret_style_override
-                .clone()
-                .unwrap_or_else(|| self.content.caret_style_at(self.state.cursor as u32).clone());
+            let current = self.caret_style_override.clone().unwrap_or_else(|| {
+                self.content
+                    .caret_style_at(self.state.cursor as u32)
+                    .clone()
+            });
             let mut new_style = current;
-            new_style.font_weight = if new_style.font_weight >= 700 { 400 } else { 700 };
+            new_style.font_weight = if new_style.font_weight >= 700 {
+                400
+            } else {
+                700
+            };
             self.caret_style_override = Some(new_style);
         }
     }
@@ -780,10 +818,11 @@ impl<L: ManagedTextLayout> TextEditSession<L> {
             });
             self.layout.invalidate();
         } else {
-            let current = self
-                .caret_style_override
-                .clone()
-                .unwrap_or_else(|| self.content.caret_style_at(self.state.cursor as u32).clone());
+            let current = self.caret_style_override.clone().unwrap_or_else(|| {
+                self.content
+                    .caret_style_at(self.state.cursor as u32)
+                    .clone()
+            });
             let mut new_style = current;
             new_style.font_style_italic = !new_style.font_style_italic;
             self.caret_style_override = Some(new_style);
@@ -806,10 +845,11 @@ impl<L: ManagedTextLayout> TextEditSession<L> {
             });
             self.layout.invalidate();
         } else {
-            let current = self
-                .caret_style_override
-                .clone()
-                .unwrap_or_else(|| self.content.caret_style_at(self.state.cursor as u32).clone());
+            let current = self.caret_style_override.clone().unwrap_or_else(|| {
+                self.content
+                    .caret_style_at(self.state.cursor as u32)
+                    .clone()
+            });
             let mut new_style = current;
             new_style.text_decoration_line =
                 if new_style.text_decoration_line == TextDecorationLine::Underline {
@@ -837,10 +877,11 @@ impl<L: ManagedTextLayout> TextEditSession<L> {
             });
             self.layout.invalidate();
         } else {
-            let current = self
-                .caret_style_override
-                .clone()
-                .unwrap_or_else(|| self.content.caret_style_at(self.state.cursor as u32).clone());
+            let current = self.caret_style_override.clone().unwrap_or_else(|| {
+                self.content
+                    .caret_style_at(self.state.cursor as u32)
+                    .clone()
+            });
             let mut new_style = current;
             new_style.text_decoration_line =
                 if new_style.text_decoration_line == TextDecorationLine::LineThrough {
@@ -863,10 +904,11 @@ impl<L: ManagedTextLayout> TextEditSession<L> {
             });
             self.layout.invalidate();
         } else {
-            let current = self
-                .caret_style_override
-                .clone()
-                .unwrap_or_else(|| self.content.caret_style_at(self.state.cursor as u32).clone());
+            let current = self.caret_style_override.clone().unwrap_or_else(|| {
+                self.content
+                    .caret_style_at(self.state.cursor as u32)
+                    .clone()
+            });
             let mut new_style = current;
             new_style.font_size = (new_style.font_size + delta).max(MIN_FONT_SIZE);
             self.caret_style_override = Some(new_style);
@@ -874,19 +916,20 @@ impl<L: ManagedTextLayout> TextEditSession<L> {
     }
 
     /// Set a color on the selection or caret style.
-    pub fn set_color(&mut self, color: RGBA) {
+    pub fn set_color(&mut self, color: CGColor) {
         if let Some((lo, hi)) = self.selection_range() {
             self.history.push(&self.snapshot(), EditKind::Style);
             self.content.apply_style(lo, hi, |s| {
-                s.fill = TextFill::Solid(color);
+                s.fills = vec![Paint::from(color)];
             });
             self.layout.invalidate();
         } else {
-            let mut style = self
-                .caret_style_override
-                .clone()
-                .unwrap_or_else(|| self.content.caret_style_at(self.state.cursor as u32).clone());
-            style.fill = TextFill::Solid(color);
+            let mut style = self.caret_style_override.clone().unwrap_or_else(|| {
+                self.content
+                    .caret_style_at(self.state.cursor as u32)
+                    .clone()
+            });
+            style.fills = vec![Paint::from(color)];
             self.caret_style_override = Some(style);
         }
     }
@@ -901,10 +944,11 @@ impl<L: ManagedTextLayout> TextEditSession<L> {
             });
             self.layout.invalidate();
         } else {
-            let mut style = self
-                .caret_style_override
-                .clone()
-                .unwrap_or_else(|| self.content.caret_style_at(self.state.cursor as u32).clone());
+            let mut style = self.caret_style_override.clone().unwrap_or_else(|| {
+                self.content
+                    .caret_style_at(self.state.cursor as u32)
+                    .clone()
+            });
             style.font_family = family;
             self.caret_style_override = Some(style);
         }
@@ -920,10 +964,11 @@ impl<L: ManagedTextLayout> TextEditSession<L> {
             });
             self.layout.invalidate();
         } else {
-            let mut style = self
-                .caret_style_override
-                .clone()
-                .unwrap_or_else(|| self.content.caret_style_at(self.state.cursor as u32).clone());
+            let mut style = self.caret_style_override.clone().unwrap_or_else(|| {
+                self.content
+                    .caret_style_at(self.state.cursor as u32)
+                    .clone()
+            });
             style.font_size = size;
             self.caret_style_override = Some(style);
         }
@@ -1099,43 +1144,130 @@ impl<L: ManagedTextLayout> TextEditSession<L> {
         }
 
         match action {
-            KeyAction::Insert(s) => { self.insert_text(&s); true }
-            KeyAction::Newline => { self.insert_text("\n"); true }
-            KeyAction::Tab => { self.insert_text("    "); true }
+            KeyAction::Insert(s) => {
+                self.insert_text(&s);
+                true
+            }
+            KeyAction::Newline => {
+                self.insert_text("\n");
+                true
+            }
+            KeyAction::Tab => {
+                self.insert_text("    ");
+                true
+            }
 
-            KeyAction::Backspace => { self.backspace(); true }
-            KeyAction::BackspaceWord => { self.backspace_word(); true }
-            KeyAction::BackspaceLine => { self.backspace_line(); true }
-            KeyAction::Delete => { self.delete_forward(); true }
-            KeyAction::DeleteWord => { self.delete_word_forward(); true }
-            KeyAction::DeleteLine => { self.delete_line_forward(); true }
+            KeyAction::Backspace => {
+                self.backspace();
+                true
+            }
+            KeyAction::BackspaceWord => {
+                self.backspace_word();
+                true
+            }
+            KeyAction::BackspaceLine => {
+                self.backspace_line();
+                true
+            }
+            KeyAction::Delete => {
+                self.delete_forward();
+                true
+            }
+            KeyAction::DeleteWord => {
+                self.delete_word_forward();
+                true
+            }
+            KeyAction::DeleteLine => {
+                self.delete_line_forward();
+                true
+            }
 
-            KeyAction::MoveLeft { extend } => { self.move_left(extend); true }
-            KeyAction::MoveRight { extend } => { self.move_right(extend); true }
-            KeyAction::MoveUp { extend } => { self.move_up(extend); true }
-            KeyAction::MoveDown { extend } => { self.move_down(extend); true }
-            KeyAction::MoveWordLeft { extend } => { self.move_word_left(extend); true }
-            KeyAction::MoveWordRight { extend } => { self.move_word_right(extend); true }
-            KeyAction::MoveHome { extend } => { self.move_home(extend); true }
-            KeyAction::MoveEnd { extend } => { self.move_end(extend); true }
-            KeyAction::MoveDocStart { extend } => { self.move_doc_start(extend); true }
-            KeyAction::MoveDocEnd { extend } => { self.move_doc_end(extend); true }
-            KeyAction::MovePageUp { extend } => { self.move_page_up(extend); true }
-            KeyAction::MovePageDown { extend } => { self.move_page_down(extend); true }
+            KeyAction::MoveLeft { extend } => {
+                self.move_left(extend);
+                true
+            }
+            KeyAction::MoveRight { extend } => {
+                self.move_right(extend);
+                true
+            }
+            KeyAction::MoveUp { extend } => {
+                self.move_up(extend);
+                true
+            }
+            KeyAction::MoveDown { extend } => {
+                self.move_down(extend);
+                true
+            }
+            KeyAction::MoveWordLeft { extend } => {
+                self.move_word_left(extend);
+                true
+            }
+            KeyAction::MoveWordRight { extend } => {
+                self.move_word_right(extend);
+                true
+            }
+            KeyAction::MoveHome { extend } => {
+                self.move_home(extend);
+                true
+            }
+            KeyAction::MoveEnd { extend } => {
+                self.move_end(extend);
+                true
+            }
+            KeyAction::MoveDocStart { extend } => {
+                self.move_doc_start(extend);
+                true
+            }
+            KeyAction::MoveDocEnd { extend } => {
+                self.move_doc_end(extend);
+                true
+            }
+            KeyAction::MovePageUp { extend } => {
+                self.move_page_up(extend);
+                true
+            }
+            KeyAction::MovePageDown { extend } => {
+                self.move_page_down(extend);
+                true
+            }
 
-            KeyAction::SelectAll => { self.select_all(); true }
+            KeyAction::SelectAll => {
+                self.select_all();
+                true
+            }
 
             KeyAction::Undo => self.undo(),
             KeyAction::Redo => self.redo(),
 
-            KeyAction::ToggleBold => { self.toggle_bold(); true }
-            KeyAction::ToggleItalic => { self.toggle_italic(); true }
-            KeyAction::ToggleUnderline => { self.toggle_underline(); true }
-            KeyAction::ToggleStrikethrough => { self.toggle_strikethrough(); true }
-            KeyAction::IncreaseFontSize => { self.adjust_font_size(1.0); true }
-            KeyAction::DecreaseFontSize => { self.adjust_font_size(-1.0); true }
+            KeyAction::ToggleBold => {
+                self.toggle_bold();
+                true
+            }
+            KeyAction::ToggleItalic => {
+                self.toggle_italic();
+                true
+            }
+            KeyAction::ToggleUnderline => {
+                self.toggle_underline();
+                true
+            }
+            KeyAction::ToggleStrikethrough => {
+                self.toggle_strikethrough();
+                true
+            }
+            KeyAction::IncreaseFontSize => {
+                self.adjust_font_size(1.0);
+                true
+            }
+            KeyAction::DecreaseFontSize => {
+                self.adjust_font_size(-1.0);
+                true
+            }
 
-            KeyAction::ImePreedit(text) => { self.update_preedit(text); true }
+            KeyAction::ImePreedit(text) => {
+                self.update_preedit(text);
+                true
+            }
             KeyAction::ImeCommit(text) => {
                 self.apply_with_kind(EditingCommand::Insert(text), EditKind::ImeCommit);
                 true
@@ -1293,11 +1425,17 @@ impl<L: ManagedTextLayout> TextEditSession<L> {
     /// afterwards via [`restore_scroll_anchor`].
     fn scroll_anchor(&mut self) -> ScrollAnchor {
         if self.scroll_y <= 0.0 {
-            return ScrollAnchor { byte_offset: 0, offset_within_line: 0.0 };
+            return ScrollAnchor {
+                byte_offset: 0,
+                offset_within_line: 0.0,
+            };
         }
         let metrics = self.layout.line_metrics(&self.state.text);
         if metrics.is_empty() {
-            return ScrollAnchor { byte_offset: 0, offset_within_line: 0.0 };
+            return ScrollAnchor {
+                byte_offset: 0,
+                offset_within_line: 0.0,
+            };
         }
         // Find the first line whose bottom is below scroll_y (i.e. at least
         // partially visible).
