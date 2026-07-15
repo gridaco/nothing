@@ -9,7 +9,16 @@ members = [
   "crates/grida_wpt",
   "crates/csscascade",
   "crates/math2",
+  "crates/n0",
 ]
+
+# Inherited only by crates that opt in via `.workspace = true` (currently n0).
+# The migrated engine crates keep their explicit per-crate metadata.
+[workspace.package]
+edition = "2024"
+homepage = "https://nothing.graphics"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/gridaco/nothing"
 
 [workspace.lints.rust]
 unreachable_pub = "warn"
