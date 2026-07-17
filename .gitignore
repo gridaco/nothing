@@ -1,1 +1,13 @@
 /target
+
+# claude local state
+.claude/settings.local.json
+.claude/plans/
+.claude/todos.json
+.claude/worktrees
+.claude/scheduled_tasks.lock
+
+# untracked working plans (convention carried from grida)
+*.plan.md
+*.todo.md
+.claude/launch.json
