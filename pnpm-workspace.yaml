@@ -1,0 +1,10 @@
+# Minimal Node island — the repo is Rust-first; pnpm exists ONLY for the
+# @grida/canvas-wasm npm package half and the reftest tooling.
+packages:
+  - "crates/grida-canvas-wasm"
+  - "packages/*"
+# Same stance as gridaco/grida: dependency build scripts are reviewed and
+# skipped (esbuild works without its install script).
+strictDepBuilds: false
+allowBuilds:
+  esbuild: false

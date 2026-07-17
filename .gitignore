@@ -11,3 +11,6 @@
 *.plan.md
 *.todo.md
 .claude/launch.json
+
+# node
+node_modules/

@@ -1,0 +1,15 @@
+{
+  "name": "nothing",
+  "private": true,
+  "packageManager": "pnpm@11.5.2",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "devDependencies": {
+    "tsdown": "^0.22.1",
+    "tsx": "^4",
+    "typescript": "^6",
+    "vitest": "^4"
+  }
+}
