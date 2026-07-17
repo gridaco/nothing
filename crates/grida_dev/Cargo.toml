@@ -3,7 +3,7 @@ name = "grida_dev"
 version = "0.0.0"
 edition = "2021"
 publish = false
-license = "Apache-2.0"
+license.workspace = true
 description = "Native winit playground for grida scenes."
 
 [dependencies]
