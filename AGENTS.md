@@ -83,3 +83,13 @@ gridaco/grida is frozen on the published `@grida/canvas-wasm@0.91.0-canary.22`.
 This repo owns publishing and must never unpublish/deprecate that version.
 The `v1-freeze` branch pins the tree that built it, for emergency `canary.N+1`
 cuts.
+
+## Where work gets filed
+
+- **This repo (gridaco/nothing)**: engine rendering, the node/document model,
+  `.grida` format/schema, engine text/SVG/HTML import, reftests and engine perf,
+  `@grida/canvas-wasm` publishing, engine WG specs.
+- **[gridaco/grida](https://github.com/gridaco/grida)**: the editor/product, desktop,
+  forms/database, SVG editor (TS), platform/billing, and everything user-facing.
+- When unsure: file where the fix would land. Cross-repo references are always
+  full `gridaco/<repo>#N` form — never bare `#N`.
