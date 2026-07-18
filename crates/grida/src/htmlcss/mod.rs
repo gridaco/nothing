@@ -11,6 +11,7 @@
 
 mod collect;
 mod faux_table;
+pub(crate) mod frontend;
 mod github_markdown;
 mod layout;
 mod paint;

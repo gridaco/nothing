@@ -28,25 +28,17 @@ use super::types::{CssLength, LineHeight, WhiteSpace};
 /// registers a compact Chromium-derived UA sheet at `Origin::UserAgent`
 /// so elements receive browser-default styles automatically.
 pub(crate) fn collect_styled_tree(html: &str) -> Result<Option<StyledElement>, String> {
-    use csscascade::cascade::CascadeDriver;
-    use style::thread_state::{self, ThreadState};
-
-    thread_state::initialize(ThreadState::LAYOUT);
-
     // Enable CSS Grid support in Stylo's servo mode (one-time).
     // Without this, `display: grid` is not parsed (gated behind a pref).
+    // Renderer-side only — deliberately NOT part of the shared front-end,
+    // so the importer's Stylo behavior stays untouched.
     use std::sync::Once;
     static GRID_PREF: Once = Once::new();
     GRID_PREF.call_once(|| {
         stylo_static_prefs::set_pref!("layout.grid.enabled", true);
     });
 
-    let dom =
-        DemoDom::parse_from_bytes(html.as_bytes()).map_err(|e| format!("HTML parse error: {e}"))?;
-    let mut driver = CascadeDriver::new(&dom);
-    let document = adapter::bootstrap_dom(dom);
-    driver.flush(document);
-    let _styled_count = driver.style_document(document);
+    let document = super::frontend::parse_and_style(html)?;
 
     let root = document.root_element().map(collect_element);
     Ok(root)

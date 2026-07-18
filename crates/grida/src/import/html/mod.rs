@@ -14,14 +14,12 @@ use crate::node::scene_graph::{Parent, SceneGraph};
 use crate::node::schema::*;
 
 use csscascade::adapter::{self, HtmlElement};
-use csscascade::cascade::CascadeDriver;
-use csscascade::dom::{DemoDom, DemoNodeData};
+use csscascade::dom::DemoNodeData;
 
 use style::color::{AbsoluteColor, ColorSpace};
 use style::dom::TElement;
 use style::properties::longhands;
 use style::properties::ComputedValues;
-use style::thread_state::{self, ThreadState};
 use style::values::generics::font::LineHeight;
 use style::values::generics::length::{GenericMaxSize, GenericSize, LengthPercentageOrNormal};
 use style::values::specified::align::AlignFlags;
@@ -39,23 +37,10 @@ use style::values::specified::text::TextDecorationLine as StyloTextDecorationLin
 /// and is **not thread-safe**. Concurrent calls will race on the shared state.
 /// Callers must serialize access externally (e.g. via a mutex).
 pub fn from_html_str(html: &str) -> Result<SceneGraph, String> {
-    // Ensure Stylo thread state is initialized (idempotent after first call).
-    thread_state::initialize(ThreadState::LAYOUT);
+    // Parse + cascade via the shared front-end (htmlcss::frontend).
+    let document = crate::htmlcss::frontend::parse_and_style(html)?;
 
-    // 1. Parse HTML into arena DOM
-    let dom =
-        DemoDom::parse_from_bytes(html.as_bytes()).map_err(|e| format!("HTML parse error: {e}"))?;
-
-    // 2. Build cascade driver (collects <style> blocks, builds UA + author sheets)
-    let mut driver = CascadeDriver::new(&dom);
-
-    // 3. Install DOM into global slot
-    let document = adapter::bootstrap_dom(dom);
-
-    // 4. Flush stylist + resolve all styles
-    driver.flush(document);
-    let _styled_count = driver.style_document(document);
-    // 5. Build scene graph from styled DOM
+    // Build scene graph from styled DOM
     let mut builder = SceneBuilder::new();
     if let Some(root) = document.root_element() {
         builder.build_element(root, Parent::Root);
