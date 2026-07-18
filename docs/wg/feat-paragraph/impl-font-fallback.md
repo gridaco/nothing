@@ -167,4 +167,4 @@ Level 2 fallback control based on Unicode ranges is planned to improve fallback 
 
 ## See Also
 
-- [Grida Canvas Editor Default Fonts](../../editor/canvas-languages-and-fonts.md)
+- [Grida Canvas Editor Default Fonts](https://grida.co/docs/editor/canvas-languages-and-fonts)
