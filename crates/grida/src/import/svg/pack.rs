@@ -14,6 +14,7 @@ use crate::cg::svg::{
     IRSVGTextNode, SVGFillAttributes, SVGFontStyle, SVGStrokeAttributes,
 };
 use crate::import::svg::packed_scene::SVGPackedScene;
+use crate::import::svg::paint;
 use crate::node::factory::NodeFactory;
 use crate::node::scene_graph::{Parent, SceneGraph};
 use crate::node::schema::*;
@@ -99,13 +100,13 @@ impl SceneBuilder {
         ));
 
         if let Some(fill) = &path.fill {
-            node.fills = Paints::new([fill.into_paint_with_opacity(gradient_bounds)]);
+            node.fills = Paints::new([paint::fill_paint(fill, gradient_bounds)]);
         } else {
             node.fills = Paints::default();
         }
 
         if let Some(stroke) = &path.stroke {
-            node.strokes = Paints::new([stroke.into_paint_with_opacity(gradient_bounds)]);
+            node.strokes = Paints::new([paint::stroke_paint(stroke, gradient_bounds)]);
             node.stroke_style.stroke_cap = stroke.stroke_linecap;
             node.stroke_style.stroke_join = stroke.stroke_linejoin;
             node.stroke_style.stroke_miter_limit = stroke.stroke_miterlimit;
@@ -234,13 +235,13 @@ impl SceneBuilder {
         });
 
         if let Some(fill) = fill {
-            node.fills = Paints::new([fill.into_paint_with_opacity(None)]);
+            node.fills = Paints::new([paint::fill_paint(fill, None)]);
         } else {
             node.fills = Paints::default();
         }
 
         if let Some(stroke) = stroke {
-            node.strokes = Paints::new([stroke.into_paint_with_opacity(None)]);
+            node.strokes = Paints::new([paint::stroke_paint(stroke, None)]);
             node.stroke_width = stroke.stroke_width;
         } else {
             node.strokes = Paints::default();
@@ -298,11 +299,10 @@ impl SceneBuilder {
                     .fill
                     .as_ref()
                     .or(fallback_fill)
-                    .map(|f| vec![f.into_paint_with_opacity(None)]);
+                    .map(|f| vec![paint::fill_paint(f, None)]);
 
                 let stroke_ref = run.stroke.as_ref().or(fallback_stroke);
-                let strokes =
-                    stroke_ref.map(|s| Paints::new(vec![s.into_paint_with_opacity(None)]));
+                let strokes = stroke_ref.map(|s| Paints::new(vec![paint::stroke_paint(s, None)]));
                 let stroke_width = stroke_ref.map(|s| s.stroke_width);
 
                 StyledTextRun {

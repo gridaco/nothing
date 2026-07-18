@@ -8,5 +8,6 @@ pub mod from_usvg;
 pub mod grida;
 pub mod pack;
 pub mod packed_scene;
+mod paint;
 
 pub use packed_scene::SVGPackedScene;
