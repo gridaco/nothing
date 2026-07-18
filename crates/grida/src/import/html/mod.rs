@@ -20,16 +20,11 @@ use crate::htmlcss::types::{Display as CssDisplay, Overflow as CssOverflow};
 use csscascade::adapter::{self, HtmlElement};
 use csscascade::dom::DemoNodeData;
 
-use style::color::{AbsoluteColor, ColorSpace};
-use style::dom::TElement;
-use style::properties::ComputedValues;
-use style::values::generics::font::LineHeight;
-use style::values::specified::text::TextDecorationLine as StyloTextDecorationLine;
-
 mod from_styled;
 use from_styled::{
     blend_mode_from, corner_radius_from, dimensions_from, effects_from, fills_from_background,
     flex_container_from, layout_child_from, margin_from, size_from, strokes_from_border,
+    text_align_from, text_effects_from, text_style_from,
 };
 
 /// Parse an HTML string and convert it into a Grida [`SceneGraph`].
@@ -83,14 +78,6 @@ impl SceneBuilder {
             return;
         }
 
-        // Transitional: Stylo reads for the not-yet-rewired paint/text
-        // mappings. Deleted once every emitter consumes `styled`.
-        let data = element.borrow_data();
-        let Some(data) = &data else {
-            return;
-        };
-        let style = data.styles.primary();
-
         let tag = element.local_name_string();
 
         // Decide what IR node type to emit
@@ -126,7 +113,7 @@ impl SceneBuilder {
             // All children are text or inline elements → emit as a single
             // Container (for box model) with an AttributedText child (for text).
             let container_id = self.emit_container(&styled, parent);
-            self.emit_attributed_text(element, style, &styled, Parent::NodeId(container_id));
+            self.emit_attributed_text(element, &styled, Parent::NodeId(container_id));
         } else if has_element_children || has_text_children || is_structural {
             // Mixed content or structural element → Container with separate children.
             let container_id = self.emit_container(&styled, parent);
@@ -139,7 +126,7 @@ impl SceneBuilder {
                 if let DemoNodeData::Text(text) = &child_node.data {
                     let trimmed = text.trim();
                     if !trimmed.is_empty() {
-                        self.emit_text_span(trimmed, style, &styled, container_parent.clone());
+                        self.emit_text_span(trimmed, &styled, container_parent.clone());
                     }
                 }
             }
@@ -266,23 +253,17 @@ impl SceneBuilder {
         }
     }
 
-    fn emit_text_span(
-        &mut self,
-        text: &str,
-        style: &ComputedValues,
-        styled: &StyledElement,
-        parent: Parent,
-    ) {
+    fn emit_text_span(&mut self, text: &str, styled: &StyledElement, parent: Parent) {
         let mut node = self.factory.create_text_span_node();
         node.text = text.to_string();
 
-        let (text_style, fills) = css_text_style_to_cg(style);
+        let (text_style, fills) = text_style_from(styled);
         node.text_style = text_style;
         node.fills = fills;
-        node.text_align = css_text_align_to_cg(style.get_inherited_text().text_align);
-        node.opacity = style.get_effects().opacity;
-        node.effects = css_text_shadow_to_effects(style);
-        node.blend_mode = css_blend_mode_to_cg(style);
+        node.text_align = text_align_from(styled);
+        node.opacity = styled.opacity;
+        node.effects = text_effects_from(styled);
+        node.blend_mode = blend_mode_from(styled);
 
         if styled.flex_grow > 0.0 {
             node.layout_child = Some(LayoutChildStyle {
@@ -303,13 +284,12 @@ impl SceneBuilder {
     fn emit_attributed_text(
         &mut self,
         element: HtmlElement,
-        style: &ComputedValues,
         styled: &StyledElement,
         parent: Parent,
     ) {
         let dom = adapter::dom();
-        let (default_style, default_fills) = css_text_style_to_cg(style);
-        let default_color = Some(abs_color_to_cg(&style.get_inherited_text().color));
+        let (default_style, default_fills) = text_style_from(styled);
+        let default_color = Some(styled.color);
 
         let mut builder = AttributedStringBuilder::new();
         let node_data = dom.node(element.node_id());
@@ -326,12 +306,10 @@ impl SceneBuilder {
                     }
                 }
                 DemoNodeData::Element(_) => {
-                    // Inline element — get its own computed style and collect text.
+                    // Inline element — get its own style record and collect text.
                     let child_el = HtmlElement::from_node_id(*child_id);
-                    let child_data = child_el.borrow_data();
-                    if let Some(child_data) = &child_data {
-                        let child_style = child_data.styles.primary();
-                        Self::collect_inline_text(&mut builder, child_el, child_style);
+                    if let Some(child_styled) = styled_of(child_el) {
+                        Self::collect_inline_text(&mut builder, child_el, &child_styled);
                     }
                 }
                 _ => {} // comments, doctypes, etc. — skip
@@ -353,7 +331,7 @@ impl SceneBuilder {
             layout_child: layout_child_from(styled),
             attributed_string: attr_string,
             default_style,
-            text_align: css_text_align_to_cg(style.get_inherited_text().text_align),
+            text_align: text_align_from(styled),
             text_align_vertical: TextAlignVertical::Top,
             max_lines: None,
             ellipsis: None,
@@ -361,10 +339,10 @@ impl SceneBuilder {
             strokes: Default::default(),
             stroke_width: 0.0,
             stroke_align: StrokeAlign::default(),
-            opacity: style.get_effects().opacity,
-            blend_mode: css_blend_mode_to_cg(style),
+            opacity: styled.opacity,
+            blend_mode: blend_mode_from(styled),
             mask: None,
-            effects: css_text_shadow_to_effects(style),
+            effects: text_effects_from(styled),
         };
 
         self.graph.append_child(Node::AttributedText(node), parent);
@@ -374,11 +352,11 @@ impl SceneBuilder {
     fn collect_inline_text(
         builder: &mut AttributedStringBuilder,
         element: HtmlElement,
-        style: &ComputedValues,
+        styled: &StyledElement,
     ) {
         let dom = adapter::dom();
-        let (run_style, _) = css_text_style_to_cg(style);
-        let run_color = Some(abs_color_to_cg(&style.get_inherited_text().color));
+        let (run_style, _) = text_style_from(styled);
+        let run_color = Some(styled.color);
         let node_data = dom.node(element.node_id());
 
         for child_id in &node_data.children {
@@ -392,10 +370,8 @@ impl SceneBuilder {
                 }
                 DemoNodeData::Element(_) => {
                     let child_el = HtmlElement::from_node_id(*child_id);
-                    let child_data = child_el.borrow_data();
-                    if let Some(child_data) = &child_data {
-                        let child_style = child_data.styles.primary();
-                        Self::collect_inline_text(builder, child_el, child_style);
+                    if let Some(child_styled) = styled_of(child_el) {
+                        Self::collect_inline_text(builder, child_el, &child_styled);
                     }
                 }
                 _ => {}
@@ -446,31 +422,6 @@ impl SceneBuilder {
 // ---------------------------------------------------------------------------
 // CSS → CG type conversion helpers
 // ---------------------------------------------------------------------------
-
-/// Convert a Stylo computed color (GenericColor) to a CG color.
-/// Returns None for fully transparent or currentcolor.
-fn css_color_to_cg(color: &style::values::computed::Color) -> Option<CGColor> {
-    let abs = color.as_absolute()?;
-    let srgb = abs.to_color_space(ColorSpace::Srgb);
-    let r = (srgb.components.0.clamp(0.0, 1.0) * 255.0) as u8;
-    let g = (srgb.components.1.clamp(0.0, 1.0) * 255.0) as u8;
-    let b = (srgb.components.2.clamp(0.0, 1.0) * 255.0) as u8;
-    let a = (srgb.alpha.clamp(0.0, 1.0) * 255.0) as u8;
-    if a == 0 {
-        return None;
-    }
-    Some(CGColor::from_rgba(r, g, b, a))
-}
-
-/// Convert an AbsoluteColor (from the `color` property) to CG.
-fn abs_color_to_cg(color: &AbsoluteColor) -> CGColor {
-    let srgb = color.to_color_space(ColorSpace::Srgb);
-    let r = (srgb.components.0.clamp(0.0, 1.0) * 255.0) as u8;
-    let g = (srgb.components.1.clamp(0.0, 1.0) * 255.0) as u8;
-    let b = (srgb.components.2.clamp(0.0, 1.0) * 255.0) as u8;
-    let a = (srgb.alpha.clamp(0.0, 1.0) * 255.0) as u8;
-    CGColor::from_rgba(r, g, b, a)
-}
 
 /// Parsed CSS margin with per-edge auto tracking.
 struct CSSMargin {
@@ -524,247 +475,6 @@ fn collapse_whitespace(s: &str) -> String {
         }
     }
     result
-}
-
-/// Extract text typography (TextStyleRec) and fill color from CSS computed values.
-/// Shared by emit_text_span and emit_attributed_text.
-fn css_text_style_to_cg(style: &ComputedValues) -> (TextStyleRec, Paints) {
-    let font = style.get_font();
-    let mut text_style = TextStyleRec::from_font("system-ui", 16.0);
-
-    text_style.font_size = font.font_size.computed_size().px();
-    text_style.font_weight = FontWeight(font.font_weight.value() as u32);
-
-    if let Some(first) = font.font_family.families.iter().next() {
-        use style::values::computed::font::SingleFontFamily;
-        text_style.font_family = match first {
-            SingleFontFamily::FamilyName(name) => name.name.to_string(),
-            SingleFontFamily::Generic(generic) => format!("{:?}", generic),
-        };
-    }
-
-    text_style.font_style_italic = font.font_style == style::values::computed::FontStyle::ITALIC;
-
-    match &font.line_height {
-        LineHeight::Normal => {}
-        LineHeight::Number(n) => {
-            text_style.line_height = TextLineHeight::Factor(n.0);
-        }
-        LineHeight::Length(len) => {
-            text_style.line_height = TextLineHeight::Fixed(len.0.px());
-        }
-    }
-
-    let ls = &style.get_inherited_text().letter_spacing;
-    if let Some(len) = ls.0.to_length() {
-        let px = len.px();
-        if px != 0.0 {
-            text_style.letter_spacing = TextLetterSpacing::Fixed(px);
-        }
-    }
-
-    let ws = &style.get_inherited_text().word_spacing;
-    let ws_px = ws.to_length().map(|l| l.px()).unwrap_or(0.0);
-    if ws_px != 0.0 {
-        text_style.word_spacing = TextWordSpacing::Fixed(ws_px);
-    }
-
-    {
-        use style::values::specified::text::TextTransformCase;
-        let tt = style.clone_text_transform();
-        let case = tt.case();
-        text_style.text_transform = if case == TextTransformCase::Uppercase {
-            TextTransform::Uppercase
-        } else if case == TextTransformCase::Lowercase {
-            TextTransform::Lowercase
-        } else if case == TextTransformCase::Capitalize {
-            TextTransform::Capitalize
-        } else {
-            TextTransform::None
-        };
-    }
-
-    let td_line = style.clone_text_decoration_line();
-    if td_line != StyloTextDecorationLine::NONE {
-        let line = if td_line.intersects(StyloTextDecorationLine::LINE_THROUGH) {
-            TextDecorationLine::LineThrough
-        } else if td_line.intersects(StyloTextDecorationLine::UNDERLINE) {
-            TextDecorationLine::Underline
-        } else if td_line.intersects(StyloTextDecorationLine::OVERLINE) {
-            TextDecorationLine::Overline
-        } else {
-            TextDecorationLine::None
-        };
-        if !matches!(line, TextDecorationLine::None) {
-            let td_color = css_color_to_cg(&style.clone_text_decoration_color());
-            let td_style = css_text_decoration_style_to_cg(style);
-            text_style.text_decoration = Some(TextDecorationRec {
-                text_decoration_line: line,
-                text_decoration_color: td_color,
-                text_decoration_style: td_style,
-                text_decoration_skip_ink: None,
-                text_decoration_thickness: None,
-            });
-        }
-    }
-
-    let text_color = &style.get_inherited_text().color;
-    let cg_color = abs_color_to_cg(text_color);
-    let fills = Paints::new([Paint::Solid(SolidPaint {
-        color: cg_color,
-        blend_mode: BlendMode::default(),
-        active: true,
-    })]);
-
-    (text_style, fills)
-}
-
-/// Map CSS text-align to CG TextAlign.
-fn css_text_align_to_cg(align: style::values::computed::TextAlign) -> TextAlign {
-    use style::values::specified::text::TextAlignKeyword;
-    match align {
-        TextAlignKeyword::Start | TextAlignKeyword::Left | TextAlignKeyword::MozLeft => {
-            TextAlign::Left
-        }
-        TextAlignKeyword::End | TextAlignKeyword::Right | TextAlignKeyword::MozRight => {
-            TextAlign::Right
-        }
-        TextAlignKeyword::Center | TextAlignKeyword::MozCenter => TextAlign::Center,
-        TextAlignKeyword::Justify => TextAlign::Justify,
-    }
-}
-
-/// Convert CSS effects (box-shadow, filter, backdrop-filter) to CG LayerEffects.
-fn css_effects_to_cg(style: &ComputedValues) -> LayerEffects {
-    use style::values::generics::effects::Filter;
-
-    let mut shadows = Vec::new();
-    let mut blur = None;
-    let mut backdrop_blur = None;
-
-    // box-shadow → shadows
-    let shadow_list = style.clone_box_shadow();
-    for shadow in shadow_list.0.iter() {
-        let color =
-            css_color_to_cg(&shadow.base.color).unwrap_or_else(|| CGColor::from_rgba(0, 0, 0, 255));
-
-        let fe = FeShadow {
-            dx: shadow.base.horizontal.px(),
-            dy: shadow.base.vertical.px(),
-            blur: shadow.base.blur.px(),
-            spread: shadow.spread.px(),
-            color,
-            active: true,
-        };
-
-        if shadow.inset {
-            shadows.push(FilterShadowEffect::InnerShadow(fe));
-        } else {
-            shadows.push(FilterShadowEffect::DropShadow(fe));
-        }
-    }
-
-    // filter → blur + drop-shadow
-    let filter_list = style.clone_filter();
-    for f in filter_list.0.iter() {
-        match f {
-            Filter::Blur(len) => {
-                blur = Some(FeLayerBlur::from(len.px()));
-            }
-            Filter::DropShadow(s) => {
-                let color =
-                    css_color_to_cg(&s.color).unwrap_or_else(|| CGColor::from_rgba(0, 0, 0, 255));
-                shadows.push(FilterShadowEffect::DropShadow(FeShadow {
-                    dx: s.horizontal.px(),
-                    dy: s.vertical.px(),
-                    blur: s.blur.px(),
-                    spread: 0.0,
-                    color,
-                    active: true,
-                }));
-            }
-            _ => {}
-        }
-    }
-
-    // backdrop-filter → backdrop_blur
-    let bd_list = style.clone_backdrop_filter();
-    for f in bd_list.0.iter() {
-        if let Filter::Blur(len) = f {
-            backdrop_blur = Some(FeBackdropBlur::from(len.px()));
-        }
-    }
-
-    LayerEffects {
-        blur,
-        backdrop_blur,
-        shadows,
-        glass: None,
-        noises: Vec::new(),
-    }
-}
-
-/// Convert CSS text-shadow to CG LayerEffects (for text nodes).
-fn css_text_shadow_to_effects(style: &ComputedValues) -> LayerEffects {
-    let ts_list = style.clone_text_shadow();
-    let mut shadows = Vec::new();
-
-    for s in ts_list.0.iter() {
-        let color = css_color_to_cg(&s.color).unwrap_or_else(|| CGColor::from_rgba(0, 0, 0, 255));
-
-        shadows.push(FilterShadowEffect::DropShadow(FeShadow {
-            dx: s.horizontal.px(),
-            dy: s.vertical.px(),
-            blur: s.blur.px(),
-            spread: 0.0,
-            color,
-            active: true,
-        }));
-    }
-
-    // Text nodes also support filter/backdrop-filter
-    let mut base = css_effects_to_cg(style);
-    base.shadows.extend(shadows);
-    base
-}
-
-/// Convert CSS mix-blend-mode to CG LayerBlendMode.
-fn css_blend_mode_to_cg(style: &ComputedValues) -> LayerBlendMode {
-    use style::computed_values::mix_blend_mode::T as MixBlendMode;
-
-    match style.clone_mix_blend_mode() {
-        MixBlendMode::Normal => LayerBlendMode::PassThrough,
-        MixBlendMode::Multiply => LayerBlendMode::Blend(BlendMode::Multiply),
-        MixBlendMode::Screen => LayerBlendMode::Blend(BlendMode::Screen),
-        MixBlendMode::Overlay => LayerBlendMode::Blend(BlendMode::Overlay),
-        MixBlendMode::Darken => LayerBlendMode::Blend(BlendMode::Darken),
-        MixBlendMode::Lighten => LayerBlendMode::Blend(BlendMode::Lighten),
-        MixBlendMode::ColorDodge => LayerBlendMode::Blend(BlendMode::ColorDodge),
-        MixBlendMode::ColorBurn => LayerBlendMode::Blend(BlendMode::ColorBurn),
-        MixBlendMode::HardLight => LayerBlendMode::Blend(BlendMode::HardLight),
-        MixBlendMode::SoftLight => LayerBlendMode::Blend(BlendMode::SoftLight),
-        MixBlendMode::Difference => LayerBlendMode::Blend(BlendMode::Difference),
-        MixBlendMode::Exclusion => LayerBlendMode::Blend(BlendMode::Exclusion),
-        MixBlendMode::Hue => LayerBlendMode::Blend(BlendMode::Hue),
-        MixBlendMode::Saturation => LayerBlendMode::Blend(BlendMode::Saturation),
-        MixBlendMode::Color => LayerBlendMode::Blend(BlendMode::Color),
-        MixBlendMode::Luminosity => LayerBlendMode::Blend(BlendMode::Luminosity),
-        _ => LayerBlendMode::PassThrough,
-    }
-}
-
-/// Convert CSS text-decoration-style to CG TextDecorationStyle.
-fn css_text_decoration_style_to_cg(style: &ComputedValues) -> Option<TextDecorationStyle> {
-    use style::computed_values::text_decoration_style::T as TDS;
-
-    match style.clone_text_decoration_style() {
-        TDS::Solid => Some(TextDecorationStyle::Solid),
-        TDS::Double => Some(TextDecorationStyle::Double),
-        TDS::Dotted => Some(TextDecorationStyle::Dotted),
-        TDS::Dashed => Some(TextDecorationStyle::Dashed),
-        TDS::Wavy => Some(TextDecorationStyle::Wavy),
-        _ => None,
-    }
 }
 
 #[cfg(test)]

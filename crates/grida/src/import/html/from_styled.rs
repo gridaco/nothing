@@ -24,7 +24,7 @@ use crate::htmlcss::style::{
 use crate::htmlcss::types::AlignItems as CssAlignItems;
 use crate::htmlcss::types::{
     BorderStyle as CssBorderStyle, CssLength, Display, FlexDirection, FlexWrap, JustifyContent,
-    Position,
+    LineHeight as CssLineHeight, Position, TextAlignKeyword,
 };
 
 use super::CSSMargin;
@@ -457,6 +457,108 @@ pub(super) fn blend_mode_from(el: &StyledElement) -> LayerBlendMode {
         BlendMode::Normal => LayerBlendMode::PassThrough,
         mode => LayerBlendMode::Blend(mode),
     }
+}
+
+/// Text typography ([`TextStyleRec`]) and fill color from the record's
+/// inherited font/text properties. Shared by the text-span and
+/// attributed-text emitters.
+pub(super) fn text_style_from(el: &StyledElement) -> (TextStyleRec, Paints) {
+    let font = &el.font;
+    let mut text_style = TextStyleRec::from_font("system-ui", 16.0);
+
+    text_style.font_size = font.size;
+    text_style.font_weight = font.weight;
+
+    // First family: generic keywords keep their identity via
+    // `first_generic` (the Debug names mirror Stylo's generic enum,
+    // which the old code formatted directly); named families come
+    // through as-is. An empty family list keeps the default.
+    if let Some(generic) = font.first_generic {
+        text_style.font_family = format!("{:?}", generic);
+    } else if let Some(first) = font.families.first() {
+        text_style.font_family = first.clone();
+    }
+
+    text_style.font_style_italic = font.italic;
+
+    match font.line_height {
+        CssLineHeight::Normal => {}
+        CssLineHeight::Number(n) => {
+            text_style.line_height = TextLineHeight::Factor(n);
+        }
+        CssLineHeight::Px(px) => {
+            text_style.line_height = TextLineHeight::Fixed(px);
+        }
+    }
+
+    if font.letter_spacing != 0.0 {
+        text_style.letter_spacing = TextLetterSpacing::Fixed(font.letter_spacing);
+    }
+
+    if font.word_spacing != 0.0 {
+        text_style.word_spacing = TextWordSpacing::Fixed(font.word_spacing);
+    }
+
+    text_style.text_transform = font.text_transform;
+
+    // Decoration: line-through wins over underline wins over overline —
+    // the old bitflag priority. `currentcolor` decoration colors stay
+    // `None` in the record; fully-transparent ones fold to `None` too
+    // (the old css_color_to_cg behavior) so paint falls back to the
+    // text color.
+    let line = if font.decoration_line_through {
+        TextDecorationLine::LineThrough
+    } else if font.decoration_underline {
+        TextDecorationLine::Underline
+    } else if font.decoration_overline {
+        TextDecorationLine::Overline
+    } else {
+        TextDecorationLine::None
+    };
+    if !matches!(line, TextDecorationLine::None) {
+        let td_color = font.decoration_color.filter(|c| c.a != 0);
+        text_style.text_decoration = Some(TextDecorationRec {
+            text_decoration_line: line,
+            text_decoration_color: td_color,
+            text_decoration_style: Some(font.decoration_style),
+            text_decoration_skip_ink: None,
+            text_decoration_thickness: None,
+        });
+    }
+
+    let fills = Paints::new([solid(el.color)]);
+
+    (text_style, fills)
+}
+
+/// The authored `text-align` keyword → [`TextAlign`]. Logical
+/// `start`/`end` map to physical left/right unconditionally — the
+/// importer has never resolved them against `direction`, and the
+/// goldens pin that (see `FontProps::text_align_keyword`).
+pub(super) fn text_align_from(el: &StyledElement) -> TextAlign {
+    match el.font.text_align_keyword {
+        TextAlignKeyword::Start | TextAlignKeyword::Left => TextAlign::Left,
+        TextAlignKeyword::End | TextAlignKeyword::Right => TextAlign::Right,
+        TextAlignKeyword::Center => TextAlign::Center,
+        TextAlignKeyword::Justify => TextAlign::Justify,
+    }
+}
+
+/// Effects for text nodes: the element-level effects (box-shadow,
+/// filter, backdrop-filter) with `text-shadow` drop-shadows appended.
+pub(super) fn text_effects_from(el: &StyledElement) -> LayerEffects {
+    let mut base = effects_from(el);
+    base.shadows.extend(el.font.text_shadow.iter().map(|s| {
+        FilterShadowEffect::DropShadow(FeShadow {
+            dx: s.offset_x,
+            dy: s.offset_y,
+            blur: s.blur,
+            spread: 0.0,
+            color: s.color,
+            active: true,
+        })
+    }));
+    base
 }
 
 /// CSS margin → the importer's margin-surgery input. The record stores
