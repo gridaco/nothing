@@ -1491,33 +1491,43 @@ fn extract_border(style: &ComputedValues, current_color: CGColor, q: ColorQuanti
     // `border-*-color` defaults to `currentcolor`, which Stylo leaves
     // unresolved to absolute. Fall back to the element's computed text
     // color so `border: solid` on red text draws a red border, not an
-    // unexpected opaque black one.
-    let extract_color = |color: &style::values::computed::Color| -> CGColor {
-        color
-            .as_absolute()
-            .map(|abs| q.abs_to_cg(abs))
-            .unwrap_or(current_color)
+    // unexpected opaque black one. The second tuple element records
+    // that the fallback fired — see `BorderSide::color_is_currentcolor`.
+    let extract_color = |color: &style::values::computed::Color| -> (CGColor, bool) {
+        match color.as_absolute() {
+            Some(abs) => (q.abs_to_cg(abs), false),
+            None => (current_color, true),
+        }
     };
+
+    let (top_color, top_cc) = extract_color(&style.clone_border_top_color());
+    let (right_color, right_cc) = extract_color(&style.clone_border_right_color());
+    let (bottom_color, bottom_cc) = extract_color(&style.clone_border_bottom_color());
+    let (left_color, left_cc) = extract_color(&style.clone_border_left_color());
 
     BorderBox {
         top: BorderSide {
             width: side_width(&b.border_top_width, b.border_top_style),
-            color: extract_color(&style.clone_border_top_color()),
+            color: top_color,
+            color_is_currentcolor: top_cc,
             style: map_border_style(b.border_top_style),
         },
         right: BorderSide {
             width: side_width(&b.border_right_width, b.border_right_style),
-            color: extract_color(&style.clone_border_right_color()),
+            color: right_color,
+            color_is_currentcolor: right_cc,
             style: map_border_style(b.border_right_style),
         },
         bottom: BorderSide {
             width: side_width(&b.border_bottom_width, b.border_bottom_style),
-            color: extract_color(&style.clone_border_bottom_color()),
+            color: bottom_color,
+            color_is_currentcolor: bottom_cc,
             style: map_border_style(b.border_bottom_style),
         },
         left: BorderSide {
             width: side_width(&b.border_left_width, b.border_left_style),
-            color: extract_color(&style.clone_border_left_color()),
+            color: left_color,
+            color_is_currentcolor: left_cc,
             style: map_border_style(b.border_left_style),
         },
     }

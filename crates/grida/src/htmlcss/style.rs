@@ -337,6 +337,13 @@ pub struct CssEdgeInsets {
 pub struct BorderSide {
     pub width: f32,
     pub color: CGColor,
+    /// `true` when the authored side color was `currentcolor` (the CSS
+    /// initial value — every side whose color is never authored carries
+    /// it). `color` holds the resolved value (the element's computed
+    /// `color`), which is what htmlcss paint consumes. Preserved for
+    /// the HTML importer, whose stroke-color fallback skips
+    /// `currentcolor` sides — pinned by its golden corpus.
+    pub color_is_currentcolor: bool,
     pub style: BorderStyle,
 }
 
@@ -345,6 +352,7 @@ impl Default for BorderSide {
         Self {
             width: 0.0,
             color: CGColor::BLACK,
+            color_is_currentcolor: false,
             style: BorderStyle::None,
         }
     }

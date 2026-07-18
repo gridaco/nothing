@@ -15,7 +15,7 @@ use crate::node::schema::*;
 
 use crate::htmlcss::collect::styled_of;
 use crate::htmlcss::style::StyledElement;
-use crate::htmlcss::types::Display as CssDisplay;
+use crate::htmlcss::types::{Display as CssDisplay, Overflow as CssOverflow};
 
 use csscascade::adapter::{self, HtmlElement};
 use csscascade::dom::DemoNodeData;
@@ -24,13 +24,12 @@ use style::color::{AbsoluteColor, ColorSpace};
 use style::dom::TElement;
 use style::properties::ComputedValues;
 use style::values::generics::font::LineHeight;
-use style::values::specified::border::BorderStyle;
-use style::values::specified::position::{HorizontalPositionKeyword, VerticalPositionKeyword};
 use style::values::specified::text::TextDecorationLine as StyloTextDecorationLine;
 
 mod from_styled;
 use from_styled::{
-    dimensions_from, flex_container_from, layout_child_from, margin_from, size_from,
+    blend_mode_from, corner_radius_from, dimensions_from, effects_from, fills_from_background,
+    flex_container_from, layout_child_from, margin_from, size_from, strokes_from_border,
 };
 
 /// Parse an HTML string and convert it into a Grida [`SceneGraph`].
@@ -126,11 +125,11 @@ impl SceneBuilder {
         if has_text_children && all_children_inline && !is_structural {
             // All children are text or inline elements → emit as a single
             // Container (for box model) with an AttributedText child (for text).
-            let container_id = self.emit_container(style, &styled, parent);
+            let container_id = self.emit_container(&styled, parent);
             self.emit_attributed_text(element, style, &styled, Parent::NodeId(container_id));
         } else if has_element_children || has_text_children || is_structural {
             // Mixed content or structural element → Container with separate children.
-            let container_id = self.emit_container(style, &styled, parent);
+            let container_id = self.emit_container(&styled, parent);
             let container_parent = Parent::NodeId(container_id);
 
             // Emit inline text children
@@ -153,7 +152,7 @@ impl SceneBuilder {
             }
         } else {
             // Empty visual element → Rectangle
-            self.emit_rectangle(style, &styled, parent);
+            self.emit_rectangle(&styled, parent);
         }
     }
 
@@ -186,25 +185,20 @@ impl SceneBuilder {
         self.graph.append_child(Node::Container(wrapper), parent)
     }
 
-    fn emit_container(
-        &mut self,
-        style: &ComputedValues,
-        styled: &StyledElement,
-        parent: Parent,
-    ) -> NodeId {
+    fn emit_container(&mut self, styled: &StyledElement, parent: Parent) -> NodeId {
         let mut node = self.factory.create_container_node();
 
         // Display / layout mode, flex direction/wrap/alignment, gap
         flex_container_from(styled, &mut node.layout_container);
 
         // Opacity
-        node.opacity = style.get_effects().opacity;
+        node.opacity = styled.opacity;
 
         // Background → fills (solid color + gradients)
-        node.fills = css_background_to_fills(style);
+        node.fills = fills_from_background(styled);
 
         // Border radius
-        node.corner_radius = css_border_radius_to_cg(style);
+        node.corner_radius = corner_radius_from(styled);
 
         // Padding
         let padding = styled.padding;
@@ -217,21 +211,21 @@ impl SceneBuilder {
         }
 
         // Overflow → clip
-        let bx = style.get_box();
-        node.clip = bx.overflow_x != style::values::specified::box_::Overflow::Visible
-            || bx.overflow_y != style::values::specified::box_::Overflow::Visible;
+        node.clip =
+            styled.overflow_x != CssOverflow::Visible || styled.overflow_y != CssOverflow::Visible;
 
         // Borders → strokes + stroke_width
-        let (border_strokes, border_stroke_width, border_stroke_style) = css_border_to_cg(style);
+        let (border_strokes, border_stroke_width, border_stroke_style) =
+            strokes_from_border(styled);
         node.strokes = border_strokes;
         node.stroke_width = border_stroke_width;
         node.stroke_style = border_stroke_style;
 
         // Effects (box-shadow, filter, backdrop-filter)
-        node.effects = css_effects_to_cg(style);
+        node.effects = effects_from(styled);
 
         // Blend mode (mix-blend-mode)
-        node.blend_mode = css_blend_mode_to_cg(style);
+        node.blend_mode = blend_mode_from(styled);
 
         // Width / height / min / max dimensions
         dimensions_from(styled, &mut node.layout_dimensions);
@@ -409,12 +403,12 @@ impl SceneBuilder {
         }
     }
 
-    fn emit_rectangle(&mut self, style: &ComputedValues, styled: &StyledElement, parent: Parent) {
+    fn emit_rectangle(&mut self, styled: &StyledElement, parent: Parent) {
         let mut node = self.factory.create_rectangle_node();
 
-        node.fills = css_background_to_fills(style);
-        node.corner_radius = css_border_radius_to_cg(style);
-        node.opacity = style.get_effects().opacity;
+        node.fills = fills_from_background(styled);
+        node.corner_radius = corner_radius_from(styled);
+        node.opacity = styled.opacity;
 
         // CSS dimensions → node size
         node.size = size_from(styled);
@@ -423,16 +417,17 @@ impl SceneBuilder {
         node.layout_child = layout_child_from(styled);
 
         // Borders
-        let (border_strokes, border_stroke_width, border_stroke_style) = css_border_to_cg(style);
+        let (border_strokes, border_stroke_width, border_stroke_style) =
+            strokes_from_border(styled);
         node.strokes = border_strokes;
         node.stroke_width = border_stroke_width;
         node.stroke_style = border_stroke_style;
 
         // Effects (box-shadow, filter, backdrop-filter)
-        node.effects = css_effects_to_cg(style);
+        node.effects = effects_from(styled);
 
         // Blend mode (mix-blend-mode)
-        node.blend_mode = css_blend_mode_to_cg(style);
+        node.blend_mode = blend_mode_from(styled);
 
         // Margin → tree surgery (same pattern as emit_container)
         let margin = margin_from(styled);
@@ -475,32 +470,6 @@ fn abs_color_to_cg(color: &AbsoluteColor) -> CGColor {
     let b = (srgb.components.2.clamp(0.0, 1.0) * 255.0) as u8;
     let a = (srgb.alpha.clamp(0.0, 1.0) * 255.0) as u8;
     CGColor::from_rgba(r, g, b, a)
-}
-
-/// Extract border-radius from computed styles.
-fn css_border_radius_to_cg(style: &ComputedValues) -> RectangularCornerRadius {
-    let border = style.get_border();
-    let lp_to_px = |lp: &style::values::computed::NonNegativeLengthPercentage| -> f32 {
-        lp.0.to_length().map(|l| l.px()).unwrap_or(0.0)
-    };
-    RectangularCornerRadius {
-        tl: Radius {
-            rx: lp_to_px(&border.border_top_left_radius.0.width),
-            ry: lp_to_px(&border.border_top_left_radius.0.height),
-        },
-        tr: Radius {
-            rx: lp_to_px(&border.border_top_right_radius.0.width),
-            ry: lp_to_px(&border.border_top_right_radius.0.height),
-        },
-        br: Radius {
-            rx: lp_to_px(&border.border_bottom_right_radius.0.width),
-            ry: lp_to_px(&border.border_bottom_right_radius.0.height),
-        },
-        bl: Radius {
-            rx: lp_to_px(&border.border_bottom_left_radius.0.width),
-            ry: lp_to_px(&border.border_bottom_left_radius.0.height),
-        },
-    }
 }
 
 /// Parsed CSS margin with per-edge auto tracking.
@@ -663,340 +632,6 @@ fn css_text_align_to_cg(align: style::values::computed::TextAlign) -> TextAlign 
         TextAlignKeyword::Center | TextAlignKeyword::MozCenter => TextAlign::Center,
         TextAlignKeyword::Justify => TextAlign::Justify,
     }
-}
-
-/// Convert CSS background (color + background-image gradients) to fill paints.
-fn css_background_to_fills(style: &ComputedValues) -> Paints {
-    use style::values::generics::image::{GenericGradient, GenericImage};
-
-    let bg = style.get_background();
-    let mut paints: Vec<Paint> = Vec::new();
-
-    // 1. Background color (bottom layer)
-    if let Some(cg_color) = css_color_to_cg(&bg.background_color) {
-        paints.push(Paint::Solid(SolidPaint {
-            color: cg_color,
-            blend_mode: BlendMode::default(),
-            active: true,
-        }));
-    }
-
-    // 2. Background images (gradient layers on top)
-    for image in bg.background_image.0.iter() {
-        if let GenericImage::Gradient(gradient) = image {
-            match gradient.as_ref() {
-                GenericGradient::Linear {
-                    direction, items, ..
-                } => {
-                    let stops = gradient_items_to_stops(items);
-                    if stops.is_empty() {
-                        continue;
-                    }
-                    let (xy1, xy2) = line_direction_to_alignment(direction);
-                    paints.push(Paint::LinearGradient(LinearGradientPaint {
-                        active: true,
-                        xy1,
-                        xy2,
-                        stops,
-                        ..Default::default()
-                    }));
-                }
-                GenericGradient::Radial { items, .. } => {
-                    let stops = gradient_items_to_stops(items);
-                    if stops.is_empty() {
-                        continue;
-                    }
-                    paints.push(Paint::RadialGradient(RadialGradientPaint::from_stops(
-                        stops,
-                    )));
-                }
-                GenericGradient::Conic { items, .. } => {
-                    let stops = conic_gradient_items_to_stops(items);
-                    if stops.is_empty() {
-                        continue;
-                    }
-                    paints.push(Paint::SweepGradient(SweepGradientPaint {
-                        active: true,
-                        stops,
-                        ..Default::default()
-                    }));
-                }
-            }
-        }
-    }
-
-    if paints.is_empty() {
-        Paints::default()
-    } else {
-        Paints::new(paints)
-    }
-}
-
-/// Convert Stylo gradient items (color stops + hints) to CG GradientStops.
-fn gradient_items_to_stops(
-    items: &[style::values::generics::image::GenericGradientItem<
-        style::values::computed::Color,
-        style::values::computed::LengthPercentage,
-    >],
-) -> Vec<GradientStop> {
-    use style::values::generics::image::GenericGradientItem;
-
-    // First pass: collect stops with known positions
-    let mut raw: Vec<(Option<f32>, CGColor)> = Vec::new();
-    for item in items {
-        match item {
-            GenericGradientItem::SimpleColorStop(color) => {
-                let cg = css_color_to_cg(color).unwrap_or_else(|| CGColor::from_rgba(0, 0, 0, 0));
-                raw.push((None, cg));
-            }
-            GenericGradientItem::ComplexColorStop { color, position } => {
-                let offset = position.to_percentage().map(|p| p.0).or_else(|| {
-                    position.to_length().map(|_l| {
-                        // For absolute lengths in gradients, we can't resolve without
-                        // knowing the gradient line length. Treat as 0.
-                        0.0
-                    })
-                });
-                let cg = css_color_to_cg(color).unwrap_or_else(|| CGColor::from_rgba(0, 0, 0, 0));
-                raw.push((offset, cg));
-            }
-            GenericGradientItem::InterpolationHint(_) => {
-                // Interpolation hints change the midpoint; skip for now.
-            }
-        }
-    }
-
-    if raw.is_empty() {
-        return Vec::new();
-    }
-
-    // Auto-distribute positions for stops without explicit offsets.
-    // First stop defaults to 0.0, last to 1.0.
-    let n = raw.len();
-    if n > 0 {
-        if raw[0].0.is_none() {
-            raw[0].0 = Some(0.0);
-        }
-        if raw[n - 1].0.is_none() {
-            raw[n - 1].0 = Some(1.0);
-        }
-    }
-
-    // Fill gaps: evenly distribute between known positions
-    let mut i = 0;
-    while i < n {
-        if raw[i].0.is_some() {
-            i += 1;
-            continue;
-        }
-        // Find the next stop with a known position
-        let start = i - 1;
-        let mut end = i + 1;
-        while end < n && raw[end].0.is_none() {
-            end += 1;
-        }
-        let start_offset = raw[start].0.unwrap();
-        let end_offset = raw[end].0.unwrap();
-        let count = (end - start) as f32;
-        #[allow(clippy::needless_range_loop)]
-        for j in (start + 1)..end {
-            let t = (j - start) as f32 / count;
-            raw[j].0 = Some(start_offset + t * (end_offset - start_offset));
-        }
-        i = end + 1;
-    }
-
-    raw.into_iter()
-        .map(|(offset, color)| GradientStop {
-            offset: offset.unwrap_or(0.0),
-            color,
-        })
-        .collect()
-}
-
-/// Convert conic-gradient items (color stops with angle/percentage positions) to CG GradientStops.
-fn conic_gradient_items_to_stops(
-    items: &[style::values::generics::image::GenericGradientItem<
-        style::values::computed::Color,
-        style::values::computed::AngleOrPercentage,
-    >],
-) -> Vec<GradientStop> {
-    use style::values::generics::image::GenericGradientItem;
-
-    let mut raw: Vec<(Option<f32>, CGColor)> = Vec::new();
-    for item in items {
-        match item {
-            GenericGradientItem::SimpleColorStop(color) => {
-                let cg = css_color_to_cg(color).unwrap_or_else(|| CGColor::from_rgba(0, 0, 0, 0));
-                raw.push((None, cg));
-            }
-            GenericGradientItem::ComplexColorStop { color, position } => {
-                // Conic gradient positions are in angles or percentages (0–100% maps to 0–360deg)
-                use style::values::computed::AngleOrPercentage;
-                let offset = match position {
-                    AngleOrPercentage::Percentage(p) => Some(p.0),
-                    AngleOrPercentage::Angle(a) => Some(a.degrees() / 360.0),
-                };
-                let cg = css_color_to_cg(color).unwrap_or_else(|| CGColor::from_rgba(0, 0, 0, 0));
-                raw.push((offset, cg));
-            }
-            GenericGradientItem::InterpolationHint(_) => {}
-        }
-    }
-
-    if raw.is_empty() {
-        return Vec::new();
-    }
-
-    // Auto-distribute (same logic as linear/radial)
-    let n = raw.len();
-    if raw[0].0.is_none() {
-        raw[0].0 = Some(0.0);
-    }
-    if raw[n - 1].0.is_none() {
-        raw[n - 1].0 = Some(1.0);
-    }
-
-    let mut i = 0;
-    while i < n {
-        if raw[i].0.is_some() {
-            i += 1;
-            continue;
-        }
-        let start = i - 1;
-        let mut end = i + 1;
-        while end < n && raw[end].0.is_none() {
-            end += 1;
-        }
-        let start_offset = raw[start].0.unwrap();
-        let end_offset = raw[end].0.unwrap();
-        let count = (end - start) as f32;
-        #[allow(clippy::needless_range_loop)]
-        for j in (start + 1)..end {
-            let t = (j - start) as f32 / count;
-            raw[j].0 = Some(start_offset + t * (end_offset - start_offset));
-        }
-        i = end + 1;
-    }
-
-    raw.into_iter()
-        .map(|(offset, color)| GradientStop {
-            offset: offset.unwrap_or(0.0),
-            color,
-        })
-        .collect()
-}
-
-/// Convert CSS linear-gradient direction to IR Alignment endpoints.
-///
-/// CSS gradient angles: 0deg = to top, 90deg = to right, 180deg = to bottom.
-/// IR Alignment: (-1,-1) = top-left, (0,0) = center, (1,1) = bottom-right.
-fn line_direction_to_alignment(
-    direction: &style::values::computed::image::LineDirection,
-) -> (Alignment, Alignment) {
-    use style::values::computed::image::LineDirection;
-
-    match direction {
-        LineDirection::Angle(angle) => {
-            // CSS: 0deg = to top, clockwise. Convert to math angle.
-            let rad = angle.radians();
-            let sin = rad.sin();
-            let cos = rad.cos();
-            // CSS gradient line: from (-sin, cos) to (sin, -cos) in NDC
-            let xy1 = Alignment(-sin, cos);
-            let xy2 = Alignment(sin, -cos);
-            (xy1, xy2)
-        }
-        LineDirection::Vertical(v) => match v {
-            VerticalPositionKeyword::Top => (Alignment::BOTTOM_CENTER, Alignment::TOP_CENTER),
-            VerticalPositionKeyword::Bottom => (Alignment::TOP_CENTER, Alignment::BOTTOM_CENTER),
-        },
-        LineDirection::Horizontal(h) => match h {
-            HorizontalPositionKeyword::Left => (Alignment::CENTER_RIGHT, Alignment::CENTER_LEFT),
-            HorizontalPositionKeyword::Right => (Alignment::CENTER_LEFT, Alignment::CENTER_RIGHT),
-        },
-        LineDirection::Corner(h, v) => {
-            let x1 = match h {
-                HorizontalPositionKeyword::Left => 1.0,
-                HorizontalPositionKeyword::Right => -1.0,
-            };
-            let y1 = match v {
-                VerticalPositionKeyword::Top => 1.0,
-                VerticalPositionKeyword::Bottom => -1.0,
-            };
-            (Alignment(x1, y1), Alignment(-x1, -y1))
-        }
-    }
-}
-
-/// Convert CSS border properties to CG strokes, stroke width, and stroke style.
-fn css_border_to_cg(style: &ComputedValues) -> (Paints, StrokeWidth, StrokeStyle) {
-    let border = style.get_border();
-
-    // Stylo stores the unresolved `medium` default (3px) in `BorderSideWidth`
-    // even when `border-style` is `none`/`hidden`. Treat those as zero-width.
-    use style::values::specified::border::BorderStyle as BS;
-    let width_for = |w: &style::values::computed::BorderSideWidth, s: BS| -> f32 {
-        match s {
-            BS::None | BS::Hidden => 0.0,
-            _ => w.0.to_f32_px(),
-        }
-    };
-    let top_w = width_for(&border.border_top_width, border.border_top_style);
-    let right_w = width_for(&border.border_right_width, border.border_right_style);
-    let bottom_w = width_for(&border.border_bottom_width, border.border_bottom_style);
-    let left_w = width_for(&border.border_left_width, border.border_left_style);
-
-    let has_border = top_w > 0.0 || right_w > 0.0 || bottom_w > 0.0 || left_w > 0.0;
-    if !has_border {
-        return (Paints::default(), StrokeWidth::None, StrokeStyle::default());
-    }
-
-    // Use the top border color as the primary stroke color (most common single-color case).
-    // For per-side colors, we use the first visible border side.
-    let border_color = css_color_to_cg(&border.border_top_color)
-        .or_else(|| css_color_to_cg(&border.border_right_color))
-        .or_else(|| css_color_to_cg(&border.border_bottom_color))
-        .or_else(|| css_color_to_cg(&border.border_left_color));
-
-    let strokes = match border_color {
-        Some(color) => Paints::new([Paint::Solid(SolidPaint {
-            color,
-            blend_mode: BlendMode::default(),
-            active: true,
-        })]),
-        None => return (Paints::default(), StrokeWidth::None, StrokeStyle::default()),
-    };
-
-    // Stroke width: use rectangular if sides differ, uniform otherwise
-    let stroke_width = if top_w == right_w && right_w == bottom_w && bottom_w == left_w {
-        StrokeWidth::Uniform(top_w)
-    } else {
-        StrokeWidth::Rectangular(RectangularStrokeWidth {
-            stroke_top_width: top_w,
-            stroke_right_width: right_w,
-            stroke_bottom_width: bottom_w,
-            stroke_left_width: left_w,
-        })
-    };
-
-    // Stroke style: map border-style to dash array
-    let top_style = border.border_top_style;
-    let dash_array = match top_style {
-        BorderStyle::Dashed => Some(StrokeDashArray(vec![4.0, 4.0])),
-        BorderStyle::Dotted => Some(StrokeDashArray(vec![1.0, 1.0])),
-        _ => None,
-    };
-
-    let stroke_style = StrokeStyle {
-        stroke_align: StrokeAlign::Inside,
-        stroke_cap: StrokeCap::Butt,
-        stroke_join: StrokeJoin::Miter,
-        stroke_miter_limit: StrokeMiterLimit::default(),
-        stroke_dash_array: dash_array,
-    };
-
-    (strokes, stroke_width, stroke_style)
 }
 
 /// Convert CSS effects (box-shadow, filter, backdrop-filter) to CG LayerEffects.
