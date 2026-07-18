@@ -216,8 +216,8 @@ impl ParagraphCacheLayout {
     }
 
     /// Build and layout the paragraph with **per-run** attributed styling,
-    /// handling intrinsic width for auto-width nodes (same logic as
-    /// `ParagraphCache::compute_measurements`).
+    /// handling intrinsic width for auto-width nodes (same intrinsic-width
+    /// layout sequence as `ParagraphCache`'s resolution path).
     fn rebuild_attributed(&mut self, content: &crate::text_edit::attributed_text::AttributedText) {
         let text = content.text();
         let mut para = self.build_paragraph_attributed(content);
