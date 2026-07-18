@@ -11,7 +11,7 @@
 //! `html_import_snapshot` golden corpus) exactly; where the record is
 //! richer than what the importer historically consumed (percent radii,
 //! `repeating` gradient flags, flex-basis, …), the extra information is
-//! deliberately dropped, matching the old `ComputedValues` walk.
+//! deliberately dropped, matching the old direct-Stylo walk.
 
 use crate::cg::prelude::*;
 use crate::node::schema::*;
@@ -98,7 +98,7 @@ pub(super) fn layout_child_from(el: &StyledElement) -> Option<LayoutChildStyle> 
     let grow = el.flex_grow;
     // The record maps `position: fixed` to `Position::Absolute` at
     // extraction (Stylo's `is_absolutely_positioned` covers both), so
-    // one variant check matches the old ComputedValues read.
+    // one variant check matches the old direct-Stylo read.
     let is_absolute = el.position == Position::Absolute;
     if grow > 0.0 || is_absolute {
         Some(LayoutChildStyle {
