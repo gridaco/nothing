@@ -22,7 +22,18 @@ use math2::transform::AffineTransform;
 
 pub fn from_svg_str(svg: &str) -> Result<SceneGraph, String> {
     let packed = SVGPackedScene::new_from_svg_str(svg)?;
-    SceneBuilder::new().build(packed)
+    scene_graph_from_svg_scene(&packed)
+}
+
+/// v1-model adapter: packs an already-built [`SVGPackedScene`] IR into a
+/// legacy [`SceneGraph`].
+///
+/// This is the sink side of the SVG import seam — the IR is the
+/// subsystem's product; everything v1-specific (root/text container
+/// synthesis, absolute child positioning, stroke-align default, the text
+/// baseline hack) lives on this side of the boundary.
+pub fn scene_graph_from_svg_scene(scene: &SVGPackedScene) -> Result<SceneGraph, String> {
+    SceneBuilder::new().build(scene)
 }
 
 struct SceneBuilder {
@@ -38,7 +49,7 @@ impl SceneBuilder {
         }
     }
 
-    fn build(mut self, scene: SVGPackedScene) -> Result<SceneGraph, String> {
+    fn build(mut self, scene: &SVGPackedScene) -> Result<SceneGraph, String> {
         let mut root = self.factory.create_container_node();
         root.fills = Paints::default();
         root.strokes = Paints::default();
