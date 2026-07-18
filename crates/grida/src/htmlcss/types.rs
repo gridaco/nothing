@@ -123,6 +123,11 @@ pub enum JustifyContent {
     SpaceBetween,
     SpaceAround,
     SpaceEvenly,
+    /// `justify-content: stretch`. Only produced by the justify-content
+    /// extraction (align-content keeps deferring `stretch` to Taffy via
+    /// `None`). Taffy has no justify-content:stretch mapping yet, so
+    /// htmlcss layout falls back to `Start` at the point of use.
+    Stretch,
 }
 
 /// A CSS length value. Percentages are kept as-is for Taffy to resolve.
@@ -164,6 +169,23 @@ pub enum LineHeight {
     Normal,
     Number(f32),
     Px(f32),
+}
+
+/// CSS generic font family keyword — mirror of Stylo's
+/// `GenericFontFamily` (the variants reachable in this build; Stylo's
+/// internal `None` maps to the absence of a generic).
+///
+/// htmlcss font resolution collapses every generic to `"system-ui"` in
+/// `FontProps::families`; this preserves the generic's identity for
+/// consumers that need it (the HTML importer).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GenericFamily {
+    Serif,
+    SansSerif,
+    Monospace,
+    Cursive,
+    Fantasy,
+    SystemUi,
 }
 
 /// CSS `float` property.

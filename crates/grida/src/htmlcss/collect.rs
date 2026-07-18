@@ -1175,6 +1175,9 @@ fn extract_style(tag: &str, style: &ComputedValues) -> StyledElement {
             _ => types::Display::Block,
         }
     };
+    // Outer display type — the (outside, inside) collapse above loses
+    // outer-inline for e.g. `inline flex`; carried for the importer.
+    el.inline_outside = display.outside() == style::values::specified::box_::DisplayOutside::Inline;
 
     // Visibility
     {
@@ -1289,6 +1292,7 @@ fn extract_style(tag: &str, style: &ComputedValues) -> StyledElement {
     // Box shadow
     el.box_shadow = extract_box_shadow(style, el.color);
     el.filter = extract_filter(style, el.color);
+    el.backdrop_filter = extract_backdrop_filter(style, el.color);
     el.clip_path = extract_clip_path(style);
 
     // Transform
@@ -1320,10 +1324,22 @@ fn extract_style(tag: &str, style: &ComputedValues) -> StyledElement {
         // so `safe`/`unsafe`/`legacy` modifier bits are masked out
         // (`AlignFlags` is a bitflags type; exact `==` on the whole
         // flag set would fail for e.g. `align-items: safe center`).
-        el.align_items = align_flags_to_items(style.clone_align_items().0.value());
-        el.justify_content =
-            align_flags_to_explicit_justify(style.clone_justify_content().primary().value())
-                .unwrap_or(types::JustifyContent::Start);
+        // Both stay `None` for `normal` (the CSS default) so consumers
+        // can tell authored-vs-default; htmlcss layout unwraps to
+        // today's effective defaults (`Stretch` / `Start`) at the point
+        // of use.
+        el.align_items = align_flags_to_explicit_items(style.clone_align_items().0.value());
+        let jc_flags = style.clone_justify_content().primary().value();
+        el.justify_content = {
+            use style::values::specified::align::AlignFlags;
+            if jc_flags == AlignFlags::STRETCH {
+                // Recognized here only — align-content keeps deferring
+                // `stretch` to Taffy via `None`.
+                Some(types::JustifyContent::Stretch)
+            } else {
+                align_flags_to_explicit_justify(jc_flags)
+            }
+        };
         // gap
         use style::values::generics::length::LengthPercentageOrNormal;
         let gap_to_px =
@@ -1681,6 +1697,7 @@ fn convert_image(
                 let angle_deg = extract_gradient_angle(direction);
                 Some(StyleImage::LinearGradient(LinearGradient {
                     angle_deg,
+                    keyword: extract_gradient_keyword(direction),
                     stops,
                     repeating: is_repeating(flags),
                     interpolation: extract_gradient_interpolation(color_interpolation_method),
@@ -2123,6 +2140,32 @@ fn extract_gradient_angle(direction: &style::values::computed::image::LineDirect
     }
 }
 
+/// Keyword identity of a linear-gradient direction — `Some` when the
+/// authored value was `to <side-or-corner>`, `None` for angles.
+/// `extract_gradient_angle` collapses keywords to an angle for paint;
+/// this preserves the exact endpoint identity (corner directions have
+/// no exact angle) for consumers that map endpoints directly.
+fn extract_gradient_keyword(
+    direction: &style::values::computed::image::LineDirection,
+) -> Option<GradientKeyword> {
+    use style::values::computed::image::LineDirection;
+    use style::values::specified::position::{HorizontalPositionKeyword, VerticalPositionKeyword};
+
+    match direction {
+        LineDirection::Angle(_) => None,
+        LineDirection::Vertical(VerticalPositionKeyword::Top) => Some(GradientKeyword::ToTop),
+        LineDirection::Vertical(VerticalPositionKeyword::Bottom) => Some(GradientKeyword::ToBottom),
+        LineDirection::Horizontal(HorizontalPositionKeyword::Left) => Some(GradientKeyword::ToLeft),
+        LineDirection::Horizontal(HorizontalPositionKeyword::Right) => {
+            Some(GradientKeyword::ToRight)
+        }
+        LineDirection::Corner(h, v) => Some(GradientKeyword::Corner {
+            right: matches!(h, HorizontalPositionKeyword::Right),
+            bottom: matches!(v, VerticalPositionKeyword::Bottom),
+        }),
+    }
+}
+
 /// Convert Stylo gradient items to GradientStops.
 ///
 /// `currentcolor` stops (unresolvable to absolute) resolve to `current_color`
@@ -2459,10 +2502,22 @@ fn extract_inset_corner_radii(
 }
 
 fn extract_filter(style: &ComputedValues, current_color: CGColor) -> Vec<FilterFunction> {
+    filter_list_to_functions(&style.clone_filter().0, current_color)
+}
+
+/// `backdrop-filter` — same value grammar as `filter`. htmlcss paint
+/// does not consume it; carried on the style record for the HTML
+/// importer.
+fn extract_backdrop_filter(style: &ComputedValues, current_color: CGColor) -> Vec<FilterFunction> {
+    filter_list_to_functions(&style.clone_backdrop_filter().0, current_color)
+}
+
+fn filter_list_to_functions(
+    filters: &[style::values::computed::Filter],
+    current_color: CGColor,
+) -> Vec<FilterFunction> {
     use style::values::generics::effects::GenericFilter;
-    style
-        .clone_filter()
-        .0
+    filters
         .iter()
         .filter_map(|f| match f {
             GenericFilter::Blur(len) => Some(FilterFunction::Blur(len.0.px())),
@@ -2635,6 +2690,27 @@ fn extract_font(style: &ComputedValues, current_color: CGColor) -> FontProps {
         })
         .collect();
 
+    // Identity of the leading generic family — the mapping above
+    // collapses every generic to "system-ui" for htmlcss font
+    // resolution; the HTML importer needs the generic itself.
+    let first_generic = font.font_family.families.iter().next().and_then(|f| {
+        use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
+        match f {
+            SingleFontFamily::Generic(g) => match g {
+                GenericFontFamily::Serif => Some(types::GenericFamily::Serif),
+                GenericFontFamily::SansSerif => Some(types::GenericFamily::SansSerif),
+                GenericFontFamily::Monospace => Some(types::GenericFamily::Monospace),
+                GenericFontFamily::Cursive => Some(types::GenericFamily::Cursive),
+                GenericFontFamily::Fantasy => Some(types::GenericFamily::Fantasy),
+                GenericFontFamily::SystemUi => Some(types::GenericFamily::SystemUi),
+                // Stylo's internal `None` ("no generic") and any
+                // build-gated variants carry no identity.
+                _ => None,
+            },
+            SingleFontFamily::FamilyName(_) => None,
+        }
+    });
+
     let line_height = match &font.line_height {
         StyloLineHeight::Normal => LineHeight::Normal,
         StyloLineHeight::Number(n) => LineHeight::Number(n.0),
@@ -2658,6 +2734,7 @@ fn extract_font(style: &ComputedValues, current_color: CGColor) -> FontProps {
         weight: FontWeight(font.font_weight.value() as u32),
         italic: font.font_style == style::values::computed::FontStyle::ITALIC,
         families,
+        first_generic,
         line_height,
         letter_spacing,
         word_spacing,
@@ -2948,6 +3025,29 @@ fn align_flags_to_items(flags: style::values::specified::align::AlignFlags) -> t
         f if f == AlignFlags::FLEX_END || f == AlignFlags::END => types::AlignItems::End,
         f if f == AlignFlags::BASELINE => types::AlignItems::Baseline,
         _ => types::AlignItems::Stretch,
+    }
+}
+
+/// Map align/justify flags to an optional `AlignItems`. Returns `None`
+/// for `normal` (the CSS default) and unrecognized values so consumers
+/// can tell authored-vs-default; htmlcss layout unwraps to `Stretch`
+/// (today's effective default) at the point of use.
+fn align_flags_to_explicit_items(
+    flags: style::values::specified::align::AlignFlags,
+) -> Option<types::AlignItems> {
+    // See `align_flags_to_items` — caller passes keyword-only flags
+    // (post `.value()`); use `==` rather than `contains()` because the
+    // low-5-bit keyword values overlap bitwise.
+    use style::values::specified::align::AlignFlags;
+    match flags {
+        f if f == AlignFlags::CENTER => Some(types::AlignItems::Center),
+        f if f == AlignFlags::FLEX_START || f == AlignFlags::START => {
+            Some(types::AlignItems::Start)
+        }
+        f if f == AlignFlags::FLEX_END || f == AlignFlags::END => Some(types::AlignItems::End),
+        f if f == AlignFlags::BASELINE => Some(types::AlignItems::Baseline),
+        f if f == AlignFlags::STRETCH => Some(types::AlignItems::Stretch),
+        _ => None,
     }
 }
 
