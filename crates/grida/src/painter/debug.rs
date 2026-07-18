@@ -1,3 +1,21 @@
+//! Debug overlay — a model-reading consumer of the painter, not part of
+//! the render pipeline.
+//!
+//! [`NodePainter`] walks the v1 node model directly and drives the
+//! [`Painter`](super::Painter)'s public drawing primitives to render
+//! individual nodes without the scene cache / display-list pipeline.
+//! It is a *consumer* wearing the painter's name: the production path is
+//! model → [`super::compile`] → display list → draw loop, and the draw
+//! loop never reads the model.
+//!
+//! Alongside `painter/compile.rs`, this is the only `painter/` module
+//! permitted to read `node::schema` — the permission is recorded (and
+//! locked shrink-only) in `tests/painter_architecture.rs`.
+//!
+//! Seam: gridaco/nothing#31 (painter narrowing), part of the legacy seam
+//! program gridaco/nothing#27.
+
+use super::compile::{boolean_operation_shape, build_shape};
 use super::geometry::*;
 use crate::cache::geometry::GeometryCache;
 use crate::cg::prelude::*;
