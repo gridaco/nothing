@@ -2,6 +2,7 @@
 mod painter;
 pub use painter::*;
 pub mod compile;
+pub mod debug;
 pub mod effects;
 pub mod effects_noise;
 pub mod geometry;
@@ -10,6 +11,5 @@ pub mod image;
 pub mod image_filters;
 pub mod layer;
 pub mod paint;
-pub mod painter_debug_node;
 pub mod shadow;
 pub mod text_stroke;
