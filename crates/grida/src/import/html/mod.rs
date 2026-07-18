@@ -13,19 +13,25 @@ use crate::node::factory::NodeFactory;
 use crate::node::scene_graph::{Parent, SceneGraph};
 use crate::node::schema::*;
 
+use crate::htmlcss::collect::styled_of;
+use crate::htmlcss::style::StyledElement;
+use crate::htmlcss::types::Display as CssDisplay;
+
 use csscascade::adapter::{self, HtmlElement};
 use csscascade::dom::DemoNodeData;
 
 use style::color::{AbsoluteColor, ColorSpace};
 use style::dom::TElement;
-use style::properties::longhands;
 use style::properties::ComputedValues;
 use style::values::generics::font::LineHeight;
-use style::values::generics::length::{GenericMaxSize, GenericSize, LengthPercentageOrNormal};
-use style::values::specified::align::AlignFlags;
 use style::values::specified::border::BorderStyle;
 use style::values::specified::position::{HorizontalPositionKeyword, VerticalPositionKeyword};
 use style::values::specified::text::TextDecorationLine as StyloTextDecorationLine;
+
+mod from_styled;
+use from_styled::{
+    dimensions_from, flex_container_from, layout_child_from, margin_from, size_from,
+};
 
 /// Parse an HTML string and convert it into a Grida [`SceneGraph`].
 ///
@@ -68,18 +74,23 @@ impl SceneBuilder {
 
     fn build_element(&mut self, element: HtmlElement, parent: Parent) {
         let dom = adapter::dom();
+        // Shared per-element style record (htmlcss seam, gridaco/nothing#30).
+        let Some(styled) = styled_of(element) else {
+            return;
+        };
+
+        // Skip display:none elements entirely
+        if styled.display == CssDisplay::None {
+            return;
+        }
+
+        // Transitional: Stylo reads for the not-yet-rewired paint/text
+        // mappings. Deleted once every emitter consumes `styled`.
         let data = element.borrow_data();
         let Some(data) = &data else {
             return;
         };
-
         let style = data.styles.primary();
-
-        // Skip display:none elements entirely
-        let display = style.clone_display();
-        if display.is_none() {
-            return;
-        }
 
         let tag = element.local_name_string();
 
@@ -94,17 +105,15 @@ impl SceneBuilder {
 
         let is_structural = matches!(tag.as_str(), "html" | "body");
 
-        // Check if all element children are inline (display: inline).
-        // When true and we have text, we can merge everything into AttributedText.
+        // Check if all element children are inline (outer display type
+        // `inline` — includes inline-block, inline-flex, …). When true
+        // and we have text, we can merge everything into AttributedText.
         let all_children_inline = has_element_children && {
             let mut all_inline = true;
             let mut child = element.first_element_child();
             while let Some(c) = child {
-                let c_data = c.borrow_data();
-                if let Some(c_data) = &c_data {
-                    let c_display = c_data.styles.primary().clone_display();
-                    if c_display.outside() != style::values::specified::box_::DisplayOutside::Inline
-                    {
+                if let Some(child_styled) = styled_of(c) {
+                    if !child_styled.inline_outside {
                         all_inline = false;
                         break;
                     }
@@ -117,11 +126,11 @@ impl SceneBuilder {
         if has_text_children && all_children_inline && !is_structural {
             // All children are text or inline elements → emit as a single
             // Container (for box model) with an AttributedText child (for text).
-            let container_id = self.emit_container(style, &display, parent);
-            self.emit_attributed_text(element, style, Parent::NodeId(container_id));
+            let container_id = self.emit_container(style, &styled, parent);
+            self.emit_attributed_text(element, style, &styled, Parent::NodeId(container_id));
         } else if has_element_children || has_text_children || is_structural {
             // Mixed content or structural element → Container with separate children.
-            let container_id = self.emit_container(style, &display, parent);
+            let container_id = self.emit_container(style, &styled, parent);
             let container_parent = Parent::NodeId(container_id);
 
             // Emit inline text children
@@ -131,7 +140,7 @@ impl SceneBuilder {
                 if let DemoNodeData::Text(text) = &child_node.data {
                     let trimmed = text.trim();
                     if !trimmed.is_empty() {
-                        self.emit_text_span(trimmed, style, container_parent.clone());
+                        self.emit_text_span(trimmed, style, &styled, container_parent.clone());
                     }
                 }
             }
@@ -144,7 +153,7 @@ impl SceneBuilder {
             }
         } else {
             // Empty visual element → Rectangle
-            self.emit_rectangle(style, parent);
+            self.emit_rectangle(style, &styled, parent);
         }
     }
 
@@ -180,70 +189,13 @@ impl SceneBuilder {
     fn emit_container(
         &mut self,
         style: &ComputedValues,
-        display: &style::values::computed::Display,
+        styled: &StyledElement,
         parent: Parent,
     ) -> NodeId {
-        use longhands::flex_direction::computed_value::T as FlexDir;
-        use longhands::flex_wrap::computed_value::T as FlexWr;
-
-        let is_flex = display.inside() == style::values::specified::box_::DisplayInside::Flex;
         let mut node = self.factory.create_container_node();
 
-        // Display / layout mode
-        if is_flex {
-            node.layout_container.layout_mode = LayoutMode::Flex;
-
-            node.layout_container.layout_direction = match style.clone_flex_direction() {
-                FlexDir::Row | FlexDir::RowReverse => Axis::Horizontal,
-                FlexDir::Column | FlexDir::ColumnReverse => Axis::Vertical,
-            };
-
-            node.layout_container.layout_wrap = Some(match style.clone_flex_wrap() {
-                FlexWr::Nowrap => LayoutWrap::NoWrap,
-                FlexWr::Wrap | FlexWr::WrapReverse => LayoutWrap::Wrap,
-            });
-
-            // align-items → cross axis alignment
-            let align_items = style.clone_align_items();
-            let ai_flags = align_items.0.value();
-            node.layout_container.layout_cross_axis_alignment = match ai_flags {
-                f if f == AlignFlags::CENTER => Some(CrossAxisAlignment::Center),
-                f if f == AlignFlags::FLEX_START || f == AlignFlags::START => {
-                    Some(CrossAxisAlignment::Start)
-                }
-                f if f == AlignFlags::FLEX_END || f == AlignFlags::END => {
-                    Some(CrossAxisAlignment::End)
-                }
-                f if f == AlignFlags::STRETCH => Some(CrossAxisAlignment::Stretch),
-                _ => None,
-            };
-
-            // justify-content → main axis alignment
-            let jc = style.clone_justify_content();
-            let jc_flags = jc.primary().value();
-            node.layout_container.layout_main_axis_alignment = match jc_flags {
-                f if f == AlignFlags::CENTER => Some(MainAxisAlignment::Center),
-                f if f == AlignFlags::FLEX_START || f == AlignFlags::START => {
-                    Some(MainAxisAlignment::Start)
-                }
-                f if f == AlignFlags::FLEX_END || f == AlignFlags::END => {
-                    Some(MainAxisAlignment::End)
-                }
-                f if f == AlignFlags::SPACE_BETWEEN => Some(MainAxisAlignment::SpaceBetween),
-                f if f == AlignFlags::SPACE_AROUND => Some(MainAxisAlignment::SpaceAround),
-                f if f == AlignFlags::SPACE_EVENLY => Some(MainAxisAlignment::SpaceEvenly),
-                f if f == AlignFlags::STRETCH => Some(MainAxisAlignment::Stretch),
-                _ => None,
-            };
-        } else {
-            // CSS `display: block` → map to Flex column.
-            // The IR's `LayoutMode::Normal` maps to taffy `Display::Block`, which
-            // causes children of a flex parent to stretch to 100% width (block
-            // intrinsic sizing). Using Flex column instead gives correct sizing
-            // when these containers are nested inside flex parents.
-            node.layout_container.layout_mode = LayoutMode::Flex;
-            node.layout_container.layout_direction = Axis::Vertical;
-        }
+        // Display / layout mode, flex direction/wrap/alignment, gap
+        flex_container_from(styled, &mut node.layout_container);
 
         // Opacity
         node.opacity = style.get_effects().opacity;
@@ -255,38 +207,13 @@ impl SceneBuilder {
         node.corner_radius = css_border_radius_to_cg(style);
 
         // Padding
-        let padding = css_padding_to_cg(style);
+        let padding = styled.padding;
         if padding.top != 0.0
             || padding.right != 0.0
             || padding.bottom != 0.0
             || padding.left != 0.0
         {
-            node.layout_container.layout_padding = Some(EdgeInsets {
-                top: padding.top,
-                right: padding.right,
-                bottom: padding.bottom,
-                left: padding.left,
-            });
-        }
-
-        // Gap (for flex containers)
-        // CSS column-gap = inline-axis gap, row-gap = block-axis gap.
-        // For flex-direction: row, column-gap is the main-axis gap.
-        // For flex-direction: column, row-gap is the main-axis gap.
-        if is_flex {
-            let pos = style.get_position();
-            let rg = gap_to_px(&pos.row_gap);
-            let cg = gap_to_px(&pos.column_gap);
-            if rg != 0.0 || cg != 0.0 {
-                let (main_gap, cross_gap) = match style.clone_flex_direction() {
-                    FlexDir::Row | FlexDir::RowReverse => (cg, rg),
-                    FlexDir::Column | FlexDir::ColumnReverse => (rg, cg),
-                };
-                node.layout_container.layout_gap = Some(LayoutGap {
-                    main_axis_gap: main_gap,
-                    cross_axis_gap: cross_gap,
-                });
-            }
+            node.layout_container.layout_padding = Some(padding);
         }
 
         // Overflow → clip
@@ -307,16 +234,16 @@ impl SceneBuilder {
         node.blend_mode = css_blend_mode_to_cg(style);
 
         // Width / height / min / max dimensions
-        css_dimensions_to_cg(style, &mut node.layout_dimensions);
+        dimensions_from(styled, &mut node.layout_dimensions);
 
         // Flex child properties (for nested containers inside flex parents)
-        node.layout_child = css_flex_child_to_cg(style);
+        node.layout_child = layout_child_from(styled);
 
         // Margin → tree surgery
         // Fixed positive margins are absorbed into the container's own padding when
         // the container has no visual properties (fills, borders) that would bleed
         // into the margin zone. Otherwise, a separate wrapper is created.
-        let margin = css_margin_to_cg(style);
+        let margin = margin_from(styled);
         if !margin.is_zero() && !margin.has_any_auto() && !margin.has_any_negative() {
             let has_visuals = !node.fills.is_empty() || !node.strokes.is_empty();
             if has_visuals {
@@ -345,7 +272,13 @@ impl SceneBuilder {
         }
     }
 
-    fn emit_text_span(&mut self, text: &str, style: &ComputedValues, parent: Parent) {
+    fn emit_text_span(
+        &mut self,
+        text: &str,
+        style: &ComputedValues,
+        styled: &StyledElement,
+        parent: Parent,
+    ) {
         let mut node = self.factory.create_text_span_node();
         node.text = text.to_string();
 
@@ -357,10 +290,9 @@ impl SceneBuilder {
         node.effects = css_text_shadow_to_effects(style);
         node.blend_mode = css_blend_mode_to_cg(style);
 
-        let flex_grow = style.clone_flex_grow();
-        if flex_grow.0 > 0.0 {
+        if styled.flex_grow > 0.0 {
             node.layout_child = Some(LayoutChildStyle {
-                layout_grow: flex_grow.0,
+                layout_grow: styled.flex_grow,
                 layout_positioning: LayoutPositioning::Auto,
             });
         }
@@ -378,6 +310,7 @@ impl SceneBuilder {
         &mut self,
         element: HtmlElement,
         style: &ComputedValues,
+        styled: &StyledElement,
         parent: Parent,
     ) {
         let dom = adapter::dom();
@@ -423,7 +356,7 @@ impl SceneBuilder {
             transform: Default::default(),
             width: None,
             height: None,
-            layout_child: css_flex_child_to_cg(style),
+            layout_child: layout_child_from(styled),
             attributed_string: attr_string,
             default_style,
             text_align: css_text_align_to_cg(style.get_inherited_text().text_align),
@@ -476,7 +409,7 @@ impl SceneBuilder {
         }
     }
 
-    fn emit_rectangle(&mut self, style: &ComputedValues, parent: Parent) {
+    fn emit_rectangle(&mut self, style: &ComputedValues, styled: &StyledElement, parent: Parent) {
         let mut node = self.factory.create_rectangle_node();
 
         node.fills = css_background_to_fills(style);
@@ -484,10 +417,10 @@ impl SceneBuilder {
         node.opacity = style.get_effects().opacity;
 
         // CSS dimensions → node size
-        node.size = css_size_to_cg(style);
+        node.size = size_from(styled);
 
         // Flex child properties (grow, positioning)
-        node.layout_child = css_flex_child_to_cg(style);
+        node.layout_child = layout_child_from(styled);
 
         // Borders
         let (border_strokes, border_stroke_width, border_stroke_style) = css_border_to_cg(style);
@@ -502,7 +435,7 @@ impl SceneBuilder {
         node.blend_mode = css_blend_mode_to_cg(style);
 
         // Margin → tree surgery (same pattern as emit_container)
-        let margin = css_margin_to_cg(style);
+        let margin = margin_from(styled);
         if !margin.is_zero() && !margin.has_any_auto() && !margin.has_any_negative() {
             let layout_child = node.layout_child.take();
             let wrapper_id = self.wrap_with_margin_padding(&margin, layout_child, parent);
@@ -570,26 +503,6 @@ fn css_border_radius_to_cg(style: &ComputedValues) -> RectangularCornerRadius {
     }
 }
 
-struct CSSPadding {
-    top: f32,
-    right: f32,
-    bottom: f32,
-    left: f32,
-}
-
-fn css_padding_to_cg(style: &ComputedValues) -> CSSPadding {
-    let p = style.get_padding();
-    let lp_to_px = |lp: &style::values::computed::NonNegativeLengthPercentage| -> f32 {
-        lp.0.to_length().map(|l| l.px()).unwrap_or(0.0)
-    };
-    CSSPadding {
-        top: lp_to_px(&p.padding_top),
-        right: lp_to_px(&p.padding_right),
-        bottom: lp_to_px(&p.padding_bottom),
-        left: lp_to_px(&p.padding_left),
-    }
-}
-
 /// Parsed CSS margin with per-edge auto tracking.
 struct CSSMargin {
     top: f32,
@@ -620,37 +533,6 @@ impl CSSMargin {
 
     fn has_any_negative(&self) -> bool {
         self.top < 0.0 || self.right < 0.0 || self.bottom < 0.0 || self.left < 0.0
-    }
-}
-
-fn css_margin_to_cg(style: &ComputedValues) -> CSSMargin {
-    // Stylo exposes margin fields as `computed::Margin` (GenericMargin<LengthPercentage>).
-    // Variants: Auto | LengthPercentage(lp) | AnchorSizeFunction (CSS anchoring, ignored).
-    fn extract(v: style::values::computed::Margin) -> (f32, bool) {
-        if v.is_auto() {
-            return (0.0, true);
-        }
-        match v {
-            style::values::computed::Margin::LengthPercentage(lp) => {
-                (lp.to_length().map(|l| l.px()).unwrap_or(0.0), false)
-            }
-            _ => (0.0, false),
-        }
-    }
-
-    let (top, top_auto) = extract(style.clone_margin_top());
-    let (right, right_auto) = extract(style.clone_margin_right());
-    let (bottom, bottom_auto) = extract(style.clone_margin_bottom());
-    let (left, left_auto) = extract(style.clone_margin_left());
-    CSSMargin {
-        top,
-        right,
-        bottom,
-        left,
-        top_auto,
-        right_auto,
-        bottom_auto,
-        left_auto,
     }
 }
 
@@ -766,56 +648,6 @@ fn css_text_style_to_cg(style: &ComputedValues) -> (TextStyleRec, Paints) {
     })]);
 
     (text_style, fills)
-}
-
-/// Convert CSS gap value to pixels. Returns 0 for `normal`.
-fn gap_to_px(gap: &style::values::computed::length::NonNegativeLengthPercentageOrNormal) -> f32 {
-    match gap {
-        LengthPercentageOrNormal::Normal => 0.0,
-        LengthPercentageOrNormal::LengthPercentage(lp) => {
-            lp.0.to_length().map(|l| l.px()).unwrap_or(0.0)
-        }
-    }
-}
-
-/// Extract flex-child properties (flex-grow, positioning) from CSS computed values.
-/// Returns `None` when all values are at their defaults (grow=0, position=static/relative).
-fn css_flex_child_to_cg(style: &ComputedValues) -> Option<LayoutChildStyle> {
-    let grow = style.clone_flex_grow().0;
-    let is_absolute = style.get_box().clone_position().is_absolutely_positioned();
-    let positioning = if is_absolute {
-        LayoutPositioning::Absolute
-    } else {
-        LayoutPositioning::Auto
-    };
-
-    if grow > 0.0 || is_absolute {
-        Some(LayoutChildStyle {
-            layout_grow: grow,
-            layout_positioning: positioning,
-        })
-    } else {
-        None
-    }
-}
-
-/// Extract CSS width/height into a Size for leaf nodes (Rectangle, etc.).
-/// Returns 0×0 when dimensions are `auto` — unlike the design-tool convention
-/// (100×100 default), HTML leaf elements have no intrinsic size.
-fn css_size_to_cg(style: &ComputedValues) -> Size {
-    let pos = style.get_position();
-    let w = match &pos.width {
-        GenericSize::LengthPercentage(lp) => lp.0.to_length().map(|l| l.px()).unwrap_or(0.0),
-        _ => 0.0,
-    };
-    let h = match &pos.height {
-        GenericSize::LengthPercentage(lp) => lp.0.to_length().map(|l| l.px()).unwrap_or(0.0),
-        _ => 0.0,
-    };
-    Size {
-        width: w,
-        height: h,
-    }
 }
 
 /// Map CSS text-align to CG TextAlign.
@@ -1297,71 +1129,6 @@ fn css_text_decoration_style_to_cg(style: &ComputedValues) -> Option<TextDecorat
         TDS::Dashed => Some(TextDecorationStyle::Dashed),
         TDS::Wavy => Some(TextDecorationStyle::Wavy),
         _ => None,
-    }
-}
-
-/// Map CSS width/height/min/max dimensions to LayoutDimensionStyle.
-fn css_dimensions_to_cg(style: &ComputedValues, dims: &mut LayoutDimensionStyle) {
-    let pos = style.get_position();
-
-    // width
-    match &pos.width {
-        GenericSize::LengthPercentage(lp) => {
-            if let Some(len) = lp.0.to_length() {
-                dims.layout_target_width = Some(len.px());
-            }
-        }
-        GenericSize::Auto => {
-            dims.layout_target_width = None;
-        }
-        _ => {}
-    }
-
-    // height
-    match &pos.height {
-        GenericSize::LengthPercentage(lp) => {
-            if let Some(len) = lp.0.to_length() {
-                dims.layout_target_height = Some(len.px());
-            }
-        }
-        GenericSize::Auto => {
-            dims.layout_target_height = None;
-        }
-        _ => {}
-    }
-
-    // min-width
-    if let GenericSize::LengthPercentage(lp) = &pos.min_width {
-        if let Some(len) = lp.0.to_length() {
-            let px = len.px();
-            if px > 0.0 {
-                dims.layout_min_width = Some(px);
-            }
-        }
-    }
-
-    // min-height
-    if let GenericSize::LengthPercentage(lp) = &pos.min_height {
-        if let Some(len) = lp.0.to_length() {
-            let px = len.px();
-            if px > 0.0 {
-                dims.layout_min_height = Some(px);
-            }
-        }
-    }
-
-    // max-width
-    if let GenericMaxSize::LengthPercentage(lp) = &pos.max_width {
-        if let Some(len) = lp.0.to_length() {
-            dims.layout_max_width = Some(len.px());
-        }
-    }
-
-    // max-height
-    if let GenericMaxSize::LengthPercentage(lp) = &pos.max_height {
-        if let Some(len) = lp.0.to_length() {
-            dims.layout_max_height = Some(len.px());
-        }
     }
 }
 

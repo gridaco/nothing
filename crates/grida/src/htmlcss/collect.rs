@@ -227,6 +227,28 @@ fn collect_element(element: HtmlElement) -> StyledElement {
     collect_element_with_counter(element, &mut None)
 }
 
+/// Extract the resolved style record for ONE element — the per-element
+/// seam the HTML importer consumes (gridaco/nothing#30).
+///
+/// This mirrors exactly the prefix of [`collect_element_with_counter`]
+/// that obtains the element's primary `ComputedValues`, then runs the
+/// shared [`extract_style`] — and nothing else. Deliberately **not**
+/// routed through the tree-shaping collect path: no inline-group
+/// merging, no list counters, no widget synthesis, no root-margin
+/// stripping, and no recursion into children. Returns `None` when the
+/// element has no style data (the importer skips such elements, where
+/// the renderer path panics).
+///
+/// Colors are quantized with [`ColorQuantize::Truncate`] — the
+/// importer's pinned golden behavior; see [`ColorQuantize`].
+pub(crate) fn styled_of(element: HtmlElement) -> Option<StyledElement> {
+    let tag = element.local_name_string();
+    let data = element.borrow_data();
+    let style = data.as_ref().map(|d| d.styles.primary().clone())?;
+    drop(data);
+    Some(extract_style(&tag, &style, ColorQuantize::Truncate))
+}
+
 fn collect_element_with_counter(
     element: HtmlElement,
     list_counter: &mut Option<ListCounter>,
@@ -239,7 +261,7 @@ fn collect_element_with_counter(
         .map(|d| d.styles.primary().clone())
         .unwrap_or_else(|| panic!("Element {tag} has no style data"));
 
-    let mut el = extract_style(&tag, &style);
+    let mut el = extract_style(&tag, &style, ColorQuantize::Round);
 
     // Strip root element margins
     if tag == "html" || tag == "body" {
@@ -1143,7 +1165,7 @@ fn flush_inline_group(
 
 // ─── CSS property extraction ─────────────────────────────────────────
 
-fn extract_style(tag: &str, style: &ComputedValues) -> StyledElement {
+fn extract_style(tag: &str, style: &ComputedValues, q: ColorQuantize) -> StyledElement {
     let mut el = StyledElement {
         tag: tag.to_string(),
         ..StyledElement::default()
@@ -1231,19 +1253,19 @@ fn extract_style(tag: &str, style: &ComputedValues) -> StyledElement {
 
     // Text color (inherited) — must be resolved before any
     // `currentcolor`-aware extraction (background gradients, border image).
-    el.color = abs_color_to_cg(&style.get_inherited_text().color);
+    el.color = q.abs_to_cg(&style.get_inherited_text().color);
 
     // Border
-    el.border = extract_border(style, el.color);
+    el.border = extract_border(style, el.color, q);
 
     // Border image (9-slice)
-    el.border_image = extract_border_image(style, el.color);
+    el.border_image = extract_border_image(style, el.color, q);
 
     // Border radius
     el.border_radius = extract_border_radius(style);
 
     // Outline (does not affect layout — paint-only)
-    el.outline = extract_outline(style);
+    el.outline = extract_outline(style, q);
 
     // Dimensions
     let pos = style.get_position();
@@ -1284,15 +1306,15 @@ fn extract_style(tag: &str, style: &ComputedValues) -> StyledElement {
     }
 
     // Background
-    el.background = extract_background(style, el.color);
+    el.background = extract_background(style, el.color, q);
 
     // Font properties (inherited)
-    el.font = extract_font(style, el.color);
+    el.font = extract_font(style, el.color, q);
 
     // Box shadow
-    el.box_shadow = extract_box_shadow(style, el.color);
-    el.filter = extract_filter(style, el.color);
-    el.backdrop_filter = extract_backdrop_filter(style, el.color);
+    el.box_shadow = extract_box_shadow(style, el.color, q);
+    el.filter = extract_filter(style, el.color, q);
+    el.backdrop_filter = extract_backdrop_filter(style, el.color, q);
     el.clip_path = extract_clip_path(style);
 
     // Transform
@@ -1463,7 +1485,7 @@ fn map_border_style(bs: style::values::specified::border::BorderStyle) -> types:
     }
 }
 
-fn extract_border(style: &ComputedValues, current_color: CGColor) -> BorderBox {
+fn extract_border(style: &ComputedValues, current_color: CGColor, q: ColorQuantize) -> BorderBox {
     let b = style.get_border();
 
     // `border-*-color` defaults to `currentcolor`, which Stylo leaves
@@ -1473,7 +1495,7 @@ fn extract_border(style: &ComputedValues, current_color: CGColor) -> BorderBox {
     let extract_color = |color: &style::values::computed::Color| -> CGColor {
         color
             .as_absolute()
-            .map(abs_color_to_cg)
+            .map(|abs| q.abs_to_cg(abs))
             .unwrap_or(current_color)
     };
 
@@ -1520,10 +1542,14 @@ fn side_width(
 /// Returns `Some(BorderImage)` when `border-image-source` is set to a
 /// non-none value. The source image URL is extracted the same way as
 /// `background-image: url()` — via `GenericImage::Url` / `ComputedUrl`.
-fn extract_border_image(style: &ComputedValues, current_color: CGColor) -> Option<BorderImage> {
+fn extract_border_image(
+    style: &ComputedValues,
+    current_color: CGColor,
+    q: ColorQuantize,
+) -> Option<BorderImage> {
     let b = style.get_border();
 
-    let source = convert_image(&b.border_image_source, current_color)?;
+    let source = convert_image(&b.border_image_source, current_color, q)?;
 
     // border-image-slice: BorderImageSlice { offsets: Rect<NonNegative<NumberOrPercentage>>, fill }
     let slice_computed = &b.border_image_slice;
@@ -1622,7 +1648,7 @@ fn extract_border_image(style: &ComputedValues, current_color: CGColor) -> Optio
 ///
 /// Chromium: `ComputedStyle::OutlineWidth()`, `OutlineColor()`,
 /// `OutlineStyle()`, `OutlineOffset()`.
-fn extract_outline(style: &ComputedValues) -> Outline {
+fn extract_outline(style: &ComputedValues, q: ColorQuantize) -> Outline {
     let o = style.get_outline();
 
     // outline-style: Auto | BorderStyle(bs)
@@ -1647,8 +1673,8 @@ fn extract_outline(style: &ComputedValues) -> Outline {
     let color = o
         .outline_color
         .as_absolute()
-        .map(abs_color_to_cg)
-        .unwrap_or_else(|| abs_color_to_cg(&style.get_inherited_text().color));
+        .map(|abs| q.abs_to_cg(abs))
+        .unwrap_or_else(|| q.abs_to_cg(&style.get_inherited_text().color));
 
     Outline {
         width,
@@ -1665,6 +1691,7 @@ fn extract_outline(style: &ComputedValues) -> Outline {
 fn convert_image(
     image: &style::values::computed::Image,
     current_color: CGColor,
+    q: ColorQuantize,
 ) -> Option<StyleImage> {
     use style::values::computed::url::ComputedUrl;
     use style::values::generics::image::{GenericGradient, GenericImage};
@@ -1690,7 +1717,7 @@ fn convert_image(
                 color_interpolation_method,
                 ..
             } => {
-                let stops = gradient_items_to_stops(items, current_color);
+                let stops = gradient_items_to_stops(items, current_color, q);
                 if stops.is_empty() {
                     return None;
                 }
@@ -1711,7 +1738,7 @@ fn convert_image(
                 color_interpolation_method,
                 ..
             } => {
-                let stops = gradient_items_to_stops(items, current_color);
+                let stops = gradient_items_to_stops(items, current_color, q);
                 if stops.is_empty() {
                     return None;
                 }
@@ -1733,7 +1760,7 @@ fn convert_image(
                 color_interpolation_method,
                 ..
             } => {
-                let stops = conic_gradient_items_to_stops(items, current_color);
+                let stops = conic_gradient_items_to_stops(items, current_color, q);
                 if stops.is_empty() {
                     return None;
                 }
@@ -1874,7 +1901,11 @@ fn extract_inset(style: &ComputedValues) -> CssEdgeInsets {
     }
 }
 
-fn extract_background(style: &ComputedValues, current_color: CGColor) -> Vec<BackgroundLayer> {
+fn extract_background(
+    style: &ComputedValues,
+    current_color: CGColor,
+    q: ColorQuantize,
+) -> Vec<BackgroundLayer> {
     let bg = style.get_background();
     let mut layers: Vec<BackgroundLayer> = Vec::new();
 
@@ -1882,7 +1913,7 @@ fn extract_background(style: &ComputedValues, current_color: CGColor) -> Vec<Bac
     //    color uses the `background-clip` value from the *final* layer
     //    entry in the list.
     if let Some(abs) = bg.background_color.as_absolute() {
-        let c = abs_color_to_cg(abs);
+        let c = q.abs_to_cg(abs);
         if c.a > 0 {
             let color_clip = bg
                 .background_clip
@@ -1918,7 +1949,7 @@ fn extract_background(style: &ComputedValues, current_color: CGColor) -> Vec<Bac
     let origins = &bg.background_origin.0;
 
     for (i, image) in bg.background_image.0.iter().enumerate().rev() {
-        let Some(source) = convert_image(image, current_color) else {
+        let Some(source) = convert_image(image, current_color, q) else {
             continue;
         };
         let size = sizes
@@ -2176,6 +2207,7 @@ fn gradient_items_to_stops(
         style::values::computed::LengthPercentage,
     >],
     current_color: CGColor,
+    q: ColorQuantize,
 ) -> Vec<GradientStop> {
     use style::values::generics::image::GenericGradientItem;
 
@@ -2183,7 +2215,7 @@ fn gradient_items_to_stops(
     // exactly when the stop is an unresolved `currentcolor`.
     let resolve = |color: &style::values::computed::Color| -> (CGColor, bool) {
         match color.as_absolute() {
-            Some(abs) => (abs_color_to_cg(abs), false),
+            Some(abs) => (q.abs_to_cg(abs), false),
             None => (current_color, true),
         }
     };
@@ -2291,6 +2323,7 @@ fn conic_gradient_items_to_stops(
         style::values::computed::AngleOrPercentage,
     >],
     current_color: CGColor,
+    q: ColorQuantize,
 ) -> Vec<GradientStop> {
     use style::values::computed::AngleOrPercentage;
     use style::values::generics::image::GenericGradientItem;
@@ -2298,7 +2331,7 @@ fn conic_gradient_items_to_stops(
     // See `gradient_items_to_stops` — (color, was_currentcolor).
     let resolve = |color: &style::values::computed::Color| -> (CGColor, bool) {
         match color.as_absolute() {
-            Some(abs) => (abs_color_to_cg(abs), false),
+            Some(abs) => (q.abs_to_cg(abs), false),
             None => (current_color, true),
         }
     };
@@ -2365,7 +2398,11 @@ fn auto_distribute_stops(raw: &mut [(Option<f32>, (CGColor, bool))]) {
     }
 }
 
-fn extract_box_shadow(style: &ComputedValues, current_color: CGColor) -> Vec<BoxShadow> {
+fn extract_box_shadow(
+    style: &ComputedValues,
+    current_color: CGColor,
+    q: ColorQuantize,
+) -> Vec<BoxShadow> {
     let shadows = style.clone_box_shadow();
     shadows
         .0
@@ -2377,7 +2414,7 @@ fn extract_box_shadow(style: &ComputedValues, current_color: CGColor) -> Vec<Box
                 .base
                 .color
                 .as_absolute()
-                .map(abs_color_to_cg)
+                .map(|abs| q.abs_to_cg(abs))
                 .unwrap_or(current_color);
             BoxShadow {
                 offset_x: s.base.horizontal.px(),
@@ -2506,20 +2543,29 @@ fn extract_inset_corner_radii(
     }
 }
 
-fn extract_filter(style: &ComputedValues, current_color: CGColor) -> Vec<FilterFunction> {
-    filter_list_to_functions(&style.clone_filter().0, current_color)
+fn extract_filter(
+    style: &ComputedValues,
+    current_color: CGColor,
+    q: ColorQuantize,
+) -> Vec<FilterFunction> {
+    filter_list_to_functions(&style.clone_filter().0, current_color, q)
 }
 
 /// `backdrop-filter` — same value grammar as `filter`. htmlcss paint
 /// does not consume it; carried on the style record for the HTML
 /// importer.
-fn extract_backdrop_filter(style: &ComputedValues, current_color: CGColor) -> Vec<FilterFunction> {
-    filter_list_to_functions(&style.clone_backdrop_filter().0, current_color)
+fn extract_backdrop_filter(
+    style: &ComputedValues,
+    current_color: CGColor,
+    q: ColorQuantize,
+) -> Vec<FilterFunction> {
+    filter_list_to_functions(&style.clone_backdrop_filter().0, current_color, q)
 }
 
 fn filter_list_to_functions(
     filters: &[style::values::computed::Filter],
     current_color: CGColor,
+    q: ColorQuantize,
 ) -> Vec<FilterFunction> {
     use style::values::generics::effects::GenericFilter;
     filters
@@ -2540,7 +2586,7 @@ fn filter_list_to_functions(
                 let color = s
                     .color
                     .as_absolute()
-                    .map(abs_color_to_cg)
+                    .map(|abs| q.abs_to_cg(abs))
                     .unwrap_or(current_color);
                 Some(FilterFunction::DropShadow {
                     offset_x: s.horizontal.px(),
@@ -2678,7 +2724,7 @@ fn extract_grid_placement(
     types::GridPlacement::Auto
 }
 
-fn extract_font(style: &ComputedValues, current_color: CGColor) -> FontProps {
+fn extract_font(style: &ComputedValues, current_color: CGColor, q: ColorQuantize) -> FontProps {
     let font = style.get_font();
     let inherited_text = style.get_inherited_text();
 
@@ -2823,7 +2869,7 @@ fn extract_font(style: &ComputedValues, current_color: CGColor) -> FontProps {
     props.decoration_color = style
         .clone_text_decoration_color()
         .as_absolute()
-        .map(abs_color_to_cg);
+        .map(|abs| q.abs_to_cg(abs));
 
     // text-shadow: inherited list. Stylo gives us resolved absolute colors
     // (falling back to currentcolor resolved against text color).
@@ -2837,7 +2883,7 @@ fn extract_font(style: &ComputedValues, current_color: CGColor) -> FontProps {
             let color = s
                 .color
                 .as_absolute()
-                .map(abs_color_to_cg)
+                .map(|abs| q.abs_to_cg(abs))
                 .unwrap_or(current_color);
             TextShadow {
                 offset_x: s.horizontal.px(),
@@ -3103,14 +3149,41 @@ fn map_overflow(ov: style::values::specified::box_::Overflow) -> types::Overflow
     }
 }
 
-fn abs_color_to_cg(color: &AbsoluteColor) -> CGColor {
-    let srgb = color.to_color_space(ColorSpace::Srgb);
-    CGColor::from_rgba(
-        (srgb.components.0.clamp(0.0, 1.0) * 255.0).round() as u8,
-        (srgb.components.1.clamp(0.0, 1.0) * 255.0).round() as u8,
-        (srgb.components.2.clamp(0.0, 1.0) * 255.0).round() as u8,
-        (srgb.alpha.clamp(0.0, 1.0) * 255.0).round() as u8,
-    )
+/// u8 quantization policy for sRGB → [`CGColor`] conversion — the one
+/// caller-scoped fidelity knob on the shared extraction, like the
+/// `layout.grid.enabled` pref that stays renderer-side in
+/// [`collect_styled_tree`].
+///
+/// The renderer rounds (Chromium-aligned; 614229bf). The HTML importer
+/// truncates, and its golden corpus pins that: `rgb(51 102 204 / 0.5)`
+/// must stay `a: 127` while `#3366cc80` stays `a: 128` — only
+/// truncation distinguishes them. Each caller keeps its policy so both
+/// outputs stay bit-for-bit what they were before the share.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ColorQuantize {
+    /// Round to nearest — htmlcss rendering.
+    Round,
+    /// Truncate toward zero — the HTML importer's pinned behavior.
+    Truncate,
+}
+
+impl ColorQuantize {
+    fn abs_to_cg(self, color: &AbsoluteColor) -> CGColor {
+        let srgb = color.to_color_space(ColorSpace::Srgb);
+        let q = |v: f32| -> u8 {
+            let scaled = v.clamp(0.0, 1.0) * 255.0;
+            match self {
+                ColorQuantize::Round => scaled.round() as u8,
+                ColorQuantize::Truncate => scaled as u8,
+            }
+        };
+        CGColor::from_rgba(
+            q(srgb.components.0),
+            q(srgb.components.1),
+            q(srgb.components.2),
+            q(srgb.alpha),
+        )
+    }
 }
 
 fn process_whitespace(text: &str, ws: WhiteSpace) -> String {

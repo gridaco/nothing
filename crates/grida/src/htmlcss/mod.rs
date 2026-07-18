@@ -9,7 +9,7 @@
 //!
 //! Uses Stylo's process-global DOM slot. Calls must be serialized externally.
 
-mod collect;
+pub(crate) mod collect;
 mod faux_table;
 pub(crate) mod frontend;
 mod github_markdown;
