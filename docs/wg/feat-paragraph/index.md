@@ -1,14 +1,33 @@
 ---
-title: Paragraph Feature Roadmap
+title: Paragraph and Text Layout
+description: "Specifications, focused studies, and implementation coverage for paragraph and typography behavior."
 tags:
   - internal
   - wg
   - typography
   - text
   - fonts
+format: md
 ---
 
-# Paragraph Feature Roadmap
+# Paragraph and Text Layout
+
+## Specifications
+
+- [Universal Shaped Text Layout](./text-layout.md) defines the canonical
+  resolution contract shared by geometry-sensitive consumers.
+
+## Focused studies
+
+- [Font fallback](./impl-font-fallback.md)
+- [Italic and oblique](./impl-italic.md)
+- [Optical size automation](./impl-opsz-auto.md)
+- [Emoji placeholder rendering](./impl-emoji-placeholder.md)
+
+## Coverage inventory
+
+The checklist below records implementation coverage. It does not define
+measurement, shaping, line, glyph, or editing geometry semantics.
 
 **Core / Modeling**
 
@@ -84,7 +103,7 @@ tags:
   - [x] `YTAS`
   - [x] `YTDE`
   - [x] `YTFI`
-- [x] [open type featuers](https://github.com/gridaco/grida/blob/main/docs/reference/open-type-features.md)
+- [x] [OpenType features](https://github.com/gridaco/grida/blob/main/docs/reference/open-type-features.md)
 
 **Text Editor**
 
