@@ -13,21 +13,19 @@ use crate::node::factory::NodeFactory;
 use crate::node::scene_graph::{Parent, SceneGraph};
 use crate::node::schema::*;
 
-use csscascade::adapter::{self, HtmlElement};
-use csscascade::cascade::CascadeDriver;
-use csscascade::dom::{DemoDom, DemoNodeData};
+use crate::htmlcss::collect::styled_of;
+use crate::htmlcss::style::StyledElement;
+use crate::htmlcss::types::{Display as CssDisplay, Overflow as CssOverflow};
 
-use style::color::{AbsoluteColor, ColorSpace};
-use style::dom::TElement;
-use style::properties::longhands;
-use style::properties::ComputedValues;
-use style::thread_state::{self, ThreadState};
-use style::values::generics::font::LineHeight;
-use style::values::generics::length::{GenericMaxSize, GenericSize, LengthPercentageOrNormal};
-use style::values::specified::align::AlignFlags;
-use style::values::specified::border::BorderStyle;
-use style::values::specified::position::{HorizontalPositionKeyword, VerticalPositionKeyword};
-use style::values::specified::text::TextDecorationLine as StyloTextDecorationLine;
+use csscascade::adapter::{self, HtmlElement};
+use csscascade::dom::DemoNodeData;
+
+mod from_styled;
+use from_styled::{
+    blend_mode_from, corner_radius_from, dimensions_from, effects_from, fills_from_background,
+    flex_container_from, layout_child_from, margin_from, size_from, strokes_from_border,
+    text_align_from, text_effects_from, text_style_from,
+};
 
 /// Parse an HTML string and convert it into a Grida [`SceneGraph`].
 ///
@@ -39,23 +37,10 @@ use style::values::specified::text::TextDecorationLine as StyloTextDecorationLin
 /// and is **not thread-safe**. Concurrent calls will race on the shared state.
 /// Callers must serialize access externally (e.g. via a mutex).
 pub fn from_html_str(html: &str) -> Result<SceneGraph, String> {
-    // Ensure Stylo thread state is initialized (idempotent after first call).
-    thread_state::initialize(ThreadState::LAYOUT);
+    // Parse + cascade via the shared front-end (htmlcss::frontend).
+    let document = crate::htmlcss::frontend::parse_and_style(html)?;
 
-    // 1. Parse HTML into arena DOM
-    let dom =
-        DemoDom::parse_from_bytes(html.as_bytes()).map_err(|e| format!("HTML parse error: {e}"))?;
-
-    // 2. Build cascade driver (collects <style> blocks, builds UA + author sheets)
-    let mut driver = CascadeDriver::new(&dom);
-
-    // 3. Install DOM into global slot
-    let document = adapter::bootstrap_dom(dom);
-
-    // 4. Flush stylist + resolve all styles
-    driver.flush(document);
-    let _styled_count = driver.style_document(document);
-    // 5. Build scene graph from styled DOM
+    // Build scene graph from styled DOM
     let mut builder = SceneBuilder::new();
     if let Some(root) = document.root_element() {
         builder.build_element(root, Parent::Root);
@@ -83,16 +68,13 @@ impl SceneBuilder {
 
     fn build_element(&mut self, element: HtmlElement, parent: Parent) {
         let dom = adapter::dom();
-        let data = element.borrow_data();
-        let Some(data) = &data else {
+        // Shared per-element style record (htmlcss seam, gridaco/nothing#30).
+        let Some(styled) = styled_of(element) else {
             return;
         };
 
-        let style = data.styles.primary();
-
         // Skip display:none elements entirely
-        let display = style.clone_display();
-        if display.is_none() {
+        if styled.display == CssDisplay::None {
             return;
         }
 
@@ -109,17 +91,15 @@ impl SceneBuilder {
 
         let is_structural = matches!(tag.as_str(), "html" | "body");
 
-        // Check if all element children are inline (display: inline).
-        // When true and we have text, we can merge everything into AttributedText.
+        // Check if all element children are inline (outer display type
+        // `inline` — includes inline-block, inline-flex, …). When true
+        // and we have text, we can merge everything into AttributedText.
         let all_children_inline = has_element_children && {
             let mut all_inline = true;
             let mut child = element.first_element_child();
             while let Some(c) = child {
-                let c_data = c.borrow_data();
-                if let Some(c_data) = &c_data {
-                    let c_display = c_data.styles.primary().clone_display();
-                    if c_display.outside() != style::values::specified::box_::DisplayOutside::Inline
-                    {
+                if let Some(child_styled) = styled_of(c) {
+                    if !child_styled.inline_outside {
                         all_inline = false;
                         break;
                     }
@@ -132,11 +112,11 @@ impl SceneBuilder {
         if has_text_children && all_children_inline && !is_structural {
             // All children are text or inline elements → emit as a single
             // Container (for box model) with an AttributedText child (for text).
-            let container_id = self.emit_container(style, &display, parent);
-            self.emit_attributed_text(element, style, Parent::NodeId(container_id));
+            let container_id = self.emit_container(&styled, parent);
+            self.emit_attributed_text(element, &styled, Parent::NodeId(container_id));
         } else if has_element_children || has_text_children || is_structural {
             // Mixed content or structural element → Container with separate children.
-            let container_id = self.emit_container(style, &display, parent);
+            let container_id = self.emit_container(&styled, parent);
             let container_parent = Parent::NodeId(container_id);
 
             // Emit inline text children
@@ -146,7 +126,7 @@ impl SceneBuilder {
                 if let DemoNodeData::Text(text) = &child_node.data {
                     let trimmed = text.trim();
                     if !trimmed.is_empty() {
-                        self.emit_text_span(trimmed, style, container_parent.clone());
+                        self.emit_text_span(trimmed, &styled, container_parent.clone());
                     }
                 }
             }
@@ -159,7 +139,7 @@ impl SceneBuilder {
             }
         } else {
             // Empty visual element → Rectangle
-            self.emit_rectangle(style, parent);
+            self.emit_rectangle(&styled, parent);
         }
     }
 
@@ -192,146 +172,59 @@ impl SceneBuilder {
         self.graph.append_child(Node::Container(wrapper), parent)
     }
 
-    fn emit_container(
-        &mut self,
-        style: &ComputedValues,
-        display: &style::values::computed::Display,
-        parent: Parent,
-    ) -> NodeId {
-        use longhands::flex_direction::computed_value::T as FlexDir;
-        use longhands::flex_wrap::computed_value::T as FlexWr;
-
-        let is_flex = display.inside() == style::values::specified::box_::DisplayInside::Flex;
+    fn emit_container(&mut self, styled: &StyledElement, parent: Parent) -> NodeId {
         let mut node = self.factory.create_container_node();
 
-        // Display / layout mode
-        if is_flex {
-            node.layout_container.layout_mode = LayoutMode::Flex;
-
-            node.layout_container.layout_direction = match style.clone_flex_direction() {
-                FlexDir::Row | FlexDir::RowReverse => Axis::Horizontal,
-                FlexDir::Column | FlexDir::ColumnReverse => Axis::Vertical,
-            };
-
-            node.layout_container.layout_wrap = Some(match style.clone_flex_wrap() {
-                FlexWr::Nowrap => LayoutWrap::NoWrap,
-                FlexWr::Wrap | FlexWr::WrapReverse => LayoutWrap::Wrap,
-            });
-
-            // align-items → cross axis alignment
-            let align_items = style.clone_align_items();
-            let ai_flags = align_items.0.value();
-            node.layout_container.layout_cross_axis_alignment = match ai_flags {
-                f if f == AlignFlags::CENTER => Some(CrossAxisAlignment::Center),
-                f if f == AlignFlags::FLEX_START || f == AlignFlags::START => {
-                    Some(CrossAxisAlignment::Start)
-                }
-                f if f == AlignFlags::FLEX_END || f == AlignFlags::END => {
-                    Some(CrossAxisAlignment::End)
-                }
-                f if f == AlignFlags::STRETCH => Some(CrossAxisAlignment::Stretch),
-                _ => None,
-            };
-
-            // justify-content → main axis alignment
-            let jc = style.clone_justify_content();
-            let jc_flags = jc.primary().value();
-            node.layout_container.layout_main_axis_alignment = match jc_flags {
-                f if f == AlignFlags::CENTER => Some(MainAxisAlignment::Center),
-                f if f == AlignFlags::FLEX_START || f == AlignFlags::START => {
-                    Some(MainAxisAlignment::Start)
-                }
-                f if f == AlignFlags::FLEX_END || f == AlignFlags::END => {
-                    Some(MainAxisAlignment::End)
-                }
-                f if f == AlignFlags::SPACE_BETWEEN => Some(MainAxisAlignment::SpaceBetween),
-                f if f == AlignFlags::SPACE_AROUND => Some(MainAxisAlignment::SpaceAround),
-                f if f == AlignFlags::SPACE_EVENLY => Some(MainAxisAlignment::SpaceEvenly),
-                f if f == AlignFlags::STRETCH => Some(MainAxisAlignment::Stretch),
-                _ => None,
-            };
-        } else {
-            // CSS `display: block` → map to Flex column.
-            // The IR's `LayoutMode::Normal` maps to taffy `Display::Block`, which
-            // causes children of a flex parent to stretch to 100% width (block
-            // intrinsic sizing). Using Flex column instead gives correct sizing
-            // when these containers are nested inside flex parents.
-            node.layout_container.layout_mode = LayoutMode::Flex;
-            node.layout_container.layout_direction = Axis::Vertical;
-        }
+        // Display / layout mode, flex direction/wrap/alignment, gap
+        flex_container_from(styled, &mut node.layout_container);
 
         // Opacity
-        node.opacity = style.get_effects().opacity;
+        node.opacity = styled.opacity;
 
         // Background → fills (solid color + gradients)
-        node.fills = css_background_to_fills(style);
+        node.fills = fills_from_background(styled);
 
         // Border radius
-        node.corner_radius = css_border_radius_to_cg(style);
+        node.corner_radius = corner_radius_from(styled);
 
         // Padding
-        let padding = css_padding_to_cg(style);
+        let padding = styled.padding;
         if padding.top != 0.0
             || padding.right != 0.0
             || padding.bottom != 0.0
             || padding.left != 0.0
         {
-            node.layout_container.layout_padding = Some(EdgeInsets {
-                top: padding.top,
-                right: padding.right,
-                bottom: padding.bottom,
-                left: padding.left,
-            });
-        }
-
-        // Gap (for flex containers)
-        // CSS column-gap = inline-axis gap, row-gap = block-axis gap.
-        // For flex-direction: row, column-gap is the main-axis gap.
-        // For flex-direction: column, row-gap is the main-axis gap.
-        if is_flex {
-            let pos = style.get_position();
-            let rg = gap_to_px(&pos.row_gap);
-            let cg = gap_to_px(&pos.column_gap);
-            if rg != 0.0 || cg != 0.0 {
-                let (main_gap, cross_gap) = match style.clone_flex_direction() {
-                    FlexDir::Row | FlexDir::RowReverse => (cg, rg),
-                    FlexDir::Column | FlexDir::ColumnReverse => (rg, cg),
-                };
-                node.layout_container.layout_gap = Some(LayoutGap {
-                    main_axis_gap: main_gap,
-                    cross_axis_gap: cross_gap,
-                });
-            }
+            node.layout_container.layout_padding = Some(padding);
         }
 
         // Overflow → clip
-        let bx = style.get_box();
-        node.clip = bx.overflow_x != style::values::specified::box_::Overflow::Visible
-            || bx.overflow_y != style::values::specified::box_::Overflow::Visible;
+        node.clip =
+            styled.overflow_x != CssOverflow::Visible || styled.overflow_y != CssOverflow::Visible;
 
         // Borders → strokes + stroke_width
-        let (border_strokes, border_stroke_width, border_stroke_style) = css_border_to_cg(style);
+        let (border_strokes, border_stroke_width, border_stroke_style) =
+            strokes_from_border(styled);
         node.strokes = border_strokes;
         node.stroke_width = border_stroke_width;
         node.stroke_style = border_stroke_style;
 
         // Effects (box-shadow, filter, backdrop-filter)
-        node.effects = css_effects_to_cg(style);
+        node.effects = effects_from(styled);
 
         // Blend mode (mix-blend-mode)
-        node.blend_mode = css_blend_mode_to_cg(style);
+        node.blend_mode = blend_mode_from(styled);
 
         // Width / height / min / max dimensions
-        css_dimensions_to_cg(style, &mut node.layout_dimensions);
+        dimensions_from(styled, &mut node.layout_dimensions);
 
         // Flex child properties (for nested containers inside flex parents)
-        node.layout_child = css_flex_child_to_cg(style);
+        node.layout_child = layout_child_from(styled);
 
         // Margin → tree surgery
         // Fixed positive margins are absorbed into the container's own padding when
         // the container has no visual properties (fills, borders) that would bleed
         // into the margin zone. Otherwise, a separate wrapper is created.
-        let margin = css_margin_to_cg(style);
+        let margin = margin_from(styled);
         if !margin.is_zero() && !margin.has_any_auto() && !margin.has_any_negative() {
             let has_visuals = !node.fills.is_empty() || !node.strokes.is_empty();
             if has_visuals {
@@ -360,22 +253,21 @@ impl SceneBuilder {
         }
     }
 
-    fn emit_text_span(&mut self, text: &str, style: &ComputedValues, parent: Parent) {
+    fn emit_text_span(&mut self, text: &str, styled: &StyledElement, parent: Parent) {
         let mut node = self.factory.create_text_span_node();
         node.text = text.to_string();
 
-        let (text_style, fills) = css_text_style_to_cg(style);
+        let (text_style, fills) = text_style_from(styled);
         node.text_style = text_style;
         node.fills = fills;
-        node.text_align = css_text_align_to_cg(style.get_inherited_text().text_align);
-        node.opacity = style.get_effects().opacity;
-        node.effects = css_text_shadow_to_effects(style);
-        node.blend_mode = css_blend_mode_to_cg(style);
+        node.text_align = text_align_from(styled);
+        node.opacity = styled.opacity;
+        node.effects = text_effects_from(styled);
+        node.blend_mode = blend_mode_from(styled);
 
-        let flex_grow = style.clone_flex_grow();
-        if flex_grow.0 > 0.0 {
+        if styled.flex_grow > 0.0 {
             node.layout_child = Some(LayoutChildStyle {
-                layout_grow: flex_grow.0,
+                layout_grow: styled.flex_grow,
                 layout_positioning: LayoutPositioning::Auto,
             });
         }
@@ -392,12 +284,12 @@ impl SceneBuilder {
     fn emit_attributed_text(
         &mut self,
         element: HtmlElement,
-        style: &ComputedValues,
+        styled: &StyledElement,
         parent: Parent,
     ) {
         let dom = adapter::dom();
-        let (default_style, default_fills) = css_text_style_to_cg(style);
-        let default_color = Some(abs_color_to_cg(&style.get_inherited_text().color));
+        let (default_style, default_fills) = text_style_from(styled);
+        let default_color = Some(styled.color);
 
         let mut builder = AttributedStringBuilder::new();
         let node_data = dom.node(element.node_id());
@@ -414,12 +306,10 @@ impl SceneBuilder {
                     }
                 }
                 DemoNodeData::Element(_) => {
-                    // Inline element — get its own computed style and collect text.
+                    // Inline element — get its own style record and collect text.
                     let child_el = HtmlElement::from_node_id(*child_id);
-                    let child_data = child_el.borrow_data();
-                    if let Some(child_data) = &child_data {
-                        let child_style = child_data.styles.primary();
-                        Self::collect_inline_text(&mut builder, child_el, child_style);
+                    if let Some(child_styled) = styled_of(child_el) {
+                        Self::collect_inline_text(&mut builder, child_el, &child_styled);
                     }
                 }
                 _ => {} // comments, doctypes, etc. — skip
@@ -438,10 +328,10 @@ impl SceneBuilder {
             transform: Default::default(),
             width: None,
             height: None,
-            layout_child: css_flex_child_to_cg(style),
+            layout_child: layout_child_from(styled),
             attributed_string: attr_string,
             default_style,
-            text_align: css_text_align_to_cg(style.get_inherited_text().text_align),
+            text_align: text_align_from(styled),
             text_align_vertical: TextAlignVertical::Top,
             max_lines: None,
             ellipsis: None,
@@ -449,10 +339,10 @@ impl SceneBuilder {
             strokes: Default::default(),
             stroke_width: 0.0,
             stroke_align: StrokeAlign::default(),
-            opacity: style.get_effects().opacity,
-            blend_mode: css_blend_mode_to_cg(style),
+            opacity: styled.opacity,
+            blend_mode: blend_mode_from(styled),
             mask: None,
-            effects: css_text_shadow_to_effects(style),
+            effects: text_effects_from(styled),
         };
 
         self.graph.append_child(Node::AttributedText(node), parent);
@@ -462,11 +352,11 @@ impl SceneBuilder {
     fn collect_inline_text(
         builder: &mut AttributedStringBuilder,
         element: HtmlElement,
-        style: &ComputedValues,
+        styled: &StyledElement,
     ) {
         let dom = adapter::dom();
-        let (run_style, _) = css_text_style_to_cg(style);
-        let run_color = Some(abs_color_to_cg(&style.get_inherited_text().color));
+        let (run_style, _) = text_style_from(styled);
+        let run_color = Some(styled.color);
         let node_data = dom.node(element.node_id());
 
         for child_id in &node_data.children {
@@ -480,10 +370,8 @@ impl SceneBuilder {
                 }
                 DemoNodeData::Element(_) => {
                     let child_el = HtmlElement::from_node_id(*child_id);
-                    let child_data = child_el.borrow_data();
-                    if let Some(child_data) = &child_data {
-                        let child_style = child_data.styles.primary();
-                        Self::collect_inline_text(builder, child_el, child_style);
+                    if let Some(child_styled) = styled_of(child_el) {
+                        Self::collect_inline_text(builder, child_el, &child_styled);
                     }
                 }
                 _ => {}
@@ -491,33 +379,34 @@ impl SceneBuilder {
         }
     }
 
-    fn emit_rectangle(&mut self, style: &ComputedValues, parent: Parent) {
+    fn emit_rectangle(&mut self, styled: &StyledElement, parent: Parent) {
         let mut node = self.factory.create_rectangle_node();
 
-        node.fills = css_background_to_fills(style);
-        node.corner_radius = css_border_radius_to_cg(style);
-        node.opacity = style.get_effects().opacity;
+        node.fills = fills_from_background(styled);
+        node.corner_radius = corner_radius_from(styled);
+        node.opacity = styled.opacity;
 
         // CSS dimensions → node size
-        node.size = css_size_to_cg(style);
+        node.size = size_from(styled);
 
         // Flex child properties (grow, positioning)
-        node.layout_child = css_flex_child_to_cg(style);
+        node.layout_child = layout_child_from(styled);
 
         // Borders
-        let (border_strokes, border_stroke_width, border_stroke_style) = css_border_to_cg(style);
+        let (border_strokes, border_stroke_width, border_stroke_style) =
+            strokes_from_border(styled);
         node.strokes = border_strokes;
         node.stroke_width = border_stroke_width;
         node.stroke_style = border_stroke_style;
 
         // Effects (box-shadow, filter, backdrop-filter)
-        node.effects = css_effects_to_cg(style);
+        node.effects = effects_from(styled);
 
         // Blend mode (mix-blend-mode)
-        node.blend_mode = css_blend_mode_to_cg(style);
+        node.blend_mode = blend_mode_from(styled);
 
         // Margin → tree surgery (same pattern as emit_container)
-        let margin = css_margin_to_cg(style);
+        let margin = margin_from(styled);
         if !margin.is_zero() && !margin.has_any_auto() && !margin.has_any_negative() {
             let layout_child = node.layout_child.take();
             let wrapper_id = self.wrap_with_margin_padding(&margin, layout_child, parent);
@@ -533,77 +422,6 @@ impl SceneBuilder {
 // ---------------------------------------------------------------------------
 // CSS → CG type conversion helpers
 // ---------------------------------------------------------------------------
-
-/// Convert a Stylo computed color (GenericColor) to a CG color.
-/// Returns None for fully transparent or currentcolor.
-fn css_color_to_cg(color: &style::values::computed::Color) -> Option<CGColor> {
-    let abs = color.as_absolute()?;
-    let srgb = abs.to_color_space(ColorSpace::Srgb);
-    let r = (srgb.components.0.clamp(0.0, 1.0) * 255.0) as u8;
-    let g = (srgb.components.1.clamp(0.0, 1.0) * 255.0) as u8;
-    let b = (srgb.components.2.clamp(0.0, 1.0) * 255.0) as u8;
-    let a = (srgb.alpha.clamp(0.0, 1.0) * 255.0) as u8;
-    if a == 0 {
-        return None;
-    }
-    Some(CGColor::from_rgba(r, g, b, a))
-}
-
-/// Convert an AbsoluteColor (from the `color` property) to CG.
-fn abs_color_to_cg(color: &AbsoluteColor) -> CGColor {
-    let srgb = color.to_color_space(ColorSpace::Srgb);
-    let r = (srgb.components.0.clamp(0.0, 1.0) * 255.0) as u8;
-    let g = (srgb.components.1.clamp(0.0, 1.0) * 255.0) as u8;
-    let b = (srgb.components.2.clamp(0.0, 1.0) * 255.0) as u8;
-    let a = (srgb.alpha.clamp(0.0, 1.0) * 255.0) as u8;
-    CGColor::from_rgba(r, g, b, a)
-}
-
-/// Extract border-radius from computed styles.
-fn css_border_radius_to_cg(style: &ComputedValues) -> RectangularCornerRadius {
-    let border = style.get_border();
-    let lp_to_px = |lp: &style::values::computed::NonNegativeLengthPercentage| -> f32 {
-        lp.0.to_length().map(|l| l.px()).unwrap_or(0.0)
-    };
-    RectangularCornerRadius {
-        tl: Radius {
-            rx: lp_to_px(&border.border_top_left_radius.0.width),
-            ry: lp_to_px(&border.border_top_left_radius.0.height),
-        },
-        tr: Radius {
-            rx: lp_to_px(&border.border_top_right_radius.0.width),
-            ry: lp_to_px(&border.border_top_right_radius.0.height),
-        },
-        br: Radius {
-            rx: lp_to_px(&border.border_bottom_right_radius.0.width),
-            ry: lp_to_px(&border.border_bottom_right_radius.0.height),
-        },
-        bl: Radius {
-            rx: lp_to_px(&border.border_bottom_left_radius.0.width),
-            ry: lp_to_px(&border.border_bottom_left_radius.0.height),
-        },
-    }
-}
-
-struct CSSPadding {
-    top: f32,
-    right: f32,
-    bottom: f32,
-    left: f32,
-}
-
-fn css_padding_to_cg(style: &ComputedValues) -> CSSPadding {
-    let p = style.get_padding();
-    let lp_to_px = |lp: &style::values::computed::NonNegativeLengthPercentage| -> f32 {
-        lp.0.to_length().map(|l| l.px()).unwrap_or(0.0)
-    };
-    CSSPadding {
-        top: lp_to_px(&p.padding_top),
-        right: lp_to_px(&p.padding_right),
-        bottom: lp_to_px(&p.padding_bottom),
-        left: lp_to_px(&p.padding_left),
-    }
-}
 
 /// Parsed CSS margin with per-edge auto tracking.
 struct CSSMargin {
@@ -638,37 +456,6 @@ impl CSSMargin {
     }
 }
 
-fn css_margin_to_cg(style: &ComputedValues) -> CSSMargin {
-    // Stylo exposes margin fields as `computed::Margin` (GenericMargin<LengthPercentage>).
-    // Variants: Auto | LengthPercentage(lp) | AnchorSizeFunction (CSS anchoring, ignored).
-    fn extract(v: style::values::computed::Margin) -> (f32, bool) {
-        if v.is_auto() {
-            return (0.0, true);
-        }
-        match v {
-            style::values::computed::Margin::LengthPercentage(lp) => {
-                (lp.to_length().map(|l| l.px()).unwrap_or(0.0), false)
-            }
-            _ => (0.0, false),
-        }
-    }
-
-    let (top, top_auto) = extract(style.clone_margin_top());
-    let (right, right_auto) = extract(style.clone_margin_right());
-    let (bottom, bottom_auto) = extract(style.clone_margin_bottom());
-    let (left, left_auto) = extract(style.clone_margin_left());
-    CSSMargin {
-        top,
-        right,
-        bottom,
-        left,
-        top_auto,
-        right_auto,
-        bottom_auto,
-        left_auto,
-    }
-}
-
 /// Collapse whitespace per CSS `white-space: normal` rules.
 /// Newlines and tabs become spaces; consecutive spaces collapse to one.
 /// Leading/trailing whitespace is preserved as a single space (important for
@@ -688,696 +475,6 @@ fn collapse_whitespace(s: &str) -> String {
         }
     }
     result
-}
-
-/// Extract text typography (TextStyleRec) and fill color from CSS computed values.
-/// Shared by emit_text_span and emit_attributed_text.
-fn css_text_style_to_cg(style: &ComputedValues) -> (TextStyleRec, Paints) {
-    let font = style.get_font();
-    let mut text_style = TextStyleRec::from_font("system-ui", 16.0);
-
-    text_style.font_size = font.font_size.computed_size().px();
-    text_style.font_weight = FontWeight(font.font_weight.value() as u32);
-
-    if let Some(first) = font.font_family.families.iter().next() {
-        use style::values::computed::font::SingleFontFamily;
-        text_style.font_family = match first {
-            SingleFontFamily::FamilyName(name) => name.name.to_string(),
-            SingleFontFamily::Generic(generic) => format!("{:?}", generic),
-        };
-    }
-
-    text_style.font_style_italic = font.font_style == style::values::computed::FontStyle::ITALIC;
-
-    match &font.line_height {
-        LineHeight::Normal => {}
-        LineHeight::Number(n) => {
-            text_style.line_height = TextLineHeight::Factor(n.0);
-        }
-        LineHeight::Length(len) => {
-            text_style.line_height = TextLineHeight::Fixed(len.0.px());
-        }
-    }
-
-    let ls = &style.get_inherited_text().letter_spacing;
-    if let Some(len) = ls.0.to_length() {
-        let px = len.px();
-        if px != 0.0 {
-            text_style.letter_spacing = TextLetterSpacing::Fixed(px);
-        }
-    }
-
-    let ws = &style.get_inherited_text().word_spacing;
-    let ws_px = ws.to_length().map(|l| l.px()).unwrap_or(0.0);
-    if ws_px != 0.0 {
-        text_style.word_spacing = TextWordSpacing::Fixed(ws_px);
-    }
-
-    {
-        use style::values::specified::text::TextTransformCase;
-        let tt = style.clone_text_transform();
-        let case = tt.case();
-        text_style.text_transform = if case == TextTransformCase::Uppercase {
-            TextTransform::Uppercase
-        } else if case == TextTransformCase::Lowercase {
-            TextTransform::Lowercase
-        } else if case == TextTransformCase::Capitalize {
-            TextTransform::Capitalize
-        } else {
-            TextTransform::None
-        };
-    }
-
-    let td_line = style.clone_text_decoration_line();
-    if td_line != StyloTextDecorationLine::NONE {
-        let line = if td_line.intersects(StyloTextDecorationLine::LINE_THROUGH) {
-            TextDecorationLine::LineThrough
-        } else if td_line.intersects(StyloTextDecorationLine::UNDERLINE) {
-            TextDecorationLine::Underline
-        } else if td_line.intersects(StyloTextDecorationLine::OVERLINE) {
-            TextDecorationLine::Overline
-        } else {
-            TextDecorationLine::None
-        };
-        if !matches!(line, TextDecorationLine::None) {
-            let td_color = css_color_to_cg(&style.clone_text_decoration_color());
-            let td_style = css_text_decoration_style_to_cg(style);
-            text_style.text_decoration = Some(TextDecorationRec {
-                text_decoration_line: line,
-                text_decoration_color: td_color,
-                text_decoration_style: td_style,
-                text_decoration_skip_ink: None,
-                text_decoration_thickness: None,
-            });
-        }
-    }
-
-    let text_color = &style.get_inherited_text().color;
-    let cg_color = abs_color_to_cg(text_color);
-    let fills = Paints::new([Paint::Solid(SolidPaint {
-        color: cg_color,
-        blend_mode: BlendMode::default(),
-        active: true,
-    })]);
-
-    (text_style, fills)
-}
-
-/// Convert CSS gap value to pixels. Returns 0 for `normal`.
-fn gap_to_px(gap: &style::values::computed::length::NonNegativeLengthPercentageOrNormal) -> f32 {
-    match gap {
-        LengthPercentageOrNormal::Normal => 0.0,
-        LengthPercentageOrNormal::LengthPercentage(lp) => {
-            lp.0.to_length().map(|l| l.px()).unwrap_or(0.0)
-        }
-    }
-}
-
-/// Extract flex-child properties (flex-grow, positioning) from CSS computed values.
-/// Returns `None` when all values are at their defaults (grow=0, position=static/relative).
-fn css_flex_child_to_cg(style: &ComputedValues) -> Option<LayoutChildStyle> {
-    let grow = style.clone_flex_grow().0;
-    let is_absolute = style.get_box().clone_position().is_absolutely_positioned();
-    let positioning = if is_absolute {
-        LayoutPositioning::Absolute
-    } else {
-        LayoutPositioning::Auto
-    };
-
-    if grow > 0.0 || is_absolute {
-        Some(LayoutChildStyle {
-            layout_grow: grow,
-            layout_positioning: positioning,
-        })
-    } else {
-        None
-    }
-}
-
-/// Extract CSS width/height into a Size for leaf nodes (Rectangle, etc.).
-/// Returns 0×0 when dimensions are `auto` — unlike the design-tool convention
-/// (100×100 default), HTML leaf elements have no intrinsic size.
-fn css_size_to_cg(style: &ComputedValues) -> Size {
-    let pos = style.get_position();
-    let w = match &pos.width {
-        GenericSize::LengthPercentage(lp) => lp.0.to_length().map(|l| l.px()).unwrap_or(0.0),
-        _ => 0.0,
-    };
-    let h = match &pos.height {
-        GenericSize::LengthPercentage(lp) => lp.0.to_length().map(|l| l.px()).unwrap_or(0.0),
-        _ => 0.0,
-    };
-    Size {
-        width: w,
-        height: h,
-    }
-}
-
-/// Map CSS text-align to CG TextAlign.
-fn css_text_align_to_cg(align: style::values::computed::TextAlign) -> TextAlign {
-    use style::values::specified::text::TextAlignKeyword;
-    match align {
-        TextAlignKeyword::Start | TextAlignKeyword::Left | TextAlignKeyword::MozLeft => {
-            TextAlign::Left
-        }
-        TextAlignKeyword::End | TextAlignKeyword::Right | TextAlignKeyword::MozRight => {
-            TextAlign::Right
-        }
-        TextAlignKeyword::Center | TextAlignKeyword::MozCenter => TextAlign::Center,
-        TextAlignKeyword::Justify => TextAlign::Justify,
-    }
-}
-
-/// Convert CSS background (color + background-image gradients) to fill paints.
-fn css_background_to_fills(style: &ComputedValues) -> Paints {
-    use style::values::generics::image::{GenericGradient, GenericImage};
-
-    let bg = style.get_background();
-    let mut paints: Vec<Paint> = Vec::new();
-
-    // 1. Background color (bottom layer)
-    if let Some(cg_color) = css_color_to_cg(&bg.background_color) {
-        paints.push(Paint::Solid(SolidPaint {
-            color: cg_color,
-            blend_mode: BlendMode::default(),
-            active: true,
-        }));
-    }
-
-    // 2. Background images (gradient layers on top)
-    for image in bg.background_image.0.iter() {
-        if let GenericImage::Gradient(gradient) = image {
-            match gradient.as_ref() {
-                GenericGradient::Linear {
-                    direction, items, ..
-                } => {
-                    let stops = gradient_items_to_stops(items);
-                    if stops.is_empty() {
-                        continue;
-                    }
-                    let (xy1, xy2) = line_direction_to_alignment(direction);
-                    paints.push(Paint::LinearGradient(LinearGradientPaint {
-                        active: true,
-                        xy1,
-                        xy2,
-                        stops,
-                        ..Default::default()
-                    }));
-                }
-                GenericGradient::Radial { items, .. } => {
-                    let stops = gradient_items_to_stops(items);
-                    if stops.is_empty() {
-                        continue;
-                    }
-                    paints.push(Paint::RadialGradient(RadialGradientPaint::from_stops(
-                        stops,
-                    )));
-                }
-                GenericGradient::Conic { items, .. } => {
-                    let stops = conic_gradient_items_to_stops(items);
-                    if stops.is_empty() {
-                        continue;
-                    }
-                    paints.push(Paint::SweepGradient(SweepGradientPaint {
-                        active: true,
-                        stops,
-                        ..Default::default()
-                    }));
-                }
-            }
-        }
-    }
-
-    if paints.is_empty() {
-        Paints::default()
-    } else {
-        Paints::new(paints)
-    }
-}
-
-/// Convert Stylo gradient items (color stops + hints) to CG GradientStops.
-fn gradient_items_to_stops(
-    items: &[style::values::generics::image::GenericGradientItem<
-        style::values::computed::Color,
-        style::values::computed::LengthPercentage,
-    >],
-) -> Vec<GradientStop> {
-    use style::values::generics::image::GenericGradientItem;
-
-    // First pass: collect stops with known positions
-    let mut raw: Vec<(Option<f32>, CGColor)> = Vec::new();
-    for item in items {
-        match item {
-            GenericGradientItem::SimpleColorStop(color) => {
-                let cg = css_color_to_cg(color).unwrap_or_else(|| CGColor::from_rgba(0, 0, 0, 0));
-                raw.push((None, cg));
-            }
-            GenericGradientItem::ComplexColorStop { color, position } => {
-                let offset = position.to_percentage().map(|p| p.0).or_else(|| {
-                    position.to_length().map(|_l| {
-                        // For absolute lengths in gradients, we can't resolve without
-                        // knowing the gradient line length. Treat as 0.
-                        0.0
-                    })
-                });
-                let cg = css_color_to_cg(color).unwrap_or_else(|| CGColor::from_rgba(0, 0, 0, 0));
-                raw.push((offset, cg));
-            }
-            GenericGradientItem::InterpolationHint(_) => {
-                // Interpolation hints change the midpoint; skip for now.
-            }
-        }
-    }
-
-    if raw.is_empty() {
-        return Vec::new();
-    }
-
-    // Auto-distribute positions for stops without explicit offsets.
-    // First stop defaults to 0.0, last to 1.0.
-    let n = raw.len();
-    if n > 0 {
-        if raw[0].0.is_none() {
-            raw[0].0 = Some(0.0);
-        }
-        if raw[n - 1].0.is_none() {
-            raw[n - 1].0 = Some(1.0);
-        }
-    }
-
-    // Fill gaps: evenly distribute between known positions
-    let mut i = 0;
-    while i < n {
-        if raw[i].0.is_some() {
-            i += 1;
-            continue;
-        }
-        // Find the next stop with a known position
-        let start = i - 1;
-        let mut end = i + 1;
-        while end < n && raw[end].0.is_none() {
-            end += 1;
-        }
-        let start_offset = raw[start].0.unwrap();
-        let end_offset = raw[end].0.unwrap();
-        let count = (end - start) as f32;
-        #[allow(clippy::needless_range_loop)]
-        for j in (start + 1)..end {
-            let t = (j - start) as f32 / count;
-            raw[j].0 = Some(start_offset + t * (end_offset - start_offset));
-        }
-        i = end + 1;
-    }
-
-    raw.into_iter()
-        .map(|(offset, color)| GradientStop {
-            offset: offset.unwrap_or(0.0),
-            color,
-        })
-        .collect()
-}
-
-/// Convert conic-gradient items (color stops with angle/percentage positions) to CG GradientStops.
-fn conic_gradient_items_to_stops(
-    items: &[style::values::generics::image::GenericGradientItem<
-        style::values::computed::Color,
-        style::values::computed::AngleOrPercentage,
-    >],
-) -> Vec<GradientStop> {
-    use style::values::generics::image::GenericGradientItem;
-
-    let mut raw: Vec<(Option<f32>, CGColor)> = Vec::new();
-    for item in items {
-        match item {
-            GenericGradientItem::SimpleColorStop(color) => {
-                let cg = css_color_to_cg(color).unwrap_or_else(|| CGColor::from_rgba(0, 0, 0, 0));
-                raw.push((None, cg));
-            }
-            GenericGradientItem::ComplexColorStop { color, position } => {
-                // Conic gradient positions are in angles or percentages (0–100% maps to 0–360deg)
-                use style::values::computed::AngleOrPercentage;
-                let offset = match position {
-                    AngleOrPercentage::Percentage(p) => Some(p.0),
-                    AngleOrPercentage::Angle(a) => Some(a.degrees() / 360.0),
-                };
-                let cg = css_color_to_cg(color).unwrap_or_else(|| CGColor::from_rgba(0, 0, 0, 0));
-                raw.push((offset, cg));
-            }
-            GenericGradientItem::InterpolationHint(_) => {}
-        }
-    }
-
-    if raw.is_empty() {
-        return Vec::new();
-    }
-
-    // Auto-distribute (same logic as linear/radial)
-    let n = raw.len();
-    if raw[0].0.is_none() {
-        raw[0].0 = Some(0.0);
-    }
-    if raw[n - 1].0.is_none() {
-        raw[n - 1].0 = Some(1.0);
-    }
-
-    let mut i = 0;
-    while i < n {
-        if raw[i].0.is_some() {
-            i += 1;
-            continue;
-        }
-        let start = i - 1;
-        let mut end = i + 1;
-        while end < n && raw[end].0.is_none() {
-            end += 1;
-        }
-        let start_offset = raw[start].0.unwrap();
-        let end_offset = raw[end].0.unwrap();
-        let count = (end - start) as f32;
-        #[allow(clippy::needless_range_loop)]
-        for j in (start + 1)..end {
-            let t = (j - start) as f32 / count;
-            raw[j].0 = Some(start_offset + t * (end_offset - start_offset));
-        }
-        i = end + 1;
-    }
-
-    raw.into_iter()
-        .map(|(offset, color)| GradientStop {
-            offset: offset.unwrap_or(0.0),
-            color,
-        })
-        .collect()
-}
-
-/// Convert CSS linear-gradient direction to IR Alignment endpoints.
-///
-/// CSS gradient angles: 0deg = to top, 90deg = to right, 180deg = to bottom.
-/// IR Alignment: (-1,-1) = top-left, (0,0) = center, (1,1) = bottom-right.
-fn line_direction_to_alignment(
-    direction: &style::values::computed::image::LineDirection,
-) -> (Alignment, Alignment) {
-    use style::values::computed::image::LineDirection;
-
-    match direction {
-        LineDirection::Angle(angle) => {
-            // CSS: 0deg = to top, clockwise. Convert to math angle.
-            let rad = angle.radians();
-            let sin = rad.sin();
-            let cos = rad.cos();
-            // CSS gradient line: from (-sin, cos) to (sin, -cos) in NDC
-            let xy1 = Alignment(-sin, cos);
-            let xy2 = Alignment(sin, -cos);
-            (xy1, xy2)
-        }
-        LineDirection::Vertical(v) => match v {
-            VerticalPositionKeyword::Top => (Alignment::BOTTOM_CENTER, Alignment::TOP_CENTER),
-            VerticalPositionKeyword::Bottom => (Alignment::TOP_CENTER, Alignment::BOTTOM_CENTER),
-        },
-        LineDirection::Horizontal(h) => match h {
-            HorizontalPositionKeyword::Left => (Alignment::CENTER_RIGHT, Alignment::CENTER_LEFT),
-            HorizontalPositionKeyword::Right => (Alignment::CENTER_LEFT, Alignment::CENTER_RIGHT),
-        },
-        LineDirection::Corner(h, v) => {
-            let x1 = match h {
-                HorizontalPositionKeyword::Left => 1.0,
-                HorizontalPositionKeyword::Right => -1.0,
-            };
-            let y1 = match v {
-                VerticalPositionKeyword::Top => 1.0,
-                VerticalPositionKeyword::Bottom => -1.0,
-            };
-            (Alignment(x1, y1), Alignment(-x1, -y1))
-        }
-    }
-}
-
-/// Convert CSS border properties to CG strokes, stroke width, and stroke style.
-fn css_border_to_cg(style: &ComputedValues) -> (Paints, StrokeWidth, StrokeStyle) {
-    let border = style.get_border();
-
-    // Stylo stores the unresolved `medium` default (3px) in `BorderSideWidth`
-    // even when `border-style` is `none`/`hidden`. Treat those as zero-width.
-    use style::values::specified::border::BorderStyle as BS;
-    let width_for = |w: &style::values::computed::BorderSideWidth, s: BS| -> f32 {
-        match s {
-            BS::None | BS::Hidden => 0.0,
-            _ => w.0.to_f32_px(),
-        }
-    };
-    let top_w = width_for(&border.border_top_width, border.border_top_style);
-    let right_w = width_for(&border.border_right_width, border.border_right_style);
-    let bottom_w = width_for(&border.border_bottom_width, border.border_bottom_style);
-    let left_w = width_for(&border.border_left_width, border.border_left_style);
-
-    let has_border = top_w > 0.0 || right_w > 0.0 || bottom_w > 0.0 || left_w > 0.0;
-    if !has_border {
-        return (Paints::default(), StrokeWidth::None, StrokeStyle::default());
-    }
-
-    // Use the top border color as the primary stroke color (most common single-color case).
-    // For per-side colors, we use the first visible border side.
-    let border_color = css_color_to_cg(&border.border_top_color)
-        .or_else(|| css_color_to_cg(&border.border_right_color))
-        .or_else(|| css_color_to_cg(&border.border_bottom_color))
-        .or_else(|| css_color_to_cg(&border.border_left_color));
-
-    let strokes = match border_color {
-        Some(color) => Paints::new([Paint::Solid(SolidPaint {
-            color,
-            blend_mode: BlendMode::default(),
-            active: true,
-        })]),
-        None => return (Paints::default(), StrokeWidth::None, StrokeStyle::default()),
-    };
-
-    // Stroke width: use rectangular if sides differ, uniform otherwise
-    let stroke_width = if top_w == right_w && right_w == bottom_w && bottom_w == left_w {
-        StrokeWidth::Uniform(top_w)
-    } else {
-        StrokeWidth::Rectangular(RectangularStrokeWidth {
-            stroke_top_width: top_w,
-            stroke_right_width: right_w,
-            stroke_bottom_width: bottom_w,
-            stroke_left_width: left_w,
-        })
-    };
-
-    // Stroke style: map border-style to dash array
-    let top_style = border.border_top_style;
-    let dash_array = match top_style {
-        BorderStyle::Dashed => Some(StrokeDashArray(vec![4.0, 4.0])),
-        BorderStyle::Dotted => Some(StrokeDashArray(vec![1.0, 1.0])),
-        _ => None,
-    };
-
-    let stroke_style = StrokeStyle {
-        stroke_align: StrokeAlign::Inside,
-        stroke_cap: StrokeCap::Butt,
-        stroke_join: StrokeJoin::Miter,
-        stroke_miter_limit: StrokeMiterLimit::default(),
-        stroke_dash_array: dash_array,
-    };
-
-    (strokes, stroke_width, stroke_style)
-}
-
-/// Convert CSS effects (box-shadow, filter, backdrop-filter) to CG LayerEffects.
-fn css_effects_to_cg(style: &ComputedValues) -> LayerEffects {
-    use style::values::generics::effects::Filter;
-
-    let mut shadows = Vec::new();
-    let mut blur = None;
-    let mut backdrop_blur = None;
-
-    // box-shadow → shadows
-    let shadow_list = style.clone_box_shadow();
-    for shadow in shadow_list.0.iter() {
-        let color =
-            css_color_to_cg(&shadow.base.color).unwrap_or_else(|| CGColor::from_rgba(0, 0, 0, 255));
-
-        let fe = FeShadow {
-            dx: shadow.base.horizontal.px(),
-            dy: shadow.base.vertical.px(),
-            blur: shadow.base.blur.px(),
-            spread: shadow.spread.px(),
-            color,
-            active: true,
-        };
-
-        if shadow.inset {
-            shadows.push(FilterShadowEffect::InnerShadow(fe));
-        } else {
-            shadows.push(FilterShadowEffect::DropShadow(fe));
-        }
-    }
-
-    // filter → blur + drop-shadow
-    let filter_list = style.clone_filter();
-    for f in filter_list.0.iter() {
-        match f {
-            Filter::Blur(len) => {
-                blur = Some(FeLayerBlur::from(len.px()));
-            }
-            Filter::DropShadow(s) => {
-                let color =
-                    css_color_to_cg(&s.color).unwrap_or_else(|| CGColor::from_rgba(0, 0, 0, 255));
-                shadows.push(FilterShadowEffect::DropShadow(FeShadow {
-                    dx: s.horizontal.px(),
-                    dy: s.vertical.px(),
-                    blur: s.blur.px(),
-                    spread: 0.0,
-                    color,
-                    active: true,
-                }));
-            }
-            _ => {}
-        }
-    }
-
-    // backdrop-filter → backdrop_blur
-    let bd_list = style.clone_backdrop_filter();
-    for f in bd_list.0.iter() {
-        if let Filter::Blur(len) = f {
-            backdrop_blur = Some(FeBackdropBlur::from(len.px()));
-        }
-    }
-
-    LayerEffects {
-        blur,
-        backdrop_blur,
-        shadows,
-        glass: None,
-        noises: Vec::new(),
-    }
-}
-
-/// Convert CSS text-shadow to CG LayerEffects (for text nodes).
-fn css_text_shadow_to_effects(style: &ComputedValues) -> LayerEffects {
-    let ts_list = style.clone_text_shadow();
-    let mut shadows = Vec::new();
-
-    for s in ts_list.0.iter() {
-        let color = css_color_to_cg(&s.color).unwrap_or_else(|| CGColor::from_rgba(0, 0, 0, 255));
-
-        shadows.push(FilterShadowEffect::DropShadow(FeShadow {
-            dx: s.horizontal.px(),
-            dy: s.vertical.px(),
-            blur: s.blur.px(),
-            spread: 0.0,
-            color,
-            active: true,
-        }));
-    }
-
-    // Text nodes also support filter/backdrop-filter
-    let mut base = css_effects_to_cg(style);
-    base.shadows.extend(shadows);
-    base
-}
-
-/// Convert CSS mix-blend-mode to CG LayerBlendMode.
-fn css_blend_mode_to_cg(style: &ComputedValues) -> LayerBlendMode {
-    use style::computed_values::mix_blend_mode::T as MixBlendMode;
-
-    match style.clone_mix_blend_mode() {
-        MixBlendMode::Normal => LayerBlendMode::PassThrough,
-        MixBlendMode::Multiply => LayerBlendMode::Blend(BlendMode::Multiply),
-        MixBlendMode::Screen => LayerBlendMode::Blend(BlendMode::Screen),
-        MixBlendMode::Overlay => LayerBlendMode::Blend(BlendMode::Overlay),
-        MixBlendMode::Darken => LayerBlendMode::Blend(BlendMode::Darken),
-        MixBlendMode::Lighten => LayerBlendMode::Blend(BlendMode::Lighten),
-        MixBlendMode::ColorDodge => LayerBlendMode::Blend(BlendMode::ColorDodge),
-        MixBlendMode::ColorBurn => LayerBlendMode::Blend(BlendMode::ColorBurn),
-        MixBlendMode::HardLight => LayerBlendMode::Blend(BlendMode::HardLight),
-        MixBlendMode::SoftLight => LayerBlendMode::Blend(BlendMode::SoftLight),
-        MixBlendMode::Difference => LayerBlendMode::Blend(BlendMode::Difference),
-        MixBlendMode::Exclusion => LayerBlendMode::Blend(BlendMode::Exclusion),
-        MixBlendMode::Hue => LayerBlendMode::Blend(BlendMode::Hue),
-        MixBlendMode::Saturation => LayerBlendMode::Blend(BlendMode::Saturation),
-        MixBlendMode::Color => LayerBlendMode::Blend(BlendMode::Color),
-        MixBlendMode::Luminosity => LayerBlendMode::Blend(BlendMode::Luminosity),
-        _ => LayerBlendMode::PassThrough,
-    }
-}
-
-/// Convert CSS text-decoration-style to CG TextDecorationStyle.
-fn css_text_decoration_style_to_cg(style: &ComputedValues) -> Option<TextDecorationStyle> {
-    use style::computed_values::text_decoration_style::T as TDS;
-
-    match style.clone_text_decoration_style() {
-        TDS::Solid => Some(TextDecorationStyle::Solid),
-        TDS::Double => Some(TextDecorationStyle::Double),
-        TDS::Dotted => Some(TextDecorationStyle::Dotted),
-        TDS::Dashed => Some(TextDecorationStyle::Dashed),
-        TDS::Wavy => Some(TextDecorationStyle::Wavy),
-        _ => None,
-    }
-}
-
-/// Map CSS width/height/min/max dimensions to LayoutDimensionStyle.
-fn css_dimensions_to_cg(style: &ComputedValues, dims: &mut LayoutDimensionStyle) {
-    let pos = style.get_position();
-
-    // width
-    match &pos.width {
-        GenericSize::LengthPercentage(lp) => {
-            if let Some(len) = lp.0.to_length() {
-                dims.layout_target_width = Some(len.px());
-            }
-        }
-        GenericSize::Auto => {
-            dims.layout_target_width = None;
-        }
-        _ => {}
-    }
-
-    // height
-    match &pos.height {
-        GenericSize::LengthPercentage(lp) => {
-            if let Some(len) = lp.0.to_length() {
-                dims.layout_target_height = Some(len.px());
-            }
-        }
-        GenericSize::Auto => {
-            dims.layout_target_height = None;
-        }
-        _ => {}
-    }
-
-    // min-width
-    if let GenericSize::LengthPercentage(lp) = &pos.min_width {
-        if let Some(len) = lp.0.to_length() {
-            let px = len.px();
-            if px > 0.0 {
-                dims.layout_min_width = Some(px);
-            }
-        }
-    }
-
-    // min-height
-    if let GenericSize::LengthPercentage(lp) = &pos.min_height {
-        if let Some(len) = lp.0.to_length() {
-            let px = len.px();
-            if px > 0.0 {
-                dims.layout_min_height = Some(px);
-            }
-        }
-    }
-
-    // max-width
-    if let GenericMaxSize::LengthPercentage(lp) = &pos.max_width {
-        if let Some(len) = lp.0.to_length() {
-            dims.layout_max_width = Some(len.px());
-        }
-    }
-
-    // max-height
-    if let GenericMaxSize::LengthPercentage(lp) = &pos.max_height {
-        if let Some(len) = lp.0.to_length() {
-            dims.layout_max_height = Some(len.px());
-        }
-    }
 }
 
 #[cfg(test)]

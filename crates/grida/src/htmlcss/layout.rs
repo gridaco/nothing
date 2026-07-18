@@ -459,9 +459,15 @@ fn element_to_taffy_style(el: &StyledElement) -> taffy::Style {
             types::FlexWrap::Wrap => taffy::FlexWrap::Wrap,
             types::FlexWrap::WrapReverse => taffy::FlexWrap::WrapReverse,
         },
-        align_items: Some(map_align_items(el.align_items)),
+        // `None` = authored `normal` (the CSS default) — unwrap to
+        // today's effective defaults so layout behavior is unchanged.
+        align_items: Some(map_align_items(
+            el.align_items.unwrap_or(types::AlignItems::Stretch),
+        )),
         justify_items: Some(map_align_items(el.justify_items)),
-        justify_content: Some(map_justify_content(el.justify_content)),
+        justify_content: Some(map_justify_content(
+            el.justify_content.unwrap_or(types::JustifyContent::Start),
+        )),
         align_content: el.align_content.map(map_justify_content),
         gap: taffy::Size {
             width: LengthPercentage::length(el.column_gap),
@@ -641,6 +647,9 @@ fn map_justify_content(j: types::JustifyContent) -> taffy::JustifyContent {
         types::JustifyContent::SpaceBetween => taffy::JustifyContent::SpaceBetween,
         types::JustifyContent::SpaceAround => taffy::JustifyContent::SpaceAround,
         types::JustifyContent::SpaceEvenly => taffy::JustifyContent::SpaceEvenly,
+        // Taffy has no justify-content:stretch mapping yet — fall back
+        // to Start, today's effective value for unrecognized keywords.
+        types::JustifyContent::Stretch => taffy::JustifyContent::FlexStart,
     }
 }
 

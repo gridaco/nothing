@@ -34,6 +34,11 @@ pub struct StyledElement {
 
     // ── Display (StyleBoxData) ──
     pub display: Display,
+    /// Whether the outer display type is `inline`. The `(outside, inside)`
+    /// → [`Display`] collapse loses outer-inline for e.g. `inline flex`
+    /// (mapped to `Flex`); this preserves it for consumers that need the
+    /// outer type (the HTML importer). htmlcss layout does not read it.
+    pub inline_outside: bool,
     pub visibility: Visibility,
     pub box_sizing: BoxSizing,
 
@@ -86,6 +91,9 @@ pub struct StyledElement {
     /// CSS `filter` chain, applied in order to the element and its
     /// descendants via a paint layer wrapped in a Skia `ImageFilter`.
     pub filter: Vec<FilterFunction>,
+    /// CSS `backdrop-filter` chain — same value grammar as `filter`.
+    /// htmlcss paint does not consume it; carried for the HTML importer.
+    pub backdrop_filter: Vec<FilterFunction>,
     /// CSS `clip-path` — clips the element and its descendants to a
     /// basic shape. Evaluated at paint time against the element's
     /// border box.
@@ -108,8 +116,14 @@ pub struct StyledElement {
     // ── Flex container (rare non-inherited) ──
     pub flex_direction: FlexDirection,
     pub flex_wrap: FlexWrap,
-    pub align_items: AlignItems,
-    pub justify_content: JustifyContent,
+    /// `None` means the CSS default (`normal`, which behaves like
+    /// `stretch`) — preserved so consumers can tell authored-vs-default.
+    /// htmlcss layout unwraps to `Stretch` at the point of use.
+    pub align_items: Option<AlignItems>,
+    /// `None` means the CSS default (`normal`) — preserved so consumers
+    /// can tell authored-vs-default. htmlcss layout unwraps to `Start`
+    /// at the point of use.
+    pub justify_content: Option<JustifyContent>,
     /// Per-cell alignment of grid items along the inline axis.
     /// Ignored by flex containers.
     pub justify_items: AlignItems,
@@ -323,6 +337,13 @@ pub struct CssEdgeInsets {
 pub struct BorderSide {
     pub width: f32,
     pub color: CGColor,
+    /// `true` when the authored side color was `currentcolor` (the CSS
+    /// initial value — every side whose color is never authored carries
+    /// it). `color` holds the resolved value (the element's computed
+    /// `color`), which is what htmlcss paint consumes. Preserved for
+    /// the HTML importer, whose stroke-color fallback skips
+    /// `currentcolor` sides — pinned by its golden corpus.
+    pub color_is_currentcolor: bool,
     pub style: BorderStyle,
 }
 
@@ -331,6 +352,7 @@ impl Default for BorderSide {
         Self {
             width: 0.0,
             color: CGColor::BLACK,
+            color_is_currentcolor: false,
             style: BorderStyle::None,
         }
     }
@@ -848,9 +870,33 @@ pub struct GradientInterpolation {
 pub struct LinearGradient {
     /// Angle in CSS degrees (0 = to top, 90 = to right, 180 = to bottom).
     pub angle_deg: f32,
+    /// Set when the authored direction was a `to <side-or-corner>`
+    /// keyword rather than an angle. `angle_deg` always carries the
+    /// equivalent angle for paint; the keyword preserves the exact
+    /// endpoint identity (corner directions have no exact angle, and
+    /// float trig loses axis exactness) for consumers that map
+    /// endpoints directly — the HTML importer. htmlcss paint consumes
+    /// `angle_deg` only.
+    pub keyword: Option<GradientKeyword>,
     pub stops: Vec<GradientStop>,
     pub repeating: bool,
     pub interpolation: GradientInterpolation,
+}
+
+/// The `to <side-or-corner>` direction of a linear gradient — mirror of
+/// Stylo's `LineDirection` keyword cases (`Vertical`, `Horizontal`,
+/// `Corner`); angle directions have no keyword.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GradientKeyword {
+    ToTop,
+    ToBottom,
+    ToLeft,
+    ToRight,
+    /// `to <left|right> <top|bottom>` — the target corner.
+    Corner {
+        right: bool,
+        bottom: bool,
+    },
 }
 
 /// CSS `radial-gradient()` / `repeating-radial-gradient()`.
@@ -931,6 +977,13 @@ pub struct GradientStop {
     pub offset: f32,
     pub offset_is_px: bool,
     pub color: CGColor,
+    /// `true` when the authored stop color was `currentcolor` — `color`
+    /// carries the value it resolved to (the element's computed `color`)
+    /// per CSS Color 3 §4.4, which is what htmlcss paint consumes.
+    /// Preserved for consumers that need the unresolved identity: the
+    /// HTML importer folds `currentcolor` stops to transparent black
+    /// today, and its output is pinned by the import snapshot corpus.
+    pub color_is_currentcolor: bool,
 }
 
 // ─── Text / Font Sub-types (StyleInheritedData) ──────────────────────
@@ -944,10 +997,20 @@ pub struct FontProps {
     pub weight: FontWeight,
     pub italic: bool,
     pub families: Vec<String>,
+    /// Identity of the first family when it is a generic (`sans-serif`,
+    /// `monospace`, …). `families` collapses every generic to
+    /// `"system-ui"` for htmlcss font resolution; the HTML importer
+    /// needs the generic itself.
+    pub first_generic: Option<GenericFamily>,
     pub line_height: LineHeight,
     pub letter_spacing: f32,
     pub word_spacing: f32,
     pub text_align: TextAlign,
+    /// The authored `text-align` keyword before `start`/`end` are
+    /// resolved against `direction` — see [`super::types::TextAlignKeyword`].
+    /// `text_align` above is the resolved value htmlcss consumes; the
+    /// HTML importer maps the keyword to a physical alignment itself.
+    pub text_align_keyword: super::types::TextAlignKeyword,
     pub text_transform: TextTransform,
     pub direction: super::types::Direction,
     /// Bitfield: multiple decorations can be active simultaneously.
@@ -976,10 +1039,12 @@ impl Default for FontProps {
             weight: FontWeight::REGULAR400,
             italic: false,
             families: vec!["system-ui".into(), "sans-serif".into()],
+            first_generic: None,
             line_height: LineHeight::Normal,
             letter_spacing: 0.0,
             word_spacing: 0.0,
             text_align: TextAlign::Left,
+            text_align_keyword: super::types::TextAlignKeyword::Start,
             text_transform: TextTransform::None,
             direction: super::types::Direction::Ltr,
             decoration_underline: false,
@@ -1137,6 +1202,7 @@ impl Default for StyledElement {
         Self {
             tag: String::new(),
             display: Display::Block,
+            inline_outside: false,
             visibility: Visibility::Visible,
             box_sizing: BoxSizing::default(),
             width: CssLength::Auto,
@@ -1162,6 +1228,7 @@ impl Default for StyledElement {
             overflow_clip_margin: 0.0,
             box_shadow: Vec::new(),
             filter: Vec::new(),
+            backdrop_filter: Vec::new(),
             clip_path: ClipPath::None,
             transform: Vec::new(),
             transform_origin: TransformOrigin::default(),
@@ -1172,8 +1239,8 @@ impl Default for StyledElement {
             clear: Clear::None,
             flex_direction: FlexDirection::default(),
             flex_wrap: FlexWrap::default(),
-            align_items: AlignItems::default(),
-            justify_content: JustifyContent::default(),
+            align_items: None,
+            justify_content: None,
             justify_items: AlignItems::default(),
             align_content: None,
             row_gap: 0.0,
