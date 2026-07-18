@@ -50,8 +50,8 @@ they produce the current repo structure:
    don't nest.
 2. **Flatten with prefixed siblings, or collapse into one file.**
    Before reaching for a subdirectory, ask whether the new thing is
-   a sibling variant of an existing file (`painter.rs` +
-   `painter_debug_node.rs` + `painter_geometry.rs`) or whether it
+   a sibling variant of an existing file (`effects.rs` +
+   `effects_noise.rs`, `image.rs` + `image_filters.rs`) or whether it
    collapses into the existing file. Both preserve the parent's
    scope; a new subdirectory quietly widens it.
 3. **If it resists flattening, it is a new module.** The thing
