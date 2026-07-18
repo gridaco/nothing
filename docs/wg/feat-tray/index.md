@@ -174,5 +174,5 @@ No. If you need layout, use a Container. The entire value of a Tray is that it d
 ## Related
 
 - [WG: Layout Model](../feat-layout) -- layout system that Tray explicitly opts out of
-- [WG: Figma Import](../feat-fig) -- SECTION import/export pipeline
+- [WG: Figma Import](https://github.com/gridaco/grida/tree/main/docs/wg/feat-fig) -- SECTION import/export pipeline
 - [WG: Schema Naming Conventions](../feat-schema/naming-conventions.md) -- property naming standards

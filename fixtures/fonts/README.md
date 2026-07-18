@@ -91,5 +91,5 @@ The following fonts are embedded with `include_bytes!` and used only for testing
 
 - [Grida Fonts](https://fonts.grida.co/)
 - [Grida Fonts Repo](https://github.com/gridaco/fonts)
-- [Italic Fonts](../../docs/reference/italic-fonts.md)
+- [Italic Fonts](https://github.com/gridaco/grida/blob/main/docs/reference/italic-fonts.md)
 - [AppleColorEmoji (subset for testing)](../apple-emoji-linux)

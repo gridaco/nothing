@@ -65,7 +65,7 @@ tags:
   - [x] text-decoration-thickness (only supports %)
   - [ ] text-decoration-skip-ink - https://github.com/rust-skia/rust-skia/issues/1187
   - [ ] known limitations https://github.com/gridaco/grida/issues/416
-- [x] [Variable axes](https://github.com/gridaco/grida/blob/canary/docs/reference/open-type-variable-axes.md)
+- [x] [Variable axes](https://github.com/gridaco/grida/blob/main/docs/reference/open-type-variable-axes.md)
   - [x] `wght`
   - [x] `wdth`
   - [x] `slnt`
@@ -84,7 +84,7 @@ tags:
   - [x] `YTAS`
   - [x] `YTDE`
   - [x] `YTFI`
-- [x] [open type featuers](https://github.com/gridaco/grida/blob/canary/docs/reference/open-type-features.md)
+- [x] [open type featuers](https://github.com/gridaco/grida/blob/main/docs/reference/open-type-features.md)
 
 **Text Editor**
 

@@ -1,0 +1,24 @@
+// https://oxc.rs/docs/guide/usage/formatter/config-file-reference.html
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 80,
+  "trailingComma": "es5",
+  "experimentalSortPackageJson": {
+    "sortScripts": true,
+  },
+  "ignorePatterns": [
+    "AGENTS.md",
+    ".agents/",
+    ".claude/",
+    "docs/",
+    "fixtures/",
+    "target/",
+    "third_party/",
+    // Generated Emscripten glue and binaries.
+    "crates/grida-canvas-wasm/lib/bin/",
+    "crates/grida-canvas-wasm/dist/",
+    // Generated Fumadocs and Next.js output.
+    "www/.source/",
+    "www/.next/",
+  ],
+}

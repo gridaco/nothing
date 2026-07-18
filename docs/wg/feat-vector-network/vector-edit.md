@@ -207,7 +207,7 @@ Inside the mode, Esc steps down exactly one rung per press:
 Outside the mode the ladder is tool → deselect. Delete, arrows
 (nudge), and the tool keys resolve against the mode first — the
 same key, different meaning, arbitrated as specified in
-[routing](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/routing.md).
+[routing](../../../crates/grida_editor/docs/routing.md).
 
 ## Snapping
 

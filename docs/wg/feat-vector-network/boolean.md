@@ -85,7 +85,7 @@ Applying a boolean command to a selection:
   original (wrapper id aside).
 - **BOOL-5** Live evaluation: mutating a child's geometry changes
   the rendered result within the same reflect cycle
-  ([frame](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/frame.md)); no stale result is ever painted.
+  ([frame](../../../crates/grida_editor/docs/frame.md)); no stale result is ever painted.
 - **BOOL-6** Flatten equivalence: the flattened vector renders
   pixel-identical to the boolean's result; undo restores the boolean
   intact.

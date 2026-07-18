@@ -1,0 +1,64 @@
+name: node
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - ".github/workflows/node.yml"
+      - ".nvmrc"
+      - ".oxfmtrc.jsonc"
+      - ".oxlintrc.jsonc"
+      - "docs/wg/**"
+      - "package.json"
+      - "packages/grida-reftest/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "www/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm fmt:check
+
+      - name: Lint
+        run: pnpm exec oxlint --deny-warnings
+
+      - name: Type-check website
+        run: pnpm --filter www types:check
+
+      - name: Build website
+        run: pnpm --filter www build
+
+      - name: Type-check reftest
+        run: pnpm --filter @grida/reftest typecheck
+
+      - name: Build reftest
+        run: pnpm --filter @grida/reftest build
+
+      - name: Test reftest
+        run: pnpm --filter @grida/reftest test

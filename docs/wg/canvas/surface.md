@@ -17,7 +17,7 @@ router](./ux-surface/selection-intent.md). This document
 binds those into the system and fixes the scope the reference editor
 must implement. The machine that implements this concept — the pure,
 intent-emitting chrome-and-interaction state machine — is specified
-in [hud.md](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/hud.md).
+in [hud.md](../../../crates/grida_editor/docs/hud.md).
 
 ## The two-tier hit model
 
@@ -31,20 +31,20 @@ takes the content rung: panel → chrome → **tool** → content.
 
 ## Selection authority
 
-The **editor owns selection** ([editor.md](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/editor.md)); the surface
+The **editor owns selection** ([editor.md](../../../crates/grida_editor/docs/editor.md)); the surface
 holds only a **read-only mirror** the host pushes. Selection changes
 flow one way: the surface emits selection _intents_ — `select`,
 `deselect_all`, and the marquee's per-move rect — and the host commits
 them into the editor **within the same dispatched event**; the host
 then pushes the editor's selection back into the mirror at the same
 tail where it reconciles everything else (panels, damage —
-[frame.md](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/frame.md)). No path is special-cased: click, shift-click,
+[frame.md](../../../crates/grida_editor/docs/frame.md)). No path is special-cased: click, shift-click,
 every pointer-move of a marquee, undo/redo context restore, panel
 clicks, paste, and tool insertion all converge on the same
 intents-up / mirror-down loop. A surface that owns its own selection
 store — reconciled by adoption or by per-event "selection changed"
 flags — re-creates the split-brain failure (chrome shows a selection
-that delete and the inspector cannot see); [hud.md](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/hud.md) HUD-3
+that delete and the inspector cannot see); [hud.md](../../../crates/grida_editor/docs/hud.md) HUD-3
 forbids it structurally.
 
 ## Gestures
@@ -85,7 +85,7 @@ Chrome is derived from editor state every frame it changes — chrome
 holds no authoritative state of its own. The HUD machine builds it as
 data (a draw list plus an independent hit registry — the two-backend
 rule) and the host paints; text-edit caret/selection remain
-engine-session chrome ([hud.md](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/hud.md)).
+engine-session chrome ([hud.md](../../../crates/grida_editor/docs/hud.md)).
 
 ## Snapping
 
@@ -127,4 +127,4 @@ is [measurement.md](./measurement.md); the pixel grid render is
   rendered selection agree. Everything that reads selection (delete,
   the inspector, history context) sees a marquee's result without any
   subsequent click. Mechanism: intents up, mirror down, same event
-  ([hud.md](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/hud.md) HUD-3).
+  ([hud.md](../../../crates/grida_editor/docs/hud.md) HUD-3).

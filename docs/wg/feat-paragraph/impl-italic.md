@@ -55,7 +55,7 @@ When dealing with italic styles in font families, there are four common scenario
 
 ### Scenarios in Font Families
 
-**See [Italic Fonts](../../reference/italic-fonts.md)** for comprehensive examples with real-world test cases from the Google Fonts registry.
+**See [Italic Fonts](https://github.com/gridaco/grida/blob/main/docs/reference/italic-fonts.md)** for comprehensive examples with real-world test cases from the Google Fonts registry.
 
 1. **One family, one static (non-variable) font**  
    In this simplest case, the font family consists of a single static font file without any variable axes. This includes both non-italic fonts (like Allerta) and rare italic-only fonts (like Molle). If the font does not include an italic variant, fake italic might be considered if explicitly requested.
@@ -505,4 +505,4 @@ Given the complexity of implementing the full italic detection pipeline, we prop
 
 ## See also
 
-- [Italic (and Oblique Model Design)](../../reference/italic.md)
+- [Italic (and Oblique Model Design)](https://github.com/gridaco/grida/blob/main/docs/reference/italic.md)

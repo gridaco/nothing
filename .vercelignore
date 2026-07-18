@@ -1,0 +1,10 @@
+# This Vercel project builds from www/ but consumes the root pnpm workspace and
+# docs/wg. Keep the Rust workspace and fixture corpora out of CLI deployments.
+/*
+
+!.nvmrc
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!docs
+!www

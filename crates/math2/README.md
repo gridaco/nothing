@@ -2,7 +2,7 @@
 
 `math2` is a collection of lightweight geometry and math utilities used across the Grida canvas engine. It includes helpers for working with vectors, rectangles, affine transforms, rasterization and many other 2D operations.
 
-This crate is a direct port of the original TypeScript [`grida-cmath`](../../packages/grida-cmath) library. The APIs mostly follow the functional style of the source project.
+This crate is a direct port of the original TypeScript [`grida-cmath`](https://github.com/gridaco/grida/tree/main/packages/grida-cmath) library. The APIs mostly follow the functional style of the source project.
 
 ## Features
 

@@ -11,8 +11,8 @@ format: md
 The arrow keys are the editor's precision instrument: a keyboard
 delta applied to whatever the current state says the arrows mean.
 This document specifies the whole family. The masks that keep the
-chords unambiguous are in the [keybindings](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/keybindings.md) sheet;
-the state arbitration is [routing](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/routing.md); the quantization
+chords unambiguous are in the [keybindings](../../../crates/grida_editor/docs/keybindings.md) sheet;
+the state arbitration is [routing](../../../crates/grida_editor/docs/routing.md); the quantization
 behavior nudge shares with gestures is [snap](./snap.md).
 
 ## Translate nudge — Arrow / Shift+Arrow
@@ -29,7 +29,7 @@ configuration value, not a second command).
   one history step; one undo restores the pre-burst position. The
   mechanism is framing, not merging — the gesture frame stays open
   across the burst and closes on a dwell boundary; the stack never
-  merges committed entries ([history](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/history.md), HISB-3).
+  merges committed entries ([history](../../../crates/grida_editor/docs/history.md), HISB-3).
 - Locked nodes don't nudge; a mixed selection nudges its unlocked
   members.
 
@@ -83,7 +83,7 @@ either firing the same command — **Mod+Arrow** (the one-hand chord,
 Cmd on macOS) and **Ctrl+Alt+Arrow** — so a platform that reserves one
 (Cmd+Arrow for caret motion, Ctrl+Alt+Arrow for screen rotate) leaves
 the other free. Neither is move: move nudge requires Mod _and_ Ctrl
-absent ([keybindings](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/keybindings.md), KEY-2). Semantics:
+absent ([keybindings](../../../crates/grida_editor/docs/keybindings.md), KEY-2). Semantics:
 
 - The **anchor is the node's origin** (top-left): position is fixed,
   the far edge moves — the keyboard twin of dragging the SE handle.

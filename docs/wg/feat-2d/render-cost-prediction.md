@@ -309,7 +309,7 @@ Chromium's `cc/` compositor collects these metrics:
 > Their multi-threaded raster architecture can tolerate stale tiles in
 > ways our single-threaded pipeline cannot.
 
-Local source: `/Users/softmarshmallow/Documents/Github/chromium/cc/`
+Source tree: [Chromium `cc/`](https://chromium.googlesource.com/chromium/src/+/main/cc/)
 
 ---
 

@@ -14,8 +14,8 @@ tags:
 
 A `.canvas` is a **portable directory** that holds one or more standalone documents
 (SVG by default) plus a single manifest that describes how to interpret them. It is
-a _container_ format, not a scene format — it sits a layer above [`.grida`](./grida) and
-[SVG](./svg): a `.grida` file is one scene's IR; a `.canvas` is a folder of standalone
+a _container_ format, not a scene format — it sits a layer above [`.grida`](./grida.md) and
+[SVG](./svg.md): a `.grida` file is one scene's IR; a `.canvas` is a folder of standalone
 documents with an order and an optional 2D placement.
 
 The manifest describes the bundle along **two orthogonal axes**: an **editor**
@@ -279,11 +279,11 @@ These are SHOULDs, offered so the format ages well — not gates:
 
 ## Relationship to other Grida formats
 
-| Format              | Layer         | What it is                                                                                |
-| ------------------- | ------------- | ----------------------------------------------------------------------------------------- |
-| [SVG](./svg)        | document      | A single standalone graphic. The default document content (`files: ["*.svg"]`).           |
-| [`.grida`](./grida) | scene IR      | One scene's node graph (FlatBuffers). A single document's internal representation.        |
-| **`.canvas`**       | **container** | A portable _directory_ of standalone documents + a manifest (order + optional 2D layout). |
+| Format                 | Layer         | What it is                                                                                |
+| ---------------------- | ------------- | ----------------------------------------------------------------------------------------- |
+| [SVG](./svg.md)        | document      | A single standalone graphic. The default document content (`files: ["*.svg"]`).           |
+| [`.grida`](./grida.md) | scene IR      | One scene's node graph (FlatBuffers). A single document's internal representation.        |
+| **`.canvas`**          | **container** | A portable _directory_ of standalone documents + a manifest (order + optional 2D layout). |
 
 `.canvas` does not replace or wrap `.grida`; it is a higher layer. A `.canvas` references
 documents by relative path and stays agnostic about each document's internal format — V1

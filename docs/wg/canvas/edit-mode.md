@@ -10,7 +10,7 @@ format: md
 
 The editor has one **edit-mode slot**: at most one nested editing
 context is active, it owns the canvas's meaning while it lives —
-chrome, tools, and keys re-resolve against it ([routing](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/routing.md)
+chrome, tools, and keys re-resolve against it ([routing](../../../crates/grida_editor/docs/routing.md)
 capture layer) — and Enter is the front door while Escape is the way
 out. The production editor models this slot as a flat union of six
 "content edit modes." This document specifies the slot's mechanics,
@@ -89,7 +89,7 @@ them "content edit modes" is the squat this review removes. They are
 
 - Subject: `(node, fill|stroke, paint index)` — a property address.
 - Entered from the **paint's own control**: expanding a gradient or
-  image paint in the [properties panel](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/properties.md) opens the
+  image paint in the [properties panel](../../../crates/grida_editor/docs/properties.md) opens the
   session; the panel control and the canvas chrome are two views of
   one state. One canvas entry exists by user-intent dispatch:
   double-clicking a shape whose fill is an image means "edit the
@@ -148,7 +148,7 @@ mode reverts mode-scoped tools to cursor.
 ## Escape, end to end
 
 One press, one rung, across the whole system
-([routing](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/routing.md) ROUTE-5):
+([routing](../../../crates/grida_editor/docs/routing.md) ROUTE-5):
 
 ```
 width facet      → geometry facet

@@ -1,3 +1,13 @@
+---
+title: Anti-Aliasing Cost at Sub-Pixel Scale
+description: Findings from measuring anti-aliasing costs for sub-pixel geometry.
+tags:
+  - internal
+  - wg
+  - canvas
+format: md
+---
+
 # Anti-Aliasing Cost at Sub-Pixel Scale
 
 **Date:** 2026-04-07

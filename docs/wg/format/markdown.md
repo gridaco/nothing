@@ -45,7 +45,7 @@ The `MarkdownNode` renders GFM (GitHub Flavored Markdown) directly to a Skia Pic
 | _Italic_          | ✅     | Font slant Italic                             |
 | ~~Strikethrough~~ | ✅     | LINE_THROUGH decoration                       |
 | `Inline code`     | ✅     | Monospace font, 0.85x font size               |
-| [Link](url)       | ✅     | Blue color + underline decoration             |
+| [Link](https://example.com) | ✅     | Blue color + underline decoration             |
 | Inline math `$`   | ⚠️     | Rendered as monospace italic text (raw LaTeX) |
 | Soft break        | ✅     | Collapsed to space                            |
 | Hard break        | ✅     | Newline character                             |
