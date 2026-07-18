@@ -71,5 +71,5 @@ Chrome baseline is baked) `chrome.png`, classifying by upstream
 - The crate is `publish = false` and intended solely for local development workflows and devtools.
 - All winit/glutin integration now lives here; the `grida` crate remains platform-agnostic.
 - Expect more CLI commands/subcommands over time for dev inspectors, perf capture, etc.—this crate is the staging ground for those Rust-only utilities.
-- Pass a file path or URL as an argument to load it on startup; or run with no arguments and drop files onto the window. Supported: `.grida`, `.grida1`, `.svg`, `.png`, `.jpg/.jpeg`, `.webp`. Multi-scene files support PageUp/PageDown.
+- Pass a file path or URL as an argument to load it on startup; or run with no arguments and drop files onto the window. Supported: `.grida`, `.grida1`, `.svg`, `.html/.htm`, `.md/.markdown`, `.png`, `.jpg/.jpeg`, `.webp`. Multi-scene files support PageUp/PageDown.
 - Do **not** launch the windowed demo yourself. It spins up a native winit event loop that agents cannot stop, inspect, or debug reliably. Use the forthcoming debug/tooling protocols instead once they land.

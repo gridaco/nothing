@@ -38,8 +38,9 @@ cargo fmt --all
 # WASM build + npm package (crate-local justfile; see its PUBLISHING.md)
 cd crates/grida-canvas-wasm && just build
 
-# FlatBuffers codegen (pinned flatc; CI asserts freshness)
-python3 bin/activate-flatc -- --rust -o crates/grida/src/io/generated format/grida.fbs
+# FlatBuffers codegen (pinned flatc; CI asserts freshness of grida.rs)
+python3 bin/activate-flatc -- --rust -o crates/grida/src/io/generated format/grida.fbs \
+  && mv crates/grida/src/io/generated/grida_generated.rs crates/grida/src/io/generated/grida.rs
 ```
 
 ## Project Structure

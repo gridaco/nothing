@@ -154,7 +154,7 @@ scores stay within ±0.005 of the Rust tool on committed fixture pairs.
 ```sh
 pnpm --filter @grida/reftest test        # vitest run
 pnpm --filter @grida/reftest typecheck   # tsc --noEmit
-pnpm --filter @grida/reftest build       # emits ./dist via tsc
+pnpm --filter @grida/reftest build       # emits ./dist via tsdown
 ```
 
 The M4 parity test (`__tests__/parity.test.ts`) needs the Rust binary at

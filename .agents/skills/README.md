@@ -81,7 +81,7 @@ A skill should tell the agent what to **do**, not just what to **know**. Prefer:
 - Opening with "Use this when..." to set scope
 - Step-by-step procedures over prose explanations
 - Concrete commands and code snippets over abstract guidance
-- Verification steps at the end (e.g. `cargo test -p grida`, `turbo typecheck`)
+- Verification steps at the end (e.g. `cargo test -p grida`, `cargo fmt --all -- --check`)
 - Links to related skills when they exist
 
 ### Complement, Don't Repeat

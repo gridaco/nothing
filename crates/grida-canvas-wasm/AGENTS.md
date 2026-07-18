@@ -25,7 +25,7 @@ We keep a **single package** that works in both browser and Node by ensuring the
 ⚠️ Notes:
 
 - Simply setting `tsdown.deps.neverBundle` to `["node:fs", "node:path", ...]` is **not sufficient** here; bundling the glue can still produce Node built-in imports in `dist/index.js`, which breaks Turbopack.
-- If you change `lib/index.ts` to import `./bin/grida-canvas-wasm` directly (no wrapper + external), re-verify `pnpm --filter editor build` with Turbopack.
+- If you change `lib/index.ts` to import `./bin/grida-canvas-wasm` directly (no wrapper + external), re-verify the consumer build in the product repo (gridaco/grida: `pnpm --filter editor build`, which uses Turbopack) before publishing.
 
 ## Build System
 
