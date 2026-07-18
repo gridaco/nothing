@@ -2179,17 +2179,19 @@ fn gradient_items_to_stops(
 ) -> Vec<GradientStop> {
     use style::values::generics::image::GenericGradientItem;
 
-    let resolve = |color: &style::values::computed::Color| -> CGColor {
-        color
-            .as_absolute()
-            .map(abs_color_to_cg)
-            .unwrap_or(current_color)
+    // Resolve to (color, was_currentcolor) — `as_absolute()` is `None`
+    // exactly when the stop is an unresolved `currentcolor`.
+    let resolve = |color: &style::values::computed::Color| -> (CGColor, bool) {
+        match color.as_absolute() {
+            Some(abs) => (abs_color_to_cg(abs), false),
+            None => (current_color, true),
+        }
     };
 
-    // Each element: (position, is_px, color). Px-positioned stops are
-    // normalized to gradient-line fractions at paint time where the line
-    // length is known.
-    let mut raw: Vec<(Option<f32>, bool, CGColor)> = Vec::new();
+    // Each element: (position, is_px, (color, is_currentcolor)).
+    // Px-positioned stops are normalized to gradient-line fractions at
+    // paint time where the line length is known.
+    let mut raw: Vec<(Option<f32>, bool, (CGColor, bool))> = Vec::new();
     for item in items {
         match item {
             GenericGradientItem::SimpleColorStop(color) => {
@@ -2210,10 +2212,11 @@ fn gradient_items_to_stops(
     }
     auto_distribute_stops_typed(&mut raw);
     raw.into_iter()
-        .map(|(o, is_px, c)| GradientStop {
+        .map(|(o, is_px, (c, is_cc))| GradientStop {
             offset: o.unwrap_or(0.0),
             offset_is_px: is_px,
             color: c,
+            color_is_currentcolor: is_cc,
         })
         .collect()
 }
@@ -2224,7 +2227,7 @@ fn gradient_items_to_stops(
 /// runs of auto stops are linearly interpolated between their bookends. When
 /// bookends use different units we inherit the previous stop's unit; exact
 /// resolution defers to paint-time which has the gradient-line length.
-fn auto_distribute_stops_typed(raw: &mut [(Option<f32>, bool, CGColor)]) {
+fn auto_distribute_stops_typed(raw: &mut [(Option<f32>, bool, (CGColor, bool))]) {
     let n = raw.len();
     if n == 0 {
         return;
@@ -2292,14 +2295,15 @@ fn conic_gradient_items_to_stops(
     use style::values::computed::AngleOrPercentage;
     use style::values::generics::image::GenericGradientItem;
 
-    let resolve = |color: &style::values::computed::Color| -> CGColor {
-        color
-            .as_absolute()
-            .map(abs_color_to_cg)
-            .unwrap_or(current_color)
+    // See `gradient_items_to_stops` — (color, was_currentcolor).
+    let resolve = |color: &style::values::computed::Color| -> (CGColor, bool) {
+        match color.as_absolute() {
+            Some(abs) => (abs_color_to_cg(abs), false),
+            None => (current_color, true),
+        }
     };
 
-    let mut raw: Vec<(Option<f32>, CGColor)> = Vec::new();
+    let mut raw: Vec<(Option<f32>, (CGColor, bool))> = Vec::new();
     for item in items {
         match item {
             GenericGradientItem::SimpleColorStop(color) => {
@@ -2317,16 +2321,17 @@ fn conic_gradient_items_to_stops(
     }
     auto_distribute_stops(&mut raw);
     raw.into_iter()
-        .map(|(o, c)| GradientStop {
+        .map(|(o, (c, is_cc))| GradientStop {
             offset: o.unwrap_or(0.0),
             offset_is_px: false,
             color: c,
+            color_is_currentcolor: is_cc,
         })
         .collect()
 }
 
 /// Auto-distribute gradient stop offsets (first=0, last=1, gaps interpolated).
-fn auto_distribute_stops(raw: &mut [(Option<f32>, CGColor)]) {
+fn auto_distribute_stops(raw: &mut [(Option<f32>, (CGColor, bool))]) {
     let n = raw.len();
     if n == 0 {
         return;
@@ -2766,6 +2771,17 @@ fn extract_font(style: &ComputedValues, current_color: CGColor) -> FontProps {
         TextAlignKeyword::Right | TextAlignKeyword::MozRight => TextAlign::Right,
         TextAlignKeyword::Center | TextAlignKeyword::MozCenter => TextAlign::Center,
         TextAlignKeyword::Justify => TextAlign::Justify,
+    };
+    // Keyword identity, pre-resolution — the direction resolution above
+    // is lossy (an RTL `start` and an authored `right` both land on
+    // `TextAlign::Right`); the HTML importer needs the keyword itself.
+    props.text_align_keyword = match inherited_text.text_align {
+        TextAlignKeyword::Start => types::TextAlignKeyword::Start,
+        TextAlignKeyword::End => types::TextAlignKeyword::End,
+        TextAlignKeyword::Left | TextAlignKeyword::MozLeft => types::TextAlignKeyword::Left,
+        TextAlignKeyword::Right | TextAlignKeyword::MozRight => types::TextAlignKeyword::Right,
+        TextAlignKeyword::Center | TextAlignKeyword::MozCenter => types::TextAlignKeyword::Center,
+        TextAlignKeyword::Justify => types::TextAlignKeyword::Justify,
     };
 
     // Text transform

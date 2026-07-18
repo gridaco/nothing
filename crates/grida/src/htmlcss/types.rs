@@ -240,6 +240,26 @@ pub enum Direction {
     Rtl,
 }
 
+/// The authored CSS `text-align` keyword, before the logical
+/// `start`/`end` keywords are resolved against `direction`.
+///
+/// `FontProps::text_align` carries the direction-resolved physical value
+/// that htmlcss layout/paint consume; this preserves the keyword's
+/// identity for consumers that resolve logical keywords themselves (the
+/// HTML importer maps `start` → left and `end` → right regardless of
+/// direction). Legacy `-moz-*` aliases collapse to their physical
+/// equivalents at extraction, matching both consumers' handling.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TextAlignKeyword {
+    #[default]
+    Start,
+    End,
+    Left,
+    Right,
+    Center,
+    Justify,
+}
+
 /// CSS `vertical-align` property (inline-level).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum VerticalAlign {

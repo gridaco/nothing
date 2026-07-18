@@ -969,6 +969,13 @@ pub struct GradientStop {
     pub offset: f32,
     pub offset_is_px: bool,
     pub color: CGColor,
+    /// `true` when the authored stop color was `currentcolor` — `color`
+    /// carries the value it resolved to (the element's computed `color`)
+    /// per CSS Color 3 §4.4, which is what htmlcss paint consumes.
+    /// Preserved for consumers that need the unresolved identity: the
+    /// HTML importer folds `currentcolor` stops to transparent black
+    /// today, and its output is pinned by the import snapshot corpus.
+    pub color_is_currentcolor: bool,
 }
 
 // ─── Text / Font Sub-types (StyleInheritedData) ──────────────────────
@@ -991,6 +998,11 @@ pub struct FontProps {
     pub letter_spacing: f32,
     pub word_spacing: f32,
     pub text_align: TextAlign,
+    /// The authored `text-align` keyword before `start`/`end` are
+    /// resolved against `direction` — see [`super::types::TextAlignKeyword`].
+    /// `text_align` above is the resolved value htmlcss consumes; the
+    /// HTML importer maps the keyword to a physical alignment itself.
+    pub text_align_keyword: super::types::TextAlignKeyword,
     pub text_transform: TextTransform,
     pub direction: super::types::Direction,
     /// Bitfield: multiple decorations can be active simultaneously.
@@ -1024,6 +1036,7 @@ impl Default for FontProps {
             letter_spacing: 0.0,
             word_spacing: 0.0,
             text_align: TextAlign::Left,
+            text_align_keyword: super::types::TextAlignKeyword::Start,
             text_transform: TextTransform::None,
             direction: super::types::Direction::Ltr,
             decoration_underline: false,
