@@ -76,7 +76,9 @@ Engine paths (`crates/`, `format/`, `docs/wg/**`, `fixtures/`) → same-repo
 relative. grida-side references → absolute
 `https://github.com/gridaco/grida/blob/main/<path>` or `https://grida.co/...`.
 **Never** author `https://grida.co/docs/wg/...` links for docs that live here —
-the docs site does not publish this repo's wg tree. `main` only, no SHA pins.
+grida.co does not publish this repo's wg tree. (This repo's own `www/` docs
+app does publish `docs/wg`; `.md`-suffixed relative links resolve there and
+on GitHub alike.) `main` only, no SHA pins.
 
 ## The freeze contract (v1)
 

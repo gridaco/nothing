@@ -19,7 +19,7 @@ you meant?
 
 | Surface                | Lives in                                    | Audience         |
 | ---------------------- | ------------------------------------------- | ---------------- |
-| GitHub (repo browse)   | everything — incl. `docs/wg/**` (there is **no docs site** for this repo; GitHub *is* the docs host) | engine developers |
+| GitHub (repo browse)   | everything — incl. `docs/wg/**` (also published by this repo's `www/` docs app, which resolves the same `.md`-suffixed relative links; GitHub remains the canonical host) | engine developers |
 | npm (`npmjs.com`)      | `crates/grida-canvas-wasm` package README   | package users    |
 | Raw / no host          | IDE, stack traces, compiled output          | whoever has it   |
 

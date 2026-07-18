@@ -72,7 +72,7 @@ the group is small:
 ```
 painter/
   painter.rs
-  painter_debug_node.rs
+  debug.rs
   effects.rs
   effects_noise.rs
   image.rs

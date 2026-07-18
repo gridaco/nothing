@@ -12,7 +12,11 @@ format: md
 
 # The Paint Model
 
-**Status:** Open RFD.
+**Status:** Ratified — accepted via
+[gridaco/nothing#33](https://github.com/gridaco/nothing/issues/33)
+(closed by the owner, 2026-07-18). Two items flagged in the body remain
+pinned as follow-up amendments: diamond-gradient extension behavior and
+the tri-state run-fill verification.
 
 This document is written for an engine developer deciding, at promotion
 time, what the shared paint vocabulary is — the leaf-level value types
