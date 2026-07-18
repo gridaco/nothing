@@ -8,7 +8,11 @@ on:
   pull_request:
     paths:
       - ".github/workflows/**"
+      - ".nvmrc"
       - "crates/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -55,9 +59,9 @@ jobs:
         with:
           key: wasm32-unknown-emscripten
 
-      # Minimal Node island: workspace = the canvas-wasm npm half + reftest
-      # tooling. (The cross-repo TS suites were retired at the engine split;
-      # the remaining smoke test is self-contained.)
+      # The canvas package consumes build tooling from the root Node workspace.
+      # (The cross-repo TS suites were retired at the engine split; the
+      # remaining smoke test is self-contained.)
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -67,6 +71,9 @@ jobs:
       - name: Fix missing xlocale.h header for Emscripten
         run: |
           sudo ln -s /usr/include/locale.h /usr/include/xlocale.h
+
+      - name: Type-check canvas wasm package
+        run: pnpm --filter @grida/canvas-wasm typecheck
 
       - name: Build canvas wasm artifacts
         run: just build

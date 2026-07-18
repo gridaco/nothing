@@ -42,9 +42,9 @@ cargo test --test serde_test
 
 ## Related Documentation
 
-- **[Working Group: Italic Implementation](../docs/wg/feat-paragraph/impl-italic.md)** - Technical specification and implementation details
-- **[Reference: Italic Fonts](../docs/reference/italic-fonts.md)** - Font family scenarios and examples
-- **[Working Group: Canvas Architecture](../docs/wg/)** - Overall canvas system design
+- **[Working Group: Italic Implementation](../../docs/wg/feat-paragraph/impl-italic.md)** - Technical specification and implementation details
+- **[Reference: Italic Fonts](https://github.com/gridaco/grida/blob/main/docs/reference/italic-fonts.md)** - Font family scenarios and examples
+- **[Working Group: Canvas Architecture](../../docs/wg/)** - Overall canvas system design
 
 ## Changelog
 

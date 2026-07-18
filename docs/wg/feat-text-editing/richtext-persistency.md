@@ -110,7 +110,7 @@ Figma uses a distinctive architecture: a **per-character style ID array** with a
 
 #### 1.4.1 Kiwi (`.fig` internal format)
 
-**Source**: `fig.kiwi` schema ([`.ref/figma/fig.kiwi`](/.ref/figma/fig.kiwi)), [`docs/wg/feat-fig/glossary/fig.kiwi.md`](/docs/wg/feat-fig/glossary/fig.kiwi.md)
+**Source**: `fig.kiwi` schema ([`.ref/figma/fig.kiwi`](https://github.com/gridaco/grida/blob/main/.ref/figma/fig.kiwi)), [`docs/wg/feat-fig/glossary/fig.kiwi.md`](https://github.com/gridaco/grida/blob/main/docs/wg/feat-fig/glossary/fig.kiwi.md))
 
 ```
 TextData {
@@ -760,13 +760,13 @@ TextSpan(
 - [Text Editing Manifesto](./index.md)
 - [Attributed Text Data Model](./attributed-text.md)
 - [Performance Model](./impl-performance.md)
-- [Paragraph Feature Roadmap](/docs/wg/feat-paragraph/index.md)
-- [FlatBuffers Schema](/format/grida.fbs)
-- [Figma Kiwi Schema Reference](/.ref/figma/fig.kiwi)
-- [Figma Kiwi Glossary](/docs/wg/feat-fig/glossary/fig.kiwi.md)
-- [OpenType Features Reference](/docs/reference/open-type-features.md)
-- [OpenType Variable Axes Reference](/docs/reference/open-type-variable-axes.md)
-- [Italic Reference](/docs/reference/italic.md)
+- [Paragraph Feature Roadmap](../feat-paragraph/index.md)
+- [FlatBuffers Schema](../../../format/grida.fbs)
+- [Figma Kiwi Schema Reference](https://github.com/gridaco/grida/blob/main/.ref/figma/fig.kiwi)
+- [Figma Kiwi Glossary](https://github.com/gridaco/grida/blob/main/docs/wg/feat-fig/glossary/fig.kiwi.md)
+- [OpenType Features Reference](https://github.com/gridaco/grida/blob/main/docs/reference/open-type-features.md)
+- [OpenType Variable Axes Reference](https://github.com/gridaco/grida/blob/main/docs/reference/open-type-variable-axes.md)
+- [Italic Reference](https://github.com/gridaco/grida/blob/main/docs/reference/italic.md)
 
 ### External
 

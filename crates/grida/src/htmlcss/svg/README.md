@@ -148,10 +148,11 @@ _reference_, not a _dependency_.
 
 ## Verification
 
-Reftest corpus:
-[`fixtures/local/resvg-test-suite/`](../../../../../fixtures/local/resvg-test-suite/)
-— 1,679 SVGs across 7 categories (`filters/`, `masking/`, `paint-servers/`,
-`painting/`, `shapes/`, `structure/`, `text/`).
+The local-only reftest corpus lives at
+`fixtures/local/resvg-test-suite/` after it is downloaded separately; it is
+not part of the checkout or CI. It contains 1,679 SVGs across 7 categories
+(`filters/`, `masking/`, `paint-servers/`, `painting/`, `shapes/`,
+`structure/`, `text/`).
 
 Run via the `grida_dev reftest` subcommands:
 
@@ -186,7 +187,7 @@ Chromium as the oracle).
 `expected.png` shipped by resvg-test-suite is one oracle (the suite
 author's read of the spec). The harness also ingests two more
 ground-truth sources, configured under `[test.oracles]` in
-[`fixtures/local/resvg-test-suite/reftest.toml`](../../../../../fixtures/local/resvg-test-suite/reftest.toml):
+the local-only `fixtures/local/resvg-test-suite/reftest.toml`:
 
 - **`results.csv`** — upstream per-renderer status matrix (chrome /
   firefox / safari / resvg / batik / inkscape / librsvg / svgnet /

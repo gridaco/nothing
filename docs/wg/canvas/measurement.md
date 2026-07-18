@@ -73,11 +73,11 @@ spacing line's far end does not land on B's edge, a dashed
 anchored against. Both subject rects get a thin outline.
 
 The chrome is **decorative only** — no hit regions, ever
-([hud.md](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/hud.md) two-backend taxonomy). It rides the host-extras
+([hud.md](../../../crates/grida_editor/docs/hud.md) two-backend taxonomy). It rides the host-extras
 slot of the HUD draw list, in the same layer band as snap guides, and
 recomputes per event from (modifier, hover, selection) — there is no
 retained measurement state to invalidate. Showing, moving, and
-dismissing it accrue overlay damage only ([frame.md](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/frame.md)).
+dismissing it accrue overlay damage only ([frame.md](../../../crates/grida_editor/docs/frame.md)).
 
 ## What it is not
 

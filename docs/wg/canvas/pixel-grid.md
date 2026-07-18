@@ -74,7 +74,7 @@ order in [transparency-grid.md](./transparency-grid.md)):
 The toggle (`pixelgrid: on | off`) is per-instance **view state**: not
 in the document, not in history, not synced. Toggling it accrues
 overlay damage only — a present, never a document frame
-([frame.md](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/frame.md), [hud.md](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/hud.md) compositing rule).
+([frame.md](../../../crates/grida_editor/docs/frame.md), [hud.md](../../../crates/grida_editor/docs/hud.md) compositing rule).
 
 ## What it is not
 

@@ -28,7 +28,7 @@ truth for what each tool feels like.
   events to it and reflects its outcome (cursor icon, toolbar
   highlight).
 - Authoring previews ride the existing gesture frame
-  ([history](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/history.md) `HISB-2`): a drag-insert is `begin_gesture`
+  ([history](../../../crates/grida_editor/docs/history.md) `HISB-2`): a drag-insert is `begin_gesture`
   → insert + size previews (silent) → `commit_gesture`. Escape aborts
   the frame; the inserted node vanishes because gesture abort is
   already specified to restore the pre-gesture document (`HISB-4`).
@@ -74,7 +74,7 @@ Web-parity notes, decided here as spec:
 
 - Activation: toolbar click or shortcut key. Keys route to tools only
   when no widget has keyboard focus and no text-edit session is active
-  (the [ui](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/ui.md) `UI-3` focus ladder and the text session win
+  (the [ui](../../../crates/grida_editor/docs/ui.md) `UI-3` focus ladder and the text session win
   first).
 - The cursor tool is the home state. After an insert tool completes
   one insertion (click or drag), the tool **reverts to cursor** —
@@ -114,7 +114,7 @@ dragging --Escape--> abort gesture (document as before), tool stays armed
 - Either path yields **exactly one history entry** whose undo removes
   the node (TOOL-3); the entry is endpoint-shaped, not a replay of
   every size preview (gesture framing's endpoint minimality — see
-  [history](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/history.md), HISB-2).
+  [history](../../../crates/grida_editor/docs/history.md), HISB-2).
 - The insert targets the **scene root level** at the top of the
   z-order. Inserting into a hovered container is a later refinement
   and must not change the entry shape when it lands.
@@ -228,7 +228,7 @@ rung_: how the operation is armed and framed as an interaction.
   whose undo restores every affected node's pre-scale state in one
   step; Escape mid-drag aborts to the pre-gesture document with no
   entry (the same gesture-frame contract as every other drag here — see
-  [history](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/history.md) `HISB-2`/`HISB-4`).
+  [history](../../../crates/grida_editor/docs/history.md) `HISB-2`/`HISB-4`).
 
 ## Contracts
 

@@ -75,7 +75,7 @@ The top-level taxonomy — the standard editor grouping — is **File,
 Edit, Object, Arrange, View**, with **Text** while a text content mode
 is active and **Settings** last. The production web editor's menu is
 the parity target: its full inventory (paths, labels, accelerators)
-lives in the [web editor's menu documentation](../../../editor/grida-canvas-hosted/playground/uxhost-menu.md).
+lives in the [web editor's menu documentation](https://github.com/gridaco/grida/blob/main/editor/grida-canvas-hosted/playground/uxhost-menu.md).
 
 **The application menu shows the whole taxonomy, deferred rows
 included** — this is the one surface that lists a row before its

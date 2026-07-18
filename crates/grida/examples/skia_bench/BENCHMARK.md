@@ -121,7 +121,7 @@ cargo run -p grida --example skia_bench_primitives --features native-gl-context 
 ## Chromium Compositor Architecture (from source)
 
 Examined from local chromium clone. Full research at
-[docs/wg/research/chromium](../research/chromium/index.md).
+[docs/wg/research/chromium](../../../../docs/wg/research/chromium/index.md).
 Key findings that inform our strategy.
 
 ### Chromium does NOT use texture atlases
@@ -508,5 +508,5 @@ Benchmark source: `crates/grida/examples/skia_bench/skia_bench_downscale.rs`
 
 ## Related
 
-- [Optimization Strategies](./optimization.md)
-- [Chromium Compositor Research](../research/chromium/index.md)
+- [Optimization Strategies](../../../../docs/wg/feat-2d/optimization.md)
+- [Chromium Compositor Research](../../../../docs/wg/research/chromium/index.md)

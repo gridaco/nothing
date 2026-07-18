@@ -1,10 +1,30 @@
-# Minimal Node island — the repo is Rust-first; pnpm exists ONLY for the
-# @grida/canvas-wasm npm package half and the reftest tooling.
+# Minimal Node island — the repo is Rust-first; pnpm exists for the
+# WASM npm package, reftest tooling, and the public website.
 packages:
   - "crates/grida-canvas-wasm"
   - "packages/*"
+  - "www"
+
+# Shared Node toolchain versions belong here so every workspace package compiles
+# and tests against the same compiler/runtime-facing types.
+catalog:
+  "@types/node": ^24
+  tsdown: ^0.22.1
+  tsx: ^4.23.1
+  typescript: 7.0.2
+  vitest: ^4
+
+# TypeScript and its config runner are peer dependencies of the build tooling.
+# Keep those peer resolutions on the workspace versions as well.
+overrides:
+  "@types/node": "catalog:"
+  tsx: "catalog:"
+  typescript: "catalog:"
+
 # Same stance as gridaco/grida: dependency build scripts are reviewed and
 # skipped (esbuild works without its install script).
 strictDepBuilds: false
 allowBuilds:
   esbuild: false
+  sharp: false
+  unrs-resolver: false

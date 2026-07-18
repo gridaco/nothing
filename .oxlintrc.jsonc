@@ -1,0 +1,40 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "oxc",
+    "react",
+    "react-perf",
+    "import",
+    "vitest",
+  ],
+  "categories": {
+    "correctness": "error",
+  },
+  "rules": {
+    "no-namespace": "off",
+    "no-explicit-any": "error",
+    "no-import-type-side-effects": "error",
+    "no-var": "error",
+    "vitest/warn-todo": "warn",
+  },
+  "env": {
+    "builtin": true,
+    "browser": true,
+    "node": true,
+    "es2024": true,
+  },
+  "ignorePatterns": [
+    ".agents/",
+    ".claude/",
+    "docs/",
+    "fixtures/",
+    "target/",
+    "third_party/",
+    "crates/grida-canvas-wasm/lib/bin/",
+    "crates/grida-canvas-wasm/dist/",
+    "www/.source/",
+    "www/.next/",
+  ],
+}

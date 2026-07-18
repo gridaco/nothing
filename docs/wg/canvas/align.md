@@ -67,12 +67,12 @@ selection declines. This is the computed-vs-authored doctrine
 (properties PROP-5, [nudge](./nudge.md) NUDGE-4) applied to
 alignment — changing arrangement _inside_ a flow is the container's
 alignment property, reachable in the [properties
-panel](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/properties.md), not a geometric align.
+panel](../../../crates/grida_editor/docs/properties.md), not a geometric align.
 
 ## Triggers and history
 
 The align row sits at the top of the properties panel; the
-keybindings are in the [sheet](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/keybindings.md): Alt+A/D/W/S
+keybindings are in the [sheet](../../../crates/grida_editor/docs/keybindings.md): Alt+A/D/W/S
 (left/right/top/bottom), Alt+H/V (horizontal/vertical centers), and —
 matching the web editor — Alt+Ctrl+V distributes **horizontally**,
 Alt+Ctrl+H **vertically** (the distribute letter is the opposite axis

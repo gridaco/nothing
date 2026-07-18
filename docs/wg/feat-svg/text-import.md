@@ -1,4 +1,6 @@
 ---
+title: SVG Text Import Model
+description: The model and tradeoffs for importing SVG text into a paragraph-based text system.
 format: md
 tags:
   - internal

@@ -8,7 +8,8 @@
 //! To regenerate (from the repo root):
 //!
 //! ```sh
-//! pnpm --filter @crates/grida generate
+//! python3 bin/activate-flatc -- --rust -o crates/grida/src/io/generated format/grida.fbs
+//! mv crates/grida/src/io/generated/grida_generated.rs crates/grida/src/io/generated/grida.rs
 //! ```
 //!
 //! CI verifies freshness — if `grida.fbs` changes but this file is stale,

@@ -132,10 +132,10 @@ them; the study is the source of truth, and this home points to it.
 ## The reference implementation
 
 The native reference editor
-([`crates/grida_editor`](https://github.com/gridaco/grida/tree/main/crates/grida_editor)) implements
+([`crates/grida_editor`](../../../crates/grida_editor/)) implements
 this specification and carries its own **implementation-binding**
 specs — frame reconciliation, the application shell, the dev-only
 widget/UI layer, the inspector and layers panels, and the conformance
-harness — in [its own docs](https://github.com/gridaco/grida/tree/main/crates/grida_editor/docs), kept
+harness — in [its own docs](../../../crates/grida_editor/docs/), kept
 next to the code they bind. This spec stays code-agnostic; the crate
 owns the mapping from these contracts to running Rust.

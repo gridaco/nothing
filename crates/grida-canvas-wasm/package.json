@@ -29,9 +29,9 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/node": "^24",
+    "@types/node": "catalog:",
     "@webgpu/types": "^0.1.61",
     "serve": "^14.2.4",
-    "typescript": "^6"
+    "typescript": "catalog:"
   }
 }

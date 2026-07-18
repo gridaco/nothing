@@ -99,7 +99,7 @@ the document** (the web schema's `Guide2D[]`), which decides
 everything about their lifecycle: guide edits are document mutations,
 framed in history like any gesture (drag previews are silent, commit
 is one entry, abort leaves nothing), and they replicate through
-[sync](../feat-crdt/sync.md). The [document](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/document.md) mutation vocabulary
+[sync](../feat-crdt/sync.md). The [document](../../../crates/grida_editor/docs/document.md) mutation vocabulary
 gains a guide domain for this — the one delta this document imposes
 on the document spec. The axis is fixed at creation; a guide
 repositions along its axis or is deleted, never re-axed.
@@ -114,7 +114,7 @@ welcome snapshot carries the guide set explicitly.
 
 ### Interactions
 
-All guide interaction rides the intent seam ([hud.md](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/hud.md)): the
+All guide interaction rides the intent seam ([hud.md](../../../crates/grida_editor/docs/hud.md)): the
 ruler strips and guide lines are tier-1 chrome regions, the HUD emits
 a phased `guide` intent (axis, index-or-new, offset, on-strip,
 phase), and the host interprets it into document mutations. The HUD
@@ -132,7 +132,7 @@ table by one row; the one law is unchanged.
   strip's counter axis (see "Axis orientation").
 - **Move** — drag an existing guide line. The grab region is fat
   (screen-space padding) while the visual stays a hairline — the
-  two-backend rule ([hud.md](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/hud.md) HUD-5).
+  two-backend rule ([hud.md](../../../crates/grida_editor/docs/hud.md) HUD-5).
 - **Delete** — a move that ends back on the authoring strip removes
   the guide; a create-drag that ends there leaves the document
   untouched. Esc cancels any guide gesture, restoring the prior

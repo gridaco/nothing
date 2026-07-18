@@ -14,8 +14,8 @@ EMSDK_ROOT = os.path.join('third_party', 'externals', 'emsdk')
 
 EMSDK_PATH = os.path.join(EMSDK_ROOT, 'emsdk.py')
 
-# Keep this aligned with the emsdk submodule and local builds.
-# (The emsdk git submodule is currently at 5.0.0.)
+# Keep this aligned with local and CI builds. The emsdk submodule carries a
+# few installer fixes beyond its 5.0.0 tag; the installed SDK stays at 5.0.0.
 EMSDK_VERSION = '5.0.0'
 
 def main():
