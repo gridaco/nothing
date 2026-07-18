@@ -11,7 +11,7 @@ use crate::backends::skia as sk;
 use crate::cache::fast_hash::NodeIdHashMap;
 use crate::cache::{scene::SceneCache, vector_path::VectorPathCache};
 use crate::cg::prelude::*;
-use crate::node::schema::*;
+use crate::node::id::NodeId;
 use crate::runtime::render_policy::{OutlineStyle, RenderPolicy};
 use crate::runtime::{font_repository::FontRepository, image_repository::ImageRepository};
 use crate::shape::*;

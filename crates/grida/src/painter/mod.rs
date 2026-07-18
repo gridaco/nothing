@@ -1,6 +1,7 @@
 #[allow(clippy::module_inception)]
 mod painter;
 pub use painter::*;
+pub mod compile;
 pub mod effects;
 pub mod effects_noise;
 pub mod geometry;

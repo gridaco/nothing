@@ -1,3 +1,4 @@
+use super::compile::{boolean_operation_shape, build_shape};
 use super::geometry::*;
 use crate::cache::geometry::GeometryCache;
 use crate::cg::prelude::*;
