@@ -7,9 +7,7 @@ use n0_model::animation::SampleTime;
 use n0_model::math::RectF;
 use n0_model::model::*;
 use n0_model::pick::pick;
-use n0_model::properties::{
-    PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView,
-};
+use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView};
 use n0_model::resolve::{resolve, ResolveOptions, RotationInFlow};
 use n0_model::svg_animation::{SourceSnapshot, SvgAnimationSource};
 

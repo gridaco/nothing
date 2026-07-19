@@ -1,9 +1,7 @@
 //! Producer contract for retained Draft 1 Grida XML source programs.
 
 use n0_model::grida_xml;
-use n0_model::grida_xml_source::{
-    self, ErrorPhase, SourceProvider, SourceSnapshot, SourceVersion,
-};
+use n0_model::grida_xml_source::{self, ErrorPhase, SourceProvider, SourceSnapshot, SourceVersion};
 use n0_model::model::{AxisBinding, Paint, Payload, ResourceRef};
 use std::collections::BTreeMap;
 

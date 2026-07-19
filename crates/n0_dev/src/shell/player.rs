@@ -9,6 +9,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use glutin::prelude::GlSurface;
 use n0::damage::diff_frame;
 use n0::frame::{self, FrameProduct, FrameRequest};
 use n0::paint::PaintCtx;
@@ -16,7 +17,6 @@ use n0::playback_clock::{HostTime, PlaybackRange};
 use n0_model::animation::{AnimationProgram, SampleTime};
 use n0_model::resolve::ResolveOptions;
 use n0_model::svg_animation::{CompiledSvgAnimation, SourceSnapshot, SvgAnimationSource};
-use glutin::prelude::GlSurface;
 use skia_safe::Color;
 use winit::application::ApplicationHandler;
 use winit::event::{ElementState, WindowEvent};

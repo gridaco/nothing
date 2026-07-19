@@ -120,10 +120,7 @@ fn cached_frame_bytes(
     let rerastered = cache
         .frame(surface.canvas(), doc, &opts(), view, ctx, doc_dirty)
         .expect("valid cached frame");
-    (
-        n0::paint::read_pixels(&mut surface, W, H),
-        rerastered,
-    )
+    (n0::paint::read_pixels(&mut surface, W, H), rerastered)
 }
 
 fn cached_value_frame_bytes(
@@ -138,10 +135,7 @@ fn cached_value_frame_bytes(
     let rerastered = cache
         .frame_with_values(surface.canvas(), doc, values, &opts(), view, ctx, false)
         .unwrap();
-    (
-        n0::paint::read_pixels(&mut surface, W, H),
-        rerastered,
-    )
+    (n0::paint::read_pixels(&mut surface, W, H), rerastered)
 }
 
 #[test]

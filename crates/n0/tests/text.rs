@@ -356,10 +356,7 @@ fn frame_shares_one_shaped_layout_with_fill_and_every_stroke() {
     let (_, resolved, list) = render_document_full(&document, 180, 80);
     let resolved_layout = resolved.text_layout_of(text_id);
 
-    assert_eq!(
-        resolved_layout.oracle,
-        n0::oracle::TEXT_SKPARAGRAPH
-    );
+    assert_eq!(resolved_layout.oracle, n0::oracle::TEXT_SKPARAGRAPH);
     assert!(!resolved_layout.glyph_runs.is_empty());
     assert!(resolved_layout.ink_bounds.is_some());
     assert!(resolved_layout.logical_bounds.unwrap().w <= resolved.box_of(text_id).w);

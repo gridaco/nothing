@@ -6,9 +6,9 @@
 
 mod common;
 
+use common::opts_visual;
 use n0_model::model::*;
 use n0_model::resolve::resolve;
-use common::opts_visual;
 
 #[test]
 fn opt_accessors_agree_with_panicking_forms() {

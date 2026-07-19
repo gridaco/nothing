@@ -17,9 +17,7 @@ use n0_model::math::Affine;
 use n0_model::model::{
     Color as ModelColor, CornerSmoothing, Paints, Payload, RectangularCornerRadius,
 };
-use n0_model::properties::{
-    PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView,
-};
+use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView};
 use n0_model::resolve::{resolve, ResolveOptions};
 use skia_safe::{surfaces, Color};
 

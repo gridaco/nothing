@@ -7,9 +7,7 @@ use n0::{
 use n0_model::grida_xml;
 use n0_model::math::Affine;
 use n0_model::model::*;
-use n0_model::properties::{
-    PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView,
-};
+use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView};
 use n0_model::resolve::ResolveOptions;
 use skia_safe::{surfaces, Color, FontMgr};
 
@@ -395,10 +393,7 @@ fn missing_image_resource_fails_checked_execution_before_canvas_mutation() {
     assert_eq!(error.context, PaintUseContext::Fill);
     assert_eq!(error.rid, "asset");
     assert_eq!(error.reason, ImagePreflightReason::MissingResource);
-    assert_eq!(
-        n0::paint::read_pixels(&mut surface, 32, 32),
-        before
-    );
+    assert_eq!(n0::paint::read_pixels(&mut surface, 32, 32), before);
 }
 
 #[test]

@@ -5,13 +5,13 @@
 
 use std::num::NonZeroU32;
 
+use glutin::prelude::GlSurface;
 use n0::frame::FrameProduct;
 use n0::journal::Journal;
 use n0::query::Query;
 use n0_model::model::{Document, NodeId};
 use n0_model::ops::{self, Axis, Op, ResizeDrag};
 use n0_model::resolve::Resolved;
-use glutin::prelude::GlSurface;
 use winit::application::ApplicationHandler;
 use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
@@ -671,9 +671,7 @@ impl App {
         let product = resolve_and_build_doc(&self.doc, &self.ctx)
             .expect("spike scene must pass paint preflight");
         self.last_damage = match &self.last_frame {
-            Some(previous) => n0::damage::diff_frame(previous, &product)
-                .changed
-                .len(),
+            Some(previous) => n0::damage::diff_frame(previous, &product).changed.len(),
             None => 0,
         };
         let resolved = product.resolved();

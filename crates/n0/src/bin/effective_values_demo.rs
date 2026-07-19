@@ -15,9 +15,7 @@ use n0_model::model::{
     Alignment, Color, GradientStop, LinearGradientPaint, Paint, Paints, Payload,
     RadialGradientPaint, RectangularCornerRadius, Stroke, StrokeAlign, StrokeWidth,
 };
-use n0_model::properties::{
-    PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView,
-};
+use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView};
 use n0_model::resolve::ResolveOptions;
 use skia_safe::{surfaces, EncodedImageFormat, Font, Paint as SkPaint};
 

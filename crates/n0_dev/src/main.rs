@@ -13,12 +13,12 @@ mod paint;
 mod scene;
 mod shell;
 
+use camera::Camera;
 use n0::frame::{FrameBuildError, FrameProduct};
 use n0::paint::PaintCtx;
 use n0_model::model::{Document, NodeId};
 use n0_model::ops::Op;
 use n0_model::resolve::{resolve, ResolveOptions, Resolved};
-use camera::Camera;
 
 /// The resolve viewport — the root frame spans it; think "world extent
 /// of the infinite canvas' initial container", not the window.
@@ -149,12 +149,7 @@ fn record(path: &str, state: &str) {
         viewport: RESOLVE_VIEWPORT,
         ..Default::default()
     };
-    let text = n0::replay::write_string(
-        &doc,
-        &ops,
-        &n0::oracle::OracleTags::default(),
-        &opts,
-    );
+    let text = n0::replay::write_string(&doc, &ops, &n0::oracle::OracleTags::default(), &opts);
     std::fs::write(path, text).expect("write replay");
     println!("recorded {} op(s) to {path}", ops.len());
 }
