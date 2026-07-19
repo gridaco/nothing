@@ -1,4 +1,4 @@
-//! Engine integration proof for linked Grida XML source programs.
+//! Engine integration proof for linked n0 XML source programs.
 //!
 //! Component syntax is consumed before the engine boundary. The resolver,
 //! display-list builder, and frame entry receive only the ordinary `Document`
@@ -10,20 +10,20 @@ mod support;
 use n0::drawlist::{build_glyphless_unchecked, Item, ItemKind};
 use n0::frame;
 use n0::paint::PaintCtx;
-use n0_model::grida_xml_source::{
-    self, AuthoredMemberId, SourceProvider, SourceSnapshot, ValueSelection,
-};
 use n0_model::math::Affine;
 use n0_model::model::{
     Color as ModelColor, CornerSmoothing, Paints, Payload, RectangularCornerRadius,
+};
+use n0_model::n0_xml_source::{
+    self, AuthoredMemberId, SourceProvider, SourceSnapshot, ValueSelection,
 };
 use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView};
 use n0_model::resolve::{resolve, ResolveOptions};
 use skia_safe::{surfaces, Color};
 
-const ENTRY_SOURCE: &str = include_str!("../rig/fixtures/component-program/entry.grida.xml");
-const COMPONENT_SOURCE: &str = include_str!("../rig/fixtures/component-program/swatch.grida.xml");
-const DURABLE_SOURCE: &str = include_str!("../rig/fixtures/durable-addressing.grida.xml");
+const ENTRY_SOURCE: &str = include_str!("../rig/fixtures/component-program/entry.n0.xml");
+const COMPONENT_SOURCE: &str = include_str!("../rig/fixtures/component-program/swatch.n0.xml");
+const DURABLE_SOURCE: &str = include_str!("../rig/fixtures/durable-addressing.n0.xml");
 const ENTRY_ID: &str = "fixture:component-program/entry";
 const COMPONENT_ID: &str = "fixture:component-program/swatch";
 const SOURCE_BASE: &str = "fixture:/component-program/";
@@ -42,7 +42,7 @@ impl SourceProvider for FixtureSources {
         location: &str,
     ) -> Result<SourceSnapshot, String> {
         self.requests += 1;
-        if containing.identity() != ENTRY_ID || location != "./swatch.grida.xml" {
+        if containing.identity() != ENTRY_ID || location != "./swatch.n0.xml" {
             return Err(format!(
                 "unexpected fixture reference from {} to {location}",
                 containing.identity()
@@ -81,7 +81,7 @@ fn assert_rect_fill(item: &Item, node: u32, world: Affine, width: f32, color: u3
 #[test]
 fn version2_component_program_materializes_before_the_component_blind_frame() {
     let mut sources = FixtureSources::default();
-    let output = grida_xml_source::materialize(
+    let output = n0_xml_source::materialize(
         SourceSnapshot::new(ENTRY_ID, SOURCE_BASE, ENTRY_SOURCE),
         &mut sources,
     )
@@ -193,7 +193,7 @@ fn version2_component_program_materializes_before_the_component_blind_frame() {
 #[test]
 fn durable_fixture_compiles_one_authored_occurrence_to_an_effective_engine_target() {
     let mut sources = FixtureSources::default();
-    let output = grida_xml_source::materialize(
+    let output = n0_xml_source::materialize(
         SourceSnapshot::new("fixture:durable-addressing", "fixture:/", DURABLE_SOURCE),
         &mut sources,
     )

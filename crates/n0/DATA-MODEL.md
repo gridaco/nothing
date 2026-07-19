@@ -73,7 +73,7 @@ landed.
 ### Landed in the Draft 0 pass
 
 **Fill: singleton color → typed `Paints`.** A node now owns the same
-bottom-to-top stack projected by Grida XML: RGBA8 solids, structured gradients,
+bottom-to-top stack projected by n0 XML: RGBA8 solids, structured gradients,
 and image RIDs. Richer paints retain the parse-free hot path, but this pass is
 not golden-identical: it also removes implicit frame ink and paints explicit
 parent strokes after children. The legacy screenshots therefore require an

@@ -1,4 +1,4 @@
-//! Thin local-file host for the versioned `.grida.xml` proof.
+//! Thin local-file host for the versioned `.n0.xml` proof.
 //!
 //! The source linker remains pure behind a host-supplied [`SourceProvider`].
 //! This binary owns source and image path I/O, a platform typeface, the raster
@@ -10,15 +10,15 @@ use std::path::{Path, PathBuf};
 
 use n0::frame;
 use n0::paint::PaintCtx;
-use n0_model::grida_xml_source::{self, MaterializedProgram, SourceProvider, SourceSnapshot};
 use n0_model::math::Affine;
 use n0_model::model::{Document, NodeId, Paint, Payload, ResourceRef};
+use n0_model::n0_xml_source::{self, MaterializedProgram, SourceProvider, SourceSnapshot};
 use n0_model::resolve::{Report, ResolveOptions, Resolved};
 use skia_safe::{surfaces, Color, EncodedImageFormat, FontMgr, FontStyle};
 
 const DEFAULT_WIDTH: i32 = 1280;
 const DEFAULT_HEIGHT: i32 = 720;
-const USAGE: &str = "usage: grida_xml_render <input.grida.xml> <output.png> [width height]";
+const USAGE: &str = "usage: n0_xml_render <input.n0.xml> <output.png> [width height]";
 
 struct LocalFileSourceProvider;
 
@@ -69,7 +69,7 @@ impl SourceProvider for LocalFileSourceProvider {
 
 fn materialize_file(path: &Path) -> Result<MaterializedProgram, String> {
     let entry = LocalFileSourceProvider::snapshot(path)?;
-    grida_xml_source::materialize(entry, &mut LocalFileSourceProvider)
+    n0_xml_source::materialize(entry, &mut LocalFileSourceProvider)
         .map_err(|error| error.to_string())
 }
 
@@ -330,7 +330,7 @@ fn run() -> Result<(), String> {
 
 fn main() {
     if let Err(error) = run() {
-        eprintln!("grida_xml_render: {error}");
+        eprintln!("n0_xml_render: {error}");
         std::process::exit(2);
     }
 }
@@ -346,13 +346,13 @@ mod tests {
     };
     use n0::frame;
     use n0::paint::{read_pixels, PaintCtx};
-    use n0_model::grida_xml_source::{self, MaterializedProgram, SourceSnapshot};
     use n0_model::math::Affine;
+    use n0_model::n0_xml_source::{self, MaterializedProgram, SourceSnapshot};
     use n0_model::resolve::{resolve, ResolveOptions};
     use skia_safe::{surfaces, Color};
 
     fn fixture_input() -> PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("rig/fixtures/nested-rects.grida.xml")
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("rig/fixtures/nested-rects.n0.xml")
     }
 
     fn image_fixture(name: &str) -> PathBuf {
@@ -365,7 +365,7 @@ mod tests {
         let input = std::fs::canonicalize(fixture_input()).unwrap();
         let identity = input.to_str().unwrap().to_owned();
         let base = input.parent().unwrap().to_str().unwrap().to_owned();
-        grida_xml_source::materialize(
+        n0_xml_source::materialize(
             SourceSnapshot::new(identity, base, source),
             &mut LocalFileSourceProvider,
         )
@@ -380,7 +380,7 @@ mod tests {
         fn new() -> Self {
             static NEXT: AtomicU64 = AtomicU64::new(0);
             let path = std::env::temp_dir().join(format!(
-                "grida-xml-render-{}-{}",
+                "n0-xml-render-{}-{}",
                 std::process::id(),
                 NEXT.fetch_add(1, Ordering::Relaxed)
             ));
@@ -408,7 +408,7 @@ mod tests {
     #[test]
     fn probe_fixture_resolves_without_errors() {
         let program =
-            materialize_at_fixture(include_str!("../../rig/fixtures/nested-rects.grida.xml"));
+            materialize_at_fixture(include_str!("../../rig/fixtures/nested-rects.n0.xml"));
         let resolved = resolve(&program.document, &ResolveOptions::default());
         assert_eq!(ensure_resolved_without_errors(&program, &resolved), Ok(()));
     }
@@ -508,11 +508,11 @@ mod tests {
         assert!(error.contains("rig/fixtures/./missing.png"), "{error}");
 
         let corrupt = materialize_at_fixture(
-            r#"<grida version="0"><container><rect name="corrupt" width="1" height="1"><fill><image src="./nested-rects.grida.xml"/></fill></rect></container></grida>"#,
+            r#"<grida version="0"><container><rect name="corrupt" width="1" height="1"><fill><image src="./nested-rects.n0.xml"/></fill></rect></container></grida>"#,
         );
         let error = load_image_resources(&corrupt, &mut ctx).unwrap_err();
         assert!(
-            error.contains("`corrupt` image `./nested-rects.grida.xml`"),
+            error.contains("`corrupt` image `./nested-rects.n0.xml`"),
             "{error}"
         );
         assert!(error.contains("could not decode"), "{error}");
@@ -531,11 +531,11 @@ mod tests {
     fn external_component_sources_and_resources_resolve_from_their_own_canonical_base() {
         let temp = TestDir::new();
         let entry = temp.write(
-            "entry.grida.xml",
-            br#"<grida version="1"><container width="40" height="40"><use href="./components/card.grida.xml#card"/></container></grida>"#,
+            "entry.n0.xml",
+            br#"<grida version="1"><container width="40" height="40"><use href="./components/card.n0.xml#card"/></container></grida>"#,
         );
         let component = temp.write(
-            "components/card.grida.xml",
+            "components/card.n0.xml",
             br#"<grida version="1"><component id="card" width="20" height="20"><rect name="texture" width="20" height="20"><fill><image src="./texture.png"/></fill></rect></component></grida>"#,
         );
         temp.write(
@@ -564,12 +564,12 @@ mod tests {
     fn equal_relative_resources_from_two_sources_load_under_distinct_runtime_keys() {
         let temp = TestDir::new();
         let entry = temp.write(
-            "entry.grida.xml",
-            br#"<grida version="1"><container width="50" height="20"><use href="./a/card.grida.xml#card"/><use href="./b/card.grida.xml#card" x="25"/></container></grida>"#,
+            "entry.n0.xml",
+            br#"<grida version="1"><container width="50" height="20"><use href="./a/card.n0.xml#card"/><use href="./b/card.n0.xml#card" x="25"/></container></grida>"#,
         );
         let component = br#"<grida version="1"><component id="card" width="20" height="20"><rect width="20" height="20"><fill><image src="./texture.png"/></fill></rect></component></grida>"#;
-        temp.write("a/card.grida.xml", component);
-        temp.write("b/card.grida.xml", component);
+        temp.write("a/card.n0.xml", component);
+        temp.write("b/card.n0.xml", component);
         let a_image = temp.write(
             "a/texture.png",
             &std::fs::read(image_fixture("border-diamonds.png")).unwrap(),
@@ -632,11 +632,11 @@ mod tests {
     fn version2_resource_argument_keeps_the_callers_file_base() {
         let temp = TestDir::new();
         let entry = temp.write(
-            "entry.grida.xml",
-            br##"<grida version="2"><container width="20" height="20"><use href="./components/card.grida.xml#card"><arg name="texture" value="./texture.png"/></use></container></grida>"##,
+            "entry.n0.xml",
+            br##"<grida version="2"><container width="20" height="20"><use href="./components/card.n0.xml#card"><arg name="texture" value="./texture.png"/></use></container></grida>"##,
         );
         temp.write(
-            "components/card.grida.xml",
+            "components/card.n0.xml",
             br##"<grida version="2"><component id="card" width="20" height="20"><prop name="texture" type="resource"/><rect width="20" height="20"><fill><image src="{texture}"/></fill></rect></component></grida>"##,
         );
         temp.write(

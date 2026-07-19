@@ -1,6 +1,6 @@
 //! Focused data and raster probes for Grida's rectangular stroke-width union.
 //!
-//! Native `.grida.xml` has no independent visual oracle, so these tests use
+//! Native `.n0.xml` has no independent visual oracle, so these tests use
 //! high-contrast probes away from antialiased boundaries and assert the
 //! model-to-drawlist projection separately.
 

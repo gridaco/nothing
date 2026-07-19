@@ -241,7 +241,7 @@ fn parse_lens_op(raw: &str, strict: bool) -> Result<LensOp, ParseError> {
     }
 }
 
-fn validate_grida_xml_declaration(decl: &BytesDecl<'_>) -> Result<(), ParseError> {
+fn validate_n0_xml_declaration(decl: &BytesDecl<'_>) -> Result<(), ParseError> {
     let raw = std::str::from_utf8(decl.as_ref())
         .map_err(|_| ParseError("XML declaration must be UTF-8".into()))?;
     let mut fields = vec![];
@@ -721,7 +721,7 @@ fn path_aware_kind_name(payload: &Payload) -> &'static str {
     }
 }
 
-fn grida_xml_default_fills(payload: &Payload) -> Paints {
+fn n0_xml_default_fills(payload: &Payload) -> Paints {
     match payload {
         Payload::Shape {
             desc: ShapeDesc::Rect | ShapeDesc::Ellipse | ShapeDesc::Path(_),
@@ -1052,7 +1052,7 @@ fn parse_tspan(
                         fill_child_seen = true;
                     }
                     "tspan" => return err("nested <tspan> is not allowed; text runs are flat"),
-                    "span" => return err("<span> is not canonical Grida XML; use <tspan>"),
+                    "span" => return err("<span> is not canonical n0 XML; use <tspan>"),
                     "stroke" => {
                         return err(
                             "<stroke> inside <tspan> is not supported until run stroke geometry matches the production model",
@@ -1106,26 +1106,26 @@ struct Pending {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Dialect {
     TextIr,
-    GridaXml,
+    N0Xml,
 }
 
 pub fn parse(input: &str) -> Result<Document, ParseError> {
     parse_with_dialect(input, Dialect::TextIr)
 }
 
-/// Shared parser core for the first-class `.grida.xml` surface. Kept
+/// Shared parser core for the first-class `.n0.xml` surface. Kept
 /// crate-private so the historical [`parse`] contract remains exactly the
-/// experiment grammar while `grida_xml` owns its public error vocabulary.
-pub(crate) fn parse_grida_xml(input: &str) -> Result<Document, ParseError> {
-    parse_with_dialect(input, Dialect::GridaXml)
+/// experiment grammar while `n0_xml` owns its public error vocabulary.
+pub(crate) fn parse_n0_xml(input: &str) -> Result<Document, ParseError> {
+    parse_with_dialect(input, Dialect::N0Xml)
 }
 
 fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseError> {
     let mut reader = Reader::from_str(input);
-    let grida_xml = dialect == Dialect::GridaXml;
+    let n0_xml = dialect == Dialect::N0Xml;
     // Draft 0 preserves authored whitespace inside <text>. Historical TextIr
     // keeps its experiment-era trimming behavior for compatibility.
-    reader.config_mut().trim_text(!grida_xml);
+    reader.config_mut().trim_text(!n0_xml);
 
     let mut nodes: BTreeMap<NodeId, Node> = BTreeMap::new();
     let mut stack: Vec<Pending> = vec![];
@@ -1137,8 +1137,8 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
     let mut declaration_seen = false;
     let mut pre_declaration_content = false;
 
-    if grida_xml {
-        // `.grida.xml`'s envelope is structural, while the model's root is
+    if n0_xml {
+        // `.n0.xml`'s envelope is structural, while the model's root is
         // the canonical viewport-spanning frame. The one authored render
         // root is attached beneath it rather than replacing it.
         let root_doc = DocBuilder::new().build();
@@ -1160,7 +1160,7 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
                 };
                 let tag = String::from_utf8_lossy(el.name().as_ref()).to_string();
 
-                if grida_xml && tag == "grida" {
+                if n0_xml && tag == "grida" {
                     if is_empty {
                         return err("<grida> must contain exactly one render root");
                     }
@@ -1191,10 +1191,10 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
                     continue;
                 }
 
-                if grida_xml && (!envelope_open || envelope_closed) {
+                if n0_xml && (!envelope_open || envelope_closed) {
                     return err(format!("<{tag}> must be inside <grida version=\"0\">"));
                 }
-                if grida_xml && tag == "tspan" {
+                if n0_xml && tag == "tspan" {
                     let parent = stack.last_mut().ok_or_else(|| {
                         ParseError("<tspan> must be a direct child of <text>".into())
                     })?;
@@ -1226,16 +1226,16 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
                         .push(segment);
                     continue;
                 }
-                if grida_xml
+                if n0_xml
                     && stack.last().is_some_and(|parent| parent.is_text)
                     && is_html_inline_semantic_tag(&tag)
                 {
                     return html_inline_semantic_error(&tag);
                 }
-                if grida_xml && tag == "span" && stack.last().is_some_and(|parent| parent.is_text) {
-                    return err("<span> is not canonical Grida XML; use <tspan>");
+                if n0_xml && tag == "span" && stack.last().is_some_and(|parent| parent.is_text) {
+                    return err("<span> is not canonical n0 XML; use <tspan>");
                 }
-                if grida_xml && matches!(tag.as_str(), "fill" | "stroke") {
+                if n0_xml && matches!(tag.as_str(), "fill" | "stroke") {
                     let attributes = collect_attributes(&el)?;
                     let parent = stack.last().ok_or_else(|| {
                         ParseError(format!(
@@ -1317,18 +1317,18 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
                     }
                     continue;
                 }
-                if grida_xml && matches!(tag.as_str(), "fills" | "strokes") {
+                if n0_xml && matches!(tag.as_str(), "fills" | "strokes") {
                     return err(format!(
                         "plural <{tag}> is not Draft 0; use singular <{}>",
                         if tag == "fills" { "fill" } else { "stroke" }
                     ));
                 }
-                if grida_xml && is_legacy_gradient_tag(&tag) {
+                if n0_xml && is_legacy_gradient_tag(&tag) {
                     return err(
                         "kind-specific gradient tags are not Draft 0; use <gradient kind=\"…\">",
                     );
                 }
-                if grida_xml && is_typed_paint_tag(&tag) {
+                if n0_xml && is_typed_paint_tag(&tag) {
                     if tag == "image" {
                         return err(
                             "scene <image> is not supported in Draft 0; place <image> directly inside <fill> or <stroke> for an image paint",
@@ -1338,18 +1338,18 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
                         "<{tag}> is a paint and must be a direct child of <fill> or <stroke>"
                     ));
                 }
-                if grida_xml && tag == "stop" {
+                if n0_xml && tag == "stop" {
                     return err("<stop> must be a direct child of a gradient paint");
                 }
-                if grida_xml && tag == "frame" {
+                if n0_xml && tag == "frame" {
                     return err("<frame> belongs to historical textir; use <container>");
                 }
-                if grida_xml && tag == "shape" {
+                if n0_xml && tag == "shape" {
                     return err(
                         "<shape> is reserved in Draft 0; use <rect>, <ellipse>, <line>, or <path>",
                     );
                 }
-                let is_authored_root = grida_xml && stack.is_empty() && render_root.is_none();
+                let is_authored_root = n0_xml && stack.is_empty() && render_root.is_none();
                 if is_authored_root && tag != "container" {
                     return err(format!(
                         "the authored render root must be <container>, found <{tag}>"
@@ -1373,11 +1373,11 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
                 }
 
                 let (node_tag, direct_shape_kind) = match (dialect, tag.as_str()) {
-                    (Dialect::GridaXml, "container") => ("frame", None),
-                    (Dialect::GridaXml, "rect") => ("shape", Some(ShapeDesc::Rect)),
-                    (Dialect::GridaXml, "ellipse") => ("shape", Some(ShapeDesc::Ellipse)),
-                    (Dialect::GridaXml, "line") => ("shape", Some(ShapeDesc::Line)),
-                    (Dialect::GridaXml, "path") => ("path", None),
+                    (Dialect::N0Xml, "container") => ("frame", None),
+                    (Dialect::N0Xml, "rect") => ("shape", Some(ShapeDesc::Rect)),
+                    (Dialect::N0Xml, "ellipse") => ("shape", Some(ShapeDesc::Ellipse)),
+                    (Dialect::N0Xml, "line") => ("shape", Some(ShapeDesc::Line)),
+                    (Dialect::N0Xml, "path") => ("path", None),
                     _ => (tag.as_str(), None),
                 };
                 let mut header = Header::new(SizeIntent::Auto, SizeIntent::Auto);
@@ -1410,7 +1410,7 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
                 let mut text_only_attr: Option<String> = None;
                 let mut lens_only_attr: Option<String> = None;
                 let mut path_only_attr: Option<String> = None;
-                let strict = grida_xml;
+                let strict = n0_xml;
 
                 let mut source_attributes = el.attributes();
                 source_attributes.with_checks(false);
@@ -1435,70 +1435,70 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
                             y_seen = true;
                             header.y = parse_binding(&val, "y")?;
                         }
-                        "w" if !grida_xml => {
+                        "w" if !n0_xml => {
                             if width_seen {
                                 return err(format!("duplicate width attribute on <{tag}>"));
                             }
                             width_seen = true;
                             header.width = parse_size(&val, "width", false)?;
                         }
-                        "width" if grida_xml => {
+                        "width" if n0_xml => {
                             if width_seen {
                                 return err(format!("duplicate width attribute on <{tag}>"));
                             }
                             width_seen = true;
                             header.width = parse_size(&val, "width", true)?;
                         }
-                        "h" if !grida_xml => {
+                        "h" if !n0_xml => {
                             if height_seen {
                                 return err(format!("duplicate height attribute on <{tag}>"));
                             }
                             height_seen = true;
                             header.height = parse_size(&val, "height", false)?;
                         }
-                        "height" if grida_xml => {
+                        "height" if n0_xml => {
                             if height_seen {
                                 return err(format!("duplicate height attribute on <{tag}>"));
                             }
                             height_seen = true;
                             header.height = parse_size(&val, "height", true)?;
                         }
-                        "min-w" if !grida_xml => {
+                        "min-w" if !n0_xml => {
                             header.min_width = Some(parse_non_negative(&val, "min-w", false)?)
                         }
-                        "min-width" if grida_xml => {
+                        "min-width" if n0_xml => {
                             box_constraint_seen = true;
                             header.min_width = Some(parse_non_negative(&val, "min-width", true)?)
                         }
-                        "max-w" if !grida_xml => {
+                        "max-w" if !n0_xml => {
                             header.max_width = Some(parse_non_negative(&val, "max-w", false)?)
                         }
-                        "max-width" if grida_xml => {
+                        "max-width" if n0_xml => {
                             box_constraint_seen = true;
                             header.max_width = Some(parse_non_negative(&val, "max-width", true)?)
                         }
-                        "min-h" if !grida_xml => {
+                        "min-h" if !n0_xml => {
                             header.min_height = Some(parse_non_negative(&val, "min-h", false)?)
                         }
-                        "min-height" if grida_xml => {
+                        "min-height" if n0_xml => {
                             box_constraint_seen = true;
                             header.min_height = Some(parse_non_negative(&val, "min-height", true)?)
                         }
-                        "max-h" if !grida_xml => {
+                        "max-h" if !n0_xml => {
                             header.max_height = Some(parse_non_negative(&val, "max-h", false)?)
                         }
-                        "max-height" if grida_xml => {
+                        "max-height" if n0_xml => {
                             box_constraint_seen = true;
                             header.max_height = Some(parse_non_negative(&val, "max-height", true)?)
                         }
-                        "aspect" if !grida_xml => {
+                        "aspect" if !n0_xml => {
                             let (a, b) = val
                                 .split_once(':')
                                 .ok_or_else(|| ParseError("aspect needs `w:h`".into()))?;
                             header.aspect_ratio =
                                 Some((parse_num(a, "aspect")?, parse_num(b, "aspect")?));
                         }
-                        "aspect-ratio" if grida_xml => {
+                        "aspect-ratio" if n0_xml => {
                             box_constraint_seen = true;
                             aspect_seen = true;
                             let (a, b) = val
@@ -1509,7 +1509,7 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
                                 parse_positive(b, "aspect-ratio", true)?,
                             ));
                         }
-                        "corner-radius" if grida_xml => {
+                        "corner-radius" if n0_xml => {
                             if corner_radius_seen {
                                 return err(format!(
                                     "duplicate corner-radius attribute on <{tag}>"
@@ -1518,7 +1518,7 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
                             corner_radius_seen = true;
                             corner_radius = parse_corner_radius(&val)?;
                         }
-                        "corner-smoothing" if grida_xml => {
+                        "corner-smoothing" if n0_xml => {
                             if corner_smoothing_seen {
                                 return err(format!(
                                     "duplicate corner-smoothing attribute on <{tag}>"
@@ -1656,7 +1656,7 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
                             frame_only_attr.get_or_insert_with(|| key.clone());
                             clips = parse_bool(&val, "clips", strict)?;
                         }
-                        "kind" if !grida_xml => {
+                        "kind" if !n0_xml => {
                             shape_only_attr.get_or_insert_with(|| key.clone());
                             shape_kind = Some(match val.as_str() {
                                 "rect" => ShapeDesc::Rect,
@@ -1665,22 +1665,22 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
                                 _ => return err(format!("bad shape kind `{val}`")),
                             })
                         }
-                        "size" if !grida_xml => {
+                        "size" if !n0_xml => {
                             text_only_attr.get_or_insert_with(|| key.clone());
                             font_size = parse_positive(&val, "size", false)?;
                         }
-                        "font-size" if grida_xml => {
+                        "font-size" if n0_xml => {
                             text_only_attr.get_or_insert_with(|| key.clone());
                             font_size = parse_positive(&val, "font-size", true)?;
                         }
-                        "size" if grida_xml => return err(
+                        "size" if n0_xml => return err(
                             "text attribute `size` belongs to historical textir; use `font-size`",
                         ),
-                        "font-weight" if grida_xml => {
+                        "font-weight" if n0_xml => {
                             text_only_attr.get_or_insert_with(|| key.clone());
                             font_weight = parse_font_weight(&val, "text")?;
                         }
-                        "font-style" if grida_xml => {
+                        "font-style" if n0_xml => {
                             text_only_attr.get_or_insert_with(|| key.clone());
                             font_style_italic = parse_font_style(&val, "text")?;
                         }
@@ -1688,11 +1688,11 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
                             lens_only_attr.get_or_insert_with(|| key.clone());
                             lens_ops = parse_lens_ops(&val, strict)?;
                         }
-                        "d" if grida_xml => {
+                        "d" if n0_xml => {
                             path_only_attr.get_or_insert_with(|| key.clone());
                             path_d = Some(val);
                         }
-                        "fill-rule" if grida_xml => {
+                        "fill-rule" if n0_xml => {
                             path_only_attr.get_or_insert_with(|| key.clone());
                             path_fill_rule = match val.as_str() {
                                 "nonzero" => FillRule::NonZero,
@@ -1727,7 +1727,7 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
                     }
                 }
 
-                if grida_xml {
+                if n0_xml {
                     let parent_is_flex = stack.last().is_some_and(|parent| {
                         matches!(
                             &nodes.get(&parent.id).expect("open parent exists").payload,
@@ -1934,7 +1934,7 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
                 let legacy_fill_seen = legacy_fill.is_some();
                 let fills = match legacy_fill {
                     Some(color) => Paints::solid(color),
-                    None if grida_xml => grida_xml_default_fills(&payload),
+                    None if n0_xml => n0_xml_default_fills(&payload),
                     None => Paints::default(),
                 };
                 let mut node = Node::new(id, header, payload);
@@ -1945,7 +1945,7 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
                 if let Some(parent) = stack.last() {
                     let pid = parent.id;
                     nodes.get_mut(&pid).unwrap().children.push(id);
-                } else if grida_xml {
+                } else if n0_xml {
                     if render_root.is_some() {
                         return err("multiple render roots in <grida>");
                     }
@@ -1982,24 +1982,24 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
             }
             Ok(Event::Text(t)) => {
                 let txt = t.unescape().map_err(|e| ParseError(format!("text: {e}")))?;
-                if grida_xml && !declaration_seen && !txt.is_empty() {
+                if n0_xml && !declaration_seen && !txt.is_empty() {
                     pre_declaration_content = true;
                 }
                 if let Some(p) = stack.last_mut() {
-                    if grida_xml && !p.is_text && !txt.trim().is_empty() {
+                    if n0_xml && !p.is_text && !txt.trim().is_empty() {
                         return err(format!("character content is not allowed in <{}>", p.tag));
                     }
                     if p.is_text && !txt.trim().is_empty() {
                         p.content_started = true;
                     }
                     p.text_content.push_str(&txt);
-                } else if grida_xml && !txt.trim().is_empty() {
+                } else if n0_xml && !txt.trim().is_empty() {
                     return err("character content is not allowed outside the document envelope");
                 }
             }
             Ok(Event::End(e)) => {
                 let tag = String::from_utf8_lossy(e.name().as_ref()).to_string();
-                if grida_xml && tag == "grida" {
+                if n0_xml && tag == "grida" {
                     if !envelope_open || envelope_closed {
                         return err("unbalanced </grida>");
                     }
@@ -2015,25 +2015,25 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
                 }
                 finish(&mut stack, &mut nodes, Some(&tag))?;
             }
-            Ok(Event::Decl(decl)) if grida_xml => {
+            Ok(Event::Decl(decl)) if n0_xml => {
                 if declaration_seen {
                     return err("duplicate XML declaration");
                 }
                 if pre_declaration_content || envelope_open || envelope_closed {
                     return err("XML declaration must be the first document event");
                 }
-                validate_grida_xml_declaration(&decl)?;
+                validate_n0_xml_declaration(&decl)?;
                 declaration_seen = true;
             }
-            Ok(Event::Comment(_)) if grida_xml => {
+            Ok(Event::Comment(_)) if n0_xml => {
                 if !declaration_seen {
                     pre_declaration_content = true;
                 }
             }
-            Ok(Event::CData(_)) if grida_xml => {
+            Ok(Event::CData(_)) if n0_xml => {
                 return err("CDATA is not supported; use escaped text content");
             }
-            Ok(Event::PI(_) | Event::DocType(_)) if grida_xml => {
+            Ok(Event::PI(_) | Event::DocType(_)) if n0_xml => {
                 return err("processing instructions and doctypes are not supported");
             }
             Ok(_) => {}
@@ -2043,7 +2043,7 @@ fn parse_with_dialect(input: &str, dialect: Dialect) -> Result<Document, ParseEr
     if !stack.is_empty() {
         return err("unclosed elements");
     }
-    if grida_xml {
+    if n0_xml {
         if envelope_open {
             return err("unclosed <grida> envelope");
         }
@@ -2261,7 +2261,7 @@ impl std::error::Error for PrintError {}
 
 /// The historical TextIr dialect has only a singleton opaque solid `fill` attribute.
 /// This fallible entry point refuses richer model state instead of narrowing
-/// it. New file-first documents should use [`crate::grida_xml::print`].
+/// it. New file-first documents should use [`crate::n0_xml::print`].
 pub fn try_print(doc: &Document) -> Result<String, PrintError> {
     let mut out = String::new();
     print_node(doc, doc.root, 0, Dialect::TextIr, &mut out).map_err(PrintError)?;
@@ -2272,13 +2272,13 @@ pub fn print(doc: &Document) -> String {
     try_print(doc).expect("document is not representable by the historical TextIr dialect")
 }
 
-pub(crate) fn print_grida_xml_render_root(
+pub(crate) fn print_n0_xml_render_root(
     doc: &Document,
     id: NodeId,
     depth: usize,
     out: &mut String,
 ) -> Result<(), String> {
-    print_node(doc, id, depth, Dialect::GridaXml, out)
+    print_node(doc, id, depth, Dialect::N0Xml, out)
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -2289,14 +2289,14 @@ enum FillEmission<'a> {
     Stack(&'a Paints),
 }
 
-fn grida_xml_fill_emission(node: &Node) -> Result<FillEmission<'_>, String> {
+fn n0_xml_fill_emission(node: &Node) -> Result<FillEmission<'_>, String> {
     if !supports_fill(&node.payload) && !node.fills.is_empty() {
         return Err(format!(
             "<{}> cannot carry fills",
             path_aware_kind_name(&node.payload)
         ));
     }
-    let default = grida_xml_default_fills(&node.payload);
+    let default = n0_xml_default_fills(&node.payload);
     if node.fills == default {
         Ok(FillEmission::Omit)
     } else if let [Paint::Solid(solid)] = node.fills.as_slice() {
@@ -2312,7 +2312,7 @@ fn grida_xml_fill_emission(node: &Node) -> Result<FillEmission<'_>, String> {
     }
 }
 
-fn grida_xml_run_fill_emission(fills: &Paints) -> FillEmission<'_> {
+fn n0_xml_run_fill_emission(fills: &Paints) -> FillEmission<'_> {
     if let [Paint::Solid(solid)] = fills.as_slice() {
         if solid.active && solid.color.alpha() == 255 && solid.blend_mode == BlendMode::Normal {
             FillEmission::Attribute(solid.color)
@@ -2353,7 +2353,7 @@ fn historical_fill(node: &Node) -> Result<Option<Color>, String> {
     }
 }
 
-fn validate_corner_style_for_write(node: &Node, grida_xml: bool) -> Result<(), String> {
+fn validate_corner_style_for_write(node: &Node, n0_xml: bool) -> Result<(), String> {
     let radii = [
         node.corner_radius.tl,
         node.corner_radius.tr,
@@ -2384,7 +2384,7 @@ fn validate_corner_style_for_write(node: &Node, grida_xml: bool) -> Result<(), S
     if !has_corner_style {
         return Ok(());
     }
-    if !grida_xml {
+    if !n0_xml {
         return Err(format!(
             "node {} has corner geometry the historical TextIr dialect cannot represent",
             node.id
@@ -2787,7 +2787,7 @@ fn write_attributed_text_content(
 
         let _ = write!(out, "<tspan");
         push_text_style_overrides(out, run.style, default_style);
-        let fill_emission = run.fills.as_ref().map(grida_xml_run_fill_emission);
+        let fill_emission = run.fills.as_ref().map(n0_xml_run_fill_emission);
         if let Some(FillEmission::Attribute(color)) = fill_emission {
             push_attr(out, "fill", &color.to_hex());
         }
@@ -2907,10 +2907,10 @@ fn print_node(
 ) -> Result<(), String> {
     let node = doc.get(id);
     let indent = "  ".repeat(depth);
-    let grida_xml = dialect == Dialect::GridaXml;
+    let n0_xml = dialect == Dialect::N0Xml;
     if node.preserves_descendant_hit_identity() {
-        let format = if grida_xml {
-            "Grida XML"
+        let format = if n0_xml {
+            "n0 XML"
         } else {
             "the historical TextIr dialect"
         };
@@ -2919,7 +2919,7 @@ fn print_node(
             node.id
         ));
     }
-    if !grida_xml
+    if !n0_xml
         && matches!(
             &node.payload,
             Payload::Shape {
@@ -2933,50 +2933,50 @@ fn print_node(
         ));
     }
     let tag = match (dialect, &node.payload) {
-        (Dialect::GridaXml, Payload::Frame { .. }) => "container",
+        (Dialect::N0Xml, Payload::Frame { .. }) => "container",
         (
-            Dialect::GridaXml,
+            Dialect::N0Xml,
             Payload::Shape {
                 desc: ShapeDesc::Rect,
             },
         ) => "rect",
         (
-            Dialect::GridaXml,
+            Dialect::N0Xml,
             Payload::Shape {
                 desc: ShapeDesc::Ellipse,
             },
         ) => "ellipse",
         (
-            Dialect::GridaXml,
+            Dialect::N0Xml,
             Payload::Shape {
                 desc: ShapeDesc::Line,
             },
         ) => "line",
         (
-            Dialect::GridaXml,
+            Dialect::N0Xml,
             Payload::Shape {
                 desc: ShapeDesc::Path(_),
             },
         ) => "path",
         _ => node.payload.kind_name(),
     };
-    validate_corner_style_for_write(node, grida_xml)?;
+    validate_corner_style_for_write(node, n0_xml)?;
     renderability::validate_geometry(&node.header, &node.payload)
         .map_err(|error| error.to_string())?;
-    let width_attr = if grida_xml { "width" } else { "w" };
-    let height_attr = if grida_xml { "height" } else { "h" };
-    let (min_width_attr, max_width_attr, min_height_attr, max_height_attr, aspect_attr) =
-        if grida_xml {
-            (
-                "min-width",
-                "max-width",
-                "min-height",
-                "max-height",
-                "aspect-ratio",
-            )
-        } else {
-            ("min-w", "max-w", "min-h", "max-h", "aspect")
-        };
+    let width_attr = if n0_xml { "width" } else { "w" };
+    let height_attr = if n0_xml { "height" } else { "h" };
+    let (min_width_attr, max_width_attr, min_height_attr, max_height_attr, aspect_attr) = if n0_xml
+    {
+        (
+            "min-width",
+            "max-width",
+            "min-height",
+            "max-height",
+            "aspect-ratio",
+        )
+    } else {
+        ("min-w", "max-w", "min-h", "max-h", "aspect")
+    };
     let _ = write!(out, "{indent}<{tag}");
 
     if let Some(name) = &node.header.name {
@@ -3036,10 +3036,10 @@ fn print_node(
     if let Some((a, b)) = node.header.aspect_ratio {
         push_attr(out, aspect_attr, &format!("{}:{}", fmt_num(a), fmt_num(b)));
     }
-    if grida_xml && !node.corner_radius.is_zero() {
+    if n0_xml && !node.corner_radius.is_zero() {
         push_attr(out, "corner-radius", &fmt_corner_radius(node.corner_radius));
     }
-    if grida_xml && !node.corner_smoothing.is_zero() {
+    if n0_xml && !node.corner_smoothing.is_zero() {
         push_attr(
             out,
             "corner-smoothing",
@@ -3138,12 +3138,12 @@ fn print_node(
         }
         Payload::Shape { desc } => {
             if let ShapeDesc::Path(artifact) = desc {
-                debug_assert!(grida_xml, "historical path rejected above");
+                debug_assert!(n0_xml, "historical path rejected above");
                 push_attr(out, "d", artifact.d());
                 if artifact.fill_rule() == FillRule::EvenOdd {
                     push_attr(out, "fill-rule", "evenodd");
                 }
-            } else if !grida_xml {
+            } else if !n0_xml {
                 let kind = match desc {
                     ShapeDesc::Rect => "rect",
                     ShapeDesc::Ellipse => "ellipse",
@@ -3154,13 +3154,13 @@ fn print_node(
             }
         }
         Payload::Text { font_size, .. } => {
-            if grida_xml {
+            if n0_xml {
                 validate_text_style_for_write(TextStyleRec::from_font_size(*font_size), "text")?;
             }
             if *font_size != 16.0 {
                 push_attr(
                     out,
-                    if grida_xml { "font-size" } else { "size" },
+                    if n0_xml { "font-size" } else { "size" },
                     &fmt_num(*font_size),
                 );
             }
@@ -3169,7 +3169,7 @@ fn print_node(
             attributed_string,
             default_style,
         } => {
-            if !grida_xml {
+            if !n0_xml {
                 return Err(format!(
                     "node {} has attributed text the historical TextIr dialect cannot represent",
                     node.id
@@ -3225,14 +3225,14 @@ fn print_node(
             }
             FillEmission::Omit
         }
-        Dialect::GridaXml => grida_xml_fill_emission(node)?,
+        Dialect::N0Xml => n0_xml_fill_emission(node)?,
     };
     if let FillEmission::Attribute(color) = fill_emission {
         push_attr(out, "fill", &color.to_hex());
     }
     let strokes: Vec<&Stroke> = match dialect {
         Dialect::TextIr => vec![],
-        Dialect::GridaXml => {
+        Dialect::N0Xml => {
             for stroke in &node.strokes {
                 renderability::validate_stroke(stroke, &node.payload, node.corner_smoothing)
                     .map_err(|error| error.to_string())?;

@@ -33,8 +33,8 @@ Map:
   resolved box-mapped path artifact
 - `src/ops.rs` — gesture ops with typed errors + write-count doctrine
 - `src/textir.rs` — the agent text IR parser + canonical printer
-- `src/grida_xml.rs` — strict Draft 0 `.grida.xml` parser/writer boundary
-- `src/grida_xml_source.rs` — pure retained Version 1/2/3/4 source-program
+- `src/n0_xml.rs` — strict Draft 0 `.n0.xml` parser/writer boundary
+- `src/n0_xml_source.rs` — pure retained Version 1/2/3/4 source-program
   linker, typed scalar specializer, named static slot projector, durable
   authored-address index, and ordinary-scene materializer; hosts supply
   immutable dependency snapshots
@@ -78,18 +78,18 @@ bind to one live document arena and generation-stamped targets; stale,
 incompatible, or invalid combined values fail atomically. Playback, filesystem
 I/O, rasterization, and video assembly remain host concerns.
 
-## Draft 0 `.grida.xml`
+## Draft 0 `.n0.xml`
 
-`grida_xml::parse(&str)` is a pure source boundary. It requires
+`n0_xml::parse(&str)` is a pure source boundary. It requires
 `<grida version="0">` with exactly one authored `<container>` render root. The
 envelope is not a node: parsing preserves the model's implicit
 viewport-spanning document root and attaches the authored root below it.
-`grida_xml::print(&Document)` is fallible and self-validating, so it cannot
+`n0_xml::print(&Document)` is fallible and self-validating, so it cannot
 silently omit root state, serialize a forest, or emit source the strict parser
 rejects.
 
 The reader and writer implement the current
-[Grida XML Draft 0 RFD](../../docs/wg/format/grida-xml.md) vocabulary.
+[n0 XML Draft 0 RFD](../../docs/wg/format/n0-xml.md) vocabulary.
 Parsing is strict: retired experiment spellings, unknown properties, invalid
 target/property combinations, and model states that cannot round-trip fail
 with contextual errors instead of being ignored or repaired.
@@ -104,7 +104,7 @@ primitive tags are not accepted there.
 The proof parser also requires non-negative `grow`, `gap`, and `padding`;
 historical `textir` retains its experiment-era numeric behavior.
 
-Grida XML text uses canonical `font-size`, numeric `font-weight`, and
+n0 XML text uses canonical `font-size`, numeric `font-weight`, and
 `font-style="normal|italic"`; historical TextIr alone keeps `size`. Direct,
 flat `<tspan>` children lower to the production-shaped UTF-8
 `AttributedString` model and never become scene nodes. Omitted run fills fall
@@ -149,7 +149,7 @@ Filesystem I/O, resources, and rasterization remain host concerns.
 
 ## Retained Version 1/2/3/4 source programs
 
-`grida_xml_source` is a separate source-level boundary above Draft 0. It
+`n0_xml_source` is a separate source-level boundary above Draft 0. It
 retains immutable source snapshots, resolves Version 1 `component`/`use`
 references through a host-supplied pure provider, rejects expansion cycles,
 implements Version 2's closed typed scalar prop/argument model, and adds
@@ -196,10 +196,10 @@ stale. `addresses()` enumerates only generation-valid live pairs after public
 document mutation; direct lookup of a retained removed address still reports
 `StaleAddress`. Older-version nodes have no durable address.
 
-This does not broaden `grida_xml::parse`, change `grida_xml::VERSION`, add
+This does not broaden `n0_xml::parse`, change `n0_xml::VERSION`, add
 component variants to the node model, or make materialized copies canonical
 source. Draft 0 passed through this higher source-program boundary receives
-the same origin-aware runtime image rekeying; direct `grida_xml::parse` and
+the same origin-aware runtime image rekeying; direct `n0_xml::parse` and
 `print` retain their exact Draft 0 contract.
 
 The current operation links only the closure reachable from an entry scene.

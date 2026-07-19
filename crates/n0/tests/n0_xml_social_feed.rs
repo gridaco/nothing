@@ -7,15 +7,15 @@
 use n0::drawlist::ItemKind;
 use n0::frame;
 use n0::paint::PaintCtx;
-use n0_model::grida_xml_source::{self, SourceProvider, SourceSnapshot};
 use n0_model::math::Affine;
 use n0_model::model::{Paint, ResourceRef};
+use n0_model::n0_xml_source::{self, SourceProvider, SourceSnapshot};
 use n0_model::resolve::{resolve, ResolveOptions};
 use skia_safe::{surfaces, Color};
 use std::collections::BTreeSet;
 
-const ENTRY_SOURCE: &str = include_str!("../rig/examples/social-feed/entry.grida.xml");
-const COMPONENT_SOURCE: &str = include_str!("../rig/examples/social-feed/post-card.grida.xml");
+const ENTRY_SOURCE: &str = include_str!("../rig/examples/social-feed/entry.n0.xml");
+const COMPONENT_SOURCE: &str = include_str!("../rig/examples/social-feed/post-card.n0.xml");
 const ENTRY_ID: &str = "example:social-feed/entry";
 const COMPONENT_ID: &str = "example:social-feed/post-card";
 const SOURCE_BASE: &str = "example:/social-feed/";
@@ -38,7 +38,7 @@ impl SourceProvider for SocialFeedSources {
         location: &str,
     ) -> Result<SourceSnapshot, String> {
         self.requests += 1;
-        if containing.identity() != ENTRY_ID || location != "./post-card.grida.xml" {
+        if containing.identity() != ENTRY_ID || location != "./post-card.n0.xml" {
             return Err(format!(
                 "unexpected social-feed reference from {} to {location}",
                 containing.identity()
@@ -66,7 +66,7 @@ fn options_for(width: f32, height: f32) -> ResolveOptions {
 #[test]
 fn desktop_social_feed_keeps_shared_shells_caller_media_and_loaded_resources() {
     let mut sources = SocialFeedSources::default();
-    let output = grida_xml_source::materialize(
+    let output = n0_xml_source::materialize(
         SourceSnapshot::new(ENTRY_ID, SOURCE_BASE, ENTRY_SOURCE),
         &mut sources,
     )
@@ -188,7 +188,7 @@ fn desktop_social_feed_keeps_shared_shells_caller_media_and_loaded_resources() {
 #[test]
 fn social_feed_resolves_one_document_across_the_viewport_matrix() {
     let mut sources = SocialFeedSources::default();
-    let output = grida_xml_source::materialize(
+    let output = n0_xml_source::materialize(
         SourceSnapshot::new(ENTRY_ID, SOURCE_BASE, ENTRY_SOURCE),
         &mut sources,
     )

@@ -1,8 +1,8 @@
-//! Producer contract for retained Draft 1 Grida XML source programs.
+//! Producer contract for retained Draft 1 n0 XML source programs.
 
-use n0_model::grida_xml;
-use n0_model::grida_xml_source::{self, ErrorPhase, SourceProvider, SourceSnapshot, SourceVersion};
 use n0_model::model::{AxisBinding, Paint, Payload, ResourceRef};
+use n0_model::n0_xml;
+use n0_model::n0_xml_source::{self, ErrorPhase, SourceProvider, SourceSnapshot, SourceVersion};
 use std::collections::BTreeMap;
 
 fn snapshot(identity: &str, base: &str, source: &str) -> SourceSnapshot {
@@ -44,7 +44,7 @@ fn immutable_snapshot_and_exact_versioned_source_unit_are_public_outcomes() {
   <component id="badge" width="16" height="16"/>
   <container width="100" height="80"/>
 </grida>"##;
-    let unit = grida_xml_source::parse_source(snapshot("entry", "memory:/", source)).unwrap();
+    let unit = n0_xml_source::parse_source(snapshot("entry", "memory:/", source)).unwrap();
 
     assert_eq!(unit.snapshot().identity(), "entry");
     assert_eq!(unit.snapshot().base(), "memory:/");
@@ -53,7 +53,7 @@ fn immutable_snapshot_and_exact_versioned_source_unit_are_public_outcomes() {
     assert_eq!(unit.component_ids().collect::<Vec<_>>(), ["badge"]);
     assert!(unit.has_scene());
 
-    let version2 = grida_xml_source::parse_source(snapshot(
+    let version2 = n0_xml_source::parse_source(snapshot(
         "future",
         "memory:/",
         r##"<grida version="2"><container/></grida>"##,
@@ -82,7 +82,7 @@ fn draft1_source_grammar_is_strict_before_linking() {
             "cannot declare x",
         ),
         (
-            r##"<grida version="1"><container><use href="./library.grida.xml"/></container></grida>"##,
+            r##"<grida version="1"><container><use href="./library.n0.xml"/></container></grida>"##,
             "requires an ID fragment",
         ),
         (
@@ -99,13 +99,12 @@ fn draft1_source_grammar_is_strict_before_linking() {
         ),
         (
             r##"<grida version="1"><component id="item"><prop name="x" type="number"/></component></grida>"##,
-            "requires Grida XML Version 2",
+            "requires n0 XML Version 2",
         ),
     ];
 
     for (source, expected) in cases {
-        let error =
-            grida_xml_source::parse_source(snapshot("bad", "memory:/", source)).unwrap_err();
+        let error = n0_xml_source::parse_source(snapshot("bad", "memory:/", source)).unwrap_err();
         assert_eq!(error.phase, ErrorPhase::Parse, "{error}");
         assert!(error.to_string().contains(expected), "{error}");
     }
@@ -126,7 +125,7 @@ fn local_uses_materialize_as_independent_boxed_subtrees_in_caller_order() {
 "##;
     let mut provider = MemoryProvider::default();
     let output =
-        grida_xml_source::materialize(snapshot("entry", "memory:/entry/", source), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/entry/", source), &mut provider)
             .unwrap();
 
     assert!(
@@ -184,8 +183,8 @@ fn external_uses_load_one_retained_immutable_source_unit() {
     let entry = r##"
 <grida version="1">
   <container width="80" height="60">
-    <use href="./library.grida.xml#badge"/>
-    <use href="./library.grida.xml#badge" x="20"/>
+    <use href="./library.n0.xml#badge"/>
+    <use href="./library.n0.xml#badge" x="20"/>
   </container>
 </grida>
 "##;
@@ -199,12 +198,12 @@ fn external_uses_load_one_retained_immutable_source_unit() {
     let mut provider = MemoryProvider::default();
     provider.insert(
         "entry",
-        "./library.grida.xml",
+        "./library.n0.xml",
         snapshot("library", "memory:/library/", library),
     );
 
     let output =
-        grida_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
             .unwrap();
     assert_eq!(provider.requests.len(), 1, "one lexical edge is cached");
     assert_eq!(output.program.entry(), "entry");
@@ -227,7 +226,7 @@ fn hidden_component_edges_still_participate_in_cycle_detection() {
 </grida>
 "##;
     let mut provider = MemoryProvider::default();
-    let error = grida_xml_source::materialize(snapshot("cycle", "memory:/", source), &mut provider)
+    let error = n0_xml_source::materialize(snapshot("cycle", "memory:/", source), &mut provider)
         .unwrap_err();
     assert_eq!(error.phase, ErrorPhase::Link);
     assert!(
@@ -241,8 +240,8 @@ fn equal_relative_image_strings_from_distinct_origins_get_distinct_runtime_rids(
     let entry = r##"
 <grida version="1">
   <container width="80" height="40">
-    <use href="./a.grida.xml#card"/>
-    <use href="./b.grida.xml#card" x="30"/>
+    <use href="./a.n0.xml#card"/>
+    <use href="./b.n0.xml#card" x="30"/>
   </container>
 </grida>
 "##;
@@ -256,17 +255,17 @@ fn equal_relative_image_strings_from_distinct_origins_get_distinct_runtime_rids(
     let mut provider = MemoryProvider::default();
     provider.insert(
         "entry",
-        "./a.grida.xml",
+        "./a.n0.xml",
         snapshot("a", "memory:/a/", a.as_str()),
     );
     provider.insert(
         "entry",
-        "./b.grida.xml",
+        "./b.n0.xml",
         snapshot("b", "memory:/b/", b.as_str()),
     );
 
     let output =
-        grida_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
             .unwrap();
     assert_eq!(output.resources.len(), 2);
     assert_eq!(output.resources[0].authored, "./texture.png");
@@ -306,58 +305,59 @@ fn equal_relative_image_strings_from_distinct_origins_get_distinct_runtime_rids(
 
 #[test]
 fn failures_keep_parse_resolution_and_link_phases_distinct() {
-    let entry = r##"<grida version="1"><container><use href="./missing.grida.xml#x"/></container></grida>"##;
+    let entry =
+        r##"<grida version="1"><container><use href="./missing.n0.xml#x"/></container></grida>"##;
     let mut provider = MemoryProvider::default();
     let resolution =
-        grida_xml_source::materialize(snapshot("entry", "memory:/", entry), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/", entry), &mut provider)
             .unwrap_err();
     assert_eq!(resolution.phase, ErrorPhase::Resolve);
-    assert!(resolution.message.contains("./missing.grida.xml"));
+    assert!(resolution.message.contains("./missing.n0.xml"));
     assert_eq!(
         resolution.authored_use.as_ref().unwrap().href,
-        "./missing.grida.xml#x"
+        "./missing.n0.xml#x"
     );
 
     let unknown = r##"<grida version="1"><container><use href="#missing"/></container></grida>"##;
-    let link = grida_xml_source::materialize(snapshot("entry", "memory:/", unknown), &mut provider)
+    let link = n0_xml_source::materialize(snapshot("entry", "memory:/", unknown), &mut provider)
         .unwrap_err();
     assert_eq!(link.phase, ErrorPhase::Link);
     assert!(link.message.contains("not defined"));
 
     let future = r##"<grida version="99"><component id="x"/></grida>"##;
-    let direct =
-        grida_xml_source::parse_source(snapshot("future", "memory:/", future)).unwrap_err();
+    let direct = n0_xml_source::parse_source(snapshot("future", "memory:/", future)).unwrap_err();
     assert_eq!(direct.phase, ErrorPhase::Parse);
 
     let future_entry =
-        r##"<grida version="1"><container><use href="./future.grida.xml#x"/></container></grida>"##;
+        r##"<grida version="1"><container><use href="./future.n0.xml#x"/></container></grida>"##;
     let mut provider = MemoryProvider::default();
     provider.insert(
         "entry",
-        "./future.grida.xml",
+        "./future.n0.xml",
         snapshot("future", "memory:/future/", future),
     );
     let dependency =
-        grida_xml_source::materialize(snapshot("entry", "memory:/", future_entry), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/", future_entry), &mut provider)
             .unwrap_err();
     assert_eq!(dependency.phase, ErrorPhase::Resolve);
     assert_eq!(
         dependency.authored_use.as_ref().unwrap().href,
-        "./future.grida.xml#x"
+        "./future.n0.xml#x"
     );
 
     let mut provider = MemoryProvider::default();
     provider.insert(
         "entry",
-        "./invalid.grida.xml",
+        "./invalid.n0.xml",
         snapshot(
             "",
             "memory:/invalid/",
             r##"<grida version="1"><component id="x"/></grida>"##,
         ),
     );
-    let invalid_snapshot = r##"<grida version="1"><container><use href="./invalid.grida.xml#x"/></container></grida>"##;
-    let invalid = grida_xml_source::materialize(
+    let invalid_snapshot =
+        r##"<grida version="1"><container><use href="./invalid.n0.xml#x"/></container></grida>"##;
+    let invalid = n0_xml_source::materialize(
         snapshot("entry", "memory:/", invalid_snapshot),
         &mut provider,
     )
@@ -370,17 +370,17 @@ fn failures_keep_parse_resolution_and_link_phases_distinct() {
 fn canonical_identity_aliases_share_one_unit_and_inconsistent_snapshots_fail() {
     let entry = r##"
 <grida version="1"><container>
-  <use href="./library.grida.xml#card"/>
-  <use href="./alias.grida.xml#card" x="20"/>
+  <use href="./library.n0.xml#card"/>
+  <use href="./alias.n0.xml#card" x="20"/>
 </container></grida>
 "##;
     let library = r##"<grida version="1"><component id="card" width="10" height="10"/></grida>"##;
     let mut provider = MemoryProvider::default();
     let canonical = snapshot("library", "memory:/library/", library);
-    provider.insert("entry", "./library.grida.xml", canonical.clone());
-    provider.insert("entry", "./alias.grida.xml", canonical);
+    provider.insert("entry", "./library.n0.xml", canonical.clone());
+    provider.insert("entry", "./alias.n0.xml", canonical);
     let output =
-        grida_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
             .unwrap();
     assert_eq!(provider.requests.len(), 2);
     assert_eq!(output.program.units().len(), 2);
@@ -390,12 +390,12 @@ fn canonical_identity_aliases_share_one_unit_and_inconsistent_snapshots_fail() {
     let mut provider = MemoryProvider::default();
     provider.insert(
         "entry",
-        "./library.grida.xml",
+        "./library.n0.xml",
         snapshot("library", "memory:/library/", library),
     );
     provider.insert(
         "entry",
-        "./alias.grida.xml",
+        "./alias.n0.xml",
         snapshot(
             "library",
             "memory:/different/",
@@ -403,13 +403,13 @@ fn canonical_identity_aliases_share_one_unit_and_inconsistent_snapshots_fail() {
         ),
     );
     let error =
-        grida_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
             .unwrap_err();
     assert_eq!(error.phase, ErrorPhase::Resolve);
     assert!(error.message.contains("inconsistent bytes or base"));
     assert_eq!(
         error.authored_use.as_ref().unwrap().href,
-        "./alias.grida.xml#card"
+        "./alias.n0.xml#card"
     );
 }
 
@@ -431,7 +431,7 @@ fn image_manifest_covers_strokes_and_text_runs_and_dedupes_repeated_instances() 
 "##;
     let mut provider = MemoryProvider::default();
     let output =
-        grida_xml_source::materialize(snapshot("entry", "memory:/entry/", source), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/entry/", source), &mut provider)
             .unwrap();
     assert_eq!(
         output.resources.len(),
@@ -489,10 +489,10 @@ fn use_relationship_context_is_validated_during_materialization() {
   <container><use href="#item" flow="in"/></container>
 </grida>
 "##;
-    grida_xml_source::parse_source(snapshot("entry", "memory:/", source))
+    n0_xml_source::parse_source(snapshot("entry", "memory:/", source))
         .expect("source-local syntax is valid before the target relationship is materialized");
     let mut provider = MemoryProvider::default();
-    let error = grida_xml_source::materialize(snapshot("entry", "memory:/", source), &mut provider)
+    let error = n0_xml_source::materialize(snapshot("entry", "memory:/", source), &mut provider)
         .unwrap_err();
     assert_eq!(error.phase, ErrorPhase::Materialize);
     assert!(error
@@ -513,7 +513,7 @@ fn use_relationship_context_is_validated_during_materialization() {
   </container>
 </grida>
 "##;
-    let output = grida_xml_source::materialize(
+    let output = n0_xml_source::materialize(
         snapshot("valid", "memory:/", valid),
         &mut MemoryProvider::default(),
     )
@@ -526,7 +526,7 @@ fn use_relationship_context_is_validated_during_materialization() {
 #[test]
 fn draft0_source_materialization_rekeys_images_without_changing_the_draft0_api() {
     let source = r##"<grida version="0"><container><rect width="10" height="10"><fill><image src="./image.png"/></fill></rect></container></grida>"##;
-    let ordinary = grida_xml::parse(source).unwrap();
+    let ordinary = n0_xml::parse(source).unwrap();
     let original_rect = ordinary
         .get(ordinary.get(ordinary.root).children[0])
         .children[0];
@@ -537,7 +537,7 @@ fn draft0_source_materialization_rekeys_images_without_changing_the_draft0_api()
 
     let mut provider = MemoryProvider::default();
     let output =
-        grida_xml_source::materialize(snapshot("entry", "memory:/entry/", source), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/entry/", source), &mut provider)
             .unwrap();
     let scene = output.document.get(output.document.root).children[0];
     let rect = output.document.get(scene).children[0];
@@ -550,24 +550,23 @@ fn draft0_source_materialization_rekeys_images_without_changing_the_draft0_api()
         materialized.image,
         ResourceRef::Rid(output.resources[0].runtime_rid.clone())
     );
-    assert_eq!(grida_xml::VERSION, "0");
+    assert_eq!(n0_xml::VERSION, "0");
 }
 
 #[test]
 fn draft0_parse_and_print_contract_remains_unchanged() {
     let source = r##"<grida version="0"><container width="20" height="10"><rect width="4" height="5" fill="#123456"/></container></grida>"##;
-    let ordinary = grida_xml::parse(source).unwrap();
+    let ordinary = n0_xml::parse(source).unwrap();
     let mut provider = MemoryProvider::default();
     let linked =
-        grida_xml_source::materialize(snapshot("draft0", "memory:/", source), &mut provider)
-            .unwrap();
+        n0_xml_source::materialize(snapshot("draft0", "memory:/", source), &mut provider).unwrap();
     assert_eq!(ordinary, linked.document);
     assert_eq!(linked.program.units().len(), 1);
     assert_eq!(
         linked.program.unit("draft0").unwrap().version(),
         SourceVersion::Draft0
     );
-    assert!(grida_xml::print(&ordinary)
+    assert!(n0_xml::print(&ordinary)
         .unwrap()
         .starts_with("<grida version=\"0\">"));
 }

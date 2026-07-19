@@ -1,4 +1,4 @@
-//! Draft 0 `.grida.xml` source contract.
+//! Draft 0 `.n0.xml` source contract.
 //!
 //! The format envelope is structural and never becomes a paint node. Parsing
 //! preserves the model's implicit viewport-spanning document root and attaches
@@ -21,7 +21,7 @@ pub struct ParseError(pub String);
 
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "grida_xml: {}", self.0)
+        write!(f, "n0_xml: {}", self.0)
     }
 }
 
@@ -49,25 +49,23 @@ impl std::fmt::Display for PrintError {
             PrintError::NonCanonicalDocumentRoot => {
                 write!(
                     f,
-                    "grida_xml: document root is not the canonical viewport root"
+                    "n0_xml: document root is not the canonical viewport root"
                 )
             }
-            PrintError::RenderRootCount { found } => write!(
-                f,
-                "grida_xml: expected exactly one render root, found {found}"
-            ),
-            PrintError::RenderRootMustBeContainer { found } => write!(
-                f,
-                "grida_xml: render root must be a container, found {found}"
-            ),
+            PrintError::RenderRootCount { found } => {
+                write!(f, "n0_xml: expected exactly one render root, found {found}")
+            }
+            PrintError::RenderRootMustBeContainer { found } => {
+                write!(f, "n0_xml: render root must be a container, found {found}")
+            }
             PrintError::InvalidRenderRootParent => {
                 write!(
                     f,
-                    "grida_xml: render root is not parented by the document root"
+                    "n0_xml: render root is not parented by the document root"
                 )
             }
             PrintError::InvalidDocument(message) => {
-                write!(f, "grida_xml: document is not representable: {message}")
+                write!(f, "n0_xml: document is not representable: {message}")
             }
         }
     }
@@ -78,7 +76,7 @@ impl std::error::Error for PrintError {}
 /// Parse a complete Draft 0 document. This is a pure string-to-model boundary;
 /// hosts own paths, files, resources, and rasterization.
 pub fn parse(input: &str) -> Result<Document, ParseError> {
-    textir::parse_grida_xml(input).map_err(|error| ParseError(error.0))
+    textir::parse_n0_xml(input).map_err(|error| ParseError(error.0))
 }
 
 /// Compare source semantics, not arena allocation. Node ids, empty/tombstoned
@@ -257,7 +255,7 @@ pub fn print(doc: &Document) -> Result<String, PrintError> {
 
     let mut out = String::new();
     let _ = writeln!(out, "<grida version=\"{VERSION}\">");
-    textir::print_grida_xml_render_root(doc, render_root, 1, &mut out)
+    textir::print_n0_xml_render_root(doc, render_root, 1, &mut out)
         .map_err(PrintError::InvalidDocument)?;
     let _ = writeln!(out, "</grida>");
     let reparsed = parse(&out).map_err(|error| PrintError::InvalidDocument(error.0))?;

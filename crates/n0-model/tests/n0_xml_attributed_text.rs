@@ -1,11 +1,11 @@
 //! Focused contract for the flat `<text>` + direct-child `<tspan>` surface.
 
-use n0_model::grida_xml;
 use n0_model::model::*;
+use n0_model::n0_xml;
 
 fn parse_text(source: &str) -> (Document, NodeId) {
     let source = format!("<grida version=\"0\"><container>{source}</container></grida>");
-    let doc = grida_xml::parse(&source).expect("attributed text source parses");
+    let doc = n0_xml::parse(&source).expect("attributed text source parses");
     let container = doc.get(doc.root).children[0];
     let text = doc.get(container).children[0];
     (doc, text)
@@ -61,13 +61,13 @@ Z</text>"##,
     };
     assert_eq!(solid.color.to_hex(), "#FF0000");
 
-    let printed = grida_xml::print(&doc).expect("attributed text prints");
+    let printed = n0_xml::print(&doc).expect("attributed text prints");
     assert!(printed.contains(
         r##"<text font-size="18" font-weight="500" font-style="italic"> A🙂<tspan font-size="24" font-weight="700" font-style="normal" fill="#FF0000">中</tspan>
 Z</text>"##
     ));
-    let reparsed = grida_xml::parse(&printed).unwrap();
-    assert_eq!(printed, grida_xml::print(&reparsed).unwrap());
+    let reparsed = n0_xml::parse(&printed).unwrap();
+    assert_eq!(printed, n0_xml::print(&reparsed).unwrap());
 }
 
 #[test]
@@ -80,7 +80,7 @@ fn adjacent_equal_runs_coalesce_and_semantically_uniform_markup_disappears() {
     assert_eq!(value.runs.len(), 3);
     assert_eq!(value.run_text(&value.runs[1]), "ab");
 
-    let printed = grida_xml::print(&doc).unwrap();
+    let printed = n0_xml::print(&doc).unwrap();
     assert_eq!(printed.matches("<tspan").count(), 1, "{printed}");
     assert!(
         printed.contains(r#"<tspan font-weight="700">ab</tspan>"#),
@@ -93,7 +93,7 @@ fn adjacent_equal_runs_coalesce_and_semantically_uniform_markup_disappears() {
         Payload::Text { content, font_size }
             if content == "abc" && *font_size == TextStyleRec::DEFAULT_FONT_SIZE
     ));
-    let uniform_printed = grida_xml::print(&uniform).unwrap();
+    let uniform_printed = n0_xml::print(&uniform).unwrap();
     assert!(!uniform_printed.contains("<tspan"), "{uniform_printed}");
 }
 
@@ -124,7 +124,7 @@ fn structured_run_fills_preserve_order_and_explicit_emptiness() {
     assert!(value.runs[0].fills.is_none());
     assert!(value.runs[3].fills.is_none());
 
-    let printed = grida_xml::print(&doc).unwrap();
+    let printed = n0_xml::print(&doc).unwrap();
     assert!(printed.contains("<tspan><fill>"), "{printed}");
     assert!(
         printed.contains(r#"<image src="./texture.png" opacity="0.25"/>"#),
@@ -132,8 +132,8 @@ fn structured_run_fills_preserve_order_and_explicit_emptiness() {
     );
     assert!(printed.contains("</fill>B</tspan>"), "{printed}");
     assert!(printed.contains("<tspan><fill/>C</tspan>"), "{printed}");
-    let reparsed = grida_xml::parse(&printed).unwrap();
-    assert_eq!(printed, grida_xml::print(&reparsed).unwrap());
+    let reparsed = n0_xml::parse(&printed).unwrap();
+    assert_eq!(printed, n0_xml::print(&reparsed).unwrap());
 }
 
 #[test]
@@ -167,7 +167,7 @@ fn canonical_writer_normalizes_programmatic_run_boundaries() {
         default_style,
     };
 
-    let printed = grida_xml::print(&doc).expect("writer compares normalized text semantics");
+    let printed = n0_xml::print(&doc).expect("writer compares normalized text semantics");
     assert_eq!(printed.matches("<tspan").count(), 1, "{printed}");
     assert!(
         printed.contains(r#"<tspan font-weight="700">ab</tspan>"#),
@@ -175,7 +175,7 @@ fn canonical_writer_normalizes_programmatic_run_boundaries() {
     );
     assert_eq!(
         printed,
-        grida_xml::print(&grida_xml::parse(&printed).unwrap()).unwrap()
+        n0_xml::print(&n0_xml::parse(&printed).unwrap()).unwrap()
     );
 }
 
@@ -258,7 +258,7 @@ fn attributed_text_rejects_lossy_or_ambiguous_inline_syntax() {
 
     for (text, expected) in cases {
         let source = format!("<grida version=\"0\"><container>{text}</container></grida>");
-        let error = grida_xml::parse(&source).unwrap_err();
+        let error = n0_xml::parse(&source).unwrap_err();
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` for {text}, got {error}"
@@ -266,7 +266,7 @@ fn attributed_text_rejects_lossy_or_ambiguous_inline_syntax() {
     }
 
     let outside =
-        grida_xml::parse(r#"<grida version="0"><container><tspan>x</tspan></container></grida>"#)
+        n0_xml::parse(r#"<grida version="0"><container><tspan>x</tspan></container></grida>"#)
             .unwrap_err();
     assert!(outside.to_string().contains("direct child of <text>"));
 }

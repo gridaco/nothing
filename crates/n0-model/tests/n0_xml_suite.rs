@@ -1,8 +1,8 @@
-//! Draft 0 `.grida.xml` producer contract: structural envelope, canonical
+//! Draft 0 `.n0.xml` producer contract: structural envelope, canonical
 //! vocabulary, primitive-local composition, strict roots, and historical-TextIr compatibility.
 
-use n0_model::grida_xml::{self, PrintError};
 use n0_model::model::*;
+use n0_model::n0_xml::{self, PrintError};
 use n0_model::resolve::{resolve, ResolveOptions};
 use std::collections::BTreeMap;
 
@@ -21,7 +21,7 @@ const COMPOSED: &str = r#"
 /// a free-positioned child coordinate space without gaining layout behavior.
 #[test]
 fn draft0_preserves_primitive_children_and_local_geometry() {
-    let doc = grida_xml::parse(COMPOSED).expect("Draft 0 parses");
+    let doc = n0_xml::parse(COMPOSED).expect("Draft 0 parses");
     let document_root = doc.get(doc.root);
 
     assert_eq!(doc.root, 0);
@@ -68,8 +68,8 @@ fn draft0_preserves_primitive_children_and_local_geometry() {
 /// experiment, and normalized parse → print → parse remains a fixpoint.
 #[test]
 fn draft0_canonical_print_is_a_semantic_fixpoint() {
-    let doc = grida_xml::parse(COMPOSED).unwrap();
-    let printed = grida_xml::print(&doc).unwrap();
+    let doc = n0_xml::parse(COMPOSED).unwrap();
+    let printed = n0_xml::print(&doc).unwrap();
 
     assert!(printed.starts_with("<grida version=\"0\">\n"));
     assert!(printed.contains("<container width=\"800\" height=\"450\">"));
@@ -80,9 +80,9 @@ fn draft0_canonical_print_is_a_semantic_fixpoint() {
     assert!(!printed.contains(" w=\""));
     assert!(!printed.contains(" h=\""));
 
-    let reparsed = grida_xml::parse(&printed).unwrap();
+    let reparsed = n0_xml::parse(&printed).unwrap();
     assert_eq!(doc, reparsed);
-    assert_eq!(printed, grida_xml::print(&reparsed).unwrap());
+    assert_eq!(printed, n0_xml::print(&reparsed).unwrap());
 }
 
 #[test]
@@ -98,7 +98,7 @@ fn direct_primitives_map_to_shape_descriptors_and_preserve_children() {
   </container>
 </grida>
 "#;
-    let doc = grida_xml::parse(source).expect("direct primitives parse");
+    let doc = n0_xml::parse(source).expect("direct primitives parse");
     let container = doc.get(doc.root).children[0];
     let rect = doc.get(container).children[0];
     let children = &doc.get(rect).children;
@@ -126,24 +126,24 @@ fn direct_primitives_map_to_shape_descriptors_and_preserve_children() {
     assert_eq!(doc.get(children[0]).header.name.as_deref(), Some("ellipse"));
     assert_eq!(doc.get(children[1]).header.height, SizeIntent::Fixed(0.0));
 
-    let printed = grida_xml::print(&doc).expect("direct primitives print");
+    let printed = n0_xml::print(&doc).expect("direct primitives print");
     assert!(printed.contains("<rect name=\"rect\" width=\"100\" height=\"50\">"));
     assert!(printed.contains("<ellipse name=\"ellipse\" width=\"20\" height=\"10\"/>"));
     assert!(printed.contains("<line name=\"line\" width=\"30\"/>"));
     assert!(!printed.contains("<shape"));
     assert!(!printed.contains(" kind=\""));
-    assert_eq!(doc, grida_xml::parse(&printed).unwrap());
+    assert_eq!(doc, n0_xml::parse(&printed).unwrap());
 }
 
 #[test]
-fn direct_primitives_are_exclusive_to_grida_xml() {
-    let reserved = grida_xml::parse(
+fn direct_primitives_are_exclusive_to_n0_xml() {
+    let reserved = n0_xml::parse(
         r#"<grida version="0"><container><shape kind="rect" width="1" height="1"/></container></grida>"#,
     )
     .unwrap_err();
     assert!(reserved.to_string().contains("<shape> is reserved"));
 
-    let kind_alias = grida_xml::parse(
+    let kind_alias = n0_xml::parse(
         r#"<grida version="0"><container><rect kind="rect" width="1" height="1"/></container></grida>"#,
     )
     .unwrap_err();
@@ -171,13 +171,13 @@ fn direct_primitives_are_exclusive_to_grida_xml() {
 }
 
 #[test]
-fn grida_xml_rejects_unreserved_native_animation_syntax() {
+fn n0_xml_rejects_unreserved_native_animation_syntax() {
     for source in [
         r#"<grida version="0"><container><rect width="80" height="80"><animate property="x" from="0" to="240" dur="600ms"/></rect></container></grida>"#,
         r#"<grida version="0"><container><animations><animation target="card" property="x" duration="600ms"/></animations></container></grida>"#,
         r#"<grida version="0"><container><rect width="80" height="80" dur="600ms"/></container></grida>"#,
     ] {
-        let error = grida_xml::parse(source).unwrap_err();
+        let error = n0_xml::parse(source).unwrap_err();
         assert!(
             error.to_string().contains("unknown"),
             "native animation syntax must fail explicitly: {error}"
@@ -188,10 +188,10 @@ fn grida_xml_rejects_unreserved_native_animation_syntax() {
 #[test]
 fn canonical_print_escapes_attribute_values() {
     let source = r#"<grida version="0"><container name="A &amp; &quot;B&quot;" width="10" height="10"/></grida>"#;
-    let doc = grida_xml::parse(source).unwrap();
-    let printed = grida_xml::print(&doc).unwrap();
+    let doc = n0_xml::parse(source).unwrap();
+    let printed = n0_xml::print(&doc).unwrap();
     assert!(printed.contains("name=\"A &amp; &quot;B&quot;\""));
-    assert_eq!(doc, grida_xml::parse(&printed).unwrap());
+    assert_eq!(doc, n0_xml::parse(&printed).unwrap());
 }
 
 #[test]
@@ -203,14 +203,14 @@ fn draft0_uses_long_constraint_vocabulary() {
   </container>
 </grida>
 "#;
-    let doc = grida_xml::parse(source).unwrap();
+    let doc = n0_xml::parse(source).unwrap();
     let container = doc.get(doc.root).children[0];
     let shape = doc.get(container).children[0];
     assert_eq!(
         resolve(&doc, &ResolveOptions::default()).box_of(shape).h,
         30.0
     );
-    let printed = grida_xml::print(&doc).unwrap();
+    let printed = n0_xml::print(&doc).unwrap();
     for spelling in [
         "min-width=\"10\"",
         "max-width=\"40\"",
@@ -223,22 +223,22 @@ fn draft0_uses_long_constraint_vocabulary() {
     }
     assert!(!printed.contains(" min-w=\""));
     assert!(!printed.contains(" aspect=\""));
-    assert_eq!(doc, grida_xml::parse(&printed).unwrap());
+    assert_eq!(doc, n0_xml::parse(&printed).unwrap());
 }
 
 #[test]
 fn direct_text_whitespace_is_preserved() {
     let source =
         "<grida version=\"0\"><container><text>  hello\nworld  </text></container></grida>";
-    let doc = grida_xml::parse(source).unwrap();
+    let doc = n0_xml::parse(source).unwrap();
     let container = doc.get(doc.root).children[0];
     let text = doc.get(container).children[0];
     match &doc.get(text).payload {
         Payload::Text { content, .. } => assert_eq!(content, "  hello\nworld  "),
         payload => panic!("expected text, got {payload:?}"),
     }
-    let printed = grida_xml::print(&doc).unwrap();
-    assert_eq!(doc, grida_xml::parse(&printed).unwrap());
+    let printed = n0_xml::print(&doc).unwrap();
+    assert_eq!(doc, n0_xml::parse(&printed).unwrap());
 
     let historical =
         n0_model::textir::parse("<frame w=\"10\" h=\"10\"><text>  hello\nworld  </text></frame>")
@@ -259,7 +259,7 @@ fn booleans_are_exactly_true_or_false() {
         r#"<grida version="0"><container clips="1"/></grida>"#,
     ];
     for source in cases {
-        let error = grida_xml::parse(source).unwrap_err();
+        let error = n0_xml::parse(source).unwrap_err();
         assert!(error.to_string().contains("exactly `true` or `false`"));
     }
 }
@@ -289,7 +289,7 @@ fn numeric_domains_are_checked_at_parse_time() {
         ),
     ];
     for (source, expected) in cases {
-        let error = grida_xml::parse(source).unwrap_err();
+        let error = n0_xml::parse(source).unwrap_err();
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}`"
@@ -318,7 +318,7 @@ fn grow_gap_and_padding_are_non_negative_only_in_draft0() {
         ),
     ];
     for (source, expected) in cases {
-        let error = grida_xml::parse(source).unwrap_err();
+        let error = n0_xml::parse(source).unwrap_err();
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}`"
@@ -342,14 +342,14 @@ fn flex_child_attributes_are_context_strict() {
         r#"<grida version="0"><container layout="flex"><rect flow="absolute" grow="1" width="1" height="1"/></container></grida>"#,
     ];
     for source in rejected {
-        assert!(grida_xml::parse(source).is_err(), "must reject: {source}");
+        assert!(n0_xml::parse(source).is_err(), "must reject: {source}");
     }
 
     for source in [
         r#"<grida version="0"><container layout="flex"><rect grow="1" align="center" width="1" height="1"/></container></grida>"#,
         r#"<grida version="0"><container layout="flex"><rect flow="absolute" x="0" y="0" width="1" height="1"/></container></grida>"#,
     ] {
-        grida_xml::parse(source).expect("applicable flex attributes accepted");
+        n0_xml::parse(source).expect("applicable flex attributes accepted");
     }
 
     n0_model::textir::parse(
@@ -369,7 +369,7 @@ fn strict_lens_ops_reject_empty_arguments() {
     ] {
         let strict =
             format!("<grida version=\"0\"><container><lens ops=\"{ops}\"/></container></grida>");
-        assert!(grida_xml::parse(&strict).is_err(), "must reject `{ops}`");
+        assert!(n0_xml::parse(&strict).is_err(), "must reject `{ops}`");
     }
 
     n0_model::textir::parse(r#"<frame w="10" h="10"><lens ops="translate(1,,2)"/></frame>"#)
@@ -383,7 +383,7 @@ fn xml_declaration_is_single_and_before_the_envelope() {
         r#"<?xml version="1.0" encoding="UTF-8"?><grida version="0"><container/></grida>"#,
         r#"<?xml version="1.0" encoding="utf-8"?><grida version="0"><container/></grida>"#,
     ] {
-        grida_xml::parse(valid).expect("supported leading declaration is accepted");
+        n0_xml::parse(valid).expect("supported leading declaration is accepted");
     }
 
     for source in [
@@ -398,7 +398,7 @@ fn xml_declaration_is_single_and_before_the_envelope() {
         r#"<?xml version="1.0" standalone="yes"?><grida version="0"><container/></grida>"#,
         r#"<?xml version="1.0" encoding="UTF-8" foo="bar"?><grida version="0"><container/></grida>"#,
     ] {
-        assert!(grida_xml::parse(source).is_err(), "must reject: {source}");
+        assert!(n0_xml::parse(source).is_err(), "must reject: {source}");
     }
 
     n0_model::textir::parse(r#"<?xml foo="bar"?><frame w="10" h="10"/>"#)
@@ -409,7 +409,7 @@ fn xml_declaration_is_single_and_before_the_envelope() {
 fn authored_root_and_shape_constraints_are_structural() {
     for attr in ["flow=\"absolute\"", "grow=\"1\"", "align=\"center\""] {
         let source = format!("<grida version=\"0\"><container {attr}/></grida>");
-        let error = grida_xml::parse(&source).unwrap_err();
+        let error = n0_xml::parse(&source).unwrap_err();
         assert!(error.to_string().contains("authored root <container>"));
     }
 
@@ -418,8 +418,8 @@ fn authored_root_and_shape_constraints_are_structural() {
         r#"<grida version="0"><container width="100" height="100"><ellipse x="span 0 0" aspect-ratio="2:1"/></container></grida>"#,
         r#"<grida version="0"><container width="100" height="100"><line x="span 0 0"/></container></grida>"#,
     ] {
-        let doc = grida_xml::parse(source).expect("Span supplies the primitive axis");
-        grida_xml::print(&doc).expect("accepted primitive sizing prints and reparses");
+        let doc = n0_xml::parse(source).expect("Span supplies the primitive axis");
+        n0_xml::print(&doc).expect("accepted primitive sizing prints and reparses");
     }
 
     let cases = [
@@ -485,7 +485,7 @@ fn authored_root_and_shape_constraints_are_structural() {
         ),
     ];
     for (source, expected) in cases {
-        let error = grida_xml::parse(source).unwrap_err();
+        let error = n0_xml::parse(source).unwrap_err();
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}`"
@@ -505,9 +505,9 @@ fn authored_root_bindings_resolve_against_the_viewport_and_roundtrip() {
   </container>
 </grida>
 "#;
-    let doc = grida_xml::parse(source).expect("root bindings parse");
-    let printed = grida_xml::print(&doc).expect("root bindings print");
-    let reparsed = grida_xml::parse(&printed).expect("root bindings reparse");
+    let doc = n0_xml::parse(source).expect("root bindings parse");
+    let printed = n0_xml::print(&doc).expect("root bindings print");
+    let reparsed = n0_xml::parse(&printed).expect("root bindings reparse");
     assert_eq!(doc, reparsed);
 
     let root = doc.get(doc.root).children[0];
@@ -564,7 +564,7 @@ fn authored_root_bindings_resolve_against_the_viewport_and_roundtrip() {
         let source = format!(
             "<grida version=\"0\"><container {bindings} width=\"100\" height=\"50\"/></grida>"
         );
-        let doc = grida_xml::parse(&source).expect("root pin binding parses");
+        let doc = n0_xml::parse(&source).expect("root pin binding parses");
         let root = doc.get(doc.root).children[0];
         let resolved = resolve(
             &doc,
@@ -575,10 +575,10 @@ fn authored_root_bindings_resolve_against_the_viewport_and_roundtrip() {
         );
         assert!(resolved.reports.is_empty(), "{:?}", resolved.reports);
         assert_eq!(resolved.xywh(root), expected);
-        let printed = grida_xml::print(&doc).expect("root pin binding prints");
+        let printed = n0_xml::print(&doc).expect("root pin binding prints");
         assert_eq!(
             doc,
-            grida_xml::parse(&printed).expect("root pin binding reparses")
+            n0_xml::parse(&printed).expect("root pin binding reparses")
         );
     }
 }
@@ -589,17 +589,17 @@ fn fill_shorthand_normalizes_and_is_not_valid_on_derived_kinds() {
         let source = format!(
             "<grida version=\"0\"><container><rect width=\"1\" height=\"1\" fill=\"{fill}\"/></container></grida>"
         );
-        let error = grida_xml::parse(&source).unwrap_err();
+        let error = n0_xml::parse(&source).unwrap_err();
         assert!(error.to_string().contains("#RGB or #RRGGBB"));
     }
     let group = r##"<grida version="0"><container><group fill="#112233"/></container></grida>"##;
-    assert!(grida_xml::parse(group)
+    assert!(n0_xml::parse(group)
         .unwrap_err()
         .to_string()
         .contains("fill is not valid"));
 
     let valid = r##"<grida version="0"><container><rect width="1" height="1" fill="#abc"/></container></grida>"##;
-    let printed = grida_xml::print(&grida_xml::parse(valid).unwrap()).unwrap();
+    let printed = n0_xml::print(&n0_xml::parse(valid).unwrap()).unwrap();
     assert!(printed.contains("fill=\"#AABBCC\""));
     assert!(!printed.contains("<fill>"));
 }
@@ -613,10 +613,7 @@ fn historical_vocabulary_is_textir_only() {
         r#"<grida version="0"><container w="300" height="200"/></grida>"#,
         r#"<grida version="0"><container width="300" h="200"/></grida>"#,
     ] {
-        assert!(
-            grida_xml::parse(source).is_err(),
-            "Draft 0 rejected: {source}"
-        );
+        assert!(n0_xml::parse(source).is_err(), "Draft 0 rejected: {source}");
     }
 
     let historical = n0_model::textir::parse(r#"<frame w="300" h="200"/>"#)
@@ -666,7 +663,7 @@ fn malformed_document_boundaries_are_typed_errors() {
     ];
 
     for (source, expected) in cases {
-        let error: grida_xml::ParseError = grida_xml::parse(source).unwrap_err();
+        let error: n0_xml::ParseError = n0_xml::parse(source).unwrap_err();
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}`"
@@ -680,14 +677,14 @@ fn malformed_document_boundaries_are_typed_errors() {
 fn print_rejects_documents_outside_the_draft0_root_contract() {
     let empty = DocBuilder::new().build();
     assert_eq!(
-        grida_xml::print(&empty),
+        n0_xml::print(&empty),
         Err(PrintError::RenderRootCount { found: 0 })
     );
 
-    let mut parsed = grida_xml::parse(COMPOSED).unwrap();
+    let mut parsed = n0_xml::parse(COMPOSED).unwrap();
     parsed.get_mut(parsed.root).header.width = SizeIntent::Fixed(10.0);
     assert_eq!(
-        grida_xml::print(&parsed),
+        n0_xml::print(&parsed),
         Err(PrintError::NonCanonicalDocumentRoot)
     );
 
@@ -700,17 +697,17 @@ fn print_rejects_documents_outside_the_draft0_root_contract() {
         },
     );
     assert_eq!(
-        grida_xml::print(&shape_root.build()),
+        n0_xml::print(&shape_root.build()),
         Err(PrintError::RenderRootMustBeContainer { found: "shape" })
     );
 
-    let mut invalid_authored_root = grida_xml::parse(COMPOSED).unwrap();
+    let mut invalid_authored_root = n0_xml::parse(COMPOSED).unwrap();
     let authored_root = invalid_authored_root
         .get(invalid_authored_root.root)
         .children[0];
     invalid_authored_root.get_mut(authored_root).header.flow = Flow::Absolute;
     assert!(matches!(
-        grida_xml::print(&invalid_authored_root),
+        n0_xml::print(&invalid_authored_root),
         Err(PrintError::InvalidDocument(_))
     ));
 
@@ -730,7 +727,7 @@ fn print_rejects_documents_outside_the_draft0_root_contract() {
     };
     derived_span.add(authored_root, group_header, Payload::Group);
     assert!(matches!(
-        grida_xml::print(&derived_span.build()),
+        n0_xml::print(&derived_span.build()),
         Err(PrintError::InvalidDocument(_))
     ));
 }
@@ -745,16 +742,16 @@ fn print_roundtrip_ignores_arena_ids_but_not_tree_integrity() {
   </container>
 </grida>
 "#;
-    let mut tombstoned = grida_xml::parse(source).unwrap();
+    let mut tombstoned = n0_xml::parse(source).unwrap();
     let container = tombstoned.get(tombstoned.root).children[0];
     let removed = tombstoned.get(container).children[0];
     let survivor = tombstoned.get(container).children[1];
     tombstoned.remove_subtree(removed);
     assert_eq!(tombstoned.get(container).children, vec![survivor]);
-    let printed = grida_xml::print(&tombstoned).expect("tombstoned ids are storage only");
+    let printed = n0_xml::print(&tombstoned).expect("tombstoned ids are storage only");
     assert!(!printed.contains("name=\"A\""));
     assert!(printed.contains("name=\"B\""));
-    grida_xml::parse(&printed).expect("printed survivor reparses");
+    n0_xml::parse(&printed).expect("printed survivor reparses");
 
     let mut sparse = DocBuilder::new();
     let authored_root = sparse.add(
@@ -776,7 +773,7 @@ fn print_roundtrip_ignores_arena_ids_but_not_tree_integrity() {
             },
         ),
     );
-    grida_xml::print(&sparse).expect("non-DFS arena ids are storage only");
+    n0_xml::print(&sparse).expect("non-DFS arena ids are storage only");
 
     let canonical = DocBuilder::new().build();
     let mut relocated_root = canonical.get(canonical.root).clone();
@@ -794,27 +791,27 @@ fn print_roundtrip_ignores_arena_ids_but_not_tree_integrity() {
         BTreeMap::from([(7, relocated_root), (9, relocated_container)]),
         7,
     );
-    grida_xml::print(&relocated).expect("root ids are storage only");
+    n0_xml::print(&relocated).expect("root ids are storage only");
 
-    let mut unreachable = grida_xml::parse(COMPOSED).unwrap();
+    let mut unreachable = n0_xml::parse(COMPOSED).unwrap();
     let container = unreachable.get(unreachable.root).children[0];
     unreachable.get_mut(container).children.clear();
     assert!(matches!(
-        grida_xml::print(&unreachable),
+        n0_xml::print(&unreachable),
         Err(PrintError::InvalidDocument(_))
     ));
 
-    let mut dead_edge = grida_xml::parse(COMPOSED).unwrap();
+    let mut dead_edge = n0_xml::parse(COMPOSED).unwrap();
     dead_edge.get_mut(dead_edge.root).children[0] = 99;
     assert!(matches!(
-        grida_xml::print(&dead_edge),
+        n0_xml::print(&dead_edge),
         Err(PrintError::InvalidDocument(_))
     ));
 
     let mut dead_root = DocBuilder::new().build();
     dead_root.remove_subtree(dead_root.root);
     assert!(matches!(
-        grida_xml::print(&dead_root),
+        n0_xml::print(&dead_root),
         Err(PrintError::InvalidDocument(_))
     ));
 }

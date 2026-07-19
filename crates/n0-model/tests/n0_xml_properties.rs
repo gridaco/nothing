@@ -1,21 +1,21 @@
-//! Positive Draft 0 property coverage that complements `grida_xml_suite`.
+//! Positive Draft 0 property coverage that complements `n0_xml_suite`.
 //!
 //! That suite already proves `name`, fixed `width`/`height`, all four size
 //! constraints, `aspect-ratio`, bare start bindings, and `flip-y`. This file
 //! covers the accepted value forms that otherwise lacked both direct model
 //! assertions and a canonical parse -> print -> parse fixpoint.
 
-use n0_model::grida_xml;
 use n0_model::model::*;
+use n0_model::n0_xml;
 
 fn canonical(source: &str) -> (Document, String) {
-    let doc = grida_xml::parse(source).expect("Draft 0 source parses");
-    let printed = grida_xml::print(&doc).expect("parsed Draft 0 source prints");
-    let reparsed = grida_xml::parse(&printed).expect("canonical source reparses");
+    let doc = n0_xml::parse(source).expect("Draft 0 source parses");
+    let printed = n0_xml::print(&doc).expect("parsed Draft 0 source prints");
+    let reparsed = n0_xml::parse(&printed).expect("canonical source reparses");
     assert_eq!(doc, reparsed, "semantic round-trip\n---\n{printed}");
     assert_eq!(
         printed,
-        grida_xml::print(&reparsed).expect("canonical source reprints"),
+        n0_xml::print(&reparsed).expect("canonical source reprints"),
         "writer fixpoint"
     );
     (doc, printed)

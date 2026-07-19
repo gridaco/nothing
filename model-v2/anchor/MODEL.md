@@ -37,7 +37,7 @@ kind answers two **independent** questions:
 | `lens`   | derived                                                         | children ∘ ops — **paint only**                                    |
 
 `shape` here names the internal parametric payload family, not an authored
-element. Draft 0 Grida XML lowers `<rect>`, `<ellipse>`, and `<line>` into
+element. Draft 0 n0 XML lowers `<rect>`, `<ellipse>`, and `<line>` into
 this family; the frozen E3 TextIr dialect alone spells it
 `<shape kind="…">`.
 

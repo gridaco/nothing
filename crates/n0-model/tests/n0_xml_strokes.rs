@@ -1,8 +1,8 @@
 //! Draft 0 stroke-channel contract: repeated geometry applications, target-
 //! specific attributes, ordered paints, canonical defaults, and strict errors.
 
-use n0_model::grida_xml::{self, PrintError};
 use n0_model::model::*;
+use n0_model::n0_xml::{self, PrintError};
 
 fn named(doc: &Document, name: &str) -> NodeId {
     (0..doc.capacity() as NodeId)
@@ -33,7 +33,7 @@ fn repeated_strokes_preserve_geometry_paint_and_source_order() {
   </container>
 </grida>
 "##;
-    let doc = grida_xml::parse(source).expect("repeated strokes parse");
+    let doc = n0_xml::parse(source).expect("repeated strokes parse");
     let road = doc.get(named(&doc, "road"));
     assert_eq!(road.strokes.len(), 2);
 
@@ -56,17 +56,17 @@ fn repeated_strokes_preserve_geometry_paint_and_source_order() {
     assert!(matches!(top.paints[0], Paint::Solid(_)));
     assert!(matches!(top.paints[1], Paint::LinearGradient(_)));
 
-    let printed = grida_xml::print(&doc).expect("repeated strokes print");
+    let printed = n0_xml::print(&doc).expect("repeated strokes print");
     let bottom_at = printed.find("width=\"12\"").unwrap();
     let top_at = printed.find("width=\"3\"").unwrap();
     assert!(bottom_at < top_at, "{printed}");
     assert!(printed.contains("dash-array=\"4 2 1 4 2 1\""), "{printed}");
     assert!(printed.contains("<gradient kind=\"linear\""), "{printed}");
     assert!(!printed.contains("<linear-gradient"), "{printed}");
-    assert_eq!(doc, grida_xml::parse(&printed).unwrap());
+    assert_eq!(doc, n0_xml::parse(&printed).unwrap());
     assert_eq!(
         printed,
-        grida_xml::print(&grida_xml::parse(&printed).unwrap()).unwrap()
+        n0_xml::print(&n0_xml::parse(&printed).unwrap()).unwrap()
     );
 }
 
@@ -80,7 +80,7 @@ fn stroke_defaults_are_target_specific_and_round_trip() {
   <text name="text"><stroke><solid color="#fff"/></stroke>x</text>
 </container></grida>
 "##;
-    let doc = grida_xml::parse(source).unwrap();
+    let doc = n0_xml::parse(source).unwrap();
     for name in ["rect", "ellipse", "text"] {
         let stroke = &doc.get(named(&doc, name)).strokes[0];
         assert_eq!(stroke.width, StrokeWidth::Uniform(1.0), "{name}");
@@ -95,14 +95,14 @@ fn stroke_defaults_are_target_specific_and_round_trip() {
         StrokeAlign::Center
     );
 
-    let printed = grida_xml::print(&doc).unwrap();
+    let printed = n0_xml::print(&doc).unwrap();
     assert!(
         !printed.contains("width=\"1\""),
         "defaults are omitted: {printed}"
     );
     assert!(!printed.contains("align=\"inside\""), "{printed}");
     assert!(!printed.contains("align=\"center\""), "{printed}");
-    assert_eq!(doc, grida_xml::parse(&printed).unwrap());
+    assert_eq!(doc, n0_xml::parse(&printed).unwrap());
 }
 
 #[test]
@@ -115,7 +115,7 @@ fn enumerated_stroke_geometry_values_match_the_model_vocabulary() {
         let source = format!(
             r##"<grida version="0"><container><rect name="r" width="10" height="10"><stroke align="{value}"><solid color="#000"/></stroke></rect></container></grida>"##
         );
-        let doc = grida_xml::parse(&source).unwrap();
+        let doc = n0_xml::parse(&source).unwrap();
         assert_eq!(doc.get(named(&doc, "r")).strokes[0].align, expected);
     }
 
@@ -127,7 +127,7 @@ fn enumerated_stroke_geometry_values_match_the_model_vocabulary() {
         let source = format!(
             r##"<grida version="0"><container><line name="line" width="10"><stroke cap="{value}"><solid color="#000"/></stroke></line></container></grida>"##
         );
-        let doc = grida_xml::parse(&source).unwrap();
+        let doc = n0_xml::parse(&source).unwrap();
         assert_eq!(doc.get(named(&doc, "line")).strokes[0].cap, expected);
     }
 
@@ -139,7 +139,7 @@ fn enumerated_stroke_geometry_values_match_the_model_vocabulary() {
         let source = format!(
             r##"<grida version="0"><container><rect name="r" width="10" height="10"><stroke join="{value}"><solid color="#000"/></stroke></rect></container></grida>"##
         );
-        let doc = grida_xml::parse(&source).unwrap();
+        let doc = n0_xml::parse(&source).unwrap();
         assert_eq!(doc.get(named(&doc, "r")).strokes[0].join, expected);
     }
 }
@@ -150,7 +150,7 @@ fn default_empty_stroke_is_invalid_but_non_default_empty_geometry_survives() {
         r#"<grida version="0"><container><rect width="10" height="10"><stroke/></rect></container></grida>"#,
         r#"<grida version="0"><container><line width="10"><stroke/></line></container></grida>"#,
     ] {
-        let error = grida_xml::parse(source).unwrap_err();
+        let error = n0_xml::parse(source).unwrap_err();
         assert!(error.to_string().contains("default empty"), "{error}");
         assert!(
             error
@@ -160,16 +160,16 @@ fn default_empty_stroke_is_invalid_but_non_default_empty_geometry_survives() {
         );
     }
 
-    let doc = grida_xml::parse(
+    let doc = n0_xml::parse(
         r#"<grida version="0"><container><rect name="dormant" width="10" height="10"><stroke width="2"/></rect></container></grida>"#,
     )
     .expect("non-default empty geometry remains authored state");
     let stroke = &doc.get(named(&doc, "dormant")).strokes[0];
     assert!(stroke.paints.is_empty());
     assert_eq!(stroke.width, StrokeWidth::Uniform(2.0));
-    let printed = grida_xml::print(&doc).unwrap();
+    let printed = n0_xml::print(&doc).unwrap();
     assert!(printed.contains("<stroke width=\"2\"/>"), "{printed}");
-    assert_eq!(doc, grida_xml::parse(&printed).unwrap());
+    assert_eq!(doc, n0_xml::parse(&printed).unwrap());
 }
 
 #[test]
@@ -227,7 +227,7 @@ fn target_specific_stroke_attributes_and_numeric_domains_are_strict() {
 
     for (node, expected) in cases {
         let source = format!("<grida version=\"0\"><container>{node}</container></grida>");
-        let error = grida_xml::parse(&source).unwrap_err();
+        let error = n0_xml::parse(&source).unwrap_err();
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}` for {node}"
@@ -256,7 +256,7 @@ fn stroke_structure_and_property_order_are_strict() {
         ),
     ];
     for (source, expected) in cases {
-        let error = grida_xml::parse(source).unwrap_err();
+        let error = n0_xml::parse(source).unwrap_err();
         assert!(
             error.to_string().contains(expected),
             "expected `{expected}` in `{error}`"
@@ -270,20 +270,20 @@ fn text_content_is_exact_around_fill_and_stroke_properties() {
   <fill><solid color="#f00" opacity="0.5"/></fill>
   <stroke width="2"><solid color="#00f"/></stroke>  hello
 world  </text></container></grida>"##;
-    let doc = grida_xml::parse(source).unwrap();
+    let doc = n0_xml::parse(source).unwrap();
     let label = doc.get(named(&doc, "label"));
     let Payload::Text { content, .. } = &label.payload else {
         panic!("text payload")
     };
     assert_eq!(content, "  hello\nworld  ");
     assert_eq!(label.strokes.len(), 1);
-    let printed = grida_xml::print(&doc).unwrap();
-    assert_eq!(doc, grida_xml::parse(&printed).unwrap());
+    let printed = n0_xml::print(&doc).unwrap();
+    assert_eq!(doc, n0_xml::parse(&printed).unwrap());
 }
 
 #[test]
 fn writer_omits_default_empty_stroke_and_refuses_invalid_stroke_state() {
-    let mut doc = grida_xml::parse(
+    let mut doc = n0_xml::parse(
         r#"<grida version="0"><container><rect name="r" width="10" height="10"/></container></grida>"#,
     )
     .unwrap();
@@ -292,7 +292,7 @@ fn writer_omits_default_empty_stroke_and_refuses_invalid_stroke_state() {
     doc.get_mut(r)
         .strokes
         .push(Stroke::default_for(&payload).unwrap());
-    let printed = grida_xml::print(&doc).expect("default empty stroke normalizes to omission");
+    let printed = n0_xml::print(&doc).expect("default empty stroke normalizes to omission");
     assert!(!printed.contains("<stroke"), "{printed}");
 
     let payload = doc.get(r).payload.clone();
@@ -303,34 +303,34 @@ fn writer_omits_default_empty_stroke_and_refuses_invalid_stroke_state() {
         .push(Paint::Solid(SolidPaint::new(Color::BLACK)));
     doc.get_mut(r).strokes = vec![invalid];
     assert!(matches!(
-        grida_xml::print(&doc),
+        n0_xml::print(&doc),
         Err(PrintError::InvalidDocument(message)) if message.contains("stroke") && message.contains("width")
     ));
 
-    let mut line = grida_xml::parse(
+    let mut line = n0_xml::parse(
         r##"<grida version="0"><container><line name="line" width="10"><stroke><solid color="#000"/></stroke></line></container></grida>"##,
     )
     .unwrap();
     let line_id = named(&line, "line");
     line.get_mut(line_id).strokes[0].align = StrokeAlign::Inside;
     assert!(matches!(
-        grida_xml::print(&line),
+        n0_xml::print(&line),
         Err(PrintError::InvalidDocument(message)) if message.contains("line") && message.contains("center")
     ));
 }
 
 #[test]
 fn writer_normalizes_programmatic_odd_dash_cycles_without_losing_semantics() {
-    let mut doc = grida_xml::parse(
+    let mut doc = n0_xml::parse(
         r##"<grida version="0"><container><rect name="r" width="20" height="20"><stroke><solid color="#000"/></stroke></rect></container></grida>"##,
     )
     .unwrap();
     let r = named(&doc, "r");
     doc.get_mut(r).strokes[0].dash_array = Some(vec![3.0, 2.0, 1.0]);
 
-    let printed = grida_xml::print(&doc).expect("odd dash cycles have an even canonical form");
+    let printed = n0_xml::print(&doc).expect("odd dash cycles have an even canonical form");
     assert!(printed.contains("dash-array=\"3 2 1 3 2 1\""), "{printed}");
-    let reparsed = grida_xml::parse(&printed).unwrap();
+    let reparsed = n0_xml::parse(&printed).unwrap();
     assert_eq!(
         reparsed.get(named(&reparsed, "r")).strokes[0]
             .dash_array

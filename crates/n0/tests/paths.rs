@@ -9,12 +9,12 @@ use std::sync::Arc;
 use n0::damage;
 use n0::drawlist::ItemKind;
 use n0::paint::PaintCtx;
-use n0_model::grida_xml;
+use n0_model::n0_xml;
 use n0_model::path::FillRule;
 use n0_model::resolve::{resolve, ResolveOptions};
 use skia_safe::{surfaces, Color as SkColor, Paint as SkPaint, Rect};
 
-const SOURCE: &str = include_str!("../rig/fixtures/unit-path.grida.xml");
+const SOURCE: &str = include_str!("../rig/fixtures/unit-path.n0.xml");
 const WIDTH: i32 = 96;
 const HEIGHT: i32 = 80;
 
@@ -27,7 +27,7 @@ fn options() -> ResolveOptions {
 
 #[test]
 fn one_path_artifact_drives_fill_and_repeated_strokes() {
-    let document = grida_xml::parse(SOURCE).expect("unit path fixture parses");
+    let document = n0_xml::parse(SOURCE).expect("unit path fixture parses");
     let resolved = resolve(&document, &options());
     let list = n0::drawlist::build_glyphless_unchecked(&document, &resolved);
 
@@ -77,9 +77,9 @@ fn evenodd_fill_and_repeated_strokes_render_in_painter_order() {
 
 #[test]
 fn same_box_path_edit_is_material_damage() {
-    let before = grida_xml::parse(SOURCE).unwrap();
+    let before = n0_xml::parse(SOURCE).unwrap();
     let edited_source = SOURCE.replace("M .35 .35 H .65", "M .45 .35 H .65");
-    let after = grida_xml::parse(&edited_source).unwrap();
+    let after = n0_xml::parse(&edited_source).unwrap();
     let before_resolved = resolve(&before, &options());
     let after_resolved = resolve(&after, &options());
 
@@ -90,12 +90,12 @@ fn same_box_path_edit_is_material_damage() {
 
 #[test]
 fn equivalent_path_spelling_is_not_visual_damage() {
-    let before = grida_xml::parse(SOURCE).unwrap();
+    let before = n0_xml::parse(SOURCE).unwrap();
     let equivalent_source = SOURCE.replace(
         "M .05 .05 H .95 V .95 H .05 Z M .35 .35 H .65 V .65 H .35 Z",
         "m .05 .05 h .9 v .9 h -.9 z m .3 .3 h .3 v .3 h -.3 z",
     );
-    let after = grida_xml::parse(&equivalent_source).unwrap();
+    let after = n0_xml::parse(&equivalent_source).unwrap();
 
     let before_resolved = resolve(&before, &options());
     let after_resolved = resolve(&after, &options());
@@ -111,7 +111,7 @@ fn equivalent_path_spelling_is_not_visual_damage() {
 #[test]
 fn path_children_paint_between_the_fill_and_parent_strokes() {
     let source = r##"<grida version="0"><container width="32" height="32"><path width="32" height="32" d="M 0 0 H 1 V 1 H 0 Z" fill="#EF4444"><stroke><solid color="#FFFFFF"/></stroke><rect x="8" y="8" width="16" height="16" fill="#2563EB"/></path></container></grida>"##;
-    let document = grida_xml::parse(source).unwrap();
+    let document = n0_xml::parse(source).unwrap();
     let resolved = resolve(
         &document,
         &ResolveOptions {

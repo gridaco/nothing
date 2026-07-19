@@ -1,5 +1,5 @@
 ---
-title: "Grida XML durable addressing"
+title: "n0 XML durable addressing"
 description: "RFD for durable authored node and component-occurrence addresses, typed property targets, and immutable effective values before animation semantics are introduced."
 keywords:
   - grida xml
@@ -18,7 +18,7 @@ tags:
 format: md
 ---
 
-# Grida XML durable addressing
+# n0 XML durable addressing
 
 **Status:** Accepted direction for a Version 4 proving implementation.
 
@@ -31,7 +31,7 @@ The decision is:
 
 1. authored identity, component occurrence, property identity, compiled
    runtime identity, and effective frame values are five different facts;
-2. Grida XML Version 4 gives every authored render node and every `use` a
+2. n0 XML Version 4 gives every authored render node and every `use` a
    durable owner-local `id`;
 3. a materialized node address combines its authored owner and member with an
    ordered path of durable use occurrences;
@@ -644,8 +644,8 @@ A conforming Version 4 reader and materializer:
 
 ## Deferred work
 
-Native animation grammar is explicitly deferred by the [Grida XML animation
-RFD](./grida-xml-animation.md). Any future proposal must state its time model,
+Native animation grammar is explicitly deferred by the [n0 XML animation
+RFD](./n0-xml-animation.md). Any future proposal must state its time model,
 source placement, target-reference spelling, keyframes, interpolation, easing,
 composition, event posture, static processing, resource behavior, and playback
 boundary.

@@ -4,9 +4,9 @@ use n0::{
     frame::{self, FrameBuildError, FrameError, FrameExecutionError},
     paint::{GradientPreflightReason, ImagePreflightReason, PaintCtx, PaintUseContext},
 };
-use n0_model::grida_xml;
 use n0_model::math::Affine;
 use n0_model::model::*;
+use n0_model::n0_xml;
 use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView};
 use n0_model::resolve::ResolveOptions;
 use skia_safe::{surfaces, Color, FontMgr};
@@ -137,7 +137,7 @@ fn complete_product_executes_under_its_captured_environment() {
 
 #[test]
 fn parsed_subnormal_gradient_is_box_dependent_at_frame_build() {
-    let ordinary = grida_xml::parse(
+    let ordinary = n0_xml::parse(
         r##"<grida version="0"><container><rect width="100" height="100"><fill><gradient kind="linear" transform="1e-20 1e-20 0 1e-20 0 0"><stop offset="0" color="#000000"/><stop offset="1" color="#FFFFFF"/></gradient></fill></rect></container></grida>"##,
     )
     .expect("a finite transform with an exact nonzero f64 determinant parses");
@@ -153,7 +153,7 @@ fn parsed_subnormal_gradient_is_box_dependent_at_frame_build() {
         GradientPreflightReason::BackendMatrixNotInvertible
     );
 
-    let rescued = grida_xml::parse(
+    let rescued = n0_xml::parse(
         r##"<grida version="0"><container><rect width="1e20" height="1e20"><fill><gradient kind="linear" transform="1e-20 1e-20 0 1e-20 0 0"><stop offset="0" color="#000000"/><stop offset="1" color="#FFFFFF"/></gradient></fill></rect></container></grida>"##,
     )
     .expect("the same mathematically invertible transform parses");
@@ -276,7 +276,7 @@ fn frame_build_error_identifies_stroke_and_text_run_contexts() {
 
 #[test]
 fn render_rejects_before_mutating_the_destination_canvas() {
-    let document = grida_xml::parse(
+    let document = n0_xml::parse(
         r##"<grida version="0"><container><rect width="100" height="100"><fill><gradient kind="linear" transform="1e-20 1e-20 0 1e-20 0 0"><stop offset="0" color="#000000"/><stop offset="1" color="#FFFFFF"/></gradient></fill></rect></container></grida>"##,
     )
     .unwrap();

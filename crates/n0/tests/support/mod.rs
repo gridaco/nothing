@@ -1,8 +1,8 @@
 use n0::drawlist::DrawList;
 use n0::frame;
 use n0::paint::PaintCtx;
-use n0_model::grida_xml;
 use n0_model::math::Affine;
+use n0_model::n0_xml;
 use n0_model::resolve::ResolveOptions;
 use skia_safe::{
     image::CachingHint, surfaces, AlphaType, Color, ColorType, IPoint, Image, ImageInfo,
@@ -73,7 +73,7 @@ pub fn render_xml_on(
     clear: Color,
     ctx: &PaintCtx,
 ) -> (RgbaImage, DrawList) {
-    let doc = grida_xml::parse(source).expect("Grida XML fixture parses");
+    let doc = n0_xml::parse(source).expect("n0 XML fixture parses");
     let mut surface = surfaces::raster_n32_premul((width, height)).expect("raster surface");
     surface.canvas().clear(clear);
     let options = ResolveOptions {

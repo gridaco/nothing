@@ -1,9 +1,9 @@
-use n0_model::grida_xml;
 use n0_model::math::RectF;
 use n0_model::model::{
     AxisBinding, Color, FillRule, Paints, Payload, ShapeDesc, SizeIntent, StrokeAlign, StrokeCap,
     StrokeJoin,
 };
+use n0_model::n0_xml;
 use n0_model::path::{self, PathCommand};
 use n0_model::resolve::{resolve, ResolveOptions};
 use n0_model::svgout::{self, SvgOptions};
@@ -23,7 +23,7 @@ fn only_path(document: &n0_model::model::Document) -> n0_model::model::NodeId {
 #[test]
 fn path_is_a_boxed_unit_reference_shape_with_one_shared_artifact() {
     let d = "M 0 1 L .5 0 L 1 1 Z";
-    let document = grida_xml::parse(&source(&format!(
+    let document = n0_xml::parse(&source(&format!(
         "<path x=\"10\" y=\"20\" width=\"200\" height=\"100\" d=\"{d}\"/>"
     )))
     .unwrap();
@@ -69,7 +69,7 @@ fn path_is_a_boxed_unit_reference_shape_with_one_shared_artifact() {
 
 #[test]
 fn tight_path_geometry_not_the_layout_box_starts_visual_bounds() {
-    let document = grida_xml::parse(&source(
+    let document = n0_xml::parse(&source(
         "<path x=\"10\" y=\"20\" width=\"200\" height=\"100\" d=\"M .25 .25 H .75 V .75 H .25 Z\"/>",
     ))
     .unwrap();
@@ -89,7 +89,7 @@ fn tight_path_geometry_not_the_layout_box_starts_visual_bounds() {
 
 #[test]
 fn path_miter_strokes_expand_bounds_conservatively() {
-    let document = grida_xml::parse(&source(
+    let document = n0_xml::parse(&source(
         "<path width=\"100\" height=\"100\" d=\"M .25 .25 L .75 .25 L .5 .75 Z\"><stroke width=\"2\" align=\"outside\" join=\"miter\" miter-limit=\"4\"><solid color=\"#000\"/></stroke></path>",
     ))
     .unwrap();
@@ -109,14 +109,14 @@ fn path_miter_strokes_expand_bounds_conservatively() {
 #[test]
 fn evenodd_and_source_spelling_round_trip_canonically() {
     let d = "m 0 0 l 1 0 0 1 -1 0 z";
-    let document = grida_xml::parse(&source(&format!(
+    let document = n0_xml::parse(&source(&format!(
         "<path width=\"80\" height=\"40\" d=\"{d}\" fill-rule=\"evenodd\"/>"
     )))
     .unwrap();
-    let printed = grida_xml::print(&document).unwrap();
+    let printed = n0_xml::print(&document).unwrap();
     assert!(printed.contains(&format!("d=\"{d}\"")));
     assert!(printed.contains("fill-rule=\"evenodd\""));
-    let reparsed = grida_xml::parse(&printed).unwrap();
+    let reparsed = n0_xml::parse(&printed).unwrap();
     let Payload::Shape {
         desc: ShapeDesc::Path(path),
     } = &reparsed.get(only_path(&reparsed)).payload
@@ -300,7 +300,7 @@ fn path_reports_focused_source_errors() {
         ),
     ];
     for (path, expected) in cases {
-        let error = grida_xml::parse(&source(path)).unwrap_err().to_string();
+        let error = n0_xml::parse(&source(path)).unwrap_err().to_string();
         assert!(
             error.contains(expected),
             "{error:?} did not contain {expected:?}"
@@ -329,14 +329,14 @@ fn move_only_contours_and_coincident_arcs_do_not_invent_geometry_or_bounds() {
 
 #[test]
 fn open_and_closed_path_stroke_contracts_are_explicit() {
-    let open_error = grida_xml::parse(&source(
+    let open_error = n0_xml::parse(&source(
         "<path width=\"100\" height=\"100\" d=\"M 0 0 L 1 1\"><stroke align=\"inside\"><solid color=\"#000\"/></stroke></path>",
     ))
     .unwrap_err()
     .to_string();
     assert!(open_error.contains("every drawable contour is explicitly closed"));
 
-    let document = grida_xml::parse(&source(
+    let document = n0_xml::parse(&source(
         "<path width=\"100\" height=\"100\" d=\"M 0 0 L 1 0 L 1 1 Z\"><stroke width=\"3\" align=\"outside\" cap=\"round\" join=\"bevel\" miter-limit=\"7\" dash-array=\"2 1\"><solid color=\"#000\"/></stroke></path>",
     ))
     .unwrap();
@@ -347,7 +347,7 @@ fn open_and_closed_path_stroke_contracts_are_explicit() {
     assert_eq!(stroke.miter_limit, 7.0);
     assert_eq!(stroke.dash_array.as_deref(), Some(&[2.0, 1.0][..]));
 
-    let per_side = grida_xml::parse(&source(
+    let per_side = n0_xml::parse(&source(
         "<path width=\"100\" height=\"100\" d=\"M 0 0 L 1 0 L 1 1 Z\"><stroke width=\"1 2 3 4\"><solid color=\"#000\"/></stroke></path>",
     ))
     .unwrap_err()
@@ -357,7 +357,7 @@ fn open_and_closed_path_stroke_contracts_are_explicit() {
 
 #[test]
 fn path_accepts_render_children_in_its_declared_local_box() {
-    let document = grida_xml::parse(&source(
+    let document = n0_xml::parse(&source(
         "<path width=\"200\" height=\"100\" d=\"M 0 0 L 1 0 L .5 1 Z\"><rect x=\"50\" y=\"20\" width=\"30\" height=\"10\"/></path>",
     ))
     .unwrap();
@@ -374,7 +374,7 @@ fn path_accepts_render_children_in_its_declared_local_box() {
 
 #[test]
 fn svg_snapshot_maps_the_unit_path_through_its_resolved_box() {
-    let document = grida_xml::parse(&source(
+    let document = n0_xml::parse(&source(
         "<path x=\"10\" y=\"20\" width=\"200\" height=\"100\" d=\"M 0 0 H 1 V 1 Z\" fill-rule=\"evenodd\" fill=\"#7C3AED\"/>",
     ))
     .unwrap();
@@ -393,7 +393,7 @@ fn svg_snapshot_maps_the_unit_path_through_its_resolved_box() {
         "<path d=\"M 0 0 H 1 V 1 Z\" transform=\"matrix(200 0 0 100 10 20)\" fill-rule=\"evenodd\" fill=\"#7C3AED\"/>"
     ));
 
-    let arc_document = grida_xml::parse(&source(
+    let arc_document = n0_xml::parse(&source(
         "<path width=\"100\" height=\"100\" d=\"M .5 0 A .5 .5 0 0 1 1 .5\"/>",
     ))
     .unwrap();
@@ -409,7 +409,7 @@ fn svg_snapshot_maps_the_unit_path_through_its_resolved_box() {
     .unwrap();
     assert!(arc_svg.contains("d=\"M .5 0 A .5 .5 0 0 1 1 .5\""));
 
-    let mut imported_document = grida_xml::parse(&source(
+    let mut imported_document = n0_xml::parse(&source(
         "<path x=\"10\" y=\"20\" width=\"200\" height=\"100\" d=\"M 0 0 H 1 V 1 Z\"/>",
     ))
     .unwrap();
@@ -440,7 +440,7 @@ fn svg_snapshot_maps_the_unit_path_through_its_resolved_box() {
 
 #[test]
 fn writer_rejects_programmatic_path_box_states_the_reader_cannot_accept() {
-    let base = grida_xml::parse(&source(
+    let base = n0_xml::parse(&source(
         "<path width=\"100\" height=\"50\" d=\"M 0 0 H 1 V 1 Z\"/>",
     ))
     .unwrap();
@@ -449,7 +449,7 @@ fn writer_rejects_programmatic_path_box_states_the_reader_cannot_accept() {
                     mutate: fn(&mut n0_model::model::Header),
                     expected: &str| {
         mutate(&mut document.get_mut(id).header);
-        let error = grida_xml::print(&document).unwrap_err().to_string();
+        let error = n0_xml::print(&document).unwrap_err().to_string();
         assert!(
             error.contains(expected),
             "{error:?} did not contain {expected:?}"
@@ -503,7 +503,7 @@ fn writer_rejects_programmatic_path_box_states_the_reader_cannot_accept() {
 
 #[test]
 fn programmatic_open_path_alignment_fails_closed_for_paint_and_bounds() {
-    let mut document = grida_xml::parse(&source(
+    let mut document = n0_xml::parse(&source(
         "<path width=\"100\" height=\"100\" d=\"M .25 .25 L .75 .75\"><stroke width=\"20\"><solid color=\"#000\"/></stroke></path>",
     ))
     .unwrap();
@@ -520,7 +520,7 @@ fn programmatic_open_path_alignment_fails_closed_for_paint_and_bounds() {
             h: 50.0,
         }
     );
-    assert!(grida_xml::print(&document)
+    assert!(n0_xml::print(&document)
         .unwrap_err()
         .to_string()
         .contains("every drawable contour is explicitly closed"));
@@ -619,7 +619,7 @@ fn unit_and_huge_mapped_bounds_conservatively_contain_stored_commands() {
 
 #[test]
 fn resolved_control_overflow_fails_closed_without_losing_children() {
-    let mut document = grida_xml::parse(&source(
+    let mut document = n0_xml::parse(&source(
         "<path width=\"1\" height=\"1\" d=\"M 0 .5 C .25 2 .75 -1 1 .5\"><rect width=\"1\" height=\"1\"/></path>",
     ))
     .unwrap();

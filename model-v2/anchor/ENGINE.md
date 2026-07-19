@@ -329,7 +329,7 @@ delta-form, enumerated write-sets, "a drag ends as if written once" is
 law `[MEASURED]`. The spike ships snapshot undo (documents are values)
 `[MEASURED]`. The C-matrix demonstrated field-level merges in tests but
 has NEVER met a real replicated backend — named in the REPORT lose
-column `[MEASURED]`. Grida XML Version 4 now defines durable structured source
+column `[MEASURED]`. n0 XML Version 4 now defines durable structured source
 addresses separately from arena-scoped runtime keys `[MEASURED]`; the current
 operation and replay wires remain slot-addressed and therefore in-process
 only.

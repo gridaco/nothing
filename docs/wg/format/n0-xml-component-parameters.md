@@ -1,6 +1,6 @@
 ---
-title: "Grida XML component parameters"
-description: "Open RFD proposing statically evaluated typed scalar props and arguments for Grida XML components while keeping the rendering scene component-blind."
+title: "n0 XML component parameters"
+description: "Open RFD proposing statically evaluated typed scalar props and arguments for n0 XML components while keeping the rendering scene component-blind."
 keywords:
   - grida xml
   - component props
@@ -21,7 +21,7 @@ tags:
 format: md
 ---
 
-# Grida XML component parameters
+# n0 XML component parameters
 
 **Status:** Open RFD — selected Version 2 scalar-parameterization delta with a
 proving implementation of all six scalar types, defaults and required
@@ -31,24 +31,24 @@ rendering. Canonical source writers and complete-library validation remain
 unimplemented. None of the parameter vocabulary introduced by this RFD is
 valid Version 0 or Version 1 syntax.
 
-**Companion specifications:** [Grida XML](./grida-xml.md) owns ordinary authored
-scene values. [Grida XML modules and static component
-reuse](./grida-xml-modules.md) owns source units, boxed component definitions,
+**Companion specifications:** [n0 XML](./n0-xml.md) owns ordinary authored
+scene values. [n0 XML modules and static component
+reuse](./n0-xml-modules.md) owns source units, boxed component definitions,
 `use`, linking, materialization, and component provenance. This RFD specifies
-only the parameterization delta. [Grida XML component
-slots](./grida-xml-component-slots.md) separately owns the Version 3 named render
-projection delta. [Grida XML durable addressing](./grida-xml-addressing.md) owns
+only the parameterization delta. [n0 XML component
+slots](./n0-xml-component-slots.md) separately owns the Version 3 named render
+projection delta. [n0 XML durable addressing](./n0-xml-addressing.md) owns
 the later Version 4 member/use identity delta.
 
 ## Decision summary
 
-Grida XML components may declare a small, typed scalar interface. A use
+n0 XML components may declare a small, typed scalar interface. A use
 supplies explicit arguments to that interface. Parameter evaluation completes
 during linking and materialization; layout and rendering receive only an
 ordinary concrete Grida scene.
 
 ```xml
-<!-- components/card.grida.xml -->
+<!-- components/card.n0.xml -->
 <grida version="2">
   <component
     id="feature-card"
@@ -78,15 +78,15 @@ ordinary concrete Grida scene.
 ```
 
 ```xml
-<!-- presentation.grida.xml -->
+<!-- presentation.n0.xml -->
 <grida version="2">
   <container width="960" height="540" layout="flex" gap="24" padding="48">
-    <use href="./components/card.grida.xml#feature-card">
+    <use href="./components/card.n0.xml#feature-card">
       <arg name="title" value="Inspectable by default"/>
       <arg name="texture" value="./images/noise.png"/>
     </use>
 
-    <use href="./components/card.grida.xml#feature-card">
+    <use href="./components/card.n0.xml#feature-card">
       <arg name="title" value="Independent instance"/>
       <arg name="accent" value="#2563EB"/>
       <arg name="texture" value="./images/grid.png"/>
@@ -100,7 +100,7 @@ The proposal makes these choices:
 
 | Question                   | Proposed answer                                                       |
 | -------------------------- | --------------------------------------------------------------------- |
-| Ownership                  | Grida XML source linker and materializer                              |
+| Ownership                  | n0 XML source linker and materializer                              |
 | Rendering representation   | Existing ordinary scene nodes only                                    |
 | Declaration                | Leading direct `<prop>` child of `component`                          |
 | Argument                   | Direct `<arg>` child of `use`                                         |
@@ -109,7 +109,7 @@ The proposal makes these choices:
 | Missing argument           | Declaration default, otherwise an error                               |
 | Null                       | Not a Version 2 value                                                 |
 | Forwarding                 | Exact outer-prop reference as a nested argument value                 |
-| Expressions and reactivity | Outside Grida XML parameterization                                    |
+| Expressions and reactivity | Outside n0 XML parameterization                                    |
 | Render-valued input        | Proposed Version 3 named-slot delta; invalid in Version 2             |
 
 ## Why Grida owns this above rendering
@@ -120,8 +120,8 @@ to track the definition's default. Flattened render nodes cannot recover that
 relationship.
 
 Leaving even static parameters entirely to a secondary runtime would make
-that runtime—not Grida XML—the source of truth for defaults, resource origin,
-diagnostics, linked editing, and canonical writing. Grida XML would become a
+that runtime—not n0 XML—the source of truth for defaults, resource origin,
+diagnostics, linked editing, and canonical writing. n0 XML would become a
 generated render interchange rather than a complete file-first authored
 language.
 
@@ -141,7 +141,7 @@ entry source + source environment
 No prop declaration, argument, binding token, default state, or unresolved
 value enters ordinary scene resolution. A low-level consumer may continue to
 supply an already concrete scene without using components. A higher-level
-runtime may generate Grida XML or concrete scenes, but one is not required for
+runtime may generate n0 XML or concrete scenes, but one is not required for
 static component customization.
 
 ## Goals
@@ -182,7 +182,7 @@ This proposal does not define:
 - render-valued slots, children, or fallback subtrees.
 
 The named direct-projection subset now has a focused Version 3 proposal in
-[Grida XML component slots](./grida-xml-component-slots.md). It does not alter
+[n0 XML component slots](./n0-xml-component-slots.md). It does not alter
 this Version 2 boundary. Fallback subtrees and other absence policies remain
 deferred.
 
@@ -310,8 +310,8 @@ Each prop requires one explicit `type` from this closed initial set:
 | ---------- | ------------------------------------------------------------------------- |
 | `string`   | XML-decoded Unicode string; the empty string is valid                     |
 | `boolean`  | Exactly `true` or `false`                                                 |
-| `number`   | Finite Grida XML decimal number                                           |
-| `color`    | One value from the existing Grida XML authored-color domain               |
+| `number`   | Finite n0 XML decimal number                                           |
+| `color`    | One value from the existing n0 XML authored-color domain               |
 | `enum`     | One member of the declaration's explicit `values` set                     |
 | `resource` | Non-empty authored resource identifier carrying lexical source provenance |
 
@@ -581,7 +581,7 @@ segments deterministic.
 Binding recognition is controlled exclusively by the declared version of the
 source unit containing the lexical occurrence. The following rules apply only
 inside Version 2 source units. In Version 0 and Version 1 source, braces retain
-their ordinary Grida XML character meaning: `{name}` is not a binding,
+their ordinary n0 XML character meaning: `{name}` is not a binding,
 doubled braces have no escape semantics, and a Version 2 linker or writer must
 not scan, collapse, double, or otherwise reinterpret them. Substitution never
 changes the grammar version applied to copied component content.
@@ -691,9 +691,9 @@ different resources. Forwarding through an intermediate component never
 rebases the value to that component's source.
 
 For the primary example, `./images/noise.png` resolves relative to
-`presentation.grida.xml` because the caller authored the argument. Had
+`presentation.n0.xml` because the caller authored the argument. Had
 `texture` declared a relative default, that default would resolve relative to
-`components/card.grida.xml`.
+`components/card.n0.xml`.
 
 Materialization retains `(source origin, authored identifier)` until resource
 resolution or lowers it to an equivalent collision-free runtime key while
@@ -728,7 +728,7 @@ module contract; it does not pretend a runtime node handle is durable authored
 identity.
 
 Version 4 subsequently adds explicit render-member and use IDs through the
-[durable-addressing RFD](./grida-xml-addressing.md). It does not reinterpret a
+[durable-addressing RFD](./n0-xml-addressing.md). It does not reinterpret a
 Version 2 binding, source span, or materialized occurrence as identity.
 
 ## Cycles and processing limits
@@ -817,7 +817,7 @@ render fallbacks. Useful diagnostics include:
 - `"{label}" in top-level arg value cannot forward without an enclosing component scope; write "{{label}}" for literal text`;
 - `version 1 use cannot contain arg; component parameters require version 2`;
 - `version 2 use accepts only arg children; render assignments require version 3`;
-- `resource "./noise.png" was supplied at presentation.grida.xml:18 and could not be resolved`.
+- `resource "./noise.png" was supplied at presentation.n0.xml:18 and could not be resolved`.
 
 A nested failure identifies the declaration, argument or default that supplied
 the value, binding target, immediate use, referenced definition, and transitive
@@ -825,7 +825,7 @@ use chain. It must not be reported only against a transient materialized node.
 
 ## Version 3 named slot projection
 
-The [Grida XML component slots](./grida-xml-component-slots.md) RFD proposes the
+The [n0 XML component slots](./n0-xml-component-slots.md) RFD proposes the
 next exact language delta. Version 3 declares empty named insertion markers as
 `<slot name="…"/>` and supplies direct render roots under `use` with the
 contextual `slot="…"` relationship. Matching roots splice directly at the
@@ -851,10 +851,10 @@ language:
 - functions and user code; and
 - runtime-changing component selection.
 
-Such a runtime may produce versioned Grida XML source or a concrete ordinary
+Such a runtime may produce versioned n0 XML source or a concrete ordinary
 scene. The Grida renderer continues to accept the latter without requiring
 component support. Conversely, static props and slots do not require that
-runtime merely to render or edit an authored `.grida.xml` program.
+runtime merely to render or edit an authored `.n0.xml` program.
 
 ## Current model compatibility
 
@@ -879,7 +879,7 @@ diagnostics.
 ### External runtime owns all component parameters — rejected as canonical
 
 External producers remain supported, but requiring one for static defaults and
-arguments would make Grida XML unable to preserve or edit its own component
+arguments would make n0 XML unable to preserve or edit its own component
 API. Basic deterministic parameterization belongs to the source linker.
 
 ### Component, prop, or use nodes in the render scene — rejected

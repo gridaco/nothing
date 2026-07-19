@@ -1,13 +1,13 @@
-//! Checked-in `.grida.xml` examples are executable canonical source, not
+//! Checked-in `.n0.xml` examples are executable canonical source, not
 //! illustrative pseudocode. Keeping them at the writer fixpoint prevents the
 //! documentation corpus from drifting back to retired spellings. Each source
 //! is also resolved and painted once with its checked-in resources.
 
 use n0::frame;
 use n0::paint::PaintCtx;
-use n0_model::grida_xml;
 use n0_model::math::Affine;
 use n0_model::model::{Document, Paint, Payload, ResourceRef};
+use n0_model::n0_xml;
 use n0_model::resolve::{Report, ResolveOptions};
 use skia_safe::{surfaces, Color};
 use std::path::Path;
@@ -17,50 +17,50 @@ type Example = (&'static str, &'static str, &'static str, (i32, i32));
 const CANONICAL_EXAMPLES: [Example; 8] = [
     (
         "nested-rects",
-        "rig/fixtures/nested-rects.grida.xml",
-        include_str!("../rig/fixtures/nested-rects.grida.xml"),
+        "rig/fixtures/nested-rects.n0.xml",
+        include_str!("../rig/fixtures/nested-rects.n0.xml"),
         (96, 80),
     ),
     (
         "unit-path",
-        "rig/fixtures/unit-path.grida.xml",
-        include_str!("../rig/fixtures/unit-path.grida.xml"),
+        "rig/fixtures/unit-path.n0.xml",
+        include_str!("../rig/fixtures/unit-path.n0.xml"),
         (96, 80),
     ),
     (
         "dynamic-slide",
-        "rig/examples/dynamic-slide.grida.xml",
-        include_str!("../rig/examples/dynamic-slide.grida.xml"),
+        "rig/examples/dynamic-slide.n0.xml",
+        include_str!("../rig/examples/dynamic-slide.n0.xml"),
         (1280, 720),
     ),
     (
         "rich-fills",
-        "rig/examples/rich-fills.grida.xml",
-        include_str!("../rig/examples/rich-fills.grida.xml"),
+        "rig/examples/rich-fills.n0.xml",
+        include_str!("../rig/examples/rich-fills.n0.xml"),
         (720, 300),
     ),
     (
         "rich-strokes",
-        "rig/examples/rich-strokes.grida.xml",
-        include_str!("../rig/examples/rich-strokes.grida.xml"),
+        "rig/examples/rich-strokes.n0.xml",
+        include_str!("../rig/examples/rich-strokes.n0.xml"),
         (720, 320),
     ),
     (
         "source-becomes-surface",
-        "rig/examples/source-becomes-surface.grida.xml",
-        include_str!("../rig/examples/source-becomes-surface.grida.xml"),
+        "rig/examples/source-becomes-surface.n0.xml",
+        include_str!("../rig/examples/source-becomes-surface.n0.xml"),
         (1600, 1000),
     ),
     (
         "rounded-surfaces",
-        "rig/examples/rounded-surfaces.grida.xml",
-        include_str!("../rig/examples/rounded-surfaces.grida.xml"),
+        "rig/examples/rounded-surfaces.n0.xml",
+        include_str!("../rig/examples/rounded-surfaces.n0.xml"),
         (1440, 900),
     ),
     (
         "per-side-strokes",
-        "rig/examples/per-side-strokes.grida.xml",
-        include_str!("../rig/examples/per-side-strokes.grida.xml"),
+        "rig/examples/per-side-strokes.n0.xml",
+        include_str!("../rig/examples/per-side-strokes.n0.xml"),
         (1200, 760),
     ),
 ];
@@ -75,44 +75,44 @@ const CANONICAL_EXAMPLES: [Example; 8] = [
 const AUTHORED_SHOWCASES: [Example; 7] = [
     (
         "rich-text",
-        "rig/examples/rich-text.grida.xml",
-        include_str!("../rig/examples/rich-text.grida.xml"),
+        "rig/examples/rich-text.n0.xml",
+        include_str!("../rig/examples/rich-text.n0.xml"),
         (1280, 800),
     ),
     (
         "prism-launch",
-        "rig/examples/prism-launch.grida.xml",
-        include_str!("../rig/examples/prism-launch.grida.xml"),
+        "rig/examples/prism-launch.n0.xml",
+        include_str!("../rig/examples/prism-launch.n0.xml"),
         (1440, 900),
     ),
     (
         "pulse-analytics",
-        "rig/examples/pulse-analytics.grida.xml",
-        include_str!("../rig/examples/pulse-analytics.grida.xml"),
+        "rig/examples/pulse-analytics.n0.xml",
+        include_str!("../rig/examples/pulse-analytics.n0.xml"),
         (1440, 960),
     ),
     (
         "nocturne-transit",
-        "rig/examples/nocturne-transit.grida.xml",
-        include_str!("../rig/examples/nocturne-transit.grida.xml"),
+        "rig/examples/nocturne-transit.n0.xml",
+        include_str!("../rig/examples/nocturne-transit.n0.xml"),
         (1400, 900),
     ),
     (
         "rfc-only-keynote",
-        "rig/examples/rfc-only-keynote.grida.xml",
-        include_str!("../rig/examples/rfc-only-keynote.grida.xml"),
+        "rig/examples/rfc-only-keynote.n0.xml",
+        include_str!("../rig/examples/rfc-only-keynote.n0.xml"),
         (960, 540),
     ),
     (
         "rfc-only-dashboard",
-        "rig/examples/rfc-only-dashboard.grida.xml",
-        include_str!("../rig/examples/rfc-only-dashboard.grida.xml"),
+        "rig/examples/rfc-only-dashboard.n0.xml",
+        include_str!("../rig/examples/rfc-only-dashboard.n0.xml"),
         (960, 640),
     ),
     (
         "rfc-only-transit",
-        "rig/examples/rfc-only-transit.grida.xml",
-        include_str!("../rig/examples/rfc-only-transit.grida.xml"),
+        "rig/examples/rfc-only-transit.n0.xml",
+        include_str!("../rig/examples/rfc-only-transit.n0.xml"),
         (1000, 620),
     ),
 ];
@@ -164,8 +164,8 @@ fn load_resources(doc: &Document, source_path: &Path, ctx: &mut PaintCtx) {
 #[test]
 fn checked_in_examples_are_canonical_writer_fixpoints() {
     for (name, _, source, _) in CANONICAL_EXAMPLES {
-        let doc = grida_xml::parse(source).unwrap_or_else(|error| panic!("{name}: {error}"));
-        let printed = grida_xml::print(&doc).unwrap_or_else(|error| panic!("{name}: {error}"));
+        let doc = n0_xml::parse(source).unwrap_or_else(|error| panic!("{name}: {error}"));
+        let printed = n0_xml::print(&doc).unwrap_or_else(|error| panic!("{name}: {error}"));
         assert_eq!(printed, source, "{name} is not canonical Draft 0 source");
     }
 }
@@ -176,7 +176,7 @@ fn checked_in_examples_resolve_resources_and_render() {
     for (name, relative_path, source, (width, height)) in
         CANONICAL_EXAMPLES.into_iter().chain(AUTHORED_SHOWCASES)
     {
-        let doc = grida_xml::parse(source).unwrap_or_else(|error| panic!("{name}: {error}"));
+        let doc = n0_xml::parse(source).unwrap_or_else(|error| panic!("{name}: {error}"));
         let mut ctx = PaintCtx::new(None);
         load_resources(&doc, &manifest.join(relative_path), &mut ctx);
         let mut surface = surfaces::raster_n32_premul((width, height))

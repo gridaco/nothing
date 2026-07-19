@@ -1806,7 +1806,7 @@ pub fn raster_to_bytes_unchecked(
 /// Requests explicit RGBA8888 so the byte order does not depend on the
 /// platform's native N32 (BGRA on x86 Linux/Windows, RGBA on Apple
 /// Silicon) — same rule as the forced-RGBA readback in
-/// `tests/grida_xml.rs`.
+/// `tests/n0_xml.rs`.
 pub fn read_pixels(surface: &mut skia_safe::Surface, w: i32, h: i32) -> Vec<u8> {
     let info = ImageInfo::new(
         (w, h),

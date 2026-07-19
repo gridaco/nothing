@@ -1,19 +1,19 @@
 //! Draft 0 rounded-box syntax is a lossless projection of Grida's existing
 //! per-corner elliptical radii plus normalized corner smoothing.
 
-use n0_model::grida_xml::{self, PrintError};
 use n0_model::model::*;
+use n0_model::n0_xml::{self, PrintError};
 use n0_model::resolve::{resolve, ResolveOptions};
 use n0_model::{svgout, textir};
 
 fn canonical(source: &str) -> (Document, String) {
-    let doc = grida_xml::parse(source).expect("Draft 0 source parses");
-    let printed = grida_xml::print(&doc).expect("parsed Draft 0 source prints");
-    let reparsed = grida_xml::parse(&printed).expect("canonical source reparses");
+    let doc = n0_xml::parse(source).expect("Draft 0 source parses");
+    let printed = n0_xml::print(&doc).expect("parsed Draft 0 source prints");
+    let reparsed = n0_xml::parse(&printed).expect("canonical source reparses");
     assert_eq!(doc, reparsed, "semantic round-trip\n---\n{printed}");
     assert_eq!(
         printed,
-        grida_xml::print(&reparsed).expect("canonical source reprints"),
+        n0_xml::print(&reparsed).expect("canonical source reprints"),
         "writer fixpoint"
     );
     (doc, printed)
@@ -109,7 +109,7 @@ fn malformed_corner_values_have_focused_parse_errors() {
         (r#"corner-smoothing="1.1""#, "between 0 and 1"),
         (r#"corner-smoothing="NaN""#, "non-finite"),
     ] {
-        let error = grida_xml::parse(&one_rect(attributes)).unwrap_err();
+        let error = n0_xml::parse(&one_rect(attributes)).unwrap_err();
         assert!(
             error.to_string().contains(expected),
             "{attributes}: expected `{expected}`, got `{error}`"
@@ -126,7 +126,7 @@ fn corner_attributes_are_box_primitive_only() {
         r#"<group corner-radius="2"/>"#,
     ] {
         let source = format!("<grida version=\"0\"><container>{node}</container></grida>");
-        let error = grida_xml::parse(&source).unwrap_err();
+        let error = n0_xml::parse(&source).unwrap_err();
         assert!(
             error
                 .to_string()
@@ -142,7 +142,7 @@ fn corner_attributes_are_box_primitive_only() {
 
 #[test]
 fn smooth_elliptical_corners_are_rejected_instead_of_narrowed() {
-    let error = grida_xml::parse(&one_rect(
+    let error = n0_xml::parse(&one_rect(
         r#"corner-radius="12 / 8" corner-smoothing="0.5""#,
     ))
     .unwrap_err();
@@ -151,11 +151,11 @@ fn smooth_elliptical_corners_are_rejected_instead_of_narrowed() {
 
 #[test]
 fn writer_validates_programmatic_corner_states() {
-    let mut doc = grida_xml::parse(&one_rect("")).unwrap();
+    let mut doc = n0_xml::parse(&one_rect("")).unwrap();
     let rect = doc.get(authored_root(&doc)).children[0];
 
     doc.get_mut(rect).corner_radius = RectangularCornerRadius::circular(-1.0);
-    let error = grida_xml::print(&doc).unwrap_err();
+    let error = n0_xml::print(&doc).unwrap_err();
     assert!(
         error.to_string().contains("negative corner radii"),
         "{error}"
@@ -163,30 +163,30 @@ fn writer_validates_programmatic_corner_states() {
 
     doc.get_mut(rect).corner_radius = RectangularCornerRadius::default();
     doc.get_mut(rect).corner_smoothing = CornerSmoothing(f32::NAN);
-    let error = grida_xml::print(&doc).unwrap_err();
+    let error = n0_xml::print(&doc).unwrap_err();
     assert!(error.to_string().contains("must be finite"), "{error}");
 
     doc.get_mut(rect).corner_radius = RectangularCornerRadius::all(Radius { rx: 8.0, ry: 4.0 });
     doc.get_mut(rect).corner_smoothing = CornerSmoothing(0.4);
-    let error = grida_xml::print(&doc).unwrap_err();
+    let error = n0_xml::print(&doc).unwrap_err();
     assert!(error.to_string().contains("cannot render"), "{error}");
 
-    let mut ellipse = grida_xml::parse(
+    let mut ellipse = n0_xml::parse(
         r#"<grida version="0"><container><ellipse width="10" height="10"/></container></grida>"#,
     )
     .unwrap();
     let ellipse_id = ellipse.get(authored_root(&ellipse)).children[0];
     ellipse.get_mut(ellipse_id).corner_radius = RectangularCornerRadius::circular(2.0);
-    let error = grida_xml::print(&ellipse).unwrap_err();
+    let error = n0_xml::print(&ellipse).unwrap_err();
     assert!(error.to_string().contains("cannot carry"), "{error}");
 }
 
 #[test]
 fn implicit_document_root_corner_state_is_part_of_canonicality() {
-    let mut doc = grida_xml::parse(r#"<grida version="0"><container/></grida>"#).unwrap();
+    let mut doc = n0_xml::parse(r#"<grida version="0"><container/></grida>"#).unwrap();
     doc.get_mut(doc.root).corner_radius = RectangularCornerRadius::circular(1.0);
     assert_eq!(
-        grida_xml::print(&doc),
+        n0_xml::print(&doc),
         Err(PrintError::NonCanonicalDocumentRoot)
     );
 }
@@ -203,7 +203,7 @@ fn historical_textir_and_svg_snapshot_export_refuse_corner_loss() {
         "{text_error}"
     );
 
-    let doc = grida_xml::parse(&one_rect(r#"corner-radius="3""#)).unwrap();
+    let doc = n0_xml::parse(&one_rect(r#"corner-radius="3""#)).unwrap();
     let resolved = resolve(&doc, &ResolveOptions::default());
     let svg_error = svgout::render(
         &doc,

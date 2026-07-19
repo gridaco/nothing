@@ -1,7 +1,7 @@
 # The anchor text IR — pocket grammar & resolution semantics
 
 > Historical note: this freezes the E3 TextIr element and attribute vocabulary.
-> `<frame>` and `<shape kind="…">` are not Draft 0 `.grida.xml` syntax. Text
+> `<frame>` and `<shape kind="…">` are not Draft 0 `.n0.xml` syntax. Text
 > measurement below includes the shared resolver's whitespace and explicit-line
 > correction.
 

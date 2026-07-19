@@ -2,12 +2,12 @@
 //! reject the document. It must never choose a representative paint or invent
 //! a fallback color.
 
-use n0_model::grida_xml;
+use n0_model::n0_xml;
 use n0_model::resolve::{resolve, ResolveOptions};
 use n0_model::svgout::{self, SvgOptions};
 
 fn render(source: &str) -> Result<String, svgout::SvgError> {
-    let doc = grida_xml::parse(source).expect("fixture parses");
+    let doc = n0_xml::parse(source).expect("fixture parses");
     let resolved = resolve(&doc, &ResolveOptions::default());
     svgout::render(
         &doc,

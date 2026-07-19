@@ -4,7 +4,7 @@ Workbench for the fundamental redesign of the Grida node model: how a node's
 geometry, position, size, rotation/transform, and layout participation are
 represented — in the **Rust engine** (`crates/grida`) and the **format spec**
 (`format/grida.fbs`). The proving stack has since grown source-format, engine,
-and host harnesses needed to test that model end to end, including Grida XML
+and host harnesses needed to test that model end to end, including n0 XML
 ingestion and explicit-time SVG animation. Those remain contained proofs;
 production TS/editor, WASM, importer, renderer, and runtime migration are still
 out of scope here.
@@ -18,7 +18,11 @@ out of scope here.
 > [`crates/n0_dev`](../crates/n0_dev). What remains here — the phase
 > papers, the experiment dirs with their frozen outputs and verdicts, the
 > demo pages, and the format drafts — is the decision record, kept
-> verbatim, with file and directory names canonicalized at landing (the
+> verbatim apart from two repo-wide canonicalizations applied at
+> landing: names (below) and the format term rename ("Grida XML" →
+> "n0 XML", `.grida.xml` → `.n0.xml`; the Draft-0 root element
+> `<grida version="0">` is unchanged). File and directory names were
+> canonicalized at landing (the
 > workbench dir `a/` is now [`anchor/`](./anchor/); the experiment dirs
 > dropped their `eN-` ledger prefixes; the candidate models dropped
 > their letter slots — the ledger ids remain as the register keys in

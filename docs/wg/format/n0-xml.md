@@ -1,6 +1,6 @@
 ---
-title: "Grida XML — authored scene language"
-description: "Open RFD for Draft 0 of .grida.xml, an inspectable XML source language for responsive 2D presentations and modern user interfaces."
+title: "n0 XML — authored scene language"
+description: "Open RFD for Draft 0 of .n0.xml, an inspectable XML source language for responsive 2D presentations and modern user interfaces."
 keywords:
   - grida xml
   - scene language
@@ -25,24 +25,30 @@ tags:
 format: md
 ---
 
-# Grida XML — authored scene language
+# n0 XML — authored scene language
 
 **Status:** Open RFD — Draft 0.
 
-**Authored file suffix:** `.grida.xml` — provisional.
+**Formerly:** "Grida XML" — renamed at the landing of
+[gridaco/nothing#5](https://github.com/gridaco/nothing/pull/5) (the
+format is v2-native, and v2 *is* n0). The Draft-0 grammar, including
+the `<grida version="0">` root element, is unchanged by the rename;
+whether the root element follows is an open item of this RFD.
+
+**Authored file suffix:** `.n0.xml` — provisional.
 
 **Originating request:** [gridaco/nothing#9](https://github.com/gridaco/nothing/issues/9) (formerly gridaco/grida#957, transferred at the engine split).
 
 ## Thesis
 
-Grida XML is an authored, inspectable scene language for dynamic 2D content.
+n0 XML is an authored, inspectable scene language for dynamic 2D content.
 It combines a small primitive-first graphics vocabulary with explicit box,
 binding, text-flow, and layout intent. Its target range includes both
 responsive presentations and modern user-interface designs.
 
 The language is XML because a tree is the scene's natural structure, XML is
 widely inspectable, and its element/attribute boundary is predictable for both
-human authors and language models. Grida XML borrows useful ideas from SVG,
+human authors and language models. n0 XML borrows useful ideas from SVG,
 HTML/CSS, and widget trees without inheriting any one of their object models.
 It is its own vocabulary, not an SVG profile or an HTML serialization.
 
@@ -52,13 +58,13 @@ stroke geometries, per-side box strokes, rounded box geometry, text boxes with
 flat attributed runs, unit-space paths, free bindings, and flex layout. Later
 drafts can add effects, vector geometry, resource declarations, advanced
 typography, and reuse facilities without changing the central tree model. The
-selected multi-file direction is developed separately in the [Grida XML
-modules and static component reuse](./grida-xml-modules.md) RFD; none of that
+selected multi-file direction is developed separately in the [n0 XML
+modules and static component reuse](./n0-xml-modules.md) RFD; none of that
 proposal is Draft 0 syntax. The proposed typed scalar API for those components
-is a further Version 2 delta in [Grida XML component
-parameters](./grida-xml-component-parameters.md). Exact named render projection is
-a Version 3 delta in [Grida XML component
-slots](./grida-xml-component-slots.md).
+is a further Version 2 delta in [n0 XML component
+parameters](./n0-xml-component-parameters.md). Exact named render projection is
+a Version 3 delta in [n0 XML component
+slots](./n0-xml-component-slots.md).
 
 ## Design requirements
 
@@ -95,19 +101,19 @@ slots](./grida-xml-component-slots.md).
 
 ## File identity
 
-`.grida.xml` identifies the authored XML language defined here. The compound
+`.n0.xml` identifies the authored XML language defined here. The compound
 suffix is provisional, but it is intentionally distinct from `.grida`, the
 packed binary scene/archive format. The two files may describe equivalent
 scene intent, but they are different representations with different goals:
 
 | Representation | Primary property                           |
 | -------------- | ------------------------------------------ |
-| `.grida.xml`   | Authored, inspectable, diffable XML source |
+| `.n0.xml`   | Authored, inspectable, diffable XML source |
 | `.grida`       | Packed binary storage and interchange      |
 
 Changing or packing one representation into the other is a conversion. A
-processor must not infer Grida XML merely from a `.grida` suffix, nor infer the
-binary format from `.grida.xml`.
+processor must not infer n0 XML merely from a `.grida` suffix, nor infer the
+binary format from `.n0.xml`.
 
 ## Document model
 
@@ -206,7 +212,7 @@ shape-with-text node exists or is implied.
 
 ## Property registry
 
-The [Grida XML property registry](./grida-xml-properties.md) is the canonical
+The [n0 XML property registry](./n0-xml-properties.md) is the canonical
 cross-draft inventory of element and property names, their valid targets, and
 production-backed placeholders. This RFD remains the normative Draft 0
 grammar. A property marked Placeholder or Design in the registry is therefore
@@ -243,10 +249,10 @@ Only attributes applicable to an element may appear on that element.
 `width` and `height` are the only Draft 0 spellings. The same rule applies to
 `min-width`, `max-width`, `min-height`, `max-height`, and `aspect-ratio`.
 Short experimental spellings such as `w`, `h`, `min-w`, and `aspect` are not
-Grida XML. Likewise, `container` is the node name; `frame` is not a Grida XML
-alias. Historical `<shape kind="…">` is TextIr syntax, not a Grida XML alias.
+n0 XML. Likewise, `container` is the node name; `frame` is not a n0 XML
+alias. Historical `<shape kind="…">` is TextIr syntax, not a n0 XML alias.
 A host may support that import dialect separately, but a conforming Draft 0
-writer never emits it and a strict Grida XML reader does not confuse it with
+writer never emits it and a strict n0 XML reader does not confuse it with
 this language.
 
 Rotation is visual-only intent. It does not change a node's layout box, flex
@@ -772,7 +778,7 @@ paint model or XML vocabulary.
 The current paint data types can hold gradient values that Draft 0 deliberately
 rejects: fewer than two stops, out-of-range or descending stop offsets,
 mathematically non-invertible transforms, and linear endpoints at or below the
-declared degeneracy threshold. Those states have no valid Grida XML spelling. A
+declared degeneracy threshold. Those states have no valid n0 XML spelling. A
 canonical writer must report the failed invariant and must not invent stops,
 sort or clamp offsets, replace a transform, or perturb an endpoint. Complete
 model-to-XML round-trip requires these invariants to be established in the
@@ -786,10 +792,10 @@ The current paint contract and the
 [Gradient Session](../canvas/paint-session/gradient.md) RFD disagree in two
 places that are not safe to average:
 
-- Grida XML and the paint contract store a linear gradient's endpoints
+- n0 XML and the paint contract store a linear gradient's endpoints
   explicitly, while the session RFD says all non-trivial orientation belongs
   only in the transform.
-- Grida XML and the paint contract define diamond by Manhattan/L1 distance,
+- n0 XML and the paint contract define diamond by Manhattan/L1 distance,
   while the session RFD describes an L-infinity distance field.
 
 For Draft 0 files, the definitions in this RFD are normative. A processor must
@@ -1104,7 +1110,7 @@ coordinate space as children of `rect` and `ellipse`; they do not inherit the
 unit path coordinate space. The realized path's tight geometry seeds visual
 bounds, effective strokes are included conservatively, and damage covers the
 result, while the declared box remains the path's layout contribution. Hit
-testing and editor selection policy are consumer concerns; Grida XML defines
+testing and editor selection policy are consumer concerns; n0 XML defines
 no separate authored hit region.
 
 ```xml
@@ -1189,7 +1195,7 @@ text style, node fill stack, and repeated node stroke geometries.
 The [Universal Shaped Text Layout](../feat-paragraph/text-layout.md) RFD owns the
 shaping, font resolution, line construction, UTF-8 mapping, metrics, and
 resolved bounds produced from that source. This section defines only the XML
-text intent and its mapping into that contract. Grida XML never serializes the
+text intent and its mapping into that contract. n0 XML never serializes the
 resolved text-layout artifact.
 
 Its content is one flat sequence of direct character data and contextual
@@ -1257,7 +1263,7 @@ familiar name, not SVG's independently positioned text-chunk model.
    production attributed string and keeps run overrides explicit.
 2. **HTML semantic or presentational tags — rejected as canonical.** A separate
    import dialect may deliberately lower them to visual run properties, but
-   Grida XML cannot preserve semantics the production model does not own and a
+   n0 XML cannot preserve semantics the production model does not own and a
    canonical writer never emits them.
 3. **Nested `tspan` — rejected in Draft 0.** Production runs are flat byte
    ranges, and nested source boundaries cannot be reconstructed after adjacent
@@ -1320,7 +1326,7 @@ distinct XML coordinate system.
 Node-level repeated strokes remain valid on `text` and apply to its shaped
 glyph contours. Draft 0 defines no `tspan` stroke syntax. Production
 `StyledTextRun` has only one optional stroke `Paints` stack and one optional
-width/alignment geometry, while Grida XML stroke topology permits repeated,
+width/alignment geometry, while n0 XML stroke topology permits repeated,
 independent geometries. Those models cannot losslessly project each other, so
 a writer must reject a production run-stroke override and the language must
 defer run strokes until that multiplicity seam is resolved.
@@ -1438,7 +1444,7 @@ Formatting and attribute order are not semantic. The element names,
 
 ## Source intent and resolved output
 
-The `.grida.xml` document is the authored-intent tier. It stores the facts an
+The `.n0.xml` document is the authored-intent tier. It stores the facts an
 author chose: node kinds, hierarchy, bindings, size intent, text, paint,
 layout relationships, and explicit lens operations.
 
@@ -1447,7 +1453,7 @@ fonts, and resources—to produce a separate resolved scene. Text shaping and
 geometry follow the single-result contract in [Universal Shaped Text
 Layout](../feat-paragraph/text-layout.md). Resolved boxes, world transforms,
 measured glyph runs, visual bounds, materialized vector points, and paint
-commands belong to that derived output. They are not fields of Grida XML
+commands belong to that derived output. They are not fields of n0 XML
 merely because a renderer can compute them.
 
 This separation has three consequences:
@@ -1535,7 +1541,7 @@ only on <container> and <rect>`. Useful text diagnostics include `empty <tspan>
 is invalid; put empty text on <text> or remove the run`, `nested <tspan> is
 invalid; runs must be flat direct children of <text>`, `<fill> inside <tspan>
 must be the literal first child; no whitespace may precede it`, and `size is
-not Grida XML; use font-size`. Useful path diagnostics identify the failing
+not n0 XML; use font-size`. Useful path diagnostics identify the failing
 command or number and distinguish grammar from geometry, for example `path d:
 invalid arc flag at byte 19`, `path geometry exceeds the unit box on the right:
 max-x is 1.08`, and `outside path stroke requires every contour to be closed`.
@@ -1671,7 +1677,7 @@ rectangles, variable-width strokes, dash offset, endpoint markers, effects,
 scene image nodes, resource declaration or packaging syntax, advanced image
 placement, image filters, rich color spaces, advanced typography, per-run
 strokes, semantic text annotations, grid layout, animation, or durable node
-identity. The later [durable-addressing RFD](./grida-xml-addressing.md) accepts
+identity. The later [durable-addressing RFD](./n0-xml-addressing.md) accepts
 required render/use identity for exact Version 4 while leaving Draft 0
 unchanged. Every other eventual addition must preserve the one-tree,
 local-space, intent-only model established here.
@@ -1682,14 +1688,14 @@ identity, scope, failure behavior, and override semantics without creating a
 second canonical spelling for the same inline value.
 
 Reusable author-defined widgets/components are a required future capability.
-The [Grida XML modules and static component reuse](./grida-xml-modules.md) RFD
+The [n0 XML modules and static component reuse](./n0-xml-modules.md) RFD
 proposes top-level boxed definitions and self-contained
 `<use href="…#…">` references, with source linking and materialization kept
 above ordinary scene resolution. It also records identity, lexical resource
-origin, cycles, and source-writing requirements. The [Grida XML component
-parameters](./grida-xml-component-parameters.md) RFD separately proposes typed
+origin, cycles, and source-writing requirements. The [n0 XML component
+parameters](./n0-xml-component-parameters.md) RFD separately proposes typed
 scalar `prop` declarations, explicit `arg` children, and exact bindings for
-Version 2. The [Grida XML component slots](./grida-xml-component-slots.md) RFD
+Version 2. The [n0 XML component slots](./n0-xml-component-slots.md) RFD
 proposes Version 3 empty named `<slot>` declarations and direct render roots
 under `use` carrying the contextual `slot` assignment relationship.
 
@@ -1718,5 +1724,5 @@ works. Adding any such behavior is a versioned language change.
   without using unstable list indexes?
 - Which resolved inspection form should accompany the intent source without
   being mistaken for it?
-- Does the compound `.grida.xml` suffix remain the best long-term authored
+- Does the compound `.n0.xml` suffix remain the best long-term authored
   file identity?

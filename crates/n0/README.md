@@ -256,10 +256,10 @@ The PNG sequence is the deterministic sample artifact. MP4/GIF output is a
 presentation derivative. Explicit browser seeking and the applicable WPT
 differential corpus remain the open half of the visual/conformance chunk.
 
-## Versioned `.grida.xml` ingestion
+## Versioned `.n0.xml` ingestion
 
 There is deliberately no XML-specific engine API. Draft 0 still has the
-model crate's pure `n0_model::grida_xml::parse(&str)` boundary. The retained
+model crate's pure `n0_model::n0_xml::parse(&str)` boundary. The retained
 source-program boundary additionally parses and links Version 1–4 source
 units, specializes Version 2–4 scalar props, projects Version 3/4 named render
 slots, retains Version 4 durable occurrence addresses, and materializes the
@@ -367,7 +367,7 @@ complete. Current limits are:
   image paints and view-dependent noninvertible image sampling matrices before
   touching the destination canvas; a singular geometry transform remains valid
   collapsed coverage. A host claiming strict materialization must also
-  preflight filesystem/decode resources; `grida_xml_render` does so and reports
+  preflight filesystem/decode resources; `n0_xml_render` does so and reports
   authored plus resolved locations. Its
   opaque checked `PaintEnvironmentKey` lets damage and cache observe readiness,
   font changes, and same-RID byte replacement;
@@ -379,40 +379,40 @@ complete. Current limits are:
 
 Checked-in Draft 0 files use the canonical grammar; Version 1–4 fixtures use
 the selected proving grammar of their open RFDs. The minimal consumer fixture
-and pixel probes live at `rig/fixtures/nested-rects.grida.xml` and
-`tests/grida_xml.rs`. `rig/examples/dynamic-slide.grida.xml` demonstrates flex,
+and pixel probes live at `rig/fixtures/nested-rects.n0.xml` and
+`tests/n0_xml.rs`. `rig/examples/dynamic-slide.n0.xml` demonstrates flex,
 a direct ellipse used as a circle, and primitive/text composition.
-`rig/examples/rich-fills.grida.xml` demonstrates ordered paint stacks, while
-`rig/examples/rich-strokes.grida.xml` demonstrates independent repeated stroke
-geometry. `rig/examples/source-becomes-surface.grida.xml` is the complete
+`rig/examples/rich-fills.n0.xml` demonstrates ordered paint stacks, while
+`rig/examples/rich-strokes.n0.xml` demonstrates independent repeated stroke
+geometry. `rig/examples/source-becomes-surface.n0.xml` is the complete
 editorial showcase: every Draft 0 element and property family, all four
 gradient variants, image paints, clipping, responsive bindings, and native
 multi-stroke composition in one scene.
-`rig/examples/rounded-surfaces.grida.xml` concentrates the rounded-box slice:
+`rig/examples/rounded-surfaces.n0.xml` concentrates the rounded-box slice:
 asymmetric circular corners, elliptical axes, continuous smoothing, clipped
 descendants, rich fills, and repeated strokes.
-`rig/examples/per-side-strokes.grida.xml` demonstrates asymmetric and zero
+`rig/examples/per-side-strokes.n0.xml` demonstrates asymmetric and zero
 side widths, ordinary elliptical corners, continuous dashes, repeated rings,
 and rich paints without duplicating scene geometry.
-`rig/examples/rich-text.grida.xml` is the attributed-text specimen: mixed
+`rig/examples/rich-text.n0.xml` is the attributed-text specimen: mixed
 sizes, weights, italic style, solid and gradient run fills, exact whitespace,
 and derived UTF-8 ranges in one inspectable string.
-`rig/fixtures/unit-path.grida.xml` is the focused path oracle: an even-odd unit
+`rig/fixtures/unit-path.n0.xml` is the focused path oracle: an even-odd unit
 path with ordered fills and repeated strokes. The complete editorial showcase
 also includes a nested, rich-painted path specimen.
-`rig/fixtures/component-program/entry.grida.xml` and its sibling component
+`rig/fixtures/component-program/entry.n0.xml` and its sibling component
 library are the focused Version 2 source-program oracle: one external boxed
 component, two independently specialized uses, ordinary-scene lowering, and
 component-blind pixel output.
-`rig/fixtures/slot-program/entry.grida.xml` and its sibling Version 3 component
+`rig/fixtures/slot-program/entry.n0.xml` and its sibling Version 3 component
 library are the focused named-slot oracle: definition-owned header/footer
 order, caller-owned projected roots, one empty projection, ordinary-scene
 lowering, and component-blind interior pixel probes.
-`rig/fixtures/durable-addressing.grida.xml` is the Version 4 identity oracle:
+`rig/fixtures/durable-addressing.n0.xml` is the Version 4 identity oracle:
 every authored ordinary node has one owner/member/use-occurrence address, and
 the engine integration compiles one occurrence to an arena-scoped typed
 property target before evaluating it through the ordinary frame pipeline.
-`rig/examples/social-feed/entry.grida.xml` and `post-card.grida.xml` form the
+`rig/examples/social-feed/entry.n0.xml` and `post-card.n0.xml` form the
 real-world Version 3 showcase: one viewport-spanning, breakpoint-free scene
 uses center/end/span bindings for its rail, stories, timeline, suggestions,
 and message dock. Reusable stories and suggestions plus two post instances
@@ -425,56 +425,56 @@ The thin host binary renders a file to PNG. It defaults to a 1280x720 viewport;
 pass explicit positive dimensions for responsive inputs:
 
 ```sh
-cargo run --bin grida_xml_render -- \
-  rig/examples/dynamic-slide.grida.xml target/grida-xml-dynamic-slide.png
+cargo run --bin n0_xml_render -- \
+  rig/examples/dynamic-slide.n0.xml target/n0-xml-dynamic-slide.png
 
-cargo run --bin grida_xml_render -- \
-  rig/examples/rich-fills.grida.xml target/grida-xml-rich-fills.png 720 300
+cargo run --bin n0_xml_render -- \
+  rig/examples/rich-fills.n0.xml target/n0-xml-rich-fills.png 720 300
 
-cargo run --bin grida_xml_render -- \
-  rig/examples/rich-strokes.grida.xml target/grida-xml-rich-strokes.png 720 320
+cargo run --bin n0_xml_render -- \
+  rig/examples/rich-strokes.n0.xml target/n0-xml-rich-strokes.png 720 320
 
-cargo run --bin grida_xml_render -- \
-  rig/examples/source-becomes-surface.grida.xml \
-  target/grida-xml-source-becomes-surface.png 1600 1000
+cargo run --bin n0_xml_render -- \
+  rig/examples/source-becomes-surface.n0.xml \
+  target/n0-xml-source-becomes-surface.png 1600 1000
 
-cargo run --bin grida_xml_render -- \
-  rig/examples/rounded-surfaces.grida.xml \
-  target/grida-xml-rounded-surfaces.png 1440 900
+cargo run --bin n0_xml_render -- \
+  rig/examples/rounded-surfaces.n0.xml \
+  target/n0-xml-rounded-surfaces.png 1440 900
 
-cargo run --bin grida_xml_render -- \
-  rig/examples/per-side-strokes.grida.xml \
-  target/grida-xml-per-side-strokes.png 1200 760
+cargo run --bin n0_xml_render -- \
+  rig/examples/per-side-strokes.n0.xml \
+  target/n0-xml-per-side-strokes.png 1200 760
 
-cargo run --bin grida_xml_render -- \
-  rig/examples/rich-text.grida.xml \
-  target/grida-xml-rich-text.png 1280 800
+cargo run --bin n0_xml_render -- \
+  rig/examples/rich-text.n0.xml \
+  target/n0-xml-rich-text.png 1280 800
 
-cargo run --bin grida_xml_render -- \
-  rig/fixtures/nested-rects.grida.xml target/grida-xml-nested-rects.png 96 80
+cargo run --bin n0_xml_render -- \
+  rig/fixtures/nested-rects.n0.xml target/n0-xml-nested-rects.png 96 80
 
-cargo run --bin grida_xml_render -- \
-  rig/fixtures/unit-path.grida.xml target/grida-xml-unit-path.png 96 80
+cargo run --bin n0_xml_render -- \
+  rig/fixtures/unit-path.n0.xml target/n0-xml-unit-path.png 96 80
 
-cargo run --bin grida_xml_render -- \
-  rig/fixtures/component-program/entry.grida.xml \
-  target/grida-xml-component-program.png 96 40
+cargo run --bin n0_xml_render -- \
+  rig/fixtures/component-program/entry.n0.xml \
+  target/n0-xml-component-program.png 96 40
 
-cargo run --bin grida_xml_render -- \
-  rig/fixtures/slot-program/entry.grida.xml \
-  target/grida-xml-slot-program.png 112 48
+cargo run --bin n0_xml_render -- \
+  rig/fixtures/slot-program/entry.n0.xml \
+  target/n0-xml-slot-program.png 112 48
 
-cargo run --bin grida_xml_render -- \
-  rig/examples/social-feed/entry.grida.xml \
-  target/grida-xml-social-feed-desktop.png 1920 1080
+cargo run --bin n0_xml_render -- \
+  rig/examples/social-feed/entry.n0.xml \
+  target/n0-xml-social-feed-desktop.png 1920 1080
 
 # Diagnostic viewport sweep (these renders are not reftest or golden oracles).
 mkdir -p target/social-feed-responsive
 for size in 1920x1080 1440x900 1280x800 1024x768 768x1024 390x844; do
   width=${size%x*}
   height=${size#*x}
-  cargo run --quiet --bin grida_xml_render -- \
-    rig/examples/social-feed/entry.grida.xml \
+  cargo run --quiet --bin n0_xml_render -- \
+    rig/examples/social-feed/entry.n0.xml \
     "target/social-feed-responsive/social-feed@${size}.png" \
     "$width" "$height"
 done
@@ -514,25 +514,25 @@ contract is [`EFFECTIVE-VALUES.md`](./EFFECTIVE-VALUES.md).
 
 ## Contract → module → guarding test
 
-| concern                              | module                     | contract      | guarding test                                                                                                                                                                                                                                 |
-| ------------------------------------ | -------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| stage purity + the oracle law        | (whole pipeline)           | ENG-0         | the gate's differential + determinism runs                                                                                                                                                                                                    |
-| versioned source consumer seam       | link → frame               | ENG-0 / S-2   | `tests/grida_xml.rs`, `tests/grida_xml_source.rs`, `tests/grida_xml_slots.rs`, `tests/grida_xml_social_feed.rs`, `tests/paints.rs`, `tests/strokes.rs`, `tests/rectangular_strokes.rs`, `tests/text.rs`, `tests/corners.rs`, `tests/paths.rs` |
-| effective property values            | model → frame              | ENG-0/2/3     | `tests/values.rs` (empty equivalence · layout/transform · paint · bounds · visibility · query · pixels)                                                                                                                                       |
-| explicit-time animation              | SVG → values → frame/cache | ANIMATION     | `../n0-model/tests/animation.rs`, `../n0-model/tests/svg_animation.rs`, `tests/animation.rs` (time · exact interpolation · strict compile · Base/Sample · query · damage · cache · pixels)                                                    |
-| host-to-document time mapping        | `playback_clock.rs`        | ANIMATION     | `tests/playback_clock.rs`, `tests/animation.rs` (virtual time · controls · cadence independence · endpoint behavior · direct-seek equality)                                                                                                   |
-| drawlist (pure, diffable projection) | `drawlist.rs`              | ENG-2.1       | `tests/drawlist.rs` (order · pruning · color · verbatim world · determinism)                                                                                                                                                                  |
-| text shaping + shared glyph layout   | `text_layout.rs`           | ENG-4.1/4.5   | `../n0-model/tests/text_layout.rs`, `tests/text.rs`                                                                                                                                                                                           |
-| raster executor                      | `paint.rs`                 | ENG-2.1       | `tests/paints.rs`, `tests/strokes.rs`, `tests/rectangular_strokes.rs`, `tests/text.rs`, `tests/corners.rs`, `tests/paths.rs` (pixel probes)                                                                                                   |
-| one frame entry                      | `frame.rs`                 | ENG-2.4       | `tests/frame.rs` (checked paint environment) · spike live loop · gate                                                                                                                                                                         |
-| damage as data                       | `damage.rs`                | ENG-2.2       | `tests/damage.rs`, `tests/values.rs`, `tests/cache.rs` (geometry · paint-only · opacity · painter order · environment · covering bounds)                                                                                                      |
-| spatial read tier                    | `query.rs`                 | ENG-3         | `tests/query.rs` (`hit_point ≡ pick` · retained traversal/clip snapshot)                                                                                                                                                                      |
-| journal (op-log)                     | `journal.rs`               | ENG-5.1       | `tests/journal.rs`                                                                                                                                                                                                                            |
-| replay (corpus, determinism)         | `replay.rs`                | ENG-5.2/5.3   | `tests/replay.rs` + `rig/corpus/*.replay` via the gate                                                                                                                                                                                        |
-| cache identity                       | `ident.rs`                 | ENG-2.3/1.4   | `tests/ident.rs`, `tests/cache.rs` (arena + slot + generation · exact values · paint environment · document replacement)                                                                                                                      |
-| oracle version tags                  | `oracle.rs`                | ENG-4.2       | the `.replay` header                                                                                                                                                                                                                          |
-| gated observability                  | `trace.rs`                 | S-6           | `cargo check --features trace`                                                                                                                                                                                                                |
-| the rig                              | `bin/gate.rs`              | ENG-0.2 / S-5 | it _is_ the gate                                                                                                                                                                                                                              |
+| concern                              | module                     | contract      | guarding test                                                                                                                                                                                                                     |
+| ------------------------------------ | -------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| stage purity + the oracle law        | (whole pipeline)           | ENG-0         | the gate's differential + determinism runs                                                                                                                                                                                        |
+| versioned source consumer seam       | link → frame               | ENG-0 / S-2   | `tests/n0_xml.rs`, `tests/n0_xml_source.rs`, `tests/n0_xml_slots.rs`, `tests/n0_xml_social_feed.rs`, `tests/paints.rs`, `tests/strokes.rs`, `tests/rectangular_strokes.rs`, `tests/text.rs`, `tests/corners.rs`, `tests/paths.rs` |
+| effective property values            | model → frame              | ENG-0/2/3     | `tests/values.rs` (empty equivalence · layout/transform · paint · bounds · visibility · query · pixels)                                                                                                                           |
+| explicit-time animation              | SVG → values → frame/cache | ANIMATION     | `../n0-model/tests/animation.rs`, `../n0-model/tests/svg_animation.rs`, `tests/animation.rs` (time · exact interpolation · strict compile · Base/Sample · query · damage · cache · pixels)                                        |
+| host-to-document time mapping        | `playback_clock.rs`        | ANIMATION     | `tests/playback_clock.rs`, `tests/animation.rs` (virtual time · controls · cadence independence · endpoint behavior · direct-seek equality)                                                                                       |
+| drawlist (pure, diffable projection) | `drawlist.rs`              | ENG-2.1       | `tests/drawlist.rs` (order · pruning · color · verbatim world · determinism)                                                                                                                                                      |
+| text shaping + shared glyph layout   | `text_layout.rs`           | ENG-4.1/4.5   | `../n0-model/tests/text_layout.rs`, `tests/text.rs`                                                                                                                                                                               |
+| raster executor                      | `paint.rs`                 | ENG-2.1       | `tests/paints.rs`, `tests/strokes.rs`, `tests/rectangular_strokes.rs`, `tests/text.rs`, `tests/corners.rs`, `tests/paths.rs` (pixel probes)                                                                                       |
+| one frame entry                      | `frame.rs`                 | ENG-2.4       | `tests/frame.rs` (checked paint environment) · spike live loop · gate                                                                                                                                                             |
+| damage as data                       | `damage.rs`                | ENG-2.2       | `tests/damage.rs`, `tests/values.rs`, `tests/cache.rs` (geometry · paint-only · opacity · painter order · environment · covering bounds)                                                                                          |
+| spatial read tier                    | `query.rs`                 | ENG-3         | `tests/query.rs` (`hit_point ≡ pick` · retained traversal/clip snapshot)                                                                                                                                                          |
+| journal (op-log)                     | `journal.rs`               | ENG-5.1       | `tests/journal.rs`                                                                                                                                                                                                                |
+| replay (corpus, determinism)         | `replay.rs`                | ENG-5.2/5.3   | `tests/replay.rs` + `rig/corpus/*.replay` via the gate                                                                                                                                                                            |
+| cache identity                       | `ident.rs`                 | ENG-2.3/1.4   | `tests/ident.rs`, `tests/cache.rs` (arena + slot + generation · exact values · paint environment · document replacement)                                                                                                          |
+| oracle version tags                  | `oracle.rs`                | ENG-4.2       | the `.replay` header                                                                                                                                                                                                              |
+| gated observability                  | `trace.rs`                 | S-6           | `cargo check --features trace`                                                                                                                                                                                                    |
+| the rig                              | `bin/gate.rs`              | ENG-0.2 / S-5 | it _is_ the gate                                                                                                                                                                                                                  |
 
 The model-crate side of the setup lives in [`../n0-model`](../n0-model): the typed
 `Op` + `apply` dispatcher + `DirtyClass` (`ops.rs`), the arena-scoped per-slot

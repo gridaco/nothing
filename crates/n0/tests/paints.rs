@@ -1,5 +1,5 @@
 //! Focused data and raster-probe coverage for ordered Grida paint stacks.
-//! Native `.grida.xml` has no independent visual oracle, so these are not
+//! Native `.n0.xml` has no independent visual oracle, so these are not
 //! reftests: model/order is asserted as data and rendering at stable interior
 //! points is asserted with probes.
 

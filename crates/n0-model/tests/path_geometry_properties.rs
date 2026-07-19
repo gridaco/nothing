@@ -2,9 +2,9 @@
 
 use std::sync::Arc;
 
-use n0_model::grida_xml;
 use n0_model::math::RectF;
 use n0_model::model::{Document, FillRule, NodeId, Payload, ShapeDesc, StrokeAlign};
+use n0_model::n0_xml;
 use n0_model::path::{self, PathCommand, PathGeometry};
 use n0_model::properties::{
     PropertyError, PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView,
@@ -89,8 +89,8 @@ fn svg_reference_box_normalizes_after_arc_lowering() {
 }
 
 #[test]
-fn grida_xml_writer_rejects_foreign_reference_box_source() {
-    let mut document = grida_xml::parse(
+fn n0_xml_writer_rejects_foreign_reference_box_source() {
+    let mut document = n0_xml::parse(
         r#"<grida version="0"><container><path width="10" height="10" d="M0 0 L1 1"/></container></grida>"#,
     )
     .unwrap();
@@ -105,13 +105,13 @@ fn grida_xml_writer_rejects_foreign_reference_box_source() {
     };
     *path = imported;
 
-    let error = grida_xml::print(&document).unwrap_err().to_string();
+    let error = n0_xml::print(&document).unwrap_err().to_string();
     assert!(error.contains("unit reference box"), "{error}");
 }
 
 #[test]
 fn effective_path_replaces_only_geometry_and_materializes_once_through_the_final_box() {
-    let document = grida_xml::parse(
+    let document = n0_xml::parse(
         r#"<grida version="0"><container><path x="10" y="20" width="200" height="100" d="M0 0 L1 0 L1 1 Z" fill-rule="evenodd"/></container></grida>"#,
     )
     .unwrap();
@@ -162,7 +162,7 @@ fn effective_path_replaces_only_geometry_and_materializes_once_through_the_final
 
 #[test]
 fn effective_path_geometry_rejects_wrong_kind_wrong_arena_and_forged_artifacts() {
-    let path_document = grida_xml::parse(
+    let path_document = n0_xml::parse(
         r#"<grida version="0"><container><path width="10" height="10" d="M0 0 L1 0 L1 1 Z"/></container></grida>"#,
     )
     .unwrap();
@@ -172,7 +172,7 @@ fn effective_path_geometry_rejects_wrong_kind_wrong_arena_and_forged_artifacts()
         .geometry()
         .clone();
 
-    let rect_document = grida_xml::parse(
+    let rect_document = n0_xml::parse(
         r#"<grida version="0"><container><rect width="10" height="10"/></container></grida>"#,
     )
     .unwrap();
@@ -220,7 +220,7 @@ fn effective_path_geometry_rejects_wrong_kind_wrong_arena_and_forged_artifacts()
 
 #[test]
 fn effective_open_path_cannot_invalidate_an_authored_outside_stroke() {
-    let document = grida_xml::parse(
+    let document = n0_xml::parse(
         r##"<grida version="0"><container><path width="10" height="10" d="M0 0 L1 0 L1 1 Z"><stroke width="1" align="outside"><solid color="#000"/></stroke></path></container></grida>"##,
     )
     .unwrap();
@@ -243,7 +243,7 @@ fn effective_open_path_cannot_invalidate_an_authored_outside_stroke() {
 
 #[test]
 fn atomic_path_and_stroke_updates_validate_the_complete_effective_state() {
-    let document = grida_xml::parse(
+    let document = n0_xml::parse(
         r##"<grida version="0"><container><path width="10" height="10" d="M0 0 L1 1"><stroke width="1" align="center"><solid color="#000"/></stroke></path></container></grida>"##,
     )
     .unwrap();
@@ -278,7 +278,7 @@ fn atomic_path_and_stroke_updates_validate_the_complete_effective_state() {
 
 #[test]
 fn retained_path_spelling_stays_outside_effective_geometry() {
-    let document = grida_xml::parse(
+    let document = n0_xml::parse(
         r#"<grida version="0"><container><path width="10" height="10" d="M0 0 L1 0 L1 1 Z"/></container></grida>"#,
     )
     .unwrap();

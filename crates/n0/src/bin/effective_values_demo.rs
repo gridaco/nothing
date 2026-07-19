@@ -1,25 +1,25 @@
 //! Visual proof of the pre-animation value seam.
 //!
-//! One Version 4 Grida XML source program is materialized once, then painted
+//! One Version 4 n0 XML source program is materialized once, then painted
 //! twice: first from authored values and then from an immutable `ValueView`.
 //! There is deliberately no clock, timeline, keyframe, or playback state.
 
 use n0::damage::diff_frame;
 use n0::frame;
 use n0::paint::PaintCtx;
-use n0_model::grida_xml_source::{
-    self, AuthoredMemberId, MaterializedProgram, SourceProvider, SourceSnapshot,
-};
 use n0_model::math::Affine;
 use n0_model::model::{
     Alignment, Color, GradientStop, LinearGradientPaint, Paint, Paints, Payload,
     RadialGradientPaint, RectangularCornerRadius, Stroke, StrokeAlign, StrokeWidth,
 };
+use n0_model::n0_xml_source::{
+    self, AuthoredMemberId, MaterializedProgram, SourceProvider, SourceSnapshot,
+};
 use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView};
 use n0_model::resolve::ResolveOptions;
 use skia_safe::{surfaces, EncodedImageFormat, Font, Paint as SkPaint};
 
-const SOURCE: &str = include_str!("../../rig/fixtures/durable-addressing.grida.xml");
+const SOURCE: &str = include_str!("../../rig/fixtures/durable-addressing.n0.xml");
 const INTER: &[u8] =
     include_bytes!("../../../../fixtures/fonts/Inter/Inter-VariableFont_opsz,wght.ttf");
 const SCENE_WIDTH: f32 = 352.0;
@@ -304,7 +304,7 @@ fn main() {
         .nth(1)
         .unwrap_or_else(|| "target/grida-effective-values-demo.png".into());
     let mut provider = NoDependencies;
-    let program = grida_xml_source::materialize(
+    let program = n0_xml_source::materialize(
         SourceSnapshot::new("demo:durable-addressing", "demo:/", SOURCE),
         &mut provider,
     )

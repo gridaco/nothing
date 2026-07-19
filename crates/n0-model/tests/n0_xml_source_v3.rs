@@ -1,10 +1,10 @@
 //! Version 3 named static slot projection producer contract.
 
-use n0_model::grida_xml;
-use n0_model::grida_xml_source::{
+use n0_model::model::{AxisBinding, Document, NodeId, Paint};
+use n0_model::n0_xml;
+use n0_model::n0_xml_source::{
     self, BindingTargetKind, ErrorPhase, SourceProvider, SourceSnapshot, SourceVersion,
 };
-use n0_model::model::{AxisBinding, Document, NodeId, Paint};
 use std::collections::BTreeMap;
 
 fn snapshot(identity: &str, base: &str, source: &str) -> SourceSnapshot {
@@ -39,7 +39,7 @@ impl SourceProvider for MemoryProvider {
     }
 }
 
-fn authored_scene(output: &grida_xml_source::MaterializedProgram) -> NodeId {
+fn authored_scene(output: &n0_xml_source::MaterializedProgram) -> NodeId {
     output.document.get(output.document.root).children[0]
 }
 
@@ -60,7 +60,7 @@ fn version3_alone_accepts_unique_named_empty_slots_in_component_render_positions
   <container/>
 </grida>
 "##;
-    let unit = grida_xml_source::parse_source(snapshot("entry", "memory:/", source)).unwrap();
+    let unit = n0_xml_source::parse_source(snapshot("entry", "memory:/", source)).unwrap();
     assert_eq!(unit.version(), SourceVersion::Version3);
     assert_eq!(unit.component_ids().collect::<Vec<_>>(), ["card"]);
 
@@ -68,19 +68,17 @@ fn version3_alone_accepts_unique_named_empty_slots_in_component_render_positions
         let source = format!(
             r##"<grida version="{version}"><container><slot name="media"/></container></grida>"##
         );
-        let error =
-            grida_xml_source::parse_source(snapshot("old", "memory:/", &source)).unwrap_err();
+        let error = n0_xml_source::parse_source(snapshot("old", "memory:/", &source)).unwrap_err();
         assert_eq!(error.phase, ErrorPhase::Parse, "{error}");
     }
 
     let outside = r##"<grida version="3"><container><slot name="media"/></container></grida>"##;
-    let error =
-        grida_xml_source::parse_source(snapshot("outside", "memory:/", outside)).unwrap_err();
+    let error = n0_xml_source::parse_source(snapshot("outside", "memory:/", outside)).unwrap_err();
     assert_eq!(error.phase, ErrorPhase::Parse);
     assert!(error.message.contains("only in a Version 3 component"));
 
     let leaf = r##"<grida version="3"><component id="x"><text><slot name="media"/></text></component></grida>"##;
-    let error = grida_xml_source::parse_source(snapshot("leaf", "memory:/", leaf)).unwrap_err();
+    let error = n0_xml_source::parse_source(snapshot("leaf", "memory:/", leaf)).unwrap_err();
     assert_eq!(error.phase, ErrorPhase::Parse);
     assert!(error.message.contains("not valid inside <text>"));
 }
@@ -127,8 +125,7 @@ fn malformed_duplicate_and_misplaced_slot_syntax_has_focused_parse_diagnostics()
     ];
 
     for (source, expected) in cases {
-        let error =
-            grida_xml_source::parse_source(snapshot("bad", "memory:/", source)).unwrap_err();
+        let error = n0_xml_source::parse_source(snapshot("bad", "memory:/", source)).unwrap_err();
         assert_eq!(error.phase, ErrorPhase::Parse, "{error}");
         assert!(error.message.contains(expected), "{error}");
     }
@@ -156,7 +153,7 @@ fn slot_markers_start_render_content_for_property_ordering_regardless_of_project
 "##
             );
             let error =
-                grida_xml_source::parse_source(snapshot("late", "memory:/", &source)).unwrap_err();
+                n0_xml_source::parse_source(snapshot("late", "memory:/", &source)).unwrap_err();
             assert_eq!(error.phase, ErrorPhase::Parse, "{error}");
             assert!(
                 error
@@ -187,8 +184,7 @@ fn leading_paint_properties_remain_valid_before_slots_for_empty_and_populated_us
 "##;
     let mut provider = MemoryProvider::default();
     let output =
-        grida_xml_source::materialize(snapshot("ordered", "memory:/", source), &mut provider)
-            .unwrap();
+        n0_xml_source::materialize(snapshot("ordered", "memory:/", source), &mut provider).unwrap();
     let instances = &output.document.get(authored_scene(&output)).children;
     assert_eq!(instances.len(), 2);
     assert!(output.document.get(instances[0]).children.is_empty());
@@ -215,8 +211,7 @@ fn zero_one_and_many_assignments_project_at_the_marker_in_caller_order() {
 "##;
     let mut provider = MemoryProvider::default();
     let output =
-        grida_xml_source::materialize(snapshot("entry", "memory:/", source), &mut provider)
-            .unwrap();
+        n0_xml_source::materialize(snapshot("entry", "memory:/", source), &mut provider).unwrap();
     let scene = authored_scene(&output);
     let cards = &output.document.get(scene).children;
     assert_eq!(cards.len(), 2);
@@ -237,7 +232,7 @@ fn zero_one_and_many_assignments_project_at_the_marker_in_caller_order() {
         Some("second")
     );
 
-    let printed = grida_xml::print(&output.document).unwrap();
+    let printed = n0_xml::print(&output.document).unwrap();
     assert!(!printed.contains("<slot"));
     assert!(!printed.contains(" slot="));
 
@@ -287,7 +282,7 @@ fn assignment_root_span_bindings_keep_their_size_evidence() {
   </container>
 </grida>
 "##;
-    let output = grida_xml_source::materialize(
+    let output = n0_xml_source::materialize(
         snapshot("entry", "memory:/", source),
         &mut MemoryProvider::default(),
     )
@@ -326,19 +321,18 @@ fn unknown_assignments_are_link_errors_and_only_version3_targets_receive_them() 
 </grida>
 "##;
     let mut provider = MemoryProvider::default();
-    let error =
-        grida_xml_source::materialize(snapshot("entry", "memory:/", unknown), &mut provider)
-            .unwrap_err();
+    let error = n0_xml_source::materialize(snapshot("entry", "memory:/", unknown), &mut provider)
+        .unwrap_err();
     assert_eq!(error.phase, ErrorPhase::Link);
     assert!(error.message.contains("unknown slot assignment `missing`"));
     assert!(error.message.contains("available: body"));
 
-    let entry = r##"<grida version="3"><container><use href="./v2.grida.xml#card"><rect slot="body" width="1" height="1"/></use></container></grida>"##;
+    let entry = r##"<grida version="3"><container><use href="./v2.n0.xml#card"><rect slot="body" width="1" height="1"/></use></container></grida>"##;
     let v2 = r##"<grida version="2"><component id="card"/></grida>"##;
     let mut provider = MemoryProvider::default();
-    provider.insert("entry", "./v2.grida.xml", snapshot("v2", "memory:/v2/", v2));
+    provider.insert("entry", "./v2.n0.xml", snapshot("v2", "memory:/v2/", v2));
     let error =
-        grida_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
             .unwrap_err();
     assert_eq!(error.phase, ErrorPhase::Link);
     assert!(error.message.contains("require a Version 3 target"));
@@ -354,10 +348,10 @@ fn assigned_roots_observe_the_linked_slot_parents_relationship_rules() {
   </container>
 </grida>
 "##;
-    grida_xml_source::parse_source(snapshot("entry", "memory:/", source))
+    n0_xml_source::parse_source(snapshot("entry", "memory:/", source))
         .expect("the assignment root has no parent relationship until linking");
     let mut provider = MemoryProvider::default();
-    let error = grida_xml_source::materialize(snapshot("entry", "memory:/", source), &mut provider)
+    let error = n0_xml_source::materialize(snapshot("entry", "memory:/", source), &mut provider)
         .unwrap_err();
     assert_eq!(error.phase, ErrorPhase::Projection);
     assert!(error
@@ -403,7 +397,7 @@ fn caller_scalar_errors_inside_slots_keep_caller_and_projection_ownership() {
   </container>
 </grida>
 "##;
-    let error = grida_xml_source::materialize(
+    let error = n0_xml_source::materialize(
         snapshot("entry", "memory:/", source),
         &mut MemoryProvider::default(),
     )
@@ -466,7 +460,7 @@ fn bound_flow_projection_errors_keep_the_causal_scalar_site() {
   </container>
 </grida>
 "##;
-    let error = grida_xml_source::materialize(
+    let error = n0_xml_source::materialize(
         snapshot("entry", "memory:/", source),
         &mut MemoryProvider::default(),
     )
@@ -494,7 +488,7 @@ fn bound_flow_projection_errors_keep_the_causal_scalar_site() {
 #[test]
 fn caller_authored_resources_keep_the_caller_base_across_files() {
     let entry = r##"
-<grida version="3"><container><use href="./library.grida.xml#card">
+<grida version="3"><container><use href="./library.n0.xml#card">
   <rect slot="media" width="10" height="10"><fill><image src="./texture.png"/></fill></rect>
 </use></container></grida>
 "##;
@@ -507,11 +501,11 @@ fn caller_authored_resources_keep_the_caller_base_across_files() {
     let mut provider = MemoryProvider::default();
     provider.insert(
         "entry",
-        "./library.grida.xml",
+        "./library.n0.xml",
         snapshot("library", "memory:/library/", library),
     );
     let output =
-        grida_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
             .unwrap();
     assert_eq!(output.resources.len(), 2);
     let definition_resource = output
@@ -554,8 +548,7 @@ fn assigned_content_uses_the_caller_prop_environment_not_the_callees_same_name()
 "##;
     let mut provider = MemoryProvider::default();
     let output =
-        grida_xml_source::materialize(snapshot("entry", "memory:/", source), &mut provider)
-            .unwrap();
+        n0_xml_source::materialize(snapshot("entry", "memory:/", source), &mut provider).unwrap();
     let wrapper = output.document.get(authored_scene(&output)).children[0];
     let shell = output.document.get(wrapper).children[0];
     let assigned = output.document.get(shell).children[0];
@@ -583,8 +576,8 @@ fn assigned_content_uses_the_caller_prop_environment_not_the_callees_same_name()
 #[test]
 fn nested_uses_in_assignments_resolve_from_the_callers_source() {
     let entry = r##"
-<grida version="3"><container><use href="./shell.grida.xml#shell">
-  <use slot="body" href="./parts.grida.xml#badge"/>
+<grida version="3"><container><use href="./shell.n0.xml#shell">
+  <use slot="body" href="./parts.n0.xml#badge"/>
 </use></container></grida>
 "##;
     let shell =
@@ -593,22 +586,22 @@ fn nested_uses_in_assignments_resolve_from_the_callers_source() {
     let mut provider = MemoryProvider::default();
     provider.insert(
         "entry",
-        "./shell.grida.xml",
+        "./shell.n0.xml",
         snapshot("shell", "memory:/shell/", shell),
     );
     provider.insert(
         "entry",
-        "./parts.grida.xml",
+        "./parts.n0.xml",
         snapshot("parts", "memory:/parts/", parts),
     );
     let output =
-        grida_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
             .unwrap();
     assert_eq!(
         provider.requests,
         [
-            ("entry".into(), "./shell.grida.xml".into()),
-            ("entry".into(), "./parts.grida.xml".into()),
+            ("entry".into(), "./shell.n0.xml".into()),
+            ("entry".into(), "./parts.n0.xml".into()),
         ]
     );
     let shell_node = output.document.get(authored_scene(&output)).children[0];
@@ -635,8 +628,7 @@ fn slots_nested_in_caller_assignment_trees_keep_the_callers_slot_instance() {
 "##;
     let mut provider = MemoryProvider::default();
     let output =
-        grida_xml_source::materialize(snapshot("entry", "memory:/", source), &mut provider)
-            .unwrap();
+        n0_xml_source::materialize(snapshot("entry", "memory:/", source), &mut provider).unwrap();
     let outer = output.document.get(authored_scene(&output)).children[0];
     let inner = output.document.get(outer).children[0];
     let assignment_container = output.document.get(inner).children[0];
@@ -686,9 +678,8 @@ fn nested_projection_errors_identify_the_exact_receiving_use() {
 </grida>
 "##;
     let mut provider = MemoryProvider::default();
-    let error =
-        grida_xml_source::materialize(snapshot("nested", "memory:/", source), &mut provider)
-            .unwrap_err();
+    let error = n0_xml_source::materialize(snapshot("nested", "memory:/", source), &mut provider)
+        .unwrap_err();
     assert_eq!(error.phase, ErrorPhase::Projection);
     assert!(error.message.contains("grow/align on <rect>"), "{error}");
     assert_eq!(error.use_chain.len(), 2);
@@ -720,9 +711,8 @@ fn projected_content_drops_only_the_current_callee_from_cycle_detection() {
 </grida>
 "##;
     let mut provider = MemoryProvider::default();
-    let output =
-        grida_xml_source::materialize(snapshot("finite", "memory:/", finite), &mut provider)
-            .expect("a caller-owned nested use of the current callee is a finite second instance");
+    let output = n0_xml_source::materialize(snapshot("finite", "memory:/", finite), &mut provider)
+        .expect("a caller-owned nested use of the current callee is a finite second instance");
     let outer = output.document.get(authored_scene(&output)).children[0];
     let inner = output.document.get(outer).children[0];
     assert!(output.document.get(inner).children.is_empty());
@@ -740,7 +730,7 @@ fn projected_content_drops_only_the_current_callee_from_cycle_detection() {
 </grida>
 "##;
     let mut provider = MemoryProvider::default();
-    let error = grida_xml_source::materialize(snapshot("cycle", "memory:/", cycle), &mut provider)
+    let error = n0_xml_source::materialize(snapshot("cycle", "memory:/", cycle), &mut provider)
         .unwrap_err();
     assert_eq!(error.phase, ErrorPhase::Link);
     assert!(
@@ -774,9 +764,9 @@ fn projected_content_drops_only_the_current_callee_from_cycle_detection() {
 fn version3_links_versions_one_two_and_three_without_backporting_version3() {
     let entry = r##"
 <grida version="3"><container>
-  <use href="./v1.grida.xml#static"/>
-  <use href="./v2.grida.xml#scalar"><arg name="label" value="V2"/></use>
-  <use href="./v3.grida.xml#slotted"><rect slot="body" width="4" height="4"/></use>
+  <use href="./v1.n0.xml#static"/>
+  <use href="./v2.n0.xml#scalar"><arg name="label" value="V2"/></use>
+  <use href="./v3.n0.xml#slotted"><rect slot="body" width="4" height="4"/></use>
 </container></grida>
 "##;
     let v1 = r##"<grida version="1"><component id="static" width="10" height="10"/></grida>"##;
@@ -784,11 +774,11 @@ fn version3_links_versions_one_two_and_three_without_backporting_version3() {
     let v3 =
         r##"<grida version="3"><component id="slotted"><slot name="body"/></component></grida>"##;
     let mut provider = MemoryProvider::default();
-    provider.insert("entry", "./v1.grida.xml", snapshot("v1", "memory:/v1/", v1));
-    provider.insert("entry", "./v2.grida.xml", snapshot("v2", "memory:/v2/", v2));
-    provider.insert("entry", "./v3.grida.xml", snapshot("v3", "memory:/v3/", v3));
+    provider.insert("entry", "./v1.n0.xml", snapshot("v1", "memory:/v1/", v1));
+    provider.insert("entry", "./v2.n0.xml", snapshot("v2", "memory:/v2/", v2));
+    provider.insert("entry", "./v3.n0.xml", snapshot("v3", "memory:/v3/", v3));
     let output =
-        grida_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
             .unwrap();
     assert_eq!(
         output.document.get(authored_scene(&output)).children.len(),
@@ -799,15 +789,13 @@ fn version3_links_versions_one_two_and_three_without_backporting_version3() {
 
     for old_version in ["1", "2"] {
         let old_entry = format!(
-            r##"<grida version="{old_version}"><container><use href="./v3.grida.xml#slotted"/></container></grida>"##
+            r##"<grida version="{old_version}"><container><use href="./v3.n0.xml#slotted"/></container></grida>"##
         );
         let mut provider = MemoryProvider::default();
-        provider.insert("old", "./v3.grida.xml", snapshot("v3", "memory:/v3/", v3));
-        let error = grida_xml_source::materialize(
-            snapshot("old", "memory:/old/", &old_entry),
-            &mut provider,
-        )
-        .unwrap_err();
+        provider.insert("old", "./v3.n0.xml", snapshot("v3", "memory:/v3/", v3));
+        let error =
+            n0_xml_source::materialize(snapshot("old", "memory:/old/", &old_entry), &mut provider)
+                .unwrap_err();
         assert_eq!(error.phase, ErrorPhase::Link);
         assert!(error.message.contains(&format!(
             "Version {old_version} source cannot link Version 3"

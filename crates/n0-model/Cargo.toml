@@ -3,7 +3,7 @@ name = "n0-model"
 version = "0.0.0"
 edition = "2021"
 publish = false
-description = "The skia-free `anchor` document model: node records, ops, resolve, pick, measure, Grida XML ingestion, and the text IR."
+description = "The skia-free `anchor` document model: node records, ops, resolve, pick, measure, n0 XML ingestion, and the text IR."
 
 [features]
 # `serde` (default OFF) makes `Op` / `ResizeDrag` / `Axis` serializable — the

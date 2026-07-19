@@ -1,5 +1,5 @@
 //! Focused data and pixel-probe coverage for authored stroke applications and
-//! the display-list scopes they interact with. Native `.grida.xml` has no
+//! the display-list scopes they interact with. Native `.n0.xml` has no
 //! external visual oracle, so these are data/probe tests rather than reftests.
 
 mod support;

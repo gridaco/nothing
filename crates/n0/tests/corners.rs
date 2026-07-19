@@ -1,6 +1,6 @@
 //! Focused rounded-box materialization and raster probes.
 //!
-//! Native `.grida.xml` has no independent browser oracle for continuous
+//! Native `.n0.xml` has no independent browser oracle for continuous
 //! corners, so these tests assert stable model-to-drawlist projection and
 //! high-contrast pixels away from antialiased boundaries.
 

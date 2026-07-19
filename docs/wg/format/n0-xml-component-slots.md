@@ -1,6 +1,6 @@
 ---
-title: "Grida XML component slots"
-description: "Open RFD proposing exact Version 3 named render-slot projection for Grida XML components while preserving caller lexical ownership and an ordinary materialized scene."
+title: "n0 XML component slots"
+description: "Open RFD proposing exact Version 3 named render-slot projection for n0 XML components while preserving caller lexical ownership and an ordinary materialized scene."
 keywords:
   - grida xml
   - component slots
@@ -19,7 +19,7 @@ tags:
 format: md
 ---
 
-# Grida XML component slots
+# n0 XML component slots
 
 **Status:** Open RFD — selected Version 3 named direct-slot projection delta
 with a proving implementation of exact source parsing, linking, direct
@@ -28,14 +28,14 @@ local-file rendering. Canonical source writers and complete-library validation
 remain unimplemented. None of the slot vocabulary introduced by this RFD is
 valid Version 0, Version 1, or Version 2 syntax.
 
-**Companion specifications:** [Grida XML](./grida-xml.md) owns ordinary authored
-scene values. [Grida XML modules and static component
-reuse](./grida-xml-modules.md) owns source units, boxed component definitions,
-`use`, linking, materialization, and component provenance. [Grida XML component
-parameters](./grida-xml-component-parameters.md) owns Version 2 scalar props,
+**Companion specifications:** [n0 XML](./n0-xml.md) owns ordinary authored
+scene values. [n0 XML modules and static component
+reuse](./n0-xml-modules.md) owns source units, boxed component definitions,
+`use`, linking, materialization, and component provenance. [n0 XML component
+parameters](./n0-xml-component-parameters.md) owns Version 2 scalar props,
 arguments, bindings, and lexical scalar scope. This RFD specifies only the
-Version 3 render-slot delta. [Grida XML durable
-addressing](./grida-xml-addressing.md) owns the later Version 4 member/use
+Version 3 render-slot delta. [n0 XML durable
+addressing](./n0-xml-addressing.md) owns the later Version 4 member/use
 identity and occurrence-path delta.
 
 ## Decision summary
@@ -414,8 +414,8 @@ handles must not be presented as durable authored identity.
 Version 4 subsequently requires explicit render-member and use IDs. During
 slot projection it retains the assignment root's caller owner and appends the
 receiving use to its durable occurrence path; it does not promote a Version 3
-source location or child index into identity. See [Grida XML durable
-addressing](./grida-xml-addressing.md).
+source location or child index into identity. See [n0 XML durable
+addressing](./n0-xml-addressing.md).
 
 ## Source preservation and canonical writing
 

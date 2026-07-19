@@ -171,7 +171,7 @@
       direction="column"
       gap="20"
     >
-      <use href="./post-card.grida.xml#post-card" name="coastal-post">
+      <use href="./post-card.n0.xml#post-card" name="coastal-post">
         <arg name="author" value="lumen.archive"/>
         <arg name="avatar" value="L"/>
         <arg name="avatar-color" value="#1D4ED8"/>
@@ -193,7 +193,7 @@
         </container>
       </use>
 
-      <use href="./post-card.grida.xml#post-card" name="studio-post">
+      <use href="./post-card.n0.xml#post-card" name="studio-post">
         <arg name="author" value="object.room"/>
         <arg name="avatar" value="O"/>
         <arg name="avatar-color" value="#EA580C"/>

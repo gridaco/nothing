@@ -10,14 +10,14 @@ mod support;
 use n0::drawlist::build_glyphless_unchecked;
 use n0::frame;
 use n0::paint::PaintCtx;
-use n0_model::grida_xml_source::{self, SourceProvider, SourceSnapshot};
 use n0_model::math::Affine;
 use n0_model::model::{Payload, ShapeDesc};
+use n0_model::n0_xml_source::{self, SourceProvider, SourceSnapshot};
 use n0_model::resolve::{resolve, ResolveOptions};
 use skia_safe::{surfaces, Color};
 
-const ENTRY_SOURCE: &str = include_str!("../rig/fixtures/slot-program/entry.grida.xml");
-const COMPONENT_SOURCE: &str = include_str!("../rig/fixtures/slot-program/post-shell.grida.xml");
+const ENTRY_SOURCE: &str = include_str!("../rig/fixtures/slot-program/entry.n0.xml");
+const COMPONENT_SOURCE: &str = include_str!("../rig/fixtures/slot-program/post-shell.n0.xml");
 const ENTRY_ID: &str = "fixture:slot-program/entry";
 const COMPONENT_ID: &str = "fixture:slot-program/post-shell";
 const SOURCE_BASE: &str = "fixture:/slot-program/";
@@ -36,7 +36,7 @@ impl SourceProvider for FixtureSources {
         location: &str,
     ) -> Result<SourceSnapshot, String> {
         self.requests += 1;
-        if containing.identity() != ENTRY_ID || location != "./post-shell.grida.xml" {
+        if containing.identity() != ENTRY_ID || location != "./post-shell.n0.xml" {
             return Err(format!(
                 "unexpected fixture reference from {} to {location}",
                 containing.identity()
@@ -60,7 +60,7 @@ fn options() -> ResolveOptions {
 #[test]
 fn version3_slots_materialize_before_the_component_blind_frame() {
     let mut sources = FixtureSources::default();
-    let output = grida_xml_source::materialize(
+    let output = n0_xml_source::materialize(
         SourceSnapshot::new(ENTRY_ID, SOURCE_BASE, ENTRY_SOURCE),
         &mut sources,
     )

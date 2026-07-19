@@ -7,12 +7,12 @@ mod support;
 use n0::drawlist::{build_glyphless_unchecked, DrawList, ItemKind};
 use n0::frame;
 use n0::paint::PaintCtx;
-use n0_model::grida_xml;
 use n0_model::math::Affine;
 use n0_model::model::{
     AttributedString, Color, DocBuilder, Header, Paint as ModelPaint, Paints, Payload, SizeIntent,
     StyledTextRun, TextStyleRec,
 };
+use n0_model::n0_xml;
 use n0_model::resolve::Resolved;
 use n0_model::resolve::{resolve, ResolveOptions};
 use skia_safe::{surfaces, Color as SkColor, FontMgr};
@@ -102,7 +102,7 @@ fn count_pixels(
 #[test]
 fn drawlist_materializes_shared_wrapping_and_explicit_empty_lines() {
     let source = "<grida version=\"0\"><container width=\"60\" height=\"60\"><text width=\"30\" font-size=\"10\" fill=\"#000000\">aa bb cc\nx\n</text></container></grida>";
-    let doc = grida_xml::parse(source).unwrap();
+    let doc = n0_xml::parse(source).unwrap();
     let resolved = resolve(&doc, &ResolveOptions::default());
     let list = build_glyphless_unchecked(&doc, &resolved);
     let lines = list
@@ -129,7 +129,7 @@ fn drawlist_materializes_shared_wrapping_and_explicit_empty_lines() {
 #[test]
 fn fill_and_repeated_strokes_share_one_text_line_topology() {
     let source = r##"<grida version="0"><container width="80" height="40"><text width="60" font-size="10" fill="#000000"><stroke width="1" align="center"><solid color="#FF0000"/></stroke><stroke width="2" align="outside"><solid color="#0000FF"/></stroke>aa bb cc</text></container></grida>"##;
-    let doc = grida_xml::parse(source).unwrap();
+    let doc = n0_xml::parse(source).unwrap();
     let resolved = resolve(&doc, &ResolveOptions::default());
     let list = build_glyphless_unchecked(&doc, &resolved);
     let topologies = list
@@ -350,7 +350,7 @@ fn attributed_painter_renders_mixed_sizes_and_colors() {
 #[test]
 fn frame_shares_one_shaped_layout_with_fill_and_every_stroke() {
     let source = r##"<grida version="0"><container width="180" height="80"><text width="120" font-size="20" fill="#000000"><stroke width="1" align="center"><solid color="#FF0000"/></stroke><stroke width="2" align="outside"><solid color="#0000FF"/></stroke>office AV</text></container></grida>"##;
-    let document = grida_xml::parse(source).unwrap();
+    let document = n0_xml::parse(source).unwrap();
     let container = document.get(document.root).children[0];
     let text_id = document.get(container).children[0];
     let (_, resolved, list) = render_document_full(&document, 180, 80);

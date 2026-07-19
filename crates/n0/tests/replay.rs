@@ -6,8 +6,8 @@
 
 use n0::oracle::{OracleTags, TEXT_SKPARAGRAPH};
 use n0::replay::{parse_string, play, resolved_bits_eq, write_string};
-use n0_model::grida_xml;
 use n0_model::model::*;
+use n0_model::n0_xml;
 use n0_model::ops::{apply, Axis, Op, ResizeDrag};
 use n0_model::resolve::{resolve, resolve_with_text_layout, ResolveOptions, RotationInFlow};
 use n0_model::text_layout::{StubTextLayoutOracle, TextLayout, TextLayoutOracle};
@@ -184,7 +184,7 @@ fn resolved_bit_equality_includes_the_text_layout_column() {
 #[test]
 fn resolved_bit_equality_includes_path_geometry_and_fill_rule_not_source_spelling() {
     let source = |d: &str, fill_rule: &str| {
-        grida_xml::parse(&format!(
+        n0_xml::parse(&format!(
             r#"<grida version="0"><container width="100" height="100"><path width="100" height="100" d="{d}"{fill_rule}/></container></grida>"#
         ))
         .unwrap()

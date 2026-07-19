@@ -1,6 +1,6 @@
 ---
-title: "Grida XML animation"
-description: "Decision RFD deferring native .grida.xml animation syntax while SVG proves the shared animation contract."
+title: "n0 XML animation"
+description: "Decision RFD deferring native .n0.xml animation syntax while SVG proves the shared animation contract."
 keywords:
   - grida xml
   - animation
@@ -17,11 +17,11 @@ tags:
 format: md
 ---
 
-# Grida XML animation
+# n0 XML animation
 
 **Status:** Decided — native syntax is deferred and unreserved.
 
-`.grida.xml` remains a static authored scene language. Its strict reader must
+`.n0.xml` remains a static authored scene language. Its strict reader must
 reject animation elements and animation-only attributes rather than infer a
 timing model. No native animation tag, attribute, namespace, or structural
 position is reserved by this decision.
@@ -29,9 +29,9 @@ position is reserved by this decision.
 Actual SVG source is the first authored animation frontend. Its cumulative
 contracts run from the [SVG Animation Profile
 0](../feat-svg/animation.md) baseline through the current cumulative [Profile
-6](../feat-svg/animation-path-geometry.md). SVG source is not Grida XML, and this
+6](../feat-svg/animation-path-geometry.md). SVG source is not n0 XML, and this
 decision does not make `<animate>` or any other SVG animation element valid
-inside `.grida.xml`.
+inside `.n0.xml`.
 
 ## Decision
 
@@ -39,11 +39,11 @@ inside `.grida.xml`.
 2. SVG compiles to a source-neutral, typed animation program before sampling.
 3. Sampling produces the existing immutable effective-property values; it does
    not mutate authored source or introduce a second value channel.
-4. Native Grida XML animation grammar will be reconsidered only after SVG and
+4. Native n0 XML animation grammar will be reconsidered only after SVG and
    at least one materially different producer have exercised that program.
-5. Until then, the Grida XML grammar remains entirely static and reserves
+5. Until then, the n0 XML grammar remains entirely static and reserves
    nothing on speculation.
-6. An external runtime may continue supplying effective values to a Grida XML
+6. An external runtime may continue supplying effective values to a n0 XML
    scene. That is runtime control, not native animation source semantics.
 
 The source-neutral boundary begins after a frontend has resolved its own
@@ -63,7 +63,7 @@ Animation syntax commits the language to more than values changing over time:
 - layout, paint, query, damage, and resource consequences; and
 - static fallback, seeking, export, and trust policy.
 
-The [durable-addressing RFD](./grida-xml-addressing.md) already supplies stable
+The [durable-addressing RFD](./n0-xml-addressing.md) already supplies stable
 owner/member identities, typed property targets, and the immutable sparse
 effective-value boundary. It deliberately does not decide timing,
 interpolation, or composition.
@@ -86,7 +86,7 @@ shared contract.
 
 ## Current static behavior
 
-With no externally supplied effective values, a `.grida.xml` document renders
+With no externally supplied effective values, a `.n0.xml` document renders
 its authored scene. There is no implicit time zero, autoplay, poster frame, or
 hidden timeline.
 
@@ -105,12 +105,12 @@ Examples such as these remain invalid:
 ```
 
 A processor must not preserve them as unknown inert children and later claim
-they have defined Grida XML meaning. Rejecting them keeps source authoring and
+they have defined n0 XML meaning. Rejecting them keeps source authoring and
 runtime control distinguishable.
 
 ## Requirements for a future native proposal
 
-A future `.grida.xml` animation RFD must arrive with a second-frontend
+A future `.n0.xml` animation RFD must arrive with a second-frontend
 comparison and answer, normatively:
 
 - which timelines exist and how exact sample time is represented;
@@ -135,8 +135,8 @@ second canonical form.
   frontend baseline.
 - [SVG Animation Profile 6](../feat-svg/animation-path-geometry.md) — current
   cumulative source contract.
-- [Grida XML durable addressing](./grida-xml-addressing.md) — source identities,
+- [n0 XML durable addressing](./n0-xml-addressing.md) — source identities,
   typed property targets, and effective values.
-- [Grida XML](./grida-xml.md) — static authored-language contract.
+- [n0 XML](./n0-xml.md) — static authored-language contract.
 - [Chromium SVG animation research](../research/chromium/svg/animation-and-smil.md)
   — browser implementation precedent, not Grida semantics.

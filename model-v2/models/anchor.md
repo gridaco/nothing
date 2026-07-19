@@ -349,7 +349,7 @@ Resolution never writes back to the document.
 ## 7. Worked examples (H1 — historical XML sketches)
 
 These model sketches predate both the frozen E3 TextIr grammar and Draft 0
-`.grida.xml`. They are not parseable source for either language.
+`.n0.xml`. They are not parseable source for either language.
 
 ```xml
 <!-- (a) rectangle rotated 15° -->

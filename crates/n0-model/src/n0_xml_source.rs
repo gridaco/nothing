@@ -1,6 +1,6 @@
-//! Pure retained-source boundary for linked Grida XML programs.
+//! Pure retained-source boundary for linked n0 XML programs.
 //!
-//! [`crate::grida_xml`] remains the exact Draft 0 `&str -> Document`
+//! [`crate::n0_xml`] remains the exact Draft 0 `&str -> Document`
 //! contract. This sibling owns source identity, dependency resolution,
 //! Version 1 component linking, Version 2 typed scalar specialization, Version
 //! 3 named static slot projection, Version 4 durable authored addresses, and
@@ -12,8 +12,8 @@
 // would make the public boundary less direct to save only a small stack slot.
 #![allow(clippy::result_large_err)]
 
-use crate::grida_xml;
 use crate::model::{Color, Document, NodeId, NodeKey, Payload, ShapeDesc};
+use crate::n0_xml;
 use quick_xml::events::attributes::Attributes;
 use quick_xml::events::{BytesDecl, BytesStart, Event};
 use quick_xml::Reader;
@@ -225,7 +225,7 @@ impl SourceError {
 
 impl std::fmt::Display for SourceError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "grida_xml_source {:?} in {}", self.phase, self.source)?;
+        write!(f, "n0_xml_source {:?} in {}", self.phase, self.source)?;
         if let Some(span) = self.span {
             write!(f, ":{}", span.start)?;
         }
@@ -1499,7 +1499,7 @@ pub fn parse_source(snapshot: SourceSnapshot) -> Result<SourceUnit, SourceError>
     };
 
     if version == SourceVersion::Draft0 {
-        grida_xml::parse(snapshot.source())
+        n0_xml::parse(snapshot.source())
             .map_err(|error| SourceError::parse(snapshot.identity(), error.to_string()))?;
         let scene = root.element_children().next().cloned();
         return Ok(SourceUnit {
@@ -1668,7 +1668,7 @@ fn parse_component(
                 if !has_scalar_specialization(version) {
                     return Err(SourceError::parse(
                         source,
-                        "<prop> requires Grida XML Version 2, 3, or 4",
+                        "<prop> requires n0 XML Version 2, 3, or 4",
                     ));
                 }
                 if body_started {
@@ -1736,7 +1736,7 @@ fn validate_slot_declaration(
     if !has_static_slots(version) {
         return Err(SourceError::parse(
             source,
-            "<slot> requires Grida XML Version 3 or 4",
+            "<slot> requires n0 XML Version 3 or 4",
         ));
     }
     if !inside_component {
@@ -1796,7 +1796,7 @@ fn validate_slot_assignment_attribute(
     if !has_static_slots(version) {
         return Err(SourceError::parse(
             source,
-            "render slot assignments require Grida XML Version 3 or 4",
+            "render slot assignments require n0 XML Version 3 or 4",
         ));
     }
     let name = slot.ok_or_else(|| {
@@ -2422,7 +2422,7 @@ fn validate_template(source: &str, root: Element) -> Result<(), SourceError> {
     let mut xml = String::from("<grida version=\"0\">");
     write_element(&root, &mut xml);
     xml.push_str("</grida>");
-    grida_xml::parse(&xml)
+    n0_xml::parse(&xml)
         .map(|_| ())
         .map_err(|error| SourceError::parse(source, error.to_string()))
 }
@@ -2888,7 +2888,7 @@ fn validate_expanded_relationships(
                 };
                 write_expanded_element(child, &mut xml);
                 xml.push_str("</container></grida>");
-                grida_xml::parse(&xml).map_err(|error| {
+                n0_xml::parse(&xml).map_err(|error| {
                     let specialization_sites =
                         projected_specialization_sites(child, specializations);
                     SourceError::at_phase(
@@ -3076,7 +3076,7 @@ impl<'a, P: SourceProvider> Linker<'a, P> {
         let mut xml = String::from("<grida version=\"0\">");
         write_expanded_element(&root, &mut xml);
         xml.push_str("</grida>");
-        let document = grida_xml::parse(&xml).map_err(|error| {
+        let document = n0_xml::parse(&xml).map_err(|error| {
             SourceError::at_phase(
                 ErrorPhase::Materialize,
                 &self.entry,
@@ -3847,7 +3847,7 @@ impl<'a, P: SourceProvider> Linker<'a, P> {
         let mut xml = String::from("<grida version=\"0\">");
         write_expanded_element(&root, &mut xml);
         xml.push_str("</grida>");
-        grida_xml::parse(&xml).map(|_| ()).map_err(|error| {
+        n0_xml::parse(&xml).map(|_| ()).map_err(|error| {
             let context = sites
                 .iter()
                 .map(|site| {
@@ -4341,7 +4341,7 @@ impl<'a, P: SourceProvider> Linker<'a, P> {
             .snapshot
             .base()
             .to_owned();
-        let runtime_rid = format!("grida-xml-resource-{}", self.resources.len());
+        let runtime_rid = format!("n0-xml-resource-{}", self.resources.len());
         self.resources.push(ResourceManifestEntry {
             runtime_rid: runtime_rid.clone(),
             source: source.into(),

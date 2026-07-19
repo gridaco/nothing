@@ -17,13 +17,13 @@ Tracking docs for the Grida IR schema and how external formats map into it.
 | Page                                                                  | Description                                                  |
 | --------------------------------------------------------------------- | ------------------------------------------------------------ |
 | [Grida IR](./grida.md)                                                | Canonical IR reference — node types, paint, layout           |
-| [Grida XML](./grida-xml.md)                                           | Open RFD for the authored, inspectable `.grida.xml` source   |
-| [Grida XML properties](./grida-xml-properties.md)                     | XML property names, applicability, and design placeholders   |
-| [Grida XML modules](./grida-xml-modules.md)                           | Open linking/component RFD with a proving implementation     |
-| [Grida XML component parameters](./grida-xml-component-parameters.md) | Open typed prop/arg RFD with a proving implementation        |
-| [Grida XML component slots](./grida-xml-component-slots.md)           | Open named slot projection RFD with a proving implementation |
-| [Grida XML durable addressing](./grida-xml-addressing.md)             | Version 4 node/use identity and typed effective-value RFD    |
-| [Grida XML animation](./grida-xml-animation.md)                       | Decision deferring native syntax while SVG proves the kernel |
+| [n0 XML](./n0-xml.md)                                           | Open RFD for the authored, inspectable `.n0.xml` source   |
+| [n0 XML properties](./n0-xml-properties.md)                     | XML property names, applicability, and design placeholders   |
+| [n0 XML modules](./n0-xml-modules.md)                           | Open linking/component RFD with a proving implementation     |
+| [n0 XML component parameters](./n0-xml-component-parameters.md) | Open typed prop/arg RFD with a proving implementation        |
+| [n0 XML component slots](./n0-xml-component-slots.md)           | Open named slot projection RFD with a proving implementation |
+| [n0 XML durable addressing](./n0-xml-addressing.md)             | Version 4 node/use identity and typed effective-value RFD    |
+| [n0 XML animation](./n0-xml-animation.md)                       | Decision deferring native syntax while SVG proves the kernel |
 
 ## Import mappings
 

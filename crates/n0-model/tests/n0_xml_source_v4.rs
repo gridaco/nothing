@@ -1,6 +1,6 @@
 //! Version 4 durable authored-member and component-occurrence addresses.
 
-use n0_model::grida_xml_source::{
+use n0_model::n0_xml_source::{
     self, AddressLookupError, AuthoredMemberId, AuthoredOwner, SourceProvider, SourceSnapshot,
     SourceVersion,
 };
@@ -50,7 +50,7 @@ fn two_component_uses_give_one_member_distinct_occurrence_addresses() {
 </grida>
 "##;
     let mut provider = MemoryProvider::default();
-    let output = grida_xml_source::materialize(snapshot("entry", source), &mut provider).unwrap();
+    let output = n0_xml_source::materialize(snapshot("entry", source), &mut provider).unwrap();
     assert_eq!(
         output.program.unit("entry").unwrap().version(),
         SourceVersion::Version4
@@ -80,7 +80,7 @@ fn two_component_uses_give_one_member_distinct_occurrence_addresses() {
     for (address, node) in bodies {
         assert_eq!(
             address.member.owner,
-            AuthoredOwner::Component(grida_xml_source::ComponentIdentity {
+            AuthoredOwner::Component(n0_xml_source::ComponentIdentity {
                 source: "entry".into(),
                 id: "badge".into(),
             })
@@ -103,8 +103,8 @@ fn authored_root_id_is_distinct_from_the_structural_component_root() {
 </grida>
 "##;
     let mut provider = MemoryProvider::default();
-    let output = grida_xml_source::materialize(snapshot("entry", source), &mut provider).unwrap();
-    let owner = AuthoredOwner::Component(grida_xml_source::ComponentIdentity {
+    let output = n0_xml_source::materialize(snapshot("entry", source), &mut provider).unwrap();
+    let owner = AuthoredOwner::Component(n0_xml_source::ComponentIdentity {
         source: "entry".into(),
         id: "card".into(),
     });
@@ -155,7 +155,7 @@ fn nested_uses_and_slot_assignments_keep_path_order_and_authored_owner() {
 </grida>
 "##;
     let mut provider = MemoryProvider::default();
-    let output = grida_xml_source::materialize(snapshot("entry", source), &mut provider).unwrap();
+    let output = n0_xml_source::materialize(snapshot("entry", source), &mut provider).unwrap();
 
     let caller_rect = output
         .addresses()
@@ -183,7 +183,7 @@ fn nested_uses_and_slot_assignments_keep_path_order_and_authored_owner() {
         .unwrap();
     assert_eq!(
         leaf_mark.0.member.owner,
-        AuthoredOwner::Component(grida_xml_source::ComponentIdentity {
+        AuthoredOwner::Component(n0_xml_source::ComponentIdentity {
             source: "entry".into(),
             id: "leaf".into(),
         })
@@ -229,7 +229,7 @@ fn version4_ids_are_required_well_formed_and_unique_per_lexical_owner() {
         ),
     ];
     for (source, expected, local_id_error) in cases {
-        let error = grida_xml_source::parse_source(snapshot("bad", source)).unwrap_err();
+        let error = n0_xml_source::parse_source(snapshot("bad", source)).unwrap_err();
         assert!(error.message.contains(expected), "{error}");
         if local_id_error {
             assert!(
@@ -245,7 +245,7 @@ fn version4_ids_are_required_well_formed_and_unique_per_lexical_owner() {
   <container id="same"><use id="item-use" href="#item"/></container>
 </grida>
 "##;
-    grida_xml_source::parse_source(snapshot("ok", owner_local)).unwrap();
+    n0_xml_source::parse_source(snapshot("ok", owner_local)).unwrap();
 }
 
 #[test]
@@ -254,11 +254,11 @@ fn versions_zero_through_three_keep_their_exact_id_posture() {
         let source = format!(
             r##"<grida version="{version}"><container><rect width="1" height="1"/></container></grida>"##
         );
-        grida_xml_source::parse_source(snapshot("old", &source)).unwrap();
+        n0_xml_source::parse_source(snapshot("old", &source)).unwrap();
     }
 
     let old_with_id = r##"<grida version="3"><container id="not-backported"/></grida>"##;
-    let error = grida_xml_source::parse_source(snapshot("old", old_with_id)).unwrap_err();
+    let error = n0_xml_source::parse_source(snapshot("old", old_with_id)).unwrap_err();
     assert!(error.message.contains("unknown attribute `id`"), "{error}");
 }
 
@@ -282,8 +282,8 @@ fn version4_rejects_legacy_component_sources_before_materialization() {
 </grida>
 "##;
         let error =
-            grida_xml_source::materialize(snapshot("entry", entry), &mut provider).unwrap_err();
-        assert_eq!(error.phase, grida_xml_source::ErrorPhase::Link);
+            n0_xml_source::materialize(snapshot("entry", entry), &mut provider).unwrap_err();
+        assert_eq!(error.phase, n0_xml_source::ErrorPhase::Link);
         assert!(
             error.message.contains(&format!(
                 "Version 4 source cannot link Version {target_version} component source"
@@ -319,7 +319,7 @@ fn version4_to_version4_slot_assignment_has_a_complete_address_closure() {
   </container>
 </grida>
 "##;
-    let output = grida_xml_source::materialize(snapshot("entry", entry), &mut provider).unwrap();
+    let output = n0_xml_source::materialize(snapshot("entry", entry), &mut provider).unwrap();
     assert_eq!(
         output.program.unit("library-v4").unwrap().version(),
         SourceVersion::Version4
@@ -349,7 +349,7 @@ fn version4_to_version4_slot_assignment_has_a_complete_address_closure() {
 fn older_nodes_are_unaddressed_and_removed_version4_nodes_fail_closed() {
     let old = r##"<grida version="3"><container/></grida>"##;
     let mut provider = MemoryProvider::default();
-    let old = grida_xml_source::materialize(snapshot("old", old), &mut provider).unwrap();
+    let old = n0_xml_source::materialize(snapshot("old", old), &mut provider).unwrap();
     assert_eq!(old.addresses().len(), 0);
     let old_root = old.document.get(old.document.root).children[0];
     let old_key = old.document.key_of(old_root).unwrap();
@@ -359,7 +359,7 @@ fn older_nodes_are_unaddressed_and_removed_version4_nodes_fail_closed() {
     ));
 
     let source = r##"<grida version="4"><container id="scene-root"><rect id="member" width="2" height="2"/></container></grida>"##;
-    let mut output = grida_xml_source::materialize(snapshot("new", source), &mut provider).unwrap();
+    let mut output = n0_xml_source::materialize(snapshot("new", source), &mut provider).unwrap();
     let (address, key) = output
         .addresses()
         .find(|(address, _)| address.member.id == AuthoredMemberId::Id("member".into()))

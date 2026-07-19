@@ -1,7 +1,7 @@
 //! Closed typed-property registry and immutable ValueView contract.
 
-use n0_model::grida_xml;
 use n0_model::model::*;
+use n0_model::n0_xml;
 use n0_model::pick::pick;
 use n0_model::properties::*;
 use n0_model::resolve::{resolve, resolve_view, ResolveOptions};
@@ -20,7 +20,7 @@ fn flex_scene() -> (Document, NodeId, NodeId) {
   </container>
 </grida>
 "##;
-    let document = grida_xml::parse(source).unwrap();
+    let document = n0_xml::parse(source).unwrap();
     let scene = document.get(document.root).children[0];
     let first = document.get(scene).children[0];
     let second = document.get(scene).children[1];
@@ -57,7 +57,7 @@ fn registry_is_closed_unique_and_every_base_accessor_matches_its_value_kind() {
         PropertyKey::ALL.len()
     );
 
-    let document = grida_xml::parse(
+    let document = n0_xml::parse(
         r#"
 <grida version="0">
   <container>
@@ -382,7 +382,7 @@ fn effective_linear_gradient_endpoints_follow_skias_f32_degeneracy_boundary() {
 #[test]
 fn line_locked_height_and_gradient_stop_cardinality_are_rejected() {
     let document =
-        grida_xml::parse(r#"<grida version="0"><container><line width="10"/></container></grida>"#)
+        n0_xml::parse(r#"<grida version="0"><container><line width="10"/></container></grida>"#)
             .unwrap();
     let scene = document.get(document.root).children[0];
     let line = document.get(scene).children[0];
@@ -420,7 +420,7 @@ fn line_locked_height_and_gradient_stop_cardinality_are_rejected() {
 #[test]
 fn base_and_empty_effective_views_both_reject_inapplicable_reads() {
     let document =
-        grida_xml::parse(r#"<grida version="0"><container><line width="10"/></container></grida>"#)
+        n0_xml::parse(r#"<grida version="0"><container><line width="10"/></container></grida>"#)
             .unwrap();
     let scene = document.get(document.root).children[0];
     let line = document.get(scene).children[0];
@@ -514,7 +514,7 @@ fn effective_geometry_tuples_preserve_static_span_line_and_shape_rules() {
         "{span_with_fixed}"
     );
 
-    let constrained = grida_xml::parse(
+    let constrained = n0_xml::parse(
         r#"<grida version="0"><container><rect x="span 0 0" height="20"/></container></grida>"#,
     )
     .unwrap();
@@ -534,7 +534,7 @@ fn effective_geometry_tuples_preserve_static_span_line_and_shape_rules() {
     ));
 
     let line_document =
-        grida_xml::parse(r#"<grida version="0"><container><line width="10"/></container></grida>"#)
+        n0_xml::parse(r#"<grida version="0"><container><line width="10"/></container></grida>"#)
             .unwrap();
     let scene = line_document.get(line_document.root).children[0];
     let line = line_document.get(scene).children[0];
@@ -598,7 +598,7 @@ fn effective_geometry_tuples_preserve_static_span_line_and_shape_rules() {
         );
     }
 
-    let shapes = grida_xml::parse(
+    let shapes = n0_xml::parse(
         r#"<grida version="0"><container><rect width="10" height="10"/><ellipse width="10" height="10"/><path width="10" height="10" d="M0 0 L1 0 L1 1 Z"/></container></grida>"#,
     )
     .unwrap();
@@ -792,7 +792,7 @@ fn empty_value_view_is_bit_exact_for_resolve_and_pick() {
   </container>
 </grida>
 "##;
-    let document = grida_xml::parse(source).unwrap();
+    let document = n0_xml::parse(source).unwrap();
     let values = PropertyValues::new(&document, []).unwrap();
     let view = ValueView::new(&document, &values).unwrap();
     let options = ResolveOptions::default();
@@ -923,7 +923,7 @@ fn effective_cross_size_controls_container_stretch_without_mutating_authored_sta
 
 #[test]
 fn rounded_and_smoothed_effective_clips_control_descendant_queries() {
-    let document = grida_xml::parse(
+    let document = n0_xml::parse(
         r#"
 <grida version="0">
   <container width="100" height="100">

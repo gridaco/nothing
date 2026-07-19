@@ -11,11 +11,11 @@
 //! This crate stays skia-free — backends live in its consumers.
 
 pub mod animation;
-pub mod grida_xml;
-pub mod grida_xml_source;
 pub mod math;
 pub mod measure;
 pub mod model;
+pub mod n0_xml;
+pub mod n0_xml_source;
 pub mod ops;
 pub mod path;
 pub mod pick;

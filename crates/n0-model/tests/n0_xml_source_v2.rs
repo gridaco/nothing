@@ -1,10 +1,10 @@
 //! Version 2 typed scalar specialization contract.
 
-use n0_model::grida_xml_source::{
+use n0_model::model::{BoxFit, ImagePaintFit, Paint, Payload, ResourceRef, SizeIntent};
+use n0_model::n0_xml_source::{
     self, BindingTargetKind, ErrorPhase, ScalarType, SourceProvider, SourceSnapshot, SourceVersion,
     ValueSelection,
 };
-use n0_model::model::{BoxFit, ImagePaintFit, Paint, Payload, ResourceRef, SizeIntent};
 use std::collections::BTreeMap;
 
 fn snapshot(identity: &str, base: &str, source: &str) -> SourceSnapshot {
@@ -34,7 +34,7 @@ impl SourceProvider for MemoryProvider {
     }
 }
 
-fn authored_scene(output: &grida_xml_source::MaterializedProgram) -> u32 {
+fn authored_scene(output: &n0_xml_source::MaterializedProgram) -> u32 {
     output.document.get(output.document.root).children[0]
 }
 
@@ -68,7 +68,7 @@ fn all_six_scalar_types_specialize_into_the_existing_ordinary_model() {
 "##;
     let mut provider = MemoryProvider::default();
     let output =
-        grida_xml_source::materialize(snapshot("entry", "memory:/entry/", source), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/entry/", source), &mut provider)
             .unwrap();
 
     assert_eq!(
@@ -169,8 +169,7 @@ fn defaults_and_explicit_values_that_equal_defaults_keep_distinct_selection() {
 "##;
     let mut provider = MemoryProvider::default();
     let output =
-        grida_xml_source::materialize(snapshot("entry", "memory:/", source), &mut provider)
-            .unwrap();
+        n0_xml_source::materialize(snapshot("entry", "memory:/", source), &mut provider).unwrap();
     assert_eq!(output.specializations.len(), 2);
     let first = output.specializations[0]
         .props
@@ -203,7 +202,7 @@ fn empty_string_presence_distinguishes_defaults_from_supplied_arguments() {
   </container>
 </grida>
 "##;
-    let output = grida_xml_source::materialize(
+    let output = n0_xml_source::materialize(
         snapshot("entry", "memory:/", source),
         &mut MemoryProvider::default(),
     )
@@ -225,10 +224,10 @@ fn nested_forwarding_preserves_the_ultimate_resource_literal_origin() {
     let entry = r##"
 <grida version="2">
   <container width="100" height="80">
-    <use href="./library.grida.xml#wrapper">
+    <use href="./library.n0.xml#wrapper">
       <arg name="asset" value="./caller.png"/>
     </use>
-    <use href="./library.grida.xml#wrapper" x="40"/>
+    <use href="./library.n0.xml#wrapper" x="40"/>
   </container>
 </grida>
 "##;
@@ -247,11 +246,11 @@ fn nested_forwarding_preserves_the_ultimate_resource_literal_origin() {
     let mut provider = MemoryProvider::default();
     provider.insert(
         "entry",
-        "./library.grida.xml",
+        "./library.n0.xml",
         snapshot("library", "memory:/library/", library),
     );
     let output =
-        grida_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
             .unwrap();
 
     assert_eq!(output.resources.len(), 2);
@@ -316,8 +315,7 @@ fn brace_scanning_is_source_local_and_substituted_strings_are_single_pass() {
 "##;
     let mut provider = MemoryProvider::default();
     let output =
-        grida_xml_source::materialize(snapshot("entry", "memory:/", source), &mut provider)
-            .unwrap();
+        n0_xml_source::materialize(snapshot("entry", "memory:/", source), &mut provider).unwrap();
     let scene = authored_scene(&output);
     let message = output.document.get(scene).children[0];
     assert_eq!(
@@ -333,12 +331,13 @@ fn brace_scanning_is_source_local_and_substituted_strings_are_single_pass() {
 
 #[test]
 fn version2_accepts_version1_static_components_without_reinterpreting_braces() {
-    let entry = r##"<grida version="2"><container><use href="./v1.grida.xml#literal"/></container></grida>"##;
+    let entry =
+        r##"<grida version="2"><container><use href="./v1.n0.xml#literal"/></container></grida>"##;
     let v1 = r##"<grida version="1"><component id="literal" width="100" height="20"><text>{price} {{price}}</text></component></grida>"##;
     let mut provider = MemoryProvider::default();
-    provider.insert("entry", "./v1.grida.xml", snapshot("v1", "memory:/v1/", v1));
+    provider.insert("entry", "./v1.n0.xml", snapshot("v1", "memory:/v1/", v1));
     let output =
-        grida_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
             .unwrap();
     let scene = authored_scene(&output);
     let instance = output.document.get(scene).children[0];
@@ -350,15 +349,11 @@ fn version2_accepts_version1_static_components_without_reinterpreting_braces() {
     assert!(output.specializations.is_empty());
 
     let v1_entry =
-        r##"<grida version="1"><container><use href="./v2.grida.xml#item"/></container></grida>"##;
+        r##"<grida version="1"><container><use href="./v2.n0.xml#item"/></container></grida>"##;
     let v2 = r##"<grida version="2"><component id="item" width="10" height="10"/></grida>"##;
     let mut provider = MemoryProvider::default();
-    provider.insert(
-        "v1-entry",
-        "./v2.grida.xml",
-        snapshot("v2", "memory:/v2/", v2),
-    );
-    let error = grida_xml_source::materialize(
+    provider.insert("v1-entry", "./v2.n0.xml", snapshot("v2", "memory:/v2/", v2));
+    let error = n0_xml_source::materialize(
         snapshot("v1-entry", "memory:/entry/", v1_entry),
         &mut provider,
     )
@@ -416,8 +411,7 @@ fn declaration_and_binding_failures_are_source_errors() {
         ),
     ];
     for (source, expected) in cases {
-        let error =
-            grida_xml_source::parse_source(snapshot("bad", "memory:/", source)).unwrap_err();
+        let error = n0_xml_source::parse_source(snapshot("bad", "memory:/", source)).unwrap_err();
         assert_eq!(error.phase, ErrorPhase::Parse, "{error}");
         assert!(error.to_string().contains(expected), "{error}");
     }
@@ -457,9 +451,8 @@ fn specialization_rejects_missing_unknown_and_mistyped_arguments() {
     ];
     for (source, expected) in cases {
         let mut provider = MemoryProvider::default();
-        let error =
-            grida_xml_source::materialize(snapshot("bad", "memory:/", source), &mut provider)
-                .unwrap_err();
+        let error = n0_xml_source::materialize(snapshot("bad", "memory:/", source), &mut provider)
+            .unwrap_err();
         assert_eq!(error.phase, ErrorPhase::Specialize, "{error}");
         assert!(error.to_string().contains(expected), "{error}");
     }
@@ -489,11 +482,9 @@ fn forwarding_requires_exact_types_and_enum_subset_compatibility() {
     ];
     for (source, expected) in cases {
         let mut provider = MemoryProvider::default();
-        let error = grida_xml_source::materialize(
-            snapshot("bad-forward", "memory:/", source),
-            &mut provider,
-        )
-        .unwrap_err();
+        let error =
+            n0_xml_source::materialize(snapshot("bad-forward", "memory:/", source), &mut provider)
+                .unwrap_err();
         assert_eq!(error.phase, ErrorPhase::Specialize, "{error}");
         assert!(error.to_string().contains(expected), "{error}");
     }
@@ -510,7 +501,7 @@ fn specialized_values_run_the_existing_target_specific_validation() {
 </grida>
 "##;
     let mut provider = MemoryProvider::default();
-    let error = grida_xml_source::materialize(
+    let error = n0_xml_source::materialize(
         snapshot("target-invalid", "memory:/", source),
         &mut provider,
     )
@@ -540,13 +531,13 @@ fn specialized_values_run_the_existing_target_specific_validation() {
 #[test]
 fn version2_use_cannot_send_arguments_to_a_version1_component() {
     let entry = r##"
-<grida version="2"><container><use href="./v1.grida.xml#item"><arg name="label" value="x"/></use></container></grida>
+<grida version="2"><container><use href="./v1.n0.xml#item"><arg name="label" value="x"/></use></container></grida>
 "##;
     let v1 = r##"<grida version="1"><component id="item" width="10" height="10"/></grida>"##;
     let mut provider = MemoryProvider::default();
-    provider.insert("entry", "./v1.grida.xml", snapshot("v1", "memory:/v1/", v1));
+    provider.insert("entry", "./v1.n0.xml", snapshot("v1", "memory:/v1/", v1));
     let error =
-        grida_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/entry/", entry), &mut provider)
             .unwrap_err();
     assert_eq!(error.phase, ErrorPhase::Specialize);
     assert!(error.to_string().contains("empty interface"));
@@ -565,8 +556,7 @@ fn duplicate_args_and_top_level_forwarding_are_rejected_during_source_parse() {
         ),
     ];
     for (source, expected) in cases {
-        let error =
-            grida_xml_source::parse_source(snapshot("bad", "memory:/", source)).unwrap_err();
+        let error = n0_xml_source::parse_source(snapshot("bad", "memory:/", source)).unwrap_err();
         assert_eq!(error.phase, ErrorPhase::Parse);
         assert!(error.to_string().contains(expected), "{error}");
     }
@@ -583,9 +573,9 @@ fn required_props_do_not_acquire_invented_values_during_source_validation() {
   <container width="20" height="20"><use href="#free"><arg name="mode" value="none"/></use></container>
 </grida>
 "##;
-    grida_xml_source::parse_source(snapshot("free", "memory:/", free_layout))
+    n0_xml_source::parse_source(snapshot("free", "memory:/", free_layout))
         .expect("source validation must select a witness from the declared enum domain");
-    grida_xml_source::materialize(
+    n0_xml_source::materialize(
         snapshot("free", "memory:/", free_layout),
         &mut MemoryProvider::default(),
     )
@@ -610,9 +600,9 @@ fn required_props_do_not_acquire_invented_values_during_source_validation() {
 </grida>
 "##
         );
-        grida_xml_source::parse_source(snapshot("positioned", "memory:/", &source))
+        n0_xml_source::parse_source(snapshot("positioned", "memory:/", &source))
             .expect("source validation searches declared enum combinations independent of order");
-        grida_xml_source::materialize(
+        n0_xml_source::materialize(
             snapshot("positioned", "memory:/", &source),
             &mut MemoryProvider::default(),
         )
@@ -628,9 +618,9 @@ fn required_props_do_not_acquire_invented_values_during_source_validation() {
   <container width="20" height="20"><use href="#tile"><arg name="size" value="auto"/></use></container>
 </grida>
 "##;
-    grida_xml_source::parse_source(snapshot("auto", "memory:/", auto_axis))
+    n0_xml_source::parse_source(snapshot("auto", "memory:/", auto_axis))
         .expect("enum witnesses must preserve the declared auto sizing branch");
-    grida_xml_source::materialize(
+    n0_xml_source::materialize(
         snapshot("auto", "memory:/", auto_axis),
         &mut MemoryProvider::default(),
     )
@@ -653,9 +643,9 @@ fn required_props_do_not_acquire_invented_values_during_source_validation() {
   <container width="20" height="20"><use href="#wash"><arg name="mid" value="0.5"/></use></container>
 </grida>
 "##;
-    grida_xml_source::parse_source(snapshot("gradient", "memory:/", bounded_stop))
+    n0_xml_source::parse_source(snapshot("gradient", "memory:/", bounded_stop))
         .expect("numeric source validation derives witnesses from authored bounds");
-    grida_xml_source::materialize(
+    n0_xml_source::materialize(
         snapshot("gradient", "memory:/", bounded_stop),
         &mut MemoryProvider::default(),
     )
@@ -670,10 +660,10 @@ fn required_props_do_not_acquire_invented_values_during_source_validation() {
   <container><use href="#stack"><arg name="mode" value="flex"/></use></container>
 </grida>"##
         );
-        grida_xml_source::parse_source(snapshot("entry", "memory:/", &source))
+        n0_xml_source::parse_source(snapshot("entry", "memory:/", &source))
             .expect("required enum member order must not create a source-time effective value");
         let mut provider = MemoryProvider::default();
-        grida_xml_source::materialize(snapshot("entry", "memory:/", &source), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/", &source), &mut provider)
             .expect("the caller-supplied flex value satisfies the complete ordinary state");
     }
 
@@ -683,16 +673,16 @@ fn required_props_do_not_acquire_invented_values_during_source_validation() {
   </component>
   <container><use href="#card"><arg name="smoothing" value="0"/></use></container>
 </grida>"##;
-    grida_xml_source::parse_source(snapshot("entry", "memory:/", source))
+    n0_xml_source::parse_source(snapshot("entry", "memory:/", source))
         .expect("required number props remain deferred during source validation");
     let mut provider = MemoryProvider::default();
-    grida_xml_source::materialize(snapshot("entry", "memory:/", source), &mut provider)
+    n0_xml_source::materialize(snapshot("entry", "memory:/", source), &mut provider)
         .expect("zero smoothing is compatible with elliptical corners");
 
     let incompatible = source.replace("value=\"0\"", "value=\"1\"");
     let mut provider = MemoryProvider::default();
     let error =
-        grida_xml_source::materialize(snapshot("entry", "memory:/", &incompatible), &mut provider)
+        n0_xml_source::materialize(snapshot("entry", "memory:/", &incompatible), &mut provider)
             .unwrap_err();
     assert_eq!(error.phase, ErrorPhase::Specialize);
     assert!(error.message.contains("requires circular corner radii"));

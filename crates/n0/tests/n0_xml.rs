@@ -1,4 +1,4 @@
-//! Consumer contract for Draft 0 `.grida.xml`: the public parser's document
+//! Consumer contract for Draft 0 `.n0.xml`: the public parser's document
 //! reaches the existing pure stages and the one frame entry without an
 //! XML-specific engine API. The fixture is deliberately probe-friendly.
 
@@ -6,12 +6,12 @@ mod support;
 
 use n0::drawlist::{build_glyphless_unchecked, Item, ItemKind};
 use n0::paint::PaintCtx;
-use n0_model::grida_xml;
 use n0_model::math::Affine;
 use n0_model::model::{Color as ModelColor, CornerSmoothing, Paints, RectangularCornerRadius};
+use n0_model::n0_xml;
 use n0_model::resolve::{resolve, ResolveOptions};
 
-const SOURCE: &str = include_str!("../rig/fixtures/nested-rects.grida.xml");
+const SOURCE: &str = include_str!("../rig/fixtures/nested-rects.n0.xml");
 const WIDTH: i32 = 96;
 const HEIGHT: i32 = 80;
 
@@ -38,7 +38,7 @@ fn assert_rect_fill(item: &Item, world: Affine, width: f32, height: f32, argb: u
 
 #[test]
 fn draft0_nested_rects_materialize_in_the_drawlist() {
-    let doc = grida_xml::parse(SOURCE).expect("Draft 0 fixture parses");
+    let doc = n0_xml::parse(SOURCE).expect("Draft 0 fixture parses");
     let resolved = resolve(&doc, &options());
     // This structural fixture has no text; the glyphless lab projection is the
     // explicit pure-stage subject. The following test covers the frame path.

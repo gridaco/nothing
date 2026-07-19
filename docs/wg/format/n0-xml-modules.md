@@ -1,6 +1,6 @@
 ---
-title: "Grida XML modules and static component reuse"
-description: "Open RFD proposing multi-file Grida XML linking through boxed component definitions and SVG-like use references while preserving ordinary Grida scene semantics."
+title: "n0 XML modules and static component reuse"
+description: "Open RFD proposing multi-file n0 XML linking through boxed component definitions and SVG-like use references while preserving ordinary Grida scene semantics."
 keywords:
   - grida xml
   - components
@@ -20,7 +20,7 @@ tags:
 format: md
 ---
 
-# Grida XML modules and static component reuse
+# n0 XML modules and static component reuse
 
 **Status:** Open RFD — selected proposal with a proving implementation of the
 static Version 1 entry-rendering kernel: source units, local and external
@@ -31,21 +31,21 @@ processing-limit policy remain unimplemented. None of the module/component
 vocabulary introduced by this RFD is valid Draft 0 syntax.
 
 “Static” is deliberate: Version 1 links and repeats exact component definitions.
-Typed scalar props are proposed separately as a Version 2 delta in [Grida XML
-component parameters](./grida-xml-component-parameters.md). Named direct render
-projection is proposed separately as a Version 3 delta in [Grida XML component
-slots](./grida-xml-component-slots.md). Deep overrides require still-later design.
+Typed scalar props are proposed separately as a Version 2 delta in [n0 XML
+component parameters](./n0-xml-component-parameters.md). Named direct render
+projection is proposed separately as a Version 3 delta in [n0 XML component
+slots](./n0-xml-component-slots.md). Deep overrides require still-later design.
 None of that later syntax is silently extensible Version 1 syntax.
 
-[Grida XML durable addressing](./grida-xml-addressing.md) accepts the next exact
+[n0 XML durable addressing](./n0-xml-addressing.md) accepts the next exact
 delta: Version 4 requires IDs on render members and uses and turns the retained
 use chain into a durable occurrence path. It leaves this Version 1 grammar and
 its span-based diagnostic provenance unchanged.
 
-**Companion specifications:** [Grida XML](./grida-xml.md), [Grida XML component
-parameters](./grida-xml-component-parameters.md), [Grida XML component
-slots](./grida-xml-component-slots.md), and [Grida XML durable
-addressing](./grida-xml-addressing.md).
+**Companion specifications:** [n0 XML](./n0-xml.md), [n0 XML component
+parameters](./n0-xml-component-parameters.md), [n0 XML component
+slots](./n0-xml-component-slots.md), and [n0 XML durable
+addressing](./n0-xml-addressing.md).
 
 ## Decision summary
 
@@ -64,7 +64,7 @@ materialization      = ordinary Grida container tree
 The corresponding source shape is:
 
 ```xml
-<!-- components/badge.grida.xml -->
+<!-- components/badge.n0.xml -->
 <grida version="1">
   <component id="status-badge" width="48" height="48">
     <ellipse x="span 0 0" y="span 0 0" fill="#22C55E">
@@ -75,11 +75,11 @@ The corresponding source shape is:
 ```
 
 ```xml
-<!-- dashboard.grida.xml -->
+<!-- dashboard.n0.xml -->
 <grida version="1">
   <container width="960" height="540" layout="flex" gap="24" padding="48">
-    <use href="./components/badge.grida.xml#status-badge"/>
-    <use href="./components/badge.grida.xml#status-badge"/>
+    <use href="./components/badge.n0.xml#status-badge"/>
+    <use href="./components/badge.n0.xml#status-badge"/>
   </container>
 </grida>
 ```
@@ -88,7 +88,7 @@ The proposal makes these choices:
 
 | Question                | Proposed answer                                                  |
 | ----------------------- | ---------------------------------------------------------------- |
-| Reference syntax        | `<use href="./file.grida.xml#component-id">`                     |
+| Reference syntax        | `<use href="./file.n0.xml#component-id">`                     |
 | External import aliases | None in the first version                                        |
 | Component exports       | Explicit named exports; no default export                        |
 | Definitions per file    | Zero or more                                                     |
@@ -162,13 +162,13 @@ These are not prohibited forever. They require a later exact source version so
 multi-file loading and static reuse can become correct without prematurely
 choosing their identity, typing, or evaluation models.
 
-The scalar subset now has a focused proposal in [Grida XML component
-parameters](./grida-xml-component-parameters.md). That proposal does not alter
+The scalar subset now has a focused proposal in [n0 XML component
+parameters](./n0-xml-component-parameters.md). That proposal does not alter
 this Version 1 boundary. The [component-slot
-RFD](./grida-xml-component-slots.md) separately proposes exact Version 3 named
+RFD](./n0-xml-component-slots.md) separately proposes exact Version 3 named
 direct projection. It likewise does not alter Version 1.
 
-The [durable-addressing RFD](./grida-xml-addressing.md) separately defines exact
+The [durable-addressing RFD](./n0-xml-addressing.md) separately defines exact
 Version 4 owner/member identity and use-occurrence paths. Version 1 provenance
 remains diagnostic and does not become a generated durable identity.
 
@@ -176,7 +176,7 @@ remains diagnostic and does not become a generated durable identity.
 
 | Term                     | Meaning                                                                |
 | ------------------------ | ---------------------------------------------------------------------- |
-| **Source unit**          | One independently located `.grida.xml` source                          |
+| **Source unit**          | One independently located `.n0.xml` source                          |
 | **Source identity**      | The canonical identity supplied by the source-resolution environment   |
 | **Component definition** | A named, non-painting source definition with `container` semantics     |
 | **Component identity**   | The pair `(canonical source identity, component ID)`                   |
@@ -223,7 +223,7 @@ Version 0 retains its exact one-container-child contract and rejects every
 element introduced here. A Version 1 linker must not reinterpret a Version 0
 scene root as an unnamed component. Apart from the Version 1 envelope,
 component, and use vocabulary proposed here, ordinary render nodes and their
-properties retain the Grida XML contract they already have. Version 1 remains
+properties retain the n0 XML contract they already have. Version 1 remains
 strict current-version syntax: unknown elements, attributes, and structural
 children—including Version 2 parameter syntax—are errors rather than inert
 extension data.
@@ -301,13 +301,13 @@ Every use requires one `href` whose fragment is a component ID:
 
 ```xml
 <use href="#local-card"/>
-<use href="./cards.grida.xml#metric-card"/>
+<use href="./cards.n0.xml#metric-card"/>
 ```
 
 The fragment is always required. These are invalid:
 
 ```xml
-<use href="./cards.grida.xml"/>
+<use href="./cards.n0.xml"/>
 <use component="metric-card"/>
 <metric-card/>
 ```
@@ -498,7 +498,7 @@ Three closures remain distinct:
    not resolve an unused export; a complete library-validation operation uses
    every exported component in that library as a root.
 3. **Render-resource preflight** inspects the materialized scene for the
-   requested render environment and applies the base Grida XML image-resource
+   requested render environment and applies the base n0 XML image-resource
    contract. The module layer changes lexical origin and collision behavior;
    it does not weaken which authored image paints a strict materializer must
    resolve.
@@ -511,18 +511,18 @@ keeping module traversal separate from image-resource resolution.
 Relative resources retain lexical origin across component expansion.
 
 ```text
-components/button.grida.xml  owns  <image src="./texture.png"/>
-scenes/dashboard.grida.xml   owns  <use href="../components/button.grida.xml#button"/>
+components/button.n0.xml  owns  <image src="./texture.png"/>
+scenes/dashboard.n0.xml   owns  <use href="../components/button.n0.xml#button"/>
 ```
 
-The image resolves relative to `components/button.grida.xml`, not the
+The image resolves relative to `components/button.n0.xml`, not the
 dashboard, not the current working directory, and not the location of a use.
 
 This rule is required even when two source units author the same string:
 
 ```text
-components/button.grida.xml → ./texture.png
-cards/card.grida.xml        → ./texture.png
+components/button.n0.xml → ./texture.png
+cards/card.n0.xml        → ./texture.png
 ```
 
 Those references may name different resources. A materializer must therefore
@@ -537,9 +537,9 @@ cause resource I/O during the painter's execution.
 
 Version 2 property arguments retain the origin of their supplying literal,
 while definition-authored defaults retain the definition's origin, as defined
-by the [component-parameter RFD](./grida-xml-component-parameters.md). Version 3
+by the [component-parameter RFD](./n0-xml-component-parameters.md). Version 3
 assignment roots retain their caller source origin as defined by the
-[component-slot RFD](./grida-xml-component-slots.md). Substitution and projection
+[component-slot RFD](./n0-xml-component-slots.md). Substitution and projection
 must never make a relative resource silently change bases.
 
 ## Cycles and finite expansion
@@ -552,9 +552,9 @@ link-validation closure. Hidden state does not remove this edge.
 Direct and indirect cycles are invalid:
 
 ```text
-a.grida.xml#button
-  → b.grida.xml#icon
-  → a.grida.xml#button
+a.n0.xml#button
+  → b.n0.xml#icon
+  → a.n0.xml#button
 ```
 
 A diagnostic reports the complete qualified chain and the use location for
@@ -659,8 +659,8 @@ Failures are separated by phase:
 
 Useful diagnostics include:
 
-- `component reference requires an ID fragment; use ./button.grida.xml#button`;
-- `component "button" is not defined in ./controls.grida.xml; available: icon-button, menu-button`;
+- `component reference requires an ID fragment; use ./button.n0.xml#button`;
+- `component "button" is not defined in ./controls.n0.xml; available: icon-button, menu-button`;
 - `duplicate component "button" in the same source unit`;
 - `<component> requires id="…" using lowercase kebab-case`;
 - `<component> cannot declare x; place the instance with x on <use>`;
@@ -668,8 +668,8 @@ Useful diagnostics include:
 - `unknown attribute width on <use>; component sizing is not an implicit root override`;
 - `static Version 1 <use> cannot contain children; arg requires Version 2 and render assignments require Version 3`;
 - `unknown attribute label on <use>; Version 1 components do not define dynamic attributes`;
-- `component cycle: a.grida.xml#button → b.grida.xml#icon → a.grida.xml#button`;
-- `image "./texture.png" authored in components/button.grida.xml resolved to … and could not be decoded`.
+- `component cycle: a.n0.xml#button → b.n0.xml#icon → a.n0.xml#button`;
+- `image "./texture.png" authored in components/button.n0.xml resolved to … and could not be decoded`.
 
 A cross-file diagnostic should identify the immediate use, the referenced
 definition when relevant, and the transitive reference chain. A failure in a
@@ -713,7 +713,7 @@ Static reuse is intentionally the complete Version 1 language boundary.
 Strict exact-version parsing means parameterization cannot be added silently
 to `version="1"`.
 
-The [Grida XML component parameters](./grida-xml-component-parameters.md) RFD
+The [n0 XML component parameters](./n0-xml-component-parameters.md) RFD
 proposes the Version 2 delta: leading typed `prop` declarations, explicit
 `arg` children, exact scalar bindings, literal defaults, forwarding, lexical
 resource origins, and source-preserving materialization. Version 1 continues
@@ -727,7 +727,7 @@ operations.
 
 ### Version 3 named slot projection
 
-The [Grida XML component slots](./grida-xml-component-slots.md) RFD proposes the
+The [n0 XML component slots](./n0-xml-component-slots.md) RFD proposes the
 Version 3 delta: empty inline `<slot name="…"/>` declarations and direct render
 roots under `use` carrying the contextual `slot="…"` assignment relationship.
 Zero roots erase the marker; one or more roots splice directly in caller order.
@@ -743,7 +743,7 @@ parameterization and projection.
 
 ### Direct `href` on `use` — accepted
 
-`<use href="./ui.grida.xml#button">` is self-contained, familiar from SVG,
+`<use href="./ui.n0.xml#button">` is self-contained, familiar from SVG,
 copy/pasteable with its dependency visible, and uses one spelling for local
 and external references. Switching a component is one surgical attribute
 edit.
@@ -751,7 +751,7 @@ edit.
 ### Import aliases — deferred
 
 ```xml
-<import href="./ui.grida.xml" as="ui"/>
+<import href="./ui.n0.xml" as="ui"/>
 <use component="ui.button"/>
 ```
 
@@ -808,7 +808,7 @@ Letting every component property appear on `use` couples callers to definition
 internals and creates replacement-versus-composition questions for paint,
 opacity, transforms, clipping, and layout. The core keeps only the caller
 relationship on `use`; the [component-parameter
-RFD](./grida-xml-component-parameters.md) proposes intentional customization
+RFD](./n0-xml-component-parameters.md) proposes intentional customization
 through declared props and explicit arguments in Version 2.
 
 ## Proposed conformance requirements

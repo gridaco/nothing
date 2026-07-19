@@ -613,7 +613,7 @@ impl Color {
         Some(Color(0xFF00_0000 | rgb))
     }
 
-    /// Parse the Draft 0 `.grida.xml` color spelling: `#rgb` or `#rrggbb`,
+    /// Parse the Draft 0 `.n0.xml` color spelling: `#rgb` or `#rrggbb`,
     /// both opaque. Alpha is authored separately and folded into this RGBA8
     /// value by the XML boundary.
     pub fn from_grida_hex(s: &str) -> Option<Color> {
@@ -659,7 +659,7 @@ impl Color {
 
 /// Frozen historical-TextIr-compatible ergonomic authoring: `"#4A90D9".into()` or
 /// `"4A90D9".into()`. A malformed literal falls back to opaque black. Draft 0
-/// `.grida.xml` deliberately parses through [`Color::from_grida_hex`] instead.
+/// `.n0.xml` deliberately parses through [`Color::from_grida_hex`] instead.
 impl From<&str> for Color {
     fn from(s: &str) -> Color {
         Color::from_hex(s).unwrap_or(Color::BLACK)
@@ -1856,7 +1856,7 @@ mod identity_tests {
 #[cfg(test)]
 mod query_behavior_tests {
     use super::*;
-    use crate::{grida_xml, textir};
+    use crate::{n0_xml, textir};
 
     #[test]
     fn compiler_only_hit_behavior_fails_durable_writers() {
@@ -1887,7 +1887,7 @@ mod query_behavior_tests {
         let text_error = textir::try_print(&document).unwrap_err().to_string();
         assert!(text_error.contains("query-transparent"), "{text_error}");
 
-        let xml_error = grida_xml::print(&document).unwrap_err().to_string();
+        let xml_error = n0_xml::print(&document).unwrap_err().to_string();
         assert!(xml_error.contains("query-transparent"), "{xml_error}");
     }
 }

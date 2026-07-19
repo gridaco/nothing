@@ -18,8 +18,8 @@ engine. The first frontend is the cumulative [SVG Animation Profile
 [Profile 5](../../docs/wg/feat-svg/animation-solid-fills.md).
 [Profile 6](../../docs/wg/feat-svg/animation-path-geometry.md) adds
 typed path geometry and the first bounded discrete effect family.
-Native Grida XML animation is
-[deferred](../../docs/wg/format/grida-xml-animation.md).
+Native n0 XML animation is
+[deferred](../../docs/wg/format/n0-xml-animation.md).
 
 The binding is subordinate to the [engine contracts](../../model-v2/anchor/ENGINE.md), the
 [measurement doctrine](./MEASURE.md), and the implemented
@@ -82,7 +82,7 @@ in the production engine.
 | Native live host                  | Implemented proving harness | Play/pause, restart, scrub, time display, resize, GPU presentation, and terminal quiescence; fixed host redraw timer substitutes for a compositor, and event-loop behavior has manual rather than automated UI evidence                                                                           |
 | Browser/WPT differential          | Local manual evidence       | One-off runs found Profile 3–5 frames pixel-identical; Profile 6 reported eleven tolerant matches, nine strict matches, and two four-pixel edge differences against Chromium 145.0.7632.6. The tolerant comparator was not retained; a tracked harness and broader WPT integration remain pending |
 | Animation replay                  | Pending                     | Existing edit journal/replay does not record an animation program, sample time, or sampled frame request                                                                                                                                                                                          |
-| Native Grida XML animation        | Deliberately deferred       | `.grida.xml` remains a static source format; this work adds no second animation syntax                                                                                                                                                                                                            |
+| Native n0 XML animation           | Deliberately deferred       | `.n0.xml` remains a static source format; this work adds no second animation syntax                                                                                                                                                                                                               |
 | Production engine/product runtime | Unchanged                   | No production SVG importer, renderer, compositor, scheduler, playback UI, autoplay policy, or media synchronization was modified                                                                                                                                                                  |
 
 ## Module topology and responsibilities
@@ -374,7 +374,7 @@ including y, to `[0, 1]` before constructing the more general engine easing.
 `calcMode="discrete"` and `paced` remain explicit profile errors.
 
 This is deliberately a frontend projection. It adds no SVG value strings,
-list grammar, or XML ownership to the engine kernel, and native Grida XML may
+list grammar, or XML ownership to the engine kernel, and native n0 XML may
 later project a different source spelling into the same curve.
 
 ## SVG Animation Profile 2 binding
