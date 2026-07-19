@@ -9,12 +9,14 @@
 //! XML), compose each transform list into a 2×3 matrix, then classify by
 //! decomposition M = R(θ)·[sx m; 0 sy]:
 //!
+//! ```text
 //!   identity / translate           → native (bindings)
 //!   + rotation, scale ≈ (1,1)      → native (header rotation)
 //!   + uniform scale                → native (folds into size)
 //!   + non-uniform scale (m ≈ 0)    → native (folds into w/h, then rotate)
 //!   det < 0 (single-axis mirror)   → flip class (lens or a flip flag)
 //!   |m| > ε (shear)                → lens required
+//! ```
 //!
 //! Usage: `cargo run --release --bin e5scan -- <dir>…`
 

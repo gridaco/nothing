@@ -36,3 +36,7 @@ egui = "0.35"
 egui-winit = { version = "0.35", default-features = false }
 egui_glow = "0.35"
 glow = "0.17"
+
+# Workspace-lints opt-in deferred: `unreachable_pub = warn` flags 46
+# internal `pub` items in this binary crate. Demoting them to
+# pub(crate) is follow-up hygiene, not landing scope.
