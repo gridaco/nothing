@@ -602,7 +602,7 @@ impl Color {
         self.0
     }
 
-    /// Parse the frozen E3/TextIr color spelling: exactly six hexadecimal
+    /// Parse the frozen historical-TextIr color spelling: exactly six hexadecimal
     /// digits after removing any leading `#` characters.
     pub fn from_hex(s: &str) -> Option<Color> {
         let h = s.trim_start_matches('#');
@@ -657,7 +657,7 @@ impl Color {
     }
 }
 
-/// Frozen E3/TextIr-compatible ergonomic authoring: `"#4A90D9".into()` or
+/// Frozen historical-TextIr-compatible ergonomic authoring: `"#4A90D9".into()` or
 /// `"4A90D9".into()`. A malformed literal falls back to opaque black. Draft 0
 /// `.grida.xml` deliberately parses through [`Color::from_grida_hex`] instead.
 impl From<&str> for Color {

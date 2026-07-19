@@ -5,7 +5,7 @@
 //!
 //! Round-trip law: `parse(print(doc)) == doc` for documents whose ids were
 //! assigned in document order (the IR does not carry ids — id stability is
-//! a binary-format concern; recorded as an E3 finding).
+//! a binary-format concern; recorded as a text-IR experiment finding).
 
 use crate::model::*;
 use crate::path;
@@ -2259,7 +2259,7 @@ impl std::fmt::Display for PrintError {
 
 impl std::error::Error for PrintError {}
 
-/// Historical E3 TextIr has only a singleton opaque solid `fill` attribute.
+/// The historical TextIr dialect has only a singleton opaque solid `fill` attribute.
 /// This fallible entry point refuses richer model state instead of narrowing
 /// it. New file-first documents should use [`crate::grida_xml::print`].
 pub fn try_print(doc: &Document) -> Result<String, PrintError> {
@@ -2269,7 +2269,7 @@ pub fn try_print(doc: &Document) -> Result<String, PrintError> {
 }
 
 pub fn print(doc: &Document) -> String {
-    try_print(doc).expect("document is not representable by historical E3 TextIr")
+    try_print(doc).expect("document is not representable by the historical TextIr dialect")
 }
 
 pub(crate) fn print_grida_xml_render_root(
@@ -2333,7 +2333,7 @@ fn historical_fill(node: &Node) -> Result<Option<Color>, String> {
         .any(|stroke| !(stroke.paints.is_empty() && stroke.geometry_is_default_for(&node.payload)))
     {
         return Err(format!(
-            "node {} has strokes historical E3 TextIr cannot represent",
+            "node {} has strokes the historical TextIr dialect cannot represent",
             node.id
         ));
     }
@@ -2347,7 +2347,7 @@ fn historical_fill(node: &Node) -> Result<Option<Color>, String> {
             Ok(Some(solid.color))
         }
         _ => Err(format!(
-            "node {} has a paint stack historical E3 TextIr cannot represent",
+            "node {} has a paint stack the historical TextIr dialect cannot represent",
             node.id
         )),
     }
@@ -2386,7 +2386,7 @@ fn validate_corner_style_for_write(node: &Node, grida_xml: bool) -> Result<(), S
     }
     if !grida_xml {
         return Err(format!(
-            "node {} has corner geometry historical E3 TextIr cannot represent",
+            "node {} has corner geometry the historical TextIr dialect cannot represent",
             node.id
         ));
     }
@@ -2912,7 +2912,7 @@ fn print_node(
         let format = if grida_xml {
             "Grida XML"
         } else {
-            "historical E3 TextIr"
+            "the historical TextIr dialect"
         };
         return Err(format!(
             "node {} is a query-transparent structural wrapper {format} cannot represent",
@@ -2928,7 +2928,7 @@ fn print_node(
         )
     {
         return Err(format!(
-            "node {} is a path historical E3 TextIr cannot represent",
+            "node {} is a path the historical TextIr dialect cannot represent",
             node.id
         ));
     }
@@ -3171,7 +3171,7 @@ fn print_node(
         } => {
             if !grida_xml {
                 return Err(format!(
-                    "node {} has attributed text historical E3 TextIr cannot represent",
+                    "node {} has attributed text the historical TextIr dialect cannot represent",
                     node.id
                 ));
             }

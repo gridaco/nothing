@@ -128,7 +128,7 @@ fn evenodd_and_source_spelling_round_trip_canonically() {
     assert!(textir::try_print(&document)
         .unwrap_err()
         .to_string()
-        .contains("historical E3 TextIr cannot represent"));
+        .contains("the historical TextIr dialect cannot represent"));
 }
 
 #[test]

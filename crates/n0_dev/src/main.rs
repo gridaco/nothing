@@ -1,4 +1,4 @@
-//! E10 — the feel spike. `cargo run --release` opens the editor window;
+//! The feel spike. `cargo run --release` opens the editor window;
 //! `--play-svg <input.svg>` opens the isolated live animation host;
 //! `--shot out.png [state]` renders headless to PNG (self-verification);
 //! `--bench` prints resolve+paint timings.

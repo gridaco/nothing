@@ -10,7 +10,7 @@ mod player_transport;
 mod window;
 
 pub fn run() {
-    let init = window::create_window("anchor spike — E10", 1280, 840);
+    let init = window::create_window("n0_dev — anchor spike", 1280, 840);
     app::run(init);
 }
 

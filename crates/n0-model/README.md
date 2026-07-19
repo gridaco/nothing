@@ -9,20 +9,20 @@ Consumed as a library by [`n0`](../n0) (the engine) and
 
 ```sh
 cargo test -p n0-model          # conformance + format-contract suites
-cargo run -p n0-model --release --bin e4    # E4 resolver benchmarks
-cargo run -p n0-model --release --bin e5scan -- <dirs>   # E5 SVG corpus scan
+cargo run -p n0-model --release --bin resolve_bench          # resolver benchmarks
+cargo run -p n0-model --release --bin svg_transform_scan -- <dirs>   # SVG corpus transform scan
 ```
 
-The one-shot workbench harnesses (e1, e3, edge, fork) were retired at
-promotion; their frozen outputs and verdicts live in the `model-v2/a/`
-archive.
+The one-shot workbench harnesses were retired at promotion; their frozen
+outputs and verdicts live in the `model-v2/` archive (see its experiment
+ledger).
 
 Map:
 
 - `src/model.rs` — Header (AxisBinding / SizeIntent / rotation / flow),
   payloads, `DocBuilder`
-- `src/resolve.rs` — the four-phase resolver (§6); `RotationInFlow` flag
-  (E1); §8 `Report`s; Taffy 0.9 per-container runs with the two
+- `src/resolve.rs` — the four-phase resolver (§6); the `RotationInFlow`
+  fork flag; §8 `Report`s; Taffy 0.9 per-container runs with the two
   dependency guards (rounding off; grow stripped in indefinite-main
   intrinsic passes); stores one final-width text-layout artifact per text node
 - `src/text_layout.rs` — backend-independent line/glyph artifact and
@@ -32,7 +32,7 @@ Map:
   boxes, bounded rational-conic arc lowering, tight unit bounds, and one
   resolved box-mapped path artifact
 - `src/ops.rs` — gesture ops with typed errors + write-count doctrine
-- `src/textir.rs` — the agent text IR parser + canonical printer (E3)
+- `src/textir.rs` — the agent text IR parser + canonical printer
 - `src/grida_xml.rs` — strict Draft 0 `.grida.xml` parser/writer boundary
 - `src/grida_xml_source.rs` — pure retained Version 1/2/3/4 source-program
   linker, typed scalar specializer, named static slot projector, durable
@@ -133,7 +133,7 @@ This `Vec<Stroke>` is the lab implementation of Draft 0's accepted model
 extension. The production scene/archive model still needs the corresponding
 multiplicity change before it can claim the same round-trip surface.
 
-Historical E3 TextIr remains a separate singleton-opaque-solid dialect with no
+The historical TextIr dialect remains a separate singleton-opaque-solid dialect with no
 stroke syntax.
 `textir::try_print` reports richer state it cannot represent; the compatibility
 `textir::print` wrapper never silently narrows that state.

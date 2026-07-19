@@ -1,5 +1,5 @@
-//! E4 — resolver spike: throughput + scaling of the four-phase resolution
-//! on realistic scene shapes. Run with `cargo run --release --bin e4`.
+//! resolve_bench — resolver throughput + scaling of the four-phase resolution
+//! on realistic scene shapes. Run with `cargo run --release --bin resolve_bench`.
 
 use n0_model::model::*;
 use n0_model::resolve::{resolve, ResolveOptions};
@@ -143,7 +143,7 @@ fn shape_hp(w: f32, h: f32) -> (Header, Payload) {
 }
 
 fn bench(name: &str, doc: &Document) {
-    // Pinned to the E1 arm: E4's recorded history (REPORT, SPIKE tables)
+    // Pinned to the layout-visible arm: the benchmark's recorded history (archive REPORT/spike-report tables)
     // was measured under AabbParticipates; keep the series comparable.
     // The default arm (VisualOnly, DEC-0) is strictly cheaper — no
     // envelope math in sizing.
@@ -170,7 +170,7 @@ fn bench(name: &str, doc: &Document) {
 }
 
 fn main() {
-    println!("E4 resolver spike — full-resolve wall time (median of 11, release)");
+    println!("resolve_bench — full-resolve wall time (median of 11, release)");
     for scale in [1_000, 10_000] {
         bench(&format!("flat canvas ({scale})"), &scene_flat(scale));
         bench(&format!("flex cards (~{scale})"), &scene_flex(scale / 7));

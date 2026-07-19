@@ -2,7 +2,7 @@
 //!
 //! The *contract* under test is the measurement seam (Phase M; re-measure at
 //! layout-imposed extents), not typography. The metric is intentionally
-//! trivial so humans and LLMs can compute it by hand (E3 probe):
+//! trivial so humans and LLMs can compute it by hand (the agent text-IR probe):
 //!
 //! - every non-newline character advances `0.6 × font_size`
 //! - line height is `1.2 × font_size`

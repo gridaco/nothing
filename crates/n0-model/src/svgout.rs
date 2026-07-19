@@ -1,4 +1,4 @@
-//! SVG snapshots of resolved documents — E1 visual evidence.
+//! SVG snapshots of resolved documents — visual evidence for the archived rotation-in-flow experiment.
 //! Renders each node with its world matrix; optionally overlays world AABBs.
 
 use crate::math::Affine;

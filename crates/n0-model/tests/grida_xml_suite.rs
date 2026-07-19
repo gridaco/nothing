@@ -1,5 +1,5 @@
 //! Draft 0 `.grida.xml` producer contract: structural envelope, canonical
-//! vocabulary, primitive-local composition, strict roots, and E3 compatibility.
+//! vocabulary, primitive-local composition, strict roots, and historical-TextIr compatibility.
 
 use n0_model::grida_xml::{self, PrintError};
 use n0_model::model::*;
@@ -64,7 +64,7 @@ fn draft0_preserves_primitive_children_and_local_geometry() {
     assert_eq!((world.e, world.f), (110.0, 62.0));
 }
 
-/// Canonical output names the real source format rather than the E3
+/// Canonical output names the real source format rather than the historical-TextIr
 /// experiment, and normalized parse → print → parse remains a fixpoint.
 #[test]
 fn draft0_canonical_print_is_a_semantic_fixpoint() {
@@ -605,7 +605,7 @@ fn fill_shorthand_normalizes_and_is_not_valid_on_derived_kinds() {
 }
 
 /// Draft 0 has one vocabulary. Historical spellings remain available only
-/// through the explicitly historical E3 surface.
+/// through the explicitly historical TextIr surface.
 #[test]
 fn historical_vocabulary_is_textir_only() {
     for source in [
@@ -620,7 +620,7 @@ fn historical_vocabulary_is_textir_only() {
     }
 
     let historical = n0_model::textir::parse(r#"<frame w="300" h="200"/>"#)
-        .expect("historical E3 parser remains available");
+        .expect("historical TextIr parser remains available");
     assert!(n0_model::textir::print(&historical).starts_with("<frame w=\"300\" h=\"200\""));
 }
 

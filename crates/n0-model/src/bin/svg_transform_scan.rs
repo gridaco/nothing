@@ -1,4 +1,4 @@
-//! E5 — SVG corpus transform measurement.
+//! svg_transform_scan — SVG corpus transform measurement.
 //!
 //! Decides triage amendment 5's open mechanism: how much real SVG content
 //! actually needs the lens quarantine (skew / shear / single-axis mirror)
@@ -18,7 +18,7 @@
 //!   |m| > ε (shear)                → lens required
 //! ```
 //!
-//! Usage: `cargo run --release --bin e5scan -- <dir>…`
+//! Usage: `cargo run --release --bin svg_transform_scan -- <dir>…`
 
 use std::fs;
 use std::path::{Path, PathBuf};

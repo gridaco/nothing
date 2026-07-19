@@ -4,7 +4,7 @@ A native Skia canvas driven end-to-end by the `anchor` model
 ([`../n0-model`](../n0-model) — consumed as a library, hosted on the
 [`n0`](../n0) engine). Two goals, owner-stated: **feel it** and
 **be the textbook** for the legacy migration
-([`TEXTBOOK.md`](./TEXTBOOK.md)). Grown from workbench experiment E10
+([`TEXTBOOK.md`](./TEXTBOOK.md)). Grown from the archived feel-spike workbench experiment
 (see the `model-v2/` archive).
 
 ## Run

@@ -824,7 +824,7 @@ impl App {
             .show(ui, |ui: &mut egui::Ui| {
                 ui.add_space(6.0);
                 ui.horizontal(|ui| {
-                    ui.heading("anchor spike — E10");
+                    ui.heading("n0_dev — anchor spike");
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button("fit").clicked() {
                             self.fit_artboard();

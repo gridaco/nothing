@@ -1,4 +1,4 @@
-//! E3 — the agent text IR: the §7 quartet parses, round-trips, and
+//! The agent text IR (archive ledger E3): the §7 quartet parses, round-trips, and
 //! resolves to the geometry the spec's worked examples promise.
 
 mod common;

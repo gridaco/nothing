@@ -7,7 +7,7 @@
 //! - Phase T — transforms (`from_box_center` for boxed; origin pivot for derived)
 //! - Phase B — bounds (oriented corners → world AABBs)
 //!
-//! The E1 experiment flag [`RotationInFlow`] selects how a rotated in-flow
+//! The [`RotationInFlow`] fork flag (the archived rotation-in-flow experiment) selects how a rotated in-flow
 //! child participates in flex: by its oriented AABB (the spec's §5 tilt) or
 //! not at all (CSS post-layout semantics). Everything else is identical
 //! between the two modes.
@@ -26,7 +26,7 @@ use taffy::style::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RotationInFlow {
     /// Rotated child contributes |w·cosθ|+|h·sinθ|; box center is placed
-    /// at the slot center; siblings make room. The E1 arm — kept
+    /// at the slot center; siblings make room. The layout-visible arm — kept
     /// implemented and tested as the documented alternative (R-3 anchor
     /// column), NOT the default since DEC-0's second lock.
     AabbParticipates,

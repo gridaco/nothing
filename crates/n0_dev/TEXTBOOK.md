@@ -44,7 +44,7 @@ pays for. The spike replaced it (`lab/src/model.rs`):
   artifacts, not document content (MM-7's add-then-delete-restores
   holds by definition; `tests/mm_laws.rs`).
 
-Measured (E4 bench, median of 11, same machine, before → after):
+Measured (resolve_bench, median of 11, same machine, before → after):
 
 | scene                    | before (map) | after (arena+SOA) | speedup             |
 | ------------------------ | ------------ | ----------------- | ------------------- |

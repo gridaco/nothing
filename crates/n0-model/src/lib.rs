@@ -2,9 +2,9 @@
 //!
 //! Implements the model of `model-v2/models/a.md` (the archived spec draft),
 //! proven by the experiment ledger of `model-v2/a/README.md`:
-//! - E1 rotation-in-flow (both semantics behind [`resolve::RotationInFlow`])
-//! - E3 agent text IR ([`textir`])
-//! - E4 resolver spike ([`resolve`])
+//! - rotation-in-flow (both semantics behind [`resolve::RotationInFlow`])
+//! - the agent text IR ([`textir`])
+//! - the resolver ([`resolve`])
 //!
 //! Consumed as a library by `n0` (the engine); serialization
 //! (`Op`/`ResizeDrag`/`Axis`) is gated behind the optional `serde` feature.

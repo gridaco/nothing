@@ -189,7 +189,7 @@ pub fn starter() -> (Document, NodeId) {
             "title",
         ),
         Payload::Text {
-            content: "anchor spike — E10".into(),
+            content: "n0_dev — anchor spike".into(),
             font_size: 24.0,
         },
     );
