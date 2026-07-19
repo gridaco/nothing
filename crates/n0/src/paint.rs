@@ -1801,9 +1801,19 @@ pub fn raster_to_bytes_unchecked(
     read_pixels(&mut surface, w, h)
 }
 
-/// Read a raster surface's premultiplied N32 pixels into a byte buffer.
+/// Read a raster surface's premultiplied pixels into a byte buffer.
+///
+/// Requests explicit RGBA8888 so the byte order does not depend on the
+/// platform's native N32 (BGRA on x86 Linux/Windows, RGBA on Apple
+/// Silicon) — same rule as the forced-RGBA readback in
+/// `tests/grida_xml.rs`.
 pub fn read_pixels(surface: &mut skia_safe::Surface, w: i32, h: i32) -> Vec<u8> {
-    let info = ImageInfo::new_n32_premul((w, h), None);
+    let info = ImageInfo::new(
+        (w, h),
+        skia_safe::ColorType::RGBA8888,
+        skia_safe::AlphaType::Premul,
+        None,
+    );
     let row_bytes = (w * 4) as usize;
     let mut buf = vec![0u8; row_bytes * h as usize];
     let ok = surface.read_pixels(&info, &mut buf, row_bytes, (0, 0));
