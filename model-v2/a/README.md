@@ -7,11 +7,16 @@ This directory hosts the experiments, spikes, and spec drafts for
 top to bottom and you have working state.
 
 > **2026-07-07 — the ledger has been RUN.** E1–E7 and E10 are complete with
-> verdicts; the lab implementation lives in [`lab/`](./lab), with its full
-> conformance-derived suite green. Start at **[`REPORT.md`](./REPORT.md)**
-> — win/lose/lessons-learnt and the fourteen spec deltas (E-A1…E-A14 + Taffy
-> guards). The consolidated model statement — the phase-3 seed — is
-> **[`MODEL.md`](./MODEL.md)**.
+> verdicts; the lab implementation now lives at
+> [`crates/n0-model`](../../crates/n0-model) (promoted from `lab/` at the
+> landing of gridaco/nothing#5), with its full conformance-derived suite
+> green. Start at **[`REPORT.md`](./REPORT.md)** — win/lose/lessons-learnt
+> and the fourteen spec deltas (E-A1…E-A14 + Taffy guards). The
+> consolidated model statement — the phase-3 seed — is
+> **[`MODEL.md`](./MODEL.md)**. Frozen papers below still say `lab/`,
+> `../engine`, and `spike-canvas/` — read those as the pre-promotion
+> layout (map: `lab/` → `crates/n0-model`, `../engine` → `crates/n0`,
+> `spike-canvas/` → `crates/n0_dev`).
 
 ## State of decisions (compressed)
 
@@ -88,11 +93,15 @@ wired into the workspace; promote into `crates/`/`format/` only at phase 4.
 | **ANIMATION**         | explicit-time SVG animation through the proving engine                          | **BOUNDED CHECKPOINT 2026-07-14** — [`engine/ANIMATION.md`](../engine/ANIMATION.md): cumulative SVG Profiles 0–6 lower scalar/color/transform effects plus smooth and discrete path geometry into the existing effective-value/frame/cache path; exact-time offline rendering, a caller-owned playback clock, and a controlled native host are implemented. General SVG materialization, arc morphing, native Grida XML animation, broader animated paint families, a compositor/product runtime, and production migration remain pending                                                                                                                         |
 
 All verdicts + the spec deltas roll up in [`REPORT.md`](./REPORT.md).
-Implementation: [`lab/`](./lab) — standalone crate, `cargo test`, bins `e1`,
-`e3`, `e4`, `e5scan`, `edge`, `fork`. The phase-4
-engine skeleton is [`engine/`](../engine) (`anchor-engine`), the spike
-re-hosted onto it — see [`ENGINE.md`](./ENGINE.md) and the current
-[`ANIMATION.md`](../engine/ANIMATION.md) checkpoint.
+Implementation: [`crates/n0-model`](../../crates/n0-model) (promoted from
+`lab/`) — `cargo test -p n0-model`; the arg-driven bins `e4` and `e5scan`
+survive, while the one-shot harnesses `e1`, `e3`, `edge`, `fork` were
+retired at promotion (their outputs and captured essence are frozen in
+this archive). The engine is [`crates/n0`](../../crates/n0) (promoted
+from `../engine`, `anchor-engine`), the spike re-hosted onto it as
+[`crates/n0_dev`](../../crates/n0_dev) — see [`ENGINE.md`](./ENGINE.md)
+and the current [`ANIMATION.md`](../../crates/n0/ANIMATION.md)
+checkpoint.
 
 ## Phase-3 definition of done
 

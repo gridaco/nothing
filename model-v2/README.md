@@ -9,21 +9,31 @@ ingestion and explicit-time SVG animation. Those remain contained proofs;
 production TS/editor, WASM, importer, renderer, and runtime migration are still
 out of scope here.
 
-> **Branch note.** This directory lives on the `model-v2-anchor` branch as a
-> working snapshot — tracking issue:
-> [gridaco/grida#957](https://github.com/gridaco/grida/issues/957) (pinned).
-> Current implementation status and module boundaries are recorded in
-> [`engine/ANIMATION.md`](./engine/ANIMATION.md). Nothing here ships; no
-> production code is touched by this branch.
+> **Archive note (2026-07-19).** This directory is the **frozen workbench
+> archive** of the v2 model program. Its proving stack was promoted into
+> the workspace at the landing of
+> [gridaco/nothing#5](https://github.com/gridaco/nothing/pull/5):
+> `a/lab` → [`crates/n0-model`](../crates/n0-model), `engine/` →
+> [`crates/n0`](../crates/n0), `a/spike-canvas` →
+> [`crates/n0_dev`](../crates/n0_dev). What remains here — the phase
+> papers, the experiment dirs with their frozen outputs and verdicts, the
+> demo pages, and the format drafts — is the decision record, kept
+> verbatim. **Relative paths inside the frozen papers refer to the
+> pre-promotion layout** (`a/lab`, `engine/`, `a/spike-canvas`); follow
+> the map above. Tracking issue:
+> [gridaco/nothing#9](https://github.com/gridaco/nothing/issues/9)
+> (formerly gridaco/grida#957, transferred at the engine split).
+> Implementation status and module boundaries live with the engine:
+> [`crates/n0/ANIMATION.md`](../crates/n0/ANIMATION.md).
 
 ## Run
 
 ```sh
-# the lab (the model's single source of truth) — full conformance suite
-cd model-v2/a/lab && cargo test
+# the model crate (formerly a/lab) — full conformance suite
+cargo test -p n0-model
 
-# the interactive spike (native skia window on the model)
-cd model-v2/a/spike-canvas && cargo run --release
+# the dev shell (formerly a/spike-canvas) — native skia window on the model
+cargo run --release -p n0_dev
 
 # the demo pages (proof, model walkthrough, edge cases, DEC-0 fork, free editing)
 python3 -m http.server 4173 --directory model-v2/a/.preview
@@ -47,8 +57,8 @@ them — problems first, then candidates, then spec.
 | ----------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1. Problems & harnesses | `problems.md`, `harnesses.md`, `study.md`                      | stable draft                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | 2. Candidate models     | `paradigm.md`, `axes.md`, `models/*`, `finale.md`, `triage.md` | **DECIDED — `anchor`** (+5 triage amendments)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| 3. Spec                 | normative doc + `grida.fbs` draft                              | **experiments RUN, model PROVEN** — E1–E10 complete with verdicts; **DEC-0 decided: VISUAL-ONLY rotation (the CSS framing), CSS-pure sizing** ([`a/dec0-visual-only.md`](./a/dec0-visual-only.md)); flips built (E-A14, cross-zero resize); conformance lab; native interactive spike ([`a/spike-canvas/`](./a/spike-canvas/)); open calls parked in [`a/DECISIONS.md`](./a/DECISIONS.md). Remaining: fold deltas into a normative rewrite of `models/a.md` + WG graduation                                                                  |
-| 4. Runtime              | `crates/grida` implementation                                  | **proving engine BUILT** — [`engine/`](./engine) (`anchor-engine`): the `resolve → drawlist → paint` pipeline + query/journal/replay/damage sockets, spike re-hosted onto it, gate green (shots byte-identical, replay deterministic, budgets baselined). The bounded explicit-time SVG animation checkpoint adds pure sampling, Base/Sample frame integration, exact-time rendering, a caller-owned playback clock, and a controlled native host; see [`engine/ANIMATION.md`](./engine/ANIMATION.md). Production migration remains separate |
+| 3. Spec                 | normative doc + `grida.fbs` draft                              | **experiments RUN, model PROVEN** — E1–E10 complete with verdicts; **DEC-0 decided: VISUAL-ONLY rotation (the CSS framing), CSS-pure sizing** ([`a/dec0-visual-only.md`](./a/dec0-visual-only.md)); flips built (E-A14, cross-zero resize); conformance lab; native interactive spike (now [`crates/n0_dev`](../crates/n0_dev)); open calls parked in [`a/DECISIONS.md`](./a/DECISIONS.md). Remaining: fold deltas into a normative rewrite of `models/a.md` + WG graduation                                                                  |
+| 4. Runtime              | `crates/grida` implementation                                  | **proving engine BUILT and PROMOTED** — [`crates/n0`](../crates/n0) (formerly `engine/`, `anchor-engine`): the `resolve → drawlist → paint` pipeline + query/journal/replay/damage sockets, spike re-hosted onto it, gate green (shots byte-identical, replay deterministic, budgets baselined). The bounded explicit-time SVG animation checkpoint adds pure sampling, Base/Sample frame integration, exact-time rendering, a caller-owned playback clock, and a controlled native host; see [`crates/n0/ANIMATION.md`](../crates/n0/ANIMATION.md). Production migration remains separate |
 
 Ground rules:
 
@@ -102,9 +112,9 @@ Ground rules:
   ([`a/DECISIONS.md`](./a/DECISIONS.md)), the DEC-0 normative rules, the
   ship-readiness census ([`a/LIMITS.md`](./a/LIMITS.md)), the peer-compat
   matrix, the phase-4 engine layer programs with day-1 contracts
-  ([`a/ENGINE.md`](./a/ENGINE.md)), the Rust conformance lab
-  ([`a/lab/`](./a/lab/)), and the native interactive spike
-  ([`a/spike-canvas/`](./a/spike-canvas/)).
+  ([`a/ENGINE.md`](./a/ENGINE.md)), the Rust conformance lab (now
+  [`crates/n0-model`](../crates/n0-model)), and the native interactive
+  spike (now [`crates/n0_dev`](../crates/n0_dev)).
 - [`models/`](./models/) — concrete candidate models, one file each,
   harness-scored, best-faith. Files keep letter slots (`a.md`, `b.md`, …);
   the names are the working identifiers:
@@ -123,7 +133,7 @@ Ground rules:
 ## Relationship to existing docs
 
 - [`docs/wg/feat-layout/index.md`](../docs/wg/feat-layout/index.md) — the
-  anchor+flex+grid positioning vision (draft, PR #437). It covers positioning
+  anchor+flex+grid positioning vision (draft, gridaco/grida#437). It covers positioning
   intent only and is **silent on rotation/transform and their layout
   coupling** — that gap is a large part of this catalog. When phase 3 produces
   a spec, it graduates into `docs/wg/` under WG doctrine (code-agnostic) and

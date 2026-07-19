@@ -509,9 +509,9 @@ contract the promotion program implements, in vocabulary terms:
 
 ## Evidence
 
-Non-normative provenance — where the claims above were verified. The
-production engine is cited by path in this repository; the v2 proof by
-branch and path in prose.[^branch-links]
+Non-normative provenance — where the claims above were verified. Both
+engines are cited by path in this repository (the v2 proof landed
+in-tree with gridaco/nothing#5).
 
 - Production engine (`main`): the paint vocabulary and color value in
   [`crates/grida/src/cg/types.rs`](../../../crates/grida/src/cg/types.rs)
@@ -523,13 +523,9 @@ branch and path in prose.[^branch-links]
   imports in [`crates/grida/src/import/html/mod.rs`](../../../crates/grida/src/import/html/mod.rs)
   and [`crates/grida/src/import/svg/from_usvg.rs`](../../../crates/grida/src/import/svg/from_usvg.rs)
   with [`crates/grida/src/import/svg/pack.rs`](../../../crates/grida/src/import/svg/pack.rs).
-- v2 proof (branch `model-v2-anchor`, locked as a design reference; see
+- v2 engine (see
   [gridaco/nothing#9](https://github.com/gridaco/nothing/issues/9)):
   the packed color, paint variants, paint stack, and unified stroke
-  application in `model-v2/a/lab/src/model.rs`.
-
-[^branch-links]: This repo's link discipline permits only `main`-target
-    repository links — no branch or commit pins — so v2 evidence on the
-    locked `model-v2-anchor` branch is cited by branch name and path in
-    prose rather than hyperlinked. The branch is reachable from the
-    tracking issue above.
+  application in
+  [`crates/n0-model/src/model.rs`](../../../crates/n0-model/src/model.rs)
+  (promoted from the `model-v2-anchor` branch's `model-v2/a/lab`).

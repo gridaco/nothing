@@ -157,20 +157,16 @@ expensive non-goal.
 
 ## Evidence
 
-Non-normative provenance — where the two projections were read. The
-production engine is cited by path in this repository; the v2 proof by
-branch and path in prose.[^branch-links]
+Non-normative provenance — where the two projections were read. Both
+engines are cited by path in this repository (the v2 proof landed
+in-tree with gridaco/nothing#5).
 
 - Production engine (`main`): the retained layer tree, per-layer base
   record, mask groups, and effect surfaces in
   [`crates/grida/src/painter/layer.rs`](../../../crates/grida/src/painter/layer.rs).
-- v2 proof (branch `model-v2-anchor`, locked as a design reference; see
+- v2 engine (see
   [gridaco/nothing#9](https://github.com/gridaco/nothing/issues/9)):
   the flat item stream, paired scope commands, and per-item world
-  transforms in `model-v2/engine/src/drawlist.rs`.
-
-[^branch-links]: This repo's link discipline permits only `main`-target
-    repository links — no branch or commit pins — so v2 evidence on the
-    locked `model-v2-anchor` branch is cited by branch name and path in
-    prose rather than hyperlinked. The branch is reachable from the
-    tracking issue above.
+  transforms in
+  [`crates/n0/src/drawlist.rs`](../../../crates/n0/src/drawlist.rs)
+  (promoted from the `model-v2-anchor` branch's `model-v2/engine`).
