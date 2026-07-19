@@ -41,7 +41,7 @@ continues).
 
 ## What travels
 
-Sync transmits the [mutation vocabulary](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/document.md) — the same
+Sync transmits the [mutation vocabulary](../../../crates/grida_editor/docs/document.md) — the same
 serializable operations history stores. Only **content** mutations
 replicate. Authoring context and view state travel separately as
 **presence** (ephemeral, latest-wins, never merged into the document):

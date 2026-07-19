@@ -19,7 +19,7 @@ sniffing order, and placement — is [io-external.md](./io-external.md).
 ## Import
 
 The reference editor opens documents in the native format, loading
-them as the working copy ([editor.md](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/editor.md) lifecycle). Import
+them as the working copy ([editor.md](../../../crates/grida_editor/docs/editor.md) lifecycle). Import
 of foreign formats (vector graphics documents) inserts their
 converted subtree as a mutation batch into the open document — an
 undoable edit like any other, not a document swap.

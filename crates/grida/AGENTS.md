@@ -18,8 +18,6 @@ The canvas uses a dual-ID system:
 4. `NodeRepository` auto-generates IDs for factory-created nodes (ID=0)
 5. Application layer maintains bidirectional mapping for API boundary
 
-See [NODEID_MIGRATION.md](./NODEID_MIGRATION.md) for full migration details.
-
 ## Testing & Development
 
 ```sh

@@ -28,14 +28,14 @@ local-file rendering. Canonical source writers and complete-library validation
 remain unimplemented. None of the slot vocabulary introduced by this RFD is
 valid Version 0, Version 1, or Version 2 syntax.
 
-**Companion specifications:** [Grida XML](./grida-xml) owns ordinary authored
+**Companion specifications:** [Grida XML](./grida-xml.md) owns ordinary authored
 scene values. [Grida XML modules and static component
-reuse](./grida-xml-modules) owns source units, boxed component definitions,
+reuse](./grida-xml-modules.md) owns source units, boxed component definitions,
 `use`, linking, materialization, and component provenance. [Grida XML component
-parameters](./grida-xml-component-parameters) owns Version 2 scalar props,
+parameters](./grida-xml-component-parameters.md) owns Version 2 scalar props,
 arguments, bindings, and lexical scalar scope. This RFD specifies only the
 Version 3 render-slot delta. [Grida XML durable
-addressing](./grida-xml-addressing) owns the later Version 4 member/use
+addressing](./grida-xml-addressing.md) owns the later Version 4 member/use
 identity and occurrence-path delta.
 
 ## Decision summary
@@ -415,7 +415,7 @@ Version 4 subsequently requires explicit render-member and use IDs. During
 slot projection it retains the assignment root's caller owner and appends the
 receiving use to its durable occurrence path; it does not promote a Version 3
 source location or child index into identity. See [Grida XML durable
-addressing](./grida-xml-addressing).
+addressing](./grida-xml-addressing.md).
 
 ## Source preservation and canonical writing
 

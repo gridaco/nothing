@@ -71,7 +71,7 @@ await init({
     if (process.env.NODE_ENV === "development") {
       return `http://localhost:4020/dist/${path}`;
     }
-    `https://unpkg.com/@grida/canvas-wasm@latest/${path}`,
+    return `https://unpkg.com/@grida/canvas-wasm@<VERSION>/dist/${path}`;
   },
 });
 ```

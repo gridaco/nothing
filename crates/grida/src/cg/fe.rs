@@ -561,3 +561,182 @@ pub struct FeNoiseEffect {
     /// Blend mode for compositing the noise effect with fills
     pub blend_mode: BlendMode,
 }
+
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct LayerEffects {
+    /// single layer blur is supported per layer
+    /// layer blur is applied after all other effects
+    pub blur: Option<FeLayerBlur>,
+    /// single backdrop blur is supported per layer
+    pub backdrop_blur: Option<FeBackdropBlur>,
+    /// multiple shadows are supported per layer (drop shadow, inner shadow)
+    pub shadows: Vec<FilterShadowEffect>,
+    /// single liquid glass effect is supported per layer (only fully supported with rectangular shapes)
+    pub glass: Option<FeLiquidGlass>,
+    /// multiple noise effects are supported per layer
+    pub noises: Vec<FeNoiseEffect>,
+}
+
+impl LayerEffects {
+    /// Create a new LayerEffects (alias for default)
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Returns true when there are no effects at all (no shadows, blur,
+    /// backdrop blur, glass, or noise). Used for fast-path dispatch
+    /// to skip the effects pipeline entirely for simple nodes.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.blur.is_none()
+            && self.backdrop_blur.is_none()
+            && self.glass.is_none()
+            && self.shadows.is_empty()
+            && self.noises.is_empty()
+    }
+
+    /// Set layer blur effect
+    pub fn blur(mut self, blur: impl Into<FeBlur>) -> Self {
+        self.blur = Some(FeLayerBlur::from(blur.into()));
+        self
+    }
+
+    /// Set backdrop blur effect
+    pub fn backdrop_blur(mut self, blur: impl Into<FeBlur>) -> Self {
+        self.backdrop_blur = Some(FeBackdropBlur::from(blur.into()));
+        self
+    }
+
+    /// Add a drop shadow effect
+    pub fn drop_shadow(mut self, shadow: impl Into<FeShadow>) -> Self {
+        self.shadows
+            .push(FilterShadowEffect::DropShadow(shadow.into()));
+        self
+    }
+
+    /// Add multiple drop shadow effects
+    pub fn drop_shadows(mut self, shadows: Vec<FeShadow>) -> Self {
+        for shadow in shadows {
+            self.shadows.push(FilterShadowEffect::DropShadow(shadow));
+        }
+        self
+    }
+
+    /// Add an inner shadow effect
+    pub fn inner_shadow(mut self, shadow: impl Into<FeShadow>) -> Self {
+        self.shadows
+            .push(FilterShadowEffect::InnerShadow(shadow.into()));
+        self
+    }
+
+    /// Add multiple inner shadow effects
+    pub fn inner_shadows(mut self, shadows: Vec<FeShadow>) -> Self {
+        for shadow in shadows {
+            self.shadows.push(FilterShadowEffect::InnerShadow(shadow));
+        }
+        self
+    }
+
+    /// Add a noise effect
+    pub fn noise(mut self, noise: impl Into<FeNoiseEffect>) -> Self {
+        self.noises.push(noise.into());
+        self
+    }
+
+    /// Add multiple noise effects
+    pub fn noises(mut self, noises: Vec<FeNoiseEffect>) -> Self {
+        self.noises.extend(noises);
+        self
+    }
+
+    /// Set liquid glass effect
+    pub fn glass(mut self, glass: impl Into<FeLiquidGlass>) -> Self {
+        self.glass = Some(glass.into());
+        self
+    }
+
+    /// Returns true if opacity must be isolated in a separate save_layer
+    /// because effects (shadows, blur, glass, backdrop blur) render outside
+    /// the opacity wrapper and should appear at full alpha.
+    ///
+    /// When false, opacity can be safely folded into a parent save_layer
+    /// or the paint alpha, eliminating a GPU surface allocation.
+    #[inline]
+    pub fn needs_opacity_isolation(&self) -> bool {
+        // Drop/inner shadows render outside opacity — they should appear at
+        // full opacity even when the shape content is semi-transparent.
+        if self.shadows.iter().any(|s| s.active()) {
+            return true;
+        }
+        // Layer blur wraps everything including content — opacity inside
+        // blur vs outside blur produces different results.
+        if self.blur.as_ref().is_some_and(|b| b.active) {
+            return true;
+        }
+        // Backdrop blur and glass read from content behind the node
+        // and render outside the opacity wrapper.
+        if self.backdrop_blur.as_ref().is_some_and(|b| b.active) {
+            return true;
+        }
+        if self.glass.as_ref().is_some_and(|g| g.active) {
+            return true;
+        }
+        false
+    }
+
+    /// Returns true if this layer has any active effects that are expensive
+    /// to paint (shadows, blurs, noise, glass).  Simple fill/stroke-only
+    /// nodes return false.
+    pub fn has_expensive_effects(&self) -> bool {
+        if self.blur.as_ref().is_some_and(|b| b.active) {
+            return true;
+        }
+        // Note: backdrop_blur is context-dependent and excluded from
+        // compositing by the promotion heuristic, so we don't count it here.
+        if self.shadows.iter().any(|s| s.active()) {
+            return true;
+        }
+        if self.glass.as_ref().is_some_and(|g| g.active) {
+            return true;
+        }
+        if self.noises.iter().any(|n| n.active) {
+            return true;
+        }
+        false
+    }
+
+    /// Convert a list of filter effects into a layer effects object.
+    /// if multiple effects that is not supported, the last effect will be used.
+    pub fn from_array(effects: Vec<FilterEffect>) -> Self {
+        let mut layer_effects = Self::default();
+        for effect in effects {
+            match effect {
+                FilterEffect::LayerBlur(blur) => layer_effects.blur = Some(blur),
+                FilterEffect::BackdropBlur(blur) => layer_effects.backdrop_blur = Some(blur),
+                FilterEffect::LiquidGlass(glass) => layer_effects.glass = Some(glass),
+                FilterEffect::DropShadow(shadow) => layer_effects
+                    .shadows
+                    .push(FilterShadowEffect::DropShadow(shadow)),
+                FilterEffect::InnerShadow(shadow) => layer_effects
+                    .shadows
+                    .push(FilterShadowEffect::InnerShadow(shadow)),
+                FilterEffect::Noise(noise) => layer_effects.noises.push(noise),
+            }
+        }
+        layer_effects
+    }
+
+    #[deprecated(note = "will be removed")]
+    pub fn fallback_first_any_effect(&self) -> Option<FilterEffect> {
+        if let Some(blur) = &self.blur {
+            return Some(FilterEffect::LayerBlur(blur.clone()));
+        }
+        if let Some(backdrop_blur) = &self.backdrop_blur {
+            return Some(FilterEffect::BackdropBlur(backdrop_blur.clone()));
+        }
+        if !self.shadows.is_empty() {
+            return Some(self.shadows.last().unwrap().clone().into());
+        }
+        None
+    }
+}

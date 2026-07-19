@@ -27,6 +27,12 @@
 //! - **Layout result caching**: Caches layout measurements by width to avoid redundant layout calls
 //! - **Paint strategy optimization**: Chooses between re-creation vs visit() based on paint complexity
 //! - **Font generation tracking**: Invalidates cache when fonts change
+//! - **Resolved-text artifact**: This cache is the single producer of the
+//!   immutable [`crate::text::resolved::ResolvedTextLayout`] artifact — the
+//!   engine's realization of the Universal Shaped Text Layout RFD
+//!   (`docs/wg/feat-paragraph/text-layout.md`). [`ParagraphCache::measure`]
+//!   is a projection of that artifact; painting keeps the cached Skia
+//!   `Paragraph` (geometry is the artifact's surface, paint is not).
 //!
 //! ## Usage Patterns
 //!
@@ -76,6 +82,7 @@ use crate::node::schema::NodeId;
 use crate::painter::paint;
 use crate::runtime::font_repository::FontRepository;
 use crate::runtime::render_policy::RenderIntent;
+use crate::text::resolved::{self, EnvironmentId, ResolvedTextLayout, ShapingTransform};
 use crate::text::text_style::textstyle;
 use skia_safe::textlayout;
 use std::cell::RefCell;
@@ -83,6 +90,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
+use std::sync::Arc;
 
 /// Identifies a paragraph cache entry by either NodeId or shape-based hash key.
 ///
@@ -154,9 +162,33 @@ pub struct ParagraphCacheEntry {
     pub font_generation: usize,
     /// The cached Skia paragraph object
     pub paragraph: Rc<RefCell<textlayout::Paragraph>>,
-    /// Cached measurements for the last layout width — avoids re-calling
-    /// Skia `paragraph.layout()` on every access when the width hasn't changed.
-    pub cached_measurements: Option<(Option<f32>, LayoutMeasurements)>,
+    /// The resolved-text artifact extracted at the last layout width —
+    /// avoids re-calling Skia `paragraph.layout()` on every access when the
+    /// width hasn't changed. Immutable: a width or environment change
+    /// replaces it wholesale (see [`crate::text::resolved`]).
+    pub artifact: Arc<ResolvedTextLayout>,
+    /// The width constraint `artifact` was resolved under.
+    pub artifact_width: Option<f32>,
+}
+
+impl From<&ResolvedTextLayout> for LayoutMeasurements {
+    /// Measurement is a query over the resolved artifact, not a parallel
+    /// text operation: the numbers are the oracle's paragraph-level readout
+    /// carried by the artifact, verbatim.
+    fn from(artifact: &ResolvedTextLayout) -> Self {
+        let m = &artifact.metrics;
+        LayoutMeasurements {
+            height: m.height,
+            max_width: m.max_width,
+            min_intrinsic_width: m.min_intrinsic_width,
+            max_intrinsic_width: m.max_intrinsic_width,
+            alphabetic_baseline: m.alphabetic_baseline,
+            ideographic_baseline: m.ideographic_baseline,
+            longest_line: m.longest_line,
+            line_number: m.line_count,
+            did_exceed_max_lines: m.did_exceed_max_lines,
+        }
+    }
 }
 
 /// Accumulated statistics from `measure()` calls — for benchmarking only.
@@ -217,6 +249,11 @@ impl ParagraphCache {
     /// Get or create paragraph for measurement only
     /// Returns final measured metrics for the given width
     /// If id is provided, uses ID-based caching; otherwise uses shape-key-based caching
+    ///
+    /// The measurements are a projection of the resolved-text artifact this
+    /// call produces (see [`Self::resolve`]): the measurement path consumes
+    /// the artifact's logical metrics rather than re-querying the live Skia
+    /// paragraph.
     pub fn measure(
         &mut self,
         text: &str,
@@ -228,8 +265,30 @@ impl ParagraphCache {
         fonts: &FontRepository,
         id: Option<&NodeId>,
     ) -> LayoutMeasurements {
+        self.resolve(text, style, align, max_lines, ellipsis, width, fonts, id)
+            .map(|artifact| LayoutMeasurements::from(artifact.as_ref()))
+            .unwrap_or_default()
+    }
+
+    /// Resolve text into the immutable resolved-text-layout artifact
+    /// ([`crate::text::resolved`]), producing (or reusing) the cached Skia
+    /// paragraph at this choke point.
+    ///
+    /// Returns `None` only when [`Self::skip_text_measure`] is enabled (a
+    /// benchmark-only stub): no artifact is fabricated for the stub path.
+    pub fn resolve(
+        &mut self,
+        text: &str,
+        style: &TextStyleRec,
+        align: &TextAlign,
+        max_lines: &Option<usize>,
+        ellipsis: &Option<String>,
+        width: Option<f32>,
+        fonts: &FontRepository,
+        id: Option<&NodeId>,
+    ) -> Option<Arc<ResolvedTextLayout>> {
         let shape_key = Some(Self::shape_key(text, style, align, max_lines));
-        self.measure_inner(width, fonts, id, shape_key, |fonts| {
+        self.resolve_inner(width, fonts, id, shape_key, |fonts| {
             let paragraph_style =
                 crate::text::make_paragraph_style(*align, *max_lines, ellipsis.as_deref());
 
@@ -245,33 +304,43 @@ impl ParagraphCache {
             para_builder.add_text(&transformed_text);
             let paragraph = para_builder.build();
             para_builder.pop();
-            paragraph
+            let transform = match style.text_transform {
+                TextTransform::None => ShapingTransform::Identity,
+                other => ShapingTransform::Uniform(other),
+            };
+            (paragraph, transformed_text, transform)
         })
     }
 
-    /// Shared cache-hit/miss/store logic for both `measure()` and `measure_attributed()`.
+    /// Shared cache-hit/miss/store logic for both `resolve()` and
+    /// `resolve_attributed()`.
     ///
-    /// Both public measure methods delegate to this, passing different
-    /// paragraph-building closures.
+    /// Both public resolve methods delegate to this, passing different
+    /// paragraph-building closures. The closure returns the built paragraph
+    /// together with the exact shaping text it fed the shaper and the
+    /// declared source-transformation policy.
     ///
     /// - `shape_key`: when `Some`, enables shape-key-based caching (used when `id` is `None`).
     ///   When `None`, only ID-based caching is used.
-    fn measure_inner<F>(
+    fn resolve_inner<F>(
         &mut self,
         width: Option<f32>,
         fonts: &FontRepository,
         id: Option<&NodeId>,
         shape_key: Option<u64>,
         build_paragraph: F,
-    ) -> LayoutMeasurements
+    ) -> Option<Arc<ResolvedTextLayout>>
     where
-        F: FnOnce(&FontRepository) -> textlayout::Paragraph,
+        F: FnOnce(&FontRepository) -> (textlayout::Paragraph, String, ShapingTransform),
     {
         if self.skip_text_measure {
-            return LayoutMeasurements::default();
+            return None;
         }
 
         let fonts_gen = fonts.generation();
+        let environment = EnvironmentId {
+            font_generation: fonts_gen,
+        };
         self.stats.calls += 1;
 
         // Check if we have a cached paragraph
@@ -280,17 +349,23 @@ impl ParagraphCache {
             if let Some(entry) = self.entries_measurement_by_id.get_mut(node_id) {
                 if entry.font_generation == fonts_gen {
                     self.stats.cache_hits += 1;
-                    // Fast path: return cached measurements if width matches
-                    if let Some((cached_w, ref measurements)) = entry.cached_measurements {
-                        if cached_w == width {
-                            return *measurements;
-                        }
+                    // Fast path: reuse the cached artifact if width matches
+                    if entry.artifact_width == width {
+                        return Some(entry.artifact.clone());
                     }
-                    // Width changed: re-layout and cache
-                    let paragraph_rc = entry.paragraph.clone();
-                    let m = Self::compute_measurements(paragraph_rc, width);
-                    entry.cached_measurements = Some((width, m));
-                    return m;
+                    // Width changed: re-layout the same paragraph and
+                    // resolve a fresh artifact (never patched in place).
+                    let prior = entry.artifact.clone();
+                    let artifact = Arc::new(Self::resolve_with_width(
+                        entry.paragraph.clone(),
+                        width,
+                        &prior.shaping_text,
+                        prior.transform,
+                        environment,
+                    ));
+                    entry.artifact = artifact.clone();
+                    entry.artifact_width = width;
+                    return Some(artifact);
                 }
             }
         } else if let Some(hash) = shape_key {
@@ -298,32 +373,44 @@ impl ParagraphCache {
             if let Some(entry) = self.entries_measurement_by_shapekey_unstable.get_mut(&hash) {
                 if entry.font_generation == fonts_gen {
                     self.stats.cache_hits += 1;
-                    if let Some((cached_w, ref measurements)) = entry.cached_measurements {
-                        if cached_w == width {
-                            return *measurements;
-                        }
+                    if entry.artifact_width == width {
+                        return Some(entry.artifact.clone());
                     }
-                    let paragraph_rc = entry.paragraph.clone();
-                    let m = Self::compute_measurements(paragraph_rc, width);
-                    entry.cached_measurements = Some((width, m));
-                    return m;
+                    let prior = entry.artifact.clone();
+                    let artifact = Arc::new(Self::resolve_with_width(
+                        entry.paragraph.clone(),
+                        width,
+                        &prior.shaping_text,
+                        prior.transform,
+                        environment,
+                    ));
+                    entry.artifact = artifact.clone();
+                    entry.artifact_width = width;
+                    return Some(artifact);
                 }
             }
         }
         self.stats.cache_misses += 1;
 
         // Build the paragraph (expensive operation) — no paint for measurement.
-        let paragraph = build_paragraph(fonts);
+        let (paragraph, shaping_text, transform) = build_paragraph(fonts);
         let paragraph_rc = Rc::new(RefCell::new(paragraph));
 
-        // Compute measurements and cache them with the entry
-        let measurements = Self::compute_measurements(paragraph_rc.clone(), width);
+        // Resolve the artifact and cache it with the entry
+        let artifact = Arc::new(Self::resolve_with_width(
+            paragraph_rc.clone(),
+            width,
+            &shaping_text,
+            transform,
+            environment,
+        ));
 
         let entry = ParagraphCacheEntry {
             hash: shape_key.unwrap_or(0),
             font_generation: fonts_gen,
             paragraph: paragraph_rc,
-            cached_measurements: Some((width, measurements)),
+            artifact: artifact.clone(),
+            artifact_width: width,
         };
 
         // Store in the appropriate cache
@@ -334,14 +421,19 @@ impl ParagraphCache {
                 .insert(hash, entry);
         }
 
-        measurements
+        Some(artifact)
     }
 
-    /// Helper method to compute measurements for a given paragraph and width
-    fn compute_measurements(
+    /// Lay the paragraph out for the requested width (identical layout
+    /// sequence to the historical measurement path) and extract the resolved
+    /// artifact from the laid-out paragraph.
+    fn resolve_with_width(
         paragraph_rc: Rc<RefCell<textlayout::Paragraph>>,
         width: Option<f32>,
-    ) -> LayoutMeasurements {
+        shaping_text: &str,
+        transform: ShapingTransform,
+        environment: EnvironmentId,
+    ) -> ResolvedTextLayout {
         // Calculate the final layout width
         let layout_width = if let Some(width) = width {
             width
@@ -362,35 +454,29 @@ impl ParagraphCache {
             para_ref.layout(layout_width);
         }
 
-        // Get all available measurement results
-        let para_ref = paragraph_rc.borrow();
-
-        LayoutMeasurements {
-            // Basic dimensions
-            height: para_ref.height(),
-            max_width: para_ref.max_width(),
-            min_intrinsic_width: para_ref.min_intrinsic_width(),
-            max_intrinsic_width: para_ref.max_intrinsic_width(),
-
-            // Baseline information
-            alphabetic_baseline: para_ref.alphabetic_baseline(),
-            ideographic_baseline: para_ref.ideographic_baseline(),
-
-            // Line information
-            longest_line: para_ref.longest_line(),
-            line_number: para_ref.line_number(),
-            did_exceed_max_lines: para_ref.did_exceed_max_lines(),
-        }
+        // Extract the artifact from the laid-out paragraph (read-only; the
+        // paragraph keeps its layout state for painting and overlays).
+        let mut para_ref = paragraph_rc.borrow_mut();
+        resolved::resolve_from_paragraph(
+            &mut para_ref,
+            shaping_text,
+            transform,
+            width,
+            layout_width,
+            environment,
+        )
     }
 
     /// Measure an attributed string (per-run styled text) for geometry.
     ///
-    /// Unlike [`measure`], this builds a paragraph with per-run styles so that
+    /// Unlike [`measure`](Self::measure), this builds a paragraph with per-run styles so that
     /// varying font sizes, weights, and families are reflected in the measured
     /// dimensions. No paint is applied — this is geometry-only.
     ///
     /// Results are cached by node ID with the same invalidation strategy as
-    /// [`measure`].
+    /// [`measure`](Self::measure). Like [`measure`](Self::measure), the returned numbers are a
+    /// projection of the resolved-text artifact
+    /// (see [`Self::resolve_attributed`]).
     pub fn measure_attributed(
         &mut self,
         attr: &crate::cg::types::AttributedString,
@@ -401,13 +487,35 @@ impl ParagraphCache {
         fonts: &FontRepository,
         id: Option<&NodeId>,
     ) -> LayoutMeasurements {
-        self.measure_inner(width, fonts, id, None, |fonts| {
+        self.resolve_attributed(attr, align, max_lines, ellipsis, width, fonts, id)
+            .map(|artifact| LayoutMeasurements::from(artifact.as_ref()))
+            .unwrap_or_default()
+    }
+
+    /// Resolve an attributed string into the immutable
+    /// resolved-text-layout artifact ([`crate::text::resolved`]).
+    ///
+    /// Returns `None` only when [`Self::skip_text_measure`] is enabled (a
+    /// benchmark-only stub): no artifact is fabricated for the stub path.
+    pub fn resolve_attributed(
+        &mut self,
+        attr: &crate::cg::types::AttributedString,
+        align: &TextAlign,
+        max_lines: &Option<usize>,
+        ellipsis: &Option<String>,
+        width: Option<f32>,
+        fonts: &FontRepository,
+        id: Option<&NodeId>,
+    ) -> Option<Arc<ResolvedTextLayout>> {
+        self.resolve_inner(width, fonts, id, None, |fonts| {
             let paragraph_style =
                 crate::text::make_paragraph_style(*align, *max_lines, ellipsis.as_deref());
 
             let mut para_builder =
                 textlayout::ParagraphBuilder::new(&paragraph_style, fonts.font_collection());
 
+            let mut shaping_text = String::with_capacity(attr.text.len());
+            let mut any_transform = false;
             for run in &attr.runs {
                 let ctx = TextStyleRecBuildContext {
                     color: CGColor::TRANSPARENT,
@@ -418,9 +526,16 @@ impl ParagraphCache {
                 let transformed =
                     crate::text::text_transform::transform_text(run_text, run.style.text_transform);
                 para_builder.add_text(&transformed);
+                any_transform |= run.style.text_transform != TextTransform::None;
+                shaping_text.push_str(&transformed);
             }
 
-            para_builder.build()
+            let transform = if any_transform {
+                ShapingTransform::PerRun
+            } else {
+                ShapingTransform::Identity
+            };
+            (para_builder.build(), shaping_text, transform)
         })
     }
 

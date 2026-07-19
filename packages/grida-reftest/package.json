@@ -33,15 +33,15 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
-    "@types/node": "^24",
+    "@types/node": "catalog:",
     "@types/pixelmatch": "^5.2.6",
     "@types/pngjs": "^6.0.5",
-    "tsdown": "^0.22.1",
-    "tsx": "^4.19.0",
-    "typescript": "^6",
-    "vitest": "^4"
+    "tsdown": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24.11.0"
   }
 }

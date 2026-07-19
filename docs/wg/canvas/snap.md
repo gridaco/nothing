@@ -31,7 +31,7 @@ system with its own agents and chrome:
 vector-edit feature).
 
 Snapping is **interpretation, not interaction**: the HUD emits raw
-gesture geometry and stays snap-blind ([hud.md](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/hud.md), the one
+gesture geometry and stays snap-blind ([hud.md](../../../crates/grida_editor/docs/hud.md), the one
 law); the host's interpretation module applies snapping between
 intent and mutation. It is gesture-time only — it shapes previewed
 and committed values and leaves no other trace in the document.

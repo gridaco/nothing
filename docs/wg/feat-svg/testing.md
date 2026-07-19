@@ -74,13 +74,13 @@ The Oxygen icon set provides real-world SVG icon testing with:
 
 The static corpora above continue to evaluate animation-bearing files as base
 scenes. That is separate from conformance to [SVG Animation Profile
-0](./animation) and its cumulative [Profile 1 keyframe/easing
-extension](./animation-keyframes) and [Profile 2 replacement-sandwich
-extension](./animation-sandwiches), plus [Profile 3 additive and cumulative
-composition](./animation-composition) and [Profile 4 live-underlying and typed
-transform effects](./animation-effects-and-transforms), followed by [Profile 5
-solid-fill paints](./animation-solid-fills), which sample an explicit document
-time. [Profile 6 path geometry](./animation-path-geometry) adds smooth
+0](./animation.md) and its cumulative [Profile 1 keyframe/easing
+extension](./animation-keyframes.md) and [Profile 2 replacement-sandwich
+extension](./animation-sandwiches.md), plus [Profile 3 additive and cumulative
+composition](./animation-composition.md) and [Profile 4 live-underlying and typed
+transform effects](./animation-effects-and-transforms.md), followed by [Profile 5
+solid-fill paints](./animation-solid-fills.md), which sample an explicit document
+time. [Profile 6 path geometry](./animation-path-geometry.md) adds smooth
 same-family topology, explicit discrete replacement, and bounded automatic
 fallback vectors.
 

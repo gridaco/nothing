@@ -1,4 +1,10 @@
 ---
+title: WASM load_scene Optimization Plan
+description: Investigation notes and measurements for WASM scene-loading performance.
+tags:
+  - internal
+  - wg
+  - canvas
 format: md
 ---
 

@@ -1,3 +1,13 @@
+---
+title: "TLDraw Sync: Real-Time Collaboration Architecture"
+description: A survey of tldraw's sync architecture, data model, protocol, and conflict resolution.
+tags:
+  - internal
+  - wg
+  - research
+format: md
+---
+
 # TLDraw Sync: Real-Time Collaboration Architecture
 
 > Research document covering tldraw's sync engine — architecture, data model,

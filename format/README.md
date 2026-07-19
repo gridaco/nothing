@@ -37,11 +37,11 @@ flatc --ts --ts-no-import-ext -o /tmp/grida-fbs-gen/ts format/grida.fbs
 flatc --rust -o /tmp/grida-fbs-gen/rust format/grida.fbs
 ```
 
-### Also available: `bin/activate-flatc` (CI/Vercel)
+### Also available: `bin/activate-flatc` (the repo's pinned flatc)
 
-We do **not** commit generated FlatBuffers bindings. For CI and Vercel builds we
-use the repo script `bin/activate-flatc`, which downloads and caches a **pinned**
-`flatc` release binary (currently **v25.12.19**) and runs it.
+The repo script `bin/activate-flatc` downloads and caches a **pinned** `flatc`
+release binary (currently **v25.12.19**) and runs it — the same binary CI uses,
+so regenerated output is byte-stable.
 
 ```sh
 # Compiles the schema to a binary schema file (.bfbs)
@@ -54,12 +54,17 @@ python3 bin/activate-flatc -- --ts --ts-no-import-ext -o /tmp/grida-fbs-gen/ts f
 python3 bin/activate-flatc -- --rust -o /tmp/grida-fbs-gen/rust format/grida.fbs
 ```
 
-> In-repo generated code + automation:
+> Generated code — where it lives post-split:
 >
-> - **TypeScript**: `packages/grida-format/` — **committed**; regenerated on `pnpm build` via `prebuild`. Changes to generated TS files are expected in PRs that modify `grida.fbs`.
-> - **Rust**: `crates/grida/src/io/generated/` — **committed**; regenerated on `pnpm build` via `prebuild`. Changes to generated Rust files are expected in PRs that modify `grida.fbs`.
+> - **Rust (this repo)**: `crates/grida/src/io/generated/grida.rs` — **committed**; CI asserts freshness (`.github/workflows/check-generated-fbs.yml`). Changes to it are expected in PRs that modify `grida.fbs`.
+> - **TypeScript (gridaco/grida)**: the product repo holds a **frozen tombstone** of the TS bindings (`packages/grida-format/src`, generator severed at the split) — it follows schema changes only by a deliberate re-snapshot there.
 >
-> **Contributor workflow**: after editing `grida.fbs`, run `pnpm build` (or the individual `prebuild` scripts in each package) to regenerate bindings, then commit the updated generated files alongside your schema change.
+> **Contributor workflow**: after editing `grida.fbs`, regenerate and commit the Rust bindings:
+>
+> ```sh
+> python3 bin/activate-flatc -- --rust -o crates/grida/src/io/generated format/grida.fbs \
+>   && mv crates/grida/src/io/generated/grida_generated.rs crates/grida/src/io/generated/grida.rs
+> ```
 
 ## Format & Import Mapping Docs
 
@@ -74,7 +79,7 @@ For tracking how CSS, HTML, and SVG map into the Grida IR (and which properties 
 ## References
 
 - [Adobe Photoshop File Format Specification](https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/) — PSD/PSB structure, image resources, layer and mask info; useful when comparing or aligning design-tool format concepts.
-- [Figma .fig (Kiwi) format](../.ref/figma/README.md) — In-repo: extracted Kiwi schema (`fig.kiwi`) and tooling for Figma’s binary `.fig` format; see `/.ref/figma/`.
+- [Figma .fig (Kiwi) format](https://github.com/gridaco/grida/tree/main/.ref/figma) — extracted Kiwi schema (`fig.kiwi`) and tooling for Figma’s binary `.fig` format (reference material, kept in the product repo).
 
 ## Changelog
 

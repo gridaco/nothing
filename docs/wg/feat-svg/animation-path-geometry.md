@@ -22,7 +22,7 @@ format: md
 **Status:** Accepted source profile.
 
 SVG Animation Profile 6 extends [SVG Animation Profile
-5](./animation-solid-fills) with animation of a `<path>` element's `d`
+5](./animation-solid-fills.md) with animation of a `<path>` element's `d`
 property. It is cumulative: every source accepted by Profile 5 is accepted by
 Profile 6 and produces the same sampled values, including the same scalar,
 transform, and color bits.

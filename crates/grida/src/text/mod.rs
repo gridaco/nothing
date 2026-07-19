@@ -1,5 +1,6 @@
 pub mod attributed_paragraph;
 pub mod paragraph_cache_layout;
+pub mod resolved;
 pub mod text_style;
 pub mod text_transform;
 

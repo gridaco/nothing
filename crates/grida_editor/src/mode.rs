@@ -529,7 +529,7 @@ fn flattened_node(node: &Node) -> Option<Node> {
         width: w,
         height: h,
     };
-    let path = grida::painter::geometry::build_shape(node, &bounds).to_path();
+    let path = grida::painter::compile::build_shape(node, &bounds).to_path();
     // The path converter emits the implicit close-point as its own
     // vertex; normalization merges it onto the subpath start (the
     // same normalizer the mode's exit runs).

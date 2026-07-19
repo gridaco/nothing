@@ -46,12 +46,6 @@ impl Default for CGPoint {
     }
 }
 
-impl From<CGPoint> for skia_safe::Point {
-    fn from(val: CGPoint) -> Self {
-        skia_safe::Point::new(val.x, val.y)
-    }
-}
-
 /// Defines the type of masking applied to a layer.
 ///
 /// This corresponds to the CSS `mask-type` property and is related to `clip-path` functionality.
@@ -1758,7 +1752,7 @@ pub struct StyledTextRun {
     /// Per-run fill paints override.
     /// When `None`, the node-level fills are used.
     /// Uses the same [`Paint`] model as node fills — supports solid, gradient,
-    /// and image paints composited via [`crate::painter::paint::sk_paint_stack_without_images`].
+    /// and image paints composited by the painter's `sk_paint_stack_without_images` stack.
     pub fills: Option<Vec<Paint>>,
     /// Per-run stroke paints override.
     /// When `None`, no per-run stroke is applied.

@@ -31,7 +31,7 @@ format: md
 
 **Authored file suffix:** `.grida.xml` — provisional.
 
-**Originating request:** [gridaco/grida#957](https://github.com/gridaco/grida/issues/957).
+**Originating request:** [gridaco/nothing#9](https://github.com/gridaco/nothing/issues/9) (formerly gridaco/grida#957, transferred at the engine split).
 
 ## Thesis
 
@@ -53,12 +53,12 @@ flat attributed runs, unit-space paths, free bindings, and flex layout. Later
 drafts can add effects, vector geometry, resource declarations, advanced
 typography, and reuse facilities without changing the central tree model. The
 selected multi-file direction is developed separately in the [Grida XML
-modules and static component reuse](./grida-xml-modules) RFD; none of that
+modules and static component reuse](./grida-xml-modules.md) RFD; none of that
 proposal is Draft 0 syntax. The proposed typed scalar API for those components
 is a further Version 2 delta in [Grida XML component
-parameters](./grida-xml-component-parameters). Exact named render projection is
+parameters](./grida-xml-component-parameters.md). Exact named render projection is
 a Version 3 delta in [Grida XML component
-slots](./grida-xml-component-slots).
+slots](./grida-xml-component-slots.md).
 
 ## Design requirements
 
@@ -206,7 +206,7 @@ shape-with-text node exists or is implied.
 
 ## Property registry
 
-The [Grida XML property registry](./grida-xml-properties) is the canonical
+The [Grida XML property registry](./grida-xml-properties.md) is the canonical
 cross-draft inventory of element and property names, their valid targets, and
 production-backed placeholders. This RFD remains the normative Draft 0
 grammar. A property marked Placeholder or Design in the registry is therefore
@@ -1186,7 +1186,7 @@ re-derived from tight bounds. `view-box` is unknown syntax in Draft 0.
 `text` is the scene node. It owns the text box, paragraph properties, default
 text style, node fill stack, and repeated node stroke geometries.
 
-The [Universal Shaped Text Layout](../feat-paragraph/text-layout) RFD owns the
+The [Universal Shaped Text Layout](../feat-paragraph/text-layout.md) RFD owns the
 shaping, font resolution, line construction, UTF-8 mapping, metrics, and
 resolved bounds produced from that source. This section defines only the XML
 text intent and its mapping into that contract. Grida XML never serializes the
@@ -1445,7 +1445,7 @@ layout relationships, and explicit lens operations.
 A resolver combines that source with an explicit environment—viewport,
 fonts, and resources—to produce a separate resolved scene. Text shaping and
 geometry follow the single-result contract in [Universal Shaped Text
-Layout](../feat-paragraph/text-layout). Resolved boxes, world transforms,
+Layout](../feat-paragraph/text-layout.md). Resolved boxes, world transforms,
 measured glyph runs, visual bounds, materialized vector points, and paint
 commands belong to that derived output. They are not fields of Grida XML
 merely because a renderer can compute them.
@@ -1671,7 +1671,7 @@ rectangles, variable-width strokes, dash offset, endpoint markers, effects,
 scene image nodes, resource declaration or packaging syntax, advanced image
 placement, image filters, rich color spaces, advanced typography, per-run
 strokes, semantic text annotations, grid layout, animation, or durable node
-identity. The later [durable-addressing RFD](./grida-xml-addressing) accepts
+identity. The later [durable-addressing RFD](./grida-xml-addressing.md) accepts
 required render/use identity for exact Version 4 while leaving Draft 0
 unchanged. Every other eventual addition must preserve the one-tree,
 local-space, intent-only model established here.
@@ -1682,14 +1682,14 @@ identity, scope, failure behavior, and override semantics without creating a
 second canonical spelling for the same inline value.
 
 Reusable author-defined widgets/components are a required future capability.
-The [Grida XML modules and static component reuse](./grida-xml-modules) RFD
+The [Grida XML modules and static component reuse](./grida-xml-modules.md) RFD
 proposes top-level boxed definitions and self-contained
 `<use href="…#…">` references, with source linking and materialization kept
 above ordinary scene resolution. It also records identity, lexical resource
 origin, cycles, and source-writing requirements. The [Grida XML component
-parameters](./grida-xml-component-parameters) RFD separately proposes typed
+parameters](./grida-xml-component-parameters.md) RFD separately proposes typed
 scalar `prop` declarations, explicit `arg` children, and exact bindings for
-Version 2. The [Grida XML component slots](./grida-xml-component-slots) RFD
+Version 2. The [Grida XML component slots](./grida-xml-component-slots.md) RFD
 proposes Version 3 empty named `<slot>` declarations and direct render roots
 under `use` carrying the contextual `slot` assignment relationship.
 

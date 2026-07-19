@@ -13,7 +13,7 @@ guessed layout**: it wraps the selection into a flex container and
 infers the container's direction, spacing, and alignment from how the
 members are already arranged. Like every wrap, it runs once per
 [selection partition](./ux-surface/selection-partition.md). The command
-is `Shift+A` ([keybindings](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/keybindings.md)).
+is `Shift+A` ([keybindings](../../../crates/grida_editor/docs/keybindings.md)).
 
 This document specifies the **command** — the wrap and the inference.
 The layout _model_ it produces (flex, grid, anchors, sizing) is the

@@ -23,7 +23,7 @@ format: md
 **Status:** Accepted source profile.
 
 SVG Animation Profile 3 extends [SVG Animation Profile
-2](./animation-sandwiches) with typed addition between sandwich layers and
+2](./animation-sandwiches.md) with typed addition between sandwich layers and
 terminal-value accumulation across repeat iterations. It is cumulative: every
 source accepted by Profile 2 is accepted by Profile 3 and produces the same
 sampled values, including the same binary32 bits.

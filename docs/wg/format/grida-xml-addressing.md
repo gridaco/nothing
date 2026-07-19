@@ -78,7 +78,7 @@ a new all-purpose identifier:
 - Blink keeps a live target element and a typed property/attribute identity,
   then writes sampled SVG values into a separate animated slot before style,
   layout, and paint. The [Chromium SVG animation
-  study](../research/chromium/svg/animation-and-smil) records that pipeline.
+  study](../research/chromium/svg/animation-and-smil.md) records that pipeline.
 - Unity's
   [`GenericBindingUtility`](https://github.com/Unity-Technologies/UnityCsReference/blob/979bc204a0c6506d87595a02fc89452687ed820d/Modules/Animation/ScriptBindings/GenericBinding.bindings.cs)
   compiles hierarchy/type/property descriptors into
@@ -645,7 +645,7 @@ A conforming Version 4 reader and materializer:
 ## Deferred work
 
 Native animation grammar is explicitly deferred by the [Grida XML animation
-RFD](./grida-xml-animation). Any future proposal must state its time model,
+RFD](./grida-xml-animation.md). Any future proposal must state its time model,
 source placement, target-reference spelling, keyframes, interpolation, easing,
 composition, event posture, static processing, resource behavior, and playback
 boundary.

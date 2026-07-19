@@ -23,7 +23,7 @@ format: md
 **Status:** Accepted source profile.
 
 SVG Animation Profile 4 extends [SVG Animation Profile
-3](./animation-composition) with two typed effect families:
+3](./animation-composition.md) with two typed effect families:
 
 - scalar lone-`to` animation, whose start value is the live lower sandwich
   result; and
@@ -39,7 +39,7 @@ replaces them.
 This profile extends the typed animation-effect model, not the playback model.
 Sampling remains an explicit, stateless query at one exact document time.
 
-[SVG Animation Profile 5](./animation-solid-fills) is the cumulative
+[SVG Animation Profile 5](./animation-solid-fills.md) is the cumulative
 extension for straight-sRGB solid-fill paint animation.
 
 The behavior follows SVG's [animation value
@@ -393,7 +393,7 @@ ordered-list, or whole-document validation rules above.
 ## Deferred families
 
 Profile 4 resolves live scalar lone-`to` effects and a bounded typed transform
-animation family. [Profile 5](./animation-solid-fills) separately resolves a
+animation family. [Profile 5](./animation-solid-fills.md) separately resolves a
 bounded solid-color `fill` family. Profile 4 does not decide the complete
 static SVG transform source grammar. Static transform functions beyond the
 active static source profile, animated `matrix`, `skewX`, and `skewY`, general

@@ -79,6 +79,7 @@ function runRustReftest(testName: string): RustRunResult {
     RUST_BIN,
     [
       "reftest",
+      "run",
       "--suite-dir",
       suiteDir,
       "--output-dir",
@@ -160,6 +161,7 @@ describe.runIf(rustBinAvailable())("parity with grida_dev reftest", () => {
       RUST_BIN,
       [
         "reftest",
+        "run",
         "--suite-dir",
         suiteDir,
         "--output-dir",

@@ -538,7 +538,7 @@ A conforming geometry-sensitive consumer:
 This RFD owns shaped text resolution. An authored format owns its source
 syntax, defaulting rules, and mapping into the inputs above.
 
-[Grida XML](../format/grida-xml) stores Unicode content, flat attributed
+[Grida XML](../format/grida-xml.md) stores Unicode content, flat attributed
 `tspan` runs, and text-box intent. Its format defaults and supported or future
 paragraph attributes project into paragraph intent. It does not serialize
 glyph identifiers, fallback choices, line breaks chosen by the oracle,

@@ -13,7 +13,7 @@ Traversal is the keyboard's answer to the pointer's
 through the tree without touching the mouse — down into children, up
 to parents, and across siblings. They are primitive commands
 (registry entries like any other); this document owns their
-semantics, and [routing](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/routing.md) owns how the same keys resolve
+semantics, and [routing](../../../crates/grida_editor/docs/routing.md) owns how the same keys resolve
 elsewhere (Enter inside a text session, Tab across widgets).
 
 ## Down — Enter

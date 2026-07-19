@@ -32,20 +32,20 @@ vocabulary introduced by this RFD is valid Draft 0 syntax.
 
 “Static” is deliberate: Version 1 links and repeats exact component definitions.
 Typed scalar props are proposed separately as a Version 2 delta in [Grida XML
-component parameters](./grida-xml-component-parameters). Named direct render
+component parameters](./grida-xml-component-parameters.md). Named direct render
 projection is proposed separately as a Version 3 delta in [Grida XML component
-slots](./grida-xml-component-slots). Deep overrides require still-later design.
+slots](./grida-xml-component-slots.md). Deep overrides require still-later design.
 None of that later syntax is silently extensible Version 1 syntax.
 
-[Grida XML durable addressing](./grida-xml-addressing) accepts the next exact
+[Grida XML durable addressing](./grida-xml-addressing.md) accepts the next exact
 delta: Version 4 requires IDs on render members and uses and turns the retained
 use chain into a durable occurrence path. It leaves this Version 1 grammar and
 its span-based diagnostic provenance unchanged.
 
-**Companion specifications:** [Grida XML](./grida-xml), [Grida XML component
-parameters](./grida-xml-component-parameters), [Grida XML component
-slots](./grida-xml-component-slots), and [Grida XML durable
-addressing](./grida-xml-addressing).
+**Companion specifications:** [Grida XML](./grida-xml.md), [Grida XML component
+parameters](./grida-xml-component-parameters.md), [Grida XML component
+slots](./grida-xml-component-slots.md), and [Grida XML durable
+addressing](./grida-xml-addressing.md).
 
 ## Decision summary
 
@@ -163,12 +163,12 @@ multi-file loading and static reuse can become correct without prematurely
 choosing their identity, typing, or evaluation models.
 
 The scalar subset now has a focused proposal in [Grida XML component
-parameters](./grida-xml-component-parameters). That proposal does not alter
+parameters](./grida-xml-component-parameters.md). That proposal does not alter
 this Version 1 boundary. The [component-slot
-RFD](./grida-xml-component-slots) separately proposes exact Version 3 named
+RFD](./grida-xml-component-slots.md) separately proposes exact Version 3 named
 direct projection. It likewise does not alter Version 1.
 
-The [durable-addressing RFD](./grida-xml-addressing) separately defines exact
+The [durable-addressing RFD](./grida-xml-addressing.md) separately defines exact
 Version 4 owner/member identity and use-occurrence paths. Version 1 provenance
 remains diagnostic and does not become a generated durable identity.
 
@@ -537,9 +537,9 @@ cause resource I/O during the painter's execution.
 
 Version 2 property arguments retain the origin of their supplying literal,
 while definition-authored defaults retain the definition's origin, as defined
-by the [component-parameter RFD](./grida-xml-component-parameters). Version 3
+by the [component-parameter RFD](./grida-xml-component-parameters.md). Version 3
 assignment roots retain their caller source origin as defined by the
-[component-slot RFD](./grida-xml-component-slots). Substitution and projection
+[component-slot RFD](./grida-xml-component-slots.md). Substitution and projection
 must never make a relative resource silently change bases.
 
 ## Cycles and finite expansion
@@ -713,7 +713,7 @@ Static reuse is intentionally the complete Version 1 language boundary.
 Strict exact-version parsing means parameterization cannot be added silently
 to `version="1"`.
 
-The [Grida XML component parameters](./grida-xml-component-parameters) RFD
+The [Grida XML component parameters](./grida-xml-component-parameters.md) RFD
 proposes the Version 2 delta: leading typed `prop` declarations, explicit
 `arg` children, exact scalar bindings, literal defaults, forwarding, lexical
 resource origins, and source-preserving materialization. Version 1 continues
@@ -727,7 +727,7 @@ operations.
 
 ### Version 3 named slot projection
 
-The [Grida XML component slots](./grida-xml-component-slots) RFD proposes the
+The [Grida XML component slots](./grida-xml-component-slots.md) RFD proposes the
 Version 3 delta: empty inline `<slot name="…"/>` declarations and direct render
 roots under `use` carrying the contextual `slot="…"` assignment relationship.
 Zero roots erase the marker; one or more roots splice directly in caller order.
@@ -808,7 +808,7 @@ Letting every component property appear on `use` couples callers to definition
 internals and creates replacement-versus-composition questions for paint,
 opacity, transforms, clipping, and layout. The core keeps only the caller
 relationship on `use`; the [component-parameter
-RFD](./grida-xml-component-parameters) proposes intentional customization
+RFD](./grida-xml-component-parameters.md) proposes intentional customization
 through declared props and explicit arguments in Version 2.
 
 ## Proposed conformance requirements

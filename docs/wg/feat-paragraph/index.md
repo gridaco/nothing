@@ -14,15 +14,15 @@ format: md
 
 ## Specifications
 
-- [Universal Shaped Text Layout](./text-layout) defines the canonical
+- [Universal Shaped Text Layout](./text-layout.md) defines the canonical
   resolution contract shared by geometry-sensitive consumers.
 
 ## Focused studies
 
-- [Font fallback](./impl-font-fallback)
-- [Italic and oblique](./impl-italic)
-- [Optical size automation](./impl-opsz-auto)
-- [Emoji placeholder rendering](./impl-emoji-placeholder)
+- [Font fallback](./impl-font-fallback.md)
+- [Italic and oblique](./impl-italic.md)
+- [Optical size automation](./impl-opsz-auto.md)
+- [Emoji placeholder rendering](./impl-emoji-placeholder.md)
 
 ## Coverage inventory
 
@@ -84,7 +84,7 @@ measurement, shaping, line, glyph, or editing geometry semantics.
   - [x] text-decoration-thickness (only supports %)
   - [ ] text-decoration-skip-ink - https://github.com/rust-skia/rust-skia/issues/1187
   - [ ] known limitations https://github.com/gridaco/grida/issues/416
-- [x] [Variable axes](../../reference/open-type-variable-axes)
+- [x] [Variable axes](https://github.com/gridaco/grida/blob/main/docs/reference/open-type-variable-axes.md)
   - [x] `wght`
   - [x] `wdth`
   - [x] `slnt`
@@ -103,7 +103,7 @@ measurement, shaping, line, glyph, or editing geometry semantics.
   - [x] `YTAS`
   - [x] `YTDE`
   - [x] `YTFI`
-- [x] [OpenType features](../../reference/open-type-features)
+- [x] [OpenType features](https://github.com/gridaco/grida/blob/main/docs/reference/open-type-features.md)
 
 **Text Editor**
 

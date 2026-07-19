@@ -20,7 +20,7 @@ panel is a thin view over it.
 - **Order:** rows display front-on-top: visual top-to-bottom equals
   document order _reversed_. The controller owns this reversal; at
   the mutation boundary everything is document order
-  ([document.md](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/document.md)).
+  ([document.md](../../../crates/grida_editor/docs/document.md)).
 - **Root:** the scene root itself is hidden; its children are the
   top-level rows. Under isolation, the isolation root takes the
   scene's place.
@@ -57,7 +57,7 @@ canvas and vice versa; hover highlighting is suppressed during drag.
 
 ## Operations
 
-From rows and their [context menu](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/context-menu.md): rename
+From rows and their [context menu](../../../crates/grida_editor/docs/context-menu.md): rename
 (inline edit: double-click
 or the rename key; confirm commits a name patch, cancel discards),
 toggle active, toggle locked, delete, duplicate, group/ungroup,
@@ -96,6 +96,6 @@ target (≥100k nodes): row flattening is proportional to _visible_
   succeed.
 - **HIER-7** Windowing: with 100k nodes fully collapsed at the root,
   per-frame tree work is bounded by visible rows (measured, not
-  eyeballed — budget in [harness.md](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/harness.md)).
+  eyeballed — budget in [harness.md](../../../crates/grida_editor/docs/harness.md)).
 - **HIER-8** Rename lifecycle: confirm commits one name patch;
   cancel leaves name and history untouched.

@@ -1,0 +1,13 @@
+[package]
+name = "n0"
+version = "0.0.0"
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "A 2D graphics engine."
+categories = ["graphics", "rendering"]
+keywords = ["graphics", "2d", "rendering", "engine"]
+readme = "README.md"
+
+[dependencies]

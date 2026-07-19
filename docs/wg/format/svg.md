@@ -27,8 +27,8 @@ are inlined, and transforms are flattened. The tables below map that simplified
 tree, not raw SVG.
 
 Animation cannot use that normalized tree as its only source of truth. The
-selected [SVG Animation Profile 0](../feat-svg/animation) baseline through the
-current cumulative [Profile 6](../feat-svg/animation-path-geometry) require a
+selected [SVG Animation Profile 0](../feat-svg/animation.md) baseline through the
+current cumulative [Profile 6](../feat-svg/animation-path-geometry.md) require a
 separate frontend to retain animation-bearing source and one-to-one target
 identity before static normalization. Animated processing is a separate
 conformance surface from the static importer described here.

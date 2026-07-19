@@ -22,15 +22,15 @@ format: md
 # Grida XML property registry
 
 **Status:** Design inventory; companion to the [Grida XML Draft 0
-RFD](./grida-xml).
+RFD](./grida-xml.md).
 
 Later-version reuse vocabulary is specified by the [modules and static
-component reuse](./grida-xml-modules), [component
-parameters](./grida-xml-component-parameters), and [component
-slots](./grida-xml-component-slots) RFDs. Those rows remain **Design** until
+component reuse](./grida-xml-modules.md), [component
+parameters](./grida-xml-component-parameters.md), and [component
+slots](./grida-xml-component-slots.md) RFDs. Those rows remain **Design** until
 their language versions are accepted; Draft 0 continues to reject them.
 
-The [durable-addressing RFD](./grida-xml-addressing) accepts a Version 4
+The [durable-addressing RFD](./grida-xml-addressing.md) accepts a Version 4
 identity and typed effective-value boundary. Version 4 inherits the earlier
 component vocabulary, but it does not change which rows Draft 0 accepts and
 does not make a registered property animatable.
@@ -44,8 +44,8 @@ their complete syntax and semantics.
 Before this registry, Grida had two related documents but no complete XML
 applicability crosswalk:
 
-- [Grida IR](./grida) inventories the production scene model.
-- [Grida XML](./grida-xml) defines the small normative Draft 0 authored
+- [Grida IR](./grida.md) inventories the production scene model.
+- [Grida XML](./grida-xml.md) defines the small normative Draft 0 authored
   language.
 
 This registry connects those views without making the XML spelling mirror
@@ -150,7 +150,7 @@ spellings.
 ## Draft 0 attribute registry
 
 This is the compact applicability index for syntax already defined by the
-[Draft 0 RFD](./grida-xml). The RFD remains normative for value grammar,
+[Draft 0 RFD](./grida-xml.md). The RFD remains normative for value grammar,
 defaults, contradictions, and resolution behavior.
 
 | Attribute                  | Valid on                                                           | Inspiration          | Purpose                                                    |
@@ -193,7 +193,7 @@ and `normal`. The same attributes on `tspan` override the owning `text`
 default for that run; omission inherits from `text`, never a preceding run.
 `size` and a generic `style` attribute are not Grida XML spellings.
 
-The [rounded box geometry contract](./grida-xml#rounded-box-geometry) defines
+The [rounded box geometry contract](./grida-xml.md#rounded-box-geometry) defines
 the exact grammar. In registry form, `corner-radius` is one or exactly four
 non-negative finite horizontal radii, optionally followed by `/` and an
 independent one-or-four-value vertical list. Four-value order is top-left,
@@ -222,7 +222,7 @@ partial path ink.
 
 ## Proposed later-version module vocabulary
 
-The [module and component RFD](./grida-xml-modules) proposes this source-only
+The [module and component RFD](./grida-xml-modules.md) proposes this source-only
 vocabulary. These rows are not operative Draft 0 grammar.
 
 | Element or attribute    | Valid on                | Proposed contract                                                               |
@@ -245,14 +245,14 @@ export in the proposal.
 `use` intentionally does not accept width, height, paints, opacity, transforms,
 or arbitrary component properties in the static Draft 1 proposal. The boxed
 definition owns those values. The [component-parameter
-RFD](./grida-xml-component-parameters) proposes intentional scalar
+RFD](./grida-xml-component-parameters.md) proposes intentional scalar
 customization through `prop`/`arg` in Version 2; Version 1 continues to reject
 them.
 
 ### Proposed Version 2 scalar parameter vocabulary
 
 These rows summarize the [component-parameter
-RFD](./grida-xml-component-parameters). They remain non-operative design
+RFD](./grida-xml-component-parameters.md). They remain non-operative design
 syntax until accepted and implemented.
 
 | Element or form      | Valid on or in                                | Proposed contract                                                   |
@@ -275,7 +275,7 @@ into Version 2.
 
 ### Proposed Version 3 named slot vocabulary
 
-These rows summarize the [component-slot RFD](./grida-xml-component-slots).
+These rows summarize the [component-slot RFD](./grida-xml-component-slots.md).
 They remain non-operative design syntax until accepted as a stable language
 version.
 
@@ -296,7 +296,7 @@ unnamed/default slot, fallback, requiredness, or explicit-empty form. Versions
 ### Version 4 durable identity vocabulary
 
 These rows summarize the accepted [durable-addressing
-RFD](./grida-xml-addressing). Version 4 inherits the complete Version 3
+RFD](./grida-xml-addressing.md). Version 4 inherits the complete Version 3
 language but links only Version 4 component sources so every materialized
 authored node has a complete address.
 
@@ -360,7 +360,7 @@ renderer would silently omit. Keys with R impact may select logical resources
 but never perform loading; resource readiness and bytes belong to a separately
 revisioned evaluation environment. The exact addressing,
 applicability, nullability, validation, and static-equivalence laws are
-normative in [Grida XML durable addressing](./grida-xml-addressing).
+normative in [Grida XML durable addressing](./grida-xml-addressing.md).
 
 ## Scene-backed property placeholders
 
@@ -384,7 +384,7 @@ scene or component owner. The same Version 4 spelling on `use` identifies the
 caller-owned occurrence; the component export `id` remains a separate
 module-local symbol. Component roots use the distinguished root-member
 identity rather than a second attribute. The exact address and occurrence-path
-contract is defined by [Grida XML durable addressing](./grida-xml-addressing).
+contract is defined by [Grida XML durable addressing](./grida-xml-addressing.md).
 
 `transform` also cannot be admitted until its relationship to native
 `rotation`, `flip-x`, `flip-y`, and `lens ops` has one canonical answer.
@@ -465,7 +465,7 @@ XML children rather than become mini-languages inside attributes.
 
 These paint attributes are already normative in Draft 0. Their semantics are
 defined in the [paint channels
-section](./grida-xml#paint-channels-and-vocabulary).
+section](./grida-xml.md#paint-channels-and-vocabulary).
 
 | Attribute    | Valid on                                    | Purpose                                            |
 | ------------ | ------------------------------------------- | -------------------------------------------------- |
@@ -572,7 +572,7 @@ from the owning `text`, not from its preceding sibling. Draft 0 uses explicit
 kebab-case attributes and defines no `style` mini-language.
 
 This registry inventories authored XML properties only. The [Universal Shaped
-Text Layout](../feat-paragraph/text-layout) RFD owns their eventual shaping,
+Text Layout](../feat-paragraph/text-layout.md) RFD owns their eventual shaping,
 font resolution, line construction, UTF-8 mapping, metrics, and resolved
 bounds; adding a property here must project into that one resolution contract,
 not create a second measurement or rendering path.

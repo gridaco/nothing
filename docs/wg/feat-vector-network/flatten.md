@@ -17,7 +17,7 @@ destroying the originals. It is the destructive counterpart to
 [boolean](./boolean.md): where a boolean keeps its operands alive and
 recomputes the result, flatten resolves the geometry once, discards the
 inputs, and hands back a plain editable vector. The command is
-`Mod+E` ([keybindings](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/keybindings.md)).
+`Mod+E` ([keybindings](../../../crates/grida_editor/docs/keybindings.md)).
 
 ## The operation
 

@@ -35,15 +35,15 @@ rendering environment.
 Anything outside the profile is retained by a source-preserving processor but
 is never silently approximated or partially executed.
 
-[SVG Animation Profile 1](./animation-keyframes) is the cumulative extension
+[SVG Animation Profile 1](./animation-keyframes.md) is the cumulative extension
 for ordered keyframe values, exact key times, and per-segment cubic Bézier
-easing. [SVG Animation Profile 2](./animation-sandwiches) adds ordered
-replacement sandwiches. [SVG Animation Profile 3](./animation-composition)
+easing. [SVG Animation Profile 2](./animation-sandwiches.md) adds ordered
+replacement sandwiches. [SVG Animation Profile 3](./animation-composition.md)
 adds additive sandwich and repeat-iteration composition. [SVG Animation
-Profile 4](./animation-effects-and-transforms) adds live underlying-value
+Profile 4](./animation-effects-and-transforms.md) adds live underlying-value
 effects and typed transform-list animation. [SVG Animation Profile
-5](./animation-solid-fills) adds straight-sRGB solid-fill paint animation.
-[SVG Animation Profile 6](./animation-path-geometry) adds compatible path
+5](./animation-solid-fills.md) adds straight-sRGB solid-fill paint animation.
+[SVG Animation Profile 6](./animation-path-geometry.md) adds compatible path
 geometry interpolation and explicit discrete path replacement. This page
 remains the normative baseline inherited by all six extensions.
 
@@ -330,14 +330,14 @@ Profile 0 can support a compatibility claim.
 
 ## Deferred families
 
-[Profile 1](./animation-keyframes) adds keyframe lists and linear or spline
-easing without changing this baseline. [Profile 2](./animation-sandwiches)
-adds replacement sandwiches, and [Profile 3](./animation-composition) adds
+[Profile 1](./animation-keyframes.md) adds keyframe lists and linear or spline
+easing without changing this baseline. [Profile 2](./animation-sandwiches.md)
+adds replacement sandwiches, and [Profile 3](./animation-composition.md) adds
 addition and accumulation. [Profile
-4](./animation-effects-and-transforms) adds scalar lone-`to` effects and a
+4](./animation-effects-and-transforms.md) adds scalar lone-`to` effects and a
 bounded `translate`, `scale`, and `rotate` transform-animation family.
-[Profile 5](./animation-solid-fills) adds a bounded solid-color `fill` family.
-[Profile 6](./animation-path-geometry) admits discrete calculation only for
+[Profile 5](./animation-solid-fills.md) adds a bounded solid-color `fill` family.
+[Profile 6](./animation-path-geometry.md) admits discrete calculation only for
 complete path geometry. General discrete calculation, `set`, paced
 interpolation, non-solid paints, more SVG elements and properties, wider
 transform syntax, motion paths, indefinite timing, event and synchronization

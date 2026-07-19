@@ -23,7 +23,7 @@ format: md
 **Status:** Accepted source profile.
 
 SVG Animation Profile 5 extends [SVG Animation Profile
-4](./animation-effects-and-transforms) with solid-color animation of a
+4](./animation-effects-and-transforms.md) with solid-color animation of a
 `<rect>` element's `fill` property. It is cumulative: every source accepted by
 Profile 4 is accepted by Profile 5 and produces the same sampled values,
 including the same binary32 bits and transform-list topology.

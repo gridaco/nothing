@@ -2,7 +2,7 @@
 
 Shared behavioral fixtures for the text-editor engine. Consumed by **both**
 [`crates/grida/src/text_edit/`](../../crates/grida/src/text_edit/) (Rust) and
-[`packages/grida-text-editor/`](../../packages/grida-text-editor/) (TS) so the
+[`packages/grida-text-editor/`](https://github.com/gridaco/grida/tree/main/packages/grida-text-editor) (TS) so the
 two implementations cannot drift apart silently.
 
 ## Why this exists
@@ -145,14 +145,14 @@ Out of scope for the current schema, tracked elsewhere:
    _Procedure for new fixtures:_
    1. Cite the WG-doc section the expectation comes from in the case's
       `description` field (or patch the docs in the same change per rule 2).
-   2. Run the fixture against **both** harnesses before opening the PR —
-      `pnpm turbo test --filter @grida/text-editor` and
-      `cargo test -p grida text_edit::shared_fixtures`. If either fails,
-      the fix lives in code or in the doc, not in the fixture.
+   2. Run the fixture against **both** harnesses before opening the PR:
+      `pnpm --filter @grida/text-editor test` in a `gridaco/grida` checkout,
+      and `cargo test -p grida text_edit::shared_fixtures` here. If either
+      fails, the fix lives in code or in the doc, not in the fixture.
 
 ## Harnesses
 
-- TS: [`packages/grida-text-editor/__tests__/shared-fixtures.test.ts`](../../packages/grida-text-editor/__tests__/shared-fixtures.test.ts)
+- TS: [`packages/grida-text-editor/__tests__/shared-fixtures.test.ts`](https://github.com/gridaco/grida/blob/main/packages/grida-text-editor/__tests__/shared-fixtures.test.ts)
   uses `it.each` so each case is a named row.
 - Rust: [`crates/grida/src/text_edit/shared_fixtures_tests.rs`](../../crates/grida/src/text_edit/shared_fixtures_tests.rs)
   loops in a single `#[test]` with the failing case id in the `assert_eq!`

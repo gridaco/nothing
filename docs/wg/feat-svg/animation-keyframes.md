@@ -21,7 +21,7 @@ format: md
 
 **Status:** Accepted source profile.
 
-SVG Animation Profile 1 extends [SVG Animation Profile 0](./animation) with
+SVG Animation Profile 1 extends [SVG Animation Profile 0](./animation.md) with
 ordered keyframe values, authored key times, and cubic Bézier easing. It is a
 cumulative profile: every source accepted by Profile 0 is accepted by Profile
 1 and must produce the same sampled values, including the same binary32 bits.
@@ -41,7 +41,7 @@ turn use the [SMIL animation-function
 model](https://www.w3.org/TR/2001/REC-smil-animation-20010904/#AnimFuncValues).
 Profile 1 deliberately narrows that model where this document says so.
 
-[SVG Animation Profile 2](./animation-sandwiches) is the cumulative extension
+[SVG Animation Profile 2](./animation-sandwiches.md) is the cumulative extension
 for several ordered replacement effects on one target/property pair.
 
 ## Scope of the extension

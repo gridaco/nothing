@@ -31,13 +31,13 @@ rendering. Canonical source writers and complete-library validation remain
 unimplemented. None of the parameter vocabulary introduced by this RFD is
 valid Version 0 or Version 1 syntax.
 
-**Companion specifications:** [Grida XML](./grida-xml) owns ordinary authored
+**Companion specifications:** [Grida XML](./grida-xml.md) owns ordinary authored
 scene values. [Grida XML modules and static component
-reuse](./grida-xml-modules) owns source units, boxed component definitions,
+reuse](./grida-xml-modules.md) owns source units, boxed component definitions,
 `use`, linking, materialization, and component provenance. This RFD specifies
 only the parameterization delta. [Grida XML component
-slots](./grida-xml-component-slots) separately owns the Version 3 named render
-projection delta. [Grida XML durable addressing](./grida-xml-addressing) owns
+slots](./grida-xml-component-slots.md) separately owns the Version 3 named render
+projection delta. [Grida XML durable addressing](./grida-xml-addressing.md) owns
 the later Version 4 member/use identity delta.
 
 ## Decision summary
@@ -182,7 +182,7 @@ This proposal does not define:
 - render-valued slots, children, or fallback subtrees.
 
 The named direct-projection subset now has a focused Version 3 proposal in
-[Grida XML component slots](./grida-xml-component-slots). It does not alter
+[Grida XML component slots](./grida-xml-component-slots.md). It does not alter
 this Version 2 boundary. Fallback subtrees and other absence policies remain
 deferred.
 
@@ -728,7 +728,7 @@ module contract; it does not pretend a runtime node handle is durable authored
 identity.
 
 Version 4 subsequently adds explicit render-member and use IDs through the
-[durable-addressing RFD](./grida-xml-addressing). It does not reinterpret a
+[durable-addressing RFD](./grida-xml-addressing.md). It does not reinterpret a
 Version 2 binding, source span, or materialized occurrence as identity.
 
 ## Cycles and processing limits
@@ -825,7 +825,7 @@ use chain. It must not be reported only against a transient materialized node.
 
 ## Version 3 named slot projection
 
-The [Grida XML component slots](./grida-xml-component-slots) RFD proposes the
+The [Grida XML component slots](./grida-xml-component-slots.md) RFD proposes the
 next exact language delta. Version 3 declares empty named insertion markers as
 `<slot name="…"/>` and supplies direct render roots under `use` with the
 contextual `slot="…"` relationship. Matching roots splice directly at the

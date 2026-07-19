@@ -14,8 +14,8 @@ You are editing Grida’s **canonical on-disk contract** (the `.grida` file form
 
 The `grida.fbs` header calls out the main alignment targets:
 
-- **Rust runtime model**: `crates/grida/src/node/schema.rs`
-- **TS document model**: `packages/grida-canvas-schema/grida.ts`
+- **Rust runtime model**: `crates/grida/src/node/schema.rs` (this repo)
+- **TS document model**: [`packages/grida-canvas-schema/grida.ts`](https://github.com/gridaco/grida/blob/main/packages/grida-canvas-schema/grida.ts) (the product repo — coordinate the `SCHEMA_VERSION` lockstep there)
 
 If you change the schema shape, **assume you must update both** the Rust and TS sides (and any serializers/deserializers that map between runtime models and FlatBuffers).
 
@@ -84,8 +84,11 @@ The short version you must internalize:
 
 Schema changes require round-trip tests in both Rust and TS. New union members must be **appended** (never inserted mid-list).
 
-- **Rust:** `crates/grida/tests/fbs_roundtrip.rs` — `cargo test -p grida --test fbs_roundtrip`
-- **TS:** `packages/grida-canvas-io/__tests__/format-roundtrip.test.ts` — `pnpm turbo test --filter='@grida/io'`
+- **Rust (this repo):** `crates/grida/tests/fbs_roundtrip.rs` — `cargo test -p grida --test fbs_roundtrip`
+- **TS (the product repo):** the reader tests live in gridaco/grida
+  ([`packages/grida-canvas-io`](https://github.com/gridaco/grida/tree/main/packages/grida-canvas-io));
+  they run against its frozen TS bindings, which follow schema changes only by a
+  deliberate re-snapshot there.
 
 ## Review checklist (before you consider the work “done”)
 
@@ -95,4 +98,4 @@ Schema changes require round-trip tests in both Rust and TS. New union members m
   - Evolution: older files still load, unknown data is ignored safely.
   - Breaking: old files either migrate or fail loudly (no silent misreads).
 - **Schema validity**: `grida.fbs` compiles with `flatc` (see `format/README.md` for the repo’s preferred workflow).
-- **No generated artifacts**: do not commit generated FlatBuffers bindings; this repo intentionally keeps generation ad-hoc/CI-driven for now (see `format/README.md`).
+- **Generated artifacts committed and fresh**: the Rust bindings (`crates/grida/src/io/generated/grida.rs`) ARE committed — regenerate them with the pinned flatc and include them in the PR; CI rejects a schema change whose committed bindings are stale (see `format/README.md`).

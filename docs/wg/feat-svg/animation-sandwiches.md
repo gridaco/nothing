@@ -22,7 +22,7 @@ format: md
 **Status:** Accepted source profile.
 
 SVG Animation Profile 2 extends [SVG Animation Profile
-1](./animation-keyframes) by allowing several admitted `<animate>` elements to
+1](./animation-keyframes.md) by allowing several admitted `<animate>` elements to
 target the same resolved element and property. It is cumulative: every source
 accepted by Profile 1 is accepted by Profile 2 and produces the same sampled
 values, including the same binary32 bits.
@@ -34,7 +34,7 @@ force. In particular, every admitted effect is still a complete replacement:
 `additive` may only be absent or `replace`, and `accumulate` may only be absent
 or `none`.
 
-[SVG Animation Profile 3](./animation-composition) keeps this priority model
+[SVG Animation Profile 3](./animation-composition.md) keeps this priority model
 and adds typed addition and repeat-iteration accumulation.
 
 The model follows the [SMIL animation sandwich

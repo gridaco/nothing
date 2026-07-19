@@ -28,8 +28,8 @@ position is reserved by this decision.
 
 Actual SVG source is the first authored animation frontend. Its cumulative
 contracts run from the [SVG Animation Profile
-0](../feat-svg/animation) baseline through the current cumulative [Profile
-6](../feat-svg/animation-path-geometry). SVG source is not Grida XML, and this
+0](../feat-svg/animation.md) baseline through the current cumulative [Profile
+6](../feat-svg/animation-path-geometry.md). SVG source is not Grida XML, and this
 decision does not make `<animate>` or any other SVG animation element valid
 inside `.grida.xml`.
 
@@ -63,7 +63,7 @@ Animation syntax commits the language to more than values changing over time:
 - layout, paint, query, damage, and resource consequences; and
 - static fallback, seeking, export, and trust policy.
 
-The [durable-addressing RFD](./grida-xml-addressing) already supplies stable
+The [durable-addressing RFD](./grida-xml-addressing.md) already supplies stable
 owner/member identities, typed property targets, and the immutable sparse
 effective-value boundary. It deliberately does not decide timing,
 interpolation, or composition.
@@ -131,12 +131,12 @@ second canonical form.
 
 ## Related contracts
 
-- [SVG Animation Profile 0](../feat-svg/animation) — accepted first authored
+- [SVG Animation Profile 0](../feat-svg/animation.md) — accepted first authored
   frontend baseline.
-- [SVG Animation Profile 6](../feat-svg/animation-path-geometry) — current
+- [SVG Animation Profile 6](../feat-svg/animation-path-geometry.md) — current
   cumulative source contract.
-- [Grida XML durable addressing](./grida-xml-addressing) — source identities,
+- [Grida XML durable addressing](./grida-xml-addressing.md) — source identities,
   typed property targets, and effective values.
-- [Grida XML](./grida-xml) — static authored-language contract.
-- [Chromium SVG animation research](../research/chromium/svg/animation-and-smil)
+- [Grida XML](./grida-xml.md) — static authored-language contract.
+- [Chromium SVG animation research](../research/chromium/svg/animation-and-smil.md)
   — browser implementation precedent, not Grida semantics.

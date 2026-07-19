@@ -13,14 +13,13 @@
 # to what `flatc` would produce. If it differs, the check fails with a clear
 # error message telling the contributor how to fix it.
 #
-# When does it run
-# ----------------
-# Only on PRs / pushes that touch the schema, the generated output, the codegen
-# tooling, or the TS format package (which shares the same schema source).
+# (Recreated at the engine migration: the TS-bindings half of this check stayed
+# in gridaco/grida as a frozen tombstone with its generator deleted — the Rust
+# side here is the schema's only living consumer.)
 #
 # How to fix a failure
 # --------------------
-#   pnpm --filter @crates/grida generate
+#   python3 bin/activate-flatc -- --rust -o crates/grida/src/io/generated format/grida.fbs && mv crates/grida/src/io/generated/grida_generated.rs crates/grida/src/io/generated/grida.rs
 #   git add crates/grida/src/io/generated/grida.rs
 #   git commit
 # -----------------------------------------------------------------
@@ -35,7 +34,6 @@ on:
     paths:
       - "format/grida.fbs"
       - "crates/grida/src/io/generated/**"
-      - "packages/grida-format/src/**"
       - "bin/activate-flatc"
 
 jobs:
@@ -57,6 +55,6 @@ jobs:
       - name: Check for uncommitted changes
         run: |
           if ! git diff --exit-code crates/grida/src/io/generated/grida.rs; then
-            echo "::error::Generated Rust FlatBuffers bindings are stale. Run 'pnpm --filter @crates/grida generate' and commit the result."
+            echo "::error::Generated Rust FlatBuffers bindings are stale. Regenerate with bin/activate-flatc (see the workflow header) and commit the result."
             exit 1
           fi

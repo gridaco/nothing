@@ -15,7 +15,7 @@ command — a cross-parent selection produces **one wrapper per
 partition**, never a single wrapper that re-parents across the tree.
 Ungroup is its inverse: dissolve one wrapper and promote its children.
 
-The keys are in the [keybindings sheet](https://github.com/gridaco/grida/blob/main/crates/grida_editor/docs/keybindings.md):
+The keys are in the [keybindings sheet](../../../crates/grida_editor/docs/keybindings.md):
 `Mod+G` group, `Mod+Alt+G` group with container, `Mod+Shift+G`
 ungroup.
 
