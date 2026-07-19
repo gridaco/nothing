@@ -15,9 +15,14 @@ independently of any one implementation.
 
 ## Programs
 
-- [The Consolidation Program](./consolidation.md) — the active
+- [The Consolidation Program](./consolidation/index.md) — the active
   post-landing program consolidating the legacy engine and `n0` into one
-  engine: phases, gates, and the owner decision registry.
+  engine: the destination ([goal](./consolidation/goal.md),
+  [topology](./consolidation/topology.md)), the
+  [method](./consolidation/method.md), the
+  [glossary](./consolidation/glossary.md), and the ratified
+  [charter](./consolidation/charter.md) (phases, gates, decision
+  registry).
 
 ## Areas
 
