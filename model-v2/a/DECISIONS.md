@@ -288,7 +288,9 @@ lab-tested); the typed `set_width(−50)` stays a wall
 (`NegativeExtent`); flip is layout-invisible for boxed kinds by
 construction. 11 tests green ([`lab/tests/flip.rs`](./lab/tests/flip.rs));
 three-policy interactive demo: [`edge-cases/`](./edge-cases) scene
-"resize across zero".
+"resize across zero". (Demo provenance: only the flip arm is real
+`resize_drag` output; the wall and slide arms are analytic stand-ins
+built at their expected geometry.)
 
 | option                                                            | notes                                                                                                                                                                 |
 | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

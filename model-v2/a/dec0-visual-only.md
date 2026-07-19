@@ -34,7 +34,11 @@ meanings, both spec'd — never one value doing both jobs.
   AND free-context hug) measure children's unrotated boxes at their
   pins. A rotated child's ink may escape its hug parent; that is the
   accepted CSS wart, and the escape is visible in the read tier
-  (`world_aabb` ⊃ box). (`v3_*`)
+  (`world_aabb` ⊃ box). (`v3_*`) Measured by the fork battery
+  ([`dec0-fork/`](./dec0-fork)) as `escape` = the greatest distance any
+  sibling's world-AABB runs past the container's **oriented** painted
+  rect (0 = fully contained); `overlap` = the greatest pairwise
+  world-AABB intersection area among siblings, in px².
 - **V-4 · THE GROUP-BOX FORK, decided: derived boxes are sizing-tier.**
   A group/lens box = union of members' **unrotated** boxes at their
   pins (translation only — member rotation AND flips ignored). Chosen

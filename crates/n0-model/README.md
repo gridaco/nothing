@@ -8,13 +8,14 @@ Consumed as a library by [`n0`](../n0) (the engine) and
 [`n0_dev`](../n0_dev) (the dev shell); formerly the model-v2 proving lab.
 
 ```sh
-cargo test                      # conformance + format-contract suites
-cargo run --bin e1              # E1 sweep → ../e1-rotation-in-flow/ artifacts
-cargo run --bin e3 -- truth     # E3 ground truth lines
-cargo run --bin e3 -- score f   # score a prediction file
-cargo run --release --bin e4    # E4 resolver benchmarks
-cargo run --release --bin e5scan -- <dirs>   # E5 SVG corpus scan
+cargo test -p n0-model          # conformance + format-contract suites
+cargo run -p n0-model --release --bin e4    # E4 resolver benchmarks
+cargo run -p n0-model --release --bin e5scan -- <dirs>   # E5 SVG corpus scan
 ```
+
+The one-shot workbench harnesses (e1, e3, edge, fork) were retired at
+promotion; their frozen outputs and verdicts live in the `model-v2/a/`
+archive.
 
 Map:
 

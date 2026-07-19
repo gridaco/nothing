@@ -28,7 +28,9 @@ file"). Is the anchor model actually mentally simulable from a spec alone?
 as a small-model control), given ONLY the grammar text and the six
 documents inline. No tools, no resolver, no prior context from this
 workbench. Output: `file,node,box|aabb,x,y,w,h` lines for every named
-node (22 lines).
+node (22 lines). Truth emits a world-AABB line only for rotated,
+**non-group** nodes; groups report a derived box but no AABB
+(unexercised here — no probe rotates a group).
 
 **Results (2026-07-07).**
 
