@@ -213,7 +213,7 @@ jobs:
     needs: scope
     if: needs.scope.outputs.engine == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       FORCE_SKIA_BINARIES_DOWNLOAD: "1"
       N0_GATE_HOST_ID: github-actions-ubuntu-24.04-x86_64
@@ -271,21 +271,22 @@ jobs:
           cache-workspace-crates: true
           cache-on-failure: true
 
-      - name: Build the shot host
-        run: cargo build --locked --release -p n0_dev
+      - name: Build the shot host and gate together
+        run: >-
+          cargo build --locked --release
+          -p n0_dev -p n0
+          --bin n0_dev --bin gate
 
       - name: Run the n0 gate
         id: gate
         continue-on-error: true
-        run: cargo run --locked --release -p n0 --bin gate
+        run: target/release/gate
 
       - name: Produce a review-only baseline candidate
         if: steps.gate.outcome == 'failure'
         id: candidate
         continue-on-error: true
-        run: >-
-          cargo run --locked --release -p n0 --bin gate --
-          --bless-shots --bless-bench
+        run: target/release/gate --bless-shots --bless-bench
 
       - name: Upload the review-only baseline candidate
         if: >-
