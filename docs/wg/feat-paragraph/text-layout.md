@@ -498,7 +498,7 @@ state:
 There is no universal default font face, font size, or fallback list in this
 RFD. The authoring language or enclosing document model supplies a complete
 default style, and the resolution environment supplies exact font resources.
-For example, Grida XML owns its own authored typography defaults; this RFD
+For example, n0 XML owns its own authored typography defaults; this RFD
 owns what happens after those defaults become complete inputs.
 
 ## Conformance
@@ -538,7 +538,7 @@ A conforming geometry-sensitive consumer:
 This RFD owns shaped text resolution. An authored format owns its source
 syntax, defaulting rules, and mapping into the inputs above.
 
-[Grida XML](../format/grida-xml.md) stores Unicode content, flat attributed
+[n0 XML](../format/n0-xml.md) stores Unicode content, flat attributed
 `tspan` runs, and text-box intent. Its format defaults and supported or future
 paragraph attributes project into paragraph intent. It does not serialize
 glyph identifiers, fallback choices, line breaks chosen by the oracle,
@@ -547,13 +547,13 @@ baselines, caret positions, or measured bounds. Those are derived output.
 The relationship is one-way:
 
 ```text
-authored Grida XML text
+authored n0 XML text
     -> attributed source + paragraph intent + constraints
     -> universal shaped text resolution
     -> immutable resolved text layout
 ```
 
-Writing a resolved artifact back into `.grida.xml` as if it were source intent
+Writing a resolved artifact back into `.n0.xml` as if it were source intent
 would destroy responsiveness and bind the document to one font environment.
 A separate inspection or cache representation may persist the artifact only
 if it preserves its resolution identity and never claims to be canonical
@@ -561,7 +561,7 @@ authored source.
 
 ## Non-goals
 
-- Defining Grida XML's `text` or `tspan` syntax. The XML RFD owns that grammar.
+- Defining n0 XML's `text` or `tspan` syntax. The XML RFD owns that grammar.
 - Changing the scene paint model or introducing a text-specific paint model.
 - Defining font discovery, distribution, networking, licensing, or packaging.
   The resolution environment identifies fonts after those concerns resolve.

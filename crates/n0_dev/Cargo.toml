@@ -1,0 +1,42 @@
+[package]
+name = "n0_dev"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "The feel spike: a native Skia canvas driven by the n0 model/engine (dev-only harness, not published)."
+
+# Dev-only proving harness (publish = false) — the winit/egui shell that
+# drives n0. Not shipped; kept for feel/latency spikes.
+
+[dependencies]
+n0-model = { path = "../n0-model" }
+# The engine this dev shell is hosted onto.
+n0 = { path = "../n0" }
+
+# Shell deps: versions matched to crates/grida_dev / crates/grida_editor
+# (the prior-art winit hosts) so skia-safe / glow types unify across the
+# workspace.
+winit = "0.30.0"
+glutin = "0.32.0"
+glutin-winit = "0.5.0"
+raw-window-handle = "0.6.0"
+gl = "0.14.0"
+skia-safe = { version = "0.93.1", features = [
+  "gpu",
+  "gl",
+  "textlayout",
+  "pdf",
+  "svg",
+  "webp",
+] }
+
+# egui overlay for the dev panels (IR / writes / reports) — the house UI
+# dialect (grida_editor shell), same versions so glow types unify.
+egui = "0.35"
+egui-winit = { version = "0.35", default-features = false }
+egui_glow = "0.35"
+glow = "0.17"
+
+# Workspace-lints opt-in deferred: `unreachable_pub = warn` flags 46
+# internal `pub` items in this binary crate. Demoting them to
+# pub(crate) is follow-up hygiene, not landing scope.

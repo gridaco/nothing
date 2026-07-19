@@ -15,9 +15,11 @@ The graphics engine lives here. It migrated from the
 (2025→) carried over; Grida remains the service/editor monorepo and consumes
 the engine only through published artifacts.
 
-The `n0` crate name stays reserved: the migrated crates keep their working
-names, and the nothing-local topology (what becomes `n0`) is a separate,
-deliberate task.
+Two engines live side by side while the topology converges: the migrated
+production engine (`crates/grida`, shipping as `@grida/canvas-wasm`) and
+the v2 `n0` engine family (`crates/n0`), promoted from the
+`model-v2-anchor` research branch. The v2 model program is tracked in
+[gridaco/nothing#9](https://github.com/gridaco/nothing/issues/9).
 
 ## Workspace
 
@@ -26,7 +28,9 @@ deliberate task.
 - [`crates/grida-canvas-wasm`](./crates/grida-canvas-wasm) — WASM bindings (`@grida/canvas-wasm`)
 - [`crates/math2`](./crates/math2) · [`crates/csscascade`](./crates/csscascade) · [`crates/fonts`](./crates/fonts) — foundations
 - [`crates/grida_dev`](./crates/grida_dev) · [`crates/grida_wpt`](./crates/grida_wpt) — dev tools, benchmarks, reftests
-- [`crates/n0`](./crates/n0) — the reserved public `n0` crate
+- [`crates/n0`](./crates/n0) — the `n0` engine (v2): resolve → drawlist → paint
+- [`crates/n0-model`](./crates/n0-model) · [`crates/n0_dev`](./crates/n0_dev) — the skia-free `anchor` model · the v2 dev shell
+- [`archive/model-v2/`](./model-v2) — the frozen v2 workbench archive (decision record)
 - [`format/`](./format) — the FlatBuffers schema (source of truth)
 - [`docs/wg/`](./docs/wg) — the engine's normative working-group specs
 

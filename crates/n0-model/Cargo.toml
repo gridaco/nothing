@@ -1,0 +1,25 @@
+[package]
+name = "n0-model"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "The skia-free `anchor` document model: node records, ops, resolve, pick, measure, n0 XML ingestion, and the text IR."
+
+[features]
+# `serde` (default OFF) makes `Op` / `ResizeDrag` / `Axis` serializable — the
+# op-log wire for engine replay. Kept optional so n0 (the engine) opts in
+# explicitly; other consumers of the model stay serde-free.
+serde = ["dep:serde"]
+
+[dependencies]
+taffy = "0.9.2"
+quick-xml = "0.37"
+kurbo = "0.13"
+num-bigint = "0.4"
+num-rational = "0.4"
+num-traits = "0.2"
+serde = { version = "1.0", optional = true, features = ["derive"] }
+svgtypes = "0.16"
+
+[lints]
+workspace = true
