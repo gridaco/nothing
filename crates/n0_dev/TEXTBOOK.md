@@ -3,13 +3,13 @@
 2026-07-07. The spike's second deliverable: the reference the
 `crates/grida` / `crates/grida_editor` migration reads. Every chapter
 names the concern, where it lives here, the model law it exercises, and
-the lab test that guards the claim. The lab (`../lab`) is the single
+the lab test that guards the claim. The lab (`../n0-model`) is the single
 source of truth; this app consumes it as a library — exactly the
 relationship the migration will have with the engine crate.
 
 > **DEC-0 second lock (same day):** the default flipped to
 > **visual-only** rotation (owner framing; normative rules incl. the
-> V-4 group-box fork: [`../dec0-visual-only.md`](../dec0-visual-only.md)).
+> V-4 group-box fork: [`../../model-v2/a/dec0-visual-only.md`](../../model-v2/a/dec0-visual-only.md)).
 > Chapters below hold unchanged except: HUD chrome for derived kinds
 > reads INK bounds (`world_aabb`), and the rotate×layout policy surface
 > (E-A4/E-A7/E-A11/E-A12, DEC-1/2/3) is retired. Both arms stay

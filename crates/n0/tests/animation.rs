@@ -1,16 +1,16 @@
 //! Explicit Base/Sample frame policy through resolve, query, damage, and pixels.
 
-use anchor_engine::cache::SceneCache;
-use anchor_engine::damage::diff_frame;
-use anchor_engine::frame::{self, FrameRequest, FrameRequestError};
-use anchor_engine::paint::{read_pixels, PaintCtx};
-use anchor_engine::playback_clock::{HostTime, PlaybackClock, PlaybackRange, PlaybackRate};
-use anchor_engine::replay::resolved_bits_eq;
-use anchor_lab::animation::{AnimationProgram, SampleTime};
-use anchor_lab::math::{Affine, RectF};
-use anchor_lab::model::{Document, NodeId};
-use anchor_lab::resolve::ResolveOptions;
-use anchor_lab::svg_animation::{SourceSnapshot, SvgAnimationSource};
+use n0::cache::SceneCache;
+use n0::damage::diff_frame;
+use n0::frame::{self, FrameRequest, FrameRequestError};
+use n0::paint::{read_pixels, PaintCtx};
+use n0::playback_clock::{HostTime, PlaybackClock, PlaybackRange, PlaybackRate};
+use n0::replay::resolved_bits_eq;
+use n0_model::animation::{AnimationProgram, SampleTime};
+use n0_model::math::{Affine, RectF};
+use n0_model::model::{Document, NodeId};
+use n0_model::resolve::ResolveOptions;
+use n0_model::svg_animation::{SourceSnapshot, SvgAnimationSource};
 use skia_safe::{surfaces, Color};
 
 const W: i32 = 120;
@@ -34,14 +34,14 @@ fn named(document: &Document, name: &str) -> NodeId {
         .expect("named SVG rectangle exists")
 }
 
-fn compile_profile3(source: &str) -> anchor_lab::svg_animation::CompiledSvgAnimation {
+fn compile_profile3(source: &str) -> n0_model::svg_animation::CompiledSvgAnimation {
     SvgAnimationSource::parse(SourceSnapshot::new("frame-profile3-test.svg", source))
         .unwrap()
         .into_compiled_profile3()
         .unwrap()
 }
 
-fn compile_profile4(source: &str) -> anchor_lab::svg_animation::CompiledSvgAnimation {
+fn compile_profile4(source: &str) -> n0_model::svg_animation::CompiledSvgAnimation {
     SvgAnimationSource::parse(SourceSnapshot::new("frame-profile4-test.svg", source))
         .unwrap()
         .into_compiled_profile4()
@@ -792,7 +792,7 @@ fn sample_failure_preserves_the_warm_cache_and_destination() {
         .unwrap_err();
     assert!(matches!(
         error,
-        anchor_engine::cache::SceneCacheRequestError::Sample(_)
+        n0::cache::SceneCacheRequestError::Sample(_)
     ));
     assert_eq!(before_failure, read_pixels(&mut surface, W, H));
 

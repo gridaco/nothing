@@ -3,8 +3,8 @@
 mod common;
 use common::*;
 
-use anchor_lab::model::*;
-use anchor_lab::ops::{self, OpError};
+use n0_model::model::*;
+use n0_model::ops::{self, OpError};
 
 fn free_shape_doc() -> (Document, NodeId) {
     let mut b = DocBuilder::new();
@@ -176,5 +176,5 @@ fn concurrency_atoms_disjoint_fields() {
     assert!(rm
         .reports
         .iter()
-        .all(|r| !matches!(r, anchor_lab::resolve::Report::ErrorByRule { .. })));
+        .all(|r| !matches!(r, n0_model::resolve::Report::ErrorByRule { .. })));
 }

@@ -1,4 +1,4 @@
-use anchor_lab::animation::{
+use n0_model::animation::{
     AnimationProgram, AnimationValueError, AnimationValueOperation, CompositeOperation,
     CubicBezier, CubicBezierError, CubicControl, Easing, Endpoint, FillMode,
     IterationCompositeOperation, KeyframeOffset, KeyframeOffsetError, ProgramError, SampleError,
@@ -6,10 +6,10 @@ use anchor_lab::animation::{
     Timing, TimingError, Track, TrackEffectKind, TrackError, TrackKind, TransformCurve,
     TransformCurveError, TransformKeyframe, TransformSegment, TransformValue, UnderlyingValueShape,
 };
-use anchor_lab::model::{
+use n0_model::model::{
     AxisBinding, DocBuilder, Document, Header, LensOp, Payload, ShapeDesc, SizeIntent,
 };
-use anchor_lab::properties::{
+use n0_model::properties::{
     PropertyError, PropertyKey, PropertyTarget, PropertyValue, PropertyValues,
 };
 
@@ -365,9 +365,9 @@ fn transform_constant_constructor_preserves_curve_validation() {
             )],
         ),
         Err(TransformCurveError::MixedKinds {
-            expected: anchor_lab::animation::TransformKind::Translate,
+            expected: n0_model::animation::TransformKind::Translate,
             keyframe_index: 1,
-            actual: anchor_lab::animation::TransformKind::Scale,
+            actual: n0_model::animation::TransformKind::Scale,
         })
     ));
 

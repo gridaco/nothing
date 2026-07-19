@@ -1,8 +1,8 @@
 //! Draft 0 stroke-channel contract: repeated geometry applications, target-
 //! specific attributes, ordered paints, canonical defaults, and strict errors.
 
-use anchor_lab::grida_xml::{self, PrintError};
-use anchor_lab::model::*;
+use n0_model::grida_xml::{self, PrintError};
+use n0_model::model::*;
 
 fn named(doc: &Document, name: &str) -> NodeId {
     (0..doc.capacity() as NodeId)

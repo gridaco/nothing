@@ -2,17 +2,17 @@
 
 use std::sync::Arc;
 
-use anchor_lab::animation::{AnimationProgram, SampleTime, Track, TrackEffectKind, TrackKind};
-use anchor_lab::path::{self, FillRule, PathCommand, PathGeometry};
-use anchor_lab::properties::{PropertyKey, PropertyTarget, PropertyValue};
-use anchor_lab::svg_animation::{SourceSnapshot, SvgAnimationSource, PROFILE6_COMPILER_ID};
+use n0_model::animation::{AnimationProgram, SampleTime, Track, TrackEffectKind, TrackKind};
+use n0_model::path::{self, FillRule, PathCommand, PathGeometry};
+use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue};
+use n0_model::svg_animation::{SourceSnapshot, SvgAnimationSource, PROFILE6_COMPILER_ID};
 
 const PROFILE5_BOUNDARIES: &str =
-    include_str!("../../../engine/rig/fixtures/svg-animation-profile5-solid-fill-boundaries.svg");
+    include_str!("../../n0/rig/fixtures/svg-animation-profile5-solid-fill-boundaries.svg");
 const PATH_BOUNDARIES: &str =
-    include_str!("../../../engine/rig/fixtures/svg-animation-profile6-path-boundaries.svg");
+    include_str!("../../n0/rig/fixtures/svg-animation-profile6-path-boundaries.svg");
 const PROFILE6_SHOWCASE: &str =
-    include_str!("../../../engine/rig/examples/svg-animation-profile6-path-morph-showcase.svg");
+    include_str!("../../n0/rig/examples/svg-animation-profile6-path-morph-showcase.svg");
 
 fn materialize(source: &str) -> SvgAnimationSource {
     SvgAnimationSource::parse(SourceSnapshot::new("profile6-test.svg", source)).unwrap()
@@ -260,8 +260,8 @@ fn static_path_uses_the_existing_unit_reference_artifact_and_older_profiles_gate
     let path = source
         .document()
         .get(source.document().get(source.document().root).children[0]);
-    let anchor_lab::model::Payload::Shape {
-        desc: anchor_lab::model::ShapeDesc::Path(path),
+    let n0_model::model::Payload::Shape {
+        desc: n0_model::model::ShapeDesc::Path(path),
     } = &path.payload
     else {
         panic!("static SVG path materializes as the existing path payload")

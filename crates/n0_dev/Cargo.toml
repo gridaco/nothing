@@ -1,23 +1,21 @@
 [package]
-name = "anchor-spike"
+name = "n0_dev"
 version = "0.0.0"
 edition = "2021"
 publish = false
-description = "E10 — the feel spike: a native Skia canvas driven by the anchor model (model-v2). Consumes anchor-lab as a library, the same relationship the phase-4 migration will have."
+description = "The feel spike: a native Skia canvas driven by the n0 model/engine (dev-only harness, not published)."
 
-# Standalone on purpose (model-v2 containment) — not a member of the repo
-# workspace. It remains a tracked proving harness; see ../a/README.md row E10.
-[workspace]
+# Dev-only proving harness (publish = false) — the winit/egui shell that
+# drives n0. Not shipped; kept for feel/latency spikes.
 
 [dependencies]
-anchor-lab = { path = "../lab" }
-# The engine this spike is being re-hosted onto (ENGINE.md). Same skia
-# version/features, so the shared target dir stays a single build.
-anchor-engine = { path = "../../engine" }
+n0-model = { path = "../n0-model" }
+# The engine this dev shell is hosted onto.
+n0 = { path = "../n0" }
 
 # Shell deps: versions matched to crates/grida_dev / crates/grida_editor
-# (the prior-art winit hosts) so the shared target dir can reuse the
-# already-compiled artifacts — especially skia-safe.
+# (the prior-art winit hosts) so skia-safe / glow types unify across the
+# workspace.
 winit = "0.30.0"
 glutin = "0.32.0"
 glutin-winit = "0.5.0"
@@ -38,6 +36,3 @@ egui = "0.35"
 egui-winit = { version = "0.35", default-features = false }
 egui_glow = "0.35"
 glow = "0.17"
-
-[profile.release]
-debug = true

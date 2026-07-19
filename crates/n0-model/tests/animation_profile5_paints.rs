@@ -1,16 +1,16 @@
 //! Format-neutral Profile 5 solid-fill effect conformance.
 
-use anchor_lab::animation::{
+use n0_model::animation::{
     AnimationProgram, AnimationValueError, ColorCurve, ColorCurveError, ColorKeyframe,
     ColorSegment, CompositeOperation, Easing, FillMode, IterationCompositeOperation,
     KeyframeOffset, ProgramError, SampleError, SampleTime, Timing, Track, TrackEffectKind,
     TrackError, TrackKind, UnderlyingValueShape, MAX_SOLID_FILL_EFFECTS_PER_TARGET,
 };
-use anchor_lab::model::{
+use n0_model::model::{
     BlendMode, Color, DocBuilder, Document, Header, ImagePaint, Paint, Paints, Payload, ShapeDesc,
     SizeIntent, SolidPaint,
 };
-use anchor_lab::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyValues};
+use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyValues};
 
 fn scene(fills: Paints) -> (Document, u32) {
     let mut builder = DocBuilder::new();

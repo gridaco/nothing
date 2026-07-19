@@ -18,11 +18,11 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Instant;
 
-use anchor_engine::cache::{composited_to_bytes, SceneCache};
-use anchor_engine::{drawlist, frame, paint, replay};
-use anchor_lab::math::Affine;
-use anchor_lab::model::*;
-use anchor_lab::resolve::{resolve, ResolveOptions, RotationInFlow};
+use n0::cache::{composited_to_bytes, SceneCache};
+use n0::{drawlist, frame, paint, replay};
+use n0_model::math::Affine;
+use n0_model::model::*;
+use n0_model::resolve::{resolve, ResolveOptions, RotationInFlow};
 
 const STATES: [&str; 4] = ["default", "crosszero", "rot45", "ungroup"];
 const CORPUS: [&str; 3] = ["crosszero", "rot45", "ungroup"];
@@ -36,7 +36,7 @@ fn main() {
     let bless_shots = args.iter().any(|a| a == "--bless-shots");
     let bless_bench = args.iter().any(|a| a == "--bless-bench");
 
-    println!("== anchor-engine gate ==");
+    println!("== n0 gate ==");
     let mut ok = true;
     ok &= gate_shots(bless_shots);
     ok &= gate_replays();
@@ -55,11 +55,11 @@ fn main() {
 
 fn gate_shots(bless: bool) -> bool {
     println!("\n[shots] spike --shot vs goldens");
-    let spike = manifest().join("../../target/release/anchor-spike");
-    let goldens = manifest().join("../a/spike-canvas/shots");
+    let spike = manifest().join("../../target/release/n0_dev");
+    let goldens = manifest().join("../n0_dev/shots");
     if !spike.exists() {
         eprintln!(
-            "  MISSING spike binary: {}\n  build it first: (cd model-v2/a/spike-canvas && cargo build --release)",
+            "  MISSING spike binary: {}\n  build it first: cargo build --release -p n0_dev",
             spike.display()
         );
         return false;
@@ -120,7 +120,7 @@ fn gate_replays() -> bool {
         };
         let (d1, res1) = replay::play(&rep).expect("corpus oracle must be supported");
         let (d2, res2) = replay::play(&rep).expect("corpus oracle must be supported");
-        let deterministic = anchor_lab::textir::print(&d1) == anchor_lab::textir::print(&d2)
+        let deterministic = n0_model::textir::print(&d1) == n0_model::textir::print(&d2)
             && replay::resolved_bits_eq(&resolve(&d1, &rep.opts), &resolve(&d2, &rep.opts))
             && res1 == res2;
         println!(

@@ -2,8 +2,8 @@
 //! (errors included) and can report whether anything wrote since a mark —
 //! the "keep or drop the undo snapshot" test a gesture uses.
 
-use anchor_engine::journal::Journal;
-use anchor_lab::ops::{Op, OpError};
+use n0::journal::Journal;
+use n0_model::ops::{Op, OpError};
 
 #[test]
 fn records_ops_in_order_with_results() {

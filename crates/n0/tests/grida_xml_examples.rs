@@ -3,12 +3,12 @@
 //! documentation corpus from drifting back to retired spellings. Each source
 //! is also resolved and painted once with its checked-in resources.
 
-use anchor_engine::frame;
-use anchor_engine::paint::PaintCtx;
-use anchor_lab::grida_xml;
-use anchor_lab::math::Affine;
-use anchor_lab::model::{Document, Paint, Payload, ResourceRef};
-use anchor_lab::resolve::{Report, ResolveOptions};
+use n0::frame;
+use n0::paint::PaintCtx;
+use n0_model::grida_xml;
+use n0_model::math::Affine;
+use n0_model::model::{Document, Paint, Payload, ResourceRef};
+use n0_model::resolve::{Report, ResolveOptions};
 use skia_safe::{surfaces, Color};
 use std::path::Path;
 

@@ -1,10 +1,10 @@
 //! Version 2 typed scalar specialization contract.
 
-use anchor_lab::grida_xml_source::{
+use n0_model::grida_xml_source::{
     self, BindingTargetKind, ErrorPhase, ScalarType, SourceProvider, SourceSnapshot, SourceVersion,
     ValueSelection,
 };
-use anchor_lab::model::{BoxFit, ImagePaintFit, Paint, Payload, ResourceRef, SizeIntent};
+use n0_model::model::{BoxFit, ImagePaintFit, Paint, Payload, ResourceRef, SizeIntent};
 use std::collections::BTreeMap;
 
 fn snapshot(identity: &str, base: &str, source: &str) -> SourceSnapshot {

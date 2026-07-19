@@ -9,9 +9,9 @@
 //!
 //! Tolerance: |Δ| ≤ 0.5 px per component.
 
-use anchor_lab::model::{Document, NodeId, Payload};
-use anchor_lab::resolve::{resolve, ResolveOptions, Resolved, RotationInFlow};
-use anchor_lab::textir;
+use n0_model::model::{Document, NodeId, Payload};
+use n0_model::resolve::{resolve, ResolveOptions, Resolved, RotationInFlow};
+use n0_model::textir;
 use std::collections::BTreeMap;
 use std::fs;
 

@@ -1,26 +1,27 @@
-# anchor-spike — E10, the feel spike
+# n0_dev — the feel spike
 
 A native Skia canvas driven end-to-end by the `anchor` model
-([`../lab`](../lab) — consumed as a library, the same relationship the
-phase-4 migration will have). Two goals, owner-stated: **feel it** and
+([`../n0-model`](../n0-model) — consumed as a library, hosted on the
+[`n0`](../n0) engine). Two goals, owner-stated: **feel it** and
 **be the textbook** for the legacy migration
-([`TEXTBOOK.md`](./TEXTBOOK.md)).
+([`TEXTBOOK.md`](./TEXTBOOK.md)). Grown from workbench experiment E10
+(see the `model-v2/` archive).
 
 ## Run
 
 ```sh
-cd model-v2/a/spike-canvas
+cd crates/n0_dev
 cargo run --release            # the window
 cargo run --release -- --bench # resolve+paint timings
 cargo run --release -- --shot out.png [crosszero|ungroup|rot45]
 
 # live SVG animation host
 cargo run --release -- \
-  --play-svg ../../engine/rig/examples/svg-animation-profile6-path-morph-showcase.svg
+  --play-svg ../n0/rig/examples/svg-animation-profile6-path-morph-showcase.svg
 ```
 
-First build reuses the repo's compiled skia via the shared target dir
-(`.cargo/config.toml`).
+As a workspace member it shares the repo's target dir, so the first build
+reuses the already-compiled skia.
 
 ## Live animation harness
 
@@ -36,7 +37,7 @@ to the end remains stopped. Space pauses or resumes, `R` or Home restarts, and
 Escape quits.
 
 The window host owns `Instant`, pacing, resize, fit, controls, GPU flush, and
-presentation. None of those enter `anchor-engine`; the portable boundary
+presentation. None of those enter `n0`; the portable boundary
 remains `HostTime -> PlaybackClock -> SampleTime`. Its redraw timer is a
 temporary stand-in for the compositor pacing required by ENG-2.4, not a
 production scheduling API.
@@ -73,5 +74,5 @@ No images/vectors/bools; text renders via the default typeface but is
 MEASURED by the lab stub (visible mismatch = open DEC-4/B-1, on
 purpose); no marquee multi-select, snapping, rulers, persistence beyond
 the IR, or wasm. DEC-0 is decided (visual-only, CSS-pure —
-[`../dec0-visual-only.md`](../dec0-visual-only.md)); DEC-1/2/3 are
+[`../../model-v2/a/dec0-visual-only.md`](../../model-v2/a/dec0-visual-only.md)); DEC-1/2/3 are
 closed n/a by it — fill never fights rotation here, by construction.

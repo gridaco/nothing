@@ -4,9 +4,9 @@
 //! document no-ops and a stronger determinism proof. The journal is a
 //! recorder, not the undo mechanism: undo stays document snapshots
 //! (ENG-5.5) until an op's inverse is property-tested. It lands on
-//! `anchor_lab::ops::Op` (step 4).
+//! `n0_model::ops::Op` (step 4).
 
-use anchor_lab::ops::{Op, OpResult};
+use n0_model::ops::{Op, OpResult};
 
 /// The session op-log: every issued op in order with its result (errors
 /// included — deterministic document no-ops, and a stronger determinism

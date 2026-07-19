@@ -4,17 +4,17 @@
 
 mod support;
 
-use anchor_engine::drawlist::{build_glyphless_unchecked, DrawList, ItemKind};
-use anchor_engine::frame;
-use anchor_engine::paint::PaintCtx;
-use anchor_lab::grida_xml;
-use anchor_lab::math::Affine;
-use anchor_lab::model::{
+use n0::drawlist::{build_glyphless_unchecked, DrawList, ItemKind};
+use n0::frame;
+use n0::paint::PaintCtx;
+use n0_model::grida_xml;
+use n0_model::math::Affine;
+use n0_model::model::{
     AttributedString, Color, DocBuilder, Header, Paint as ModelPaint, Paints, Payload, SizeIntent,
     StyledTextRun, TextStyleRec,
 };
-use anchor_lab::resolve::Resolved;
-use anchor_lab::resolve::{resolve, ResolveOptions};
+use n0_model::resolve::Resolved;
+use n0_model::resolve::{resolve, ResolveOptions};
 use skia_safe::{surfaces, Color as SkColor, FontMgr};
 use support::RgbaImage;
 
@@ -33,7 +33,7 @@ fn render(source: &str, width: i32, height: i32) -> (RgbaImage, DrawList) {
 }
 
 fn render_document(
-    document: &anchor_lab::model::Document,
+    document: &n0_model::model::Document,
     width: i32,
     height: i32,
 ) -> (RgbaImage, DrawList) {
@@ -42,7 +42,7 @@ fn render_document(
 }
 
 fn render_document_full(
-    document: &anchor_lab::model::Document,
+    document: &n0_model::model::Document,
     width: i32,
     height: i32,
 ) -> (RgbaImage, Resolved, DrawList) {
@@ -73,7 +73,7 @@ fn attributed_document(
     runs: Vec<StyledTextRun>,
     default_style: TextStyleRec,
     width: f32,
-) -> (anchor_lab::model::Document, u32) {
+) -> (n0_model::model::Document, u32) {
     let mut builder = DocBuilder::new();
     let text_id = builder.add(
         0,
@@ -358,7 +358,7 @@ fn frame_shares_one_shaped_layout_with_fill_and_every_stroke() {
 
     assert_eq!(
         resolved_layout.oracle,
-        anchor_engine::oracle::TEXT_SKPARAGRAPH
+        n0::oracle::TEXT_SKPARAGRAPH
     );
     assert!(!resolved_layout.glyph_runs.is_empty());
     assert!(resolved_layout.ink_bounds.is_some());

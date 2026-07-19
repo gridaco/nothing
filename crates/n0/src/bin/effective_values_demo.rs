@@ -4,21 +4,21 @@
 //! twice: first from authored values and then from an immutable `ValueView`.
 //! There is deliberately no clock, timeline, keyframe, or playback state.
 
-use anchor_engine::damage::diff_frame;
-use anchor_engine::frame;
-use anchor_engine::paint::PaintCtx;
-use anchor_lab::grida_xml_source::{
+use n0::damage::diff_frame;
+use n0::frame;
+use n0::paint::PaintCtx;
+use n0_model::grida_xml_source::{
     self, AuthoredMemberId, MaterializedProgram, SourceProvider, SourceSnapshot,
 };
-use anchor_lab::math::Affine;
-use anchor_lab::model::{
+use n0_model::math::Affine;
+use n0_model::model::{
     Alignment, Color, GradientStop, LinearGradientPaint, Paint, Paints, Payload,
     RadialGradientPaint, RectangularCornerRadius, Stroke, StrokeAlign, StrokeWidth,
 };
-use anchor_lab::properties::{
+use n0_model::properties::{
     PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView,
 };
-use anchor_lab::resolve::ResolveOptions;
+use n0_model::resolve::ResolveOptions;
 use skia_safe::{surfaces, EncodedImageFormat, Font, Paint as SkPaint};
 
 const SOURCE: &str = include_str!("../../rig/fixtures/durable-addressing.grida.xml");
@@ -94,7 +94,7 @@ fn node(
     program: &MaterializedProgram,
     member: AuthoredMemberId,
     use_id: Option<&str>,
-) -> anchor_lab::model::NodeKey {
+) -> n0_model::model::NodeKey {
     program
         .addresses()
         .find(|(address, _)| {
@@ -112,7 +112,7 @@ fn node(
 }
 
 fn target(
-    node: anchor_lab::model::NodeKey,
+    node: n0_model::model::NodeKey,
     property: PropertyKey,
     value: PropertyValue,
 ) -> (PropertyTarget, PropertyValue) {
@@ -275,12 +275,12 @@ fn effective_values(program: &MaterializedProgram) -> PropertyValues {
             target(
                 second_name,
                 PropertyKey::Width,
-                PropertyValue::SizeIntent(anchor_lab::model::SizeIntent::Fixed(128.0)),
+                PropertyValue::SizeIntent(n0_model::model::SizeIntent::Fixed(128.0)),
             ),
             target(
                 second_action,
                 PropertyKey::Width,
-                PropertyValue::SizeIntent(anchor_lab::model::SizeIntent::Fixed(64.0)),
+                PropertyValue::SizeIntent(n0_model::model::SizeIntent::Fixed(64.0)),
             ),
         ],
     )

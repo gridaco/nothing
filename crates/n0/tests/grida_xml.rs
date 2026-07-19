@@ -4,12 +4,12 @@
 
 mod support;
 
-use anchor_engine::drawlist::{build_glyphless_unchecked, Item, ItemKind};
-use anchor_engine::paint::PaintCtx;
-use anchor_lab::grida_xml;
-use anchor_lab::math::Affine;
-use anchor_lab::model::{Color as ModelColor, CornerSmoothing, Paints, RectangularCornerRadius};
-use anchor_lab::resolve::{resolve, ResolveOptions};
+use n0::drawlist::{build_glyphless_unchecked, Item, ItemKind};
+use n0::paint::PaintCtx;
+use n0_model::grida_xml;
+use n0_model::math::Affine;
+use n0_model::model::{Color as ModelColor, CornerSmoothing, Paints, RectangularCornerRadius};
+use n0_model::resolve::{resolve, ResolveOptions};
 
 const SOURCE: &str = include_str!("../rig/fixtures/nested-rects.grida.xml");
 const WIDTH: i32 = 96;

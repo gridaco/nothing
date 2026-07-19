@@ -4,12 +4,12 @@
 //! The engine emits exact-time PNG samples. Video/GIF assembly remains host
 //! tooling (for example ffmpeg), not a semantic engine dependency.
 
-use anchor_engine::frame::{self, FrameRequest};
-use anchor_engine::paint::PaintCtx;
-use anchor_lab::animation::SampleTime;
-use anchor_lab::math::Affine;
-use anchor_lab::resolve::{Report, ResolveOptions};
-use anchor_lab::svg_animation::{CompiledSvgAnimation, SourceSnapshot, SvgAnimationSource};
+use n0::frame::{self, FrameRequest};
+use n0::paint::PaintCtx;
+use n0_model::animation::SampleTime;
+use n0_model::math::Affine;
+use n0_model::resolve::{Report, ResolveOptions};
+use n0_model::svg_animation::{CompiledSvgAnimation, SourceSnapshot, SvgAnimationSource};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use skia_safe::{surfaces, Color, EncodedImageFormat};
@@ -459,13 +459,13 @@ mod tests {
         .unwrap();
         assert_eq!(
             compiled.animation().compiler_id(),
-            anchor_lab::svg_animation::PROFILE6_COMPILER_ID
+            n0_model::svg_animation::PROFILE6_COMPILER_ID
         );
         assert_eq!(compiled.animation().effect_stacks().count(), 1);
         assert_eq!(compiled.animation().tracks().len(), 1);
         assert_eq!(
             compiled.animation().tracks()[0].kind(),
-            anchor_lab::animation::TrackKind::SolidFill
+            n0_model::animation::TrackKind::SolidFill
         );
     }
 

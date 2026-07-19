@@ -1,7 +1,7 @@
 //! The minimal interaction model — an EXPLICIT pointer state machine
 //! (counterpart: grida_editor hud/gesture.rs + tool.rs). States are data,
 //! transitions call lab ops, typed errors surface into the gesture log —
-//! nothing here mutates the document except through `anchor_lab::ops`.
+//! nothing here mutates the document except through `n0_model::ops`.
 //!
 //!   Idle -> Pressed(node) -> Dragging(Move | ResizeEdge | ResizeCorner
 //!        | Rotate | Pan) -> Idle
@@ -10,9 +10,9 @@
 //! honest write count: a drag re-applies its op continuously, but the
 //! document ends as if written once (delta-form ops make that true).
 
-use anchor_lab::math::Affine;
-use anchor_lab::model::*;
-use anchor_lab::ops::ResizeDrag;
+use n0_model::math::Affine;
+use n0_model::model::*;
+use n0_model::ops::ResizeDrag;
 
 use crate::shell::hud::HandleKind;
 
@@ -215,7 +215,7 @@ pub fn resize_anchors(kind: HandleKind) -> (Option<AnchorEdge>, Option<AnchorEdg
 /// the one conversion, done right (parent world inverse, not a guess).
 pub fn parent_point(
     doc: &Document,
-    resolved: &anchor_lab::resolve::Resolved,
+    resolved: &n0_model::resolve::Resolved,
     camera: &crate::camera::Camera,
     id: NodeId,
     screen: (f32, f32),
@@ -241,7 +241,7 @@ pub fn screen_angle(center: (f32, f32), p: (f32, f32)) -> f32 {
 /// center (rotate-gesture pivot).
 pub fn box_center_screen(
     doc: &Document,
-    resolved: &anchor_lab::resolve::Resolved,
+    resolved: &n0_model::resolve::Resolved,
     camera: &crate::camera::Camera,
     id: NodeId,
 ) -> (f32, f32) {

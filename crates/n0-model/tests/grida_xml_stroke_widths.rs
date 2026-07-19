@@ -1,7 +1,7 @@
 //! Draft 0 rectangular stroke-width grammar and model projection.
 
-use anchor_lab::grida_xml;
-use anchor_lab::model::*;
+use n0_model::grida_xml;
+use n0_model::model::*;
 
 fn named(doc: &Document, name: &str) -> NodeId {
     (0..doc.capacity() as NodeId)

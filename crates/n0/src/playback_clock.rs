@@ -4,7 +4,7 @@
 //! scheduler. The caller supplies every [`HostTime`]; this module returns only
 //! the existing [`SampleTime`] consumed by animation and frame APIs.
 
-use anchor_lab::animation::SampleTime;
+use n0_model::animation::SampleTime;
 use std::num::NonZeroU64;
 
 /// Nanoseconds from one caller-owned monotonic epoch.

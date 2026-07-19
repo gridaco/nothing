@@ -1,10 +1,10 @@
-use anchor_lab::math::RectF;
-use anchor_lab::model::{
+use n0_model::math::RectF;
+use n0_model::model::{
     AxisBinding, Color, DocBuilder, Header, Paints, Payload, SizeIntent, Stroke, StrokeAlign,
     StrokeWidth, TextPayloadRef,
 };
-use anchor_lab::resolve::{resolve, resolve_with_text_layout, ResolveOptions};
-use anchor_lab::text_layout::{
+use n0_model::resolve::{resolve, resolve_with_text_layout, ResolveOptions};
+use n0_model::text_layout::{
     StubTextLayoutOracle, TextLayout, TextLayoutOracle, TextLine, TextLineBreak,
 };
 use std::cell::RefCell;

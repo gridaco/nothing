@@ -13,11 +13,11 @@ mod paint;
 mod scene;
 mod shell;
 
-use anchor_engine::frame::{FrameBuildError, FrameProduct};
-use anchor_engine::paint::PaintCtx;
-use anchor_lab::model::{Document, NodeId};
-use anchor_lab::ops::Op;
-use anchor_lab::resolve::{resolve, ResolveOptions, Resolved};
+use n0::frame::{FrameBuildError, FrameProduct};
+use n0::paint::PaintCtx;
+use n0_model::model::{Document, NodeId};
+use n0_model::ops::Op;
+use n0_model::resolve::{resolve, ResolveOptions, Resolved};
 use camera::Camera;
 
 /// The resolve viewport — the root frame spans it; think "world extent
@@ -42,7 +42,7 @@ pub fn resolve_and_build_doc(
     doc: &Document,
     ctx: &PaintCtx,
 ) -> Result<FrameProduct, FrameBuildError> {
-    anchor_engine::frame::resolve_and_build(
+    n0::frame::resolve_and_build(
         doc,
         &ResolveOptions {
             viewport: RESOLVE_VIEWPORT,
@@ -56,11 +56,11 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     if let Some(i) = args.iter().position(|argument| argument == "--play-svg") {
         let Some(path) = args.get(i + 1) else {
-            eprintln!("usage: anchor-spike --play-svg <input.svg>");
+            eprintln!("usage: n0_dev --play-svg <input.svg>");
             std::process::exit(2);
         };
         if let Err(error) = shell::play_svg(std::path::Path::new(path)) {
-            eprintln!("anchor-spike: {error}");
+            eprintln!("n0_dev: {error}");
             std::process::exit(1);
         }
         return;
@@ -103,12 +103,12 @@ fn state_ops(doc: &Document, state: &str) -> Vec<Op> {
             // Drag card.a's right edge THROUGH the left edge (E-A14).
             let id = find(doc, "card.a");
             let r = resolve_doc(doc);
-            let drag = anchor_lab::ops::ResizeDrag::begin(
+            let drag = n0_model::ops::ResizeDrag::begin(
                 doc,
                 &r,
                 id,
-                anchor_lab::ops::Axis::X,
-                anchor_lab::model::AnchorEdge::End,
+                n0_model::ops::Axis::X,
+                n0_model::model::AnchorEdge::End,
             )
             .unwrap();
             let b = r.box_of(id);
@@ -143,16 +143,16 @@ fn shot_selection(doc: &Document, state: &str) -> Option<NodeId> {
 /// built against the normalized doc (by name), so the file is self-consistent.
 fn record(path: &str, state: &str) {
     let (starter, _) = scene::starter();
-    let doc = anchor_lab::textir::parse(&anchor_lab::textir::print(&starter)).expect("normalize");
+    let doc = n0_model::textir::parse(&n0_model::textir::print(&starter)).expect("normalize");
     let ops = state_ops(&doc, state);
     let opts = ResolveOptions {
         viewport: RESOLVE_VIEWPORT,
         ..Default::default()
     };
-    let text = anchor_engine::replay::write_string(
+    let text = n0::replay::write_string(
         &doc,
         &ops,
-        &anchor_engine::oracle::OracleTags::default(),
+        &n0::oracle::OracleTags::default(),
         &opts,
     );
     std::fs::write(path, text).expect("write replay");
@@ -171,7 +171,7 @@ fn shot(path: &str, state: &str) {
     // script — apply is pure dispatch), each with a fresh resolve.
     for op in state_ops(&doc, state) {
         let r = resolve_doc(&doc);
-        anchor_lab::ops::apply(&mut doc, &r, &op).expect("scripted op");
+        n0_model::ops::apply(&mut doc, &r, &op).expect("scripted op");
     }
     let selection = shot_selection(&doc, state);
 
@@ -199,7 +199,7 @@ fn shot(path: &str, state: &str) {
     println!("wrote {path} ({} bytes)", data.len());
 }
 
-fn find(doc: &Document, name: &str) -> anchor_lab::model::NodeId {
+fn find(doc: &Document, name: &str) -> n0_model::model::NodeId {
     scene::find_named(doc, name).expect("named node")
 }
 
@@ -212,7 +212,7 @@ fn find(doc: &Document, name: &str) -> anchor_lab::model::NodeId {
 /// architecture problem: a pan changes nothing in the document yet pays all
 /// three stages, and a one-node mutation pays the whole scene's execute.
 fn bench() {
-    use anchor_lab::model::*;
+    use n0_model::model::*;
     use std::time::Instant;
 
     const W: i32 = 1360;
@@ -230,11 +230,11 @@ fn bench() {
             // This benchmark intentionally preserves the deterministic,
             // glyphless lab-stage baseline. Live and shot rendering use the
             // shaped `resolve_and_build_doc` path above.
-            let list = anchor_engine::drawlist::build_glyphless_unchecked(doc, &resolved);
+            let list = n0::drawlist::build_glyphless_unchecked(doc, &resolved);
             let t2 = Instant::now();
             let canvas = surface.canvas();
             canvas.clear(skia_safe::Color::WHITE);
-            anchor_engine::paint::execute_unchecked(canvas, &list, &view, &ctx);
+            n0::paint::execute_unchecked(canvas, &list, &view, &ctx);
             let t3 = Instant::now();
             let ms = |a: Instant, b: Instant| (b - a).as_secs_f64() * 1000.0;
             resolve_ms = resolve_ms.min(ms(t0, t1));

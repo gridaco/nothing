@@ -2,14 +2,14 @@
 
 use std::sync::Arc;
 
-use anchor_lab::grida_xml;
-use anchor_lab::math::RectF;
-use anchor_lab::model::{Document, FillRule, NodeId, Payload, ShapeDesc, StrokeAlign};
-use anchor_lab::path::{self, PathCommand, PathGeometry};
-use anchor_lab::properties::{
+use n0_model::grida_xml;
+use n0_model::math::RectF;
+use n0_model::model::{Document, FillRule, NodeId, Payload, ShapeDesc, StrokeAlign};
+use n0_model::path::{self, PathCommand, PathGeometry};
+use n0_model::properties::{
     PropertyError, PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView,
 };
-use anchor_lab::resolve::{resolve, resolve_view, ResolveOptions};
+use n0_model::resolve::{resolve, resolve_view, ResolveOptions};
 
 fn only_child(document: &Document) -> NodeId {
     let scene = document.get(document.root).children[0];

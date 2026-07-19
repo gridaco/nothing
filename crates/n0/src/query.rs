@@ -5,18 +5,18 @@
 //! (broadphase BVH — OS-3a) slots in without changing a call site. Day 1
 //! the bodies are linear walks; the model laws (paint-order topmost,
 //! transparent-select promotion, lens post-ops, hairline slop) stay in
-//! the lab narrowphase [`anchor_lab::pick`] — an index may over-
+//! the lab narrowphase [`n0_model::pick`] — an index may over-
 //! approximate candidates but never changes what gets selected.
 
-use anchor_lab::math::RectF;
-use anchor_lab::model::NodeId;
-use anchor_lab::resolve::Resolved;
+use n0_model::math::RectF;
+use n0_model::model::NodeId;
+use n0_model::resolve::Resolved;
 
 /// The spatial read tier — the one door for point-hit, marquee, and cull.
 /// Fronts linear walks today; a broadphase index (OS-3a) slots in behind
 /// these signatures without touching a caller. Model semantics (paint-order
 /// topmost, transparent-select, lens post-ops, hairline slop) live in the lab
-/// narrowphase [`anchor_lab::pick`], never here — an index may over-
+/// narrowphase [`n0_model::pick`], never here — an index may over-
 /// approximate candidates but never changes what is selected.
 pub struct Query<'a> {
     pub resolved: &'a Resolved,
@@ -31,7 +31,7 @@ impl<'a> Query<'a> {
     /// Topmost node under a world point — delegates the narrowphase, so what
     /// gets selected is defined in one place (`pick`), not re-derived here.
     pub fn hit_point(&self, x: f32, y: f32) -> Option<NodeId> {
-        anchor_lab::pick::pick(self.resolved, x, y)
+        n0_model::pick::pick(self.resolved, x, y)
     }
 
     /// Nodes whose world AABB overlaps `rect` — marquee candidates. Over-

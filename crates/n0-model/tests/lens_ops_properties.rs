@@ -1,9 +1,9 @@
 //! Whole-list lens-operation property seam.
 
-use anchor_lab::model::*;
-use anchor_lab::pick::pick;
-use anchor_lab::properties::*;
-use anchor_lab::resolve::{resolve, resolve_view, ResolveOptions};
+use n0_model::model::*;
+use n0_model::pick::pick;
+use n0_model::properties::*;
+use n0_model::resolve::{resolve, resolve_view, ResolveOptions};
 
 fn target(document: &Document, node: NodeId) -> PropertyTarget {
     PropertyTarget::new(document.key_of(node).unwrap(), PropertyKey::LensOps)

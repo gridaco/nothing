@@ -1,9 +1,9 @@
 //! Draft 0 `.grida.xml` producer contract: structural envelope, canonical
 //! vocabulary, primitive-local composition, strict roots, and E3 compatibility.
 
-use anchor_lab::grida_xml::{self, PrintError};
-use anchor_lab::model::*;
-use anchor_lab::resolve::{resolve, ResolveOptions};
+use n0_model::grida_xml::{self, PrintError};
+use n0_model::model::*;
+use n0_model::resolve::{resolve, ResolveOptions};
 use std::collections::BTreeMap;
 
 const COMPOSED: &str = r#"
@@ -155,18 +155,18 @@ fn direct_primitives_are_exclusive_to_grida_xml() {
         r#"<line w="1"/>"#,
     ] {
         let source = format!("<frame w=\"10\" h=\"10\">{primitive}</frame>");
-        let error = anchor_lab::textir::parse(&source).unwrap_err();
+        let error = n0_model::textir::parse(&source).unwrap_err();
         assert!(
             error.to_string().contains("unknown element"),
             "historical TextIr must reject {primitive}: {error}"
         );
     }
 
-    let historical = anchor_lab::textir::parse(
+    let historical = n0_model::textir::parse(
         r#"<frame w="10" h="10"><shape kind="ellipse" w="2" h="3"/></frame>"#,
     )
     .expect("historical TextIr keeps <shape kind>");
-    let printed = anchor_lab::textir::print(&historical);
+    let printed = n0_model::textir::print(&historical);
     assert!(printed.contains(r#"<shape w="2" h="3" kind="ellipse"/>"#));
 }
 
@@ -241,7 +241,7 @@ fn direct_text_whitespace_is_preserved() {
     assert_eq!(doc, grida_xml::parse(&printed).unwrap());
 
     let historical =
-        anchor_lab::textir::parse("<frame w=\"10\" h=\"10\"><text>  hello\nworld  </text></frame>")
+        n0_model::textir::parse("<frame w=\"10\" h=\"10\"><text>  hello\nworld  </text></frame>")
             .unwrap();
     let historical_text = historical.get(historical.root).children[0];
     match &historical.get(historical_text).payload {
@@ -325,7 +325,7 @@ fn grow_gap_and_padding_are_non_negative_only_in_draft0() {
         );
     }
 
-    anchor_lab::textir::parse(
+    n0_model::textir::parse(
         r#"<frame w="10" h="10" layout="flex" gap="-1" padding="-2"><shape kind="rect" w="1" h="1" grow="-1"/></frame>"#,
     )
     .expect("historical TextIr keeps its prior numeric behavior");
@@ -352,7 +352,7 @@ fn flex_child_attributes_are_context_strict() {
         grida_xml::parse(source).expect("applicable flex attributes accepted");
     }
 
-    anchor_lab::textir::parse(
+    n0_model::textir::parse(
         r#"<frame w="10" h="10" layout="flex"><shape kind="rect" x="0" y="0" w="1" h="1"/></frame>"#,
     )
     .expect("historical TextIr retains resolver-reported applicability");
@@ -372,7 +372,7 @@ fn strict_lens_ops_reject_empty_arguments() {
         assert!(grida_xml::parse(&strict).is_err(), "must reject `{ops}`");
     }
 
-    anchor_lab::textir::parse(r#"<frame w="10" h="10"><lens ops="translate(1,,2)"/></frame>"#)
+    n0_model::textir::parse(r#"<frame w="10" h="10"><lens ops="translate(1,,2)"/></frame>"#)
         .expect("historical TextIr retains empty-argument filtering");
 }
 
@@ -401,7 +401,7 @@ fn xml_declaration_is_single_and_before_the_envelope() {
         assert!(grida_xml::parse(source).is_err(), "must reject: {source}");
     }
 
-    anchor_lab::textir::parse(r#"<?xml foo="bar"?><frame w="10" h="10"/>"#)
+    n0_model::textir::parse(r#"<?xml foo="bar"?><frame w="10" h="10"/>"#)
         .expect("historical TextIr continues to ignore declaration contents");
 }
 
@@ -619,9 +619,9 @@ fn historical_vocabulary_is_textir_only() {
         );
     }
 
-    let historical = anchor_lab::textir::parse(r#"<frame w="300" h="200"/>"#)
+    let historical = n0_model::textir::parse(r#"<frame w="300" h="200"/>"#)
         .expect("historical E3 parser remains available");
-    assert!(anchor_lab::textir::print(&historical).starts_with("<frame w=\"300\" h=\"200\""));
+    assert!(n0_model::textir::print(&historical).starts_with("<frame w=\"300\" h=\"200\""));
 }
 
 /// Versioning and the one-render-root boundary are parse-time walls, not

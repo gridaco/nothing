@@ -1,33 +1,32 @@
 [package]
-name = "anchor-engine"
+name = "n0"
 version = "0.0.0"
 edition = "2021"
-publish = false
-description = "The phase-4 canvas engine skeleton for the model-v2 anchor model: resolve -> drawlist -> paint pipeline, spatial query, journal/replay, damage. Consumes anchor-lab; hosts (the spike, later crates/grida) consume this. See model-v2/a/ENGINE.md."
-
-# Standalone on purpose (model-v2 containment) — own workspace, shared
-# target dir for skia reuse. Promoted into crates/ at the migration gate,
-# where the public name becomes a commitment. See model-v2/a/ENGINE.md S-1.
-[workspace]
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "A 2D graphics engine."
+categories = ["graphics", "rendering"]
+keywords = ["graphics", "2d", "rendering", "engine"]
+readme = "README.md"
 
 [features]
-# ENG S-6 · observability compiled to zero unless asked. The profiler must
-# never distort the profile.
+# observability compiled to zero unless asked — the profiler must never
+# distort the profile.
 trace = []
 # The headless-GPU probe (probe_gpu): real GL flush timing for the two
 # GPU-only wins (scene raster cache, layerization) that raster mis-signs.
-# Optional so the default raster build (probe, gate, spike) stays GL-free.
+# Optional so the default raster build (probe, gate, n0_dev) stays GL-free.
 native-gl-context = ["dep:glutin", "dep:gl", "dep:raw-window-handle"]
 
 [dependencies]
 # serde feature ON: the op-log wire for replay (`Op` becomes serializable).
-anchor-lab = { path = "../a/lab", features = ["serde"] }
+n0-model = { path = "../n0-model", features = ["serde"] }
 serde_json = "1.0"
 sha2 = "0.10"
 
-# Same exact version + features as anchor-spike / grida_dev so the shared
-# target dir reuses the compiled skia-safe artifact instead of rebuilding
-# it. `use skia_safe` stays confined to paint.rs (ENGINE.md S-1).
+# `use skia_safe` stays confined to paint.rs — raster access is a single
+# module's concern (see src/lib.rs).
 skia-safe = { version = "=0.93.1", features = [
   "gpu",
   "gl",
@@ -37,11 +36,8 @@ skia-safe = { version = "=0.93.1", features = [
   "webp",
 ] }
 
-# Headless-GPU probe only (feature native-gl-context) — same versions as the
-# spike shell / grida_dev, so the shared target dir reuses the artifacts.
+# Headless-GPU probe only (feature native-gl-context). Versions match the
+# workspace winit hosts (n0_dev / grida_dev).
 glutin = { version = "0.32.0", optional = true }
 gl = { version = "0.14.0", optional = true }
 raw-window-handle = { version = "0.6.0", optional = true }
-
-[profile.release]
-debug = true

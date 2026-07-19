@@ -3,8 +3,8 @@
 //! stays a leaf. Draft 0 exposes this as direct primitive composition such as
 //! `<rect><text>`.
 
-use anchor_lab::model::*;
-use anchor_lab::resolve::{resolve, ResolveOptions};
+use n0_model::model::*;
+use n0_model::resolve::{resolve, ResolveOptions};
 
 fn rect(w: f32, h: f32) -> (Header, Payload) {
     (

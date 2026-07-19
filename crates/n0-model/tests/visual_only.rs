@@ -6,16 +6,16 @@
 mod common;
 use common::*;
 
-use anchor_lab::math::rotated_aabb_size;
-use anchor_lab::model::*;
-use anchor_lab::resolve::{resolve, Report, Resolved};
+use n0_model::math::rotated_aabb_size;
+use n0_model::model::*;
+use n0_model::resolve::{resolve, Report, Resolved};
 
 /// The DEFAULT options — deliberately `Default::default()`: this suite
 /// guards what a consumer gets without asking.
 fn run_default(doc: &Document) -> Resolved {
     resolve(
         doc,
-        &anchor_lab::resolve::ResolveOptions {
+        &n0_model::resolve::ResolveOptions {
             viewport: (1000.0, 1000.0),
             ..Default::default()
         },

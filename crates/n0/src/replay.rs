@@ -11,15 +11,15 @@
 //! are deterministic (append-only arena). Cross-session replay stays
 //! walled until format-level stable ids land (ENG-5.4, a.md §12).
 //!
-//! Lands in step 10 (needs the lab `serde` feature + `anchor_lab::ops::Op`).
+//! Lands in step 10 (needs the lab `serde` feature + `n0_model::ops::Op`).
 
-use anchor_lab::math::{Affine, RectF};
-use anchor_lab::model::Document;
-use anchor_lab::ops::{apply, Op, OpResult};
-use anchor_lab::path::{PathCommand, ResolvedPathArtifact};
-use anchor_lab::resolve::{resolve, ResolveOptions, Resolved, RotationInFlow};
-use anchor_lab::text_layout::TextLayout;
-use anchor_lab::textir;
+use n0_model::math::{Affine, RectF};
+use n0_model::model::Document;
+use n0_model::ops::{apply, Op, OpResult};
+use n0_model::path::{PathCommand, ResolvedPathArtifact};
+use n0_model::resolve::{resolve, ResolveOptions, Resolved, RotationInFlow};
+use n0_model::text_layout::TextLayout;
+use n0_model::textir;
 
 use crate::oracle::{OracleTags, TEXT_STUB};
 

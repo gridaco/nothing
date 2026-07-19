@@ -3,16 +3,16 @@
 //! Covers: cache-cold, integer-pan blit (the win path), zoom re-raster (the
 //! bitmap-can't-rescale boundary), and doc-dirty re-raster.
 
-use anchor_engine::cache::{composited_to_bytes, SceneCache};
-use anchor_engine::damage::diff_frame;
-use anchor_engine::drawlist::build_glyphless_unchecked;
-use anchor_engine::frame;
-use anchor_engine::paint::{raster_to_bytes_unchecked, PaintCtx};
-use anchor_engine::replay::resolved_bits_eq;
-use anchor_lab::math::Affine;
-use anchor_lab::model::*;
-use anchor_lab::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyValues};
-use anchor_lab::resolve::{resolve, ResolveOptions, RotationInFlow};
+use n0::cache::{composited_to_bytes, SceneCache};
+use n0::damage::diff_frame;
+use n0::drawlist::build_glyphless_unchecked;
+use n0::frame;
+use n0::paint::{raster_to_bytes_unchecked, PaintCtx};
+use n0::replay::resolved_bits_eq;
+use n0_model::math::Affine;
+use n0_model::model::*;
+use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyValues};
+use n0_model::resolve::{resolve, ResolveOptions, RotationInFlow};
 use skia_safe::{surfaces, Color as SkColor, FontMgr};
 
 const W: i32 = 1360;
@@ -105,7 +105,7 @@ fn fresh_frame_bytes(doc: &Document, view: &Affine, ctx: &PaintCtx) -> Vec<u8> {
     let mut surface = surfaces::raster_n32_premul((W, H)).expect("raster surface");
     surface.canvas().clear(SkColor::WHITE);
     frame::render(surface.canvas(), doc, &opts(), view, ctx).expect("valid fresh frame");
-    anchor_engine::paint::read_pixels(&mut surface, W, H)
+    n0::paint::read_pixels(&mut surface, W, H)
 }
 
 fn cached_frame_bytes(
@@ -121,7 +121,7 @@ fn cached_frame_bytes(
         .frame(surface.canvas(), doc, &opts(), view, ctx, doc_dirty)
         .expect("valid cached frame");
     (
-        anchor_engine::paint::read_pixels(&mut surface, W, H),
+        n0::paint::read_pixels(&mut surface, W, H),
         rerastered,
     )
 }
@@ -139,7 +139,7 @@ fn cached_value_frame_bytes(
         .frame_with_values(surface.canvas(), doc, values, &opts(), view, ctx, false)
         .unwrap();
     (
-        anchor_engine::paint::read_pixels(&mut surface, W, H),
+        n0::paint::read_pixels(&mut surface, W, H),
         rerastered,
     )
 }
@@ -217,10 +217,10 @@ fn doc_dirty_forces_reraster_and_matches_fresh() {
 
     // Mutate: move the first shape. With doc_dirty the cache rebuilds + re-rasters.
     let r = resolve(&doc, &opts());
-    anchor_lab::ops::apply(
+    n0_model::ops::apply(
         &mut doc,
         &r,
-        &anchor_lab::ops::Op::SetX {
+        &n0_model::ops::Op::SetX {
             id: 1,
             value: 400.0,
         },
@@ -456,7 +456,7 @@ fn failed_rebuild_preserves_destination_and_previous_cache_entry() {
             false,
         )
         .unwrap());
-    let first = anchor_engine::paint::read_pixels(&mut first_surface, W, H);
+    let first = n0::paint::read_pixels(&mut first_surface, W, H);
 
     let mut invalid = valid.clone();
     let node = invalid.root + 1;
@@ -484,7 +484,7 @@ fn failed_rebuild_preserves_destination_and_previous_cache_entry() {
 
     let mut failed_surface = surfaces::raster_n32_premul((W, H)).unwrap();
     failed_surface.canvas().clear(SkColor::MAGENTA);
-    let before_failure = anchor_engine::paint::read_pixels(&mut failed_surface, W, H);
+    let before_failure = n0::paint::read_pixels(&mut failed_surface, W, H);
     cache
         .frame(
             failed_surface.canvas(),
@@ -495,7 +495,7 @@ fn failed_rebuild_preserves_destination_and_previous_cache_entry() {
             true,
         )
         .expect_err("invalid replacement frame must fail before cache commit");
-    let after_failure = anchor_engine::paint::read_pixels(&mut failed_surface, W, H);
+    let after_failure = n0::paint::read_pixels(&mut failed_surface, W, H);
     assert_eq!(after_failure, before_failure, "destination canvas changed");
 
     let mut reused_surface = surfaces::raster_n32_premul((W, H)).unwrap();
@@ -511,7 +511,7 @@ fn failed_rebuild_preserves_destination_and_previous_cache_entry() {
         )
         .unwrap());
     assert_eq!(
-        anchor_engine::paint::read_pixels(&mut reused_surface, W, H),
+        n0::paint::read_pixels(&mut reused_surface, W, H),
         first,
         "failed rebuild replaced the prior retained frame"
     );
@@ -522,7 +522,7 @@ fn failed_rebuild_preserves_destination_and_previous_cache_entry() {
         Paints::new([Paint::Image(ImagePaint::from_rid("missing"))]);
     let mut image_failure_surface = surfaces::raster_n32_premul((W, H)).unwrap();
     image_failure_surface.canvas().clear(SkColor::CYAN);
-    let before_image_failure = anchor_engine::paint::read_pixels(&mut image_failure_surface, W, H);
+    let before_image_failure = n0::paint::read_pixels(&mut image_failure_surface, W, H);
     cache
         .frame(
             image_failure_surface.canvas(),
@@ -534,7 +534,7 @@ fn failed_rebuild_preserves_destination_and_previous_cache_entry() {
         )
         .expect_err("missing image must fail checked cache execution");
     assert_eq!(
-        anchor_engine::paint::read_pixels(&mut image_failure_surface, W, H),
+        n0::paint::read_pixels(&mut image_failure_surface, W, H),
         before_image_failure,
         "image execution failure changed the destination"
     );
@@ -552,7 +552,7 @@ fn failed_rebuild_preserves_destination_and_previous_cache_entry() {
         )
         .unwrap());
     assert_eq!(
-        anchor_engine::paint::read_pixels(&mut final_surface, W, H),
+        n0::paint::read_pixels(&mut final_surface, W, H),
         first,
         "image execution failure replaced the prior retained frame"
     );

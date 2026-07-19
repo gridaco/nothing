@@ -2,15 +2,15 @@
 
 use std::sync::Arc;
 
-use anchor_lab::animation::{
+use n0_model::animation::{
     AnimationProgram, CubicBezier, CubicControl, DiscreteCurve, DiscreteCurveError,
     DiscreteKeyframe, Easing, FillMode, KeyframeOffset, PathCurve, PathCurveError, PathKeyframe,
     PathSegment, SampleTime, Timing, Track, TrackError,
 };
-use anchor_lab::model::{DocBuilder, Document, FillRule, Header, Payload, ShapeDesc, SizeIntent};
-use anchor_lab::path::{self, PathCommand, PathGeometry};
-use anchor_lab::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyValues};
-use anchor_lab::resolve::{resolve_view, ResolveOptions};
+use n0_model::model::{DocBuilder, Document, FillRule, Header, Payload, ShapeDesc, SizeIntent};
+use n0_model::path::{self, PathCommand, PathGeometry};
+use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyValues};
+use n0_model::resolve::{resolve_view, ResolveOptions};
 
 fn geometry(commands: Vec<PathCommand>) -> Arc<PathGeometry> {
     PathGeometry::from_commands(commands).unwrap()
@@ -310,7 +310,7 @@ fn sampled_geometry_uses_the_current_authored_fill_rule() {
     let values = program
         .sample(&document, SampleTime::from_nanoseconds(1))
         .unwrap();
-    let view = anchor_lab::properties::ValueView::new(&document, &values).unwrap();
+    let view = n0_model::properties::ValueView::new(&document, &values).unwrap();
     let resolved = resolve_view(&view, &ResolveOptions::default());
     assert_eq!(resolved.resolved_path_of(node).fill_rule, FillRule::EvenOdd);
 }

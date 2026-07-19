@@ -1,17 +1,17 @@
 //! Profile 6 path geometry crosses the ordinary effective-value frame seam.
 
-use anchor_engine::cache::SceneCache;
-use anchor_engine::damage::diff_frame;
-use anchor_engine::drawlist::ItemKind;
-use anchor_engine::frame::{self, FrameRequest};
-use anchor_engine::paint::PaintCtx;
-use anchor_lab::animation::SampleTime;
-use anchor_lab::math::Affine;
-use anchor_lab::model::{Document, NodeId};
-use anchor_lab::path;
-use anchor_lab::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyValues};
-use anchor_lab::resolve::ResolveOptions;
-use anchor_lab::svg_animation::{SourceSnapshot, SvgAnimationSource};
+use n0::cache::SceneCache;
+use n0::damage::diff_frame;
+use n0::drawlist::ItemKind;
+use n0::frame::{self, FrameRequest};
+use n0::paint::PaintCtx;
+use n0_model::animation::SampleTime;
+use n0_model::math::Affine;
+use n0_model::model::{Document, NodeId};
+use n0_model::path;
+use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyValues};
+use n0_model::resolve::ResolveOptions;
+use n0_model::svg_animation::{SourceSnapshot, SvgAnimationSource};
 use skia_safe::surfaces;
 
 const W: i32 = 128;
@@ -71,7 +71,7 @@ fn sampled_path_moves_bounds_damage_drawlist_cache_and_pixels_together() {
 
     assert_eq!(
         base.resolved().resolved_path_of(probe).local_bounds,
-        anchor_lab::math::RectF {
+        n0_model::math::RectF {
             x: 8.0,
             y: 8.0,
             w: 32.0,
@@ -80,7 +80,7 @@ fn sampled_path_moves_bounds_damage_drawlist_cache_and_pixels_together() {
     );
     assert_eq!(
         midpoint.resolved().resolved_path_of(probe).local_bounds,
-        anchor_lab::math::RectF {
+        n0_model::math::RectF {
             x: 40.0,
             y: 12.0,
             w: 40.0,
@@ -107,7 +107,7 @@ fn sampled_path_moves_bounds_damage_drawlist_cache_and_pixels_together() {
     assert!(matches!(path_item.kind, ItemKind::PathFill { .. }));
     assert_eq!(
         midpoint.resolved().resolved_path_of(probe).fill_rule,
-        anchor_lab::path::FillRule::NonZero,
+        n0_model::path::FillRule::NonZero,
         "animated geometry retains the current authored path fill rule"
     );
 
@@ -180,7 +180,7 @@ fn sampled_path_moves_bounds_damage_drawlist_cache_and_pixels_together() {
     let absolute = visually_equal(
         path::analyze(
             "M .25 .25 L .75 .25 L .5 .75 Z",
-            anchor_lab::path::FillRule::NonZero,
+            n0_model::path::FillRule::NonZero,
         )
         .unwrap()
         .geometry()
@@ -189,7 +189,7 @@ fn sampled_path_moves_bounds_damage_drawlist_cache_and_pixels_together() {
     let relative = visually_equal(
         path::analyze(
             "m .25 .25 l .5 0 l -.25 .5 z",
-            anchor_lab::path::FillRule::NonZero,
+            n0_model::path::FillRule::NonZero,
         )
         .unwrap()
         .geometry()

@@ -7,9 +7,9 @@
 //!
 //! Output: ../dec0-fork/fork.json
 
-use anchor_lab::math::RectF;
-use anchor_lab::model::*;
-use anchor_lab::resolve::{resolve, ResolveOptions, Resolved, RotationInFlow};
+use n0_model::math::RectF;
+use n0_model::model::*;
+use n0_model::resolve::{resolve, ResolveOptions, Resolved, RotationInFlow};
 use std::fmt::Write as _;
 use std::fs;
 

@@ -2,16 +2,16 @@
 //!
 //! Text shaping belongs to resolution, not rasterization. This module turns
 //! authored text plus a width constraint and an explicit host font into the
-//! backend-neutral [`anchor_lab::text_layout::TextLayout`] carried by the
+//! backend-neutral [`n0_model::text_layout::TextLayout`] carried by the
 //! resolved tier. The painter later replays its glyph ids and positions; it
 //! never asks Skia to shape the string a second time.
 
 use std::cell::RefCell;
 use std::sync::Arc;
 
-use anchor_lab::math::RectF;
-use anchor_lab::model::{TextPayloadRef, TextStyleRec};
-use anchor_lab::text_layout::{
+use n0_model::math::RectF;
+use n0_model::model::{TextPayloadRef, TextStyleRec};
+use n0_model::text_layout::{
     StubTextLayoutOracle, TextFontKey, TextGlyph, TextGlyphRun, TextLayout, TextLayoutOracle,
     TextLine, TextLineBreak,
 };
@@ -534,7 +534,7 @@ fn sk_text_style(style: TextStyleRec, source_run: Option<usize>) -> TextStyle {
 #[cfg(test)]
 mod registry_tests {
     use super::TextFontRegistry;
-    use anchor_lab::text_layout::TextFontKey;
+    use n0_model::text_layout::TextFontKey;
 
     #[test]
     #[should_panic(expected = "text font key 0 is absent from its drawlist registry")]

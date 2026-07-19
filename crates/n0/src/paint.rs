@@ -12,16 +12,16 @@
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use anchor_lab::math::Affine;
-use anchor_lab::model::{
+use n0_model::math::Affine;
+use n0_model::model::{
     Alignment, BlendMode, BoxFit, DiamondGradientPaint, GradientStop, ImageFilters, ImagePaint,
     ImagePaintFit, LinearGradientPaint, Paint as ModelPaint, Paints, RadialGradientPaint,
     RectangularCornerRadius, RectangularStrokeWidth, ResourceRef, Stroke, StrokeAlign, StrokeCap,
     StrokeJoin, StrokeWidth, SweepGradientPaint, TileMode,
 };
-use anchor_lab::path::{FillRule, PathCommand, ResolvedPathArtifact};
-use anchor_lab::renderability::{self, RenderabilityError};
-use anchor_lab::rounded_box::smooth_corner_params;
+use n0_model::path::{FillRule, PathCommand, ResolvedPathArtifact};
+use n0_model::renderability::{self, RenderabilityError};
+use n0_model::rounded_box::smooth_corner_params;
 use skia_safe::canvas::{SaveLayerFlags, SaveLayerRec};
 use skia_safe::gradient_shader::{Gradient, GradientColors, Interpolation};
 use skia_safe::{
@@ -91,7 +91,7 @@ pub enum GradientPreflightReason {
 /// entries are absent from the drawlist.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GradientPreflightError {
-    pub node: anchor_lab::model::NodeId,
+    pub node: n0_model::model::NodeId,
     pub gradient: GradientKind,
     pub context: PaintUseContext,
     pub draw_item: usize,
@@ -130,7 +130,7 @@ pub enum ImagePreflightReason {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImagePreflightError {
-    pub node: anchor_lab::model::NodeId,
+    pub node: n0_model::model::NodeId,
     pub context: PaintUseContext,
     pub rid: String,
     pub draw_item: usize,
@@ -277,7 +277,7 @@ impl Default for PaintCtx {
 #[cfg(test)]
 mod paint_ctx_tests {
     use super::{sk_paint, PaintBox, PaintCtx};
-    use anchor_lab::model::{
+    use n0_model::model::{
         Color as ModelColor, GradientStop, LinearGradientPaint, Paint as ModelPaint,
     };
     use std::panic::{catch_unwind, AssertUnwindSafe};
@@ -457,7 +457,7 @@ fn gradient_transform(model: &ModelPaint) -> Option<(GradientKind, &Affine)> {
 }
 
 fn preflight_paints(
-    node: anchor_lab::model::NodeId,
+    node: n0_model::model::NodeId,
     draw_item: usize,
     context: PaintUseContext,
     paints: &Paints,
@@ -838,7 +838,7 @@ fn image_fit_matrix(image: &Image, paint_box: PaintBox, fit: BoxFit) -> Matrix {
 
 fn image_shader(paint: &ImagePaint, paint_box: PaintBox, ctx: &PaintCtx) -> Option<Shader> {
     if paint.quarter_turns != 0
-        || paint.alignment != anchor_lab::model::Alignment::CENTER
+        || paint.alignment != n0_model::model::Alignment::CENTER
         || paint.filters != ImageFilters::default()
     {
         return None;
@@ -1350,7 +1350,7 @@ fn backend_path(path: &ResolvedPathArtifact) -> Path {
 #[cfg(test)]
 mod backend_path_tests {
     use super::backend_path;
-    use anchor_lab::path::{analyze, materialize, FillRule};
+    use n0_model::path::{analyze, materialize, FillRule};
 
     #[test]
     fn analytical_arc_bounds_match_the_materialized_conics() {
@@ -1472,7 +1472,7 @@ struct GlyphScratch {
 impl GlyphScratch {
     fn with_run(
         &mut self,
-        run: &anchor_lab::text_layout::TextGlyphRun,
+        run: &n0_model::text_layout::TextGlyphRun,
         list: &DrawList,
         mut use_run: impl FnMut(&Font, &[u16], &[Point]),
     ) {
@@ -1487,7 +1487,7 @@ impl GlyphScratch {
 }
 
 fn text_path(
-    layout: &anchor_lab::text_layout::TextLayout,
+    layout: &n0_model::text_layout::TextLayout,
     list: &DrawList,
     scratch: &mut GlyphScratch,
 ) -> Path {

@@ -1,16 +1,16 @@
-# anchor-engine — the phase-4 canvas engine skeleton
+# n0 ("nothing")
 
-The pipeline the `crates/grida` migration will read: `(document + immutable
-effective values) → resolve → drawlist → paint`, plus the read tier
-(`query`), time-as-data (`journal`/`replay`), and the sockets every future
-optimization plugs into (`damage`, `ident`, `oracle`). It consumes
-[`anchor-lab`](../a/lab) as a library — the same relationship the migration
-will have with the model crate.
-The contracts it encodes are catalogued in [`../a/ENGINE.md`](../a/ENGINE.md)
-(ENG-0…ENG-5, S-1…S-7); each module names the contract it serves.
+`n0` (pronounced "nothing") is a 2D graphics engine — the pipeline
+`(document + immutable effective values) → resolve → drawlist → paint`,
+plus the read tier (`query`), time-as-data (`journal`/`replay`), and the
+sockets every future optimization plugs into (`damage`, `ident`, `oracle`).
+It consumes [`n0-model`](../n0-model) as a library; host chrome
+(winit/egui/GL) lives in consumers ([`n0_dev`](../n0_dev)), never here.
+The contracts it encodes are catalogued in [`../../model-v2/a/ENGINE.md`](../../model-v2/a/ENGINE.md)
+(ENG-0…ENG-5, S-1…S-7, archived); each module names the contract it serves.
 
 This is a **day-1 skeleton**: every contract has a code socket and a guarding
-test, and the spike ([`../a/spike-canvas`](../a/spike-canvas)) is **re-hosted**
+test, and the dev shell ([`../n0_dev`](../n0_dev)) is **re-hosted**
 onto it — painting, hit-testing, gestures, and damage all flow through the
 engine. Growth (incremental resolve, tiles, a broadphase index, and a pinned
 production text oracle) is deferred to named studies; the sockets are here so
@@ -20,7 +20,7 @@ that growth is additive.
 
 ```sh
 # the engine's own tests (drawlist, query, journal, replay, damage, ident)
-cd model-v2/engine && cargo test
+cd crates/n0 && cargo test
 
 # the trace arm must keep compiling
 cargo check --features trace
@@ -28,7 +28,7 @@ cargo check --features trace
 # the re-host gate: replay determinism, differential/cache checks,
 # benchmark budgets, and the deterministic screenshot oracle
 # (needs the spike built first — it owns the golden pixels)
-(cd ../a/spike-canvas && cargo build --release)
+cargo build --release -p n0_dev
 cargo run --release --bin gate
 
 # visual proof of the pre-animation effective-value seam
@@ -162,9 +162,9 @@ The native spike supplies one deliberately disposable live host around that
 boundary:
 
 ```sh
-cd ../a/spike-canvas
+cd ../n0_dev
 cargo run --release -- \
-  --play-svg ../../engine/rig/examples/svg-animation-profile6-path-morph-showcase.svg
+  --play-svg ../n0/rig/examples/svg-animation-profile6-path-morph-showcase.svg
 ```
 
 Its separate `AnimationApp` owns `Instant`, redraw pacing, controls, resize,
@@ -259,7 +259,7 @@ differential corpus remain the open half of the visual/conformance chunk.
 ## Versioned `.grida.xml` ingestion
 
 There is deliberately no XML-specific engine API. Draft 0 still has the
-model crate's pure `anchor_lab::grida_xml::parse(&str)` boundary. The retained
+model crate's pure `n0_model::grida_xml::parse(&str)` boundary. The retained
 source-program boundary additionally parses and links Version 1–4 source
 units, specializes Version 2–4 scalar props, projects Version 3/4 named render
 slots, retains Version 4 durable occurrence addresses, and materializes the
@@ -519,10 +519,10 @@ contract is [`EFFECTIVE-VALUES.md`](./EFFECTIVE-VALUES.md).
 | stage purity + the oracle law        | (whole pipeline)           | ENG-0         | the gate's differential + determinism runs                                                                                                                                                                                                    |
 | versioned source consumer seam       | link → frame               | ENG-0 / S-2   | `tests/grida_xml.rs`, `tests/grida_xml_source.rs`, `tests/grida_xml_slots.rs`, `tests/grida_xml_social_feed.rs`, `tests/paints.rs`, `tests/strokes.rs`, `tests/rectangular_strokes.rs`, `tests/text.rs`, `tests/corners.rs`, `tests/paths.rs` |
 | effective property values            | model → frame              | ENG-0/2/3     | `tests/values.rs` (empty equivalence · layout/transform · paint · bounds · visibility · query · pixels)                                                                                                                                       |
-| explicit-time animation              | SVG → values → frame/cache | ANIMATION     | `../a/lab/tests/animation.rs`, `../a/lab/tests/svg_animation.rs`, `tests/animation.rs` (time · exact interpolation · strict compile · Base/Sample · query · damage · cache · pixels)                                                          |
+| explicit-time animation              | SVG → values → frame/cache | ANIMATION     | `../n0-model/tests/animation.rs`, `../n0-model/tests/svg_animation.rs`, `tests/animation.rs` (time · exact interpolation · strict compile · Base/Sample · query · damage · cache · pixels)                                                          |
 | host-to-document time mapping        | `playback_clock.rs`        | ANIMATION     | `tests/playback_clock.rs`, `tests/animation.rs` (virtual time · controls · cadence independence · endpoint behavior · direct-seek equality)                                                                                                   |
 | drawlist (pure, diffable projection) | `drawlist.rs`              | ENG-2.1       | `tests/drawlist.rs` (order · pruning · color · verbatim world · determinism)                                                                                                                                                                  |
-| text shaping + shared glyph layout   | `text_layout.rs`           | ENG-4.1/4.5   | `../a/lab/tests/text_layout.rs`, `tests/text.rs`                                                                                                                                                                                              |
+| text shaping + shared glyph layout   | `text_layout.rs`           | ENG-4.1/4.5   | `../n0-model/tests/text_layout.rs`, `tests/text.rs`                                                                                                                                                                                              |
 | raster executor                      | `paint.rs`                 | ENG-2.1       | `tests/paints.rs`, `tests/strokes.rs`, `tests/rectangular_strokes.rs`, `tests/text.rs`, `tests/corners.rs`, `tests/paths.rs` (pixel probes)                                                                                                   |
 | one frame entry                      | `frame.rs`                 | ENG-2.4       | `tests/frame.rs` (checked paint environment) · spike live loop · gate                                                                                                                                                                         |
 | damage as data                       | `damage.rs`                | ENG-2.2       | `tests/damage.rs`, `tests/values.rs`, `tests/cache.rs` (geometry · paint-only · opacity · painter order · environment · covering bounds)                                                                                                      |
@@ -534,7 +534,7 @@ contract is [`EFFECTIVE-VALUES.md`](./EFFECTIVE-VALUES.md).
 | gated observability                  | `trace.rs`                 | S-6           | `cargo check --features trace`                                                                                                                                                                                                                |
 | the rig                              | `bin/gate.rs`              | ENG-0.2 / S-5 | it _is_ the gate                                                                                                                                                                                                                              |
 
-The model-crate side of the setup lives in [`../a/lab`](../a/lab): the typed
+The model-crate side of the setup lives in [`../n0-model`](../n0-model): the typed
 `Op` + `apply` dispatcher + `DirtyClass` (`ops.rs`), the arena-scoped per-slot
 generation identity (`model.rs`), the closed property registry and immutable
 `ValueView` (`properties.rs`), the non-panicking `Resolved` opt accessors

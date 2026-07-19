@@ -4,10 +4,10 @@
 //! and generation. The engine re-exports that type instead of defining a
 //! second identity that could drift from document liveness rules.
 
-use anchor_lab::model::{Document, NodeId};
+use n0_model::model::{Document, NodeId};
 
 /// The single arena-scoped, generation-stamped runtime node identity.
-pub use anchor_lab::model::NodeKey as Key;
+pub use n0_model::model::NodeKey as Key;
 
 /// Mint a key only for a live node. Dead, missing, and tombstoned slots have
 /// no identity.

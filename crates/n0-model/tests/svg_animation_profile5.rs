@@ -1,19 +1,19 @@
 //! SVG Animation Profile 5 solid-fill grammar and lowering corpus.
 
-use anchor_lab::animation::{
+use n0_model::animation::{
     AnimationProgram, CompositeOperation, IterationCompositeOperation, SampleTime, Track,
     TrackEffectKind, TrackKind,
 };
-use anchor_lab::model::{BlendMode, Color, Paint};
-use anchor_lab::properties::{PropertyKey, PropertyTarget, PropertyValue};
-use anchor_lab::svg_animation::{SourceSnapshot, SvgAnimationSource, PROFILE5_COMPILER_ID};
+use n0_model::model::{BlendMode, Color, Paint};
+use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue};
+use n0_model::svg_animation::{SourceSnapshot, SvgAnimationSource, PROFILE5_COMPILER_ID};
 
 const PROFILE4_EFFECTS: &str =
-    include_str!("../../../engine/rig/fixtures/svg-animation-profile4-effects-and-transforms.svg");
+    include_str!("../../n0/rig/fixtures/svg-animation-profile4-effects-and-transforms.svg");
 const PROFILE5_BOUNDARIES: &str =
-    include_str!("../../../engine/rig/fixtures/svg-animation-profile5-solid-fill-boundaries.svg");
+    include_str!("../../n0/rig/fixtures/svg-animation-profile5-solid-fill-boundaries.svg");
 const PROFILE5_SHOWCASE: &str =
-    include_str!("../../../engine/rig/examples/svg-animation-profile5-solid-fill-showcase.svg");
+    include_str!("../../n0/rig/examples/svg-animation-profile5-solid-fill-showcase.svg");
 
 fn materialize(source: &str) -> SvgAnimationSource {
     SvgAnimationSource::parse(SourceSnapshot::new("profile5-test.svg", source)).unwrap()

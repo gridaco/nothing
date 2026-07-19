@@ -4,13 +4,13 @@
 //! resolved-layout assertions keep the authored demo executable; the focused
 //! solid-color slot fixture owns deterministic pixel observations.
 
-use anchor_engine::drawlist::ItemKind;
-use anchor_engine::frame;
-use anchor_engine::paint::PaintCtx;
-use anchor_lab::grida_xml_source::{self, SourceProvider, SourceSnapshot};
-use anchor_lab::math::Affine;
-use anchor_lab::model::{Paint, ResourceRef};
-use anchor_lab::resolve::{resolve, ResolveOptions};
+use n0::drawlist::ItemKind;
+use n0::frame;
+use n0::paint::PaintCtx;
+use n0_model::grida_xml_source::{self, SourceProvider, SourceSnapshot};
+use n0_model::math::Affine;
+use n0_model::model::{Paint, ResourceRef};
+use n0_model::resolve::{resolve, ResolveOptions};
 use skia_safe::{surfaces, Color};
 use std::collections::BTreeSet;
 

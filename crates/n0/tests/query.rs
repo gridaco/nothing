@@ -1,17 +1,17 @@
 //! ENG-3 · the query facade fronts the lab narrowphase without changing what
-//! is selected: `hit_point` equals `anchor_lab::pick::pick` at every point of
+//! is selected: `hit_point` equals `n0_model::pick::pick` at every point of
 //! a sweep (the walk is the oracle), and `nodes_in_rect` finds AABB overlaps.
 
-use anchor_engine::{frame, paint::PaintCtx, query::Query};
-use anchor_lab::animation::SampleTime;
-use anchor_lab::math::RectF;
-use anchor_lab::model::*;
-use anchor_lab::pick::pick;
-use anchor_lab::properties::{
+use n0::{frame, paint::PaintCtx, query::Query};
+use n0_model::animation::SampleTime;
+use n0_model::math::RectF;
+use n0_model::model::*;
+use n0_model::pick::pick;
+use n0_model::properties::{
     PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView,
 };
-use anchor_lab::resolve::{resolve, ResolveOptions, RotationInFlow};
-use anchor_lab::svg_animation::{SourceSnapshot, SvgAnimationSource};
+use n0_model::resolve::{resolve, ResolveOptions, RotationInFlow};
+use n0_model::svg_animation::{SourceSnapshot, SvgAnimationSource};
 
 fn opts() -> ResolveOptions {
     ResolveOptions {

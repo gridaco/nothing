@@ -1,10 +1,11 @@
-# anchor-lab
+# n0-model
 
-The standalone proving crate for the `anchor` model
-([`../../models/a.md`](../../models/a.md)) — lab subset: `frame`, `shape`
-(rect/ellipse/line/path), `text` (oracle-backed, with a deterministic 0.6/1.2
-stub), `group`, `lens` (2D ops). **Not** a member of the repo workspace;
-promotion into `crates/` happens at phase 4 only.
+The skia-free `anchor` model crate
+([`../../model-v2/models/a.md`](../../model-v2/models/a.md), archived spec
+draft) — node subset: `frame`, `shape` (rect/ellipse/line/path), `text`
+(oracle-backed, with a deterministic 0.6/1.2 stub), `group`, `lens` (2D ops).
+Consumed as a library by [`n0`](../n0) (the engine) and
+[`n0_dev`](../n0_dev) (the dev shell); formerly the model-v2 proving lab.
 
 ```sh
 cargo test                      # conformance + format-contract suites
@@ -87,7 +88,7 @@ silently omit root state, serialize a forest, or emit source the strict parser
 rejects.
 
 The reader and writer implement the current
-[Grida XML Draft 0 RFD](https://grida.co/docs/wg/format/grida-xml) vocabulary.
+[Grida XML Draft 0 RFD](../../docs/wg/format/grida-xml.md) vocabulary.
 Parsing is strict: retired experiment spellings, unknown properties, invalid
 target/property combinations, and model states that cannot round-trip fail
 with contextual errors instead of being ignored or repaired.

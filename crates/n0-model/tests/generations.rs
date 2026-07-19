@@ -6,7 +6,7 @@
 
 mod common;
 
-use anchor_lab::model::*;
+use n0_model::model::*;
 
 fn one_child() -> (Document, NodeId) {
     let mut b = DocBuilder::new();

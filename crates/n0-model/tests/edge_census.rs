@@ -5,8 +5,8 @@
 mod common;
 use common::*;
 
-use anchor_lab::math::Affine;
-use anchor_lab::model::*;
+use n0_model::math::Affine;
+use n0_model::model::*;
 
 // ---------- text edges ----------
 
@@ -388,7 +388,7 @@ fn rotation_accumulation_bounded() {
     let s = b.add(0, h, p);
     let mut doc = b.build();
     for i in 1..=120 {
-        anchor_lab::ops::set_rotation(&mut doc, s, i as f32 * 3.0).unwrap();
+        n0_model::ops::set_rotation(&mut doc, s, i as f32 * 3.0).unwrap();
     }
     let r = run(&doc);
     let w = r.world_of(s);
@@ -524,7 +524,7 @@ fn ungroup_nested_group_preserves_world() {
     let before = run(&doc);
     let w1 = before.world_of(s1);
     let w2 = before.world_of(s2);
-    anchor_lab::ops::ungroup(&mut doc, &before, g).unwrap();
+    n0_model::ops::ungroup(&mut doc, &before, g).unwrap();
     let after = run(&doc);
     for (id, w) in [(s1, w1), (s2, w2)] {
         let v = after.world_of(id);
@@ -570,7 +570,7 @@ fn negative_zero_rotation_canonicalized() {
     let (h, p) = shape(50.0, 50.0);
     let s = b.add(0, h, p);
     let mut doc = b.build();
-    anchor_lab::ops::set_rotation(&mut doc, s, -0.0).unwrap();
+    n0_model::ops::set_rotation(&mut doc, s, -0.0).unwrap();
     assert!(
         doc.get(s).header.rotation.is_sign_positive(),
         "−0.0 never stored"

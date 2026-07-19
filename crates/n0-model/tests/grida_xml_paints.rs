@@ -1,7 +1,7 @@
 //! Producer contract for ordered typed paints in Draft 0 `.grida.xml`.
 
-use anchor_lab::grida_xml::{self, PrintError};
-use anchor_lab::model::*;
+use n0_model::grida_xml::{self, PrintError};
+use n0_model::model::*;
 
 const THREE_LAYER: &str = r##"
 <grida version="0">
@@ -534,13 +534,13 @@ fn retired_paint_spellings_are_rejected_with_canonical_directions() {
 
 #[test]
 fn frozen_textir_is_singleton_solid_and_rich_state_fails_writers() {
-    let historical = anchor_lab::textir::parse(
+    let historical = n0_model::textir::parse(
         r##"<frame w="10" h="10"><shape kind="rect" w="1" h="1" fill="#abc"/></frame>"##,
     )
     .unwrap();
-    let printed = anchor_lab::textir::try_print(&historical).unwrap();
+    let printed = n0_model::textir::try_print(&historical).unwrap();
     assert!(printed.contains("fill=\"#000000\""));
-    assert_eq!(historical, anchor_lab::textir::parse(&printed).unwrap());
+    assert_eq!(historical, n0_model::textir::parse(&printed).unwrap());
 
     for (legacy, canonical) in [
         ("112233", "#112233"),
@@ -550,9 +550,9 @@ fn frozen_textir_is_singleton_solid_and_rich_state_fails_writers() {
         let source = format!(
             r#"<frame w="10" h="10"><shape kind="rect" w="1" h="1" fill="{legacy}"/></frame>"#
         );
-        let doc = anchor_lab::textir::parse(&source).unwrap();
+        let doc = n0_model::textir::parse(&source).unwrap();
         assert!(
-            anchor_lab::textir::try_print(&doc)
+            n0_model::textir::try_print(&doc)
                 .unwrap()
                 .contains(&format!(r#"fill="{canonical}""#)),
             "legacy color {legacy}"
@@ -566,13 +566,13 @@ fn frozen_textir_is_singleton_solid_and_rich_state_fails_writers() {
     assert!(grida_xml::print(&grida_short)
         .unwrap()
         .contains("fill=\"#AABBCC\""));
-    assert!(anchor_lab::textir::parse(
+    assert!(n0_model::textir::parse(
         r##"<frame w="10" h="10"><fills><solid color="#fff"/></fills></frame>"##
     )
     .is_err());
 
     let rich = grida_xml::parse(THREE_LAYER).unwrap();
-    assert!(anchor_lab::textir::try_print(&rich).is_err());
+    assert!(n0_model::textir::try_print(&rich).is_err());
 
     let mut unsupported_image = rich.clone();
     let card = named(&unsupported_image, "card");

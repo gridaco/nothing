@@ -7,13 +7,13 @@
 //! recovered exactly as `box − origin` (E-A1: bindings place the origin;
 //! the box is origin + union offset).
 
-use anchor_lab::math::RectF;
-use anchor_lab::model::*;
-use anchor_lab::resolve::Resolved;
+use n0_model::math::RectF;
+use n0_model::model::*;
+use n0_model::resolve::Resolved;
 use skia_safe::{Canvas, Color, Font, Paint, PaintStyle, PathBuilder, Rect};
 
 use crate::camera::Camera;
-use anchor_engine::paint::PaintCtx;
+use n0::paint::PaintCtx;
 
 pub const HANDLE: f32 = 8.0;
 pub const ROTATE_STICK: f32 = 26.0;

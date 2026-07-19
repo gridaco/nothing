@@ -1,16 +1,16 @@
 //! The app loop: window events → interaction FSM → lab ops → resolve →
 //! paint. The document is the ONLY mutable truth; undo is a snapshot
-//! stack of it; every mutation goes through `anchor_lab::ops` and lands
+//! stack of it; every mutation goes through `n0_model::ops` and lands
 //! in the gesture log as a header diff (writes) + typed errors.
 
 use std::num::NonZeroU32;
 
-use anchor_engine::frame::FrameProduct;
-use anchor_engine::journal::Journal;
-use anchor_engine::query::Query;
-use anchor_lab::model::{Document, NodeId};
-use anchor_lab::ops::{self, Axis, Op, ResizeDrag};
-use anchor_lab::resolve::Resolved;
+use n0::frame::FrameProduct;
+use n0::journal::Journal;
+use n0::query::Query;
+use n0_model::model::{Document, NodeId};
+use n0_model::ops::{self, Axis, Op, ResizeDrag};
+use n0_model::resolve::Resolved;
 use glutin::prelude::GlSurface;
 use winit::application::ApplicationHandler;
 use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
@@ -26,7 +26,7 @@ use crate::interaction::{
 use crate::paint::paint_ctx;
 use crate::shell::hud::{self, HandleKind};
 use crate::{resolve_and_build_doc, scene};
-use anchor_engine::paint::PaintCtx;
+use n0::paint::PaintCtx;
 
 pub struct App {
     // document + editor state
@@ -60,7 +60,7 @@ pub struct App {
     /// headless probes and the raw swap-wall both hid.
     pub bd: [f32; 6],
     frame_count: u64,
-    /// One-time diagnostic: every frame appended to `/tmp/anchor-spike-frames.log`
+    /// One-time diagnostic: every frame appended to `/tmp/n0_dev-frames.log`
     /// (truncated per run), flushed each frame so a kill preserves it. Captures
     /// the inter-frame GAP (true fps, incl. time spent outside draw) during a
     /// real pan — the signal idle capture can't see. NOT the dev-iteration
@@ -204,7 +204,7 @@ impl App {
         self.redo.clear();
     }
 
-    /// Apply a typed op through the engine's dispatch (`anchor_lab::ops::apply`)
+    /// Apply a typed op through the engine's dispatch (`n0_model::ops::apply`)
     /// and record it in the journal (ENG-5.1). `resolved` must be a fresh
     /// resolve of the current document — callers pass the same resolve they
     /// already computed, so this is byte-identical to the pre-journal free-fn
@@ -671,7 +671,7 @@ impl App {
         let product = resolve_and_build_doc(&self.doc, &self.ctx)
             .expect("spike scene must pass paint preflight");
         self.last_damage = match &self.last_frame {
-            Some(previous) => anchor_engine::damage::diff_frame(previous, &product)
+            Some(previous) => n0::damage::diff_frame(previous, &product)
                 .changed
                 .len(),
             None => 0,
@@ -736,7 +736,7 @@ impl App {
         // Per-run frame log (opt-in `ANCHOR_FRAMELOG=1`). Truncated on the first
         // frame; flushed every frame so a hard kill during panning preserves it.
         if self.want_framelog && self.frame_log.is_none() {
-            let path = "/tmp/anchor-spike-frames.log";
+            let path = "/tmp/n0_dev-frames.log";
             match std::fs::File::create(path) {
                 Ok(f) => {
                     let sz = self.window.inner_size();
@@ -817,7 +817,7 @@ impl App {
     fn build_panels(&mut self, ui: &mut egui::Ui) {
         // Keep the draft mirroring the document until the user edits it.
         if !self.ir_dirty {
-            self.ir_draft = anchor_lab::textir::print(&self.doc);
+            self.ir_draft = n0_model::textir::print(&self.doc);
         }
         let resolved = self.resolve_live();
 
@@ -990,7 +990,7 @@ impl App {
     /// A bad IR is a TYPED parse error shown in place — the document
     /// stays untouched (the op-layer doctrine at the text seam).
     fn apply_ir(&mut self) {
-        match anchor_lab::textir::parse(&self.ir_draft) {
+        match n0_model::textir::parse(&self.ir_draft) {
             Ok(newdoc) => {
                 self.push_undo();
                 self.doc = newdoc;

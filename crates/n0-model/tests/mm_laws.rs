@@ -3,9 +3,9 @@
 mod common;
 use common::*;
 
-use anchor_lab::model::*;
-use anchor_lab::ops;
-use anchor_lab::resolve::resolve;
+use n0_model::model::*;
+use n0_model::ops;
+use n0_model::resolve::resolve;
 
 fn sample_doc() -> (Document, NodeId, NodeId, NodeId) {
     let mut b = DocBuilder::new();
@@ -201,7 +201,7 @@ fn mm9_ungroup_preserves_world_transforms() {
     let w1 = before.world_of(s1);
     let w2 = before.world_of(s2);
 
-    anchor_lab::ops::ungroup(&mut doc, &before, g).unwrap();
+    n0_model::ops::ungroup(&mut doc, &before, g).unwrap();
     assert!(doc.get_opt(g).is_none(), "group dissolved");
 
     let after = run(&doc);

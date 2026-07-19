@@ -3,8 +3,8 @@
 mod common;
 use common::*;
 
-use anchor_lab::model::*;
-use anchor_lab::resolve::resolve;
+use n0_model::model::*;
+use n0_model::resolve::resolve;
 
 fn rotated_group_doc() -> (Document, NodeId, NodeId, NodeId) {
     let mut b = DocBuilder::new();

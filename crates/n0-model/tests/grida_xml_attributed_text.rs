@@ -1,7 +1,7 @@
 //! Focused contract for the flat `<text>` + direct-child `<tspan>` surface.
 
-use anchor_lab::grida_xml;
-use anchor_lab::model::*;
+use n0_model::grida_xml;
+use n0_model::model::*;
 
 fn parse_text(source: &str) -> (Document, NodeId) {
     let source = format!("<grida version=\"0\"><container>{source}</container></grida>");

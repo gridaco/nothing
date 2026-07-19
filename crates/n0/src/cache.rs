@@ -17,11 +17,11 @@
 //! visual approximation the live editor accepts, re-rastering on settle); the
 //! gate proves the integer case, which is the contract.
 
-use anchor_lab::animation::SampleError;
-use anchor_lab::math::Affine;
-use anchor_lab::model::{Document, NodeKey};
-use anchor_lab::properties::{PropertyError, PropertyValues, ValueView};
-use anchor_lab::resolve::{ResolveOptions, RotationInFlow};
+use n0_model::animation::SampleError;
+use n0_model::math::Affine;
+use n0_model::model::{Document, NodeKey};
+use n0_model::properties::{PropertyError, PropertyValues, ValueView};
+use n0_model::resolve::{ResolveOptions, RotationInFlow};
 use skia_safe::{Canvas, Color, FilterMode, Image, ImageInfo, MipmapMode, SamplingOptions};
 
 use crate::drawlist::DrawList;

@@ -1,10 +1,10 @@
 //! Draft 0 rounded-box syntax is a lossless projection of Grida's existing
 //! per-corner elliptical radii plus normalized corner smoothing.
 
-use anchor_lab::grida_xml::{self, PrintError};
-use anchor_lab::model::*;
-use anchor_lab::resolve::{resolve, ResolveOptions};
-use anchor_lab::{svgout, textir};
+use n0_model::grida_xml::{self, PrintError};
+use n0_model::model::*;
+use n0_model::resolve::{resolve, ResolveOptions};
+use n0_model::{svgout, textir};
 
 fn canonical(source: &str) -> (Document, String) {
     let doc = grida_xml::parse(source).expect("Draft 0 source parses");

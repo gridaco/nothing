@@ -3,8 +3,8 @@
 mod common;
 use common::*;
 
-use anchor_lab::model::*;
-use anchor_lab::resolve::{resolve, Report};
+use n0_model::model::*;
+use n0_model::resolve::{resolve, Report};
 
 /// L-3: hug container with mixed fixed/grow children — no cycle; grow
 /// distributes only definite free space (of which a hug container has none).

@@ -9,13 +9,13 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use anchor_engine::damage::diff_frame;
-use anchor_engine::frame::{self, FrameProduct, FrameRequest};
-use anchor_engine::paint::PaintCtx;
-use anchor_engine::playback_clock::{HostTime, PlaybackRange};
-use anchor_lab::animation::{AnimationProgram, SampleTime};
-use anchor_lab::resolve::ResolveOptions;
-use anchor_lab::svg_animation::{CompiledSvgAnimation, SourceSnapshot, SvgAnimationSource};
+use n0::damage::diff_frame;
+use n0::frame::{self, FrameProduct, FrameRequest};
+use n0::paint::PaintCtx;
+use n0::playback_clock::{HostTime, PlaybackRange};
+use n0_model::animation::{AnimationProgram, SampleTime};
+use n0_model::resolve::ResolveOptions;
+use n0_model::svg_animation::{CompiledSvgAnimation, SourceSnapshot, SvgAnimationSource};
 use glutin::prelude::GlSurface;
 use skia_safe::Color;
 use winit::application::ApplicationHandler;
@@ -579,13 +579,13 @@ mod tests {
         );
         assert_eq!(
             compiled.animation().compiler_id(),
-            anchor_lab::svg_animation::PROFILE6_COMPILER_ID
+            n0_model::svg_animation::PROFILE6_COMPILER_ID
         );
         assert_eq!(compiled.animation().effect_stacks().count(), 1);
         assert_eq!(compiled.animation().tracks().len(), 1);
         assert_eq!(
             compiled.animation().tracks()[0].kind(),
-            anchor_lab::animation::TrackKind::SolidFill
+            n0_model::animation::TrackKind::SolidFill
         );
     }
 

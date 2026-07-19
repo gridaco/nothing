@@ -2,9 +2,9 @@
 //! reject the document. It must never choose a representative paint or invent
 //! a fallback color.
 
-use anchor_lab::grida_xml;
-use anchor_lab::resolve::{resolve, ResolveOptions};
-use anchor_lab::svgout::{self, SvgOptions};
+use n0_model::grida_xml;
+use n0_model::resolve::{resolve, ResolveOptions};
+use n0_model::svgout::{self, SvgOptions};
 
 fn render(source: &str) -> Result<String, svgout::SvgError> {
     let doc = grida_xml::parse(source).expect("fixture parses");

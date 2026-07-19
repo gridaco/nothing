@@ -1,16 +1,16 @@
 //! Profile 5 fill-color samples through effective values, draw lists, damage,
 //! queries, and pixels without a paint-specific renderer path.
 
-use anchor_engine::damage::diff_frame;
-use anchor_engine::drawlist::ItemKind;
-use anchor_engine::frame::{self, FrameRequest};
-use anchor_engine::paint::PaintCtx;
-use anchor_engine::replay::resolved_bits_eq;
-use anchor_lab::animation::SampleTime;
-use anchor_lab::math::Affine;
-use anchor_lab::model::{Document, NodeId, Paint};
-use anchor_lab::resolve::ResolveOptions;
-use anchor_lab::svg_animation::{SourceSnapshot, SvgAnimationSource};
+use n0::damage::diff_frame;
+use n0::drawlist::ItemKind;
+use n0::frame::{self, FrameRequest};
+use n0::paint::PaintCtx;
+use n0::replay::resolved_bits_eq;
+use n0_model::animation::SampleTime;
+use n0_model::math::Affine;
+use n0_model::model::{Document, NodeId, Paint};
+use n0_model::resolve::ResolveOptions;
+use n0_model::svg_animation::{SourceSnapshot, SvgAnimationSource};
 
 const W: i32 = 64;
 const H: i32 = 32;

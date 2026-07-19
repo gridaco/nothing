@@ -6,11 +6,11 @@
 //! [`FrameProduct`] plus timings. The host clears the canvas and paints its own
 //! chrome around this; the compositor owns pacing.
 
-use anchor_lab::animation::{AnimationProgram, SampleError, SampleTime};
-use anchor_lab::math::Affine;
-use anchor_lab::model::Document;
-use anchor_lab::properties::{PropertyValues, ValueView};
-use anchor_lab::resolve::{
+use n0_model::animation::{AnimationProgram, SampleError, SampleTime};
+use n0_model::math::Affine;
+use n0_model::model::Document;
+use n0_model::properties::{PropertyValues, ValueView};
+use n0_model::resolve::{
     resolve_view_with_text_layout, resolve_with_text_layout, ResolveOptions, Resolved,
 };
 use std::time::Instant;

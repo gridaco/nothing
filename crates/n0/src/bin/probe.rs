@@ -26,16 +26,16 @@
 use std::hint::black_box;
 use std::time::Instant;
 
-use anchor_engine::cache::SceneCache;
-use anchor_engine::{
+use n0::cache::SceneCache;
+use n0::{
     damage,
     frame::{render, resolve_and_build},
     paint::PaintCtx,
 };
-use anchor_lab::math::{Affine, RectF};
-use anchor_lab::model::*;
-use anchor_lab::ops::{self, dirty_class, Op, PhaseMask};
-use anchor_lab::resolve::{ResolveOptions, RotationInFlow};
+use n0_model::math::{Affine, RectF};
+use n0_model::model::*;
+use n0_model::ops::{self, dirty_class, Op, PhaseMask};
+use n0_model::resolve::{ResolveOptions, RotationInFlow};
 
 const W: f32 = 1360.0;
 const H: f32 = 900.0;

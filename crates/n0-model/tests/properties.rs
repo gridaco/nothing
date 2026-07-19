@@ -1,10 +1,10 @@
 //! Closed typed-property registry and immutable ValueView contract.
 
-use anchor_lab::grida_xml;
-use anchor_lab::model::*;
-use anchor_lab::pick::pick;
-use anchor_lab::properties::*;
-use anchor_lab::resolve::{resolve, resolve_view, ResolveOptions};
+use n0_model::grida_xml;
+use n0_model::model::*;
+use n0_model::pick::pick;
+use n0_model::properties::*;
+use n0_model::resolve::{resolve, resolve_view, ResolveOptions};
 use std::collections::BTreeSet;
 
 fn target(document: &Document, node: NodeId, property: PropertyKey) -> PropertyTarget {
@@ -293,7 +293,7 @@ fn paint_and_stroke_values_are_validated_recursively_without_subobject_targets()
 fn effective_gradients_reject_singular_transforms_for_every_gradient_kind() {
     let (document, rect, _) = flex_scene();
     let stops = vec![stop(0.0), stop(1.0)];
-    let singular = anchor_lab::math::Affine {
+    let singular = n0_model::math::Affine {
         a: 1.0,
         b: 2.0,
         c: 2.0,
@@ -344,7 +344,7 @@ fn effective_gradients_reject_singular_transforms_for_every_gradient_kind() {
 fn effective_linear_gradient_endpoints_follow_skias_f32_degeneracy_boundary() {
     let (document, rect, _) = flex_scene();
     let key = target(&document, rect, PropertyKey::Fills);
-    let threshold = anchor_lab::renderability::LINEAR_GRADIENT_DEGENERATE_THRESHOLD;
+    let threshold = n0_model::renderability::LINEAR_GRADIENT_DEGENERATE_THRESHOLD;
     let gradient = |distance: f32| {
         Paint::LinearGradient(LinearGradientPaint {
             xy1: Alignment::from_uv(0.0, 0.5),
@@ -740,7 +740,7 @@ fn effective_image_paints_match_the_proving_renderer_capability_fence() {
     alignment.alignment = Alignment(-1.0, -1.0);
     unsupported.push(alignment);
     let mut transform = valid.clone();
-    transform.fit = ImagePaintFit::Transform(anchor_lab::math::Affine::IDENTITY);
+    transform.fit = ImagePaintFit::Transform(n0_model::math::Affine::IDENTITY);
     unsupported.push(transform);
     let mut tile = valid.clone();
     tile.fit = ImagePaintFit::Tile(ImageTile {

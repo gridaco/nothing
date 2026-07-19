@@ -1,10 +1,10 @@
 //! Version 3 named static slot projection producer contract.
 
-use anchor_lab::grida_xml;
-use anchor_lab::grida_xml_source::{
+use n0_model::grida_xml;
+use n0_model::grida_xml_source::{
     self, BindingTargetKind, ErrorPhase, SourceProvider, SourceSnapshot, SourceVersion,
 };
-use anchor_lab::model::{AxisBinding, Document, NodeId, Paint};
+use n0_model::model::{AxisBinding, Document, NodeId, Paint};
 use std::collections::BTreeMap;
 
 fn snapshot(identity: &str, base: &str, source: &str) -> SourceSnapshot {

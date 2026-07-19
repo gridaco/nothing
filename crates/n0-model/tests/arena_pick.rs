@@ -1,10 +1,10 @@
 //! Part-1 spike surface: the node arena's structural APIs, the delete op,
 //! and hit-testing (`pick`) over the resolved SOA tier.
 
-use anchor_lab::model::*;
-use anchor_lab::ops;
-use anchor_lab::pick::pick;
-use anchor_lab::resolve::{resolve, ResolveOptions};
+use n0_model::model::*;
+use n0_model::ops;
+use n0_model::pick::pick;
+use n0_model::resolve::{resolve, ResolveOptions};
 
 fn opts() -> ResolveOptions {
     ResolveOptions {

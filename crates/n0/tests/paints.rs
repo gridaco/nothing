@@ -5,9 +5,9 @@
 
 mod support;
 
-use anchor_engine::drawlist::ItemKind;
-use anchor_engine::paint::PaintCtx;
-use anchor_lab::model::Paint;
+use n0::drawlist::ItemKind;
+use n0::paint::PaintCtx;
+use n0_model::model::Paint;
 use support::render_xml as render;
 
 #[test]

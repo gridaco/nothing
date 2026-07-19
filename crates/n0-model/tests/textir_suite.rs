@@ -4,8 +4,8 @@
 mod common;
 use common::*;
 
-use anchor_lab::model::*;
-use anchor_lab::textir::{parse, print};
+use n0_model::model::*;
+use n0_model::textir::{parse, print};
 
 const QUARTET: &str = r#"
 <frame w="1000" h="1000">

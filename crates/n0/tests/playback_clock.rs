@@ -1,10 +1,10 @@
 //! Pure playback-clock laws. No source format, animation program, frame API,
 //! renderer, scheduler, or system clock participates in these tests.
 
-use anchor_engine::playback_clock::{
+use n0::playback_clock::{
     HostTime, PlaybackClock, PlaybackClockError, PlaybackDirection, PlaybackRange, PlaybackRate,
 };
-use anchor_lab::animation::SampleTime;
+use n0_model::animation::SampleTime;
 
 fn host(nanoseconds: u64) -> HostTime {
     HostTime::from_nanoseconds(nanoseconds)

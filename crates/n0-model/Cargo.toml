@@ -1,18 +1,14 @@
 [package]
-name = "anchor-lab"
+name = "n0-model"
 version = "0.0.0"
 edition = "2021"
 publish = false
-
-# Standalone on purpose: this crate is the model-v2 `anchor` proving lab.
-# It is NOT a member of the repo workspace (see model-v2/a/README.md —
-# experiment code is promoted into crates/ only at phase 4).
-[workspace]
+description = "The skia-free `anchor` document model: node records, ops, resolve, pick, measure, Grida XML ingestion, and the text IR."
 
 [features]
 # `serde` (default OFF) makes `Op` / `ResizeDrag` / `Axis` serializable — the
-# op-log wire for engine replay. Kept optional so serialization remains an
-# explicit dependency choice for this standalone proving crate.
+# op-log wire for engine replay. Kept optional so n0 (the engine) opts in
+# explicitly; other consumers of the model stay serde-free.
 serde = ["dep:serde"]
 
 [dependencies]
@@ -24,6 +20,3 @@ num-rational = "0.4"
 num-traits = "0.2"
 serde = { version = "1.0", optional = true, features = ["derive"] }
 svgtypes = "0.16"
-
-[profile.release]
-debug = true

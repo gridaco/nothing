@@ -1,8 +1,8 @@
 //! E4 — resolver spike: throughput + scaling of the four-phase resolution
 //! on realistic scene shapes. Run with `cargo run --release --bin e4`.
 
-use anchor_lab::model::*;
-use anchor_lab::resolve::{resolve, ResolveOptions};
+use n0_model::model::*;
+use n0_model::resolve::{resolve, ResolveOptions};
 use std::time::Instant;
 
 /// (a) flat canvas: N free shapes under the root (typical canvas board).
@@ -148,7 +148,7 @@ fn bench(name: &str, doc: &Document) {
     // The default arm (VisualOnly, DEC-0) is strictly cheaper — no
     // envelope math in sizing.
     let opts = ResolveOptions {
-        rotation_in_flow: anchor_lab::resolve::RotationInFlow::AabbParticipates,
+        rotation_in_flow: n0_model::resolve::RotationInFlow::AabbParticipates,
         ..ResolveOptions::default()
     };
     let n = doc.len();

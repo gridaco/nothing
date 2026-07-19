@@ -1,8 +1,8 @@
 //! Shared helpers for the conformance-derived suites.
 
-use anchor_lab::math::RectF;
-use anchor_lab::model::*;
-use anchor_lab::resolve::{resolve, ResolveOptions, Resolved, RotationInFlow};
+use n0_model::math::RectF;
+use n0_model::model::*;
+use n0_model::resolve::{resolve, ResolveOptions, Resolved, RotationInFlow};
 
 pub const EPS: f32 = 1e-3; // N-3 within-platform tolerance for the lab
 

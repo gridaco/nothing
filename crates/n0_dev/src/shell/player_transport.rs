@@ -6,8 +6,8 @@
 //! not own ambient time, rendering, windows, or controls, and is not an engine
 //! runtime API.
 
-use anchor_engine::playback_clock::{HostTime, PlaybackClock, PlaybackClockError, PlaybackRange};
-use anchor_lab::animation::SampleTime;
+use n0::playback_clock::{HostTime, PlaybackClock, PlaybackClockError, PlaybackRange};
+use n0_model::animation::SampleTime;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum ScrubPhase {

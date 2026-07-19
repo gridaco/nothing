@@ -1,12 +1,14 @@
-//! anchor-lab — the model-v2 `anchor` proving lab.
+//! n0-model — the `anchor` model crate (formerly the model-v2 proving lab).
 //!
-//! Implements the model of `model-v2/models/a.md` (lab subset) to run the
-//! experiment ledger of `model-v2/a/README.md`:
+//! Implements the model of `model-v2/models/a.md` (the archived spec draft),
+//! proven by the experiment ledger of `model-v2/a/README.md`:
 //! - E1 rotation-in-flow (both semantics behind [`resolve::RotationInFlow`])
 //! - E3 agent text IR ([`textir`])
 //! - E4 resolver spike ([`resolve`])
 //!
-//! Standalone by design; promoted into `crates/` only at phase 4.
+//! Consumed as a library by `n0` (the engine); serialization
+//! (`Op`/`ResizeDrag`/`Axis`) is gated behind the optional `serde` feature.
+//! This crate stays skia-free — backends live in its consumers.
 
 pub mod animation;
 pub mod grida_xml;

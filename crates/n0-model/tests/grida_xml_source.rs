@@ -1,10 +1,10 @@
 //! Producer contract for retained Draft 1 Grida XML source programs.
 
-use anchor_lab::grida_xml;
-use anchor_lab::grida_xml_source::{
+use n0_model::grida_xml;
+use n0_model::grida_xml_source::{
     self, ErrorPhase, SourceProvider, SourceSnapshot, SourceVersion,
 };
-use anchor_lab::model::{AxisBinding, Paint, Payload, ResourceRef};
+use n0_model::model::{AxisBinding, Paint, Payload, ResourceRef};
 use std::collections::BTreeMap;
 
 fn snapshot(identity: &str, base: &str, source: &str) -> SourceSnapshot {

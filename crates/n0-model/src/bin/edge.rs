@@ -4,9 +4,9 @@
 //! Output: ../edge-cases/frames.json
 //! Per scene, per frame (θ), per node: world affine (a,b,c,d,e,f) + box dims.
 
-use anchor_lab::model::*;
-use anchor_lab::ops::{self, Axis, ResizeDrag};
-use anchor_lab::resolve::{resolve, ResolveOptions, RotationInFlow};
+use n0_model::model::*;
+use n0_model::ops::{self, Axis, ResizeDrag};
+use n0_model::resolve::{resolve, ResolveOptions, RotationInFlow};
 use std::fmt::Write as _;
 use std::fs;
 

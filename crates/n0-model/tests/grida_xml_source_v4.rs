@@ -1,6 +1,6 @@
 //! Version 4 durable authored-member and component-occurrence addresses.
 
-use anchor_lab::grida_xml_source::{
+use n0_model::grida_xml_source::{
     self, AddressLookupError, AuthoredMemberId, AuthoredOwner, SourceProvider, SourceSnapshot,
     SourceVersion,
 };

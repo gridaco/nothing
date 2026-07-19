@@ -7,13 +7,13 @@
 #[allow(dead_code)]
 mod support;
 
-use anchor_engine::drawlist::build_glyphless_unchecked;
-use anchor_engine::frame;
-use anchor_engine::paint::PaintCtx;
-use anchor_lab::grida_xml_source::{self, SourceProvider, SourceSnapshot};
-use anchor_lab::math::Affine;
-use anchor_lab::model::{Payload, ShapeDesc};
-use anchor_lab::resolve::{resolve, ResolveOptions};
+use n0::drawlist::build_glyphless_unchecked;
+use n0::frame;
+use n0::paint::PaintCtx;
+use n0_model::grida_xml_source::{self, SourceProvider, SourceSnapshot};
+use n0_model::math::Affine;
+use n0_model::model::{Payload, ShapeDesc};
+use n0_model::resolve::{resolve, ResolveOptions};
 use skia_safe::{surfaces, Color};
 
 const ENTRY_SOURCE: &str = include_str!("../rig/fixtures/slot-program/entry.grida.xml");

@@ -1,16 +1,16 @@
 //! Complete-frame execution keeps the drawlist and paint environment coupled.
 
-use anchor_engine::{
+use n0::{
     frame::{self, FrameBuildError, FrameError, FrameExecutionError},
     paint::{GradientPreflightReason, ImagePreflightReason, PaintCtx, PaintUseContext},
 };
-use anchor_lab::grida_xml;
-use anchor_lab::math::Affine;
-use anchor_lab::model::*;
-use anchor_lab::properties::{
+use n0_model::grida_xml;
+use n0_model::math::Affine;
+use n0_model::model::*;
+use n0_model::properties::{
     PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView,
 };
-use anchor_lab::resolve::ResolveOptions;
+use n0_model::resolve::ResolveOptions;
 use skia_safe::{surfaces, Color, FontMgr};
 
 fn scene() -> Document {
@@ -39,11 +39,11 @@ fn gradient(scale: f32) -> Paint {
         stops: vec![
             GradientStop {
                 offset: 0.0,
-                color: anchor_lab::model::Color::BLACK,
+                color: n0_model::model::Color::BLACK,
             },
             GradientStop {
                 offset: 1.0,
-                color: anchor_lab::model::Color(0xFFFF_FFFF),
+                color: n0_model::model::Color(0xFFFF_FFFF),
             },
         ],
         ..Default::default()
@@ -52,7 +52,7 @@ fn gradient(scale: f32) -> Paint {
 
 fn gradient_failure(
     result: Result<frame::FrameProduct, FrameBuildError>,
-) -> anchor_engine::paint::GradientPreflightError {
+) -> n0::paint::GradientPreflightError {
     let FrameBuildError::Gradient(error) = result.expect_err("frame must fail gradient preflight");
     error
 }
@@ -284,7 +284,7 @@ fn render_rejects_before_mutating_the_destination_canvas() {
     .unwrap();
     let mut surface = surfaces::raster_n32_premul((32, 32)).unwrap();
     surface.canvas().clear(Color::MAGENTA);
-    let before = anchor_engine::paint::read_pixels(&mut surface, 32, 32);
+    let before = n0::paint::read_pixels(&mut surface, 32, 32);
     let save_count = surface.canvas().save_count();
 
     let error = frame::render(
@@ -300,7 +300,7 @@ fn render_rejects_before_mutating_the_destination_canvas() {
         FrameError::Build(FrameBuildError::Gradient(_))
     ));
     assert_eq!(surface.canvas().save_count(), save_count);
-    let after = anchor_engine::paint::read_pixels(&mut surface, 32, 32);
+    let after = n0::paint::read_pixels(&mut surface, 32, 32);
     assert_eq!(before, after);
 }
 
@@ -384,7 +384,7 @@ fn missing_image_resource_fails_checked_execution_before_canvas_mutation() {
         .expect("resource readiness is an execution input");
     let mut surface = surfaces::raster_n32_premul((32, 32)).unwrap();
     surface.canvas().clear(Color::MAGENTA);
-    let before = anchor_engine::paint::read_pixels(&mut surface, 32, 32);
+    let before = n0::paint::read_pixels(&mut surface, 32, 32);
 
     let FrameExecutionError::Image(error) = product
         .execute(surface.canvas(), &Affine::IDENTITY, &context)
@@ -396,7 +396,7 @@ fn missing_image_resource_fails_checked_execution_before_canvas_mutation() {
     assert_eq!(error.rid, "asset");
     assert_eq!(error.reason, ImagePreflightReason::MissingResource);
     assert_eq!(
-        anchor_engine::paint::read_pixels(&mut surface, 32, 32),
+        n0::paint::read_pixels(&mut surface, 32, 32),
         before
     );
 }
@@ -435,12 +435,12 @@ fn collapsed_image_geometry_remains_a_valid_blank_execution() {
         .expect("ordinary image frame");
     let mut surface = surfaces::raster_n32_premul((32, 32)).unwrap();
     surface.canvas().clear(Color::MAGENTA);
-    let before = anchor_engine::paint::read_pixels(&mut surface, 32, 32);
+    let before = n0::paint::read_pixels(&mut surface, 32, 32);
     product
         .execute(surface.canvas(), &Affine::scale(0.0, 0.0), &context)
         .expect("a singular geometry CTM is collapsed coverage, not an image failure");
     assert_eq!(
-        anchor_engine::paint::read_pixels(&mut surface, 32, 32),
+        n0::paint::read_pixels(&mut surface, 32, 32),
         before,
         "collapsed image geometry must emit no pixels"
     );

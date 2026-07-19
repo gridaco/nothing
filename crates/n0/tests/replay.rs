@@ -4,14 +4,14 @@
 //! stands on. Ops are recorded against the NORMALIZED doc (ids the round-trip
 //! law pins), found here by name.
 
-use anchor_engine::oracle::{OracleTags, TEXT_SKPARAGRAPH};
-use anchor_engine::replay::{parse_string, play, resolved_bits_eq, write_string};
-use anchor_lab::grida_xml;
-use anchor_lab::model::*;
-use anchor_lab::ops::{apply, Axis, Op, ResizeDrag};
-use anchor_lab::resolve::{resolve, resolve_with_text_layout, ResolveOptions, RotationInFlow};
-use anchor_lab::text_layout::{StubTextLayoutOracle, TextLayout, TextLayoutOracle};
-use anchor_lab::textir;
+use n0::oracle::{OracleTags, TEXT_SKPARAGRAPH};
+use n0::replay::{parse_string, play, resolved_bits_eq, write_string};
+use n0_model::grida_xml;
+use n0_model::model::*;
+use n0_model::ops::{apply, Axis, Op, ResizeDrag};
+use n0_model::resolve::{resolve, resolve_with_text_layout, ResolveOptions, RotationInFlow};
+use n0_model::text_layout::{StubTextLayoutOracle, TextLayout, TextLayoutOracle};
+use n0_model::textir;
 use std::sync::Arc;
 
 fn opts() -> ResolveOptions {

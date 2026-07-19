@@ -15,11 +15,11 @@
 //! - F-6: ungroup bakes flips exactly (σ conjugation): world transforms
 //!   of children are preserved.
 
-use anchor_lab::math::Affine;
-use anchor_lab::model::*;
-use anchor_lab::ops;
-use anchor_lab::ops::{Axis, OpError, ResizeDrag};
-use anchor_lab::resolve::{resolve, ResolveOptions};
+use n0_model::math::Affine;
+use n0_model::model::*;
+use n0_model::ops;
+use n0_model::ops::{Axis, OpError, ResizeDrag};
+use n0_model::resolve::{resolve, ResolveOptions};
 
 fn opts() -> ResolveOptions {
     ResolveOptions {
@@ -346,9 +346,9 @@ fn flip_survives_text_ir_round_trip() {
     let (mut doc, id) = free_rect();
     doc.get_mut(id).header.flip_x = true;
     doc.get_mut(id).header.rotation = 12.0;
-    let printed = anchor_lab::textir::print(&doc);
+    let printed = n0_model::textir::print(&doc);
     assert!(printed.contains("flip-x=\"true\""));
-    let parsed = anchor_lab::textir::parse(&printed).unwrap();
-    let reprinted = anchor_lab::textir::print(&parsed);
+    let parsed = n0_model::textir::parse(&printed).unwrap();
+    let reprinted = n0_model::textir::print(&parsed);
     assert_eq!(printed, reprinted);
 }

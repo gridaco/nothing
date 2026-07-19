@@ -5,8 +5,8 @@
 //! covers the accepted value forms that otherwise lacked both direct model
 //! assertions and a canonical parse -> print -> parse fixpoint.
 
-use anchor_lab::grida_xml;
-use anchor_lab::model::*;
+use n0_model::grida_xml;
+use n0_model::model::*;
 
 fn canonical(source: &str) -> (Document, String) {
     let doc = grida_xml::parse(source).expect("Draft 0 source parses");

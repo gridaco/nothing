@@ -1,6 +1,5 @@
-//! anchor-engine — the phase-4 canvas engine skeleton on the `anchor`
-//! model ([`anchor_lab`], consumed as a library — the same relationship
-//! `crates/grida` will have with the model crate after the migration).
+//! n0 — the canvas engine on the `anchor` model ([`n0_model`], consumed
+//! as a library).
 //!
 //! This crate is the pipeline:
 //! `(document + immutable effective values) -> resolve -> drawlist -> paint`
@@ -8,11 +7,11 @@
 //! (`query`), time-as-data (`journal`/`replay`), and the sockets every
 //! future optimization plugs into (`damage`, `ident`, `oracle`). The
 //! contracts it encodes are catalogued in `model-v2/a/ENGINE.md`
-//! (ENG-0…ENG-5); each module names the contract it serves.
+//! (ENG-0…ENG-5, archived); each module names the contract it serves.
 //!
-//! Host chrome (winit/egui/GL) lives in the host (the spike, later
-//! `crates/grida`), never here. Raster access is confined to [`paint`];
-//! [`text_layout`] may use Skia Paragraph only as an explicit shaping oracle.
+//! Host chrome (winit/egui/GL) lives in the host (`n0_dev`), never here.
+//! Raster access is confined to [`paint`]; [`text_layout`] may use Skia
+//! Paragraph only as an explicit shaping oracle.
 
 pub mod cache;
 pub mod damage;

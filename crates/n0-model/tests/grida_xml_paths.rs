@@ -1,13 +1,13 @@
-use anchor_lab::grida_xml;
-use anchor_lab::math::RectF;
-use anchor_lab::model::{
+use n0_model::grida_xml;
+use n0_model::math::RectF;
+use n0_model::model::{
     AxisBinding, Color, FillRule, Paints, Payload, ShapeDesc, SizeIntent, StrokeAlign, StrokeCap,
     StrokeJoin,
 };
-use anchor_lab::path::{self, PathCommand};
-use anchor_lab::resolve::{resolve, ResolveOptions};
-use anchor_lab::svgout::{self, SvgOptions};
-use anchor_lab::textir;
+use n0_model::path::{self, PathCommand};
+use n0_model::resolve::{resolve, ResolveOptions};
+use n0_model::svgout::{self, SvgOptions};
+use n0_model::textir;
 
 fn source(path: &str) -> String {
     format!(
@@ -15,7 +15,7 @@ fn source(path: &str) -> String {
     )
 }
 
-fn only_path(document: &anchor_lab::model::Document) -> anchor_lab::model::NodeId {
+fn only_path(document: &n0_model::model::Document) -> n0_model::model::NodeId {
     let render_root = document.get(document.root).children[0];
     document.get(render_root).children[0]
 }
@@ -445,8 +445,8 @@ fn writer_rejects_programmatic_path_box_states_the_reader_cannot_accept() {
     ))
     .unwrap();
     let id = only_path(&base);
-    let rejected = |mut document: anchor_lab::model::Document,
-                    mutate: fn(&mut anchor_lab::model::Header),
+    let rejected = |mut document: n0_model::model::Document,
+                    mutate: fn(&mut n0_model::model::Header),
                     expected: &str| {
         mutate(&mut document.get_mut(id).header);
         let error = grida_xml::print(&document).unwrap_err().to_string();
@@ -631,7 +631,7 @@ fn resolved_control_overflow_fails_closed_without_losing_children() {
     assert!(resolved.resolved_path_opt(id).is_none());
     assert!(resolved.reports.iter().any(|report| matches!(
         report,
-        anchor_lab::resolve::Report::ErrorByRule {
+        n0_model::resolve::Report::ErrorByRule {
             node,
             field: "path",
             rule: "resolved path coordinates exceed finite f32 geometry",

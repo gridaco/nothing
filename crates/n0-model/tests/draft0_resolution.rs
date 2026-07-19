@@ -4,8 +4,8 @@
 mod common;
 use common::*;
 
-use anchor_lab::math::RectF;
-use anchor_lab::model::*;
+use n0_model::math::RectF;
+use n0_model::model::*;
 
 fn text_node(
     width: SizeIntent,

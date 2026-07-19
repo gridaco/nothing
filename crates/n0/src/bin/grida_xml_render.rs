@@ -8,12 +8,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-use anchor_engine::frame;
-use anchor_engine::paint::PaintCtx;
-use anchor_lab::grida_xml_source::{self, MaterializedProgram, SourceProvider, SourceSnapshot};
-use anchor_lab::math::Affine;
-use anchor_lab::model::{Document, NodeId, Paint, Payload, ResourceRef};
-use anchor_lab::resolve::{Report, ResolveOptions, Resolved};
+use n0::frame;
+use n0::paint::PaintCtx;
+use n0_model::grida_xml_source::{self, MaterializedProgram, SourceProvider, SourceSnapshot};
+use n0_model::math::Affine;
+use n0_model::model::{Document, NodeId, Paint, Payload, ResourceRef};
+use n0_model::resolve::{Report, ResolveOptions, Resolved};
 use skia_safe::{surfaces, Color, EncodedImageFormat, FontMgr, FontStyle};
 
 const DEFAULT_WIDTH: i32 = 1280;
@@ -344,11 +344,11 @@ mod tests {
         ensure_resolved_without_errors, load_image_resources, local_resource_path,
         materialize_file, LocalFileSourceProvider,
     };
-    use anchor_engine::frame;
-    use anchor_engine::paint::{read_pixels, PaintCtx};
-    use anchor_lab::grida_xml_source::{self, MaterializedProgram, SourceSnapshot};
-    use anchor_lab::math::Affine;
-    use anchor_lab::resolve::{resolve, ResolveOptions};
+    use n0::frame;
+    use n0::paint::{read_pixels, PaintCtx};
+    use n0_model::grida_xml_source::{self, MaterializedProgram, SourceSnapshot};
+    use n0_model::math::Affine;
+    use n0_model::resolve::{resolve, ResolveOptions};
     use skia_safe::{surfaces, Color};
 
     fn fixture_input() -> PathBuf {

@@ -6,9 +6,9 @@
 
 mod support;
 
-use anchor_engine::drawlist::ItemKind;
-use anchor_engine::paint::PaintCtx;
-use anchor_lab::model::{CornerSmoothing, Radius, RectangularCornerRadius};
+use n0::drawlist::ItemKind;
+use n0::paint::PaintCtx;
+use n0_model::model::{CornerSmoothing, Radius, RectangularCornerRadius};
 use support::render_xml;
 
 fn expected_asymmetric_radius() -> RectangularCornerRadius {

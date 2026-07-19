@@ -2,7 +2,7 @@
 //! feel checklist walks: a flex row with a rotated child (envelope live),
 //! a hug frame, end/span pins, a group, a lens escape, and free text.
 
-use anchor_lab::model::*;
+use n0_model::model::*;
 
 pub const ARTBOARD: &str = "artboard";
 
@@ -365,7 +365,7 @@ mod tests {
     #[test]
     fn live_scenes_remain_editable_in_the_historical_panel_ir() {
         for (doc, _) in [starter(), pages(1, 1)] {
-            anchor_lab::textir::try_print(&doc).expect("live scene must remain TextIr-compatible");
+            n0_model::textir::try_print(&doc).expect("live scene must remain TextIr-compatible");
         }
     }
 }

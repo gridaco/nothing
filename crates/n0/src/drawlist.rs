@@ -5,14 +5,14 @@
 //! no glyphs. Neither path performs I/O or raster work. The camera is not baked
 //! in, so one drawlist paints at any zoom.
 
-use anchor_lab::math::Affine;
-use anchor_lab::model::{
+use n0_model::math::Affine;
+use n0_model::model::{
     CornerSmoothing, Document, NodeId, Paints, Payload, RectangularCornerRadius, ShapeDesc, Stroke,
 };
-use anchor_lab::path::ResolvedPathArtifact;
-use anchor_lab::properties::ValueView;
-use anchor_lab::resolve::Resolved;
-use anchor_lab::text_layout::TextLayout;
+use n0_model::path::ResolvedPathArtifact;
+use n0_model::properties::ValueView;
+use n0_model::resolve::Resolved;
+use n0_model::text_layout::TextLayout;
 use std::sync::Arc;
 
 use crate::text_layout::TextFontRegistry;
@@ -223,7 +223,7 @@ pub fn build_glyphless_view_unchecked(view: &ValueView<'_>, resolved: &Resolved)
 }
 
 /// Project a resolved tier produced by the engine text oracle, retaining the
-/// exact registry that minted every [`anchor_lab::text_layout::TextFontKey`].
+/// exact registry that minted every [`n0_model::text_layout::TextFontKey`].
 pub(crate) fn build_with_text_fonts(
     doc: &Document,
     resolved: &Resolved,
@@ -579,7 +579,7 @@ fn emit<V: DrawValues + ?Sized>(
 #[cfg(test)]
 mod text_paint_tests {
     use super::TextPaints;
-    use anchor_lab::model::{Color, Paints};
+    use n0_model::model::{Color, Paints};
 
     #[test]
     fn uniform_text_uses_node_paints_only_for_uniform_ownership() {

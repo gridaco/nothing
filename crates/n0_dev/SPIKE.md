@@ -89,7 +89,7 @@ repo's shared target dir (first full build ≈ 2.5 min).
 After the read-out, DEC-0 second-locked to **visual-only (CSS framing,
 CSS-pure sizing)** — owner framing, correcting a mis-recorded first
 lock. The gated spec review ran: normative rules in
-`../dec0-visual-only.md` (the V-4 group-box fork was real UB until
+`../../model-v2/a/dec0-visual-only.md` (the V-4 group-box fork was real UB until
 decided — sizing-tier union chosen); lab default flipped;
 `tests/visual_only.rs` added (14 tests; suite now **114**); shots above
 regenerated under the new default (the rot45 shot now shows overlap as

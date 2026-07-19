@@ -13,10 +13,10 @@
 //! Every θ step is applied through the op layer (1 document write),
 //! proving OP-ROT under flow stays a single-field gesture in both modes.
 
-use anchor_lab::model::*;
-use anchor_lab::ops;
-use anchor_lab::resolve::{resolve, ResolveOptions, RotationInFlow};
-use anchor_lab::svgout;
+use n0_model::model::*;
+use n0_model::ops;
+use n0_model::resolve::{resolve, ResolveOptions, RotationInFlow};
+use n0_model::svgout;
 use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;

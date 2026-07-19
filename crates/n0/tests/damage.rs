@@ -5,14 +5,14 @@
 
 use std::sync::Arc;
 
-use anchor_engine::damage::{diff, diff_frame};
-use anchor_engine::frame;
-use anchor_engine::paint::PaintCtx;
-use anchor_lab::math::RectF;
-use anchor_lab::model::*;
-use anchor_lab::ops::{apply, Op};
-use anchor_lab::resolve::{resolve, resolve_with_text_layout, ResolveOptions, RotationInFlow};
-use anchor_lab::text_layout::{
+use n0::damage::{diff, diff_frame};
+use n0::frame;
+use n0::paint::PaintCtx;
+use n0_model::math::RectF;
+use n0_model::model::*;
+use n0_model::ops::{apply, Op};
+use n0_model::resolve::{resolve, resolve_with_text_layout, ResolveOptions, RotationInFlow};
+use n0_model::text_layout::{
     TextFontKey, TextGlyph, TextGlyphRun, TextLayout, TextLayoutOracle, TextLine, TextLineBreak,
 };
 

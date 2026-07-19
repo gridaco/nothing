@@ -2,7 +2,7 @@
 //! write nothing (the model's read/write split made visible). View =
 //! T(tx,ty) · S(zoom); world = view⁻¹(screen).
 
-use anchor_lab::math::Affine;
+use n0_model::math::Affine;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Camera {

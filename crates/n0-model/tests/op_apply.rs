@@ -6,9 +6,9 @@
 mod common;
 use common::{opts_visual, shape};
 
-use anchor_lab::model::*;
-use anchor_lab::ops::{self, Axis, Op, OpError, ResizeDrag};
-use anchor_lab::resolve::{resolve, Resolved};
+use n0_model::model::*;
+use n0_model::ops::{self, Axis, Op, OpError, ResizeDrag};
+use n0_model::resolve::{resolve, Resolved};
 
 /// root (viewport frame) with a free shape `s` and a group `g` of two shapes.
 /// Deterministic ids: s = 1, g = 2.

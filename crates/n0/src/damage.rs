@@ -4,9 +4,9 @@
 //! covering result. [`diff`] remains the geometry-only compatibility primitive.
 //! Damage is asserted and shown, not yet consumed for partial repaint (OS-2a).
 
-use anchor_lab::math::RectF;
-use anchor_lab::model::NodeId;
-use anchor_lab::resolve::Resolved;
+use n0_model::math::RectF;
+use n0_model::model::NodeId;
+use n0_model::resolve::Resolved;
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::drawlist::{DrawList, Item, ItemKind};

@@ -2,20 +2,20 @@
 //! resolve, drawlist, query, damage, and raster. There is deliberately no
 //! clock, timeline, track, keyframe, or playback state in these tests.
 
-use anchor_engine::damage::{diff_frame, Damage};
-use anchor_engine::drawlist::{
+use n0::damage::{diff_frame, Damage};
+use n0::drawlist::{
     build_glyphless_unchecked, build_glyphless_view_unchecked, ItemKind,
 };
-use anchor_engine::frame;
-use anchor_engine::paint::{read_pixels, PaintCtx};
-use anchor_engine::query::Query;
-use anchor_engine::replay::resolved_bits_eq;
-use anchor_lab::math::Affine;
-use anchor_lab::model::*;
-use anchor_lab::properties::{
+use n0::frame;
+use n0::paint::{read_pixels, PaintCtx};
+use n0::query::Query;
+use n0::replay::resolved_bits_eq;
+use n0_model::math::Affine;
+use n0_model::model::*;
+use n0_model::properties::{
     PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView,
 };
-use anchor_lab::resolve::{resolve, resolve_view, ResolveOptions};
+use n0_model::resolve::{resolve, resolve_view, ResolveOptions};
 use skia_safe::{surfaces, Color as SkColor};
 
 const W: i32 = 180;

@@ -54,7 +54,7 @@ file I/O never taxes a normal run:
 ANCHOR_FRAMELOG=1 cargo run --release   # in model-v2/a/spike-canvas
 # …interact (pan / zoom / drag) to reproduce the felt symptom, then kill it.
 # Inspect the log — the human runs, the reviewer reads:
-cat /tmp/anchor-spike-frames.log
+cat /tmp/n0_dev-frames.log
 ```
 
 Each line is one real frame, flushed immediately so a hard kill mid-gesture

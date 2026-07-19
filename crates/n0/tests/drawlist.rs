@@ -2,9 +2,9 @@
 //! tests guard ordering, balanced scopes, pruning, authored paint transfer,
 //! and verbatim resolver transforms.
 
-use anchor_engine::drawlist::{build_glyphless_unchecked, ItemKind};
-use anchor_lab::model::*;
-use anchor_lab::resolve::{resolve, ResolveOptions, RotationInFlow};
+use n0::drawlist::{build_glyphless_unchecked, ItemKind};
+use n0_model::model::*;
+use n0_model::resolve::{resolve, ResolveOptions, RotationInFlow};
 
 fn opts() -> ResolveOptions {
     ResolveOptions {

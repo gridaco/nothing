@@ -3,8 +3,8 @@
 mod common;
 use common::*;
 
-use anchor_lab::model::*;
-use anchor_lab::resolve::{resolve, Report};
+use n0_model::model::*;
+use n0_model::resolve::{resolve, Report};
 
 fn one_child(parent_w: f32, parent_h: f32, h: Header, p: Payload) -> (Document, NodeId) {
     let mut b = DocBuilder::new();

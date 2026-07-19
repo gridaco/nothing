@@ -2,8 +2,8 @@
 //! Dead slots mint nothing; deletion and document replacement invalidate old
 //! runtime identities.
 
-use anchor_engine::ident::key_of;
-use anchor_lab::model::*;
+use n0::ident::key_of;
+use n0_model::model::*;
 
 #[test]
 fn key_of_mints_only_live_model_keys() {

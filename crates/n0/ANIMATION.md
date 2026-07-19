@@ -10,18 +10,18 @@ pending.
 
 This document binds authored animation frontends to the current model-v2
 engine. The first frontend is the cumulative [SVG Animation Profile
-0](https://grida.co/docs/wg/feat-svg/animation), [Profile
-1](https://grida.co/docs/wg/feat-svg/animation-keyframes), and [Profile
-2](https://grida.co/docs/wg/feat-svg/animation-sandwiches), [Profile
-3](https://grida.co/docs/wg/feat-svg/animation-composition), and [Profile
-4](https://grida.co/docs/wg/feat-svg/animation-effects-and-transforms), and
-[Profile 5](https://grida.co/docs/wg/feat-svg/animation-solid-fills).
-[Profile 6](https://grida.co/docs/wg/feat-svg/animation-path-geometry) adds
+0](../../docs/wg/feat-svg/animation.md), [Profile
+1](../../docs/wg/feat-svg/animation-keyframes.md), and [Profile
+2](../../docs/wg/feat-svg/animation-sandwiches.md), [Profile
+3](../../docs/wg/feat-svg/animation-composition.md), and [Profile
+4](../../docs/wg/feat-svg/animation-effects-and-transforms.md), and
+[Profile 5](../../docs/wg/feat-svg/animation-solid-fills.md).
+[Profile 6](../../docs/wg/feat-svg/animation-path-geometry.md) adds
 typed path geometry and the first bounded discrete effect family.
 Native Grida XML animation is
-[deferred](https://grida.co/docs/wg/format/grida-xml-animation).
+[deferred](../../docs/wg/format/grida-xml-animation.md).
 
-The binding is subordinate to the [engine contracts](../a/ENGINE.md), the
+The binding is subordinate to the [engine contracts](../../model-v2/a/ENGINE.md), the
 [measurement doctrine](./MEASURE.md), and the implemented
 [effective-values contract](./EFFECTIVE-VALUES.md). It does not define source
 syntax.
@@ -93,16 +93,16 @@ The dependency direction is one-way:
 SVG profile documents
         |
         v
-anchor_lab::svg_animation  ---- source ownership / compilation
+n0_model::svg_animation  ---- source ownership / compilation
         |
         v
-anchor_lab::animation      ---- format-neutral semantic sampling
+n0_model::animation      ---- format-neutral semantic sampling
         |
         v
 PropertyValues
         |
         v
-anchor_engine::frame/cache ---- one coherent frame
+n0::frame/cache ---- one coherent frame
         ^
         |
 host-owned PlaybackClock
@@ -114,10 +114,10 @@ host-owned PlaybackClock
 | Unit                               | Owns                                                                                                                                                                                                                         | Must not own                                                                                    | Consumption status                                                                                                                     |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | SVG profile documents              | Accepted source semantics and conformance laws                                                                                                                                                                               | Engine types, module layout, or product policy                                                  | Normative source contract                                                                                                              |
-| `anchor_lab::svg_animation`        | Retained SVG source, namespace/source inventory, diagnostics, target resolution, profile validation, source-family path topology, and lowering; its static-shell adapter materializes only the proving rectangle/path subset | Playback, wall clocks, frame scheduling, rasterization, or silent general-SVG normalization     | Frontend proving boundary; production reuse requires connection to the real SVG materializer rather than promotion of the narrow shell |
-| `anchor_lab::animation`            | Signed semantic time, checked intervals, typed scalar/color/transform/path curves, reusable discrete complete-value curves, easing, ordered composition, immutable programs, and atomic property projection                  | SVG grammar, source locations, filesystem/network access, host clocks, scheduling, or rendering | Reusable semantic kernel for the admitted typed-effect family                                                                          |
-| `anchor_engine::frame` and `cache` | The explicit Base/Sample policy, sample-once frame construction, value-keyed cache identity, transactional execution, and coherence across resolve/query/damage/pixels                                                       | Source parsing, ambient time, host controls, or source-specific fallback                        | Reusable engine seam                                                                                                                   |
-| `anchor_engine::playback_clock`    | Pure mapping from caller-supplied monotonic host time into a closed document-time range                                                                                                                                      | `Instant`, source/program/document/frame types, redraw requests, callbacks, looping, or UI      | Reusable optional host primitive, not a runtime                                                                                        |
+| `n0_model::svg_animation`        | Retained SVG source, namespace/source inventory, diagnostics, target resolution, profile validation, source-family path topology, and lowering; its static-shell adapter materializes only the proving rectangle/path subset | Playback, wall clocks, frame scheduling, rasterization, or silent general-SVG normalization     | Frontend proving boundary; production reuse requires connection to the real SVG materializer rather than promotion of the narrow shell |
+| `n0_model::animation`            | Signed semantic time, checked intervals, typed scalar/color/transform/path curves, reusable discrete complete-value curves, easing, ordered composition, immutable programs, and atomic property projection                  | SVG grammar, source locations, filesystem/network access, host clocks, scheduling, or rendering | Reusable semantic kernel for the admitted typed-effect family                                                                          |
+| `n0::frame` and `cache` | The explicit Base/Sample policy, sample-once frame construction, value-keyed cache identity, transactional execution, and coherence across resolve/query/damage/pixels                                                       | Source parsing, ambient time, host controls, or source-specific fallback                        | Reusable engine seam                                                                                                                   |
+| `n0::playback_clock`    | Pure mapping from caller-supplied monotonic host time into a closed document-time range                                                                                                                                      | `Instant`, source/program/document/frame types, redraw requests, callbacks, looping, or UI      | Reusable optional host primitive, not a runtime                                                                                        |
 | `svg_animation_render`             | File I/O, cadence selection, exact sample enumeration, PNG/report publication, and host-side transaction boundaries                                                                                                          | Source semantics, interpolation, or product playback policy                                     | Diagnostic host tool; not an engine library boundary                                                                                   |
 | Native spike transport/player      | Host transport policy, `Instant` ownership, controls, redraw demand, resize, GPU presentation, and compositor stand-in pacing                                                                                                | New animation semantics or an engine-level `Runtime` abstraction                                | Disposable integration harness; only demonstrated laws migrate                                                                         |
 
@@ -366,7 +366,7 @@ frame history, CPU math library, or source frontend.
 
 ## SVG Animation Profile 1 binding
 
-[Profile 1](https://grida.co/docs/wg/feat-svg/animation-keyframes) projects SVG
+[Profile 1](../../docs/wg/feat-svg/animation-keyframes.md) projects SVG
 `values`, `keyTimes`, `calcMode="linear|spline"`, and `keySplines` into that
 same curve. `values` follows SVG precedence over `from` and `to`; omitted key
 times become exact equal rational intervals. SVG narrows every spline control,
@@ -379,7 +379,7 @@ later project a different source spelling into the same curve.
 
 ## SVG Animation Profile 2 binding
 
-[Profile 2](https://grida.co/docs/wg/feat-svg/animation-sandwiches) admits
+[Profile 2](../../docs/wg/feat-svg/animation-sandwiches.md) admits
 multiple replacement effects for one target without adding new SVG syntax.
 For the profile's deliberately static timing grammar, low-to-high priority is
 the stable ordering `(resolved interval begin, XML document order)`: a later
@@ -400,7 +400,7 @@ accumulation remain rejected by Profiles 0–2.
 
 ## SVG Animation Profile 3 binding
 
-[Profile 3](https://grida.co/docs/wg/feat-svg/animation-composition) admits
+[Profile 3](../../docs/wg/feat-svg/animation-composition.md) admits
 `additive="sum"` and `accumulate="sum"` for the same five scalar properties.
 They lower to two independent format-neutral operations: effect composition is
 `Replace` or `Add`, while iteration composition is `Replace` or `Accumulate`.
@@ -424,7 +424,7 @@ clamped once at final projection into the existing normalized opacity property.
 
 ## SVG Animation Profile 4 binding
 
-[Profile 4](https://grida.co/docs/wg/feat-svg/animation-effects-and-transforms)
+[Profile 4](../../docs/wg/feat-svg/animation-effects-and-transforms.md)
 adds two forcing cases for the format-neutral value system: scalar effects
 whose start operand is the live lower sandwich, and first-class 2D transform
 effects. Profile 4 establishes `ScalarCurve`, `ScalarFromLiveUnderlying`, and
@@ -485,7 +485,7 @@ identity.
 
 ## SVG Animation Profile 5 binding
 
-[Profile 5](https://grida.co/docs/wg/feat-svg/animation-solid-fills)
+[Profile 5](../../docs/wg/feat-svg/animation-solid-fills.md)
 adds one bounded paint-valued effect without adding a parallel color property.
 An animated solid `fill` targets the existing complete `Fills: Paints`
 property. Replacement emits one active, normal-blend solid paint and therefore
@@ -517,7 +517,7 @@ static stroke-geometry seam. Neither is modeled as a nested patch to `Fills`.
 
 ## SVG Animation Profile 6 binding
 
-[Profile 6](https://grida.co/docs/wg/feat-svg/animation-path-geometry) adds
+[Profile 6](../../docs/wg/feat-svg/animation-path-geometry.md) adds
 geometry without changing the existing path model. `PathGeometry` is a
 path-only effective property containing checked canonical commands, bounds, and
 contour closure. It deliberately excludes authored `d` spelling and fill rule.
@@ -783,25 +783,25 @@ differential test against it.
 
 The reference evidence is split by failure class:
 
-- `../a/lab/tests/animation.rs` covers checked time, timing boundaries, typed
+- `../n0-model/tests/animation.rs` covers checked time, timing boundaries, typed
   tracks, keyframes, per-segment easing, document identity, atomic failure, and
   exact once-rounded binary32 interpolation;
-- `../a/lab/tests/svg_animation.rs` covers retained source, namespaces,
+- `../n0-model/tests/svg_animation.rs` covers retained source, namespaces,
   parent/fragment targets, strict grammar and side-channel rejection,
   duplicates, exact clocks and key times, direct binary32 source rounding,
   spline grammar, profile inheritance, sandwich priority/fallthrough, and the
   checked replacement/addition/accumulation fixtures;
-- `../a/lab/tests/svg_animation_profile4.rs` covers live-underlying scalar
+- `../n0-model/tests/svg_animation_profile4.rs` covers live-underlying scalar
   effects, typed transform values, parameter accumulation, ordered list
   composition, static-base postmultiplication, and strict transform failures;
-- `../a/lab/tests/animation_profile5_paints.rs` and
-  `../a/lab/tests/svg_animation_profile5.rs` cover typed solid-fill curves,
+- `../n0-model/tests/animation_profile5_paints.rs` and
+  `../n0-model/tests/svg_animation_profile5.rs` cover typed solid-fill curves,
   exact late-clamped RGBA sandwiches, lone-`to`, whole-`Paints` projection,
   strict color grammar, profile gating, and incompatible underlying paints;
 - `tests/animation_profile5_paints.rs` covers paint-only frame/damage,
   draw-list, query, pixel, and remove-fallthrough coherence;
-- `../a/lab/tests/animation_path_curves.rs` and
-  `../a/lab/tests/svg_animation_profile6.rs` cover normalized smooth path
+- `../n0-model/tests/animation_path_curves.rs` and
+  `../n0-model/tests/svg_animation_profile6.rs` cover normalized smooth path
   interpolation, exact endpoints, generic discrete schedules, eased fallback,
   source-family topology, arc deferral, viewport normalization, and strict
   diagnostics;
@@ -815,7 +815,7 @@ The reference evidence is split by failure class:
   rate, pause/resume/seek continuity, direction changes, endpoint stopping,
   extreme integer domains, and atomic refusal without a renderer or source
   frontend; and
-- `../a/spike-canvas/src/shell/player_transport.rs` directly covers autoplay,
+- `../n0_dev/src/shell/player_transport.rs` directly covers autoplay,
   exact-present-before-resume, play/pause, terminal replay, restart, seek,
   scrub, and presented-state transitions. Its adjacent `player.rs` tests range
   derivation and display-time formatting; the native event loop itself remains

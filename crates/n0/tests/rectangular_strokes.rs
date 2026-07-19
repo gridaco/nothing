@@ -6,9 +6,9 @@
 
 mod support;
 
-use anchor_engine::drawlist::ItemKind;
-use anchor_engine::paint::PaintCtx;
-use anchor_lab::model::{
+use n0::drawlist::ItemKind;
+use n0::paint::PaintCtx;
+use n0_model::model::{
     Radius, RectangularCornerRadius, RectangularStrokeWidth, StrokeAlign, StrokeWidth,
 };
 use support::render_xml;

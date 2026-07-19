@@ -6,8 +6,8 @@
 
 mod common;
 
-use anchor_lab::model::*;
-use anchor_lab::resolve::resolve;
+use n0_model::model::*;
+use n0_model::resolve::resolve;
 use common::opts_visual;
 
 #[test]
