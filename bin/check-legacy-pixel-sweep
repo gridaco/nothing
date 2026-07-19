@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+
+"""Compare a declared legacy-renderer subset byte-for-byte across revisions.
+
+The base and head corpus identities must first match exactly; both binaries
+then render that enumerated L0.exact input set in the same host environment.
+This is a zero-behavior A/B sweep, not a reftest: no external oracle or
+similarity threshold participates in the verdict.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
+
+
+SUITE = Path("fixtures/test-html/suites/L0.exact.json")
+TRANSITIVE_REFERENCE = re.compile(
+    rb"(?:\b(?:src|srcset|href)\s*=|\bsrc\s*:|url\s*\(|@import\b)",
+    re.IGNORECASE,
+)
+
+
+def run(command: list[str], *, cwd: Path, env: dict[str, str]) -> None:
+    subprocess.run(command, cwd=cwd, env=env, check=True)
+
+
+def pngs(directory: Path) -> dict[Path, bytes]:
+    return {
+        path.relative_to(directory): path.read_bytes()
+        for path in sorted(directory.rglob("*.png"))
+    }
+
+
+def digest(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()[:16]
+
+
+def checked_file(root: Path, suite_dir: Path, relative: str) -> tuple[str, str]:
+    path = (suite_dir / relative).resolve()
+    try:
+        logical = path.relative_to(root.resolve()).as_posix()
+    except ValueError as error:
+        raise ValueError(f"declared corpus path escapes the repository: {relative}") from error
+    data = path.read_bytes()
+    if TRANSITIVE_REFERENCE.search(data):
+        raise ValueError(
+            f"{logical} contains an unenumerated transitive reference; "
+            "teach the corpus manifest to close it before admitting the fixture"
+        )
+    return logical, hashlib.sha256(data).hexdigest()
+
+
+def corpus_identity(root: Path) -> tuple[dict[str, object], dict[str, object]]:
+    suite = root / SUITE
+    suite_bytes = suite.read_bytes()
+    parsed = json.loads(suite_bytes)
+    fixtures = parsed.get("fixtures")
+    defaults = parsed.get("defaults", {})
+    if not isinstance(fixtures, list) or not fixtures:
+        raise ValueError(f"{suite}: fixtures must be a non-empty list")
+    default_css = defaults.get("extra_css", [])
+    if not isinstance(default_css, list):
+        raise ValueError(f"{suite}: defaults.extra_css must be a list")
+
+    files: dict[str, str] = {}
+    for entry in fixtures:
+        if not isinstance(entry, dict) or not isinstance(entry.get("path"), str):
+            raise ValueError(f"{suite}: every fixture must declare a string path")
+        logical, file_digest = checked_file(root, suite.parent, entry["path"])
+        files[logical] = file_digest
+        css = entry.get("extra_css", default_css)
+        if not isinstance(css, list) or not all(isinstance(item, str) for item in css):
+            raise ValueError(f"{suite}: fixture extra_css must be a string list")
+        for relative in css:
+            logical, file_digest = checked_file(root, suite.parent, relative)
+            files[logical] = file_digest
+
+    identity: dict[str, object] = {
+        "suite_sha256": hashlib.sha256(suite_bytes).hexdigest(),
+        "files": dict(sorted(files.items())),
+    }
+    return identity, parsed
+
+
+def identity_digest(identity: dict[str, object]) -> str:
+    encoded = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+    return digest(encoded)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="A/B the legacy renderer over the checked-in L0.exact subset."
+    )
+    parser.add_argument("base", help="base git revision")
+    args = parser.parse_args()
+
+    repo = Path(
+        subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            check=True,
+            stdout=subprocess.PIPE,
+            text=True,
+        ).stdout.strip()
+    )
+    suite = repo / SUITE
+    target = repo / "target" / "consolidation-pixel-sweep"
+    env = os.environ.copy()
+    env["CARGO_TARGET_DIR"] = str(target)
+
+    with tempfile.TemporaryDirectory(prefix="grida-consolidation-pixels-") as temp:
+        temp_root = Path(temp)
+        base_tree = temp_root / "base"
+        base_output = temp_root / "base-output"
+        head_output = temp_root / "head-output"
+
+        subprocess.run(
+            ["git", "worktree", "add", "--detach", str(base_tree), args.base],
+            cwd=repo,
+            check=True,
+        )
+        try:
+            base_identity, _ = corpus_identity(base_tree)
+            head_identity, head_suite = corpus_identity(repo)
+            if base_identity != head_identity:
+                print(
+                    "Legacy pixel sweep: FAIL (declared corpus identity changed)",
+                    file=sys.stderr,
+                )
+                print(
+                    f"  base {identity_digest(base_identity)}; "
+                    f"head {identity_digest(head_identity)}",
+                    file=sys.stderr,
+                )
+                return 1
+            declared = len(head_suite["fixtures"])
+            corpus_digest = identity_digest(head_identity)
+
+            base_output.mkdir()
+            head_output.mkdir()
+            common = [
+                "cargo",
+                "run",
+                "--locked",
+                "-p",
+                "grida_wpt",
+                "--",
+                "render",
+                "--suite",
+                str(suite),
+            ]
+            run(common + ["--out-dir", str(base_output)], cwd=base_tree, env=env)
+            run(common + ["--out-dir", str(head_output)], cwd=repo, env=env)
+
+            before = pngs(base_output)
+            after = pngs(head_output)
+            if len(before) != declared or len(after) != declared:
+                print(
+                    "Legacy pixel sweep: FAIL "
+                    f"(declared {declared}, base rendered {len(before)}, head rendered {len(after)})",
+                    file=sys.stderr,
+                )
+                return 1
+            if before.keys() != after.keys():
+                print("Legacy pixel sweep: FAIL (output file sets differ)", file=sys.stderr)
+                print(f"  base only: {sorted(before.keys() - after.keys())}", file=sys.stderr)
+                print(f"  head only: {sorted(after.keys() - before.keys())}", file=sys.stderr)
+                return 1
+
+            changed = [path for path in before if before[path] != after[path]]
+            if changed:
+                print("Legacy pixel sweep: FAIL (byte differences)", file=sys.stderr)
+                for path in changed:
+                    print(
+                        f"  {path}: base {digest(before[path])}, head {digest(after[path])}",
+                        file=sys.stderr,
+                    )
+                return 1
+
+            print(
+                "Legacy pixel sweep: PASS "
+                f"({declared}/{declared} L0.exact PNGs byte-identical; "
+                f"corpus {corpus_digest})"
+            )
+            print(
+                "Declared CI subset only; the full iosvg resvg sweep remains local-only per PR."
+            )
+            return 0
+        finally:
+            subprocess.run(
+                ["git", "worktree", "remove", str(base_tree)],
+                cwd=repo,
+                check=False,
+            )
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except (OSError, ValueError, json.JSONDecodeError, subprocess.CalledProcessError) as error:
+        print(f"Legacy pixel sweep command failed: {error}", file=sys.stderr)
+        code = error.returncode if isinstance(error, subprocess.CalledProcessError) else 2
+        raise SystemExit(code) from error

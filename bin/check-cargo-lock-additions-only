@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+
+"""Gate workspace-crate cuts on an additions-only Cargo.lock diff.
+
+The consolidation extraction rule makes a new workspace member the durable
+signal that a crate cut is happening.  Only those changes activate this gate;
+ordinary dependency-update PRs are outside its contract.
+"""
+
+from __future__ import annotations
+
+import argparse
+import subprocess
+import sys
+import tomllib
+
+
+def git_text(ref: str, path: str) -> str:
+    result = subprocess.run(
+        ["git", "show", f"{ref}:{path}"],
+        check=True,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    return result.stdout
+
+
+def workspace_members(ref: str) -> set[str]:
+    cargo_toml = tomllib.loads(git_text(ref, "Cargo.toml"))
+    members = cargo_toml.get("workspace", {}).get("members")
+    if not isinstance(members, list) or not all(
+        isinstance(item, str) for item in members
+    ):
+        raise ValueError(f"{ref}: Cargo.toml has no string workspace.members list")
+    return set(members)
+
+
+def lock_diff(base: str, head: str) -> list[str]:
+    result = subprocess.run(
+        [
+            "git",
+            "diff",
+            "--no-ext-diff",
+            "--unified=0",
+            base,
+            head,
+            "--",
+            "Cargo.lock",
+        ],
+        check=True,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    return result.stdout.splitlines()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Require Cargo.lock additions-only when a workspace crate is added."
+    )
+    parser.add_argument("base", help="base git revision")
+    parser.add_argument("head", nargs="?", default="HEAD", help="head git revision")
+    args = parser.parse_args()
+
+    try:
+        added_members = sorted(workspace_members(args.head) - workspace_members(args.base))
+        diff = lock_diff(args.base, args.head)
+    except (subprocess.CalledProcessError, tomllib.TOMLDecodeError, ValueError) as error:
+        print(
+            f"Cargo.lock additions-only gate could not inspect the revisions: {error}",
+            file=sys.stderr,
+        )
+        return 2
+
+    if not added_members:
+        print("Cargo.lock additions-only: NOT APPLICABLE (no workspace crate added)")
+        return 0
+
+    removed = [line for line in diff if line.startswith("-") and not line.startswith("---")]
+    if removed:
+        print(
+            "Cargo.lock additions-only: FAIL\n"
+            f"new workspace member(s): {', '.join(added_members)}\n"
+            "removed lockfile lines:",
+            file=sys.stderr,
+        )
+        for line in removed:
+            print(f"  {line}", file=sys.stderr)
+        return 1
+
+    added = sum(line.startswith("+") and not line.startswith("+++") for line in diff)
+    print(
+        "Cargo.lock additions-only: PASS "
+        f"({', '.join(added_members)}; {added} added line(s), 0 removed)"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

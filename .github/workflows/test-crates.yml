@@ -10,6 +10,8 @@ on:
       - "Cargo.lock"
       - "Cargo.toml"
       - "crates/**"
+      - "fixtures/**"
+      - "bin/**"
       - "third_party/**"
       - "rust-toolchain.toml"
 
