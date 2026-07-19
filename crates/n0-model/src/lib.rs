@@ -1,7 +1,7 @@
 //! n0-model — the `anchor` model crate (formerly the model-v2 proving lab).
 //!
-//! Implements the model of `model-v2/models/a.md` (the archived spec draft),
-//! proven by the experiment ledger of `model-v2/a/README.md`:
+//! Implements the model of `model-v2/models/anchor.md` (the archived spec draft),
+//! proven by the experiment ledger of `model-v2/anchor/README.md`:
 //! - rotation-in-flow (both semantics behind [`resolve::RotationInFlow`])
 //! - the agent text IR ([`textir`])
 //! - the resolver ([`resolve`])

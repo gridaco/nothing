@@ -123,7 +123,7 @@ like Axis 2.
 At this altitude, a geometry truth can only be: **given** per node
 (intent — `anchor`; `sheet` was this with permissive writes, retired),
 **computed** (state — `bake`), **relational** (wired to other nodes —
-`wire`, [models/d.md](./models/d.md), disciplined to single-assignment
+`wire`, [models/wire.md](./models/wire.md), disciplined to single-assignment
 dataflow, not a solver), or **historical** (the log — Axis 3, not a model).
 There is no fifth archetype to wait for; the Axis-1 decision can be made
 final.

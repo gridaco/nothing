@@ -6,7 +6,7 @@
 //! (the browser's staged-and-pure discipline) plus the read tier
 //! (`query`), time-as-data (`journal`/`replay`), and the sockets every
 //! future optimization plugs into (`damage`, `ident`, `oracle`). The
-//! contracts it encodes are catalogued in `model-v2/a/ENGINE.md`
+//! contracts it encodes are catalogued in `model-v2/anchor/ENGINE.md`
 //! (ENG-0…ENG-5, archived); each module names the contract it serves.
 //!
 //! Host chrome (winit/egui/GL) lives in the host (`n0_dev`), never here.

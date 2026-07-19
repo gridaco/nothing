@@ -18,9 +18,14 @@ out of scope here.
 > [`crates/n0_dev`](../crates/n0_dev). What remains here — the phase
 > papers, the experiment dirs with their frozen outputs and verdicts, the
 > demo pages, and the format drafts — is the decision record, kept
-> verbatim. **Relative paths inside the frozen papers refer to the
-> pre-promotion layout** (`a/lab`, `engine/`, `a/spike-canvas`); follow
-> the map above. Tracking issue:
+> verbatim, with file and directory names canonicalized at landing (the
+> workbench dir `a/` is now [`anchor/`](./anchor/); the experiment dirs
+> dropped their `eN-` ledger prefixes; the candidate models dropped
+> their letter slots — the ledger ids remain as the register keys in
+> prose and in [`anchor/README.md`](./anchor/README.md)'s table).
+> **Relative paths inside the frozen papers refer to the pre-promotion
+> layout** (`a/lab`, `engine/`, `a/spike-canvas`); follow the map
+> above. Tracking issue:
 > [gridaco/nothing#9](https://github.com/gridaco/nothing/issues/9)
 > (formerly gridaco/grida#957, transferred at the engine split).
 > Implementation status and module boundaries live with the engine:
@@ -36,7 +41,7 @@ cargo test -p n0-model
 cargo run --release -p n0_dev
 
 # the demo pages (proof, model walkthrough, edge cases, DEC-0 fork, free editing)
-python3 -m http.server 4173 --directory model-v2/a/.preview
+python3 -m http.server 4173 --directory model-v2/anchor/.preview
 ```
 
 ## Why this exists
@@ -57,7 +62,7 @@ them — problems first, then candidates, then spec.
 | ----------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1. Problems & harnesses | `problems.md`, `harnesses.md`, `study.md`                      | stable draft                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | 2. Candidate models     | `paradigm.md`, `axes.md`, `models/*`, `finale.md`, `triage.md` | **DECIDED — `anchor`** (+5 triage amendments)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| 3. Spec                 | normative doc + `grida.fbs` draft                              | **experiments RUN, model PROVEN** — E1–E10 complete with verdicts; **DEC-0 decided: VISUAL-ONLY rotation (the CSS framing), CSS-pure sizing** ([`a/dec0-visual-only.md`](./a/dec0-visual-only.md)); flips built (E-A14, cross-zero resize); conformance lab; native interactive spike (now [`crates/n0_dev`](../crates/n0_dev)); open calls parked in [`a/DECISIONS.md`](./a/DECISIONS.md). Remaining: fold deltas into a normative rewrite of `models/a.md` + WG graduation                                                                  |
+| 3. Spec                 | normative doc + `grida.fbs` draft                              | **experiments RUN, model PROVEN** — E1–E10 complete with verdicts; **DEC-0 decided: VISUAL-ONLY rotation (the CSS framing), CSS-pure sizing** ([`anchor/dec0-visual-only.md`](./anchor/dec0-visual-only.md)); flips built (E-A14, cross-zero resize); conformance lab; native interactive spike (now [`crates/n0_dev`](../crates/n0_dev)); open calls parked in [`anchor/DECISIONS.md`](./anchor/DECISIONS.md). Remaining: fold deltas into a normative rewrite of `models/anchor.md` + WG graduation                                                                  |
 | 4. Runtime              | `crates/grida` implementation                                  | **proving engine BUILT and PROMOTED** — [`crates/n0`](../crates/n0) (formerly `engine/`, `anchor-engine`): the `resolve → drawlist → paint` pipeline + query/journal/replay/damage sockets, spike re-hosted onto it, gate green (shots byte-identical, replay deterministic, budgets baselined). The bounded explicit-time SVG animation checkpoint adds pure sampling, Base/Sample frame integration, exact-time rendering, a caller-owned playback clock, and a controlled native host; see [`crates/n0/ANIMATION.md`](../crates/n0/ANIMATION.md). Production migration remains separate |
 
 Ground rules:
@@ -107,25 +112,26 @@ Ground rules:
   model** (`anchor` vs `bake` — decide first), **Axis 2 = representation &
   mutation protocol** (struct vs sheet, key granularity — tunable after,
   bounded by the atom rule). Re-scopes `sheet`; source of harnesses H11/H12.
-- [`a/`](./a/) — **the winner's workbench**: the experiment ledger E1–E10
+- [`anchor/`](./anchor/) — **the winner's workbench**: the experiment ledger E1–E10
   (each with verdicts and lab tests), the decision register
-  ([`a/DECISIONS.md`](./a/DECISIONS.md)), the DEC-0 normative rules, the
-  ship-readiness census ([`a/LIMITS.md`](./a/LIMITS.md)), the peer-compat
+  ([`anchor/DECISIONS.md`](./anchor/DECISIONS.md)), the DEC-0 normative rules, the
+  ship-readiness census ([`anchor/LIMITS.md`](./anchor/LIMITS.md)), the peer-compat
   matrix, the phase-4 engine layer programs with day-1 contracts
-  ([`a/ENGINE.md`](./a/ENGINE.md)), the Rust conformance lab (now
+  ([`anchor/ENGINE.md`](./anchor/ENGINE.md)), the Rust conformance lab (now
   [`crates/n0-model`](../crates/n0-model)), and the native interactive
   spike (now [`crates/n0_dev`](../crates/n0_dev)).
 - [`models/`](./models/) — concrete candidate models, one file each,
-  harness-scored, best-faith. Files keep letter slots (`a.md`, `b.md`, …);
+  harness-scored, best-faith. Files carry their working identifiers
+  (renamed from letter slots at landing);
   the names are the working identifiers:
-  - [`models/a.md`](./models/a.md) — **`anchor`** (the anchored box model):
+  - [`models/anchor.md`](./models/anchor.md) — **`anchor`** (the anchored box model):
     intent-canonical scalars, per-axis bindings, lens quarantine. Proposed
     best fit.
-  - [`models/b.md`](./models/b.md) — **`sheet`** (the property sheet model):
+  - [`models/sheet.md`](./models/sheet.md) — **`sheet`** (the property sheet model):
     CSS-faithful flat registry, rulebook conflicts, post-layout transforms.
-  - [`models/c.md`](./models/c.md) — **`bake`** (the materialized matrix
+  - [`models/bake.md`](./models/bake.md) — **`bake`** (the materialized matrix
     model): Figma-faithful matrix + state canonicalism, edit-time layout.
-  - [`models/d.md`](./models/d.md) — **`wire`** (the wired geometry model):
+  - [`models/wire.md`](./models/wire.md) — **`wire`** (the wired geometry model):
     relational archetype — referent-general bindings, dataflow DAG, the WG
     Level-4 destination. Priced and deferred; `anchor` grows into it
     additively.

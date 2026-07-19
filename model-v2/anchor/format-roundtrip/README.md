@@ -7,7 +7,7 @@ H11: unset is structural, never a scalar sentinel), and does the codec
 round-trip?
 
 **Method.** [`anchor.fbs`](./anchor.fbs) is the standalone schema draft of
-models/a.md §9 (geometry header full-fidelity; identity/paint stubbed).
+models/anchor.md §9 (geometry header full-fidelity; identity/paint stubbed).
 [`quartet.json`](./quartet.json) encodes the a.md §7 worked examples plus
 sentinel-freedom witnesses (`SizeAuto` vs absent, `max_lines` box,
 aspect-ratio table, lens op vector). No generated code needed —

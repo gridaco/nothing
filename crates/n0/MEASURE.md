@@ -51,7 +51,7 @@ these, and **only** these, we deliberately spend a human.
 file I/O never taxes a normal run:
 
 ```sh
-ANCHOR_FRAMELOG=1 cargo run --release   # in model-v2/a/spike-canvas
+ANCHOR_FRAMELOG=1 cargo run --release   # in model-v2/anchor/spike-canvas
 # …interact (pan / zoom / drag) to reproduce the felt symptom, then kill it.
 # Inspect the log — the human runs, the reviewer reads:
 cat /tmp/n0_dev-frames.log

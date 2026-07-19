@@ -6,7 +6,7 @@ plus the read tier (`query`), time-as-data (`journal`/`replay`), and the
 sockets every future optimization plugs into (`damage`, `ident`, `oracle`).
 It consumes [`n0-model`](../n0-model) as a library; host chrome
 (winit/egui/GL) lives in consumers ([`n0_dev`](../n0_dev)), never here.
-The contracts it encodes are catalogued in [`../../model-v2/a/ENGINE.md`](../../model-v2/a/ENGINE.md)
+The contracts it encodes are catalogued in [`../../model-v2/anchor/ENGINE.md`](../../model-v2/anchor/ENGINE.md)
 (ENG-0…ENG-5, S-1…S-7, archived); each module names the contract it serves.
 
 This is a **day-1 skeleton**: every contract has a code socket and a guarding

@@ -433,7 +433,7 @@
     <h1>The list makes room.</h1>
     <p class="lede">
       Every number and pixel on this page comes from the lab in
-      <b>model-v2/a/</b> &#8212; the resolver that implements the anchor spec,
+      <b>model-v2/anchor/</b> &#8212; the resolver that implements the anchor spec,
       the sweeps it ran, and the agents that were tested against it. Three kinds
       of proof, in order of strength:
     </p>
@@ -1163,7 +1163,7 @@
       count and placing a box at slot-start instead of slot-center. Slips, not
       structural confusion. Records:
       <span style="font-family: var(--mono)"
-        >e3-text-ir/truth.txt &#183; predictions/*</span
+        >text-ir/truth.txt &#183; predictions/*</span
       >
     </p>
   </section>
@@ -1311,8 +1311,8 @@ M-4 backward: v2 binary decodes under v1 schema</pre
     <h2>Runtime proof, on your machine.</h2>
     <div class="repro">
       <div class="t">from the repo root</div>
-      <pre>open model-v2/a/e1-rotation-in-flow/demo.html   <span class="cm"># the offline twin of the demo above</span>
-cd model-v2/a/lab
+      <pre>open model-v2/anchor/rotation-in-flow/demo.html   <span class="cm"># the offline twin of the demo above</span>
+cd model-v2/anchor/lab
 cargo test                        <span class="cm"># 56/56 conformance-derived tests</span>
 cargo run --bin e1                <span class="cm"># regenerate the sweep, frames, metrics</span>
 cargo run --bin e3 -- truth       <span class="cm"># ground truth an agent must match</span>
@@ -1320,7 +1320,7 @@ cargo run --release --bin e4      <span class="cm"># the timings above</span></p
     </div>
     <p class="sub" style="margin-top: 16px">
       Full narrative, amendments E-A1&#8230;E-A7, and the honest lose column:
-      <span style="font-family: var(--mono)">model-v2/a/REPORT.md</span>.
+      <span style="font-family: var(--mono)">model-v2/anchor/REPORT.md</span>.
       Nothing is committed to git &#8212; the workbench is yours to review.
     </p>
   </section>

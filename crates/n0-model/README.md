@@ -1,7 +1,7 @@
 # n0-model
 
 The skia-free `anchor` model crate
-([`../../model-v2/models/a.md`](../../model-v2/models/a.md), archived spec
+([`../../model-v2/models/anchor.md`](../../model-v2/models/anchor.md), archived spec
 draft) — node subset: `frame`, `shape` (rect/ellipse/line/path), `text`
 (oracle-backed, with a deterministic 0.6/1.2 stub), `group`, `lens` (2D ops).
 Consumed as a library by [`n0`](../n0) (the engine) and

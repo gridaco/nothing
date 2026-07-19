@@ -1,4 +1,4 @@
-//! The four-phase resolver (models/a.md §6):
+//! The four-phase resolver (models/anchor.md §6):
 //!
 //! `resolve(document, viewport) → Resolved` — a pure function.
 //!

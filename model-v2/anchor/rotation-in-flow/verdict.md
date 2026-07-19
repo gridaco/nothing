@@ -36,7 +36,7 @@ record; demo.html is the feel).
 5. **Predictability (#17).** The arithmetic an agent needs is one formula
    (`|w·cosθ|+|h·sinθ|`); the E3 cold-prediction probe includes
    rotated-in-flow cases — see
-   [`../e3-text-ir/verdict.md`](../e3-text-ir/verdict.md) for the scored
+   [`../text-ir/verdict.md`](../text-ir/verdict.md) for the scored
    result feeding this clause.
 
 ## Declared consequences (into the spec at phase 3)

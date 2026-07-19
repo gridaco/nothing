@@ -123,7 +123,7 @@ impl Affine {
     }
 
     /// The model's one transform constructor for boxed kinds:
-    /// T(x0,y0) · T(c) · R(θ) · T(−c), c = box center (models/a.md §6 Phase T).
+    /// T(x0,y0) · T(c) · R(θ) · T(−c), c = box center (models/anchor.md §6 Phase T).
     pub fn from_box_center(x0: f32, y0: f32, w: f32, h: f32, deg: f32) -> Affine {
         Affine::from_box_center_flip(x0, y0, w, h, deg, false, false)
     }
@@ -226,7 +226,7 @@ pub fn aabb_of(pts: &[(f32, f32)]) -> RectF {
     }
 }
 
-/// Oriented AABB contribution of a rotated w×h box (models/a.md §5):
+/// Oriented AABB contribution of a rotated w×h box (models/anchor.md §5):
 /// `w' = |w·cosθ| + |h·sinθ|`, `h' = |w·sinθ| + |h·cosθ|`.
 /// Computed from resolved size only — never position (single-pass safe).
 pub fn rotated_aabb_size(w: f32, h: f32, deg: f32) -> (f32, f32) {

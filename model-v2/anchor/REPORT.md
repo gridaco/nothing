@@ -1,7 +1,7 @@
 # REPORT — prove `anchor`
 
 Autonomous run, 2026-07-07. Goal: **prove Model A** (`anchor`,
-[`../models/a.md`](../models/a.md)) by building it and running the
+[`../models/anchor.md`](../models/anchor.md)) by building it and running the
 experiment ledger ([`README.md`](./README.md)), ending in
 win / lose / lessons-learnt.
 
@@ -20,16 +20,16 @@ was wrong_.
 | exp                     | question                          | verdict                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ----------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Lab core**            | does the model implement?         | **56/56 conformance-derived tests green** — MM-1/2/3/4/5/6/7/9, G-1/2/4/5/E1/E2/E3, R-1/2/3(both arms)/4/5/E1, L-3/4/5/7/E1/E3, T-1, D-1/2/3/6/E1, lens transparency, ops write-counts, typed errors, M-6, NaN boundary, IR round-trip                                                                                                                                                                                    |
-| **E1** rotation-in-flow | AABB-participates vs visual-only  | **DECIDED: layout-visible** — 0 px² overlap at every angle vs 1,830 px² in the CSS arm; displacement smooth (≤3.45 px/2°, inside the √(w²+h²) analytic bound); rotate stays a 1-field write; container breathing (56.6 px full-spin) _confirms_ the two-lane motion rule instead of weakening the decision. R-3/OP-ROT-2 → INV. [verdict](./e1-rotation-in-flow/verdict.md), [demo.html](./e1-rotation-in-flow/demo.html) |
-| **E2** format           | encodes under fbs header rules?   | **PASS** — schema compiles; JSON→bin→JSON→bin **byte-identical** (S-1); structural unset witnessed in output (H11); additive evolution both directions (M-4). One policy owed: RMW-preservation of unknown fields. [verdict](./e2-format/README.md)                                                                                                                                                                       |
-| **E3** agent text IR    | can an LLM predict geometry cold? | **VALIDATED** — two frontier agents **22/22 (100%)** from a 150-line grammar alone, including wrap arithmetic, grow, hug, rotated-in-flow, group origin rule; small-model control 17/22 with slip-class errors only. [verdict](./e3-text-ir/verdict.md)                                                                                                                                                                   |
-| **E4** resolver spike   | architecture viable?              | **VIABLE** — 10k free nodes / 5.4 ms, all-flex worst case 237 nodes/ms linear, 18 µs subtree locality bound; replaces the 26-arm branch forest + `atan2` reconstruction + `MIN_SIZE_DIRTY_HACK` with ~700 uniform lines. Two Taffy dependency findings. [verdict](./e4-resolver/verdict.md)                                                                                                                               |
-| **E5** SVG corpus       | quarantine vs degrade?            | **MEASURED: quarantine + one amendment** — 1,003,787 transforms / 7,138 files: true shear is 0.95% (lens is right); **flip is 26.1% → must be native** (`flip_x`/`flip_y` header bools); paint transforms (39%) never touch node geometry. [verdict](./e5-svg-corpus/verdict.md)                                                                                                                                          |
-| **E6** pluggable layout | the #28 curiosity                 | sketched, non-binding: the `(contributions → slots)` seam already exists because E1's rotated AABBs forced it; keep core at two modes, E3 is the veto. [sketch](./e6-pluggable-layout/SKETCH.md)                                                                                                                                                                                                                          |
+| **E1** rotation-in-flow | AABB-participates vs visual-only  | **DECIDED: layout-visible** — 0 px² overlap at every angle vs 1,830 px² in the CSS arm; displacement smooth (≤3.45 px/2°, inside the √(w²+h²) analytic bound); rotate stays a 1-field write; container breathing (56.6 px full-spin) _confirms_ the two-lane motion rule instead of weakening the decision. R-3/OP-ROT-2 → INV. [verdict](./rotation-in-flow/verdict.md), [demo.html](./rotation-in-flow/demo.html) |
+| **E2** format           | encodes under fbs header rules?   | **PASS** — schema compiles; JSON→bin→JSON→bin **byte-identical** (S-1); structural unset witnessed in output (H11); additive evolution both directions (M-4). One policy owed: RMW-preservation of unknown fields. [verdict](./format-roundtrip/README.md)                                                                                                                                                                       |
+| **E3** agent text IR    | can an LLM predict geometry cold? | **VALIDATED** — two frontier agents **22/22 (100%)** from a 150-line grammar alone, including wrap arithmetic, grow, hug, rotated-in-flow, group origin rule; small-model control 17/22 with slip-class errors only. [verdict](./text-ir/verdict.md)                                                                                                                                                                   |
+| **E4** resolver spike   | architecture viable?              | **VIABLE** — 10k free nodes / 5.4 ms, all-flex worst case 237 nodes/ms linear, 18 µs subtree locality bound; replaces the 26-arm branch forest + `atan2` reconstruction + `MIN_SIZE_DIRTY_HACK` with ~700 uniform lines. Two Taffy dependency findings. [verdict](./resolver-spike/verdict.md)                                                                                                                               |
+| **E5** SVG corpus       | quarantine vs degrade?            | **MEASURED: quarantine + one amendment** — 1,003,787 transforms / 7,138 files: true shear is 0.95% (lens is right); **flip is 26.1% → must be native** (`flip_x`/`flip_y` header bools); paint transforms (39%) never touch node geometry. [verdict](./svg-corpus/verdict.md)                                                                                                                                          |
+| **E6** pluggable layout | the #28 curiosity                 | sketched, non-binding: the `(contributions → slots)` seam already exists because E1's rotated AABBs forced it; keep core at two modes, E3 is the veto. [sketch](./pluggable-layout/SKETCH.md)                                                                                                                                                                                                                          |
 
 ## What implementation forced into the spec (the run's real yield)
 
-These are the deltas `models/a.md` must absorb in its phase-3 rewrite —
+These are the deltas `models/anchor.md` must absorb in its phase-3 rewrite —
 each one was _discovered by a failing test or a measurement_, not by
 argument:
 
@@ -84,7 +84,7 @@ argument:
    normalize origin at write. Reference implementation already in-repo:
    `scaleVectorNetworkFromNormalizedSize` (io-figma lib.ts) + the
    fixture test proving Figma ships `normalizedSize != size` nodes.
-   See [`e7-shape-points-scale/`](./e7-shape-points-scale/README.md).
+   See [`shape-points-scale/`](./shape-points-scale/README.md).
 10. **E-A10 — the two-scales rule, locked** (E7): plain resize =
     geometry re-evaluation with px-stable styles (non-scaling-stroke by
     construction); parameter scale (K) stays an op-layer bake (Grida
@@ -164,7 +164,7 @@ argument:
   structure plus that bound.
 - **"Feel" by proxy**: E1 measured overlap/continuity/breathing and
   ships an interactive demo, but no human ran the scrubber yet — the
-  owner should open `e1-rotation-in-flow/demo.html` and disagree if the
+  owner should open `rotation-in-flow/demo.html` and disagree if the
   numbers lied.
 - **E3 n=3**: two frontier + one small model, six documents. Convincing
   signal, small sample; the probe protocol is repeatable on demand.
@@ -206,7 +206,7 @@ argument:
 
 ## What's next (phase 3, unchanged in shape, now unblocked)
 
-Rewrite `models/a.md` as the normative spec with E-A1…E-A7 folded in and
+Rewrite `models/anchor.md` as the normative spec with E-A1…E-A7 folded in and
 every conformance `POL` locked (R-3 now INV); graduate the WG write-up
 per docs-wg doctrine; promote `anchor.fbs` + the text-IR grammar to spec
 appendices; then phase 4 against the real engine with the two Taffy

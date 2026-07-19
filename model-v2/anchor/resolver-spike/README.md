@@ -1,7 +1,7 @@
 # E4 — resolver spike
 
 **Question.** Does the four-phase resolution (measure → layout →
-transforms → bounds, models/a.md §6) hold up as an engine architecture —
+transforms → bounds, models/anchor.md §6) hold up as an engine architecture —
 throughput, scaling, invalidation shape — against the current
 `crates/grida` pipeline (`cache/geometry.rs` + `layout/engine.rs`)?
 

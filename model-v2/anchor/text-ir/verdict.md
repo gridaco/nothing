@@ -23,7 +23,7 @@ this directory; re-run with `cargo run --bin e3 -- truth|score`.
    rotated-in-flow _layout_ consequences (container hug = 260, sibling
    displaced to 190) from four sentences of spec. The two frontier agents
    also placed the rotated box itself perfectly. This closes the
-   predictability clause of [`../e1-rotation-in-flow/verdict.md`](../e1-rotation-in-flow/verdict.md):
+   predictability clause of [`../rotation-in-flow/verdict.md`](../rotation-in-flow/verdict.md):
    layout-visible rotation does not cost agent predictability.
 3. **Small-model failures are slips, not structure.** Haiku's five misses
    trace to two causes: a character-count off-by-one (then compounded),

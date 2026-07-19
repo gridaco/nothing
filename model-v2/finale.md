@@ -23,7 +23,7 @@ provenance: **invent vs adopt**.
 
 ### `anchor` — invent the right model
 
-[models/a.md](./models/a.md) as written: intent-canonical bindings,
+[models/anchor.md](./models/anchor.md) as written: intent-canonical bindings,
 XYWH-first, layout as a feature, layout-visible rotation, set-means-set.
 The Figma/SVG lineage, done without their legacies. **We author the
 normative spec, prove it, and teach it.**

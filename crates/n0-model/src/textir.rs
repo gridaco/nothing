@@ -1,6 +1,6 @@
 //! The agent text IR — an XML-ish projection of the anchor document
 //! (triage amendment 3). Audience: LLMs. The grammar is specified in
-//! `model-v2/a/e3-text-ir/grammar.md`; this module is the reference
+//! `model-v2/anchor/text-ir/grammar.md`; this module is the reference
 //! parser + canonical printer.
 //!
 //! Round-trip law: `parse(print(doc)) == doc` for documents whose ids were

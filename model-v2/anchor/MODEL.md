@@ -174,7 +174,7 @@ anchor-to-node (`wire`), M-4 RMW policy, stable ids in the text IR.
 
 ## Suggested next step
 
-Phase-3 proper: rewrite `models/a.md` against this statement as the
+Phase-3 proper: rewrite `models/anchor.md` against this statement as the
 normative spec (every conformance `POL` locked, E-A1…E-A10 folded,
 applicability matrix regenerated with `flip_x/flip_y` and the vector
 reference rect), regenerate the fbs draft (header + `VectorPayload
