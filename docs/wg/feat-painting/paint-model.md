@@ -528,4 +528,4 @@ in-tree with gridaco/nothing#5).
   the packed color, paint variants, paint stack, and unified stroke
   application in
   [`crates/n0-model/src/model.rs`](../../../crates/n0-model/src/model.rs)
-  (promoted from the `model-v2-anchor` branch's `model-v2/anchor/lab`).
+  (promoted from the `model-v2-anchor` branch's `archive/model-v2/anchor/lab`).

@@ -10,8 +10,10 @@ production TS/editor, WASM, importer, renderer, and runtime migration are still
 out of scope here.
 
 > **Archive note (2026-07-19).** This directory is the **frozen workbench
-> archive** of the v2 model program. Its proving stack was promoted into
-> the workspace at the landing of
+> archive** of the v2 model program, filed under the repo's
+> [`archive/`](../README.md) home for concluded-program records (it lived
+> at the repo root as `model-v2/` during the program). Its proving stack
+> was promoted into the workspace at the landing of
 > [gridaco/nothing#5](https://github.com/gridaco/nothing/pull/5):
 > `a/lab` → [`crates/n0-model`](../crates/n0-model), `engine/` →
 > [`crates/n0`](../crates/n0), `a/spike-canvas` →
@@ -45,7 +47,7 @@ cargo test -p n0-model
 cargo run --release -p n0_dev
 
 # the demo pages (proof, model walkthrough, edge cases, DEC-0 fork, free editing)
-python3 -m http.server 4173 --directory model-v2/anchor/.preview
+python3 -m http.server 4173 --directory archive/model-v2/anchor/.preview
 ```
 
 ## Why this exists

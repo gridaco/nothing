@@ -1,4 +1,4 @@
-//! The `anchor` document model — lab subset of `model-v2/models/anchor.md`.
+//! The `anchor` document model — lab subset of `archive/model-v2/models/anchor.md`.
 //!
 //! Kinds implemented: frame, shape (rect/ellipse/line/path), text, group, lens.
 //! Omitted for the lab (noted in the report): tray, image, embed, vector,

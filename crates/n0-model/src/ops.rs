@@ -1,4 +1,4 @@
-//! The op layer — editor gestures as document writes (model-v2/editor.md).
+//! The op layer — editor gestures as document writes (archive/model-v2/editor.md).
 //!
 //! Doctrine under test:
 //! - typed errors, never silent (`OpError`); a rejected op leaves the

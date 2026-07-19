@@ -9,7 +9,7 @@ relationship the migration will have with the engine crate.
 
 > **DEC-0 second lock (same day):** the default flipped to
 > **visual-only** rotation (owner framing; normative rules incl. the
-> V-4 group-box fork: [`../../model-v2/anchor/dec0-visual-only.md`](../../model-v2/anchor/dec0-visual-only.md)).
+> V-4 group-box fork: [`../../archive/model-v2/anchor/dec0-visual-only.md`](../../archive/model-v2/anchor/dec0-visual-only.md)).
 > Chapters below hold unchanged except: HUD chrome for derived kinds
 > reads INK bounds (`world_aabb`), and the rotate×layout policy surface
 > (E-A4/E-A7/E-A11/E-A12, DEC-1/2/3) is retired. Both arms stay
@@ -103,7 +103,7 @@ events as packed-u32 responses, hit-test precedent
 to encode; the spike deliberately did not build the boundary (owner:
 no wasm — testing the model, not the transport).
 
-## Frictions found by hand (full list: the archived [spike read-out](../../model-v2/anchor/spike-readout.md))
+## Frictions found by hand (full list: the archived [spike read-out](../../archive/model-v2/anchor/spike-readout.md))
 
 Fed back into the register/docs rather than patched silently:
 edge-resize of a ROTATED node steers in parent axes (usable, not

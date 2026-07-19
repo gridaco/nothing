@@ -30,7 +30,7 @@ the v2 `n0` engine family (`crates/n0`), promoted from the
 - [`crates/grida_dev`](./crates/grida_dev) · [`crates/grida_wpt`](./crates/grida_wpt) — dev tools, benchmarks, reftests
 - [`crates/n0`](./crates/n0) — the `n0` engine (v2): resolve → drawlist → paint
 - [`crates/n0-model`](./crates/n0-model) · [`crates/n0_dev`](./crates/n0_dev) — the skia-free `anchor` model · the v2 dev shell
-- [`model-v2/`](./model-v2) — the frozen v2 workbench archive (decision record)
+- [`archive/model-v2/`](./model-v2) — the frozen v2 workbench archive (decision record)
 - [`format/`](./format) — the FlatBuffers schema (source of truth)
 - [`docs/wg/`](./docs/wg) — the engine's normative working-group specs
 

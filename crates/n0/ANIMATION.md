@@ -21,7 +21,7 @@ typed path geometry and the first bounded discrete effect family.
 Native n0 XML animation is
 [deferred](../../docs/wg/format/n0-xml-animation.md).
 
-The binding is subordinate to the [engine contracts](../../model-v2/anchor/ENGINE.md), the
+The binding is subordinate to the [engine contracts](../../archive/model-v2/anchor/ENGINE.md), the
 [measurement doctrine](./MEASURE.md), and the implemented
 [effective-values contract](./EFFECTIVE-VALUES.md). It does not define source
 syntax.

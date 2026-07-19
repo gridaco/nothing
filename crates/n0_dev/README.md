@@ -5,7 +5,7 @@ A native Skia canvas driven end-to-end by the `anchor` model
 [`n0`](../n0) engine). Two goals, owner-stated: **feel it** and
 **be the textbook** for the legacy migration
 ([`TEXTBOOK.md`](./TEXTBOOK.md)). Grown from the archived feel-spike workbench experiment
-(see the `model-v2/` archive).
+(see [`archive/model-v2/`](../../archive/model-v2/)).
 
 ## Run
 
@@ -74,5 +74,5 @@ No images/vectors/bools; text renders via the default typeface but is
 MEASURED by the lab stub (visible mismatch = open DEC-4/B-1, on
 purpose); no marquee multi-select, snapping, rulers, persistence beyond
 the IR, or wasm. DEC-0 is decided (visual-only, CSS-pure —
-[`../../model-v2/anchor/dec0-visual-only.md`](../../model-v2/anchor/dec0-visual-only.md)); DEC-1/2/3 are
+[`../../archive/model-v2/anchor/dec0-visual-only.md`](../../archive/model-v2/anchor/dec0-visual-only.md)); DEC-1/2/3 are
 closed n/a by it — fill never fights rotation here, by construction.

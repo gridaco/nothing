@@ -1,7 +1,7 @@
 # n0-model
 
 The skia-free `anchor` model crate
-([`../../model-v2/models/anchor.md`](../../model-v2/models/anchor.md), archived spec
+([`../../archive/model-v2/models/anchor.md`](../../archive/model-v2/models/anchor.md), archived spec
 draft) — node subset: `frame`, `shape` (rect/ellipse/line/path), `text`
 (oracle-backed, with a deterministic 0.6/1.2 stub), `group`, `lens` (2D ops).
 Consumed as a library by [`n0`](../n0) (the engine) and
@@ -14,7 +14,7 @@ cargo run -p n0-model --release --bin svg_transform_scan -- <dirs>   # SVG corpu
 ```
 
 The one-shot workbench harnesses were retired at promotion; their frozen
-outputs and verdicts live in the `model-v2/` archive (see its experiment
+outputs and verdicts live in the `archive/model-v2/` archive (see its experiment
 ledger).
 
 Map:

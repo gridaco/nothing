@@ -169,4 +169,4 @@ in-tree with gridaco/nothing#5).
   the flat item stream, paired scope commands, and per-item world
   transforms in
   [`crates/n0/src/drawlist.rs`](../../../crates/n0/src/drawlist.rs)
-  (promoted from the `model-v2-anchor` branch's `model-v2/engine`).
+  (promoted from the `model-v2-anchor` branch's `archive/model-v2/engine`).

@@ -55,7 +55,7 @@ python3 bin/activate-flatc -- --rust -o crates/grida/src/io/generated format/gri
 | `crates/grida_dev`          | dev CLI, benchmarks, reftest tooling                                                       |
 | `crates/grida_wpt`          | web-platform-tests harness                                                                 |
 | `crates/n0` · `n0-model` · `n0_dev` | the v2 engine family (the `anchor` model): skia-free model crate, resolve→drawlist→paint engine, winit/egui dev shell — promoted from the `model-v2-anchor` branch (gridaco/nothing#9) |
-| `model-v2/`                 | the frozen v2 workbench archive (phase papers, experiment verdicts, demo pages); paths inside the frozen papers refer to the pre-promotion layout — see its README's map |
+| `archive/model-v2/`                 | the frozen v2 workbench archive (phase papers, experiment verdicts, demo pages); paths inside the frozen papers refer to the pre-promotion layout — see its README's map |
 | `format/`                   | the FlatBuffers schema (`grida.fbs`) — **source of truth**; see `format/AGENTS.md`         |
 | `docs/wg/`                  | the engine's normative working-group specs (canvas, format, research, feat-*) — same-repo  |
 | `fixtures/`                 | test corpora (see the `fixtures` skill); **`fixtures/local/` is untracked** — large suites (resvg, W3C SVG 1.1, oxygen-icons, perf, refig) are downloaded per-machine |

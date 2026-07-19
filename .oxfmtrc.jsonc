@@ -14,8 +14,8 @@
     "fixtures/",
     "target/",
     "third_party/",
-    // The frozen v2 workbench archive — kept verbatim (see model-v2/README.md).
-    "model-v2/",
+    // The frozen v2 workbench archive — kept verbatim (see archive/model-v2/README.md).
+    "archive/",
     // Generated Emscripten glue and binaries.
     "crates/grida-canvas-wasm/lib/bin/",
     "crates/grida-canvas-wasm/dist/",
