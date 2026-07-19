@@ -13,6 +13,12 @@ The working-group tree is the engine's source of truth for domain-level
 specifications and research. It defines what the system must mean and why,
 independently of any one implementation.
 
+## Programs
+
+- [The Consolidation Program](./consolidation.md) — the active
+  post-landing program consolidating the legacy engine and `n0` into one
+  engine: phases, gates, and the owner decision registry.
+
 ## Areas
 
 - [Canvas](./canvas/index.md)
