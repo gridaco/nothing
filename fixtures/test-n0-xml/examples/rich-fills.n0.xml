@@ -7,7 +7,7 @@
           <stop offset="0" color="#7C3AED"/>
           <stop offset="1" color="#2563EB"/>
         </gradient>
-        <image src="../../../../fixtures/images/border-diamonds.png" opacity="0.15"/>
+        <image src="../../images/border-diamonds.png" opacity="0.15"/>
       </fill>
       <text x="24" y="24" width="272" font-size="28" fill="#FFFFFF">Ordered fills</text>
       <text x="24" y="72" width="272" fill="#E0E7FF">solid + gradient + image</text>

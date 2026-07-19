@@ -36,37 +36,37 @@ cargo run --bin effective_values_demo -- target/grida-effective-values-demo.png
 
 # Profile 0 source through the latest cumulative renderer
 cargo run --release --bin svg_animation_render -- \
-  rig/examples/svg-animation-profile0-demo.svg \
+  ../../fixtures/test-svg/animation/svg-animation-profile0-demo.svg \
   target/svg-animation-profile0 50 4000
 
 # Profile 1 keyframes and easing (100 fps, 4.5 seconds)
 cargo run --release --bin svg_animation_render -- \
-  rig/examples/svg-animation-profile1-keyframes.svg \
+  ../../fixtures/test-svg/animation/svg-animation-profile1-keyframes.svg \
   target/svg-animation-profile1-keyframes 100 4500
 
 # Profile 2 replacement sandwich (50 fps, 6.5 seconds)
 cargo run --release --bin svg_animation_render -- \
-  rig/examples/svg-animation-profile2-replacement-sandwich.svg \
+  ../../fixtures/test-svg/animation/svg-animation-profile2-replacement-sandwich.svg \
   target/svg-animation-profile2-replacement-sandwich 50 6500
 
 # Profile 3 additive/accumulative motion mixer (2 fps, 7.5 seconds)
 cargo run --release --bin svg_animation_render -- \
-  rig/examples/svg-animation-profile3-motion-mixer.svg \
+  ../../fixtures/test-svg/animation/svg-animation-profile3-motion-mixer.svg \
   target/svg-animation-profile3-motion-mixer 2 7500
 
 # Profile 4 live-underlying effects and typed transforms (20 fps, 6 seconds)
 cargo run --release --bin svg_animation_render -- \
-  rig/examples/svg-animation-profile4-transform-showcase.svg \
+  ../../fixtures/test-svg/animation/svg-animation-profile4-transform-showcase.svg \
   target/svg-animation-profile4-transform-showcase 20 6000
 
 # Profile 5 solid-fill color effects (20 fps, 6 seconds)
 cargo run --release --bin svg_animation_render -- \
-  rig/examples/svg-animation-profile5-solid-fill-showcase.svg \
+  ../../fixtures/test-svg/animation/svg-animation-profile5-solid-fill-showcase.svg \
   target/svg-animation-profile5-solid-fill-showcase 20 6000
 
 # Profile 6 smooth/discrete path geometry (20 fps, 6 seconds)
 cargo run --release --bin svg_animation_render -- \
-  rig/examples/svg-animation-profile6-path-morph-showcase.svg \
+  ../../fixtures/test-svg/animation/svg-animation-profile6-path-morph-showcase.svg \
   target/svg-animation-profile6-path-morph-showcase 20 6000
 ```
 
@@ -164,7 +164,7 @@ boundary:
 ```sh
 cd ../n0_dev
 cargo run --release -- \
-  --play-svg ../n0/rig/examples/svg-animation-profile6-path-morph-showcase.svg
+  --play-svg ../n0/../../fixtures/test-svg/animation/svg-animation-profile6-path-morph-showcase.svg
 ```
 
 Its separate `AnimationApp` owns `Instant`, redraw pacing, controls, resize,
@@ -185,45 +185,45 @@ Retained dynamic side channels such as `<set>`, `<script>`, `<style>`, and
 event attributes may still expose the ordinary Base document, but make Sample
 compilation fail. The production SVG importer is unchanged.
 
-`rig/fixtures/svg-animation-profile0-boundaries.svg` is the exact nanosecond
-repeat-boundary oracle. `rig/examples/svg-animation-profile0-demo.svg` is the
+`fixtures/test-svg/animation/svg-animation-profile0-boundaries.svg` is the exact nanosecond
+repeat-boundary oracle. `../../fixtures/test-svg/animation/svg-animation-profile0-demo.svg` is the
 960×540 visual specimen and exercises every admitted property, delayed begins,
 repeats, remove/freeze, parent targeting, and root-level `href` targeting.
 
-`rig/fixtures/svg-animation-profile1-keyframe-boundaries.svg` adds uneven
+`fixtures/test-svg/animation/svg-animation-profile1-keyframe-boundaries.svg` adds uneven
 key-time, repeat, and freeze boundaries. Its visual sibling
-`rig/examples/svg-animation-profile1-keyframes.svg` aligns linear, shared
+`../../fixtures/test-svg/animation/svg-animation-profile1-keyframes.svg` aligns linear, shared
 spline, and independently eased segments against the same stations.
 
-`rig/fixtures/svg-animation-profile2-sandwich-boundaries.svg` isolates base,
+`fixtures/test-svg/animation/svg-animation-profile2-sandwich-boundaries.svg` isolates base,
 lower contribution, later-begin replacement, exact-end fallthrough, and frozen
 lower state on one target. Its three-rail visual sibling
-`rig/examples/svg-animation-profile2-replacement-sandwich.svg` separates the
+`../../fixtures/test-svg/animation/svg-animation-profile2-replacement-sandwich.svg` separates the
 lower effect, temporary higher effect, and composed result.
 
-`rig/fixtures/svg-animation-profile3-additive-boundaries.svg` isolates typed
+`fixtures/test-svg/animation/svg-animation-profile3-additive-boundaries.svg` isolates typed
 addition and accumulation across repeat, replacement, remove, and freeze
 boundaries. Its four-lane visual sibling
-`rig/examples/svg-animation-profile3-motion-mixer.svg` separates the cumulative
+`../../fixtures/test-svg/animation/svg-animation-profile3-motion-mixer.svg` separates the cumulative
 foundation, delayed replacement, persistent/temporary offsets, and result.
 
-`rig/fixtures/svg-animation-profile4-effects-and-transforms.svg` isolates the
+`fixtures/test-svg/animation/svg-animation-profile4-effects-and-transforms.svg` isolates the
 live lower-sandwich dependency, typed transform interpolation, parameter-level
 accumulation, and ordered postmultiplication. Its visual sibling
-`rig/examples/svg-animation-profile4-transform-showcase.svg` presents those
+`../../fixtures/test-svg/animation/svg-animation-profile4-transform-showcase.svg` presents those
 laws as separate lanes through the same latest-profile renderer and player.
 
-`rig/fixtures/svg-animation-profile5-solid-fill-boundaries.svg` isolates
+`fixtures/test-svg/animation/svg-animation-profile5-solid-fill-boundaries.svg` isolates
 whole-fill replacement, straight alpha/color interpolation, exact additive and
 repeat-accumulative channels, and live-underlying color. Its visual sibling
-`rig/examples/svg-animation-profile5-solid-fill-showcase.svg` presents uneven
+`../../fixtures/test-svg/animation/svg-animation-profile5-solid-fill-showcase.svg` presents uneven
 spline color keyframes, an additive RGB mixer, and a live transition.
 
-`rig/fixtures/svg-animation-profile6-path-boundaries.svg` isolates
+`fixtures/test-svg/animation/svg-animation-profile6-path-boundaries.svg` isolates
 absolute/relative compatibility inside one command family, structured spline
 morphing, explicit discrete arc-bearing geometry, and the `H/V` versus `L`
 automatic fallback boundary. Its visual sibling
-`rig/examples/svg-animation-profile6-path-morph-showcase.svg` presents a
+`../../fixtures/test-svg/animation/svg-animation-profile6-path-morph-showcase.svg` presents a
 circle-to-sparkle cubic motion mark, whole-icon state switches, and a
 family-mismatch switch through the same latest-profile renderer and player.
 
@@ -379,40 +379,40 @@ complete. Current limits are:
 
 Checked-in Draft 0 files use the canonical grammar; Version 1–4 fixtures use
 the selected proving grammar of their open RFDs. The minimal consumer fixture
-and pixel probes live at `rig/fixtures/nested-rects.n0.xml` and
-`tests/n0_xml.rs`. `rig/examples/dynamic-slide.n0.xml` demonstrates flex,
+and pixel probes live at `fixtures/test-n0-xml/cases/nested-rects.n0.xml` and
+`tests/n0_xml.rs`. `../../fixtures/test-n0-xml/examples/dynamic-slide.n0.xml` demonstrates flex,
 a direct ellipse used as a circle, and primitive/text composition.
-`rig/examples/rich-fills.n0.xml` demonstrates ordered paint stacks, while
-`rig/examples/rich-strokes.n0.xml` demonstrates independent repeated stroke
-geometry. `rig/examples/source-becomes-surface.n0.xml` is the complete
+`../../fixtures/test-n0-xml/examples/rich-fills.n0.xml` demonstrates ordered paint stacks, while
+`../../fixtures/test-n0-xml/examples/rich-strokes.n0.xml` demonstrates independent repeated stroke
+geometry. `../../fixtures/test-n0-xml/examples/source-becomes-surface.n0.xml` is the complete
 editorial showcase: every Draft 0 element and property family, all four
 gradient variants, image paints, clipping, responsive bindings, and native
 multi-stroke composition in one scene.
-`rig/examples/rounded-surfaces.n0.xml` concentrates the rounded-box slice:
+`../../fixtures/test-n0-xml/examples/rounded-surfaces.n0.xml` concentrates the rounded-box slice:
 asymmetric circular corners, elliptical axes, continuous smoothing, clipped
 descendants, rich fills, and repeated strokes.
-`rig/examples/per-side-strokes.n0.xml` demonstrates asymmetric and zero
+`../../fixtures/test-n0-xml/examples/per-side-strokes.n0.xml` demonstrates asymmetric and zero
 side widths, ordinary elliptical corners, continuous dashes, repeated rings,
 and rich paints without duplicating scene geometry.
-`rig/examples/rich-text.n0.xml` is the attributed-text specimen: mixed
+`../../fixtures/test-n0-xml/examples/rich-text.n0.xml` is the attributed-text specimen: mixed
 sizes, weights, italic style, solid and gradient run fills, exact whitespace,
 and derived UTF-8 ranges in one inspectable string.
-`rig/fixtures/unit-path.n0.xml` is the focused path oracle: an even-odd unit
+`fixtures/test-n0-xml/cases/unit-path.n0.xml` is the focused path oracle: an even-odd unit
 path with ordered fills and repeated strokes. The complete editorial showcase
 also includes a nested, rich-painted path specimen.
-`rig/fixtures/component-program/entry.n0.xml` and its sibling component
+`fixtures/test-n0-xml/cases/component-program/entry.n0.xml` and its sibling component
 library are the focused Version 2 source-program oracle: one external boxed
 component, two independently specialized uses, ordinary-scene lowering, and
 component-blind pixel output.
-`rig/fixtures/slot-program/entry.n0.xml` and its sibling Version 3 component
+`fixtures/test-n0-xml/cases/slot-program/entry.n0.xml` and its sibling Version 3 component
 library are the focused named-slot oracle: definition-owned header/footer
 order, caller-owned projected roots, one empty projection, ordinary-scene
 lowering, and component-blind interior pixel probes.
-`rig/fixtures/durable-addressing.n0.xml` is the Version 4 identity oracle:
+`fixtures/test-n0-xml/cases/durable-addressing.n0.xml` is the Version 4 identity oracle:
 every authored ordinary node has one owner/member/use-occurrence address, and
 the engine integration compiles one occurrence to an arena-scoped typed
 property target before evaluating it through the ordinary frame pipeline.
-`rig/examples/social-feed/entry.n0.xml` and `post-card.n0.xml` form the
+`fixtures/test-n0-xml/examples/social-feed/entry.n0.xml` and `post-card.n0.xml` form the
 real-world Version 3 showcase: one viewport-spanning, breakpoint-free scene
 uses center/end/span bindings for its rail, stories, timeline, suggestions,
 and message dock. Reusable stories and suggestions plus two post instances
@@ -426,46 +426,46 @@ pass explicit positive dimensions for responsive inputs:
 
 ```sh
 cargo run --bin n0_xml_render -- \
-  rig/examples/dynamic-slide.n0.xml target/n0-xml-dynamic-slide.png
+  ../../fixtures/test-n0-xml/examples/dynamic-slide.n0.xml target/n0-xml-dynamic-slide.png
 
 cargo run --bin n0_xml_render -- \
-  rig/examples/rich-fills.n0.xml target/n0-xml-rich-fills.png 720 300
+  ../../fixtures/test-n0-xml/examples/rich-fills.n0.xml target/n0-xml-rich-fills.png 720 300
 
 cargo run --bin n0_xml_render -- \
-  rig/examples/rich-strokes.n0.xml target/n0-xml-rich-strokes.png 720 320
+  ../../fixtures/test-n0-xml/examples/rich-strokes.n0.xml target/n0-xml-rich-strokes.png 720 320
 
 cargo run --bin n0_xml_render -- \
-  rig/examples/source-becomes-surface.n0.xml \
+  ../../fixtures/test-n0-xml/examples/source-becomes-surface.n0.xml \
   target/n0-xml-source-becomes-surface.png 1600 1000
 
 cargo run --bin n0_xml_render -- \
-  rig/examples/rounded-surfaces.n0.xml \
+  ../../fixtures/test-n0-xml/examples/rounded-surfaces.n0.xml \
   target/n0-xml-rounded-surfaces.png 1440 900
 
 cargo run --bin n0_xml_render -- \
-  rig/examples/per-side-strokes.n0.xml \
+  ../../fixtures/test-n0-xml/examples/per-side-strokes.n0.xml \
   target/n0-xml-per-side-strokes.png 1200 760
 
 cargo run --bin n0_xml_render -- \
-  rig/examples/rich-text.n0.xml \
+  ../../fixtures/test-n0-xml/examples/rich-text.n0.xml \
   target/n0-xml-rich-text.png 1280 800
 
 cargo run --bin n0_xml_render -- \
-  rig/fixtures/nested-rects.n0.xml target/n0-xml-nested-rects.png 96 80
+  ../../fixtures/test-n0-xml/cases/nested-rects.n0.xml target/n0-xml-nested-rects.png 96 80
 
 cargo run --bin n0_xml_render -- \
-  rig/fixtures/unit-path.n0.xml target/n0-xml-unit-path.png 96 80
+  ../../fixtures/test-n0-xml/cases/unit-path.n0.xml target/n0-xml-unit-path.png 96 80
 
 cargo run --bin n0_xml_render -- \
-  rig/fixtures/component-program/entry.n0.xml \
+  ../../fixtures/test-n0-xml/cases/component-program/entry.n0.xml \
   target/n0-xml-component-program.png 96 40
 
 cargo run --bin n0_xml_render -- \
-  rig/fixtures/slot-program/entry.n0.xml \
+  ../../fixtures/test-n0-xml/cases/slot-program/entry.n0.xml \
   target/n0-xml-slot-program.png 112 48
 
 cargo run --bin n0_xml_render -- \
-  rig/examples/social-feed/entry.n0.xml \
+  ../../fixtures/test-n0-xml/examples/social-feed/entry.n0.xml \
   target/n0-xml-social-feed-desktop.png 1920 1080
 
 # Diagnostic viewport sweep (these renders are not reftest or golden oracles).
@@ -474,7 +474,7 @@ for size in 1920x1080 1440x900 1280x800 1024x768 768x1024 390x844; do
   width=${size%x*}
   height=${size#*x}
   cargo run --quiet --bin n0_xml_render -- \
-    rig/examples/social-feed/entry.n0.xml \
+    ../../fixtures/test-n0-xml/examples/social-feed/entry.n0.xml \
     "target/social-feed-responsive/social-feed@${size}.png" \
     "$width" "$height"
 done
@@ -528,7 +528,7 @@ contract is [`EFFECTIVE-VALUES.md`](./EFFECTIVE-VALUES.md).
 | damage as data                       | `damage.rs`                | ENG-2.2       | `tests/damage.rs`, `tests/values.rs`, `tests/cache.rs` (geometry · paint-only · opacity · painter order · environment · covering bounds)                                                                                          |
 | spatial read tier                    | `query.rs`                 | ENG-3         | `tests/query.rs` (`hit_point ≡ pick` · retained traversal/clip snapshot)                                                                                                                                                          |
 | journal (op-log)                     | `journal.rs`               | ENG-5.1       | `tests/journal.rs`                                                                                                                                                                                                                |
-| replay (corpus, determinism)         | `replay.rs`                | ENG-5.2/5.3   | `tests/replay.rs` + `rig/corpus/*.replay` via the gate                                                                                                                                                                            |
+| replay (corpus, determinism)         | `replay.rs`                | ENG-5.2/5.3   | `tests/replay.rs` + `fixtures/n0-replay/*.replay` via the gate                                                                                                                                                                    |
 | cache identity                       | `ident.rs`                 | ENG-2.3/1.4   | `tests/ident.rs`, `tests/cache.rs` (arena + slot + generation · exact values · paint environment · document replacement)                                                                                                          |
 | oracle version tags                  | `oracle.rs`                | ENG-4.2       | the `.replay` header                                                                                                                                                                                                              |
 | gated observability                  | `trace.rs`                 | S-6           | `cargo check --features trace`                                                                                                                                                                                                    |

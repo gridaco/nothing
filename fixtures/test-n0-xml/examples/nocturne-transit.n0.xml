@@ -7,7 +7,7 @@
         <stop offset="0.52" color="#0F172A"/>
         <stop offset="1" color="#020617"/>
       </gradient>
-      <image src="../../../../fixtures/images/checker.png" fit="fill" opacity="0.045" blend-mode="screen"/>
+      <image src="../../images/checker.png" fit="fill" opacity="0.045" blend-mode="screen"/>
     </fill>
     <stroke width="3" align="inside">
       <gradient kind="linear" from="0 0" to="1 1" opacity="0.5">

@@ -11,7 +11,7 @@ use n0_model::model::{Color as ModelColor, CornerSmoothing, Paints, RectangularC
 use n0_model::n0_xml;
 use n0_model::resolve::{resolve, ResolveOptions};
 
-const SOURCE: &str = include_str!("../rig/fixtures/nested-rects.n0.xml");
+const SOURCE: &str = include_str!("../../../fixtures/test-n0-xml/cases/nested-rects.n0.xml");
 const WIDTH: i32 = 96;
 const HEIGHT: i32 = 80;
 

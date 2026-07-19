@@ -17,7 +17,7 @@ cargo run --release -- --shot out.png [crosszero|ungroup|rot45]
 
 # live SVG animation host
 cargo run --release -- \
-  --play-svg ../n0/rig/examples/svg-animation-profile6-path-morph-showcase.svg
+  --play-svg ../../fixtures/test-svg/animation/svg-animation-profile6-path-morph-showcase.svg
 ```
 
 As a workspace member it shares the repo's target dir, so the first build

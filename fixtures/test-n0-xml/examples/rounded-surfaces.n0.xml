@@ -42,7 +42,7 @@
           <stop offset="0.5" color="#10172F"/>
           <stop offset="1" color="#07111D"/>
         </gradient>
-        <image src="../../../../fixtures/images/512.jpg" opacity="0.12" blend-mode="soft-light"/>
+        <image src="../../images/512.jpg" opacity="0.12" blend-mode="soft-light"/>
         <gradient kind="radial" transform="1.3 0 0 1.3 0.18 -0.5" opacity="0.42" blend-mode="screen">
           <stop offset="0" color="#22D3EE"/>
           <stop offset="0.5" color="#2563EB" opacity="0.34901962"/>

@@ -7,7 +7,7 @@
         <stop offset="0.44" color="#111827"/>
         <stop offset="1" color="#020617"/>
       </gradient>
-      <image src="../../../../fixtures/images/512.jpg" fit="fill" opacity="0.2" blend-mode="soft-light"/>
+      <image src="../../images/512.jpg" fit="fill" opacity="0.2" blend-mode="soft-light"/>
       <gradient kind="linear" from="0 0" to="1 1" opacity="0.72" blend-mode="screen">
         <stop offset="0" color="#F472B6" opacity="0.4"/>
         <stop offset="0.42" color="#8B5CF6" opacity="0.2"/>
@@ -87,7 +87,7 @@ presentations, and programmable graphics.</text>
               <stop offset="0.5" color="#A855F7"/>
               <stop offset="1" color="#2563EB"/>
             </gradient>
-            <image src="../../../../fixtures/images/512.jpg" fit="fill" opacity="0.16" blend-mode="soft-light"/>
+            <image src="../../images/512.jpg" fit="fill" opacity="0.16" blend-mode="soft-light"/>
           </fill>
           <stroke width="14" align="outside" join="round">
             <gradient kind="radial" opacity="0.3" blend-mode="screen">
@@ -180,7 +180,7 @@ presentations, and programmable graphics.</text>
           <stop offset="0.5" color="#312E81"/>
           <stop offset="1" color="#09090B"/>
         </gradient>
-        <image src="../../../../fixtures/images/512.jpg" fit="fill" opacity="0.24" blend-mode="soft-light"/>
+        <image src="../../images/512.jpg" fit="fill" opacity="0.24" blend-mode="soft-light"/>
         <gradient kind="radial" transform="1.35 0 0 1.35 -0.42 -0.38" opacity="0.52" blend-mode="screen">
           <stop offset="0" color="#F472B6"/>
           <stop offset="0.48" color="#7C3AED" opacity="0.4"/>
@@ -264,7 +264,7 @@ presentations, and programmable graphics.</text>
             <stop offset="0.78" color="#0F172A"/>
             <stop offset="1" color="#020617"/>
           </gradient>
-          <image src="../../../../fixtures/images/512.jpg" fit="fill" opacity="0.18" blend-mode="overlay"/>
+          <image src="../../images/512.jpg" fit="fill" opacity="0.18" blend-mode="overlay"/>
           <gradient kind="linear" from="0 0" to="1 1" opacity="0.48" blend-mode="screen">
             <stop offset="0" color="#F472B6" opacity="0.6"/>
             <stop offset="0.5" color="#8B5CF6" opacity="0.2"/>
@@ -278,7 +278,7 @@ presentations, and programmable graphics.</text>
             <stop offset="0.48" color="#8B5CF6"/>
             <stop offset="1" color="#22D3EE" opacity="0"/>
           </gradient>
-          <image src="../../../../fixtures/images/512.jpg" fit="fill" opacity="0.14" blend-mode="screen"/>
+          <image src="../../images/512.jpg" fit="fill" opacity="0.14" blend-mode="screen"/>
         </stroke>
         <stroke width="10" align="center" dash-array="5 15">
           <gradient kind="sweep">
@@ -400,7 +400,7 @@ presentations, and programmable graphics.</text>
             <stop offset="0.5" color="#8B5CF6"/>
             <stop offset="1" color="#22D3EE"/>
           </gradient>
-          <image src="../../../../fixtures/images/512.jpg" fit="fill" opacity="0.1" blend-mode="soft-light"/>
+          <image src="../../images/512.jpg" fit="fill" opacity="0.1" blend-mode="soft-light"/>
         </fill>
         <stroke width="7" align="outside" join="round">
           <solid color="#8B5CF6" opacity="0.2"/>

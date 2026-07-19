@@ -14,7 +14,7 @@ use n0_model::path::FillRule;
 use n0_model::resolve::{resolve, ResolveOptions};
 use skia_safe::{surfaces, Color as SkColor, Paint as SkPaint, Rect};
 
-const SOURCE: &str = include_str!("../rig/fixtures/unit-path.n0.xml");
+const SOURCE: &str = include_str!("../../../fixtures/test-n0-xml/cases/unit-path.n0.xml");
 const WIDTH: i32 = 96;
 const HEIGHT: i32 = 80;
 

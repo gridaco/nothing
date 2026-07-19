@@ -120,7 +120,7 @@ canvas and the previous retained image, drawlist, and keys.
 - `tests/cache.rs`: exact values, document replacement, same-RID resource
   replacement, and transactional failure preserving the prior cached frame.
 - `tests/n0_xml_source.rs` with
-  `rig/fixtures/durable-addressing.n0.xml`: authored occurrence address to
+  `fixtures/test-n0-xml/cases/durable-addressing.n0.xml`: authored occurrence address to
   typed runtime target to evaluated frame output.
 
 The future animation design must produce `PropertyValues`; it must not invent

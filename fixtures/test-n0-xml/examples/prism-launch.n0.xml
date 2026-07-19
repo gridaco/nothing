@@ -2,7 +2,7 @@
   <container name="prism-launch" width="1440" height="900" clips="true">
     <fill>
       <solid color="#050816"/>
-      <image src="../../../../fixtures/images/512.jpg" fit="fill" opacity="0.16" blend-mode="soft-light"/>
+      <image src="../../images/512.jpg" fit="fill" opacity="0.16" blend-mode="soft-light"/>
       <gradient kind="diamond" transform="1.25 0 0 1.1 -0.18 -0.08" opacity="0.9">
         <stop offset="0" color="#6D28D9"/>
         <stop offset="0.42" color="#172554"/>
@@ -145,7 +145,7 @@ SOURCE VISIBLE.</text>
           <stop offset="0.52" color="#172554"/>
           <stop offset="1" color="#020617"/>
         </gradient>
-        <image src="../../../../fixtures/images/border-diamonds.png" fit="fill" opacity="0.1" blend-mode="screen"/>
+        <image src="../../images/border-diamonds.png" fit="fill" opacity="0.1" blend-mode="screen"/>
       </fill>
       <stroke width="16" align="outside" join="round">
         <solid color="#020617" opacity="0.72"/>

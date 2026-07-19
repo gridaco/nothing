@@ -262,7 +262,7 @@ fn replacement_sandwich_fallthrough_is_one_coherent_frame() {
 #[test]
 fn additive_sandwich_is_one_coherent_layout_query_damage_and_pixel_frame() {
     let compiled = compile_profile3(include_str!(
-        "../rig/fixtures/svg-animation-profile3-additive-boundaries.svg"
+        "../../../fixtures/test-svg/animation/svg-animation-profile3-additive-boundaries.svg"
     ));
     let probe = named(compiled.document(), "probe");
     let context = PaintCtx::new(None);

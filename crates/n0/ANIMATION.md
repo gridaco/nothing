@@ -822,13 +822,13 @@ The reference evidence is split by failure class:
   manual visual evidence.
 
 The checked-in visual host renders
-`rig/examples/svg-animation-profile0-demo.svg` and
-`rig/examples/svg-animation-profile1-keyframes.svg`, plus
-`rig/examples/svg-animation-profile2-replacement-sandwich.svg` and
-`rig/examples/svg-animation-profile3-motion-mixer.svg`, plus
-`rig/examples/svg-animation-profile4-transform-showcase.svg` and
-`rig/examples/svg-animation-profile5-solid-fill-showcase.svg`, plus
-`rig/examples/svg-animation-profile6-path-morph-showcase.svg`, at exact
+`fixtures/test-svg/animation/svg-animation-profile0-demo.svg` and
+`fixtures/test-svg/animation/svg-animation-profile1-keyframes.svg`, plus
+`fixtures/test-svg/animation/svg-animation-profile2-replacement-sandwich.svg` and
+`fixtures/test-svg/animation/svg-animation-profile3-motion-mixer.svg`, plus
+`fixtures/test-svg/animation/svg-animation-profile4-transform-showcase.svg` and
+`fixtures/test-svg/animation/svg-animation-profile5-solid-fill-showcase.svg`, plus
+`fixtures/test-svg/animation/svg-animation-profile6-path-morph-showcase.svg`, at exact
 integer-nanosecond cadences. The Profile 1 specimen aligns an uneven linear
 track, a repeated symmetric spline, and independently eased segments against
 the same keyframe stations. The Profile 2 specimen shows the lower effect, the

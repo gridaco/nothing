@@ -352,7 +352,8 @@ mod tests {
     use skia_safe::{surfaces, Color};
 
     fn fixture_input() -> PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("rig/fixtures/nested-rects.n0.xml")
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../fixtures/test-n0-xml/cases/nested-rects.n0.xml")
     }
 
     fn image_fixture(name: &str) -> PathBuf {
@@ -407,8 +408,9 @@ mod tests {
 
     #[test]
     fn probe_fixture_resolves_without_errors() {
-        let program =
-            materialize_at_fixture(include_str!("../../rig/fixtures/nested-rects.n0.xml"));
+        let program = materialize_at_fixture(include_str!(
+            "../../../../fixtures/test-n0-xml/cases/nested-rects.n0.xml"
+        ));
         let resolved = resolve(&program.document, &ResolveOptions::default());
         assert_eq!(ensure_resolved_without_errors(&program, &resolved), Ok(()));
     }
@@ -445,7 +447,7 @@ mod tests {
 
     #[test]
     fn image_resources_resolve_from_the_document_directory() {
-        let rid = "../../../../fixtures/images/border-diamonds.png";
+        let rid = "../../images/border-diamonds.png";
         let source = format!(
             r#"<grida version="0"><container><rect name="image-card" width="90" height="90"><fill><image src="{rid}"/></fill></rect></container></grida>"#
         );
@@ -459,7 +461,7 @@ mod tests {
 
     #[test]
     fn image_resources_are_discovered_in_authored_strokes() {
-        let rid = "../../../../fixtures/images/border-diamonds.png";
+        let rid = "../../images/border-diamonds.png";
         let source = format!(
             r#"<grida version="0"><container><rect width="90" height="90"><stroke width="8" align="inside"><image src="{rid}" fit="fill"/></stroke></rect></container></grida>"#
         );
@@ -472,7 +474,7 @@ mod tests {
 
     #[test]
     fn image_resources_are_discovered_in_attributed_run_fills() {
-        let rid = "../../../../fixtures/images/border-diamonds.png";
+        let rid = "../../images/border-diamonds.png";
         let source = format!(
             r#"<grida version="0"><container><text width="32"><tspan><fill><image src="{rid}"/></fill>x</tspan></text></container></grida>"#
         );
@@ -491,7 +493,7 @@ mod tests {
         assert!(error.contains("image `./missing-run-image.png`"), "{error}");
         assert!(error.contains("authored in"), "{error}");
         assert!(
-            error.contains("rig/fixtures/./missing-run-image.png"),
+            error.contains("test-n0-xml/cases/./missing-run-image.png"),
             "{error}"
         );
     }
@@ -505,7 +507,7 @@ mod tests {
         let error = load_image_resources(&missing, &mut ctx).unwrap_err();
         assert!(error.contains("`missing` image `./missing.png`"), "{error}");
         assert!(error.contains("authored in"), "{error}");
-        assert!(error.contains("rig/fixtures/./missing.png"), "{error}");
+        assert!(error.contains("test-n0-xml/cases/./missing.png"), "{error}");
 
         let corrupt = materialize_at_fixture(
             r#"<grida version="0"><container><rect name="corrupt" width="1" height="1"><fill><image src="./nested-rects.n0.xml"/></fill></rect></container></grida>"#,

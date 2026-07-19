@@ -16,8 +16,10 @@ use n0_model::n0_xml_source::{self, SourceProvider, SourceSnapshot};
 use n0_model::resolve::{resolve, ResolveOptions};
 use skia_safe::{surfaces, Color};
 
-const ENTRY_SOURCE: &str = include_str!("../rig/fixtures/slot-program/entry.n0.xml");
-const COMPONENT_SOURCE: &str = include_str!("../rig/fixtures/slot-program/post-shell.n0.xml");
+const ENTRY_SOURCE: &str =
+    include_str!("../../../fixtures/test-n0-xml/cases/slot-program/entry.n0.xml");
+const COMPONENT_SOURCE: &str =
+    include_str!("../../../fixtures/test-n0-xml/cases/slot-program/post-shell.n0.xml");
 const ENTRY_ID: &str = "fixture:slot-program/entry";
 const COMPONENT_ID: &str = "fixture:slot-program/post-shell";
 const SOURCE_BASE: &str = "fixture:/slot-program/";

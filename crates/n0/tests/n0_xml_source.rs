@@ -21,9 +21,12 @@ use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyV
 use n0_model::resolve::{resolve, ResolveOptions};
 use skia_safe::{surfaces, Color};
 
-const ENTRY_SOURCE: &str = include_str!("../rig/fixtures/component-program/entry.n0.xml");
-const COMPONENT_SOURCE: &str = include_str!("../rig/fixtures/component-program/swatch.n0.xml");
-const DURABLE_SOURCE: &str = include_str!("../rig/fixtures/durable-addressing.n0.xml");
+const ENTRY_SOURCE: &str =
+    include_str!("../../../fixtures/test-n0-xml/cases/component-program/entry.n0.xml");
+const COMPONENT_SOURCE: &str =
+    include_str!("../../../fixtures/test-n0-xml/cases/component-program/swatch.n0.xml");
+const DURABLE_SOURCE: &str =
+    include_str!("../../../fixtures/test-n0-xml/cases/durable-addressing.n0.xml");
 const ENTRY_ID: &str = "fixture:component-program/entry";
 const COMPONENT_ID: &str = "fixture:component-program/swatch";
 const SOURCE_BASE: &str = "fixture:/component-program/";

@@ -19,7 +19,8 @@ use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyV
 use n0_model::resolve::ResolveOptions;
 use skia_safe::{surfaces, EncodedImageFormat, Font, Paint as SkPaint};
 
-const SOURCE: &str = include_str!("../../rig/fixtures/durable-addressing.n0.xml");
+const SOURCE: &str =
+    include_str!("../../../../fixtures/test-n0-xml/cases/durable-addressing.n0.xml");
 const INTER: &[u8] =
     include_bytes!("../../../../fixtures/fonts/Inter/Inter-VariableFont_opsz,wght.ttf");
 const SCENE_WIDTH: f32 = 352.0;

@@ -9,12 +9,15 @@ use n0_model::model::{AnchorEdge, AxisBinding, LensOp};
 use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue};
 use n0_model::svg_animation::{SourceSnapshot, SvgAnimationSource, PROFILE4_COMPILER_ID};
 
-const EFFECTS_AND_TRANSFORMS: &str =
-    include_str!("../../n0/rig/fixtures/svg-animation-profile4-effects-and-transforms.svg");
-const PROFILE3_ADDITIVE_BOUNDARIES: &str =
-    include_str!("../../n0/rig/fixtures/svg-animation-profile3-additive-boundaries.svg");
-const PROFILE4_SHOWCASE: &str =
-    include_str!("../../n0/rig/examples/svg-animation-profile4-transform-showcase.svg");
+const EFFECTS_AND_TRANSFORMS: &str = include_str!(
+    "../../../fixtures/test-svg/animation/svg-animation-profile4-effects-and-transforms.svg"
+);
+const PROFILE3_ADDITIVE_BOUNDARIES: &str = include_str!(
+    "../../../fixtures/test-svg/animation/svg-animation-profile3-additive-boundaries.svg"
+);
+const PROFILE4_SHOWCASE: &str = include_str!(
+    "../../../fixtures/test-svg/animation/svg-animation-profile4-transform-showcase.svg"
+);
 
 fn materialize(source: &str) -> SvgAnimationSource {
     SvgAnimationSource::parse(SourceSnapshot::new("profile4-test.svg", source)).unwrap()

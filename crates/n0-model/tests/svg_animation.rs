@@ -11,20 +11,25 @@ use n0_model::svg_animation::{
 };
 
 const BOUNDARIES: &str =
-    include_str!("../../n0/rig/fixtures/svg-animation-profile0-boundaries.svg");
-const KEYFRAME_BOUNDARIES: &str =
-    include_str!("../../n0/rig/fixtures/svg-animation-profile1-keyframe-boundaries.svg");
-const SANDWICH_BOUNDARIES: &str =
-    include_str!("../../n0/rig/fixtures/svg-animation-profile2-sandwich-boundaries.svg");
-const ADDITIVE_BOUNDARIES: &str =
-    include_str!("../../n0/rig/fixtures/svg-animation-profile3-additive-boundaries.svg");
-const DEMO: &str = include_str!("../../n0/rig/examples/svg-animation-profile0-demo.svg");
+    include_str!("../../../fixtures/test-svg/animation/svg-animation-profile0-boundaries.svg");
+const KEYFRAME_BOUNDARIES: &str = include_str!(
+    "../../../fixtures/test-svg/animation/svg-animation-profile1-keyframe-boundaries.svg"
+);
+const SANDWICH_BOUNDARIES: &str = include_str!(
+    "../../../fixtures/test-svg/animation/svg-animation-profile2-sandwich-boundaries.svg"
+);
+const ADDITIVE_BOUNDARIES: &str = include_str!(
+    "../../../fixtures/test-svg/animation/svg-animation-profile3-additive-boundaries.svg"
+);
+const DEMO: &str =
+    include_str!("../../../fixtures/test-svg/animation/svg-animation-profile0-demo.svg");
 const KEYFRAME_DEMO: &str =
-    include_str!("../../n0/rig/examples/svg-animation-profile1-keyframes.svg");
-const SANDWICH_DEMO: &str =
-    include_str!("../../n0/rig/examples/svg-animation-profile2-replacement-sandwich.svg");
+    include_str!("../../../fixtures/test-svg/animation/svg-animation-profile1-keyframes.svg");
+const SANDWICH_DEMO: &str = include_str!(
+    "../../../fixtures/test-svg/animation/svg-animation-profile2-replacement-sandwich.svg"
+);
 const ADDITIVE_DEMO: &str =
-    include_str!("../../n0/rig/examples/svg-animation-profile3-motion-mixer.svg");
+    include_str!("../../../fixtures/test-svg/animation/svg-animation-profile3-motion-mixer.svg");
 
 fn materialize(source: &str) -> SvgAnimationSource {
     SvgAnimationSource::parse(SourceSnapshot::new("inline.svg", source)).unwrap()

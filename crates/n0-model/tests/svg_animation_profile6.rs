@@ -7,12 +7,14 @@ use n0_model::path::{self, FillRule, PathCommand, PathGeometry};
 use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue};
 use n0_model::svg_animation::{SourceSnapshot, SvgAnimationSource, PROFILE6_COMPILER_ID};
 
-const PROFILE5_BOUNDARIES: &str =
-    include_str!("../../n0/rig/fixtures/svg-animation-profile5-solid-fill-boundaries.svg");
+const PROFILE5_BOUNDARIES: &str = include_str!(
+    "../../../fixtures/test-svg/animation/svg-animation-profile5-solid-fill-boundaries.svg"
+);
 const PATH_BOUNDARIES: &str =
-    include_str!("../../n0/rig/fixtures/svg-animation-profile6-path-boundaries.svg");
-const PROFILE6_SHOWCASE: &str =
-    include_str!("../../n0/rig/examples/svg-animation-profile6-path-morph-showcase.svg");
+    include_str!("../../../fixtures/test-svg/animation/svg-animation-profile6-path-boundaries.svg");
+const PROFILE6_SHOWCASE: &str = include_str!(
+    "../../../fixtures/test-svg/animation/svg-animation-profile6-path-morph-showcase.svg"
+);
 
 fn materialize(source: &str) -> SvgAnimationSource {
     SvgAnimationSource::parse(SourceSnapshot::new("profile6-test.svg", source)).unwrap()

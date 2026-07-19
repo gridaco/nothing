@@ -98,7 +98,7 @@ fn files_equal(a: &Path, b: &Path) -> bool {
 
 fn gate_replays() -> bool {
     println!("\n[replays] play twice, bit-identical");
-    let dir = manifest().join("rig/corpus");
+    let dir = manifest().join("../../fixtures/n0-replay");
     let mut all = true;
     for name in CORPUS {
         let path = dir.join(format!("{name}.replay"));
@@ -156,7 +156,7 @@ fn gate_diff() -> bool {
     let (w, h) = (1360, 900);
     let mut all = true;
     for name in CORPUS {
-        let path = manifest().join(format!("rig/corpus/{name}.replay"));
+        let path = manifest().join(format!("../../fixtures/n0-replay/{name}.replay"));
         let rep = match std::fs::read_to_string(&path)
             .ok()
             .and_then(|t| replay::parse_string(&t).ok())
@@ -336,7 +336,7 @@ fn bench_doc(doc: &Document, opts: &ResolveOptions) -> (f64, f64) {
 
 fn starter_doc() -> Document {
     // The normalized starter IR lives in every corpus replay's header.
-    let path = manifest().join("rig/corpus/crosszero.replay");
+    let path = manifest().join("../../fixtures/n0-replay/crosszero.replay");
     let text = std::fs::read_to_string(&path).expect("corpus present for bench");
     replay::parse_string(&text).expect("parse corpus").doc
 }

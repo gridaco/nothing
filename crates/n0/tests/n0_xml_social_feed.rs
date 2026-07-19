@@ -14,15 +14,19 @@ use n0_model::resolve::{resolve, ResolveOptions};
 use skia_safe::{surfaces, Color};
 use std::collections::BTreeSet;
 
-const ENTRY_SOURCE: &str = include_str!("../rig/examples/social-feed/entry.n0.xml");
-const COMPONENT_SOURCE: &str = include_str!("../rig/examples/social-feed/post-card.n0.xml");
+const ENTRY_SOURCE: &str =
+    include_str!("../../../fixtures/test-n0-xml/examples/social-feed/entry.n0.xml");
+const COMPONENT_SOURCE: &str =
+    include_str!("../../../fixtures/test-n0-xml/examples/social-feed/post-card.n0.xml");
 const ENTRY_ID: &str = "example:social-feed/entry";
 const COMPONENT_ID: &str = "example:social-feed/post-card";
 const SOURCE_BASE: &str = "example:/social-feed/";
-const COASTAL_IMAGE: &[u8] =
-    include_bytes!("../rig/examples/social-feed/assets/post-coastal-cabin.webp");
-const STUDIO_IMAGE: &[u8] =
-    include_bytes!("../rig/examples/social-feed/assets/post-orange-studio.webp");
+const COASTAL_IMAGE: &[u8] = include_bytes!(
+    "../../../fixtures/test-n0-xml/examples/social-feed/assets/post-coastal-cabin.webp"
+);
+const STUDIO_IMAGE: &[u8] = include_bytes!(
+    "../../../fixtures/test-n0-xml/examples/social-feed/assets/post-orange-studio.webp"
+);
 const WIDTH: i32 = 1920;
 const HEIGHT: i32 = 1080;
 
