@@ -191,8 +191,9 @@ Two distinct product surfaces share the name:
   ([gridaco/nothing#13](https://github.com/gridaco/nothing/issues/13)).
 
 Stated program default (owner may override at Phase 3 entry, where the
-charter's **NAME** decision also confirms this reading): the two remain
-distinct surfaces — a document import and a rendering product. SVG
+charter's [**NAME** decision](./svg-import-name.md) also confirms this
+reading): the two remain distinct surfaces — a document import and a
+rendering product. SVG
 *animation* is already chassis territory (see Animation & time).
 
 ### HTML/CSS
