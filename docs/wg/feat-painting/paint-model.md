@@ -1,6 +1,6 @@
 ---
 title: The Paint Model
-description: "Open RFD for the shared paint vocabulary — color, stroke, ordered paints, the text-style partition, and canonical gradient/image field sets — that both engines adopt at promotion."
+description: "Ratified RFD for the shared paint vocabulary — color, stroke, ordered paints, the text-style partition, and canonical gradient/image field sets — that both engines adopt at promotion."
 tags:
   - internal
   - wg
@@ -145,8 +145,9 @@ float spelling grants no extra gamut in practice.
 3. **The lossless conversion laws.**
    - *Word ↔ channel struct*: bijective byte placement; lossless in
      both directions.
-   - *Byte → unit float*: `f = n / 255`; every byte value is exactly
-     representable; lossless.
+   - *Byte → unit float*: `f = n / 255`; the quotient is not generally
+     exact in binary floating point, but the conversion is deterministic
+     and the originating byte is recoverable under the inverse law below.
    - *Unit float → byte*: `n = round(clamp(f, 0, 1) × 255)`,
      round-to-nearest. Under this rule the byte → float → byte round
      trip is the identity. Any float off the 1/255 grid loses
@@ -411,7 +412,7 @@ into intrinsic parameters.
 | Linear  | Two endpoints as alignment points (defaults: center-left → center-right)              | Yes   | Yes                           | Yes       |
 | Radial  | Implicit center `(0.5, 0.5)`, radius `0.5` in unit gradient space                     | Yes   | Yes                           | Yes       |
 | Sweep   | Implicit center `(0.5, 0.5)`; angular domain one full turn, clockwise from 0°         | Yes   | No — the angular domain is closed; a full turn has no exterior to tile | Yes |
-| Diamond | The radial field evaluated under the Manhattan distance metric, same unit space       | Yes   | No — no tile mode is carried on any surface today; behavior beyond the unit diamond must be pinned at ratification | Yes |
+| Diamond | The radial field evaluated under the Manhattan distance metric, same unit space       | Yes   | No — no tile mode is carried on any surface today; beyond-unit clamp behavior is proposed by `AMD-DIAMOND-CLAMP` below | Yes |
 
 **Stop:** `(offset ∈ [0,1], color)` — recommended without a separate
 opacity field; see the contested point below.
@@ -503,9 +504,48 @@ contract the promotion program implements, in vocabulary terms:
   boundary: layout-affecting values remain with the text-resolution
   contract; run fills, decoration color, and text strokes are governed
   by this spec.
-- **Gradients and images** — field sets unchanged except the ratified
-  radial focal extension; importers upgrade every silent drop named in
+- **Gradients and images** — field sets follow the ratified decisions;
+  the radial focal extension remains proposed, so
+  importers upgrade every silent drop named in
   decision 5 to its conformance behavior.
+
+## Pinned amendments
+
+These amendments are **proposed and re-pinned**, not ratified. Their named
+owner is `universe@grida.co`, the
+[consolidation program owner](../consolidation/index.md). Ratification remains
+an owner gate under **AMD** and precedes D-C or deletion of any mapping that
+depends on the amendment.
+
+### AMD-DIAMOND-CLAMP
+
+**Draft amendment text:** A diamond gradient evaluates
+`t = min(1, 2 × (abs(u - 0.5) + abs(v - 0.5)))` in unit gradient space.
+Samples on or beyond the unit diamond therefore use the terminal ramp color.
+Diamond carries no tile-mode field. A source spread method other than this
+clamp behavior is unsupported and must be reported as a declared deviation.
+
+Both current render paths clamp the L1 ramp, and Draft-0 n0 XML states the same
+formula. That agreement is evidence, not ratification and not an independent
+oracle. Acceptance requires an analytic probe derived from the formula against
+both render entries, plus the owner's explicit GO. If D-C selects one shared
+diamond type, delete a test mapping only after that probe and the field-matrix
+law run directly on the selected type; otherwise the mapping remains a
+permanent law gate.
+
+### AMD-RUN-FILL-TRISTATE
+
+**Draft amendment text:** A styled run owns an optional paint-stack override.
+Absent means inherit the node's fill stack; present and empty means explicitly
+no ink; present and nonempty replaces the node stack. Resolution of ownership
+precedes invisible-paint filtering. Filtering may turn a present stack into a
+present empty stack, but must never turn it into absent inheritance.
+
+The Phase-1 trait harness constructs all three states in both vocabularies; the
+legacy paragraph consumer and n0 drawlist retain the same distinction. Owner
+acceptance requires targeted assertions at both consumers together with the
+shared law test. A run-fill mapping is deletable only if D-C selects one shared
+representation and the three-state test runs directly on it.
 
 ## Evidence
 

@@ -96,7 +96,7 @@ read it before starting work.
 |---|---|---|---|
 | GO | Merge #5 | **taken** 2026-07-19 (#5 merged as `a2d7c290`) | CI green on the tip; sweep evidence current |
 | AMD | Paint-RFD amendments (diamond-gradient extension; tri-state run-fill) | Phase 1 | named owner + drafted amendment text; gates D-C and adapter deletion |
-| D-C | n0-model adopts extracted cg types per-leaf vs keeps its own behind a law-equivalence mapping test | Phase 1 exit | the conformance-suite gap report |
+| D-C | n0-model adopts extracted cg types per-leaf vs keeps its own behind a law-equivalence mapping test | Phase 1 exit | the [paint-vocabulary conformance gap report](./paint-vocabulary-gap.md) |
 | FLIP | The flip rule (per-suite thresholds, coverage requirements, oracle-discipline clause) | Phase 2 — before any score exists | scoreboard v0 design + corpus enumeration |
 | NAME | SVG IR crate name + its math vocabulary (math2 vs kurbo); also confirms the two-surface reading (import-to-document vs render-to-pixels) stated in the [topology](./topology.md) | Phase 3 entry | naming exercise per doctrine |
 | D-D | htmlcss font-provider seam (flagged open at M4) | Phase 4 HTML entry (study starts Phase 0) | the WG study |
