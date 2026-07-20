@@ -207,8 +207,8 @@ shared; the chassis consumes it through an adapter that maps styled
 elements onto the model; text on both sides flows through the
 shaped-text artifact of the
 [text-layout RFD](../feat-paragraph/text-layout.md). Gated by the
-font-provider decision (**D-D**) and the closed-set architecture test
-(Phase 4).
+[font-provider decision](./font-provider-seam.md) (**D-D**) and the
+closed-set architecture test (Phase 4).
 
 ### Export
 

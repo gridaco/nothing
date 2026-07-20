@@ -46,6 +46,12 @@ docs, in order:
 Reference, consulted as needed: **[the glossary](./glossary.md)** — the
 program vocabulary. Use its terms; do not mint synonyms.
 
+## Decision evidence
+
+- **[HTML/CSS font-provider seam](./font-provider-seam.md)** — the
+  completed evidence study for D-D; the registry decision remains open
+  pending the owner's explicit GO.
+
 The charter is the only doc of the four that sequences work — and it
 records the *route*; the current *position* (active phase, landed PRs,
 taken decisions) is tracked on

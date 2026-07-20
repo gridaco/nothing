@@ -99,7 +99,7 @@ read it before starting work.
 | D-C | n0-model adopts extracted cg types per-leaf vs keeps its own behind a law-equivalence mapping test | Phase 1 exit | the conformance-suite gap report |
 | FLIP | The flip rule (per-suite thresholds, coverage requirements, oracle-discipline clause) | Phase 2 — before any score exists | scoreboard v0 design + corpus enumeration |
 | NAME | SVG IR crate name + its math vocabulary (math2 vs kurbo); also confirms the two-surface reading (import-to-document vs render-to-pixels) stated in the [topology](./topology.md) | Phase 3 entry | naming exercise per doctrine |
-| D-D | htmlcss font-provider seam (flagged open at M4) | Phase 4 HTML entry (study starts Phase 0) | the WG study |
+| D-D | htmlcss font-provider seam (flagged open at M4) | Phase 4 HTML entry (study starts Phase 0) | the [WG seam study](./font-provider-seam.md) — evidence complete; decision open |
 | D6 | Editor-core ownership: grida_editor vs n0 journal/ops ([#1](https://github.com/gridaco/nothing/issues/1) is the migration-anchor context; a dedicated D6 issue is filed in Phase 0's registry sweep) | Phase 4, concurrent lane | timeboxed spike mapping the legacy editor core's operation catalog against the graduated spec (scoped subset, not the full catalog) |
 | D-H | Text-oracle identity: stay on `skparagraph@skia-0.93.1` vs fonts-backed production oracle | Phase 5 boundary only | crates/fonts contract + a differential run |
 | D-G(b) | v2 archive story: ratified n0 XML vs a future v2 binary | Phase 5 | n0 XML RFD ratification pass |

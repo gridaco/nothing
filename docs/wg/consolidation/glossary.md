@@ -110,6 +110,11 @@ drift.
 - **shaped-text artifact** — the backend-neutral text layout (lines,
   glyph runs, positions) produced once by a text oracle and replayed
   by painters; never reshaped downstream.
+- **resolution environment** — the explicit immutable manifest of
+  external facts used to resolve text: exact font resources and
+  selection policy, language data, scale, and declared limits. A
+  different environment requires a new resolution and artifact identity,
+  even when the resulting geometry happens to match.
 - **sample time / explicit time** — the declared instant an animation
   program is evaluated at. Time is always an input, never ambient.
 - **render mode** — a policy over the pure core: realtime preview,
