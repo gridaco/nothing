@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 /// # Common Patterns
 ///
 /// ```rust
-/// use grida::cg::prelude::*;
+/// use cg::prelude::*;
 ///
 /// // Solid line (empty array = no dashing)
 /// let solid = StrokeDashArray(vec![]);
@@ -59,7 +59,7 @@ use serde::{Deserialize, Serialize};
 /// # Example: Complex Pattern
 ///
 /// ```rust
-/// use grida::cg::prelude::*;
+/// use cg::prelude::*;
 ///
 /// // Railroad track pattern: long-short-long with gaps
 /// let railroad = StrokeDashArray(vec![
@@ -127,7 +127,7 @@ impl StrokeDashArray {
     /// # Examples
     ///
     /// ```
-    /// use grida::cg::prelude::*;
+    /// use cg::prelude::*;
     /// // Empty → solid
     /// assert_eq!(StrokeDashArray(vec![]).normalized(), Vec::<f32>::new());
     ///

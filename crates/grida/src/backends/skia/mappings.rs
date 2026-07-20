@@ -1,20 +1,31 @@
 use crate::cg::prelude::*;
 use skia_safe;
 
-impl From<CGColor> for skia_safe::Color {
-    fn from(color: CGColor) -> Self {
+/// Convert a backend-neutral canvas-graphics value into its Skia counterpart.
+///
+/// This local trait keeps backend mappings on the consumer side of the
+/// skia-free `cg` crate boundary.
+pub trait IntoSkia<T> {
+    fn into_skia(self) -> T;
+}
+
+impl IntoSkia<skia_safe::Color> for CGColor {
+    fn into_skia(self) -> skia_safe::Color {
+        let color = self;
         skia_safe::Color::from_argb(color.a(), color.r(), color.g(), color.b())
     }
 }
 
-impl From<CGRect> for skia_safe::Rect {
-    fn from(rect: CGRect) -> skia_safe::Rect {
+impl IntoSkia<skia_safe::Rect> for CGRect {
+    fn into_skia(self) -> skia_safe::Rect {
+        let rect = self;
         skia_safe::Rect::from_xywh(rect.x, rect.y, rect.width, rect.height)
     }
 }
 
-impl From<BooleanPathOperation> for skia_safe::PathOp {
-    fn from(op: BooleanPathOperation) -> Self {
+impl IntoSkia<skia_safe::PathOp> for BooleanPathOperation {
+    fn into_skia(self) -> skia_safe::PathOp {
+        let op = self;
         match op {
             BooleanPathOperation::Union => skia_safe::PathOp::Union,
             BooleanPathOperation::Intersection => skia_safe::PathOp::Intersect,
@@ -24,8 +35,9 @@ impl From<BooleanPathOperation> for skia_safe::PathOp {
     }
 }
 
-impl From<TileMode> for skia_safe::TileMode {
-    fn from(tile_mode: TileMode) -> Self {
+impl IntoSkia<skia_safe::TileMode> for TileMode {
+    fn into_skia(self) -> skia_safe::TileMode {
+        let tile_mode = self;
         match tile_mode {
             TileMode::Clamp => skia_safe::TileMode::Clamp,
             TileMode::Repeated => skia_safe::TileMode::Repeat,
@@ -35,8 +47,9 @@ impl From<TileMode> for skia_safe::TileMode {
     }
 }
 
-impl From<BlendMode> for skia_safe::Blender {
-    fn from(val: BlendMode) -> Self {
+impl IntoSkia<skia_safe::Blender> for BlendMode {
+    fn into_skia(self) -> skia_safe::Blender {
+        let val = self;
         use skia_safe::BlendMode::*;
         let sk_blend_mode = match val {
             BlendMode::Normal => SrcOver,
@@ -60,8 +73,9 @@ impl From<BlendMode> for skia_safe::Blender {
     }
 }
 
-impl From<BlendMode> for skia_safe::BlendMode {
-    fn from(mode: BlendMode) -> Self {
+impl IntoSkia<skia_safe::BlendMode> for BlendMode {
+    fn into_skia(self) -> skia_safe::BlendMode {
+        let mode = self;
         use skia_safe::BlendMode::*;
         match mode {
             BlendMode::Normal => SrcOver,
@@ -84,8 +98,9 @@ impl From<BlendMode> for skia_safe::BlendMode {
     }
 }
 
-impl From<StrokeCap> for skia_safe::PaintCap {
-    fn from(val: StrokeCap) -> Self {
+impl IntoSkia<skia_safe::PaintCap> for StrokeCap {
+    fn into_skia(self) -> skia_safe::PaintCap {
+        let val = self;
         match val {
             StrokeCap::Butt => skia_safe::PaintCap::Butt,
             StrokeCap::Round => skia_safe::PaintCap::Round,
@@ -94,8 +109,9 @@ impl From<StrokeCap> for skia_safe::PaintCap {
     }
 }
 
-impl From<StrokeJoin> for skia_safe::PaintJoin {
-    fn from(val: StrokeJoin) -> Self {
+impl IntoSkia<skia_safe::PaintJoin> for StrokeJoin {
+    fn into_skia(self) -> skia_safe::PaintJoin {
+        let val = self;
         match val {
             StrokeJoin::Miter => skia_safe::PaintJoin::Miter,
             StrokeJoin::Round => skia_safe::PaintJoin::Round,
@@ -104,8 +120,9 @@ impl From<StrokeJoin> for skia_safe::PaintJoin {
     }
 }
 
-impl From<TextDecorationLine> for skia_safe::textlayout::TextDecoration {
-    fn from(mode: TextDecorationLine) -> Self {
+impl IntoSkia<skia_safe::textlayout::TextDecoration> for TextDecorationLine {
+    fn into_skia(self) -> skia_safe::textlayout::TextDecoration {
+        let mode = self;
         match mode {
             TextDecorationLine::None => skia_safe::textlayout::TextDecoration::NO_DECORATION,
             TextDecorationLine::Underline => skia_safe::textlayout::TextDecoration::UNDERLINE,
@@ -115,8 +132,9 @@ impl From<TextDecorationLine> for skia_safe::textlayout::TextDecoration {
     }
 }
 
-impl From<TextDecorationStyle> for skia_safe::textlayout::TextDecorationStyle {
-    fn from(mode: TextDecorationStyle) -> Self {
+impl IntoSkia<skia_safe::textlayout::TextDecorationStyle> for TextDecorationStyle {
+    fn into_skia(self) -> skia_safe::textlayout::TextDecorationStyle {
+        let mode = self;
         match mode {
             TextDecorationStyle::Solid => skia_safe::textlayout::TextDecorationStyle::Solid,
             TextDecorationStyle::Double => skia_safe::textlayout::TextDecorationStyle::Double,
@@ -127,8 +145,9 @@ impl From<TextDecorationStyle> for skia_safe::textlayout::TextDecorationStyle {
     }
 }
 
-impl From<TextAlign> for skia_safe::textlayout::TextAlign {
-    fn from(mode: TextAlign) -> Self {
+impl IntoSkia<skia_safe::textlayout::TextAlign> for TextAlign {
+    fn into_skia(self) -> skia_safe::textlayout::TextAlign {
+        let mode = self;
         use skia_safe::textlayout::TextAlign::*;
         match mode {
             TextAlign::Left => Left,
@@ -139,10 +158,11 @@ impl From<TextAlign> for skia_safe::textlayout::TextAlign {
     }
 }
 
-impl From<TextDecoration> for skia_safe::textlayout::Decoration {
-    fn from(decoration: TextDecoration) -> Self {
+impl IntoSkia<skia_safe::textlayout::Decoration> for TextDecoration {
+    fn into_skia(self) -> skia_safe::textlayout::Decoration {
+        let decoration = self;
         skia_safe::textlayout::Decoration {
-            ty: decoration.text_decoration_line.into(),
+            ty: decoration.text_decoration_line.into_skia(),
             // Set the decoration mode based on skip_ink setting
             // Gaps: decoration skips over descenders (g, p, q, etc.)
             // Through: decoration goes through all characters including descenders
@@ -155,8 +175,8 @@ impl From<TextDecoration> for skia_safe::textlayout::Decoration {
             // } else {
             //     skia_safe::textlayout::TextDecorationMode::Through
             // },
-            color: decoration.text_decoration_color.into(),
-            style: decoration.text_decoration_style.into(),
+            color: decoration.text_decoration_color.into_skia(),
+            style: decoration.text_decoration_style.into_skia(),
             thickness_multiplier: decoration.text_decoration_thickness,
         }
     }

@@ -20,6 +20,7 @@
 //! so it crosses as a plain integer. Rust-side code should prefer the
 //! typed structs.
 
+use crate::backends::skia::IntoSkia;
 use crate::cg::color::CGColor;
 use crate::cg::fe::{FeShadow, FilterShadowEffect};
 use crate::cg::types::Paints;
@@ -427,7 +428,7 @@ impl IsolationDrawContext {
         let mut paint = skia_safe::Paint::default();
         let (r, g, b) = background_color
             .map(|c| {
-                let c: skia_safe::Color = c.into();
+                let c: skia_safe::Color = c.into_skia();
                 (c.r(), c.g(), c.b())
             })
             .unwrap_or((255, 255, 255));

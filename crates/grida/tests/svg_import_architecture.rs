@@ -6,14 +6,14 @@
 //! enforce the seam (the SVG sink inversion, gridaco/nothing#29, under
 //! the legacy seam program gridaco/nothing#27):
 //!
-//! - **The IR layer must not know the node model.** `cg/svg.rs`,
+//! - **The IR layer must not know the node model.** `crates/cg/src/svg.rs`,
 //!   `import/svg/packed_scene.rs`, `import/svg/from_usvg.rs`, and
 //!   everything under `formats/svg/` may not reference `node::schema`,
 //!   the factory, or the scene graph.
 //! - **The IR must not carry runtime-paint policy.** The
 //!   SVG→runtime-`Paint` projection (baked opacity, UV-space gradient
 //!   normalization) lives in `import/svg/paint.rs` on the adapter side;
-//!   `cg/svg.rs` stays spec-faithful vocabulary.
+//!   `crates/cg/src/svg.rs` stays spec-faithful vocabulary.
 //! - **Only the adapter touches the model.** Within `import/svg/`, only
 //!   `pack.rs` and `grida.rs` may reference `crate::node`.
 //!
@@ -34,7 +34,7 @@ const MODEL_TOKENS: &[&str] = &[
 ];
 
 /// Tokens that mean "this file projects into the runtime paint model".
-/// Banned in `cg/svg.rs` so the IR vocabulary stays spec-faithful.
+/// Banned in `crates/cg/src/svg.rs` so the IR vocabulary stays spec-faithful.
 /// Checked after stripping the legitimate `SVG*`-prefixed IR type names,
 /// so `SVGSolidPaint`/`SVGPaint::` don't false-positive.
 const PAINT_PROJECTION_TOKENS: &[&str] = &[
@@ -59,6 +59,10 @@ const ALLOWLIST: &[(&str, &str)] = &[];
 
 fn crate_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf()
+}
+
+fn cg_svg() -> PathBuf {
+    crate_root().join("../cg/src/svg.rs")
 }
 
 fn rs_files_under(dir: &Path) -> Vec<PathBuf> {
@@ -114,7 +118,7 @@ fn check_files(files: &[PathBuf], forbidden: &[&str], rule: &str) {
 fn ir_layer_does_not_know_the_node_model() {
     let root = crate_root();
     let mut files = vec![
-        root.join("src/cg/svg.rs"),
+        cg_svg(),
         root.join("src/import/svg/packed_scene.rs"),
         root.join("src/import/svg/from_usvg.rs"),
     ];
@@ -125,19 +129,19 @@ fn ir_layer_does_not_know_the_node_model() {
 
 #[test]
 fn ir_vocabulary_carries_no_paint_projection() {
-    let path = crate_root().join("src/cg/svg.rs");
-    let mut content = fs::read_to_string(&path).expect("cg/svg.rs moved?");
+    let path = cg_svg();
+    let mut content = fs::read_to_string(&path).expect("crates/cg/src/svg.rs moved?");
     for name in IR_TYPE_NAMES {
         content = content.replace(name, "");
     }
     let violations: Vec<String> = PAINT_PROJECTION_TOKENS
         .iter()
         .filter(|t| content.contains(**t))
-        .map(|t| format!("src/cg/svg.rs: references `{t}`"))
+        .map(|t| format!("crates/cg/src/svg.rs: references `{t}`"))
         .collect();
     if !violations.is_empty() {
         panic!(
-            "SVG import seam violated (cg/svg.rs is spec-faithful vocabulary; \
+            "SVG import seam violated (crates/cg/src/svg.rs is spec-faithful vocabulary; \
              the projection lives in import/svg/paint.rs):\n  {}\n\n\
              See tests/svg_import_architecture.rs and gridaco/nothing#29.",
             violations.join("\n  ")

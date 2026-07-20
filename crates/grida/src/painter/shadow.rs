@@ -1,4 +1,5 @@
 use super::geometry::PainterShape;
+use crate::backends::skia::IntoSkia;
 use crate::cg::prelude::*;
 use skia_safe::{self as sk, color_filters, image_filters, BlendMode, ColorMatrix, Paint};
 
@@ -18,7 +19,7 @@ use skia_safe::{self as sk, color_filters, image_filters, BlendMode, ColorMatrix
 /// See [`draw_drop_shadow`] for how the paint color is set per path.
 pub fn drop_shadow_image_filter(shadow: &FeShadow) -> sk::ImageFilter {
     let spread = shadow.spread;
-    let color: sk::Color = shadow.color.into();
+    let color: sk::Color = shadow.color.into_skia();
 
     if spread != 0.0 {
         let mut filter = if spread > 0.0 {
@@ -58,7 +59,7 @@ pub fn draw_drop_shadow(canvas: &sk::Canvas, shape: &PainterShape, shadow: &FeSh
     // Fast path: `drop_shadow_only` colorizes via SrcIn → paint must be
     // opaque white so source alpha is 1.0 (avoids alpha² artifact).
     paint.set_color(if shadow.spread != 0.0 {
-        shadow.color.into()
+        shadow.color.into_skia()
     } else {
         sk::Color::WHITE
     });

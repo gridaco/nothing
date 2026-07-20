@@ -1,3 +1,4 @@
+use grida::backends::skia::IntoSkia;
 use grida::cg::prelude::*;
 use grida::resources::ByteStore;
 use grida::runtime::image_repository::ImageRepository;
@@ -47,7 +48,7 @@ fn main() {
         style.font_weight = FontWeight(600);
         let mut ps = ParagraphStyle::new();
         ps.set_text_direction(TextDirection::LTR);
-        ps.set_text_align(TextAlign::Left.into());
+        ps.set_text_align(TextAlign::Left.into_skia());
 
         let mut builder = ParagraphBuilder::new(&ps, &font_collection);
         let mut ts = textstyle(&style, &None, None);
@@ -67,7 +68,7 @@ fn main() {
         let style = TextStyleRec::from_font("Geist", 11.0);
         let mut ps = ParagraphStyle::new();
         ps.set_text_direction(TextDirection::LTR);
-        ps.set_text_align(TextAlign::Left.into());
+        ps.set_text_align(TextAlign::Left.into_skia());
 
         let mut builder = ParagraphBuilder::new(&ps, &font_collection);
         let mut ts = textstyle(&style, &None, None);

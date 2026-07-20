@@ -1,0 +1,16 @@
+[package]
+name = "cg"
+version = "0.0.0"
+edition = "2021"
+license.workspace = true
+publish = false
+
+[dependencies]
+math2 = { path = "../math2", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+
+[dev-dependencies]
+serde_json = "1.0"
+
+[lints]
+workspace = true

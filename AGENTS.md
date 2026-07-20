@@ -49,6 +49,7 @@ python3 bin/activate-flatc -- --rust -o crates/grida/src/io/generated format/gri
 | directory                   | notes                                                                                      |
 | --------------------------- | ------------------------------------------------------------------------------------------ |
 | `crates/grida`              | the engine core (rendering, node model, io, text, svg/html import)                         |
+| `crates/cg`                 | the backend-neutral canvas-graphics vocabulary                                             |
 | `crates/grida_editor`       | editor core — document working copy, invertible mutations, history, commands               |
 | `crates/grida-canvas-wasm`  | WASM bindings + the `@grida/canvas-wasm` npm package (see its `PUBLISHING.md`)             |
 | `crates/math2` · `csscascade` · `fonts` | foundations                                                                    |

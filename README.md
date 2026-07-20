@@ -24,6 +24,7 @@ the v2 `n0` engine family (`crates/n0`), promoted from the
 ## Workspace
 
 - [`crates/grida`](./crates/grida) — the canvas/rendering engine core
+- [`crates/cg`](./crates/cg) — the backend-neutral canvas-graphics vocabulary
 - [`crates/grida_editor`](./crates/grida_editor) — the editor core (document, history, commands)
 - [`crates/grida-canvas-wasm`](./crates/grida-canvas-wasm) — WASM bindings (`@grida/canvas-wasm`)
 - [`crates/math2`](./crates/math2) · [`crates/csscascade`](./crates/csscascade) · [`crates/fonts`](./crates/fonts) — foundations

@@ -8,6 +8,7 @@ use super::paint;
 use super::shadow;
 use super::text_stroke;
 use crate::backends::skia as sk;
+use crate::backends::skia::IntoSkia;
 use crate::cache::fast_hash::NodeIdHashMap;
 use crate::cache::{scene::SceneCache, vector_path::VectorPathCache};
 use crate::cg::prelude::*;
@@ -548,7 +549,7 @@ impl<'a> Painter<'a> {
                 );
 
                 let mut paint = SkPaint::default();
-                paint.set_blend_mode(blend_mode.into());
+                paint.set_blend_mode(blend_mode.into_skia());
 
                 let layer_rec = SaveLayerRec::default().bounds(&bounds).paint(&paint);
 
@@ -607,7 +608,7 @@ impl<'a> Painter<'a> {
                 );
 
                 let mut paint = SkPaint::default();
-                paint.set_blend_mode(blend_mode.into());
+                paint.set_blend_mode(blend_mode.into_skia());
                 // Merge opacity into the blend paint alpha — single GPU surface
                 // instead of nested save_layer(blend) + save_layer_alpha(opacity).
                 if opacity < 1.0 {
@@ -2325,7 +2326,7 @@ impl<'a> Painter<'a> {
 
     fn outline_sk_paint(&self, style: OutlineStyle) -> SkPaint {
         let mut paint = SkPaint::default();
-        let color: skia_safe::Color = style.color.into();
+        let color: skia_safe::Color = style.color.into_skia();
         paint.set_color(color);
         paint.set_style(skia_safe::paint::Style::Stroke);
         paint.set_stroke_width(style.width);
@@ -2631,7 +2632,7 @@ impl<'a> Painter<'a> {
             LayerBlendMode::PassThrough => f(),
             LayerBlendMode::Blend(blend_mode) => {
                 let mut paint = SkPaint::default();
-                paint.set_blend_mode(blend_mode.into());
+                paint.set_blend_mode(blend_mode.into_skia());
                 let layer_rec = SaveLayerRec::default().bounds(&bounds).paint(&paint);
                 canvas.save_layer(&layer_rec);
                 f();
@@ -2749,7 +2750,7 @@ impl<'a> Painter<'a> {
     /// Create a drop shadow image filter that includes both the shadow AND the
     /// source content (unlike `drop_shadow_only` which draws only the shadow).
     fn drop_shadow_with_source_filter(shadow: &FeShadow) -> Option<skia_safe::ImageFilter> {
-        let color: skia_safe::Color = shadow.color.into();
+        let color: skia_safe::Color = shadow.color.into_skia();
         if shadow.spread != 0.0 {
             // With spread: dilate/erode -> blur -> offset, then merge with source
             let morph = if shadow.spread > 0.0 {

@@ -1,5 +1,5 @@
-use crate::cg::prelude::*;
 use crate::runtime::font_repository::FontRepository;
+use crate::{backends::skia::IntoSkia, cg::prelude::*};
 use skia_safe;
 
 pub fn textstyle(
@@ -14,7 +14,7 @@ pub fn textstyle(
     // [decoration]
     let decoration =
         TextDecoration::from_with_context(style.text_decoration.unwrap_or_default(), &ctx.into())
-            .into();
+            .into_skia();
 
     // [font_style]
     let font_style = skia_safe::FontStyle::new(

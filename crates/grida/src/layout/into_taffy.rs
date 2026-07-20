@@ -4,6 +4,11 @@ use crate::node::schema::{LayoutPositioningBasis, Node, NodeId, NodeRectMixin, U
 use math2::transform::AffineTransform;
 use taffy::prelude::*;
 
+/// Convert a canvas-graphics layout value into its Taffy counterpart.
+trait IntoTaffy<T> {
+    fn into_taffy(self) -> T;
+}
+
 /// Create a Taffy Style with Grida's preferred defaults.
 ///
 /// ## Key differences from Taffy's defaults:
@@ -30,8 +35,9 @@ fn grida_style_default() -> Style {
 }
 
 /// Convert schema Axis to Taffy FlexDirection
-impl From<Axis> for FlexDirection {
-    fn from(axis: Axis) -> Self {
+impl IntoTaffy<FlexDirection> for Axis {
+    fn into_taffy(self) -> FlexDirection {
+        let axis = self;
         match axis {
             Axis::Horizontal => FlexDirection::Row,
             Axis::Vertical => FlexDirection::Column,
@@ -40,8 +46,9 @@ impl From<Axis> for FlexDirection {
 }
 
 /// Convert schema LayoutWrap to Taffy FlexWrap
-impl From<LayoutWrap> for FlexWrap {
-    fn from(wrap: LayoutWrap) -> Self {
+impl IntoTaffy<FlexWrap> for LayoutWrap {
+    fn into_taffy(self) -> FlexWrap {
+        let wrap = self;
         match wrap {
             LayoutWrap::Wrap => FlexWrap::Wrap,
             LayoutWrap::NoWrap => FlexWrap::NoWrap,
@@ -50,8 +57,9 @@ impl From<LayoutWrap> for FlexWrap {
 }
 
 /// Convert schema MainAxisAlignment to Taffy JustifyContent
-impl From<MainAxisAlignment> for JustifyContent {
-    fn from(alignment: MainAxisAlignment) -> Self {
+impl IntoTaffy<JustifyContent> for MainAxisAlignment {
+    fn into_taffy(self) -> JustifyContent {
+        let alignment = self;
         match alignment {
             MainAxisAlignment::Start => JustifyContent::Start,
             MainAxisAlignment::End => JustifyContent::End,
@@ -65,8 +73,9 @@ impl From<MainAxisAlignment> for JustifyContent {
 }
 
 /// Convert schema CrossAxisAlignment to Taffy AlignItems
-impl From<CrossAxisAlignment> for AlignItems {
-    fn from(alignment: CrossAxisAlignment) -> Self {
+impl IntoTaffy<AlignItems> for CrossAxisAlignment {
+    fn into_taffy(self) -> AlignItems {
+        let alignment = self;
         match alignment {
             CrossAxisAlignment::Start => AlignItems::Start,
             CrossAxisAlignment::End => AlignItems::End,
@@ -78,8 +87,9 @@ impl From<CrossAxisAlignment> for AlignItems {
 
 /// Convert schema CrossAxisAlignment to Taffy AlignContent
 /// This controls how wrapped flex lines are aligned in the cross axis
-impl From<CrossAxisAlignment> for AlignContent {
-    fn from(alignment: CrossAxisAlignment) -> Self {
+impl IntoTaffy<AlignContent> for CrossAxisAlignment {
+    fn into_taffy(self) -> AlignContent {
+        let alignment = self;
         match alignment {
             CrossAxisAlignment::Start => AlignContent::Start,
             CrossAxisAlignment::End => AlignContent::End,
@@ -90,8 +100,9 @@ impl From<CrossAxisAlignment> for AlignContent {
 }
 
 /// Convert schema EdgeInsets to Taffy Rect<LengthPercentage>
-impl From<EdgeInsets> for Rect<LengthPercentage> {
-    fn from(insets: EdgeInsets) -> Self {
+impl IntoTaffy<Rect<LengthPercentage>> for EdgeInsets {
+    fn into_taffy(self) -> Rect<LengthPercentage> {
+        let insets = self;
         Rect {
             left: LengthPercentage::length(insets.left),
             right: LengthPercentage::length(insets.right),
@@ -129,8 +140,9 @@ fn layout_gap_to_taffy(gap: LayoutGap, direction: Axis) -> Size<LengthPercentage
     }
 }
 
-impl From<LayoutPositioning> for taffy::Position {
-    fn from(position: LayoutPositioning) -> Self {
+impl IntoTaffy<taffy::Position> for LayoutPositioning {
+    fn into_taffy(self) -> taffy::Position {
+        let position = self;
         match position {
             LayoutPositioning::Auto => taffy::Position::Relative,
             LayoutPositioning::Absolute => taffy::Position::Absolute,
@@ -171,21 +183,21 @@ impl From<UniformNodeLayout> for Style {
         match layout.layout_mode {
             LayoutMode::Flex => {
                 // Flex direction
-                style.flex_direction = layout.layout_direction.into();
+                style.flex_direction = layout.layout_direction.into_taffy();
 
                 // Flex wrap
                 if let Some(wrap) = layout.layout_wrap {
-                    style.flex_wrap = wrap.into();
+                    style.flex_wrap = wrap.into_taffy();
                 }
 
                 // Main axis alignment (justify content)
                 if let Some(alignment) = layout.layout_main_axis_alignment {
-                    style.justify_content = Some(alignment.into());
+                    style.justify_content = Some(alignment.into_taffy());
                 }
 
                 // Cross axis alignment (align items)
                 if let Some(alignment) = layout.layout_cross_axis_alignment {
-                    style.align_items = Some(alignment.into());
+                    style.align_items = Some(alignment.into_taffy());
                 }
 
                 // align_content: Controls how wrapped flex lines are aligned in the cross axis
@@ -193,7 +205,7 @@ impl From<UniformNodeLayout> for Style {
                 if layout.layout_wrap == Some(LayoutWrap::Wrap) {
                     if let Some(alignment) = layout.layout_cross_axis_alignment {
                         // User specified alignment - use it for line distribution
-                        style.align_content = Some(alignment.into());
+                        style.align_content = Some(alignment.into_taffy());
                     } else {
                         // No alignment specified - use Start to prevent Taffy's default
                         // stretch behavior from expanding gaps between wrapped lines
@@ -262,12 +274,12 @@ impl From<UniformNodeLayout> for Style {
 
         // Padding
         if let Some(padding) = layout.layout_padding {
-            style.padding = padding.into();
+            style.padding = padding.into_taffy();
         }
 
         // Position - Taffy handles positioning automatically
         style.inset = layout.layout_position.into();
-        style.position = layout.layout_positioning.into();
+        style.position = layout.layout_positioning.into_taffy();
 
         style
     }
@@ -315,7 +327,7 @@ fn apply_layout_child(
     transform: AffineTransform,
 ) -> Style {
     if let Some(child_style) = layout_child {
-        style.position = child_style.layout_positioning.into();
+        style.position = child_style.layout_positioning.into_taffy();
         style.flex_grow = child_style.layout_grow;
 
         // For absolute positioning, set inset from transform
@@ -352,13 +364,13 @@ impl From<&crate::node::schema::InitialContainerNodeRec> for Style {
     fn from(icb: &crate::node::schema::InitialContainerNodeRec) -> Self {
         Style {
             display: Display::Flex,
-            flex_direction: icb.layout_direction.into(),
-            flex_wrap: icb.layout_wrap.into(),
-            justify_content: Some(icb.layout_main_axis_alignment.into()),
-            align_items: Some(icb.layout_cross_axis_alignment.into()),
-            align_content: Some(icb.layout_cross_axis_alignment.into()),
+            flex_direction: icb.layout_direction.into_taffy(),
+            flex_wrap: icb.layout_wrap.into_taffy(),
+            justify_content: Some(icb.layout_main_axis_alignment.into_taffy()),
+            align_items: Some(icb.layout_cross_axis_alignment.into_taffy()),
+            align_content: Some(icb.layout_cross_axis_alignment.into_taffy()),
             gap: layout_gap_to_taffy(icb.layout_gap, icb.layout_direction),
-            padding: icb.padding.into(),
+            padding: icb.padding.into_taffy(),
             // Size will be set by the layout engine for root ICB nodes
             ..grida_style_default()
         }

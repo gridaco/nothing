@@ -1,3 +1,4 @@
+use grida::backends::skia::IntoSkia;
 use grida::cg::prelude::*;
 use grida::layout::engine::LayoutEngine;
 use grida::layout::ComputedLayout;
@@ -468,7 +469,7 @@ fn render_scenario(
         let color = colors[i % colors.len()];
         let mut paint = Paint::default();
         paint.set_anti_alias(true);
-        paint.set_color(skia_safe::Color::from(color));
+        paint.set_color(color.into_skia());
 
         let child_rect = Rect::from_xywh(
             base_x + layout.x,
@@ -629,7 +630,7 @@ fn render_scenario_with_padding(
         let color = colors[i % colors.len()];
         let mut paint = Paint::default();
         paint.set_anti_alias(true);
-        paint.set_color(skia_safe::Color::from(color));
+        paint.set_color(color.into_skia());
 
         let child_rect = Rect::from_xywh(
             base_x + layout.x,
