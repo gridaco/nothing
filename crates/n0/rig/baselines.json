@@ -1,14 +1,18 @@
 {
+  "ci_run_id": "29700301719",
   "entries": {
     "flat10k": {
-      "build_us": 82.5,
-      "resolve_us": 346.709
+      "build_us": 269.591,
+      "resolve_us": 1076.711
     },
     "starter": {
-      "build_us": 0.458,
-      "resolve_us": 7.25
+      "build_us": 1.654,
+      "resolve_us": 15.639000000000001
     }
   },
-  "machine": "aarch64-macos",
-  "note": "min-of-11 microseconds; regenerate with `gate --bless-bench`"
+  "host_id": "github-actions-ubuntu-24.04-x86_64",
+  "note": "CI-owned min-of-11 microseconds; regenerate shots and bench together after etiology",
+  "rust_toolchain": "1.92.0",
+  "skia_safe": "0.93.1",
+  "source_sha": "ed0f3109431587c99d25244542c89631060d8bdf"
 }

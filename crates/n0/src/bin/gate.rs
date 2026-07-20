@@ -1,8 +1,9 @@
 //! ENG-0.2 / S-5 · the rig. `cargo run --release --bin gate` runs the checks
 //! that keep every optimization honest, before the engine grows:
 //!
-//! 1. **shots** — the re-hosted spike's `--shot` output is byte-identical to
-//!    the committed goldens (the pixel gate; the spike owns golden pixels).
+//! 1. **shots** — on the baseline-owning CI host, the re-hosted spike's
+//!    `--shot` output is byte-identical to the committed goldens; other hosts
+//!    prove two-run determinism (the spike owns golden pixels).
 //! 2. **replays** — each corpus `.replay` plays twice to a bit-identical
 //!    document and result sequence (determinism, ENG-5.2).
 //! 3. **diff** — the oracle law (ENG-0.2): every render optimization proves
@@ -11,8 +12,9 @@
 //! 4. **bench** — resolve + drawlist timings stay within the checked-in
 //!    budgets (`rig/baselines.json`), fail past `max(1.5x, +50us)`.
 //!
-//! `--bless-shots` / `--bless-bench` re-record the baselines. Paint TIMING is
-//! deliberately not gated (GPU-noisy); paint CORRECTNESS is the shot gate.
+//! `--bless-shots` + `--bless-bench` re-record the host-owned baseline set.
+//! Paint TIMING is deliberately not gated (GPU-noisy); paint CORRECTNESS is
+//! the shot gate.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -31,17 +33,102 @@ fn manifest() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
+fn baselines_path() -> PathBuf {
+    manifest().join("rig/baselines.json")
+}
+
+fn read_baselines() -> Option<serde_json::Value> {
+    std::fs::read_to_string(baselines_path())
+        .ok()
+        .and_then(|text| serde_json::from_str(&text).ok())
+}
+
+fn baseline_host_id(baselines: &serde_json::Value) -> Option<&str> {
+    baselines
+        .get("host_id")
+        .or_else(|| baselines.get("machine"))
+        .and_then(|host| host.as_str())
+}
+
+fn current_host_id() -> String {
+    std::env::var("N0_GATE_HOST_ID")
+        .unwrap_or_else(|_| format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS))
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let bless_shots = args.iter().any(|a| a == "--bless-shots");
     let bless_bench = args.iter().any(|a| a == "--bless-bench");
+    if bless_shots != bless_bench {
+        eprintln!(
+            "shot and timing baselines share one host owner; pass \
+             --bless-shots and --bless-bench together"
+        );
+        std::process::exit(2);
+    }
+    let baselines = read_baselines();
+    let host_id = current_host_id();
+    let require_host_baselines = std::env::var_os("N0_GATE_REQUIRE_HOST_BASELINES").is_some();
+    if bless_shots {
+        let provenance = [
+            "N0_GATE_HOST_ID",
+            "N0_GATE_SOURCE_SHA",
+            "N0_GATE_CI_RUN_ID",
+            "N0_GATE_RUST_TOOLCHAIN",
+            "N0_GATE_SKIA_SAFE",
+        ];
+        let missing: Vec<&str> = provenance
+            .into_iter()
+            .filter(|name| std::env::var(name).map_or(true, |value| value.is_empty()))
+            .collect();
+        if !require_host_baselines || !missing.is_empty() {
+            let missing = if missing.is_empty() {
+                "none".to_string()
+            } else {
+                missing.join(", ")
+            };
+            eprintln!(
+                "baseline candidates require N0_GATE_REQUIRE_HOST_BASELINES and complete CI \
+                 provenance; missing: {}",
+                missing
+            );
+            std::process::exit(2);
+        }
+    }
 
     println!("== n0 gate ==");
+    println!("host: {host_id}");
     let mut ok = true;
-    ok &= gate_shots(bless_shots);
+    let (shots_ok, shot_candidate) = gate_shots(
+        bless_shots,
+        baselines.as_ref().and_then(baseline_host_id),
+        &host_id,
+        require_host_baselines,
+    );
+    ok &= shots_ok;
     ok &= gate_replays();
     ok &= gate_diff();
-    ok &= gate_bench(bless_bench);
+    let (bench_ok, bench_candidate) = gate_bench(
+        bless_bench,
+        baselines.as_ref(),
+        &host_id,
+        require_host_baselines,
+    );
+    ok &= bench_ok;
+
+    if ok && bless_shots {
+        let Some(bench_candidate) = bench_candidate.as_deref() else {
+            eprintln!("baseline candidate is incomplete");
+            std::process::exit(1);
+        };
+        match install_baseline_set(&shot_candidate, bench_candidate) {
+            Ok(()) => println!("\n[baseline] complete host-owned set installed"),
+            Err(error) => {
+                eprintln!("failed to install baseline candidate: {error}");
+                std::process::exit(1);
+            }
+        }
+    }
 
     if ok {
         println!("\nGATE: PASS");
@@ -53,7 +140,12 @@ fn main() {
 
 // ── 1. shots ────────────────────────────────────────────────────────────
 
-fn gate_shots(bless: bool) -> bool {
+fn gate_shots(
+    bless: bool,
+    baseline_host: Option<&str>,
+    host_id: &str,
+    require_host_baselines: bool,
+) -> (bool, Vec<(PathBuf, Vec<u8>)>) {
     println!("\n[shots] spike --shot vs goldens");
     let spike = manifest().join("../../target/release/n0_dev");
     let goldens = manifest().join("../n0_dev/shots");
@@ -62,11 +154,19 @@ fn gate_shots(bless: bool) -> bool {
             "  MISSING spike binary: {}\n  build it first: cargo build --release -p n0_dev",
             spike.display()
         );
-        return false;
+        return (false, Vec::new());
+    }
+    let owns_baselines = baseline_host == Some(host_id);
+    if !bless && !owns_baselines {
+        println!(
+            "  host baseline owned by {}; checking same-host determinism only",
+            baseline_host.unwrap_or("MISSING")
+        );
     }
     let mut all = true;
+    let mut candidate = Vec::new();
     for state in STATES {
-        let tmp = std::env::temp_dir().join(format!("anchor-gate-{state}.png"));
+        let tmp = std::env::temp_dir().join(format!("n0-gate-{state}.png"));
         let status = Command::new(&spike)
             .arg("--shot")
             .arg(&tmp)
@@ -74,17 +174,83 @@ fn gate_shots(bless: bool) -> bool {
             .status();
         let golden = goldens.join(format!("{state}.png"));
         if bless {
-            if let (Ok(_), Ok(bytes)) = (status, std::fs::read(&tmp)) {
-                std::fs::write(&golden, bytes).expect("bless golden");
-                println!("  {state:10} blessed");
+            match (status, std::fs::read(&tmp)) {
+                (Ok(status), Ok(bytes)) if status.success() => {
+                    candidate.push((golden, bytes));
+                    println!("  {state:10} captured");
+                }
+                _ => {
+                    eprintln!("  {state:10} FAILED to produce a baseline");
+                    all = false;
+                }
             }
             continue;
         }
-        let same = matches!(status, Ok(s) if s.success()) && files_equal(&tmp, &golden);
-        println!("  {state:10} {}", if same { "IDENTICAL" } else { "DIFF" });
+        let same = if owns_baselines {
+            matches!(status, Ok(s) if s.success()) && files_equal(&tmp, &golden)
+        } else {
+            let repeat = std::env::temp_dir().join(format!("n0-gate-{state}-repeat.png"));
+            let repeat_status = Command::new(&spike)
+                .arg("--shot")
+                .arg(&repeat)
+                .arg(state)
+                .status();
+            matches!(status, Ok(s) if s.success())
+                && matches!(repeat_status, Ok(s) if s.success())
+                && files_equal(&tmp, &repeat)
+        };
+        let verdict = if owns_baselines {
+            if same {
+                "IDENTICAL"
+            } else {
+                "DIFF"
+            }
+        } else if same {
+            "DETERMINISTIC"
+        } else {
+            "NONDETERMINISTIC"
+        };
+        println!("  {state:10} {verdict}");
         all &= same;
     }
-    all
+    if !bless && baseline_host.is_none() {
+        eprintln!("  committed shot baseline has no host owner");
+        all = false;
+    } else if !bless && !owns_baselines && require_host_baselines {
+        eprintln!("  REQUIRED host-owned shot baselines are absent");
+        all = false;
+    }
+    (all, candidate)
+}
+
+fn install_baseline_set(shots: &[(PathBuf, Vec<u8>)], bench: &str) -> std::io::Result<()> {
+    if shots.len() != STATES.len() {
+        return Err(std::io::Error::other("shot candidate is incomplete"));
+    }
+
+    let stage = manifest().join(format!(
+        "../../target/n0-gate-baseline-candidate-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&stage)?;
+    let mut staged_shots = Vec::with_capacity(shots.len());
+    for (destination, bytes) in shots {
+        let filename = destination
+            .file_name()
+            .ok_or_else(|| std::io::Error::other("shot baseline has no filename"))?;
+        let staged = stage.join(filename);
+        std::fs::write(&staged, bytes)?;
+        staged_shots.push((staged, destination));
+    }
+    let staged_bench = stage.join("baselines.json");
+    std::fs::write(&staged_bench, bench)?;
+
+    for (staged, destination) in staged_shots {
+        std::fs::copy(staged, destination)?;
+    }
+    std::fs::copy(staged_bench, baselines_path())?;
+    let _ = std::fs::remove_dir_all(stage);
+    Ok(())
 }
 
 fn files_equal(a: &Path, b: &Path) -> bool {
@@ -224,10 +390,13 @@ fn gate_diff() -> bool {
 
 // ── 4. bench ────────────────────────────────────────────────────────────
 
-fn gate_bench(bless: bool) -> bool {
+fn gate_bench(
+    bless: bool,
+    prior: Option<&serde_json::Value>,
+    host_id: &str,
+    require_host_baselines: bool,
+) -> (bool, Option<String>) {
     println!("\n[bench] resolve + drawlist (min of 11, microseconds)");
-    let baselines_path = manifest().join("rig/baselines.json");
-    let machine = format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS);
 
     // "starter" = the corpus's normalized starter doc (no dependency on the
     // spike's scene builder); "flat10k" = a synthetic stress canvas.
@@ -243,40 +412,43 @@ fn gate_bench(bless: bool) -> bool {
         ("flat10k", bench_doc(&flat, &starter_opts)),
     ];
 
-    let prior = std::fs::read_to_string(&baselines_path)
-        .ok()
-        .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok());
-
-    let same_machine = prior
-        .as_ref()
-        .and_then(|v| v.get("machine"))
-        .and_then(|m| m.as_str())
-        .map(|m| m == machine)
-        .unwrap_or(false);
+    let prior_host = prior.and_then(baseline_host_id);
+    let same_host = prior_host == Some(host_id);
 
     let mut all = true;
     for (name, (r_us, b_us)) in measured {
         print!("  {name:10} resolve {r_us:8.1}  build {b_us:8.1}");
-        if bless || prior.is_none() {
+        if bless {
             println!("   (recording)");
             continue;
         }
-        if !same_machine {
-            println!("   (other machine — comparison skipped)");
+        let Some(prior) = prior else {
+            println!("   MISSING baseline");
+            all = false;
+            continue;
+        };
+        if prior_host.is_none() {
+            println!("   MISSING baseline owner");
+            all = false;
             continue;
         }
-        let base = prior
-            .as_ref()
-            .and_then(|v| v.get("entries"))
-            .and_then(|e| e.get(name));
+        if !same_host {
+            println!(
+                "   (baseline owned by {} — comparison skipped)",
+                prior_host.unwrap_or("MISSING")
+            );
+            all &= !require_host_baselines;
+            continue;
+        }
+        let base = prior.get("entries").and_then(|e| e.get(name));
         let br = base
             .and_then(|b| b.get("resolve_us"))
             .and_then(|v| v.as_f64());
         let bb = base
             .and_then(|b| b.get("build_us"))
             .and_then(|v| v.as_f64());
-        let r_ok = br.map(|base| within(r_us, base)).unwrap_or(true);
-        let b_ok = bb.map(|base| within(b_us, base)).unwrap_or(true);
+        let r_ok = br.map(|base| within(r_us, base)).unwrap_or(false);
+        let b_ok = bb.map(|base| within(b_us, base)).unwrap_or(false);
         println!(
             "   resolve {}  build {}",
             verdict(r_ok, r_us, br),
@@ -285,23 +457,24 @@ fn gate_bench(bless: bool) -> bool {
         all &= r_ok && b_ok;
     }
 
-    if bless || prior.is_none() {
+    let candidate = if bless {
         let json = serde_json::json!({
-            "machine": machine,
-            "note": "min-of-11 microseconds; regenerate with `gate --bless-bench`",
+            "host_id": host_id,
+            "source_sha": std::env::var("N0_GATE_SOURCE_SHA").unwrap_or_else(|_| "unrecorded".into()),
+            "ci_run_id": std::env::var("N0_GATE_CI_RUN_ID").unwrap_or_else(|_| "unrecorded".into()),
+            "rust_toolchain": std::env::var("N0_GATE_RUST_TOOLCHAIN").unwrap_or_else(|_| "unrecorded".into()),
+            "skia_safe": std::env::var("N0_GATE_SKIA_SAFE").unwrap_or_else(|_| "unrecorded".into()),
+            "note": "CI-owned min-of-11 microseconds; regenerate shots and bench together after etiology",
             "entries": {
                 "starter": { "resolve_us": measured[0].1.0, "build_us": measured[0].1.1 },
                 "flat10k": { "resolve_us": measured[1].1.0, "build_us": measured[1].1.1 },
             }
         });
-        std::fs::write(
-            &baselines_path,
-            serde_json::to_string_pretty(&json).unwrap() + "\n",
-        )
-        .expect("write baselines");
-        println!("  baselines written -> {}", baselines_path.display());
-    }
-    all
+        Some(serde_json::to_string_pretty(&json).unwrap() + "\n")
+    } else {
+        None
+    };
+    (all, candidate)
 }
 
 /// Budget rule: pass under `max(1.5x baseline, baseline + 50us)` — the floor
@@ -313,7 +486,7 @@ fn within(measured: f64, baseline: f64) -> bool {
 fn verdict(ok: bool, measured: f64, baseline: Option<f64>) -> String {
     match baseline {
         Some(b) => format!("{}({measured:.1}/{b:.1})", if ok { "OK " } else { "OVER " }),
-        None => "OK(new)".to_string(),
+        None => "MISSING".to_string(),
     }
 }
 

@@ -1,0 +1,336 @@
+name: consolidation gates
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scope:
+    name: resolve gate scope
+    runs-on: ubuntu-24.04
+    outputs:
+      base: ${{ steps.refs.outputs.base }}
+      head: ${{ steps.refs.outputs.head }}
+      engine: ${{ steps.refs.outputs.engine }}
+    steps:
+      - name: Checkout head revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Resolve revisions and engine scope
+        id: refs
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+        run: |
+          head=$(git rev-parse HEAD)
+          case "$EVENT_NAME" in
+            pull_request) base="$PR_BASE_SHA" ;;
+            push) base="$PUSH_BASE_SHA" ;;
+            *) base=$(git rev-parse HEAD^) ;;
+          esac
+
+          if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
+            base=$(git rev-parse HEAD^)
+          fi
+
+          engine=false
+          if ! git diff --quiet "$base" "$head" -- \
+            .github/workflows \
+            bin/check-cargo-lock-additions-only \
+            bin/check-legacy-pixel-sweep \
+            Cargo.lock \
+            Cargo.toml \
+            rust-toolchain.toml \
+            crates \
+            fixtures \
+            third_party; then
+            engine=true
+          fi
+
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "head=$head" >> "$GITHUB_OUTPUT"
+          echo "engine=$engine" >> "$GITHUB_OUTPUT"
+
+  lock_additions_only:
+    name: Cargo.lock additions only
+    needs: scope
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout head revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.scope.outputs.head }}
+
+      - name: Gate workspace crate cuts
+        run: >-
+          python3 bin/check-cargo-lock-additions-only
+          "${{ needs.scope.outputs.base }}"
+          "${{ needs.scope.outputs.head }}"
+
+  seam_architecture:
+    name: seam architecture
+    needs: scope
+    if: needs.scope.outputs.engine == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout head revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.scope.outputs.head }}
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libexpat1-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libgl1-mesa-dev \
+            libgles2-mesa-dev \
+            libwayland-dev \
+            libx11-dev \
+            libx11-xcb-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxinerama-dev \
+            libxrandr-dev \
+            libxxf86vm-dev \
+            mesa-common-dev
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.92.0
+
+      - name: Cache cargo build outputs
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: consolidation-seams
+          cache-all-crates: true
+          cache-workspace-crates: true
+          cache-on-failure: true
+
+      - name: Run the five legacy seam locks
+        env:
+          FORCE_SKIA_BINARIES_DOWNLOAD: "1"
+        run: |
+          cargo test --locked -p grida \
+            --test cg_architecture \
+            --test svg_import_architecture \
+            --test html_import_architecture \
+            --test htmlcss_svg_architecture \
+            --test painter_architecture
+
+  legacy_pixel_sweep:
+    name: legacy pixel sweep
+    needs: scope
+    if: needs.scope.outputs.engine == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout head revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.scope.outputs.head }}
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libexpat1-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libgl1-mesa-dev \
+            libgles2-mesa-dev \
+            libwayland-dev \
+            libx11-dev \
+            libx11-xcb-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxinerama-dev \
+            libxrandr-dev \
+            libxxf86vm-dev \
+            mesa-common-dev
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.92.0
+
+      - name: Cache cargo build outputs
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: consolidation-pixels
+          cache-all-crates: true
+          cache-workspace-crates: true
+          cache-on-failure: true
+
+      - name: A/B the declared 65-fixture subset
+        env:
+          FORCE_SKIA_BINARIES_DOWNLOAD: "1"
+        run: >-
+          python3 bin/check-legacy-pixel-sweep
+          "${{ needs.scope.outputs.base }}"
+
+  n0_gate:
+    name: n0 host gate
+    needs: scope
+    if: needs.scope.outputs.engine == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      FORCE_SKIA_BINARIES_DOWNLOAD: "1"
+      N0_GATE_HOST_ID: github-actions-ubuntu-24.04-x86_64
+      N0_GATE_REQUIRE_HOST_BASELINES: "1"
+      N0_GATE_SOURCE_SHA: ${{ needs.scope.outputs.head }}
+      N0_GATE_CI_RUN_ID: ${{ github.run_id }}
+      N0_GATE_RUST_TOOLCHAIN: "1.92.0"
+      N0_GATE_SKIA_SAFE: "0.93.1"
+    steps:
+      - name: Checkout head revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.scope.outputs.head }}
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libexpat1-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libgl1-mesa-dev \
+            libgles2-mesa-dev \
+            libwayland-dev \
+            libx11-dev \
+            libx11-xcb-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxinerama-dev \
+            libxrandr-dev \
+            libxxf86vm-dev \
+            mesa-common-dev
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.92.0
+
+      - name: Cache cargo build outputs
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: consolidation-n0-release
+          cache-all-crates: true
+          cache-workspace-crates: true
+          cache-on-failure: true
+
+      - name: Build the shot host and gate together
+        run: >-
+          cargo build --locked --release
+          -p n0_dev -p n0
+          --bin n0_dev --bin gate
+
+      - name: Run the n0 gate
+        id: gate
+        continue-on-error: true
+        run: target/release/gate
+
+      - name: Produce a review-only baseline candidate
+        if: steps.gate.outcome == 'failure'
+        id: candidate
+        continue-on-error: true
+        run: target/release/gate --bless-shots --bless-bench
+
+      - name: Upload the review-only baseline candidate
+        if: >-
+          steps.gate.outcome == 'failure' &&
+          steps.candidate.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: n0-gate-baseline-candidate-${{ github.run_id }}
+          path: |
+            crates/n0/rig/baselines.json
+            crates/n0_dev/shots/*.png
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Require the unblessed gate
+        if: steps.gate.outcome == 'failure'
+        run: exit 1
+
+  armed:
+    name: armed
+    needs:
+      - scope
+      - lock_additions_only
+      - seam_architecture
+      - legacy_pixel_sweep
+      - n0_gate
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every applicable consolidation gate
+        env:
+          ENGINE_SCOPE: ${{ needs.scope.outputs.engine }}
+          LOCK_RESULT: ${{ needs.lock_additions_only.result }}
+          SEAM_RESULT: ${{ needs.seam_architecture.result }}
+          PIXEL_RESULT: ${{ needs.legacy_pixel_sweep.result }}
+          N0_RESULT: ${{ needs.n0_gate.result }}
+        run: |
+          if [[ "$LOCK_RESULT" != success ]]; then
+            exit 1
+          fi
+          if [[ "$ENGINE_SCOPE" == true ]] && \
+             [[ "$SEAM_RESULT" != success || \
+                "$PIXEL_RESULT" != success || \
+                "$N0_RESULT" != success ]]; then
+            exit 1
+          fi
+          echo "All applicable consolidation gates passed."

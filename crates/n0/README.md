@@ -25,9 +25,10 @@ cd crates/n0 && cargo test
 # the trace arm must keep compiling
 cargo check --features trace
 
-# the re-host gate: replay determinism, differential/cache checks,
-# benchmark budgets, and the deterministic screenshot oracle
-# (needs the spike built first — it owns the golden pixels)
+# the re-host gate: replay determinism, differential/cache checks, and the
+# host-owned screenshot/timing baselines (the spike owns the golden pixels)
+# CI owns the committed baselines; other hosts run the portable checks and
+# same-host shot determinism without comparing incomparable environments.
 cargo build --release -p n0_dev
 cargo run --release --bin gate
 
@@ -556,10 +557,15 @@ files; the panel shows the per-frame damage count.
 The screenshot oracle was explicitly rebaselined after accepting three
 historical semantic corrections: frames no longer receive invented ink,
 authored parent strokes paint after children, and text uses shaped metrics and
-positioned-glyph replay. The shot paint context now loads the repository's
-bundled Inter face, so its four goldens are deterministic across host font
-configurations. Replay, differential/cache, screenshot, and benchmark gates
-are green together.
+positioned-glyph replay. The shot paint context loads the repository's bundled
+Inter face, so host font configuration cannot perturb its four outputs.
+Raster-stack and timing variance still make those outputs and budgets
+host-owned: the committed owner is named in `rig/baselines.json`, and CI
+requires that identity before it may compare or bless them. A non-owner local
+run renders every shot twice to prove same-host determinism and skips timing
+comparison; replay and the byte-level differential run everywhere. A baseline
+replacement is an explicit CI-produced change with etiology, never an automatic
+local update.
 
 ## Scope fence (named, not silent)
 
