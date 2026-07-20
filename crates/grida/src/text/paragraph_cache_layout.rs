@@ -52,9 +52,9 @@ use crate::text_edit::{
     prev_grapheme_boundary, snap_grapheme_boundary, utf16_to_utf8_offset, utf8_to_utf16_offset,
 };
 
-use crate::cg::prelude::*;
 use crate::runtime::font_repository::FontRepository;
 use crate::text::text_style::textstyle;
+use crate::{backends::skia::IntoSkia, cg::prelude::*};
 
 // ---------------------------------------------------------------------------
 // ParagraphCacheLayout
@@ -138,7 +138,7 @@ impl ParagraphCacheLayout {
     fn build_paragraph_uniform(&self, text: &str) -> textlayout::Paragraph {
         let mut paragraph_style = textlayout::ParagraphStyle::new();
         paragraph_style.set_text_direction(textlayout::TextDirection::LTR);
-        paragraph_style.set_text_align(self.text_align.into());
+        paragraph_style.set_text_align(self.text_align.into_skia());
         paragraph_style.set_apply_rounding_hack(false);
 
         let ctx = TextStyleRecBuildContext {
@@ -172,7 +172,7 @@ impl ParagraphCacheLayout {
 
         let mut paragraph_style = textlayout::ParagraphStyle::new();
         paragraph_style.set_text_direction(textlayout::TextDirection::LTR);
-        paragraph_style.set_text_align(self.text_align.into());
+        paragraph_style.set_text_align(self.text_align.into_skia());
         paragraph_style.set_apply_rounding_hack(false);
 
         let mut builder =

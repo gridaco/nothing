@@ -1,4 +1,5 @@
 use crate::backends::skia as sk;
+use crate::backends::skia::IntoSkia;
 use crate::cg::prelude::*;
 use crate::node::{scene_graph::SceneGraph, schema::*};
 use crate::painter::Painter;
@@ -378,7 +379,7 @@ impl Renderer {
         canvas.clear(skia_safe::Color::TRANSPARENT);
 
         if let Some(bg_color) = background_color {
-            let color: skia_safe::Color = bg_color.into();
+            let color: skia_safe::Color = bg_color.into_skia();
             let mut paint = SkPaint::default();
             paint.set_color(color);
             canvas.draw_rect(Rect::new(0.0, 0.0, width, height), &paint);
@@ -654,7 +655,7 @@ impl Renderer {
                 let dst_rect = Rect::from_xywh(b.x, b.y, b.width, b.height);
                 let opacity = layer_img.opacity;
                 let cg_blend: crate::cg::types::BlendMode = layer_img.blend_mode.into();
-                let sk_blend: skia_safe::BlendMode = cg_blend.into();
+                let sk_blend: skia_safe::BlendMode = cg_blend.into_skia();
 
                 let blit = if layer_img.is_atlas_backed() {
                     // Atlas path: same-texture sub-rect blit.
@@ -1340,7 +1341,7 @@ impl Renderer {
 
                     // Clear with background + blit the ORIGINAL cached frame.
                     if let Some(bg) = scene.background_color {
-                        canvas.clear(Color::from(bg));
+                        canvas.clear(bg.into_skia());
                     } else {
                         canvas.clear(Color::TRANSPARENT);
                     }
@@ -1507,7 +1508,7 @@ impl Renderer {
                 if dx.abs() < width && dy.abs() < height {
                     let canvas = surface.canvas();
                     if let Some(bg) = scene.background_color {
-                        canvas.clear(Color::from(bg));
+                        canvas.clear(bg.into_skia());
                     } else {
                         canvas.clear(Color::TRANSPARENT);
                     }
@@ -1726,7 +1727,7 @@ impl Renderer {
         let start = Instant::now();
         let canvas = surface.canvas();
         if let Some(bg) = scene.background_color {
-            canvas.clear(Color::from(bg));
+            canvas.clear(bg.into_skia());
         } else {
             canvas.clear(Color::TRANSPARENT);
         }
@@ -2039,7 +2040,7 @@ impl Renderer {
             // Offset blit — need to clear first (exposed edges).
             if let Some(scene) = self.scene.as_ref() {
                 if let Some(bg) = scene.background_color {
-                    canvas.clear(skia_safe::Color::from(bg));
+                    canvas.clear(bg.into_skia());
                 } else {
                     canvas.clear(skia_safe::Color::TRANSPARENT);
                 }
@@ -3015,7 +3016,7 @@ impl Renderer {
 
         // Paint background color first if present
         if let Some(bg_color) = background_color {
-            let color: skia_safe::Color = bg_color.into();
+            let color: skia_safe::Color = bg_color.into_skia();
             let mut paint = SkPaint::default();
             paint.set_color(color);
             // Paint the entire canvas with the background color
