@@ -117,14 +117,14 @@ resolver topology is the end-state frame — measure, layout,
 transforms, bounds, with anchor-based positioning and declared size
 intents. The know-how to grant through it: block flow, the CSS-grid
 mapping proven in the HTML renderer, and the handling of virtual
-grouping nodes that appear in trees without owning layout. The
-resolver's semantics — rotation-in-flow, and size intents that are
-fixed or hug with deliberately no fill (growth is by grow and
-self-align) — are anchor-model doctrine; the anchor spec graduates
-from the
-[archived paper](../../../archive/model-v2/models/anchor.md) into the
-wg tree in Phase 0's docs lane, with its home cluster chosen by the
-docs-placement doctrine at graduation.
+grouping nodes that appear in trees without owning layout. Visual-only
+transforms, Fixed/Auto size intent, and the absence of stored Fill are
+[`anchor` Box Model](../feat-layout/anchor.md) doctrine. Positive-space
+growth and cross-axis self-alignment belong to the
+[Flex Layout Profile](../feat-layout/flex.md). The Phase 0 docs lane
+begins those contracts' graduation as open RFDs; the
+[archived paper](../../../archive/model-v2/models/anchor.md) remains
+provenance rather than the live specification.
 
 ### Text
 
@@ -233,7 +233,8 @@ chains, intent interpretation (gesture → mutation), and the sync model
 [feat-crdt](../feat-crdt/index.md). Whether the end-state editor core
 extends the chassis's ops or graduates the legacy editor core onto the
 chassis is decision **D6**, decided by a timeboxed mapping spike
-against the graduated anchor spec — before the two accrete
+against the [`anchor` Box Model RFD](../feat-layout/anchor.md)
+— before the two accrete
 independently.
 
 ### Server & headless

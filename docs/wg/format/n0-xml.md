@@ -46,6 +46,14 @@ It combines a small primitive-first graphics vocabulary with explicit box,
 binding, text-flow, and layout intent. Its target range includes both
 responsive presentations and modern user-interface designs.
 
+[The `anchor` Box Model](../feat-layout/anchor.md) owns the semantic
+meaning of those boxes, bindings, layout participation, transforms, and
+resolved reads. This RFD owns their XML spelling, defaults, validation, and
+canonical writing. Its node and property tables are a source-language
+projection of that model, not a second box model. The
+[Flex Layout Profile](../feat-layout/flex.md) owns the bounded flex algorithm;
+this RFD owns its XML spelling, defaults, and applicability.
+
 The language is XML because a tree is the scene's natural structure, XML is
 widely inspectable, and its element/attribute boundary is predictable for both
 human authors and language models. n0 XML borrows useful ideas from SVG,
@@ -145,10 +153,10 @@ scene may then resolve at different viewport extents without rewriting source
 intent.
 
 Omitted root bindings remain start-pinned at zero, and omitted or explicit
-`auto` sizes retain ordinary container-hug semantics. A fixed root extent is
-not scaled to the viewport; it may be smaller than or overflow that
-environment. `flow`, `grow`, and `align` remain invalid on the render root
-because the initial viewport container does not own flex layout.
+`auto` sizes project to the anchor model's container-hug semantics. A fixed
+root extent is not scaled to the viewport; it may be smaller than or overflow
+that environment. `flow`, `grow`, and `align` remain invalid on the render
+root because the initial viewport container does not own flex layout.
 
 Draft 0 defines no XML namespace and no extension namespace. Namespace-based
 extensions require a later version rather than being accepted as inert data.
@@ -232,8 +240,8 @@ Only attributes applicable to an element may appear on that element.
 | `aspect-ratio`            | positive finite `width:height` pair       | none       | Resolves one otherwise under-specified box axis                  |
 | `corner-radius`           | one or four radii, optionally elliptical  | `0`        | Rounds the outline of a `container` or `rect`                    |
 | `corner-smoothing`        | finite number in `[0, 1]`                 | `0`        | Smooths circular corners on a `container` or `rect`              |
-| `rotation`                | finite number                             | `0`        | Visual rotation about box center; about origin for derived kinds |
-| `flip-x`, `flip-y`        | `true` or `false`                         | `false`    | Reflects paint horizontally or vertically before rotation        |
+| `rotation`                | finite number                             | `0`        | Projects to the anchor model's structured rotation intent        |
+| `flip-x`, `flip-y`        | `true` or `false`                         | `false`    | Project to the anchor model's structured flip intent             |
 | `fill`                    | `#RGB` or `#RRGGBB`                       | none       | Canonical compact form for one ordinary solid fill               |
 | `d`                       | SVG path-data string                      | required   | Defines a `path` in the fixed unit reference rectangle           |
 | `fill-rule`               | `nonzero` or `evenodd`                    | `nonzero`  | Selects path interior construction                               |
@@ -241,8 +249,8 @@ Only attributes applicable to an element may appear on that element.
 | `font-weight`             | integer from `1` through `1000`           | `400`      | Default weight on `text`; optional run override on `tspan`       |
 | `font-style`              | `normal` or `italic`                      | `normal`   | Default style on `text`; optional run override on `tspan`        |
 | `opacity`                 | finite number in `[0, 1]`                 | `1`        | Composites the node and its descendants                          |
-| `hidden`                  | `true` or `false`                         | `false`    | Removes the subtree from layout and painting                     |
-| `flow`                    | `in` or `absolute`                        | `in`       | Opts a child into or out of a flex parent's flow                 |
+| `hidden`                  | `true` or `false`                         | `false`    | Maps inversely to the anchor model's active-node state           |
+| `flow`                    | `in` or `absolute`                        | `in`       | Maps to in-flow or free-positioned participation                 |
 | `grow`                    | non-negative finite number                | `0`        | Flex main-axis growth factor                                     |
 | `align`                   | `start`, `center`, `end`, or `stretch`    | none       | Per-child flex cross-axis override                               |
 
@@ -255,11 +263,15 @@ A host may support that import dialect separately, but a conforming Draft 0
 writer never emits it and a strict n0 XML reader does not confuse it with
 this language.
 
-Rotation is visual-only intent. It does not change a node's layout box, flex
-contribution, or a container's hug size; the resolved visual bounds do include
-the rotated paint. Flips have the same visual-only status and use the same
-pivot rule as rotation. A node's local paint is reflected first and then
-rotated; neither operation writes a matrix or negative extent into source.
+The `rotation`, `flip-x`, and `flip-y` values project to the structured visual
+transform contract in [The `anchor` Box Model](../feat-layout/anchor.md).
+This RFD owns their finite-number and Boolean spelling, defaults, and
+canonical writing. A canonical writer retains those attributes rather than
+lowering them to a matrix or a negative extent.
+
+`hidden="false"` projects to an active node; `hidden="true"` projects to an
+inactive node. This is only the XML spelling of the anchor model's activity
+boundary.
 
 `fill="#fff"` means exactly one visible, fully opaque, normal-blend solid
 paint. It is not legacy syntax: it is the canonical compact form for the most
@@ -888,52 +900,38 @@ express any current fill or stroke.
 
 ### Position bindings
 
-`x` binds the horizontal axis and `y` binds the vertical axis. For a boxed or
-measured node with parent extent `E` and resolved child extent `s`, the value
-forms are:
+`x` binds the horizontal axis and `y` binds the vertical axis. Their XML
+forms project directly into the binding values owned by
+[The `anchor` Box Model](../feat-layout/anchor.md):
 
-| Form             | Meaning                             | Resolved start            |
-| ---------------- | ----------------------------------- | ------------------------- |
-| `n` or `start n` | Offset from the parent's start edge | `n`                       |
-| `end n`          | Offset from the parent's end edge   | `E - n - s`               |
-| `center`         | Center in the parent                | `(E - s) / 2`             |
-| `center n`       | Center, then apply an offset        | `(E - s) / 2 + n`         |
-| `span a b`       | Bind both edges                     | start `a`, extent `E-a-b` |
+| XML form | Box-model value |
+| --- | --- |
+| `n` or `start n` | Start pin with offset `n` |
+| `end n` | End pin with offset `n` |
+| `center` | Center pin with zero offset |
+| `center n` | Center pin with offset `n` |
+| `span a b` | Span with start `a` and end `b` |
 
-The bare number is the canonical spelling for a start binding. `span` owns
-the size on its axis, so `width`, `min-width`, and `max-width` must be omitted
-when `x` is a span; the corresponding height attributes must be omitted when
-`y` is a span. End, center, and span bindings require a resolvable parent
-extent; using one against an unresolved auto or derived parent axis is a
-resolution error, not an invitation to guess.
-
-If a resolved span would have negative extent because `a + b > E`, its extent
-is clamped to zero at start `a` and the resolver reports that clamp. This is a
-valid resolved boundary case, not a negative box and not a source rewrite.
-
-For `group` and `lens`, bindings place the node's local origin rather than the
-top-left of its derived union. Their start, end, and center formulas are `n`,
-`E - n`, and `E / 2 + n`, respectively; child-union size `s` is not
-subtracted. `span` is invalid on a derived-box node because there is no
-authored axis extent for it to own.
+The anchor RFD owns the resolution formulas, definite-parent requirement,
+negative-span rule, and derived-origin behavior. Draft 0 adds only source
+applicability and canonical spelling: the bare number is canonical for a
+start pin; a spanned axis must omit its size and min/max attributes; and
+`span` is invalid on `group` and `lens`.
 
 An in-flow child of a flex container is positioned by flex and must omit
-`x`/`y`. `flow="absolute"` removes it from flex participation and restores
-its bindings against the container's local box. `flow` is valid only on a
-child of a flex container; `grow` and `align` are valid only while that child
-remains in flow.
+`x`/`y`. `flow="in"` projects to in-flow participation; `flow="absolute"`
+projects to free-positioned participation and restores the child's bindings
+against the container's local box. `flow` is valid only on a child of a flex
+container; `grow` and `align` are valid only while that child remains in flow.
 
 ### Size constraints and aspect ratio
 
-Minimum and maximum constraints apply to `container`, `rect`, `ellipse`,
-`line`, `path`, and `text`. They are invalid on `group` and `lens`, whose boxes
-are derived. Resolution first obtains an axis from its binding, declared
-intent, measurement, or layout, then clamps it to the applicable maximum and
-minimum.
-The minimum wins when a minimum exceeds its paired maximum. If constraining a
-text width changes its wrapping width, text is measured again before its final
-height is chosen. Because a line's height is definitionally zero,
-`min-height` and `max-height` are invalid on `<line>`.
+Minimum and maximum attributes project to the constraint order owned by the
+[`anchor` Box Model](../feat-layout/anchor.md). Draft 0 permits them on
+`container`, `rect`, `ellipse`, `line`, `path`, and `text`; it rejects them on
+the derived `group` and `lens` elements. Because a line's height is
+definitionally zero, `min-height` and `max-height` are invalid on
+`<line>`.
 
 In Draft 0, `aspect-ratio="w:h"` applies only to `rect`, `ellipse`, and `path`.
 It contains two positive numbers and supplies exactly one otherwise
@@ -1021,20 +1019,12 @@ paint box.
 ### Container
 
 A container is a rectangular composition box. Each of `width` and `height`
-accepts either a non-negative number or `auto`. On an auto axis, the local
-start edge remains fixed and the extent grows through the greatest positive
-child far edge plus padding; auto sizing never shifts the local origin.
-Consequently, a child with a sufficiently negative start offset may overflow
-the start side rather than moving the container. A fixed value remains
-authored intent even when a parent layout gives the node a different resolved
-extent. Both dimensions default to `auto`.
-
-Without `layout="flex"`, children are free-positioned by their bindings. On
-an auto axis, free children must be start-bound; an end, center, or span
-binding would require the extent it is trying to determine and is therefore a
-resolution error. Their bindings resolve against the padding-inset content
-box, then add the container's left and top padding; therefore `x="0"` and
-`y="0"` start at the padded content origin.
+accepts either a non-negative number or `auto`; both default to `auto`.
+The value projects to the Fixed or Auto intent in
+[The `anchor` Box Model](../feat-layout/anchor.md). That RFD owns container
+hug, the stable-origin rule, definite-parent requirements, and the padded
+content box. Draft 0 selects free positioning when `layout` is absent and
+the [Flex Layout Profile](../feat-layout/flex.md) when it is `flex`.
 
 A container may carry a fill and repeated strokes and may clip descendant
 paint with `clips="true"`. Its fill is painted first. Its children are then
@@ -1349,17 +1339,17 @@ overflow that box unless an ancestor container clips it.
 
 ### Group
 
-A group has no declared width or height and no visual content of its own. Its
-box is the union of its children's untransformed local layout boxes. Child
-rotation, flips, and lens operations affect visual bounds but do not enlarge
-that sizing-tier union. The group's `x` and `y` place the group's local origin,
-not the top-left of that union; consequently, a child may extend into negative
-local coordinates without moving its siblings.
+A `group` projects to the union-derived group contract in
+[The `anchor` Box Model](../feat-layout/anchor.md). Draft 0 therefore permits
+no declared width, height, paint, or child-layout properties on it. Its `x`
+and `y` use the ordinary XML binding spellings but target the derived origin.
 
 ### Lens
 
-A lens has the same derived-box and origin rules as a group. Its `ops`
-attribute is an ordered, space-separated list drawn from:
+A `lens` projects to the anchor model's transform quarantine and uses the
+same union-derived box and origin projection as `group`. The element name is
+Draft 0 source vocabulary, not a decision about the public scene-model name.
+Its `ops` attribute is an ordered, space-separated list drawn from:
 
 ```text
 translate(x,y)
@@ -1372,10 +1362,11 @@ skew(x-degrees,y-degrees)
 matrix(a,b,c,d,e,f)
 ```
 
-Operations compose in source order and affect descendant painting and
-resolved visual bounds. They do not change flex contribution, hug sizing, or
-sibling placement. A lens is therefore explicit picture-transform intent,
-not a place to store a matrix produced by layout.
+This RFD owns the operation spellings and their source order. A reader
+projects the ordered list to the anchor model's transform quarantine, which
+owns its box, layout, and resolved-read consequences. A canonical writer
+retains the ordered operations rather than storing a matrix produced by
+layout.
 
 ## Flex layout
 
@@ -1383,7 +1374,9 @@ Only `container` may own flex layout in Draft 0. Its `layout` value is `none`
 or `flex`, defaulting to `none`; a canonical writer omits the default. Nesting
 children under a primitive element, group, or lens remains free placement;
 those elements do not acquire layout behavior merely because they can contain
-children.
+children. The anchor RFD owns the in-flow/free-positioned participation
+boundary; the [Flex Layout Profile](../feat-layout/flex.md) owns the
+algorithm.
 
 `layout="flex"` enables a one- or multi-line, CSS-inspired flow with this
 surface:
@@ -1399,20 +1392,14 @@ surface:
 
 `padding` applies to both free-positioned and flex containers. The other
 attributes in this table are valid only when `layout="flex"` is present.
+They project directly to the corresponding profile inputs. Child `grow`,
+`align`, and `flow="absolute"` are likewise source spellings for profile
+participation; this RFD adds no alternate layout semantics.
 
-In-flow children participate in source order. Their resolved size is their
-flex basis. Positive remaining main-axis space is divided in proportion to
-`grow`; Draft 0 does not shrink children. `main` distributes remaining space,
-while `cross` and a child's `align` place or stretch it on the cross axis.
-Container-level `cross="stretch"` stretches only children whose authored
-cross size is `auto`; a fixed cross size remains fixed. Child-level
-`align="stretch"` is an explicit fill override and stretches even a fixed
-cross size. Wrapping forms additional lines when enabled. An absolute child
-does not consume a flex slot, gap, or growth share.
-
-Layout owns resolved placement, never source geometry. Re-resolving at a new
-container extent may move or resize children without writing those results
-into the document.
+A value that enters an unresolved Flex Layout Profile row remains valid
+source intent. Until that row is adopted, a processor retains the value and
+reports an unsupported or implementation-defined resolution; it does not
+silently present a layout-library default as Draft 0 conformance.
 
 ## Canonical example
 
@@ -1449,7 +1436,7 @@ author chose: node kinds, hierarchy, bindings, size intent, text, paint,
 layout relationships, and explicit lens operations.
 
 A resolver combines that source with an explicit environment—viewport,
-fonts, and resources—to produce a separate resolved scene. Text shaping and
+fonts, and resources—to produce a separate resolved document. Text shaping and
 geometry follow the single-result contract in [Universal Shaped Text
 Layout](../feat-paragraph/text-layout.md). Resolved boxes, world transforms,
 measured glyph runs, visual bounds, materialized vector points, and paint
@@ -1620,9 +1607,10 @@ A conforming resolver and renderer:
 
 1. **MUST** resolve child coordinates in their parent's local space,
    including children of primitive elements.
-2. **MUST** apply free bindings, text measurement, auto sizing, and flex
-   ownership according to this RFD, including size constraints and aspect
-   ratios.
+2. **MUST** project free bindings, size intent, constraints, aspect ratios,
+   and layout participation into the
+   [`anchor` Box Model](../feat-layout/anchor.md), then apply the
+   [Flex Layout Profile](../feat-layout/flex.md).
 3. **MUST** map path geometry from the fixed unit rectangle nonuniformly into
    the final resolved box before constructing fill or stroke coverage. It must
    preserve logical-pixel stroke and dash lengths, apply the declared fill
@@ -1659,12 +1647,12 @@ A conforming resolver and renderer:
     text-node paint box; paint coordinates do not restart per run.
 12. **MUST** include every effective stroke in resolved visual bounds without
     changing the node's layout box.
-13. **MUST** apply rotation and native flips as visual-only transforms and
-    apply clipping and opacity to the declared subtree.
-14. **MUST NOT** mutate the source document as a side effect of resolving or
-    rendering it.
-15. **MUST** make the resolution environment explicit enough that a resolved
-    result can be attributed to a viewport, font set, and resource set.
+13. **MUST** apply the anchor model's visual-only rotation and native-flip
+    contract, then apply Draft 0 clipping and opacity to the declared subtree.
+14. **MUST** preserve the anchor model's authored/resolved separation: source
+    is not mutated as a side effect of resolving or rendering it.
+15. **MUST** supply the explicit environment required by the anchor model,
+    including the viewport, font set, and resource set.
 
 A processor that intentionally supports only part of Draft 0 may describe
 itself as a Draft 0 subset, but it cannot claim full Draft 0 conformance and

@@ -128,6 +128,9 @@ them; the study is the source of truth, and this home points to it.
   in place: [feat-vector-network](../feat-vector-network/create-outlines.md).
 - **text editing** — the engine-level text model and geometry surface:
   [feat-text-editing](../feat-text-editing/).
+- **layout and box resolution** — authored box intent, parent-relative
+  bindings, layout participation, visual-only transforms, and derived
+  boxes: [the `anchor` Box Model](../feat-layout/anchor.md).
 
 ## The reference implementation
 
