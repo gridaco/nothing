@@ -111,8 +111,15 @@ def main() -> int:
         ).stdout.strip()
     )
     suite = repo / SUITE
-    target = repo / "target" / "consolidation-pixel-sweep"
     env = os.environ.copy()
+    configured_target = env.get("CARGO_TARGET_DIR")
+    target = (
+        Path(configured_target).expanduser()
+        if configured_target
+        else repo / "target" / "consolidation-pixel-sweep"
+    )
+    if not target.is_absolute():
+        target = (repo / target).resolve()
     env["CARGO_TARGET_DIR"] = str(target)
 
     with tempfile.TemporaryDirectory(prefix="grida-consolidation-pixels-") as temp:

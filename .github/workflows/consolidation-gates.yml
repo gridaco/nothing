@@ -49,6 +49,7 @@ jobs:
             .github/workflows \
             bin/check-cargo-lock-additions-only \
             bin/check-legacy-pixel-sweep \
+            bin/check-legacy-svg-import-sweep \
             Cargo.lock \
             Cargo.toml \
             rust-toolchain.toml \
@@ -145,12 +146,14 @@ jobs:
             --test htmlcss_svg_architecture \
             --test painter_architecture
 
-  legacy_pixel_sweep:
-    name: legacy pixel sweep
+  legacy_equivalence_sweeps:
+    name: legacy equivalence sweeps
     needs: scope
     if: needs.scope.outputs.engine == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target/consolidation-legacy-sweeps
     steps:
       - name: Checkout head revision
         uses: actions/checkout@v4
@@ -196,7 +199,7 @@ jobs:
       - name: Cache cargo build outputs
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: consolidation-pixels
+          shared-key: consolidation-legacy-sweeps
           cache-all-crates: true
           cache-workspace-crates: true
           cache-on-failure: true
@@ -206,6 +209,16 @@ jobs:
           FORCE_SKIA_BINARIES_DOWNLOAD: "1"
         run: >-
           python3 bin/check-legacy-pixel-sweep
+          "${{ needs.scope.outputs.base }}"
+
+      - name: Check SVG import sweep policy
+        run: python3 bin/check-legacy-svg-import-sweep --self-test
+
+      - name: A/B the declared SVG import corpus
+        env:
+          FORCE_SKIA_BINARIES_DOWNLOAD: "1"
+        run: >-
+          python3 bin/check-legacy-svg-import-sweep
           "${{ needs.scope.outputs.base }}"
 
   n0_gate:
@@ -311,7 +324,7 @@ jobs:
       - scope
       - lock_additions_only
       - seam_architecture
-      - legacy_pixel_sweep
+      - legacy_equivalence_sweeps
       - n0_gate
     if: always()
     runs-on: ubuntu-24.04
@@ -321,7 +334,7 @@ jobs:
           ENGINE_SCOPE: ${{ needs.scope.outputs.engine }}
           LOCK_RESULT: ${{ needs.lock_additions_only.result }}
           SEAM_RESULT: ${{ needs.seam_architecture.result }}
-          PIXEL_RESULT: ${{ needs.legacy_pixel_sweep.result }}
+          EQUIVALENCE_RESULT: ${{ needs.legacy_equivalence_sweeps.result }}
           N0_RESULT: ${{ needs.n0_gate.result }}
         run: |
           if [[ "$LOCK_RESULT" != success ]]; then
@@ -329,7 +342,7 @@ jobs:
           fi
           if [[ "$ENGINE_SCOPE" == true ]] && \
              [[ "$SEAM_RESULT" != success || \
-                "$PIXEL_RESULT" != success || \
+                "$EQUIVALENCE_RESULT" != success || \
                 "$N0_RESULT" != success ]]; then
             exit 1
           fi

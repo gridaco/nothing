@@ -1,0 +1,1380 @@
+#!/usr/bin/env python3
+
+"""Compare declared legacy SVG import artifacts byte-for-byte across revisions.
+
+The same manifest-enumerated SVG bytes are passed to an identical artifact
+driver compiled against base and head. Each revision runs twice before the
+cross-revision comparison. This is a same-host zero-behavior equivalence
+sweep, not a reftest: no external oracle, threshold, similarity, or score
+participates in the verdict.
+"""
+
+from __future__ import annotations
+
+import argparse
+from dataclasses import dataclass
+import hashlib
+import json
+import os
+from pathlib import Path, PurePosixPath
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from typing import Callable
+import xml.etree.ElementTree as ET
+
+
+DEFAULT_SUITE = Path("fixtures/test-svg/suites/L0.import-equivalence.json")
+DRIVER = Path("crates/grida/examples/tool_legacy_svg_import_artifacts.rs")
+BASE_OVERLAY_DRIVER = Path(
+    "crates/grida/examples/__consolidation_legacy_svg_import_artifacts.rs"
+)
+HEAD_OVERLAY_DRIVER = Path(
+    "crates/grida/examples/__consolidation_head_legacy_svg_import_artifacts.rs"
+)
+BASE_EXAMPLE = "__consolidation_legacy_svg_import_artifacts"
+HEAD_EXAMPLE = "__consolidation_head_legacy_svg_import_artifacts"
+ARTIFACTS = ("grida-fbs", "legacy-png")
+ARTIFACT_SUFFIXES = (".grida", ".png")
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+ENVIRONMENT = {
+    "external_svg_references": "forbid",
+    "data_urls": "inline",
+    "animation": "forbid",
+    "import_fonts": "legacy-default",
+    "render_fonts": "embedded-only",
+    "background": "transparent",
+}
+
+URL_REFERENCE = re.compile(
+    r"url\(\s*(?P<value>\"[^\"]*\"|'[^']*'|[^)]*)\s*\)", re.IGNORECASE
+)
+CSS_IMPORT = re.compile(r"@import\b", re.IGNORECASE)
+CSS_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
+CSS_KEYFRAMES = re.compile(r"@(?:-[a-z0-9]+-)?keyframes\b", re.IGNORECASE)
+CSS_ANIMATION_PROPERTY = re.compile(
+    r"(?<![-\w])(?:-[a-z0-9]+-)?animation(?:-[a-z-]+)?\s*:", re.IGNORECASE
+)
+CSS_TRANSITION_PROPERTY = re.compile(
+    r"(?<![-\w])(?:-[a-z0-9]+-)?transition(?:-[a-z-]+)?\s*:", re.IGNORECASE
+)
+XML_DOCTYPE_OR_ENTITY = re.compile(r"<!\s*(?:DOCTYPE|ENTITY)\b", re.IGNORECASE)
+XML_BASE = re.compile(r"\bxml:base\s*=", re.IGNORECASE)
+XML_STYLESHEET = re.compile(r"<\?\s*xml-stylesheet\b", re.IGNORECASE)
+ANIMATION_ELEMENTS = frozenset(
+    {
+        "animate",
+        "animateColor",
+        "animateMotion",
+        "animateTransform",
+        "set",
+        "discard",
+    }
+)
+ACTIVE_ELEMENTS = frozenset({"script", "foreignObject", "audio", "video"})
+
+
+class SweepError(RuntimeError):
+    pass
+
+
+@dataclass(frozen=True)
+class Surface:
+    width: int
+    height: int
+
+
+@dataclass(frozen=True)
+class Fixture:
+    logical: PurePosixPath
+    source: Path
+    data: bytes
+    surface: Surface
+    sha256: str
+
+
+@dataclass(frozen=True)
+class Suite:
+    path: Path
+    root: Path
+    fixtures: tuple[Fixture, ...]
+    manifest_bytes: bytes
+    manifest_sha256: str
+    identity: dict[str, object]
+    identity_sha256: str
+
+
+def sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def short_digest(data: bytes) -> str:
+    return sha256(data)[:16]
+
+
+def exact_keys(value: object, expected: set[str], label: str) -> dict[str, object]:
+    if not isinstance(value, dict):
+        raise SweepError(f"{label} must be an object")
+    actual = set(value)
+    missing = sorted(expected - actual)
+    unknown = sorted(actual - expected)
+    if missing or unknown:
+        raise SweepError(
+            f"{label} keys differ; missing={missing or 'none'}, "
+            f"unknown={unknown or 'none'}"
+        )
+    return value
+
+
+def unique_json_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise SweepError(f"duplicate JSON key: {key!r}")
+        result[key] = value
+    return result
+
+
+def positive_int(value: object, label: str) -> int:
+    if type(value) is not int or value <= 0 or value > 2_147_483_647:
+        raise SweepError(f"{label} must be an integer in 1..=2147483647")
+    return value
+
+
+def checked_fixture_path(raw: object, label: str) -> PurePosixPath:
+    if not isinstance(raw, str) or not raw or "\\" in raw or "\x00" in raw:
+        raise SweepError(f"{label} must be a non-empty POSIX path")
+    if raw.startswith("/") or any(part in ("", ".", "..") for part in raw.split("/")):
+        raise SweepError(f"{label} must be a normalized relative path: {raw!r}")
+    logical = PurePosixPath(raw)
+    if logical.suffix.lower() != ".svg":
+        raise SweepError(f"{label} must name an .svg file: {raw!r}")
+    return logical
+
+
+def checked_root(manifest: Path, raw: object, repo: Path) -> Path:
+    if not isinstance(raw, str) or not raw or "\x00" in raw:
+        raise SweepError("corpus.root must be a non-empty relative path")
+    candidate = Path(raw)
+    if candidate.is_absolute():
+        raise SweepError("corpus.root must be relative to the suite manifest")
+    root = (manifest.parent / candidate).resolve()
+    if not root.is_dir():
+        raise SweepError(f"corpus root is not a directory: {root}")
+    try:
+        manifest.resolve().relative_to(repo.resolve())
+    except ValueError:
+        return root
+    try:
+        root.relative_to(repo.resolve())
+    except ValueError as error:
+        raise SweepError(f"tracked suite corpus root escapes the repository: {root}") from error
+    return root
+
+
+def checked_source(root: Path, logical: PurePosixPath) -> Path:
+    candidate = root / Path(*logical.parts)
+    if candidate.is_symlink():
+        raise SweepError(f"fixture must not be a symlink: {logical}")
+    source = candidate.resolve()
+    try:
+        source.relative_to(root.resolve())
+    except ValueError as error:
+        raise SweepError(f"fixture escapes corpus root: {logical}") from error
+    if source.is_symlink() or not source.is_file():
+        raise SweepError(f"fixture must be a regular non-symlink file: {logical}")
+    return source
+
+
+def local_name(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1]
+
+
+def checked_reference(value: str, source: Path, kind: str) -> None:
+    value = value.strip().strip("\"'").strip()
+    if not value or value.startswith("#") or value.lower().startswith("data:"):
+        return
+    raise SweepError(
+        f"{source}: external {kind} reference {value!r}; "
+        "the declared legacy importer corpus forbids external SVG references"
+    )
+
+
+def check_css_references(value: str, source: Path, kind: str) -> str:
+    if "\\" in value:
+        raise SweepError(
+            f"{source}: escapes in {kind} are outside the closed corpus policy"
+        )
+    without_comments = CSS_COMMENT.sub("", value)
+    if CSS_IMPORT.search(without_comments):
+        raise SweepError(f"{source}: CSS @import is outside the closed corpus policy")
+    for match in URL_REFERENCE.finditer(without_comments):
+        checked_reference(match.group("value"), source, f"{kind} url()")
+    return without_comments
+
+
+def check_static_css(value: str, source: Path) -> None:
+    without_comments = check_css_references(value, source, "CSS")
+    if (
+        CSS_KEYFRAMES.search(without_comments)
+        or CSS_ANIMATION_PROPERTY.search(without_comments)
+        or CSS_TRANSITION_PROPERTY.search(without_comments)
+    ):
+        raise SweepError(
+            f"{source}: CSS animation or transition is outside the static corpus policy"
+        )
+
+
+def parse_svg(source: Path, data: bytes, surface: Surface) -> None:
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise SweepError(f"{source}: SVG must be UTF-8: {error}") from error
+
+    for pattern, label in (
+        (XML_DOCTYPE_OR_ENTITY, "DTD/entity declaration"),
+        (XML_BASE, "xml:base"),
+        (XML_STYLESHEET, "xml-stylesheet processing instruction"),
+        (CSS_IMPORT, "CSS @import"),
+    ):
+        if pattern.search(text):
+            raise SweepError(f"{source}: {label} is outside the closed corpus policy")
+
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError as error:
+        raise SweepError(f"{source}: invalid XML: {error}") from error
+    if local_name(root.tag) != "svg":
+        raise SweepError(f"{source}: root element must be svg")
+
+    declared_edges: list[int] = []
+    for name in ("width", "height"):
+        raw = root.attrib.get(name)
+        if raw is None or not re.fullmatch(r"[1-9][0-9]*", raw):
+            raise SweepError(f"{source}: root {name} must be an explicit positive integer")
+        declared_edges.append(int(raw))
+    if tuple(declared_edges) != (surface.width, surface.height):
+        raise SweepError(
+            f"{source}: declared surface {surface.width}x{surface.height} "
+            f"does not match root {declared_edges[0]}x{declared_edges[1]}"
+        )
+
+    for element in root.iter():
+        name = local_name(element.tag)
+        if name in ANIMATION_ELEMENTS:
+            raise SweepError(
+                f"{source}: {name} animation element is outside the static corpus policy"
+            )
+        if name in ACTIVE_ELEMENTS:
+            raise SweepError(
+                f"{source}: {name} element is outside the static corpus policy"
+            )
+        if name == "style":
+            check_static_css("".join(element.itertext()), source)
+        for attribute, value in element.attrib.items():
+            attribute_name = local_name(attribute)
+            check_css_references(value, source, attribute_name)
+            if attribute_name == "href":
+                checked_reference(value, source, "href")
+            if attribute_name == "style":
+                check_static_css(value, source)
+            if attribute_name.lower().startswith("animation"):
+                raise SweepError(
+                    f"{source}: CSS animation attribute is outside the static corpus policy"
+                )
+            if attribute_name.lower().startswith("transition"):
+                raise SweepError(
+                    f"{source}: CSS transition attribute is outside the static corpus policy"
+                )
+            if re.fullmatch(r"on[a-z][a-z0-9_.-]*", attribute_name, re.IGNORECASE):
+                raise SweepError(
+                    f"{source}: event handler attribute is outside the static corpus policy"
+                )
+    for match in URL_REFERENCE.finditer(text):
+        checked_reference(match.group("value"), source, "url()")
+
+
+def corpus_identity(
+    parsed: dict[str, object], fixtures: tuple[Fixture, ...]
+) -> tuple[dict[str, object], str]:
+    corpus = parsed["corpus"]
+    assert isinstance(corpus, dict)
+    identity: dict[str, object] = {
+        "schema": parsed["schema"],
+        "name": parsed["name"],
+        "artifacts": parsed["artifacts"],
+        "corpus": {
+            "root": corpus["root"],
+            "inputs": corpus["inputs"],
+            "expected_count": corpus["expected_count"],
+        },
+        "environment": parsed["environment"],
+        "fixtures": [
+            {
+                "path": fixture.logical.as_posix(),
+                "sha256": fixture.sha256,
+                "surface": {
+                    "width": fixture.surface.width,
+                    "height": fixture.surface.height,
+                },
+            }
+            for fixture in fixtures
+        ],
+    }
+    encoded = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+    return identity, sha256(encoded)
+
+
+def glob_inputs(root: Path, pattern: str) -> list[str]:
+    matched: list[str] = []
+    for candidate in root.glob(pattern):
+        if candidate.is_symlink() or not candidate.is_file():
+            raise SweepError(f"glob input must be a regular non-symlink file: {candidate}")
+        resolved = candidate.resolve()
+        try:
+            logical = resolved.relative_to(root.resolve()).as_posix()
+        except ValueError as error:
+            raise SweepError(f"glob result escapes corpus root: {candidate}") from error
+        matched.append(logical)
+    matched.sort()
+    return matched
+
+
+def load_suite(path: Path, repo: Path, *, enforce_identity: bool = True) -> Suite:
+    path = path.resolve()
+    try:
+        manifest_bytes = path.read_bytes()
+    except OSError as error:
+        raise SweepError(f"cannot read suite manifest {path}: {error}") from error
+    try:
+        parsed = json.loads(manifest_bytes, object_pairs_hook=unique_json_object)
+    except json.JSONDecodeError as error:
+        raise SweepError(f"invalid suite JSON {path}: {error}") from error
+
+    top = exact_keys(
+        parsed,
+        {
+            "schema",
+            "name",
+            "description",
+            "artifacts",
+            "corpus",
+            "environment",
+            "fixtures",
+        },
+        "suite",
+    )
+    if type(top["schema"]) is not int or top["schema"] != 1:
+        raise SweepError("suite.schema must be the integer 1")
+    if not isinstance(top["name"], str) or not top["name"]:
+        raise SweepError("suite.name must be a non-empty string")
+    if not isinstance(top["description"], str) or not top["description"]:
+        raise SweepError("suite.description must be a non-empty string")
+    if top["artifacts"] != list(ARTIFACTS):
+        raise SweepError(f"suite.artifacts must be exactly {list(ARTIFACTS)}")
+    if top["environment"] != ENVIRONMENT:
+        raise SweepError(f"suite.environment must be exactly {ENVIRONMENT}")
+
+    corpus = exact_keys(
+        top["corpus"],
+        {"root", "inputs", "expected_count", "identity_sha256"},
+        "suite.corpus",
+    )
+    root = checked_root(path, corpus["root"], repo)
+    pattern = corpus["inputs"]
+    if (
+        not isinstance(pattern, str)
+        or not pattern
+        or Path(pattern).is_absolute()
+        or "\\" in pattern
+        or ".." in PurePosixPath(pattern).parts
+    ):
+        raise SweepError("corpus.inputs must be a normalized relative glob")
+    expected_count = positive_int(corpus["expected_count"], "corpus.expected_count")
+    declared_identity = corpus["identity_sha256"]
+    if not isinstance(declared_identity, str) or not re.fullmatch(
+        r"[0-9a-f]{64}", declared_identity
+    ):
+        raise SweepError("corpus.identity_sha256 must be 64 lowercase hex characters")
+
+    entries = top["fixtures"]
+    if not isinstance(entries, list) or not entries:
+        raise SweepError("suite.fixtures must be a non-empty list")
+    fixtures: list[Fixture] = []
+    seen: set[PurePosixPath] = set()
+    for index, raw_entry in enumerate(entries):
+        entry = exact_keys(raw_entry, {"path", "surface"}, f"fixtures[{index}]")
+        logical = checked_fixture_path(entry["path"], f"fixtures[{index}].path")
+        if logical in seen:
+            raise SweepError(f"duplicate fixture path: {logical}")
+        seen.add(logical)
+        raw_surface = exact_keys(
+            entry["surface"], {"width", "height"}, f"fixtures[{index}].surface"
+        )
+        surface = Surface(
+            positive_int(raw_surface["width"], f"fixtures[{index}].surface.width"),
+            positive_int(raw_surface["height"], f"fixtures[{index}].surface.height"),
+        )
+        source = checked_source(root, logical)
+        data = source.read_bytes()
+        parse_svg(source, data, surface)
+        fixtures.append(Fixture(logical, source, data, surface, sha256(data)))
+
+    logicals = [fixture.logical.as_posix() for fixture in fixtures]
+    if logicals != sorted(logicals):
+        raise SweepError("suite.fixtures must be sorted lexically by path")
+    if len(fixtures) != expected_count:
+        raise SweepError(
+            f"corpus.expected_count is {expected_count}, but {len(fixtures)} fixtures are declared"
+        )
+
+    matched = glob_inputs(root, pattern)
+    if matched != logicals:
+        raise SweepError(
+            "enumerated fixture set differs from corpus.inputs glob; "
+            f"only in glob={sorted(set(matched) - set(logicals))}, "
+            f"only in manifest={sorted(set(logicals) - set(matched))}"
+        )
+
+    fixture_tuple = tuple(fixtures)
+    identity, identity_sha256 = corpus_identity(top, fixture_tuple)
+    if enforce_identity and identity_sha256 != declared_identity:
+        raise SweepError(
+            "declared corpus identity is stale; "
+            f"manifest={declared_identity}, actual={identity_sha256}"
+        )
+    return Suite(
+        path=path,
+        root=root,
+        fixtures=fixture_tuple,
+        manifest_bytes=manifest_bytes,
+        manifest_sha256=sha256(manifest_bytes),
+        identity=identity,
+        identity_sha256=identity_sha256,
+    )
+
+
+def expected_artifacts(suite: Suite) -> set[PurePosixPath]:
+    expected: set[PurePosixPath] = set()
+    for fixture in suite.fixtures:
+        for suffix in ARTIFACT_SUFFIXES:
+            artifact = fixture.logical.with_suffix(suffix)
+            if artifact in expected:
+                raise SweepError(f"artifact output collision: {artifact}")
+            expected.add(artifact)
+    return expected
+
+
+def materialize_inputs(suite: Suite, directory: Path) -> None:
+    directory.mkdir()
+    for fixture in suite.fixtures:
+        destination = directory / Path(*fixture.logical.parts)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if destination.exists() or destination.is_symlink():
+            raise SweepError(f"frozen input path collision: {fixture.logical}")
+        destination.write_bytes(fixture.data)
+
+
+def collect_artifacts(directory: Path) -> dict[PurePosixPath, bytes]:
+    artifacts: dict[PurePosixPath, bytes] = {}
+    for path in sorted(directory.rglob("*")):
+        if path.is_dir():
+            continue
+        if path.is_symlink() or not path.is_file():
+            raise SweepError(f"artifact is not a regular file: {path}")
+        logical = PurePosixPath(path.relative_to(directory).as_posix())
+        artifacts[logical] = path.read_bytes()
+    return artifacts
+
+
+def require_artifact_set(
+    label: str, actual: dict[PurePosixPath, bytes], expected: set[PurePosixPath]
+) -> None:
+    actual_set = set(actual)
+    if actual_set != expected:
+        raise SweepError(
+            f"{label} artifact set differs; "
+            f"missing={sorted(expected - actual_set, key=str)}, "
+            f"unexpected={sorted(actual_set - expected, key=str)}"
+        )
+
+
+def validate_artifact_bytes(
+    label: str, artifacts: dict[PurePosixPath, bytes], suite: Suite
+) -> None:
+    for fixture in suite.fixtures:
+        grida_path = fixture.logical.with_suffix(".grida")
+        grida = artifacts[grida_path]
+        if len(grida) < 8 or grida[4:8] != b"GRID":
+            raise SweepError(f"{label} did not emit raw GRID FlatBuffers: {grida_path}")
+
+        png_path = fixture.logical.with_suffix(".png")
+        png = artifacts[png_path]
+        if len(png) < 24 or png[:8] != PNG_SIGNATURE or png[12:16] != b"IHDR":
+            raise SweepError(f"{label} did not emit a valid PNG header: {png_path}")
+        actual = (
+            int.from_bytes(png[16:20], "big"),
+            int.from_bytes(png[20:24], "big"),
+        )
+        declared = (fixture.surface.width, fixture.surface.height)
+        if actual != declared:
+            raise SweepError(
+                f"{label} PNG surface differs for {png_path}: "
+                f"declared {declared[0]}x{declared[1]}, actual {actual[0]}x{actual[1]}"
+            )
+
+
+def byte_differences(
+    before: dict[PurePosixPath, bytes], after: dict[PurePosixPath, bytes]
+) -> list[PurePosixPath]:
+    if before.keys() != after.keys():
+        raise SweepError("cannot compare byte maps with different file sets")
+    return sorted(
+        (path for path in before if before[path] != after[path]), key=str
+    )
+
+
+def run(command: list[str], *, cwd: Path, env: dict[str, str]) -> None:
+    subprocess.run(command, cwd=cwd, env=env, check=True)
+
+
+def binary_path(target: Path, example: str) -> Path:
+    suffix = ".exe" if os.name == "nt" else ""
+    return target / "debug" / "examples" / f"{example}{suffix}"
+
+
+def build_driver(
+    *,
+    tree: Path,
+    source: bytes,
+    overlay_path: Path,
+    example: str,
+    target: Path,
+    destination: Path,
+    env: dict[str, str],
+) -> None:
+    overlay_path = tree / overlay_path
+    if overlay_path.exists() or overlay_path.is_symlink():
+        raise SweepError(f"refusing to overwrite artifact driver path: {overlay_path}")
+    overlay_path.write_bytes(source)
+    try:
+        run(
+            ["cargo", "build", "--locked", "-p", "grida", "--example", example],
+            cwd=tree,
+            env=env,
+        )
+        built = binary_path(target, example)
+        if not built.is_file():
+            raise SweepError(f"Cargo did not produce the artifact driver: {built}")
+        shutil.copy2(built, destination)
+    finally:
+        if overlay_path.exists() or overlay_path.is_symlink():
+            overlay_path.unlink()
+
+
+def render_pass(
+    label: str,
+    binary: Path,
+    suite: Suite,
+    input_root: Path,
+    output: Path,
+    *,
+    cwd: Path,
+    env: dict[str, str],
+) -> dict[PurePosixPath, bytes]:
+    output.mkdir()
+    print(
+        f"Legacy SVG import sweep: materializing {label} ({len(suite.fixtures)} fixtures)",
+        flush=True,
+    )
+    for fixture in suite.fixtures:
+        grida_output = output / Path(*fixture.logical.with_suffix(".grida").parts)
+        png_output = output / Path(*fixture.logical.with_suffix(".png").parts)
+        run(
+            [
+                str(binary),
+                str(input_root / Path(*fixture.logical.parts)),
+                str(grida_output),
+                str(png_output),
+                str(fixture.surface.width),
+                str(fixture.surface.height),
+            ],
+            cwd=cwd,
+            env=env,
+        )
+    artifacts = collect_artifacts(output)
+    require_artifact_set(label, artifacts, expected_artifacts(suite))
+    validate_artifact_bytes(label, artifacts, suite)
+    return artifacts
+
+
+def require_same_bytes(
+    label: str,
+    before: dict[PurePosixPath, bytes],
+    after: dict[PurePosixPath, bytes],
+) -> None:
+    changed = byte_differences(before, after)
+    if not changed:
+        return
+    lines = [f"{label}: byte differences"]
+    for path in changed:
+        lines.append(
+            f"  {path}: before {short_digest(before[path])}, "
+            f"after {short_digest(after[path])}"
+        )
+    raise SweepError("\n".join(lines))
+
+
+def suite_evolution_contract(suite: Suite) -> dict[str, object]:
+    corpus = suite.identity["corpus"]
+    assert isinstance(corpus, dict)
+    return {
+        "schema": suite.identity["schema"],
+        "name": suite.identity["name"],
+        "artifacts": suite.identity["artifacts"],
+        "corpus": {"root": corpus["root"], "inputs": corpus["inputs"]},
+        "environment": suite.identity["environment"],
+    }
+
+
+def require_append_only_suite(base: Suite, head: Suite) -> int:
+    if suite_evolution_contract(base) != suite_evolution_contract(head):
+        raise SweepError("base/head suite execution contracts differ")
+
+    base_by_path = {fixture.logical: fixture for fixture in base.fixtures}
+    head_by_path = {fixture.logical: fixture for fixture in head.fixtures}
+    removed = sorted(set(base_by_path) - set(head_by_path), key=str)
+    changed: list[PurePosixPath] = []
+    for logical in sorted(set(base_by_path) & set(head_by_path), key=str):
+        before = base_by_path[logical]
+        after = head_by_path[logical]
+        if before.sha256 != after.sha256 or before.surface != after.surface:
+            changed.append(logical)
+    if removed or changed:
+        raise SweepError(
+            "declared suite evolution is not append-only; "
+            f"removed={removed}, changed={changed}"
+        )
+    return len(head_by_path) - len(base_by_path)
+
+
+def git_tracks(repo: Path, path: Path) -> bool:
+    try:
+        relative = path.resolve().relative_to(repo.resolve())
+    except ValueError:
+        return False
+    result = subprocess.run(
+        ["git", "ls-files", "--error-unmatch", "--", relative.as_posix()],
+        cwd=repo,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        return True
+    if result.returncode == 1:
+        return False
+    raise SweepError(f"cannot determine whether suite manifest is tracked: {result.stderr.strip()}")
+
+
+def validate_base_corpus(base_tree: Path, repo: Path, head: Suite) -> str:
+    try:
+        suite_relative = head.path.relative_to(repo.resolve())
+    except ValueError:
+        return "external manifest and inputs shared identically by both revisions"
+
+    base_suite_path = base_tree / suite_relative
+    if base_suite_path.exists():
+        base = load_suite(base_suite_path, base_tree)
+        additions = require_append_only_suite(base, head)
+        return (
+            "base suite is an immutable subset of head suite "
+            f"({len(base.fixtures)} retained, {additions} append-only additions)"
+        )
+
+    if head.path != (repo / DEFAULT_SUITE).resolve() and not git_tracks(repo, head.path):
+        return "untracked local manifest and frozen inputs shared identically by both revisions"
+
+    try:
+        root_relative = head.root.relative_to(repo.resolve())
+    except ValueError as error:
+        raise SweepError(
+            "bootstrap suite inside the repository has an external corpus root"
+        ) from error
+    base_root = base_tree / root_relative
+    corpus = head.identity["corpus"]
+    assert isinstance(corpus, dict)
+    pattern = corpus["inputs"]
+    assert isinstance(pattern, str)
+    base_inputs = glob_inputs(base_root, pattern)
+    head_inputs = [fixture.logical.as_posix() for fixture in head.fixtures]
+    if base_inputs != head_inputs:
+        raise SweepError(
+            "bootstrap corpus input set differs between base and head; "
+            f"base only={sorted(set(base_inputs) - set(head_inputs))}, "
+            f"head only={sorted(set(head_inputs) - set(base_inputs))}"
+        )
+
+    for fixture in head.fixtures:
+        try:
+            relative = fixture.source.relative_to(repo.resolve())
+        except ValueError as error:
+            raise SweepError(
+                "bootstrap suite inside the repository references an external input"
+            ) from error
+        base_source = base_tree / relative
+        if not base_source.is_file():
+            raise SweepError(f"bootstrap base is missing declared fixture: {relative}")
+        base_data = base_source.read_bytes()
+        if base_data != fixture.data:
+            raise SweepError(
+                f"bootstrap fixture differs between base and head: {relative}; "
+                f"base {short_digest(base_data)}, head {short_digest(fixture.data)}"
+            )
+    return "suite bootstrap; every declared fixture already exists byte-identically at base"
+
+
+def validate_base_driver(base_tree: Path, head_source: bytes) -> str:
+    base_driver = base_tree / DRIVER
+    if base_driver.is_symlink():
+        raise SweepError(f"base artifact driver must not be a symlink: {base_driver}")
+    if not base_driver.exists():
+        return "artifact driver bootstrap; base does not declare the driver"
+    if not base_driver.is_file():
+        raise SweepError(f"base artifact driver is not a regular file: {base_driver}")
+    base_source = base_driver.read_bytes()
+    if base_source != head_source:
+        raise SweepError(
+            "artifact driver changed after bootstrap; "
+            f"base {short_digest(base_source)}, head {short_digest(head_source)}"
+        )
+    return f"base/head artifact driver bytes match ({short_digest(head_source)})"
+
+
+def expect_failure(label: str, operation: Callable[[], object], contains: str) -> None:
+    try:
+        operation()
+    except SweepError as error:
+        if contains not in str(error):
+            raise SweepError(
+                f"self-test {label!r} failed with the wrong error: {error}"
+            ) from error
+        return
+    raise SweepError(f"self-test {label!r} unexpectedly succeeded")
+
+
+def self_test_manifest(root: Path, entries: list[dict[str, object]]) -> Path:
+    suite_dir = root / "suites"
+    fixture_dir = root / "L0"
+    suite_dir.mkdir(parents=True, exist_ok=True)
+    fixture_dir.mkdir(parents=True, exist_ok=True)
+    data: dict[str, object] = {
+        "schema": 1,
+        "name": "self-test",
+        "description": "self-test manifest",
+        "artifacts": list(ARTIFACTS),
+        "corpus": {
+            "root": "../L0",
+            "inputs": "**/*.svg",
+            "expected_count": len(entries),
+            "identity_sha256": "0" * 64,
+        },
+        "environment": dict(ENVIRONMENT),
+        "fixtures": entries,
+    }
+    path = suite_dir / "suite.json"
+    path.write_text(json.dumps(data, indent=2) + "\n")
+    unchecked = load_suite(path, root, enforce_identity=False)
+    corpus = data["corpus"]
+    assert isinstance(corpus, dict)
+    corpus["identity_sha256"] = unchecked.identity_sha256
+    path.write_text(json.dumps(data, indent=2) + "\n")
+    return path
+
+
+def run_self_test() -> None:
+    checks = 0
+    with tempfile.TemporaryDirectory(prefix="grida-svg-import-sweep-self-test-") as temp:
+        root = Path(temp)
+        fixture = root / "L0" / "nested" / "fixture.svg"
+        fixture.parent.mkdir(parents=True)
+        fixture.write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20">'
+            '<defs><linearGradient id="g"/></defs><rect fill="url(#g)"/>'
+            '<use href="#shape"/><image href="data:image/png;base64,AA=="/>'
+            "</svg>"
+        )
+        entry = {
+            "path": "nested/fixture.svg",
+            "surface": {"width": 10, "height": 20},
+        }
+        manifest = self_test_manifest(root, [entry])
+        valid = load_suite(manifest, root)
+        if len(valid.fixtures) != 1:
+            raise SweepError("self-test valid manifest count differs")
+        checks += 1
+
+        fixture.write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20">'
+            '<image href="outside.png"/></svg>'
+        )
+        expect_failure(
+            "external reference", lambda: load_suite(manifest, root), "external href"
+        )
+        checks += 1
+
+        fixture.write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20">'
+            '<style>@&#105;mport "https://example.invalid/a.css";</style></svg>'
+        )
+        expect_failure(
+            "expanded CSS import",
+            lambda: load_suite(manifest, root),
+            "CSS @import",
+        )
+        checks += 1
+
+        fixture.write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20">'
+            '<style>.x{fill:u&#114;l(https://example.invalid/a.svg)}</style></svg>'
+        )
+        expect_failure(
+            "expanded style URL",
+            lambda: load_suite(manifest, root),
+            "external CSS url()",
+        )
+        checks += 1
+
+        fixture.write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20">'
+            '<rect fill="u&#114;l(https://example.invalid/a.svg)"/></svg>'
+        )
+        expect_failure(
+            "expanded presentation URL",
+            lambda: load_suite(manifest, root),
+            "external fill url()",
+        )
+        checks += 1
+
+        fixture.write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20">'
+            '<animate attributeName="x" dur="1s"/></svg>'
+        )
+        expect_failure(
+            "SMIL animation", lambda: load_suite(manifest, root), "animation element"
+        )
+        checks += 1
+
+        fixture.write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20">'
+            '<animateColor attributeName="fill" dur="1s"/></svg>'
+        )
+        expect_failure(
+            "SVG 1.1 animateColor",
+            lambda: load_suite(manifest, root),
+            "animation element",
+        )
+        checks += 1
+
+        fixture.write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20">'
+            "<style>@keyframes pulse { from { opacity: 0 } to { opacity: 1 } }</style>"
+            "</svg>"
+        )
+        expect_failure(
+            "CSS keyframes", lambda: load_suite(manifest, root), "CSS animation"
+        )
+        checks += 1
+
+        fixture.write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20">'
+            '<rect style="animation: pulse 1s"/></svg>'
+        )
+        expect_failure(
+            "CSS animation property",
+            lambda: load_suite(manifest, root),
+            "CSS animation",
+        )
+        checks += 1
+
+        fixture.write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20">'
+            '<rect style="transition: opacity 1s"/></svg>'
+        )
+        expect_failure(
+            "CSS transition property",
+            lambda: load_suite(manifest, root),
+            "CSS animation or transition",
+        )
+        checks += 1
+
+        fixture.write_text(
+            '<?xml-stylesheet href="outside.css"?>'
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20"/>'
+        )
+        expect_failure(
+            "XML stylesheet",
+            lambda: load_suite(manifest, root),
+            "xml-stylesheet processing instruction",
+        )
+        checks += 1
+
+        fixture.write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20"/>'
+        )
+
+        duplicate_json = root / "suites" / "duplicate-json.json"
+        duplicate_json.write_text('{"schema":1,"schema":1}\n')
+        expect_failure(
+            "duplicate JSON key",
+            lambda: load_suite(duplicate_json, root),
+            "duplicate JSON key",
+        )
+        checks += 1
+
+        for invalid_schema in (True, 1.0):
+            invalid_data = json.loads(manifest.read_text())
+            invalid_data["schema"] = invalid_schema
+            invalid_manifest = root / "suites" / f"schema-{invalid_schema!r}.json"
+            invalid_manifest.write_text(json.dumps(invalid_data) + "\n")
+            expect_failure(
+                f"non-integer schema {invalid_schema!r}",
+                lambda path=invalid_manifest: load_suite(path, root),
+                "must be the integer 1",
+            )
+            checks += 1
+
+        escape = dict(entry)
+        escape["path"] = "../outside.svg"
+        expect_failure(
+            "path escape",
+            lambda: self_test_manifest(root / "escape", [escape]),
+            "normalized relative path",
+        )
+        checks += 1
+
+        duplicate_root = root / "duplicate"
+        (duplicate_root / "L0" / "nested").mkdir(parents=True)
+        (duplicate_root / "L0" / "nested" / "fixture.svg").write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20"/>'
+        )
+        expect_failure(
+            "duplicate path",
+            lambda: self_test_manifest(duplicate_root, [entry, entry]),
+            "duplicate fixture path",
+        )
+        checks += 1
+
+        extra_root = root / "extra"
+        (extra_root / "L0").mkdir(parents=True)
+        (extra_root / "L0" / "fixture.svg").write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20"/>'
+        )
+        extra_entry = {
+            "path": "fixture.svg",
+            "surface": {"width": 10, "height": 20},
+        }
+        extra_manifest = self_test_manifest(extra_root, [extra_entry])
+        (extra_root / "L0" / "unlisted.svg").write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>'
+        )
+        expect_failure(
+            "unlisted glob input",
+            lambda: load_suite(extra_manifest, extra_root),
+            "differs from corpus.inputs glob",
+        )
+        checks += 1
+        (extra_root / "L0" / "unlisted.svg").unlink()
+        (extra_root / "L0" / "linked.svg").symlink_to("fixture.svg")
+        expect_failure(
+            "symlink glob input",
+            lambda: load_suite(extra_manifest, extra_root),
+            "glob input must be a regular non-symlink file",
+        )
+        checks += 1
+
+        dimension_root = root / "dimension"
+        (dimension_root / "L0").mkdir(parents=True)
+        (dimension_root / "L0" / "fixture.svg").write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20"/>'
+        )
+        wrong_dimension = {
+            "path": "fixture.svg",
+            "surface": {"width": 11, "height": 20},
+        }
+        expect_failure(
+            "surface drift",
+            lambda: self_test_manifest(dimension_root, [wrong_dimension]),
+            "does not match root",
+        )
+        checks += 1
+
+        identity_root = root / "identity"
+        (identity_root / "L0").mkdir(parents=True)
+        identity_svg = identity_root / "L0" / "fixture.svg"
+        identity_svg.write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20"/>'
+        )
+        identity_manifest = self_test_manifest(identity_root, [extra_entry])
+        identity_svg.write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20">'
+            "<rect/></svg>"
+        )
+        expect_failure(
+            "stale identity",
+            lambda: load_suite(identity_manifest, identity_root),
+            "identity is stale",
+        )
+        checks += 1
+
+        frozen_root = root / "frozen"
+        materialize_inputs(valid, frozen_root)
+        frozen_fixture = frozen_root / "nested" / "fixture.svg"
+        if (
+            frozen_fixture.read_bytes() != valid.fixtures[0].data
+            or frozen_fixture.read_bytes() == fixture.read_bytes()
+        ):
+            raise SweepError("self-test did not freeze the validated fixture bytes")
+        checks += 1
+
+        added_data = b'<svg width="1" height="1"/>'
+        added = Fixture(
+            PurePosixPath("nested/z-added.svg"),
+            fixture,
+            added_data,
+            Surface(1, 1),
+            sha256(added_data),
+        )
+        added_identity = json.loads(json.dumps(valid.identity))
+        added_corpus = added_identity["corpus"]
+        assert isinstance(added_corpus, dict)
+        added_corpus["expected_count"] = 2
+        appended = Suite(
+            manifest,
+            root,
+            valid.fixtures + (added,),
+            b"",
+            "",
+            added_identity,
+            "",
+        )
+        if require_append_only_suite(valid, appended) != 1:
+            raise SweepError("self-test append-only suite addition was not accepted")
+        checks += 1
+
+        changed_data = valid.fixtures[0].data + b" "
+        changed_fixture = Fixture(
+            valid.fixtures[0].logical,
+            valid.fixtures[0].source,
+            changed_data,
+            valid.fixtures[0].surface,
+            sha256(changed_data),
+        )
+        changed_suite = Suite(
+            manifest,
+            root,
+            (changed_fixture,),
+            b"",
+            "",
+            valid.identity,
+            "",
+        )
+        expect_failure(
+            "changed retained fixture",
+            lambda: require_append_only_suite(valid, changed_suite),
+            "not append-only",
+        )
+        checks += 1
+
+        driver_root = root / "driver-base"
+        driver_source = b"fn main() {}\n"
+        if "bootstrap" not in validate_base_driver(driver_root, driver_source):
+            raise SweepError("self-test driver bootstrap was not recognized")
+        checks += 1
+        base_driver = driver_root / DRIVER
+        base_driver.parent.mkdir(parents=True)
+        base_driver.write_bytes(driver_source)
+        if "bytes match" not in validate_base_driver(driver_root, driver_source):
+            raise SweepError("self-test immutable driver match was not recognized")
+        expect_failure(
+            "changed artifact driver",
+            lambda: validate_base_driver(driver_root, driver_source + b" "),
+            "changed after bootstrap",
+        )
+        checks += 1
+
+        expected = expected_artifacts(valid)
+        complete: dict[PurePosixPath, bytes] = {}
+        for valid_fixture in valid.fixtures:
+            complete[valid_fixture.logical.with_suffix(".grida")] = b"\0\0\0\0GRID"
+            complete[valid_fixture.logical.with_suffix(".png")] = (
+                PNG_SIGNATURE
+                + (13).to_bytes(4, "big")
+                + b"IHDR"
+                + valid_fixture.surface.width.to_bytes(4, "big")
+                + valid_fixture.surface.height.to_bytes(4, "big")
+            )
+        require_artifact_set("complete", complete, expected)
+        validate_artifact_bytes("complete", complete, valid)
+        missing = dict(complete)
+        missing.pop(next(iter(missing)))
+        expect_failure(
+            "missing output",
+            lambda: require_artifact_set("missing", missing, expected),
+            "artifact set differs",
+        )
+        changed = dict(complete)
+        changed[next(iter(changed))] = b"different"
+        if not byte_differences(complete, changed):
+            raise SweepError("self-test one-byte artifact divergence was not detected")
+        checks += 1
+
+        wrong_surface = dict(complete)
+        png_key = next(path for path in wrong_surface if path.suffix == ".png")
+        wrong_surface[png_key] = wrong_surface[png_key][:16] + (11).to_bytes(
+            4, "big"
+        ) + wrong_surface[png_key][20:]
+        expect_failure(
+            "PNG surface mismatch",
+            lambda: validate_artifact_bytes("wrong surface", wrong_surface, valid),
+            "PNG surface differs",
+        )
+        checks += 1
+
+        nested = (
+            Fixture(PurePosixPath("a/icon.svg"), fixture, b"", Surface(1, 1), "0"),
+            Fixture(PurePosixPath("b/icon.svg"), fixture, b"", Surface(1, 1), "0"),
+        )
+        nested_suite = Suite(
+            manifest,
+            root,
+            nested,
+            b"",
+            "",
+            {},
+            "",
+        )
+        if len(expected_artifacts(nested_suite)) != 4:
+            raise SweepError("self-test nested duplicate basenames collided")
+        checks += 1
+
+    print(f"Legacy SVG import sweep self-test: PASS ({checks}/{checks})", flush=True)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="A/B exact legacy SVG import artifacts over a declared corpus."
+    )
+    parser.add_argument("base", nargs="?", help="base git revision")
+    parser.add_argument(
+        "--suite",
+        type=Path,
+        help=f"suite manifest (default: {DEFAULT_SUITE})",
+    )
+    parser.add_argument(
+        "--print-corpus-identity",
+        action="store_true",
+        help="print the computed identity without enforcing the declared digest",
+    )
+    parser.add_argument(
+        "--self-test", action="store_true", help="run policy/comparator self-tests"
+    )
+    args = parser.parse_args()
+
+    if args.self_test:
+        run_self_test()
+        return 0
+
+    repo = Path(
+        subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            check=True,
+            stdout=subprocess.PIPE,
+            text=True,
+        ).stdout.strip()
+    )
+    suite_path = args.suite or (repo / DEFAULT_SUITE)
+    suite = load_suite(suite_path, repo, enforce_identity=not args.print_corpus_identity)
+    if args.print_corpus_identity:
+        print(suite.identity_sha256)
+        return 0
+    if not args.base:
+        parser.error("base is required unless --self-test or --print-corpus-identity is used")
+
+    driver_path = repo / DRIVER
+    if driver_path.is_symlink() or not driver_path.is_file():
+        raise SweepError(f"head artifact driver must be a regular non-symlink file: {driver_path}")
+    driver_source = driver_path.read_bytes()
+    base_commit = subprocess.run(
+        ["git", "rev-parse", "--verify", f"{args.base}^{{commit}}"],
+        cwd=repo,
+        check=True,
+        stdout=subprocess.PIPE,
+        text=True,
+    ).stdout.strip()
+    env = os.environ.copy()
+    configured_target = env.get("CARGO_TARGET_DIR")
+    target = (
+        Path(configured_target).expanduser()
+        if configured_target
+        else repo / "target"
+    )
+    if not target.is_absolute():
+        target = (repo / target).resolve()
+    env["CARGO_TARGET_DIR"] = str(target)
+    env["CARGO_INCREMENTAL"] = "0"
+
+    with tempfile.TemporaryDirectory(prefix="grida-legacy-svg-import-") as temp:
+        temp_root = Path(temp)
+        base_tree = temp_root / "base"
+        input_root = temp_root / "inputs"
+        base_driver = temp_root / f"base-driver{'.exe' if os.name == 'nt' else ''}"
+        head_driver = temp_root / f"head-driver{'.exe' if os.name == 'nt' else ''}"
+        materialize_inputs(suite, input_root)
+        added = False
+        try:
+            run(
+                ["git", "worktree", "add", "--detach", str(base_tree), base_commit],
+                cwd=repo,
+                env=env,
+            )
+            added = True
+            base_identity = validate_base_corpus(base_tree, repo, suite)
+            print(f"Legacy SVG import sweep: {base_identity}", flush=True)
+            base_driver_identity = validate_base_driver(base_tree, driver_source)
+            print(
+                f"Legacy SVG import sweep: {base_driver_identity}", flush=True
+            )
+
+            build_driver(
+                tree=base_tree,
+                source=driver_source,
+                overlay_path=BASE_OVERLAY_DRIVER,
+                example=BASE_EXAMPLE,
+                target=target,
+                destination=base_driver,
+                env=env,
+            )
+            build_driver(
+                tree=repo,
+                source=driver_source,
+                overlay_path=HEAD_OVERLAY_DRIVER,
+                example=HEAD_EXAMPLE,
+                target=target,
+                destination=head_driver,
+                env=env,
+            )
+
+            base_a = render_pass(
+                "base run 1",
+                base_driver,
+                suite,
+                input_root,
+                temp_root / "base-a",
+                cwd=repo,
+                env=env,
+            )
+            base_b = render_pass(
+                "base run 2",
+                base_driver,
+                suite,
+                input_root,
+                temp_root / "base-b",
+                cwd=repo,
+                env=env,
+            )
+            head_a = render_pass(
+                "head run 1",
+                head_driver,
+                suite,
+                input_root,
+                temp_root / "head-a",
+                cwd=repo,
+                env=env,
+            )
+            head_b = render_pass(
+                "head run 2",
+                head_driver,
+                suite,
+                input_root,
+                temp_root / "head-b",
+                cwd=repo,
+                env=env,
+            )
+            require_same_bytes("base repeatability", base_a, base_b)
+            require_same_bytes("head repeatability", head_a, head_b)
+            require_same_bytes("base/head equivalence", base_a, head_a)
+            if (
+                driver_path.is_symlink()
+                or not driver_path.is_file()
+                or driver_path.read_bytes() != driver_source
+            ):
+                raise SweepError("artifact driver changed while the sweep was running")
+            final_suite = load_suite(suite.path, repo)
+            if (
+                final_suite.manifest_bytes != suite.manifest_bytes
+                or final_suite.identity != suite.identity
+            ):
+                raise SweepError("suite manifest or fixture bytes changed during the sweep")
+        finally:
+            if added:
+                active_error = sys.exc_info()[0] is not None
+                removal = subprocess.run(
+                    ["git", "worktree", "remove", str(base_tree)],
+                    cwd=repo,
+                    check=False,
+                )
+                if removal.returncode != 0:
+                    message = (
+                        "failed to remove the detached base worktree; "
+                        "git worktree registration may remain"
+                    )
+                    if not active_error:
+                        raise SweepError(message)
+                    print(
+                        f"Legacy SVG import sweep cleanup also failed: {message}",
+                        file=sys.stderr,
+                    )
+
+    declared = len(suite.fixtures)
+    print(
+        "Legacy SVG import sweep: PASS "
+        f"({declared}/{declared} .grida and {declared}/{declared} transparent PNG "
+        "artifacts byte-identical across two runs per revision; "
+        f"corpus {suite.identity_sha256[:16]}; driver {short_digest(driver_source)})",
+        flush=True,
+    )
+    if suite.path == (repo / DEFAULT_SUITE).resolve():
+        print(
+            "Declared checked-in L0 subset only; the resvg, W3C, and Oxygen "
+            "conformance corpora remain separate local-only sweeps.",
+            flush=True,
+        )
+    else:
+        print(
+            f"Declared suite only: {suite.identity['name']} "
+            f"({declared} fixtures; corpus {suite.identity_sha256[:16]}); "
+            "no other SVG corpus participated.",
+            flush=True,
+        )
+    print(
+        "Same-host zero-behavior equivalence only; no external oracle, "
+        "threshold, or correctness score.",
+        flush=True,
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except KeyboardInterrupt:
+        print("Legacy SVG import sweep command interrupted", file=sys.stderr)
+        raise SystemExit(130)
+    except (OSError, SweepError, subprocess.CalledProcessError) as error:
+        print(f"Legacy SVG import sweep command failed: {error}", file=sys.stderr)
+        code = error.returncode if isinstance(error, subprocess.CalledProcessError) else 2
+        raise SystemExit(code) from error
