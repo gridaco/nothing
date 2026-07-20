@@ -1,5 +1,5 @@
 ---
-title: "Grida IR"
+title: "v1 Grida IR"
 format: md
 tags:
   - internal
@@ -7,11 +7,14 @@ tags:
   - format
 ---
 
-# Grida IR -- Format Reference
+# v1 Grida IR -- Format Reference
 
-The Grida IR is the in-memory scene graph used by all Grida rendering, layout, and editing pipelines. It is the single representation that CSS, HTML, SVG, and `.grida` files all target.
+This page records the legacy v1 in-memory scene graph retained as the
+`.grida` input and converter surface during consolidation. It is not the
+end-state scene-model contract; authored box and resolution semantics are
+owned by [The `anchor` Box Model](../feat-layout/anchor.md).
 
-**Canonical sources:**
+**v1 binding sources:**
 
 - Rust runtime model: `crates/grida/src/node/schema.rs`
 - FlatBuffers schema: `format/grida.fbs`

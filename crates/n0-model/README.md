@@ -1,11 +1,20 @@
 # n0-model
 
-The skia-free `anchor` model crate
-([`../../archive/model-v2/models/anchor.md`](../../archive/model-v2/models/anchor.md), archived spec
-draft) — node subset: `frame`, `shape` (rect/ellipse/line/path), `text`
+The skia-free proving implementation for the open
+[`anchor` Box Model RFD](../../docs/wg/feat-layout/anchor.md). The
+[frozen model-v2 archive](../../archive/model-v2/README.md) retains the
+experiments and superseded drafts that proved it. Implemented node subset:
+`frame`, `shape` (rect/ellipse/line/path), `text`
 (oracle-backed, with a deterministic 0.6/1.2 stub), `group`, `lens` (2D ops).
 Consumed as a library by [`n0`](../n0) (the engine) and
 [`n0_dev`](../n0_dev) (the dev shell); formerly the model-v2 proving lab.
+The current subset does not yet satisfy the RFD's whole-operation rejection
+atomicity or structured retarget-reporting contract, and not every
+rotation-writing boundary canonicalizes negative zero. It also inherits its
+layout dependency's unadopted behavior for sub-unit total grow, constraint
+redistribution, Auto measured main-axis basis and measured-axis grow, wrapping
+and multi-line cross distribution, distributed single-child fallback, and
+non-start overflow alignment.
 
 ```sh
 cargo test -p n0-model          # conformance + format-contract suites

@@ -16,9 +16,9 @@ members are already arranged. Like every wrap, it runs once per
 is `Shift+A` ([keybindings](../../../crates/grida_editor/docs/keybindings.md)).
 
 This document specifies the **command** — the wrap and the inference.
-The layout _model_ it produces (flex, grid, anchors, sizing) is the
-[layout study](../feat-layout/); this spec defers to it and does not
-restate it.
+The box and participation model it targets is
+[the `anchor` Box Model](../feat-layout/anchor.md); this command spec
+defers to it and does not restate it.
 
 ## Wrap and infer (loose selection)
 
@@ -75,6 +75,7 @@ PART-5).
 - **ALY-5** Selection retarget: after the wrap-and-lay, the selection is
   the new container(s).
 
-Deferred, named: the flex/grid/anchor layout model and its sizing
-semantics ([feat-layout](../feat-layout/)); the inference heuristic's
-exact thresholds (owned by the layout study, not this command spec).
+Deferred, named: flex/grid algorithms beyond the
+[`anchor` box contract](../feat-layout/anchor.md). The inference
+heuristic's exact thresholds remain an unresolved part of this command
+contract; the layout cluster does not own them.
