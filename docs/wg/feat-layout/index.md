@@ -21,7 +21,7 @@ making either context a special scene model.
 | Page | Status | Scope |
 | --- | --- | --- |
 | [The `anchor` Box Model](./anchor.md) | Open RFD — graduation draft | Box sources, parent-relative bindings, size intent, layout participation, visual-only transforms, derived boxes, pure resolution, and read/write semantics |
-| [Flex Layout Profile](./flex.md) | Open RFD — extracted semantic profile | The bounded row/column, wrap, gap, grow, alignment, stretch, and free-positioned-child exclusion contract |
+| [Flex Layout Profile](./flex.md) | Open RFD — extracted semantic profile | The bounded single-line row/column, main-gap, grow, alignment, stretch, and free-positioned-child exclusion contract; wrapping remains unresolved |
 
 ## Domain boundary
 

@@ -1,5 +1,6 @@
 ---
 title: "v1 Grida IR"
+description: "Non-normative implementation inventory for the frozen legacy .grida converter input and its Rust and TypeScript bindings."
 format: md
 tags:
   - internal
@@ -7,18 +8,22 @@ tags:
   - format
 ---
 
-# v1 Grida IR -- Format Reference
+# v1 Grida IR -- Legacy Implementation Inventory
+
+**Genre:** non-normative legacy implementation inventory.
 
 This page records the legacy v1 in-memory scene graph retained as the
-`.grida` input and converter surface during consolidation. It is not the
-end-state scene-model contract; authored box and resolution semantics are
-owned by [The `anchor` Box Model](../feat-layout/anchor.md).
+`.grida` input and converter surface during consolidation. It follows the
+bindings and can become stale; it is neither a language-agnostic WG
+specification nor the end-state scene-model contract. Authored box and
+resolution semantics are owned by
+[The `anchor` Box Model](../feat-layout/anchor.md).
 
 **v1 binding sources:**
 
-- Rust runtime model: `crates/grida/src/node/schema.rs`
-- FlatBuffers schema: `format/grida.fbs`
-- TypeScript model: `packages/grida-canvas-schema/grida.ts`
+- Rust runtime model: [`crates/grida/src/node/schema.rs`](../../../crates/grida/src/node/schema.rs)
+- FlatBuffers schema: [`format/grida.fbs`](../../../format/grida.fbs)
+- TypeScript model: [`packages/grida-canvas-schema/grida.ts`](https://github.com/gridaco/grida/blob/main/packages/grida-canvas-schema/grida.ts)
 
 ## Node Types
 

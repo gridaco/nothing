@@ -29,9 +29,12 @@ different target kind. Given the selection's
   new node of the chosen kind, adopting _that partition's_ members.
   Members from different parents never merge into one wrapper — the
   operation does not re-parent across partitions.
-- **World position preserved.** The wrapper is placed at the **union
-  bounds** of its partition's members, and each member is re-anchored
-  into the wrapper's frame so its rendered position does not move.
+- **World position preserved.** The command reads the partition's
+  parent-local union of members' untransformed sizing boxes. A group stores
+  the union origin as its derived origin; a container receives a declared
+  sizing box equal to the union. Each member is re-expressed in the new local
+  coordinate space so its rendered position does not move. Visual transforms
+  and paint inflation do not enlarge the command's sizing union.
 - **Order preserved.** Members enter the wrapper in their prior
   **document sibling order**, and the wrapper takes the z-position of
   the partition's frontmost member — the group lands where the
@@ -79,8 +82,10 @@ PART-5).
   cross-parent selection yields one wrapper per partition and never
   re-parents across partitions.
 - **GRP-2** World position preserved: each wrapped member's rendered
-  position is unchanged — the wrapper is placed at its partition's
-  union bounds and members are re-anchored into the wrapper's frame.
+  position is unchanged. The command uses the partition's parent-local sizing
+  union; a group stores its origin and continues to derive its reported box,
+  while a container materializes that union as its declared frame. Members
+  are re-expressed in the wrapper's local coordinates.
 - **GRP-3** Order & depth preserved: members enter the wrapper in prior
   document sibling order, and the wrapper takes the z-position of its
   partition's frontmost member.

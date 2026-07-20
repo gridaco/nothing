@@ -17,8 +17,9 @@ is `Shift+A` ([keybindings](../../../crates/grida_editor/docs/keybindings.md)).
 
 This document specifies the **command** — the wrap and the inference.
 The box and participation model it targets is
-[the `anchor` Box Model](../feat-layout/anchor.md); this command spec
-defers to it and does not restate it.
+[the `anchor` Box Model](../feat-layout/anchor.md), and the layout algorithm it
+selects is the [Flex Layout Profile](../feat-layout/flex.md). This command spec
+defers to both and does not restate them.
 
 ## Wrap and infer (loose selection)
 
@@ -28,12 +29,14 @@ On a loose selection, for **each** partition:
   [grouping](./grouping.md) (world position preserved, order preserved,
   one container per partition) — auto-layout is that same wrap, not a
   second mechanism.
-- **Infer the layout** from the members' _parent-relative_ rectangles:
-  the flex **direction** (row vs column), the main-axis **gap**, and the
-  main- and cross-axis **alignment** are guessed from their spacing and
-  positions. The container **sizes to its content** and is inset at the
-  members' union origin, so the result occupies the same space the
-  selection did.
+- **Infer the layout** from the members' parent-local, untransformed sizing
+  boxes, never their visual bounds: the flex **direction** (row vs column),
+  the main-axis **gap**, and the main- and cross-axis **alignment** are guessed
+  from their spacing and positions. The container **sizes to its content** and
+  is inset at the sizing-union origin. Only the Flex profile's adopted
+  single-line rows may be inferred; an arrangement that cannot be represented
+  without an unresolved profile row is refused or reported as an explicit
+  unsupported command result.
 - **Members become flow children.** Each adopted member switches to
   relative (in-flow) positioning and is reordered along the guessed
   main axis; its rendered position does not move at the moment of
@@ -63,9 +66,9 @@ PART-5).
   partition's members; one container per partition.
 - **ALY-2** Layout inference: the new container's flex direction,
   main-axis gap, and alignment are inferred from the members'
-  parent-relative arrangement; the container sizes to content and is
-  inset at their union origin, so the layout occupies the selection's
-  former space.
+  parent-local untransformed sizing boxes, never visual bounds. The container
+  sizes to content and is inset at their sizing-union origin. The inferred
+  result must remain within the Flex profile's adopted single-line rows.
 - **ALY-3** Members become flow children: adopted members switch to
   relative positioning and are ordered along the inferred main axis,
   with world position preserved at creation.
@@ -75,7 +78,7 @@ PART-5).
 - **ALY-5** Selection retarget: after the wrap-and-lay, the selection is
   the new container(s).
 
-Deferred, named: flex/grid algorithms beyond the
-[`anchor` box contract](../feat-layout/anchor.md). The inference
-heuristic's exact thresholds remain an unresolved part of this command
-contract; the layout cluster does not own them.
+Deferred, named: multi-line flex, grid, and other algorithms beyond the
+[adopted Flex profile](../feat-layout/flex.md). The inference heuristic's exact
+thresholds and the typed refusal surface remain unresolved parts of this
+command contract; the layout cluster does not own them.

@@ -100,8 +100,8 @@ slots](./n0-xml-component-slots.md).
    paint values project the ordered Grida paint model directly. `solid`,
    `gradient`, and `image` are semantic paint elements; structured values
    remain structured. Each stroke geometry owns the same ordered paint value,
-   while repetition is a declared extension to the current production
-   single-geometry scene model.
+   while repetition is a declared extension beyond the legacy v1
+   single-geometry scene implementation.
 8. **Flat, explicit attributed text.** `text` owns the paragraph, default text
    style, and node paint. A direct `tspan` child changes explicit kebab-case
    run properties for only its own characters. It is neither a scene node nor
@@ -111,17 +111,18 @@ slots](./n0-xml-component-slots.md).
 
 `.n0.xml` identifies the authored XML language defined here. The compound
 suffix is provisional, but it is intentionally distinct from `.grida`, the
-packed binary scene/archive format. The two files may describe equivalent
-scene intent, but they are different representations with different goals:
+frozen legacy converter input. They are not peer representations:
 
-| Representation | Primary property                           |
-| -------------- | ------------------------------------------ |
-| `.n0.xml`   | Authored, inspectable, diffable XML source |
-| `.grida`       | Packed binary storage and interchange      |
+| Representation | Primary property |
+| --- | --- |
+| `.n0.xml` | Canonical authored, inspectable, diffable XML source |
+| `.grida` | Frozen legacy packed input accepted through the explicit v1-to-n0 converter |
+| Host-managed binary storage | Storage detail outside this authored-language contract, using engine-provided tooling |
 
-Changing or packing one representation into the other is a conversion. A
-processor must not infer n0 XML merely from a `.grida` suffix, nor infer the
-binary format from `.n0.xml`.
+Conversion from `.grida` to the n0 model is explicit and one-way at this
+contract boundary; no reverse `.grida` round trip is promised. A processor
+must not infer n0 XML merely from a `.grida` suffix or treat host-managed
+binary storage as another canonical authored format.
 
 ## Document model
 
@@ -173,8 +174,8 @@ instructions are not; text uses ordinary escaped XML character data.
 | `line`      | Declared width; zero-height box | Yes             | Horizontal local line, orientable by rotation       |
 | `path`      | Declared                        | Yes             | SVG path commands in a fixed unit reference box     |
 | `text`      | Measured under box constraints  | No              | Unicode text with optional flat attributed runs     |
-| `group`     | Derived from child bounds       | Yes             | Logical subtree with an explicit local origin       |
-| `lens`      | Derived from child bounds       | Yes             | Group whose ordered operations affect painting only |
+| `group`     | Derived from active-child sizing union | Yes        | Logical subtree with an explicit local origin       |
+| `lens`      | Derived from active-child sizing union | Yes        | Transform quarantine; read-tier geometry and paint change, sizing does not |
 
 `text` accepts no render-node children. It alone may contain direct, flat
 `tspan` contexts in addition to character data and its leading paint
@@ -222,7 +223,7 @@ shape-with-text node exists or is implied.
 
 The [n0 XML property registry](./n0-xml-properties.md) is the canonical
 cross-draft inventory of element and property names, their valid targets, and
-production-backed placeholders. This RFD remains the normative Draft 0
+legacy-v1-backed placeholders. This RFD remains the normative Draft 0
 grammar. A property marked Placeholder or Design in the registry is therefore
 still unknown syntax to a Draft 0 reader.
 
@@ -559,14 +560,14 @@ Omitting all `stroke` elements means no strokes. A stroke normally contains at
 least one typed paint child. An empty stroke is valid only when it carries at
 least one geometry value that differs from that target's defaults; it preserves
 dormant geometry that the current model can distinguish. A default empty
-`<stroke/>` is invalid because the model has no presence bit that distinguishes
+`<stroke/>` is invalid because the legacy v1 model has no presence bit that distinguishes
 it from omission. A zero-width or wholly invisible painted stroke likewise
 remains authored intent and must not be deleted or reordered by a canonical
 writer.
 
 #### Accepted model extension: stroke geometry multiplicity
 
-The current production Grida scene model has one ordered stroke `Paints` value
+The legacy v1 Grida scene implementation has one ordered stroke `Paints` value
 plus one shared stroke geometry per node. One XML `stroke`, when its attributes
 apply to the target node, projects that pair directly. Two or more stroke
 elements cannot: merging their paint lists would erase geometry, while
@@ -574,7 +575,7 @@ duplicating the scene node would erase the one-shape semantic contract.
 
 Draft 0 therefore deliberately widens this part of the scene contract to an
 ordered list of stroke geometries, each owning `Paints`. The language contract
-is accepted ahead of that production scene/archive change; it is a declared
+is accepted as a target-model extension without changing the frozen schema; it is a declared
 required model extension, not permission to retain a permanent XML-only list.
 Until a materializer's target model can represent the list, it must reject the
 second stroke with an unsupported-model diagnostic; it must not keep only one,
@@ -990,7 +991,7 @@ the authored `corner-radius` value.
 
 `corner-smoothing` is a finite scalar in `[0, 1]`; `0` is the ordinary
 elliptical rounded-rectangle outline. Nonzero values request progressively
-smoothed corners. The current production smoothing renderer is circular-only:
+smoothed corners. The legacy v1 smoothing renderer is circular-only:
 it collapses each elliptical `(rx, ry)` pair to a circle. Draft 0 therefore
 rejects a nonzero `corner-smoothing` when any corner has unequal horizontal and
 vertical radii, rather than silently changing authored geometry. Smoothed
@@ -998,7 +999,7 @@ elliptical corners remain unavailable pending lossless renderer support.
 Nonzero smoothing with four zero radius pairs is valid dormant intent and
 remains serializable even though it has no visible effect.
 
-For a nonzero smoothing value, Draft 0 follows the existing production
+For a nonzero smoothing value, Draft 0 follows the characterized legacy v1
 smoothed-box profile instead: each circular radius is independently capped to
 half the box's shorter side before constructing its curve. Unlike ordinary
 edge-sum normalization, that cap may change a lone large corner and does not
@@ -1235,13 +1236,13 @@ typographic attributes on `text` and `tspan`:
 An omitted `tspan` attribute inherits from `text`, never from the preceding
 run or sibling. The `size` spelling is invalid; `font-size` is the one
 canonical spelling. Draft 0 leaves font-family selection and every unexposed
-production text-style field to the declared resolution environment and its
+legacy v1 text-style field to the declared resolution environment and its
 defaults. A resolved artifact records the shaping result without writing it
 back into source. A canonical writer omits all three default values on `text`.
 
 There is no `style` mini-language. `<span>` is not an alias for `tspan`, and
 HTML semantic or presentational elements such as `b`, `strong`, `i`, `em`, and
-`small` are invalid. The production attributed-string model has no matching
+`small` are invalid. The legacy v1 attributed-string model has no matching
 semantic or accessibility annotation to preserve, so inferring meaning from
 such tags would be lossy. Authors express the supported visual fact directly,
 for example `font-weight="700"` or `font-style="italic"`. `tspan` borrows the
@@ -1250,12 +1251,12 @@ familiar name, not SVG's independently positioned text-chunk model.
 #### Considered rich-text syntax
 
 1. **`text` with direct, flat `tspan` runs — accepted.** It projects the flat
-   production attributed string and keeps run overrides explicit.
+   legacy v1 attributed string and keeps run overrides explicit.
 2. **HTML semantic or presentational tags — rejected as canonical.** A separate
    import dialect may deliberately lower them to visual run properties, but
-   n0 XML cannot preserve semantics the production model does not own and a
+   n0 XML cannot preserve semantics the legacy v1 model does not own and a
    canonical writer never emits them.
-3. **Nested `tspan` — rejected in Draft 0.** Production runs are flat byte
+3. **Nested `tspan` — rejected in Draft 0.** Legacy v1 runs are flat byte
    ranges, and nested source boundaries cannot be reconstructed after adjacent
    equivalent runs merge. A later version would need additional preserved
    structure rather than pretending the nesting survived.
@@ -1274,7 +1275,7 @@ boundaries. Direct character data receives the complete `text` default style;
 The resulting runs are ordered, contiguous, non-overlapping, and cover the
 entire backing string. Adjacent runs are merged only when their complete style
 and run-paint override state are identical. An empty `text` materializes to the
-production empty-string special case with one default `0..0` run.
+legacy v1 empty-string special case with one default `0..0` run.
 
 Node `fill` remains the ordered fallback paint stack for the whole text node.
 Direct text and a `tspan` without `fill` materialize with
@@ -1298,27 +1299,27 @@ node-fill partition:
 <text font-size="32" fill="#F8FAFC">A<tspan><fill><gradient kind="linear" from="0 0" to="1 0"><stop offset="0" color="#7C3AED"/><stop offset="1" color="#2563EB"/></gradient></fill> gradient run</tspan><tspan><fill/>masked</tspan></text>
 ```
 
-The current packed `.grida` encoder/decoder collapses an empty run-fill vector
-to an absent one. That persistence boundary cannot yet round-trip `<fill/>`:
-restoring the node fill would change explicit no ink into visible ink. A
-converter must reject that state or declare a non-round-tripping subset until
-the archive preserves presence independently from vector length; it must not
-silently normalize `Some([])` to `None`.
+The frozen `.grida` representation collapses an empty run-fill vector to an
+absent one. It therefore cannot be an outbound persistence target for
+`<fill/>`: restoring the node fill would change explicit no ink into visible
+ink. Draft 0 does not require an n0-to-`.grida` projection, and this mismatch
+is not a reason to extend the frozen schema or silently normalize `Some([])`
+to `None`.
 
 Structured run-fill gradient and image coordinates resolve against the
 resolved full text-node paint box, exactly as node fills do. They do not
 restart in each `tspan` fragment or use a fragment's glyph bounds. The current
-production attributed renderer passes `(width, width)` as the paint box for
+legacy v1 attributed renderer passes `(width, width)` as the paint box for
 run fills and strokes; using width for height is an implementation
 incompatibility to fix against the resolved text-node width and height, not a
 distinct XML coordinate system.
 
 Node-level repeated strokes remain valid on `text` and apply to its shaped
-glyph contours. Draft 0 defines no `tspan` stroke syntax. Production
+glyph contours. Draft 0 defines no `tspan` stroke syntax. Legacy v1
 `StyledTextRun` has only one optional stroke `Paints` stack and one optional
 width/alignment geometry, while n0 XML stroke topology permits repeated,
 independent geometries. Those models cannot losslessly project each other, so
-a writer must reject a production run-stroke override and the language must
+a writer must reject a legacy v1 run-stroke override and the language must
 defer run strokes until that multiplicity seam is resolved.
 
 Text is a box, not a point label:
@@ -1378,8 +1379,10 @@ children. The anchor RFD owns the in-flow/free-positioned participation
 boundary; the [Flex Layout Profile](../feat-layout/flex.md) owns the
 algorithm.
 
-`layout="flex"` enables a one- or multi-line, CSS-inspired flow with this
-surface:
+`layout="flex"` exposes a CSS-inspired source vocabulary with this surface.
+The candidate profile specifies one line when `wrap="false"`; every row
+remains unratified pending its independent gate. `wrap="true"` and cross-gap
+geometry remain valid retained intent but are not yet specified:
 
 | Attribute   | Values                                                                    | Default |
 | ----------- | ------------------------------------------------------------------------- | ------- |
@@ -1396,10 +1399,10 @@ They project directly to the corresponding profile inputs. Child `grow`,
 `align`, and `flow="absolute"` are likewise source spellings for profile
 participation; this RFD adds no alternate layout semantics.
 
-A value that enters an unresolved Flex Layout Profile row remains valid
-source intent. Until that row is adopted, a processor retains the value and
-reports an unsupported or implementation-defined resolution; it does not
-silently present a layout-library default as Draft 0 conformance.
+A value that enters an unresolved or unratified Flex Layout Profile row
+remains valid source intent. Until that row is ratified, a processor retains the value and
+returns a typed unsupported resolution. It cannot claim Draft 0 conformance
+for that construct or silently present a layout-library default as semantics.
 
 ## Canonical example
 
@@ -1590,7 +1593,7 @@ A conforming writer:
    default plus its fill override; it is never nested or empty, and authored
    byte offsets are never emitted.
 9. **MUST NOT** pretty-indent mixed text content, because inserted spaces or
-   newlines are semantic. It must also reject an unsupported production run
+   newlines are semantic. It must also reject an unsupported legacy v1 run
    style or run stroke rather than silently dropping it.
 10. **MUST** emit the shortest exact one-or-four-value representation for each
     corner-radius axis, omit the slash when every `rx` equals its `ry`, and

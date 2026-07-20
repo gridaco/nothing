@@ -15,9 +15,10 @@ format: md
 
 This document is written for an engine implementer resolving in-flow child
 boxes. It is the semantic home for the bounded flex behavior exposed by the
-scene model and its authored languages. The adopted clauses below are a
-profile rather than a claim of full CSS Flexbox conformance; valid but
-ungated edge cases remain explicit unresolved semantics.
+scene model and its authored languages. The candidate clauses below are a
+profile rather than a claim of full CSS Flexbox conformance. They remain
+unratified until their independent gates exist; valid but ungated edge cases
+remain explicit unresolved semantics.
 
 ## Thesis
 
@@ -35,15 +36,19 @@ This profile owns:
 
 - row and column main axes;
 - source-order participation;
-- one or multiple lines;
-- main- and cross-axis gaps;
+- one line with main-axis gaps;
 - container padding;
 - positive-space growth;
 - main-axis distribution;
 - cross-axis alignment and self-alignment;
 - the distinction between container cross-stretch and child self-stretch;
 - free-positioned-child exclusion; and
-- flex contribution to an automatic container extent.
+- single-line flex contribution to an automatic container extent.
+
+The source vocabulary may retain wrapping and a cross-axis gap, but this
+graduation does not adopt their geometry. Those inputs enter a typed
+unsupported resolution until the multi-line rows below are independently
+grounded and gated.
 
 It does not own source-language spelling, grid, block flow, baseline
 alignment, reverse ordering, margin, intrinsic sizing keywords, layout
@@ -59,7 +64,7 @@ inference, or visual transforms.
 | **Main axis** | The row or column axis along which items and main gaps are placed. |
 | **Cross axis** | The axis perpendicular to the main axis. |
 | **Basis** | The child's resolved sizing extent before positive free space is distributed. |
-| **Line** | One ordered run of in-flow children produced by wrapping. |
+| **Line** | The one ordered run of in-flow children in the candidate no-wrap profile. |
 | **Inner box** | The flow-layout box after container padding is removed. |
 
 ## Container inputs
@@ -67,7 +72,8 @@ inference, or visual transforms.
 A flex container declares:
 
 - direction: row or column;
-- wrapping: disabled or enabled;
+- wrapping: disabled for the candidate profile; enabled remains retained but
+  unsupported intent;
 - main- and cross-axis gaps;
 - top, right, bottom, and left padding;
 - main alignment: start, center, end, space-between, space-around, or
@@ -75,7 +81,10 @@ A flex container declares:
 - cross alignment: start, center, end, or stretch.
 
 Padding and gaps are non-negative. Padding establishes the inner box in which
-flow layout resolves.
+flow layout resolves. On a definite axis, the inner extent is the outer sizing
+extent less its two padding edges, clamped to zero. Row and column are exact
+axis transpositions: every main-axis rule becomes horizontal in a row and
+vertical in a column, while the corresponding cross-axis rule swaps with it.
 
 Each in-flow child may declare a non-negative grow factor and an optional
 self-alignment of auto, start, center, end, or stretch. Auto uses the
@@ -84,7 +93,7 @@ container's cross alignment.
 Those inputs may impose an extent only where the child's box-source rule
 admits layout-owned size. Whether grow or stretch may alter a derived box is
 unresolved by the `anchor` RFD. A consumer must report or reject that case
-until the derived-kind applicability row is adopted; it must not silently
+until the derived-kind applicability row is ratified; it must not silently
 treat a derived box as an ordinary resizable box.
 
 ## Resolution contract
@@ -94,12 +103,12 @@ treat a derived box as an ordinary resizable box.
 Active in-flow children participate in source order. An inactive child and a
 free-positioned child consume no slot, no gap, and no share of free space.
 
-An adopted basis is the anchor pre-layout sizing extent after applicable size
+The candidate basis is the Anchor pre-layout sizing extent after applicable size
 intent, aspect, and constraints resolve. This covers declared and derived axes
 and a Fixed axis on a measured kind. How an Auto extent supplied by
 measurement becomes the main-axis basis in a definite flex container remains
 unresolved below. Rotation, flips, content ink, and paint do not change an
-adopted basis.
+candidate basis.
 
 ### Lines and gaps
 
@@ -116,10 +125,11 @@ below.
 
 On a definite main axis, when remaining space is positive, every participating
 child's main-axis basis is admitted by the basis clause above, no growing child
-has an applicable min/max or aspect constraint, and the sum of positive grow
-factors is at least one, that space is divided in proportion to those factors.
-A zero grow factor receives none. On an Auto main axis, growth does not invent
-free space; the single-line contribution uses the children's bases.
+has a derived main-axis source or an applicable min/max or aspect constraint,
+and the sum of positive grow factors is at least one, that space is divided in
+proportion to those factors. A zero grow factor receives none. On an Auto main
+axis, growth does not invent free space; the single-line contribution uses the
+children's bases.
 
 This profile performs no implicit shrink. When the bases and gaps exceed the
 available main extent, the line overflows unless another applicable
@@ -137,7 +147,7 @@ unresolved basis or growth case:
 - space-around gives every item equal surrounding shares; and
 - space-evenly makes every outer and inner interval equal.
 
-Those distributed rules are adopted for at least two children. The
+Those candidate distributed rules cover at least two children. The
 single-child fallback for space-between, space-around, and space-evenly
 remains unresolved below.
 
@@ -148,7 +158,10 @@ unresolved below.
 
 ### Cross alignment and the two stretches
 
-Start, center, and end place a child within its line's cross extent.
+For the one candidate line, a definite container cross axis supplies the inner
+cross extent after padding. An Auto container cross axis uses the greatest
+admitted child cross extent and then adds the two padding edges. Start, center,
+and end place a child within that line cross extent.
 
 Container cross-stretch and child self-stretch are different contracts:
 
@@ -156,11 +169,16 @@ Container cross-stretch and child self-stretch are different contracts:
   is Auto; a Fixed cross size remains fixed;
 - explicit child self-stretch is fill intent and overrides a Fixed cross size.
 
-If stretch changes the constraint of measured content, that content is
-resolved once at the final stretched extent before its dependent axis is
-chosen.
+Both clauses require a non-derived cross-axis source. Stretch on a derived box
+remains unresolved.
 
-These adopted stretch clauses cover an axis without an applicable min/max
+If a ratified stretch row determines the final constraint of measured
+content, that content is resolved exactly once at that constraint before its
+dependent axis is chosen. A case that would require a speculative natural
+artifact followed by a different final artifact is not admitted by this
+clause.
+
+These candidate stretch clauses cover an axis without an applicable min/max
 constraint. Stretch combined with min/max or aspect constraints remains
 unresolved below.
 
@@ -182,23 +200,30 @@ space on an Auto main axis.
 Re-resolution may move or resize children without writing those results into
 the document. Automatic extents for multi-line layout remain unresolved.
 
-## Adopted conformance contracts
+## Proposed conformance contracts
+
+The Gate column states the evidence required for ratification. The archived
+workbench proves characterized behavior, not browser parity by itself; this
+profile remains open until the independent cases are accepted.
 
 | ID | Contract | Gate |
 | --- | --- | --- |
 | **FLEX-1** | Only active in-flow children consume slots and gaps, in source order. | Mixed active/inactive and in-flow/free-positioned corpus. |
 | **FLEX-2** | A basis from a declared or derived axis, or a Fixed axis on a measured kind, comes from the anchor sizing box and ignores visual transforms and paint. | Box-source × transformed/untransformed cases, excluding Auto measured main-axis basis. |
-| **FLEX-3** | With total grow ≥ 1, positive free space is divided by grow when every participating main-axis basis is FLEX-2-admitted and no growing child has min/max or aspect constraints; negative free space does not implicitly shrink. | Analytic admitted-growth and start-aligned overflow cases. |
+| **FLEX-3** | With total grow ≥ 1, positive free space is divided by grow when every participating main-axis basis is FLEX-2-admitted and no growing child has a derived source, min/max, or aspect constraint; negative free space does not implicitly shrink. | Analytic admitted-growth and start-aligned overflow cases. |
 | **FLEX-4** | With non-negative remaining space and only FLEX-2/FLEX-3-admitted inputs, main alignment and gaps follow the declared distribution rules. | Every main alignment with two or more children; start/center/end with one child. |
 | **FLEX-5** | Without a cross-axis min/max constraint, container cross-stretch respects Fixed and child self-stretch overrides it. | Auto/Fixed × container/self matrix. |
 | **FLEX-6** | With wrapping disabled, active in-flow children form one line with main gaps only between adjacent children. | Zero/one/many child and zero-size child cases. |
 | **FLEX-7** | Free-positioned children resolve against the container sizing box and do not affect flow. | Binding and layout-diff cases. |
 | **FLEX-8** | Single-line automatic extents use bases, gaps, and padding without source writeback or invented grow space. | Empty/non-empty Auto-axis and document-identity cases. |
+| **FLEX-9** | Row and column are exact main/cross transpositions. | Paired row/column cases with transposed inputs and outputs. |
+| **FLEX-10** | Flow resolves in the padding-inset inner box; a definite inner extent clamps at zero when padding consumes the outer extent. | Horizontal/vertical padding cases, including overconsumption and a definite single-line cross extent. |
+| **FLEX-11** | A ratified layout-imposed measured-content constraint produces one final content artifact; speculative measure-then-reshape is not conforming. | Instrumented measured-content cases proving one artifact at the final constraint. |
 
-For behavior shared with the web platform, the oracle is the applicable web
-contract and Chromium. Deliberate deviations, including the absence of
-implicit shrink, are explicit profile rules rather than accidental
-differences.
+For candidate behavior shared with the web platform, ratification requires
+the applicable web contract and Chromium as the independent oracle.
+Deliberate deviations, including the absence of implicit shrink, must be
+accepted as explicit profile rules rather than inherited accidentally.
 
 ## Unresolved profile semantics
 
@@ -219,10 +244,12 @@ The graduation evidence does not yet settle:
 - grow or stretch applied to a derived box.
 
 These rows require an independent web-contract and Chromium corpus before
-adoption. A layout library's current default is evidence, not a decision, and
-neither existing engine is the oracle. Until a row is adopted, a consumer must
-preserve the source intent and report the unsupported or implementation-defined
-result rather than silently presenting it as profile conformance.
+ratification. A layout library's current default is evidence, not a decision,
+and neither existing engine is the oracle. Until a row is ratified, a consumer
+must
+preserve the source intent and return a typed unsupported result. It cannot
+claim profile conformance for that construct or silently present a layout-
+library default as semantics.
 
 ## Source projections
 
@@ -230,3 +257,22 @@ The [n0 XML RFD](../format/n0-xml.md) owns one authored spelling and its strict
 applicability/default rules. Other source languages may expose different
 syntax, but they project to this same profile or report an explicit
 degradation.
+
+## Evidence and precedence
+
+The archived workbench is evidence, not a second live specification:
+
+- [conformance inventory](../../../archive/model-v2/conformance.md);
+- [experiment report](../../../archive/model-v2/anchor/REPORT.md); and
+- [known limits](../../../archive/model-v2/anchor/LIMITS.md).
+
+The proposed single-line floor re-homes the behavior exercised by L-3, L-4,
+L-7, L-E1, and L-E3: automatic extent does not invent grow space,
+free-positioned children stay outside flow, resolution stays unquantized,
+empty hug includes padding, and overflow does not imply shrink. L-5's earlier
+measure-then-rewrap framing is not promoted: the later golden text-layout
+contract requires one final shaped artifact, and the measured natural-basis
+interaction remains unresolved until a gate proves that seam. Wrap,
+multi-line distribution, measured-axis grow, constraint redistribution, and
+the other rows named above remain preserved unknowns rather than inherited
+layout-library behavior.

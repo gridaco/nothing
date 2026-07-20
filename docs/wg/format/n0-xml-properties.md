@@ -1,6 +1,6 @@
 ---
 title: "n0 XML property registry"
-description: "Cross-draft inventory of n0 XML elements, attributes, applicability, and unresolved property syntax, grounded in the production scene model."
+description: "Cross-draft inventory of n0 XML elements, attributes, applicability, and unresolved property syntax, grounded in legacy v1 evidence and the target contracts."
 keywords:
   - grida xml
   - property registry
@@ -44,7 +44,7 @@ their complete syntax and semantics.
 Before this registry, Grida had two related documents but no complete XML
 applicability crosswalk:
 
-- [Grida IR](./grida.md) inventories the production scene model.
+- [Grida IR](./grida.md) inventories the legacy v1 implementation.
 - [n0 XML](./n0-xml.md) defines the small normative Draft 0 authored
   language.
 
@@ -53,16 +53,17 @@ implementation field names.
 
 ## Grounding and precedence
 
-This inventory was reconciled against the canonical scene model and the packed
-archive contract. The scene model is the source of truth for representable
-scene semantics; archive coverage separately determines what `.grida` can
-persist. Differences between those contracts are recorded below rather than
-being averaged into a third model.
+This inventory was reconciled against the legacy v1 scene implementation and
+the frozen packed schema as migration evidence. Neither is the end-state scene
+contract or a peer persistence target for n0 XML. The Anchor and n0 XML RFDs
+own the target semantics; differences in legacy representation are recorded
+below for explicit conversion and degradation rather than averaged into a
+third model.
 
-Draft 0's repeatable stroke geometry is the one accepted extension beyond that
-current production model. It reuses the existing stroke geometry plus `Paints`
-pair but requires the production engine and archive to own an ordered list of
-those pairs; the seam is recorded explicitly below.
+Draft 0's repeatable stroke geometry is one accepted extension beyond that
+legacy model. It reuses the existing stroke geometry plus `Paints` pair but
+requires the target model to own an ordered list of those pairs; the legacy
+seam is recorded explicitly below without extending the frozen schema.
 
 For paths, the existing contracts do not present one uniform model: one form
 stores raw coordinates and derives intrinsic geometry, while another defines a
@@ -79,7 +80,7 @@ n0 XML projects that model as an authored language:
    or photo-tool term is preferable to a Grida-only invention.
 3. Multi-word names use kebab-case.
 4. Element names carry the primary type. The bounded `gradient` family alone
-   uses `kind` to select one of its structurally shared production variants; a
+   uses `kind` to select one of its structurally shared legacy v1 variants; a
    generic paint or render-node `kind` does not exist.
 5. Tree nesting carries parenthood and painter order; `parent`, `children`,
    and archive ordering fields are not authored properties.
@@ -95,7 +96,7 @@ n0 XML projects that model as an authored language:
 | --------------- | --------------------------------------------------------------------------- |
 | **Draft 0**     | Normative syntax accepted by the current RFD                                |
 | **Version 4**   | Accepted only by the exact Version 4 source contract                        |
-| **Placeholder** | Production concept exists; proposed XML name and target are held for design |
+| **Placeholder** | Legacy v1 concept exists; proposed XML name and target are held for design |
 | **Design**      | Selected or unresolved later-version design; not operative Draft 0 syntax   |
 | **Derived**     | Runtime, archive, or resolved data that should not be authored directly     |
 
@@ -104,14 +105,14 @@ diagnose them as unknown syntax.
 
 ## Element inventory
 
-The table covers the production node set as well as XML-only source constructs.
+The table covers the legacy v1 node set as well as XML-only source constructs.
 “Children” means render-node children, not typed property children such as
 `fill`, `stroke`, or gradient `stop` elements. “Assigned” means Version 3
 direct render roots projected to a component declaration rather than ordinary
 children owned by `use`. `tspan` and `slot` are listed explicitly as contextual
 source constructs even though neither is a scene node.
 
-| XML element       | Production concept                    | Children  | Status          | Source and use                                                              |
+| XML element       | Legacy v1 concept                     | Children  | Status          | Source and use                                                              |
 | ----------------- | ------------------------------------- | --------- | --------------- | --------------------------------------------------------------------------- |
 | `grida`           | Document envelope                     | One root  | **Draft 0**     | XML; carries only `version`                                                 |
 | `component`       | Boxed source definition               | Yes       | **Design**      | Top-level, non-painting definition with `container` semantics               |
@@ -136,7 +137,7 @@ source constructs even though neither is a scene node.
 | `boolean`         | Boolean path operation                | Yes       | **Design**      | Child ownership and live-versus-flattened behavior must be fixed            |
 | `markdown`        | Opaque Markdown embed                 | No        | **Design**      | Runtime feature; source escaping, resources, and security need a contract   |
 | `html`            | Opaque HTML/CSS embed                 | No        | **Design**      | Runtime feature; embedding HTML inside XML needs an explicit boundary       |
-| `tray`            | Canvas/editor organizational tray     | Yes       | **Design**      | Production node, but not yet justified as a portable authored primitive     |
+| `tray`            | Canvas/editor organizational tray     | Yes       | **Design**      | Legacy v1 node, but not yet justified as a portable authored primitive      |
 | `shape`           | Future custom-shape definition or use | Undecided | **Design**      | Reserved by the Draft 0 RFD; no current rendering semantics                 |
 | _none_            | Initial viewport container            | Root      | **Derived**     | The `grida` envelope and render root materialize this host boundary         |
 | _none_            | Error/import placeholder              | No        | **Derived**     | Diagnostic result, never canonical authored content                         |
@@ -204,7 +205,7 @@ The canonical writer shortens an all-equal axis list to one value, otherwise
 emits all four; it omits the slash when every horizontal and vertical radius
 pair is equal. It omits zero defaults, but preserves nonzero smoothing with
 zero radii as dormant intent. Oversized ordinary radii use one edge-sum-based
-proportional factor; nonzero smoothing uses the production profile's
+proportional factor; nonzero smoothing uses the legacy v1 profile's
 per-corner half-short-side cap. Neither resolved form is rewritten in source.
 
 For `path`, `d` is required and uses the complete SVG path-data grammar in a
@@ -336,8 +337,8 @@ and R = resource.
 | `min-height`, `max-height` | `OptionalNumber`      | `container`, `rect`, `ellipse`, `path`, `text`; never `line` | Optional height constraint                    | M/L/T/B/P   |
 | `aspect-ratio`             | `OptionalAspectRatio` | `rect`, `ellipse`, `path`                                    | Optional width/height ratio                   | M/L/T/B/P   |
 | `active`                   | `Boolean`             | Every node                                                   | Positive activity; inverse of `hidden`        | M/L/T/B/P/R |
-| `rotation`                 | `Number`              | Every node                                                   | Clockwise degrees                             | M/L/T/B/P   |
-| `flip-x`, `flip-y`         | `Boolean`             | Every node                                                   | Native mirror flags                           | M/L/T/B/P   |
+| `rotation`                 | `Number`              | Every node                                                   | Clockwise degrees                             | T/B/P       |
+| `flip-x`, `flip-y`         | `Boolean`             | Every node                                                   | Native mirror flags                           | T/B/P       |
 | `flow`                     | `Flow`                | Every node                                                   | In-flow or absolute participation             | M/L/T/B/P   |
 | `grow`                     | `Number`              | Every node                                                   | Main-axis growth factor                       | M/L/T/B/P   |
 | `self-align`               | `SelfAlign`           | Every node                                                   | Per-child alignment from `align`              | M/L/T/B/P   |
@@ -364,19 +365,20 @@ normative in [n0 XML durable addressing](./n0-xml-addressing.md).
 
 ## Scene-backed property placeholders
 
-These tables reserve discussion slots for properties in the canonical scene
-model. They do not claim the proposed XML spelling is final.
+These tables reserve discussion slots grounded in legacy implementation
+evidence or an identified target-model requirement. They do not claim the
+proposed XML spelling or target-model extension is final.
 
 ### Identity, compositing, transform, and box geometry
 
-| Candidate XML property | Valid on                                 | Production concept                       | Inspiration  | Status          |
+| Candidate XML property | Valid on                                 | Legacy/target concept                    | Inspiration  | Status          |
 | ---------------------- | ---------------------------------------- | ---------------------------------------- | ------------ | --------------- |
 | `id`                   | Every authored render node               | Durable owner-local member identity      | HTML/SVG     | **Version 4**   |
 | `locked`               | Every authored render node, if persisted | Editor lock metadata                     | Design tools | **Design**      |
 | `blend-mode`           | Every compositing render node            | Layer blend mode, including pass-through | CSS          | **Placeholder** |
 | `mask-type`            | A node that acts as a mask source        | Geometry, alpha, or luminance mask       | CSS/SVG      | **Design**      |
-| `transform`            | Render nodes                             | Post-layout 2D affine transform          | CSS/SVG      | **Design**      |
-| `transform-origin`     | Boxed render nodes                       | Post-layout transform pivot              | CSS          | **Design**      |
+| `transform`            | Future transform-quarantine node only    | Ordered quarantined 2D affine operations | CSS/SVG      | **Design**      |
+| `transform-origin`     | Future transform-quarantine node only    | Quarantine-operation pivot               | CSS          | **Design**      |
 
 Version 4 `id` maps to durable authored identity, not the runtime's transient
 node handle. It is required, literal, lowercase-kebab, and unique within its
@@ -386,8 +388,11 @@ module-local symbol. Component roots use the distinguished root-member
 identity rather than a second attribute. The exact address and occurrence-path
 contract is defined by [n0 XML durable addressing](./n0-xml-addressing.md).
 
-`transform` also cannot be admitted until its relationship to native
-`rotation`, `flip-x`, `flip-y`, and `lens ops` has one canonical answer.
+Ordinary nodes retain native `rotation`, `flip-x`, and `flip-y` with the fixed
+pivots owned by the Anchor RFD. A general `transform` is not a future synonym
+on those nodes: it remains confined to the explicit transform quarantine, and
+cannot be admitted until that quarantine's scene-model name, operation origin,
+and relationship to current `lens ops` have one canonical answer.
 Versions 0 through 3 continue to reject `id` on render nodes and `use`.
 
 ### Primitive geometry
@@ -419,7 +424,7 @@ attribute can be accepted.
 
 ### Scene image
 
-| Candidate XML property  | Valid on                   | Production concept                           | Inspiration      | Status                                                       |
+| Candidate XML property  | Valid on                   | Legacy/target concept                        | Inspiration      | Status                                                       |
 | ----------------------- | -------------------------- | -------------------------------------------- | ---------------- | ------------------------------------------------------------ |
 | `src`                   | Scene `image`; image paint | Logical resource identifier                  | HTML/SVG         | **Placeholder** for scene image; **Draft 0** for image paint |
 | `fit`                   | Scene `image`; image paint | `cover`, `contain`, `fill`, or intrinsic fit | Flutter/CSS      | **Placeholder** for scene image; **Draft 0** for image paint |
@@ -440,7 +445,7 @@ resource behavior must be shared by scene images and image paints. The same
 
 ## Structural property elements
 
-Some production properties are ordered or structured values and should remain
+Some legacy v1 properties are ordered or structured values and should remain
 XML children rather than become mini-languages inside attributes.
 
 | Property element     | Valid parent                                            | Status      | Contract direction                                                                |
@@ -515,12 +520,12 @@ defaults. These scoped attributes are normative in Draft 0:
 | `miter-limit` | positive finite number                     | `container`, `rect`, `path`                      | Miter-to-bevel cutoff ratio                  |
 | `dash-array`  | space-separated non-negative finite values | `container`, `rect`, `ellipse`, `line`, `path`   | Repeating dash-gap lengths in logical pixels |
 
-The production model already separates one stroke `Paints` stack from one
+The legacy v1 model already separates one stroke `Paints` stack from one
 stroke geometry. One XML `stroke`, using only attributes supported by its
 target, projects that pair directly. A default empty pair canonicalizes to
 omission; non-default empty geometry remains explicit. Repeatable `stroke`
 elements are an accepted extension to an ordered list of those pairs; the
-current production model still needs that multiplicity before it can
+target model still needs that multiplicity before it can
 materialize more than one without loss.
 
 ### Per-side width grammar
@@ -554,7 +559,7 @@ than accepted as state the rectangular renderer cannot honor.
 
 ### Deferred stroke geometry
 
-| Candidate XML property | Valid on                       | Production concept                           | Status          |
+| Candidate XML property | Valid on                       | Legacy/target concept                        | Status          |
 | ---------------------- | ------------------------------ | -------------------------------------------- | --------------- |
 | Width-profile grammar  | Future `vector`                | Ordered normalized-position/half-width stops | **Design**      |
 | `dash-offset`          | `stroke`                       | Phase offset into the dash cycle             | **Design**      |
@@ -577,7 +582,7 @@ font resolution, line construction, UTF-8 mapping, metrics, and resolved
 bounds; adding a property here must project into that one resolution contract,
 not create a second measurement or rendering path.
 
-| Candidate XML property      | Valid on        | Production concept                        | Inspiration | Status          |
+| Candidate XML property      | Valid on        | Legacy/target concept                     | Inspiration | Status          |
 | --------------------------- | --------------- | ----------------------------------------- | ----------- | --------------- |
 | `font-family`               | `text`, `tspan` | Font family                               | CSS         | **Placeholder** |
 | `font-size`                 | `text`, `tspan` | Positive finite font size                 | CSS/SVG     | **Draft 0**     |
@@ -606,14 +611,14 @@ The Draft 0 defaults are `font-size="16"`, `font-weight="400"`, and
 `font-style="normal"`. `size` is invalid and is never accepted alongside or
 as an alias for `font-size`; a canonical writer omits all three defaults on
 `text`. Every other style row above remains unknown syntax until its status
-advances; production defaults supply those unexposed `TextStyleRec` fields
+advances; legacy v1 defaults supply those unexposed `TextStyleRec` fields
 during materialization.
 
 Character data and direct `tspan` data concatenate in document order into one
-production `AttributedString`. Run boundaries are derived as UTF-8 byte
+legacy v1 `AttributedString`. Run boundaries are derived as UTF-8 byte
 offsets; authors do not spell them. Runs cover the entire string contiguously
 and merge when complete style and paint-override state match. Empty `tspan` is
-invalid, while an empty `text` uses the production `0..0` default-run special
+invalid, while an empty `text` uses the legacy v1 `0..0` default-run special
 case.
 
 Run fills project `StyledTextRun.fills` rather than a parallel color field.
@@ -625,7 +630,7 @@ are mutually exclusive. Gradient and image coordinates use the resolved full
 text-node paint box, never a per-`tspan` fragment box.
 
 HTML tags (`b`, `strong`, `i`, `em`, and similar), `<span>`, and SVG `tspan`
-positioning are intentionally not aliases. The production run model contains
+positioning are intentionally not aliases. The legacy v1 run model contains
 visual style, not the semantic/accessibility annotation needed to preserve
 HTML meaning, and Grida run geometry does not independently position chunks.
 
@@ -635,9 +640,11 @@ placement: its web meaning concerns inline/baseline alignment. Flutter's
 
 ## Effect placeholders
 
-The canonical scene model includes one layer blur, one backdrop blur, one
-liquid-glass effect, multiple shadows, and multiple noise effects. Candidate
-typed names are familiar, but the container grammar is not yet decided.
+The legacy v1 implementation includes one layer blur, one backdrop blur, one
+liquid-glass effect, multiple shadows, and multiple noise effects. That estate
+is migration evidence, not an end-state container contract. Candidate typed
+names are familiar, but the target model and container grammar are not yet
+decided.
 
 | Candidate typed effect | Core properties                                       | Inspiration        | Status     |
 | ---------------------- | ----------------------------------------------------- | ------------------ | ---------- |
@@ -648,7 +655,7 @@ typed names are familiar, but the container grammar is not yet decided.
 | `noise`                | size, density, octaves, seed, coloring, blend mode    | Motion/photo tools | **Design** |
 | `liquid-glass`         | light, refraction, depth, dispersion, blur parameters | Design tools       | **Design** |
 
-An ordered `<effects>` list would be ergonomic, but the production model is
+An ordered `<effects>` list would be ergonomic, but the legacy v1 model is
 not a single ordered heterogeneous list. The XML must not imply reorderable
 effect semantics until either the existing slots and lists receive a defined
 cross-type order or the engine model deliberately changes.
@@ -659,17 +666,17 @@ These are not ordinary missing attributes. Each needs a focused RFD because
 its structure, identity, or evaluation rules cannot be made reliable by
 choosing a name alone.
 
-| Area                          | Production requirement                                       | Questions the syntax must answer                                                    |
+| Area                          | Legacy/target requirement                                    | Questions the syntax must answer                                                    |
 | ----------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
 | Editable vector network       | Vertices, cubic tangents, segments, loops, filled regions    | Stable local IDs or indices; open/closed contours; region fill stacks; validation   |
 | Non-unit path reference box   | Stable authored coordinate rectangle                         | Optional syntax; positive extents; normalization; canonical writer behavior         |
 | Variable-width stroke         | Ordered `(u, half-width)` samples                            | Nested stops versus compact list; interpolation; endpoints; base-width interaction  |
-| Run strokes                   | Per-run stroke paints, width, and alignment                  | Reconcile singular production geometry with repeatable XML stroke topology          |
+| Run strokes                   | Per-run stroke paints, width, and alignment                  | Reconcile singular legacy geometry with repeatable XML stroke topology              |
 | Masks                         | Geometry, alpha, and luminance mask nodes                    | Which sibling is the mask; scope; consumption; stacking; clipping interaction       |
 | Effects                       | Typed singleton and repeated effect slots                    | Cross-type order; multiplicity; compositing bounds; visibility and blend metadata   |
 | Image resources and placement | Logical IDs, hashes, fit, affine placement, tiling           | Packaging; base URI; network policy; intrinsic size; missing-resource behavior      |
 | Boolean operations            | Live child geometry and operation enum                       | Ordered operands; child ownership; nesting; flattening; paint inheritance           |
-| Transform model               | Native rotation, affine transforms, origin, source lens      | One canonical authored form; layout-versus-paint transform; decomposition stability |
+| Transform model               | Native rotation/flips plus quarantined affine operations      | Quarantine name and operation origin; source-lens projection; decomposition stability |
 | Components and reuse          | Named definitions, `use`, scalar props, and named projection | Deep overrides; archive persistence; live-instance editing                          |
 | Animation                     | Time-varying values and motion-graphics behavior             | Interpolation, timelines, expressions, easing, events, composition, serialization   |
 | Embedded Markdown/HTML        | Opaque render-only content                                   | Escaping, sanitization, fonts/resources, intrinsic sizing, deterministic rendering  |
@@ -680,35 +687,36 @@ where new syntax must be invented. Treating either as a JSON-shaped `data`
 attribute would hide structure, weaken diagnostics, and make hand or LLM
 authoring less reliable.
 
-## Current scene-contract seams to reconcile
+## Legacy projection seams to preserve
 
-This registry does not itself change the canonical scene or archive contracts.
-The following seams constrain conformance or require the explicit extension
-named by the Draft 0 RFD:
+This registry does not change the frozen `.grida` schema. The following seams
+constrain the explicit v1-to-n0 converter, record legacy know-how, or require
+the target-model extension named by the Draft 0 RFD:
 
 | Seam                                                                                                         | Why it matters to n0 XML                                                                                                                                                                                        |
 | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| The current scene contract stores one stroke geometry with one ordered `Paints`, while Draft 0 repeats them. | One stroke maps directly; multiple strokes require an ordered list and must not be merged or hidden as duplicate scene nodes.                                                                                      |
+| The legacy v1 scene contract stores one stroke geometry with one ordered `Paints`, while Draft 0 repeats them. | One stroke maps directly; multiple strokes require an ordered list and must not be merged or hidden as duplicate scene nodes.                                                                                     |
 | The durable stroke-width boundary collapses four equal sides to a uniform or no-width state.                 | Draft 0 uses the same normalization and never emits an all-equal four-value canonical form.                                                                                                                        |
-| Production per-side coverage ignores corner smoothing and non-miter join choice.                             | Draft 0 rejects nonzero smoothing, round or bevel joins, and non-default miter limits on a per-side stroke rather than preserving lossy state.                                                                     |
-| Production smooth corners circularize elliptical radius pairs.                                               | Draft 0 rejects nonzero smoothing when any `rx` and `ry` differ; smoothed ellipses remain unavailable pending lossless renderer support.                                                                           |
-| Production smooth paths begin dash traversal at the top-edge midpoint.                                       | Draft 0 consistently begins every rectangle at the top-left curve's top-edge join; geometry is identical, but dashed smoothed strokes have a different phase.                                                      |
+| Legacy v1 per-side coverage ignores corner smoothing and non-miter join choice.                              | Draft 0 rejects nonzero smoothing, round or bevel joins, and non-default miter limits on a per-side stroke rather than preserving lossy state.                                                                     |
+| Legacy v1 smooth corners circularize elliptical radius pairs.                                                | Draft 0 rejects nonzero smoothing when any `rx` and `ry` differ; smoothed ellipses remain unavailable pending lossless renderer support.                                                                           |
+| Legacy v1 smooth paths begin dash traversal at the top-edge midpoint.                                        | Draft 0 consistently begins every rectangle at the top-left curve's top-edge join; geometry is identical, but dashed smoothed strokes have a different phase.                                                      |
 | The scene model can hold malformed or backend-degenerate gradients that Draft 0 deliberately cannot spell.   | A reader and writer reject too few stops, invalid or descending offsets, non-invertible transforms, and linear endpoint distances at or below `2^-15` instead of repairing, sorting, clamping, or perturbing them. |
-| Scene semantics and packed-archive coverage do not yet cover the same node set.                              | An authored element must not promise `.grida` round-trip until both contracts represent it.                                                                                                                        |
-| Scene and archive contracts expose both raw intrinsic paths and normalized box-mapped paths.                 | Draft 0 selects the box-mapped form; a raw-only target must gain a stable mapping or reject `path` rather than claim lossy support.                                                                                |
+| Legacy scene semantics and packed-schema coverage do not cover the same node set.                            | The inbound converter must identify which v1 nodes are representable and return typed unsupported conversion for the rest; Draft 0 promises no outbound `.grida` round trip.                                      |
+| Legacy scene and packed contracts expose both raw intrinsic paths and normalized box-mapped paths.           | Draft 0 selects the box-mapped form; the inbound converter must define a stable mapping or return typed unsupported conversion rather than claim lossy support.                                                    |
 | One durable canonical-shape contract permits non-unit path data to be scaled to its tight fit.               | Draft 0 deliberately rejects that fallback: non-unit geometry is invalid, and no reader may erase padding or remap untouched contours by auto-fitting it.                                                          |
-| Path fill-rule persistence is not uniform across scene and archive contracts.                                | Draft 0 requires `nonzero` and `evenodd` to survive reading, rendering, inspection, and rewriting; hard-coding one rule is not conforming.                                                                         |
+| Path fill-rule persistence is not uniform across legacy scene and packed contracts.                          | The inbound converter preserves every available v1 fill-rule distinction; Draft 0 then requires `nonzero` and `evenodd` to survive reading, rendering, inspection, and rewriting.                                  |
 | Draft 0 `hidden` removes a subtree from layout and paint.                                                    | A materializer must preserve that stronger behavior even when a target model names visibility differently.                                                                                                         |
 | Solid-paint alpha is stored in color, while Draft 0 exposes common paint `opacity`.                          | The documented 8-bit quantization is a boundary rule, not a parallel solid-opacity property.                                                                                                                       |
-| Production `AttributedString` stores flat contiguous UTF-8 byte ranges.                                      | XML concatenates mixed text in document order and derives ranges at character boundaries; authored offsets and nested runs are neither needed nor accepted.                                                        |
-| The packed archive collapses an empty run-fill vector to an absent override.                                 | Draft 0 distinguishes explicit `<fill/>` no ink from omitted node-fill fallback; packing must reject it or preserve presence before claiming round-trip.                                                           |
-| Production attributed paint currently resolves run fills against `(width, width)`.                           | Draft 0 requires the resolved full text-node width and height, matching node fills; the square paint box is an implementation bug, not XML semantics.                                                              |
+| Legacy v1 `AttributedString` stores flat contiguous UTF-8 byte ranges.                                       | XML concatenates mixed text in document order and derives ranges at character boundaries; authored offsets and nested runs are neither needed nor accepted.                                                        |
+| The packed archive collapses an empty run-fill vector to an absent override.                                 | The inbound converter preserves the observable v1 meaning, while Draft 0 distinguishes explicit `<fill/>` no ink from omission and promises no reverse packed round trip.                                          |
+| Legacy v1 attributed paint resolves run fills against `(width, width)`.                                      | Draft 0 requires the resolved full text-node width and height, matching node fills; the square paint box is an implementation bug, not XML semantics.                                                              |
 | `StyledTextRun` has one optional stroke stack plus one width and alignment.                                  | It cannot losslessly project repeatable independent XML stroke geometries, so Draft 0 rejects run strokes rather than merging or hiding them.                                                                      |
-| Production attributed runs carry visual style but no semantic/accessibility annotation.                      | Draft 0 rejects HTML semantic tags instead of pretending bold or italic styling preserves their meaning.                                                                                                           |
+| Legacy v1 attributed runs carry visual style but no semantic/accessibility annotation.                       | Draft 0 rejects HTML semantic tags instead of pretending bold or italic styling preserves their meaning.                                                                                                           |
 | Responsive bindings and per-child alignment carry more source intent than a resolved Cartesian scene.        | A resolved scene can consume their result but must not be mistaken for a lossless rewrite of the authored source.                                                                                                  |
 | Names, locks, durable identity, guides, and connections belong to different persistence concerns.            | `id`, `name`, and `locked` need explicit authored-versus-editor rules; a root fill already covers visual background without deciding editor-only metadata.                                                         |
-| `lens` operations and native flips may lower through more general transforms.                                | Materialization can preserve pixels without promising a lossless inverse decomposition; source round-trip requires an intent-preserving representation.                                                            |
+| `lens` operations may materialize as general matrices while native rotation and flips remain structured.     | Materialization can preserve pixels without promising a lossless inverse decomposition; source round-trip requires the intent-preserving quarantine representation.                                                |
 
-When the language, runtime, and archive disagree, a processor must limit its
-claimed subset or make the model change explicit. It must never create a
-parallel XML-only property merely to conceal the incompatibility.
+When the authored language, target model, and legacy binding disagree, a
+processor must limit its claimed subset or make the target-model change
+explicit. It must never create a parallel XML-only property merely to conceal
+the incompatibility.

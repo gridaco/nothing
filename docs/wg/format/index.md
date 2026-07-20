@@ -1,6 +1,6 @@
 ---
 title: Format & Import Mapping
-description: Specifications for authored engine formats and legacy-v1 trackers for importing external formats.
+description: Specifications for authored engine formats, the frozen legacy converter input, and import know-how migrating to the chassis.
 format: md
 tags:
   - internal
@@ -11,14 +11,16 @@ tags:
 # Format & Import Mapping
 
 Specifications for authored engine formats, plus the existing import trackers
-whose target is the legacy v1 IR. During consolidation those trackers describe
-converter-input coverage; they do not define the end-state scene model.
+whose target is the legacy v1 IR. During consolidation those trackers preserve
+external-format parsing and mapping know-how for the Phase 3 SVG and Phase 4
+HTML/CSS front ends; they are not `.grida` converter coverage and do not define
+the end-state scene model.
 
 ## Specifications and RFDs
 
 | Page                                              | Description                                                |
 | ------------------------------------------------- | ---------------------------------------------------------- |
-| [v1 Grida IR](./grida.md)                         | Legacy `.grida` IR reference and converter-input context   |
+| [v1 Grida IR](./grida.md)                         | Non-normative legacy implementation inventory and converter-input context |
 | [n0 XML](./n0-xml.md)                             | Open RFD for the authored, inspectable `.n0.xml` source    |
 | [n0 XML properties](./n0-xml-properties.md)       | XML property names, applicability, and design placeholders |
 | [n0 XML modules](./n0-xml-modules.md)             | Open linking/component RFD with a proving implementation   |
@@ -39,10 +41,12 @@ converter-input coverage; they do not define the end-state scene model.
 
 The CSS, HTML, and SVG trackers use this status key: ✅ mapped | ⚠️ partial |
 🔧 IR exists, not wired | ❌ IR missing | 🚫 out of scope. Their **IR Gaps**
-sections describe the legacy v1 target. End-state capability is granted
-through the consolidation scoreboard, not by extending that frozen target.
+sections describe the legacy v1 target and its accumulated import know-how.
+That know-how migrates through agnostic front-end contracts; end-state
+capability is granted through the consolidation scoreboard, not by extending
+the legacy model. Only the packed schema named below is a frozen surface.
 
-For the on-disk `.grida` file format, see the [FlatBuffers
+For the frozen legacy `.grida` converter input, see the [FlatBuffers
 schema](../../../format/grida.fbs).
 
 ## Related
