@@ -113,9 +113,27 @@ pub(crate) struct ValidatedCorpus {
     pub inputs: Vec<ValidatedInput>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum EnginePreflight {
+    Accepted,
+    Unsupported {
+        reason_code: &'static str,
+        detail: String,
+    },
+}
+
 pub(crate) struct ValidatedInput {
     pub source: String,
     pub oracle_png: Vec<u8>,
+    pub legacy_preflight: EnginePreflight,
+    pub chassis_preflight: EnginePreflight,
+}
+
+#[derive(Debug, Clone)]
+struct FixturePreflight {
+    fixture_id: String,
+    legacy: EnginePreflight,
+    chassis: EnginePreflight,
 }
 
 pub(crate) fn repo_root() -> PathBuf {
@@ -132,6 +150,21 @@ fn default_corpus_path() -> PathBuf {
 }
 
 pub(crate) fn validate(corpus_path: &Path) -> Result<ValidatedCorpus> {
+    validate_with_preflight_policy(corpus_path, true)
+}
+
+/// Validate report provenance while retaining engine entry-point rejections
+/// as per-row coverage evidence. The strict `scoreboard check` path continues
+/// to use [`validate`] and requires every row in the fixed v0 corpus to be
+/// accepted by both engines.
+pub(crate) fn validate_for_report(corpus_path: &Path) -> Result<ValidatedCorpus> {
+    validate_with_preflight_policy(corpus_path, false)
+}
+
+fn validate_with_preflight_policy(
+    corpus_path: &Path,
+    require_all_preflights: bool,
+) -> Result<ValidatedCorpus> {
     let root = fs::canonicalize(repo_root()).context("canonicalize repository root")?;
     let corpus_path = if corpus_path.is_absolute() {
         corpus_path.to_path_buf()
@@ -146,8 +179,8 @@ pub(crate) fn validate(corpus_path: &Path) -> Result<ValidatedCorpus> {
     let corpus_hash = sha256_hex(&corpus_bytes);
 
     validate_closed_source_directory(&root, &manifest)?;
-    let mut preflight_errors = Vec::new();
     let mut sources = Vec::with_capacity(manifest.fixtures.len());
+    let mut preflights = Vec::with_capacity(manifest.fixtures.len());
     for fixture in &manifest.fixtures {
         let source_path = resolve_existing_repo_path(&root, &fixture.source)?;
         let source_bytes =
@@ -161,31 +194,45 @@ pub(crate) fn validate(corpus_path: &Path) -> Result<ValidatedCorpus> {
             .with_context(|| format!("{}: SVG source is not UTF-8", fixture.id))?;
         sources.push(source.to_owned());
         validate_static_source(source, &fixture.id)?;
-        if let Err(error) = grida::import::svg::pack::from_svg_str(source) {
-            preflight_errors.push(format!("{}: legacy preflight failed: {error}", fixture.id));
-        }
-        match n0::svg_animation_frame::compile_latest(fixture.source.clone(), source) {
+        let legacy = match grida::import::svg::pack::from_svg_str(source) {
+            Ok(_) => EnginePreflight::Accepted,
+            Err(error) => EnginePreflight::Unsupported {
+                reason_code: "legacy_preflight_rejected",
+                detail: error,
+            },
+        };
+        let chassis = match n0::svg_animation_frame::compile_latest(fixture.source.clone(), source)
+        {
             Ok(compiled) => {
                 let (width, height) = compiled.viewport();
                 if width != manifest.viewport.width as f32
                     || height != manifest.viewport.height as f32
                 {
-                    preflight_errors.push(format!(
-                        "{}: chassis viewport {width}x{height} does not match corpus {}x{}",
-                        fixture.id, manifest.viewport.width, manifest.viewport.height
-                    ));
+                    EnginePreflight::Unsupported {
+                        reason_code: "chassis_viewport_mismatch",
+                        detail: format!(
+                            "chassis viewport {width}x{height} does not match corpus {}x{}",
+                            manifest.viewport.width, manifest.viewport.height
+                        ),
+                    }
+                } else {
+                    EnginePreflight::Accepted
                 }
             }
-            Err(error) => {
-                preflight_errors.push(format!("{}: chassis preflight failed: {error}", fixture.id))
-            }
-        }
+            Err(error) => EnginePreflight::Unsupported {
+                reason_code: "chassis_preflight_rejected",
+                detail: error.to_string(),
+            },
+        };
+        preflights.push(FixturePreflight {
+            fixture_id: fixture.id.clone(),
+            legacy,
+            chassis,
+        });
     }
-    ensure!(
-        preflight_errors.is_empty(),
-        "engine preflight failures:\n{}",
-        preflight_errors.join("\n")
-    );
+    if require_all_preflights {
+        ensure_all_preflights_accepted(&preflights)?;
+    }
 
     let oracle_manifest_path = resolve_existing_repo_path(&root, &manifest.oracle_bake)?;
     let oracle_bytes = fs::read(&oracle_manifest_path)
@@ -196,7 +243,13 @@ pub(crate) fn validate(corpus_path: &Path) -> Result<ValidatedCorpus> {
     let inputs = sources
         .into_iter()
         .zip(oracle_pngs)
-        .map(|(source, oracle_png)| ValidatedInput { source, oracle_png })
+        .zip(preflights)
+        .map(|((source, oracle_png), preflight)| ValidatedInput {
+            source,
+            oracle_png,
+            legacy_preflight: preflight.legacy,
+            chassis_preflight: preflight.chassis,
+        })
         .collect();
 
     Ok(ValidatedCorpus {
@@ -211,6 +264,30 @@ pub(crate) fn validate(corpus_path: &Path) -> Result<ValidatedCorpus> {
         manifest,
         inputs,
     })
+}
+
+fn ensure_all_preflights_accepted(preflights: &[FixturePreflight]) -> Result<()> {
+    let mut failures = Vec::new();
+    for preflight in preflights {
+        if let EnginePreflight::Unsupported { detail, .. } = &preflight.legacy {
+            failures.push(format!(
+                "{}: legacy preflight failed: {detail}",
+                preflight.fixture_id
+            ));
+        }
+        if let EnginePreflight::Unsupported { detail, .. } = &preflight.chassis {
+            failures.push(format!(
+                "{}: chassis preflight failed: {detail}",
+                preflight.fixture_id
+            ));
+        }
+    }
+    ensure!(
+        failures.is_empty(),
+        "engine preflight failures:\n{}",
+        failures.join("\n")
+    );
+    Ok(())
 }
 
 fn validate_manifest_shape(manifest: &CorpusManifest) -> Result<()> {
@@ -555,5 +632,22 @@ mod tests {
             .unwrap_err()
             .to_string()
             .contains("source hash"));
+    }
+
+    #[test]
+    fn strict_check_rejects_preflight_coverage_gaps() {
+        let preflights = [FixturePreflight {
+            fixture_id: "future-row".into(),
+            legacy: EnginePreflight::Accepted,
+            chassis: EnginePreflight::Unsupported {
+                reason_code: "chassis_preflight_rejected",
+                detail: "outside the bounded profile".into(),
+            },
+        }];
+
+        let error = ensure_all_preflights_accepted(&preflights).unwrap_err();
+        assert!(error
+            .to_string()
+            .contains("future-row: chassis preflight failed"));
     }
 }

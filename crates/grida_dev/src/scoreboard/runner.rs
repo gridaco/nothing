@@ -14,7 +14,7 @@ use super::contract::{
     RuleIdentity, RunEvidence, ScoreboardReport, ScoreboardRow, ScoringIdentity, SuiteReport,
     REPORT_KIND, SCHEMA_VERSION,
 };
-use super::corpus::{sha256_hex, ValidatedCorpus};
+use super::corpus::{sha256_hex, EnginePreflight, ValidatedCorpus};
 
 #[derive(Debug)]
 pub(crate) struct RunBudget {
@@ -38,6 +38,12 @@ impl RunBudget {
             bail!("scoreboard run exceeded its hard wall-clock budget");
         }
         Ok(())
+    }
+
+    pub(crate) fn deadline(&self) -> Result<Instant> {
+        self.started
+            .checked_add(self.limit)
+            .ok_or_else(|| anyhow!("scoreboard wall-clock deadline is not representable"))
     }
 
     pub(crate) fn evidence(
@@ -87,6 +93,7 @@ pub(crate) fn produce(
             .with_context(|| format!("stage exact validated oracle for {}", fixture.id))?;
 
         let (legacy, legacy_image) = render_legacy_twice(
+            &input.legacy_preflight,
             &source_path,
             &row_dir,
             corpus.manifest.viewport.width,
@@ -94,6 +101,7 @@ pub(crate) fn produce(
         );
         budget.check()?;
         let (chassis, chassis_image) = render_chassis_twice(
+            &input.chassis_preflight,
             &source_path,
             &fixture.source,
             &row_dir,
@@ -169,11 +177,15 @@ pub(crate) fn produce(
 }
 
 fn render_legacy_twice(
+    preflight: &EnginePreflight,
     source: &Path,
     output: &Path,
     width: u32,
     height: u32,
 ) -> (EngineCell, Option<std::path::PathBuf>) {
+    if let Some(result) = unsupported_preflight_result(preflight) {
+        return result;
+    }
     let first = output.join("legacy-1.png");
     let second = output.join("legacy-2.png");
     let result = (|| -> Result<String> {
@@ -188,12 +200,16 @@ fn render_legacy_twice(
 }
 
 fn render_chassis_twice(
+    preflight: &EnginePreflight,
     source: &Path,
     source_identity: &str,
     output: &Path,
     width: u32,
     height: u32,
 ) -> (EngineCell, Option<std::path::PathBuf>) {
+    if let Some(result) = unsupported_preflight_result(preflight) {
+        return result;
+    }
     let first = output.join("chassis-1.png");
     let second = output.join("chassis-2.png");
     let result = (|| -> Result<String> {
@@ -206,6 +222,24 @@ fn render_chassis_twice(
     match result {
         Ok(rgba_sha256) => (EngineCell::Scored { rgba_sha256 }, Some(first)),
         Err(error) => (engine_error(error), None),
+    }
+}
+
+fn unsupported_preflight_result(
+    preflight: &EnginePreflight,
+) -> Option<(EngineCell, Option<std::path::PathBuf>)> {
+    match preflight {
+        EnginePreflight::Accepted => None,
+        EnginePreflight::Unsupported {
+            reason_code,
+            detail,
+        } => Some((
+            EngineCell::Unsupported {
+                reason_code: (*reason_code).into(),
+                detail: detail.clone(),
+            },
+            None,
+        )),
     }
 }
 
@@ -310,5 +344,29 @@ mod tests {
             .unwrap_err()
             .to_string()
             .contains("must be positive"));
+    }
+
+    #[test]
+    fn rejected_preflight_is_unsupported_while_runtime_failure_is_error() {
+        let rejected = EnginePreflight::Unsupported {
+            reason_code: "chassis_preflight_rejected",
+            detail: "outside the bounded profile".into(),
+        };
+        let (cell, image) = unsupported_preflight_result(&rejected).unwrap();
+        assert_eq!(image, None);
+        assert!(matches!(
+            cell,
+            EngineCell::Unsupported {
+                reason_code,
+                detail
+            } if reason_code == "chassis_preflight_rejected"
+                && detail == "outside the bounded profile"
+        ));
+
+        assert!(unsupported_preflight_result(&EnginePreflight::Accepted).is_none());
+        assert!(matches!(
+            engine_error(anyhow!("paint failed after accepted preflight")),
+            EngineCell::Error { reason_code, .. } if reason_code == "render_error"
+        ));
     }
 }

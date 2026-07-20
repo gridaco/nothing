@@ -24,9 +24,13 @@ oracle-only source rewrite is permitted.
 
 The corpus is intentionally limited to the direct static rectangle/path
 intersection already accepted by both engine entry points. Unsupported source
-families remain visible in the exclusion ledger. A later admitted row that one
-engine cannot render is recorded as `UNSUPPORTED`; it is never silently removed
-from the denominator.
+families remain visible in the exclusion ledger. `scoreboard check` requires
+both entry points to accept every row in this fixed v0 corpus. During an
+authorized report run, the same preflight is retained as per-engine evidence:
+an entry-point rejection becomes `UNSUPPORTED` without calling that renderer,
+while a failure after an accepted preflight remains an error. A later admitted
+row therefore stays in the denominator with an explicit disposition rather
+than being silently removed or classified by matching diagnostic text.
 
 ## Commands
 
@@ -61,7 +65,11 @@ ratified active configuration must declare that absence explicitly; after the
 first baseline lands, it pins the required baseline digest. A missing or
 mistyped path therefore cannot silently disable regression checks. The
 120-second budget is part of the proposed rule identity and has no command-line
-override.
+override. The timer starts before corpus, oracle, parser, renderer, comparator,
+and prior-baseline validation. Those stages run behind a terminal-command
+watchdog that returns at the deadline even if an in-process stage is blocked.
+The worker has no report path; only a complete in-budget result returns to the
+caller that may publish the create-new report.
 
 ## Chromium bake
 

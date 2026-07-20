@@ -9,7 +9,9 @@ use serde::Serialize;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Component, Path, PathBuf};
-use std::time::Duration;
+use std::sync::mpsc::{sync_channel, RecvTimeoutError, TryRecvError};
+use std::thread;
+use std::time::{Duration, Instant};
 
 use contract::{
     find_regressions, prepare_baseline_candidate, validate_denominator, RuleIdentity,
@@ -113,29 +115,29 @@ fn check(args: CheckArgs) -> Result<()> {
 
 fn run_scoreboard(args: RunArgs) -> Result<()> {
     with_ratified_rule(active_rule(), |active| {
+        let report_path = repository_path(&args.report)?;
+        let baseline_path = repository_path(&args.baseline)?;
         let limit = Duration::from_millis(active.identity.budget_ms);
         let budget = runner::RunBudget::new(limit)?;
-        let validated = corpus::validate(&args.corpus)?;
-        let baseline_path = repository_path(&args.baseline)?;
-        let previous =
-            load_prior_baseline(&baseline_path, active.prior_baseline_sha256.as_deref())?;
-        let mut report = runner::produce(
-            &validated,
-            active.identity,
-            active.prior_baseline_sha256,
-            &budget,
-        )?;
-        let regressions = if let Some(baseline) = &previous {
-            find_regressions(baseline, &report)?
-        } else {
-            Vec::new()
-        };
-        report.run = budget.evidence(
-            report.run.runner_sha256.clone(),
-            report.run.prior_baseline_sha256.clone(),
-        )?;
-        report.validate_contract()?;
-        let report_path = repository_path(&args.report)?;
+        let corpus_path = args.corpus;
+        let prior_baseline_sha256 = active.prior_baseline_sha256;
+        let (report, regressions) = run_with_hard_budget(budget, move |budget| {
+            let validated = corpus::validate_for_report(&corpus_path)?;
+            let previous = load_prior_baseline(&baseline_path, prior_baseline_sha256.as_deref())?;
+            let mut report =
+                runner::produce(&validated, active.identity, prior_baseline_sha256, budget)?;
+            let regressions = if let Some(baseline) = &previous {
+                find_regressions(baseline, &report)?
+            } else {
+                Vec::new()
+            };
+            report.run = budget.evidence(
+                report.run.runner_sha256.clone(),
+                report.run.prior_baseline_sha256.clone(),
+            )?;
+            report.validate_contract()?;
+            Ok((report, regressions))
+        })?;
         write_json_create_new(&report_path, &report)?;
         if !regressions.is_empty() {
             bail!(
@@ -150,7 +152,7 @@ fn run_scoreboard(args: RunArgs) -> Result<()> {
 
 fn bless(args: BlessArgs) -> Result<()> {
     with_ratified_rule(active_rule(), |active| {
-        let validated = corpus::validate(&args.corpus)?;
+        let validated = corpus::validate_for_report(&args.corpus)?;
         let report_path = repository_path(&args.report)?;
         let report: ScoreboardReport = read_json(&report_path)?;
         report.validate_contract()?;
@@ -216,6 +218,64 @@ fn with_ratified_rule<T>(
         "active rule lacks its owner decision"
     );
     operation(rule)
+}
+
+/// Run every score-producing and baseline-reading stage behind a real
+/// wall-clock watchdog. Cooperative checks still make ordinary overruns
+/// precise, while this boundary returns even if an in-process renderer or
+/// comparator never returns. The worker never receives the report path, so a
+/// timed-out operation cannot publish a partial or over-budget report.
+fn run_with_hard_budget<T>(
+    budget: runner::RunBudget,
+    operation: impl FnOnce(&runner::RunBudget) -> Result<T> + Send + 'static,
+) -> Result<T>
+where
+    T: Send + 'static,
+{
+    let deadline = budget.deadline()?;
+    let (sender, receiver) = sync_channel(1);
+    let worker = thread::Builder::new()
+        .name("scoreboard-v0-worker".into())
+        .spawn(move || {
+            let _ = sender.send(operation(&budget));
+        })
+        .context("spawn scoreboard watchdog worker")?;
+
+    // Derive the wait after spawning so thread-start overhead consumes the
+    // original RunBudget instead of silently extending it. At an already
+    // reached deadline, accept only a result that is already in the channel;
+    // its own RunEvidence still proves that the operation finished in time.
+    let timeout = deadline.saturating_duration_since(Instant::now());
+    let received = if timeout.is_zero() {
+        match receiver.try_recv() {
+            Ok(result) => Ok(result),
+            Err(TryRecvError::Empty) => Err(RecvTimeoutError::Timeout),
+            Err(TryRecvError::Disconnected) => Err(RecvTimeoutError::Disconnected),
+        }
+    } else {
+        receiver.recv_timeout(timeout)
+    };
+
+    match received {
+        Ok(result) => {
+            worker
+                .join()
+                .map_err(|_| anyhow::anyhow!("scoreboard worker panicked"))?;
+            result
+        }
+        Err(RecvTimeoutError::Timeout) => {
+            // Dropping the handle detaches the blocked worker. This function
+            // is private to the terminal CLI path: returning the error ends
+            // the process, and the OS terminates the worker. No report path
+            // is reachable from that worker.
+            drop(worker);
+            bail!("scoreboard run exceeded its hard wall-clock budget")
+        }
+        Err(RecvTimeoutError::Disconnected) => {
+            let _ = worker.join();
+            bail!("scoreboard worker terminated without a result")
+        }
+    }
 }
 
 fn repository_path(path: &Path) -> Result<PathBuf> {
@@ -451,6 +511,25 @@ mod tests {
         .unwrap_err();
         assert!(!called.get());
         assert!(error.to_string().contains("not ratified"));
+    }
+
+    #[test]
+    fn hard_budget_returns_before_a_blocked_stage_finishes() {
+        let started = Instant::now();
+        let error = run_with_hard_budget(
+            runner::RunBudget::new(Duration::from_millis(20)).unwrap(),
+            |_| {
+                thread::sleep(Duration::from_secs(1));
+                Ok(())
+            },
+        )
+        .unwrap_err();
+
+        assert!(error.to_string().contains("hard wall-clock budget"));
+        assert!(
+            started.elapsed() < Duration::from_millis(500),
+            "watchdog waited for the blocked stage instead of preempting the command"
+        );
     }
 
     #[test]
