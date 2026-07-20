@@ -17,5 +17,6 @@ pub mod grida;
 pub mod pack;
 pub mod packed_scene;
 mod paint;
+mod path_data_serializer;
 
 pub use packed_scene::SVGPackedScene;

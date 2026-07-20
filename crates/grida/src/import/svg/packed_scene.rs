@@ -1,10 +1,9 @@
-use crate::backends::usvg::tsk_path_to_sk_path;
 use crate::cg::prelude::*;
 use crate::formats::svg::parse::into_tree;
 use crate::import::svg::from_usvg::IntoCg;
+use crate::import::svg::path_data_serializer;
 use math2::transform::AffineTransform;
 use serde::{Deserialize, Serialize};
-use skia_safe::Path as SkPath;
 use usvg;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -96,10 +95,9 @@ fn convert_path(path: &usvg::Path, parent_world: &CGTransform2D) -> Result<IRSVG
     let relative = extract_relative_transform(parent_world, &abs);
 
     let tiny_path = path.data();
-    let sk_path = tsk_path_to_sk_path(tiny_path);
 
     let bounds: CGRect = path.bounding_box().into_cg();
-    let (offset_x, offset_y, data) = normalize_skia_path(sk_path, &bounds);
+    let (offset_x, offset_y, data) = normalize_path_data(tiny_path, &bounds);
 
     let mut relative_affine: AffineTransform = relative.into();
     if offset_x != 0.0 || offset_y != 0.0 {
@@ -301,12 +299,11 @@ fn extract_relative_transform(
     CGTransform2D::from(relative_affine)
 }
 
-fn normalize_skia_path(path: SkPath, bounds: &CGRect) -> (f32, f32, String) {
+fn normalize_path_data(path: &usvg::tiny_skia_path::Path, bounds: &CGRect) -> (f32, f32, String) {
     if bounds.x != 0.0 || bounds.y != 0.0 {
-        let path = path.make_offset((-bounds.x, -bounds.y));
-        let data = path.to_svg();
+        let data = path_data_serializer::serialize(path, Some((-bounds.x, -bounds.y)));
         return (bounds.x, bounds.y, data);
     }
-    let data = path.to_svg();
+    let data = path_data_serializer::serialize(path, None);
     (0.0, 0.0, data)
 }
