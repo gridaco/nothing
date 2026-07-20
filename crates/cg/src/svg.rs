@@ -1,6 +1,6 @@
 // Grida's own SVG Types (that with unique properties)
 
-use crate::cg::prelude::*;
+use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

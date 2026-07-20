@@ -5,8 +5,8 @@
 //! boolean-operation walks) lives in [`super::compile`] — the painter's
 //! single model seam (gridaco/nothing#31).
 
-use crate::cg::prelude::*;
 use crate::shape::*;
+use crate::{backends::skia::IntoSkia, cg::prelude::*};
 use skia_safe::{Path, RRect, Rect};
 
 /// Internal universal Painter's shape abstraction for optimized drawing
@@ -236,7 +236,7 @@ pub fn merge_shapes(shapes: &[(PainterShape, BooleanPathOperation)]) -> Path {
 
     for (shape, operation) in shapes.iter().skip(1) {
         let shape_path = shape.to_path();
-        if let Some(merged) = Path::op(&result, &shape_path, (*operation).into()) {
+        if let Some(merged) = Path::op(&result, &shape_path, (*operation).into_skia()) {
             result = merged;
         }
     }

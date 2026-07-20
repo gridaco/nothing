@@ -1,4 +1,4 @@
-use crate::cg::prelude::*;
+use crate::{backends::skia::IntoSkia, cg::prelude::*};
 use skia_safe::{path_effect::PathEffect, stroke_rec::InitStyle, Path, PathOp, StrokeRec};
 
 /// Computes the stroke geometry path for a given input `Path`, enabling rich stroke
@@ -79,8 +79,8 @@ pub fn stroke_geometry(
     let mut stroke_rec = StrokeRec::new(InitStyle::Hairline);
     stroke_rec.set_stroke_style(adjusted_width, false);
     stroke_rec.set_stroke_params(
-        stroke_cap.into(),
-        stroke_join.into(),
+        stroke_cap.into_skia(),
+        stroke_join.into_skia(),
         stroke_miter_limit.value(),
     );
 

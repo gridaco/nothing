@@ -1,6 +1,7 @@
 use crate::backends::usvg::tsk_path_to_sk_path;
 use crate::cg::prelude::*;
 use crate::formats::svg::parse::into_tree;
+use crate::import::svg::from_usvg::IntoCg;
 use math2::transform::AffineTransform;
 use serde::{Deserialize, Serialize};
 use skia_safe::Path as SkPath;
@@ -72,7 +73,7 @@ fn convert_group(
     group: &usvg::Group,
     parent_world: &CGTransform2D,
 ) -> Result<IRSVGGroupNode, String> {
-    let abs: CGTransform2D = group.abs_transform().into();
+    let abs: CGTransform2D = group.abs_transform().into_cg();
     let relative = extract_relative_transform(parent_world, &abs);
 
     let mut children = Vec::new();
@@ -85,19 +86,19 @@ fn convert_group(
     Ok(IRSVGGroupNode {
         transform: relative,
         opacity: group.opacity().get(),
-        blend_mode: group.blend_mode().into(),
+        blend_mode: group.blend_mode().into_cg(),
         children,
     })
 }
 
 fn convert_path(path: &usvg::Path, parent_world: &CGTransform2D) -> Result<IRSVGPathNode, String> {
-    let abs: CGTransform2D = path.abs_transform().into();
+    let abs: CGTransform2D = path.abs_transform().into_cg();
     let relative = extract_relative_transform(parent_world, &abs);
 
     let tiny_path = path.data();
     let sk_path = tsk_path_to_sk_path(tiny_path);
 
-    let bounds: CGRect = path.bounding_box().into();
+    let bounds: CGRect = path.bounding_box().into_cg();
     let (offset_x, offset_y, data) = normalize_skia_path(sk_path, &bounds);
 
     let mut relative_affine: AffineTransform = relative.into();
@@ -106,8 +107,8 @@ fn convert_path(path: &usvg::Path, parent_world: &CGTransform2D) -> Result<IRSVG
     }
     let transform = CGTransform2D::from(relative_affine);
 
-    let fill = path.fill().map(SVGFillAttributes::from);
-    let stroke = path.stroke().map(SVGStrokeAttributes::from);
+    let fill = path.fill().map(|fill| fill.into_cg());
+    let stroke = path.stroke().map(|stroke| stroke.into_cg());
 
     Ok(IRSVGPathNode {
         transform,
@@ -128,9 +129,9 @@ fn convert_path(path: &usvg::Path, parent_world: &CGTransform2D) -> Result<IRSVG
 /// per-span `IRSVGTextStyledRun` entries so the pack step can create
 /// an `AttributedTextNode`.
 fn convert_text(text: &usvg::Text, parent_world: &CGTransform2D) -> Result<IRSVGTextNode, String> {
-    let abs: CGTransform2D = text.abs_transform().into();
+    let abs: CGTransform2D = text.abs_transform().into_cg();
     let relative = extract_relative_transform(parent_world, &abs);
-    let bounds: CGRect = text.bounding_box().into();
+    let bounds: CGRect = text.bounding_box().into_cg();
 
     let mut combined_text = String::new();
     for chunk in text.chunks() {
@@ -144,7 +145,7 @@ fn convert_text(text: &usvg::Text, parent_world: &CGTransform2D) -> Result<IRSVG
             .iter()
             .find(|span| span.is_visible())
             .and_then(|span| span.fill())
-            .map(SVGFillAttributes::from)
+            .map(|fill| fill.into_cg())
     });
     let stroke = text.chunks().iter().find_map(|chunk| {
         chunk
@@ -152,7 +153,7 @@ fn convert_text(text: &usvg::Text, parent_world: &CGTransform2D) -> Result<IRSVG
             .iter()
             .find(|span| span.is_visible())
             .and_then(|span| span.stroke())
-            .map(SVGStrokeAttributes::from)
+            .map(|stroke| stroke.into_cg())
     });
 
     // One IR span per chunk (not per usvg span).
@@ -219,8 +220,8 @@ fn convert_text(text: &usvg::Text, parent_world: &CGTransform2D) -> Result<IRSVG
                     Some(IRSVGTextStyledRun {
                         start,
                         end,
-                        fill: span.fill().map(SVGFillAttributes::from),
-                        stroke: span.stroke().map(SVGStrokeAttributes::from),
+                        fill: span.fill().map(|fill| fill.into_cg()),
+                        stroke: span.stroke().map(|stroke| stroke.into_cg()),
                         font_size: span.font_size().get(),
                         font_weight: span.font().weight(),
                         font_style: match span.font().style() {
@@ -238,7 +239,7 @@ fn convert_text(text: &usvg::Text, parent_world: &CGTransform2D) -> Result<IRSVG
             chunks.push(IRSVGTextChunk::Attributed(IRSVGAttributedTextChunk {
                 transform: chunk_transform,
                 text: chunk_text.to_string(),
-                anchor: chunk.anchor().into(),
+                anchor: chunk.anchor().into_cg(),
                 runs,
             }));
         } else {
@@ -246,10 +247,10 @@ fn convert_text(text: &usvg::Text, parent_world: &CGTransform2D) -> Result<IRSVG
             let first_visible = visible_spans.first();
             let chunk_fill = first_visible
                 .and_then(|s| s.fill())
-                .map(SVGFillAttributes::from);
+                .map(|fill| fill.into_cg());
             let chunk_stroke = first_visible
                 .and_then(|s| s.stroke())
-                .map(SVGStrokeAttributes::from);
+                .map(|stroke| stroke.into_cg());
             let font_size = first_visible.map(|s| s.font_size().get());
 
             chunks.push(IRSVGTextChunk::Uniform(IRSVGTextSpanNode {
@@ -258,7 +259,7 @@ fn convert_text(text: &usvg::Text, parent_world: &CGTransform2D) -> Result<IRSVG
                 fill: chunk_fill,
                 stroke: chunk_stroke,
                 font_size,
-                anchor: chunk.anchor().into(),
+                anchor: chunk.anchor().into_cg(),
             }));
         }
     }

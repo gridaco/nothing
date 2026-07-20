@@ -87,7 +87,7 @@ pub struct Hyperlink {
 
 /// The complete set of per-run text attributes.
 ///
-/// Field layout is aligned with `TextStyleRec` in `crates/grida/src/cg/types.rs`
+/// Field layout is aligned with `TextStyleRec` in `crates/cg/src/types.rs`
 /// and `TextStyleRec` in `format/grida.fbs`, extended with fills/stroke fields.
 ///
 /// Two `TextStyle`s are equal iff all fields are structurally equal. This

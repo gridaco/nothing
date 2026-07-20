@@ -1,3 +1,4 @@
+use crate::backends::skia::IntoSkia;
 use crate::cache::scene::SceneCache;
 use crate::cg::types::Paint as CGPaint;
 use crate::node::scene_graph::SceneGraph;
@@ -106,7 +107,7 @@ fn first_solid_fill(paints: &crate::cg::types::Paints) -> Option<Color> {
     for p in paints.iter() {
         if let CGPaint::Solid(s) = p {
             if s.active {
-                return Some(s.color.into());
+                return Some(s.color.into_skia());
             }
         }
     }

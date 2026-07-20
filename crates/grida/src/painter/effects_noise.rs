@@ -1,4 +1,5 @@
 use super::geometry::PainterShape;
+use crate::backends::skia::IntoSkia;
 use crate::cg::prelude::*;
 use skia_safe::{self as sk, shaders, ColorMatrix, ISize, Paint, Shader};
 
@@ -48,7 +49,7 @@ pub fn render_noise_effect(effect: &FeNoiseEffect, canvas: &sk::Canvas, shape: &
 
     // === Type-specific coloring & rendering ===
     // Apply blend mode directly to paint, matching SVG feMerge behavior
-    let blend_mode: sk::BlendMode = effect.blend_mode.into();
+    let blend_mode: sk::BlendMode = effect.blend_mode.into_skia();
     let mut p = Paint::default();
 
     match &effect.coloring {
@@ -73,7 +74,7 @@ pub fn render_noise_effect(effect: &FeNoiseEffect, canvas: &sk::Canvas, shape: &
             let thresholded_alpha = noise_alpha.with_color_filter(alpha_cf);
 
             // Create solid color shader and mask it with thresholded alpha
-            let color_sk: sk::Color = (*color).into();
+            let color_sk: sk::Color = (*color).into_skia();
             let solid_color = shaders::color(color_sk);
             let shader = shaders::blend(sk::BlendMode::DstIn, solid_color, thresholded_alpha);
 
@@ -113,7 +114,7 @@ pub fn render_noise_effect(effect: &FeNoiseEffect, canvas: &sk::Canvas, shape: &
             let thresholded_alpha2 = noise_alpha.with_color_filter(alpha_cf2);
 
             // Draw color1 pattern (lower alpha range)
-            let color1_sk: sk::Color = (*color1).into();
+            let color1_sk: sk::Color = (*color1).into_skia();
             let solid_color1 = shaders::color(color1_sk);
             let shader1 = shaders::blend(sk::BlendMode::DstIn, solid_color1, thresholded_alpha1);
             p.set_shader(shader1);
@@ -122,7 +123,7 @@ pub fn render_noise_effect(effect: &FeNoiseEffect, canvas: &sk::Canvas, shape: &
             shape.draw_on_canvas(canvas, &p);
 
             // Draw color2 pattern (upper alpha range) on top
-            let color2_sk: sk::Color = (*color2).into();
+            let color2_sk: sk::Color = (*color2).into_skia();
             let solid_color2 = shaders::color(color2_sk);
             let shader2 = shaders::blend(sk::BlendMode::DstIn, solid_color2, thresholded_alpha2);
             p.set_shader(shader2);

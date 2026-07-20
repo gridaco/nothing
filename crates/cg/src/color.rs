@@ -192,7 +192,7 @@ pub mod color_formats {
         ///
         /// **Usage:**
         /// ```rust
-        /// use grida::cg::prelude::*;
+        /// use cg::prelude::*;
         /// use serde::*;
         ///
         /// #[derive(Serialize, Deserialize)]
@@ -251,7 +251,7 @@ pub mod color_formats {
             ///
             /// **Usage:**
             /// ```rust
-            /// use grida::cg::prelude::*;
+            /// use cg::prelude::*;
             /// use serde::*;
             ///
             /// #[derive(Serialize, Deserialize)]
@@ -300,7 +300,7 @@ pub mod color_formats {
         ///
         /// **Usage:**
         /// ```rust
-        /// use grida::cg::prelude::*;
+        /// use cg::prelude::*;
         /// use serde::*;
         ///
         /// #[derive(Serialize, Deserialize)]
@@ -353,7 +353,7 @@ pub mod color_formats {
             ///
             /// **Usage:**
             /// ```rust
-            /// use grida::cg::prelude::*;
+            /// use cg::prelude::*;
             /// use serde::*;
             ///
             /// #[derive(Serialize, Deserialize)]
@@ -401,7 +401,7 @@ pub mod color_formats {
         ///
         /// **Usage:**
         /// ```rust
-        /// use grida::cg::prelude::*;
+        /// use cg::prelude::*;
         /// use serde::*;
         ///
         /// #[derive(Serialize, Deserialize)]
@@ -463,7 +463,7 @@ pub mod color_formats {
             ///
             /// **Usage:**
             /// ```rust
-            /// use grida::cg::prelude::*;
+            /// use cg::prelude::*;
             /// use serde::*;
             ///
             /// #[derive(Serialize, Deserialize)]

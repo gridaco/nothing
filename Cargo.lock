@@ -745,6 +745,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
+name = "cg"
+version = "0.0.0"
+dependencies = [
+ "math2",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "cgl"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2181,6 +2190,7 @@ name = "grida"
 version = "0.0.0"
 dependencies = [
  "async-trait",
+ "cg",
  "clap",
  "criterion",
  "csscascade",

@@ -1,3 +1,4 @@
+use grida::backends::skia::IntoSkia;
 use grida::cg::prelude::*;
 use skia_safe::{Color, Font, Paint, Rect};
 
@@ -182,7 +183,7 @@ fn main() {
             // Create paint for the color square
             let mut paint = Paint::default();
             paint.set_anti_alias(true);
-            paint.set_color(skia_safe::Color::from(*color));
+            paint.set_color((*color).into_skia());
 
             // Draw the rounded 50x50 square
             let rect = Rect::from_xywh(x, y, square_size, square_size);

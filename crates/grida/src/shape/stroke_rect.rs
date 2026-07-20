@@ -1,4 +1,4 @@
-use crate::cg::prelude::*;
+use crate::{backends::skia::IntoSkia, cg::prelude::*};
 use skia_safe::{
     path_effect::PathEffect, stroke_rec::InitStyle, Path, PathBuilder, PathOp, RRect, Rect,
     StrokeRec, Vector,
@@ -328,8 +328,8 @@ fn stroke_geometry_rectangular_dashed_rrect(
     let mut stroke_rec = StrokeRec::new(InitStyle::Hairline);
     stroke_rec.set_stroke_style(max_width, false);
     stroke_rec.set_stroke_params(
-        StrokeCap::default().into(),
-        StrokeJoin::default().into(),
+        StrokeCap::default().into_skia(),
+        StrokeJoin::default().into_skia(),
         stroke_miter_limit.value(),
     );
 

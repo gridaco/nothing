@@ -1,4 +1,5 @@
 use super::{gradient, image};
+use crate::backends::skia::IntoSkia;
 use crate::runtime::render_policy::RenderIntent;
 use crate::{cg::prelude::*, runtime::image_repository::ImageRepository};
 use skia_safe::{self, shaders, Color, Shader};
@@ -44,7 +45,7 @@ pub fn sk_paint_stack(
             let mut paint = skia_safe::Paint::default();
             paint.set_anti_alias(aa);
             paint.set_color(Color::from_argb(a, r, g, b));
-            paint.set_blend_mode(solid.blend_mode.into());
+            paint.set_blend_mode(solid.blend_mode.into_skia());
             return Some(paint);
         }
     }
@@ -64,7 +65,8 @@ pub fn sk_paint_stack(
     for p in iter {
         if let Some(s) = shader_from_paint(p, size, Some(images), intent) {
             // Compose current paint (src) over the accumulated shader (dst)
-            shader = shaders::blend(p.blend_mode(), shader, s);
+            let blender: skia_safe::Blender = p.blend_mode().into_skia();
+            shader = shaders::blend(blender, shader, s);
         }
     }
     let mut paint = skia_safe::Paint::default();
@@ -72,7 +74,7 @@ pub fn sk_paint_stack(
     paint.set_shader(shader);
     // Apply the base paint's blend mode at the paint level so the first
     // fill can blend with the canvas/background, matching editor semantics.
-    paint.set_blend_mode(base_blend_mode.into());
+    paint.set_blend_mode(base_blend_mode.into_skia());
     // Don't set blend mode - defaults to SrcOver, and blending is already handled in shader composition
     Some(paint)
 }
@@ -101,7 +103,7 @@ pub fn sk_paint_stack_without_images(
             let mut paint = skia_safe::Paint::default();
             paint.set_anti_alias(aa);
             paint.set_color(Color::from_argb(a, r, g, b));
-            paint.set_blend_mode(solid.blend_mode.into());
+            paint.set_blend_mode(solid.blend_mode.into_skia());
             return Some(paint);
         }
     }
@@ -117,7 +119,8 @@ pub fn sk_paint_stack_without_images(
     for p in iter {
         if let Some(s) = shader_from_paint(p, size, None, intent) {
             // Compose current paint (src) over the accumulated shader (dst)
-            shader = shaders::blend(p.blend_mode(), shader, s);
+            let blender: skia_safe::Blender = p.blend_mode().into_skia();
+            shader = shaders::blend(blender, shader, s);
         }
     }
     let mut paint = skia_safe::Paint::default();
@@ -125,7 +128,7 @@ pub fn sk_paint_stack_without_images(
     paint.set_shader(shader);
     // Apply the base paint's blend mode at the paint level so the first
     // fill can blend with the canvas/background, matching editor semantics.
-    paint.set_blend_mode(base_blend_mode.into());
+    paint.set_blend_mode(base_blend_mode.into_skia());
     Some(paint)
 }
 

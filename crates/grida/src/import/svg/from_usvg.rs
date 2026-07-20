@@ -3,14 +3,24 @@
 
 use crate::cg::prelude::*;
 
-impl From<usvg::Color> for CGColor {
-    fn from(color: usvg::Color) -> Self {
+/// Convert a usvg value into the corresponding canvas-graphics vocabulary.
+///
+/// The trait lives on the importer side so the skia-free `cg` crate does not
+/// acquire an SVG parser dependency.
+pub trait IntoCg<T> {
+    fn into_cg(self) -> T;
+}
+
+impl IntoCg<CGColor> for usvg::Color {
+    fn into_cg(self) -> CGColor {
+        let color = self;
         CGColor::from_rgba(color.red, color.green, color.blue, 255)
     }
 }
 
-impl From<usvg::Rect> for CGRect {
-    fn from(rect: usvg::Rect) -> Self {
+impl IntoCg<CGRect> for usvg::Rect {
+    fn into_cg(self) -> CGRect {
+        let rect = self;
         CGRect {
             x: rect.x(),
             y: rect.y(),
@@ -20,8 +30,9 @@ impl From<usvg::Rect> for CGRect {
     }
 }
 
-impl From<usvg::BlendMode> for BlendMode {
-    fn from(blend_mode: usvg::BlendMode) -> Self {
+impl IntoCg<BlendMode> for usvg::BlendMode {
+    fn into_cg(self) -> BlendMode {
+        let blend_mode = self;
         match blend_mode {
             usvg::BlendMode::Normal => BlendMode::Normal,
             usvg::BlendMode::Multiply => BlendMode::Multiply,
@@ -43,8 +54,9 @@ impl From<usvg::BlendMode> for BlendMode {
     }
 }
 
-impl From<usvg::MaskType> for ImageMaskType {
-    fn from(mask_type: usvg::MaskType) -> Self {
+impl IntoCg<ImageMaskType> for usvg::MaskType {
+    fn into_cg(self) -> ImageMaskType {
+        let mask_type = self;
         match mask_type {
             usvg::MaskType::Luminance => ImageMaskType::Luminance,
             usvg::MaskType::Alpha => ImageMaskType::Alpha,
@@ -52,8 +64,9 @@ impl From<usvg::MaskType> for ImageMaskType {
     }
 }
 
-impl From<usvg::FillRule> for FillRule {
-    fn from(fill_rule: usvg::FillRule) -> Self {
+impl IntoCg<FillRule> for usvg::FillRule {
+    fn into_cg(self) -> FillRule {
+        let fill_rule = self;
         match fill_rule {
             usvg::FillRule::NonZero => FillRule::NonZero,
             usvg::FillRule::EvenOdd => FillRule::EvenOdd,
@@ -61,8 +74,9 @@ impl From<usvg::FillRule> for FillRule {
     }
 }
 
-impl From<usvg::TextAnchor> for SVGTextAnchor {
-    fn from(text_anchor: usvg::TextAnchor) -> Self {
+impl IntoCg<SVGTextAnchor> for usvg::TextAnchor {
+    fn into_cg(self) -> SVGTextAnchor {
+        let text_anchor = self;
         match text_anchor {
             usvg::TextAnchor::Start => SVGTextAnchor::Start,
             usvg::TextAnchor::Middle => SVGTextAnchor::Middle,
@@ -71,20 +85,23 @@ impl From<usvg::TextAnchor> for SVGTextAnchor {
     }
 }
 
-impl From<usvg::StrokeMiterlimit> for StrokeMiterLimit {
-    fn from(miterlimit: usvg::StrokeMiterlimit) -> Self {
+impl IntoCg<StrokeMiterLimit> for usvg::StrokeMiterlimit {
+    fn into_cg(self) -> StrokeMiterLimit {
+        let miterlimit = self;
         StrokeMiterLimit::new(miterlimit.get())
     }
 }
 
-impl From<usvg::StrokeWidth> for StrokeWidth {
-    fn from(stroke_width: usvg::StrokeWidth) -> Self {
+impl IntoCg<StrokeWidth> for usvg::StrokeWidth {
+    fn into_cg(self) -> StrokeWidth {
+        let stroke_width = self;
         StrokeWidth::Uniform(stroke_width.get())
     }
 }
 
-impl From<usvg::LineCap> for StrokeCap {
-    fn from(line_cap: usvg::LineCap) -> Self {
+impl IntoCg<StrokeCap> for usvg::LineCap {
+    fn into_cg(self) -> StrokeCap {
+        let line_cap = self;
         match line_cap {
             usvg::LineCap::Butt => StrokeCap::Butt,
             usvg::LineCap::Round => StrokeCap::Round,
@@ -93,8 +110,9 @@ impl From<usvg::LineCap> for StrokeCap {
     }
 }
 
-impl From<usvg::LineJoin> for StrokeJoin {
-    fn from(line_join: usvg::LineJoin) -> Self {
+impl IntoCg<StrokeJoin> for usvg::LineJoin {
+    fn into_cg(self) -> StrokeJoin {
+        let line_join = self;
         match line_join {
             usvg::LineJoin::Miter => StrokeJoin::Miter,
             usvg::LineJoin::Round => StrokeJoin::Round,
@@ -105,8 +123,9 @@ impl From<usvg::LineJoin> for StrokeJoin {
     }
 }
 
-impl From<usvg::Transform> for CGTransform2D {
-    fn from(transform: usvg::Transform) -> Self {
+impl IntoCg<CGTransform2D> for usvg::Transform {
+    fn into_cg(self) -> CGTransform2D {
+        let transform = self;
         CGTransform2D::new(
             transform.sx,
             transform.kx,
@@ -118,11 +137,12 @@ impl From<usvg::Transform> for CGTransform2D {
     }
 }
 
-impl From<usvg::Stop> for GradientStop {
-    fn from(value: usvg::Stop) -> Self {
+impl IntoCg<GradientStop> for usvg::Stop {
+    fn into_cg(self) -> GradientStop {
+        let value = self;
         GradientStop {
             offset: value.offset().get(),
-            color: value.color().into(),
+            color: value.color().into_cg(),
             // [MODEL_MISMATCH]
             // opacity: value.opacity().get(),
         }
@@ -133,27 +153,29 @@ struct UsvgStops<'a>(&'a [usvg::Stop]);
 
 impl From<UsvgStops<'_>> for Vec<GradientStop> {
     fn from(stops: UsvgStops<'_>) -> Self {
-        stops.0.iter().cloned().map(GradientStop::from).collect()
+        stops.0.iter().cloned().map(IntoCg::into_cg).collect()
     }
 }
 
-impl From<&usvg::LinearGradient> for SVGLinearGradientPaint {
-    fn from(gradient: &usvg::LinearGradient) -> Self {
+impl IntoCg<SVGLinearGradientPaint> for &usvg::LinearGradient {
+    fn into_cg(self) -> SVGLinearGradientPaint {
+        let gradient = self;
         SVGLinearGradientPaint {
             id: gradient.id().to_string(),
             x1: gradient.x1(),
             y1: gradient.y1(),
             x2: gradient.x2(),
             y2: gradient.y2(),
-            transform: gradient.transform().into(),
+            transform: gradient.transform().into_cg(),
             stops: Vec::<GradientStop>::from(UsvgStops(gradient.stops())),
-            spread_method: gradient.spread_method().into(),
+            spread_method: gradient.spread_method().into_cg(),
         }
     }
 }
 
-impl From<&usvg::RadialGradient> for SVGRadialGradientPaint {
-    fn from(gradient: &usvg::RadialGradient) -> Self {
+impl IntoCg<SVGRadialGradientPaint> for &usvg::RadialGradient {
+    fn into_cg(self) -> SVGRadialGradientPaint {
+        let gradient = self;
         SVGRadialGradientPaint {
             id: gradient.id().to_string(),
             cx: gradient.cx(),
@@ -161,24 +183,25 @@ impl From<&usvg::RadialGradient> for SVGRadialGradientPaint {
             r: gradient.r().get(),
             fx: gradient.fx(),
             fy: gradient.fy(),
-            transform: gradient.transform().into(),
+            transform: gradient.transform().into_cg(),
             stops: Vec::<GradientStop>::from(UsvgStops(gradient.stops())),
-            spread_method: gradient.spread_method().into(),
+            spread_method: gradient.spread_method().into_cg(),
         }
     }
 }
 
-impl From<&usvg::Paint> for SVGPaint {
-    fn from(paint: &usvg::Paint) -> Self {
+impl IntoCg<SVGPaint> for &usvg::Paint {
+    fn into_cg(self) -> SVGPaint {
+        let paint = self;
         match paint {
             usvg::Paint::Color(color) => SVGPaint::Solid(SVGSolidPaint {
-                color: (*color).into(),
+                color: (*color).into_cg(),
             }),
             usvg::Paint::LinearGradient(gradient) => {
-                SVGPaint::LinearGradient(gradient.as_ref().into())
+                SVGPaint::LinearGradient(gradient.as_ref().into_cg())
             }
             usvg::Paint::RadialGradient(gradient) => {
-                SVGPaint::RadialGradient(gradient.as_ref().into())
+                SVGPaint::RadialGradient(gradient.as_ref().into_cg())
             }
             // [MODEL_MISMATCH]
             // fallback to solid paint
@@ -187,15 +210,16 @@ impl From<&usvg::Paint> for SVGPaint {
     }
 }
 
-impl From<usvg::Stroke> for SVGStrokeAttributes {
-    fn from(stroke: usvg::Stroke) -> Self {
+impl IntoCg<SVGStrokeAttributes> for usvg::Stroke {
+    fn into_cg(self) -> SVGStrokeAttributes {
+        let stroke = self;
         SVGStrokeAttributes {
-            paint: stroke.paint().into(),
+            paint: stroke.paint().into_cg(),
             stroke_opacity: stroke.opacity().get(),
             stroke_width: stroke.width().get(),
-            stroke_linecap: stroke.linecap().into(),
-            stroke_linejoin: stroke.linejoin().into(),
-            stroke_miterlimit: stroke.miterlimit().into(),
+            stroke_linecap: stroke.linecap().into_cg(),
+            stroke_linejoin: stroke.linejoin().into_cg(),
+            stroke_miterlimit: stroke.miterlimit().into_cg(),
             stroke_dasharray: stroke
                 .dasharray()
                 .map(|slice| StrokeDashArray(slice.to_vec())),
@@ -203,24 +227,27 @@ impl From<usvg::Stroke> for SVGStrokeAttributes {
     }
 }
 
-impl From<&usvg::Fill> for SVGFillAttributes {
-    fn from(fill: &usvg::Fill) -> Self {
+impl IntoCg<SVGFillAttributes> for &usvg::Fill {
+    fn into_cg(self) -> SVGFillAttributes {
+        let fill = self;
         SVGFillAttributes {
-            paint: SVGPaint::from(fill.paint()),
+            paint: fill.paint().into_cg(),
             fill_opacity: fill.opacity().get(),
-            fill_rule: fill.rule().into(),
+            fill_rule: fill.rule().into_cg(),
         }
     }
 }
 
-impl From<&usvg::Stroke> for SVGStrokeAttributes {
-    fn from(stroke: &usvg::Stroke) -> Self {
-        stroke.clone().into()
+impl IntoCg<SVGStrokeAttributes> for &usvg::Stroke {
+    fn into_cg(self) -> SVGStrokeAttributes {
+        let stroke = self;
+        stroke.clone().into_cg()
     }
 }
 
-impl From<usvg::SpreadMethod> for SVGGradientSpreadMethod {
-    fn from(method: usvg::SpreadMethod) -> Self {
+impl IntoCg<SVGGradientSpreadMethod> for usvg::SpreadMethod {
+    fn into_cg(self) -> SVGGradientSpreadMethod {
+        let method = self;
         match method {
             usvg::SpreadMethod::Pad => SVGGradientSpreadMethod::Pad,
             usvg::SpreadMethod::Reflect => SVGGradientSpreadMethod::Reflect,

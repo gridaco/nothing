@@ -4,6 +4,7 @@ pub mod resolved;
 pub mod text_style;
 pub mod text_transform;
 
+use crate::backends::skia::IntoSkia;
 use crate::cg::types::TextAlign;
 use crate::vectornetwork::VectorNetwork;
 use skia_safe::textlayout;
@@ -21,7 +22,7 @@ pub fn make_paragraph_style(
 ) -> textlayout::ParagraphStyle {
     let mut ps = textlayout::ParagraphStyle::new();
     ps.set_text_direction(textlayout::TextDirection::LTR);
-    ps.set_text_align(align.into());
+    ps.set_text_align(align.into_skia());
     ps.set_apply_rounding_hack(false);
     if let Some(max_lines) = max_lines.filter(|&m| m > 0) {
         ps.set_max_lines(max_lines);

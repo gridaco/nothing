@@ -514,8 +514,8 @@ engines are cited by path in this repository (the v2 proof landed
 in-tree with gridaco/nothing#5).
 
 - Production engine (`main`): the paint vocabulary and color value in
-  [`crates/grida/src/cg/types.rs`](../../../crates/grida/src/cg/types.rs)
-  and [`crates/grida/src/cg/color.rs`](../../../crates/grida/src/cg/color.rs);
+  [`crates/cg/src/types.rs`](../../../crates/cg/src/types.rs)
+  and [`crates/cg/src/color.rs`](../../../crates/cg/src/color.rs);
   the archive schema [`format/grida.fbs`](../../../format/grida.fbs)
   (float color struct, gradient tables); the rounding archive decode in
   [`crates/grida/src/io/io_grida_fbs.rs`](../../../crates/grida/src/io/io_grida_fbs.rs);

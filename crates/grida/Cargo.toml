@@ -9,6 +9,9 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+# shared canvas-graphics vocabulary
+cg = { path = "../cg" }
+
 # skia
 skia-safe = { version = "0.93.1", features = [
   "gpu",
@@ -188,4 +191,3 @@ required-features = ["native-gl-context"]
 
 [lints]
 workspace = true
-

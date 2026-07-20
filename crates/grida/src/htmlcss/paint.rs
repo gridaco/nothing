@@ -8,8 +8,8 @@
 //!
 //! Opacity, clipping, and visibility are handled via canvas save/restore.
 
-use crate::cg::prelude::*;
 use crate::runtime::font_repository::FontRepository;
+use crate::{backends::skia::IntoSkia, cg::prelude::*};
 
 use skia_safe::textlayout::{self, FontCollection, ParagraphBuilder, ParagraphStyle};
 use skia_safe::{Canvas, ClipOp, Color, Paint, PaintStyle, PictureRecorder, Rect};
@@ -124,7 +124,7 @@ fn paint_box(
         // onto its parent using the given blend mode (CSS Compositing 1
         // §5). Apply as the layer's Skia blend mode.
         if has_blend_mode {
-            layer_paint.set_blend_mode(style.blend_mode.into());
+            layer_paint.set_blend_mode(style.blend_mode.into_skia());
         }
         if has_filter {
             if let Some(filter) = build_filter_chain(&style.filter) {

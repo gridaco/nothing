@@ -1,4 +1,7 @@
-use crate::{backends::skia::sk_matrix, cg::prelude::*};
+use crate::{
+    backends::skia::{sk_matrix, IntoSkia},
+    cg::prelude::*,
+};
 use skia_safe::gradient_shader::{Gradient, GradientColors, Interpolation};
 
 fn build_gradient_stops(
@@ -55,7 +58,7 @@ pub fn linear_gradient_paint(
     let p1 = skia_safe::Point::new(uv1.u(), uv1.v());
     let p2 = skia_safe::Point::new(uv2.u(), uv2.v());
 
-    let grad = make_gradient(&colors, &positions, gradient.tile_mode.into());
+    let grad = make_gradient(&colors, &positions, gradient.tile_mode.into_skia());
     if let Some(shader) = skia_safe::shaders::linear_gradient((p1, p2), &grad, Some(&matrix)) {
         paint.set_shader(shader);
     }
@@ -79,7 +82,7 @@ pub fn linear_gradient_shader(
     let start_point = skia_safe::Point::new(start_uv.u(), start_uv.v());
     let end_point = skia_safe::Point::new(end_uv.u(), end_uv.v());
 
-    let grad = make_gradient(&colors, &positions, gradient.tile_mode.into());
+    let grad = make_gradient(&colors, &positions, gradient.tile_mode.into_skia());
     let shader =
         skia_safe::shaders::linear_gradient((start_point, end_point), &grad, Some(&matrix))?;
 
@@ -107,7 +110,7 @@ pub fn radial_gradient_paint(
     let mut matrix = skia_safe::Matrix::scale((x, y));
     matrix.pre_concat(&sk_matrix(gradient.transform.matrix));
 
-    let grad = make_gradient(&colors, &positions, gradient.tile_mode.into());
+    let grad = make_gradient(&colors, &positions, gradient.tile_mode.into_skia());
     if let Some(shader) =
         skia_safe::shaders::radial_gradient(((0.5_f32, 0.5_f32), 0.5_f32), &grad, Some(&matrix))
     {
@@ -128,7 +131,7 @@ pub fn radial_gradient_shader(
     let mut matrix = skia_safe::Matrix::scale((x, y));
     matrix.pre_concat(&sk_matrix(gradient.transform.matrix));
 
-    let grad = make_gradient(&colors, &positions, gradient.tile_mode.into());
+    let grad = make_gradient(&colors, &positions, gradient.tile_mode.into_skia());
     let shader =
         skia_safe::shaders::radial_gradient(((0.5_f32, 0.5_f32), 0.5_f32), &grad, Some(&matrix))?;
 

@@ -347,7 +347,7 @@ pub enum FillRule {
 /// # Example
 ///
 /// ```rust
-/// use grida::cg::types::StrokeCap;
+/// use cg::types::StrokeCap;
 ///
 /// // Default cap style
 /// let default_cap = StrokeCap::default();
@@ -511,7 +511,7 @@ impl StrokeMarkerPreset {
 /// # Example
 ///
 /// ```rust
-/// use grida::cg::types::StrokeJoin;
+/// use cg::types::StrokeJoin;
 ///
 /// // Default join style
 /// let default_join = StrokeJoin::default();
@@ -582,7 +582,7 @@ pub enum StrokeJoin {
 /// # Example
 ///
 /// ```rust
-/// use grida::cg::types::StrokeMiterLimit;
+/// use cg::types::StrokeMiterLimit;
 ///
 /// let default_limit = StrokeMiterLimit::default();
 /// assert_eq!(default_limit.value(), 4.0);
@@ -719,7 +719,7 @@ pub enum CrossAxisAlignment {
 /// # Example
 ///
 /// ```rust
-/// use grida::cg::types::EdgeInsets;
+/// use cg::types::EdgeInsets;
 ///
 /// let padding = EdgeInsets::from_ltrb(8.0, 12.0, 8.0, 12.0);
 ///
@@ -930,7 +930,7 @@ impl Default for LayoutConstraints {
 /// # Example
 ///
 /// ```rust
-/// use grida::cg::types::LayoutWrap;
+/// use cg::types::LayoutWrap;
 ///
 /// // Default: no wrapping
 /// let no_wrap = LayoutWrap::default();
@@ -985,7 +985,7 @@ pub enum LayoutWrap {
 /// # Example
 ///
 /// ```rust
-/// use grida::cg::types::LayoutGap;
+/// use cg::types::LayoutGap;
 ///
 /// // Uniform spacing in both directions
 /// let uniform = LayoutGap::uniform(8.0);
@@ -1207,7 +1207,7 @@ impl Default for RectangularCornerRadius {
 ///
 /// # Examples
 /// ```rust
-/// use grida::cg::types::CornerSmoothing;
+/// use cg::types::CornerSmoothing;
 /// let smooth = CornerSmoothing::new(0.6);
 /// assert!(smooth.value() > 0.0 && smooth.value() <= 1.0);
 /// ```

@@ -1,6 +1,6 @@
 pub mod backends;
 pub mod cache;
-pub mod cg;
+pub use cg;
 pub mod embedded_fonts;
 pub mod export;
 pub mod formats;

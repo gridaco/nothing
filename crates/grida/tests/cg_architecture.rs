@@ -1,13 +1,13 @@
-//! Architectural tests for the `cg` module.
+//! Architectural tests for the `cg` crate.
 //!
-//! `cg/` is the model-agnostic leaf-type vocabulary — paints, colors,
+//! `cg` is the model-agnostic leaf-type vocabulary — paints, colors,
 //! strokes, text styles, and the SVG import IR value types. It is
-//! being prepared for standalone extraction (see the legacy seam
-//! program, gridaco/nothing#28): the closed import set enforced here
-//! is exactly what the extracted crate's `Cargo.toml` would allow —
+//! extracted under the legacy seam program (gridaco/nothing#28): the
+//! closed import set enforced here is exactly what the crate's
+//! `Cargo.toml` allows —
 //! `std`/`core`, `serde`, `math2`, and intra-`cg` items.
 //!
-//! In particular `cg/` must not know skia exists: conversions into
+//! In particular `cg` must not know skia exists: conversions into
 //! `skia_safe` types belong at the consumer boundary (`shape/`,
 //! `painter/`), never on the vocabulary types themselves.
 //!
@@ -18,7 +18,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const CG_ROOT_REL: &str = "src/cg";
+const CG_ROOT_REL: &str = "../cg/src";
 
 /// Modules of the `grida` crate (and external deps) that the cg
 /// vocabulary must never reach into. Extraction turns each of these
@@ -37,7 +37,7 @@ const FORBIDDEN: &[&str] = &[
     "crate::window",
 ];
 
-/// Known follow-ups: file-relative paths (under `src/cg/`) where a
+/// Known follow-ups: file-relative paths (under `crates/cg/src/`) where a
 /// boundary violation is acknowledged but not yet fixed. Each entry
 /// should reference an issue/comment explaining why it's deferred.
 /// Keep this list **shrinking, not growing**.
@@ -94,8 +94,8 @@ fn cg_imports_are_closed() {
     }
     if !violations.is_empty() {
         panic!(
-            "architectural rule violated for `src/cg/`:\n  {}\n\n\
-             cg/ is the model-agnostic leaf vocabulary; its import set \
+            "architectural rule violated for `crates/cg/src/`:\n  {}\n\n\
+             cg is the model-agnostic leaf vocabulary; its import set \
              is closed (std, serde, math2, intra-cg). See \
              tests/cg_architecture.rs and gridaco/nothing#28.\n\
              To allow a known temporary violation, add it to ALLOWLIST \
