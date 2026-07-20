@@ -9,6 +9,10 @@ pub(crate) struct ComparisonResult {
     pub similarity_score: f64, // 0.0 (completely different) to 1.0 (identical)
     #[allow(dead_code)] // written by the comparator; consumers now use a separately-computed value
     pub diff_percentage: f64, // percentage of pixels that differ
+    /// Integer pixel count after the comparator's threshold and AA policy.
+    pub different_pixels: u64,
+    /// Declared denominator for this comparison.
+    pub scoring_pixels: u64,
     pub error: Option<String>, // if comparison failed
 }
 
@@ -67,6 +71,8 @@ pub(crate) fn compare_images(
         return Ok(ComparisonResult {
             similarity_score: 0.0,
             diff_percentage: 100.0,
+            different_pixels: width as u64 * height as u64,
+            scoring_pixels: width as u64 * height as u64,
             error: Some(format!(
                 "Dimension mismatch: actual {}x{} vs expected {}x{}",
                 width,
@@ -156,12 +162,16 @@ pub(crate) fn compare_images(
             Ok(ComparisonResult {
                 similarity_score,
                 diff_percentage,
+                different_pixels: diff_count as u64,
+                scoring_pixels: total_pixels as u64,
                 error: None,
             })
         }
         Ok(None) => Ok(ComparisonResult {
             similarity_score: 1.0,
             diff_percentage: 0.0,
+            different_pixels: 0,
+            scoring_pixels: total_pixels as u64,
             error: None,
         }),
         Err(e) => {
@@ -170,6 +180,8 @@ pub(crate) fn compare_images(
                 Ok(ComparisonResult {
                     similarity_score: 0.0,
                     diff_percentage: 100.0,
+                    different_pixels: width as u64 * height as u64,
+                    scoring_pixels: width as u64 * height as u64,
                     error: Some(error_msg),
                 })
             } else {

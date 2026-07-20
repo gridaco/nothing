@@ -1,0 +1,130 @@
+{
+  "schema_version": 0,
+  "corpus_id": "svg-rect-path-v0",
+  "suite_id": "svg-rect-path",
+  "request": "static_base",
+  "viewport": {
+    "width": 128,
+    "height": 128
+  },
+  "background": "#ffffff",
+  "oracle_bake": "fixtures/scoreboard/svg-rect-path-v0/oracle-bake.json",
+  "fixtures": [
+    {
+      "id": "path-evenodd",
+      "source": "fixtures/scoreboard/svg-rect-path-v0/svg/path-evenodd.svg",
+      "source_sha256": "9677eabff8eb5c224482268eefd77924971dd6caacba3fdb413daab64e3b8917",
+      "oracle": "fixtures/scoreboard/svg-rect-path-v0/chromium/path-evenodd.png"
+    },
+    {
+      "id": "path-opacity",
+      "source": "fixtures/scoreboard/svg-rect-path-v0/svg/path-opacity.svg",
+      "source_sha256": "94f10a1145cd61c610dab0e725131c7dd3599a7f04cd6fd33f02dad4f8ea0bcd",
+      "oracle": "fixtures/scoreboard/svg-rect-path-v0/chromium/path-opacity.png"
+    },
+    {
+      "id": "path-solid",
+      "source": "fixtures/scoreboard/svg-rect-path-v0/svg/path-solid.svg",
+      "source_sha256": "c0a62beda0a0a3e3eebaff8ee60b413ab4c2d01e4de29f9161ed95c9b9208059",
+      "oracle": "fixtures/scoreboard/svg-rect-path-v0/chromium/path-solid.png"
+    },
+    {
+      "id": "path-transform",
+      "source": "fixtures/scoreboard/svg-rect-path-v0/svg/path-transform.svg",
+      "source_sha256": "463e5b1cbd2aa5662779160bf815dd96c0d6bec7280d2ba5d0240b504ae4b662",
+      "oracle": "fixtures/scoreboard/svg-rect-path-v0/chromium/path-transform.png"
+    },
+    {
+      "id": "rect-opacity",
+      "source": "fixtures/scoreboard/svg-rect-path-v0/svg/rect-opacity.svg",
+      "source_sha256": "656b10e5608a73b25e44d680d7aace070b61db3da83e783898b9ff7681923e16",
+      "oracle": "fixtures/scoreboard/svg-rect-path-v0/chromium/rect-opacity.png"
+    },
+    {
+      "id": "rect-overlap-order",
+      "source": "fixtures/scoreboard/svg-rect-path-v0/svg/rect-overlap-order.svg",
+      "source_sha256": "06b9485f5cbcd23b54ccc2593b033bed1ed2f653662b909b92d80d72750fd61b",
+      "oracle": "fixtures/scoreboard/svg-rect-path-v0/chromium/rect-overlap-order.png"
+    },
+    {
+      "id": "rect-rounded-elliptical",
+      "source": "fixtures/scoreboard/svg-rect-path-v0/svg/rect-rounded-elliptical.svg",
+      "source_sha256": "cf9ef86dc3caa456324bec1205cc4fc3dbb6d98fb9b255d67cd0c804e72b172e",
+      "oracle": "fixtures/scoreboard/svg-rect-path-v0/chromium/rect-rounded-elliptical.png"
+    },
+    {
+      "id": "rect-rounded-uniform",
+      "source": "fixtures/scoreboard/svg-rect-path-v0/svg/rect-rounded-uniform.svg",
+      "source_sha256": "4a420f17988f697fb8386b0cc0afad86d4d717ee9135d44fb85ebd5956c106f5",
+      "oracle": "fixtures/scoreboard/svg-rect-path-v0/chromium/rect-rounded-uniform.png"
+    },
+    {
+      "id": "rect-solid",
+      "source": "fixtures/scoreboard/svg-rect-path-v0/svg/rect-solid.svg",
+      "source_sha256": "fe936c4e2fa057d7e8c943b40ecefabc60c444556cf443c3752ce35f306d138a",
+      "oracle": "fixtures/scoreboard/svg-rect-path-v0/chromium/rect-solid.png"
+    },
+    {
+      "id": "rect-transform-matrix",
+      "source": "fixtures/scoreboard/svg-rect-path-v0/svg/rect-transform-matrix.svg",
+      "source_sha256": "28f1780bc6429d84c939fd915c9f571a567ee56c8151fe9333d09e2d53eba613",
+      "oracle": "fixtures/scoreboard/svg-rect-path-v0/chromium/rect-transform-matrix.png"
+    },
+    {
+      "id": "rect-transform-rotate",
+      "source": "fixtures/scoreboard/svg-rect-path-v0/svg/rect-transform-rotate.svg",
+      "source_sha256": "9d45e1650cafd4077c453652149bac25545a918d3c499001f9dadb52ae3a42f1",
+      "oracle": "fixtures/scoreboard/svg-rect-path-v0/chromium/rect-transform-rotate.png"
+    },
+    {
+      "id": "rect-transform-scale",
+      "source": "fixtures/scoreboard/svg-rect-path-v0/svg/rect-transform-scale.svg",
+      "source_sha256": "be4663e1b4c9eda78d943825a4e51ddbda3625f1b6144abb236abfdbe279d230",
+      "oracle": "fixtures/scoreboard/svg-rect-path-v0/chromium/rect-transform-scale.png"
+    },
+    {
+      "id": "rect-transform-skew",
+      "source": "fixtures/scoreboard/svg-rect-path-v0/svg/rect-transform-skew.svg",
+      "source_sha256": "17fdc01d159d24ab7b0abbf0b86fccc1a3333a14b417de533510e9f314df7cf5",
+      "oracle": "fixtures/scoreboard/svg-rect-path-v0/chromium/rect-transform-skew.png"
+    },
+    {
+      "id": "rect-transform-translate",
+      "source": "fixtures/scoreboard/svg-rect-path-v0/svg/rect-transform-translate.svg",
+      "source_sha256": "9669307cacd71b38e61e1689ae924c28de2e019b0c2e70b71ffa5bcfc7eb624a",
+      "oracle": "fixtures/scoreboard/svg-rect-path-v0/chromium/rect-transform-translate.png"
+    }
+  ],
+  "excluded_families": [
+    {
+      "path": "fixtures/local/**",
+      "reason_code": "ci_unavailable",
+      "reason": "Local-only corpora are not an always-available committed denominator."
+    },
+    {
+      "path": "fixtures/test-grida/**",
+      "reason_code": "chassis_no_grida_format",
+      "reason": "The chassis has no existing frozen-format entry point; a converter is Phase 5 work."
+    },
+    {
+      "path": "fixtures/test-html/**",
+      "reason_code": "chassis_no_html_entry",
+      "reason": "The chassis has no existing HTML render entry point."
+    },
+    {
+      "path": "fixtures/test-n0-xml/**",
+      "reason_code": "legacy_no_n0_xml_entry",
+      "reason": "The legacy engine has no n0 XML entry point and no model bridge may be introduced for measurement."
+    },
+    {
+      "path": "fixtures/test-svg/L0/**",
+      "reason_code": "chassis_no_general_svg_import",
+      "reason": "General SVG import is the Phase 3 capability grant, not scoreboard infrastructure."
+    },
+    {
+      "path": "fixtures/test-svg/animation/**",
+      "reason_code": "legacy_no_sample_time",
+      "reason": "The legacy engine has no exact-time animation entry point; Chromium Base projection would require source rewriting."
+    }
+  ]
+}

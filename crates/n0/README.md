@@ -81,6 +81,14 @@ resolve, draw-list, query, damage, cache, and checked-paint path. Base and
 Sample are explicit `FrameRequest` variants. The cache keys sampled values,
 not time.
 
+Diagnostic hosts that deliberately track the latest cumulative proving profile
+share `svg_animation_frame`: it retains and compiles source once, then exposes
+separate explicit authored-Base and exact-`SampleTime` entries. Both reject
+ignored or erroneous resolver intent before checked paint and return the
+ordinary `FrameProduct`. The caller still owns canvas allocation, clearing,
+I/O, cadence, and encoding. This adapter remains bounded by the direct-shape
+proving materializer; it is not general SVG import.
+
 The dated status matrix, dependency direction, and per-module responsibility
 boundaries live in [`ANIMATION.md`](./ANIMATION.md). That document is the
 implementation checkpoint; the WG profile pages remain source-language
@@ -520,7 +528,7 @@ contract is [`EFFECTIVE-VALUES.md`](./EFFECTIVE-VALUES.md).
 | stage purity + the oracle law        | (whole pipeline)           | ENG-0         | the gate's differential + determinism runs                                                                                                                                                                                        |
 | versioned source consumer seam       | link → frame               | ENG-0 / S-2   | `tests/n0_xml.rs`, `tests/n0_xml_source.rs`, `tests/n0_xml_slots.rs`, `tests/n0_xml_social_feed.rs`, `tests/paints.rs`, `tests/strokes.rs`, `tests/rectangular_strokes.rs`, `tests/text.rs`, `tests/corners.rs`, `tests/paths.rs` |
 | effective property values            | model → frame              | ENG-0/2/3     | `tests/values.rs` (empty equivalence · layout/transform · paint · bounds · visibility · query · pixels)                                                                                                                           |
-| explicit-time animation              | SVG → values → frame/cache | ANIMATION     | `../n0-model/tests/animation.rs`, `../n0-model/tests/svg_animation.rs`, `tests/animation.rs` (time · exact interpolation · strict compile · Base/Sample · query · damage · cache · pixels)                                        |
+| explicit-time animation              | SVG → values → frame/cache | ANIMATION     | `../n0-model/tests/animation.rs`, `../n0-model/tests/svg_animation.rs`, `tests/animation.rs`, `tests/svg_animation_frame.rs` (time · exact interpolation · strict compile · Base/Sample · strict host adapter · query · damage · cache · pixels)              |
 | host-to-document time mapping        | `playback_clock.rs`        | ANIMATION     | `tests/playback_clock.rs`, `tests/animation.rs` (virtual time · controls · cadence independence · endpoint behavior · direct-seek equality)                                                                                       |
 | drawlist (pure, diffable projection) | `drawlist.rs`              | ENG-2.1       | `tests/drawlist.rs` (order · pruning · color · verbatim world · determinism)                                                                                                                                                      |
 | text shaping + shared glyph layout   | `text_layout.rs`           | ENG-4.1/4.5   | `../n0-model/tests/text_layout.rs`, `tests/text.rs`                                                                                                                                                                               |
