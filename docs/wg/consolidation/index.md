@@ -43,6 +43,15 @@ docs, in order:
    entry/exit gates, the first PRs, the owner decision registry, and the
    known unknowns.
 
+**Amendment (ratified 2026-07-21):** the **[Web-First
+Amendment](./web-first.md)** revises the topology to *one engine kernel,
+source-native semantic models, one provisional resolved render contract,
+many hosts*, and moves HTML/CSS + SVG to the front. Read it with the goal
+and topology — it supersedes their "one **model**" reading (the engine
+kernel converges downstream, not at one authored model) and reorders the
+charter's phases where they conflict. It leaves every standing rule
+below intact.
+
 Reference, consulted as needed: **[the glossary](./glossary.md)** — the
 program vocabulary. Use its terms; do not mint synonyms.
 
