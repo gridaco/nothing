@@ -26,6 +26,13 @@ cargo run -p grida_dev -- https://example.com/scene.grida
 Supported formats: `.grida`, `.grida1` (JSON), `.svg`, `.png`, `.jpg`, `.jpeg`, `.webp`.
 Multi-scene files support **PageUp/PageDown** pagination. Drop new files at any time to replace the scene.
 
+### Consolidation scoreboard
+
+The `scoreboard` subcommand validates and, once owner-authorized, measures the
+legacy engine and the chassis against a declared oracle. Its corpus, sealed
+pre-ratification posture, report contract, and bless flow are documented in
+[`SCOREBOARD.md`](./SCOREBOARD.md).
+
 ### Headless GPU Benchmark
 
 The `bench` subcommand runs a headless GPU benchmark (no window) and prints per-frame timing stats. Use it to measure rendering performance reliably.

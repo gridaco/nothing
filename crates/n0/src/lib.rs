@@ -24,5 +24,6 @@ pub mod paint;
 pub mod playback_clock;
 pub mod query;
 pub mod replay;
+pub mod svg_animation_frame;
 mod text_layout;
 pub mod trace;

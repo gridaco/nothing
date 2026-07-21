@@ -305,6 +305,69 @@ jobs:
         if: steps.gate.outcome == 'failure'
         run: exit 1
 
+  scoreboard_shape:
+    name: scoreboard v0 shape
+    needs: scope
+    if: needs.scope.outputs.engine == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      FORCE_SKIA_BINARIES_DOWNLOAD: "1"
+    steps:
+      - name: Checkout head revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.scope.outputs.head }}
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libexpat1-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libgl1-mesa-dev \
+            libgles2-mesa-dev \
+            libwayland-dev \
+            libx11-dev \
+            libx11-xcb-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxinerama-dev \
+            libxrandr-dev \
+            libxxf86vm-dev \
+            mesa-common-dev
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.92.0
+
+      - name: Cache cargo build outputs
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: consolidation-scoreboard-v0
+          cache-all-crates: true
+          cache-workspace-crates: true
+          cache-on-failure: true
+
+      - name: Run scoreboard synthetic tests
+        run: cargo test --locked -p grida_dev scoreboard
+
+      - name: Validate the scoreboard corpus and renderer preflight
+        run: cargo run --locked --profile test -p grida_dev -- scoreboard check
+
   armed:
     name: armed
     needs:
@@ -313,6 +376,7 @@ jobs:
       - seam_architecture
       - legacy_pixel_sweep
       - n0_gate
+      - scoreboard_shape
     if: always()
     runs-on: ubuntu-24.04
     steps:
@@ -323,6 +387,7 @@ jobs:
           SEAM_RESULT: ${{ needs.seam_architecture.result }}
           PIXEL_RESULT: ${{ needs.legacy_pixel_sweep.result }}
           N0_RESULT: ${{ needs.n0_gate.result }}
+          SCOREBOARD_RESULT: ${{ needs.scoreboard_shape.result }}
         run: |
           if [[ "$LOCK_RESULT" != success ]]; then
             exit 1
@@ -330,7 +395,8 @@ jobs:
           if [[ "$ENGINE_SCOPE" == true ]] && \
              [[ "$SEAM_RESULT" != success || \
                 "$PIXEL_RESULT" != success || \
-                "$N0_RESULT" != success ]]; then
+                "$N0_RESULT" != success || \
+                "$SCOREBOARD_RESULT" != success ]]; then
             exit 1
           fi
           echo "All applicable consolidation gates passed."

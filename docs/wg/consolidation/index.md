@@ -46,6 +46,11 @@ docs, in order:
 Reference, consulted as needed: **[the glossary](./glossary.md)** — the
 program vocabulary. Use its terms; do not mint synonyms.
 
+Decision proposal, not yet ratified: **[the conformance-bar flip
+rule](./flip-rule.md)** — the pre-score threshold, coverage, and
+oracle-discipline proposal tracked by
+[gridaco/nothing#49](https://github.com/gridaco/nothing/issues/49).
+
 The charter is the only doc of the four that sequences work — and it
 records the *route*; the current *position* (active phase, landed PRs,
 taken decisions) is tracked on

@@ -37,7 +37,7 @@ read it before starting work.
 
 - **Migration by extraction.** A module becomes a workspace crate when its
   second consumer appears in the workspace — and not before. The landing of
-  #5 put the second consumer (n0) in-tree, arming every seam certified by
+  [gridaco/nothing#5](https://github.com/gridaco/nothing/pull/5) put the second consumer (n0) in-tree, arming every seam certified by
   the M4 extraction-readiness review.
 - **Absorption direction.** n0 absorbs the engine *role* by consuming
   crates extracted from `crates/grida` — never by copying. `crates/grida`
@@ -66,7 +66,7 @@ read it before starting work.
 
 | # | Phase | Goal | Entry gate | Exit gate |
 |---|---|---|---|---|
-| 0 | **Land + arm** | n0 on main; #5's one-time proofs become permanent required CI checks; sequencing declared where eager extractions will see it | Owner GO on #5; CI green on the tip | #5 merged `--no-ff`; CI arming PR landed (pixel-sweep subset declared, seam arch tests, lock-additions-only, wasm build, CI-hosted v2 gate baselines); every decision below filed as a tracked issue; the two long-pole docs lanes started (anchor-spec WG graduation; htmlcss font-provider study) |
+| 0 | **Land + arm** | n0 on main; [gridaco/nothing#5](https://github.com/gridaco/nothing/pull/5)'s one-time proofs become permanent required CI checks; sequencing declared where eager extractions will see it | Owner GO on gridaco/nothing#5; CI green on the tip | gridaco/nothing#5 merged `--no-ff`; CI arming PR landed (pixel-sweep subset declared, seam arch tests, lock-additions-only, wasm build, CI-hosted v2 gate baselines); every decision below filed as a tracked issue; the two long-pole docs lanes started (anchor-spec WG graduation; htmlcss font-provider study) |
 | 1 | **Vocabulary lane** (∥ 2) | One paint vocabulary | Phase 0 exit (does NOT wait for the scoreboard) | `cg` is a workspace crate (legacy consumes via re-export; sweeps byte-identical; skia-free lock becomes the crate boundary); paint-RFD conformance suite passes against BOTH cg and n0-model types via a trait harness, yielding a gap report; the two pinned RFD amendments ratified or re-pinned with named owners; D-C decided on the gap report; any adapter is empty or amendment-pinned with a deletion gate |
 | 2 | **Instrument lane** (∥ 1) | The v1-vs-n0 scoreboard, CI-hosted, with flip rules written before any score exists | Phase 0 exit; zero-bridge constraint (only existing entry points: grida_dev's render seam for v1; a callable seam generalized from n0's render bins) | Scoreboard v0 report on main: per-fixture triples (v1-vs-oracle, n0-vs-oracle, v1-vs-n0) + per-engine coverage counts over an ENUMERATED intersection corpus; CI job with regression-vs-baseline failure, bless flow, committed Chrome bakes, hard wall-clock budget; the flip rule ratified as a short WG doc (incl. the oracle-discipline clause) |
 | 3 | **SVG — first capability grant** | The SVG import IR becomes a model-agnostic crate with two real consumers; n0 gains SVG import via its own packer | Phase 1 crate cut landed AND Phase 2 exit; SVG IR crate name resolved (deferred once, not again); the crate's math vocabulary (math2 vs kurbo/n0-model-math) decided at cut | Legacy: pack.rs+grida.rs consume the crate; resvg / W3C 1.1 / oxygen-icons byte-identical. n0: packer with the dependency-direction lock (adapter depends on IR + n0-model; n0-model depends on NEITHER, arch-tested); unmappable constructs are UNSUPPORTED scoreboard rows, never shims; n0 SVG entry scores recorded |
@@ -76,10 +76,10 @@ read it before starting work.
 
 ## First three PRs after merge
 
-1. **CI arming** — promote #5's proof machinery into required main checks;
+1. **CI arming** — promote gridaco/nothing#5's proof machinery into required main checks;
    host the v2 gate baselines in CI (retiring the machine-local baselines
-   whose environmental variance #5's A/B documented). Carries the non-PR
-   obligations in its wake: the issue-filing sweep and the #9 sequencing
+   whose environmental variance gridaco/nothing#5's A/B documented). Carries the non-PR
+   obligations in its wake: the issue-filing sweep and the gridaco/nothing#9 sequencing
    declaration.
 2. **cg crate cut** — naming exercise, then `crates/grida/src/cg` becomes a
    workspace crate; legacy consumes via re-export. Gates: pixel sweeps and
@@ -94,13 +94,13 @@ read it before starting work.
 
 | id | Decision | When | Evidence required before deciding |
 |---|---|---|---|
-| GO | Merge #5 | **taken** 2026-07-19 (#5 merged as `a2d7c290`) | CI green on the tip; sweep evidence current |
+| GO | Merge gridaco/nothing#5 | **taken** 2026-07-19 (gridaco/nothing#5 merged as `a2d7c290`) | CI green on the tip; sweep evidence current |
 | AMD | Paint-RFD amendments (diamond-gradient extension; tri-state run-fill) | Phase 1 | named owner + drafted amendment text; gates D-C and adapter deletion |
 | D-C | n0-model adopts extracted cg types per-leaf vs keeps its own behind a law-equivalence mapping test | Phase 1 exit | the conformance-suite gap report |
-| FLIP | The flip rule (per-suite thresholds, coverage requirements, oracle-discipline clause) | Phase 2 — before any score exists | scoreboard v0 design + corpus enumeration |
+| FLIP | [FLIP proposal](./flip-rule.md) (unratified: per-suite thresholds, coverage requirements, oracle-discipline clause) | Phase 2 — before any score exists | scoreboard v0 design + corpus enumeration |
 | NAME | SVG IR crate name + its math vocabulary (math2 vs kurbo); also confirms the two-surface reading (import-to-document vs render-to-pixels) stated in the [topology](./topology.md) | Phase 3 entry | naming exercise per doctrine |
 | D-D | htmlcss font-provider seam (flagged open at M4) | Phase 4 HTML entry (study starts Phase 0) | the WG study |
-| D6 | Editor-core ownership: grida_editor vs n0 journal/ops ([#1](https://github.com/gridaco/nothing/issues/1) is the migration-anchor context; a dedicated D6 issue is filed in Phase 0's registry sweep) | Phase 4, concurrent lane | timeboxed spike mapping the legacy editor core's operation catalog against the graduated spec (scoped subset, not the full catalog) |
+| D6 | Editor-core ownership: grida_editor vs n0 journal/ops ([gridaco/nothing#1](https://github.com/gridaco/nothing/issues/1) is the migration-anchor context; a dedicated D6 issue is filed in Phase 0's registry sweep) | Phase 4, concurrent lane | timeboxed spike mapping the legacy editor core's operation catalog against the graduated spec (scoped subset, not the full catalog) |
 | D-H | Text-oracle identity: stay on `skparagraph@skia-0.93.1` vs fonts-backed production oracle | Phase 5 boundary only | crates/fonts contract + a differential run |
 | D-G(b) | v2 archive story: ratified n0 XML vs a future v2 binary | Phase 5 | n0 XML RFD ratification pass |
 | D-J | Format stewardship: binary storage is host-managed with engine-provided tooling (widens D-G(b) — the engine's canonical contract is the in-memory model + ops) | Phase 5 boundary, with D-G(b) | converter experience + n0 XML ratification pass |
@@ -137,13 +137,13 @@ engine families (see [goal.md](./goal.md) and
 
 ## Known unknowns (flagged honestly, priced into the phases)
 
-- The intersection-corpus size is unenumerated — scoreboard v0's first
-  deliverable, not an assumption.
+- The intersection beyond scoreboard v0's enumerated direct rect/path proving
+  shell remains unknown; the first corpus makes no general-SVG coverage claim.
 - "n0 adopts cg types" is mechanical only if resolve/paint semantics are
   bit-identical — the conformance suite exists to measure exactly that
   (gradient-stop interpolation, tile-mode edges, stroke ordering).
-- Turning n0's render bins into a callable, CI-safe render seam for the
-  scoreboard is real, priced work — not free.
+- The callable chassis render seam remains bounded to that proving shell; a
+  general SVG entry point is Phase 3 capability-grant work.
 - The full byte-identical sweeps cannot run at fidelity in CI (untracked
   `fixtures/local` corpora); the CI-arming PR must encode a *declared
   subset* and name the local-only suites per-PR, not pretend.

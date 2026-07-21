@@ -13,6 +13,7 @@ grida = { path = "../grida", features = [
   "native-clock-tick",
   "native-gl-context",
 ] }
+n0 = { path = "../n0" }
 fonts = { path = "../fonts", features = ["webfonts"] }
 math2 = { path = "../math2" }
 anyhow = "1.0"
@@ -37,6 +38,9 @@ skia-safe = { version = "0.93.1", features = [
 ] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
+sha2 = "0.10"
+quick-xml = "0.37"
+tempfile = "3"
 image = { version = "0.25", default-features = false, features = [
   "png",
   "jpeg",

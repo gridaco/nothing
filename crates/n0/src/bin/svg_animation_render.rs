@@ -4,18 +4,14 @@
 //! The engine emits exact-time PNG samples. Video/GIF assembly remains host
 //! tooling (for example ffmpeg), not a semantic engine dependency.
 
-use n0::frame::{self, FrameRequest};
 use n0::paint::PaintCtx;
+use n0::svg_animation_frame;
 use n0_model::animation::SampleTime;
-use n0_model::math::Affine;
-use n0_model::resolve::{Report, ResolveOptions};
-use n0_model::svg_animation::{CompiledSvgAnimation, SourceSnapshot, SvgAnimationSource};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use skia_safe::{surfaces, Color, EncodedImageFormat};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const DEFAULT_FPS: u64 = 50;
@@ -157,21 +153,6 @@ fn checked_render_work(width: i32, height: i32, frame_count: u64) -> Result<(), 
     Ok(())
 }
 
-fn ensure_resolved_without_errors(reports: &[Report]) -> Result<(), String> {
-    for report in reports {
-        match report {
-            Report::Clamped { .. } => {}
-            Report::IgnoredByRule { node, field, rule }
-            | Report::ErrorByRule { node, field, rule } => {
-                return Err(format!(
-                    "node {node} could not resolve `{field}` while rendering animation: {rule}"
-                ));
-            }
-        }
-    }
-    Ok(())
-}
-
 fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     let mut output = String::with_capacity(digest.len() * 2);
@@ -296,16 +277,6 @@ impl Drop for StagingDirectory {
     }
 }
 
-fn compile_latest_profile(
-    identity: impl Into<Arc<str>>,
-    source: impl Into<Arc<str>>,
-) -> Result<CompiledSvgAnimation, String> {
-    SvgAnimationSource::parse(SourceSnapshot::new(identity, source))
-        .map_err(|error| error.to_string())?
-        .into_compiled_latest()
-        .map_err(|error| error.to_string())
-}
-
 fn run() -> Result<(), String> {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
     let [input, output, rest @ ..] = args.as_slice() else {
@@ -325,7 +296,8 @@ fn run() -> Result<(), String> {
     let input_path = Path::new(input);
     let source = std::fs::read_to_string(input_path)
         .map_err(|error| format!("read {}: {error}", input_path.display()))?;
-    let compiled = compile_latest_profile(input_path.display().to_string(), source)?;
+    let compiled = svg_animation_frame::compile_latest(input_path.display().to_string(), source)
+        .map_err(|error| error.to_string())?;
     let (viewport_width, viewport_height) = compiled.viewport();
     let width = raster_extent(viewport_width, "SVG width")?;
     let height = raster_extent(viewport_height, "SVG height")?;
@@ -333,34 +305,21 @@ fn run() -> Result<(), String> {
 
     let output = Path::new(output);
     let staging = StagingDirectory::create(output)?;
-    let options = ResolveOptions {
-        viewport: (viewport_width, viewport_height),
-        ..Default::default()
-    };
     let paint_ctx = PaintCtx::default();
     let mut csv = String::from("frame,time_ns,file,sha256,bytes\n");
     let mut frame_records = Vec::with_capacity(plan.frame_count as usize);
 
     for PlannedFrame { index, time_ns } in plan.frames() {
-        let product = frame::resolve_and_build_request(
-            compiled.document(),
-            FrameRequest::Sample {
-                program: compiled.animation(),
-                time: SampleTime::from_nanoseconds(time_ns),
-            },
-            &options,
-            &paint_ctx,
-        )
-        .map_err(|error| format!("frame {index} at {time_ns}ns failed: {error}"))?;
-        ensure_resolved_without_errors(&product.resolved().reports)
-            .map_err(|error| format!("frame {index} at {time_ns}ns failed: {error}"))?;
-
         let mut surface = surfaces::raster_n32_premul((width, height))
             .ok_or_else(|| format!("could not allocate {width}x{height} raster surface"))?;
         surface.canvas().clear(Color::TRANSPARENT);
-        product
-            .execute(surface.canvas(), &Affine::IDENTITY, &paint_ctx)
-            .map_err(|error| format!("frame {index} at {time_ns}ns failed: {error}"))?;
+        svg_animation_frame::render_sample(
+            surface.canvas(),
+            &compiled,
+            SampleTime::from_nanoseconds(time_ns),
+            &paint_ctx,
+        )
+        .map_err(|error| format!("frame {index} at {time_ns}ns failed: {error}"))?;
 
         let file_name = format!("frame-{index:04}.png");
         let file = staging.path().join(&file_name);
@@ -448,7 +407,7 @@ mod tests {
 
     #[test]
     fn offline_host_compiles_the_latest_cumulative_profile() {
-        let compiled = compile_latest_profile(
+        let compiled = svg_animation_frame::compile_latest(
             "renderer-test.svg",
             r##"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="60">
   <rect x="0" y="0" width="10" height="10" fill="#102030">

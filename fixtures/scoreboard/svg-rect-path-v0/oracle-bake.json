@@ -1,0 +1,92 @@
+{
+  "schema_version": 0,
+  "corpus_id": "svg-rect-path-v0",
+  "corpus_manifest_sha256": "dec1b253ab1ded5f2243169b3272ba09d30cf76768b42e14a495cb05d5de9b21",
+  "kind": "chromium",
+  "browser_version": "149.0.7827.55",
+  "bake_script_sha256": "d82a207c051803881011f4599edf1c7ccda7bbaa3d928a3d85c5fa76239f5378",
+  "capture": {
+    "width": 128,
+    "height": 128,
+    "device_scale_factor": 1,
+    "omit_background": true,
+    "source_transport": "data-url-from-hashed-bytes",
+    "source_mutation": false,
+    "style_injection": false,
+    "animation_control": false,
+    "javascript_enabled": false,
+    "network_enabled": false
+  },
+  "fixtures": [
+    {
+      "id": "path-evenodd",
+      "source_sha256": "9677eabff8eb5c224482268eefd77924971dd6caacba3fdb413daab64e3b8917",
+      "oracle_sha256": "b13103792075371d2bd472ec856a1f939fa805a4a6111225534727663b9f84fd"
+    },
+    {
+      "id": "path-opacity",
+      "source_sha256": "94f10a1145cd61c610dab0e725131c7dd3599a7f04cd6fd33f02dad4f8ea0bcd",
+      "oracle_sha256": "8dbbd14d51432e01382759a51f5e26b5e8a65a0940001e7a91ad135e55c3ebdb"
+    },
+    {
+      "id": "path-solid",
+      "source_sha256": "c0a62beda0a0a3e3eebaff8ee60b413ab4c2d01e4de29f9161ed95c9b9208059",
+      "oracle_sha256": "79b4eccb90a81daf67b77aa8fe5e071d92981f8834eaeac6628f9586c28138de"
+    },
+    {
+      "id": "path-transform",
+      "source_sha256": "463e5b1cbd2aa5662779160bf815dd96c0d6bec7280d2ba5d0240b504ae4b662",
+      "oracle_sha256": "4c386c548b83bc9f7fb68d8ef5d6d480c804dfc177f6db10fbf010f26d620f5a"
+    },
+    {
+      "id": "rect-opacity",
+      "source_sha256": "656b10e5608a73b25e44d680d7aace070b61db3da83e783898b9ff7681923e16",
+      "oracle_sha256": "4b3a667b482a1a1b182ec7849f20423cefac55bcb0778a75fa3af4ec467adae3"
+    },
+    {
+      "id": "rect-overlap-order",
+      "source_sha256": "06b9485f5cbcd23b54ccc2593b033bed1ed2f653662b909b92d80d72750fd61b",
+      "oracle_sha256": "6f3278366f459cfe14dee4f47df3ee01038cabc2a9e3c5b360116c61667754e4"
+    },
+    {
+      "id": "rect-rounded-elliptical",
+      "source_sha256": "cf9ef86dc3caa456324bec1205cc4fc3dbb6d98fb9b255d67cd0c804e72b172e",
+      "oracle_sha256": "0f40afc5bde1d3c53e3d6c5eb0c5c9e41e36d6fe7b29a4d487f6fdc2c854eb37"
+    },
+    {
+      "id": "rect-rounded-uniform",
+      "source_sha256": "4a420f17988f697fb8386b0cc0afad86d4d717ee9135d44fb85ebd5956c106f5",
+      "oracle_sha256": "ec8e7e509fcdc59499a7ca1c655029c37c7c8bef1a3234052234016a84904fb5"
+    },
+    {
+      "id": "rect-solid",
+      "source_sha256": "fe936c4e2fa057d7e8c943b40ecefabc60c444556cf443c3752ce35f306d138a",
+      "oracle_sha256": "865be874f89835dba9f0fb6764729a32b036d31664b5cbe6491191f15ff772b8"
+    },
+    {
+      "id": "rect-transform-matrix",
+      "source_sha256": "28f1780bc6429d84c939fd915c9f571a567ee56c8151fe9333d09e2d53eba613",
+      "oracle_sha256": "979d628b6ff552d9a6c558c92cf5a34902f783e95013096b32027ad2b74886ba"
+    },
+    {
+      "id": "rect-transform-rotate",
+      "source_sha256": "9d45e1650cafd4077c453652149bac25545a918d3c499001f9dadb52ae3a42f1",
+      "oracle_sha256": "3310aa08157133f81b7dcb49b71f78153eb1b469e6cd3fd2b43dff209f48f967"
+    },
+    {
+      "id": "rect-transform-scale",
+      "source_sha256": "be4663e1b4c9eda78d943825a4e51ddbda3625f1b6144abb236abfdbe279d230",
+      "oracle_sha256": "9d13cbeff18fc66d6efea8361d8042e4db250399abc943f3b6836f96f9cb7190"
+    },
+    {
+      "id": "rect-transform-skew",
+      "source_sha256": "17fdc01d159d24ab7b0abbf0b86fccc1a3333a14b417de533510e9f314df7cf5",
+      "oracle_sha256": "067ed917f7d2173aa4c4cc7129b6f0172d717888c6c6baab73a4af0e1b57ec9e"
+    },
+    {
+      "id": "rect-transform-translate",
+      "source_sha256": "9669307cacd71b38e61e1689ae924c28de2e019b0c2e70b71ffa5bcfc7eb624a",
+      "oracle_sha256": "ddcaaceb0d8830de236369463890b5e8189258f965f15bd76ce1b16acfe8644a"
+    }
+  ]
+}

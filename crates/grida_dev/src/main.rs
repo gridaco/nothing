@@ -9,6 +9,7 @@ use grida_dev::platform::native_demo::run_demo_window_with_drop;
 mod bench;
 mod grida_file;
 mod reftest;
+mod scoreboard;
 use image::image_dimensions;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -60,6 +61,8 @@ enum Command {
     /// Benchmark static image export (PNG/JPEG) for specific nodes.
     /// Measures per-stage timings and supports pixel-exact comparison.
     ExportBench(bench::ExportBenchArgs),
+    /// Validate or operate the consolidation conformance scoreboard.
+    Scoreboard(scoreboard::ScoreboardArgs),
 }
 
 #[tokio::main]
@@ -73,6 +76,7 @@ async fn main() -> Result<()> {
         Some(Command::BenchReport(args)) => bench::run_bench_report(args, loader).await?,
         Some(Command::LoadBench(args)) => bench::run_load_bench(args, loader).await?,
         Some(Command::ExportBench(args)) => bench::run_export_bench(args, loader).await?,
+        Some(Command::Scoreboard(args)) => scoreboard::run(args)?,
         None => run_interactive(cli.file, cli.system_fonts).await?,
     }
     Ok(())
