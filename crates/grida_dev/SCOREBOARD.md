@@ -52,13 +52,13 @@ cargo run -p grida_dev -- scoreboard bless
 The shared path options are `--corpus`, `--report`, and `--baseline` where
 applicable. `bless` also accepts `--candidate`. Defaults are:
 
-| Artifact | Default |
-|---|---|
-| Corpus | `fixtures/scoreboard/svg-rect-path-v0/corpus.json` |
-| Report | `target/scoreboard/report-v0.json` |
-| Baseline | `fixtures/scoreboard/svg-rect-path-v0/baseline-v0.json` |
-| Baseline candidate | `target/scoreboard/baseline-v0.candidate.json` |
-| Hard run budget | 120 seconds |
+| Artifact           | Default                                                 |
+| ------------------ | ------------------------------------------------------- |
+| Corpus             | `fixtures/scoreboard/svg-rect-path-v0/corpus.json`      |
+| Report             | `target/scoreboard/report-v0.json`                      |
+| Baseline           | `fixtures/scoreboard/svg-rect-path-v0/baseline-v0.json` |
+| Baseline candidate | `target/scoreboard/baseline-v0.candidate.json`          |
+| Hard run budget    | 120 seconds                                             |
 
 The baseline is intentionally absent before the first authorized score. The
 ratified active configuration must declare that absence explicitly; after the
