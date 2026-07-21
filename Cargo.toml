@@ -13,6 +13,8 @@ members = [
   "crates/n0",
   "crates/n0-model",
   "crates/n0_dev",
+  "crates/rframe",
+  "crates/websem",
 ]
 
 # Inherited only by crates that opt in via `.workspace = true` (currently n0).

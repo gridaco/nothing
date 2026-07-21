@@ -4657,6 +4657,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rframe"
+version = "0.0.0"
+dependencies = [
+ "math2",
+ "n0-model",
+ "skia-safe",
+]
+
+[[package]]
 name = "rgb"
 version = "0.8.52"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6473,6 +6482,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b2878ef029c47c6e8cf779119f20fcf52bde7ad42a731b2a304bc221df17571e"
 dependencies = [
  "rustls-pki-types",
+]
+
+[[package]]
+name = "websem"
+version = "0.0.0"
+dependencies = [
+ "csscascade",
+ "math2",
+ "rframe",
+ "stylo",
 ]
 
 [[package]]

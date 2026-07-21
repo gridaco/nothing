@@ -1,0 +1,20 @@
+{
+  "schema_version": 0,
+  "fixture": "svg-currentcolor-rect",
+  "kind": "chromium",
+  "browser_version": "149.0.7827.55",
+  "bake_script_sha256": "cde52e3f8bfee16bcc4da2a1d6f241dfdcf86cfd55bbc21425ef5bdbfab76d6d",
+  "source": "svg-currentcolor-rect.svg",
+  "source_sha256": "f7d881acca20c0e12bc6b8d2c6db3d6a821f3b723efeaf80e00ddeac3d4f4ecf",
+  "oracle": "chromium/svg-currentcolor-rect.png",
+  "oracle_sha256": "6f4bc09437add7d83beb4429ffec5327b45c94ae909eab27f1225d6f82451d29",
+  "capture": {
+    "width": 64,
+    "height": 64,
+    "device_scale_factor": 1,
+    "omit_background": true,
+    "source_transport": "data-url-from-file-bytes",
+    "javascript_enabled": false,
+    "network_enabled": false
+  }
+}

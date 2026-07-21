@@ -1,0 +1,21 @@
+[package]
+name = "websem"
+version = "0.0.0"
+edition = "2024"
+description = "PROVISIONAL, INTERNAL, BREAKABLE. The Web-first track's Web semantic front-end: one namespace-aware document + one Stylo cascade + one SVG semantic compiler, lowering HTML-with-inline-SVG and standalone SVG to the source-neutral `rframe::Frame`. No I/O, no network, no legacy import path."
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+# The source-neutral resolved render contract this crate produces.
+rframe = { path = "../rframe" }
+# Neutral geometry.
+math2 = { path = "../math2" }
+# The one namespace-aware document + the one (Stylo) browser-grade cascade.
+csscascade = { path = "../csscascade" }
+# Read computed values (e.g. `color`) out of the shared cascade. Imported as `style`.
+stylo = "0.16"
+
+[lints]
+workspace = true
