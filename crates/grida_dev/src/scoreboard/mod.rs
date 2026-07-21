@@ -478,6 +478,11 @@ mod tests {
     }
 
     #[test]
+    fn production_rule_stays_absent_until_flip_is_ratified() {
+        assert!(active_rule().is_none());
+    }
+
+    #[test]
     fn unratified_rule_refuses_before_the_render_operation() {
         let called = Cell::new(false);
         let error = with_ratified_rule(None, |_| {
