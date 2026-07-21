@@ -63,7 +63,9 @@ oracle-discipline proposal tracked by
 Findings (grounded evidence for open decisions): **[SVG paint in the
 shared cascade](./svg-paint-cascade.md)** — why SVG `fill`/`stroke`
 cannot come from the shared cascade under the compiled Stylo engine, and
-the options that gates.
+the options that gates; **[where n0 joins the shared
+downstream](./n0-join-point.md)** — a per-fact gap analysis showing
+visual primitives converge high while shaped text is the deciding fact.
 
 The charter is the only doc of the four that sequences work — and it
 records the *route*; the current *position* (active phase, landed PRs,

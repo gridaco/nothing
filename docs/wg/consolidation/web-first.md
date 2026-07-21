@@ -141,6 +141,10 @@ settled here:
   exercises the shared downstream to keep it source-neutral; that canary
   is an invariant probe, **not** an n0 product milestone, and n0 XML
   capability work stays parked (kept building and tested, not expanded).
+  A gap analysis against n0's real downstream facts — the
+  [n0-join-point finding](./n0-join-point.md) — reframes this as a
+  *per-fact* boundary (visual primitives converge high; shaped text is the
+  deciding fact) and names the spike that would settle it.
 - **A generic frontend trait** — none is published or stabilized yet.
   Concrete data must be shaped by at least two real producers first.
 - **The leaf-vocabulary seat** — where the neutral value vocabulary
