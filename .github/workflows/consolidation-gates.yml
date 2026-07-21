@@ -366,7 +366,7 @@ jobs:
         run: cargo test --locked -p grida_dev scoreboard
 
       - name: Validate the scoreboard corpus and renderer preflight
-        run: cargo run --locked -p grida_dev -- scoreboard check
+        run: cargo run --locked --profile test -p grida_dev -- scoreboard check
 
   armed:
     name: armed
