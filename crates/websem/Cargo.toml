@@ -7,10 +7,6 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
-[[example]]
-name = "render"
-test = true
-
 [dependencies]
 # The source-neutral resolved render contract this crate produces. The normal
 # front-end edge is backend-free; tests/examples opt into the painter below.
@@ -23,13 +19,13 @@ csscascade = { path = "../csscascade" }
 stylo = "0.16"
 
 [dev-dependencies]
-# The thin render example and pixel gates exercise the one Skia painter. This
-# does not widen websem's normal library dependency graph.
+# Pixel gates exercise the one Skia painter. This does not widen websem's
+# normal library dependency graph.
 rframe = { path = "../rframe", features = ["skia"] }
-# Transitional adoption edge for the thin render host. The mature Web
-# renderer remains backend-coupled while its semantic facts are lowered into
-# the chassis in later gated cuts; it is deliberately not a normal websem
-# library dependency.
+# Crate-cut debt: these two declarations became unused when the render host
+# moved to n0_cli. They remain for this crate-addition commit because the
+# mandatory Cargo.lock additions-only gate forbids removing their existing
+# lock-entry lines in the same cut. Subtract them after the crate cut lands.
 htmlcss = { path = "../htmlcss" }
 skia-safe = { version = "=0.93.1", features = [
   "gpu",

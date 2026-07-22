@@ -3313,6 +3313,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "n0_cli"
+version = "0.0.0"
+dependencies = [
+ "htmlcss",
+ "skia-safe",
+]
+
+[[package]]
 name = "n0_dev"
 version = "0.0.0"
 dependencies = [

@@ -25,14 +25,15 @@ oracle with zero differing pixels. The gate also validates enumeration and
 provenance and double-runs both raw raster and PNG encoding (see
 `crates/websem/tests/reftest_oracle.rs`).
 
-Render a primitive from the command line through the prototype pipeline
-(`websem` compile → `rframe::Frame` → PNG), a thin host. The patrolled inputs
-under `unsupported/` fail explicitly; arbitrary SVG outside the closed suite
-is not yet capability coverage:
+Render a primitive through the `n0` product command and the adopted mature Web
+renderer. This is a manual host-integration path, not the proving shell's
+Chromium oracle gate. The patrolled inputs under `unsupported/` still describe
+the narrower `websem → rframe::Frame` proving shell; arbitrary SVG outside the
+closed suite is not capability coverage for that shell:
 
 ```sh
-cargo run -p websem --example render -- \
-  fixtures/web-first/svg-currentcolor-rect.svg /tmp/out.png
+cargo run -p n0_cli --bin n0 -- \
+  fixtures/web-first/svg-currentcolor-rect.svg /tmp/out.png 64x64
 ```
 
 ## Why `color` + `fill="currentColor"`, not `fill:#16a34a` directly

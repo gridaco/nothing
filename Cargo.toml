@@ -13,6 +13,7 @@ members = [
   "crates/math2",
   "crates/n0",
   "crates/n0-model",
+  "crates/n0_cli",
   "crates/n0_dev",
   "crates/rframe",
   "crates/websem",

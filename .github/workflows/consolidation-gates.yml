@@ -146,6 +146,7 @@ jobs:
           cargo test --locked -p htmlcss \
             --test architecture \
             --test svg_architecture
+          cargo test --locked -p n0_cli --test architecture
 
   legacy_pixel_sweep:
     name: legacy pixel sweep

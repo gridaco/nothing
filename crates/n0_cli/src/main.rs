@@ -1,23 +1,23 @@
-//! A thin CLI host for the mature static Web renderer: render an SVG or HTML
-//! document (including inline SVG) to a PNG.
+//! The thin `n0` CLI host for the mature static Web renderer: render an SVG or
+//! HTML document (including inline SVG) to a PNG.
 //!
-//! This host is the executable adoption seam for the renderer extracted from
-//! `grida`; it is not evidence that the mature semantics already lower through
-//! `rframe` or the final chassis. Meaning remains in the extracted `htmlcss`
-//! implementation. The host owns only arguments, file I/O, an explicit raster
-//! size (also used as the standalone-SVG container size), ambient system-font
-//! selection, CPU rasterization, and PNG encode. It intentionally accepts only
-//! self-contained files today: local/remote images and external stylesheets are
-//! not resolved. Directory input and non-PNG output are not yet admitted. The
-//! existing `websem -> rframe` proving-shell tests remain separate.
+//! This host is the executable adoption seam for the mature renderer. It does
+//! not convert Web sources into the n0 authored model, and it is not evidence
+//! that the mature semantics already lower through `rframe` or the final
+//! chassis. Meaning remains in `htmlcss`. The host owns only arguments, file
+//! I/O, an explicit raster size (also used as the standalone-SVG container
+//! size), ambient system-font selection, CPU rasterization, and PNG encode.
+//! It intentionally accepts only self-contained files today: local/remote
+//! images and external stylesheets are not resolved. Directory input and
+//! non-PNG output are not yet admitted.
 //!
 //! Usage:
-//!   cargo run -p websem --example render -- <input.svg|input.html> <out.png> <WxH>
+//!   cargo run -p n0_cli --bin n0 -- <input.svg|input.html> <out.png> <WxH>
 //!
 //! Examples:
-//!   cargo run -p websem --example render -- \
+//!   cargo run -p n0_cli --bin n0 -- \
 //!     fixtures/test-svg/L0/basic-shapes.svg /tmp/shapes.png 500x500
-//!   cargo run -p websem --example render -- \
+//!   cargo run -p n0_cli --bin n0 -- \
 //!     fixtures/test-html/L0/svg-inline-basic.html /tmp/page.png 800x600
 
 use std::path::Path;
@@ -53,7 +53,7 @@ fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.len() != 3 {
         eprintln!(
-            "usage: render <input.svg|input.html> <out.png> <WxH>\n\
+            "usage: n0 <input.svg|input.html> <out.png> <WxH>\n\
              renders the extracted static Web implementation to a CPU PNG."
         );
         return ExitCode::from(2);
@@ -167,6 +167,50 @@ fn picture_to_png(picture: &Picture, width: i32, height: i32) -> Result<Vec<u8>,
 #[cfg(test)]
 mod tests {
     use super::*;
+    use skia_safe::image::CachingHint;
+    use skia_safe::{AlphaType, ColorType, Data, IPoint, Image, ImageInfo};
+
+    struct TestRaster {
+        width: i32,
+        height: i32,
+        pixels: Vec<u8>,
+    }
+
+    impl TestRaster {
+        fn at(&self, x: i32, y: i32) -> [u8; 4] {
+            let offset = ((y * self.width + x) * 4) as usize;
+            self.pixels[offset..offset + 4]
+                .try_into()
+                .expect("RGBA pixel")
+        }
+    }
+
+    fn decode_png(bytes: &[u8]) -> Option<TestRaster> {
+        let image = Image::from_encoded(Data::new_copy(bytes))?;
+        let width = image.width();
+        let height = image.height();
+        let info = ImageInfo::new(
+            (width, height),
+            ColorType::RGBA8888,
+            AlphaType::Unpremul,
+            None,
+        );
+        let row_bytes = width as usize * 4;
+        let mut pixels = vec![0; row_bytes * height as usize];
+        image
+            .read_pixels(
+                &info,
+                &mut pixels,
+                row_bytes,
+                IPoint::new(0, 0),
+                CachingHint::Disallow,
+            )
+            .then_some(TestRaster {
+                width,
+                height,
+                pixels,
+            })
+    }
 
     #[test]
     fn input_and_output_contract_is_strict() {
@@ -214,8 +258,8 @@ mod tests {
                 .unwrap_or_else(|error| panic!("second render {relative}: {error}"));
             assert_eq!(first, second, "{relative} must be byte-deterministic");
 
-            let raster = rframe::decode_png(&first)
-                .unwrap_or_else(|| panic!("decode rendered PNG for {relative}"));
+            let raster =
+                decode_png(&first).unwrap_or_else(|| panic!("decode rendered PNG for {relative}"));
             assert_eq!((raster.width, raster.height), size, "{relative} dimensions");
             assert!(
                 raster.pixels.chunks_exact(4).any(|pixel| pixel[3] != 0),
@@ -249,7 +293,7 @@ mod tests {
             }
 
             let output = std::env::temp_dir().join(format!(
-                "websem-render-example-{}-{}.png",
+                "n0-cli-render-{}-{}.png",
                 std::process::id(),
                 match kind {
                     SourceKind::Html => "html",
