@@ -91,6 +91,19 @@ pub fn render(frame: &Frame, width: i32, height: i32) -> Raster {
     raster(&drawlist::build(frame), width, height)
 }
 
+/// Render a [`Frame`] and encode it as PNG bytes — the downstream plus
+/// encoding, for a host that just wants a file to write.
+pub fn render_png(frame: &Frame, width: i32, height: i32) -> Vec<u8> {
+    let mut surface = surfaces::raster_n32_premul((width, height)).expect("raster surface");
+    surface.canvas().clear(SkColor::TRANSPARENT);
+    paint(surface.canvas(), &drawlist::build(frame));
+    let image = surface.image_snapshot();
+    skia_safe::encode::image(None, &image, skia_safe::EncodedImageFormat::PNG, None)
+        .expect("encode PNG")
+        .as_bytes()
+        .to_vec()
+}
+
 /// Decode PNG bytes into an RGBA8888 [`Raster`] (for comparing against a
 /// committed oracle). Returns `None` if the bytes are not a decodable image.
 pub fn decode_png(bytes: &[u8]) -> Option<Raster> {

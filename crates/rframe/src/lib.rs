@@ -23,4 +23,4 @@ pub mod paint;
 
 pub use drawlist::{DrawItem, DrawList};
 pub use frame::{Color, Frame, FrameNode, Geometry, NodeId, Paint, PaintStack};
-pub use paint::{Raster, decode_png, raster, render};
+pub use paint::{Raster, decode_png, raster, render, render_png};

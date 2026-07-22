@@ -19,6 +19,15 @@ Probe expectation: every pixel of the oracle is `#16a34a` (opaque). The
 `rframe` render of both fixtures must match it exactly (see
 `crates/websem/tests/reftest_oracle.rs` and `equivalence.rs`).
 
+Render either fixture from the command line through the prototype pipeline
+(`websem` compile → `rframe::Frame` → PNG) — a thin host; unsupported
+constructs fail explicitly:
+
+```sh
+cargo run -p websem --example render -- \
+  fixtures/web-first/svg-currentcolor-rect.svg /tmp/out.png
+```
+
 ## Why `color` + `fill="currentColor"`, not `fill:#16a34a` directly
 
 The workspace compiles Stylo with the **servo** engine, which omits the
