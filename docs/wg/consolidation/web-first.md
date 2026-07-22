@@ -136,17 +136,21 @@ New edges this amendment draws, beyond the standing non-goals it inherits
 Three questions are explicitly left to a later evidence spike, not
 settled here:
 
-- **D-M: n0's join point** — whether n0 emits the common resolved contract,
-  or
-  joins only at the drawlist boundary. A deliberately tiny n0 canary
+- **D-M: n0's join point** — whether n0 emits the common resolved contract
+  into one compiler/private drawlist/executor, or keeps its own resolved form,
+  compiler, private drawlist, and executor while sharing only the leaf-paint
+  vocabulary/realization utilities and raster backend. A deliberately tiny n0 canary
   exercises the shared downstream to keep it source-neutral; that canary
   is an invariant probe, **not** an n0 product milestone, and n0 XML
   capability work stays parked (kept building and tested, not expanded).
   A gap analysis against n0's real downstream facts — the
   [n0-join-point finding](./n0-join-point.md) — reframes this as a
-  *per-fact* boundary (visual primitives converge high; shaped text is the
-  deciding fact) and names the spike that would settle it. D-M is coupled to
-  D-C's paint/stroke gap report and cannot be inferred from the canary.
+  staged, *per-fact* boundary: glyphless visual primitives are high-join
+  candidates subject to a vector-input equivalence and mixed-composition spike,
+  while shaped text remains a later stage. A vector-stage decision may proceed
+  independently only if the spike proves one orchestration seam can interleave
+  its result with fact kinds whose join is still open. D-M is coupled to D-C's
+  paint/stroke gap report and cannot be inferred from the canary.
 - **A generic frontend trait** — none is published or stabilized yet.
   Concrete data must be shaped by at least two real producers first.
 - **D-M: the leaf-vocabulary seat** — where the neutral value vocabulary

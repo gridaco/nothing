@@ -65,7 +65,12 @@ shared cascade](./svg-paint-cascade.md)** — why SVG `fill`/`stroke`
 cannot come from the shared cascade under the compiled Stylo engine, and
 the options that gates; **D-M — [where n0 joins the shared
 downstream](./n0-join-point.md)** — a per-fact gap analysis showing
-visual primitives converge high while shaped text is the deciding fact.
+glyphless visual primitives are high-join candidates while shaped text remains
+a later stage, independent only if mixed-fact composition is proved; and
+**D-M adoption patrol — [how the mature Web renderer enters the
+chassis](./web-renderer-adoption.md)** — which Web capability is reusable,
+which legacy topology must not cross, and why the proving shell must not grow
+into a third engine.
 
 The charter is the only doc of the four that sequences work — and it
 records the *route*; the current *position* (active phase, landed PRs,
