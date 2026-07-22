@@ -11,6 +11,7 @@ the HTML→SVG boundary through one browser-grade cascade.**
 | --- | --- |
 | `html-inline-svg-currentcolor-rect.html` | HTML whose `<style> .mark { color:#16a34a }` cascades to a `<rect class="mark">` inside inline `<svg>`. |
 | `svg-currentcolor-rect.svg` | The equivalent standalone SVG (carries `color` via an inline `style`). Renders identically. |
+| `html-webpage-mockup.html` | A webpage-*design* (header / hero / cards / footer) expressed as 27 inline-SVG rects; the brand purple cascades from the HTML `<style>` via `fill="currentColor"`. Guarded by `crates/websem/tests/webpage_mockup.rs`. Not a real HTML/CSS layout — the slice renders solid-fill `<rect>` only. |
 | `chromium/svg-currentcolor-rect.png` | Committed Chromium oracle (64×64, all `#16a34a`), baked at deviceScaleFactor=1. |
 | `oracle-bake.json` | Bake provenance (browser version + sha256 of source, oracle, and bake script). |
 | `bake_chromium.ts` | Reproduces the oracle. Run: `pnpm -C packages/grida-reftest exec tsx "$(pwd)/fixtures/web-first/bake_chromium.ts"`. |
