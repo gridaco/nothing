@@ -136,7 +136,8 @@ New edges this amendment draws, beyond the standing non-goals it inherits
 Three questions are explicitly left to a later evidence spike, not
 settled here:
 
-- **n0's join point** — whether n0 emits the common resolved contract, or
+- **D-M: n0's join point** — whether n0 emits the common resolved contract,
+  or
   joins only at the drawlist boundary. A deliberately tiny n0 canary
   exercises the shared downstream to keep it source-neutral; that canary
   is an invariant probe, **not** an n0 product milestone, and n0 XML
@@ -144,18 +145,20 @@ settled here:
   A gap analysis against n0's real downstream facts — the
   [n0-join-point finding](./n0-join-point.md) — reframes this as a
   *per-fact* boundary (visual primitives converge high; shaped text is the
-  deciding fact) and names the spike that would settle it.
+  deciding fact) and names the spike that would settle it. D-M is coupled to
+  D-C's paint/stroke gap report and cannot be inferred from the canary.
 - **A generic frontend trait** — none is published or stabilized yet.
   Concrete data must be shaped by at least two real producers first.
-- **The leaf-vocabulary seat** — where the neutral value vocabulary
-  ultimately lives is decided by the same evidence, not assumed.
+- **D-M: the leaf-vocabulary seat** — where the neutral value vocabulary
+  ultimately lives is the coupled half of D-M, decided by the same evidence,
+  not assumed.
 
 These belong in the [charter's decision registry](./charter.md) as they
 are filed; this amendment names them so no session settles them by
 default.
 
 A fourth, concrete open decision the first prototype surfaced with
-evidence: **how SVG paint enters the shared cascade.** The Stylo build the
+evidence: **D-L, how SVG paint enters the shared cascade.** The Stylo build the
 workspace compiles omits the SVG paint properties, so `fill`/`stroke`
 cannot come from the shared cascade today — see the
 [SVG-paint-cascade finding](./svg-paint-cascade.md) for the enumerated

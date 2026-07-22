@@ -74,6 +74,27 @@ read it before starting work.
 | 5 | **Format + text oracle** | Every v1 `.grida` opens in n0; archive and oracle decided at a safe boundary | Anchor spec ratified; n0 XML RFD ratification pass complete (root-element identity settled); D-H evidence in hand | `.grida`→n0 converter (frozen fbs is read-only input; converter-shaped forever), scored against v1's rendering of a pinned real-document corpus; D-G(b) decided (n0 XML vs future v2 binary archive); D-H decided at this boundary only — an oracle flip re-blesses both engines atomically |
 | 6 | **Flip + retirement** | One engine by subtraction | Scoreboard meets the Phase-2 flip criterion (not renegotiated); D6 executed; converter shipped; baselines are trend, not noise | Per-suite conformance-bar flips; `crates/grida` contracts monotonically to v1 adapters + `painter/compile.rs` + fbs io + wasm publisher (each deletion gated by wasm build + remaining byte gates; reversible per-suite); D-I: wasm switch, soak window, grida-side unpin coordination, freeze-contract retirement, archive branch |
 
+## Web-first capability sequence (ratified amendment)
+
+The [Web-First Amendment](./web-first.md) moves the Web semantic family ahead
+of the phase ordering above and supersedes the legacy-adapter routes in Phases
+3–4 where they conflict. The phases retain the program obligations that do not
+conflict: owner gates, FLIP, oracle discipline, the format lane, editor lane,
+and retirement by subtraction.
+
+The Web-first path advances one capability at a time. A row does not start
+until the prior row has its contract, gate, and record; a capability does not
+land merely because its implementation exists.
+
+| order | Capability outcome | Entry obligation | Exit evidence |
+| --- | --- | --- | --- |
+| 0 | **Proving shell only** — one namespace-aware document, one Stylo cascade, one provisional source-neutral resolved contract, one private drawlist, one painter | Amendment ratified | Solid-fill rectangle fixtures are fully enumerated and exact against committed Chromium oracles; dependency direction and the tiny n0 canary are locked. This is infrastructure, not an SVG capability claim |
+| 1 | **SVG vector** — paths, basic shapes, paint/stroke, viewport mapping, groups/transforms, opacity, clips, gradients, and patterns | D-L decided; a conforming SVG/XML grammar entry, SVG-namespace stylesheet intake, presentation-hint precedence, and host-declared semantic environment exist; D-M/D-C decided before the provisional contract expands beyond its quarantined solid-fill leaf into stroke/gradient vocabulary | Probe-friendly primitives pass their Chromium/consensus gate; unsupported constructs are explicit; FLIP is ratified and the applicable capability gate passes |
+| 2 | **Shaped text** — SVG text/tspan, then HTML inline text, through a neutral shaped-text artifact and font-key/resource-environment boundary | SVG vector exit; the two-producer text spike required by D-M exists; the relevant text/font oracle decision is registered before choosing a bar | Structure/geometry/computed-style assertions and the legally available text pixel gate pass for both producers |
+| 3 | **Images and resources** — SVG image, HTML img, and CSS background images through the declared resource environment | Shaped-text exit; the image resource-environment contract and any newly forced registry decision are recorded | Resource fixtures are deterministic with no ambient I/O; exact or consensus gates pass |
+| 4 | **CSS box and layout** — block flow, flexbox, grid, backgrounds, borders, radius, shadows, gradients, and the CSS visual long tail | Resource exit; host inputs reach semantic resolution before frame production | Primitive and resolved-frame gates pass against Chromium; every admitted shared field remains a normalized visual fact |
+| 5 | **Page composition** — the article, landing, and docs fixtures render as complete documents | CSS box/layout exit | All three page fixtures meet their declared Chromium reftest floors, with content masks and font-fragile data assertions recorded rather than hidden by thresholds |
+
 ## First three PRs after merge
 
 1. **CI arming** — promote gridaco/nothing#5's proof machinery into required main checks;
@@ -99,6 +120,8 @@ read it before starting work.
 | D-C | n0-model adopts extracted cg types per-leaf vs keeps its own behind a law-equivalence mapping test | Phase 1 exit | the conformance-suite gap report |
 | FLIP | [FLIP proposal](./flip-rule.md) (unratified: per-suite thresholds, coverage requirements, oracle-discipline clause) | Phase 2 — before any score exists | scoreboard v0 design + corpus enumeration |
 | NAME | SVG IR crate name + its math vocabulary (math2 vs kurbo); also confirms the two-surface reading (import-to-document vs render-to-pixels) stated in the [topology](./topology.md) | Phase 3 entry | naming exercise per doctrine |
+| D-L | SVG paint in the one shared cascade: Gecko, a servo-capable Stylo fork, a custom-property carrier, or direct-attribute status quo | Before Web-first SVG vector | the [SVG-paint-cascade finding](./svg-paint-cascade.md) plus a bounded feasibility bundle covering the real SVG/XML grammar entry, SVG-namespace stylesheet intake, presentation-hint precedence, minimal paint-longhand computation, and precedence/currentColor/invalid-value behavior |
+| D-M | The leaf-vocabulary seat and n0's join point per fact kind; coupled to D-C rather than inferred from the one-rectangle canary | Before the provisional contract gains real stroke/gradient/text vocabulary; text remains open until its second producer | the [n0-join-point finding](./n0-join-point.md), the D-C gap report for paint/stroke values, and a two-producer shaped-text/font-key spike for the text fact |
 | D-D | htmlcss font-provider seam (flagged open at M4) | Phase 4 HTML entry (study starts Phase 0) | the WG study |
 | D6 | Editor-core ownership: grida_editor vs n0 journal/ops ([gridaco/nothing#1](https://github.com/gridaco/nothing/issues/1) is the migration-anchor context; a dedicated D6 issue is filed in Phase 0's registry sweep) | Phase 4, concurrent lane | timeboxed spike mapping the legacy editor core's operation catalog against the graduated spec (scoped subset, not the full catalog) |
 | D-H | Text-oracle identity: stay on `skparagraph@skia-0.93.1` vs fonts-backed production oracle | Phase 5 boundary only | crates/fonts contract + a differential run |

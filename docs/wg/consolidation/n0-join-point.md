@@ -15,10 +15,11 @@ spec and not a plan. It reframes a question the
 [Web-First Amendment](./web-first.md) defers, using n0's actual downstream
 types, so the decision can be taken on evidence when it is ripe.
 
-**Status:** open, and **not yet ripe** — the deciding evidence needs a second
-producer for the hard fact (shaped text), which does not exist yet. This
-finding says what the decision hinges on and names the smallest spike that
-would ripen it.
+**Status:** open as **D-M**, coupled to **D-C**, in the
+[charter's registry](./charter.md), and **not yet ripe** — the deciding
+evidence needs a second producer for the hard fact (shaped text), which does
+not exist yet. This finding says what the decision hinges on and names the
+smallest spike that would ripen it.
 
 ## The crux
 
@@ -89,9 +90,12 @@ drawlist" genuinely diverge:
 
 ## The decision to file
 
-File in the [charter's decision registry](./charter.md), **coupled with the
-leaf-vocabulary seat**: *n0's join point per fact kind* — high (emit the common
-contract) for the visual primitives once the neutral vocabulary exists, and
-high-or-low for shaped text pending the font-key spike above. Its evidence bar
-is this gap analysis plus the two-producer text spike. Until then the n0 canary
-stays a deliberately tiny invariant probe, not a widening integration.
+**D-M** is registered in the [charter's decision registry](./charter.md),
+**coupled with D-C and the leaf-vocabulary seat**: *n0's join point per fact
+kind* — high (emit the common contract) for the visual primitives once the
+neutral vocabulary exists, and high-or-low for shaped text pending the
+font-key spike above. D-C's gap report supplies the paint/stroke equivalence
+evidence but does not, by itself, choose the shared contract's seat or text
+join. D-M's full evidence bar is this gap analysis, that report, and the
+two-producer text spike. Until then the n0 canary stays a deliberately tiny
+invariant probe, not a widening integration.

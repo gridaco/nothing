@@ -60,10 +60,10 @@ rule](./flip-rule.md)** — the pre-score threshold, coverage, and
 oracle-discipline proposal tracked by
 [gridaco/nothing#49](https://github.com/gridaco/nothing/issues/49).
 
-Findings (grounded evidence for open decisions): **[SVG paint in the
+Findings (grounded evidence for open decisions): **D-L — [SVG paint in the
 shared cascade](./svg-paint-cascade.md)** — why SVG `fill`/`stroke`
 cannot come from the shared cascade under the compiled Stylo engine, and
-the options that gates; **[where n0 joins the shared
+the options that gates; **D-M — [where n0 joins the shared
 downstream](./n0-join-point.md)** — a per-fact gap analysis showing
 visual primitives converge high while shaped text is the deciding fact.
 
