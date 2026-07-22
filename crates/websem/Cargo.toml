@@ -16,7 +16,7 @@ math2 = { path = "../math2" }
 # The one namespace-aware document + the one (Stylo) browser-grade cascade.
 csscascade = { path = "../csscascade" }
 # Read computed values (e.g. `color`) out of the shared cascade. Imported as `style`.
-stylo = "0.16"
+stylo.workspace = true
 
 [dev-dependencies]
 # Pixel gates exercise the one Skia painter. This does not widen websem's

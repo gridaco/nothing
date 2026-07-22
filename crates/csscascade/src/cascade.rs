@@ -319,19 +319,24 @@ impl FontMetricsProvider for SimpleFontProvider {
 fn build_device(quirks: style::context::QuirksMode) -> Device {
     let media_type = MediaType::screen();
     let viewport: Size2D<f32, CSSPixel> = Size2D::new(1280.0, 720.0);
+    let device_size: Size2D<f32, DevicePixel> = Size2D::new(1280.0, 720.0);
     let dpr: Scale<f32, CSSPixel, DevicePixel> = Scale::new(1.0);
     let font_provider: Box<dyn FontMetricsProvider> = Box::new(SimpleFontProvider);
     let font = Font::initial_values();
     let defaults = ComputedValues::initial_values_with_font_override(font);
     let color_scheme = PrefersColorScheme::Light;
+    let pointer_capabilities = crate::static_desktop_pointer_capabilities();
     Device::new(
         media_type,
         quirks,
         viewport,
+        device_size,
         dpr,
         font_provider,
         defaults,
         color_scheme,
+        pointer_capabilities,
+        pointer_capabilities,
     )
 }
 

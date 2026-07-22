@@ -2064,6 +2064,18 @@ code block
     }
 
     #[test]
+    fn test_clip_path_corner_extent_is_explicitly_quarantined() {
+        let _guard = crate::stylo_test::lock();
+        let html = r#"<div style="clip-path:circle(closest-corner)">x</div>"#;
+        let root = collect::collect_styled_tree(html).unwrap().unwrap();
+        let el = find_el_with(&root, &|e| e.tag == "div").unwrap();
+        assert!(matches!(
+            el.clip_path,
+            style::ClipPath::UnsupportedRadialExtent
+        ));
+    }
+
+    #[test]
     fn test_clip_path_polygon_extract() {
         let _guard = crate::stylo_test::lock();
         let html = r#"<div style="clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)">x</div>"#;

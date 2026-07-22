@@ -161,12 +161,18 @@ These belong in the [charter's decision registry](./charter.md) as they
 are filed; this amendment names them so no session settles them by
 default.
 
-A fourth, concrete open decision the first prototype surfaced with
-evidence: **D-L, how SVG paint enters the shared cascade.** The Stylo build the
-workspace compiles omits the SVG paint properties, so `fill`/`stroke`
-cannot come from the shared cascade today — see the
-[SVG-paint-cascade finding](./svg-paint-cascade.md) for the enumerated
-evidence, the options, and the decision it gates.
+A fourth, concrete decision the first prototype surfaced with evidence is now
+taken: **D-L, how SVG paint enters the shared cascade.** The answer is
+Servo-capable support maintained in official upstream Stylo: prefer the first
+published release containing
+[servo/stylo#383](https://github.com/servo/stylo/pull/383); because
+[`0.19.0`](https://github.com/servo/stylo/releases/tag/v0.19.0) predates that
+merge, use the tested immutable official-upstream revision
+until such a release exists. A floating branch and private source fork are
+excluded. The [SVG-paint-cascade finding](./svg-paint-cascade.md) records the
+evidence and boundary: D-L settles provenance only, not production SVG/XML or
+stylesheet ingress, consumption of the computed values, the 24 SVG-struct
+longhands still Gecko-only at the pin, or rendered capability.
 
 ## What it does not supersede
 

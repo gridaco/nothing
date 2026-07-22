@@ -495,6 +495,7 @@ impl StyleRuntime {
         let quirks_mode = QuirksMode::NoQuirks;
         let media_type = MediaType::screen();
         let viewport_typed = Size2D::new(800.0f32, 600.0f32);
+        let device_size = Size2D::new(800.0f32, 600.0f32);
         let dpr_typed = Scale::new(1.0f32);
         let font_provider = Box::new(SimpleFontProvider);
         let default_font = Font::initial_values();
@@ -502,15 +503,19 @@ impl StyleRuntime {
             style::properties::ComputedValues::initial_values_with_font_override(default_font);
         let shared_lock = SharedRwLock::new();
         let color_scheme = PrefersColorScheme::Light;
+        let pointer_capabilities = crate::static_desktop_pointer_capabilities();
 
         let device = Device::new(
             media_type,
             quirks_mode,
             viewport_typed,
+            device_size,
             dpr_typed,
             font_provider,
             initial_values.clone(),
             color_scheme,
+            pointer_capabilities,
+            pointer_capabilities,
         );
 
         let stylist = Stylist::new(device, quirks_mode);

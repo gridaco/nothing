@@ -563,6 +563,10 @@ pub struct BoxShadow {
 pub enum ClipPath {
     #[default]
     None,
+    /// A parsed circle/ellipse radial extent that this renderer does not yet
+    /// lower. Kept distinct from `None` so unsupported syntax is not silently
+    /// mistaken for the property's initial value.
+    UnsupportedRadialExtent,
     /// `inset(<top> <right> <bottom> <left> [round <radius>])`.
     ///
     /// Radii are stored as `CssLength` per corner/axis so percentage

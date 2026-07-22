@@ -1,6 +1,6 @@
 ---
 title: "Finding: SVG paint in the shared cascade"
-description: "Why Servo Stylo omits most SVG longhands, what a bounded native paint and SVG/XML ingress spike proved, and the open owner decision it gates."
+description: "Why Servo Stylo omitted SVG longhands, what official upstream now supplies, the owner-taken dependency-provenance decision, and the remaining ingress and capability gaps."
 tags:
   - internal
   - wg
@@ -10,13 +10,17 @@ format: md
 
 # Finding: SVG paint in the shared cascade
 
-**Genre:** finding — grounded evidence for an **open owner decision**. Not a
-spec and not a plan. It records what was established while building the
-[Web-first prototype](./web-first.md), so the decision it gates can be taken on
-evidence rather than assumption.
+**Genre:** finding and decision evidence. Not a spec and not a plan. It records
+what was established while building the [Web-first prototype](./web-first.md),
+the upstream change that followed, and the scope of the resulting owner
+decision.
 
-**Status:** open as **D-L** in the
-[charter's registry](./charter.md). No option below is chosen here.
+**Status:** **D-L taken 2026-07-23** in the
+[charter's registry](./charter.md). SVG paint uses Servo-capable support
+maintained in official upstream Stylo. A published release containing the
+required support is preferred; until one exists, the dependency is fixed to an
+immutable official-upstream revision. A floating branch and a private source
+fork are outside the decision.
 
 ## The crux
 
@@ -25,16 +29,19 @@ cascade, so that a rule like `.mark { fill: … }` authored anywhere in the
 document reaches an SVG descendant through the same cascade that styles HTML.
 The prototype proves the cascade *crosses the boundary* — an HTML `<style>`
 rule reaches an inline-SVG element — but only for properties the cascade
-actually models. **SVG paint is not among them**, so today the SVG semantic
-compiler reads only direct `fill` presentation attributes outside the cascade;
-an inline `style` declaration for `fill` is dropped with the unknown longhand.
-Closing that gap is a real cost with no free option; this finding lays the
-options out.
+actually models. The released Stylo version used by that prototype did not
+model SVG paint under Servo, so its SVG semantic compiler read only direct
+`fill` presentation attributes outside the cascade and dropped an inline
+`style` declaration for `fill` as an unknown longhand. Official upstream has
+since enabled the basic paint set under Servo. That resolves dependency
+provenance; it does not by itself supply production SVG/XML ingress, consume
+the computed values, or land an SVG capability.
 
 ## Evidence
 
-- **E1 — 44 of the 46 longhands in Stylo's SVG style structs are absent under
-  the compiled engine.** Stylo splits its property database by engine (servo vs
+- **E1 — at the prototype baseline, 44 of the 46 longhands in Stylo's SVG
+  style structs were absent under the compiled engine.** Stylo splits its
+  property database by engine (servo vs
   gecko). The workspace compiles the **servo** engine; property declarations
   marked gecko-only are never registered, so they do not exist in the computed
   style. Of the 46 SVG-struct longhands in Stylo 0.16, **44 are gecko-only** —
@@ -108,15 +115,36 @@ options out.
   the direct-attribute case is in hand. This distinction matters because the
   status quo does not cover both authoring forms.
 
+- **E7 — official upstream Stylo now exposes the required basic paint set
+  under Servo.** The published
+  [`0.19.0`](https://github.com/servo/stylo/releases/tag/v0.19.0) release
+  predates the relevant merge and therefore does not contain it. Official upstream
+  [servo/stylo#383](https://github.com/servo/stylo/pull/383) enables `fill`,
+  `fill-opacity`, `fill-rule`, `stroke`, `stroke-width`, `stroke-linecap`,
+  `stroke-linejoin`, `stroke-dasharray`, `stroke-dashoffset`,
+  `stroke-miterlimit`, and `stroke-opacity` for Servo. The tested immutable
+  official-upstream revision is that exact merge,
+  [`a64923b5d5c67313c81c5056f5e30ec0babb04d6`](https://github.com/servo/stylo/commit/a64923b5d5c67313c81c5056f5e30ec0babb04d6).
+  At that revision, 24 longhands in Stylo's SVG style structs remain
+  Gecko-only: `-moz-context-properties`, `clip-rule`, `color-interpolation`,
+  `color-interpolation-filters`, `cx`, `cy`, `d`, `flood-color`,
+  `flood-opacity`, `lighting-color`, `marker-start`, `marker-mid`, `marker-end`,
+  `paint-order`, `r`, `rx`, `ry`, `shape-rendering`, `stop-color`,
+  `stop-opacity`, `text-anchor`, `vector-effect`, `x`, and `y`. Later official
+  upstream [servo/stylo#427](https://github.com/servo/stylo/pull/427) enables
+  the eight geometry properties, but geometry is not load-bearing for D-L and
+  is deliberately outside this minimal paint pin. This proves official paint
+  dependency availability, not production ingress or rendered capability.
+
 ## The options
 
 | # | Option | What it buys | What it costs | Feasibility |
 | --- | --- | --- | --- | --- |
 | 1 | **Gecko-engine Stylo** | All 46 longhands in Stylo's enumerated SVG style structs, with native typed computed representations | A Gecko build environment | **Not viable** under the program's standalone Cargo/servo constraint (E3) |
-| 2 | **Fork/patch Stylo** — un-gate the required SVG longhands for servo and complete the missing cascade intake | Native typed SVG paint in the shared cascade | Carrying a dependency patch; build-verifying each additional longhand's servo glue; productionizing the SVG/XML, SVG-stylesheet, and presentation-hint ingress proved feasible by E5 | Verified for native `fill`/`stroke` and the required ingress topology; remaining SVG-longhand breadth and upgrade cost are unmeasured (E4–E5) |
+| 2 | **Private fork/patch Stylo** — un-gate the required SVG longhands for Servo and complete the missing cascade intake | Native typed SVG paint in the shared cascade | Carrying a private dependency patch and its upgrade burden | The spike proved feasibility (E4–E5), but official upstream now contains the required basic paint support; a private fork is outside D-L |
 | 3 | **Custom-property carrier** — rewrite `fill`/`stroke`/… to `--*` at stylesheet + presentation-attribute intake, cascade those, read them back | Stylo custom-property inheritance and specificity mechanics for carrier tokens | Rewriting author CSS (shorthands, `all`, specificity); a no-op presentation-hint stub to implement; **loses** SVG paint computed-value semantics — the compiler must re-resolve `currentColor`, paint servers, types outside Stylo | Viable for mechanics (E2), lossy on semantics |
 | 4 | **Status quo** — read paint from a direct presentation attribute outside the cascade (what the prototype does) | Correct for the direct attributes exercised by the proving shell; honest and free | Inline style and stylesheet paint are dropped; presentation attributes do **not** participate in the shared cascade | In hand, deliberately narrow (E6) |
-| 5 | **Track upstream** — a future Stylo enabling SVG under servo | Eventually option 1's result with no fork | No schedule is established by this finding | Absent in 0.16; upstream schedule unknown (E1) |
+| 5 | **Official upstream Stylo** — use the first published release containing [servo/stylo#383](https://github.com/servo/stylo/pull/383); until then, use its exact tested merge revision | Native typed basic paint values without a private fork | A temporary exact revision pin until an eligible release exists; the remaining 24 Gecko-only longhands and production ingress are separate work | **Chosen** for paint dependency provenance (E7) |
 
 A refinement of option 3: **registered** custom properties (`@property` with a
 `syntax`, e.g. `<color>`) could recover typed computed values for the simple
@@ -124,40 +152,23 @@ color case — but not paint-server (`url(#…)`) or context-dependent paint
 semantics, and servo `@property` support here is itself unverified. It narrows
 the loss, it does not remove it, and it needs its own spike.
 
-## Recommendation (for the owner to decide)
+## Decision and scope
 
-No option is free, so this is a genuine registry decision. The evidence
-suggests:
+The owner took **D-L** on 2026-07-23:
 
-- **Keep option 4 only as the proving-shell posture.** It is correct for the
-  direct attributes the prototype's fixtures actually use and is honest about
-  what it does not do. It is not an entry into SVG-vector capability work.
-- **Do not adopt option 3 as the cascade of record.** A carrier that reproduces
-  cascade mechanics while discarding SVG paint semantics is, in spirit, another
-  temporary shim — the same thing the [amendment](./web-first.md) rules out when
-  it forbids promoting the temporary SVG-only matcher. It may have a place as a
-  *narrow* bridge for the cascaded-rule case, but only behind an explicit
-  decision, never as the default.
-- **Scope option 2 as the path most faithful to "one browser-grade cascade."**
-  Among presently actionable options, it is the only path the bounded spike
-  proves can yield native SVG-paint values through the shared Stylo cascade
-  without Gecko. The isolated spikes demonstrate both document grammars feeding
-  native `fill` and `stroke` into the same cascade implementation. They do not
-  choose the fork, prove the remaining SVG longhands, measure upgrade ownership,
-  or land the production SVG/XML entry.
+> SVG paint enters the shared cascade through Servo-capable support maintained
+> in official upstream Stylo. Prefer the first published release containing
+> [servo/stylo#383](https://github.com/servo/stylo/pull/383); until one exists,
+> use the tested immutable official-upstream revision
+> [`a64923b5d5c67313c81c5056f5e30ec0babb04d6`](https://github.com/servo/stylo/commit/a64923b5d5c67313c81c5056f5e30ec0babb04d6).
+> Do not use a floating upstream branch or a private source fork.
 
-## The decision to file
-
-**D-L** is registered in the [charter's decision registry](./charter.md): *how
-SVG paint enters the shared cascade* — Gecko vs a servo-capable Stylo fork vs a
-scoped custom-property carrier vs direct-attribute status quo. Its evidence bar
-is this finding plus a bounded feasibility bundle that covers the ingress
-dimensions named by D-L, not merely a longhand build: the SVG/XML grammar
-entry, SVG-namespace stylesheet intake, presentation-hint precedence, minimal
-paint-longhand computation, and precedence, inheritance, `currentColor`, and
-invalid-value behavior.
-
-That bundle is now present in E4–E5, so D-L is ready for the owner to decide;
-no option is ratified here. Until the owner decides it, the Web-first path reads
-direct paint attributes outside the cascade, says so, and does not accrete
-SVG-vector capability on that scaffold.
+This decides **dependency provenance only**. It does not claim that the
+production Web path admits SVG presentation attributes at presentation-hint
+precedence, admits SVG-namespace stylesheets, has a conforming SVG/XML entry,
+consumes the newly available computed values, supports the 24 remaining
+Gecko-only SVG longhands, or passes an SVG-vector capability gate. E4–E5 remain
+evidence that the missing ingress dimensions are technically closeable; E7
+removes the need to own the basic-paint patch privately. The proving shell's
+direct-attribute fallback remains deliberately narrow until those separate
+capability steps are implemented and gated.

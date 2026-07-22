@@ -2058,6 +2058,9 @@ fn extract_bg_clip(
         T::BorderBox => BackgroundBox::BorderBox,
         T::PaddingBox => BackgroundBox::PaddingBox,
         T::ContentBox => BackgroundBox::ContentBox,
+        T::BorderArea => {
+            unreachable!("background-clip: border-area is disabled by the pinned Stylo revision")
+        }
     }
 }
 
@@ -2468,13 +2471,14 @@ fn extract_clip_path(style: &ComputedValues) -> ClipPath {
             let resolve_radius = |r: &GenericShapeRadius<
                 style::values::computed::LengthPercentage,
             >|
-             -> ShapeRadius {
+             -> Option<ShapeRadius> {
                 match r {
                     GenericShapeRadius::Length(lp) => {
-                        ShapeRadius::Length(length_percentage_to_css(&lp.0))
+                        Some(ShapeRadius::Length(length_percentage_to_css(&lp.0)))
                     }
-                    GenericShapeRadius::ClosestSide => ShapeRadius::ClosestSide,
-                    GenericShapeRadius::FarthestSide => ShapeRadius::FarthestSide,
+                    GenericShapeRadius::ClosestSide => Some(ShapeRadius::ClosestSide),
+                    GenericShapeRadius::FarthestSide => Some(ShapeRadius::FarthestSide),
+                    GenericShapeRadius::ClosestCorner | GenericShapeRadius::FarthestCorner => None,
                 }
             };
             match *shape {
@@ -2490,20 +2494,20 @@ fn extract_clip_path(style: &ComputedValues) -> ClipPath {
                 }
                 GenericBasicShape::Circle(circle) => {
                     let (cx, cy) = resolve_pos(&circle.position);
-                    ClipPath::Circle {
-                        cx,
-                        cy,
-                        radius: resolve_radius(&circle.radius),
-                    }
+                    let Some(radius) = resolve_radius(&circle.radius) else {
+                        return ClipPath::UnsupportedRadialExtent;
+                    };
+                    ClipPath::Circle { cx, cy, radius }
                 }
                 GenericBasicShape::Ellipse(ellipse) => {
                     let (cx, cy) = resolve_pos(&ellipse.position);
-                    ClipPath::Ellipse {
-                        cx,
-                        cy,
-                        rx: resolve_radius(&ellipse.semiaxis_x),
-                        ry: resolve_radius(&ellipse.semiaxis_y),
-                    }
+                    let (Some(rx), Some(ry)) = (
+                        resolve_radius(&ellipse.semiaxis_x),
+                        resolve_radius(&ellipse.semiaxis_y),
+                    ) else {
+                        return ClipPath::UnsupportedRadialExtent;
+                    };
+                    ClipPath::Ellipse { cx, cy, rx, ry }
                 }
                 GenericBasicShape::Polygon(poly) => {
                     let points = poly
@@ -2692,7 +2696,7 @@ fn stylo_track_breadth(
                 types::TrackBreadth::Auto
             }
         }
-        GenericTrackBreadth::Fr(fr) => types::TrackBreadth::Fr(*fr),
+        GenericTrackBreadth::Flex(fr) => types::TrackBreadth::Fr(fr.0),
         GenericTrackBreadth::Auto => types::TrackBreadth::Auto,
         GenericTrackBreadth::MinContent => types::TrackBreadth::MinContent,
         GenericTrackBreadth::MaxContent => types::TrackBreadth::MaxContent,

@@ -61,6 +61,7 @@ mod cascade {
     use style::properties::style_structs::Font;
     use style::queries::values::PrefersColorScheme;
     use style::servo::animation::DocumentAnimationSet;
+    use style::servo::media_features::PointerCapabilities;
     use style::servo::selector_parser::SnapshotMap;
     use style::servo_arc::Arc as ServoArc;
     use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
@@ -261,19 +262,26 @@ body {
     fn build_device(quirks: style::context::QuirksMode) -> Device {
         let media_type = MediaType::screen();
         let viewport: Size2D<f32, CSSPixel> = Size2D::new(1280.0, 720.0);
+        let device_size: Size2D<f32, DevicePixel> = Size2D::new(1280.0, 720.0);
         let dpr: Scale<f32, CSSPixel, DevicePixel> = Scale::new(1.0);
         let font_provider: Box<dyn FontMetricsProvider> = Box::new(SimpleFontProvider);
         let font = Font::initial_values();
         let defaults = ComputedValues::initial_values_with_font_override(font);
         let color_scheme = PrefersColorScheme::Light;
+        // Match the library's declared static-desktop profile explicitly.
+        // Stylo's Default is target-OS-dependent and is not deterministic.
+        let pointer_capabilities = PointerCapabilities::FINE | PointerCapabilities::HOVER;
         Device::new(
             media_type,
             quirks,
             viewport,
+            device_size,
             dpr,
             font_provider,
             defaults,
             color_scheme,
+            pointer_capabilities,
+            pointer_capabilities,
         )
     }
 
@@ -993,7 +1001,7 @@ mod stylo_dom {
     use style::applicable_declarations::ApplicableDeclarationBlock;
     use style::context::SharedStyleContext;
     use style::data::{ElementDataMut, ElementDataRef, ElementDataWrapper};
-    use style::dom::{AttributeProvider, LayoutIterator, OpaqueNode, TElement, TNode};
+    use style::dom::{LayoutIterator, OpaqueNode, TElement, TNode};
     use style::properties::PropertyDeclarationBlock;
     use style::selector_parser::{
         AttrValue as SelectorAttrValue, Lang, PseudoElement, SelectorImpl,
@@ -1603,9 +1611,7 @@ mod stylo_dom {
             trace_dom!("TElement::relative_selector_search_direction {:?}", self);
             ElementSelectorFlags::empty()
         }
-    }
 
-    impl AttributeProvider for HtmlElement {
         fn get_attr(&self, attr: &style::LocalName, namespace: &StyleNamespace) -> Option<String> {
             self.attr_iter()
                 .filter(|(a, _)| {

@@ -109,7 +109,10 @@ fn paint_box(
     // filter output (blur halos, drop-shadow extents) is still clipped to
     // the shape. Spec: the clip-path shapes the element's entire rendering,
     // including any filter effects.
-    let has_clip_path = !matches!(style.clip_path, super::style::ClipPath::None);
+    let has_clip_path = !matches!(
+        style.clip_path,
+        super::style::ClipPath::None | super::style::ClipPath::UnsupportedRadialExtent
+    );
     if has_clip_path {
         canvas.save();
         apply_clip_path(canvas, &style.clip_path, w, h);
@@ -940,7 +943,7 @@ fn apply_clip_path(canvas: &Canvas, clip: &super::style::ClipPath, w: f32, h: f3
     let resolve = |len: super::types::CssLength, basis: f32| -> f32 { len.resolve_px(basis) };
 
     match clip {
-        ClipPath::None => {}
+        ClipPath::None | ClipPath::UnsupportedRadialExtent => {}
         ClipPath::Inset {
             top,
             right,

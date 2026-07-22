@@ -307,12 +307,19 @@ are not sufficient patrol evidence.
 
 **Deliberate drops in this finding:** none. No production path is replaced or
 deleted here. The mature renderer remains executable evidence and the proving
-shell remains bounded while the owner decisions and missing gates are prepared.
+shell remains bounded while D-M and the missing gates are prepared.
 
-## Decisions still required
+## Decision state
 
-- **D-L** decides how SVG paint enters the one Stylo cascade. The mature SVG
-  matcher's breadth is evidence, not permission to promote that matcher.
+- **D-L is taken (2026-07-23).** SVG paint uses Servo-capable support
+  maintained in official upstream Stylo, preferring the first published
+  release containing [servo/stylo#383](https://github.com/servo/stylo/pull/383),
+  with the tested
+  immutable official revision used until then. A floating branch and private
+  source fork are excluded. This settles dependency provenance only; the
+  production ingress, remaining property breadth, consumption, and capability
+  gates stay open. The mature SVG matcher's breadth remains evidence, not
+  permission to promote that matcher.
 - **D-M vector stage**, coupled to D-C, decides the leaf-vocabulary seat, the
   glyphless join per fact family, and the proving shell's disposition. It needs
   the compiler-read inventory above, D-C's gap report, and the vector-input
