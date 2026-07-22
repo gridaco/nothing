@@ -38,8 +38,9 @@ requests aborted. It writes `reference/<name>.png` + `reference-bake.json`
 pnpm -C packages/grida-reftest exec tsx "$(pwd)/fixtures/web-first/pages/bake_reference.ts"
 ```
 
-The `reference/` renders are **regenerable and environment-pinned** (system-font
-text differs across OS/browser versions), so they are gitignored rather than
-committed — the same discipline the refbrowser suites use. Baked with Chromium
-149 the pages measure 1200×6561 (article), 1200×4621 (landing), 1200×3929
-(docs).
+The `reference/` renders are **regenerable and environment-dependent**
+(system-font text differs across OS/browser versions), so they are gitignored
+rather than committed — the same discipline the refbrowser suites use. The
+manifest records browser, OS/architecture, and runtime provenance. Baked with
+Chromium 149 on the current macOS host, the pages measure 1200×6561 (article),
+1200×4621 (landing), 1200×3929 (docs).

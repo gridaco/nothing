@@ -11,18 +11,24 @@ the HTML→SVG boundary through one browser-grade cascade.**
 | --- | --- |
 | `html-inline-svg-currentcolor-rect.html` | HTML whose `<style> .mark { color:#16a34a }` cascades to a `<rect class="mark">` inside inline `<svg>`. |
 | `svg-currentcolor-rect.svg` | The equivalent standalone SVG (carries `color` via an inline `style`). Renders identically. |
+| `svg-viewbox-uniform-offset-rect.svg` | A non-zero-origin `viewBox` with uniform 2× viewport mapping; locks the proving shell's one supported non-identity viewport case. |
 | `html-webpage-mockup.html` | A webpage-*design* (header / hero / cards / footer) expressed as 27 inline-SVG rects; the brand purple cascades from the HTML `<style>` via `fill="currentColor"`. Guarded by `crates/websem/tests/webpage_mockup.rs`. Not a real HTML/CSS layout — the slice renders solid-fill `<rect>` only. |
-| `chromium/svg-currentcolor-rect.png` | Committed Chromium oracle (64×64, all `#16a34a`), baked at deviceScaleFactor=1. |
-| `oracle-bake.json` | Bake provenance (browser version + sha256 of source, oracle, and bake script). |
-| `bake_chromium.ts` | Reproduces the oracle. Run: `pnpm -C packages/grida-reftest exec tsx "$(pwd)/fixtures/web-first/bake_chromium.ts"`. |
+| `primitives.json` | Closed enumeration of every root HTML/SVG primitive, its grammar entry, dimensions, and Chromium oracle. Adding an unlisted root input fails the test gate. |
+| `chromium/*.png` | One committed Chromium oracle per primitive, capturing the SVG-local raster at deviceScaleFactor=1. |
+| `oracle-bake.json` | Bake provenance (browser version + sha256 of the suite, sources, oracles, and bake script). |
+| `bake_chromium.ts` | Verifies existing oracle pixels and creates missing oracles; it never overwrites a differing baseline. Run: `pnpm -C packages/grida-reftest exec tsx "$(pwd)/fixtures/web-first/bake_chromium.ts"`. |
+| `pages/` | The target-only real-world page corpus. It is not a runnable reftest gate yet; see [`pages/README.md`](./pages/README.md). |
+| `unsupported/` | Inputs that deliberately have no pixels yet and must fail explicitly instead of being approximated; see [`unsupported/README.md`](./unsupported/README.md). |
 
-Probe expectation: every pixel of the oracle is `#16a34a` (opaque). The
-`rframe` render of both fixtures must match it exactly (see
-`crates/websem/tests/reftest_oracle.rs` and `equivalence.rs`).
+Exact expectation: every primitive's full RGBA raster matches its Chromium
+oracle with zero differing pixels. The gate also validates enumeration and
+provenance and double-runs both raw raster and PNG encoding (see
+`crates/websem/tests/reftest_oracle.rs`).
 
-Render either fixture from the command line through the prototype pipeline
-(`websem` compile → `rframe::Frame` → PNG) — a thin host; unsupported
-constructs fail explicitly:
+Render a primitive from the command line through the prototype pipeline
+(`websem` compile → `rframe::Frame` → PNG), a thin host. The patrolled inputs
+under `unsupported/` fail explicitly; arbitrary SVG outside the closed suite
+is not yet capability coverage:
 
 ```sh
 cargo run -p websem --example render -- \

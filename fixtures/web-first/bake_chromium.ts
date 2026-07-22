@@ -1,58 +1,104 @@
 #!/usr/bin/env -S pnpm --filter @grida/reftest exec tsx
 /**
- * Bake the committed Chromium oracle for the Web-first prototype fixture.
+ * Bake the committed Chromium oracles for the Web-first primitive suite.
  *
- * Renders `svg-currentcolor-rect.svg` in headless Chromium at
- * deviceScaleFactor=1 (so SVG user units map 1:1 to device pixels), captures a
- * byte-deterministic 64x64 PNG with `omitBackground`, and records provenance
- * (browser version, source sha256, oracle sha256, this script's sha256).
+ * Every root-level HTML/SVG fixture is enumerated by `primitives.json`.
+ * Standalone SVG and the first inline SVG in HTML are captured as SVG-local
+ * rasters at deviceScaleFactor=1. Each capture is repeated byte-for-byte.
+ * Existing oracle pixels are verification-only: a differing image fails
+ * instead of silently blessing a new baseline; missing oracles are created.
  *
- * This reuses the technique of `crates/grida_dev/scripts/scoreboard_bake_chromium.ts`
- * (DSF=1, JS/network disabled, deterministic capture) WITHOUT the scoreboard's
- * corpus contract or closed-shape boundary — this fixture uses `style="color"`
- * + `fill="currentColor"` deliberately, which the scoreboard boundary forbids.
+ * This reuses the scoreboard bake's deterministic browser posture WITHOUT
+ * invoking the sealed scoreboard or producing a similarity score.
  *
- * Create-new only: it refuses to overwrite an existing oracle or manifest.
- *
- * Run:  pnpm -C packages/grida-reftest exec tsx fixtures/web-first/bake_chromium.ts
+ * Run: pnpm -C packages/grida-reftest exec tsx fixtures/web-first/bake_chromium.ts
  */
 
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
 import { exit } from "node:process";
 import { fileURLToPath } from "node:url";
 
-import { chromium } from "@playwright/test";
+import { chromium, type Page } from "@playwright/test";
+import { PNG } from "pngjs";
+
+type Entry = "standalone-svg" | "html-inline-svg";
+
+interface Primitive {
+  id: string;
+  source: string;
+  entry: Entry;
+  oracle: string;
+  width: number;
+  height: number;
+}
+
+interface PrimitiveSuite {
+  schema_version: number;
+  fixtures: Primitive[];
+}
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const DIR = dirname(SCRIPT_PATH);
-const SOURCE = join(DIR, "svg-currentcolor-rect.svg");
-const OUT_PNG = join(DIR, "chromium", "svg-currentcolor-rect.png");
+const SUITE_PATH = join(DIR, "primitives.json");
 const OUT_MANIFEST = join(DIR, "oracle-bake.json");
-const WIDTH = 64;
-const HEIGHT = 64;
 
 function sha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
+function assertDimensions(png: Buffer, fixture: Primitive): void {
+  const decoded = PNG.sync.read(png);
+  if (decoded.width !== fixture.width || decoded.height !== fixture.height) {
+    throw new Error(
+      `${fixture.id}: expected ${fixture.width}x${fixture.height}, got ${decoded.width}x${decoded.height}`,
+    );
+  }
+}
+
+function assertSamePixels(existing: Buffer, fresh: Buffer, id: string): void {
+  const a = PNG.sync.read(existing);
+  const b = PNG.sync.read(fresh);
+  if (a.width !== b.width || a.height !== b.height || !a.data.equals(b.data)) {
+    throw new Error(`${id}: fresh Chromium pixels differ from the committed oracle`);
+  }
+}
+
+async function captureSvg(page: Page, fixture: Primitive, source: Buffer): Promise<Buffer> {
+  const media = fixture.entry === "standalone-svg" ? "image/svg+xml" : "text/html";
+  const dataUrl = `data:${media};base64,${source.toString("base64")}`;
+  await page.goto(dataUrl, { waitUntil: "load" });
+
+  const svg = page.locator("svg").first();
+  if ((await svg.count()) !== 1) {
+    throw new Error(`${fixture.id}: expected a first <svg> element`);
+  }
+  const box = await svg.boundingBox();
+  if (!box || box.width !== fixture.width || box.height !== fixture.height) {
+    throw new Error(
+      `${fixture.id}: unexpected SVG box ${JSON.stringify(box)}; expected ${fixture.width}x${fixture.height}`,
+    );
+  }
+  return svg.screenshot({ omitBackground: true, type: "png" });
+}
+
 async function main(): Promise<void> {
-  if (existsSync(OUT_PNG)) {
-    throw new Error(`oracle already exists: ${OUT_PNG} (bake is create-new)`);
+  const suiteBytes = await readFile(SUITE_PATH);
+  const suite = JSON.parse(suiteBytes.toString("utf8")) as PrimitiveSuite;
+  if (suite.schema_version !== 0 || suite.fixtures.length === 0) {
+    throw new Error("unsupported or empty primitive suite");
   }
 
-  const source = await readFile(SOURCE);
   const scriptBytes = await readFile(SCRIPT_PATH);
-
   const browser = await chromium.launch({
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
   const browserVersion = browser.version();
   const context = await browser.newContext({
     javaScriptEnabled: false,
-    viewport: { width: WIDTH, height: HEIGHT },
+    viewport: { width: 1280, height: 720 },
     deviceScaleFactor: 1,
     colorScheme: "light",
     locale: "en-US",
@@ -60,71 +106,66 @@ async function main(): Promise<void> {
   });
   await context.route("**/*", (route) => route.abort());
 
-  const page = await context.newPage();
-  const dataUrl = `data:image/svg+xml;base64,${source.toString("base64")}`;
-  await page.goto(dataUrl, { waitUntil: "load" });
+  const records: Array<Record<string, unknown>> = [];
+  for (const fixture of suite.fixtures) {
+    const sourcePath = join(DIR, fixture.source);
+    const oraclePath = join(DIR, fixture.oracle);
+    const source = await readFile(sourcePath);
+    const page = await context.newPage();
+    const first = await captureSvg(page, fixture, source);
+    const second = await captureSvg(page, fixture, source);
+    await page.close();
 
-  const observed = await page.evaluate(() => {
-    const root = document.documentElement as unknown as SVGSVGElement;
-    return {
-      namespace: root.namespaceURI,
-      width: root.width.baseVal.value,
-      height: root.height.baseVal.value,
-    };
-  });
-  if (
-    observed.namespace !== "http://www.w3.org/2000/svg" ||
-    observed.width !== WIDTH ||
-    observed.height !== HEIGHT
-  ) {
-    throw new Error(`unexpected SVG root: ${JSON.stringify(observed)}`);
-  }
+    if (!first.equals(second)) {
+      throw new Error(`${fixture.id}: Chromium capture is not byte-deterministic`);
+    }
+    assertDimensions(first, fixture);
 
-  const capture = () =>
-    page.screenshot({
-      clip: { x: 0, y: 0, width: WIDTH, height: HEIGHT },
-      omitBackground: true,
-      type: "png",
+    await mkdir(dirname(oraclePath), { recursive: true });
+    let oracle = first;
+    if (existsSync(oraclePath)) {
+      oracle = await readFile(oraclePath);
+      assertSamePixels(oracle, first, fixture.id);
+    } else {
+      await writeFile(oraclePath, first, { flag: "wx" });
+    }
+
+    records.push({
+      id: fixture.id,
+      source: fixture.source,
+      source_sha256: sha256(source),
+      oracle: fixture.oracle,
+      oracle_sha256: sha256(oracle),
+      width: fixture.width,
+      height: fixture.height,
     });
-  const first = await capture();
-  const second = await capture();
-  if (!first.equals(second)) {
-    throw new Error("Chromium bake is not byte-deterministic");
+    console.log(`verified ${fixture.id} (${fixture.width}x${fixture.height})`);
   }
 
   await context.close();
   await browser.close();
 
-  await mkdir(dirname(OUT_PNG), { recursive: true });
-  await writeFile(OUT_PNG, first, { flag: "wx" });
-
   const manifest = {
-    schema_version: 0,
-    fixture: "svg-currentcolor-rect",
-    kind: "chromium",
+    schema_version: 1,
+    kind: "chromium-primitive-suite",
     browser_version: browserVersion,
     bake_script_sha256: sha256(scriptBytes),
-    source: "svg-currentcolor-rect.svg",
-    source_sha256: sha256(source),
-    oracle: "chromium/svg-currentcolor-rect.png",
-    oracle_sha256: sha256(first),
+    suite: "primitives.json",
+    suite_sha256: sha256(suiteBytes),
     capture: {
-      width: WIDTH,
-      height: HEIGHT,
       device_scale_factor: 1,
       omit_background: true,
       source_transport: "data-url-from-file-bytes",
       javascript_enabled: false,
       network_enabled: false,
+      target: "first-svg-element",
     },
+    fixtures: records,
   };
   await writeFile(OUT_MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`, {
-    flag: "wx",
+    flag: "w",
   });
-
-  console.log(`Chromium ${browserVersion}: baked svg-currentcolor-rect`);
-  console.log(`  ${OUT_PNG}`);
-  console.log(`  ${OUT_MANIFEST}`);
+  console.log(`Chromium ${browserVersion}: verified ${records.length} primitive oracles`);
 }
 
 main().catch((error: unknown) => {
