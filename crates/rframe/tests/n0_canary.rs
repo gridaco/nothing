@@ -1,3 +1,5 @@
+#![cfg(feature = "skia")]
+
 //! The source-neutrality canary.
 //!
 //! A **non-Web** producer — the n0 engine — reaches the same downstream kernel.

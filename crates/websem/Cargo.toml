@@ -2,20 +2,29 @@
 name = "websem"
 version = "0.0.0"
 edition = "2024"
-description = "PROVISIONAL, INTERNAL, BREAKABLE. The Web-first track's Web semantic front-end: one namespace-aware document + one Stylo cascade + one SVG semantic compiler, lowering HTML-with-inline-SVG and standalone SVG to the source-neutral `rframe::Frame`. No I/O, no network, no legacy import path."
+description = "PROVISIONAL, INTERNAL, BREAKABLE. The Web-first track's Web semantic front-end: one namespace-aware document + one Stylo cascade + one SVG semantic compiler, lowering HTML-with-inline-SVG and the current bare-SVG scaffold to `rframe::Frame`. A conforming standalone SVG/XML grammar entry remains required. No I/O, no network, no legacy import path."
 license.workspace = true
 repository.workspace = true
 publish = false
 
 [dependencies]
-# The source-neutral resolved render contract this crate produces.
-rframe = { path = "../rframe" }
+# The source-neutral resolved render contract this crate produces. The normal
+# front-end edge is backend-free; tests/examples opt into the painter below.
+rframe = { path = "../rframe", default-features = false }
 # Neutral geometry.
 math2 = { path = "../math2" }
 # The one namespace-aware document + the one (Stylo) browser-grade cascade.
 csscascade = { path = "../csscascade" }
 # Read computed values (e.g. `color`) out of the shared cascade. Imported as `style`.
 stylo = "0.16"
+
+[dev-dependencies]
+# The thin render example and pixel gates exercise the one Skia painter. This
+# does not widen websem's normal library dependency graph.
+rframe = { path = "../rframe", features = ["skia"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
 
 [lints]
 workspace = true

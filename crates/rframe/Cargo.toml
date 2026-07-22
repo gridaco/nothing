@@ -2,10 +2,16 @@
 name = "rframe"
 version = "0.0.0"
 edition = "2024"
-description = "PROVISIONAL, INTERNAL, BREAKABLE. The Web-first track's source-neutral resolved render contract (`Frame`), its private drawlist, and the one Skia painter. Shaped by two producers (websem, the n0 canary) so a later evidence spike can decide the join point. Not published; not a file format; no round-trip promise."
+description = "PROVISIONAL, INTERNAL, BREAKABLE. The Web-first track's source-neutral resolved render contract (`Frame`), its private drawlist, and the one Skia painter. Produced by websem and exercised by an n0 canary; not yet promotion evidence. Not published; not a file format; no round-trip promise."
 license.workspace = true
 repository.workspace = true
 publish = false
+
+[features]
+# Preserve the crate's render-ready default. Semantic producers that only need
+# the contract disable defaults at their dependency edge (as websem does).
+default = ["skia"]
+skia = ["dep:skia-safe"]
 
 [dependencies]
 # Neutral geometry foundation shared across the workspace (Skia-free).
@@ -14,7 +20,7 @@ math2 = { path = "../math2" }
 # The one backend. `use skia_safe` stays confined to `paint.rs` (enforced by
 # tests/architecture.rs) — the resolved contract and the drawlist are Skia-free.
 # Feature set matches crates/n0 so the workspace shares a single Skia build.
-skia-safe = { version = "=0.93.1", features = [
+skia-safe = { version = "=0.93.1", optional = true, features = [
   "gpu",
   "gl",
   "textlayout",

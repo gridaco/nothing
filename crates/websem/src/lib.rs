@@ -6,8 +6,10 @@
 //! (`csscascade::DemoDom`) and **one** browser-grade cascade
 //! (`csscascade::CascadeDriver`, Stylo). Inline SVG is compiled in place from
 //! the shared document — never serialized and reparsed — and its descendant
-//! style comes from the surrounding cascade. Standalone SVG is a different
-//! grammar entry into the same machinery.
+//! style comes from the surrounding cascade. The current standalone function
+//! parses a bare `<svg>` through html5ever foreign-content handling; it is a
+//! scaffold, **not** the conforming SVG/XML grammar entry the amendment
+//! requires before capability work.
 //!
 //! This crate produces the contract; it does not paint. It touches no legacy
 //! import path, no node model, no `.grida` codec, and no backend

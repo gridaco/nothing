@@ -4,8 +4,9 @@
 //! Meaning lives in the engine — this host does only argument parsing, file
 //! I/O, and choosing the raster size. It calls `websem` to compile the source
 //! into the source-neutral `rframe::Frame`, then `rframe` to render + encode.
-//! Unsupported constructs fail explicitly (a non-zero exit + a clear message);
-//! there are no silent shims.
+//! Patrolled proving-shell rejections fail explicitly (a non-zero exit + a
+//! clear message). Arbitrary SVG outside the closed primitive suite is not yet
+//! capability coverage.
 //!
 //! Usage:
 //!   cargo run -p websem --example render -- <input.svg|input.html> <out.png> [WxH]
@@ -52,8 +53,7 @@ fn main() -> ExitCode {
     let frame = match compiled {
         Ok(frame) => frame,
         Err(e) => {
-            // Explicit failure — the Web-first slice supports only what it
-            // supports, and says so rather than shimming.
+            // Explicit failure for a patrolled proving-shell rejection.
             eprintln!("error: unsupported source: {e}");
             return ExitCode::FAILURE;
         }

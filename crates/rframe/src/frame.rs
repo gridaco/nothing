@@ -4,8 +4,8 @@
 //! after it has resolved its own source. It is **not** an authored source of
 //! truth, a file format, or a round-trip promise. It carries only what the
 //! [Web-First Amendment](../../../docs/wg/consolidation/web-first.md) permits:
-//! stable identity, geometry and resolved bounds, transforms, ordered paint
-//! stacks, and clips. It carries **no** HTML/CSS/SVG syntax, no parser ASTs,
+//! frame-local identity, geometry and resolved bounds, transforms, ordered
+//! paint stacks, and clips. It carries **no** HTML/CSS/SVG syntax, no parser ASTs,
 //! no producer bindings, no backend objects, and no serialization.
 //!
 //! It is deliberately minimal for the first slice (solid-fill rectangles) and
@@ -70,8 +70,12 @@ pub enum Geometry {
     Rect(Rectangle),
 }
 
-/// A stable, source-neutral node identity. Opaque — it is *not* a source id,
-/// selector, or DOM handle; producers assign it deterministically.
+/// A source-neutral node identity within one frame product.
+///
+/// The first slice assigns these deterministically but does not preserve them
+/// across source edits. They are therefore not yet valid cross-frame damage or
+/// cache keys. Stable cross-frame identity and provenance enter only when a
+/// real incremental producer forces that contract.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct NodeId(pub u64);
 
@@ -79,7 +83,7 @@ pub struct NodeId(pub u64);
 /// resolved bounds, an ordered paint stack, and an optional clip.
 #[derive(Clone, Debug, PartialEq)]
 pub struct FrameNode {
-    /// Stable source-neutral identity.
+    /// Source-neutral identity within this frame product.
     pub id: NodeId,
     /// Resolved transform mapping the node's local geometry into frame space.
     pub transform: AffineTransform,

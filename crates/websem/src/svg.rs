@@ -8,10 +8,10 @@
 //! the source-neutral [`rframe::Frame`]. It never touches the legacy SVG-only
 //! matcher, never serializes-and-reparses inline SVG, and never paints.
 //!
-//! Deliberately narrow: the first slice supports the outer `<svg>` (with
-//! `width`/`height`/`viewBox`) and solid-filled `<rect>`. Every construct it
-//! cannot faithfully resolve is an explicit [`CompileError`] — never a silent
-//! shim.
+//! Deliberately narrow: the proving shell supports only the enumerated
+//! viewport/fill cases around an outer `<svg>` and solid-filled `<rect>`.
+//! [`CompileError`] makes those patrolled rejection cases explicit. This is
+//! not yet an exhaustive SVG-surface validator or an SVG capability claim.
 //!
 //! ## servo-Stylo caveat (a filed finding)
 //! The workspace compiles Stylo with the **servo** engine, which omits the
@@ -45,8 +45,10 @@ use rframe::frame::{Color, Frame, FrameNode, Geometry, PaintStack};
 /// Serializes access to `csscascade`'s process-global document slot.
 static COMPILE_LOCK: Mutex<()> = Mutex::new(());
 
-/// A construct the first slice does not model. Failures are explicit — the
-/// compiler never silently drops or approximates.
+/// An explicit failure in the proving shell's enumerated grammar checks.
+///
+/// This list is not yet exhaustive over SVG attributes or computed style; the
+/// closed primitive suite defines the shell's positive coverage.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompileError {
     /// No `<svg>` element was found in the document.
@@ -57,8 +59,14 @@ pub enum CompileError {
     UnsupportedFill(String),
     /// A numeric attribute failed to parse.
     BadNumber { attr: String, value: String },
-    /// A `viewBox` that is not four numbers.
+    /// Viewport sizing needs a default/CSS sizing path this slice lacks.
+    UnsupportedSizing(String),
+    /// A viewport dimension is syntactically numeric but invalid.
+    InvalidDimension { attr: String, value: String },
+    /// A `viewBox` whose four-number grammar or positive extent is invalid.
     BadViewBox(String),
+    /// A valid SVG viewport mode the current slice does not implement.
+    UnsupportedViewport(String),
     /// An element carried no computed style (cascade did not reach it).
     MissingComputedStyle,
 }
@@ -72,7 +80,16 @@ impl std::fmt::Display for CompileError {
             CompileError::BadNumber { attr, value } => {
                 write!(f, "attribute {attr}={value:?} is not a number")
             }
-            CompileError::BadViewBox(v) => write!(f, "viewBox {v:?} is not four numbers"),
+            CompileError::UnsupportedSizing(reason) => {
+                write!(f, "unsupported SVG viewport sizing: {reason}")
+            }
+            CompileError::InvalidDimension { attr, value } => {
+                write!(f, "invalid SVG viewport dimension {attr}={value:?}")
+            }
+            CompileError::BadViewBox(v) => write!(f, "viewBox {v:?} is invalid"),
+            CompileError::UnsupportedViewport(v) => {
+                write!(f, "unsupported SVG viewport mapping: {v}")
+            }
             CompileError::MissingComputedStyle => write!(f, "element has no computed style"),
         }
     }
@@ -87,8 +104,12 @@ pub fn compile_html_inline_svg(html: &str) -> Result<Frame, CompileError> {
     compile_first_svg(html)
 }
 
-/// Compile a standalone SVG document into an SVG-local [`Frame`], through the
-/// same document machinery and the same compiler as the inline entry.
+/// Compile a bare `<svg>` scaffold into an SVG-local [`Frame`], through
+/// html5ever's foreign-content handling and the same compiler as the inline
+/// entry.
+///
+/// This is deliberately not advertised as the conforming standalone SVG/XML
+/// grammar entry required by the Web-First Amendment.
 pub fn compile_standalone_svg(svg: &str) -> Result<Frame, CompileError> {
     compile_first_svg(svg)
 }
@@ -129,18 +150,45 @@ fn find_svg(el: HtmlElement) -> Option<HtmlElement> {
 /// Compile an `<svg>` element and its children into an SVG-local frame.
 fn compile_svg_element(svg: HtmlElement) -> Result<Frame, CompileError> {
     let id = svg.node_id();
-    let width = attr_f32(id, "width")?.unwrap_or(0.0);
-    let height = attr_f32(id, "height")?.unwrap_or(0.0);
-    let (vb_x, vb_y, vb_w, vb_h) = match get_attr(id, "viewBox") {
-        Some(v) => parse_viewbox(&v)?,
-        None => (0.0, 0.0, width, height),
+    let width = attr_f32(id, "width")?.ok_or_else(|| {
+        CompileError::UnsupportedSizing(
+            "missing width; CSS/default intrinsic sizing is not implemented".to_string(),
+        )
+    })?;
+    let height = attr_f32(id, "height")?.ok_or_else(|| {
+        CompileError::UnsupportedSizing(
+            "missing height; CSS/default intrinsic sizing is not implemented".to_string(),
+        )
+    })?;
+    reject_negative_dimension("width", width)?;
+    reject_negative_dimension("height", height)?;
+    if let Some(value) = get_attr(id, "preserveAspectRatio") {
+        return Err(CompileError::UnsupportedViewport(format!(
+            "preserveAspectRatio={value:?}"
+        )));
+    }
+    let viewbox = match get_attr(id, "viewBox") {
+        Some(v) => Some(parse_viewbox(&v)?),
+        None => None,
     };
 
-    // viewBox → viewport mapping (preserveAspectRatio: the simple stretch case,
-    // exact for the equal-aspect fixtures the slice uses).
-    let sx = if vb_w != 0.0 { width / vb_w } else { 1.0 };
-    let sy = if vb_h != 0.0 { height / vb_h } else { 1.0 };
-    let viewport = AffineTransform::from_acebdf(sx, 0.0, -vb_x * sx, 0.0, sy, -vb_y * sy);
+    // The first slice proves only the equal-aspect default mapping. Reject
+    // every other valid preserveAspectRatio case rather than silently stretch.
+    let viewport = match viewbox {
+        Some((vb_x, vb_y, vb_w, vb_h)) => {
+            let sx = width / vb_w;
+            let sy = height / vb_h;
+            let tolerance = f32::EPSILON * sx.abs().max(sy.abs()).max(1.0) * 8.0;
+            if (sx - sy).abs() > tolerance {
+                return Err(CompileError::UnsupportedViewport(
+                    "non-uniform viewBox mapping requires preserveAspectRatio semantics"
+                        .to_string(),
+                ));
+            }
+            AffineTransform::from_acebdf(sx, 0.0, -vb_x * sx, 0.0, sy, -vb_y * sy)
+        }
+        None => AffineTransform::identity(),
+    };
     let frame_bounds = Rectangle::from_xywh(0.0, 0.0, width, height);
 
     let mut nodes = Vec::new();
@@ -261,15 +309,46 @@ fn parse_hex(hex: &str) -> Result<Color, CompileError> {
 }
 
 fn parse_viewbox(v: &str) -> Result<(f32, f32, f32, f32), CompileError> {
-    let parts: Vec<f32> = v
-        .split(|c: char| c.is_whitespace() || c == ',')
-        .filter(|s| !s.is_empty())
-        .filter_map(|s| s.parse::<f32>().ok())
-        .collect();
-    match parts.as_slice() {
-        [x, y, w, h] => Ok((*x, *y, *w, *h)),
-        _ => Err(CompileError::BadViewBox(v.to_string())),
+    // Support the explicit proving-shell grammar: four finite numbers
+    // separated by ASCII whitespace and/or one comma. Empty comma groups are
+    // malformed; reject them instead of filtering repeated/trailing commas.
+    // More compact SVG number-list forms remain unsupported rather than
+    // guessed.
+    let comma_groups: Vec<&str> = v.split(',').collect();
+    if comma_groups.iter().any(|group| group.trim().is_empty()) {
+        return Err(CompileError::BadViewBox(v.to_string()));
     }
+    let tokens: Vec<&str> = comma_groups
+        .iter()
+        .flat_map(|group| group.split_ascii_whitespace())
+        .collect();
+    if tokens.len() != 4 {
+        return Err(CompileError::BadViewBox(v.to_string()));
+    }
+    let mut parts = [0.0f32; 4];
+    for (index, token) in tokens.iter().enumerate() {
+        let value = token
+            .parse::<f32>()
+            .map_err(|_| CompileError::BadViewBox(v.to_string()))?;
+        if !value.is_finite() {
+            return Err(CompileError::BadViewBox(v.to_string()));
+        }
+        parts[index] = value;
+    }
+    if parts[2] <= 0.0 || parts[3] <= 0.0 {
+        return Err(CompileError::BadViewBox(v.to_string()));
+    }
+    Ok((parts[0], parts[1], parts[2], parts[3]))
+}
+
+fn reject_negative_dimension(attr: &str, value: f32) -> Result<(), CompileError> {
+    if value < 0.0 {
+        return Err(CompileError::InvalidDimension {
+            attr: attr.to_string(),
+            value: value.to_string(),
+        });
+    }
+    Ok(())
 }
 
 /// Axis-aligned bounds of `rect` after `t` (scale+translate; corner transform
@@ -319,13 +398,21 @@ fn get_attr(id: NodeId, name: &str) -> Option<String> {
 fn attr_f32(id: NodeId, name: &str) -> Result<Option<f32>, CompileError> {
     match get_attr(id, name) {
         None => Ok(None),
-        Some(v) => v
-            .trim()
-            .parse::<f32>()
-            .map(Some)
-            .map_err(|_| CompileError::BadNumber {
-                attr: name.to_string(),
-                value: v,
-            }),
+        Some(v) => {
+            let parsed = v
+                .trim()
+                .parse::<f32>()
+                .map_err(|_| CompileError::BadNumber {
+                    attr: name.to_string(),
+                    value: v.clone(),
+                })?;
+            if !parsed.is_finite() {
+                return Err(CompileError::BadNumber {
+                    attr: name.to_string(),
+                    value: v,
+                });
+            }
+            Ok(Some(parsed))
+        }
     }
 }

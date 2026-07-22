@@ -35,7 +35,7 @@ fn sk_matrix(t: AffineTransform) -> Matrix {
 
 /// Replay a drawlist onto `canvas`. Deterministic: anti-aliasing is disabled so
 /// solid fills produce byte-stable interiors across runs and machines.
-pub fn paint(canvas: &Canvas, list: &DrawList) {
+pub(crate) fn paint(canvas: &Canvas, list: &DrawList) {
     for item in &list.items {
         match item {
             DrawItem::ClipRect(rect) => {
@@ -138,7 +138,7 @@ pub fn decode_png(bytes: &[u8]) -> Option<Raster> {
 /// Rasterize a drawlist onto a fresh transparent CPU surface and read the
 /// pixels back. Deterministic (CPU raster, AA disabled): two calls with the
 /// same drawlist and dimensions produce byte-identical `pixels`.
-pub fn raster(list: &DrawList, width: i32, height: i32) -> Raster {
+pub(crate) fn raster(list: &DrawList, width: i32, height: i32) -> Raster {
     let mut surface = surfaces::raster_n32_premul((width, height)).expect("raster surface");
     surface.canvas().clear(SkColor::TRANSPARENT);
     paint(surface.canvas(), list);

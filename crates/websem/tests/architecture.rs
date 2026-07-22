@@ -33,6 +33,15 @@ fn websem_touches_no_forbidden_path() {
     assert!(checked >= 1, "expected to check at least one source file");
 }
 
+#[test]
+fn websem_normal_edge_keeps_rframe_backend_free() {
+    let manifest = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"));
+    assert!(
+        manifest.contains("rframe = { path = \"../rframe\", default-features = false }"),
+        "websem's normal rframe edge must disable backend features; pixel hosts opt in only as dev/host targets"
+    );
+}
+
 fn walk(dir: &Path, checked: &mut usize) {
     for entry in fs::read_dir(dir).expect("read dir") {
         let path = entry.expect("dir entry").path();

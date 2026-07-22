@@ -6491,6 +6491,9 @@ dependencies = [
  "csscascade",
  "math2",
  "rframe",
+ "serde",
+ "serde_json",
+ "sha2",
  "stylo",
 ]
 

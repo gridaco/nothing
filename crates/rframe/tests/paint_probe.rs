@@ -1,3 +1,5 @@
+#![cfg(feature = "skia")]
+
 //! Probe + determinism for the kernel painter, independent of any producer.
 //!
 //! Builds a resolved [`Frame`] by hand (a green rectangle filling a 64×64

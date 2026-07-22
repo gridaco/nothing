@@ -13,7 +13,7 @@ use crate::frame::{Color, Frame, Geometry, Paint};
 
 /// One drawing operation, in frame space, in paint order.
 #[derive(Clone, Debug, PartialEq)]
-pub enum DrawItem {
+pub(crate) enum DrawItem {
     /// Push a clip to the given frame-space rectangle for subsequent items,
     /// until the matching [`DrawItem::Restore`].
     ClipRect(Rectangle),
@@ -30,8 +30,8 @@ pub enum DrawItem {
 
 /// An ordered list of drawing operations.
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct DrawList {
-    pub items: Vec<DrawItem>,
+pub(crate) struct DrawList {
+    pub(crate) items: Vec<DrawItem>,
 }
 
 /// Lower a resolved [`Frame`] into a private [`DrawList`].
@@ -40,7 +40,7 @@ pub struct DrawList {
 /// emitted bottom-first. Every construct the contract can express and the
 /// drawlist cannot yet lower is an explicit `panic!` at the boundary — never a
 /// silent shim (there are none for the first slice).
-pub fn build(frame: &Frame) -> DrawList {
+pub(crate) fn build(frame: &Frame) -> DrawList {
     let mut items = Vec::new();
     items.push(DrawItem::ClipRect(frame.bounds));
 

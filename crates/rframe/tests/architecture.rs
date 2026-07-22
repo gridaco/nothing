@@ -42,3 +42,17 @@ fn contract_and_drawlist_are_backend_and_producer_free() {
         }
     }
 }
+
+#[test]
+fn private_drawlist_is_not_an_external_join_point() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/lib.rs");
+    let content = fs::read_to_string(root).expect("read crate root");
+    assert!(
+        content.contains("mod drawlist;") && !content.contains("pub mod drawlist;"),
+        "the provisional drawlist stays crate-private until the owner chooses a lower join point"
+    );
+    assert!(
+        !content.contains("pub use drawlist"),
+        "private drawlist types must not be re-exported"
+    );
+}
