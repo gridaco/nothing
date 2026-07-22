@@ -2198,6 +2198,7 @@ dependencies = [
  "futures",
  "gl",
  "glutin",
+ "htmlcss",
  "imgref",
  "json-patch",
  "math2",
@@ -2469,6 +2470,21 @@ checksum = "6452c4751a24e1b99c3260d505eaeee76a050573e61f30ac2c924ddc7236f01e"
 dependencies = [
  "log",
  "markup5ever",
+]
+
+[[package]]
+name = "htmlcss"
+version = "0.0.0"
+dependencies = [
+ "cg",
+ "csscascade",
+ "math2",
+ "pulldown-cmark",
+ "rustc-hash",
+ "skia-safe",
+ "stylo",
+ "stylo_static_prefs",
+ "taffy",
 ]
 
 [[package]]
@@ -6489,11 +6505,13 @@ name = "websem"
 version = "0.0.0"
 dependencies = [
  "csscascade",
+ "htmlcss",
  "math2",
  "rframe",
  "serde",
  "serde_json",
  "sha2",
+ "skia-safe",
  "stylo",
 ]
 

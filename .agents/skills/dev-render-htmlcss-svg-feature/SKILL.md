@@ -12,7 +12,7 @@ description: >
 # grida-htmlcss::svg — feature loop
 
 **What this is.** A heavy, manually-invoked loop for driving a single
-SVG feature forward in `crates/grida/src/htmlcss/svg/`. Do not
+SVG feature forward in `crates/htmlcss/src/svg/`. Do not
 auto-trigger; load only when the user explicitly runs it.
 
 **Sister skill.** [`dev-render-htmlcss-feature`](../dev-render-htmlcss-feature/SKILL.md)
@@ -22,7 +22,7 @@ shape, but different corpus and different scoring policy.
 
 | Aspect          | HTML/CSS sister skill                        | This (SVG) skill                                                    |
 | --------------- | -------------------------------------------- | ------------------------------------------------------------------- |
-| Renderer module | `crates/grida/src/htmlcss/` (excl. `svg/`)   | `crates/grida/src/htmlcss/svg/`                                     |
+| Renderer module | `crates/htmlcss/src/` (excl. `svg/`)         | `crates/htmlcss/src/svg/`                                           |
 | Corpus          | `fixtures/test-html/L0/` (we author)         | `fixtures/local/resvg-test-suite/` (vendored, 1679 fixtures)        |
 | Oracle          | Playwright Chromium (refbrowser, on-the-fly) | `expected.png` (suite author) **+** baked Chrome PNG                |
 | Scoring         | Single oracle, gate=`L0.exact` floor 1.0     | Multi-oracle: consensus / disputed / UB; gate = consensus pass-rate |
@@ -73,7 +73,7 @@ oracle buckets?
 
 **Actions.**
 
-- Scan `crates/grida/src/htmlcss/svg/` for the property/element name
+- Scan `crates/htmlcss/src/svg/` for the property/element name
   in dom/parse, style/cascade, layout, paint. SVG features can be
   parsed-but-dropped, computed-but-misrouted, or just unhandled —
   each has a different fix shape.
@@ -97,7 +97,7 @@ oracle buckets?
     --renderer htmlcss --threshold 0.1 \
     --filter 'filters_feSpecularLighting'
   ```
-- Cross-reference [`crates/grida/src/htmlcss/svg/README.md`](../../../crates/grida/src/htmlcss/svg/README.md)
+- Cross-reference [`crates/htmlcss/src/svg/README.md`](../../../crates/htmlcss/src/svg/README.md)
   for the Blink module map and any prior decision.
 
 **Deliverable.** A short audit note (PR draft / task prompt):
@@ -189,7 +189,7 @@ known starting score against the chosen oracle.
 ### 4. Implement — "what code change realizes the behavior?"
 
 **Question.** What is the minimum diff in
-`crates/grida/src/htmlcss/svg/` to make the targets pass?
+`crates/htmlcss/src/svg/` to make the targets pass?
 
 **Actions.**
 
@@ -285,7 +285,7 @@ moved against, and whether anything regressed.
 | Audit     | Current-state note, oracle-partitioned fixture list       | PR description / task prompt                                    |
 | Ground    | Research note (spec + Blink/resvg cross-ref)              | PR description or `docs/wg/feat-2d/`                            |
 | Fixture   | Target fixture list with oracle status; baked chrome.png  | `fixtures/local/resvg-test-suite/chrome-baseline/` (gitignored) |
-| Implement | Code change, data tests, spec-language behavior summary   | `crates/grida/src/htmlcss/svg/`                                 |
+| Implement | Code change, data tests, spec-language behavior summary   | `crates/htmlcss/src/svg/`                                       |
 | Verify    | Before/after summary, per-fixture scores, diff PNG review | PR description                                                  |
 
 ---
@@ -466,7 +466,7 @@ Produce, in order:
    different — explain which oracle the implementation targets).
 3. Fixture list: 1-3 target fixtures with rel paths, oracle status,
    baked chrome.png present (yes/no).
-4. Implementation: minimal diff in crates/grida/src/htmlcss/svg/.
+4. Implementation: minimal diff in crates/htmlcss/src/svg/.
    Data tests where assertable.
 5. Verify report:
    - before/after consensus pass-rate (from `reftest summary`)
@@ -500,5 +500,5 @@ Use /research for phase 2.
 | `reftest view <result-dir>`                              | Serve the dashboard.                                                                                                          |
 
 See [`crates/grida_dev/AGENTS.md`](../../../crates/grida_dev/AGENTS.md) and
-[`crates/grida/src/htmlcss/svg/README.md`](../../../crates/grida/src/htmlcss/svg/README.md)
+[`crates/htmlcss/src/svg/README.md`](../../../crates/htmlcss/src/svg/README.md)
 for the underlying contracts.

@@ -43,7 +43,8 @@ can consume a source-neutral resolved input.
 Capability claims must name the path they describe.
 
 1. The mature direct renderer is
-   [`crates/grida/src/htmlcss`](../../../crates/grida/src/htmlcss/mod.rs). Its
+   [`crates/htmlcss`](../../../crates/htmlcss/src/lib.rs), extracted from the
+   legacy crate behind a compatibility re-export. Its
    HTML path is parse and cascade → Web-private styled tree → layout → direct
    backend paint. Its SVG path is a broad direct DOM/resource/paint walk. The
    renderer itself does not consume the legacy node model; that coupling begins

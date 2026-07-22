@@ -12,6 +12,10 @@ crate-type = ["cdylib", "rlib"]
 # shared canvas-graphics vocabulary
 cg = { path = "../cg" }
 
+# Mature Web-format renderer, extracted from this crate. `grida` remains a
+# compatibility consumer while Web hosts move to the independent owner.
+htmlcss = { path = "../htmlcss" }
+
 # skia
 skia-safe = { version = "0.93.1", features = [
   "gpu",

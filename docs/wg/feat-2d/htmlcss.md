@@ -13,7 +13,7 @@ tags:
 Renders HTML+CSS to a Skia Picture for opaque embedding on the canvas
 (HTMLEmbedNode).
 
-**Source:** `crates/grida/src/htmlcss/`
+**Source:** `crates/htmlcss/src/`
 
 ## Inputs
 

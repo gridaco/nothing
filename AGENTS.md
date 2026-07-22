@@ -25,10 +25,11 @@ brew install ninja            # macOS
 
 ```sh
 # check (each crate must pass independently)
-cargo check -p grida -p grida-canvas-wasm -p grida_dev -p n0 -p n0-model
+cargo check -p htmlcss -p grida -p grida-canvas-wasm -p grida_dev -p n0 -p n0-model
 
 # tests
 cargo test -p grida     # legacy engine tests
+cargo test -p htmlcss   # extracted Web renderer tests
 cargo test -p n0-model -p n0   # v2 engine tests (model is skia-free, fast)
 cargo test              # all
 
@@ -48,8 +49,9 @@ python3 bin/activate-flatc -- --rust -o crates/grida/src/io/generated format/gri
 
 | directory                   | notes                                                                                      |
 | --------------------------- | ------------------------------------------------------------------------------------------ |
-| `crates/grida`              | the engine core (rendering, node model, io, text, svg/html import)                         |
+| `crates/grida`              | legacy engine compatibility consumer (node model, io, text, import/export, editor-era runtime) |
 | `crates/cg`                 | the backend-neutral canvas-graphics vocabulary                                             |
+| `crates/htmlcss`            | extracted mature static HTML/CSS/SVG renderer; transitional direct-Skia Web implementation |
 | `crates/grida_editor`       | editor core — document working copy, invertible mutations, history, commands               |
 | `crates/grida-canvas-wasm`  | WASM bindings + the `@grida/canvas-wasm` npm package (see its `PUBLISHING.md`)             |
 | `crates/math2` · `csscascade` · `fonts` | foundations                                                                    |
