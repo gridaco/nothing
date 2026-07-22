@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cadence — release analytics your whole team can read</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --bg-soft:#f6f7fb;
+    --bg-ink:#0b1020;
+    --ink:#141a2e;
+    --ink-soft:#4b5468;
+    --ink-faint:#7b869c;
+    --line:#e6e9f2;
+    --brand:#5b53ff;
+    --brand-2:#8b5cff;
+    --brand-ink:#3a33d6;
+    --accent:#12c6a4;
+    --amber:#ffb020;
+    --shadow-sm:0 1px 2px rgba(16,22,45,.06),0 1px 3px rgba(16,22,45,.08);
+    --shadow-md:0 8px 24px rgba(16,22,45,.10),0 2px 6px rgba(16,22,45,.06);
+    --shadow-lg:0 30px 60px rgba(16,22,45,.16),0 8px 20px rgba(16,22,45,.10);
+    --radius:14px;
+    --radius-lg:22px;
+    --maxw:1160px;
+    --font:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    font-family:var(--font);
+    color:var(--ink);
+    background:var(--bg);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  a{color:inherit;text-decoration:none}
+  img{max-width:100%;display:block}
+  h1,h2,h3,h4{line-height:1.15;margin:0;letter-spacing:-.02em}
+  p{margin:0}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--brand-ink);background:linear-gradient(180deg,#eeecff,#e7e4ff);
+    border:1px solid #ddd8ff;padding:6px 12px;border-radius:999px;
+  }
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    font-weight:600;font-size:15px;padding:11px 20px;border-radius:11px;
+    border:1px solid transparent;cursor:pointer;transition:transform .12s ease,box-shadow .12s ease;
+    white-space:nowrap;
+  }
+  .btn:hover{transform:translateY(-1px)}
+  .btn-primary{
+    color:#fff;background:linear-gradient(180deg,var(--brand-2),var(--brand));
+    box-shadow:0 6px 18px rgba(91,83,255,.35),inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .btn-ghost{color:var(--ink);background:#fff;border-color:var(--line);box-shadow:var(--shadow-sm)}
+  .btn-lg{padding:14px 26px;font-size:16px}
+  .btn-white{background:#fff;color:var(--brand-ink)}
+  .btn-outline-white{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}
+
+  /* ---------- NAV ---------- */
+  header.nav{
+    position:sticky;top:0;z-index:50;
+    background:rgba(255,255,255,.82);backdrop-filter:saturate(140%) blur(12px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav-inner{display:flex;align-items:center;gap:28px;height:66px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px;letter-spacing:-.02em}
+  .brand svg{display:block}
+  nav.links{display:flex;gap:26px;margin-left:8px}
+  nav.links a{font-size:15px;color:var(--ink-soft);font-weight:500}
+  nav.links a:hover{color:var(--ink)}
+  .nav-cta{margin-left:auto;display:flex;align-items:center;gap:14px}
+  .nav-cta .signin{font-size:15px;font-weight:600;color:var(--ink-soft)}
+  .nav-cta .signin:hover{color:var(--ink)}
+  @media(max-width:860px){nav.links{display:none}.nav-cta .signin{display:none}}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative;overflow:hidden;
+    background:
+      radial-gradient(1100px 500px at 80% -10%,#eef0ff 0,rgba(238,240,255,0) 60%),
+      radial-gradient(900px 500px at 0% 0%,#e8fff8 0,rgba(232,255,248,0) 55%),
+      var(--bg);
+    padding:76px 0 60px;
+  }
+  .hero-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:52px;align-items:center}
+  @media(max-width:940px){.hero-grid{grid-template-columns:1fr;gap:36px}}
+  .hero h1{font-size:56px;font-weight:800;margin:20px 0 18px}
+  .hero .lede{font-size:19px;color:var(--ink-soft);max-width:34ch}
+  .hero-cta{display:flex;gap:14px;margin-top:28px;flex-wrap:wrap}
+  .hero-meta{display:flex;gap:22px;margin-top:26px;color:var(--ink-faint);font-size:14px;flex-wrap:wrap}
+  .hero-meta b{color:var(--ink)}
+  .hero-meta span{display:inline-flex;align-items:center;gap:7px}
+  @media(max-width:560px){.hero h1{font-size:40px}}
+
+  .mock{
+    border-radius:var(--radius-lg);background:#fff;border:1px solid var(--line);
+    box-shadow:var(--shadow-lg);overflow:hidden;
+  }
+
+  /* ---------- TRUSTED ---------- */
+  .trusted{padding:38px 0 8px}
+  .trusted p{text-align:center;color:var(--ink-faint);font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:22px}
+  .logos{display:flex;flex-wrap:wrap;gap:44px;justify-content:center;align-items:center;opacity:.72}
+  .logos svg{color:var(--ink-soft)}
+
+  /* ---------- SECTION ---------- */
+  section.block{padding:84px 0}
+  .sec-head{text-align:center;max-width:640px;margin:0 auto 52px}
+  .sec-head h2{font-size:38px;font-weight:800;margin:14px 0 14px}
+  .sec-head p{font-size:18px;color:var(--ink-soft)}
+
+  /* ---------- FEATURES ---------- */
+  .features{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  @media(max-width:900px){.features{grid-template-columns:1fr 1fr}}
+  @media(max-width:600px){.features{grid-template-columns:1fr}}
+  .card{
+    background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+    padding:26px;box-shadow:var(--shadow-sm);transition:box-shadow .15s ease,transform .15s ease;
+  }
+  .card:hover{box-shadow:var(--shadow-md);transform:translateY(-3px)}
+  .ficon{
+    width:48px;height:48px;border-radius:12px;display:grid;place-items:center;margin-bottom:16px;
+    background:linear-gradient(180deg,#efeeff,#e6e3ff);color:var(--brand);border:1px solid #ddd8ff;
+  }
+  .card h3{font-size:19px;margin-bottom:8px}
+  .card p{color:var(--ink-soft);font-size:15px}
+
+  /* ---------- HOW IT WORKS ---------- */
+  .how{background:var(--bg-soft);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+  @media(max-width:760px){.steps{grid-template-columns:1fr}}
+  .step{position:relative;padding-left:0}
+  .step .num{
+    width:40px;height:40px;border-radius:11px;display:grid;place-items:center;
+    font-weight:800;color:#fff;background:linear-gradient(180deg,var(--brand-2),var(--brand));
+    box-shadow:0 6px 14px rgba(91,83,255,.32);margin-bottom:14px;
+  }
+  .step h3{font-size:18px;margin-bottom:7px}
+  .step p{color:var(--ink-soft);font-size:15px}
+
+  /* ---------- STATS ---------- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:52px}
+  @media(max-width:760px){.stats{grid-template-columns:1fr 1fr}}
+  .stat{text-align:center}
+  .stat .big{font-size:42px;font-weight:800;letter-spacing:-.03em;background:linear-gradient(90deg,var(--brand),var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .stat .lbl{color:var(--ink-soft);font-size:14px;margin-top:4px}
+
+  /* ---------- TESTIMONIAL ---------- */
+  .quote-band{
+    background:linear-gradient(160deg,#171c33,#0b1020);color:#fff;border-radius:var(--radius-lg);
+    padding:52px 48px;display:grid;grid-template-columns:auto 1fr;gap:30px;align-items:center;
+    box-shadow:var(--shadow-lg);
+  }
+  @media(max-width:640px){.quote-band{grid-template-columns:1fr;padding:34px 26px;text-align:center}}
+  .quote-band blockquote{margin:0;font-size:24px;line-height:1.42;font-weight:500;letter-spacing:-.01em}
+  .quote-band .who{margin-top:18px;color:#b9c0da;font-size:15px}
+  .quote-band .who b{color:#fff}
+  .avatar{width:104px;height:104px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 4px rgba(255,255,255,.12)}
+
+  /* ---------- PRICING ---------- */
+  .tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;align-items:start}
+  @media(max-width:860px){.tiers{grid-template-columns:1fr;max-width:440px;margin-inline:auto}}
+  .tier{background:#fff;border:1px solid var(--line);border-radius:var(--radius-lg);padding:30px;box-shadow:var(--shadow-sm);position:relative}
+  .tier.pop{border-color:#c9c3ff;box-shadow:var(--shadow-lg);transform:translateY(-6px)}
+  @media(max-width:860px){.tier.pop{transform:none}}
+  .tier .tag{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:linear-gradient(180deg,var(--brand-2),var(--brand));color:#fff;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:5px 14px;border-radius:999px;box-shadow:var(--shadow-sm)}
+  .tier h3{font-size:20px}
+  .tier .price{font-size:44px;font-weight:800;letter-spacing:-.03em;margin:10px 0 2px}
+  .tier .price span{font-size:16px;font-weight:600;color:var(--ink-faint)}
+  .tier .sub{color:var(--ink-soft);font-size:14px;margin-bottom:20px}
+  .tier ul{list-style:none;margin:20px 0 24px;padding:0;display:grid;gap:11px}
+  .tier li{display:flex;gap:10px;font-size:15px;color:var(--ink-soft)}
+  .tier li svg{flex:none;margin-top:3px;color:var(--accent)}
+  .tier .btn{width:100%}
+
+  /* ---------- FINAL CTA ---------- */
+  .final{
+    text-align:center;color:#fff;border-radius:var(--radius-lg);padding:64px 32px;
+    background:radial-gradient(700px 300px at 50% -20%,#8b5cff 0,rgba(139,92,255,0) 70%),linear-gradient(150deg,#4b45e6,#6a4bff 55%,#12c6a4);
+    box-shadow:var(--shadow-lg);
+  }
+  .final h2{font-size:40px;font-weight:800;margin-bottom:14px}
+  .final p{font-size:18px;color:rgba(255,255,255,.9);max-width:46ch;margin:0 auto 28px}
+  .final .row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+
+  /* ---------- FOOTER ---------- */
+  footer{background:var(--bg-ink);color:#aeb6d0;padding:64px 0 34px;margin-top:8px}
+  .foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:34px}
+  @media(max-width:820px){.foot-grid{grid-template-columns:1fr 1fr}}
+  @media(max-width:520px){.foot-grid{grid-template-columns:1fr 1fr}}
+  footer .brand{color:#fff;margin-bottom:14px}
+  footer p.blurb{font-size:14px;max-width:30ch;color:#8b94b3}
+  footer h4{color:#fff;font-size:13px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px}
+  footer ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+  footer ul a{font-size:14px;color:#aeb6d0}
+  footer ul a:hover{color:#fff}
+  .social{display:flex;gap:12px;margin-top:18px}
+  .social a{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:rgba(255,255,255,.06);color:#c7cde6;transition:background .15s ease}
+  .social a:hover{background:rgba(255,255,255,.14);color:#fff}
+  .foot-bottom{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:44px;padding-top:22px;border-top:1px solid rgba(255,255,255,.08);font-size:13px;color:#7b85a6}
+  .foot-bottom a{color:#9aa3c4}
+</style>
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top" aria-label="Cadence home">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <rect width="30" height="30" rx="8" fill="url(#lg)"/>
+        <path d="M8 19c1.6-8 4.6-8 6.2 0s4.6 8 6.2 0" stroke="#fff" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+        <defs><linearGradient id="lg" x1="0" y1="0" x2="30" y2="30">
+          <stop stop-color="#8b5cff"/><stop offset="1" stop-color="#5b53ff"/>
+        </linearGradient></defs>
+      </svg>
+      Cadence
+    </a>
+    <nav class="links" aria-label="Primary">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#customers">Customers</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="signin" href="#">Sign in</a>
+      <a class="btn btn-primary" href="#pricing">Get started</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M7 0l1.8 4.3L13 5l-3.3 3 1 4.6L7 10.3 3.3 12.6l1-4.6L1 5l4.2-.7z"/></svg>
+        New · Ship Signals 2.0
+      </span>
+      <h1>Release analytics your whole&nbsp;team can read.</h1>
+      <p class="lede">Cadence connects your deploys, feature flags, and product metrics into one live timeline — so everyone from engineering to support knows what shipped and how it landed.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary btn-lg" href="#pricing">Start free — no card</a>
+        <a class="btn btn-ghost btn-lg" href="#how">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5 3.5v9l7-4.5z"/></svg>
+          Watch the 2-min tour
+        </a>
+      </div>
+      <div class="hero-meta">
+        <span><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-8" stroke="#12c6a4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> <b>SOC 2</b> Type II</span>
+        <span><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-8" stroke="#12c6a4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Set up in <b>10 min</b></span>
+        <span><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-8" stroke="#12c6a4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> <b>40+</b> integrations</span>
+      </div>
+    </div>
+
+    <!-- Dashboard mock -->
+    <div class="mock" role="img" aria-label="Cadence release dashboard showing deploy frequency, adoption trend, and a release timeline">
+      <svg viewBox="0 0 560 420" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <rect width="560" height="420" fill="#fbfbfe"/>
+        <!-- top bar -->
+        <rect x="0" y="0" width="560" height="52" fill="#ffffff"/>
+        <line x1="0" y1="52" x2="560" y2="52" stroke="#eceef6"/>
+        <circle cx="24" cy="26" r="5" fill="#ff5f57"/><circle cx="42" cy="26" r="5" fill="#febc2e"/><circle cx="60" cy="26" r="5" fill="#28c840"/>
+        <rect x="92" y="17" width="180" height="18" rx="9" fill="#f0f1f8"/>
+        <rect x="470" y="14" width="70" height="24" rx="12" fill="#eeecff"/>
+        <text x="505" y="30" font-family="system-ui" font-size="11" font-weight="700" fill="#5b53ff" text-anchor="middle">LIVE</text>
+        <!-- sidebar -->
+        <rect x="0" y="52" width="118" height="368" fill="#ffffff"/>
+        <line x1="118" y1="52" x2="118" y2="420" stroke="#eceef6"/>
+        <rect x="16" y="74" width="86" height="20" rx="6" fill="#eeecff"/>
+        <rect x="16" y="104" width="70" height="12" rx="6" fill="#eef0f6"/>
+        <rect x="16" y="128" width="80" height="12" rx="6" fill="#eef0f6"/>
+        <rect x="16" y="152" width="60" height="12" rx="6" fill="#eef0f6"/>
+        <rect x="16" y="176" width="74" height="12" rx="6" fill="#eef0f6"/>
+        <!-- KPI cards -->
+        <g>
+          <rect x="138" y="72" width="128" height="76" rx="12" fill="#fff" stroke="#eceef6"/>
+          <text x="154" y="98" font-family="system-ui" font-size="11" fill="#7b869c">Deploys / wk</text>
+          <text x="154" y="126" font-family="system-ui" font-size="26" font-weight="800" fill="#141a2e">128</text>
+          <text x="228" y="126" font-family="system-ui" font-size="11" font-weight="700" fill="#12c6a4">+18%</text>
+        </g>
+        <g>
+          <rect x="278" y="72" width="128" height="76" rx="12" fill="#fff" stroke="#eceef6"/>
+          <text x="294" y="98" font-family="system-ui" font-size="11" fill="#7b869c">Change fail rate</text>
+          <text x="294" y="126" font-family="system-ui" font-size="26" font-weight="800" fill="#141a2e">2.1%</text>
+          <text x="372" y="126" font-family="system-ui" font-size="11" font-weight="700" fill="#12c6a4">-0.4</text>
+        </g>
+        <g>
+          <rect x="418" y="72" width="128" height="76" rx="12" fill="#fff" stroke="#eceef6"/>
+          <text x="434" y="98" font-family="system-ui" font-size="11" fill="#7b869c">Adoption</text>
+          <text x="434" y="126" font-family="system-ui" font-size="26" font-weight="800" fill="#141a2e">73%</text>
+          <text x="512" y="126" font-family="system-ui" font-size="11" font-weight="700" fill="#12c6a4">+6%</text>
+        </g>
+        <!-- chart card -->
+        <rect x="138" y="164" width="408" height="150" rx="12" fill="#fff" stroke="#eceef6"/>
+        <text x="154" y="188" font-family="system-ui" font-size="12" font-weight="700" fill="#141a2e">Adoption trend · last 30 days</text>
+        <!-- gridlines -->
+        <line x1="154" y1="288" x2="528" y2="288" stroke="#f0f1f8"/>
+        <line x1="154" y1="258" x2="528" y2="258" stroke="#f0f1f8"/>
+        <line x1="154" y1="228" x2="528" y2="228" stroke="#f0f1f8"/>
+        <!-- area -->
+        <path d="M154 278 L206 262 L258 268 L310 236 L362 246 L414 214 L466 220 L528 196 L528 288 L154 288 Z" fill="url(#area)"/>
+        <path d="M154 278 L206 262 L258 268 L310 236 L362 246 L414 214 L466 220 L528 196" fill="none" stroke="#5b53ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="528" cy="196" r="4" fill="#5b53ff" stroke="#fff" stroke-width="2"/>
+        <!-- bars overlay -->
+        <g fill="#12c6a4" opacity=".55">
+          <rect x="170" y="272" width="6" height="16" rx="2"/>
+          <rect x="222" y="266" width="6" height="22" rx="2"/>
+          <rect x="274" y="270" width="6" height="18" rx="2"/>
+          <rect x="326" y="252" width="6" height="36" rx="2"/>
+          <rect x="378" y="260" width="6" height="28" rx="2"/>
+          <rect x="430" y="240" width="6" height="48" rx="2"/>
+          <rect x="482" y="246" width="6" height="42" rx="2"/>
+        </g>
+        <!-- timeline row -->
+        <rect x="138" y="330" width="408" height="70" rx="12" fill="#fff" stroke="#eceef6"/>
+        <circle cx="162" cy="352" r="5" fill="#5b53ff"/>
+        <text x="178" y="356" font-family="system-ui" font-size="11" font-weight="600" fill="#141a2e">v4.12 · Checkout redesign</text>
+        <rect x="440" y="345" width="90" height="16" rx="8" fill="#e7fbf5"/>
+        <text x="485" y="357" font-family="system-ui" font-size="10" font-weight="700" fill="#0e9e82" text-anchor="middle">Healthy</text>
+        <circle cx="162" cy="380" r="5" fill="#ffb020"/>
+        <text x="178" y="384" font-family="system-ui" font-size="11" font-weight="600" fill="#141a2e">v4.11 · Flag: fast-search</text>
+        <rect x="440" y="373" width="90" height="16" rx="8" fill="#fff4e0"/>
+        <text x="485" y="385" font-family="system-ui" font-size="10" font-weight="700" fill="#b57a06" text-anchor="middle">Watching</text>
+        <defs>
+          <linearGradient id="area" x1="0" y1="164" x2="0" y2="288" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#5b53ff" stop-opacity=".28"/><stop offset="1" stop-color="#5b53ff" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TRUSTED ============ -->
+<section class="trusted">
+  <div class="wrap">
+    <p>Trusted by fast-moving product teams</p>
+    <div class="logos">
+      <!-- Northwind -->
+      <svg width="130" height="26" viewBox="0 0 130 26" fill="none" aria-label="Northwind">
+        <path d="M4 20V6l9 10V6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="30" y="19" font-family="system-ui" font-size="17" font-weight="800" fill="currentColor">Northwind</text>
+      </svg>
+      <!-- Beacon -->
+      <svg width="112" height="26" viewBox="0 0 112 26" fill="none" aria-label="Beacon">
+        <circle cx="13" cy="13" r="7" stroke="currentColor" stroke-width="2.4"/><circle cx="13" cy="13" r="2.4" fill="currentColor"/>
+        <text x="28" y="19" font-family="system-ui" font-size="17" font-weight="800" fill="currentColor">Beacon</text>
+      </svg>
+      <!-- Loop -->
+      <svg width="92" height="26" viewBox="0 0 92 26" fill="none" aria-label="Loop">
+        <path d="M9 13a6 6 0 1 1 6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+        <text x="28" y="19" font-family="system-ui" font-size="17" font-weight="800" fill="currentColor">Loop</text>
+      </svg>
+      <!-- Quanta -->
+      <svg width="118" height="26" viewBox="0 0 118 26" fill="none" aria-label="Quanta">
+        <rect x="6" y="6" width="14" height="14" rx="4" stroke="currentColor" stroke-width="2.4"/><path d="M17 17l4 4" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+        <text x="30" y="19" font-family="system-ui" font-size="17" font-weight="800" fill="currentColor">Quanta</text>
+      </svg>
+      <!-- Verdant -->
+      <svg width="124" height="26" viewBox="0 0 124 26" fill="none" aria-label="Verdant">
+        <path d="M13 20c0-8 6-10 6-14-6 0-10 4-10 9M13 20c0-6-4-8-9-8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+        <text x="30" y="19" font-family="system-ui" font-size="17" font-weight="800" fill="currentColor">Verdant</text>
+      </svg>
+      <!-- Halo -->
+      <svg width="96" height="26" viewBox="0 0 96 26" fill="none" aria-label="Halo">
+        <ellipse cx="13" cy="13" rx="9" ry="4.5" stroke="currentColor" stroke-width="2.4"/>
+        <text x="28" y="19" font-family="system-ui" font-size="17" font-weight="800" fill="currentColor">Halo</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURES ============ -->
+<section class="block" id="features">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Why Cadence</span>
+      <h2>One timeline for everything you ship</h2>
+      <p>Stop stitching together deploy logs, dashboards, and Slack threads. Cadence turns every release into a story anyone on the team can follow.</p>
+    </div>
+    <div class="features">
+      <article class="card">
+        <div class="ficon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 17l5-5 4 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="18" cy="8" r="1.8" fill="currentColor"/></svg></div>
+        <h3>Live release timeline</h3>
+        <p>Every deploy, flag flip, and rollback lands on a single chronological feed — annotated with the metrics that moved because of it.</p>
+      </article>
+      <article class="card">
+        <div class="ficon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor" stroke-width="2"/><path d="M8 12l2.5 2.5L16 9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Adoption you can trust</h3>
+        <p>Cohort-aware adoption curves separate real usage from launch-day noise, so you know when a feature has actually landed.</p>
+      </article>
+      <article class="card">
+        <div class="ficon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 3l3 6 6 .9-4.5 4.3 1 6.3L12 17.8 6.5 20.5l1-6.3L3 9.9 9 9z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+        <h3>Signals, not alerts</h3>
+        <p>Anomaly detection watches error rates and key funnels, then explains the likely release behind a regression — in plain language.</p>
+      </article>
+      <article class="card">
+        <div class="ficon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="9" r="3.2" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="15" r="3.2" stroke="currentColor" stroke-width="2"/><path d="M11.2 11.2l2.6 2.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <h3>Works with your stack</h3>
+        <p>Native connectors for GitHub, GitLab, LaunchDarkly, Datadog, Segment, and 40+ more. Ship data flows in without a data engineer.</p>
+      </article>
+      <article class="card">
+        <div class="ficon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 20V8m5 12V4m5 16v-7m5 7V10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+        <h3>Reports that read themselves</h3>
+        <p>Auto-generated release notes and weekly digests translate raw numbers into a narrative your PMs and execs actually open.</p>
+      </article>
+      <article class="card">
+        <div class="ficon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Governance built in</h3>
+        <p>Role-based access, audit logs, and data residency controls keep security happy while the whole org stays in the loop.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS + STATS ============ -->
+<section class="block how" id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">How it works</span>
+      <h2>From connected to confident in three steps</h2>
+      <p>Most teams see their first live release story on day one — no schema design, no warehouse project.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="num">1</div>
+        <h3>Connect your sources</h3>
+        <p>Authorize your repo, CI, flag platform, and analytics with one-click OAuth. Cadence maps deploys to metrics automatically.</p>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <h3>Define what matters</h3>
+        <p>Pick the funnels, guardrail metrics, and cohorts you care about. Templates for onboarding, checkout, and retention get you started.</p>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <h3>Ship with a live read</h3>
+        <p>Every release now arrives with adoption, health, and impact attached — shared to Slack the moment the numbers stabilize.</p>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="big">3,200+</div><div class="lbl">teams shipping on Cadence</div></div>
+      <div class="stat"><div class="big">18M</div><div class="lbl">releases tracked to date</div></div>
+      <div class="stat"><div class="big">42%</div><div class="lbl">faster incident triage</div></div>
+      <div class="stat"><div class="big">99.98%</div><div class="lbl">ingestion uptime (12&nbsp;mo)</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TESTIMONIAL ============ -->
+<section class="block" id="customers">
+  <div class="wrap">
+    <div class="quote-band">
+      <div class="avatar" aria-hidden="true">
+        <svg width="104" height="104" viewBox="0 0 104 104" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="av" x1="0" y1="0" x2="104" y2="104"><stop stop-color="#8b5cff"/><stop offset="1" stop-color="#12c6a4"/></linearGradient></defs>
+          <rect width="104" height="104" fill="url(#av)"/>
+          <circle cx="52" cy="42" r="19" fill="#fff" opacity=".92"/>
+          <path d="M20 96c2-18 15-27 32-27s30 9 32 27z" fill="#fff" opacity=".92"/>
+        </svg>
+      </div>
+      <div>
+        <blockquote>"Before Cadence, 'did the launch work?' meant three dashboards and a guess. Now the answer is on one screen the whole team already trusts — engineering, product, and support finally read the same story."</blockquote>
+        <p class="who"><b>Priya Nadkarni</b> · VP of Engineering, Northwind Commerce</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section class="block how" id="pricing">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Pricing</span>
+      <h2>Start free, scale when it clicks</h2>
+      <p>Every plan includes the live timeline, unlimited viewers, and Slack delivery. Pay only as your data and team grow.</p>
+    </div>
+    <div class="tiers">
+      <!-- Free -->
+      <div class="tier">
+        <h3>Free</h3>
+        <div class="price">$0<span>/mo</span></div>
+        <p class="sub">For solo builders and side projects.</p>
+        <a class="btn btn-ghost" href="#">Get started</a>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> 1 connected project</li>
+          <li><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> 14-day release history</li>
+          <li><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> 3 core integrations</li>
+          <li><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Community support</li>
+        </ul>
+      </div>
+      <!-- Pro -->
+      <div class="tier pop">
+        <span class="tag">Most popular</span>
+        <h3>Pro</h3>
+        <div class="price">$49<span>/mo</span></div>
+        <p class="sub">Per team, billed monthly. Unlimited viewers.</p>
+        <a class="btn btn-primary" href="#">Start 14-day trial</a>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Unlimited projects &amp; history</li>
+          <li><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> All 40+ integrations</li>
+          <li><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Anomaly signals &amp; digests</li>
+          <li><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Slack &amp; Teams delivery</li>
+          <li><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Priority support</li>
+        </ul>
+      </div>
+      <!-- Enterprise -->
+      <div class="tier">
+        <h3>Enterprise</h3>
+        <div class="price">Custom</div>
+        <p class="sub">For orgs with security and scale needs.</p>
+        <a class="btn btn-ghost" href="#">Talk to sales</a>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Everything in Pro</li>
+          <li><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> SSO/SAML &amp; SCIM</li>
+          <li><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Data residency &amp; audit logs</li>
+          <li><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Dedicated success manager</li>
+          <li><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> 99.9% uptime SLA</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINAL CTA ============ -->
+<section class="block">
+  <div class="wrap">
+    <div class="final">
+      <h2>Give every release a heartbeat</h2>
+      <p>Join thousands of teams who replaced guesswork with a live read on everything they ship. Free to start — set up in an afternoon.</p>
+      <div class="row">
+        <a class="btn btn-white btn-lg" href="#">Start free</a>
+        <a class="btn btn-outline-white btn-lg" href="#">Book a demo</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="brand" style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px">
+          <svg width="26" height="26" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+            <rect width="30" height="30" rx="8" fill="url(#lg2)"/>
+            <path d="M8 19c1.6-8 4.6-8 6.2 0s4.6 8 6.2 0" stroke="#fff" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+            <defs><linearGradient id="lg2" x1="0" y1="0" x2="30" y2="30"><stop stop-color="#8b5cff"/><stop offset="1" stop-color="#5b53ff"/></linearGradient></defs>
+          </svg>
+          Cadence
+        </div>
+        <p class="blurb">Release analytics your whole team can read. Built in Berlin and San Francisco.</p>
+        <div class="social">
+          <a href="#" aria-label="Cadence on X"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 2H22l-7.3 8.3L23 22h-6.8l-5.3-6.9L4.8 22H1.7l7.8-8.9L1 2h7l4.8 6.4zM17.7 20h1.7L7.4 3.9H5.6z"/></svg></a>
+          <a href="#" aria-label="Cadence on GitHub"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.25-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.6 0 0 .8-.3 2.7 1a9.3 9.3 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.3.2 2.3.1 2.6.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg></a>
+          <a href="#" aria-label="Cadence on LinkedIn"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM10 9h3.8v1.7h.1c.5-1 1.8-2 3.7-2 4 0 4.7 2.6 4.7 6V21h-4v-5.3c0-1.3 0-2.9-1.8-2.9s-2 1.4-2 2.8V21h-4z"/></svg></a>
+          <a href="#" aria-label="Cadence RSS"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3c9.4 0 17 7.6 17 17h-4C18 12.8 12.2 7 5 7zM5 10c5.5 0 10 4.5 10 10h-4c0-3.3-2.7-6-6-6zm1.5 5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/></svg></a>
+        </div>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#">Integrations</a></li>
+          <li><a href="#">Changelog</a></li>
+          <li><a href="#">Roadmap</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <ul>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Press kit</a></li>
+          <li><a href="#customers">Customers</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Resources</h4>
+        <ul>
+          <li><a href="#">Documentation</a></li>
+          <li><a href="#">API reference</a></li>
+          <li><a href="#">Status</a></li>
+          <li><a href="#">Security</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2024 Cadence Labs, Inc. All rights reserved.</span>
+      <span><a href="#">Privacy</a> · <a href="#">Terms</a> · <a href="#">Cookies</a> · <a href="#">DPA</a></span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
