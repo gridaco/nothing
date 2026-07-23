@@ -4706,8 +4706,6 @@ version = "0.0.0"
 dependencies = [
  "cg",
  "math2",
- "n0-model",
- "skia-safe",
 ]
 
 [[package]]
@@ -6528,7 +6526,6 @@ dependencies = [
  "animation-sampling",
  "cg",
  "csscascade",
- "htmlcss",
  "math2",
  "n0",
  "rframe",

@@ -1,33 +1,20 @@
-//! `rframe` — the provisional source-neutral resolved-frame contract.
+//! `rframe` — the provisional source-neutral resolved render contract.
 //!
-//! PROVISIONAL · INTERNAL · BREAKABLE. The permanent role being proved here is
-//! the Skia-free [`Frame`] contract. The current private drawlist and painter
-//! remain only as replacement evidence while n0 adopts the contract:
+//! PROVISIONAL · INTERNAL · BREAKABLE. Contract-only: [`frame`] carries the
+//! derived visual facts a producer emits after resolving its own source, and
+//! nothing in this crate paints. The one downstream is the n0 engine kernel,
+//! which compiles the contract into its private drawlist and painter — the
+//! taken D-M vector join (see
+//! [n0-join-point](../../../docs/wg/consolidation/n0-join-point.md)). The
+//! temporary proving drawlist and painter that once lived here retired with
+//! that decision. `websem` is the current producer; the source-neutrality
+//! canary lives with the engine (`crates/n0/tests/glyphless_canary.rs`).
 //!
-//! - [`frame`] — the source-neutral **resolved render contract** ([`Frame`]).
-//!   Skia-free. The shared boundary; carries only derived visual facts.
-//! - `drawlist` and `paint` — a temporary `skia`-gated proving downstream,
-//!   retained only until byte-identical replacement through n0.
-//!
-//! The pipeline is `Frame → drawlist::build → paint::paint`. `websem` is the
-//! current producer; the n0 canary (`tests/n0_canary.rs`) exercises the same
-//! contract with real n0 resolved data but is not a second production consumer
-//! or API-promotion evidence. A later owner evidence spike decides where each
-//! producer joins. See the
-//! [Web-First Amendment](../../../docs/wg/consolidation/web-first.md).
-//!
-//! `use skia_safe` is confined to `paint`; `tests/architecture.rs` locks the
-//! contract and the drawlist Skia-free.
+//! The whole crate is backend-free (locked by `tests/architecture.rs`).
 
-#[cfg(feature = "skia")]
-mod drawlist;
 pub mod frame;
-#[cfg(feature = "skia")]
-mod paint;
 
 pub use frame::{
     Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, SolidPaintStackError,
     VisualRef,
 };
-#[cfg(feature = "skia")]
-pub use paint::{Raster, decode_png, render, render_png};

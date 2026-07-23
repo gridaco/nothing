@@ -11,10 +11,10 @@
 //!
 //! It is deliberately minimal for the first slice (solid-fill rectangles) and
 //! **breakable**: the enums grow as real producers force new visual facts, and
-//! the sharing boundary moves *down* (toward the drawlist) rather than admit a
-//! source-specific field.
+//! the sharing boundary moves *down* (toward the engine's private drawlist)
+//! rather than admit a source-specific field.
 //!
-//! This module is Skia-free (enforced by `tests/architecture.rs`).
+//! This crate is backend-free (enforced by `tests/architecture.rs`).
 
 use math2::Rectangle;
 use math2::transform::AffineTransform;

@@ -272,8 +272,8 @@ constructing an authored n0 document. The backend-free contract retains its
 opaque identity and provenance in a product-private projection, while n0 owns
 the compiler, generic-owner drawlist, damage policy, and painter. Glyphless
 items therefore never borrow or fabricate n0 node identities. The dependency
-edge uses `rframe` with default features disabled, and n0 has no dependency on
-the Web producer.
+edge consumes the contract-only, backend-free `rframe` crate (it carries no
+features and no painter), and n0 has no dependency on the Web producer.
 
 The returned `glyphless::FrameProduct` is intentionally separate from the
 ordinary `frame::FrameProduct`: the ordinary product owns n0-specific resolved

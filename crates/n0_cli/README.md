@@ -24,9 +24,10 @@ cargo run -p n0_cli --bin n0 -- \
 The route in this cut is `n0` host → `htmlcss` → direct Skia CPU raster → PNG.
 That direct backend seam is transitional and named; moving the executable does
 not claim that the mature renderer already lowers through the provisional
-`rframe` chassis. The binary name likewise does not imply that Web sources are
-converted into the n0 authored model. n0 XML, directory input, resource loading,
-and additional encoders enter only when their actual contracts are implemented.
+`rframe` contract into the n0 kernel. The binary name likewise does not imply
+that Web sources are converted into the n0 authored model. n0 XML, directory
+input, resource loading, and additional encoders enter only when their actual
+contracts are implemented.
 
 The governing topology is the
 [Web-First Amendment](../../docs/wg/consolidation/web-first.md); the physical

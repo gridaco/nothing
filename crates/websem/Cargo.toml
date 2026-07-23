@@ -13,9 +13,9 @@ publish = false
 animation-sampling = { path = "../animation-sampling" }
 # The selected source-neutral leaf-paint vocabulary.
 cg = { path = "../cg" }
-# The source-neutral resolved render contract this crate produces. The normal
-# front-end edge is backend-free; tests/examples opt into the painter below.
-rframe = { path = "../rframe", default-features = false }
+# The source-neutral resolved render contract this crate produces.
+# Contract-only and backend-free; the n0 engine owns the one downstream.
+rframe = { path = "../rframe" }
 # Neutral geometry.
 math2 = { path = "../math2" }
 # The one namespace-aware document + the one (Stylo) browser-grade cascade.
@@ -24,17 +24,13 @@ csscascade = { path = "../csscascade" }
 stylo.workspace = true
 
 [dev-dependencies]
-# Pixel gates exercise the one Skia painter. This does not widen websem's
-# normal library dependency graph.
-rframe = { path = "../rframe", features = ["skia"] }
-# Replacement gates exercise the same resolved frame through the n0-owned
-# compiler and painter. This edge is test-only; websem remains backend-free.
+# Pixel gates render the resolved frame through the n0-owned compiler and
+# painter — the one downstream. This edge is test-only; websem remains
+# backend-free.
 n0 = { path = "../n0" }
-# Crate-cut debt: these two declarations became unused when the render host
-# moved to n0_cli. They remain for this crate-addition commit because the
-# mandatory Cargo.lock additions-only gate forbids removing their existing
-# lock-entry lines in the same cut. Subtract them after the crate cut lands.
-htmlcss = { path = "../htmlcss" }
+# Pixel gates drive Skia directly for CPU surfaces and committed Chromium
+# oracle PNG decode. Test-only; this does not widen websem's normal library
+# dependency graph.
 skia-safe = { version = "=0.93.1", features = [
   "gpu",
   "gl",

@@ -4,18 +4,18 @@
 //! pixels. These tests consume only those artifacts; they never run the sealed
 //! consolidation scoreboard or compute a similarity score.
 
+mod support;
+
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use animation_sampling::SampleTime;
 use math2::Rectangle;
-use n0::paint::PaintCtx;
-use rframe::{Frame, Geometry, decode_png};
+use rframe::{Frame, Geometry};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
-use skia_safe::image::CachingHint;
-use skia_safe::{AlphaType, Color, ColorType, IPoint, ImageInfo, surfaces};
+use support::{decode_png, render_through_n0};
 use websem::SvgFrameSource;
 
 #[derive(Debug, Deserialize)]
@@ -132,40 +132,8 @@ fn probe_x(frame: &Frame) -> f32 {
     rect.x
 }
 
-fn render_through_n0(frame: Frame, width: i32, height: i32) -> Vec<u8> {
-    let context = PaintCtx::new(None);
-    let product = n0::glyphless::compile(frame).expect("compile admitted Web frame");
-    let mut surface = surfaces::raster_n32_premul((width, height)).expect("CPU raster surface");
-    surface.canvas().clear(Color::TRANSPARENT);
-    product
-        .execute(
-            surface.canvas(),
-            &math2::transform::AffineTransform::identity(),
-            &context,
-        )
-        .expect("execute admitted Web frame through n0");
-
-    let image = surface.image_snapshot();
-    let info = ImageInfo::new(
-        (width, height),
-        ColorType::RGBA8888,
-        AlphaType::Unpremul,
-        None,
-    );
-    let row_bytes = width as usize * 4;
-    let mut pixels = vec![0; row_bytes * height as usize];
-    assert!(image.read_pixels(
-        &info,
-        &mut pixels,
-        row_bytes,
-        IPoint::new(0, 0),
-        CachingHint::Disallow,
-    ));
-    pixels
-}
-
 fn assert_exact_oracle(frame: Frame, oracle: &Path, width: i32, height: i32, label: &str) {
-    let actual = render_through_n0(frame, width, height);
+    let actual = render_through_n0(&frame, width, height);
     let expected = decode_png(
         &fs::read(oracle).unwrap_or_else(|error| panic!("read {}: {error}", oracle.display())),
     )

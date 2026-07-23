@@ -5,8 +5,13 @@ const MANIFEST: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.
 #[test]
 fn rframe_edge_is_contract_only_and_backend_free() {
     assert!(
-        MANIFEST.contains("rframe = { path = \"../rframe\", default-features = false }"),
-        "n0 must consume only rframe's backend-free resolved contract"
+        MANIFEST.contains("rframe = { path = \"../rframe\" }"),
+        "n0 must consume the source-neutral resolved contract"
+    );
+    let contract_manifest = include_str!("../../rframe/Cargo.toml");
+    assert!(
+        !contract_manifest.contains("skia"),
+        "the resolved contract crate must stay backend-free (its proving painter retired with D-M)"
     );
 }
 

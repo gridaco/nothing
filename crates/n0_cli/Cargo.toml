@@ -22,7 +22,7 @@ htmlcss = { path = "../htmlcss" }
 websem = { path = "../websem" }
 n0 = { path = "../n0" }
 math2 = { path = "../math2" }
-rframe = { path = "../rframe", default-features = false }
+rframe = { path = "../rframe" }
 skia-safe = { version = "=0.93.1", features = [
   "gpu",
   "gl",

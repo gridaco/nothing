@@ -44,8 +44,13 @@ fn websem_touches_no_forbidden_path() {
 fn websem_normal_edge_keeps_rframe_backend_free() {
     let manifest = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"));
     assert!(
-        manifest.contains("rframe = { path = \"../rframe\", default-features = false }"),
-        "websem's normal rframe edge must disable backend features; pixel hosts opt in only as dev/host targets"
+        manifest.contains("rframe = { path = \"../rframe\" }"),
+        "websem must produce the source-neutral resolved contract"
+    );
+    let contract_manifest = include_str!("../../rframe/Cargo.toml");
+    assert!(
+        !contract_manifest.contains("skia"),
+        "the resolved contract crate must stay backend-free (its proving painter retired with D-M)"
     );
     assert!(
         manifest.contains("animation-sampling = { path = \"../animation-sampling\" }"),

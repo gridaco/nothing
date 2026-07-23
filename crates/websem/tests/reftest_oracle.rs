@@ -3,22 +3,22 @@
 //! `fixtures/web-first/primitives.json` is the closed enumeration. The tests
 //! fail if a root `.html`/`.svg` input is not listed, if bake provenance drifts,
 //! if any RGBA pixel differs from Chromium, or if CPU/PNG output changes across
-//! two identical runs. No similarity score is computed and the sealed
-//! scoreboard is never invoked.
+//! two identical runs. Every pixel renders through n0's one downstream —
+//! rframe's proving painter retired with the D-M vector join. No similarity
+//! score is computed and the sealed scoreboard is never invoked.
+
+mod support;
 
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use n0::paint::PaintCtx;
-use rframe::{
-    Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, VisualRef, decode_png,
-    render, render_png,
-};
+use rframe::{Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, VisualRef};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
-use skia_safe::image::CachingHint;
-use skia_safe::{AlphaType, Color, ColorType, IPoint, ImageInfo, surfaces};
+use skia_safe::{Color, surfaces};
+use support::{decode_png, render_through_n0};
 use websem::{compile_html_inline_svg, compile_standalone_svg};
 
 #[derive(Debug, Deserialize)]
@@ -79,7 +79,9 @@ fn sha256_file(path: &Path) -> String {
     sha256(&bytes)
 }
 
-fn render_through_n0(frame: &rframe::Frame, width: i32, height: i32) -> Vec<u8> {
+/// Render the frame through n0 and encode PNG bytes — the downstream plus
+/// encoding, mirroring the host's output path.
+fn render_png_through_n0(frame: &Frame, width: i32, height: i32) -> Vec<u8> {
     let context = PaintCtx::new(None);
     let product = n0::glyphless::compile(frame.clone()).expect("compile admitted Web frame");
     let mut surface = surfaces::raster_n32_premul((width, height)).expect("CPU raster surface");
@@ -91,24 +93,22 @@ fn render_through_n0(frame: &rframe::Frame, width: i32, height: i32) -> Vec<u8> 
             &context,
         )
         .expect("execute admitted Web frame through n0");
-
     let image = surface.image_snapshot();
-    let info = ImageInfo::new(
-        (width, height),
-        ColorType::RGBA8888,
-        AlphaType::Unpremul,
-        None,
+    skia_safe::encode::image(None, &image, skia_safe::EncodedImageFormat::PNG, None)
+        .expect("encode PNG")
+        .as_bytes()
+        .to_vec()
+}
+
+/// The `[r, g, b, a]` at `(x, y)` of an RGBA8888 row-major buffer.
+fn pixel(pixels: &[u8], width: i32, x: i32, y: i32) -> [u8; 4] {
+    let height = pixels.len() as i32 / (width * 4);
+    assert!(
+        (0..width).contains(&x) && (0..height).contains(&y),
+        "probe ({x}, {y}) outside {width}x{height}"
     );
-    let row_bytes = width as usize * 4;
-    let mut pixels = vec![0; row_bytes * height as usize];
-    assert!(image.read_pixels(
-        &info,
-        &mut pixels,
-        row_bytes,
-        IPoint::new(0, 0),
-        CachingHint::Disallow,
-    ));
-    pixels
+    let offset = ((y * width + x) * 4) as usize;
+    pixels[offset..offset + 4].try_into().expect("RGBA pixel")
 }
 
 fn contract_frame(paints: SolidPaintStack, transform: math2::transform::AffineTransform) -> Frame {
@@ -226,13 +226,7 @@ fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
             fixture.id
         );
 
-        let proving = render(&frame, fixture.width, fixture.height);
         let actual = render_through_n0(&frame, fixture.width, fixture.height);
-        assert_eq!(
-            actual, proving.pixels,
-            "{} n0 replacement must be byte-identical to the proving downstream",
-            fixture.id
-        );
         let oracle_bytes = fs::read(root.join(&fixture.oracle))
             .unwrap_or_else(|e| panic!("read {}: {e}", fixture.oracle));
         let oracle = decode_png(&oracle_bytes)
@@ -268,8 +262,8 @@ fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
             "{} n0 CPU raster must be byte-deterministic",
             fixture.id
         );
-        let first_png = render_png(&frame, fixture.width, fixture.height);
-        let second_png = render_png(&frame, fixture.width, fixture.height);
+        let first_png = render_png_through_n0(&frame, fixture.width, fixture.height);
+        let second_png = render_png_through_n0(&frame, fixture.width, fixture.height);
         assert!(
             first_png == second_png,
             "{} encoded PNG must be byte-deterministic",
@@ -278,8 +272,12 @@ fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
     }
 }
 
+/// Formerly the both-downstreams byte-identity gate. Its replacement purpose
+/// completed with the D-M vector join: the proving downstream is gone, and
+/// the surviving laws are contract admission, geometry/clip coverage, and
+/// byte determinism through the one n0 downstream.
 #[test]
-fn admitted_frame_contract_is_byte_identical_through_both_downstreams() {
+fn admitted_frame_contract_shapes_raster_deterministically_through_n0() {
     use cg::{CGColor, Paint, Paints, SolidPaint};
     use math2::transform::AffineTransform;
 
@@ -299,26 +297,54 @@ fn admitted_frame_contract_is_byte_identical_through_both_downstreams() {
     .expect("ordinary solid stack");
     let transformed = AffineTransform::from_acebdf(2.0, 0.0, 4.0, 0.0, 1.0, 5.0);
 
-    for (name, frame) in [
+    // Coverage probes derive from the contract alone: the node rect is
+    // (2,3,8,6); the transformed case maps it by x' = 2x + 4, y' = y + 5 to
+    // cover x ∈ [8,24), y ∈ [8,14) inside the 32×24 viewport clip.
+    for (name, frame, coverage) in [
         (
             "empty",
             contract_frame(SolidPaintStack::empty(), AffineTransform::identity()),
+            None,
         ),
         (
             "transparent",
             contract_frame(transparent, AffineTransform::identity()),
+            None,
         ),
         (
             "translucent",
             contract_frame(translucent, AffineTransform::identity()),
+            Some(((5, 5), (20, 20))),
         ),
-        ("layered-transformed", contract_frame(layered, transformed)),
+        (
+            "layered-transformed",
+            contract_frame(layered, transformed),
+            Some(((10, 10), (5, 5))),
+        ),
     ] {
-        let proving = render(&frame, 32, 24);
-        let chassis = render_through_n0(&frame, 32, 24);
+        let first = render_through_n0(&frame, 32, 24);
+        let second = render_through_n0(&frame, 32, 24);
         assert_eq!(
-            chassis, proving.pixels,
-            "{name} must survive the n0 replacement byte-identically"
+            first, second,
+            "{name} must raster byte-deterministically through n0"
         );
+        match coverage {
+            None => assert!(
+                first.iter().all(|&byte| byte == 0),
+                "{name} admits no visible paint and must raster fully transparent"
+            ),
+            Some(((inside_x, inside_y), (outside_x, outside_y))) => {
+                assert_ne!(
+                    pixel(&first, 32, inside_x, inside_y)[3],
+                    0,
+                    "{name} must paint its resolved geometry"
+                );
+                assert_eq!(
+                    pixel(&first, 32, outside_x, outside_y),
+                    [0, 0, 0, 0],
+                    "{name} must leave uncovered viewport pixels clear"
+                );
+            }
+        }
     }
 }
