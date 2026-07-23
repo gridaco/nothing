@@ -22,8 +22,6 @@
 pub mod adapter;
 pub mod cascade;
 pub mod dom;
-pub mod rcdom;
-pub mod tree;
 
 use style::servo::media_features::PointerCapabilities;
 
