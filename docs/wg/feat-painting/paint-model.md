@@ -514,8 +514,10 @@ contract the promotion program implements, in vocabulary terms:
 These amendments are **proposed and re-pinned**, not ratified. Their named
 owner is `universe@grida.co`, the
 [consolidation program owner](../consolidation/index.md). Ratification remains
-an owner gate under **AMD** and precedes D-C or deletion of any mapping that
-depends on the amendment.
+an owner gate under **AMD**. For a leaf whose conformance depends on an
+amendment, ratification precedes that leaf's D-C disposition and deletion of
+any mapping that depends on it. It does not block D-C dispositions for
+unrelated leaves.
 
 ### AMD-DIAMOND-CLAMP
 

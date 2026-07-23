@@ -133,33 +133,37 @@ New edges this amendment draws, beyond the standing non-goals it inherits
 
 ## Deferred by evidence, not by prose
 
-Three questions are explicitly left to a later evidence spike, not
-settled here:
+This amendment originally left three questions to later evidence:
 
-- **D-M: n0's join point** — whether n0 emits the common resolved contract
-  into one compiler/private drawlist/executor, or keeps its own resolved form,
-  compiler, private drawlist, and executor while sharing only the leaf-paint
-  vocabulary/realization utilities and raster backend. A deliberately tiny n0 canary
-  exercises the shared downstream to keep it source-neutral; that canary
-  is an invariant probe, **not** an n0 product milestone, and n0 XML
+> **Subsequent status (2026-07-23):** the coupled D-C/D-M vector stage is now
+> taken: glyphless facts join high into the shared downstream: one
+> engine-private compiler, private drawlist, painter, damage policy, and cache
+> policy. `cg` is the shared leaf-vocabulary seat; adoption remains per-leaf.
+> The generic frontend trait and the D-M shaped-text stage remain deferred. The
+> [charter registry](./charter.md) is the current decision record.
+
+- **D-M: n0's join point** — the vector stage now selects the common resolved
+  contract and shared downstream; the shaped-text stage remains open. A
+  deliberately tiny n0 canary exercises the shared downstream to keep it
+  source-neutral; that canary is an invariant probe, **not** an n0 product
+  milestone, and n0 XML
   capability work stays parked (kept building and tested, not expanded).
   A gap analysis against n0's real downstream facts — the
   [n0-join-point finding](./n0-join-point.md) — reframes this as a
-  staged, *per-fact* boundary: glyphless visual primitives are high-join
-  candidates subject to a vector-input equivalence and mixed-composition spike,
-  while shaped text remains a later stage. A vector-stage decision may proceed
-  independently only if the spike proves one orchestration seam can interleave
-  its result with fact kinds whose join is still open. D-M is coupled to D-C's
-  paint/stroke gap report and cannot be inferred from the canary.
+  staged, *per-fact* boundary. The vector-input equivalence and
+  mixed-composition spike established the high join for glyphless visual
+  primitives and proved that the shaped-text stage can remain open. D-M is
+  coupled to D-C's paint/stroke gap report and was not inferred from the
+  canary.
 - **A generic frontend trait** — none is published or stabilized yet.
   Concrete data must be shaped by at least two real producers first.
-- **D-M: the leaf-vocabulary seat** — where the neutral value vocabulary
-  ultimately lives is the coupled half of D-M, decided by the same evidence,
-  not assumed.
+- **D-C: the leaf-vocabulary seat** — `cg` is selected for glyphless vector
+  paint/stroke facts; adoption remains per-leaf under the recorded conformance
+  and deletion gates.
 
-These belong in the [charter's decision registry](./charter.md) as they
-are filed; this amendment names them so no session settles them by
-default.
+The [charter's decision registry](./charter.md) records the taken D-C/D-M
+vector dispositions and the open D-M shaped-text stage. The generic frontend
+trait remains deferred here under the two-producer rule.
 
 A fourth, concrete decision the first prototype surfaced with evidence is now
 taken: **D-L, how SVG paint enters the shared cascade.** The answer is

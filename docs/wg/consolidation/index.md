@@ -65,8 +65,8 @@ cascade](./svg-paint-cascade.md)** — the taken official-upstream Stylo
 provenance decision and the production-ingress and capability gaps it does not
 settle; **D-M — [where n0 joins the shared
 downstream](./n0-join-point.md)** — a per-fact gap analysis showing
-glyphless visual primitives are high-join candidates while shaped text remains
-a later stage, independent only if mixed-fact composition is proved; and
+the taken high join for glyphless visual primitives while shaped text remains
+a later stage; and
 **D-M adoption patrol — [how the mature Web renderer enters the
 chassis](./web-renderer-adoption.md)** — which Web capability is reusable,
 which legacy topology must not cross, and why the proving shell must not grow

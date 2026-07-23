@@ -13,7 +13,8 @@ format: md
 **Genre:** finding — a non-normative implementation inventory, patrol record,
 and evidence memo. It is not a contract, a work plan, or an owner decision.
 
-**Status:** open evidence for the staged **D-M** decision, 2026-07-22. The
+**Status:** evidence for the staged **D-M** decision, 2026-07-22. The vector
+stage was taken high on 2026-07-23; the shaped-text stage remains open. The
 [Web-First Amendment](./web-first.md) governs the source topology. The
 [goal](./goal.md), [topology](./topology.md),
 [glossary](./glossary.md), and ratified
@@ -34,9 +35,10 @@ that know-how can enter the chassis without creating a third engine**.
 Patrol supports migration by extraction, not relocation. The mature Web
 semantics and their oracle fixtures are the estate to preserve. The direct
 backend renderer, ambient process state, and legacy importer seam are not a
-package boundary. The exact n0 join and the proving shell's disposition remain
-an owner decision because the present n0 compiler has not yet proved that it
-can consume a source-neutral resolved input.
+package boundary. The exact n0 join and the proving shell's disposition were
+owner decisions. The subsequent bounded spike recorded in the
+[n0 join-point finding](./n0-join-point.md) completed the vector evidence; the
+charter records the taken vector stage, while text remains open.
 
 ## Three paths exist today
 
@@ -106,7 +108,7 @@ architecture. It would also export the very engineering failures the rewrite
 exists to remove. The adoption unit is a proved semantic fact or utility, not a
 directory.
 
-## Why the high join is not proved yet
+## Why the canary did not prove the high join
 
 The proving shell makes a high join look cheaper than it is. `rframe` owns a
 resolved frame, private drawlist, painter, and raster/PNG helpers, while n0
@@ -124,7 +126,7 @@ drawlist compiler reads both the resolved tier and the authored/effective model:
 | document root, child order, and payload kind | traversal, backdrop exclusion, derived-node exclusion, and primitive selection | mixes source semantic topology with private compile policy; a high join must locate each fact explicitly |
 | effective opacity and clip flag | emission and placement of composition scopes | visually neutral concepts, but their structural encoding is private compile policy |
 | effective corner radius and corner smoothing | rectangle geometry | radius may be neutral; smoothing must become resolved geometry or remain below the join |
-| effective fills and strokes | visible paint stacks and stroke items | blocked on the leaf-vocabulary seat and D-C equivalence evidence |
+| effective fills and strokes | visible paint stacks and stroke items | the join is selected high and `cg` owns the shared seat; each paint/stroke leaf retains its conformance and mapping-deletion gate |
 | resolved path artifact, including commands, fill rule, bounds, and contour closure | path fills/strokes and their geometry/renderability | plausible normalized geometry, but it needs a neutral path seat and explicit fill-rule/bounds laws |
 | payload-dependent stroke filtering | decides whether a stroke is visible or meaningful for each primitive kind | private compile policy that needs a normalized primitive classification; copying the n0 payload enum would fail source neutrality |
 | text payload, resolved text layout, run paints, and exact font registry | text item materialization and replay validity | deliberately excluded from the vector decision; requires the later two-producer text evidence |
@@ -153,10 +155,10 @@ Every model read that cannot be represented without leaking n0 semantics
 becomes evidence for a lower join. This spike proves feasibility; it does not
 create the public contract.
 
-## The D-M alternatives remain real
+## The D-M alternatives evaluated
 
-The evidence now leaves two coherent join shapes and rejects one incoherent
-shape. The owner must choose per fact family.
+The evidence left two coherent join shapes and rejected one incoherent shape.
+The owner had to choose per fact family.
 
 ### High join
 
@@ -193,11 +195,12 @@ Keeping the mature direct painter, widening `rframe` into a complete renderer,
 and retaining the n0 chassis as three peer engines is not a D-M option. It
 violates the amendment before any question of implementation quality arises.
 
-The finding recommends the **high join for glyphless visual facts if and only
-if the full equivalence and mixed-composition spike passes**, with a lower join
-for any fact that fails the source-neutrality test. That is evidence offered
-for owner GO, not a taken decision. Text remains separately open only if the
-mixed-composition condition proves that the stages are separable.
+The finding recommended the **high join for glyphless visual facts if and only
+if the full equivalence and mixed-composition spike passed**, with a lower join
+for any fact that failed the source-neutrality test. That recommendation was
+evidence offered for owner GO; it did not itself take the decision. The
+charter now records the owner-taken vector stage. Text remains separately open
+because the mixed-composition condition proved that the stages are separable.
 
 ## Constraints that hold under either join
 
@@ -237,7 +240,7 @@ mixed-composition condition proves that the stages are separable.
 | Chromium HTML oracle | The 65-item exact manifest declares threshold, AA handling, helper CSS, viewport, and `1.0` floor | A durable producer-and-diff gate and honest registration of the other 74 paths; no threshold may hide a divergence |
 | HTML importer | The snapshot suite exercises all 139 fixtures; the architecture suite separately scans dependency direction | Unchanged snapshots through any shared cascade/style extraction and explicit tests for cross-caller process state |
 | SVG and inline SVG | 47 focused unit tests, a presence checkpoint, and a reproducible local 1,679-case corpus | A new committed standalone/inline-SVG manifest with an independent Chromium/consensus oracle; the local corpus remains supplemental unless fixture policy changes |
-| n0 chassis | `cargo test -p n0-model -p n0` plus the n0 gate's four shots and three replay scenes | For compiler generalization, drawlist equivalence on the normalized-input spike and unchanged existing render/replay bytes; do not claim a broader n0 XML/animation byte corpus until one is declared |
+| n0 chassis | `cargo test -p n0-model -p n0` plus the n0 gate's four shots and three replay scenes; the normalized-input spike proves private-drawlist/raster equality, mixed composition, identity, damage, and cache behavior | Production promotion through the selected contract and unchanged existing render/replay bytes; do not claim a broader n0 XML/animation byte corpus until one is declared |
 | Architecture | Existing source scans lock several dependency directions | Locks appropriate to the chosen join, plus proof that no new Web/shared contract depends on legacy nodes, a backend, host I/O, or ambient process state |
 
 No row above is a FLIP score. A capability is not landed until its applicable
@@ -307,7 +310,7 @@ are not sufficient patrol evidence.
 
 **Deliberate drops in this finding:** none. No production path is replaced or
 deleted here. The mature renderer remains executable evidence and the proving
-shell remains bounded while D-M and the missing gates are prepared.
+shell remains bounded until its n0 replacement earns the applicable gates.
 
 ## Decision state
 
@@ -320,11 +323,12 @@ shell remains bounded while D-M and the missing gates are prepared.
   production ingress, remaining property breadth, consumption, and capability
   gates stay open. The mature SVG matcher's breadth remains evidence, not
   permission to promote that matcher.
-- **D-M vector stage**, coupled to D-C, decides the leaf-vocabulary seat, the
-  glyphless join per fact family, and the proving shell's disposition. It needs
-  the compiler-read inventory above, D-C's gap report, and the vector-input
-  equivalence/mixed-composition spike before stroke or gradient enlarges
-  the provisional contract.
+- **D-M vector stage is taken (2026-07-23), coupled to the glyphless vector
+  scope of D-C.** Glyphless source-neutral facts join high into the shared
+  downstream: one engine-private compiler, private drawlist, painter, damage
+  policy, and cache policy. `cg` is the shared leaf-vocabulary seat; adoption
+  remains per-leaf. The proving-shell downstream retires after replacement
+  gates rather than becoming a peer engine.
 - **D-M text stage** remains open until two real shapers exercise a candidate
   shaped-text/font-key/resource-environment boundary. A vector-stage decision
   can leave that later stage open only if the mixed-composition spike proves

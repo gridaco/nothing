@@ -12,13 +12,15 @@ format: md
 
 # Paint Vocabulary Conformance Gap Report
 
-**Status:** Evidence complete, 2026-07-20. Decision **D-C is not taken**.
-The two **AMD** amendments are drafted and re-pinned, not ratified. The
-program owner remains the decision-maker for both gates.
+**Status:** Evidence complete, 2026-07-20. **D-C was taken for the glyphless
+vector scope on 2026-07-23:** `cg` is the shared leaf-vocabulary
+seat, with n0 adopting conforming leaves per-leaf rather than retaining
+permanent duplicate mappings. The two **AMD** amendments and text-paint leaves
+remain open; Phase 1 is therefore not complete.
 
-This report is for the owner deciding D-C: whether each n0-model paint leaf
-adopts a shared type or remains a separate type behind a permanent
-law-equivalence mapping. It records what the
+This report supplied the evidence for that staged decision: whether each
+n0-model paint leaf adopts a shared type or remains a separate type behind a
+permanent law-equivalence mapping. It records what the
 [ratified paint-model RFD](../feat-painting/paint-model.md) requires, what the
 two current vocabularies can express, and what neither vocabulary proves.
 Neither implementation is the oracle.
@@ -38,7 +40,7 @@ Four evidence classes keep a green test honest:
 | Class | Meaning |
 |---|---|
 | **Observed** | The native value can express the law and the harness executes it. |
-| **Mapped** | Representations differ, but a lossless projection executes the same law. D-C still owns whether the mapping survives. |
+| **Mapped** | Representations differ, but a lossless projection executes the same law. The D-C disposition table records whether that mapping is temporary or its leaf remains open. |
 | **Gap** | A required value or grouping is absent or has the wrong shape. It has a stable id below. |
 | **External gate** | A leaf-value test cannot prove the claim. Importer behavior and pixels stay with their independent gates. |
 
@@ -99,9 +101,9 @@ the concrete cost surface for D-C.
 
 cg's channel struct is losslessly related to AARRGGBB, but the RFD chose a
 packed word as canonical identity and interchange form. Equality is presently
-law-equivalent, not representation-identical. D-C must either preserve a
-mapping deliberately or select a shared packed leaf; the report does not take
-that decision.
+law-equivalent, not representation-identical. D-C selected `cg` as the shared
+seat, so the checked mapping remains temporary until the shared color leaf
+preserves packed identity and passes the laws directly.
 
 ### P1-CG-STROKE-APPLICATION
 
@@ -161,25 +163,23 @@ The following findings are real but are not D-C type-choice evidence:
   The value suite proves only the present/empty/absent states and exact record
   shapes.
 
-## D-C decision surface
+## D-C decision
 
-D-C remains an owner gate. The evidence supports leaf-by-leaf decisions; it
-does not support one wholesale type swap.
+For paint and stroke leaves carried by the D-M-admitted glyphless vector
+facts, the owner selected `cg` as the shared leaf-vocabulary seat; adoption
+remains per-leaf. The decision does not support one wholesale type swap.
 
-| Leaf group | If one shared type is selected | If separate types remain |
+| Leaf group | Taken disposition | Gate before adoption or mapping deletion |
 |---|---|---|
-| Color | The shared leaf must preserve packed AARRGGBB canonical identity. | The checked AARRGGBB projection becomes a permanent law gate. |
-| Blend, tile, alignment, paint stack | Current value sets and laws are equal; dependency and serialization policy still need an explicit home. | Exhaustive mappings remain small but permanent. |
-| Gradient and image paints | Transform type, math dependency, serde policy, and the `alignement` API debt must be settled without changing field laws. | The full field-matrix mapping remains a permanent gate. |
-| Stroke application | A shared surface must express n0-model's grouped, repeatable application without flattening it. | cg remains nonconformant until its consumer boundary maps the legacy singleton into the canonical application. |
-| Text paint partition | Neither record is complete; decoration color and full run stroke applications must survive whichever ownership choice is made. | Both named gaps remain capability work; mapping alone cannot create absent values. |
+| Color | `cg` is the shared seat; the current checked projection remains temporary. | Preserve packed AARRGGBB canonical identity and run the color laws directly on the conforming shared leaf. |
+| Solid paint, normal blend, ordered paint stack | `cg` is selected for the solid-fill proving scope. | Run the applicable RFD laws directly, including active/visible behavior and bottom-to-top order; color's gate also applies. |
+| Other blends, tile/alignment, gradients, and image paints | `cg` is the vector seat, but these leaves are not adopted by the solid-fill proving scope. | Preserve the full field matrices and settle transform/math/serialization policy; amendment-dependent gradient behavior and resource-bearing image facts retain their own gates. |
+| Stroke application | `cg` is the selected seat, but its current ungrouped surface is not conforming and remains unmapped into production. | Add grouped, repeatable applications without flattening, then run the stroke laws directly. |
+| Text paint partition | Open and outside the taken vector scope. | Resolve the text-stage decision, tri-state run-fill amendment, decoration color, and full run stroke applications. |
 
-No production adapter lands with this report. The test-local bindings are
-evidence for D-C. If D-C chooses shared types, a binding is deleted only after
-the same RFD assertions run directly on the selected type. If D-C chooses
-separate types, the corresponding binding becomes the permanent
-law-equivalence gate. This is the deletion gate for the only mapping introduced
-by this step.
+No production adapter landed with this report. The test-local conformance
+bindings remain evidence and deletion gates. For leaves outside the taken
+scope, their bindings and D-C dispositions remain open.
 
 ## Patrol and captured-essence ledger
 

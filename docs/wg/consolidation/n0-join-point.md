@@ -10,24 +10,24 @@ format: md
 
 # Finding: where n0 joins the shared downstream
 
-**Genre:** finding — grounded evidence for an **open owner decision**. Not a
+**Genre:** finding — grounded evidence for a **staged owner decision**. Not a
 spec and not a plan. It reframes a question the
 [Web-First Amendment](./web-first.md) defers, using n0's actual downstream
 types, so the decision can be taken on evidence when it is ripe.
 
-**Status:** open as staged **D-M**, coupled to **D-C**, in the
-[charter's registry](./charter.md). A bounded vector-input arm now proves
-drawlist/raster equivalence, mixed composition with still-private text, and
-two-frame damage and preview-cache behavior through the same policies n0
-already uses. The bounded vector implementation evidence is complete for this
-arm, but the vector-stage owner decision is **not yet ripe** because the
-leaf-vocabulary seat remains open under D-C. The text stage is also **not yet
-ripe** because its second producer does not exist. The complete evidence bar
-remains recorded in the [Web renderer adoption patrol](./web-renderer-adoption.md).
+**Status:** the **D-M vector stage was taken on 2026-07-23**, coupled to the
+glyphless vector scope of **D-C**, in the
+[charter's registry](./charter.md). Source-neutral glyphless facts join high
+into the shared downstream: one engine-private compiler, private drawlist,
+painter, damage policy, and cache policy. `cg` is the shared leaf-vocabulary
+seat; adoption remains per-leaf, and the proving-shell downstream does not
+survive as a peer engine. The text stage remains **not yet ripe** because its
+second producer does not exist. The complete evidence bar remains recorded in
+the [Web renderer adoption patrol](./web-renderer-adoption.md).
 
 ## The crux
 
-The amendment leaves one question to a later spike: does n0 **emit the common
+The amendment originally left one question to a later spike: does n0 **emit the common
 resolved contract** (one compiler, one private drawlist, one executor, and
 shared frame/damage/cache behavior), or does it **join below its private
 drawlist** (n0 and Web each retain a resolved form, compiler, private drawlist,
@@ -43,7 +43,8 @@ compiler can stop reading authored/effective model state. A rectangle proves
 nothing about the facts that actually differ between producers. The amendment
 already supplies the resolving principle — *sharing begins only where the
 inputs genuinely match* — so the real question is **per fact kind**, not one
-global switch.
+global switch. The completed vector spike and owner decision answer this
+question high for glyphless vector facts; shaped text remains open.
 
 ## The reframing
 
@@ -58,17 +59,18 @@ effective values, as the adoption patrol records.
 
 | n0 downstream fact | Nature | Candidate join | Condition / blocker |
 | --- | --- | --- | --- |
-| Opacity scope, clip-rect, painter order | Structurally neutral (isolation / clips / order — all on the MAY list) | **High candidate** | the vector-input arm of the spike must separate the visual facts from n0's bracket placement and traversal policy |
-| Geometry — rect / oval / line / path, resolved bounds | Neutral (geometry + bounds are on the MAY list) | **High candidate** | a neutral path type and explicit coordinate-space/bounds laws; n0's current path is kurbo-backed |
-| Ordered paint stacks (solid / gradient / image), strokes | Neutral *concepts*, but carried as n0-model value types | **High candidate**, conditionally | the **leaf-vocabulary seat** — n0 must lower its paints/strokes into a neutral vocabulary, which is itself a deferred decision |
-| Corner smoothing (squircle) | An authoring semantic carried as a *parameter* in n0's drawlist and resolved in n0's painter | **High candidate**, if resolved first | n0 must resolve smoothed corners to neutral geometry *before* the contract; carrying the parameter would leak an n0/authoring concept — forbidden |
+| Opacity scope, clip-rect, painter order | Structurally neutral (isolation / clips / order — all on the MAY list) | **High** | the vector-input arm separated the visual facts from n0's bracket placement and traversal policy |
+| Geometry — rect / oval / line / path, resolved bounds | Neutral (geometry + bounds are on the MAY list) | **High** | each adopted geometry still needs a neutral path/geometry seat and explicit coordinate-space/bounds laws |
+| Ordered paint stacks (solid / gradient / image), strokes | Neutral *concepts*, but carried as n0-model value types | **High**, with per-leaf gates | `cg` is the shared leaf-vocabulary seat; each leaf must conform before its mapping is deleted |
+| Corner smoothing (squircle) | An authoring semantic carried as a *parameter* in n0's drawlist and resolved in n0's painter | **High only after resolution** | n0 must resolve smoothed corners to neutral geometry *before* the contract; carrying the parameter would leak an n0/authoring concept — forbidden |
 | Shaped text (glyph layout + font registry) | Bound to n0's font environment: the shaped-text artifact references a font registry kept opaque and private to n0, shaped through n0's own oracle | **Undecided — the deciding fact** | needs a *neutral* shaped-text representation **and** a neutral font-key/registry boundary that both n0's and the Web family's shapers can produce; neither exists |
 
 ## The deciding factor
 
-Everything except text is eligible to converge high or is blocked on the
-**leaf-vocabulary seat** decision, but eligibility still needs the vector-stage
-compiler equivalence evidence. Shaped text is a separate later question where
+Everything except text proved eligible to converge high, and the vector-stage
+compiler-equivalence evidence selected that join. `cg` now owns the shared
+leaf-vocabulary seat, while adoption remains gated per leaf. Shaped text is a
+separate later question where
 "emit the common contract" and "join below the private drawlist" genuinely
 diverge:
 
@@ -85,14 +87,16 @@ diverge:
   both. The evidence that should decide it does not exist yet, because there is
   only one shaped-text producer today.
 
-## Recommendation (for the owner to decide, by stage)
+## Decision by stage
 
-- **Do not take a uniform A-vs-B decision.** The honest shape is a *per-fact*
-  boundary: glyphless visual primitives are high-join candidates subject to
-  the vector equivalence spike, while shaped text is separately open.
-- **Couple this decision with the leaf-vocabulary seat.** n0 cannot emit the
-  common contract for paint/stroke facts until the neutral leaf vocabulary
-  exists; deciding one without the other is deciding on air.
+- **The vector stage joins high.** Source-neutral glyphless visual primitives
+  enter the shared downstream: one engine-private compiler, private drawlist,
+  painter, damage policy, and cache policy. `cg` is the shared leaf-vocabulary
+  seat; adoption remains per-leaf rather than becoming a wholesale type
+  replacement.
+- **The boundary remains per-fact.** Facts that cannot normalize without
+  source semantics stay below the join or remain excluded pending evidence.
+  The separate shaped-text stage stays open.
 - **Name the smallest deciding spike, and gate it on a second text producer.**
   When the Web family gains a real shaped-text producer, push a text run from
   *both* it and n0 toward a candidate neutral shaped-text + font-key contract,
@@ -160,23 +164,21 @@ The first bounded arm of the vector-input/mixed-composition spike passed on
   below that join. Invalid line fills, non-rectangular clips in this arm, and
   inadmissible stroke states also fail explicitly.
 
-The arm deliberately does **not** complete D-M. Its opaque identity and
-provenance now drive local fact lookup, painter order, mixed-text placement,
-and the engine's one private complete-frame damage policy without becoming a
-public runtime identity. Its compiled visual material also reaches the one
-private preview-cache policy without making source identity part of raster
-reuse. The path-vocabulary ownership and D-C leaf-vocabulary seat remain open.
-These are decision blockers, not permission to add parallel policies or to
-widen the provisional contract.
+The arm completed the evidence bar for the vector-stage decision. Its opaque
+identity and provenance drive local fact lookup, painter order, mixed-text
+placement, and the engine's one private complete-frame damage policy without
+becoming a public runtime identity. Its compiled visual material also reaches
+the one private preview-cache policy without making source identity part of
+raster reuse. The decision does not admit source-specific fields, settle
+cross-frame replacement identity, or authorize parallel policies.
 
 ## The registered stages
 
 **D-M** is registered in the [charter's decision registry](./charter.md) with
 independent stages. The **vector stage**, coupled with D-C and the
-leaf-vocabulary seat, chooses the glyphless join and proving-shell disposition
-after the compiler-read inventory, paint/stroke gap report, and normalized-input
-equivalence spike, including its mixed-fact composition condition. The **text
-stage** later chooses high or low for shaped text after the two-producer
-font-key spike. D-C does not, by itself, choose either stage. Until its
-applicable stage is taken, the n0 canary stays a deliberately tiny invariant
-probe, not a widening integration.
+leaf-vocabulary seat, is taken high on the compiler-read inventory,
+paint/stroke gap report, and normalized-input equivalence spike, including its
+mixed-fact composition condition. The proving-shell downstream therefore
+retires after the n0 route earns its gates; it does not grow into a peer
+engine. The **text stage** later chooses high or low for shaped text after the
+two-producer font-key spike.
