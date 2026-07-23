@@ -3302,7 +3302,9 @@ dependencies = [
 name = "n0-model"
 version = "0.0.0"
 dependencies = [
+ "cg",
  "kurbo 0.13.1",
+ "math2",
  "num-bigint",
  "num-rational",
  "num-traits",
