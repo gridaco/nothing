@@ -38,10 +38,10 @@ Map:
   linker, typed scalar specializer, named static slot projector, durable
   authored-address index, and ordinary-scene materializer; hosts supply
   immutable dependency snapshots
-- `src/animation.rs` — format-neutral checked sample time, canonical scalar,
-  color, transform, smooth-path, and discrete curves, per-segment easing,
-  typed effect composition, exact interpolation, and atomic `PropertyValues`
-  sampling
+- `src/animation.rs` — n0 document-bound programs, color/transform/smooth-path/
+  discrete curves, typed effect composition, and atomic `PropertyValues`
+  sampling; it re-exports the checked time, timing, easing, and scalar contract
+  adopted from [`animation-sampling`](../animation-sampling)
 - `src/svg_animation.rs` — retained SVG Animation Profiles 0–6 source,
   identity-preserving rectangle/path materialization, target resolution, and
   strict source-located compilation

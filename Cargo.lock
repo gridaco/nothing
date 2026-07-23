@@ -107,6 +107,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b46cbb362ab8752921c97e041f5e366ee6297bd428a31275b9fcf1e380f7299"
 
 [[package]]
+name = "animation-sampling"
+version = "0.0.0"
+dependencies = [
+ "num-bigint",
+ "num-rational",
+ "num-traits",
+]
+
+[[package]]
 name = "anstream"
 version = "0.6.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3305,6 +3314,7 @@ dependencies = [
 name = "n0-model"
 version = "0.0.0"
 dependencies = [
+ "animation-sampling",
  "cg",
  "kurbo 0.13.1",
  "math2",
@@ -3321,8 +3331,13 @@ dependencies = [
 name = "n0_cli"
 version = "0.0.0"
 dependencies = [
+ "animation-sampling",
  "htmlcss",
+ "math2",
+ "n0",
+ "rframe",
  "skia-safe",
+ "websem",
 ]
 
 [[package]]
@@ -6510,6 +6525,7 @@ dependencies = [
 name = "websem"
 version = "0.0.0"
 dependencies = [
+ "animation-sampling",
  "cg",
  "csscascade",
  "htmlcss",

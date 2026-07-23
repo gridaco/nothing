@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
+  "crates/animation-sampling",
   "crates/cg",
   "crates/htmlcss",
   "crates/grida",

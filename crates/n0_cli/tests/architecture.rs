@@ -1,7 +1,8 @@
 //! Dependency-direction lock for the thin `n0` command host.
 //!
 //! The host may perform file I/O and use a backend. It must not regain source
-//! semantics from the legacy engine or route through the Web proving shell.
+//! semantics from the legacy engine or couple Web rendering to the n0 authored
+//! model. Static mature and admitted shared-frame routes remain explicit.
 
 use std::fs;
 use std::path::Path;
@@ -12,11 +13,11 @@ const FORBIDDEN_SOURCE_PATHS: &[&str] = &[
     "import::svg",
     "node::schema",
     "SceneGraph",
-    "websem::",
+    "n0_model::",
 ];
 
 #[test]
-fn host_touches_no_legacy_or_proving_shell_path() {
+fn host_touches_no_legacy_or_authored_model_path() {
     let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     let mut checked = 0;
     walk(&src, &mut checked);
@@ -24,7 +25,7 @@ fn host_touches_no_legacy_or_proving_shell_path() {
 }
 
 #[test]
-fn manifest_uses_the_extracted_web_renderer_directly() {
+fn manifest_keeps_both_web_routes_explicit() {
     let manifest = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"));
     assert!(
         manifest.contains("publish = false"),
@@ -36,12 +37,17 @@ fn manifest_uses_the_extracted_web_renderer_directly() {
     );
     assert!(
         manifest.contains("htmlcss = { path = \"../htmlcss\" }"),
-        "the current Web source path must enter through htmlcss"
+        "the mature static Web source path must remain explicit"
     );
-    for forbidden in ["path = \"../grida\"", "path = \"../websem\""] {
+    assert!(
+        manifest.contains("websem = { path = \"../websem\" }")
+            && manifest.contains("n0 = { path = \"../n0\" }"),
+        "the admitted retained SVG path must enter through websem then n0"
+    );
+    for forbidden in ["path = \"../grida\"", "path = \"../n0-model\""] {
         assert!(
             !manifest.contains(forbidden),
-            "the product host must not depend on the legacy engine or the proving shell: {forbidden}"
+            "the product host must not depend on the legacy engine or authored n0 model: {forbidden}"
         );
     }
 }

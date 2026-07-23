@@ -1,18 +1,20 @@
-//! The thin `n0` CLI host for the mature static Web renderer: render an SVG or
-//! HTML document (including inline SVG) to a PNG.
+//! The thin `n0` CLI host for Web rendering.
 //!
 //! This host is the executable adoption seam for the mature renderer. It does
 //! not convert Web sources into the n0 authored model, and it is not evidence
-//! that the mature semantics already lower through `rframe` or the final
-//! chassis. Meaning remains in `htmlcss`. The host owns only arguments, file
-//! I/O, an explicit raster size (also used as the standalone-SVG container
-//! size), ambient system-font selection, CPU rasterization, and PNG encode.
-//! It intentionally accepts only self-contained files today: local/remote
-//! images and external stylesheets are not resolved. Directory input and
-//! non-PNG output are not yet admitted.
+//! that every mature semantic already lowers through the shared frame.
+//! Unqualified HTML/SVG rendering remains on `htmlcss`; explicit SVG Base and
+//! Sample requests use the retained `websem -> rframe -> n0` rect-x slice. The
+//! route is never selected silently. The host owns arguments, file I/O, an
+//! explicit raster size, ambient system-font selection for the mature route,
+//! CPU rasterization, and PNG encoding.
+//! Local/remote images and external stylesheets are not resolved; directory
+//! input and non-PNG output remain outside the admitted host contract.
 //!
 //! Usage:
 //!   cargo run -p n0_cli --bin n0 -- <input.svg|input.html> <out.png> <WxH>
+//!   cargo run -p n0_cli --bin n0 -- <input.svg> <out.png> <WxH> --base
+//!   cargo run -p n0_cli --bin n0 -- <input.svg> <out.png> <WxH> --time-ns <i64>
 //!
 //! Examples:
 //!   cargo run -p n0_cli --bin n0 -- \
@@ -23,6 +25,8 @@
 use std::path::Path;
 use std::process::ExitCode;
 
+use animation_sampling::SampleTime;
+use n0::paint::PaintCtx;
 use skia_safe::textlayout::FontCollection;
 use skia_safe::{Color, EncodedImageFormat, FontMgr, Picture, surfaces};
 
@@ -49,12 +53,25 @@ enum SourceKind {
     Svg,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum FramePolicy {
+    /// Transitional mature static route. This preserves existing HTML/SVG
+    /// coverage while capabilities move behind the shared frame.
+    MatureStatic,
+    /// Authored state; animation contributes no value.
+    Base,
+    /// One exact signed-nanosecond sample.
+    Sample(SampleTime),
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    if args.len() != 3 {
+    if !matches!(args.len(), 3..=5) {
         eprintln!(
-            "usage: n0 <input.svg|input.html> <out.png> <WxH>\n\
-             renders the extracted static Web implementation to a CPU PNG."
+            "usage:\n\
+             n0 <input.svg|input.html> <out.png> <WxH>\n\
+             n0 <input.svg> <out.png> <WxH> --base\n\
+             n0 <input.svg> <out.png> <WxH> --time-ns <signed-nanoseconds>"
         );
         return ExitCode::from(2);
     }
@@ -63,6 +80,13 @@ fn main() -> ExitCode {
     let Some((w, h)) = parse_size(&args[2]) else {
         eprintln!("error: size must look like 128x128 and be positive");
         return ExitCode::from(2);
+    };
+    let policy = match parse_frame_policy(&args[3..]) {
+        Ok(policy) => policy,
+        Err(message) => {
+            eprintln!("error: {message}");
+            return ExitCode::from(2);
+        }
     };
 
     let kind = match source_kind(Path::new(input)) {
@@ -85,7 +109,7 @@ fn main() -> ExitCode {
         }
     };
 
-    let png = match render_source_to_png(&source, kind, w, h) {
+    let png = match render_source_to_png(&source, kind, w, h, policy) {
         Ok(png) => png,
         Err(e) => {
             eprintln!("error: render failed: {e}");
@@ -98,10 +122,38 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
     eprintln!(
-        "rendered {input} -> {output} ({w}x{h}, {} bytes)",
+        "rendered {input} -> {output} ({w}x{h}, {}, {} bytes)",
+        policy.label(),
         png.len()
     );
     ExitCode::SUCCESS
+}
+
+impl FramePolicy {
+    const fn label(self) -> &'static str {
+        match self {
+            Self::MatureStatic => "static-mature",
+            Self::Base => "base-shared-frame",
+            Self::Sample(_) => "sample-shared-frame",
+        }
+    }
+}
+
+fn parse_frame_policy(args: &[String]) -> Result<FramePolicy, String> {
+    match args {
+        [] => Ok(FramePolicy::MatureStatic),
+        [flag] if flag == "--base" => Ok(FramePolicy::Base),
+        [flag, nanoseconds] if flag == "--time-ns" => nanoseconds
+            .parse::<i64>()
+            .map(|value| FramePolicy::Sample(SampleTime::from_nanoseconds(value)))
+            .map_err(|_| {
+                format!("--time-ns requires a signed 64-bit nanosecond value, got {nanoseconds:?}")
+            }),
+        _ => Err(
+            "frame policy must be omitted, `--base`, or `--time-ns <signed-nanoseconds>`"
+                .to_string(),
+        ),
+    }
 }
 
 fn parse_size(s: &str) -> Option<(i32, i32)> {
@@ -134,7 +186,27 @@ fn render_source_to_png(
     kind: SourceKind,
     width: i32,
     height: i32,
+    policy: FramePolicy,
 ) -> Result<Vec<u8>, String> {
+    if kind == SourceKind::Html && policy != FramePolicy::MatureStatic {
+        return Err(
+            "explicit Base/Sample currently admits the retained standalone SVG rect-x slice only"
+                .to_string(),
+        );
+    }
+    if kind == SourceKind::Svg && policy != FramePolicy::MatureStatic {
+        let retained = websem::SvgFrameSource::from_bare_svg_scaffold(source)
+            .map_err(|error| error.to_string())?;
+        let frame = match policy {
+            FramePolicy::Base => retained.base_frame(),
+            FramePolicy::Sample(time) => retained
+                .sample_frame(time)
+                .map_err(|error| error.to_string())?,
+            FramePolicy::MatureStatic => unreachable!("handled by the mature route below"),
+        };
+        return frame_to_png(frame, width, height);
+    }
+
     let picture = match kind {
         SourceKind::Html => {
             let fonts = SystemFontCollection::new();
@@ -151,12 +223,36 @@ fn render_source_to_png(
     picture_to_png(&picture, width, height)
 }
 
+fn frame_to_png(frame: rframe::Frame, width: i32, height: i32) -> Result<Vec<u8>, String> {
+    let context = PaintCtx::new(None);
+    let product = n0::glyphless::compile(frame).map_err(|error| error.to_string())?;
+    let mut surface = surfaces::raster_n32_premul((width, height))
+        .ok_or_else(|| format!("cannot allocate {width}x{height} CPU raster"))?;
+    surface.canvas().clear(Color::TRANSPARENT);
+    product
+        .execute(
+            surface.canvas(),
+            &math2::transform::AffineTransform::identity(),
+            &context,
+        )
+        .map_err(|error| error.to_string())?;
+    surface_to_png(&mut surface, width, height)
+}
+
 fn picture_to_png(picture: &Picture, width: i32, height: i32) -> Result<Vec<u8>, String> {
     let mut surface = surfaces::raster_n32_premul((width, height))
         .ok_or_else(|| format!("cannot allocate {width}x{height} CPU raster"))?;
     let canvas = surface.canvas();
     canvas.clear(Color::TRANSPARENT);
     canvas.draw_picture(picture, None, None);
+    surface_to_png(&mut surface, width, height)
+}
+
+fn surface_to_png(
+    surface: &mut skia_safe::Surface,
+    width: i32,
+    height: i32,
+) -> Result<Vec<u8>, String> {
     let image = surface.image_snapshot();
     let png = image
         .encode(None, EncodedImageFormat::PNG, None)
@@ -222,6 +318,17 @@ mod tests {
         assert_eq!(parse_size("320X200"), Some((320, 200)));
         assert_eq!(parse_size("0x200"), None);
         assert_eq!(parse_size("auto"), None);
+        assert_eq!(parse_frame_policy(&[]), Ok(FramePolicy::MatureStatic));
+        assert_eq!(
+            parse_frame_policy(&["--base".to_string()]),
+            Ok(FramePolicy::Base)
+        );
+        assert_eq!(
+            parse_frame_policy(&["--time-ns".to_string(), "-1".to_string()]),
+            Ok(FramePolicy::Sample(SampleTime::from_nanoseconds(-1)))
+        );
+        assert!(parse_frame_policy(&["--time-ns".to_string()]).is_err());
+        assert!(parse_frame_policy(&["--time-ns".to_string(), "1.5".to_string()]).is_err());
     }
 
     #[test]
@@ -252,10 +359,12 @@ mod tests {
             let input = root.join(relative);
             let source = std::fs::read_to_string(&input)
                 .unwrap_or_else(|error| panic!("read {}: {error}", input.display()));
-            let first = render_source_to_png(&source, kind, size.0, size.1)
-                .unwrap_or_else(|error| panic!("first render {relative}: {error}"));
-            let second = render_source_to_png(&source, kind, size.0, size.1)
-                .unwrap_or_else(|error| panic!("second render {relative}: {error}"));
+            let first =
+                render_source_to_png(&source, kind, size.0, size.1, FramePolicy::MatureStatic)
+                    .unwrap_or_else(|error| panic!("first render {relative}: {error}"));
+            let second =
+                render_source_to_png(&source, kind, size.0, size.1, FramePolicy::MatureStatic)
+                    .unwrap_or_else(|error| panic!("second render {relative}: {error}"));
             assert_eq!(first, second, "{relative} must be byte-deterministic");
 
             let raster =
@@ -307,5 +416,63 @@ mod tests {
             assert_eq!(written, first, "written PNG bytes for {relative}");
             let _ = std::fs::remove_file(output);
         }
+    }
+
+    #[test]
+    fn retained_svg_base_and_exact_time_render_through_the_shared_frame() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let source = std::fs::read_to_string(
+            root.join("fixtures/web-first/animation/svg-rect-x-animation.svg"),
+        )
+        .expect("read animation fixture");
+        for (policy, expected_black_x, oracle) in [
+            (
+                FramePolicy::Base,
+                4,
+                "fixtures/web-first/animation/chromium/base.png",
+            ),
+            (
+                FramePolicy::Sample(SampleTime::from_nanoseconds(0)),
+                20,
+                "fixtures/web-first/animation/chromium/sample-0ns.png",
+            ),
+            (
+                FramePolicy::Sample(SampleTime::from_nanoseconds(1_000_000_000)),
+                32,
+                "fixtures/web-first/animation/chromium/sample-1000000000ns.png",
+            ),
+            (
+                FramePolicy::Sample(SampleTime::from_nanoseconds(2_000_000_000)),
+                44,
+                "fixtures/web-first/animation/chromium/sample-2000000000ns.png",
+            ),
+        ] {
+            let first = render_source_to_png(&source, SourceKind::Svg, 64, 32, policy)
+                .unwrap_or_else(|error| panic!("render {policy:?}: {error}"));
+            let second = render_source_to_png(&source, SourceKind::Svg, 64, 32, policy)
+                .unwrap_or_else(|error| panic!("repeat {policy:?}: {error}"));
+            assert_eq!(first, second, "{policy:?} encoded determinism");
+            let raster = decode_png(&first).expect("decode exact-time PNG");
+            let expected = decode_png(
+                &std::fs::read(root.join(oracle))
+                    .unwrap_or_else(|error| panic!("read {oracle}: {error}")),
+            )
+            .unwrap_or_else(|| panic!("decode {oracle}"));
+            assert_eq!(raster.pixels, expected.pixels, "{policy:?} Chromium RGBA");
+            assert_eq!(raster.at(expected_black_x + 4, 16), [0, 0, 0, 255]);
+            let authored_x = if expected_black_x == 4 { 4 } else { 8 };
+            assert_eq!(
+                raster.at(authored_x, 16),
+                if expected_black_x == 4 {
+                    [0, 0, 0, 255]
+                } else {
+                    [255, 255, 255, 255]
+                }
+            );
+        }
+        assert!(
+            render_source_to_png("<html></html>", SourceKind::Html, 64, 32, FramePolicy::Base)
+                .is_err()
+        );
     }
 }

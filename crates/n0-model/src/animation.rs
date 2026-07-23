@@ -1,9 +1,10 @@
-//! Format-neutral, explicit-time animation sampling.
+//! n0 animation programs, typed effects, and atomic property-value sampling.
 //!
-//! Authored frontends compile immutable typed tracks once. Sampling then maps
-//! one exact [`SampleTime`] to the ordinary [`PropertyValues`] boundary without
-//! mutating the [`Document`]. Clocks, playback, source parsing, and rendering
-//! belong outside this module.
+//! Source frontends compile immutable typed tracks once. Source-neutral exact
+//! time, timing, easing, and scalar sampling are adopted from
+//! `animation-sampling`; this module owns document targets, typed property
+//! curves, effect composition, and projection into ordinary
+//! [`PropertyValues`].
 
 use crate::math::Affine;
 use crate::model::{
@@ -13,643 +14,20 @@ use crate::path::{PathCommand, PathGeometry};
 use crate::properties::{
     PropertyError, PropertyKey, PropertyTarget, PropertyValue, PropertyValueKind, PropertyValues,
 };
-use num_bigint::{BigInt, BigUint};
+use animation_sampling::internal::{
+    active_progress, binary32_rational, easing_apply, keyframe_offset_cmp_ratio,
+    keyframe_offset_rational, lerp_binary32_once_rational, round_rational_to_binary32,
+};
+use animation_sampling::{Contribution, ScalarSample};
+pub use animation_sampling::{
+    CubicBezier, CubicBezierError, CubicControl, Easing, FillMode, KeyframeOffset,
+    KeyframeOffsetError, SampleTime, SampleTimeRangeError, ScalarCurve, ScalarCurveError,
+    ScalarKeyframe, ScalarSegment, Timing, TimingError,
+};
+use num_bigint::BigInt;
 use num_rational::BigRational;
-use num_traits::{One, Signed, ToPrimitive, Zero};
-use std::cmp::Ordering;
-use std::num::NonZeroU64;
+use num_traits::{One, ToPrimitive, Zero};
 use std::sync::Arc;
-
-/// Signed nanoseconds from an authored timeline's origin.
-///
-/// Negative values are valid host pre-roll. Arithmetic is exposed only through
-/// checked operations so a caller cannot wrap semantic time accidentally.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct SampleTime(i64);
-
-impl SampleTime {
-    pub const ZERO: Self = Self(0);
-
-    pub const fn from_nanoseconds(nanoseconds: i64) -> Self {
-        Self(nanoseconds)
-    }
-
-    pub const fn nanoseconds(self) -> i64 {
-        self.0
-    }
-
-    pub fn checked_add_nanoseconds(self, delta: i64) -> Option<Self> {
-        self.0.checked_add(delta).map(Self)
-    }
-
-    pub fn checked_sub_nanoseconds(self, delta: i64) -> Option<Self> {
-        self.0.checked_sub(delta).map(Self)
-    }
-}
-
-impl TryFrom<i128> for SampleTime {
-    type Error = SampleTimeRangeError;
-
-    fn try_from(value: i128) -> Result<Self, Self::Error> {
-        i64::try_from(value)
-            .map(Self)
-            .map_err(|_| SampleTimeRangeError { nanoseconds: value })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SampleTimeRangeError {
-    pub nanoseconds: i128,
-}
-
-impl std::fmt::Display for SampleTimeRangeError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "sample time {}ns is outside the signed 64-bit range",
-            self.nanoseconds
-        )
-    }
-}
-
-impl std::error::Error for SampleTimeRangeError {}
-
-/// One finite, repeated active interval on the signed engine timeline.
-/// Source frontends may narrow this format-neutral domain further.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Timing {
-    begin: SampleTime,
-    duration_ns: u64,
-    repeat_count: u64,
-    active_end: SampleTime,
-}
-
-impl Timing {
-    pub fn new(begin_ns: i64, duration_ns: u64, repeat_count: u64) -> Result<Self, TimingError> {
-        if duration_ns == 0 {
-            return Err(TimingError::ZeroDuration);
-        }
-        if repeat_count == 0 {
-            return Err(TimingError::ZeroRepeatCount);
-        }
-
-        let active_length = u128::from(duration_ns) * u128::from(repeat_count);
-        let overflow = || TimingError::ActiveEndOverflow {
-            begin_ns,
-            duration_ns,
-            repeat_count,
-        };
-        let active_length = i128::try_from(active_length).map_err(|_| overflow())?;
-        let active_end = i128::from(begin_ns)
-            .checked_add(active_length)
-            .ok_or_else(overflow)?;
-        let active_end = i64::try_from(active_end).map_err(|_| overflow())?;
-
-        Ok(Self {
-            begin: SampleTime::from_nanoseconds(begin_ns),
-            duration_ns,
-            repeat_count,
-            active_end: SampleTime::from_nanoseconds(active_end),
-        })
-    }
-
-    pub const fn begin(self) -> SampleTime {
-        self.begin
-    }
-
-    pub const fn duration_nanoseconds(self) -> u64 {
-        self.duration_ns
-    }
-
-    pub const fn repeat_count(self) -> u64 {
-        self.repeat_count
-    }
-
-    pub const fn active_end(self) -> SampleTime {
-        self.active_end
-    }
-
-    fn contribution(self, time: SampleTime, fill: FillMode) -> Contribution {
-        if time < self.begin {
-            return Contribution::None;
-        }
-        if time >= self.active_end {
-            return match fill {
-                FillMode::Remove => Contribution::None,
-                FillMode::Freeze => Contribution::To,
-            };
-        }
-
-        let elapsed =
-            (i128::from(time.nanoseconds()) - i128::from(self.begin.nanoseconds())) as u128;
-        Contribution::Active {
-            repeat_index: (elapsed / u128::from(self.duration_ns)) as u64,
-            numerator: (elapsed % u128::from(self.duration_ns)) as u64,
-            denominator: self.duration_ns,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TimingError {
-    ZeroDuration,
-    ZeroRepeatCount,
-    ActiveEndOverflow {
-        begin_ns: i64,
-        duration_ns: u64,
-        repeat_count: u64,
-    },
-}
-
-impl std::fmt::Display for TimingError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TimingError::ZeroDuration => write!(f, "animation duration must be greater than zero"),
-            TimingError::ZeroRepeatCount => {
-                write!(f, "animation repeat count must be greater than zero")
-            }
-            TimingError::ActiveEndOverflow {
-                begin_ns,
-                duration_ns,
-                repeat_count,
-            } => write!(
-                f,
-                "animation active end overflows signed 64-bit nanoseconds: {begin_ns} + {duration_ns} * {repeat_count}"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for TimingError {}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FillMode {
-    Remove,
-    Freeze,
-}
-
-/// An exact, reduced position in a scalar keyframe curve.
-///
-/// Offsets are closed over `[0, 1]`. Retaining the authored position as a
-/// rational avoids making timeline boundaries depend on a floating-point
-/// approximation chosen by a frontend.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct KeyframeOffset {
-    numerator: u64,
-    denominator: NonZeroU64,
-}
-
-impl KeyframeOffset {
-    pub const ZERO: Self = Self {
-        numerator: 0,
-        denominator: NonZeroU64::MIN,
-    };
-    pub const ONE: Self = Self {
-        numerator: 1,
-        denominator: NonZeroU64::MIN,
-    };
-
-    pub fn new(numerator: u64, denominator: u64) -> Result<Self, KeyframeOffsetError> {
-        let denominator = NonZeroU64::new(denominator)
-            .ok_or(KeyframeOffsetError::ZeroDenominator { numerator })?;
-        if numerator > denominator.get() {
-            return Err(KeyframeOffsetError::OutsideUnitInterval {
-                numerator,
-                denominator: denominator.get(),
-            });
-        }
-
-        let divisor = greatest_common_divisor(numerator, denominator.get());
-        Ok(Self {
-            numerator: numerator / divisor,
-            denominator: NonZeroU64::new(denominator.get() / divisor)
-                .expect("a nonzero denominator remains nonzero after reduction"),
-        })
-    }
-
-    pub const fn numerator(self) -> u64 {
-        self.numerator
-    }
-
-    pub const fn denominator(self) -> u64 {
-        self.denominator.get()
-    }
-
-    fn rational(self) -> BigRational {
-        BigRational::new(
-            BigInt::from(self.numerator),
-            BigInt::from(self.denominator.get()),
-        )
-    }
-
-    fn cmp_ratio(self, numerator: u64, denominator: u64) -> Ordering {
-        debug_assert!(denominator > 0);
-        (u128::from(self.numerator) * u128::from(denominator))
-            .cmp(&(u128::from(numerator) * u128::from(self.denominator.get())))
-    }
-}
-
-impl PartialOrd for KeyframeOffset {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for KeyframeOffset {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.cmp_ratio(other.numerator, other.denominator.get())
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum KeyframeOffsetError {
-    ZeroDenominator { numerator: u64 },
-    OutsideUnitInterval { numerator: u64, denominator: u64 },
-}
-
-impl std::fmt::Display for KeyframeOffsetError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::ZeroDenominator { numerator } => {
-                write!(f, "keyframe offset {numerator}/0 has a zero denominator")
-            }
-            Self::OutsideUnitInterval {
-                numerator,
-                denominator,
-            } => write!(
-                f,
-                "keyframe offset {numerator}/{denominator} is outside [0, 1]"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for KeyframeOffsetError {}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct ScalarKeyframe {
-    offset: KeyframeOffset,
-    value: f32,
-}
-
-impl ScalarKeyframe {
-    pub const fn new(offset: KeyframeOffset, value: f32) -> Self {
-        Self { offset, value }
-    }
-
-    pub const fn offset(self) -> KeyframeOffset {
-        self.offset
-    }
-
-    pub const fn value(self) -> f32 {
-        self.value
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CubicControl {
-    X1,
-    Y1,
-    X2,
-    Y2,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CubicBezierError {
-    NotFinite { control: CubicControl },
-    XOutsideUnitInterval { control: CubicControl },
-}
-
-impl std::fmt::Display for CubicBezierError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::NotFinite { control } => {
-                write!(f, "cubic Bézier control {control:?} must be finite")
-            }
-            Self::XOutsideUnitInterval { control } => {
-                write!(f, "cubic Bézier control {control:?} must be inside [0, 1]")
-            }
-        }
-    }
-}
-
-impl std::error::Error for CubicBezierError {}
-
-/// A CSS-compatible cubic Bézier timing function.
-///
-/// The x controls are constrained to `[0, 1]`, making x monotonic and its
-/// inverse single-valued. Finite y controls may overshoot; the target property
-/// domain is checked conservatively when a curve is attached to a track.
-#[derive(Clone)]
-pub struct CubicBezier {
-    x1: f32,
-    y1: f32,
-    x2: f32,
-    y2: f32,
-    exact: Arc<ExactCubicBezier>,
-}
-
-impl CubicBezier {
-    pub fn new(x1: f32, y1: f32, x2: f32, y2: f32) -> Result<Self, CubicBezierError> {
-        for (control, value) in [
-            (CubicControl::X1, x1),
-            (CubicControl::Y1, y1),
-            (CubicControl::X2, x2),
-            (CubicControl::Y2, y2),
-        ] {
-            if !value.is_finite() {
-                return Err(CubicBezierError::NotFinite { control });
-            }
-        }
-        for (control, value) in [(CubicControl::X1, x1), (CubicControl::X2, x2)] {
-            if !(0.0..=1.0).contains(&value) {
-                return Err(CubicBezierError::XOutsideUnitInterval { control });
-            }
-        }
-
-        let x1 = canonical_zero(x1);
-        let y1 = canonical_zero(y1);
-        let x2 = canonical_zero(x2);
-        let y2 = canonical_zero(y2);
-        Ok(Self {
-            x1,
-            y1,
-            x2,
-            y2,
-            exact: Arc::new(ExactCubicBezier::new(x1, y1, x2, y2)),
-        })
-    }
-
-    pub const fn x1(&self) -> f32 {
-        self.x1
-    }
-
-    pub const fn y1(&self) -> f32 {
-        self.y1
-    }
-
-    pub const fn x2(&self) -> f32 {
-        self.x2
-    }
-
-    pub const fn y2(&self) -> f32 {
-        self.y2
-    }
-
-    fn apply(&self, input: &BigRational) -> BigRational {
-        if input.is_zero() || input.is_one() {
-            return input.clone();
-        }
-        if self.x1 == self.y1 && self.x2 == self.y2 {
-            return input.clone();
-        }
-
-        // At depth d, the bracket endpoints are adjacent multiples of 2^-d.
-        // Retaining only the lower integer avoids constructing and reducing a
-        // new rational for every comparison while preserving the specified
-        // 128 exact dyadic bisections.
-        let mut lower_numerator = BigInt::zero();
-        for depth in 1..=CUBIC_BISECTION_STEPS {
-            let midpoint_numerator = (&lower_numerator << 1_usize) + BigInt::one();
-            match self.exact.x.compare_at(&midpoint_numerator, depth, input) {
-                Ordering::Less => lower_numerator = midpoint_numerator,
-                Ordering::Greater => lower_numerator <<= 1_usize,
-                Ordering::Equal => return self.exact.y.rational_at(&midpoint_numerator, depth),
-            }
-        }
-
-        let midpoint_numerator = (&lower_numerator << 1_usize) + BigInt::one();
-        self.exact
-            .y
-            .rational_at(&midpoint_numerator, CUBIC_BISECTION_STEPS + 1)
-    }
-}
-
-impl std::fmt::Debug for CubicBezier {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("CubicBezier")
-            .field("x1", &self.x1)
-            .field("y1", &self.y1)
-            .field("x2", &self.x2)
-            .field("y2", &self.y2)
-            .finish()
-    }
-}
-
-impl PartialEq for CubicBezier {
-    fn eq(&self, other: &Self) -> bool {
-        self.x1 == other.x1 && self.y1 == other.y1 && self.x2 == other.x2 && self.y2 == other.y2
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Easing {
-    Linear,
-    CubicBezier(CubicBezier),
-}
-
-impl Easing {
-    fn apply(&self, input: &BigRational) -> BigRational {
-        match self {
-            Self::Linear => input.clone(),
-            Self::CubicBezier(curve) => curve.apply(input),
-        }
-    }
-}
-
-/// One interval from the preceding keyframe to `end`.
-///
-/// Keeping the easing and terminal keyframe together makes it impossible to
-/// create mismatched parallel keyframe/easing lists.
-#[derive(Debug, Clone, PartialEq)]
-pub struct ScalarSegment {
-    easing: Easing,
-    end: ScalarKeyframe,
-}
-
-impl ScalarSegment {
-    pub const fn new(easing: Easing, end: ScalarKeyframe) -> Self {
-        Self { easing, end }
-    }
-
-    pub fn easing(&self) -> Easing {
-        self.easing.clone()
-    }
-
-    pub const fn end(&self) -> ScalarKeyframe {
-        self.end
-    }
-}
-
-/// The sole scalar animation representation, including linear from/to tracks.
-#[derive(Debug, Clone, PartialEq)]
-pub struct ScalarCurve {
-    first: ScalarKeyframe,
-    segments: Box<[ScalarSegment]>,
-}
-
-impl ScalarCurve {
-    pub fn new(
-        first: ScalarKeyframe,
-        segments: Vec<ScalarSegment>,
-    ) -> Result<Self, ScalarCurveError> {
-        // A lone offset cannot affect sampling. Accept it, then erase that
-        // semantically inert spelling so all constant curves have one form.
-        if segments.is_empty() {
-            return Ok(Self::constant(first.value));
-        }
-        if first.offset != KeyframeOffset::ZERO {
-            return Err(ScalarCurveError::FirstOffsetMustBeZero {
-                actual: first.offset,
-            });
-        }
-
-        let mut previous = first.offset;
-        for (segment_index, segment) in segments.iter().enumerate() {
-            let current = segment.end.offset;
-            if current <= previous {
-                return Err(ScalarCurveError::OffsetsNotStrictlyIncreasing {
-                    previous_index: segment_index,
-                    current_index: segment_index + 1,
-                    previous,
-                    current,
-                });
-            }
-            previous = current;
-        }
-        if previous != KeyframeOffset::ONE {
-            return Err(ScalarCurveError::LastOffsetMustBeOne { actual: previous });
-        }
-
-        Ok(Self {
-            first,
-            segments: segments.into_boxed_slice(),
-        })
-    }
-
-    pub fn linear(from: f32, to: f32) -> Self {
-        Self {
-            first: ScalarKeyframe::new(KeyframeOffset::ZERO, from),
-            segments: vec![ScalarSegment::new(
-                Easing::Linear,
-                ScalarKeyframe::new(KeyframeOffset::ONE, to),
-            )]
-            .into_boxed_slice(),
-        }
-    }
-
-    pub fn constant(value: f32) -> Self {
-        Self {
-            first: ScalarKeyframe::new(KeyframeOffset::ZERO, value),
-            segments: Box::new([]),
-        }
-    }
-
-    pub const fn first(&self) -> ScalarKeyframe {
-        self.first
-    }
-
-    pub fn segments(&self) -> &[ScalarSegment] {
-        &self.segments
-    }
-
-    pub fn keyframes(&self) -> impl Iterator<Item = &ScalarKeyframe> {
-        std::iter::once(&self.first).chain(self.segments.iter().map(|segment| &segment.end))
-    }
-
-    pub fn keyframe_count(&self) -> usize {
-        1 + self.segments.len()
-    }
-
-    pub fn first_value(&self) -> f32 {
-        self.first.value
-    }
-
-    pub fn last_value(&self) -> f32 {
-        self.segments
-            .last()
-            .map_or(self.first.value, |segment| segment.end.value)
-    }
-
-    fn sample(&self, numerator: u64, denominator: u64) -> f32 {
-        debug_assert!(denominator > 0);
-        debug_assert!(numerator < denominator);
-        if self.segments.is_empty() || numerator == 0 {
-            return self.first.value;
-        }
-
-        let segment_index = match self
-            .segments
-            .binary_search_by(|segment| segment.end.offset.cmp_ratio(numerator, denominator))
-        {
-            Ok(index) => return self.segments[index].end.value,
-            Err(index) => index,
-        };
-        let segment = self
-            .segments
-            .get(segment_index)
-            .expect("an active progress is below the required terminal offset one");
-        let start = segment_index
-            .checked_sub(1)
-            .map_or(self.first, |index| self.segments[index].end);
-        let progress = BigRational::new(BigInt::from(numerator), BigInt::from(denominator));
-        let start_offset = start.offset.rational();
-        let end_offset = segment.end.offset.rational();
-        let local = (&progress - &start_offset) / (&end_offset - &start_offset);
-        let eased = segment.easing.apply(&local);
-        lerp_binary32_once_rational(start.value, segment.end.value, &eased)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ScalarCurveError {
-    FirstOffsetMustBeZero {
-        actual: KeyframeOffset,
-    },
-    LastOffsetMustBeOne {
-        actual: KeyframeOffset,
-    },
-    OffsetsNotStrictlyIncreasing {
-        previous_index: usize,
-        current_index: usize,
-        previous: KeyframeOffset,
-        current: KeyframeOffset,
-    },
-}
-
-impl std::fmt::Display for ScalarCurveError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::FirstOffsetMustBeZero { actual } => write!(
-                f,
-                "the first keyframe offset must be 0, found {}/{}",
-                actual.numerator(),
-                actual.denominator()
-            ),
-            Self::LastOffsetMustBeOne { actual } => write!(
-                f,
-                "the last keyframe offset must be 1, found {}/{}",
-                actual.numerator(),
-                actual.denominator()
-            ),
-            Self::OffsetsNotStrictlyIncreasing {
-                previous_index,
-                current_index,
-                previous,
-                current,
-            } => write!(
-                f,
-                "keyframe offsets must increase strictly: index {previous_index} is {}/{}, index {current_index} is {}/{}",
-                previous.numerator(),
-                previous.denominator(),
-                current.numerator(),
-                current.denominator()
-            ),
-        }
-    }
-}
-
-impl std::error::Error for ScalarCurveError {}
 
 /// One complete singleton-solid fill value at an exact curve offset.
 ///
@@ -793,10 +171,9 @@ impl ColorCurve {
             return ExactColor::from(self.first.color);
         }
 
-        let segment_index = match self
-            .segments
-            .binary_search_by(|segment| segment.end.offset.cmp_ratio(numerator, denominator))
-        {
+        let segment_index = match self.segments.binary_search_by(|segment| {
+            keyframe_offset_cmp_ratio(segment.end.offset, numerator, denominator)
+        }) {
             Ok(index) => return ExactColor::from(self.segments[index].end.color),
             Err(index) => index,
         };
@@ -808,12 +185,12 @@ impl ColorCurve {
             .checked_sub(1)
             .map_or(self.first, |index| self.segments[index].end);
         let progress = BigRational::new(BigInt::from(numerator), BigInt::from(denominator));
-        let start_offset = start.offset.rational();
-        let end_offset = segment.end.offset.rational();
+        let start_offset = keyframe_offset_rational(start.offset);
+        let end_offset = keyframe_offset_rational(segment.end.offset);
         let local = (&progress - &start_offset) / (&end_offset - &start_offset);
         ExactColor::from(start.color).interpolate(
             &ExactColor::from(segment.end.color),
-            &segment.easing.apply(&local),
+            &easing_apply(&segment.easing, &local),
         )
     }
 }
@@ -1033,10 +410,9 @@ impl PathCurve {
             return Arc::clone(&self.first.path);
         }
 
-        let segment_index = match self
-            .segments
-            .binary_search_by(|segment| segment.end.offset.cmp_ratio(numerator, denominator))
-        {
+        let segment_index = match self.segments.binary_search_by(|segment| {
+            keyframe_offset_cmp_ratio(segment.end.offset, numerator, denominator)
+        }) {
             Ok(index) => return Arc::clone(&self.segments[index].end.path),
             Err(index) => index,
         };
@@ -1048,13 +424,13 @@ impl PathCurve {
             .checked_sub(1)
             .map_or(&self.first, |index| &self.segments[index].end);
         let progress = BigRational::new(BigInt::from(numerator), BigInt::from(denominator));
-        let start_offset = start.offset.rational();
-        let end_offset = segment.end.offset.rational();
+        let start_offset = keyframe_offset_rational(start.offset);
+        let end_offset = keyframe_offset_rational(segment.end.offset);
         let local = (&progress - &start_offset) / (&end_offset - &start_offset);
         interpolate_path(
             &start.path,
             &segment.end.path,
-            &segment.easing.apply(&local),
+            &easing_apply(&segment.easing, &local),
         )
     }
 }
@@ -1340,10 +716,9 @@ impl DiscreteCurve {
     fn sample(&self, numerator: u64, denominator: u64) -> &PropertyValue {
         debug_assert!(denominator > 0);
         debug_assert!(numerator < denominator);
-        let index = match self
-            .keyframes
-            .binary_search_by(|keyframe| keyframe.offset.cmp_ratio(numerator, denominator))
-        {
+        let index = match self.keyframes.binary_search_by(|keyframe| {
+            keyframe_offset_cmp_ratio(keyframe.offset, numerator, denominator)
+        }) {
             Ok(index) => index,
             Err(0) => 0,
             Err(index) => index - 1,
@@ -1437,7 +812,8 @@ impl EasedDiscretePair {
 
     fn sample(&self, numerator: u64, denominator: u64) -> &PropertyValue {
         let progress = BigRational::new(BigInt::from(numerator), BigInt::from(denominator));
-        if self.easing.apply(&progress) < BigRational::new(BigInt::one(), BigInt::from(2)) {
+        if easing_apply(&self.easing, &progress) < BigRational::new(BigInt::one(), BigInt::from(2))
+        {
             &self.from
         } else {
             &self.to
@@ -1740,10 +1116,9 @@ impl TransformCurve {
         if self.segments.is_empty() || numerator == 0 {
             return self.first.value;
         }
-        let segment_index = match self
-            .segments
-            .binary_search_by(|segment| segment.end.offset.cmp_ratio(numerator, denominator))
-        {
+        let segment_index = match self.segments.binary_search_by(|segment| {
+            keyframe_offset_cmp_ratio(segment.end.offset, numerator, denominator)
+        }) {
             Ok(index) => return self.segments[index].end.value,
             Err(index) => index,
         };
@@ -1752,12 +1127,12 @@ impl TransformCurve {
             .checked_sub(1)
             .map_or(self.first, |index| self.segments[index].end);
         let progress = BigRational::new(BigInt::from(numerator), BigInt::from(denominator));
-        let start_offset = start.offset.rational();
-        let end_offset = segment.end.offset.rational();
+        let start_offset = keyframe_offset_rational(start.offset);
+        let end_offset = keyframe_offset_rational(segment.end.offset);
         let local = (&progress - &start_offset) / (&end_offset - &start_offset);
         start
             .value
-            .interpolate(segment.end.value, &segment.easing.apply(&local))
+            .interpolate(segment.end.value, &easing_apply(&segment.easing, &local))
     }
 }
 
@@ -1829,210 +1204,6 @@ impl std::fmt::Display for TransformCurveError {
 }
 
 impl std::error::Error for TransformCurveError {}
-
-const CUBIC_BISECTION_STEPS: usize = 128;
-const BINARY32_COMMON_DENOMINATOR_EXPONENT: usize = 149;
-
-/// Exact power-basis coefficients for one cubic coordinate. Every finite
-/// binary32 value is an integer over 2^149, so the controls can be compiled
-/// once and all runtime bisection work can use bounded-size integers.
-#[derive(Debug, PartialEq, Eq)]
-struct CubicPolynomial {
-    linear: BigInt,
-    quadratic: BigInt,
-    cubic: BigInt,
-}
-
-impl CubicPolynomial {
-    fn new(control1: f32, control2: f32) -> Self {
-        let control1 = binary32_scaled_integer(control1);
-        let control2 = binary32_scaled_integer(control2);
-        Self {
-            linear: &control1 * 3,
-            quadratic: &control2 * 3 - &control1 * 6,
-            cubic: &control1 * 3 - &control2 * 3
-                + (BigInt::one() << BINARY32_COMMON_DENOMINATOR_EXPONENT),
-        }
-    }
-
-    /// Returns the exact coordinate numerator for `parameter_numerator / 2^depth`.
-    /// The implicit positive denominator is `2^(149 + 3 * depth)`.
-    fn numerator_at(&self, parameter_numerator: &BigInt, depth: usize) -> BigInt {
-        parameter_numerator
-            * ((&self.linear << (2 * depth))
-                + parameter_numerator
-                    * ((&self.quadratic << depth) + parameter_numerator * &self.cubic))
-    }
-
-    fn compare_at(
-        &self,
-        parameter_numerator: &BigInt,
-        depth: usize,
-        value: &BigRational,
-    ) -> Ordering {
-        let coordinate_numerator = self.numerator_at(parameter_numerator, depth);
-        let left = coordinate_numerator * value.denom();
-        let right = value.numer() << (BINARY32_COMMON_DENOMINATOR_EXPONENT + 3 * depth);
-        left.cmp(&right)
-    }
-
-    fn rational_at(&self, parameter_numerator: &BigInt, depth: usize) -> BigRational {
-        BigRational::new(
-            self.numerator_at(parameter_numerator, depth),
-            BigInt::one() << (BINARY32_COMMON_DENOMINATOR_EXPONENT + 3 * depth),
-        )
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-struct ExactCubicBezier {
-    x: CubicPolynomial,
-    y: CubicPolynomial,
-}
-
-impl ExactCubicBezier {
-    fn new(x1: f32, y1: f32, x2: f32, y2: f32) -> Self {
-        Self {
-            x: CubicPolynomial::new(x1, x2),
-            y: CubicPolynomial::new(y1, y2),
-        }
-    }
-}
-
-fn binary32_scaled_integer(value: f32) -> BigInt {
-    let bits = value.to_bits();
-    let negative = bits >> 31 != 0;
-    let exponent_bits = ((bits >> 23) & 0xff) as usize;
-    let fraction = bits & 0x7f_ff_ff;
-    let (significand, shift) = if exponent_bits == 0 {
-        (fraction, 0)
-    } else {
-        ((1 << 23) | fraction, exponent_bits - 1)
-    };
-    let magnitude = BigInt::from(significand) << shift;
-    if negative {
-        -magnitude
-    } else {
-        magnitude
-    }
-}
-
-fn greatest_common_divisor(mut left: u64, mut right: u64) -> u64 {
-    while right != 0 {
-        (left, right) = (right, left % right);
-    }
-    left
-}
-
-fn canonical_zero(value: f32) -> f32 {
-    if value == 0.0 {
-        0.0
-    } else {
-        value
-    }
-}
-
-#[cfg(test)]
-fn cubic_coordinate(
-    control1: &BigRational,
-    control2: &BigRational,
-    parameter: &BigRational,
-) -> BigRational {
-    let inverse = BigRational::one() - parameter;
-    let three = BigRational::from_integer(BigInt::from(3));
-    &three * &inverse * &inverse * parameter * control1
-        + &three * &inverse * parameter * parameter * control2
-        + parameter * parameter * parameter
-}
-
-#[cfg(test)]
-mod cubic_tests {
-    use super::*;
-
-    fn normalized_rational_reference(curve: &CubicBezier, input: &BigRational) -> BigRational {
-        if input.is_zero() || input.is_one() {
-            return input.clone();
-        }
-        if curve.x1 == curve.y1 && curve.x2 == curve.y2 {
-            return input.clone();
-        }
-
-        let x1 = binary32_rational(curve.x1);
-        let x2 = binary32_rational(curve.x2);
-        let y1 = binary32_rational(curve.y1);
-        let y2 = binary32_rational(curve.y2);
-        let mut low = BigRational::zero();
-        let mut high = BigRational::one();
-        for _ in 0..CUBIC_BISECTION_STEPS {
-            let midpoint = (&low + &high) / BigInt::from(2);
-            match cubic_coordinate(&x1, &x2, &midpoint).cmp(input) {
-                Ordering::Less => low = midpoint,
-                Ordering::Greater => high = midpoint,
-                Ordering::Equal => return cubic_coordinate(&y1, &y2, &midpoint),
-            }
-        }
-        let parameter = (&low + &high) / BigInt::from(2);
-        cubic_coordinate(&y1, &y2, &parameter)
-    }
-
-    #[test]
-    fn integer_kernel_matches_the_normalized_rational_contract() {
-        let curves = [
-            CubicBezier::new(0.25, 0.1, 0.25, 1.0).unwrap(),
-            CubicBezier::new(0.0, 1.0, 1.0, 1.0).unwrap(),
-            CubicBezier::new(0.25, 0.25, 0.75, 0.75).unwrap(),
-            CubicBezier::new(0.0, -1.0, 0.0, 2.0).unwrap(),
-            CubicBezier::new(
-                f32::from_bits(1),
-                -f32::MAX,
-                f32::from_bits(0x3f7f_ffff),
-                f32::MAX,
-            )
-            .unwrap(),
-        ];
-        let inputs = [
-            BigRational::zero(),
-            BigRational::new(BigInt::one(), BigInt::from(u64::MAX)),
-            BigRational::new(BigInt::one(), BigInt::from(3)),
-            BigRational::new(BigInt::one(), BigInt::from(2)),
-            BigRational::new(BigInt::from(2), BigInt::from(3)),
-            BigRational::new(BigInt::from(u64::MAX - 1), BigInt::from(u64::MAX)),
-            BigRational::one(),
-        ];
-
-        for curve in &curves {
-            for input in &inputs {
-                assert_eq!(
-                    curve.apply(input),
-                    normalized_rational_reference(curve, input),
-                    "curve {curve:?} at {input}"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn integer_kernel_returns_a_depth_128_exact_inverse_hit() {
-        let curve = CubicBezier::new(0.25, 0.1, 0.25, 1.0).unwrap();
-        let denominator = BigInt::one() << CUBIC_BISECTION_STEPS;
-        let parameter = BigRational::new(
-            (BigInt::one() << (CUBIC_BISECTION_STEPS - 1)) + BigInt::one(),
-            denominator,
-        );
-        let input = cubic_coordinate(
-            &binary32_rational(curve.x1),
-            &binary32_rational(curve.x2),
-            &parameter,
-        );
-        let expected = cubic_coordinate(
-            &binary32_rational(curve.y1),
-            &binary32_rational(curve.y2),
-            &parameter,
-        );
-
-        assert_eq!(curve.apply(&input), expected);
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TrackKind {
@@ -2772,7 +1943,10 @@ impl Track {
             source,
             target,
             kind,
-            effect: TrackEffect::ScalarCurve(ScalarCurve::linear(from, to)),
+            effect: TrackEffect::ScalarCurve(
+                ScalarCurve::linear(from, to)
+                    .expect("validated scalar endpoints are finite curve values"),
+            ),
             timing,
             fill,
             composite: CompositeOperation::Replace,
@@ -2960,7 +2134,7 @@ impl Track {
         match &self.effect {
             TrackEffect::ScalarCurve(curve) => curve
                 .keyframes()
-                .map(|keyframe| self.scalar_value(keyframe.value))
+                .map(|keyframe| self.scalar_value(keyframe.value()))
                 .collect(),
             TrackEffect::ScalarFromLiveUnderlying { target, .. } => {
                 vec![self.scalar_value(*target)]
@@ -2996,7 +2170,7 @@ impl Track {
         }
     }
 
-    fn contribution(&self, time: SampleTime) -> Contribution {
+    fn contribution(&self, time: SampleTime) -> Option<Contribution> {
         self.timing.contribution(time, self.fill)
     }
 
@@ -3089,7 +2263,7 @@ fn validate_curve_domain(
     curve: &ScalarCurve,
 ) -> Result<(), TrackError> {
     for (keyframe_index, keyframe) in curve.keyframes().enumerate() {
-        if let Some(reason) = scalar_domain_error(kind, keyframe.value) {
+        if let Some(reason) = scalar_domain_error(kind, keyframe.value()) {
             return Err(TrackError::InvalidKeyframe {
                 source: source.to_owned(),
                 kind,
@@ -3099,15 +2273,17 @@ fn validate_curve_domain(
         }
     }
 
-    let mut start = curve.first;
-    for (segment_index, segment) in curve.segments.iter().enumerate() {
-        if let Easing::CubicBezier(easing) = &segment.easing {
-            let from = binary32_rational(start.value);
-            let to = binary32_rational(segment.end.value);
+    let mut start = curve.first();
+    for (segment_index, segment) in curve.segments().iter().enumerate() {
+        let end = segment.end();
+        if let Easing::CubicBezier(easing) = segment.easing() {
+            let from = binary32_rational(start.value());
+            let to = binary32_rational(end.value());
             let delta = &to - &from;
-            for (control, timing_control) in
-                [(CubicControl::Y1, easing.y1), (CubicControl::Y2, easing.y2)]
-            {
+            for (control, timing_control) in [
+                (CubicControl::Y1, easing.y1()),
+                (CubicControl::Y2, easing.y2()),
+            ] {
                 let property_control = &from + &delta * binary32_rational(timing_control);
                 if let Some(reason) = rational_domain_error(kind, &property_control) {
                     return Err(TrackError::UnsafeCubicControl {
@@ -3120,7 +2296,7 @@ fn validate_curve_domain(
                 }
             }
         }
-        start = segment.end;
+        start = end;
     }
     Ok(())
 }
@@ -3136,7 +2312,10 @@ fn validate_live_underlying_easing(
     // The lower endpoint is known only at sample time. Constraining timing-y
     // to the unit interval makes every result a convex interpolation between
     // two already-valid values, so no deferred domain check is required.
-    for (control, value) in [(CubicControl::Y1, easing.y1), (CubicControl::Y2, easing.y2)] {
+    for (control, value) in [
+        (CubicControl::Y1, easing.y1()),
+        (CubicControl::Y2, easing.y2()),
+    ] {
         if !(0.0..=1.0).contains(&value) {
             return Err(TrackError::UnsafeCubicControl {
                 source: source.to_owned(),
@@ -3168,9 +2347,10 @@ fn validate_transform_curve_domain(source: &str, curve: &TransformCurve) -> Resu
             for component in 0..3 {
                 let from = binary32_rational(from[component]);
                 let delta = binary32_rational(to[component]) - &from;
-                for (control, timing_control) in
-                    [(CubicControl::Y1, easing.y1), (CubicControl::Y2, easing.y2)]
-                {
+                for (control, timing_control) in [
+                    (CubicControl::Y1, easing.y1()),
+                    (CubicControl::Y2, easing.y2()),
+                ] {
                     let property_control = &from + &delta * binary32_rational(timing_control);
                     if let Some(reason) =
                         rational_domain_error(TrackKind::LensTransform, &property_control)
@@ -3231,23 +2411,6 @@ fn rational_domain_error(kind: TrackKind, value: &BigRational) -> Option<ScalarD
         TrackKind::LensTransform => None,
         TrackKind::PathGeometry => unreachable!("path tracks have no scalar domain"),
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Contribution {
-    None,
-    Active {
-        repeat_index: u64,
-        numerator: u64,
-        denominator: u64,
-    },
-    To,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-struct SampledScalar {
-    value: f32,
-    repeat_index: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -3415,69 +2578,25 @@ fn validate_stack_underlying_lens_ops(
     .map(|_| ())
 }
 
-fn sampled_scalar_curve(
-    curve: &ScalarCurve,
-    contribution: Contribution,
-    repeat_count: u64,
-) -> SampledScalar {
-    match contribution {
-        Contribution::None => unreachable!("callers retain contributing tracks only"),
-        Contribution::To => SampledScalar {
-            value: curve.last_value(),
-            repeat_index: repeat_count - 1,
-        },
-        Contribution::Active {
-            repeat_index,
-            numerator,
-            denominator,
-        } => SampledScalar {
-            value: curve.sample(numerator, denominator),
-            repeat_index,
-        },
+fn sampled_transform_curve(curve: &TransformCurve, contribution: Contribution) -> SampledTransform {
+    let value = active_progress(contribution).map_or_else(
+        || curve.last_value(),
+        |(numerator, denominator)| curve.sample(numerator, denominator),
+    );
+    SampledTransform {
+        value,
+        repeat_index: contribution.repeat_index(),
     }
 }
 
-fn sampled_transform_curve(
-    curve: &TransformCurve,
-    contribution: Contribution,
-    repeat_count: u64,
-) -> SampledTransform {
-    match contribution {
-        Contribution::None => unreachable!("callers retain contributing tracks only"),
-        Contribution::To => SampledTransform {
-            value: curve.last_value(),
-            repeat_index: repeat_count - 1,
-        },
-        Contribution::Active {
-            repeat_index,
-            numerator,
-            denominator,
-        } => SampledTransform {
-            value: curve.sample(numerator, denominator),
-            repeat_index,
-        },
-    }
-}
-
-fn sampled_color_curve(
-    curve: &ColorCurve,
-    contribution: Contribution,
-    repeat_count: u64,
-) -> SampledColor {
-    match contribution {
-        Contribution::None => unreachable!("callers retain contributing tracks only"),
-        Contribution::To => SampledColor {
-            value: ExactColor::from(curve.last_color()),
-            repeat_index: repeat_count - 1,
-        },
-        Contribution::Active {
-            repeat_index,
-            numerator,
-            denominator,
-        } => SampledColor {
-            value: curve.sample(numerator, denominator),
-            repeat_index,
-        },
+fn sampled_color_curve(curve: &ColorCurve, contribution: Contribution) -> SampledColor {
+    let value = active_progress(contribution).map_or_else(
+        || ExactColor::from(curve.last_color()),
+        |(numerator, denominator)| curve.sample(numerator, denominator),
+    );
+    SampledColor {
+        value,
+        repeat_index: contribution.repeat_index(),
     }
 }
 
@@ -3487,18 +2606,11 @@ fn scalar_from_live_underlying_value(
     easing: &Easing,
     contribution: Contribution,
 ) -> f32 {
-    match contribution {
-        Contribution::None => unreachable!("callers retain contributing tracks only"),
-        Contribution::To => target,
-        Contribution::Active {
-            numerator,
-            denominator,
-            ..
-        } => {
-            let progress = BigRational::new(BigInt::from(numerator), BigInt::from(denominator));
-            lerp_binary32_once_rational(underlying, target, &easing.apply(&progress))
-        }
-    }
+    let Some((numerator, denominator)) = active_progress(contribution) else {
+        return target;
+    };
+    let progress = BigRational::new(BigInt::from(numerator), BigInt::from(denominator));
+    lerp_binary32_once_rational(underlying, target, &easing_apply(easing, &progress))
 }
 
 fn color_from_live_underlying_value(
@@ -3507,37 +2619,30 @@ fn color_from_live_underlying_value(
     easing: &Easing,
     contribution: Contribution,
 ) -> ExactColor {
-    match contribution {
-        Contribution::None => unreachable!("callers retain contributing tracks only"),
-        Contribution::To => ExactColor::from(target),
-        Contribution::Active {
-            numerator,
-            denominator,
-            ..
-        } => {
-            let progress = BigRational::new(BigInt::from(numerator), BigInt::from(denominator));
-            underlying.interpolate(&ExactColor::from(target), &easing.apply(&progress))
-        }
-    }
+    let Some((numerator, denominator)) = active_progress(contribution) else {
+        return ExactColor::from(target);
+    };
+    let progress = BigRational::new(BigInt::from(numerator), BigInt::from(denominator));
+    underlying.interpolate(&ExactColor::from(target), &easing_apply(easing, &progress))
 }
 
-fn accumulated_scalar(track: &Track, sampled: SampledScalar) -> Result<f32, AnimationValueError> {
+fn accumulated_scalar(track: &Track, sampled: ScalarSample) -> Result<f32, AnimationValueError> {
     if track.iteration_composite == IterationCompositeOperation::Replace
-        || sampled.repeat_index == 0
+        || sampled.repeat_index() == 0
     {
-        return Ok(sampled.value);
+        return Ok(sampled.value());
     }
 
     let terminal = match &track.effect {
         TrackEffect::ScalarCurve(curve) => curve.last_value(),
         _ => unreachable!("only scalar curves use iteration accumulation"),
     };
-    let exact = binary32_rational(sampled.value)
+    let exact = binary32_rational(sampled.value())
         + binary32_rational(terminal)
-            * BigRational::from_integer(BigInt::from(sampled.repeat_index));
+            * BigRational::from_integer(BigInt::from(sampled.repeat_index()));
     let value = if exact.is_zero()
-        && sampled.value == 0.0
-        && sampled.value.is_sign_negative()
+        && sampled.value() == 0.0
+        && sampled.value().is_sign_negative()
         && terminal == 0.0
         && terminal.is_sign_negative()
     {
@@ -3848,12 +2953,11 @@ impl AnimationProgram {
         let mut sampled = Vec::new();
         for stack in self.effect_stacks() {
             sampled.clear();
-            sampled.extend(
-                stack
-                    .iter()
-                    .map(|track| (track, track.contribution(time)))
-                    .filter(|(_, contribution)| *contribution != Contribution::None),
-            );
+            sampled.extend(stack.iter().filter_map(|track| {
+                track
+                    .contribution(time)
+                    .map(|contribution| (track, contribution))
+            }));
             if sampled.is_empty() {
                 continue;
             }
@@ -3868,43 +2972,24 @@ impl AnimationProgram {
                 let (track, contribution) = *influential
                     .last()
                     .expect("a contributing path stack is non-empty");
-                let value = match (&track.effect, contribution) {
-                    (
-                        TrackEffect::PathCurve(curve),
-                        Contribution::Active {
-                            numerator,
-                            denominator,
-                            ..
+                let value = match &track.effect {
+                    TrackEffect::PathCurve(curve) => active_progress(contribution).map_or_else(
+                        || PropertyValue::PathGeometry(Arc::clone(curve.last_path())),
+                        |(numerator, denominator)| {
+                            PropertyValue::PathGeometry(curve.sample(numerator, denominator))
                         },
-                    ) => PropertyValue::PathGeometry(curve.sample(numerator, denominator)),
-                    (TrackEffect::PathCurve(curve), Contribution::To) => {
-                        PropertyValue::PathGeometry(Arc::clone(curve.last_path()))
-                    }
-                    (
-                        TrackEffect::DiscreteCurve(curve),
-                        Contribution::Active {
-                            numerator,
-                            denominator,
-                            ..
-                        },
-                    ) => curve.sample(numerator, denominator).clone(),
-                    (TrackEffect::DiscreteCurve(curve), Contribution::To) => {
-                        curve.last_value().clone()
-                    }
-                    (
-                        TrackEffect::EasedDiscretePair(effect),
-                        Contribution::Active {
-                            numerator,
-                            denominator,
-                            ..
-                        },
-                    ) => effect.sample(numerator, denominator).clone(),
-                    (TrackEffect::EasedDiscretePair(effect), Contribution::To) => {
-                        effect.to().clone()
-                    }
-                    (_, Contribution::None) => {
-                        unreachable!("non-contributing tracks are removed before sampling")
-                    }
+                    ),
+                    TrackEffect::DiscreteCurve(curve) => active_progress(contribution).map_or_else(
+                        || curve.last_value().clone(),
+                        |(numerator, denominator)| curve.sample(numerator, denominator).clone(),
+                    ),
+                    TrackEffect::EasedDiscretePair(effect) => active_progress(contribution)
+                        .map_or_else(
+                            || effect.to().clone(),
+                            |(numerator, denominator)| {
+                                effect.sample(numerator, denominator).clone()
+                            },
+                        ),
                     _ => unreachable!("path targets accept only path geometry effects"),
                 };
                 entries.push((track.target, value));
@@ -3916,8 +3001,7 @@ impl AnimationProgram {
                     let TrackEffect::TransformCurve(curve) = &track.effect else {
                         unreachable!("LensOps targets accept only transform curves")
                     };
-                    let sampled =
-                        sampled_transform_curve(curve, contribution, track.timing.repeat_count);
+                    let sampled = sampled_transform_curve(curve, contribution);
                     let effect = accumulated_transform(track, sampled)
                         .and_then(|value| projected_transform(track, value))
                         .map_err(|error| SampleError::InvalidComposition {
@@ -3957,8 +3041,7 @@ impl AnimationProgram {
                 for &(track, contribution) in influential {
                     match &track.effect {
                         TrackEffect::SolidFillCurve(curve) => {
-                            let sampled =
-                                sampled_color_curve(curve, contribution, track.timing.repeat_count);
+                            let sampled = sampled_color_curve(curve, contribution);
                             let effect = accumulated_color(track, sampled);
                             value = Some(match track.composite {
                                 CompositeOperation::Replace => effect,
@@ -4008,11 +3091,7 @@ impl AnimationProgram {
                 for (index, &(track, contribution)) in influential.iter().enumerate() {
                     match &track.effect {
                         TrackEffect::ScalarCurve(curve) => {
-                            let sampled = sampled_scalar_curve(
-                                curve,
-                                contribution,
-                                track.timing.repeat_count,
-                            );
+                            let sampled = curve.sample(contribution);
                             let effect = accumulated_scalar(track, sampled).map_err(|error| {
                                 SampleError::InvalidComposition {
                                     compiler_id: self.compiler_id.clone(),
@@ -4266,114 +3345,4 @@ fn unique_sources<'a>(tracks: impl IntoIterator<Item = &'a Track>) -> Vec<String
         }
     }
     sources
-}
-
-/// Evaluate `from + (to - from) * progress` exactly, then round once to
-/// IEEE-754 binary32 under round-to-nearest, ties-to-even. Endpoint fast paths
-/// preserve authored zero signs and bits.
-fn lerp_binary32_once_rational(from: f32, to: f32, progress: &BigRational) -> f32 {
-    if progress.is_zero() || from.to_bits() == to.to_bits() {
-        return from;
-    }
-    if progress.is_one() {
-        return to;
-    }
-
-    let from = binary32_rational(from);
-    let to = binary32_rational(to);
-    let exact = &from + (&to - &from) * progress;
-    round_rational_to_binary32(&exact)
-}
-
-fn binary32_rational(value: f32) -> BigRational {
-    let bits = value.to_bits();
-    let negative = bits >> 31 != 0;
-    let exponent_bits = ((bits >> 23) & 0xff) as i32;
-    let fraction = bits & 0x7f_ff_ff;
-    if exponent_bits == 0 && fraction == 0 {
-        return BigRational::zero();
-    }
-
-    let (significand, exponent) = if exponent_bits == 0 {
-        (fraction, -149)
-    } else {
-        ((1 << 23) | fraction, exponent_bits - 127 - 23)
-    };
-    let mut numerator = BigInt::from(significand);
-    if negative {
-        numerator = -numerator;
-    }
-    if exponent >= 0 {
-        BigRational::from_integer(numerator << exponent as usize)
-    } else {
-        BigRational::new(numerator, BigInt::one() << (-exponent) as usize)
-    }
-}
-
-fn round_rational_to_binary32(value: &BigRational) -> f32 {
-    if value.is_zero() {
-        return 0.0;
-    }
-    let sign = if value.is_negative() { 1_u32 << 31 } else { 0 };
-    let numerator = value
-        .numer()
-        .abs()
-        .to_biguint()
-        .expect("absolute numerator is non-negative");
-    let denominator = value
-        .denom()
-        .to_biguint()
-        .expect("rational denominator is positive");
-    let mut exponent = floor_log2_ratio(&numerator, &denominator);
-
-    let magnitude_bits = if exponent >= -126 {
-        let mut significand = round_scaled_ratio(&numerator, &denominator, 23 - exponent);
-        let carry = BigUint::one() << 24_usize;
-        if significand == carry {
-            significand >>= 1_usize;
-            exponent += 1;
-        }
-        if exponent > 127 {
-            0x7f80_0000
-        } else {
-            let significand = significand.to_u32().expect("binary32 significand fits u32");
-            (((exponent + 127) as u32) << 23) | (significand - (1 << 23))
-        }
-    } else {
-        let significand = round_scaled_ratio(&numerator, &denominator, 149);
-        significand
-            .to_u32()
-            .expect("binary32 subnormal significand fits u32")
-    };
-    f32::from_bits(sign | magnitude_bits)
-}
-
-fn floor_log2_ratio(numerator: &BigUint, denominator: &BigUint) -> i32 {
-    let mut exponent = numerator.bits() as i32 - denominator.bits() as i32;
-    let below = if exponent >= 0 {
-        numerator < &(denominator << exponent as usize)
-    } else {
-        &(numerator << (-exponent) as usize) < denominator
-    };
-    if below {
-        exponent -= 1;
-    }
-    exponent
-}
-
-fn round_scaled_ratio(numerator: &BigUint, denominator: &BigUint, binary_shift: i32) -> BigUint {
-    let (scaled_numerator, scaled_denominator) = if binary_shift >= 0 {
-        (numerator << binary_shift as usize, denominator.clone())
-    } else {
-        (numerator.clone(), denominator << (-binary_shift) as usize)
-    };
-    let quotient = &scaled_numerator / &scaled_denominator;
-    let remainder = &scaled_numerator % &scaled_denominator;
-    let twice_remainder = &remainder << 1_usize;
-    let odd = (&quotient & BigUint::one()) == BigUint::one();
-    if twice_remainder > scaled_denominator || (twice_remainder == scaled_denominator && odd) {
-        quotient + BigUint::one()
-    } else {
-        quotient
-    }
 }

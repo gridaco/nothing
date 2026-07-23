@@ -9,9 +9,13 @@
 //! matcher, never serializes-and-reparses inline SVG, and never paints.
 //!
 //! Deliberately narrow: the proving shell supports only the enumerated
-//! viewport/fill cases around an outer `<svg>` and solid-filled `<rect>`.
-//! [`CompileError`] makes those patrolled rejection cases explicit. This is
-//! not yet an exhaustive SVG-surface validator or an SVG capability claim.
+//! viewport/fill cases around an outer `<svg>` and solid-filled `<rect>`, plus
+//! one retained exact-time `<animate attributeName="x">` slice.
+//! [`CompileError`] makes patrolled static rejection cases explicit and
+//! [`crate::AnimationError`] closes the sampled bare-SVG dynamic inventory.
+//! Inline HTML remains Base-only until its document-wide inventory is closed.
+//! This is not yet an exhaustive SVG-surface validator or an SVG capability
+//! claim.
 //!
 //! ## SVG paint boundary
 //! The workspace's official Stylo revision exposes the typed basic SVG paint
@@ -29,7 +33,7 @@
 
 use csscascade::adapter::{DocumentSession, HtmlElement};
 use csscascade::cascade::CascadeDriver;
-use csscascade::dom::{DemoDom, DemoNodeData};
+use csscascade::dom::{DemoDom, DemoNodeData, NodeId};
 
 use style::color::ColorSpace;
 use style::dom::TElement;
@@ -40,6 +44,9 @@ use cg::CGColor;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::frame::{Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, VisualRef};
+use std::sync::Arc;
+
+use crate::svg_animation::{AnimationInventory, InventoryScope, is_animation_element};
 
 /// An explicit failure in the proving shell's enumerated grammar checks.
 ///
@@ -65,6 +72,106 @@ pub enum CompileError {
     UnsupportedViewport(String),
     /// An element carried no computed style (cascade did not reach it).
     MissingComputedStyle,
+}
+
+/// One retained, styled Web SVG source.
+///
+/// The source text and its single owned cascade session live for the full
+/// lifetime of this value. Base and exact-time samples are immutable frame
+/// products with stable visual identity; sampling never writes values back
+/// into the DOM.
+pub struct SvgFrameSource {
+    source: Arc<str>,
+    _session: DocumentSession,
+    _svg_root: NodeId,
+    base: Frame,
+    animation: AnimationInventory,
+}
+
+impl std::fmt::Debug for SvgFrameSource {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("SvgFrameSource")
+            .field("source_len", &self.source.len())
+            .field("svg_root", &self._svg_root)
+            .field("base", &self.base)
+            .field("has_animation_elements", &self.has_animation_elements())
+            .finish_non_exhaustive()
+    }
+}
+
+impl SvgFrameSource {
+    /// Retain an HTML document and compile its first inline SVG in place under
+    /// the document's one Stylo cascade.
+    pub fn from_html_inline_svg(source: impl Into<Arc<str>>) -> Result<Self, CompileError> {
+        Self::from_source(source.into(), InventoryScope::InlineHtml)
+    }
+
+    /// Retain the current bare-SVG html5ever scaffold.
+    ///
+    /// This does not claim to be the conforming standalone SVG/XML grammar
+    /// entry; the explicit name keeps that remaining boundary visible.
+    pub fn from_bare_svg_scaffold(source: impl Into<Arc<str>>) -> Result<Self, CompileError> {
+        Self::from_source(source.into(), InventoryScope::BareSvgScaffold)
+    }
+
+    fn from_source(
+        source: Arc<str>,
+        inventory_scope: InventoryScope,
+    ) -> Result<Self, CompileError> {
+        // Idempotent for the same state; safe to call per retained source.
+        thread_state::initialize(ThreadState::LAYOUT);
+
+        let dom = DemoDom::parse_from_bytes(source.as_bytes()).expect("parse document");
+        let mut session = DocumentSession::new(dom);
+        CascadeDriver::new(&mut session).style_document();
+
+        let (svg_root, compilation, animation) = {
+            let document = session.document();
+            let root = document.root_element().ok_or(CompileError::NoSvgRoot)?;
+            let svg = find_svg(root).ok_or(CompileError::NoSvgRoot)?;
+            let compilation = compile_svg_element(svg)?;
+            let animation =
+                AnimationInventory::inspect(svg, &compilation.bindings, inventory_scope);
+            (svg.node_id(), compilation, animation)
+        };
+
+        Ok(Self {
+            source,
+            _session: session,
+            _svg_root: svg_root,
+            base: compilation.frame,
+            animation,
+        })
+    }
+
+    /// The exact retained UTF-8 source snapshot.
+    pub fn source(&self) -> &str {
+        &self.source
+    }
+
+    /// Whether the selected SVG subtree contains an SVG animation element,
+    /// admitted or unsupported.
+    pub const fn has_animation_elements(&self) -> bool {
+        self.animation.has_animation_elements()
+    }
+
+    /// The authored Base frame. Animation contributes no values.
+    pub fn base_frame(&self) -> Frame {
+        self.base.clone()
+    }
+
+    /// Produce one immutable frame at the caller-supplied exact time.
+    ///
+    /// The first slice closes the dynamic inventory only for the bare-SVG
+    /// scaffold. Inline HTML sampling fails explicitly until document-wide CSS
+    /// and script inventory is closed.
+    pub fn sample_frame(
+        &self,
+        time: animation_sampling::SampleTime,
+    ) -> Result<Frame, crate::svg_animation::AnimationError> {
+        self.animation.sample(&self.base, time)
+    }
 }
 
 impl std::fmt::Display for CompileError {
@@ -97,7 +204,7 @@ impl std::error::Error for CompileError {}
 /// [`Frame`]. The inline SVG's descendant style comes from the surrounding
 /// HTML cascade (e.g. `color` from a `<style>` rule), never a nested renderer.
 pub fn compile_html_inline_svg(html: &str) -> Result<Frame, CompileError> {
-    compile_first_svg(html)
+    SvgFrameSource::from_html_inline_svg(html).map(|source| source.base_frame())
 }
 
 /// Compile a bare `<svg>` scaffold into an SVG-local [`Frame`], through
@@ -107,23 +214,7 @@ pub fn compile_html_inline_svg(html: &str) -> Result<Frame, CompileError> {
 /// This is deliberately not advertised as the conforming standalone SVG/XML
 /// grammar entry required by the Web-First Amendment.
 pub fn compile_standalone_svg(svg: &str) -> Result<Frame, CompileError> {
-    compile_first_svg(svg)
-}
-
-/// Parse (as an html5ever document, so a bare `<svg>` enters as foreign
-/// content), cascade, find the first `<svg>`, and compile its subtree.
-fn compile_first_svg(source: &str) -> Result<Frame, CompileError> {
-    // Idempotent for the same state; safe to call per compile.
-    thread_state::initialize(ThreadState::LAYOUT);
-
-    let dom = DemoDom::parse_from_bytes(source.as_bytes()).expect("parse document");
-    let mut session = DocumentSession::new(dom);
-    CascadeDriver::new(&mut session).style_document();
-
-    let document = session.document();
-    let root = document.root_element().ok_or(CompileError::NoSvgRoot)?;
-    let svg = find_svg(root).ok_or(CompileError::NoSvgRoot)?;
-    compile_svg_element(svg)
+    SvgFrameSource::from_bare_svg_scaffold(svg).map(|source| source.base_frame())
 }
 
 /// First `<svg>` element in document order.
@@ -142,7 +233,17 @@ fn find_svg<'session>(el: HtmlElement<'session>) -> Option<HtmlElement<'session>
 }
 
 /// Compile an `<svg>` element and its children into an SVG-local frame.
-fn compile_svg_element(svg: HtmlElement<'_>) -> Result<Frame, CompileError> {
+struct FrameCompilation {
+    frame: Frame,
+    bindings: Vec<ShapeBinding>,
+}
+
+pub(crate) struct ShapeBinding {
+    pub(crate) source_node: NodeId,
+    pub(crate) frame_index: usize,
+}
+
+fn compile_svg_element(svg: HtmlElement<'_>) -> Result<FrameCompilation, CompileError> {
     let width = attr_f32(svg, "width")?.ok_or_else(|| {
         CompileError::UnsupportedSizing(
             "missing width; CSS/default intrinsic sizing is not implemented".to_string(),
@@ -185,17 +286,28 @@ fn compile_svg_element(svg: HtmlElement<'_>) -> Result<Frame, CompileError> {
     let frame_bounds = Rectangle::from_xywh(0.0, 0.0, width, height);
 
     let mut nodes = Vec::new();
+    let mut bindings = Vec::new();
     let mut next_id = 0u64;
     let mut child = svg.first_element_child();
     while let Some(c) = child {
-        nodes.push(compile_shape(c, viewport, &mut next_id)?);
+        if !is_animation_element(&c.local_name_string()) {
+            let frame_index = nodes.len();
+            nodes.push(compile_shape(c, viewport, &mut next_id)?);
+            bindings.push(ShapeBinding {
+                source_node: c.node_id(),
+                frame_index,
+            });
+        }
         child = c.next_element_sibling();
     }
 
-    Ok(Frame {
-        owner: VisualRef::new(Identity::new(0), Provenance::new(0)),
-        bounds: frame_bounds,
-        nodes,
+    Ok(FrameCompilation {
+        frame: Frame {
+            owner: VisualRef::new(Identity::new(0), Provenance::new(0)),
+            bounds: frame_bounds,
+            nodes,
+        },
+        bindings,
     })
 }
 

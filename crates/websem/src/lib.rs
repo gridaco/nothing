@@ -15,7 +15,13 @@
 //! import path, no node model, no `.grida` codec, and no backend
 //! (`tests/architecture.rs` locks these out). See the
 //! [Web-First Amendment](../../../docs/wg/consolidation/web-first.md).
+//!
+//! [`SvgFrameSource`] retains source + cascade state and emits immutable Base
+//! or explicit-time frames for the first admitted rect-x animation slice. The
+//! exact sampler is shared; SVG syntax and target association remain here.
 
 pub mod svg;
+mod svg_animation;
 
-pub use svg::{CompileError, compile_html_inline_svg, compile_standalone_svg};
+pub use svg::{CompileError, SvgFrameSource, compile_html_inline_svg, compile_standalone_svg};
+pub use svg_animation::AnimationError;

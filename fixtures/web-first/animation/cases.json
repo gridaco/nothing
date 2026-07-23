@@ -1,0 +1,48 @@
+{
+  "schema_version": 0,
+  "fixture_id": "svg-rect-x-animation",
+  "width": 64,
+  "height": 32,
+  "probe": "#probe",
+  "authored_base_x": 4,
+  "base": {
+    "source": "svg-rect-x-base.svg",
+    "oracle": "chromium/base.png",
+    "expected_x": 4
+  },
+  "animation": {
+    "source": "svg-rect-x-animation.svg",
+    "samples": [
+      {
+        "time_ns": 0,
+        "oracle": "chromium/sample-0ns.png",
+        "expected_x": 20
+      },
+      {
+        "time_ns": 1000000000,
+        "oracle": "chromium/sample-1000000000ns.png",
+        "expected_x": 32
+      },
+      {
+        "time_ns": 2000000000,
+        "oracle": "chromium/sample-2000000000ns.png",
+        "expected_x": 44
+      },
+      {
+        "time_ns": 3000000000,
+        "oracle": "chromium/sample-3000000000ns.png",
+        "expected_x": 44
+      }
+    ],
+    "retained_seek_order_ns": [
+      3000000000,
+      0,
+      2000000000,
+      1000000000,
+      0,
+      3000000000,
+      1000000000,
+      2000000000
+    ]
+  }
+}

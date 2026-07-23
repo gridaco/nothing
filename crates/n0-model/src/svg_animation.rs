@@ -2503,19 +2503,22 @@ fn compile_scalar_curve(
                 "a one-value constant on {label} does not accept keySplines"
             ));
         }
-        return Ok(ScalarCurve::constant(values[0]));
+        return ScalarCurve::constant(values[0])
+            .map_err(|error| format!("invalid value on {label}: {error}"));
     }
 
     let (offsets, easings) = curve_offsets_and_easings(calc_mode, attributes, values.len(), label)?;
 
-    let first = ScalarKeyframe::new(offsets[0], values[0]);
+    let first = ScalarKeyframe::new(offsets[0], values[0])
+        .map_err(|error| format!("invalid keyframes on {label}: {error}"))?;
     let segments = easings
         .into_iter()
         .zip(offsets.into_iter().skip(1).zip(values.into_iter().skip(1)))
         .map(|(easing, (offset, value))| {
-            ScalarSegment::new(easing, ScalarKeyframe::new(offset, value))
+            ScalarKeyframe::new(offset, value).map(|keyframe| ScalarSegment::new(easing, keyframe))
         })
-        .collect();
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("invalid keyframes on {label}: {error}"))?;
     ScalarCurve::new(first, segments)
         .map_err(|error| format!("invalid keyframes on {label}: {error}"))
 }

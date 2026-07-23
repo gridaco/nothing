@@ -19,6 +19,9 @@ const FORBIDDEN: &[&str] = &[
     "node::schema",
     "io_grida",
     "grida_generated",
+    // No authored-model coupling: Web semantics lower directly to rframe.
+    "n0_model",
+    "n0-model",
     // No I/O or network policy in the front-end.
     "std::fs",
     "std::net",
@@ -44,6 +47,16 @@ fn websem_normal_edge_keeps_rframe_backend_free() {
         manifest.contains("rframe = { path = \"../rframe\", default-features = false }"),
         "websem's normal rframe edge must disable backend features; pixel hosts opt in only as dev/host targets"
     );
+    assert!(
+        manifest.contains("animation-sampling = { path = \"../animation-sampling\" }"),
+        "Web animation must use the source-neutral exact sampling kernel"
+    );
+    for forbidden in ["quick-xml", "roxmltree", "xmlparser"] {
+        assert!(
+            !manifest.contains(forbidden),
+            "the retained html5ever document must not acquire a second SVG parser: {forbidden}"
+        );
+    }
 }
 
 fn walk(dir: &Path, checked: &mut usize) {
