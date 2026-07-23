@@ -16,14 +16,13 @@ spec and not a plan. It reframes a question the
 types, so the decision can be taken on evidence when it is ripe.
 
 **Status:** open as staged **D-M**, coupled to **D-C**, in the
-[charter's registry](./charter.md). The vector stage can ripen independently
-after the n0 compiler-read inventory and vector-input/mixed-composition spike
-recorded in the [Web renderer adoption patrol](./web-renderer-adoption.md), but only if
-that spike proves one private orchestration seam can interleave admitted vector
-facts with fact kinds whose join remains open. The text stage is **not yet
-ripe** because its second producer does not exist. If mixed-fact composition
-cannot meet that condition without a source-specific or opaque escape hatch,
-text blocks the join rather than being wished away by staging.
+[charter's registry](./charter.md). A bounded vector-input arm now proves
+drawlist/raster equivalence and mixed composition with still-private text, but
+the vector stage is **not yet ripe**: stable identity and provenance do not
+reach the shared damage/cache policies, and the leaf-vocabulary seat remains
+open. The text stage is also **not yet ripe** because its second producer does
+not exist. The complete evidence bar remains recorded in the
+[Web renderer adoption patrol](./web-renderer-adoption.md).
 
 ## The crux
 
@@ -105,6 +104,34 @@ diverge:
   behavior for a frame that mixes admitted vector facts with still-private
   text. Failure collapses the stages into one later decision; it is not
   permission for a second compositor.
+
+## Current vector-input evidence
+
+The first bounded arm of the vector-input/mixed-composition spike passed on
+2026-07-23:
+
+- An independently constructed normalized input and n0's authored and
+  immutable-effective views agree for rectangle, ellipse, path, and line
+  geometry; even-odd fill; ordered fills and strokes; opacity and clip scopes;
+  ordinary corners; painter order; and primitive-specific admissibility.
+- Both inputs produce the same existing private drawlist and exact raw raster.
+  No second painter or executor participates.
+- Real n0-private shaped text, including its exact private font environment,
+  interleaves with those vector facts in one ordered frame and contributes the
+  same pixels. This proves that the vector and later text stages can compose at
+  this bounded orchestration seam; it does not decide the text join.
+- Nonzero corner smoothing is refused rather than carried as an authoring
+  parameter. It must become resolved geometry before a high join or remain
+  below that join. Invalid line fills, non-rectangular clips in this arm, and
+  inadmissible stroke states also fail explicitly.
+
+The arm deliberately does **not** complete D-M. Its opaque identity and
+provenance drive local fact lookup, painter order, and mixed-text placement,
+but n0's frame comparison, damage, and cache policies still consume
+document-specific identity and resolved storage. No shared two-frame damage or
+cold/reuse/change/reuse cache evidence exists. The path-vocabulary ownership
+and D-C leaf-vocabulary seat also remain open. These are decision blockers, not
+permission to add parallel policies or to widen the provisional contract.
 
 ## The registered stages
 

@@ -616,3 +616,7 @@ mod text_paint_tests {
         assert_eq!(paints.for_source_run(Some(3)), None);
     }
 }
+
+#[cfg(test)]
+#[path = "drawlist_vector_join_spike.rs"]
+mod vector_join_spike;
