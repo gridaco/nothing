@@ -21,15 +21,24 @@ the production surface is HTML-only.
 ```text
 source bytes
     -> DemoDom
-    -> adapter::bootstrap_dom
-    -> CascadeDriver
+    -> DocumentSession
+    -> CascadeDriver::new(&mut session).style_document()
     -> computed values attached to element data
+    -> session-bound read handles
     -> semantic consumer
 ```
 
 The semantic consumer owns normalization into its downstream contract.
 `csscascade` never owns a renderer IR, layout tree, graphics backend, resource
 loader, or source I/O policy.
+
+`DocumentSession` owns one frozen DOM and its Stylo lock/data. `HtmlDocument`,
+`HtmlNode`, and `HtmlElement` are pointer-sized `Copy` handles whose Rust
+lifetime is borrowed from that session. Their node identity includes the
+session, so arena-local identifiers from separate live documents cannot
+cross-resolve. Styling exclusively borrows the session and consumes the
+`CascadeDriver`; read handles can exist before or after that pass, never
+alongside mutation-capable cascade state.
 
 ## Diagnostic
 
@@ -42,10 +51,6 @@ cargo run -p csscascade --example resolve_and_print -- fixtures/test-html/L0/hel
 
 ## Known constraints
 
-- `adapter::bootstrap_dom` installs the document in a process-global slot and
-  intentionally leaks replaced documents. Handles resolve through the current
-  slot, so callers must serialize sessions. This is the next lifecycle seam to
-  replace; it is not a host contract.
 - Cascade environment values such as viewport, device-pixel ratio, color
   scheme, and pointer capabilities are not yet a complete explicit host input.
 - External stylesheets and other resources are not loaded here. A host must
@@ -53,6 +58,8 @@ cargo run -p csscascade --example resolve_and_print -- fixtures/test-html/L0/hel
 - SVG paint properties are available through the workspace's official Stylo
   revision, but source-to-cascade ingress and semantic consumption remain
   producer work.
+- The session is deliberately not declared `Send` or `Sync`: Stylo's computed
+  element data uses interior mutation during the exclusive cascade pass.
 
 The consolidation constraints are defined by the
 [Web-First Amendment](../../docs/wg/consolidation/web-first.md). The current

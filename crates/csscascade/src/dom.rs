@@ -24,8 +24,10 @@ use style::properties::parse_style_attribute;
 use style::servo_arc::Arc;
 use style::stylesheets::{CssRuleType, UrlExtraData};
 use style::{
-    LocalName as StyleLocalName, Namespace as StyleNamespace, properties::PropertyDeclarationBlock,
-    shared_lock::Locked, values::AtomIdent,
+    LocalName as StyleLocalName, Namespace as StyleNamespace,
+    properties::PropertyDeclarationBlock,
+    shared_lock::{Locked, SharedRwLock},
+    values::AtomIdent,
 };
 use stylo_atoms::Atom as WeakAtom;
 use tendril::StrTendril;
@@ -96,16 +98,13 @@ pub struct DemoDom {
     nodes: Vec<DemoNode>,
     document: NodeId,
     quirks_mode: QuirksMode,
+    shared_lock: SharedRwLock,
     pub errors: Vec<String>,
     /// Per-node slot for Stylo [`ElementDataWrapper`] (only meaningful for
     /// elements). Populated lazily the first time Stylo's traversal calls
     /// `ensure_data` on the element.
     pub(crate) element_data: Vec<OnceLock<ElementDataWrapper>>,
 }
-
-// SAFETY: The DOM is frozen after parsing; no mutable aliasing across threads.
-unsafe impl Sync for DemoDom {}
-unsafe impl Send for DemoDom {}
 
 impl DemoDom {
     /// Parse a complete HTML document from raw bytes.
@@ -133,12 +132,24 @@ impl DemoDom {
         &self.nodes[id.idx()]
     }
 
+    pub fn get_node(&self, id: NodeId) -> Option<&DemoNode> {
+        self.nodes.get(id.idx())
+    }
+
+    pub(crate) fn shared_lock(&self) -> &SharedRwLock {
+        &self.shared_lock
+    }
+
     pub(crate) fn element_data_slot(&self, id: NodeId) -> &OnceLock<ElementDataWrapper> {
         &self.element_data[id.idx()]
     }
 
     pub fn all_node_ids(&self) -> impl Iterator<Item = NodeId> + '_ {
         (0..self.nodes.len()).map(NodeId)
+    }
+
+    pub(crate) fn node_count(&self) -> usize {
+        self.nodes.len()
     }
 }
 
@@ -151,6 +162,7 @@ struct DemoDomBuilder {
     document: NodeId,
     errors: RefCell<Vec<Cow<'static, str>>>,
     quirks_mode: Cell<QuirksMode>,
+    shared_lock: SharedRwLock,
 }
 
 #[derive(Debug)]
@@ -216,6 +228,7 @@ impl DemoDomBuilder {
             document: NodeId(0),
             errors: RefCell::new(Vec::new()),
             quirks_mode: Cell::new(QuirksMode::NoQuirks),
+            shared_lock: SharedRwLock::new(),
         }
     }
 
@@ -339,6 +352,7 @@ impl TreeSink for DemoDomBuilder {
     fn finish(self) -> Self::Output {
         let quirks = self.quirks_mode.get();
         let document = self.document;
+        let shared_lock = self.shared_lock;
         let errors = self
             .errors
             .into_inner()
@@ -387,8 +401,7 @@ impl TreeSink for DemoDomBuilder {
                                 StyleQuirksMode::NoQuirks,
                                 CssRuleType::Style,
                             );
-                            use crate::adapter::doc_shared_lock;
-                            let locked = doc_shared_lock().wrap(block);
+                            let locked = shared_lock.wrap(block);
                             Arc::new(locked)
                         });
 
@@ -418,6 +431,7 @@ impl TreeSink for DemoDomBuilder {
             nodes,
             document,
             quirks_mode: quirks,
+            shared_lock,
             errors,
             element_data,
         }

@@ -24,10 +24,10 @@ pub mod text_edit_session;
 pub mod vectornetwork;
 pub mod window;
 
-/// Shared test lock for Stylo's process-global DOM slot.
+/// Shared test lock for Stylo's process-wide configuration.
 ///
-/// Both `html` and `htmlcss` modules use Stylo which is **not** thread-safe.
-/// All tests that call into Stylo must hold this lock. We use
+/// Document state is session-owned, but Stylo preferences remain process-wide.
+/// Tests that exercise Stylo keep their setup and reads serialized. We use
 /// `unwrap_or_else(|e| e.into_inner())` to recover from poison so a single
 /// test panic does not cascade to every other Stylo test.
 #[cfg(test)]

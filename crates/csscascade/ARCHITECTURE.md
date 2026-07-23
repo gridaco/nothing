@@ -25,46 +25,58 @@ nodes have stable `NodeId` indices. Element records retain namespaces,
 attributes, parsed inline declarations, selector metadata, and slots for
 Stylo's computed element data. The arena is frozen after parsing.
 
+Each parsed DOM owns the exact `SharedRwLock` used for its inline declarations.
+Stylesheets, document handles, and the cascade driver clone or borrow that same
+lock; data from separate documents never shares a lock accidentally.
+
 ### `adapter`
 
 The `HtmlNode`, `HtmlElement`, and `HtmlDocument` handles implement the traits
 Stylo and `selectors` require. Despite their historical names, those handles
 also represent elements in SVG and other namespaces.
 
-The adapter currently stores the active `DemoDom` behind a process-global raw
-pointer. `bootstrap_dom` replaces that pointer and leaks the previous arena.
-Because a handle contains only a `NodeId`, it resolves against whichever arena
-is current. Separate consumers cannot safely overlap sessions, even if each
-consumer owns a crate-local mutex.
+`DocumentSession` owns one boxed session record containing the DOM and one
+stable record per node. A handle is one lifetime-bound shared reference to such
+a node record. This keeps the concrete handle exactly one machine word, as
+Stylo's typeless sharing cache requires, while the record carries both its
+owning session and arena-local `NodeId`.
 
-This lifetime model is an implementation defect to remove, not an API to
-preserve.
+Handle equality and hashing use stable record identity. Stylo's opaque element
+and node identities use stable arena-node addresses. Thus equal `NodeId` values
+from two live documents remain distinct at every adapter identity boundary.
+
+The stable records contain the adapter's only internal raw owner pointer. It is
+sound because the owner is allocated first in a private `Box`, records are then
+allocated in a stable boxed slice, neither allocation is moved or replaced,
+and every public handle is lifetime-bound to `&DocumentSession`. No public API
+can observe a record after its session drops.
 
 ### `cascade`
 
-`CascadeDriver` owns Stylo's `Stylist`, stylesheet lock, snapshots, animation
-set, and thread-local traversal context. Construction collects embedded
-`<style>` blocks and installs the current compact user-agent stylesheet.
-`flush` commits stylesheet changes; `style_document` traverses the document and
-attaches computed values to each element.
+`CascadeDriver` owns Stylo's `Stylist`, stylesheet-lock clone, snapshots, and
+animation set. Construction collects embedded `<style>` blocks and installs the
+current compact user-agent stylesheet. It exclusively borrows one
+`DocumentSession`, and `style_document` consumes the driver. The thread-local
+traversal context exists only inside that one pass.
 
 The driver does not copy computed values into a second styled-tree structure.
 Consumers inspect the resolved element data and normalize the fields they own.
+The exclusive, consuming lifecycle prevents a readable `ElementDataRef` from
+overlapping Stylo's unsafe mutable element-data access.
 
 ## Call sequence
 
 ```text
 DemoDom::parse_from_bytes
-    -> CascadeDriver::new(&dom)
-    -> adapter::bootstrap_dom(dom)
-    -> CascadeDriver::flush(document)
-    -> CascadeDriver::style_document(document)
+    -> DocumentSession::new(dom)
+    -> CascadeDriver::new(&mut session).style_document()
+    -> session.document()
     -> consumer traversal and normalization
 ```
 
-The driver must be created before `bootstrap_dom` moves the arena. The entire
-sequence must currently run inside one process-wide critical section supplied
-by the host.
+Multiple sessions may remain live and be read in any order. Their local node
+identifiers, style locks, computed values, and adapter handles remain separate.
+`DocumentSession` has no manual `Send` or `Sync` implementation.
 
 ## Environment
 
@@ -100,7 +112,7 @@ conforming XML grammar entry before joining the same semantic machinery.
 
 ## Verification
 
-Unit and integration tests cover DOM adaptation, typed Stylo SVG paint
-properties, and dependency provenance. `resolve_and_print` is the only example
-target because it exercises the live implementation rather than a parallel
-prototype.
+Unit and integration tests cover independent live sessions, adapter identity,
+DOM adaptation, typed Stylo SVG paint properties, and dependency provenance.
+`resolve_and_print` is the only example target because it exercises the live
+implementation rather than a parallel prototype.

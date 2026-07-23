@@ -108,3 +108,31 @@ fn source_does_not_reach_into_legacy_or_chassis_models() {
         violations.join("\n")
     );
 }
+
+#[test]
+fn styled_dom_consumer_uses_owned_document_sessions() {
+    let source_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let forbidden = [
+        "adapter::dom()",
+        "bootstrap_dom",
+        "doc_shared_lock",
+        "HtmlElement::from_node_id",
+    ];
+    let mut violations = Vec::new();
+
+    for path in rust_files_under(&source_root) {
+        let source = fs::read_to_string(&path).expect("read Rust source");
+        for needle in forbidden {
+            if source.contains(needle) {
+                let relative = path.strip_prefix(&source_root).unwrap_or(&path);
+                violations.push(format!("{}: `{needle}`", relative.display()));
+            }
+        }
+    }
+
+    assert!(
+        violations.is_empty(),
+        "htmlcss bypassed its owned document session:\n{}",
+        violations.join("\n")
+    );
+}

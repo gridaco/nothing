@@ -23,6 +23,10 @@ const FORBIDDEN: &[&str] = &[
     "std::fs",
     "std::net",
     "reqwest",
+    // No retired ambient document selection or crate-local serialization.
+    "bootstrap_dom",
+    "adapter::dom(",
+    "COMPILE_LOCK",
 ];
 
 #[test]

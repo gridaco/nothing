@@ -63,3 +63,60 @@ fn csscascade_has_no_implicit_product_binary() {
         "examples must exercise the live implementation, not host a parallel one"
     );
 }
+
+#[test]
+fn document_selection_is_owned_and_never_process_global() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let protected_paths = [
+        "src/lib.rs",
+        "src/adapter.rs",
+        "src/cascade.rs",
+        "src/dom.rs",
+        "README.md",
+        "ARCHITECTURE.md",
+    ];
+    let corpus = protected_paths
+        .iter()
+        .map(|path| {
+            std::fs::read_to_string(root.join(path))
+                .unwrap_or_else(|error| panic!("read {path}: {error}"))
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    for forbidden in [
+        "static DEMO_DOM",
+        "AtomicPtr<DemoDom>",
+        "bootstrap_dom",
+        "pub fn dom() -> &'static DemoDom",
+    ] {
+        assert!(
+            !corpus.contains(forbidden),
+            "document selection must not use the retired ambient mechanism {forbidden:?}"
+        );
+    }
+
+    assert!(
+        corpus.contains("pub struct DocumentSession"),
+        "document ownership must remain explicit"
+    );
+    assert!(
+        corpus.contains("node: &'session SessionNode"),
+        "Stylo handles must remain lifetime-bound to their owning session"
+    );
+    assert!(
+        corpus.contains("inner: Box<SessionInner>")
+            && corpus.contains("handles: Box<[SessionNode]>"),
+        "session identity records must stay in stable owned allocations"
+    );
+
+    for forbidden in [
+        "unsafe impl Send for DemoDom",
+        "unsafe impl Sync for DemoDom",
+    ] {
+        assert!(
+            !corpus.contains(forbidden),
+            "the frozen DOM must not claim thread safety around Stylo's interior data: {forbidden}"
+        );
+    }
+}

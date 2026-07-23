@@ -22,17 +22,14 @@
 //! `currentColor`. The dependency provenance is solved; production ingress
 //! and semantic consumption are not.
 //!
-//! ## Concurrency caveat
-//! `csscascade` installs the parsed document into a process-global slot, so
-//! only one compile may touch it at a time. A crate-local mutex serializes
-//! compiles; this fights the "many hosts" topology and is a documented
-//! limitation of the current cascade crate, not this front-end.
+//! ## Document lifetime
+//! Each compile owns one [`csscascade::adapter::DocumentSession`]. Stylo
+//! handles are tied to that session, so independent documents can remain live
+//! and resolve colliding arena-local node identifiers without ambient state.
 
-use std::sync::Mutex;
-
-use csscascade::adapter::{self, HtmlElement};
+use csscascade::adapter::{DocumentSession, HtmlElement};
 use csscascade::cascade::CascadeDriver;
-use csscascade::dom::{DemoDom, DemoNodeData, NodeId};
+use csscascade::dom::{DemoDom, DemoNodeData};
 
 use style::color::ColorSpace;
 use style::dom::TElement;
@@ -43,9 +40,6 @@ use cg::CGColor;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::frame::{Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, VisualRef};
-
-/// Serializes access to `csscascade`'s process-global document slot.
-static COMPILE_LOCK: Mutex<()> = Mutex::new(());
 
 /// An explicit failure in the proving shell's enumerated grammar checks.
 ///
@@ -119,23 +113,21 @@ pub fn compile_standalone_svg(svg: &str) -> Result<Frame, CompileError> {
 /// Parse (as an html5ever document, so a bare `<svg>` enters as foreign
 /// content), cascade, find the first `<svg>`, and compile its subtree.
 fn compile_first_svg(source: &str) -> Result<Frame, CompileError> {
-    let _guard = COMPILE_LOCK.lock().expect("compile lock");
     // Idempotent for the same state; safe to call per compile.
     thread_state::initialize(ThreadState::LAYOUT);
 
     let dom = DemoDom::parse_from_bytes(source.as_bytes()).expect("parse document");
-    let mut driver = CascadeDriver::new(&dom);
-    let document = adapter::bootstrap_dom(dom);
-    driver.flush(document);
-    driver.style_document(document);
+    let mut session = DocumentSession::new(dom);
+    CascadeDriver::new(&mut session).style_document();
 
+    let document = session.document();
     let root = document.root_element().ok_or(CompileError::NoSvgRoot)?;
     let svg = find_svg(root).ok_or(CompileError::NoSvgRoot)?;
     compile_svg_element(svg)
 }
 
 /// First `<svg>` element in document order.
-fn find_svg(el: HtmlElement) -> Option<HtmlElement> {
+fn find_svg<'session>(el: HtmlElement<'session>) -> Option<HtmlElement<'session>> {
     if el.local_name_string().eq_ignore_ascii_case("svg") {
         return Some(el);
     }
@@ -150,26 +142,25 @@ fn find_svg(el: HtmlElement) -> Option<HtmlElement> {
 }
 
 /// Compile an `<svg>` element and its children into an SVG-local frame.
-fn compile_svg_element(svg: HtmlElement) -> Result<Frame, CompileError> {
-    let id = svg.node_id();
-    let width = attr_f32(id, "width")?.ok_or_else(|| {
+fn compile_svg_element(svg: HtmlElement<'_>) -> Result<Frame, CompileError> {
+    let width = attr_f32(svg, "width")?.ok_or_else(|| {
         CompileError::UnsupportedSizing(
             "missing width; CSS/default intrinsic sizing is not implemented".to_string(),
         )
     })?;
-    let height = attr_f32(id, "height")?.ok_or_else(|| {
+    let height = attr_f32(svg, "height")?.ok_or_else(|| {
         CompileError::UnsupportedSizing(
             "missing height; CSS/default intrinsic sizing is not implemented".to_string(),
         )
     })?;
     reject_negative_dimension("width", width)?;
     reject_negative_dimension("height", height)?;
-    if let Some(value) = get_attr(id, "preserveAspectRatio") {
+    if let Some(value) = get_attr(svg, "preserveAspectRatio") {
         return Err(CompileError::UnsupportedViewport(format!(
             "preserveAspectRatio={value:?}"
         )));
     }
-    let viewbox = match get_attr(id, "viewBox") {
+    let viewbox = match get_attr(svg, "viewBox") {
         Some(v) => Some(parse_viewbox(&v)?),
         None => None,
     };
@@ -210,7 +201,7 @@ fn compile_svg_element(svg: HtmlElement) -> Result<Frame, CompileError> {
 
 /// Compile a single shape element into a resolved node.
 fn compile_shape(
-    el: HtmlElement,
+    el: HtmlElement<'_>,
     viewport: AffineTransform,
     next_id: &mut u64,
 ) -> Result<FrameNode, CompileError> {
@@ -222,15 +213,14 @@ fn compile_shape(
 }
 
 fn compile_rect(
-    el: HtmlElement,
+    el: HtmlElement<'_>,
     viewport: AffineTransform,
     next_id: &mut u64,
 ) -> Result<FrameNode, CompileError> {
-    let id = el.node_id();
-    let x = attr_f32(id, "x")?.unwrap_or(0.0);
-    let y = attr_f32(id, "y")?.unwrap_or(0.0);
-    let w = attr_f32(id, "width")?.unwrap_or(0.0);
-    let h = attr_f32(id, "height")?.unwrap_or(0.0);
+    let x = attr_f32(el, "x")?.unwrap_or(0.0);
+    let y = attr_f32(el, "y")?.unwrap_or(0.0);
+    let w = attr_f32(el, "width")?.unwrap_or(0.0);
+    let h = attr_f32(el, "height")?.unwrap_or(0.0);
     let rect = Rectangle::from_xywh(x, y, w, h);
 
     let fill = resolve_fill(el)?;
@@ -253,8 +243,8 @@ fn compile_rect(
 
 /// Resolve the SVG `fill` paint. `currentColor` resolves against the cascaded
 /// computed `color`; a missing `fill` is SVG's default black.
-fn resolve_fill(el: HtmlElement) -> Result<Option<CGColor>, CompileError> {
-    let raw = get_attr(el.node_id(), "fill");
+fn resolve_fill(el: HtmlElement<'_>) -> Result<Option<CGColor>, CompileError> {
+    let raw = get_attr(el, "fill");
     match raw.as_deref().map(str::trim) {
         None => Ok(Some(CGColor::BLACK)),
         Some("none") => Ok(None),
@@ -266,7 +256,7 @@ fn resolve_fill(el: HtmlElement) -> Result<Option<CGColor>, CompileError> {
 }
 
 /// The element's cascaded computed `color`, converted to straight-alpha sRGB.
-fn computed_color(el: HtmlElement) -> Result<CGColor, CompileError> {
+fn computed_color(el: HtmlElement<'_>) -> Result<CGColor, CompileError> {
     let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     let style: &ComputedValues = data.styles.primary();
     let srgb = style
@@ -354,10 +344,9 @@ fn reject_negative_dimension(attr: &str, value: f32) -> Result<(), CompileError>
     Ok(())
 }
 
-/// Read an element attribute by local name from the process-global document.
-fn get_attr(id: NodeId, name: &str) -> Option<String> {
-    let node = adapter::dom().node(id);
-    if let DemoNodeData::Element(e) = &node.data {
+/// Read an element attribute by local name from its owning document session.
+fn get_attr(element: HtmlElement<'_>, name: &str) -> Option<String> {
+    if let DemoNodeData::Element(e) = &element.dom_node().data {
         for a in &e.attrs {
             if a.name.local.as_ref().eq_ignore_ascii_case(name) {
                 return Some(a.value.to_string());
@@ -367,8 +356,8 @@ fn get_attr(id: NodeId, name: &str) -> Option<String> {
     None
 }
 
-fn attr_f32(id: NodeId, name: &str) -> Result<Option<f32>, CompileError> {
-    match get_attr(id, name) {
+fn attr_f32(element: HtmlElement<'_>, name: &str) -> Result<Option<f32>, CompileError> {
+    match get_attr(element, name) {
         None => Ok(None),
         Some(v) => {
             let parsed = v

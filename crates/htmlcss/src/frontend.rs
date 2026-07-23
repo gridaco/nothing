@@ -13,19 +13,18 @@
 //!
 //! # Thread safety
 //!
-//! Uses the process-global DOM slot installed by
-//! [`csscascade::adapter::bootstrap_dom`]. Every consumer must currently
-//! participate in one process-wide session lock; crate-local locks do not
-//! make overlapping sessions safe.
+//! Each result owns its DOM and computed style data, so independently styled
+//! documents do not share document state. Stylo's static preferences remain
+//! process-global; callers that change them must still coordinate those
+//! changes.
 
-use csscascade::adapter::{self, HtmlDocument};
+use csscascade::adapter::DocumentSession;
 use csscascade::cascade::CascadeDriver;
 use csscascade::dom::DemoDom;
 use style::thread_state::{self, ThreadState};
 
-/// Parse HTML and resolve styles via Stylo, returning the styled
-/// document handle installed in the global DOM slot.
-pub fn parse_and_style(html: &str) -> Result<HtmlDocument, String> {
+/// Parse HTML and resolve styles via Stylo into an owned document session.
+pub fn parse_and_style(html: &str) -> Result<DocumentSession, String> {
     // Ensure Stylo thread state is initialized (idempotent after first call).
     thread_state::initialize(ThreadState::LAYOUT);
 
@@ -33,15 +32,11 @@ pub fn parse_and_style(html: &str) -> Result<HtmlDocument, String> {
     let dom =
         DemoDom::parse_from_bytes(html.as_bytes()).map_err(|e| format!("HTML parse error: {e}"))?;
 
-    // 2. Build cascade driver (collects <style> blocks, builds UA + author sheets)
-    let mut driver = CascadeDriver::new(&dom);
+    // 2. Bind the frozen DOM and its computed style storage to one owner.
+    let mut session = DocumentSession::new(dom);
 
-    // 3. Install DOM into global slot
-    let document = adapter::bootstrap_dom(dom);
+    // 3. Resolve UA + author styles under the session's exclusive borrow.
+    let _styled_count = CascadeDriver::new(&mut session).style_document();
 
-    // 4. Flush stylist + resolve all styles
-    driver.flush(document);
-    let _styled_count = driver.style_document(document);
-
-    Ok(document)
+    Ok(session)
 }

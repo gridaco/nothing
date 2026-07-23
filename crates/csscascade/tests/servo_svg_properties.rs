@@ -1,4 +1,4 @@
-use csscascade::adapter::{self, HtmlElement};
+use csscascade::adapter::{DocumentSession, HtmlElement};
 use csscascade::cascade::CascadeDriver;
 use csscascade::dom::DemoDom;
 use style::color::AbsoluteColor;
@@ -56,11 +56,10 @@ fn official_servo_pin_exposes_svg_paint_and_declared_environment() {
     thread_state::initialize(ThreadState::LAYOUT);
 
     let dom = DemoDom::parse_from_bytes(DOCUMENT.as_bytes()).expect("parse HTML document");
-    let mut driver = CascadeDriver::new(&dom);
-    let document = adapter::bootstrap_dom(dom);
-    driver.flush(document);
-    driver.style_document(document);
+    let mut session = DocumentSession::new(dom);
+    CascadeDriver::new(&mut session).style_document();
 
+    let document = session.document();
     let root = document.root_element().expect("document root");
     let inherited = computed(find_by_id(root, "inherited"));
     let all = computed(find_by_id(root, "all"));
@@ -131,7 +130,7 @@ fn official_servo_pin_exposes_svg_paint_and_declared_environment() {
     );
 }
 
-fn find_by_id(root: HtmlElement, wanted: &str) -> HtmlElement {
+fn find_by_id<'session>(root: HtmlElement<'session>, wanted: &str) -> HtmlElement<'session> {
     let mut stack = vec![root];
     while let Some(element) = stack.pop() {
         if element.id().is_some_and(|id| id.as_ref() == wanted) {
@@ -146,7 +145,7 @@ fn find_by_id(root: HtmlElement, wanted: &str) -> HtmlElement {
     panic!("missing element #{wanted}")
 }
 
-fn computed(element: HtmlElement) -> style::servo_arc::Arc<ComputedValues> {
+fn computed(element: HtmlElement<'_>) -> style::servo_arc::Arc<ComputedValues> {
     element
         .borrow_data()
         .expect("computed style")

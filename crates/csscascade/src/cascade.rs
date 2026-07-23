@@ -38,7 +38,7 @@ use style_traits::{CSSPixel, DevicePixel};
 use stylo_atoms::Atom;
 use url::Url;
 
-use crate::adapter::{self, HtmlDocument, HtmlElement};
+use crate::adapter::{DocumentSession, HtmlDocument, HtmlElement};
 use crate::dom::{DemoDom, DemoNodeData};
 
 /// Default author CSS injected when the document has no `<style>` blocks.
@@ -145,20 +145,41 @@ hr {
 a { color: -servo-link; text-decoration: underline; }
 "#;
 
-/// Drives the CSS cascade over a parsed DOM.
-pub struct CascadeDriver {
+/// Drives one exclusive CSS cascade pass over an owned document session.
+///
+/// Read handles cannot overlap the mutation-capable driver:
+///
+/// ```compile_fail
+/// use csscascade::{
+///     adapter::DocumentSession,
+///     cascade::CascadeDriver,
+///     dom::DemoDom,
+/// };
+///
+/// let dom = DemoDom::parse_from_bytes(b"<html></html>").unwrap();
+/// let mut session = DocumentSession::new(dom);
+/// let driver = CascadeDriver::new(&mut session);
+/// let document = session.document();
+/// driver.style_document();
+/// let _ = document.root_element();
+/// ```
+pub struct CascadeDriver<'session> {
+    session: &'session mut DocumentSession,
     stylist: Stylist,
     stylesheet_lock: SharedRwLock,
     snapshot_map: SnapshotMap,
     animations: DocumentAnimationSet,
-    thread_local: Option<ThreadLocalStyleContext<HtmlElement>>,
 }
 
-impl CascadeDriver {
-    /// Create a new driver, collecting stylesheets from `dom`.
-    pub fn new(dom: &DemoDom) -> Self {
+impl<'session> CascadeDriver<'session> {
+    /// Create a new driver, collecting stylesheets from `session`.
+    ///
+    /// The exclusive borrow prevents readable handles from overlapping the
+    /// style mutation pass.
+    pub fn new(session: &'session mut DocumentSession) -> Self {
+        let dom = session.dom();
         let style_quirks = translate_quirks_mode(dom.quirks_mode());
-        let stylesheet_lock = adapter::doc_shared_lock().clone();
+        let stylesheet_lock = dom.shared_lock().clone();
         let device = build_device(style_quirks);
         let mut stylist = Stylist::new(device, style_quirks);
 
@@ -190,36 +211,32 @@ impl CascadeDriver {
         }
 
         CascadeDriver {
+            session,
             stylist,
             stylesheet_lock,
             snapshot_map: SnapshotMap::new(),
             animations: DocumentAnimationSet::default(),
-            thread_local: Some(ThreadLocalStyleContext::new()),
         }
     }
 
-    /// Flush the stylist so it picks up all appended sheets.
-    pub fn flush(&mut self, _document: HtmlDocument) {
+    /// Resolve styles for every element in the bound session.
+    ///
+    /// Consuming the driver makes one cascade pass the only mutation possible
+    /// through this driver. Readable handles can be created again after the
+    /// exclusive session borrow ends.
+    pub fn style_document(mut self) -> usize {
+        self.flush();
+        let guard = self.stylesheet_lock.read();
+        let document = self.session.document();
+        let mut thread_local = ThreadLocalStyleContext::new();
+        let shared_context = self.shared_style_context(TraversalFlags::empty(), &guard);
+        Self::style_subtree(document, &shared_context, &mut thread_local)
+    }
+
+    fn flush(&mut self) {
         let guard = self.stylesheet_lock.read();
         let guards = StylesheetGuards::same(&guard);
         let _ = self.stylist.flush(&guards);
-    }
-
-    /// Resolve styles for every element under `document`.
-    ///
-    /// Returns the number of elements styled.
-    pub fn style_document(&mut self, document: HtmlDocument) -> usize {
-        let guard = self.stylesheet_lock.read();
-        let mut thread_local = self
-            .thread_local
-            .take()
-            .expect("thread-local context should be available");
-        let styled = {
-            let shared_context = self.shared_style_context(TraversalFlags::empty(), &guard);
-            Self::style_subtree(document, &shared_context, &mut thread_local)
-        };
-        self.thread_local = Some(thread_local);
-        styled
     }
 
     fn shared_style_context<'a>(
@@ -240,10 +257,10 @@ impl CascadeDriver {
         }
     }
 
-    fn style_subtree(
-        document: HtmlDocument,
+    fn style_subtree<'document>(
+        document: HtmlDocument<'document>,
         shared: &SharedStyleContext<'_>,
-        thread_local: &mut ThreadLocalStyleContext<HtmlElement>,
+        thread_local: &mut ThreadLocalStyleContext<HtmlElement<'document>>,
     ) -> usize {
         let mut styled = 0;
         let mut stack = Vec::new();
@@ -262,10 +279,10 @@ impl CascadeDriver {
         styled
     }
 
-    fn style_element(
-        element: HtmlElement,
+    fn style_element<'document>(
+        element: HtmlElement<'document>,
         shared: &SharedStyleContext<'_>,
-        thread_local: &mut ThreadLocalStyleContext<HtmlElement>,
+        thread_local: &mut ThreadLocalStyleContext<HtmlElement<'document>>,
     ) {
         let mut ctx = StyleContext {
             shared,

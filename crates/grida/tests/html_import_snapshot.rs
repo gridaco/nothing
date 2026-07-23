@@ -19,9 +19,9 @@
 //! Regenerate with: `GRIDA_UPDATE_GOLDENS=1 cargo test -p grida --test
 //! html_import_snapshot`.
 //!
-//! One `#[test]` on purpose: `from_html_str` drives the process-global
-//! Stylo DOM slot and is not thread-safe; a single test in its own
-//! integration-test process serializes all fixtures.
+//! One `#[test]` on purpose: the corpus is one atomic byte-stability gate, so
+//! every fixture is checked before the test reports the collected failures or
+//! regenerates the declared golden set.
 
 use grida::import::html::from_html_str;
 use grida::layout::engine::LayoutEngine;

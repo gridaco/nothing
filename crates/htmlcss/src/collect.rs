@@ -1,14 +1,14 @@
 //! Phase 1: Walk Stylo-styled DOM → `StyledElement` tree.
 //!
 //! Extracts resolved CSS properties from `ComputedValues` into plain Rust
-//! structs. **No Skia objects are created here** — Stylo's global DOM slot
-//! corrupts Skia objects built while `borrow_data()` borrows are active.
+//! structs. **No Skia objects are created here** — session-bound Stylo borrows
+//! end before the layout and paint phases consume the collected tree.
 
 use cg::prelude::*;
 // Re-import our own GradientStop over grida's
 use super::style::GradientStop;
 
-use csscascade::adapter::{self, HtmlElement};
+use csscascade::adapter::HtmlElement;
 use csscascade::dom::{DemoDom, DemoNode, DemoNodeData};
 
 use style::color::{AbsoluteColor, ColorSpace};
@@ -40,7 +40,8 @@ pub(crate) fn collect_styled_tree(html: &str) -> Result<Option<StyledElement>, S
         stylo_static_prefs::set_pref!("layout.grid.enabled", true);
     });
 
-    let document = super::frontend::parse_and_style(html)?;
+    let session = super::frontend::parse_and_style(html)?;
+    let document = session.document();
 
     let root = document.root_element().map(collect_element);
     Ok(root)
@@ -225,7 +226,7 @@ fn collect_text_content(dom: &DemoDom, node: &DemoNode) -> String {
     text
 }
 
-fn collect_element(element: HtmlElement) -> StyledElement {
+fn collect_element(element: HtmlElement<'_>) -> StyledElement {
     collect_element_with_counter(element, &mut None)
 }
 
@@ -243,7 +244,7 @@ fn collect_element(element: HtmlElement) -> StyledElement {
 ///
 /// Colors are quantized with [`ColorQuantize::Truncate`] — the
 /// importer's pinned golden behavior; see [`ColorQuantize`].
-pub fn styled_of(element: HtmlElement) -> Option<StyledElement> {
+pub fn styled_of(element: HtmlElement<'_>) -> Option<StyledElement> {
     let tag = element.local_name_string();
     let data = element.borrow_data();
     let style = data.as_ref().map(|d| d.styles.primary().clone())?;
@@ -252,7 +253,7 @@ pub fn styled_of(element: HtmlElement) -> Option<StyledElement> {
 }
 
 fn collect_element_with_counter(
-    element: HtmlElement,
+    element: HtmlElement<'_>,
     list_counter: &mut Option<ListCounter>,
 ) -> StyledElement {
     let tag = element.local_name_string();
@@ -285,7 +286,7 @@ fn collect_element_with_counter(
         // HTML `<ol type="i">` overrides CSS list-style-type per the HTML
         // spec. This also routes around Stylo's servo-mode inability to
         // parse `list-style-type: lower-roman`/`upper-roman`.
-        let dom = adapter::dom();
+        let dom = element.dom();
         let node = dom.node(element.node_id());
         let type_override = get_element_attr(node, "type").and_then(|t| match t.as_str() {
             "1" => Some(types::ListStyleType::Decimal),
@@ -311,7 +312,7 @@ fn collect_element_with_counter(
         // `<ul type="disc|circle|square">` is obsolete but widely
         // honored; read it so fixtures relying on the attribute render
         // the expected bullet shape without needing CSS.
-        let dom = adapter::dom();
+        let dom = element.dom();
         let node = dom.node(element.node_id());
         let type_override = get_element_attr(node, "type").and_then(|t| {
             // HTML4 specifies the attribute as case-insensitive.
@@ -336,7 +337,7 @@ fn collect_element_with_counter(
         // for subsequent siblings (HTML §4.4.8). Applied before the counter
         // is read below.
         if let Some(ref mut counter) = list_counter {
-            let dom = adapter::dom();
+            let dom = element.dom();
             let node = dom.node(element.node_id());
             if let Some(v) =
                 get_element_attr(node, "value").and_then(|s| s.trim().parse::<i32>().ok())
@@ -367,7 +368,7 @@ fn collect_element_with_counter(
     };
 
     // ── Widget detection (form controls) ──
-    let dom = adapter::dom();
+    let dom = element.dom();
     let node_data = dom.node(element.node_id());
 
     let is_void_widget = detect_widget(&tag, node_data, dom, &mut el);
@@ -442,7 +443,9 @@ fn collect_element_with_counter(
                     }
                 }
                 DemoNodeData::Element(_) => {
-                    let child_el = HtmlElement::from_node_id(*child_id);
+                    let child_el = element
+                        .element(*child_id)
+                        .expect("element child must resolve in its owning session");
                     let child = collect_element_with_counter(child_el, &mut child_counter);
                     if child.display == types::Display::None {
                         continue;

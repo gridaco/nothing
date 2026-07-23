@@ -6,16 +6,18 @@
 //! # Quick start
 //!
 //! ```ignore
-//! use csscascade::{dom::DemoDom, adapter, cascade::CascadeDriver};
+//! use csscascade::{
+//!     adapter::DocumentSession,
+//!     cascade::CascadeDriver,
+//!     dom::DemoDom,
+//! };
 //! use style::thread_state::{self, ThreadState};
 //!
 //! thread_state::initialize(ThreadState::LAYOUT);
 //!
 //! let dom = DemoDom::parse_from_bytes(html.as_bytes()).unwrap();
-//! let mut driver = CascadeDriver::new(&dom);
-//! let document = adapter::bootstrap_dom(dom);
-//! driver.flush(document);
-//! driver.style_document(document);
+//! let mut session = DocumentSession::new(dom);
+//! CascadeDriver::new(&mut session).style_document();
 //! // Every element now carries computed styles via element.borrow_data()
 //! ```
 

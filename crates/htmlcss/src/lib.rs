@@ -7,7 +7,8 @@
 //!
 //! # Thread Safety
 //!
-//! Uses Stylo's process-global DOM slot. Calls must be serialized externally.
+//! Each render owns its Stylo document session. Stylo preferences remain
+//! process-global, so hosts that change them must coordinate those changes.
 //! This internal crate is an explicitly transitional direct-Skia producer, not
 //! the source-neutral resolved render contract or the engine kernel.
 
@@ -25,7 +26,7 @@ pub mod types;
 
 use github_markdown::GITHUB_MARKDOWN_CSS;
 
-/// Shared unit-test lock for Stylo's process-global DOM slot.
+/// Shared unit-test lock for process-global Stylo preference state.
 #[cfg(test)]
 pub(crate) mod stylo_test {
     use std::sync::{Mutex, MutexGuard};
