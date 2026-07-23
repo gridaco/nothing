@@ -36,13 +36,14 @@ cargo run -p n0_cli --bin n0 -- \
   fixtures/web-first/svg-currentcolor-rect.svg /tmp/out.png 64x64
 ```
 
-## Why `color` + `fill="currentColor"`, not `fill:#16a34a` directly
+## Why the proving shell still uses `color` + `fill="currentColor"`
 
-The workspace compiles Stylo with the **servo** engine, which omits the
-gecko-only SVG paint longhands (`fill`, `stroke`, …) — they are absent from
-`ComputedValues`, so a `fill` rule cannot be read from the cascade. The
-cascade *does* carry `color` (a servo longhand), so the fixture demonstrates
-the cross-boundary cascade with `color` and lets SVG's own `currentColor`
-resolve the paint. Making the shared Stylo cascade model SVG paint properties
-(a gecko-engine or custom-property question) is a filed next-step for the
-Web-first track, not something this slice papers over.
+The workspace's official Stylo revision now exposes typed basic SVG paint
+longhands under the Servo engine. The proving shell predates that pin and
+deliberately remains narrower: it does not yet feed presentation hints or SVG
+stylesheets into Stylo, and its compiler still reads the direct `fill`
+attribute. It reads computed `color` only to resolve `currentColor`.
+
+These fixtures therefore prove one HTML→inline-SVG inherited-value crossing;
+they do not prove cascaded `fill`. Dependency provenance is settled, while
+production paint ingress and consumption remain separate capability work.

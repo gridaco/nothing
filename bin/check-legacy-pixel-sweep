@@ -2,10 +2,12 @@
 
 """Compare a declared legacy-renderer subset byte-for-byte across revisions.
 
-The base and head corpus identities must first match exactly; both binaries
-then render that enumerated L0.exact input set in the same host environment.
-This is a zero-behavior A/B sweep, not a reftest: no external oracle or
-similarity threshold participates in the verdict.
+The base and head corpus semantics must first match exactly; both binaries then
+render that enumerated L0.exact input set in the same host environment. The
+human-facing suite description is excluded from identity, while every other
+manifest field and every input byte remains covered. This is a zero-behavior
+A/B sweep, not a reftest: no external oracle or similarity threshold
+participates in the verdict.
 """
 
 from __future__ import annotations
@@ -83,8 +85,16 @@ def corpus_identity(root: Path) -> tuple[dict[str, object], dict[str, object]]:
             logical, file_digest = checked_file(root, suite.parent, relative)
             files[logical] = file_digest
 
+    # Prose may be corrected without changing the declared render corpus.
+    # Keep every unknown/non-description key in the identity so new config
+    # fields fail closed until both revisions agree.
+    semantic_manifest = dict(parsed)
+    semantic_manifest.pop("description", None)
+    semantic_bytes = json.dumps(
+        semantic_manifest, sort_keys=True, separators=(",", ":")
+    ).encode()
     identity: dict[str, object] = {
-        "suite_sha256": hashlib.sha256(suite_bytes).hexdigest(),
+        "suite_semantics_sha256": hashlib.sha256(semantic_bytes).hexdigest(),
         "files": dict(sorted(files.items())),
     }
     return identity, parsed

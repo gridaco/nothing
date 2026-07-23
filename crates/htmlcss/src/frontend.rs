@@ -6,14 +6,17 @@
 //! (`import::html::from_html_str`) — see the seam program,
 //! gridaco/nothing#30.
 //!
-//! Deliberately excluded: pref toggles (e.g. `layout.grid.enabled`,
-//! which stays renderer-side in `collect_styled_tree`) so each caller's
-//! Stylo behavior is exactly what it was before the share.
+//! Preference toggles are outside this function's signature. They are not
+//! caller-isolated: Stylo's static preferences are process-global, so a
+//! toggle made before this function affects every later consumer in the
+//! process. An explicit cascade environment must replace that ambient state.
 //!
 //! # Thread safety
 //!
-//! Uses the process-global DOM slot ([`csscascade::adapter::DEMO_DOM`]);
-//! callers serialize externally, exactly as before.
+//! Uses the process-global DOM slot installed by
+//! [`csscascade::adapter::bootstrap_dom`]. Every consumer must currently
+//! participate in one process-wide session lock; crate-local locks do not
+//! make overlapping sessions safe.
 
 use csscascade::adapter::{self, HtmlDocument};
 use csscascade::cascade::CascadeDriver;

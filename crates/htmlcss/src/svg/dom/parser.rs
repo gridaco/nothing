@@ -1,13 +1,10 @@
-//! Parse SVG bytes via the existing htmlcss DOM/cascade pipeline.
+//! Parse standalone or serialized inline-SVG bytes into `DemoDom` storage.
 //!
-//! There is **no separate SVG parser**: inline `<svg>` already lives inside
-//! a `DemoDom` produced by `csscascade` (html5ever), and standalone `.svg`
-//! is fed through the same parser. html5ever's foreign-content rules
-//! ensure top-level `<svg>` elements are tagged with the SVG namespace.
-//!
-//! Blink anchor: SVG documents and inline `<svg>` are both built by the
-//! unified HTML/XML parser in `core/dom/`. Blink's `LayoutSVGRoot` then
-//! takes over for layout/paint — same architecture as ours.
+//! This is a separate parse invocation and does not run Stylo. html5ever's
+//! foreign-content rules tag the discovered `<svg>` subtree with the SVG
+//! namespace, but this permissive HTML parse is not a conforming SVG/XML
+//! grammar entry. Blink's shared document/cascade architecture remains the
+//! target rather than a claim about this compatibility path.
 
 use csscascade::dom::{DemoDom, DemoNode, DemoNodeData, NodeId};
 

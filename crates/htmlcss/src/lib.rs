@@ -238,13 +238,11 @@ pub fn render(
 
 /// Render a standalone SVG document to a Skia Picture.
 ///
-/// Routes through the in-tree `htmlcss::svg` pipeline (DemoDom + Stylo +
-/// Blink-shaped layout/paint). The pipeline does its own work — there is
-/// no fallback to Skia's built-in `svg::Dom`. Features still under
-/// construction (e.g. text, filters) render as best-effort: unsupported
-/// elements are skipped rather than passed to a different renderer, so
-/// missing pixels surface as obvious gaps in the output and we feel the
-/// motivation to implement them.
+/// Routes through the in-tree `htmlcss::svg` compatibility pipeline:
+/// `DemoDom` storage, an SVG-owned resource table and temporary CSS matcher,
+/// then a direct Skia paint walk. It does not run the shared Stylo cascade.
+/// There is no fallback to Skia's built-in `svg::Dom`; unsupported elements
+/// are skipped so missing pixels remain visible.
 ///
 /// `width` / `height` are CSS pixels; `viewBox` + `preserveAspectRatio`
 /// inside the SVG map user units to that box.

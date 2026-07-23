@@ -811,15 +811,11 @@ fn paint_replaced(
         canvas.clip_rect(dest_rect, ClipOp::Intersect, true);
     }
 
-    // Inline <svg>: route through the in-tree htmlcss::svg pipeline
-    // (DemoDom + Stylo + Blink-shaped layout/paint). Mirrors Servo's
-    // "<svg> as replaced element with serialized subtree" pattern
-    // (components/script/dom/svg/svgsvgelement.rs +
-    // components/net/image_cache.rs) but uses our own renderer rather
-    // than resvg+tiny-skia or Skia's built-in svg::Dom. There is no
-    // fallback — features still under construction render as best-effort
-    // gaps so we feel the motivation to implement them.
-    // Inline SVG: routes through the in-tree htmlcss::svg renderer.
+    // Inline SVG is currently a compatibility seam: collection serialized
+    // this subtree, and paint reparses it into the SVG-owned DemoDom +
+    // temporary CSS matcher before a direct Skia paint walk. This is not the
+    // final one-document/one-cascade path.
+    //
     // Per the "no fallback" intent, an inline-SVG element terminates
     // here whether the render succeeded or not — we do NOT fall back
     // to the gray placeholder. The placeholder is for missing `<img>`

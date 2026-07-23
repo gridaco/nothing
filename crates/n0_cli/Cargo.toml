@@ -12,8 +12,8 @@ name = "n0"
 path = "src/main.rs"
 
 [dependencies]
-# The source-native Web implementation owns HTML/CSS/SVG semantics. The host
-# owns only source I/O, providers, the raster surface, and encoding.
+# The extracted mature Web renderer currently owns HTML/CSS/SVG semantics.
+# The host owns only source I/O, providers, the raster surface, and encoding.
 htmlcss = { path = "../htmlcss" }
 skia-safe = { version = "=0.93.1", features = [
   "gpu",

@@ -24,7 +24,7 @@ fn host_touches_no_legacy_or_proving_shell_path() {
 }
 
 #[test]
-fn manifest_uses_the_source_native_web_renderer_directly() {
+fn manifest_uses_the_extracted_web_renderer_directly() {
     let manifest = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"));
     assert!(
         manifest.contains("publish = false"),

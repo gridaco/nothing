@@ -30,8 +30,10 @@ use super::types::{CssLength, LineHeight, WhiteSpace};
 pub(crate) fn collect_styled_tree(html: &str) -> Result<Option<StyledElement>, String> {
     // Enable CSS Grid support in Stylo's servo mode (one-time).
     // Without this, `display: grid` is not parsed (gated behind a pref).
-    // Renderer-side only — deliberately NOT part of the shared front-end,
-    // so the importer's Stylo behavior stays untouched.
+    // This preference is process-global, not renderer-local: every later
+    // csscascade consumer, including the importer, observes the enabled
+    // value. An explicit cascade environment must replace this ambient
+    // call-order dependency.
     use std::sync::Once;
     static GRID_PREF: Once = Once::new();
     GRID_PREF.call_once(|| {
@@ -3163,10 +3165,10 @@ fn map_overflow(ov: style::values::specified::box_::Overflow) -> types::Overflow
     }
 }
 
-/// u8 quantization policy for sRGB → [`CGColor`] conversion — the one
-/// caller-scoped fidelity knob on the shared extraction, like the
-/// `layout.grid.enabled` pref that stays renderer-side in
-/// [`collect_styled_tree`].
+/// Caller-scoped u8 quantization policy for sRGB → [`CGColor`] conversion.
+///
+/// Unlike the process-global `layout.grid.enabled` preference set by
+/// [`collect_styled_tree`], this policy is explicit at the extraction call.
 ///
 /// The renderer rounds (Chromium-aligned; 614229bf). The HTML importer
 /// truncates, and its golden corpus pins that: `rgb(51 102 204 / 0.5)`

@@ -13,13 +13,14 @@
 //! [`CompileError`] makes those patrolled rejection cases explicit. This is
 //! not yet an exhaustive SVG-surface validator or an SVG capability claim.
 //!
-//! ## servo-Stylo caveat (a filed finding)
-//! The workspace compiles Stylo with the **servo** engine, which omits the
-//! gecko-only SVG paint longhands (`fill`, `stroke`, …). So `fill` cannot be
-//! read from `ComputedValues`; it is read from the presentation attribute
-//! here. The cascade still carries `color` (a servo longhand), which crosses
-//! the HTML→inline-SVG boundary — that is what makes `fill="currentColor"`
-//! resolve to a cascaded value.
+//! ## SVG paint boundary
+//! The workspace's official Stylo revision exposes the typed basic SVG paint
+//! longhands under the Servo engine. This proving shell has not yet wired SVG
+//! presentation hints or SVG stylesheets into that cascade, nor switched its
+//! compiler to the typed paint values. [`resolve_fill`] therefore still reads
+//! the direct `fill` attribute and uses computed `color` only to resolve
+//! `currentColor`. The dependency provenance is solved; production ingress
+//! and semantic consumption are not.
 //!
 //! ## Concurrency caveat
 //! `csscascade` installs the parsed document into a process-global slot, so
