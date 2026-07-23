@@ -10,9 +10,15 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use rframe::{decode_png, render, render_png};
+use n0::paint::PaintCtx;
+use rframe::{
+    Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, VisualRef, decode_png,
+    render, render_png,
+};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
+use skia_safe::image::CachingHint;
+use skia_safe::{AlphaType, Color, ColorType, IPoint, ImageInfo, surfaces};
 use websem::{compile_html_inline_svg, compile_standalone_svg};
 
 #[derive(Debug, Deserialize)]
@@ -71,6 +77,53 @@ fn sha256(bytes: &[u8]) -> String {
 fn sha256_file(path: &Path) -> String {
     let bytes = fs::read(path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
     sha256(&bytes)
+}
+
+fn render_through_n0(frame: &rframe::Frame, width: i32, height: i32) -> Vec<u8> {
+    let context = PaintCtx::new(None);
+    let product = n0::glyphless::compile(frame.clone()).expect("compile admitted Web frame");
+    let mut surface = surfaces::raster_n32_premul((width, height)).expect("CPU raster surface");
+    surface.canvas().clear(Color::TRANSPARENT);
+    product
+        .execute(
+            surface.canvas(),
+            &math2::transform::AffineTransform::identity(),
+            &context,
+        )
+        .expect("execute admitted Web frame through n0");
+
+    let image = surface.image_snapshot();
+    let info = ImageInfo::new(
+        (width, height),
+        ColorType::RGBA8888,
+        AlphaType::Unpremul,
+        None,
+    );
+    let row_bytes = width as usize * 4;
+    let mut pixels = vec![0; row_bytes * height as usize];
+    assert!(image.read_pixels(
+        &info,
+        &mut pixels,
+        row_bytes,
+        IPoint::new(0, 0),
+        CachingHint::Disallow,
+    ));
+    pixels
+}
+
+fn contract_frame(paints: SolidPaintStack, transform: math2::transform::AffineTransform) -> Frame {
+    let rect = math2::Rectangle::from_xywh(2.0, 3.0, 8.0, 6.0);
+    Frame {
+        owner: VisualRef::new(Identity::new(1), Provenance::new(10)),
+        bounds: math2::Rectangle::from_xywh(0.0, 0.0, 32.0, 24.0),
+        nodes: vec![FrameNode {
+            owner: VisualRef::new(Identity::new(2), Provenance::new(20)),
+            transform,
+            geometry: Geometry::Rect(rect),
+            bounds: math2::rect_transform(rect, &transform),
+            paints,
+        }],
+    }
 }
 
 #[test]
@@ -173,7 +226,13 @@ fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
             fixture.id
         );
 
-        let actual = render(&frame, fixture.width, fixture.height);
+        let proving = render(&frame, fixture.width, fixture.height);
+        let actual = render_through_n0(&frame, fixture.width, fixture.height);
+        assert_eq!(
+            actual, proving.pixels,
+            "{} n0 replacement must be byte-identical to the proving downstream",
+            fixture.id
+        );
         let oracle_bytes = fs::read(root.join(&fixture.oracle))
             .unwrap_or_else(|e| panic!("read {}: {e}", fixture.oracle));
         let oracle = decode_png(&oracle_bytes)
@@ -188,7 +247,6 @@ fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
         let mut first_difference = None;
         let mut differing_pixels = 0usize;
         for (index, (actual_pixel, oracle_pixel)) in actual
-            .pixels
             .chunks_exact(4)
             .zip(oracle.pixels.chunks_exact(4))
             .enumerate()
@@ -204,10 +262,10 @@ fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
             fixture.id
         );
 
-        let second = render(&frame, fixture.width, fixture.height);
+        let second = render_through_n0(&frame, fixture.width, fixture.height);
         assert_eq!(
-            actual.pixels, second.pixels,
-            "{} CPU raster must be byte-deterministic",
+            actual, second,
+            "{} n0 CPU raster must be byte-deterministic",
             fixture.id
         );
         let first_png = render_png(&frame, fixture.width, fixture.height);
@@ -216,6 +274,51 @@ fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
             first_png == second_png,
             "{} encoded PNG must be byte-deterministic",
             fixture.id
+        );
+    }
+}
+
+#[test]
+fn admitted_frame_contract_is_byte_identical_through_both_downstreams() {
+    use cg::{CGColor, Paint, Paints, SolidPaint};
+    use math2::transform::AffineTransform;
+
+    let transparent = SolidPaintStack::try_from_paints(Paints::new([Paint::Solid(
+        SolidPaint::new_color(CGColor::TRANSPARENT),
+    )]))
+    .expect("transparent paint normalizes to no visual paint");
+    let translucent = SolidPaintStack::solid(CGColor::from_rgba(0x16, 0xa3, 0x4a, 0x80));
+    let layered = SolidPaintStack::try_from_paints(Paints::new([
+        Paint::Solid(SolidPaint::new_color(CGColor::from_rgba(
+            0xef, 0x44, 0x44, 0x80,
+        ))),
+        Paint::Solid(SolidPaint::new_color(CGColor::from_rgba(
+            0x25, 0x63, 0xeb, 0x80,
+        ))),
+    ]))
+    .expect("ordinary solid stack");
+    let transformed = AffineTransform::from_acebdf(2.0, 0.0, 4.0, 0.0, 1.0, 5.0);
+
+    for (name, frame) in [
+        (
+            "empty",
+            contract_frame(SolidPaintStack::empty(), AffineTransform::identity()),
+        ),
+        (
+            "transparent",
+            contract_frame(transparent, AffineTransform::identity()),
+        ),
+        (
+            "translucent",
+            contract_frame(translucent, AffineTransform::identity()),
+        ),
+        ("layered-transformed", contract_frame(layered, transformed)),
+    ] {
+        let proving = render(&frame, 32, 24);
+        let chassis = render_through_n0(&frame, 32, 24);
+        assert_eq!(
+            chassis, proving.pixels,
+            "{name} must survive the n0 replacement byte-identically"
         );
     }
 }

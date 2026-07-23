@@ -265,6 +265,34 @@ The PNG sequence is the deterministic sample artifact. MP4/GIF output is a
 presentation derivative. Explicit browser seeking and the applicable WPT
 differential corpus remain the open half of the visual/conformance chunk.
 
+## Source-neutral glyphless frames
+
+`glyphless::compile` admits an already-resolved `rframe::Frame` without
+constructing an authored n0 document. The backend-free contract retains its
+opaque identity and provenance in a product-private projection, while n0 owns
+the compiler, generic-owner drawlist, damage policy, and painter. Glyphless
+items therefore never borrow or fabricate n0 node identities. The dependency
+edge uses `rframe` with default features disabled, and n0 has no dependency on
+the Web producer.
+
+The returned `glyphless::FrameProduct` is intentionally separate from the
+ordinary `frame::FrameProduct`: the ordinary product owns n0-specific resolved
+and query state that a foreign producer cannot supply honestly. The admitted
+solid/geometry material is resource-free: compilation takes no `PaintCtx`, and
+execution accepts any context after converting its public neutral
+`math2::AffineTransform` view inside n0. Ordinary and other resource-bearing
+products continue to require the exact captured paint environment. Both paths
+reach the same private painter.
+
+The admitted production slice is frame clipping plus rectangles whose ordered
+paint stack has already been normalized by `rframe` to visible, Normal solid
+`cg` paints. Compilation validates finite geometry and requires each published
+node bound to equal `math2::rect_transform` exactly. Compiled products expose
+an exact frame diff through n0's existing generic damage policy. Preview-cache
+integration is not admitted or implemented yet. This is a source-neutral
+chassis seam, not a general SVG importer; source parsing, cascade, animation
+interpretation, I/O, and clocks remain outside n0.
+
 ## Versioned `.n0.xml` ingestion
 
 There is deliberately no XML-specific engine API. Draft 0 still has the
@@ -534,6 +562,7 @@ contract is [`EFFECTIVE-VALUES.md`](./EFFECTIVE-VALUES.md).
 | text shaping + shared glyph layout   | `text_layout.rs`           | ENG-4.1/4.5   | `../n0-model/tests/text_layout.rs`, `tests/text.rs`                                                                                                                                                                                              |
 | raster executor                      | `paint.rs`                 | ENG-2.1       | `tests/paints.rs`, `tests/strokes.rs`, `tests/rectangular_strokes.rs`, `tests/text.rs`, `tests/corners.rs`, `tests/paths.rs` (pixel probes)                                                                                                      |
 | one frame entry                      | `frame.rs`                 | ENG-2.4       | `tests/frame.rs` (checked paint environment) · spike live loop · gate                                                                                                                                                                            |
+| source-neutral glyphless frame entry | `glyphless.rs`             | D-M vector    | module tests (independent input · exact private material/raster · resource-free execution · exact bounds · shared damage policy · explicit refusal)                                                                                                |
 | damage as data                       | `damage.rs`                | ENG-2.2       | `tests/damage.rs`, `tests/values.rs`, `tests/cache.rs` (geometry · paint-only · opacity · painter order · environment · covering bounds)                                                                                                         |
 | spatial read tier                    | `query.rs`                 | ENG-3         | `tests/query.rs` (`hit_point ≡ pick` · retained traversal/clip snapshot)                                                                                                                                                                         |
 | journal (op-log)                     | `journal.rs`               | ENG-5.1       | `tests/journal.rs`                                                                                                                                                                                                                               |

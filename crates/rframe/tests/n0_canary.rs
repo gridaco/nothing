@@ -18,15 +18,16 @@ use n0_model::model::{
 };
 use n0_model::resolve::{ResolveOptions, resolve};
 
+use cg::CGColor;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
-use rframe::frame::{Color, Frame, FrameNode, Geometry, NodeId, PaintStack};
+use rframe::frame::{Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, VisualRef};
 use rframe::render;
 
 /// n0's ARGB `Color(0xAARRGGBB)` → the neutral straight-alpha RGBA leaf.
-fn to_rframe_color(c: N0Color) -> Color {
+fn to_rframe_color(c: N0Color) -> CGColor {
     let argb = c.argb();
-    Color::rgba(
+    CGColor::from_rgba(
         ((argb >> 16) & 0xff) as u8,
         ((argb >> 8) & 0xff) as u8,
         (argb & 0xff) as u8,
@@ -65,14 +66,14 @@ fn n0_rect_reaches_the_shared_downstream() {
     };
     let geometry = Rectangle::from_xywh(n0_box.x, n0_box.y, n0_box.w, n0_box.h);
     let frame = Frame {
+        owner: VisualRef::new(Identity::new(1), Provenance::new(1)),
         bounds: Rectangle::from_xywh(0.0, 0.0, 64.0, 64.0),
         nodes: vec![FrameNode {
-            id: NodeId(0),
+            owner: VisualRef::new(Identity::new(2), Provenance::new(2)),
             transform: to_math2(n0_world),
             geometry: Geometry::Rect(geometry),
             bounds: geometry,
-            paints: PaintStack::solid(fill),
-            clip: None,
+            paints: SolidPaintStack::solid(fill),
         }],
     };
 

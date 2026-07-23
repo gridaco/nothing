@@ -7,7 +7,6 @@
 //! Web-first cross-boundary cascade, in a richer shape than the single-rect
 //! fixtures.
 
-use rframe::frame::Paint;
 use websem::compile_html_inline_svg;
 
 const HTML: &str = include_str!(concat!(
@@ -19,10 +18,8 @@ fn solid_colors(frame: &rframe::Frame) -> Vec<[u8; 4]> {
     frame
         .nodes
         .iter()
-        .flat_map(|n| n.paints.paints.iter())
-        .map(|p| match p {
-            Paint::Solid(c) => [c.r, c.g, c.b, c.a],
-        })
+        .flat_map(|n| n.paints.iter())
+        .map(|solid| [solid.color.r, solid.color.g, solid.color.b, solid.color.a])
         .collect()
 }
 

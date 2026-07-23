@@ -3289,10 +3289,13 @@ dependencies = [
 name = "n0"
 version = "0.0.0"
 dependencies = [
+ "cg",
  "gl",
  "glutin",
+ "math2",
  "n0-model",
  "raw-window-handle",
+ "rframe",
  "serde_json",
  "sha2",
  "skia-safe",
@@ -4686,6 +4689,7 @@ dependencies = [
 name = "rframe"
 version = "0.0.0"
 dependencies = [
+ "cg",
  "math2",
  "n0-model",
  "skia-safe",
@@ -6506,9 +6510,11 @@ dependencies = [
 name = "websem"
 version = "0.0.0"
 dependencies = [
+ "cg",
  "csscascade",
  "htmlcss",
  "math2",
+ "n0",
  "rframe",
  "serde",
  "serde_json",

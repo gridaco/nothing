@@ -14,6 +14,9 @@ default = ["skia"]
 skia = ["dep:skia-safe"]
 
 [dependencies]
+# The selected shared leaf-paint vocabulary. The resolved contract owns no
+# producer-local paint duplicate.
+cg = { path = "../cg" }
 # Neutral geometry foundation shared across the workspace (Skia-free).
 math2 = { path = "../math2" }
 

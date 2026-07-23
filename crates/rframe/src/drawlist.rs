@@ -9,7 +9,9 @@
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 
-use crate::frame::{Color, Frame, Geometry, Paint};
+use cg::CGColor;
+
+use crate::frame::{Frame, Geometry};
 
 /// One drawing operation, in frame space, in paint order.
 #[derive(Clone, Debug, PartialEq)]
@@ -22,7 +24,7 @@ pub(crate) enum DrawItem {
     FillRect {
         rect: Rectangle,
         transform: AffineTransform,
-        color: Color,
+        color: CGColor,
     },
     /// Pop the most recent clip.
     Restore,
@@ -45,26 +47,16 @@ pub(crate) fn build(frame: &Frame) -> DrawList {
     items.push(DrawItem::ClipRect(frame.bounds));
 
     for node in &frame.nodes {
-        if let Some(clip) = &node.clip {
-            match clip {
-                Geometry::Rect(r) => items.push(DrawItem::ClipRect(*r)),
-            }
-        }
-
-        for paint in &node.paints.paints {
-            match (paint, &node.geometry) {
-                (Paint::Solid(color), Geometry::Rect(rect)) => {
+        for solid in node.paints.iter() {
+            match &node.geometry {
+                Geometry::Rect(rect) => {
                     items.push(DrawItem::FillRect {
                         rect: *rect,
                         transform: node.transform,
-                        color: *color,
+                        color: solid.color,
                     });
                 }
             }
-        }
-
-        if node.clip.is_some() {
-            items.push(DrawItem::Restore);
         }
     }
 

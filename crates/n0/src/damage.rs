@@ -56,19 +56,21 @@ impl<M> DamageOwner<M> {
 /// ordered key. The drawlist remains responsible for its private text-font
 /// environment; no text contract is exposed here.
 #[derive(Debug)]
-pub(crate) struct FrameDamageInput<'a, K, M> {
+pub(crate) struct FrameDamageInput<'a, K, M, J = NodeId> {
     owners: BTreeMap<K, DamageOwner<M>>,
-    items: Vec<DamageItem<'a, K>>,
-    drawlist: &'a DrawList,
-    environment: PaintEnvironmentKey,
+    items: Vec<DamageItem<'a, K, J>>,
+    drawlist: &'a DrawList<J>,
+    /// Resource-free products carry no environment key. Resource-bearing
+    /// products carry the exact key captured with their compiled material.
+    environment: Option<PaintEnvironmentKey>,
 }
 
-impl<'a, K: Copy + Ord, M> FrameDamageInput<'a, K, M> {
-    pub(crate) fn new(
+impl<'a, K: Copy + Ord, M, J> FrameDamageInput<'a, K, M, J> {
+    fn new(
         owners: BTreeMap<K, DamageOwner<M>>,
         item_owners: impl IntoIterator<Item = K>,
-        drawlist: &'a DrawList,
-        environment: PaintEnvironmentKey,
+        drawlist: &'a DrawList<J>,
+        environment: Option<PaintEnvironmentKey>,
     ) -> Self {
         let item_owners = item_owners.into_iter().collect::<Vec<_>>();
         assert_eq!(
@@ -92,12 +94,29 @@ impl<'a, K: Copy + Ord, M> FrameDamageInput<'a, K, M> {
             environment,
         }
     }
+
+    pub(crate) fn resource_bearing(
+        owners: BTreeMap<K, DamageOwner<M>>,
+        item_owners: impl IntoIterator<Item = K>,
+        drawlist: &'a DrawList<J>,
+        environment: PaintEnvironmentKey,
+    ) -> Self {
+        Self::new(owners, item_owners, drawlist, Some(environment))
+    }
+
+    pub(crate) fn resource_free(
+        owners: BTreeMap<K, DamageOwner<M>>,
+        item_owners: impl IntoIterator<Item = K>,
+        drawlist: &'a DrawList<J>,
+    ) -> Self {
+        Self::new(owners, item_owners, drawlist, None)
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
-struct DamageItem<'a, K> {
+struct DamageItem<'a, K, J> {
     owner: K,
-    item: &'a Item,
+    item: &'a Item<J>,
 }
 
 /// Engine-private result from the complete-frame policy before attribution is
@@ -151,9 +170,9 @@ pub fn diff_frame(prev: &FrameProduct, next: &FrameProduct) -> Damage {
 /// Compare two complete-frame inputs with the engine's one exact damage
 /// policy. This stays crate-private until a resolved render contract earns a
 /// concrete public shape from multiple producers.
-pub(crate) fn diff_inputs<K: Copy + Ord, M: PartialEq>(
-    prev: &FrameDamageInput<'_, K, M>,
-    next: &FrameDamageInput<'_, K, M>,
+pub(crate) fn diff_inputs<K: Copy + Ord, M: PartialEq, J>(
+    prev: &FrameDamageInput<'_, K, M, J>,
+    next: &FrameDamageInput<'_, K, M, J>,
 ) -> FrameDamage<K> {
     let mut changed = BTreeSet::new();
     for owner in prev.owners.keys().chain(next.owners.keys()) {
@@ -207,17 +226,17 @@ pub(crate) fn diff_inputs<K: Copy + Ord, M: PartialEq>(
     finish_frame_damage(prev, next, changed)
 }
 
-fn group_items<'a, K: Copy + Ord, M>(
-    input: &'a FrameDamageInput<'_, K, M>,
-) -> BTreeMap<K, Vec<&'a Item>> {
-    let mut groups = BTreeMap::<K, Vec<&Item>>::new();
+fn group_items<'a, K: Copy + Ord, M, J>(
+    input: &'a FrameDamageInput<'_, K, M, J>,
+) -> BTreeMap<K, Vec<&'a Item<J>>> {
+    let mut groups = BTreeMap::<K, Vec<&Item<J>>>::new();
     for item in &input.items {
         groups.entry(item.owner).or_default().push(item.item);
     }
     groups
 }
 
-fn same_group(prev: Option<&Vec<&Item>>, next: Option<&Vec<&Item>>) -> bool {
+fn same_group<J>(prev: Option<&Vec<&Item<J>>>, next: Option<&Vec<&Item<J>>>) -> bool {
     match (prev, next) {
         (None, None) => true,
         (Some(prev), Some(next)) => {
@@ -231,14 +250,14 @@ fn same_group(prev: Option<&Vec<&Item>>, next: Option<&Vec<&Item>>) -> bool {
     }
 }
 
-fn same_item(prev: &Item, next: &Item) -> bool {
+fn same_item<J>(prev: &Item<J>, next: &Item<J>) -> bool {
     // Ownership is carried by DamageItem. Comparing Item::node here would
     // silently re-couple the policy to n0 arena slots.
     prev.world == next.world && prev.kind == next.kind
 }
 
-fn item_positions<K: Copy + Ord, M>(
-    input: &FrameDamageInput<'_, K, M>,
+fn item_positions<K: Copy + Ord, M, J>(
+    input: &FrameDamageInput<'_, K, M, J>,
     excluded: &BTreeSet<K>,
 ) -> BTreeMap<(K, usize), usize> {
     let mut ordinals = BTreeMap::<K, usize>::new();
@@ -256,9 +275,9 @@ fn item_positions<K: Copy + Ord, M>(
     positions
 }
 
-fn finish_frame_damage<K: Copy + Ord, M>(
-    prev: &FrameDamageInput<'_, K, M>,
-    next: &FrameDamageInput<'_, K, M>,
+fn finish_frame_damage<K: Copy + Ord, M, J>(
+    prev: &FrameDamageInput<'_, K, M, J>,
+    next: &FrameDamageInput<'_, K, M, J>,
     changed: BTreeSet<K>,
 ) -> FrameDamage<K> {
     let mut union_world = None;
@@ -350,7 +369,7 @@ fn frame_damage_input(
             owners.insert(id, DamageOwner::new(material, coverage));
         }
     }
-    FrameDamageInput::new(
+    FrameDamageInput::resource_bearing(
         owners,
         frame.drawlist().items.iter().map(|item| item.node),
         frame.drawlist(),
@@ -442,7 +461,7 @@ mod tests {
         revision: u8,
         environment: PaintEnvironmentKey,
     ) -> FrameDamageInput<'a, OwnerKey, MaterialFact> {
-        FrameDamageInput::new(
+        FrameDamageInput::resource_bearing(
             BTreeMap::from([(
                 owner,
                 DamageOwner::new(
@@ -531,7 +550,7 @@ mod tests {
                 .get(&item.node)
                 .expect("every mixed draw item has an opaque owner")
         });
-        FrameDamageInput::new(
+        FrameDamageInput::resource_bearing(
             owners,
             item_owners,
             product.drawlist(),

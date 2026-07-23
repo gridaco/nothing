@@ -39,9 +39,10 @@ use style::dom::TElement;
 use style::properties::ComputedValues;
 use style::thread_state::{self, ThreadState};
 
+use cg::CGColor;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
-use rframe::frame::{Color, Frame, FrameNode, Geometry, PaintStack};
+use rframe::frame::{Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, VisualRef};
 
 /// Serializes access to `csscascade`'s process-global document slot.
 static COMPILE_LOCK: Mutex<()> = Mutex::new(());
@@ -201,6 +202,7 @@ fn compile_svg_element(svg: HtmlElement) -> Result<Frame, CompileError> {
     }
 
     Ok(Frame {
+        owner: VisualRef::new(Identity::new(0), Provenance::new(0)),
         bounds: frame_bounds,
         nodes,
     })
@@ -233,17 +235,17 @@ fn compile_rect(
 
     let fill = resolve_fill(el)?;
     let paints = match fill {
-        Some(color) => PaintStack::solid(color),
-        None => PaintStack::default(),
+        Some(color) => SolidPaintStack::solid(color),
+        None => SolidPaintStack::empty(),
     };
 
+    let visual_id = *next_id + 1;
     let node = FrameNode {
-        id: rframe::frame::NodeId(*next_id),
+        owner: VisualRef::new(Identity::new(visual_id), Provenance::new(visual_id)),
         transform: viewport,
         geometry: Geometry::Rect(rect),
-        bounds: transform_aabb(viewport, rect),
+        bounds: math2::rect_transform(rect, &viewport),
         paints,
-        clip: None,
     };
     *next_id += 1;
     Ok(node)
@@ -251,12 +253,12 @@ fn compile_rect(
 
 /// Resolve the SVG `fill` paint. `currentColor` resolves against the cascaded
 /// computed `color`; a missing `fill` is SVG's default black.
-fn resolve_fill(el: HtmlElement) -> Result<Option<Color>, CompileError> {
+fn resolve_fill(el: HtmlElement) -> Result<Option<CGColor>, CompileError> {
     let raw = get_attr(el.node_id(), "fill");
     match raw.as_deref().map(str::trim) {
-        None => Ok(Some(Color::opaque(0, 0, 0))),
+        None => Ok(Some(CGColor::BLACK)),
         Some("none") => Ok(None),
-        Some("black") => Ok(Some(Color::opaque(0, 0, 0))),
+        Some("black") => Ok(Some(CGColor::BLACK)),
         Some("currentColor") => Ok(Some(computed_color(el)?)),
         Some(hex) if hex.starts_with('#') => Ok(Some(parse_hex(hex)?)),
         Some(other) => Err(CompileError::UnsupportedFill(other.to_string())),
@@ -264,7 +266,7 @@ fn resolve_fill(el: HtmlElement) -> Result<Option<Color>, CompileError> {
 }
 
 /// The element's cascaded computed `color`, converted to straight-alpha sRGB.
-fn computed_color(el: HtmlElement) -> Result<Color, CompileError> {
+fn computed_color(el: HtmlElement) -> Result<CGColor, CompileError> {
     let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     let style: &ComputedValues = data.styles.primary();
     let srgb = style
@@ -272,7 +274,7 @@ fn computed_color(el: HtmlElement) -> Result<Color, CompileError> {
         .color
         .to_color_space(ColorSpace::Srgb);
     let c = srgb.raw_components();
-    Ok(Color::rgba(
+    Ok(CGColor::from_rgba(
         to_u8(c[0]),
         to_u8(c[1]),
         to_u8(c[2]),
@@ -284,7 +286,7 @@ fn to_u8(component: f32) -> u8 {
     (component.clamp(0.0, 1.0) * 255.0).round() as u8
 }
 
-fn parse_hex(hex: &str) -> Result<Color, CompileError> {
+fn parse_hex(hex: &str) -> Result<CGColor, CompileError> {
     let body = &hex[1..];
     let err = || CompileError::UnsupportedFill(hex.to_string());
     let (r, g, b) = match body.len() {
@@ -306,7 +308,7 @@ fn parse_hex(hex: &str) -> Result<Color, CompileError> {
         }
         _ => return Err(err()),
     };
-    Ok(Color::opaque(r, g, b))
+    Ok(CGColor::from_rgb(r, g, b))
 }
 
 fn parse_viewbox(v: &str) -> Result<(f32, f32, f32, f32), CompileError> {
@@ -350,37 +352,6 @@ fn reject_negative_dimension(attr: &str, value: f32) -> Result<(), CompileError>
         });
     }
     Ok(())
-}
-
-/// Axis-aligned bounds of `rect` after `t` (scale+translate; corner transform
-/// is exact for the slice, and remains correct if rotation is added later).
-fn transform_aabb(t: AffineTransform, rect: Rectangle) -> Rectangle {
-    let m = t.matrix;
-    let pt = |x: f32, y: f32| {
-        (
-            m[0][0] * x + m[0][1] * y + m[0][2],
-            m[1][0] * x + m[1][1] * y + m[1][2],
-        )
-    };
-    let corners = [
-        pt(rect.x, rect.y),
-        pt(rect.x + rect.width, rect.y),
-        pt(rect.x, rect.y + rect.height),
-        pt(rect.x + rect.width, rect.y + rect.height),
-    ];
-    let (mut min_x, mut min_y, mut max_x, mut max_y) = (
-        f32::INFINITY,
-        f32::INFINITY,
-        f32::NEG_INFINITY,
-        f32::NEG_INFINITY,
-    );
-    for (x, y) in corners {
-        min_x = min_x.min(x);
-        min_y = min_y.min(y);
-        max_x = max_x.max(x);
-        max_y = max_y.max(y);
-    }
-    Rectangle::from_xywh(min_x, min_y, max_x - min_x, max_y - min_y)
 }
 
 /// Read an element attribute by local name from the process-global document.

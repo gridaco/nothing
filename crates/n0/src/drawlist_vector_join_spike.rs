@@ -1364,7 +1364,7 @@ fn candidate_damage_input<'a>(
             .is_none(),
         "private text has one distinct stable owner"
     );
-    FrameDamageInput::new(
+    FrameDamageInput::resource_bearing(
         owners,
         compiled.owners.iter().copied(),
         &compiled.list,

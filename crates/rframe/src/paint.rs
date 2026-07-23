@@ -14,11 +14,12 @@ use skia_safe::{
 };
 
 use crate::drawlist::{self, DrawItem, DrawList};
-use crate::frame::{Color, Frame};
+use crate::frame::Frame;
+use cg::CGColor;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 
-fn sk_color(c: Color) -> SkColor {
+fn sk_color(c: CGColor) -> SkColor {
     SkColor::from_argb(c.a, c.r, c.g, c.b)
 }
 

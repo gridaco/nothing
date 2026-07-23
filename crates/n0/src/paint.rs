@@ -1470,10 +1470,10 @@ struct GlyphScratch {
 }
 
 impl GlyphScratch {
-    fn with_run(
+    fn with_run<K>(
         &mut self,
         run: &n0_model::text_layout::TextGlyphRun,
-        list: &DrawList,
+        list: &DrawList<K>,
         mut use_run: impl FnMut(&Font, &[u16], &[Point]),
     ) {
         self.ids.clear();
@@ -1486,9 +1486,9 @@ impl GlyphScratch {
     }
 }
 
-fn text_path(
+fn text_path<K>(
     layout: &n0_model::text_layout::TextLayout,
-    list: &DrawList,
+    list: &DrawList<K>,
     scratch: &mut GlyphScratch,
 ) -> Path {
     let mut builder = PathBuilder::new();
@@ -1507,11 +1507,12 @@ fn text_path(
 
 /// Replay a raw [`DrawList`] without a frame-environment check.
 ///
-/// This low-level entry exists for glyphless structural probes and internal
-/// retained-list replay. A host rendering a complete semantic frame must call
+/// This low-level entry exists for engine-owned resource-free glyphless
+/// products, structural probes, and internal retained-list replay. A host
+/// rendering an ordinary semantic frame must call
 /// [`crate::frame::FrameProduct::execute`], which refuses a context whose
 /// incarnation or resource revision differs from the one captured at build.
-pub fn execute_unchecked(canvas: &Canvas, list: &DrawList, view: &Affine, ctx: &PaintCtx) {
+pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, ctx: &PaintCtx) {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum Scope {
         Opacity,
@@ -1785,10 +1786,10 @@ pub fn execute_unchecked(canvas: &Canvas, list: &DrawList, view: &Affine, ctx: &
 /// [`crate::frame::FrameProduct::raster_to_bytes`].
 ///
 /// Bytes, NOT PNG: the encoder is not the system under test, and byte
-/// equality is exact (ENG-0.3), not a tolerance. `font: None` in the gate
-/// removes font-availability nondeterminism.
-pub fn raster_to_bytes_unchecked(
-    list: &DrawList,
+/// equality is exact (ENG-0.3), not a tolerance. Resource-bearing complete
+/// products enter through [`crate::frame::FrameProduct::raster_to_bytes`].
+pub fn raster_to_bytes_unchecked<K>(
+    list: &DrawList<K>,
     view: &Affine,
     w: i32,
     h: i32,

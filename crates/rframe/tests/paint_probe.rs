@@ -7,9 +7,10 @@
 //! oracle needed (the fill color is the fixture input). Then re-rasterizes and
 //! asserts byte-identical pixels.
 
+use cg::CGColor;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
-use rframe::frame::{Color, Frame, FrameNode, Geometry, NodeId, PaintStack};
+use rframe::frame::{Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, VisualRef};
 use rframe::render;
 
 const GREEN: [u8; 4] = [0x16, 0xa3, 0x4a, 0xff];
@@ -17,14 +18,14 @@ const GREEN: [u8; 4] = [0x16, 0xa3, 0x4a, 0xff];
 fn green_rect_frame() -> Frame {
     let rect = Rectangle::from_xywh(0.0, 0.0, 64.0, 64.0);
     Frame {
+        owner: VisualRef::new(Identity::new(1), Provenance::new(1)),
         bounds: rect,
         nodes: vec![FrameNode {
-            id: NodeId(0),
+            owner: VisualRef::new(Identity::new(2), Provenance::new(2)),
             transform: AffineTransform::identity(),
             geometry: Geometry::Rect(rect),
             bounds: rect,
-            paints: PaintStack::solid(Color::opaque(0x16, 0xa3, 0x4a)),
-            clip: None,
+            paints: SolidPaintStack::solid(CGColor::from_rgb(0x16, 0xa3, 0x4a)),
         }],
     }
 }
