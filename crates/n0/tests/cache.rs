@@ -1,7 +1,9 @@
-//! ENG-0.2 / ENG-2 · the scene raster cache must be byte-identical to a fresh
-//! render — a fast-but-wrong compositor is the one failure worse than slow.
-//! Covers: cache-cold, integer-pan blit (the win path), zoom re-raster (the
-//! bitmap-can't-rescale boundary), and doc-dirty re-raster.
+//! ENG-0.2 / ENG-2 · fixture-scoped exact gates for the realtime-preview
+//! scene raster cache. These probes remain byte-identical to immediate
+//! rendering; they do not assert universal device-translation invariance for
+//! every antialiased drawlist. Covers: cache-cold, integer-pan blit (the win
+//! path), zoom re-raster (the bitmap-can't-rescale boundary), and doc-dirty
+//! re-raster.
 
 use n0::cache::{composited_to_bytes, SceneCache};
 use n0::damage::diff_frame;

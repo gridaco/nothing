@@ -18,12 +18,12 @@ types, so the decision can be taken on evidence when it is ripe.
 **Status:** open as staged **D-M**, coupled to **D-C**, in the
 [charter's registry](./charter.md). A bounded vector-input arm now proves
 drawlist/raster equivalence, mixed composition with still-private text, and
-two-frame damage through the same complete-frame policy n0 already uses. The
-vector stage is **not yet ripe**: compiled-output cache evidence is still
-missing, and the leaf-vocabulary seat remains open. The text stage is also
-**not yet ripe** because its second producer does not exist. The complete
-evidence bar remains recorded in the [Web renderer adoption
-patrol](./web-renderer-adoption.md).
+two-frame damage and preview-cache behavior through the same policies n0
+already uses. The bounded vector implementation evidence is complete for this
+arm, but the vector-stage owner decision is **not yet ripe** because the
+leaf-vocabulary seat remains open under D-C. The text stage is also **not yet
+ripe** because its second producer does not exist. The complete evidence bar
+remains recorded in the [Web renderer adoption patrol](./web-renderer-adoption.md).
 
 ## The crux
 
@@ -132,6 +132,29 @@ The first bounded arm of the vector-input/mixed-composition spike passed on
   document-specific draw-item slots. The candidate's full identity/provenance
   pair is only an opaque, arm-local owner key here; this evidence does not
   decide which part owns replacement identity in a future public contract.
+- The same two frames, still mixed with real private shaped text, enter n0's
+  one preview cache. Cold input, exact reuse, visible replacement, and exact
+  replacement reuse report `true, false, true, false`; each candidate-cache
+  raster is byte-identical to the corresponding ordinary n0-cache raster.
+  Cache material compares paint-consumed order and facts, the private text
+  replay registry, and the paint environment while ignoring the diagnostic
+  document slot for raster reuse. Preflight failures do consume that slot for
+  diagnostics, so exact reuse retains the cached diagnostic owner; any
+  promotion must settle diagnostic provenance separately. Source-owned
+  invalidation remains separate and coherent, including transactional
+  environment, gradient, and image failure and safe return from a candidate
+  replacement to an ordinary n0 frame.
+- The cache probe also corrected an overclaim in the preview policy. During
+  local Darwin-arm64 integration, the margin-translated backend raster for this
+  antialiased fixture differed from direct accurate-frame execution at two
+  pixels, four channels total, with a maximum channel delta of one; a manually
+  translated offscreen raster reproduced the cache exactly. This observation
+  locates the cause in backend device-translation antialiasing rather than
+  comparison or blitting, but is not itself a durable conformance gate. The
+  load-bearing gates compare like duty cycles exactly: candidate preview to n0
+  preview, and candidate direct execution to n0 direct execution. No threshold
+  is introduced. Accurate static and exact-time export therefore remain direct
+  immutable-frame duties, never cache-output duties.
 - Nonzero corner smoothing is refused rather than carried as an authoring
   parameter. It must become resolved geometry before a high join or remain
   below that join. Invalid line fills, non-rectangular clips in this arm, and
@@ -140,11 +163,11 @@ The first bounded arm of the vector-input/mixed-composition spike passed on
 The arm deliberately does **not** complete D-M. Its opaque identity and
 provenance now drive local fact lookup, painter order, mixed-text placement,
 and the engine's one private complete-frame damage policy without becoming a
-public runtime identity. The cache still combines producer-owned rebuild
-invalidation with downstream raster reuse, so no honest
-cold/reuse/change/reuse evidence exists yet. The path-vocabulary ownership and
-D-C leaf-vocabulary seat also remain open. These are decision blockers, not
-permission to add parallel policies or to widen the provisional contract.
+public runtime identity. Its compiled visual material also reaches the one
+private preview-cache policy without making source identity part of raster
+reuse. The path-vocabulary ownership and D-C leaf-vocabulary seat remain open.
+These are decision blockers, not permission to add parallel policies or to
+widen the provisional contract.
 
 ## The registered stages
 

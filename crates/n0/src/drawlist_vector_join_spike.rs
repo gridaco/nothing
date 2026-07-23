@@ -9,9 +9,9 @@
 //! Candidate identity and provenance are consumed by this local compiler,
 //! orchestration proof, and the engine's private complete-frame damage policy
 //! as one opaque arm-local owner key. This does not define their future public
-//! relationship. The shared cache and stable runtime identity do not consume
-//! the candidate yet, so those missing policy arms prevent this spike from
-//! completing D-M.
+//! relationship. Candidate compiled visual material also reaches the shared
+//! preview cache, but stable runtime identity remains unchosen and D-C still
+//! blocks the leaf vocabulary, so this spike does not complete D-M.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -25,9 +25,10 @@ use n0_model::model::{
 use n0_model::path::{self, FillRule, PathCommand, ResolvedPathArtifact};
 use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyValues, ValueView};
 use n0_model::resolve::{resolve, ResolveOptions, Resolved};
-use skia_safe::FontMgr;
+use skia_safe::{surfaces, Color as SkColor, FontMgr};
 
 use super::{DrawList, DrawValues, Item, ItemKind};
+use crate::cache::SceneCache;
 use crate::damage::{diff_inputs, DamageOwner, FrameDamage, FrameDamageInput};
 use crate::frame;
 use crate::paint::{raster_to_bytes_unchecked, PaintCtx, PaintEnvironmentKey};
@@ -1371,6 +1372,81 @@ fn candidate_damage_input<'a>(
     )
 }
 
+fn compiled_cache_bytes(
+    cache: &mut SceneCache,
+    list: DrawList,
+    environment: PaintEnvironmentKey,
+    context: &PaintCtx,
+) -> (Vec<u8>, bool) {
+    let mut surface = surfaces::raster_n32_premul((WIDTH, HEIGHT)).expect("raster surface");
+    surface.canvas().clear(SkColor::WHITE);
+    let rerastered = cache
+        .frame_drawlist(
+            surface.canvas(),
+            list,
+            environment,
+            &Affine::IDENTITY,
+            context,
+        )
+        .expect("valid independently compiled frame");
+    (
+        crate::paint::read_pixels(&mut surface, WIDTH, HEIGHT),
+        rerastered,
+    )
+}
+
+fn ordinary_cache_bytes(
+    cache: &mut SceneCache,
+    document: &Document,
+    values: Option<&PropertyValues>,
+    context: &PaintCtx,
+) -> (Vec<u8>, bool) {
+    let mut surface = surfaces::raster_n32_premul((WIDTH, HEIGHT)).expect("raster surface");
+    surface.canvas().clear(SkColor::WHITE);
+    let rerastered = match values {
+        None => cache.frame(
+            surface.canvas(),
+            document,
+            &options(),
+            &Affine::IDENTITY,
+            context,
+            false,
+        ),
+        Some(values) => cache.frame_with_values(
+            surface.canvas(),
+            document,
+            values,
+            &options(),
+            &Affine::IDENTITY,
+            context,
+            false,
+        ),
+    }
+    .expect("valid ordinary cached frame");
+    (
+        crate::paint::read_pixels(&mut surface, WIDTH, HEIGHT),
+        rerastered,
+    )
+}
+
+fn assert_pixels_eq(actual: &[u8], expected: &[u8], context: &str) {
+    assert_eq!(actual.len(), expected.len(), "{context}: byte length");
+    if let Some((index, (&actual, &expected))) = actual
+        .iter()
+        .zip(expected)
+        .enumerate()
+        .find(|(_, (actual, expected))| actual != expected)
+    {
+        let pixel = index / 4;
+        panic!(
+            "{context}: first difference at ({}, {}) channel {}: {actual} != {expected}",
+            pixel % WIDTH as usize,
+            pixel / WIDTH as usize,
+            index % 4,
+        );
+    }
+}
+
 #[test]
 fn independent_vector_facts_reach_the_existing_list_painter_and_private_text() {
     let (document, ids, identities) = scene();
@@ -1601,6 +1677,138 @@ fn stable_candidate_identity_drives_the_existing_complete_damage_policy() {
         "damage attribution is a set; candidate-key order is independent from NodeId order"
     );
     assert_eq!(candidate_damage.union_world, public_damage.union_world);
+}
+
+#[test]
+fn independently_compiled_vectors_use_the_existing_scene_cache() {
+    let (document, ids, identities) = scene();
+    let context = paint_ctx();
+    let before_product =
+        frame::resolve_and_build(&document, &options(), &context).expect("valid before frame");
+    let before_literal = literal_input();
+    assert_eq!(
+        extract_input(&document, before_product.resolved(), &identities).unwrap(),
+        before_literal
+    );
+
+    let values = PropertyValues::new(
+        &document,
+        [(
+            property_target(&document, ids.rect, PropertyKey::Fills),
+            PropertyValue::Paints(Paints::solid(Color(0xFF25_63EB))),
+        )],
+    )
+    .expect("valid immutable fill transition");
+    let value_view = ValueView::new(&document, &values).expect("validated effective view");
+    let after_product = frame::resolve_and_build_view(&value_view, &options(), &context)
+        .expect("valid after frame");
+    let after_literal = literal_fill_transition_input();
+    assert_eq!(
+        extract_input(&value_view, after_product.resolved(), &identities).unwrap(),
+        after_literal
+    );
+
+    let before_compiled = interleave_private_text_before(
+        compile_vectors(&before_literal, &identities).unwrap(),
+        PATH_REF,
+        ids.text,
+        before_product.drawlist(),
+    )
+    .unwrap();
+    let after_compiled = interleave_private_text_before(
+        compile_vectors(&after_literal, &identities).unwrap(),
+        PATH_REF,
+        ids.text,
+        after_product.drawlist(),
+    )
+    .unwrap();
+    assert_eq!(before_compiled.list, *before_product.drawlist());
+    assert_eq!(after_compiled.list, *after_product.drawlist());
+    assert!(
+        before_compiled.owners.contains(&TEXT_REF),
+        "the independently compiled cache input contains real private shaped text"
+    );
+    assert_pixels_eq(
+        &raster_to_bytes_unchecked(
+            &before_compiled.list,
+            &Affine::IDENTITY,
+            WIDTH,
+            HEIGHT,
+            &context,
+        ),
+        &before_product
+            .raster_to_bytes(&Affine::IDENTITY, WIDTH, HEIGHT, &context)
+            .unwrap(),
+        "candidate and n0 direct execution before",
+    );
+    assert_pixels_eq(
+        &raster_to_bytes_unchecked(
+            &after_compiled.list,
+            &Affine::IDENTITY,
+            WIDTH,
+            HEIGHT,
+            &context,
+        ),
+        &after_product
+            .raster_to_bytes(&Affine::IDENTITY, WIDTH, HEIGHT, &context)
+            .unwrap(),
+        "candidate and n0 direct execution after",
+    );
+
+    let mut cache = SceneCache::new(WIDTH, HEIGHT);
+    let (before_pixels, cold) = compiled_cache_bytes(
+        &mut cache,
+        before_compiled.list.clone(),
+        before_product.environment(),
+        &context,
+    );
+    let (before_reused_pixels, reused_before) = compiled_cache_bytes(
+        &mut cache,
+        before_compiled.list,
+        before_product.environment(),
+        &context,
+    );
+    let (after_pixels, changed) = compiled_cache_bytes(
+        &mut cache,
+        after_compiled.list.clone(),
+        after_product.environment(),
+        &context,
+    );
+    let (after_reused_pixels, reused_after) = compiled_cache_bytes(
+        &mut cache,
+        after_compiled.list,
+        after_product.environment(),
+        &context,
+    );
+
+    assert_eq!(
+        [cold, reused_before, changed, reused_after],
+        [true, false, true, false],
+        "one SceneCache handles cold, reuse, visual replacement, and reuse"
+    );
+    assert_pixels_eq(&before_pixels, &before_reused_pixels, "before cache reuse");
+    assert_pixels_eq(&after_pixels, &after_reused_pixels, "after cache reuse");
+
+    let mut ordinary_cache = SceneCache::new(WIDTH, HEIGHT);
+    let (ordinary_before, ordinary_cold) =
+        ordinary_cache_bytes(&mut ordinary_cache, &document, None, &context);
+    let (ordinary_after, ordinary_changed) =
+        ordinary_cache_bytes(&mut ordinary_cache, &document, Some(&values), &context);
+    assert!(ordinary_cold && ordinary_changed);
+    assert_pixels_eq(
+        &before_pixels,
+        &ordinary_before,
+        "candidate and ordinary preview cache before",
+    );
+    assert_pixels_eq(
+        &after_pixels,
+        &ordinary_after,
+        "candidate and ordinary preview cache after",
+    );
+    assert_ne!(
+        before_pixels, after_pixels,
+        "the visible fill transition replaces the cached pixels"
+    );
 }
 
 #[test]
