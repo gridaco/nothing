@@ -6,13 +6,14 @@
 //! D-C is open, and corner smoothing is rejected because it has not yet been
 //! resolved to source-neutral geometry.
 //!
-//! Candidate identity and provenance are consumed by this local compiler and
-//! orchestration proof, but n0's shared damage, cache, and stable-identity
-//! policies do not consume them. The transition probe below is therefore not
-//! damage evidence. Those missing policy arms prevent this spike from
+//! Candidate identity and provenance are consumed by this local compiler,
+//! orchestration proof, and the engine's private complete-frame damage policy
+//! as one opaque arm-local owner key. This does not define their future public
+//! relationship. The shared cache and stable runtime identity do not consume
+//! the candidate yet, so those missing policy arms prevent this spike from
 //! completing D-M.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use n0_model::math::{Affine, RectF};
@@ -27,8 +28,9 @@ use n0_model::resolve::{resolve, ResolveOptions, Resolved};
 use skia_safe::FontMgr;
 
 use super::{DrawList, DrawValues, Item, ItemKind};
+use crate::damage::{diff_inputs, DamageOwner, FrameDamage, FrameDamageInput};
 use crate::frame;
-use crate::paint::{raster_to_bytes_unchecked, PaintCtx};
+use crate::paint::{raster_to_bytes_unchecked, PaintCtx, PaintEnvironmentKey};
 
 const WIDTH: i32 = 180;
 const HEIGHT: i32 = 100;
@@ -50,11 +52,14 @@ struct VisualRef {
     provenance: VisualProvenance,
 }
 
-const FRAME_REF: VisualRef = visual_ref(10, 100);
+// Deliberately unrelated to n0's arena order: attribution must not inherit
+// incidental NodeId ordering.
+const FRAME_REF: VisualRef = visual_ref(60, 100);
 const RECT_REF: VisualRef = visual_ref(20, 200);
-const ELLIPSE_REF: VisualRef = visual_ref(30, 300);
+const ELLIPSE_REF: VisualRef = visual_ref(50, 300);
+const TEXT_REF: VisualRef = visual_ref(10, 350);
 const PATH_REF: VisualRef = visual_ref(40, 400);
-const LINE_REF: VisualRef = visual_ref(50, 500);
+const LINE_REF: VisualRef = visual_ref(30, 500);
 
 const fn visual_ref(identity: u64, provenance: u64) -> VisualRef {
     VisualRef {
@@ -328,6 +333,7 @@ enum EvidenceGeometry {
 #[derive(Debug, Clone, PartialEq)]
 struct EvidenceVisual {
     world: Affine,
+    world_bounds: RectF,
     geometry: EvidenceGeometry,
     fills: Vec<EvidenceSolid>,
     strokes: Vec<EvidenceStroke>,
@@ -374,6 +380,20 @@ struct CompiledVectors {
     /// One owner per item. Private text insertion resolves its location through
     /// this identity/provenance sequence rather than by incidental item index.
     owners: Vec<VisualRef>,
+}
+
+/// Resolved facts not already represented by compiled draw items.
+///
+/// Paint and stroke materiality belongs to the drawlist comparison. Keeping
+/// source paint records out of this projection means inactive or transparent
+/// paint edits cannot create damage without changing compiled output.
+#[derive(Debug, Clone, PartialEq)]
+enum EvidenceDamageFact {
+    Vector {
+        world: Affine,
+        geometry: EvidenceGeometry,
+    },
+    PrivateText,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -571,6 +591,7 @@ fn scene() -> (Document, SceneIds, IdentityProjection) {
         (frame_id, FRAME_REF),
         (rect_id, RECT_REF),
         (ellipse_id, ELLIPSE_REF),
+        (text_id, TEXT_REF),
         (path_id, PATH_REF),
         (line_id, LINE_REF),
     ]);
@@ -766,6 +787,7 @@ fn extract_node<V: DrawValues + ?Sized>(
                 visual,
                 EvidenceVisual {
                     world,
+                    world_bounds: resolved.aabb_of(node_id),
                     geometry,
                     fills,
                     strokes,
@@ -830,6 +852,12 @@ fn literal_input() -> EvidenceInput {
             FRAME_REF,
             EvidenceVisual {
                 world: Affine::translate(4.0, 4.0),
+                world_bounds: RectF {
+                    x: 2.0,
+                    y: 2.0,
+                    w: 164.0,
+                    h: 94.0,
+                },
                 geometry: EvidenceGeometry::Rect {
                     w: 160.0,
                     h: 90.0,
@@ -850,6 +878,12 @@ fn literal_input() -> EvidenceInput {
             RECT_REF,
             EvidenceVisual {
                 world: Affine::translate(10.0, 10.0),
+                world_bounds: RectF {
+                    x: 10.0,
+                    y: 10.0,
+                    w: 28.0,
+                    h: 24.0,
+                },
                 geometry: EvidenceGeometry::Rect {
                     w: 28.0,
                     h: 24.0,
@@ -873,6 +907,12 @@ fn literal_input() -> EvidenceInput {
             ELLIPSE_REF,
             EvidenceVisual {
                 world: Affine::translate(46.0, 10.0),
+                world_bounds: RectF {
+                    x: 45.0,
+                    y: 9.0,
+                    w: 28.0,
+                    h: 26.0,
+                },
                 geometry: EvidenceGeometry::Ellipse { w: 26.0, h: 24.0 },
                 fills: vec![EvidenceSolid::opaque(0x8005_9669)],
                 strokes: vec![evidence_stroke(
@@ -889,6 +929,12 @@ fn literal_input() -> EvidenceInput {
             PATH_REF,
             EvidenceVisual {
                 world: Affine::translate(114.0, 10.0),
+                world_bounds: RectF {
+                    x: 110.0,
+                    y: 6.0,
+                    w: 30.0,
+                    h: 32.0,
+                },
                 geometry: EvidenceGeometry::Path {
                     w: 22.0,
                     h: 24.0,
@@ -909,6 +955,12 @@ fn literal_input() -> EvidenceInput {
             LINE_REF,
             EvidenceVisual {
                 world: Affine::translate(10.0, 54.0),
+                world_bounds: RectF {
+                    x: 8.5,
+                    y: 52.5,
+                    w: 129.0,
+                    h: 3.0,
+                },
                 geometry: EvidenceGeometry::Line {
                     x1: 0.0,
                     y1: 0.0,
@@ -951,6 +1003,26 @@ fn literal_input() -> EvidenceInput {
             EvidenceCommand::EndOpacity(FRAME_REF),
         ],
     }
+}
+
+fn literal_fill_transition_input() -> EvidenceInput {
+    let mut input = literal_input();
+    input
+        .visuals
+        .get_mut(&RECT_REF)
+        .expect("literal rectangle exists")
+        .fills = vec![EvidenceSolid::opaque(0xFF25_63EB)];
+    input
+}
+
+fn literal_inactive_fill_transition_input() -> EvidenceInput {
+    let mut input = literal_input();
+    input
+        .visuals
+        .get_mut(&RECT_REF)
+        .expect("literal rectangle exists")
+        .fills[0] = EvidenceSolid::inactive(0xFF00_FFFF);
+    input
 }
 
 fn evidence_stroke(
@@ -1239,7 +1311,7 @@ fn interleave_private_text_before(
     anchor: VisualRef,
     text_node: NodeId,
     current: &DrawList,
-) -> Result<DrawList, EvidenceError> {
+) -> Result<CompiledVectors, EvidenceError> {
     let index = vectors
         .owners
         .iter()
@@ -1251,9 +1323,52 @@ fn interleave_private_text_before(
         .filter(|item| item.node == text_node)
         .cloned()
         .collect::<Vec<_>>();
+    vectors.owners.splice(
+        index..index,
+        std::iter::repeat_n(TEXT_REF, text_items.len()),
+    );
     vectors.list.items.splice(index..index, text_items);
     vectors.list.text_fonts = current.text_fonts.clone();
-    Ok(vectors.list)
+    Ok(vectors)
+}
+
+fn candidate_damage_input<'a>(
+    input: &EvidenceInput,
+    compiled: &'a CompiledVectors,
+    text_bounds: RectF,
+    environment: PaintEnvironmentKey,
+) -> FrameDamageInput<'a, VisualRef, EvidenceDamageFact> {
+    let mut owners = input
+        .visuals
+        .iter()
+        .map(|(&visual, facts)| {
+            (
+                visual,
+                DamageOwner::new(
+                    EvidenceDamageFact::Vector {
+                        world: facts.world,
+                        geometry: facts.geometry.clone(),
+                    },
+                    Some(facts.world_bounds),
+                ),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    assert!(
+        owners
+            .insert(
+                TEXT_REF,
+                DamageOwner::new(EvidenceDamageFact::PrivateText, Some(text_bounds)),
+            )
+            .is_none(),
+        "private text has one distinct stable owner"
+    );
+    FrameDamageInput::new(
+        owners,
+        compiled.owners.iter().copied(),
+        &compiled.list,
+        environment,
+    )
 }
 
 #[test]
@@ -1312,11 +1427,12 @@ fn independent_vector_facts_reach_the_existing_list_painter_and_private_text() {
     let mixed = interleave_private_text_before(compiled, PATH_REF, ids.text, product.drawlist())
         .expect("private text has one identity-anchored insertion");
     assert_eq!(
-        mixed,
+        mixed.list,
         *product.drawlist(),
         "real n0 text artifacts and their exact font registry preserve full painter order"
     );
-    let mixed_bytes = raster_to_bytes_unchecked(&mixed, &Affine::IDENTITY, WIDTH, HEIGHT, &context);
+    let mixed_bytes =
+        raster_to_bytes_unchecked(&mixed.list, &Affine::IDENTITY, WIDTH, HEIGHT, &context);
     assert_eq!(
         mixed_bytes,
         product
@@ -1325,7 +1441,7 @@ fn independent_vector_facts_reach_the_existing_list_painter_and_private_text() {
     );
     assert_eq!(
         mixed_bytes,
-        raster_to_bytes_unchecked(&mixed, &Affine::IDENTITY, WIDTH, HEIGHT, &context),
+        raster_to_bytes_unchecked(&mixed.list, &Affine::IDENTITY, WIDTH, HEIGHT, &context),
         "mixed replay is byte-deterministic"
     );
     assert_ne!(
@@ -1334,6 +1450,7 @@ fn independent_vector_facts_reach_the_existing_list_painter_and_private_text() {
     );
 
     let path_items = mixed
+        .list
         .items
         .iter()
         .filter_map(|item| match &item.kind {
@@ -1345,6 +1462,236 @@ fn independent_vector_facts_reach_the_existing_list_painter_and_private_text() {
     assert!(path_items[1..]
         .iter()
         .all(|path| Arc::ptr_eq(path_items[0], path)));
+}
+
+#[test]
+fn stable_candidate_identity_drives_the_existing_complete_damage_policy() {
+    let (document, ids, identities) = scene();
+    let context = paint_ctx();
+    let before_product =
+        frame::resolve_and_build(&document, &options(), &context).expect("valid before frame");
+    let before_extracted =
+        extract_input(&document, before_product.resolved(), &identities).unwrap();
+    let before_literal = literal_input();
+    assert_eq!(
+        before_extracted, before_literal,
+        "the before frame is independently normalized"
+    );
+
+    let values = PropertyValues::new(
+        &document,
+        [(
+            property_target(&document, ids.rect, PropertyKey::Fills),
+            PropertyValue::Paints(Paints::solid(Color(0xFF25_63EB))),
+        )],
+    )
+    .expect("valid immutable fill transition");
+    let value_view = ValueView::new(&document, &values).expect("validated effective view");
+    let after_product = frame::resolve_and_build_view(&value_view, &options(), &context)
+        .expect("valid after frame");
+    let after_extracted =
+        extract_input(&value_view, after_product.resolved(), &identities).unwrap();
+    let after_literal = literal_fill_transition_input();
+    assert_eq!(
+        after_extracted, after_literal,
+        "the after frame is independently normalized"
+    );
+    assert_eq!(
+        before_literal.visuals.keys().collect::<Vec<_>>(),
+        after_literal.visuals.keys().collect::<Vec<_>>(),
+        "full identity/provenance keys are stable across the effective transition"
+    );
+
+    let before_compiled = interleave_private_text_before(
+        compile_vectors(&before_literal, &identities).unwrap(),
+        PATH_REF,
+        ids.text,
+        before_product.drawlist(),
+    )
+    .unwrap();
+    let after_compiled = interleave_private_text_before(
+        compile_vectors(&after_literal, &identities).unwrap(),
+        PATH_REF,
+        ids.text,
+        after_product.drawlist(),
+    )
+    .unwrap();
+    assert_eq!(before_compiled.list, *before_product.drawlist());
+    assert_eq!(after_compiled.list, *after_product.drawlist());
+
+    let before_bytes = raster_to_bytes_unchecked(
+        &before_compiled.list,
+        &Affine::IDENTITY,
+        WIDTH,
+        HEIGHT,
+        &context,
+    );
+    let after_bytes = raster_to_bytes_unchecked(
+        &after_compiled.list,
+        &Affine::IDENTITY,
+        WIDTH,
+        HEIGHT,
+        &context,
+    );
+    assert_eq!(
+        before_bytes,
+        before_product
+            .raster_to_bytes(&Affine::IDENTITY, WIDTH, HEIGHT, &context)
+            .unwrap()
+    );
+    assert_eq!(
+        after_bytes,
+        after_product
+            .raster_to_bytes(&Affine::IDENTITY, WIDTH, HEIGHT, &context)
+            .unwrap()
+    );
+    assert_ne!(
+        before_bytes, after_bytes,
+        "the fill transition contributes different pixels"
+    );
+
+    let before_input = candidate_damage_input(
+        &before_literal,
+        &before_compiled,
+        before_product.resolved().aabb_of(ids.text),
+        before_product.environment(),
+    );
+    let after_input = candidate_damage_input(
+        &after_literal,
+        &after_compiled,
+        after_product.resolved().aabb_of(ids.text),
+        after_product.environment(),
+    );
+    let candidate_damage = diff_inputs(&before_input, &after_input);
+    let expected_bounds = RectF {
+        x: 10.0,
+        y: 10.0,
+        w: 28.0,
+        h: 24.0,
+    };
+    assert_eq!(
+        candidate_damage,
+        FrameDamage {
+            changed: vec![RECT_REF],
+            union_world: Some(expected_bounds),
+        }
+    );
+    assert!(
+        !candidate_damage.changed.contains(&TEXT_REF),
+        "unchanged real private text remains interleaved and undamaged"
+    );
+
+    let public_damage = crate::damage::diff_frame(&before_product, &after_product);
+    let projected_public = public_damage
+        .changed
+        .iter()
+        .map(|&node| {
+            identities
+                .visual(node)
+                .expect("damaged node has stable identity")
+        })
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        candidate_damage
+            .changed
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>(),
+        projected_public,
+        "damage attribution is a set; candidate-key order is independent from NodeId order"
+    );
+    assert_eq!(candidate_damage.union_world, public_damage.union_world);
+}
+
+#[test]
+fn inactive_paint_edits_do_not_become_material_damage() {
+    let (document, ids, identities) = scene();
+    let context = paint_ctx();
+    let before_product =
+        frame::resolve_and_build(&document, &options(), &context).expect("valid before frame");
+    let before_literal = literal_input();
+
+    let mut inactive = SolidPaint::new(Color(0xFF00_FFFF));
+    inactive.active = false;
+    let values = PropertyValues::new(
+        &document,
+        [(
+            property_target(&document, ids.rect, PropertyKey::Fills),
+            PropertyValue::Paints(Paints::new([
+                Paint::Solid(inactive),
+                Paint::Solid(SolidPaint::new(Color(0xFFDC_2626))),
+            ])),
+        )],
+    )
+    .expect("valid immutable inactive-paint transition");
+    let value_view = ValueView::new(&document, &values).expect("validated effective view");
+    let after_product = frame::resolve_and_build_view(&value_view, &options(), &context)
+        .expect("valid after frame");
+    let after_extracted =
+        extract_input(&value_view, after_product.resolved(), &identities).unwrap();
+    let after_literal = literal_inactive_fill_transition_input();
+    assert_eq!(after_extracted, after_literal);
+    assert_ne!(
+        before_literal, after_literal,
+        "the source-normalized inactive paint fact genuinely changed"
+    );
+
+    let before_compiled = interleave_private_text_before(
+        compile_vectors(&before_literal, &identities).unwrap(),
+        PATH_REF,
+        ids.text,
+        before_product.drawlist(),
+    )
+    .unwrap();
+    let after_compiled = interleave_private_text_before(
+        compile_vectors(&after_literal, &identities).unwrap(),
+        PATH_REF,
+        ids.text,
+        after_product.drawlist(),
+    )
+    .unwrap();
+    assert_eq!(before_compiled.list, after_compiled.list);
+    assert_eq!(before_compiled.list, *before_product.drawlist());
+    assert_eq!(after_compiled.list, *after_product.drawlist());
+
+    let before_bytes = raster_to_bytes_unchecked(
+        &before_compiled.list,
+        &Affine::IDENTITY,
+        WIDTH,
+        HEIGHT,
+        &context,
+    );
+    let after_bytes = raster_to_bytes_unchecked(
+        &after_compiled.list,
+        &Affine::IDENTITY,
+        WIDTH,
+        HEIGHT,
+        &context,
+    );
+    assert_eq!(before_bytes, after_bytes);
+
+    let before_input = candidate_damage_input(
+        &before_literal,
+        &before_compiled,
+        before_product.resolved().aabb_of(ids.text),
+        before_product.environment(),
+    );
+    let after_input = candidate_damage_input(
+        &after_literal,
+        &after_compiled,
+        after_product.resolved().aabb_of(ids.text),
+        after_product.environment(),
+    );
+    assert_eq!(
+        diff_inputs(&before_input, &after_input),
+        FrameDamage::default(),
+        "inactive source paint is not compiled visual material"
+    );
+    assert_eq!(
+        crate::damage::diff_frame(&before_product, &after_product),
+        crate::damage::Damage::default(),
+        "ordinary n0 applies the same materiality rule"
+    );
 }
 
 #[test]

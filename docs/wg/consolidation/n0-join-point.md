@@ -17,12 +17,13 @@ types, so the decision can be taken on evidence when it is ripe.
 
 **Status:** open as staged **D-M**, coupled to **D-C**, in the
 [charter's registry](./charter.md). A bounded vector-input arm now proves
-drawlist/raster equivalence and mixed composition with still-private text, but
-the vector stage is **not yet ripe**: stable identity and provenance do not
-reach the shared damage/cache policies, and the leaf-vocabulary seat remains
-open. The text stage is also **not yet ripe** because its second producer does
-not exist. The complete evidence bar remains recorded in the
-[Web renderer adoption patrol](./web-renderer-adoption.md).
+drawlist/raster equivalence, mixed composition with still-private text, and
+two-frame damage through the same complete-frame policy n0 already uses. The
+vector stage is **not yet ripe**: compiled-output cache evidence is still
+missing, and the leaf-vocabulary seat remains open. The text stage is also
+**not yet ripe** because its second producer does not exist. The complete
+evidence bar remains recorded in the [Web renderer adoption
+patrol](./web-renderer-adoption.md).
 
 ## The crux
 
@@ -120,17 +121,29 @@ The first bounded arm of the vector-input/mixed-composition spike passed on
   interleaves with those vector facts in one ordered frame and contributes the
   same pixels. This proves that the vector and later text stages can compose at
   this bounded orchestration seam; it does not decide the text join.
+- Two independently constructed normalized frames retain the same complete
+  identity/provenance keys across a fill transition. They enter the same
+  complete-frame comparison policy as n0's ordinary frame products, report
+  only the changed rectangle, produce its exact world-space coverage, and
+  leave the interleaved real private text undamaged. Projecting the ordinary
+  frame result into the candidate identity domain gives the same attribution
+  and coverage. Inactive-paint edits remain undamaged in both arms because
+  their compiled visual material is unchanged. The policy ignores
+  document-specific draw-item slots. The candidate's full identity/provenance
+  pair is only an opaque, arm-local owner key here; this evidence does not
+  decide which part owns replacement identity in a future public contract.
 - Nonzero corner smoothing is refused rather than carried as an authoring
   parameter. It must become resolved geometry before a high join or remain
   below that join. Invalid line fills, non-rectangular clips in this arm, and
   inadmissible stroke states also fail explicitly.
 
 The arm deliberately does **not** complete D-M. Its opaque identity and
-provenance drive local fact lookup, painter order, and mixed-text placement,
-but n0's frame comparison, damage, and cache policies still consume
-document-specific identity and resolved storage. No shared two-frame damage or
-cold/reuse/change/reuse cache evidence exists. The path-vocabulary ownership
-and D-C leaf-vocabulary seat also remain open. These are decision blockers, not
+provenance now drive local fact lookup, painter order, mixed-text placement,
+and the engine's one private complete-frame damage policy without becoming a
+public runtime identity. The cache still combines producer-owned rebuild
+invalidation with downstream raster reuse, so no honest
+cold/reuse/change/reuse evidence exists yet. The path-vocabulary ownership and
+D-C leaf-vocabulary seat also remain open. These are decision blockers, not
 permission to add parallel policies or to widen the provisional contract.
 
 ## The registered stages
