@@ -22,5 +22,15 @@
 pub mod adapter;
 pub mod cascade;
 pub mod dom;
-pub mod rcdom;
-pub mod tree;
+
+use style::servo::media_features::PointerCapabilities;
+
+/// Interaction-media profile declared by the current static renderer.
+///
+/// This must not use [`PointerCapabilities::default`]: upstream chooses that
+/// value from the compilation target, which would make identical source
+/// cascade differently across hosts. A future host-selectable profile should
+/// replace this function as one explicit cascade-environment input.
+pub(crate) fn static_desktop_pointer_capabilities() -> PointerCapabilities {
+    PointerCapabilities::FINE | PointerCapabilities::HOVER
+}

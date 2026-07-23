@@ -303,3 +303,9 @@ impl FontRepository {
         self.bump_generation();
     }
 }
+
+impl ::htmlcss::SkiaFontCollectionProvider for FontRepository {
+    fn font_collection(&self) -> &skia_safe::textlayout::FontCollection {
+        FontRepository::font_collection(self)
+    }
+}

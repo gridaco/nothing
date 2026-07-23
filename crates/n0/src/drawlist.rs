@@ -158,6 +158,46 @@ impl DrawList {
     pub(crate) fn same_text_fonts(&self, other: &Self) -> bool {
         self.text_fonts == other.text_fonts
     }
+
+    /// Test-only raster identity used by the preview-cache join probe.
+    ///
+    /// Every paint-consumed field and the private font replay registry
+    /// participate. Only `Item::node` is ignored because replay does not read
+    /// it. Reuse therefore retains the cached list's diagnostic node slots;
+    /// gradient and image preflight errors can still report those retained
+    /// slots. Promotion beyond this bounded probe requires an explicit
+    /// provenance policy for those diagnostics.
+    ///
+    /// The exhaustive destructuring is deliberate: adding a field to either
+    /// `DrawList` or `Item` must fail compilation here and force a decision
+    /// about whether the field affects raster identity.
+    #[cfg(test)]
+    pub(crate) fn raster_eq(&self, other: &Self) -> bool {
+        let DrawList {
+            items: left_items,
+            text_fonts: left_text_fonts,
+        } = self;
+        let DrawList {
+            items: right_items,
+            text_fonts: right_text_fonts,
+        } = other;
+
+        left_text_fonts == right_text_fonts
+            && left_items.len() == right_items.len()
+            && left_items.iter().zip(right_items).all(|(left, right)| {
+                let Item {
+                    node: _,
+                    world: left_world,
+                    kind: left_kind,
+                } = left;
+                let Item {
+                    node: _,
+                    world: right_world,
+                    kind: right_kind,
+                } = right;
+                left_world == right_world && left_kind == right_kind
+            })
+    }
 }
 
 /// Materialize only paints that can contribute pixels. The authored stack is
@@ -616,3 +656,7 @@ mod text_paint_tests {
         assert_eq!(paints.for_source_run(Some(3)), None);
     }
 }
+
+#[cfg(test)]
+#[path = "drawlist_vector_join_spike.rs"]
+mod vector_join_spike;

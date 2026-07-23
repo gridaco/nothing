@@ -13,8 +13,8 @@ use crate::node::factory::NodeFactory;
 use crate::node::scene_graph::{Parent, SceneGraph};
 use crate::node::schema::*;
 
-use crate::htmlcss::collect::styled_of;
 use crate::htmlcss::style::StyledElement;
+use crate::htmlcss::styled_dom::styled_of;
 use crate::htmlcss::types::{Display as CssDisplay, Overflow as CssOverflow};
 
 use csscascade::adapter::{self, HtmlElement};
@@ -37,8 +37,8 @@ use from_styled::{
 /// and is **not thread-safe**. Concurrent calls will race on the shared state.
 /// Callers must serialize access externally (e.g. via a mutex).
 pub fn from_html_str(html: &str) -> Result<SceneGraph, String> {
-    // Parse + cascade via the shared front-end (htmlcss::frontend).
-    let document = crate::htmlcss::frontend::parse_and_style(html)?;
+    // Parse + cascade through the extracted renderer's narrow styled-DOM seam.
+    let document = crate::htmlcss::styled_dom::parse_and_style(html)?;
 
     // Build scene graph from styled DOM
     let mut builder = SceneBuilder::new();

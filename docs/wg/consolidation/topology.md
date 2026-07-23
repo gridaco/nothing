@@ -14,6 +14,15 @@ format: md
 program is about these crates; the domain models it leans on live in
 the sibling wg clusters and are only referenced, never restated.
 
+> **Amended (2026-07-21).** The **[Web-First
+> Amendment](./web-first.md)** revises this end state: sources keep
+> **source-native semantic models** and converge at **one provisional
+> resolved render contract** (the engine kernel), rather than reducing to
+> a single universal model. HTML/CSS + SVG lead as one Web semantic
+> family. Read the amendment for the shared-boundary field discipline and
+> the questions it defers to an evidence spike; the per-domain map below
+> stands as the substance being consolidated.
+
 ## The two sources
 
 **The v2 family is the chassis.** Its topology is adopted as-is:

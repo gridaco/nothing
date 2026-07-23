@@ -43,6 +43,15 @@ docs, in order:
    entry/exit gates, the first PRs, the owner decision registry, and the
    known unknowns.
 
+**Amendment (ratified 2026-07-21):** the **[Web-First
+Amendment](./web-first.md)** revises the topology to *one engine kernel,
+source-native semantic models, one provisional resolved render contract,
+many hosts*, and moves HTML/CSS + SVG to the front. Read it with the goal
+and topology — it supersedes their "one **model**" reading (the engine
+kernel converges downstream, not at one authored model) and reorders the
+charter's phases where they conflict. It leaves every standing rule
+below intact.
+
 Reference, consulted as needed: **[the glossary](./glossary.md)** — the
 program vocabulary. Use its terms; do not mint synonyms.
 
@@ -50,6 +59,18 @@ Decision proposal, not yet ratified: **[the conformance-bar flip
 rule](./flip-rule.md)** — the pre-score threshold, coverage, and
 oracle-discipline proposal tracked by
 [gridaco/nothing#49](https://github.com/gridaco/nothing/issues/49).
+
+Findings and decision evidence: **D-L — [SVG paint in the shared
+cascade](./svg-paint-cascade.md)** — the taken official-upstream Stylo
+provenance decision and the production-ingress and capability gaps it does not
+settle; **D-M — [where n0 joins the shared
+downstream](./n0-join-point.md)** — a per-fact gap analysis showing
+glyphless visual primitives are high-join candidates while shaped text remains
+a later stage, independent only if mixed-fact composition is proved; and
+**D-M adoption patrol — [how the mature Web renderer enters the
+chassis](./web-renderer-adoption.md)** — which Web capability is reusable,
+which legacy topology must not cross, and why the proving shell must not grow
+into a third engine.
 
 The charter is the only doc of the four that sequences work — and it
 records the *route*; the current *position* (active phase, landed PRs,

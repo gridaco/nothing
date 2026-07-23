@@ -23,15 +23,18 @@ the v2 `n0` engine family (`crates/n0`), promoted from the
 
 ## Workspace
 
-- [`crates/grida`](./crates/grida) — the canvas/rendering engine core
+- [`crates/grida`](./crates/grida) — the legacy engine compatibility consumer
 - [`crates/cg`](./crates/cg) — the backend-neutral canvas-graphics vocabulary
+- [`crates/htmlcss`](./crates/htmlcss) — the extracted mature static HTML/CSS/SVG renderer
 - [`crates/grida_editor`](./crates/grida_editor) — the editor core (document, history, commands)
 - [`crates/grida-canvas-wasm`](./crates/grida-canvas-wasm) — WASM bindings (`@grida/canvas-wasm`)
 - [`crates/math2`](./crates/math2) · [`crates/csscascade`](./crates/csscascade) · [`crates/fonts`](./crates/fonts) — foundations
 - [`crates/grida_dev`](./crates/grida_dev) · [`crates/grida_wpt`](./crates/grida_wpt) — dev tools, benchmarks, reftests
 - [`crates/n0`](./crates/n0) — the `n0` engine (v2): resolve → drawlist → paint
 - [`crates/n0-model`](./crates/n0-model) · [`crates/n0_dev`](./crates/n0_dev) — the skia-free `anchor` model · the v2 dev shell
-- [`archive/model-v2/`](./model-v2) — the frozen v2 workbench archive (decision record)
+- [`crates/rframe`](./crates/rframe) · [`crates/websem`](./crates/websem) — the provisional source-neutral frame kernel · Web semantic proving shell
+- [`crates/n0_cli`](./crates/n0_cli) — the thin `n0` file-render command host
+- [`archive/model-v2/`](./archive/model-v2) — the frozen v2 workbench archive (decision record)
 - [`format/`](./format) — the FlatBuffers schema (source of truth)
 - [`docs/wg/`](./docs/wg) — the engine's normative working-group specs
 

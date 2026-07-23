@@ -1,0 +1,37 @@
+{
+  "schema_version": 0,
+  "fixtures": [
+    {
+      "id": "html-inline-svg-currentcolor-rect",
+      "source": "html-inline-svg-currentcolor-rect.html",
+      "entry": "html-inline-svg",
+      "oracle": "chromium/html-inline-svg-currentcolor-rect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "html-webpage-mockup",
+      "source": "html-webpage-mockup.html",
+      "entry": "html-inline-svg",
+      "oracle": "chromium/html-webpage-mockup.png",
+      "width": 640,
+      "height": 400
+    },
+    {
+      "id": "svg-currentcolor-rect",
+      "source": "svg-currentcolor-rect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-currentcolor-rect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-viewbox-uniform-offset-rect",
+      "source": "svg-viewbox-uniform-offset-rect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-viewbox-uniform-offset-rect.png",
+      "width": 80,
+      "height": 40
+    }
+  ]
+}

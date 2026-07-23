@@ -1,0 +1,49 @@
+# fixtures/web-first
+
+Fixtures for the Web-first engine track's first architecture prototype
+(`crates/rframe`, `crates/websem`; see
+[docs/wg/consolidation/web-first.md](../../docs/wg/consolidation/web-first.md)).
+
+One concept: **an inline-SVG descendant is painted from a value that crosses
+the HTML→SVG boundary through one browser-grade cascade.**
+
+| File | Role |
+| --- | --- |
+| `html-inline-svg-currentcolor-rect.html` | HTML whose `<style> .mark { color:#16a34a }` cascades to a `<rect class="mark">` inside inline `<svg>`. |
+| `svg-currentcolor-rect.svg` | The equivalent standalone SVG (carries `color` via an inline `style`). Renders identically. |
+| `svg-viewbox-uniform-offset-rect.svg` | A non-zero-origin `viewBox` with uniform 2× viewport mapping; locks the proving shell's one supported non-identity viewport case. |
+| `html-webpage-mockup.html` | A webpage-*design* (header / hero / cards / footer) expressed as 27 inline-SVG rects; the brand purple cascades from the HTML `<style>` via `fill="currentColor"`. Guarded by `crates/websem/tests/webpage_mockup.rs`. Not a real HTML/CSS layout — the slice renders solid-fill `<rect>` only. |
+| `primitives.json` | Closed enumeration of every root HTML/SVG primitive, its grammar entry, dimensions, and Chromium oracle. Adding an unlisted root input fails the test gate. |
+| `chromium/*.png` | One committed Chromium oracle per primitive, capturing the SVG-local raster at deviceScaleFactor=1. |
+| `oracle-bake.json` | Bake provenance (browser version + sha256 of the suite, sources, oracles, and bake script). |
+| `bake_chromium.ts` | Verifies existing oracle pixels and creates missing oracles; it never overwrites a differing baseline. Run: `pnpm -C packages/grida-reftest exec tsx "$(pwd)/fixtures/web-first/bake_chromium.ts"`. |
+| `pages/` | The target-only real-world page corpus. It is not a runnable reftest gate yet; see [`pages/README.md`](./pages/README.md). |
+| `unsupported/` | Inputs that deliberately have no pixels yet and must fail explicitly instead of being approximated; see [`unsupported/README.md`](./unsupported/README.md). |
+
+Exact expectation: every primitive's full RGBA raster matches its Chromium
+oracle with zero differing pixels. The gate also validates enumeration and
+provenance and double-runs both raw raster and PNG encoding (see
+`crates/websem/tests/reftest_oracle.rs`).
+
+Render a primitive through the `n0` product command and the adopted mature Web
+renderer. This is a manual host-integration path, not the proving shell's
+Chromium oracle gate. The patrolled inputs under `unsupported/` still describe
+the narrower `websem → rframe::Frame` proving shell; arbitrary SVG outside the
+closed suite is not capability coverage for that shell:
+
+```sh
+cargo run -p n0_cli --bin n0 -- \
+  fixtures/web-first/svg-currentcolor-rect.svg /tmp/out.png 64x64
+```
+
+## Why the proving shell still uses `color` + `fill="currentColor"`
+
+The workspace's official Stylo revision now exposes typed basic SVG paint
+longhands under the Servo engine. The proving shell predates that pin and
+deliberately remains narrower: it does not yet feed presentation hints or SVG
+stylesheets into Stylo, and its compiler still reads the direct `fill`
+attribute. It reads computed `color` only to resolve `currentColor`.
+
+These fixtures therefore prove one HTML→inline-SVG inherited-value crossing;
+they do not prove cascaded `fill`. Dependency provenance is settled, while
+production paint ingress and consumption remain separate capability work.

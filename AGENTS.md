@@ -25,11 +25,13 @@ brew install ninja            # macOS
 
 ```sh
 # check (each crate must pass independently)
-cargo check -p grida -p grida-canvas-wasm -p grida_dev -p n0 -p n0-model
+cargo check -p htmlcss -p grida -p grida-canvas-wasm -p grida_dev -p n0 -p n0-model -p n0_cli
 
 # tests
 cargo test -p grida     # legacy engine tests
+cargo test -p htmlcss   # extracted Web renderer tests
 cargo test -p n0-model -p n0   # v2 engine tests (model is skia-free, fast)
+cargo test -p n0_cli    # thin product command host + HTML/SVG render probes
 cargo test              # all
 
 # lint / format (enforced)
@@ -48,14 +50,16 @@ python3 bin/activate-flatc -- --rust -o crates/grida/src/io/generated format/gri
 
 | directory                   | notes                                                                                      |
 | --------------------------- | ------------------------------------------------------------------------------------------ |
-| `crates/grida`              | the engine core (rendering, node model, io, text, svg/html import)                         |
+| `crates/grida`              | legacy engine compatibility consumer (node model, io, text, import/export, editor-era runtime) |
 | `crates/cg`                 | the backend-neutral canvas-graphics vocabulary                                             |
+| `crates/htmlcss`            | extracted mature static HTML/CSS/SVG renderer; transitional direct-Skia Web implementation |
 | `crates/grida_editor`       | editor core — document working copy, invertible mutations, history, commands               |
 | `crates/grida-canvas-wasm`  | WASM bindings + the `@grida/canvas-wasm` npm package (see its `PUBLISHING.md`)             |
 | `crates/math2` · `csscascade` · `fonts` | foundations                                                                    |
 | `crates/grida_dev`          | dev CLI, benchmarks, reftest tooling                                                       |
 | `crates/grida_wpt`          | web-platform-tests harness                                                                 |
 | `crates/n0` · `n0-model` · `n0_dev` | the v2 engine family (the `anchor` model): skia-free model crate, resolve→drawlist→paint engine, winit/egui dev shell — promoted from the `model-v2-anchor` branch (gridaco/nothing#9) |
+| `crates/n0_cli`             | thin `n0` file-render command; currently hosts the mature static HTML/CSS/SVG path          |
 | `archive/model-v2/`                 | the frozen v2 workbench archive (phase papers, experiment verdicts, demo pages); paths inside the frozen papers refer to the pre-promotion layout — see its README's map |
 | `format/`                   | the FlatBuffers schema (`grida.fbs`) — **source of truth**; see `format/AGENTS.md`         |
 | `docs/wg/`                  | the engine's normative working-group specs (canvas, format, research, feat-*) — same-repo  |

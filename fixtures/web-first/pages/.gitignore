@@ -1,0 +1,5 @@
+# Chromium reference renders are regenerable, large, and environment-dependent
+# (text uses system fonts). Regenerate with bake_reference.ts. Not committed —
+# same discipline as the refbrowser oracles (rendered on demand, not stored).
+reference/
+reference-bake.json

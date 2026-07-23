@@ -10,7 +10,7 @@
 
 use std::{env, fs, mem, path::PathBuf};
 
-use csscascade::adapter::{self, HtmlDocument, HtmlElement};
+use csscascade::adapter::{self, HtmlElement};
 use csscascade::cascade::CascadeDriver;
 use csscascade::dom::{DemoDom, DemoNodeData};
 
@@ -42,14 +42,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 5. Print the resolved tree
     if let Some(root) = document.root_element() {
-        print_element(root, &document, 0);
+        print_element(root, 0);
     }
 
     Ok(())
 }
 
 /// Recursively print an element with ALL computed style properties.
-fn print_element(element: HtmlElement, document: &HtmlDocument, depth: usize) {
+fn print_element(element: HtmlElement, depth: usize) {
     let indent = "  ".repeat(depth);
     let tag = element.local_name_string();
     let dom = adapter::dom();
@@ -93,7 +93,7 @@ fn print_element(element: HtmlElement, document: &HtmlDocument, depth: usize) {
     // Recurse into child elements
     let mut child = element.first_element_child();
     while let Some(c) = child {
-        print_element(c, document, depth + 1);
+        print_element(c, depth + 1);
         child = c.next_element_sibling();
     }
 }

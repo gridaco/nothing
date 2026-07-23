@@ -2041,13 +2041,7 @@ impl Paint {
     /// assert!(!transparent_paint.visible()); // active but transparent
     /// ```
     pub fn visible(&self) -> bool {
-        if !self.active() {
-            return false;
-        }
-        if self.opacity() == 0.0 {
-            return false;
-        }
-        true
+        self.active() && self.opacity() > 0.0
     }
 
     pub fn blend_mode(&self) -> BlendMode {
@@ -2414,6 +2408,22 @@ pub struct GradientStop {
     pub color: CGColor,
 }
 
+fn evenly_spaced_stops(colors: Vec<CGColor>) -> Vec<GradientStop> {
+    let last = colors.len().saturating_sub(1);
+    colors
+        .into_iter()
+        .enumerate()
+        .map(|(index, color)| GradientStop {
+            offset: if last == 0 {
+                0.0
+            } else {
+                index as f32 / last as f32
+            },
+            color,
+        })
+        .collect()
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LinearGradientPaint {
     pub active: bool,
@@ -2436,14 +2446,7 @@ impl LinearGradientPaint {
 
     pub fn from_colors(colors: Vec<CGColor>) -> Self {
         Self {
-            stops: colors
-                .iter()
-                .enumerate()
-                .map(|(i, color)| GradientStop {
-                    offset: i as f32 / (colors.len() - 1) as f32,
-                    color: *color,
-                })
-                .collect(),
+            stops: evenly_spaced_stops(colors),
             ..Default::default()
         }
     }
@@ -2517,14 +2520,7 @@ impl RadialGradientPaint {
 
     pub fn from_colors(colors: Vec<CGColor>) -> Self {
         Self {
-            stops: colors
-                .iter()
-                .enumerate()
-                .map(|(i, color)| GradientStop {
-                    offset: i as f32 / (colors.len() - 1) as f32,
-                    color: *color,
-                })
-                .collect(),
+            stops: evenly_spaced_stops(colors),
             ..Default::default()
         }
     }

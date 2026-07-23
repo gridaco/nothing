@@ -15,7 +15,7 @@ over `/research`, `/fixtures`, and `/render-reftest` — those auto-trigger
 on their own for narrower work.
 
 **Sibling skill.** For features in the SVG path
-(`crates/grida/src/htmlcss/svg/`, `resvg-test-suite` corpus,
+(`crates/htmlcss/src/svg/`, `resvg-test-suite` corpus,
 multi-oracle scoring against expected.png + baked Chrome PNG), use
 [`dev-render-htmlcss-svg-feature`](../dev-render-htmlcss-svg-feature/SKILL.md)
 instead. Same five-phase shape, different tooling.
@@ -50,7 +50,7 @@ coincidentally-correctly but by the wrong path?
 
 **Actions.**
 
-- Scan `crates/grida/src/htmlcss/` for the property name in
+- Scan `crates/htmlcss/src/` for the property name in
   stylo enum mapping, paint emit, layout feed. A property can be
   parsed-but-dropped, emitted-but-wrong, or unhandled — each has a
   different fix shape.
@@ -147,7 +147,7 @@ the suite config is wrong and the score will be zero.
 ### 4. Implement — "what code change realizes the behavior?"
 
 **Question.** What is the minimum set of edits in
-`crates/grida/src/htmlcss/` to make the fixture match?
+`crates/htmlcss/src/` to make the fixture match?
 
 **Actions.**
 
@@ -232,7 +232,7 @@ pick up, and no context is lost. The durable artifacts:
 | Audit     | Current-state note, priority bucket                      | PR description / task prompt                           |
 | Ground    | Research note (spec + engine cross-ref)                  | PR description or `docs/wg/feat-2d/`                   |
 | Fixture   | `.html` fixture(s), suite entries, viewport measurement  | `fixtures/test-html/L0/`, `fixtures/test-html/suites/` |
-| Implement | Code change, data tests, behavior summary                | `crates/grida/src/htmlcss/`                            |
+| Implement | Code change, data tests, behavior summary                | `crates/htmlcss/src/`                                  |
 | Verify    | Before/after scores, diff PNG review, divergence surface | PR description                                         |
 
 If a phase's artifact is missing, the phase isn't done — even if

@@ -10,7 +10,7 @@ fixtures/test-html/
 ├── L0/                # fixtures (source of truth, one concept per file)
 ├── _reftest/          # shared helper stylesheets (hide-text.css, …)
 └── suites/            # suite manifests consumed by both producers
-    ├── L0.exact.json      # must pass 100.00% byte-exact; CI gate
+    ├── L0.exact.json      # must pass 1.0 configured similarity; CI gate
     └── L0.coverage.json   # aspirational scope; tracks progress
 ```
 
@@ -163,12 +163,12 @@ and block flow. The suite defaults already pull it in; see
      ```
 5. **Verify** — run both producers against the suite. The grida cull
    should equal the viewport in the suite, and the refbrowser
-   screenshot should match pixel-for-pixel (or land somewhere in the
-   coverage spectrum, with the diff image showing the real
-   divergence).
-6. **Promote** — once the fixture reaches 100.00% byte-exact parity
-   with Chromium, move its entry from `L0.coverage.json` to
-   `L0.exact.json`.
+   screenshot should meet the suite's configured similarity bar (or
+   land somewhere in the coverage spectrum, with the diff image showing
+   the real divergence).
+6. **Promote** — once the fixture reaches 1.0 Chromium similarity under
+   the exact suite's threshold, AA-exclusion, and content-mask policy,
+   move its entry from `L0.coverage.json` to `L0.exact.json`.
 
 ## Known constraints of the current pipeline
 

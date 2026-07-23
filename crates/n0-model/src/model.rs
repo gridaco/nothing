@@ -1068,7 +1068,7 @@ impl Paint {
     }
 
     pub fn visible(&self) -> bool {
-        self.active() && self.opacity() != 0.0
+        self.active() && self.opacity() > 0.0
     }
 }
 

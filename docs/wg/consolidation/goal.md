@@ -20,6 +20,14 @@ engine, one model, many hosts**: a single pure core — document model,
 resolution, display-list build, paint — that every product surface
 hosts thinly.
 
+> **Amended (2026-07-21).** The **[Web-First
+> Amendment](./web-first.md)** supersedes the "one **model**" reading:
+> the end state is *one engine kernel, source-native semantic models, one
+> provisional resolved render contract, many hosts*. Sources converge
+> downstream at a shared render contract, not upstream at one authored
+> model; n0 is not the universal HTML/SVG model. The rest of this doc
+> stands.
+
 ## Why one engine
 
 Today two engines share this repository: the shipping legacy engine

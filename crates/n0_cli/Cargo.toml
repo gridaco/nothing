@@ -1,0 +1,28 @@
+[package]
+name = "n0_cli"
+version = "0.0.0"
+edition = "2024"
+description = "The thin n0 command host. Currently admits static HTML/CSS/SVG files through the mature Web renderer and writes CPU-raster PNGs."
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[[bin]]
+name = "n0"
+path = "src/main.rs"
+
+[dependencies]
+# The extracted mature Web renderer currently owns HTML/CSS/SVG semantics.
+# The host owns only source I/O, providers, the raster surface, and encoding.
+htmlcss = { path = "../htmlcss" }
+skia-safe = { version = "=0.93.1", features = [
+  "gpu",
+  "gl",
+  "textlayout",
+  "pdf",
+  "svg",
+  "webp",
+] }
+
+[lints]
+workspace = true

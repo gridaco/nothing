@@ -26,7 +26,7 @@ use style::Namespace as StyleNamespace;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::context::SharedStyleContext;
 use style::data::{ElementDataMut, ElementDataRef, ElementDataWrapper};
-use style::dom::{AttributeProvider, LayoutIterator, OpaqueNode, TElement, TNode};
+use style::dom::{LayoutIterator, OpaqueNode, TElement, TNode};
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{AttrValue as SelectorAttrValue, Lang, PseudoElement, SelectorImpl};
 use style::servo_arc::{Arc, ArcBorrow};
@@ -637,13 +637,7 @@ impl ::style::dom::TElement for HtmlElement {
     fn relative_selector_search_direction(&self) -> ElementSelectorFlags {
         ElementSelectorFlags::empty()
     }
-}
 
-// ---------------------------------------------------------------------------
-// style::dom::AttributeProvider
-// ---------------------------------------------------------------------------
-
-impl AttributeProvider for HtmlElement {
     fn get_attr(&self, attr: &style::LocalName, namespace: &StyleNamespace) -> Option<String> {
         self.attr_iter()
             .filter(|(a, _)| {

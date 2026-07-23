@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "kind": "chromium-primitive-suite",
+  "browser_version": "149.0.7827.55",
+  "bake_script_sha256": "24e1b9c645b1d621b3b8a8a6ef1c3a9896204a4aae2faaeb7d723bdef0ffb284",
+  "suite": "primitives.json",
+  "suite_sha256": "f7c908518388260785842928f2aad7a560a1b47a45c957b8297b25018d939765",
+  "capture": {
+    "device_scale_factor": 1,
+    "omit_background": true,
+    "source_transport": "data-url-from-file-bytes",
+    "javascript_enabled": false,
+    "network_enabled": false,
+    "target": "first-svg-element"
+  },
+  "fixtures": [
+    {
+      "id": "html-inline-svg-currentcolor-rect",
+      "source": "html-inline-svg-currentcolor-rect.html",
+      "source_sha256": "26c6bf984d4b5c91e113a48de9930c44451ce106cb6e6cca18f4c44c612eaffb",
+      "oracle": "chromium/html-inline-svg-currentcolor-rect.png",
+      "oracle_sha256": "6f4bc09437add7d83beb4429ffec5327b45c94ae909eab27f1225d6f82451d29",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "html-webpage-mockup",
+      "source": "html-webpage-mockup.html",
+      "source_sha256": "ca28fe0b58025bbe57694992edd4b69223ce91f31fecb242ec648ab54f3531af",
+      "oracle": "chromium/html-webpage-mockup.png",
+      "oracle_sha256": "6fc4ee34ebb9b61b81a96107517521e0517b2084592ebfefd1e384d08bfc35be",
+      "width": 640,
+      "height": 400
+    },
+    {
+      "id": "svg-currentcolor-rect",
+      "source": "svg-currentcolor-rect.svg",
+      "source_sha256": "f7d881acca20c0e12bc6b8d2c6db3d6a821f3b723efeaf80e00ddeac3d4f4ecf",
+      "oracle": "chromium/svg-currentcolor-rect.png",
+      "oracle_sha256": "6f4bc09437add7d83beb4429ffec5327b45c94ae909eab27f1225d6f82451d29",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-viewbox-uniform-offset-rect",
+      "source": "svg-viewbox-uniform-offset-rect.svg",
+      "source_sha256": "55075adfd6866a06127f7aef6ac8464aa7b45e9bfd4cd20a93dc3d1c4a25391e",
+      "oracle": "chromium/svg-viewbox-uniform-offset-rect.png",
+      "oracle_sha256": "08ea3a87af3072b2cfaec85313ee0ecb505bde33aef1db71b73111a5bc6f5221",
+      "width": 80,
+      "height": 40
+    }
+  ]
+}

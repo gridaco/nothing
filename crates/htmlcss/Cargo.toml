@@ -1,0 +1,29 @@
+[package]
+name = "htmlcss"
+version = "0.0.0"
+edition = "2021"
+description = "PROVISIONAL, INTERNAL, BREAKABLE. The extracted mature static HTML/CSS/SVG renderer. Transitional direct-Skia implementation; not the source-neutral engine contract."
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+cg = { path = "../cg" }
+csscascade = { path = "../csscascade" }
+math2 = { path = "../math2" }
+pulldown-cmark = "0.13.0"
+rustc-hash = "2"
+skia-safe = { version = "0.93.1", features = [
+  "gpu",
+  "gl",
+  "textlayout",
+  "pdf",
+  "svg",
+  "webp",
+] }
+stylo.workspace = true
+stylo_static_prefs.workspace = true
+taffy = "0.9.2"
+
+[lints]
+workspace = true

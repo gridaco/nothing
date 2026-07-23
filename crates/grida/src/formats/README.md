@@ -21,7 +21,7 @@ model. Grouping them under `formats/` keeps three boundaries honest:
 
 - `formats/` — touches only the format
 - [`../import/`](../import/) — converts external formats _into_ Grida
-- [`../htmlcss/`](../htmlcss/) (and other renderers) — produces pixels
+- [`crates/htmlcss`](../../../htmlcss/src/) (and other renderers) — produces pixels
 
 A function should pick exactly one of those homes. If it spans two,
 split it.
@@ -34,7 +34,7 @@ When adding a new helper, ask in order:
    `Node`, or `.grida` bytes? → [`../import/`](../import/) or
    [`../export/`](../export/).
 2. Does it produce a `skia_safe::Picture` or otherwise drive rendering?
-   → a renderer module (e.g. [`../htmlcss/`](../htmlcss/)).
+   → a renderer module (e.g. [`crates/htmlcss`](../../../htmlcss/src/)).
 3. Otherwise — pure format-in / format-out, or format → standard parser
    tree → here.
 

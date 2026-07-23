@@ -132,7 +132,7 @@ drift.
   unknowns.
 - **D-\* / registry decision** — an owner decision with a stated
   evidence bar and a phase where it's taken (D-C, D-D, D6, D-E, D-H,
-  D-G(b), D-I, D-J, D-K, AMD, FLIP, NAME). Decisions are not taken
+  D-G(b), D-I, D-J, D-K, D-L, D-M, AMD, FLIP, NAME). Decisions are not taken
   early and not renegotiated late.
 - **GO** — the owner's explicit approval, required for merges to main
   and registry decisions. All-green CI is necessary, not sufficient.

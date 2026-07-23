@@ -2,6 +2,7 @@
 resolver = "3"
 members = [
   "crates/cg",
+  "crates/htmlcss",
   "crates/grida",
   "crates/grida_editor",
   "crates/grida-canvas-wasm",
@@ -12,7 +13,10 @@ members = [
   "crates/math2",
   "crates/n0",
   "crates/n0-model",
+  "crates/n0_cli",
   "crates/n0_dev",
+  "crates/rframe",
+  "crates/websem",
 ]
 
 # Inherited only by crates that opt in via `.workspace = true` (currently n0).
@@ -22,6 +26,19 @@ edition = "2024"
 homepage = "https://nothing.graphics"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/gridaco/nothing"
+
+# D-L: use the minimal immutable official-upstream Stylo revision carrying
+# servo/stylo#383. Replace the git pin with the first published release that
+# contains that change. Registry version fallbacks are deliberately absent
+# while csscascade is non-publishable: Cargo must not silently package the
+# older 0.19.0 semantics.
+[workspace.dependencies]
+selectors = { git = "https://github.com/servo/stylo.git", rev = "a64923b5d5c67313c81c5056f5e30ec0babb04d6" }
+stylo = { git = "https://github.com/servo/stylo.git", rev = "a64923b5d5c67313c81c5056f5e30ec0babb04d6" }
+stylo_atoms = { git = "https://github.com/servo/stylo.git", rev = "a64923b5d5c67313c81c5056f5e30ec0babb04d6" }
+stylo_dom = { git = "https://github.com/servo/stylo.git", rev = "a64923b5d5c67313c81c5056f5e30ec0babb04d6" }
+stylo_static_prefs = { git = "https://github.com/servo/stylo.git", rev = "a64923b5d5c67313c81c5056f5e30ec0babb04d6" }
+style_traits = { package = "stylo_traits", git = "https://github.com/servo/stylo.git", rev = "a64923b5d5c67313c81c5056f5e30ec0babb04d6" }
 
 [workspace.lints.rust]
 unreachable_pub = "warn"
