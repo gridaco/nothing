@@ -56,10 +56,17 @@ fn websem_normal_edge_keeps_rframe_backend_free() {
         manifest.contains("animation-sampling = { path = \"../animation-sampling\" }"),
         "Web animation must use the source-neutral exact sampling kernel"
     );
-    for forbidden in ["quick-xml", "roxmltree", "xmlparser"] {
+    for forbidden in [
+        "quick-xml",
+        "roxmltree",
+        "xmlparser",
+        "xml5ever",
+        "html5ever",
+    ] {
         assert!(
             !manifest.contains(forbidden),
-            "the retained html5ever document must not acquire a second SVG parser: {forbidden}"
+            "websem must not own a parser; both grammar entries into the one document shape \
+             belong to csscascade: {forbidden}"
         );
     }
 }

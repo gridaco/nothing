@@ -2,7 +2,7 @@
 name = "websem"
 version = "0.0.0"
 edition = "2024"
-description = "PROVISIONAL, INTERNAL, BREAKABLE. The Web-first semantic front-end: one namespace-aware document + one Stylo cascade + retained SVG semantics lowering Base and an admitted exact-time rect-x slice to `rframe::Frame`. A conforming standalone SVG/XML grammar entry remains required. No I/O, no network, no legacy import path."
+description = "PROVISIONAL, INTERNAL, BREAKABLE. The Web-first semantic front-end: one namespace-aware document + one Stylo cascade + retained SVG semantics lowering Base and an admitted exact-time rect-x slice to `rframe::Frame`. Standalone SVG enters through csscascade's conforming XML grammar; SVG stylesheet and presentation-hint cascade ingress remain. No I/O, no network, no legacy import path."
 license.workspace = true
 repository.workspace = true
 publish = false

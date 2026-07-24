@@ -1,7 +1,10 @@
 //! Arena-based DOM representation for csscascade.
 //!
-//! Provides [`DemoDom`] — a flat, arena-allocated DOM tree built by html5ever's
-//! [`TreeSink`] trait.  Every node lives in a `Vec<DemoNode>` and is addressed
+//! Provides [`DemoDom`] — a flat, arena-allocated DOM tree built through the
+//! shared markup5ever [`TreeSink`] trait. Two grammar entries drive the same
+//! sink into the same semantic document shape: html5ever for HTML documents
+//! and xml5ever for conforming standalone SVG/XML documents (namespace-aware,
+//! case-preserving). Every node lives in a `Vec<DemoNode>` and is addressed
 //! by a lightweight [`NodeId`] index.  After parsing, the DOM is frozen and
 //! handed off to the Stylo adapter layer ([`crate::adapter`]).
 
@@ -32,6 +35,7 @@ use style::{
 use stylo_atoms::Atom as WeakAtom;
 use tendril::StrTendril;
 use url::Url;
+use xml5ever::driver::{XmlParseOpts, parse_document as parse_xml_document};
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -111,6 +115,25 @@ impl DemoDom {
     pub fn parse_from_bytes(bytes: &[u8]) -> io::Result<Self> {
         let mut reader = Cursor::new(bytes);
         let dom = parse_document(DemoDomBuilder::new(), ParseOpts::default())
+            .from_utf8()
+            .read_from(&mut reader)?;
+        Ok(dom)
+    }
+
+    /// Parse a standalone SVG/XML document from raw bytes into the same
+    /// semantic DOM shape [`Self::parse_from_bytes`] produces for HTML.
+    ///
+    /// The XML grammar is namespace-aware and case-preserving: element and
+    /// attribute names keep their authored case, and namespaces come from
+    /// authored `xmlns` declarations rather than HTML foreign-content rules.
+    /// xml5ever implements the error-recovering XML5 grammar; recoveries the
+    /// grammar records are surfaced in [`DemoDom::errors`] so a strict caller
+    /// can refuse recovered-from input, while the recovery classes XML5
+    /// deliberately leaves unrecorded are pinned as executable boundary laws
+    /// in `tests/xml_document_entry.rs`.
+    pub fn parse_xml_from_bytes(bytes: &[u8]) -> io::Result<Self> {
+        let mut reader = Cursor::new(bytes);
+        let dom = parse_xml_document(DemoDomBuilder::new(), XmlParseOpts::default())
             .from_utf8()
             .read_from(&mut reader)?;
         Ok(dom)

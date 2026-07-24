@@ -195,7 +195,7 @@ fn render_source_to_png(
         );
     }
     if kind == SourceKind::Svg && policy != FramePolicy::MatureStatic {
-        let retained = websem::SvgFrameSource::from_bare_svg_scaffold(source)
+        let retained = websem::SvgFrameSource::from_standalone_svg(source)
             .map_err(|error| error.to_string())?;
         let frame = match policy {
             FramePolicy::Base => retained.base_frame(),

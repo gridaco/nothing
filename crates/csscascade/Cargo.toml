@@ -31,6 +31,9 @@ euclid = "0.22.11"
 # below deps are already included in stylo, this does not increase bundle size, we have them for ease of use
 cssparser = "0.37.0"
 html5ever = "0.36.1"
+# html5ever's XML sibling on the same markup5ever TreeSink infrastructure —
+# the conforming standalone SVG/XML grammar entry into the one DemoDom shape.
+xml5ever = "0.36.1"
 markup5ever = "0.36.1"
 tendril = "0.4.3"
 atomic_refcell = "0.1.13"

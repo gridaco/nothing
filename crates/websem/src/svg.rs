@@ -1,18 +1,22 @@
 //! The SVG semantic compiler — the shared machinery both grammar entries use.
 //!
-//! One namespace-aware document (`csscascade::DemoDom`, html5ever) and one
-//! browser-grade cascade (`csscascade::CascadeDriver`, Stylo) resolve the
-//! source; this compiler then reads *resolved* facts — geometry from
-//! presentation attributes, paint from the SVG paint model (`fill`,
-//! `currentColor`) resolved against the cascaded computed `color` — and emits
-//! the source-neutral [`rframe::Frame`]. It never touches the legacy SVG-only
-//! matcher, never serializes-and-reparses inline SVG, and never paints.
+//! One namespace-aware document (`csscascade::DemoDom`) and one browser-grade
+//! cascade (`csscascade::CascadeDriver`, Stylo) resolve the source. Two
+//! grammar entries reach that shared machinery: inline SVG inside an HTML
+//! document (html5ever, compiled in place from the one document) and
+//! conforming standalone SVG/XML (xml5ever in csscascade — namespace-aware,
+//! case-preserving, recorded recoveries refused). This compiler then reads
+//! *resolved* facts — geometry from presentation attributes, paint from the
+//! SVG paint model (`fill`, `currentColor`) resolved against the cascaded
+//! computed `color` — and emits the source-neutral [`rframe::Frame`]. It
+//! never touches the legacy SVG-only matcher, never serializes-and-reparses
+//! inline SVG, and never paints.
 //!
 //! Deliberately narrow: the proving shell supports only the enumerated
 //! viewport/fill cases around an outer `<svg>` and solid-filled `<rect>`, plus
 //! one retained exact-time `<animate attributeName="x">` slice.
 //! [`CompileError`] makes patrolled static rejection cases explicit and
-//! [`crate::AnimationError`] closes the sampled bare-SVG dynamic inventory.
+//! [`crate::AnimationError`] closes the sampled standalone dynamic inventory.
 //! Inline HTML remains Base-only until its document-wide inventory is closed.
 //! This is not yet an exhaustive SVG-surface validator or an SVG capability
 //! claim.
@@ -51,7 +55,22 @@ use rframe::frame::{Frame, FrameNode, Geometry, Identity, Provenance, SolidPaint
 use std::sync::Arc;
 
 use crate::effective_values::EffectiveValues;
-use crate::svg_animation::{AnimationInventory, InventoryScope, is_animation_element};
+use crate::svg_animation::{AnimationInventory, is_animation_element};
+
+/// Which grammar entry retained the source.
+///
+/// The entry selects the parser and the closed dynamic-inventory scope; both
+/// entries produce the same semantic document shape and compile through the
+/// same SVG compiler.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SourceEntry {
+    /// Conforming standalone SVG/XML through csscascade's namespace-aware,
+    /// case-preserving XML grammar. Recorded XML5 recoveries are refused.
+    StandaloneSvg,
+    /// Inline SVG inside an HTML document (html5ever; the HTML document's
+    /// own leniency rules apply).
+    InlineHtml,
+}
 
 /// An explicit failure in the proving shell's enumerated grammar checks.
 ///
@@ -59,8 +78,17 @@ use crate::svg_animation::{AnimationInventory, InventoryScope, is_animation_elem
 /// closed primitive suite defines the shell's positive coverage.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompileError {
-    /// No `<svg>` element was found in the document.
+    /// No `<svg>` element was found in the document. For the standalone
+    /// entry this includes a root element outside the SVG namespace or with
+    /// a local name other than exactly `svg` — XML is case-sensitive and
+    /// namespaces come from authored `xmlns` declarations.
     NoSvgRoot,
+    /// The standalone source is not well-formed XML: the XML5 grammar
+    /// recorded a recovery, and recovered-from input is refused rather than
+    /// silently accepted. (Recovery classes XML5 deliberately leaves
+    /// unrecorded — e.g. unquoted attribute values — are a named open
+    /// boundary pinned in csscascade's entry laws, not a claim here.)
+    MalformedXml(String),
     /// An element the slice does not support (only `<svg>` and `<rect>` do).
     UnsupportedElement(String),
     /// A `fill` value the slice cannot resolve.
@@ -109,35 +137,48 @@ impl SvgFrameSource {
     /// Retain an HTML document and compile its first inline SVG in place under
     /// the document's one Stylo cascade.
     pub fn from_html_inline_svg(source: impl Into<Arc<str>>) -> Result<Self, CompileError> {
-        Self::from_source(source.into(), InventoryScope::InlineHtml)
+        Self::from_source(source.into(), SourceEntry::InlineHtml)
     }
 
-    /// Retain the current bare-SVG html5ever scaffold.
+    /// Retain one conforming standalone SVG/XML document.
     ///
-    /// This does not claim to be the conforming standalone SVG/XML grammar
-    /// entry; the explicit name keeps that remaining boundary visible.
-    pub fn from_bare_svg_scaffold(source: impl Into<Arc<str>>) -> Result<Self, CompileError> {
-        Self::from_source(source.into(), InventoryScope::BareSvgScaffold)
+    /// The source parses through csscascade's namespace-aware, case-preserving
+    /// XML grammar into the same semantic document shape the HTML entry
+    /// produces. Recorded XML recoveries are refused explicitly, and the root
+    /// element must be exactly `svg` in the SVG namespace (from an authored
+    /// `xmlns` declaration) — a document Chromium would not treat as SVG is
+    /// not treated as SVG here.
+    pub fn from_standalone_svg(source: impl Into<Arc<str>>) -> Result<Self, CompileError> {
+        Self::from_source(source.into(), SourceEntry::StandaloneSvg)
     }
 
-    fn from_source(
-        source: Arc<str>,
-        inventory_scope: InventoryScope,
-    ) -> Result<Self, CompileError> {
+    fn from_source(source: Arc<str>, entry: SourceEntry) -> Result<Self, CompileError> {
         // Idempotent for the same state; safe to call per retained source.
         thread_state::initialize(ThreadState::LAYOUT);
 
-        let dom = DemoDom::parse_from_bytes(source.as_bytes()).expect("parse document");
+        let dom = match entry {
+            SourceEntry::StandaloneSvg => DemoDom::parse_xml_from_bytes(source.as_bytes()),
+            SourceEntry::InlineHtml => DemoDom::parse_from_bytes(source.as_bytes()),
+        }
+        .expect("parse document");
+        if entry == SourceEntry::StandaloneSvg && !dom.errors.is_empty() {
+            return Err(CompileError::MalformedXml(dom.errors.join("; ")));
+        }
         let mut session = DocumentSession::new(dom);
         CascadeDriver::new(&mut session).style_document();
 
         let (svg_root, compilation, animation) = {
             let document = session.document();
             let root = document.root_element().ok_or(CompileError::NoSvgRoot)?;
-            let svg = find_svg(root).ok_or(CompileError::NoSvgRoot)?;
+            let svg = match entry {
+                SourceEntry::StandaloneSvg => (root.is_svg_element()
+                    && root.local_name_string() == "svg")
+                    .then_some(root)
+                    .ok_or(CompileError::NoSvgRoot)?,
+                SourceEntry::InlineHtml => find_svg(root).ok_or(CompileError::NoSvgRoot)?,
+            };
             let compilation = compile_svg_element(svg, &EffectiveValues::base())?;
-            let animation =
-                AnimationInventory::inspect(svg, &compilation.materialized, inventory_scope);
+            let animation = AnimationInventory::inspect(svg, &compilation.materialized, entry);
             (svg.node_id(), compilation, animation)
         };
 
@@ -204,6 +245,9 @@ impl std::fmt::Display for CompileError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             CompileError::NoSvgRoot => write!(f, "no <svg> element in document"),
+            CompileError::MalformedXml(errors) => {
+                write!(f, "standalone SVG is not well-formed XML: {errors}")
+            }
             CompileError::UnsupportedElement(t) => write!(f, "unsupported element <{t}>"),
             CompileError::UnsupportedFill(v) => write!(f, "unsupported fill value {v:?}"),
             CompileError::BadNumber { attr, value } => {
@@ -233,14 +277,11 @@ pub fn compile_html_inline_svg(html: &str) -> Result<Frame, CompileError> {
     SvgFrameSource::from_html_inline_svg(html).map(|source| source.base_frame())
 }
 
-/// Compile a bare `<svg>` scaffold into an SVG-local [`Frame`], through
-/// html5ever's foreign-content handling and the same compiler as the inline
-/// entry.
-///
-/// This is deliberately not advertised as the conforming standalone SVG/XML
-/// grammar entry required by the Web-First Amendment.
+/// Compile one conforming standalone SVG/XML document into an SVG-local
+/// [`Frame`], through csscascade's namespace-aware XML grammar and the same
+/// compiler as the inline entry.
 pub fn compile_standalone_svg(svg: &str) -> Result<Frame, CompileError> {
-    SvgFrameSource::from_bare_svg_scaffold(svg).map(|source| source.base_frame())
+    SvgFrameSource::from_standalone_svg(svg).map(|source| source.base_frame())
 }
 
 /// First `<svg>` element in document order.
@@ -337,13 +378,17 @@ fn compile_svg_element(
 }
 
 /// Compile a single shape element into a resolved node.
+///
+/// Local names match exactly: SVG element names are case-sensitive, and each
+/// grammar entry already applies its own canonicalization (the HTML tokenizer
+/// lowercases and foreign-content-adjusts; XML preserves authored case).
 fn compile_shape(
     el: HtmlElement<'_>,
     viewport: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
 ) -> Result<FrameNode, CompileError> {
-    let tag = el.local_name_string().to_ascii_lowercase();
+    let tag = el.local_name_string();
     match tag.as_str() {
         "rect" => compile_rect(el, viewport, next_id, values),
         other => Err(CompileError::UnsupportedElement(other.to_string())),
@@ -483,11 +528,16 @@ fn reject_negative_dimension(attr: &str, value: f32) -> Result<(), CompileError>
     Ok(())
 }
 
-/// Read an element attribute by local name from its owning document session.
+/// Read an element attribute by exact local name from its owning document
+/// session. SVG attribute names are case-sensitive; each grammar entry
+/// already applies its own canonicalization (the HTML tokenizer lowercases
+/// and foreign-content-adjusts known SVG attributes to their canonical case;
+/// XML preserves authored case), so an authored `viewbox` in XML is honestly
+/// not `viewBox`.
 fn get_attr(element: HtmlElement<'_>, name: &str) -> Option<String> {
     if let DemoNodeData::Element(e) = &element.dom_node().data {
         for a in &e.attrs {
-            if a.name.local.as_ref().eq_ignore_ascii_case(name) {
+            if a.name.local.as_ref() == name {
                 return Some(a.value.to_string());
             }
         }

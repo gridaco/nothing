@@ -278,9 +278,9 @@ fn retained_rect_x_samples_are_exact_to_chromium_and_seek_order_independent() {
     let static_text =
         fs::read_to_string(root.join(&suite.base.source)).expect("read Base SVG source");
     let source =
-        SvgFrameSource::from_bare_svg_scaffold(animated_text.clone()).expect("retain animated SVG");
+        SvgFrameSource::from_standalone_svg(animated_text.clone()).expect("retain animated SVG");
     let static_source =
-        SvgFrameSource::from_bare_svg_scaffold(static_text).expect("retain static Base SVG");
+        SvgFrameSource::from_standalone_svg(static_text).expect("retain static Base SVG");
 
     assert_eq!(source.source(), animated_text);
     assert!(source.has_animation_elements());
@@ -354,7 +354,7 @@ fn retained_rect_x_samples_are_exact_to_chromium_and_seek_order_independent() {
 fn chassis_damage_observes_the_same_stable_animated_visual() {
     let root = fixture_root();
     let suite = suite();
-    let source = SvgFrameSource::from_bare_svg_scaffold(
+    let source = SvgFrameSource::from_standalone_svg(
         fs::read_to_string(root.join(&suite.animation.source)).expect("read animated SVG"),
     )
     .expect("retain animated SVG");
@@ -409,7 +409,7 @@ fn unsupported_animation_is_retained_for_base_and_refused_for_sample() {
                  <rect x="4" y="4" width="4" height="4">{markup}</rect>
                </svg>"#
         );
-        let source = SvgFrameSource::from_bare_svg_scaffold(svg).expect("Base materializes");
+        let source = SvgFrameSource::from_standalone_svg(svg).expect("Base materializes");
         assert!(source.has_animation_elements());
         assert_eq!(probe_single_x(&source.base_frame()), 4.0);
         let error = source
@@ -453,7 +453,7 @@ fn sampling_refuses_dynamic_side_channels_and_unclosed_inline_html() {
                  <rect x="4" y="4" width="4" height="4" {rect_attributes}>{child}</rect>
                </svg>"#
         );
-        let source = SvgFrameSource::from_bare_svg_scaffold(svg).expect("Base materializes");
+        let source = SvgFrameSource::from_standalone_svg(svg).expect("Base materializes");
         let error = source
             .sample_frame(SampleTime::ZERO)
             .expect_err("dynamic side channel must refuse Sample");
@@ -481,7 +481,7 @@ fn sampling_refuses_dynamic_side_channels_and_unclosed_inline_html() {
 
 #[test]
 fn static_sample_equals_base_and_web_timing_observes_final_boundary() {
-    let static_source = SvgFrameSource::from_bare_svg_scaffold(
+    let static_source = SvgFrameSource::from_standalone_svg(
         r#"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">
              <rect x="4" y="4" width="4" height="4"/>
            </svg>"#,
@@ -500,7 +500,7 @@ fn static_sample_equals_base_and_web_timing_observes_final_boundary() {
         static_source.base_frame()
     );
 
-    let animated = SvgFrameSource::from_bare_svg_scaffold(
+    let animated = SvgFrameSource::from_standalone_svg(
         r#"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">
              <rect x="4" y="4" width="4" height="4">
                <animate attributeName="x" from="0" to="1" dur="1ms" fill="freeze"/>

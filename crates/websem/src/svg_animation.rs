@@ -16,6 +16,7 @@ use csscascade::dom::{DemoNodeData, NodeId};
 use style::dom::TElement;
 
 use crate::effective_values::EffectiveValues;
+use crate::svg::SourceEntry;
 
 /// A deterministic rejection from the deliberately closed rect-x animation
 /// slice.
@@ -64,17 +65,11 @@ pub(crate) struct AnimationInventory {
     result: Result<Option<RectXAnimation>, AnimationError>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum InventoryScope {
-    BareSvgScaffold,
-    InlineHtml,
-}
-
 impl AnimationInventory {
     pub(crate) fn inspect(
         svg: HtmlElement<'_>,
         materialized: &[NodeId],
-        scope: InventoryScope,
+        entry: SourceEntry,
     ) -> Self {
         let mut inspector = Inspector {
             materialized: materialized.iter().copied().collect(),
@@ -84,7 +79,7 @@ impl AnimationInventory {
         };
         inspector.inspect_dynamic_surface(svg, "svg");
         inspector.walk_children(svg, "svg");
-        if scope == InventoryScope::InlineHtml {
+        if entry == SourceEntry::InlineHtml {
             inspector.record_error(AnimationError::new(
                 "document",
                 "inline HTML sampling is not admitted until document-wide CSS and script inventory is closed",
