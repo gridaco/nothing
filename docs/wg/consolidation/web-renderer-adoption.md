@@ -339,3 +339,16 @@ shell remains bounded until its n0 replacement earns the applicable gates.
 The implementation sequence and candidate cascade cuts are intentionally kept
 out of this finding. The charter owns outcome sequencing; the local working
 plan owns disposable implementation ordering.
+
+## Subsequent status (2026-07-24)
+
+**D-N** ([the SVG engine of record](./svg-engine-of-record.md)) resolved this
+finding's subject by owner direction: the n0 path is the product route —
+the `n0` host cut over to it with loud named refusals standing in for
+unported capability — and the mature Web renderer is demoted to a **frozen
+semantics donor**. That supersedes this finding's standing statement that
+"no production path is replaced or deleted here": the host route was
+replaced by dispensation, with the capability regression recorded in D-N
+rather than earned through a gate; FLIP remains unratified and no
+conformance is claimed. This finding's per-capability reuse analysis is
+unchanged and now reads as the donor-mining map for the evolution rungs.

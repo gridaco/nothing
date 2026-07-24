@@ -8,8 +8,11 @@
 //! exact signed-nanosecond Sample of the same compile. Time changes
 //! effective values only — it selects no route.
 //!
-//! Inputs outside the admitted slice refuse loudly with the unsupported
-//! construct named; nothing degrades silently. The host owns arguments,
+//! Beyond-slice constructs refuse loudly with the unsupported construct
+//! named. The HTML entry compiles exactly the document's first inline SVG:
+//! when that subtree is admitted the render succeeds and the surrounding
+//! page contributes nothing (a pinned contract, not a silent drop); when it
+//! is not, the host refuses by name. The host owns arguments,
 //! file I/O, an explicit raster size, CPU rasterization, and PNG encoding.
 //! Local/remote images and external stylesheets are not resolved; directory
 //! input and non-PNG output remain outside the admitted host contract.
@@ -477,10 +480,12 @@ mod tests {
             error.contains("inline HTML"),
             "the refusal names the entry: {error}"
         );
-        assert!(
+        let error =
             render_source_to_png("<html></html>", SourceKind::Html, 64, 32, FramePolicy::Base)
-                .is_err(),
-            "a document with no inline SVG refuses at construction"
+                .expect_err("a document with no inline SVG refuses at construction");
+        assert!(
+            error.contains("no <svg> element"),
+            "the refusal names the missing root: {error}"
         );
     }
 }

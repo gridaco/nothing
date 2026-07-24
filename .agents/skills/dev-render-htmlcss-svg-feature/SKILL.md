@@ -11,6 +11,13 @@ description: >
 
 # grida-htmlcss::svg — feature loop
 
+> **Status (2026-07-24): the target module is a frozen donor.** Per
+> [D-N, the SVG engine of record](../../../docs/wg/consolidation/svg-engine-of-record.md),
+> no new behavior lands in `htmlcss::svg`; SVG capability evolves as rungs
+> on the engine of record (`websem → rframe → n0`), Chromium-baked under
+> `fixtures/web-first/`. Use this loop only for owner-directed wire-back or
+> donor study — not for new feature work.
+
 **What this is.** A heavy, manually-invoked loop for driving a single
 SVG feature forward in `crates/htmlcss/src/svg/`. Do not
 auto-trigger; load only when the user explicitly runs it.

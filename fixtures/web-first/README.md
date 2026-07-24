@@ -25,11 +25,12 @@ oracle with zero differing pixels. The gate also validates enumeration and
 provenance and double-runs both raw raster and PNG encoding (see
 `crates/websem/tests/reftest_oracle.rs`).
 
-Render a primitive through the `n0` product command and the adopted mature Web
-renderer. This is a manual host-integration path, not the proving shell's
-Chromium oracle gate. The patrolled inputs under `unsupported/` still describe
-the narrower `websem → rframe::Frame` proving shell; arbitrary SVG outside the
-closed suite is not capability coverage for that shell:
+Render a primitive through the `n0` product command — since
+[D-N](../../docs/wg/consolidation/svg-engine-of-record.md) it routes through
+the same `websem → rframe → n0` pipeline the oracle gate proves, so this is a
+manual host check of the one engine, not a second renderer. Arbitrary SVG
+outside the closed suite is not capability coverage; beyond-slice inputs
+refuse with the construct named (see `unsupported/`):
 
 ```sh
 cargo run -p n0_cli --bin n0 -- \

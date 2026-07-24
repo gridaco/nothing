@@ -68,10 +68,14 @@ explicit render loop. The owner's direction, quoted for provenance:
   the freeze boundary at exact nanosecond granularity, and that sampling
   never mutates retained state. Kernel-side identity and damage laws live in
   `crates/n0` and `crates/n0-model`.
-- **E3.** Everything outside the admitted slice refuses loudly with the
-  unsupported construct named (compile errors and sample-time animation
-  refusals), never wrong pixels — the refusal discipline is itself
-  law-tested (`typed_fill.rs`, `svg_animation_x.rs`, `standalone_xml_entry.rs`).
+- **E3.** Beyond-slice constructs refuse loudly with the construct named
+  (compile errors and sample-time animation refusals), never wrong pixels —
+  the refusal discipline is itself law-tested (`typed_fill.rs`,
+  `svg_animation_x.rs`, `standalone_xml_entry.rs`). The HTML entry has one
+  scoped boundary of a different shape: it compiles exactly the document's
+  **first inline SVG** — when that subtree is admitted the render succeeds
+  and the surrounding page (layout, text, later SVGs) contributes nothing.
+  That first-SVG-only contract is pinned by a host law, not left silent.
 - **E4.** The mature renderer's own documentation marks it transitional:
   `crates/htmlcss/src/svg/README.md` scopes it static-only (SMIL out of
   scope), records the in-tree matcher as temporary ("Replacing the in-tree
@@ -106,13 +110,17 @@ explicit render loop. The owner's direction, quoted for provenance:
 
 Scope and consequences, pinned:
 
-- **Capability regression, stated honestly.** Inputs the mature route
-  rendered — basic shapes beyond rect, paths, strokes, gradients, text,
-  filters, general HTML pages — now refuse at the host with named errors
-  until their evolution rungs land. The refusals are the capability
-  statement; nothing silently degrades. Wire-back of any legacy capability
-  is deferred, per the owner's dispensation quoted above, until the work is
-  done and proven.
+- **Capability regression, stated honestly.** SVG constructs the mature
+  route rendered — basic shapes beyond rect, paths, strokes, gradients,
+  text, filters — now refuse at the host with named errors until their
+  evolution rungs land; the refusals are the capability statement. General
+  HTML pages regress along the HTML entry's contract instead: the host
+  renders the page's first inline SVG when it is admitted (and refuses by
+  name when it is not); everything else on the page contributes nothing.
+  Both boundaries are pinned as host laws — the refusal pins and the
+  first-SVG-only pin — so the regression is observable, never silent.
+  Wire-back of any legacy capability is deferred, per the owner's
+  dispensation quoted above, until the work is done and proven.
 - **`htmlcss::svg` is a frozen donor.** Its Blink-anchored modules (typed
   attribute grammars, path data, viewport mathematics, resource resolution,
   paint order) are the reference and source material that evolution rungs
