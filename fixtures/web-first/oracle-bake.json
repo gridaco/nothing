@@ -4,7 +4,7 @@
   "browser_version": "149.0.7827.55",
   "bake_script_sha256": "24e1b9c645b1d621b3b8a8a6ef1c3a9896204a4aae2faaeb7d723bdef0ffb284",
   "suite": "primitives.json",
-  "suite_sha256": "f7c908518388260785842928f2aad7a560a1b47a45c957b8297b25018d939765",
+  "suite_sha256": "cb3f13d1d9a70140f22ffb0180081e048a6f84c2347e2fd00e9d88bc43a2bd17",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -38,6 +38,60 @@
       "source_sha256": "f7d881acca20c0e12bc6b8d2c6db3d6a821f3b723efeaf80e00ddeac3d4f4ecf",
       "oracle": "chromium/svg-currentcolor-rect.png",
       "oracle_sha256": "6f4bc09437add7d83beb4429ffec5327b45c94ae909eab27f1225d6f82451d29",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-fill-named-rect",
+      "source": "svg-fill-named-rect.svg",
+      "source_sha256": "7127e58e0855b724863533b8e0a35641234168494faacfe38eb26d5c3bbdcabf",
+      "oracle": "chromium/svg-fill-named-rect.png",
+      "oracle_sha256": "97f834fa9466f984aebbc680fda4da59505bdc42bb3a90dc764451e242189cef",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-fill-inherited-rect",
+      "source": "svg-fill-inherited-rect.svg",
+      "source_sha256": "d75618d3a1b20207825b81edf78ee5101769b81f5f72d4c7223c5b900be66beb",
+      "oracle": "chromium/svg-fill-inherited-rect.png",
+      "oracle_sha256": "6f4bc09437add7d83beb4429ffec5327b45c94ae909eab27f1225d6f82451d29",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-fill-invalid-initial-rect",
+      "source": "svg-fill-invalid-initial-rect.svg",
+      "source_sha256": "8ce268cb77f6e9804e764efa9ea8ff46715381581ce410f21e53d48f99d3bd38",
+      "oracle": "chromium/svg-fill-invalid-initial-rect.png",
+      "oracle_sha256": "7eeff912d720bee7b3756384e5986510b1cc7ee397af88d98b9b876034b8cb24",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-fill-none-rect",
+      "source": "svg-fill-none-rect.svg",
+      "source_sha256": "4b055e35e6a87c56b0611a7f3eecdf3decedd26d2297892ead3bcae57a8c3df3",
+      "oracle": "chromium/svg-fill-none-rect.png",
+      "oracle_sha256": "6f4bc09437add7d83beb4429ffec5327b45c94ae909eab27f1225d6f82451d29",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-style-element-fill-rect",
+      "source": "svg-style-element-fill-rect.svg",
+      "source_sha256": "43edb92d8591031e789a75b54f68a05516dc63352edfa9794b59a00198d5c4ca",
+      "oracle": "chromium/svg-style-element-fill-rect.png",
+      "oracle_sha256": "aff547978c6d4b4d433e4e71089bf2883b5aea4bb500a035cc798a351c54a8bc",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-style-attribute-fill-rect",
+      "source": "svg-style-attribute-fill-rect.svg",
+      "source_sha256": "44caf27e6739d910827418849a8a9b7b13d459998f1c8f1feaf6457e66a2b3ce",
+      "oracle": "chromium/svg-style-attribute-fill-rect.png",
+      "oracle_sha256": "d4613016ba26440b3c15caf2420ee93d3a6364dd876d9ff3c95c44afe28209a9",
       "width": 64,
       "height": 64
     },

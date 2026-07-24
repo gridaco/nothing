@@ -6,11 +6,10 @@
 //! document (html5ever, compiled in place from the one document) and
 //! conforming standalone SVG/XML (xml5ever in csscascade — namespace-aware,
 //! case-preserving, recorded recoveries refused). This compiler then reads
-//! *resolved* facts — geometry from presentation attributes, paint from the
-//! SVG paint model (`fill`, `currentColor`) resolved against the cascaded
-//! computed `color` — and emits the source-neutral [`rframe::Frame`]. It
-//! never touches the legacy SVG-only matcher, never serializes-and-reparses
-//! inline SVG, and never paints.
+//! *resolved* facts — geometry from presentation attributes, paint as typed
+//! computed SVG values from the one cascade — and emits the source-neutral
+//! [`rframe::Frame`]. It never touches the legacy SVG-only matcher, never
+//! serializes-and-reparses inline SVG, and never paints.
 //!
 //! Deliberately narrow: the proving shell supports only the enumerated
 //! viewport/fill cases around an outer `<svg>` and solid-filled `<rect>`, plus
@@ -22,16 +21,15 @@
 //! claim.
 //!
 //! ## SVG paint boundary
-//! The workspace's official Stylo revision exposes the typed basic SVG paint
-//! longhands under the Servo engine, and the shared cascade now ingests SVG
-//! presentation hints (admitted set: `fill`) and SVG-namespace stylesheets
-//! (both owned by csscascade). This compiler has not yet switched to the
-//! typed paint values: [`resolve_fill`] still reads the direct `fill`
-//! attribute and uses computed `color` only to resolve `currentColor`. That
-//! makes stylesheet-fed `color` already pixel-visible through
-//! `currentColor` (pinned in `tests/svg_stylesheet_intake.rs`), while
-//! stylesheet-fed `fill` is not yet consumed — typed consumption is the
-//! next capability step and carries its own Chromium fixtures.
+//! Paint is consumed from the one Stylo cascade as typed values:
+//! [`resolve_fill`] reads the computed SVG `fill` longhand, which
+//! presentation hints (admitted set: `fill`), stylesheet rules, and inline
+//! style attributes all feed with SVG2 precedence — csscascade owns every
+//! ingress. `currentColor` resolves against the cascaded `color`; invalid
+//! authored values fall back exactly as invalid CSS declarations. Paint
+//! servers and context paints refuse explicitly, and `fill-opacity` is
+//! deliberately not yet consumed. The Chromium-baked primitive suite gates
+//! the admitted value surface pixel-exactly.
 //!
 //! ## Document lifetime
 //! Each retained source owns one [`csscascade::adapter::DocumentSession`].
@@ -46,10 +44,12 @@ use csscascade::adapter::{DocumentSession, HtmlElement};
 use csscascade::cascade::CascadeDriver;
 use csscascade::dom::{DemoDom, DemoNodeData, NodeId};
 
-use style::color::ColorSpace;
+use style::color::{AbsoluteColor, ColorSpace};
 use style::dom::TElement;
 use style::properties::ComputedValues;
 use style::thread_state::{self, ThreadState};
+use style::values::computed::SVGOpacity;
+use style::values::generics::svg::SVGPaintKind;
 
 use cg::CGColor;
 use math2::Rectangle;
@@ -369,7 +369,11 @@ fn compile_svg_element(
     let mut next_id = 0u64;
     let mut child = svg.first_element_child();
     while let Some(c) = child {
-        if !is_animation_element(&c.local_name_string()) {
+        let tag = c.local_name_string();
+        // `<style>` is a non-rendering element: its CSS enters the one
+        // cascade (csscascade collects it); it materializes nothing here.
+        // Animation elements likewise contribute values, not geometry.
+        if !is_animation_element(&tag) && tag != "style" {
             nodes.push(compile_shape(c, viewport, &mut next_id, values)?);
             materialized.push(c.node_id());
         }
@@ -434,64 +438,52 @@ fn compile_rect(
     Ok(node)
 }
 
-/// Resolve the SVG `fill` paint. `currentColor` resolves against the cascaded
-/// computed `color`; a missing `fill` is SVG's default black.
+/// Resolve the SVG `fill` paint from the typed cascaded value — the one
+/// place paint meaning enters the compiler. Presentation hints, stylesheet
+/// rules, and inline style attributes all feed this read through the one
+/// Stylo cascade, with SVG2 precedence; `currentColor` resolves against the
+/// cascaded `color`, and an invalid authored value falls back exactly as an
+/// invalid CSS declaration would. Paint servers and context paints are
+/// refused explicitly. `fill-opacity` is deliberately not yet consumed —
+/// its admission is a later capability step.
 fn resolve_fill(el: HtmlElement<'_>) -> Result<Option<CGColor>, CompileError> {
-    let raw = get_attr(el, "fill");
-    match raw.as_deref().map(str::trim) {
-        None => Ok(Some(CGColor::BLACK)),
-        Some("none") => Ok(None),
-        Some("black") => Ok(Some(CGColor::BLACK)),
-        Some("currentColor") => Ok(Some(computed_color(el)?)),
-        Some(hex) if hex.starts_with('#') => Ok(Some(parse_hex(hex)?)),
-        Some(other) => Err(CompileError::UnsupportedFill(other.to_string())),
+    let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
+    let style: &ComputedValues = data.styles.primary();
+    // The slice consumes no fill-opacity: a non-initial cascaded value would
+    // silently render opaque where Chromium renders translucent, so it
+    // refuses explicitly until its own capability step admits it.
+    match style.clone_fill_opacity() {
+        SVGOpacity::Opacity(opacity) if opacity == 1.0 => {}
+        other => {
+            return Err(CompileError::UnsupportedFill(format!(
+                "fill-opacity {other:?} is not yet consumed"
+            )));
+        }
+    }
+    let fill = style.clone_fill();
+    match fill.kind {
+        SVGPaintKind::None => Ok(None),
+        SVGPaintKind::Color(color) => Ok(Some(to_cg_color(style.resolve_color(&color)))),
+        SVGPaintKind::PaintServer(url) => Err(CompileError::UnsupportedFill(
+            url.url()
+                .map_or_else(|| "url(<invalid>)".to_string(), |url| format!("url({url})")),
+        )),
+        SVGPaintKind::ContextFill => Err(CompileError::UnsupportedFill("context-fill".to_string())),
+        SVGPaintKind::ContextStroke => {
+            Err(CompileError::UnsupportedFill("context-stroke".to_string()))
+        }
     }
 }
 
-/// The element's cascaded computed `color`, converted to straight-alpha sRGB.
-fn computed_color(el: HtmlElement<'_>) -> Result<CGColor, CompileError> {
-    let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
-    let style: &ComputedValues = data.styles.primary();
-    let srgb = style
-        .get_inherited_text()
-        .color
-        .to_color_space(ColorSpace::Srgb);
+/// A cascaded absolute color as the straight-alpha sRGB leaf.
+fn to_cg_color(color: AbsoluteColor) -> CGColor {
+    let srgb = color.to_color_space(ColorSpace::Srgb);
     let c = srgb.raw_components();
-    Ok(CGColor::from_rgba(
-        to_u8(c[0]),
-        to_u8(c[1]),
-        to_u8(c[2]),
-        to_u8(srgb.alpha),
-    ))
+    CGColor::from_rgba(to_u8(c[0]), to_u8(c[1]), to_u8(c[2]), to_u8(srgb.alpha))
 }
 
 fn to_u8(component: f32) -> u8 {
     (component.clamp(0.0, 1.0) * 255.0).round() as u8
-}
-
-fn parse_hex(hex: &str) -> Result<CGColor, CompileError> {
-    let body = &hex[1..];
-    let err = || CompileError::UnsupportedFill(hex.to_string());
-    let (r, g, b) = match body.len() {
-        3 => {
-            let d = |i: usize| u8::from_str_radix(&body[i..i + 1], 16).map(|v| v * 17);
-            (
-                d(0).map_err(|_| err())?,
-                d(1).map_err(|_| err())?,
-                d(2).map_err(|_| err())?,
-            )
-        }
-        6 => {
-            let d = |i: usize| u8::from_str_radix(&body[i..i + 2], 16);
-            (
-                d(0).map_err(|_| err())?,
-                d(2).map_err(|_| err())?,
-                d(4).map_err(|_| err())?,
-            )
-        }
-        _ => return Err(err()),
-    };
-    Ok(CGColor::from_rgb(r, g, b))
 }
 
 fn parse_viewbox(v: &str) -> Result<(f32, f32, f32, f32), CompileError> {

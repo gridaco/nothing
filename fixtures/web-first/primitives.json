@@ -26,6 +26,54 @@
       "height": 64
     },
     {
+      "id": "svg-fill-named-rect",
+      "source": "svg-fill-named-rect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-fill-named-rect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-fill-inherited-rect",
+      "source": "svg-fill-inherited-rect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-fill-inherited-rect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-fill-invalid-initial-rect",
+      "source": "svg-fill-invalid-initial-rect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-fill-invalid-initial-rect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-fill-none-rect",
+      "source": "svg-fill-none-rect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-fill-none-rect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-style-element-fill-rect",
+      "source": "svg-style-element-fill-rect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-style-element-fill-rect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-style-attribute-fill-rect",
+      "source": "svg-style-attribute-fill-rect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-style-attribute-fill-rect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-viewbox-uniform-offset-rect",
       "source": "svg-viewbox-uniform-offset-rect.svg",
       "entry": "standalone-svg",
