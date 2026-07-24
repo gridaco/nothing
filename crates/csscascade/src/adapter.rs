@@ -23,9 +23,11 @@ use style::context::SharedStyleContext;
 use style::data::{ElementDataMut, ElementDataRef, ElementDataWrapper};
 use style::dom::{LayoutIterator, OpaqueNode, TElement, TNode};
 use style::properties::PropertyDeclarationBlock;
+use style::rule_tree::{CascadeLevel, CascadeOrigin};
 use style::selector_parser::{AttrValue as SelectorAttrValue, Lang, PseudoElement, SelectorImpl};
 use style::servo_arc::{Arc, ArcBorrow};
 use style::shared_lock::{Locked, SharedRwLock};
+use style::stylesheets::layer_rule::LayerOrder;
 use style::stylist::CascadeData;
 use style::values::AtomIdent;
 use style::values::computed::Au;
@@ -767,10 +769,19 @@ impl<'session> ::style::dom::TElement for HtmlElement<'session> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(
         &self,
         _visited_handling: VisitedHandlingMode,
-        _hints: &mut V,
+        hints: &mut V,
     ) where
         V: Push<ApplicableDeclarationBlock>,
     {
+        // SVG2 presentation attributes: author-origin declarations below
+        // every author rule. Pre-parsed once at DOM freeze (dom.rs).
+        if let Some(block) = &self.element_data().presentation_hints {
+            hints.push(ApplicableDeclarationBlock::from_declarations(
+                block.clone(),
+                CascadeLevel::new(CascadeOrigin::PresHints),
+                LayerOrder::root(),
+            ));
+        }
     }
 
     fn synthesize_view_transition_dynamic_rules<V>(&self, _rules: &mut V)

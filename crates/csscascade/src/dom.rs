@@ -23,15 +23,19 @@ use markup5ever::{Attribute, LocalName, Namespace, QualName};
 use std::sync::OnceLock;
 use style::context::QuirksMode as StyleQuirksMode;
 use style::data::ElementDataWrapper;
-use style::properties::parse_style_attribute;
+use style::properties::{
+    Importance, LonghandId, PropertyId, SourcePropertyDeclaration, parse_one_declaration_into,
+    parse_style_attribute,
+};
 use style::servo_arc::Arc;
-use style::stylesheets::{CssRuleType, UrlExtraData};
+use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style::{
     LocalName as StyleLocalName, Namespace as StyleNamespace,
     properties::PropertyDeclarationBlock,
     shared_lock::{Locked, SharedRwLock},
     values::AtomIdent,
 };
+use style_traits::ParsingMode;
 use stylo_atoms::Atom as WeakAtom;
 use tendril::StrTendril;
 use url::Url;
@@ -94,6 +98,10 @@ pub struct DemoElementData {
     pub style_namespace: StyleNamespace,
     /// Parsed inline `style` attribute, if present.
     pub style_attribute: Option<Arc<Locked<PropertyDeclarationBlock>>>,
+    /// Admitted SVG presentation attributes, pre-parsed as the SVG2
+    /// presentation-hint declaration block — author origin, below every
+    /// author rule (`CascadeLevel::PresHints`).
+    pub presentation_hints: Option<Arc<Locked<PropertyDeclarationBlock>>>,
 }
 
 /// The frozen, arena-allocated DOM tree.
@@ -427,6 +435,8 @@ impl TreeSink for DemoDomBuilder {
                             let locked = shared_lock.wrap(block);
                             Arc::new(locked)
                         });
+                        let presentation_hints =
+                            svg_presentation_hints(&name, &attrs_vec, &shared_lock);
 
                         DemoNodeData::Element(DemoElementData {
                             name,
@@ -439,6 +449,7 @@ impl TreeSink for DemoDomBuilder {
                             style_local_name,
                             style_namespace,
                             style_attribute,
+                            presentation_hints,
                         })
                     }
                     NodeDataTemp::ProcessingInstruction { target, contents } => {
@@ -686,6 +697,62 @@ fn derive_attr_metadata(
     }
 
     (id_attr, class_list, attr_local_names, style_value)
+}
+
+/// SVG presentation attributes admitted into the cascade as presentation
+/// hints. Each entry is a semantic claim gated by the precedence laws in
+/// `tests/svg_presentation_hints.rs`; the set grows one capability step at a
+/// time — never speculatively.
+fn admitted_svg_presentation_property(local: &str) -> Option<LonghandId> {
+    match local {
+        "fill" => Some(LonghandId::Fill),
+        _ => None,
+    }
+}
+
+/// Build the SVG2 presentation-hint declaration block for one SVG-namespace
+/// element, if any admitted presentation attribute parses. Hints enter the
+/// author origin below every author rule; a value that fails its property
+/// grammar is dropped exactly as an invalid CSS declaration would be.
+fn svg_presentation_hints(
+    name: &QualName,
+    attrs: &[Attribute],
+    shared_lock: &SharedRwLock,
+) -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
+    if name.ns != markup5ever::ns!(svg) {
+        return None;
+    }
+    let mut block = PropertyDeclarationBlock::new();
+    let mut source = SourcePropertyDeclaration::default();
+    let mut parsed_any = false;
+    for attr in attrs {
+        if !attr.name.ns.as_ref().is_empty() {
+            continue;
+        }
+        let Some(longhand) = admitted_svg_presentation_property(attr.name.local.as_ref()) else {
+            continue;
+        };
+        let url_data = UrlExtraData::from(Url::parse("about:blank").unwrap());
+        if parse_one_declaration_into(
+            &mut source,
+            PropertyId::NonCustom(longhand.into()),
+            &attr.value,
+            Origin::Author,
+            &url_data,
+            None,
+            ParsingMode::DEFAULT,
+            StyleQuirksMode::NoQuirks,
+            CssRuleType::Style,
+        )
+        .is_ok()
+        {
+            block.extend(source.drain(), Importance::Normal);
+            parsed_any = true;
+        } else {
+            source.clear();
+        }
+    }
+    parsed_any.then(|| Arc::new(shared_lock.wrap(block)))
 }
 
 fn parse_class_list(value: &str) -> Vec<AtomIdent> {

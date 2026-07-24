@@ -23,12 +23,15 @@
 //!
 //! ## SVG paint boundary
 //! The workspace's official Stylo revision exposes the typed basic SVG paint
-//! longhands under the Servo engine. This proving shell has not yet wired SVG
-//! presentation hints or SVG stylesheets into that cascade, nor switched its
-//! compiler to the typed paint values. [`resolve_fill`] therefore still reads
-//! the direct `fill` attribute and uses computed `color` only to resolve
-//! `currentColor`. The dependency provenance is solved; production ingress
-//! and semantic consumption are not.
+//! longhands under the Servo engine, and the shared cascade now ingests SVG
+//! presentation hints (admitted set: `fill`) and SVG-namespace stylesheets
+//! (both owned by csscascade). This compiler has not yet switched to the
+//! typed paint values: [`resolve_fill`] still reads the direct `fill`
+//! attribute and uses computed `color` only to resolve `currentColor`. That
+//! makes stylesheet-fed `color` already pixel-visible through
+//! `currentColor` (pinned in `tests/svg_stylesheet_intake.rs`), while
+//! stylesheet-fed `fill` is not yet consumed — typed consumption is the
+//! next capability step and carries its own Chromium fixtures.
 //!
 //! ## Document lifetime
 //! Each retained source owns one [`csscascade::adapter::DocumentSession`].

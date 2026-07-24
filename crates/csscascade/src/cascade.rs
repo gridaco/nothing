@@ -382,16 +382,21 @@ fn build_stylesheet(
     DocumentStyleSheet(ServoArc::new(stylesheet))
 }
 
-/// Walk the DOM and collect text content from all `<style>` elements.
+/// Walk the DOM and collect text content from all `<style>` elements — the
+/// HTML `<style>` element and SVG's own `<style>` element alike, so a
+/// standalone SVG/XML document feeds the same one cascade. Local names match
+/// exactly in both branches: the HTML tokenizer already lowercases its own
+/// tag names, and XML is case-sensitive — an XHTML-namespace `<STYLE>`
+/// reached through the XML entry is an unknown element, not a stylesheet.
 fn collect_author_styles(dom: &DemoDom) -> Vec<String> {
     let mut styles = Vec::new();
     for node_id in dom.all_node_ids() {
         let node = dom.node(node_id);
         if let DemoNodeData::Element(element) = &node.data {
-            if element.name.ns != markup5ever::ns!(html) {
-                continue;
-            }
-            if !element.name.local.as_ref().eq_ignore_ascii_case("style") {
+            let is_style_element = (element.name.ns == markup5ever::ns!(html)
+                || element.name.ns == markup5ever::ns!(svg))
+                && element.name.local.as_ref() == "style";
+            if !is_style_element {
                 continue;
             }
             let mut buffer = String::new();
