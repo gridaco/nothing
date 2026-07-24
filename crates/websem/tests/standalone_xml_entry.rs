@@ -1,11 +1,13 @@
 //! Conforming-entry laws for standalone SVG/XML sources.
 //!
 //! The standalone grammar entry is namespace-aware and case-preserving XML —
-//! not HTML foreign-content recovery. A document Chromium would not treat as
-//! renderable SVG is refused explicitly here, never guessed at: recorded XML
-//! recoveries, a missing SVG namespace, and case-folded names are all
-//! rejections. Case-insensitive leniency remains the HTML entry's own
-//! (parser-applied) behavior, not the compiler's.
+//! not HTML foreign-content recovery. The enumerated refusal classes —
+//! recorded XML recoveries, a missing SVG namespace, and case-folded names —
+//! track Chromium's treatment of standalone SVG documents; the XML5 recovery
+//! classes left unrecorded remain a pinned leniency boundary (csscascade's
+//! entry laws), not a universal Chromium-alignment claim. Case-insensitive
+//! leniency remains the HTML entry's own (parser-applied) behavior, not the
+//! compiler's.
 
 use websem::{CompileError, compile_standalone_svg};
 

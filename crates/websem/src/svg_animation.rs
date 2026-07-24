@@ -21,9 +21,9 @@ use crate::svg::SourceEntry;
 /// A deterministic rejection from the deliberately closed rect-x animation
 /// slice.
 ///
-/// The current html5ever scaffold does not expose source spans. `path` is
-/// therefore a stable structural location; it must not be presented as an XML
-/// line or column.
+/// The retained document sink does not expose source spans (for either
+/// grammar entry). `path` is therefore a stable structural location; it must
+/// not be presented as an XML line or column.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AnimationError {
     path: String,

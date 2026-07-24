@@ -146,8 +146,10 @@ impl SvgFrameSource {
     /// XML grammar into the same semantic document shape the HTML entry
     /// produces. Recorded XML recoveries are refused explicitly, and the root
     /// element must be exactly `svg` in the SVG namespace (from an authored
-    /// `xmlns` declaration) — a document Chromium would not treat as SVG is
-    /// not treated as SVG here.
+    /// `xmlns` declaration). These enumerated refusals track Chromium's
+    /// treatment of standalone SVG documents; the recovery classes XML5
+    /// leaves unrecorded (see [`CompileError::MalformedXml`]) remain a named
+    /// leniency boundary, not a universal Chromium-alignment claim.
     pub fn from_standalone_svg(source: impl Into<Arc<str>>) -> Result<Self, CompileError> {
         Self::from_source(source.into(), SourceEntry::StandaloneSvg)
     }
@@ -214,9 +216,9 @@ impl SvgFrameSource {
     /// time changes effective values, never which compiler runs. No compiled
     /// frame is ever mutated afterward.
     ///
-    /// The first slice closes the dynamic inventory only for the bare-SVG
-    /// scaffold. Inline HTML sampling fails explicitly until document-wide CSS
-    /// and script inventory is closed.
+    /// The first slice closes the dynamic inventory only for the standalone
+    /// SVG entry. Inline HTML sampling fails explicitly until document-wide
+    /// CSS and script inventory is closed.
     pub fn sample_frame(
         &self,
         time: animation_sampling::SampleTime,
@@ -244,7 +246,11 @@ impl SvgFrameSource {
 impl std::fmt::Display for CompileError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CompileError::NoSvgRoot => write!(f, "no <svg> element in document"),
+            CompileError::NoSvgRoot => write!(
+                f,
+                "no <svg> element in document (the standalone entry requires a root `svg` \
+                 element in the SVG namespace, from an authored xmlns declaration)"
+            ),
             CompileError::MalformedXml(errors) => {
                 write!(f, "standalone SVG is not well-formed XML: {errors}")
             }
