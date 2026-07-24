@@ -1,21 +1,21 @@
 //! Retained SVG animation semantics for the first Web-to-frame proving slice.
 //!
 //! This is deliberately source-specific. It associates one admitted SVG
-//! `<animate>` with one already-materialized rectangle, then delegates only
-//! checked time and scalar interpolation to `animation-sampling`. It does not
-//! mutate the DOM, own playback, or introduce an animation representation into
-//! `rframe`.
+//! `<animate>` with one materialized rectangle's source node, delegates only
+//! checked time and scalar interpolation to `animation-sampling`, and
+//! resolves each sample request into the Web-owned
+//! [`EffectiveValues`] view that the one SVG compiler consumes. It never
+//! mutates the DOM, never patches an already-compiled frame, and does not
+//! own playback or introduce an animation representation into `rframe`.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use animation_sampling::{FillMode, SampleTime, ScalarCurve, Timing};
 use csscascade::adapter::HtmlElement;
 use csscascade::dom::{DemoNodeData, NodeId};
-use math2::rect_transform;
-use rframe::{Frame, Geometry};
 use style::dom::TElement;
 
-use crate::svg::ShapeBinding;
+use crate::effective_values::EffectiveValues;
 
 /// A deterministic rejection from the deliberately closed rect-x animation
 /// slice.
@@ -73,15 +73,11 @@ pub(crate) enum InventoryScope {
 impl AnimationInventory {
     pub(crate) fn inspect(
         svg: HtmlElement<'_>,
-        bindings: &[ShapeBinding],
+        materialized: &[NodeId],
         scope: InventoryScope,
     ) -> Self {
-        let targets = bindings
-            .iter()
-            .map(|binding| (binding.source_node, binding.frame_index))
-            .collect();
         let mut inspector = Inspector {
-            targets,
+            materialized: materialized.iter().copied().collect(),
             animation_count: 0,
             plan: None,
             error: None,
@@ -107,38 +103,36 @@ impl AnimationInventory {
         self.has_animation_elements
     }
 
-    pub(crate) fn sample(&self, base: &Frame, time: SampleTime) -> Result<Frame, AnimationError> {
+    /// Resolve one frame request's animated contribution into the
+    /// [`EffectiveValues`] view the compiler consumes. Base semantics apply
+    /// whenever the admitted animation contributes no value at `time`.
+    pub(crate) fn effective_values(
+        &self,
+        time: SampleTime,
+    ) -> Result<EffectiveValues, AnimationError> {
         let Some(plan) = self.result.as_ref().map_err(Clone::clone)? else {
-            return Ok(base.clone());
+            return Ok(EffectiveValues::base());
         };
-        let mut frame = base.clone();
         let Some(contribution) = plan.timing.contribution(time, FillMode::Freeze) else {
-            return Ok(frame);
+            return Ok(EffectiveValues::base());
         };
-        let effective_x = plan.curve.sample(contribution).value();
-        let node = frame
-            .nodes
-            .get_mut(plan.frame_index)
-            .expect("animation target was bound to this immutable base frame");
-        match &mut node.geometry {
-            Geometry::Rect(rect) => {
-                rect.x = effective_x;
-                node.bounds = rect_transform(*rect, &node.transform);
-            }
-        }
-        Ok(frame)
+        Ok(EffectiveValues::with_scalar(
+            plan.target,
+            "x",
+            plan.curve.sample(contribution).value(),
+        ))
     }
 }
 
 #[derive(Debug)]
 struct RectXAnimation {
-    frame_index: usize,
+    target: NodeId,
     timing: Timing,
     curve: ScalarCurve,
 }
 
 struct Inspector {
-    targets: HashMap<NodeId, usize>,
+    materialized: HashSet<NodeId>,
     animation_count: usize,
     plan: Option<RectXAnimation>,
     error: Option<AnimationError>,
@@ -243,12 +237,13 @@ impl Inspector {
                 "<animate> is not in the SVG namespace",
             ));
         }
-        let Some(&frame_index) = self.targets.get(&parent.node_id()) else {
+        let target = parent.node_id();
+        if !self.materialized.contains(&target) {
             return Err(AnimationError::new(
                 path,
                 "<animate> must be a direct child of a materialized top-level <rect>",
             ));
-        };
+        }
         validate_whitespace_only(animate, path)?;
 
         let mut values = HashMap::<String, String>::new();
@@ -303,7 +298,7 @@ impl Inspector {
             .map_err(|error| AnimationError::new(path, error.to_string()))?;
 
         Ok(RectXAnimation {
-            frame_index,
+            target,
             timing,
             curve,
         })

@@ -17,9 +17,13 @@
 //! [Web-First Amendment](../../../docs/wg/consolidation/web-first.md).
 //!
 //! [`SvgFrameSource`] retains source + cascade state and emits immutable Base
-//! or explicit-time frames for the first admitted rect-x animation slice. The
+//! or explicit-time frames for the first admitted rect-x animation slice.
+//! Base and Sample(time) resolve to one Web-owned effective-value view and
+//! compile through the same SVG compiler — time changes effective values,
+//! never which compiler runs, and no compiled frame is mutated afterward. The
 //! exact sampler is shared; SVG syntax and target association remain here.
 
+mod effective_values;
 pub mod svg;
 mod svg_animation;
 

@@ -27,9 +27,13 @@
 //! and semantic consumption are not.
 //!
 //! ## Document lifetime
-//! Each compile owns one [`csscascade::adapter::DocumentSession`]. Stylo
-//! handles are tied to that session, so independent documents can remain live
-//! and resolve colliding arena-local node identifiers without ambient state.
+//! Each retained source owns one [`csscascade::adapter::DocumentSession`].
+//! Stylo handles are tied to that session, so independent documents can
+//! remain live and resolve colliding arena-local node identifiers without
+//! ambient state. Every frame request — Base at construction, each
+//! Sample(time) afterward — compiles the same retained document through the
+//! same compiler; a request differs only in the effective-value view its
+//! attribute reads resolve through.
 
 use csscascade::adapter::{DocumentSession, HtmlElement};
 use csscascade::cascade::CascadeDriver;
@@ -46,6 +50,7 @@ use math2::transform::AffineTransform;
 use rframe::frame::{Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, VisualRef};
 use std::sync::Arc;
 
+use crate::effective_values::EffectiveValues;
 use crate::svg_animation::{AnimationInventory, InventoryScope, is_animation_element};
 
 /// An explicit failure in the proving shell's enumerated grammar checks.
@@ -82,8 +87,8 @@ pub enum CompileError {
 /// into the DOM.
 pub struct SvgFrameSource {
     source: Arc<str>,
-    _session: DocumentSession,
-    _svg_root: NodeId,
+    session: DocumentSession,
+    svg_root: NodeId,
     base: Frame,
     animation: AnimationInventory,
 }
@@ -93,7 +98,7 @@ impl std::fmt::Debug for SvgFrameSource {
         formatter
             .debug_struct("SvgFrameSource")
             .field("source_len", &self.source.len())
-            .field("svg_root", &self._svg_root)
+            .field("svg_root", &self.svg_root)
             .field("base", &self.base)
             .field("has_animation_elements", &self.has_animation_elements())
             .finish_non_exhaustive()
@@ -130,16 +135,16 @@ impl SvgFrameSource {
             let document = session.document();
             let root = document.root_element().ok_or(CompileError::NoSvgRoot)?;
             let svg = find_svg(root).ok_or(CompileError::NoSvgRoot)?;
-            let compilation = compile_svg_element(svg)?;
+            let compilation = compile_svg_element(svg, &EffectiveValues::base())?;
             let animation =
-                AnimationInventory::inspect(svg, &compilation.bindings, inventory_scope);
+                AnimationInventory::inspect(svg, &compilation.materialized, inventory_scope);
             (svg.node_id(), compilation, animation)
         };
 
         Ok(Self {
             source,
-            _session: session,
-            _svg_root: svg_root,
+            session,
+            svg_root,
             base: compilation.frame,
             animation,
         })
@@ -163,6 +168,11 @@ impl SvgFrameSource {
 
     /// Produce one immutable frame at the caller-supplied exact time.
     ///
+    /// The request resolves to the Web-owned effective-value view, then the
+    /// retained document recompiles through the same compiler Base used —
+    /// time changes effective values, never which compiler runs. No compiled
+    /// frame is ever mutated afterward.
+    ///
     /// The first slice closes the dynamic inventory only for the bare-SVG
     /// scaffold. Inline HTML sampling fails explicitly until document-wide CSS
     /// and script inventory is closed.
@@ -170,7 +180,23 @@ impl SvgFrameSource {
         &self,
         time: animation_sampling::SampleTime,
     ) -> Result<Frame, crate::svg_animation::AnimationError> {
-        self.animation.sample(&self.base, time)
+        let values = self.animation.effective_values(time)?;
+
+        // Same idempotent per-thread state the construction compile used.
+        thread_state::initialize(ThreadState::LAYOUT);
+        let document = self.session.document();
+        let root = document
+            .root_element()
+            .expect("retained document keeps its root element");
+        let svg = find_svg(root).expect("retained document keeps its <svg> root");
+        assert_eq!(
+            svg.node_id(),
+            self.svg_root,
+            "retained document structure is immutable"
+        );
+        let compilation = compile_svg_element(svg, &values)
+            .expect("time changes effective values, not compilability of the retained source");
+        Ok(compilation.frame)
     }
 }
 
@@ -235,21 +261,24 @@ fn find_svg<'session>(el: HtmlElement<'session>) -> Option<HtmlElement<'session>
 /// Compile an `<svg>` element and its children into an SVG-local frame.
 struct FrameCompilation {
     frame: Frame,
-    bindings: Vec<ShapeBinding>,
+    /// Source nodes materialized as frame nodes, in document order — the
+    /// animation inventory's admissible target set.
+    materialized: Vec<NodeId>,
 }
 
-pub(crate) struct ShapeBinding {
-    pub(crate) source_node: NodeId,
-    pub(crate) frame_index: usize,
-}
-
-fn compile_svg_element(svg: HtmlElement<'_>) -> Result<FrameCompilation, CompileError> {
-    let width = attr_f32(svg, "width")?.ok_or_else(|| {
+/// The one SVG compiler. Base and Sample(time) both enter here; the only
+/// difference between them is the [`EffectiveValues`] view the attribute
+/// reads resolve through.
+fn compile_svg_element(
+    svg: HtmlElement<'_>,
+    values: &EffectiveValues,
+) -> Result<FrameCompilation, CompileError> {
+    let width = effective_attr_f32(svg, "width", values)?.ok_or_else(|| {
         CompileError::UnsupportedSizing(
             "missing width; CSS/default intrinsic sizing is not implemented".to_string(),
         )
     })?;
-    let height = attr_f32(svg, "height")?.ok_or_else(|| {
+    let height = effective_attr_f32(svg, "height", values)?.ok_or_else(|| {
         CompileError::UnsupportedSizing(
             "missing height; CSS/default intrinsic sizing is not implemented".to_string(),
         )
@@ -286,17 +315,13 @@ fn compile_svg_element(svg: HtmlElement<'_>) -> Result<FrameCompilation, Compile
     let frame_bounds = Rectangle::from_xywh(0.0, 0.0, width, height);
 
     let mut nodes = Vec::new();
-    let mut bindings = Vec::new();
+    let mut materialized = Vec::new();
     let mut next_id = 0u64;
     let mut child = svg.first_element_child();
     while let Some(c) = child {
         if !is_animation_element(&c.local_name_string()) {
-            let frame_index = nodes.len();
-            nodes.push(compile_shape(c, viewport, &mut next_id)?);
-            bindings.push(ShapeBinding {
-                source_node: c.node_id(),
-                frame_index,
-            });
+            nodes.push(compile_shape(c, viewport, &mut next_id, values)?);
+            materialized.push(c.node_id());
         }
         child = c.next_element_sibling();
     }
@@ -307,7 +332,7 @@ fn compile_svg_element(svg: HtmlElement<'_>) -> Result<FrameCompilation, Compile
             bounds: frame_bounds,
             nodes,
         },
-        bindings,
+        materialized,
     })
 }
 
@@ -316,10 +341,11 @@ fn compile_shape(
     el: HtmlElement<'_>,
     viewport: AffineTransform,
     next_id: &mut u64,
+    values: &EffectiveValues,
 ) -> Result<FrameNode, CompileError> {
     let tag = el.local_name_string().to_ascii_lowercase();
     match tag.as_str() {
-        "rect" => compile_rect(el, viewport, next_id),
+        "rect" => compile_rect(el, viewport, next_id, values),
         other => Err(CompileError::UnsupportedElement(other.to_string())),
     }
 }
@@ -328,11 +354,12 @@ fn compile_rect(
     el: HtmlElement<'_>,
     viewport: AffineTransform,
     next_id: &mut u64,
+    values: &EffectiveValues,
 ) -> Result<FrameNode, CompileError> {
-    let x = attr_f32(el, "x")?.unwrap_or(0.0);
-    let y = attr_f32(el, "y")?.unwrap_or(0.0);
-    let w = attr_f32(el, "width")?.unwrap_or(0.0);
-    let h = attr_f32(el, "height")?.unwrap_or(0.0);
+    let x = effective_attr_f32(el, "x", values)?.unwrap_or(0.0);
+    let y = effective_attr_f32(el, "y", values)?.unwrap_or(0.0);
+    let w = effective_attr_f32(el, "width", values)?.unwrap_or(0.0);
+    let h = effective_attr_f32(el, "height", values)?.unwrap_or(0.0);
     let rect = Rectangle::from_xywh(x, y, w, h);
 
     let fill = resolve_fill(el)?;
@@ -466,6 +493,19 @@ fn get_attr(element: HtmlElement<'_>, name: &str) -> Option<String> {
         }
     }
     None
+}
+
+/// The effective scalar value of an attribute: the frame request's animated
+/// override when one targets this node, the authored attribute otherwise.
+fn effective_attr_f32(
+    element: HtmlElement<'_>,
+    name: &str,
+    values: &EffectiveValues,
+) -> Result<Option<f32>, CompileError> {
+    if let Some(value) = values.scalar(element.node_id(), name) {
+        return Ok(Some(value));
+    }
+    attr_f32(element, name)
 }
 
 fn attr_f32(element: HtmlElement<'_>, name: &str) -> Result<Option<f32>, CompileError> {
