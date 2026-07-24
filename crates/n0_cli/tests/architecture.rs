@@ -2,7 +2,9 @@
 //!
 //! The host may perform file I/O and use a backend. It must not regain source
 //! semantics from the legacy engine or couple Web rendering to the n0 authored
-//! model. Static mature and admitted shared-frame routes remain explicit.
+//! model. Per D-N (docs/wg/consolidation/svg-engine-of-record.md) there is one
+//! render route: websem lowers Web sources to the shared frame and the n0
+//! engine paints it — the retired mature route must not return silently.
 
 use std::fs;
 use std::path::Path;
@@ -25,7 +27,7 @@ fn host_touches_no_legacy_or_authored_model_path() {
 }
 
 #[test]
-fn manifest_keeps_both_web_routes_explicit() {
+fn manifest_keeps_the_one_engine_of_record() {
     let manifest = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"));
     assert!(
         manifest.contains("publish = false"),
@@ -36,18 +38,19 @@ fn manifest_keeps_both_web_routes_explicit() {
         "the package must build the product command named n0"
     );
     assert!(
-        manifest.contains("htmlcss = { path = \"../htmlcss\" }"),
-        "the mature static Web source path must remain explicit"
-    );
-    assert!(
         manifest.contains("websem = { path = \"../websem\" }")
             && manifest.contains("n0 = { path = \"../n0\" }"),
-        "the admitted retained SVG path must enter through websem then n0"
+        "the one render route enters through websem then n0"
     );
-    for forbidden in ["path = \"../grida\"", "path = \"../n0-model\""] {
+    for forbidden in [
+        "path = \"../htmlcss\"",
+        "path = \"../grida\"",
+        "path = \"../n0-model\"",
+    ] {
         assert!(
             !manifest.contains(forbidden),
-            "the product host must not depend on the legacy engine or authored n0 model: {forbidden}"
+            "D-N: the retired mature route, legacy engine, and authored n0 model \
+             must not re-enter the product host: {forbidden}"
         );
     }
 }

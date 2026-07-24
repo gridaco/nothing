@@ -1,51 +1,36 @@
-//! The thin `n0` CLI host for Web rendering.
+//! The thin `n0` CLI host for the SVG engine of record.
 //!
-//! This host is the executable adoption seam for the mature renderer. It does
-//! not convert Web sources into the n0 authored model, and it is not evidence
-//! that every mature semantic already lowers through the shared frame.
-//! Unqualified HTML/SVG rendering remains on `htmlcss`; explicit SVG Base and
-//! Sample requests use the retained `websem -> rframe -> n0` rect-x slice. The
-//! route is never selected silently. The host owns arguments, file I/O, an
-//! explicit raster size, ambient system-font selection for the mature route,
-//! CPU rasterization, and PNG encoding.
+//! Per D-N (docs/wg/consolidation/svg-engine-of-record.md), every render
+//! goes through the one pipeline: the websem compiler lowers standalone SVG
+//! or inline-HTML SVG from the retained document session to the shared
+//! frame, which the n0 engine compiles and paints. Static renders are the
+//! Base view (animation contributes no value); `--time-ns` renders one
+//! exact signed-nanosecond Sample of the same compile. Time changes
+//! effective values only — it selects no route.
+//!
+//! Inputs outside the admitted slice refuse loudly with the unsupported
+//! construct named; nothing degrades silently. The host owns arguments,
+//! file I/O, an explicit raster size, CPU rasterization, and PNG encoding.
 //! Local/remote images and external stylesheets are not resolved; directory
 //! input and non-PNG output remain outside the admitted host contract.
 //!
 //! Usage:
 //!   cargo run -p n0_cli --bin n0 -- <input.svg|input.html> <out.png> <WxH>
-//!   cargo run -p n0_cli --bin n0 -- <input.svg> <out.png> <WxH> --base
+//!   cargo run -p n0_cli --bin n0 -- <input.svg|input.html> <out.png> <WxH> --base
 //!   cargo run -p n0_cli --bin n0 -- <input.svg> <out.png> <WxH> --time-ns <i64>
 //!
 //! Examples:
 //!   cargo run -p n0_cli --bin n0 -- \
-//!     fixtures/test-svg/L0/basic-shapes.svg /tmp/shapes.png 500x500
+//!     fixtures/web-first/svg-fill-named-rect.svg /tmp/rect.png 64x64
 //!   cargo run -p n0_cli --bin n0 -- \
-//!     fixtures/test-html/L0/svg-inline-basic.html /tmp/page.png 800x600
+//!     fixtures/web-first/animation/svg-rect-x-animation.svg /tmp/t1s.png 64x32 --time-ns 1000000000
 
 use std::path::Path;
 use std::process::ExitCode;
 
 use animation_sampling::SampleTime;
 use n0::paint::PaintCtx;
-use skia_safe::textlayout::FontCollection;
-use skia_safe::{Color, EncodedImageFormat, FontMgr, Picture, surfaces};
-
-struct SystemFontCollection(FontCollection);
-
-impl SystemFontCollection {
-    fn new() -> Self {
-        let mut fonts = FontCollection::new();
-        fonts.set_default_font_manager(FontMgr::new(), None);
-        fonts.enable_font_fallback();
-        Self(fonts)
-    }
-}
-
-impl htmlcss::SkiaFontCollectionProvider for SystemFontCollection {
-    fn font_collection(&self) -> &FontCollection {
-        &self.0
-    }
-}
+use skia_safe::{Color, EncodedImageFormat, surfaces};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum SourceKind {
@@ -55,10 +40,7 @@ enum SourceKind {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum FramePolicy {
-    /// Transitional mature static route. This preserves existing HTML/SVG
-    /// coverage while capabilities move behind the shared frame.
-    MatureStatic,
-    /// Authored state; animation contributes no value.
+    /// Authored state; animation contributes no value. The default.
     Base,
     /// One exact signed-nanosecond sample.
     Sample(SampleTime),
@@ -70,7 +52,7 @@ fn main() -> ExitCode {
         eprintln!(
             "usage:\n\
              n0 <input.svg|input.html> <out.png> <WxH>\n\
-             n0 <input.svg> <out.png> <WxH> --base\n\
+             n0 <input.svg|input.html> <out.png> <WxH> --base\n\
              n0 <input.svg> <out.png> <WxH> --time-ns <signed-nanoseconds>"
         );
         return ExitCode::from(2);
@@ -132,7 +114,6 @@ fn main() -> ExitCode {
 impl FramePolicy {
     const fn label(self) -> &'static str {
         match self {
-            Self::MatureStatic => "static-mature",
             Self::Base => "base-shared-frame",
             Self::Sample(_) => "sample-shared-frame",
         }
@@ -141,7 +122,7 @@ impl FramePolicy {
 
 fn parse_frame_policy(args: &[String]) -> Result<FramePolicy, String> {
     match args {
-        [] => Ok(FramePolicy::MatureStatic),
+        [] => Ok(FramePolicy::Base),
         [flag] if flag == "--base" => Ok(FramePolicy::Base),
         [flag, nanoseconds] if flag == "--time-ns" => nanoseconds
             .parse::<i64>()
@@ -188,39 +169,18 @@ fn render_source_to_png(
     height: i32,
     policy: FramePolicy,
 ) -> Result<Vec<u8>, String> {
-    if kind == SourceKind::Html && policy != FramePolicy::MatureStatic {
-        return Err(
-            "explicit Base/Sample currently admits the retained standalone SVG rect-x slice only"
-                .to_string(),
-        );
+    let retained = match kind {
+        SourceKind::Svg => websem::SvgFrameSource::from_standalone_svg(source),
+        SourceKind::Html => websem::SvgFrameSource::from_html_inline_svg(source),
     }
-    if kind == SourceKind::Svg && policy != FramePolicy::MatureStatic {
-        let retained = websem::SvgFrameSource::from_standalone_svg(source)
-            .map_err(|error| error.to_string())?;
-        let frame = match policy {
-            FramePolicy::Base => retained.base_frame(),
-            FramePolicy::Sample(time) => retained
-                .sample_frame(time)
-                .map_err(|error| error.to_string())?,
-            FramePolicy::MatureStatic => unreachable!("handled by the mature route below"),
-        };
-        return frame_to_png(frame, width, height);
-    }
-
-    let picture = match kind {
-        SourceKind::Html => {
-            let fonts = SystemFontCollection::new();
-            htmlcss::render(
-                source,
-                width as f32,
-                height as f32,
-                &fonts,
-                &htmlcss::NoImages,
-            )
-        }
-        SourceKind::Svg => htmlcss::render_svg(source, width as f32, height as f32),
-    }?;
-    picture_to_png(&picture, width, height)
+    .map_err(|error| error.to_string())?;
+    let frame = match policy {
+        FramePolicy::Base => retained.base_frame(),
+        FramePolicy::Sample(time) => retained
+            .sample_frame(time)
+            .map_err(|error| error.to_string())?,
+    };
+    frame_to_png(frame, width, height)
 }
 
 fn frame_to_png(frame: rframe::Frame, width: i32, height: i32) -> Result<Vec<u8>, String> {
@@ -236,15 +196,6 @@ fn frame_to_png(frame: rframe::Frame, width: i32, height: i32) -> Result<Vec<u8>
             &context,
         )
         .map_err(|error| error.to_string())?;
-    surface_to_png(&mut surface, width, height)
-}
-
-fn picture_to_png(picture: &Picture, width: i32, height: i32) -> Result<Vec<u8>, String> {
-    let mut surface = surfaces::raster_n32_premul((width, height))
-        .ok_or_else(|| format!("cannot allocate {width}x{height} CPU raster"))?;
-    let canvas = surface.canvas();
-    canvas.clear(Color::TRANSPARENT);
-    canvas.draw_picture(picture, None, None);
     surface_to_png(&mut surface, width, height)
 }
 
@@ -274,6 +225,7 @@ mod tests {
 
     impl TestRaster {
         fn at(&self, x: i32, y: i32) -> [u8; 4] {
+            assert!(x >= 0 && x < self.width && y >= 0 && y < self.height);
             let offset = ((y * self.width + x) * 4) as usize;
             self.pixels[offset..offset + 4]
                 .try_into()
@@ -318,7 +270,7 @@ mod tests {
         assert_eq!(parse_size("320X200"), Some((320, 200)));
         assert_eq!(parse_size("0x200"), None);
         assert_eq!(parse_size("auto"), None);
-        assert_eq!(parse_frame_policy(&[]), Ok(FramePolicy::MatureStatic));
+        assert_eq!(parse_frame_policy(&[]), Ok(FramePolicy::Base));
         assert_eq!(
             parse_frame_policy(&["--base".to_string()]),
             Ok(FramePolicy::Base)
@@ -331,95 +283,127 @@ mod tests {
         assert!(parse_frame_policy(&["--time-ns".to_string(), "1.5".to_string()]).is_err());
     }
 
+    /// D-N's capability statement: inputs the retired mature route rendered
+    /// refuse loudly on the engine of record, with the unsupported construct
+    /// named — never wrong pixels. Each pinned reason is the current
+    /// capability edge; an evolution rung that admits the construct must
+    /// update the pin alongside its Chromium-baked fixtures.
     #[test]
-    fn committed_html_and_svg_fixtures_render_deterministically() {
+    fn beyond_slice_legacy_corpus_refuses_by_name() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-        for (relative, kind, size) in [
+        for (relative, kind, size, named) in [
             (
                 "fixtures/test-svg/L0/basic-shapes.svg",
                 SourceKind::Svg,
                 (500, 500),
-            ),
-            (
-                "fixtures/test-html/L0/svg-inline-basic.html",
-                SourceKind::Html,
-                (800, 600),
+                "unsupported element <title>",
             ),
             (
                 "fixtures/test-svg/probe/circle-fill-probe.svg",
                 SourceKind::Svg,
                 (64, 64),
+                "unsupported element <circle>",
             ),
             (
                 "fixtures/test-html/probe/inline-svg-flex-probe.html",
                 SourceKind::Html,
                 (96, 48),
+                "unsupported SVG viewport sizing: missing width",
             ),
         ] {
             let input = root.join(relative);
             let source = std::fs::read_to_string(&input)
                 .unwrap_or_else(|error| panic!("read {}: {error}", input.display()));
-            let first =
-                render_source_to_png(&source, kind, size.0, size.1, FramePolicy::MatureStatic)
-                    .unwrap_or_else(|error| panic!("first render {relative}: {error}"));
-            let second =
-                render_source_to_png(&source, kind, size.0, size.1, FramePolicy::MatureStatic)
-                    .unwrap_or_else(|error| panic!("second render {relative}: {error}"));
-            assert_eq!(first, second, "{relative} must be byte-deterministic");
-
-            let raster =
-                decode_png(&first).unwrap_or_else(|| panic!("decode rendered PNG for {relative}"));
-            assert_eq!((raster.width, raster.height), size, "{relative} dimensions");
+            let error = render_source_to_png(&source, kind, size.0, size.1, FramePolicy::Base)
+                .expect_err("beyond-slice input must refuse, not render");
             assert!(
-                raster.pixels.chunks_exact(4).any(|pixel| pixel[3] != 0),
-                "{relative} must paint at least one non-transparent pixel"
+                error.contains(named),
+                "{relative} must refuse with the construct named; got: {error}"
             );
-            match relative {
-                "fixtures/test-svg/L0/basic-shapes.svg"
-                | "fixtures/test-html/L0/svg-inline-basic.html" => {}
-                "fixtures/test-svg/probe/circle-fill-probe.svg" => {
-                    assert_eq!(
-                        raster.at(32, 32),
-                        [22, 163, 74, 255],
-                        "the standalone SVG circle probe must render"
-                    );
-                    assert_eq!(raster.at(4, 4), [255, 255, 255, 255]);
-                }
-                "fixtures/test-html/probe/inline-svg-flex-probe.html" => {
-                    assert_eq!(
-                        raster.at(24, 24),
-                        [239, 68, 68, 255],
-                        "the CSS-positioned first inline SVG must render"
-                    );
-                    assert_eq!(
-                        raster.at(64, 24),
-                        [37, 99, 235, 255],
-                        "flex layout must place the second inline SVG beside the first"
-                    );
-                    assert_eq!(raster.at(4, 4), [255, 255, 255, 255]);
-                }
-                _ => unreachable!("fixture table and probes must advance together"),
-            }
+        }
+    }
 
-            let output = std::env::temp_dir().join(format!(
-                "n0-cli-render-{}-{}.png",
-                std::process::id(),
-                match kind {
-                    SourceKind::Html => "html",
-                    SourceKind::Svg => "svg",
-                }
-            ));
-            std::fs::write(&output, &first)
-                .unwrap_or_else(|error| panic!("write {}: {error}", output.display()));
-            let written = std::fs::read(&output)
-                .unwrap_or_else(|error| panic!("read {}: {error}", output.display()));
-            assert_eq!(written, first, "written PNG bytes for {relative}");
-            let _ = std::fs::remove_file(output);
+    /// The legacy multi-SVG page pins the other half of the capability
+    /// statement: the engine of record compiles the FIRST inline SVG of an
+    /// HTML document — here the admitted rect — and nothing else on the
+    /// page. The mature route rendered the whole page; that surface returns
+    /// only through evolution rungs.
+    #[test]
+    fn legacy_multi_svg_page_renders_its_first_admitted_svg_only() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let source =
+            std::fs::read_to_string(root.join("fixtures/test-html/L0/svg-inline-basic.html"))
+                .expect("read legacy inline-svg page");
+        let first = render_source_to_png(&source, SourceKind::Html, 800, 600, FramePolicy::Base)
+            .expect("the first inline SVG is the admitted rect");
+        let second = render_source_to_png(&source, SourceKind::Html, 800, 600, FramePolicy::Base)
+            .expect("repeat render");
+        assert_eq!(first, second, "encoded determinism");
+        let raster = decode_png(&first).expect("decode rendered PNG");
+        assert_eq!(
+            raster.at(50, 50),
+            [239, 68, 68, 255],
+            "the first SVG's authored rect paints"
+        );
+        assert_eq!(
+            raster.at(5, 5),
+            [0, 0, 0, 0],
+            "the page body (flex frames, labels) contributes nothing"
+        );
+        assert_eq!(
+            raster.at(200, 200),
+            [0, 0, 0, 0],
+            "the later SVG cells contribute nothing"
+        );
+    }
+
+    #[test]
+    fn admitted_primitives_render_exactly_through_the_one_engine() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        for (relative, kind, size, oracle) in [
+            (
+                "fixtures/web-first/svg-fill-named-rect.svg",
+                SourceKind::Svg,
+                (64, 64),
+                "fixtures/web-first/chromium/svg-fill-named-rect.png",
+            ),
+            (
+                "fixtures/web-first/html-inline-svg-currentcolor-rect.html",
+                SourceKind::Html,
+                (64, 64),
+                "fixtures/web-first/chromium/html-inline-svg-currentcolor-rect.png",
+            ),
+            (
+                "fixtures/web-first/html-webpage-mockup.html",
+                SourceKind::Html,
+                (640, 400),
+                "fixtures/web-first/chromium/html-webpage-mockup.png",
+            ),
+        ] {
+            let source = std::fs::read_to_string(root.join(relative))
+                .unwrap_or_else(|error| panic!("read {relative}: {error}"));
+            let first = render_source_to_png(&source, kind, size.0, size.1, FramePolicy::Base)
+                .unwrap_or_else(|error| panic!("render {relative}: {error}"));
+            let second = render_source_to_png(&source, kind, size.0, size.1, FramePolicy::Base)
+                .unwrap_or_else(|error| panic!("repeat {relative}: {error}"));
+            assert_eq!(first, second, "{relative} encoded determinism");
+            let raster = decode_png(&first).expect("decode rendered PNG");
+            let expected = decode_png(
+                &std::fs::read(root.join(oracle))
+                    .unwrap_or_else(|error| panic!("read {oracle}: {error}")),
+            )
+            .unwrap_or_else(|| panic!("decode {oracle}"));
+            assert_eq!(
+                (raster.width, raster.height),
+                (expected.width, expected.height),
+                "{relative} dimensions"
+            );
+            assert_eq!(raster.pixels, expected.pixels, "{relative} Chromium RGBA");
         }
     }
 
     #[test]
-    fn retained_svg_base_and_exact_time_render_through_the_shared_frame() {
+    fn base_and_exact_time_render_through_the_one_engine() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let source = std::fs::read_to_string(
             root.join("fixtures/web-first/animation/svg-rect-x-animation.svg"),
@@ -470,9 +454,33 @@ mod tests {
                 }
             );
         }
+    }
+
+    /// Sampling inline HTML refuses loudly through websem's own dynamic
+    /// inventory; a document with no inline SVG refuses at construction.
+    #[test]
+    fn html_sampling_and_svgless_documents_refuse_loudly() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let source = std::fs::read_to_string(
+            root.join("fixtures/web-first/html-inline-svg-currentcolor-rect.html"),
+        )
+        .expect("read inline-svg fixture");
+        let error = render_source_to_png(
+            &source,
+            SourceKind::Html,
+            64,
+            64,
+            FramePolicy::Sample(SampleTime::ZERO),
+        )
+        .expect_err("inline-HTML sampling is not admitted");
+        assert!(
+            error.contains("inline HTML"),
+            "the refusal names the entry: {error}"
+        );
         assert!(
             render_source_to_png("<html></html>", SourceKind::Html, 64, 32, FramePolicy::Base)
-                .is_err()
+                .is_err(),
+            "a document with no inline SVG refuses at construction"
         );
     }
 }

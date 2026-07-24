@@ -2,7 +2,7 @@
 name = "n0_cli"
 version = "0.0.0"
 edition = "2024"
-description = "The thin n0 command host. Renders mature static HTML/CSS/SVG and explicit Base/exact-time frames for the admitted retained SVG slice to CPU PNGs."
+description = "The thin n0 command host. Renders standalone SVG and inline-HTML SVG through the engine of record (websem -> rframe -> n0) as Base or exact-time Sample frames to CPU PNGs."
 license.workspace = true
 repository.workspace = true
 publish = false
@@ -14,11 +14,8 @@ path = "src/main.rs"
 [dependencies]
 # Exact time enters the host as explicit data.
 animation-sampling = { path = "../animation-sampling" }
-# The extracted mature Web renderer currently owns HTML/CSS/SVG semantics.
-# The host owns only source I/O, providers, the raster surface, and encoding.
-htmlcss = { path = "../htmlcss" }
-# The admitted retained SVG slice lowers source semantics to the shared frame,
-# which the n0 engine compiles and paints.
+# The Web semantic compiler lowers source semantics to the shared frame,
+# which the n0 engine compiles and paints (D-N: the engine of record).
 websem = { path = "../websem" }
 n0 = { path = "../n0" }
 math2 = { path = "../math2" }
