@@ -190,3 +190,15 @@ parked honestly rather than backed by manufactured evidence.
 
 The revised topology changes *what converges where*; it does not relax
 *how anything is proven*.
+
+## Subsequent status (2026-07-24)
+
+The two-paths question this amendment left open — the mature static Web
+renderer beside the prototype spine — is resolved by **D-N** in the
+[charter's registry](./charter.md): the n0 path is the
+[SVG engine of record](./svg-engine-of-record.md), static and animated;
+the product host routes through the retained websem session with loud
+named refusals outside the admitted slice; `htmlcss::svg` is demoted to a
+frozen semantics donor that evolution rungs port onto the cascade of
+record. D-N settles routing and succession only — the standing rules
+above, including the FLIP posture, are unchanged.

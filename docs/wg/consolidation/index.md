@@ -70,7 +70,11 @@ a later stage; and
 **D-M adoption patrol — [how the mature Web renderer enters the
 chassis](./web-renderer-adoption.md)** — which Web capability is reusable,
 which legacy topology must not cross, and why the proving shell must not grow
-into a third engine.
+into a third engine; and **D-N — [the SVG engine of
+record](./svg-engine-of-record.md)** — the owner-taken succession decision:
+the n0 path is the one product path for SVG, static and animated, with the
+mature Web renderer demoted to a frozen semantics donor and refusals standing
+in for unported capability.
 
 The charter is the only doc of the four that sequences work — and it
 records the *route*; the current *position* (active phase, landed PRs,

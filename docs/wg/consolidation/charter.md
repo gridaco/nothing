@@ -128,6 +128,7 @@ land merely because its implementation exists.
 | D-G(b) | v2 archive story: ratified n0 XML vs a future v2 binary | Phase 5 | n0 XML RFD ratification pass |
 | D-J | Format stewardship: binary storage is host-managed with engine-provided tooling (widens D-G(b) — the engine's canonical contract is the in-memory model + ops) | Phase 5 boundary, with D-G(b) | converter experience + n0 XML ratification pass |
 | D-K | The unified time model for realtime preview (camera and hot-loop edits as sampled inputs under the animation kernel) | when the preview lane starts | a render-modes design doc against the [end-state topology](./topology.md) |
+| D-N | The n0 path (`websem → rframe → n0`) is the SVG engine of record, static and animated; the product host routes through the retained websem session (Base / exact-time Sample) with loud named refusals outside the admitted slice; `htmlcss::svg` is demoted to a frozen semantics donor mined by evolution rungs; legacy `grida` may break and wire-back is deferred. Settles routing and succession only — no conformance claim | **taken** 2026-07-24 (owner-directed in session) | the [SVG engine-of-record finding](./svg-engine-of-record.md): the Chromium-exact n0-path corpus + determinism/refusal laws, and the donor's own transitional annotations |
 | D-E/D-I | D-E: the per-domain bar flips; D-I: the wasm switch (package identity, soak, grida-side unpin, freeze-contract retirement) | Phase 6 | the Phase-2 criterion read off the board |
 
 ## Amendments (end-state sync, 2026-07-19)

@@ -1,5 +1,12 @@
 # htmlcss::svg — SVG Renderer
 
+> **Status (2026-07-24): frozen semantics donor.** Per
+> [D-N, the SVG engine of record](../../../../docs/wg/consolidation/svg-engine-of-record.md),
+> the n0 path (`websem → rframe → n0`) is the engine of record for SVG,
+> static and animated. No new behavior lands in this module; its
+> Blink-anchored semantics are the reference material that evolution rungs
+> port onto the cascade of record.
+
 A Skia-backed SVG renderer that plugs into [`htmlcss`](../../) for both
 standalone `.svg` documents and inline `<svg>` in HTML. **Static-only**.
 Companion to `htmlcss/{collect, layout, paint}`.
