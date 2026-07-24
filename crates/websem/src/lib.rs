@@ -26,5 +26,8 @@ mod effective_values;
 pub mod svg;
 mod svg_animation;
 
-pub use svg::{CompileError, SvgFrameSource, compile_html_inline_svg, compile_standalone_svg};
+pub use svg::{
+    CompileError, Degradation, DegradationAction, SvgFrameSource, compile_html_inline_svg,
+    compile_standalone_svg,
+};
 pub use svg_animation::AnimationError;

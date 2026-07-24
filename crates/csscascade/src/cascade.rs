@@ -41,19 +41,6 @@ use url::Url;
 use crate::adapter::{DocumentSession, HtmlDocument, HtmlElement};
 use crate::dom::{DemoDom, DemoNodeData};
 
-/// Default author CSS injected when the document has no `<style>` blocks.
-const FALLBACK_AUTHOR_CSS: &str = r#"
-html, body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  margin: 0;
-  padding: 0;
-}
-body {
-  color: #111;
-  background: #fff;
-}
-"#;
-
 /// Minimal User-Agent stylesheet for HTML elements.
 ///
 /// Based on the WHATWG rendering spec defaults:
@@ -411,9 +398,11 @@ fn collect_author_styles(dom: &DemoDom) -> Vec<String> {
             }
         }
     }
-    if styles.is_empty() {
-        styles.push(FALLBACK_AUTHOR_CSS.trim().to_string());
-    }
+    // No fallback sheet: a document with no author CSS cascades from the UA
+    // sheet and initial values alone. The engine invents no CSS — an
+    // injected default (the demo-era `body { color: #111 }` sheet) polluted
+    // `currentColor` on wholly unstyled documents, silently diverging from
+    // Chromium's initial `color`.
     styles
 }
 

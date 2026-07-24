@@ -441,7 +441,6 @@ fn sampling_refuses_dynamic_side_channels_and_unclosed_inline_html() {
             "event-handler attribute",
         ),
         (r#"style="animation: spin 1s""#, "", "style attribute"),
-        ("", "<script>window.changed = true</script>", "<script>"),
         (
             "",
             "<style>@keyframes spin { to { opacity: 0 } }</style>",
@@ -460,6 +459,26 @@ fn sampling_refuses_dynamic_side_channels_and_unclosed_inline_html() {
         assert!(
             error.reason().contains(expected),
             "expected {expected:?}, got {error}"
+        );
+    }
+
+    // `<script>` in a standalone document refuses at construction, in both
+    // admissions: xml5ever suspends the XML parse at the element, so
+    // content after it would be silently absent — an undeclared hole.
+    let script_svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+         <rect x="4" y="4" width="4" height="4"><script>window.changed = true</script></rect>
+       </svg>"#;
+    for (label, result) in [
+        ("strict", SvgFrameSource::from_standalone_svg(script_svg)),
+        (
+            "best-effort",
+            SvgFrameSource::from_standalone_svg_best_effort(script_svg),
+        ),
+    ] {
+        let error = result.expect_err("script-bearing standalone document must refuse");
+        assert!(
+            matches!(error, websem::CompileError::ScriptSuspendsParse),
+            "{label}: expected ScriptSuspendsParse, got {error}"
         );
     }
 

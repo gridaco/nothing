@@ -29,8 +29,11 @@ Render a primitive through the `n0` product command — since
 [D-N](../../docs/wg/consolidation/svg-engine-of-record.md) it routes through
 the same `websem → rframe → n0` pipeline the oracle gate proves, so this is a
 manual host check of the one engine, not a second renderer. Arbitrary SVG
-outside the closed suite is not capability coverage; beyond-slice inputs
-refuse with the construct named (see `unsupported/`):
+outside the closed suite is not capability coverage; beyond-slice *subtree*
+constructs render best-effort by default with each skip declared on stderr
+(`--strict` refuses them by name), while document-level contracts — the
+viewport/viewBox class collected in `unsupported/` — refuse in both
+admissions:
 
 ```sh
 cargo run -p n0_cli --bin n0 -- \

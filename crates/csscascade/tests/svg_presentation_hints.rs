@@ -84,12 +84,12 @@ fn inline_html_svg_presentation_hints_behave_identically() {
 }
 
 #[test]
-fn svg_only_stylesheets_replace_the_fallback_author_css() {
-    // Deliberate trigger-condition change, pinned: a document whose only
-    // <style> is SVG-namespace now feeds its authored styles to the one
-    // cascade, and the fallback default author sheet (body color #111,
-    // margin 0) is no longer injected — the fallback exists only for wholly
-    // unstyled documents.
+fn svg_only_stylesheets_feed_the_one_cascade_without_invented_css() {
+    // A document whose only <style> is SVG-namespace feeds its authored
+    // styles to the one cascade, and no fallback author sheet exists in any
+    // trigger condition — the engine invents no CSS (the demo-era fallback
+    // that injected `body { color: #111 }` into wholly unstyled documents
+    // was removed for silently diverging from Chromium's initial `color`).
     thread_state::initialize(ThreadState::LAYOUT);
     let html = r##"<html><body id="host">
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">
@@ -110,7 +110,35 @@ fn svg_only_stylesheets_replace_the_fallback_author_css() {
     assert_eq!(
         property(root, "host", LonghandId::Color),
         "rgb(0, 0, 0)",
-        "the fallback author sheet (color #111) must not be injected alongside real styles"
+        "no author sheet is invented alongside real styles"
+    );
+}
+
+#[test]
+fn wholly_unstyled_documents_cascade_from_initial_values_alone() {
+    // Chromium ground truth: a page with zero author CSS resolves `color`
+    // to the initial value (#000), so `fill="currentColor"` paints black.
+    // The cascade must not invent an author sheet for this case.
+    thread_state::initialize(ThreadState::LAYOUT);
+    let html = r##"<html><body id="host">
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+  <rect id="probe" fill="currentColor" width="8" height="8"/>
+</svg></body></html>"##;
+    let dom = DemoDom::parse_from_bytes(html.as_bytes()).expect("parse HTML");
+    let mut session = DocumentSession::new(dom);
+    CascadeDriver::new(&mut session).style_document();
+    let document = session.document();
+    let root = document.root_element().expect("html root");
+
+    assert_eq!(
+        property(root, "host", LonghandId::Color),
+        "rgb(0, 0, 0)",
+        "zero author CSS must resolve color to the initial value, as Chromium does"
+    );
+    assert_eq!(
+        property(root, "probe", LonghandId::Color),
+        "rgb(0, 0, 0)",
+        "currentColor inside the inline SVG inherits the same uninvented initial"
     );
 }
 

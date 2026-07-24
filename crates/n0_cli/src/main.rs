@@ -8,19 +8,33 @@
 //! exact signed-nanosecond Sample of the same compile. Time changes
 //! effective values only — it selects no route.
 //!
-//! Beyond-slice constructs refuse loudly with the unsupported construct
-//! named. The HTML entry compiles exactly the document's first inline SVG:
-//! when that subtree is admitted the render succeeds and the surrounding
-//! page contributes nothing (a pinned contract, not a silent drop); when it
-//! is not, the host refuses by name. The host owns arguments,
-//! file I/O, an explicit raster size, CPU rasterization, and PNG encoding.
-//! Local/remote images and external stylesheets are not resolved; directory
-//! input and non-PNG output remain outside the admitted host contract.
+//! The default admission is best-effort: the admitted subset renders and
+//! every beyond-slice construct is declared on stderr with its node path
+//! and reason — skipped elements leave holes, a beyond-inventory dynamic
+//! surface samples as the Base view. Never silent, never guessed pixels.
+//! `--strict` keeps the refusal harness: the first beyond-slice construct
+//! fails loudly with the construct named — the dev/TODO surface (the
+//! refusal pins run strict; the gates hold both admissions frame-identical
+//! across the full oracle corpus and byte-identical at the host's spot
+//! checks; the Chromium bakes drive the browser only). Document-level
+//! contracts — no `<svg>` root, malformed standalone XML, the script-free
+//! parses, the outer viewport sizing and root patrols — refuse identically
+//! in both admissions.
+//!
+//! The HTML entry compiles exactly the document's first inline SVG: the
+//! surrounding page contributes nothing (a pinned contract, not a silent
+//! drop). Sampling inline HTML refuses under `--strict` and samples as the
+//! Base view (declared) by default. The host owns arguments, file I/O, an
+//! explicit raster size, CPU rasterization, and PNG encoding. Local/remote
+//! images and external stylesheets are not resolved; directory input and
+//! non-PNG output remain outside the admitted host contract.
 //!
 //! Usage:
 //!   cargo run -p n0_cli --bin n0 -- <input.svg|input.html> <out.png> <WxH>
 //!   cargo run -p n0_cli --bin n0 -- <input.svg|input.html> <out.png> <WxH> --base
-//!   cargo run -p n0_cli --bin n0 -- <input.svg> <out.png> <WxH> --time-ns <i64>
+//!   cargo run -p n0_cli --bin n0 -- <input.svg|input.html> <out.png> <WxH> --time-ns <i64>
+//!   ... any form plus --strict (refuse beyond-slice) or --best-effort (the
+//!   explicit spelling of the default)
 //!
 //! Examples:
 //!   cargo run -p n0_cli --bin n0 -- \
@@ -49,14 +63,26 @@ enum FramePolicy {
     Sample(SampleTime),
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum Admission {
+    /// Render the admitted subset; declare every beyond-slice construct on
+    /// stderr. The default.
+    BestEffort,
+    /// Refuse loudly on the first beyond-slice construct — the dev harness
+    /// and TODO surface.
+    Strict,
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    if !matches!(args.len(), 3..=5) {
+    if !matches!(args.len(), 3..=6) {
         eprintln!(
             "usage:\n\
              n0 <input.svg|input.html> <out.png> <WxH>\n\
              n0 <input.svg|input.html> <out.png> <WxH> --base\n\
-             n0 <input.svg> <out.png> <WxH> --time-ns <signed-nanoseconds>"
+             n0 <input.svg|input.html> <out.png> <WxH> --time-ns <signed-nanoseconds>\n\
+             any form may add --strict (refuse beyond-slice constructs)\n\
+             or --best-effort (declare and render; the default)"
         );
         return ExitCode::from(2);
     }
@@ -66,8 +92,8 @@ fn main() -> ExitCode {
         eprintln!("error: size must look like 128x128 and be positive");
         return ExitCode::from(2);
     };
-    let policy = match parse_frame_policy(&args[3..]) {
-        Ok(policy) => policy,
+    let (policy, admission) = match parse_render_options(&args[3..]) {
+        Ok(options) => options,
         Err(message) => {
             eprintln!("error: {message}");
             return ExitCode::from(2);
@@ -94,8 +120,8 @@ fn main() -> ExitCode {
         }
     };
 
-    let png = match render_source_to_png(&source, kind, w, h, policy) {
-        Ok(png) => png,
+    let (png, degradations) = match render_source_to_png(&source, kind, w, h, policy, admission) {
+        Ok(rendered) => rendered,
         Err(e) => {
             eprintln!("error: render failed: {e}");
             return ExitCode::FAILURE;
@@ -106,11 +132,23 @@ fn main() -> ExitCode {
         eprintln!("error: cannot write {output}: {e}");
         return ExitCode::FAILURE;
     }
-    eprintln!(
-        "rendered {input} -> {output} ({w}x{h}, {}, {} bytes)",
-        policy.label(),
-        png.len()
-    );
+    for degradation in &degradations {
+        eprintln!("degraded: {degradation}");
+    }
+    if degradations.is_empty() {
+        eprintln!(
+            "rendered {input} -> {output} ({w}x{h}, {}, {} bytes)",
+            policy.label(),
+            png.len()
+        );
+    } else {
+        eprintln!(
+            "rendered {input} -> {output} ({w}x{h}, {}, {} degraded, {} bytes)",
+            policy.label(),
+            degradations.len(),
+            png.len()
+        );
+    }
     ExitCode::SUCCESS
 }
 
@@ -121,6 +159,30 @@ impl FramePolicy {
             Self::Sample(_) => "sample-shared-frame",
         }
     }
+}
+
+/// Parse the trailing options: an optional frame policy (`--base` or
+/// `--time-ns <ns>`) and an optional admission (`--strict` or
+/// `--best-effort`), in any order.
+fn parse_render_options(args: &[String]) -> Result<(FramePolicy, Admission), String> {
+    let mut admission = None;
+    let mut policy_args = Vec::new();
+    for arg in args {
+        let flag = match arg.as_str() {
+            "--strict" => Some(Admission::Strict),
+            "--best-effort" => Some(Admission::BestEffort),
+            _ => None,
+        };
+        match flag {
+            Some(_) if admission.is_some() => {
+                return Err(format!("duplicate or conflicting admission flag {arg:?}"));
+            }
+            Some(flag) => admission = Some(flag),
+            None => policy_args.push(arg.clone()),
+        }
+    }
+    let policy = parse_frame_policy(&policy_args)?;
+    Ok((policy, admission.unwrap_or(Admission::BestEffort)))
 }
 
 fn parse_frame_policy(args: &[String]) -> Result<FramePolicy, String> {
@@ -165,16 +227,28 @@ fn has_extension(path: &Path, expected: &str) -> bool {
         .is_some_and(|extension| extension.eq_ignore_ascii_case(expected))
 }
 
+/// Render one source through the engine of record and return the PNG plus
+/// the degradations relevant to this request: skips always apply, a
+/// samples-as-base declaration only describes `--time-ns` requests.
 fn render_source_to_png(
     source: &str,
     kind: SourceKind,
     width: i32,
     height: i32,
     policy: FramePolicy,
-) -> Result<Vec<u8>, String> {
-    let retained = match kind {
-        SourceKind::Svg => websem::SvgFrameSource::from_standalone_svg(source),
-        SourceKind::Html => websem::SvgFrameSource::from_html_inline_svg(source),
+    admission: Admission,
+) -> Result<(Vec<u8>, Vec<websem::Degradation>), String> {
+    let retained = match (kind, admission) {
+        (SourceKind::Svg, Admission::Strict) => websem::SvgFrameSource::from_standalone_svg(source),
+        (SourceKind::Svg, Admission::BestEffort) => {
+            websem::SvgFrameSource::from_standalone_svg_best_effort(source)
+        }
+        (SourceKind::Html, Admission::Strict) => {
+            websem::SvgFrameSource::from_html_inline_svg(source)
+        }
+        (SourceKind::Html, Admission::BestEffort) => {
+            websem::SvgFrameSource::from_html_inline_svg_best_effort(source)
+        }
     }
     .map_err(|error| error.to_string())?;
     let frame = match policy {
@@ -183,7 +257,18 @@ fn render_source_to_png(
             .sample_frame(time)
             .map_err(|error| error.to_string())?,
     };
-    frame_to_png(frame, width, height)
+    let degradations = retained
+        .degradations()
+        .iter()
+        .filter(|degradation| match degradation.action() {
+            websem::DegradationAction::Skipped => true,
+            websem::DegradationAction::SamplesAsBase => {
+                matches!(policy, FramePolicy::Sample(_))
+            }
+        })
+        .cloned()
+        .collect();
+    frame_to_png(frame, width, height).map(|png| (png, degradations))
 }
 
 fn frame_to_png(frame: rframe::Frame, width: i32, height: i32) -> Result<Vec<u8>, String> {
@@ -273,26 +358,61 @@ mod tests {
         assert_eq!(parse_size("320X200"), Some((320, 200)));
         assert_eq!(parse_size("0x200"), None);
         assert_eq!(parse_size("auto"), None);
-        assert_eq!(parse_frame_policy(&[]), Ok(FramePolicy::Base));
         assert_eq!(
-            parse_frame_policy(&["--base".to_string()]),
-            Ok(FramePolicy::Base)
+            parse_render_options(&[]),
+            Ok((FramePolicy::Base, Admission::BestEffort)),
+            "the unqualified default is best-effort Base"
         );
         assert_eq!(
-            parse_frame_policy(&["--time-ns".to_string(), "-1".to_string()]),
-            Ok(FramePolicy::Sample(SampleTime::from_nanoseconds(-1)))
+            parse_render_options(&["--base".to_string()]),
+            Ok((FramePolicy::Base, Admission::BestEffort))
         );
-        assert!(parse_frame_policy(&["--time-ns".to_string()]).is_err());
-        assert!(parse_frame_policy(&["--time-ns".to_string(), "1.5".to_string()]).is_err());
+        assert_eq!(
+            parse_render_options(&["--strict".to_string()]),
+            Ok((FramePolicy::Base, Admission::Strict))
+        );
+        assert_eq!(
+            parse_render_options(&["--best-effort".to_string()]),
+            Ok((FramePolicy::Base, Admission::BestEffort))
+        );
+        assert_eq!(
+            parse_render_options(&[
+                "--time-ns".to_string(),
+                "-1".to_string(),
+                "--strict".to_string()
+            ]),
+            Ok((
+                FramePolicy::Sample(SampleTime::from_nanoseconds(-1)),
+                Admission::Strict
+            ))
+        );
+        assert_eq!(
+            parse_render_options(&[
+                "--strict".to_string(),
+                "--time-ns".to_string(),
+                "7".to_string()
+            ]),
+            Ok((
+                FramePolicy::Sample(SampleTime::from_nanoseconds(7)),
+                Admission::Strict
+            )),
+            "flag order is free"
+        );
+        assert!(
+            parse_render_options(&["--strict".to_string(), "--best-effort".to_string()]).is_err(),
+            "one admission flag at most"
+        );
+        assert!(parse_render_options(&["--time-ns".to_string()]).is_err());
+        assert!(parse_render_options(&["--time-ns".to_string(), "1.5".to_string()]).is_err());
     }
 
-    /// D-N's capability statement: inputs the retired mature route rendered
-    /// refuse loudly on the engine of record, with the unsupported construct
-    /// named — never wrong pixels. Each pinned reason is the current
-    /// capability edge; an evolution rung that admits the construct must
-    /// update the pin alongside its Chromium-baked fixtures.
+    /// The strict admission keeps D-N's refusal harness: inputs the retired
+    /// mature route rendered refuse loudly under `--strict`, with the
+    /// unsupported construct named — never wrong pixels. Each pinned reason
+    /// is the current capability edge; an evolution rung that admits the
+    /// construct must update the pin alongside its Chromium-baked fixtures.
     #[test]
-    fn beyond_slice_legacy_corpus_refuses_by_name() {
+    fn strict_admission_refuses_beyond_slice_by_name() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         for (relative, kind, size, named) in [
             (
@@ -317,11 +437,117 @@ mod tests {
             let input = root.join(relative);
             let source = std::fs::read_to_string(&input)
                 .unwrap_or_else(|error| panic!("read {}: {error}", input.display()));
-            let error = render_source_to_png(&source, kind, size.0, size.1, FramePolicy::Base)
-                .expect_err("beyond-slice input must refuse, not render");
+            let error = render_source_to_png(
+                &source,
+                kind,
+                size.0,
+                size.1,
+                FramePolicy::Base,
+                Admission::Strict,
+            )
+            .expect_err("beyond-slice input must refuse under --strict, not render");
             assert!(
                 error.contains(named),
                 "{relative} must refuse with the construct named; got: {error}"
+            );
+        }
+    }
+
+    /// The default admission renders the admitted subset of the same legacy
+    /// corpus and declares every beyond-slice construct — holes with names,
+    /// never wrong pixels for admitted nodes, exit success.
+    #[test]
+    fn best_effort_default_renders_the_admitted_subset_and_declares_the_rest() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+
+        // basic-shapes.svg: the white background rect is admitted; <title>,
+        // <desc>, and the eight <g> groups are declared skips.
+        let source = std::fs::read_to_string(root.join("fixtures/test-svg/L0/basic-shapes.svg"))
+            .expect("read basic-shapes");
+        let (png, degradations) = render_source_to_png(
+            &source,
+            SourceKind::Svg,
+            800,
+            400,
+            FramePolicy::Base,
+            Admission::BestEffort,
+        )
+        .expect("best-effort renders the admitted subset");
+        let raster = decode_png(&png).expect("decode PNG");
+        assert_eq!(
+            raster.at(400, 200),
+            [255, 255, 255, 255],
+            "the admitted background rect paints"
+        );
+        let skipped: Vec<&str> = degradations.iter().map(|d| d.path()).collect();
+        assert_eq!(
+            skipped,
+            vec![
+                "svg/title[1]",
+                "svg/desc[1]",
+                "svg/g[1]",
+                "svg/g[2]",
+                "svg/g[3]",
+                "svg/g[4]",
+                "svg/g[5]",
+                "svg/g[6]",
+                "svg/g[7]",
+                "svg/g[8]",
+            ],
+            "every beyond-slice child is declared at its path"
+        );
+        assert!(
+            degradations
+                .iter()
+                .any(|d| d.reason() == "unsupported element <g>"),
+            "reasons name the construct"
+        );
+
+        // circle-fill-probe.svg: the circle becomes a declared hole — the
+        // probe pixel Chromium paints green stays background white.
+        let source =
+            std::fs::read_to_string(root.join("fixtures/test-svg/probe/circle-fill-probe.svg"))
+                .expect("read circle probe");
+        let (png, degradations) = render_source_to_png(
+            &source,
+            SourceKind::Svg,
+            64,
+            64,
+            FramePolicy::Base,
+            Admission::BestEffort,
+        )
+        .expect("best-effort renders the admitted background");
+        let raster = decode_png(&png).expect("decode PNG");
+        assert_eq!(raster.at(4, 4), [255, 255, 255, 255], "background paints");
+        assert_eq!(
+            raster.at(32, 32),
+            [255, 255, 255, 255],
+            "the skipped circle is a declared hole, not a guessed paint"
+        );
+        assert_eq!(degradations.len(), 1);
+        assert_eq!(degradations[0].path(), "svg/circle[1]");
+        assert_eq!(degradations[0].reason(), "unsupported element <circle>");
+
+        // Document-level contracts hold in both admissions: the flex probe's
+        // CSS-sized viewport still refuses; best-effort never invents the
+        // canvas.
+        let source = std::fs::read_to_string(
+            root.join("fixtures/test-html/probe/inline-svg-flex-probe.html"),
+        )
+        .expect("read flex probe");
+        for admission in [Admission::BestEffort, Admission::Strict] {
+            let error = render_source_to_png(
+                &source,
+                SourceKind::Html,
+                96,
+                48,
+                FramePolicy::Base,
+                admission,
+            )
+            .expect_err("viewport sizing is document-level in both admissions");
+            assert!(
+                error.contains("unsupported SVG viewport sizing: missing width"),
+                "{admission:?}: {error}"
             );
         }
     }
@@ -337,11 +563,30 @@ mod tests {
         let source =
             std::fs::read_to_string(root.join("fixtures/test-html/L0/svg-inline-basic.html"))
                 .expect("read legacy inline-svg page");
-        let first = render_source_to_png(&source, SourceKind::Html, 800, 600, FramePolicy::Base)
-            .expect("the first inline SVG is the admitted rect");
-        let second = render_source_to_png(&source, SourceKind::Html, 800, 600, FramePolicy::Base)
-            .expect("repeat render");
-        assert_eq!(first, second, "encoded determinism");
+        let (first, degradations) = render_source_to_png(
+            &source,
+            SourceKind::Html,
+            800,
+            600,
+            FramePolicy::Base,
+            Admission::BestEffort,
+        )
+        .expect("the first inline SVG is the admitted rect");
+        assert!(
+            degradations.is_empty(),
+            "the first SVG is fully admitted; the first-SVG-only boundary is \
+             a pinned entry contract, not a degradation"
+        );
+        let (second, _) = render_source_to_png(
+            &source,
+            SourceKind::Html,
+            800,
+            600,
+            FramePolicy::Base,
+            Admission::Strict,
+        )
+        .expect("repeat render (strict admission)");
+        assert_eq!(first, second, "encoded determinism across admissions");
         let raster = decode_png(&first).expect("decode rendered PNG");
         assert_eq!(
             raster.at(50, 50),
@@ -385,11 +630,29 @@ mod tests {
         ] {
             let source = std::fs::read_to_string(root.join(relative))
                 .unwrap_or_else(|error| panic!("read {relative}: {error}"));
-            let first = render_source_to_png(&source, kind, size.0, size.1, FramePolicy::Base)
-                .unwrap_or_else(|error| panic!("render {relative}: {error}"));
-            let second = render_source_to_png(&source, kind, size.0, size.1, FramePolicy::Base)
-                .unwrap_or_else(|error| panic!("repeat {relative}: {error}"));
-            assert_eq!(first, second, "{relative} encoded determinism");
+            let (first, degradations) = render_source_to_png(
+                &source,
+                kind,
+                size.0,
+                size.1,
+                FramePolicy::Base,
+                Admission::BestEffort,
+            )
+            .unwrap_or_else(|error| panic!("render {relative}: {error}"));
+            assert!(
+                degradations.is_empty(),
+                "{relative} is fully admitted; nothing degrades"
+            );
+            let (second, _) = render_source_to_png(
+                &source,
+                kind,
+                size.0,
+                size.1,
+                FramePolicy::Base,
+                Admission::Strict,
+            )
+            .unwrap_or_else(|error| panic!("repeat {relative}: {error}"));
+            assert_eq!(first, second, "{relative} byte-identical across admissions");
             let raster = decode_png(&first).expect("decode rendered PNG");
             let expected = decode_png(
                 &std::fs::read(root.join(oracle))
@@ -434,11 +697,23 @@ mod tests {
                 "fixtures/web-first/animation/chromium/sample-2000000000ns.png",
             ),
         ] {
-            let first = render_source_to_png(&source, SourceKind::Svg, 64, 32, policy)
-                .unwrap_or_else(|error| panic!("render {policy:?}: {error}"));
-            let second = render_source_to_png(&source, SourceKind::Svg, 64, 32, policy)
-                .unwrap_or_else(|error| panic!("repeat {policy:?}: {error}"));
-            assert_eq!(first, second, "{policy:?} encoded determinism");
+            let (first, degradations) = render_source_to_png(
+                &source,
+                SourceKind::Svg,
+                64,
+                32,
+                policy,
+                Admission::BestEffort,
+            )
+            .unwrap_or_else(|error| panic!("render {policy:?}: {error}"));
+            assert!(
+                degradations.is_empty(),
+                "the admitted x animation degrades nothing"
+            );
+            let (second, _) =
+                render_source_to_png(&source, SourceKind::Svg, 64, 32, policy, Admission::Strict)
+                    .unwrap_or_else(|error| panic!("repeat {policy:?}: {error}"));
+            assert_eq!(first, second, "{policy:?} byte-identical across admissions");
             let raster = decode_png(&first).expect("decode exact-time PNG");
             let expected = decode_png(
                 &std::fs::read(root.join(oracle))
@@ -459,10 +734,12 @@ mod tests {
         }
     }
 
-    /// Sampling inline HTML refuses loudly through websem's own dynamic
-    /// inventory; a document with no inline SVG refuses at construction.
+    /// Sampling inline HTML refuses loudly under `--strict` through websem's
+    /// own dynamic inventory; the default admission samples as the Base view
+    /// and declares it. A document with no inline SVG refuses at
+    /// construction in both admissions.
     #[test]
-    fn html_sampling_and_svgless_documents_refuse_loudly() {
+    fn html_sampling_refuses_strictly_and_falls_back_by_default() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let source = std::fs::read_to_string(
             root.join("fixtures/web-first/html-inline-svg-currentcolor-rect.html"),
@@ -474,18 +751,58 @@ mod tests {
             64,
             64,
             FramePolicy::Sample(SampleTime::ZERO),
+            Admission::Strict,
         )
-        .expect_err("inline-HTML sampling is not admitted");
+        .expect_err("inline-HTML sampling is not admitted under --strict");
         assert!(
             error.contains("inline HTML"),
             "the refusal names the entry: {error}"
         );
-        let error =
-            render_source_to_png("<html></html>", SourceKind::Html, 64, 32, FramePolicy::Base)
-                .expect_err("a document with no inline SVG refuses at construction");
+
+        let (sampled, degradations) = render_source_to_png(
+            &source,
+            SourceKind::Html,
+            64,
+            64,
+            FramePolicy::Sample(SampleTime::ZERO),
+            Admission::BestEffort,
+        )
+        .expect("the default admission samples as the Base view");
+        assert_eq!(degradations.len(), 1, "declared exactly once");
         assert!(
-            error.contains("no <svg> element"),
-            "the refusal names the missing root: {error}"
+            degradations[0].reason().contains("inline HTML"),
+            "the declaration names the entry: {}",
+            degradations[0].reason()
         );
+        let (base, base_degradations) = render_source_to_png(
+            &source,
+            SourceKind::Html,
+            64,
+            64,
+            FramePolicy::Base,
+            Admission::BestEffort,
+        )
+        .expect("Base render");
+        assert!(
+            base_degradations.is_empty(),
+            "a Base request is not degraded by the sampling boundary"
+        );
+        assert_eq!(sampled, base, "the fallback sample IS the Base view");
+
+        for admission in [Admission::BestEffort, Admission::Strict] {
+            let error = render_source_to_png(
+                "<html></html>",
+                SourceKind::Html,
+                64,
+                32,
+                FramePolicy::Base,
+                admission,
+            )
+            .expect_err("a document with no inline SVG refuses at construction");
+            assert!(
+                error.contains("no <svg> element"),
+                "{admission:?} names the missing root: {error}"
+            );
+        }
     }
 }

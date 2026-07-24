@@ -62,7 +62,11 @@ impl std::error::Error for AnimationError {}
 #[derive(Debug)]
 pub(crate) struct AnimationInventory {
     has_animation_elements: bool,
-    result: Result<Option<RectXAnimation>, AnimationError>,
+    plan: Option<RectXAnimation>,
+    /// Every recorded reason the closed dynamic inventory rejects this
+    /// source, in inspection order. Strict sampling refuses with the first;
+    /// best-effort declares each one.
+    blockers: Vec<AnimationError>,
 }
 
 impl AnimationInventory {
@@ -75,7 +79,7 @@ impl AnimationInventory {
             materialized: materialized.iter().copied().collect(),
             animation_count: 0,
             plan: None,
-            error: None,
+            errors: Vec::new(),
         };
         inspector.inspect_dynamic_surface(svg, "svg");
         inspector.walk_children(svg, "svg");
@@ -87,10 +91,8 @@ impl AnimationInventory {
         }
         Self {
             has_animation_elements: inspector.animation_count != 0,
-            result: match inspector.error {
-                Some(error) => Err(error),
-                None => Ok(inspector.plan),
-            },
+            plan: inspector.plan,
+            blockers: inspector.errors,
         }
     }
 
@@ -98,14 +100,25 @@ impl AnimationInventory {
         self.has_animation_elements
     }
 
+    /// Every recorded reason the closed dynamic inventory rejects this
+    /// source — the facts the best-effort mode declares when it resolves
+    /// every sample request to the Base view instead.
+    pub(crate) fn blockers(&self) -> &[AnimationError] {
+        &self.blockers
+    }
+
     /// Resolve one frame request's animated contribution into the
     /// [`EffectiveValues`] view the compiler consumes. Base semantics apply
-    /// whenever the admitted animation contributes no value at `time`.
+    /// whenever the admitted animation contributes no value at `time`. A
+    /// blocked inventory refuses with its first recorded reason.
     pub(crate) fn effective_values(
         &self,
         time: SampleTime,
     ) -> Result<EffectiveValues, AnimationError> {
-        let Some(plan) = self.result.as_ref().map_err(Clone::clone)? else {
+        if let Some(first) = self.blockers.first() {
+            return Err(first.clone());
+        }
+        let Some(plan) = self.plan.as_ref() else {
             return Ok(EffectiveValues::base());
         };
         let Some(contribution) = plan.timing.contribution(time, FillMode::Freeze) else {
@@ -130,7 +143,7 @@ struct Inspector {
     materialized: HashSet<NodeId>,
     animation_count: usize,
     plan: Option<RectXAnimation>,
-    error: Option<AnimationError>,
+    errors: Vec<AnimationError>,
 }
 
 impl Inspector {
@@ -196,7 +209,7 @@ impl Inspector {
                     path,
                     format!(
                         "event-handler attribute {:?} is outside the closed static sampling inventory",
-                        attribute.name.local
+                        attribute.name.local.as_ref()
                     ),
                 ));
             }
@@ -205,7 +218,7 @@ impl Inspector {
                     path,
                     format!(
                         "CSS animation-affecting attribute {:?} is outside the rect-x proving slice",
-                        attribute.name.local
+                        attribute.name.local.as_ref()
                     ),
                 ));
             }
@@ -300,9 +313,7 @@ impl Inspector {
     }
 
     fn record_error(&mut self, error: AnimationError) {
-        if self.error.is_none() {
-            self.error = Some(error);
-        }
+        self.errors.push(error);
     }
 }
 

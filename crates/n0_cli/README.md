@@ -19,17 +19,36 @@ cargo run -p n0_cli --bin n0 -- \
 cargo run -p n0_cli --bin n0 -- \
   fixtures/web-first/animation/svg-rect-x-animation.svg /tmp/t1s.png 64x32 \
   --time-ns 1000000000
+
+# dev harness: refuse on the first beyond-slice construct instead of
+# rendering best-effort with declared degradations (the default)
+cargo run -p n0_cli --bin n0 -- \
+  fixtures/test-svg/probe/circle-fill-probe.svg /tmp/probe.png 64x64 --strict
 ```
 
 - Input: one UTF-8 `.html`, `.htm`, or `.svg` file.
 - Output: one `.png` file at an explicit positive `WxH` size.
 - Resources: self-contained input only; external images and stylesheets are
   not resolved.
-- Capability: the admitted slice is deliberately narrow. Beyond-slice
-  constructs refuse loudly with the construct named — never wrong pixels.
-  The HTML entry compiles exactly the document's first inline SVG; when that
+- Capability: the admitted slice is deliberately narrow, and the default
+  admission is **best-effort**: the admitted subset renders and every
+  beyond-slice construct is declared on stderr with its node path and
+  reason (`degraded: skipped svg/circle[1]: unsupported element <circle>`);
+  a beyond-inventory dynamic surface samples as the Base view. Declared
+  holes, never guessed pixels — the patrol is per attribute and per
+  cascaded property, so an admitted element carrying a rendering attribute
+  or stylesheet value the slice does not consume becomes a declared hole,
+  not a wrong paint (cascaded properties beyond the enumerated patrol are
+  a named open boundary; see the websem compiler doc). `--strict` refuses
+  loudly on the first beyond-slice construct instead — the dev harness and
+  TODO surface (`--best-effort` is the explicit spelling of the default).
+  Document-level contracts (no `<svg>` root, malformed standalone XML, a
+  script-suspended standalone parse, the outer viewport sizing and root
+  patrols) refuse in both admissions.
+- The HTML entry compiles exactly the document's first inline SVG; when that
   subtree is admitted the render succeeds and the surrounding page
-  contributes nothing (a pinned contract), and sampling inline HTML refuses.
+  contributes nothing (a pinned contract). Sampling inline HTML refuses
+  under `--strict` and samples as the Base view (declared) by default.
 
 The retired mature `htmlcss` route must not return silently (locked by this
 crate's architecture test). The binary name does not imply that Web sources

@@ -20,6 +20,27 @@
 //! This is not yet an exhaustive SVG-surface validator or an SVG capability
 //! claim.
 //!
+//! Two admission modes share this one compiler. Strict refuses on the first
+//! beyond-slice construct — the dev harness. Best-effort (the product
+//! default at the CLI) compiles the admitted subset and declares every
+//! beyond-slice construct as a [`Degradation`]: subtree constructs are
+//! skipped by name, a blocked dynamic surface resolves sample requests to
+//! the Base view. Neither mode ever guesses pixels, and document-level
+//! contracts (well-formed XML, the script-free standalone parse, the `svg`
+//! root, the outer viewport sizing/mapping, the root patrols) refuse
+//! identically in both.
+//!
+//! The admitted surface is patrolled per attribute and per cascaded
+//! property, not just per element: known rendering-relevant SVG attributes
+//! the slice does not consume refuse or skip by name
+//! ([`RENDERING_ATTRIBUTES_NOT_CONSUMED`]), while attributes outside the
+//! SVG rendering vocabulary stay ignored exactly as Chromium ignores them;
+//! the cascaded surface is patrolled for the enumerated properties
+//! `opacity`, `display: none`, `visibility`, and shape `stroke` beside the
+//! typed `fill`/`fill-opacity` reads. Cascaded properties beyond that
+//! enumeration remain a **named open boundary** of the slice — not a
+//! coverage claim.
+//!
 //! ## SVG paint boundary
 //! Paint is consumed from the one Stylo cascade as typed values:
 //! [`resolve_fill`] reads the computed SVG `fill` longhand, which
@@ -42,11 +63,14 @@
 //! same compiler; a request differs only in the effective-value view its
 //! attribute reads resolve through.
 
+use std::collections::HashMap;
+
 use csscascade::adapter::{DocumentSession, HtmlElement};
 use csscascade::cascade::CascadeDriver;
 use csscascade::dom::{DemoDom, DemoNodeData, NodeId};
 
 use style::color::{AbsoluteColor, ColorSpace};
+use style::computed_values::visibility::T as Visibility;
 use style::dom::TElement;
 use style::properties::ComputedValues;
 use style::thread_state::{self, ThreadState};
@@ -75,6 +99,86 @@ pub(crate) enum SourceEntry {
     /// Inline SVG inside an HTML document (html5ever; the HTML document's
     /// own leniency rules apply).
     InlineHtml,
+}
+
+/// How beyond-slice constructs are handled: refused (the dev harness) or
+/// declared and degraded (the product default).
+///
+/// Document-level contracts are identical in both modes: no `<svg>` root,
+/// malformed standalone XML, and the outer viewport sizing/mapping checks
+/// refuse either way — best-effort degrades subtree content, it never
+/// invents the canvas.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CompileMode {
+    /// Refuse on the first beyond-slice construct.
+    Strict,
+    /// Compile the admitted subset; record every beyond-slice construct as a
+    /// [`Degradation`] — dropped or resolved to Base, never guessed pixels.
+    BestEffort,
+}
+
+/// How the best-effort mode handles one beyond-slice construct.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DegradationAction {
+    /// The element (and its subtree) was left out of the frame entirely.
+    Skipped,
+    /// A standing policy, not a past event: every sample request of this
+    /// source resolves to the Base view, because the declared construct is
+    /// outside the closed sampling inventory. Present from construction
+    /// even if the consumer only ever requests Base — a Base request is not
+    /// degraded by it.
+    SamplesAsBase,
+}
+
+/// One declared best-effort degradation: a construct the strict admission
+/// would refuse — at compile time for subtree constructs ([`Skipped`]), at
+/// sample time for the dynamic surface ([`SamplesAsBase`]) — handled by
+/// dropping it or resolving it to Base instead, with the construct named,
+/// never silently.
+///
+/// The set is a property of the retained source, fixed at construction: Base
+/// and every Sample request share it. `path` follows the same stable
+/// structural convention as [`crate::AnimationError`] (e.g. `svg/circle[1]`);
+/// it is not an XML line or column.
+///
+/// [`Skipped`]: DegradationAction::Skipped
+/// [`SamplesAsBase`]: DegradationAction::SamplesAsBase
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Degradation {
+    path: String,
+    action: DegradationAction,
+    reason: String,
+}
+
+impl Degradation {
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
+    pub const fn action(&self) -> DegradationAction {
+        self.action
+    }
+
+    pub fn reason(&self) -> &str {
+        &self.reason
+    }
+}
+
+impl std::fmt::Display for Degradation {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.action {
+            DegradationAction::Skipped => {
+                write!(formatter, "skipped {}: {}", self.path, self.reason)
+            }
+            DegradationAction::SamplesAsBase => {
+                write!(
+                    formatter,
+                    "samples as base ({}): {}",
+                    self.path, self.reason
+                )
+            }
+        }
+    }
 }
 
 /// An explicit failure in the proving shell's enumerated grammar checks.
@@ -110,6 +214,25 @@ pub enum CompileError {
     UnsupportedViewport(String),
     /// An element carried no computed style (cascade did not reach it).
     MissingComputedStyle,
+    /// A known rendering-relevant SVG attribute the slice does not consume.
+    /// Attributes outside the SVG rendering vocabulary are ignored exactly
+    /// as Chromium ignores them; this variant fires only for attributes
+    /// that would change Chromium's pixels.
+    UnsupportedAttribute { element: String, attr: String },
+    /// A cascaded computed value the painter would otherwise silently
+    /// ignore (e.g. a stylesheet-set `opacity` or `stroke`).
+    UnsupportedStyle(String),
+    /// `<script>` suspends xml5ever's standalone XML parse and everything
+    /// after it is silently absent from the document, so script-bearing
+    /// standalone documents refuse in both admissions.
+    ScriptSuspendsParse,
+    /// `<script>` inside the compiled inline-SVG subtree of an HTML
+    /// document: a load-time script can rewrite the authored state that the
+    /// Base view renders, at any nesting depth, so it refuses in both
+    /// admissions rather than rendering a possibly-stale authored state
+    /// silently. (Scripts elsewhere on the page stay under the pinned
+    /// first-SVG-only entry contract and the closed sampling inventory.)
+    ScriptInCompiledSvg,
 }
 
 /// One retained, styled Web SVG source.
@@ -124,6 +247,8 @@ pub struct SvgFrameSource {
     svg_root: NodeId,
     base: Frame,
     animation: AnimationInventory,
+    mode: CompileMode,
+    degradations: Vec<Degradation>,
 }
 
 impl std::fmt::Debug for SvgFrameSource {
@@ -140,9 +265,24 @@ impl std::fmt::Debug for SvgFrameSource {
 
 impl SvgFrameSource {
     /// Retain an HTML document and compile its first inline SVG in place under
-    /// the document's one Stylo cascade.
+    /// the document's one Stylo cascade. Strict: the first beyond-slice
+    /// construct refuses.
     pub fn from_html_inline_svg(source: impl Into<Arc<str>>) -> Result<Self, CompileError> {
-        Self::from_source(source.into(), SourceEntry::InlineHtml)
+        Self::from_source(source.into(), SourceEntry::InlineHtml, CompileMode::Strict)
+    }
+
+    /// The best-effort variant of [`Self::from_html_inline_svg`]: beyond-slice
+    /// constructs inside the first inline SVG are declared in
+    /// [`Self::degradations`] instead of refusing. Document-level contracts
+    /// (no inline `<svg>`, the outer viewport checks) still refuse.
+    pub fn from_html_inline_svg_best_effort(
+        source: impl Into<Arc<str>>,
+    ) -> Result<Self, CompileError> {
+        Self::from_source(
+            source.into(),
+            SourceEntry::InlineHtml,
+            CompileMode::BestEffort,
+        )
     }
 
     /// Retain one conforming standalone SVG/XML document.
@@ -156,10 +296,32 @@ impl SvgFrameSource {
     /// leaves unrecorded (see [`CompileError::MalformedXml`]) remain a named
     /// leniency boundary, not a universal Chromium-alignment claim.
     pub fn from_standalone_svg(source: impl Into<Arc<str>>) -> Result<Self, CompileError> {
-        Self::from_source(source.into(), SourceEntry::StandaloneSvg)
+        Self::from_source(
+            source.into(),
+            SourceEntry::StandaloneSvg,
+            CompileMode::Strict,
+        )
     }
 
-    fn from_source(source: Arc<str>, entry: SourceEntry) -> Result<Self, CompileError> {
+    /// The best-effort variant of [`Self::from_standalone_svg`]: beyond-slice
+    /// constructs are declared in [`Self::degradations`] instead of refusing.
+    /// Document-level contracts (well-formed XML, the `svg` root, the outer
+    /// viewport sizing/mapping checks) still refuse.
+    pub fn from_standalone_svg_best_effort(
+        source: impl Into<Arc<str>>,
+    ) -> Result<Self, CompileError> {
+        Self::from_source(
+            source.into(),
+            SourceEntry::StandaloneSvg,
+            CompileMode::BestEffort,
+        )
+    }
+
+    fn from_source(
+        source: Arc<str>,
+        entry: SourceEntry,
+        mode: CompileMode,
+    ) -> Result<Self, CompileError> {
         // Idempotent for the same state; safe to call per retained source.
         thread_state::initialize(ThreadState::LAYOUT);
 
@@ -174,9 +336,18 @@ impl SvgFrameSource {
         let mut session = DocumentSession::new(dom);
         CascadeDriver::new(&mut session).style_document();
 
+        let mut degradations = Vec::new();
         let (svg_root, compilation, animation) = {
             let document = session.document();
             let root = document.root_element().ok_or(CompileError::NoSvgRoot)?;
+            // xml5ever suspends its tokenizer at any <script> and the
+            // blocking parse never resumes: everything after the element is
+            // silently absent from the DOM with no recorded recovery. That
+            // would be an undeclared hole, so the standalone entry refuses
+            // script-bearing documents in both admissions.
+            if entry == SourceEntry::StandaloneSvg && subtree_contains_script(root) {
+                return Err(CompileError::ScriptSuspendsParse);
+            }
             let svg = match entry {
                 SourceEntry::StandaloneSvg => (root.is_svg_element()
                     && root.local_name_string() == "svg")
@@ -184,10 +355,27 @@ impl SvgFrameSource {
                     .ok_or(CompileError::NoSvgRoot)?,
                 SourceEntry::InlineHtml => find_svg(root).ok_or(CompileError::NoSvgRoot)?,
             };
-            let compilation = compile_svg_element(svg, &EffectiveValues::base())?;
+            // A script anywhere inside the compiled subtree — nested in an
+            // admitted shape included — can rewrite the authored state at
+            // load; rendering that state silently would be wrong pixels
+            // versus Chromium's static page, so it refuses in both modes.
+            if entry == SourceEntry::InlineHtml && subtree_contains_script(svg) {
+                return Err(CompileError::ScriptInCompiledSvg);
+            }
+            let compilation =
+                compile_svg_element(svg, &EffectiveValues::base(), mode, &mut degradations)?;
             let animation = AnimationInventory::inspect(svg, &compilation.materialized, entry);
             (svg.node_id(), compilation, animation)
         };
+        if mode == CompileMode::BestEffort {
+            for blocker in animation.blockers() {
+                degradations.push(Degradation {
+                    path: blocker.path().to_string(),
+                    action: DegradationAction::SamplesAsBase,
+                    reason: blocker.reason().to_string(),
+                });
+            }
+        }
 
         Ok(Self {
             source,
@@ -195,6 +383,8 @@ impl SvgFrameSource {
             svg_root,
             base: compilation.frame,
             animation,
+            mode,
+            degradations,
         })
     }
 
@@ -214,6 +404,18 @@ impl SvgFrameSource {
         self.base.clone()
     }
 
+    /// Every declared best-effort degradation of this retained source: the
+    /// [`DegradationAction::Skipped`] entries in document order, then every
+    /// [`DegradationAction::SamplesAsBase`] entry in inspection order.
+    /// Always empty for a strict source — strict handles the same
+    /// constructs by refusing instead: at construction for subtree
+    /// constructs, at sample time for the dynamic surface. Skips affect
+    /// Base and Sample alike; a `SamplesAsBase` entry describes sample
+    /// requests only.
+    pub fn degradations(&self) -> &[Degradation] {
+        &self.degradations
+    }
+
     /// Produce one immutable frame at the caller-supplied exact time.
     ///
     /// The request resolves to the Web-owned effective-value view, then the
@@ -222,13 +424,22 @@ impl SvgFrameSource {
     /// frame is ever mutated afterward.
     ///
     /// The first slice closes the dynamic inventory only for the standalone
-    /// SVG entry. Inline HTML sampling fails explicitly until document-wide
-    /// CSS and script inventory is closed.
+    /// SVG entry. For a strict source, inline HTML sampling and every other
+    /// beyond-inventory dynamic surface fail explicitly (with the first
+    /// recorded reason); a best-effort source resolves such requests to the
+    /// Base view instead, with every reason declared in
+    /// [`Self::degradations`] as [`DegradationAction::SamplesAsBase`].
     pub fn sample_frame(
         &self,
         time: animation_sampling::SampleTime,
     ) -> Result<Frame, crate::svg_animation::AnimationError> {
-        let values = self.animation.effective_values(time)?;
+        let values = match self.animation.effective_values(time) {
+            Ok(values) => values,
+            Err(error) => match self.mode {
+                CompileMode::Strict => return Err(error),
+                CompileMode::BestEffort => EffectiveValues::base(),
+            },
+        };
 
         // Same idempotent per-thread state the construction compile used.
         thread_state::initialize(ThreadState::LAYOUT);
@@ -242,7 +453,10 @@ impl SvgFrameSource {
             self.svg_root,
             "retained document structure is immutable"
         );
-        let compilation = compile_svg_element(svg, &values)
+        // The degradation set is a property of the retained source, declared
+        // once at construction; the sample recompile reproduces the same
+        // skips deterministically and its sink is discarded.
+        let compilation = compile_svg_element(svg, &values, self.mode, &mut Vec::new())
             .expect("time changes effective values, not compilability of the retained source");
         Ok(compilation.frame)
     }
@@ -275,6 +489,23 @@ impl std::fmt::Display for CompileError {
                 write!(f, "unsupported SVG viewport mapping: {v}")
             }
             CompileError::MissingComputedStyle => write!(f, "element has no computed style"),
+            CompileError::UnsupportedAttribute { element, attr } => write!(
+                f,
+                "unsupported rendering attribute {attr} on <{element}> (not yet consumed)"
+            ),
+            CompileError::UnsupportedStyle(reason) => {
+                write!(f, "unsupported computed style: {reason}")
+            }
+            CompileError::ScriptSuspendsParse => write!(
+                f,
+                "<script> suspends the standalone XML parse; content after it would be \
+                 silently lost, so script-bearing standalone documents are refused"
+            ),
+            CompileError::ScriptInCompiledSvg => write!(
+                f,
+                "<script> inside the compiled inline SVG can rewrite the authored state \
+                 the Base view renders, so it is refused in both admissions"
+            ),
         }
     }
 }
@@ -293,6 +524,127 @@ pub fn compile_html_inline_svg(html: &str) -> Result<Frame, CompileError> {
 /// compiler as the inline entry.
 pub fn compile_standalone_svg(svg: &str) -> Result<Frame, CompileError> {
     SvgFrameSource::from_standalone_svg(svg).map(|source| source.base_frame())
+}
+
+/// Whether any element in the subtree is a `<script>` (exact local name —
+/// XML is case-sensitive, and only the exact tag suspends xml5ever).
+fn subtree_contains_script(el: HtmlElement<'_>) -> bool {
+    if el.local_name_string() == "script" {
+        return true;
+    }
+    let mut child = el.first_element_child();
+    while let Some(c) = child {
+        if subtree_contains_script(c) {
+            return true;
+        }
+        child = c.next_element_sibling();
+    }
+    false
+}
+
+/// Known rendering-relevant SVG attributes the slice does not consume. An
+/// authored attribute from this set changes Chromium's pixels, so an
+/// admitted element carrying one refuses (strict) or skips-and-declares
+/// (best-effort) instead of painting wrong pixels. Attributes outside the
+/// SVG rendering vocabulary — `data-*`, case-folded junk like `viewbox`,
+/// foreign names — stay ignored exactly as Chromium ignores them (pinned by
+/// the standalone entry laws). `preserveAspectRatio` is absent here because
+/// the viewport check owns its named refusal.
+const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
+    "transform",
+    "transform-origin",
+    "opacity",
+    "display",
+    "visibility",
+    "overflow",
+    "clip",
+    "clip-path",
+    "clip-rule",
+    "mask",
+    "filter",
+    "color",
+    "fill-opacity",
+    "fill-rule",
+    "stroke",
+    "stroke-width",
+    "stroke-opacity",
+    "stroke-dasharray",
+    "stroke-dashoffset",
+    "stroke-linecap",
+    "stroke-linejoin",
+    "stroke-miterlimit",
+    "paint-order",
+    "shape-rendering",
+    "image-rendering",
+    "color-rendering",
+    "color-interpolation",
+    "vector-effect",
+    "requiredFeatures",
+    "requiredExtensions",
+    "systemLanguage",
+];
+
+/// Rendering attributes additionally rejected on `<rect>`: rounded corners
+/// are not painted by the slice.
+const RECT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["rx", "ry"];
+
+fn patrol_rendering_attributes(
+    element: HtmlElement<'_>,
+    element_name: &str,
+    extra: &[&str],
+) -> Result<(), CompileError> {
+    if let DemoNodeData::Element(e) = &element.dom_node().data {
+        for a in &e.attrs {
+            let local = a.name.local.as_ref();
+            if RENDERING_ATTRIBUTES_NOT_CONSUMED.contains(&local) || extra.contains(&local) {
+                return Err(CompileError::UnsupportedAttribute {
+                    element: element_name.to_string(),
+                    attr: local.to_string(),
+                });
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Patrol the cascaded properties a stylesheet or `style` attribute could
+/// smuggle past the attribute patrol and the painter would otherwise
+/// silently ignore. The patrolled set is enumerated — `opacity`,
+/// `display: none`, `visibility`, and (for shapes) `stroke` paint, beside
+/// the typed `fill`/`fill-opacity` reads in [`resolve_fill`]. Cascaded
+/// properties beyond this enumeration remain a named open boundary of the
+/// slice, not a covered claim.
+fn patrol_computed_style(
+    element: HtmlElement<'_>,
+    include_stroke: bool,
+) -> Result<(), CompileError> {
+    let data = element
+        .borrow_data()
+        .ok_or(CompileError::MissingComputedStyle)?;
+    let style: &ComputedValues = data.styles.primary();
+    let opacity = style.clone_opacity();
+    if opacity != 1.0 {
+        return Err(CompileError::UnsupportedStyle(format!(
+            "opacity {opacity} is not yet consumed"
+        )));
+    }
+    if style.clone_display().is_none() {
+        return Err(CompileError::UnsupportedStyle(
+            "display: none is not yet consumed".to_string(),
+        ));
+    }
+    let visibility = style.clone_visibility();
+    if !matches!(visibility, Visibility::Visible) {
+        return Err(CompileError::UnsupportedStyle(format!(
+            "visibility {visibility:?} is not yet consumed"
+        )));
+    }
+    if include_stroke && !matches!(style.clone_stroke().kind, SVGPaintKind::None) {
+        return Err(CompileError::UnsupportedStyle(
+            "stroke paint is not yet consumed".to_string(),
+        ));
+    }
+    Ok(())
 }
 
 /// First `<svg>` element in document order.
@@ -320,11 +672,21 @@ struct FrameCompilation {
 
 /// The one SVG compiler. Base and Sample(time) both enter here; the only
 /// difference between them is the [`EffectiveValues`] view the attribute
-/// reads resolve through.
+/// reads resolve through. `mode` decides what a beyond-slice child does:
+/// strict returns its error, best-effort records it in `degradations` and
+/// leaves the child out of the frame. The checks up to and including the
+/// outer viewport mapping are document-level and refuse in both modes.
 fn compile_svg_element(
     svg: HtmlElement<'_>,
     values: &EffectiveValues,
+    mode: CompileMode,
+    degradations: &mut Vec<Degradation>,
 ) -> Result<FrameCompilation, CompileError> {
+    // The outer <svg> is the canvas contract: a rendering attribute or a
+    // cascaded value the slice cannot honor here would wrong every pixel,
+    // so the root patrols are document-level in both modes.
+    patrol_rendering_attributes(svg, "svg", &[])?;
+    patrol_computed_style(svg, false)?;
     let width = effective_attr_f32(svg, "width", values)?.ok_or_else(|| {
         CompileError::UnsupportedSizing(
             "missing width; CSS/default intrinsic sizing is not implemented".to_string(),
@@ -369,15 +731,30 @@ fn compile_svg_element(
     let mut nodes = Vec::new();
     let mut materialized = Vec::new();
     let mut next_id = 0u64;
+    let mut ordinals = HashMap::<String, usize>::new();
     let mut child = svg.first_element_child();
     while let Some(c) = child {
         let tag = c.local_name_string();
+        let ordinal = ordinals.entry(tag.clone()).or_default();
+        *ordinal += 1;
         // `<style>` is a non-rendering element: its CSS enters the one
         // cascade (csscascade collects it); it materializes nothing here.
         // Animation elements likewise contribute values, not geometry.
         if !is_animation_element(&tag) && tag != "style" {
-            nodes.push(compile_shape(c, viewport, &mut next_id, values)?);
-            materialized.push(c.node_id());
+            match compile_shape(c, viewport, &mut next_id, values) {
+                Ok(node) => {
+                    nodes.push(node);
+                    materialized.push(c.node_id());
+                }
+                Err(error) => match mode {
+                    CompileMode::Strict => return Err(error),
+                    CompileMode::BestEffort => degradations.push(Degradation {
+                        path: format!("svg/{tag}[{ordinal}]"),
+                        action: DegradationAction::Skipped,
+                        reason: error.to_string(),
+                    }),
+                },
+            }
         }
         child = c.next_element_sibling();
     }
@@ -416,6 +793,8 @@ fn compile_rect(
     next_id: &mut u64,
     values: &EffectiveValues,
 ) -> Result<FrameNode, CompileError> {
+    patrol_rendering_attributes(el, "rect", RECT_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+    patrol_computed_style(el, true)?;
     let x = effective_attr_f32(el, "x", values)?.unwrap_or(0.0);
     let y = effective_attr_f32(el, "y", values)?.unwrap_or(0.0);
     let w = effective_attr_f32(el, "width", values)?.unwrap_or(0.0);

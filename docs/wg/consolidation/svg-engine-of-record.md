@@ -150,3 +150,61 @@ Scope and consequences, pinned:
   engine end to end. The `D-K` time-model decision (realtime preview) is
   untouched; this record is exact-time file rendering only, and D-K keeps
   its own trigger and evidence bar.
+
+## Subsequent status (2026-07-24): best-effort becomes the host default
+
+Owner-directed, same day, after the cutover landed. The host's default
+admission flips from refuse-loud to **best-effort with declared
+degradations**; `--strict` keeps the refusal harness. The owner's direction,
+quoted for provenance:
+
+> make best effort by default, and have a flag to noisy fail (the current
+> default) to be explicit - for dev purposes, our own harness and TODO
+> reminder.
+> why: things will grow slowly, and the practical default is to "just
+> render"
+
+What this amends and what it preserves:
+
+- **The invariant is unchanged, restated precisely: never *silent* wrong
+  pixels.** Under the default, beyond-slice subtree constructs are skipped
+  and a beyond-inventory dynamic surface samples as the Base view — each
+  declared on stderr with its stable node path and reason
+  (`degraded: skipped svg/circle[1]: unsupported element <circle>`), and
+  the render line carries the degraded count. A declared hole is not a
+  guessed pixel; nothing renders *wrong*, some things render *absent* — by
+  name.
+- **The patrol is per attribute and per cascaded property, not just per
+  element.** An admitted element carrying a known rendering-relevant
+  attribute the slice does not consume (`opacity`, `transform`, `rx`,
+  `stroke…`, the enumerated set in the compiler) skips-and-declares by
+  default and refuses under `--strict` — it is never painted wrong; only
+  attributes outside the SVG rendering vocabulary are ignored, exactly as
+  Chromium ignores them. The cascaded surface is patrolled for the
+  enumerated properties (`opacity`, `display: none`, `visibility`, shape
+  `stroke`, beside the typed `fill`/`fill-opacity` reads); cascaded
+  properties beyond that enumeration remain a **named open boundary** of
+  the slice, recorded in the compiler's module doc — not a coverage claim.
+  `<script>` in a standalone document refuses in both admissions: the XML
+  parse suspends at the element and content after it would be a silent,
+  undeclared hole. A script inside the compiled inline SVG of an HTML page
+  refuses likewise, at any nesting depth — a load-time script can rewrite
+  the authored state the Base view renders; scripts elsewhere on the page
+  stay under the pinned first-SVG-only entry contract.
+- **`--strict` is the dev harness and the TODO surface.** It refuses on the
+  first beyond-slice construct exactly as the original decision text
+  states. The refusal pins live on under strict; the degradation
+  declarations are the same capability edge worn product-side. Both
+  admissions are law-tested (`crates/websem/tests/best_effort.rs`, the host
+  pins), and where nothing degrades the two admissions are identical —
+  gated frame-for-frame across the full oracle corpus and byte-for-byte at
+  the host's spot checks.
+- **Document-level contracts do not degrade.** No `<svg>` root, malformed
+  standalone XML, and the outer viewport sizing/mapping checks refuse
+  identically in both admissions: best-effort degrades subtree content, it
+  never invents the canvas.
+- **The capability regression bullet above now reads through this lens:**
+  the constructs listed there degrade by name at the default admission and
+  refuse by name under `--strict`. Everything else in the decision —
+  donor status, gate classes, the FLIP posture, the rung order — stands
+  unchanged.
