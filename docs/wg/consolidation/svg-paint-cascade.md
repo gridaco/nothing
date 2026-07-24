@@ -172,3 +172,19 @@ evidence that the missing ingress dimensions are technically closeable; E7
 removes the need to own the basic-paint patch privately. The proving shell's
 direct-attribute fallback remains deliberately narrow until those separate
 capability steps are implemented and gated.
+
+## Subsequent status (2026-07-24)
+
+The ingress and consumption dimensions this finding named open have since
+landed on the Web-first branch, each with its own gates: a conforming
+standalone SVG/XML grammar entry (xml5ever into the shared document shape),
+SVG presentation hints at presentation-hint precedence (admitted set: `fill`),
+SVG-namespace stylesheet intake, and typed consumption of the computed SVG
+`fill` by the Web compiler — Chromium-baked primitive fixtures gate the
+admitted opaque-sRGB value surface pixel-exactly, and everything wider
+(paint servers, context paints, `fill-opacity`, non-sRGB color spaces,
+translucent fills, the remaining Gecko-only longhands) refuses explicitly
+until its own capability step. The direct-attribute fallback this evidence
+memo describes is retired. This addendum records execution status only; the
+E1–E7 evidence above remains the dated D-L record, and no SVG-vector
+capability gate is claimed while FLIP is unratified.

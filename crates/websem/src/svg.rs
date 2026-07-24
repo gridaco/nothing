@@ -26,10 +26,12 @@
 //! presentation hints (admitted set: `fill`), stylesheet rules, and inline
 //! style attributes all feed with SVG2 precedence — csscascade owns every
 //! ingress. `currentColor` resolves against the cascaded `color`; invalid
-//! authored values fall back exactly as invalid CSS declarations. Paint
-//! servers and context paints refuse explicitly, and `fill-opacity` is
-//! deliberately not yet consumed. The Chromium-baked primitive suite gates
-//! the admitted value surface pixel-exactly.
+//! authored values fall back exactly as invalid CSS declarations. The
+//! admitted value surface is opaque sRGB solid colors — exactly what the
+//! Chromium-baked primitive suite gates pixel-exactly. Everything else
+//! refuses explicitly until its own capability step bakes fixtures: paint
+//! servers, context paints, non-initial `fill-opacity`, non-sRGB color
+//! spaces, and translucent fills (`tests/typed_fill.rs` pins each).
 //!
 //! ## Document lifetime
 //! Each retained source owns one [`csscascade::adapter::DocumentSession`].
@@ -453,7 +455,7 @@ fn resolve_fill(el: HtmlElement<'_>) -> Result<Option<CGColor>, CompileError> {
     // silently render opaque where Chromium renders translucent, so it
     // refuses explicitly until its own capability step admits it.
     match style.clone_fill_opacity() {
-        SVGOpacity::Opacity(opacity) if opacity == 1.0 => {}
+        SVGOpacity::Opacity(1.0) => {}
         other => {
             return Err(CompileError::UnsupportedFill(format!(
                 "fill-opacity {other:?} is not yet consumed"
@@ -463,7 +465,7 @@ fn resolve_fill(el: HtmlElement<'_>) -> Result<Option<CGColor>, CompileError> {
     let fill = style.clone_fill();
     match fill.kind {
         SVGPaintKind::None => Ok(None),
-        SVGPaintKind::Color(color) => Ok(Some(to_cg_color(style.resolve_color(&color)))),
+        SVGPaintKind::Color(color) => admitted_srgb(style.resolve_color(&color)).map(Some),
         SVGPaintKind::PaintServer(url) => Err(CompileError::UnsupportedFill(
             url.url()
                 .map_or_else(|| "url(<invalid>)".to_string(), |url| format!("url({url})")),
@@ -475,11 +477,26 @@ fn resolve_fill(el: HtmlElement<'_>) -> Result<Option<CGColor>, CompileError> {
     }
 }
 
-/// A cascaded absolute color as the straight-alpha sRGB leaf.
-fn to_cg_color(color: AbsoluteColor) -> CGColor {
-    let srgb = color.to_color_space(ColorSpace::Srgb);
-    let c = srgb.raw_components();
-    CGColor::from_rgba(to_u8(c[0]), to_u8(c[1]), to_u8(c[2]), to_u8(srgb.alpha))
+/// Admit a cascaded absolute color only where its fidelity is gated: the
+/// opaque sRGB values the Chromium-baked primitive suite covers. Any other
+/// color space would pass through an unverified conversion and per-channel
+/// clamp, and a translucent fill would ship unverified compositing — both
+/// refuse explicitly until their own capability steps bake fixtures.
+fn admitted_srgb(color: AbsoluteColor) -> Result<CGColor, CompileError> {
+    if color.color_space != ColorSpace::Srgb {
+        return Err(CompileError::UnsupportedFill(format!(
+            "color space {:?} is not yet gated against Chromium",
+            color.color_space
+        )));
+    }
+    if color.alpha != 1.0 {
+        return Err(CompileError::UnsupportedFill(format!(
+            "translucent fill (alpha {}) is not yet gated against Chromium",
+            color.alpha
+        )));
+    }
+    let c = color.raw_components();
+    Ok(CGColor::from_rgb(to_u8(c[0]), to_u8(c[1]), to_u8(c[2])))
 }
 
 fn to_u8(component: f32) -> u8 {

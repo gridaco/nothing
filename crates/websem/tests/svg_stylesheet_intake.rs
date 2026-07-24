@@ -1,12 +1,12 @@
-//! Resolved-fact laws for the SVG-namespace stylesheet intake as websem
-//! observes it today.
+//! Resolved-fact laws for the SVG-namespace stylesheet intake.
 //!
-//! The shared cascade now collects SVG's own `<style>` element. websem's
-//! compiler does not yet consume typed `fill` from the cascade, but it does
-//! resolve `fill="currentColor"` against the cascaded computed `color` — so
-//! stylesheet-fed `color` is already visible in resolved frames. These laws
-//! pin that live path at the resolved-fact level; the Chromium pixel bake
-//! for style-bearing SVG joins the typed-paint capability step.
+//! The shared cascade collects SVG's own `<style>` element, and the compiler
+//! consumes typed paint from that one cascade — stylesheet-fed `color`
+//! (behind `currentColor`) and stylesheet-fed `fill` are both live in
+//! resolved frames, with the style-bearing Chromium bake in the primitive
+//! suite. These laws pin the intake paths the primitive fixtures do not
+//! reach: a `<style>` nested outside the compiled child walk, and a sibling
+//! SVG's `<style>` participating in the same HTML document cascade.
 
 use websem::{compile_html_inline_svg, compile_standalone_svg};
 
