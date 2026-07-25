@@ -246,7 +246,11 @@ impl Inspector {
             ));
         }
         let target = parent.node_id();
-        if !self.materialized.contains(&target) {
+        // The tag check keeps the rect-x proving slice narrow now that
+        // circles and ellipses also materialize: an <animate> under one of
+        // them stays a declared blocker instead of silently admitting an
+        // override no shape read consumes.
+        if !self.materialized.contains(&target) || parent.local_name_string() != "rect" {
             return Err(AnimationError::new(
                 path,
                 "<animate> must be a direct child of a materialized top-level <rect>",

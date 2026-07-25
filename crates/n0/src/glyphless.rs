@@ -2,9 +2,9 @@
 //!
 //! [`rframe::Frame`] is the backend-free resolved contract. It carries no
 //! authored n0 document, HTML/CSS/SVG syntax, parser binding, backend object,
-//! I/O handle, or clock. This module admits its current solid-rectangle slice,
-//! compiles it into n0's one private drawlist, and executes it through n0's one
-//! private painter.
+//! I/O handle, or clock. This module admits its current solid-fill
+//! rectangle-and-ellipse slice, compiles it into n0's one private drawlist,
+//! and executes it through n0's one private painter.
 //!
 //! The resulting [`FrameProduct`] is intentionally separate from
 //! [`crate::frame::FrameProduct`]. The latter owns an n0-model
@@ -192,7 +192,8 @@ fn damage_input(product: &FrameProduct) -> FrameDamageInput<'_, VisualRef, (), G
 ///
 /// Validation and private drawlist construction complete before the immutable
 /// product is returned. No raster command is issued here. The current admitted
-/// slice is rectangles, ordinary solid `cg` paints, and the frame-bounds clip.
+/// slice is rectangles and ellipses (each carried as its local-space bounding
+/// rectangle), ordinary solid `cg` paints, and the frame-bounds clip.
 pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
     validate_rect(resolved.bounds).map_err(|_| BuildError::InvalidFrameBounds)?;
     let owner_count = resolved
@@ -232,7 +233,9 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         }
         validate_rect(node.bounds).map_err(|_| BuildError::InvalidVisualBounds(node.owner))?;
         validate_transform(node.transform).map_err(|_| BuildError::InvalidTransform(node.owner))?;
-        let Geometry::Rect(rect) = node.geometry;
+        let rect = match &node.geometry {
+            Geometry::Rect(rect) | Geometry::Ellipse(rect) => *rect,
+        };
         validate_rect(rect).map_err(|_| BuildError::InvalidRectangle(node.owner))?;
         if node.bounds != math2::rect_transform(rect, &node.transform) {
             return Err(BuildError::VisualBoundsMismatch(node.owner));
@@ -248,16 +251,24 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         }
 
         let world = to_affine(node.transform).then(&Affine::translate(rect.x, rect.y));
-        items.push(Item {
-            node: owner,
-            world,
-            kind: ItemKind::RectFill {
+        let kind = match &node.geometry {
+            Geometry::Rect(_) => ItemKind::RectFill {
                 w: rect.width,
                 h: rect.height,
                 corner_radius: RectangularCornerRadius::default(),
                 corner_smoothing: CornerSmoothing::default(),
                 paints,
             },
+            Geometry::Ellipse(_) => ItemKind::OvalFill {
+                w: rect.width,
+                h: rect.height,
+                paints,
+            },
+        };
+        items.push(Item {
+            node: owner,
+            world,
+            kind,
         });
     }
 
@@ -479,7 +490,7 @@ mod tests {
         frame.nodes[0].transform = AffineTransform::new(3.0, 4.0, 0.0);
         let expected = math2::rect_transform(
             match frame.nodes[0].geometry {
-                Geometry::Rect(rect) => rect,
+                Geometry::Rect(rect) | Geometry::Ellipse(rect) => rect,
             },
             &frame.nodes[0].transform,
         );
@@ -494,6 +505,68 @@ mod tests {
 
         frame.nodes[0].bounds = expected;
         compile(frame).expect("exact transformed bounds are admitted");
+    }
+
+    /// An ellipse node admits only bounds that exactly equal its transformed
+    /// local-space rectangle; a bit-nudged contract bound fails loudly.
+    #[test]
+    fn transformed_ellipse_requires_exact_contract_bounds() {
+        let bbox = Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0);
+        let mut frame = resolved_frame(SolidPaintStack::solid(CGColor::RED));
+        frame.nodes[0].geometry = Geometry::Ellipse(bbox);
+        frame.nodes[0].transform = AffineTransform::new(3.0, 4.0, 0.0);
+        let expected = math2::rect_transform(bbox, &frame.nodes[0].transform);
+        frame.nodes[0].bounds = Rectangle {
+            x: f32::from_bits(expected.x.to_bits() + 1),
+            ..expected
+        };
+        assert!(matches!(
+            compile(frame.clone()),
+            Err(BuildError::VisualBoundsMismatch(RECT_OWNER))
+        ));
+
+        frame.nodes[0].bounds = expected;
+        compile(frame).expect("exact transformed ellipse bounds are admitted");
+    }
+
+    /// An ellipse compiles to the oval fill inscribed in its local-space
+    /// rectangle: the box center rasters solid paint, the box corners stay at
+    /// the surface clear color, and a repeat raster is byte-identical.
+    #[test]
+    fn ellipse_geometry_rasters_the_inscribed_oval() {
+        let context = PaintCtx::new(None);
+        let mut frame = resolved_frame(SolidPaintStack::solid(CGColor::from_rgb(0x16, 0xa3, 0x4a)));
+        frame.nodes[0].geometry = Geometry::Ellipse(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0));
+        let product = compile(frame).expect("admitted glyphless ellipse frame");
+        let ItemKind::OvalFill { w, h, .. } = &product.drawlist.items[1].kind else {
+            panic!("second item is the oval fill");
+        };
+        assert_eq!((*w, *h), (20.0, 16.0));
+
+        let neutral_view = AffineTransform::identity();
+        let pixels = product
+            .raster_to_bytes(&neutral_view, 64, 48, &context)
+            .expect("resource-free glyphless raster");
+        let at = |x: i32, y: i32| -> [u8; 4] {
+            let offset = ((y * 64 + x) * 4) as usize;
+            pixels[offset..offset + 4].try_into().expect("RGBA pixel")
+        };
+        assert_eq!(
+            at(18, 14),
+            [0x16, 0xa3, 0x4a, 0xff],
+            "the oval covers its bounding-box center"
+        );
+        assert_eq!(
+            at(9, 7),
+            [0xff, 0xff, 0xff, 0xff],
+            "the oval leaves its bounding-box corner at the surface clear color"
+        );
+        assert_eq!(
+            pixels,
+            product
+                .raster_to_bytes(&neutral_view, 64, 48, &context)
+                .expect("deterministic repeat")
+        );
     }
 
     #[test]

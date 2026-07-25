@@ -138,7 +138,7 @@ fn zero_degradation_best_effort_is_frame_identical_to_strict() {
 #[test]
 fn beyond_slice_children_skip_by_name_and_admitted_children_render() {
     SvgFrameSource::from_standalone_svg(MIXED, host_viewport())
-        .expect_err("strict refuses the circle");
+        .expect_err("strict refuses the path");
 
     let best = SvgFrameSource::from_standalone_svg_best_effort(MIXED, host_viewport())
         .expect("best-effort");
@@ -152,16 +152,13 @@ fn beyond_slice_children_skip_by_name_and_admitted_children_render() {
         .collect();
     assert_eq!(
         skipped,
-        vec![
-            ("svg/circle[1]", "unsupported element <circle>"),
-            ("svg/path[1]", "unsupported element <path>"),
-        ],
+        vec![("svg/path[1]", "unsupported element <path>")],
         "each skip names its construct at its stable path"
     );
     assert_eq!(
         best.base_frame().nodes.len(),
-        2,
-        "both admitted rects materialize; the skips leave holes, not guesses"
+        3,
+        "the admitted rects and the circle materialize; the skip leaves a hole, not a guess"
     );
 }
 
@@ -179,7 +176,7 @@ fn degradations_and_frames_are_deterministic() {
         best.sample_frame(time).expect("repeat sample"),
         "repeat Sample compile (same skips, discarded sink)"
     );
-    assert_eq!(best.degradations().len(), 2, "the set does not grow");
+    assert_eq!(best.degradations().len(), 1, "the set does not grow");
 }
 
 /// A dynamic surface outside the closed sampling inventory resolves every
@@ -364,7 +361,7 @@ fn stylesheet_smuggled_values_are_patrolled_at_the_computed_level() {
 #[test]
 fn every_dynamic_blocker_is_declared_and_ordering_holds() {
     let source = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32">
-  <circle cx="8" cy="8" r="4" fill="#16a34a"/>
+  <path d="M0 0 h8 v8 z" fill="#16a34a"/>
   <rect x="4" y="8" width="8" height="16" fill="#000000" onclick="window.a = 1"/>
   <rect x="20" y="8" width="8" height="16" fill="#000000">
     <animate attributeName="y" from="8" to="16" dur="2s" fill="freeze"/>
@@ -380,7 +377,7 @@ fn every_dynamic_blocker_is_declared_and_ordering_holds() {
     assert_eq!(
         entries,
         vec![
-            (DegradationAction::Skipped, "svg/circle[1]"),
+            (DegradationAction::Skipped, "svg/path[1]"),
             (DegradationAction::SamplesAsBase, "svg/rect[1]"),
             (DegradationAction::SamplesAsBase, "svg/rect[2]/animate[1]"),
         ],
@@ -398,14 +395,14 @@ fn every_dynamic_blocker_is_declared_and_ordering_holds() {
 #[test]
 fn admitted_animation_samples_through_declared_skips() {
     let source = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32">
-  <circle cx="8" cy="8" r="4" fill="#16a34a"/>
+  <path d="M0 0 h8 v8 z" fill="#16a34a"/>
   <rect x="4" y="8" width="8" height="16" fill="#000000">
     <animate attributeName="x" from="20" to="44" dur="2s" fill="freeze"/>
   </rect>
 </svg>"##;
     let best = SvgFrameSource::from_standalone_svg_best_effort(source, host_viewport())
         .expect("best-effort");
-    assert_eq!(best.degradations().len(), 1, "only the circle degrades");
+    assert_eq!(best.degradations().len(), 1, "only the path degrades");
     assert_eq!(best.degradations()[0].action(), DegradationAction::Skipped);
     let base = best.base_frame();
     let sampled = best

@@ -153,3 +153,41 @@ fn hand_built_frame_probes_and_re_raster_are_exact() {
         "two rasters must be byte-identical"
     );
 }
+
+#[test]
+fn hand_built_ellipse_fills_the_inscribed_oval_not_its_box_corners() {
+    // The contract's ellipse geometry: the fill covers only the oval
+    // inscribed in the local-space rectangle — the bounding-box center is
+    // the fixture fill color, the box corner is not (the pixel fact that
+    // distinguishes an oval from a rectangle) — and re-rasters
+    // byte-identically.
+    let bbox = Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0);
+    let frame = Frame {
+        owner: VisualRef::new(Identity::new(1), Provenance::new(1)),
+        bounds: Rectangle::from_xywh(0.0, 0.0, 64.0, 48.0),
+        nodes: vec![FrameNode {
+            owner: VisualRef::new(Identity::new(2), Provenance::new(2)),
+            transform: AffineTransform::identity(),
+            geometry: Geometry::Ellipse(bbox),
+            bounds: bbox,
+            paints: SolidPaintStack::solid(CGColor::from_rgb(0x16, 0xa3, 0x4a)),
+        }],
+    };
+
+    let pixels = raster(&frame, 64, 48);
+    assert_eq!(
+        at(&pixels, 64, 18, 14),
+        GREEN,
+        "pixel (18,14) at the oval's center should be #16a34a"
+    );
+    assert_ne!(
+        at(&pixels, 64, 9, 7),
+        GREEN,
+        "pixel (9,7) at the bounding-box corner stays outside the oval"
+    );
+    assert_eq!(
+        pixels,
+        raster(&frame, 64, 48),
+        "two rasters must be byte-identical"
+    );
+}

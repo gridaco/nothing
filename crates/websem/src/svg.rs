@@ -12,8 +12,9 @@
 //! serializes-and-reparses inline SVG, and never paints.
 //!
 //! Deliberately narrow: the proving shell supports only the enumerated
-//! viewport/fill cases around an outer `<svg>` and solid-filled `<rect>`, plus
-//! one retained exact-time `<animate attributeName="x">` slice. Root sizing
+//! viewport/fill cases around an outer `<svg>` and solid-filled `<rect>`,
+//! `<circle>`, and `<ellipse>` children, plus one retained exact-time
+//! `<animate attributeName="x">` slice (rects only). Root sizing
 //! follows SVG2 §8.2: explicit `width`/`height` win; a missing dimension is
 //! `auto` and resolves to 100% of the host-established [`InitialViewport`]
 //! (standalone entry only — the inline HTML entry refuses until CSS
@@ -244,7 +245,8 @@ pub enum CompileError {
     /// unrecorded — e.g. unquoted attribute values — are a named open
     /// boundary pinned in csscascade's entry laws, not a claim here.)
     MalformedXml(String),
-    /// An element the slice does not support (only `<svg>` and `<rect>` do).
+    /// An element the slice does not support (the outer `<svg>` plus
+    /// `<rect>`, `<circle>`, and `<ellipse>` children are admitted).
     UnsupportedElement(String),
     /// A `fill` value the slice cannot resolve.
     UnsupportedFill(String),
@@ -252,6 +254,16 @@ pub enum CompileError {
     BadNumber { attr: String, value: String },
     /// Viewport sizing needs a default/CSS sizing path this slice lacks.
     UnsupportedSizing(String),
+    /// A shape geometry attribute in valid SVG length grammar the slice
+    /// cannot yet resolve: percentages, whose basis chain (viewport axes,
+    /// and the normalized diagonal for `<circle r>`) is not consumed.
+    /// Refusing by name is honest where the numeric parse would misreport
+    /// the value as [`CompileError::BadNumber`] junk.
+    UnsupportedLength {
+        element: String,
+        attr: String,
+        value: String,
+    },
     /// A viewport dimension is syntactically numeric but invalid.
     InvalidDimension { attr: String, value: String },
     /// A `viewBox` whose four-number grammar or positive extent is invalid.
@@ -420,6 +432,17 @@ impl SvgFrameSource {
             if entry == SourceEntry::StandaloneSvg && subtree_contains_script(root) {
                 return Err(CompileError::ScriptSuspendsParse);
             }
+            // A stylesheet declaration the cascade cannot represent would
+            // paint as if absent wherever its selector matches. It is not
+            // attributable to one element without selector matching, so it
+            // refuses at the document level in both admissions. The scan
+            // starts at the document root: the HTML entry's stylesheet
+            // commonly lives in <head>, outside the compiled SVG subtree.
+            if let Some(property) = unrepresented_stylesheet_property(root) {
+                return Err(CompileError::UnsupportedStyle(format!(
+                    "a stylesheet declares {property}, which this cascade does not represent"
+                )));
+            }
             let svg = match entry {
                 SourceEntry::StandaloneSvg => (root.is_svg_element()
                     && root.local_name_string() == "svg")
@@ -565,6 +588,15 @@ impl std::fmt::Display for CompileError {
             CompileError::UnsupportedSizing(reason) => {
                 write!(f, "unsupported SVG viewport sizing: {reason}")
             }
+            CompileError::UnsupportedLength {
+                element,
+                attr,
+                value,
+            } => write!(
+                f,
+                "unsupported length {attr}={value:?} on <{element}>: the percentage basis is \
+                 not yet consumed"
+            ),
             CompileError::InvalidDimension { attr, value } => {
                 write!(f, "invalid SVG viewport dimension {attr}={value:?}")
             }
@@ -676,6 +708,105 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
 /// are not painted by the slice.
 const RECT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["rx", "ry"];
 
+/// CSS properties that move, clip, or recolor Chromium's pixels and that
+/// the pinned servo-mode Stylo build cannot represent at all — every one is
+/// `engine = "gecko"`-gated in `longhands.toml`, so the cascade drops the
+/// declaration at parse and no computed value survives for
+/// [`patrol_computed_style`] to read.
+///
+/// The attribute spellings of several of these are already refused by
+/// [`RENDERING_ATTRIBUTES_NOT_CONSUMED`]; this list closes the *CSS* leg,
+/// which would otherwise render silently as if the declaration were
+/// absent. It is a closed list of known-dangerous names, not a claim about
+/// every property: names outside it that Stylo does represent are reachable
+/// through the computed-level patrol, and the remainder stays the named
+/// open boundary the module doc declares.
+const CASCADE_PROPERTIES_NOT_REPRESENTED: &[&str] = &[
+    "transform",
+    "transform-origin",
+    "transform-box",
+    "translate",
+    "rotate",
+    "scale",
+    "clip-path",
+    "clip-rule",
+    "filter",
+    "backdrop-filter",
+    "mask",
+    "mask-image",
+    "mix-blend-mode",
+    "isolation",
+    "paint-order",
+];
+
+/// The first [`CASCADE_PROPERTIES_NOT_REPRESENTED`] property name declared
+/// in a CSS fragment — a `style` attribute's declaration block or a
+/// `<style>` element's whole text.
+///
+/// This reads the authored text rather than the cascade because the cascade
+/// is exactly what discards these declarations. It is a deliberately simple
+/// scanner over `{`/`}`/`;`-delimited chunks: it can only ever *add* a
+/// refusal for one of the enumerated names (loud), never admit one, and it
+/// makes no claim to be a CSS parser.
+fn unrepresented_property(css: &str) -> Option<String> {
+    for chunk in css.split([';', '{', '}']) {
+        let Some((name, _)) = chunk.split_once(':') else {
+            continue;
+        };
+        let name = trim_svg_whitespace(name).to_ascii_lowercase();
+        if CASCADE_PROPERTIES_NOT_REPRESENTED.contains(&name.as_str()) {
+            return Some(name);
+        }
+    }
+    None
+}
+
+/// Patrol an element's authored `style` attribute for a declaration the
+/// cascade drops but Chromium paints with.
+fn patrol_style_attribute(
+    element: HtmlElement<'_>,
+    element_name: &str,
+) -> Result<(), CompileError> {
+    if let Some(style) = get_attr(element, "style")
+        && let Some(property) = unrepresented_property(&style)
+    {
+        return Err(CompileError::UnsupportedStyle(format!(
+            "style attribute on <{element_name}> declares {property}, which this cascade \
+             does not represent"
+        )));
+    }
+    Ok(())
+}
+
+/// The first `<style>` element in the document whose CSS declares a
+/// property the cascade drops but Chromium paints with.
+///
+/// A stylesheet is not attributable to one element without running
+/// selector matching, so this refuses at the document level in both
+/// admissions — the same posture as the other document-level contracts.
+/// Over-refusal (a rule that matches only skipped elements) is loud; the
+/// alternative is silently painting an untransformed, unclipped, or
+/// unfiltered shape.
+fn unrepresented_stylesheet_property(element: HtmlElement<'_>) -> Option<String> {
+    if element.local_name_string() == "style" {
+        for child_id in &element.dom_node().children {
+            if let DemoNodeData::Text(text) = &element.dom().node(*child_id).data
+                && let Some(property) = unrepresented_property(text)
+            {
+                return Some(property);
+            }
+        }
+    }
+    let mut child = element.first_element_child();
+    while let Some(c) = child {
+        if let Some(property) = unrepresented_stylesheet_property(c) {
+            return Some(property);
+        }
+        child = c.next_element_sibling();
+    }
+    None
+}
+
 fn patrol_rendering_attributes(
     element: HtmlElement<'_>,
     element_name: &str,
@@ -702,9 +833,20 @@ fn patrol_rendering_attributes(
 /// the typed `fill`/`fill-opacity` reads in [`resolve_fill`]. Cascaded
 /// properties beyond this enumeration remain a named open boundary of the
 /// slice, not a covered claim.
+///
+/// `include_css_sizing` patrols cascaded `width`/`height` only where SVG2's
+/// geometry-property applicability table makes them geometry — of the
+/// admitted elements, the root `<svg>` and `<rect>`; on
+/// `<circle>`/`<ellipse>` both properties are
+/// inert in Chromium, so a cascaded value there is not a smuggled size and
+/// must not over-refuse. The geometry properties that *do* apply to those
+/// elements (`cx`/`cy`/`r`/`rx`/`ry`) do not exist as longhands in the
+/// pinned servo-mode Stylo build (`engine = "gecko"`-gated, like the bare
+/// `x`/`y` longhands) — they stay inside the named open boundary above.
 fn patrol_computed_style(
     element: HtmlElement<'_>,
     include_stroke: bool,
+    include_css_sizing: bool,
 ) -> Result<(), CompileError> {
     let data = element
         .borrow_data()
@@ -732,26 +874,52 @@ fn patrol_computed_style(
             "stroke paint is not yet consumed".to_string(),
         ));
     }
-    // SVG2 makes width/height geometry properties: a cascaded (stylesheet or
-    // style-attribute) value beats both the authored attribute and the auto
-    // default in Chromium, while this compiler reads geometry from
-    // attributes only. Only `fill` enters the cascade as a presentation
-    // hint (csscascade's admitted set), so a non-auto computed width or
-    // height here can only be a smuggled CSS value — refuse it by name
-    // rather than paint at the attribute-derived size. (The bare SVG
-    // geometry longhands `x`/`y`/`rx`/`ry` do not exist in this Stylo
-    // build, so they stay inside the named open boundary above.)
-    let width = style.clone_width();
-    if !matches!(width, Size::Auto) {
-        return Err(CompileError::UnsupportedStyle(format!(
-            "CSS width ({width:?}) is not yet consumed"
-        )));
+    // SVG2 makes width/height geometry properties where they apply: a
+    // cascaded (stylesheet or style-attribute) value beats both the
+    // authored attribute and the auto default in Chromium, while this
+    // compiler reads geometry from attributes only. Only `fill` enters the
+    // cascade as a presentation hint (csscascade's admitted set), so a
+    // non-auto computed width or height here can only be a smuggled CSS
+    // value — refuse it by name rather than paint at the attribute-derived
+    // size. (The bare SVG geometry longhands `x`/`y`/`rx`/`ry` — and the
+    // `cx`/`cy`/`r` family — do not exist in this Stylo build, so they
+    // stay inside the named open boundary above.)
+    if include_css_sizing {
+        let width = style.clone_width();
+        if !matches!(width, Size::Auto) {
+            return Err(CompileError::UnsupportedStyle(format!(
+                "CSS width ({width:?}) is not yet consumed"
+            )));
+        }
+        let height = style.clone_height();
+        if !matches!(height, Size::Auto) {
+            return Err(CompileError::UnsupportedStyle(format!(
+                "CSS height ({height:?}) is not yet consumed"
+            )));
+        }
     }
-    let height = style.clone_height();
-    if !matches!(height, Size::Auto) {
-        return Err(CompileError::UnsupportedStyle(format!(
-            "CSS height ({height:?}) is not yet consumed"
-        )));
+    Ok(())
+}
+
+/// Refuse a shape geometry attribute authored as a percentage — the
+/// sibling of [`reject_percentage_dimension`] for admitted shape elements.
+/// This one is element-level, so best-effort declares-and-skips the shape
+/// instead of refusing the document.
+fn reject_percentage_geometry(
+    element: HtmlElement<'_>,
+    element_name: &str,
+    attrs: &[&str],
+) -> Result<(), CompileError> {
+    for attr in attrs {
+        if let Some(value) = get_attr(element, attr)
+            && trim_svg_whitespace(&value).ends_with('%')
+        {
+            return Err(CompileError::UnsupportedLength {
+                element: element_name.to_string(),
+                attr: (*attr).to_string(),
+                value,
+            });
+        }
     }
     Ok(())
 }
@@ -775,7 +943,8 @@ fn find_svg<'session>(el: HtmlElement<'session>) -> Option<HtmlElement<'session>
 struct FrameCompilation {
     frame: Frame,
     /// Source nodes materialized as frame nodes, in document order — the
-    /// animation inventory's admissible target set.
+    /// animation inventory's candidate target set (the inventory narrows it
+    /// further: the admitted sampling slice targets `<rect>` only).
     materialized: Vec<NodeId>,
 }
 
@@ -796,7 +965,8 @@ fn compile_svg_element(
     // cascaded value the slice cannot honor here would wrong every pixel,
     // so the root patrols are document-level in both modes.
     patrol_rendering_attributes(svg, "svg", &[])?;
-    patrol_computed_style(svg, false)?;
+    patrol_style_attribute(svg, "svg")?;
+    patrol_computed_style(svg, false, true)?;
     reject_percentage_dimension(svg, "width")?;
     reject_percentage_dimension(svg, "height")?;
     let width_attr = root_dimension_f32(svg, "width", values)?;
@@ -907,6 +1077,8 @@ fn compile_shape(
     let tag = el.local_name_string();
     match tag.as_str() {
         "rect" => compile_rect(el, viewport, next_id, values),
+        "circle" => compile_circle(el, viewport, next_id, values),
+        "ellipse" => compile_ellipse(el, viewport, next_id, values),
         other => Err(CompileError::UnsupportedElement(other.to_string())),
     }
 }
@@ -918,13 +1090,82 @@ fn compile_rect(
     values: &EffectiveValues,
 ) -> Result<FrameNode, CompileError> {
     patrol_rendering_attributes(el, "rect", RECT_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
-    patrol_computed_style(el, true)?;
+    patrol_style_attribute(el, "rect")?;
+    patrol_computed_style(el, true, true)?;
+    reject_percentage_geometry(el, "rect", &["x", "y", "width", "height"])?;
     let x = effective_attr_f32(el, "x", values)?.unwrap_or(0.0);
     let y = effective_attr_f32(el, "y", values)?.unwrap_or(0.0);
     let w = effective_attr_f32(el, "width", values)?.unwrap_or(0.0);
     let h = effective_attr_f32(el, "height", values)?.unwrap_or(0.0);
     let rect = Rectangle::from_xywh(x, y, w, h);
+    shape_node(el, Geometry::Rect(rect), viewport, next_id)
+}
 
+fn compile_circle(
+    el: HtmlElement<'_>,
+    viewport: AffineTransform,
+    next_id: &mut u64,
+    values: &EffectiveValues,
+) -> Result<FrameNode, CompileError> {
+    patrol_rendering_attributes(el, "circle", &[])?;
+    patrol_style_attribute(el, "circle")?;
+    patrol_computed_style(el, true, false)?;
+    reject_percentage_geometry(el, "circle", &["cx", "cy", "r"])?;
+    let cx = effective_attr_f32(el, "cx", values)?.unwrap_or(0.0);
+    let cy = effective_attr_f32(el, "cy", values)?.unwrap_or(0.0);
+    // SVG2 §10.3: a negative `r` is invalid and must be ignored, and a
+    // computed value of zero disables rendering. Chromium clamps the used
+    // value at layout (`LayoutSVGEllipse`: `std::max(radius, 0.f)`), so
+    // negative and missing both resolve exactly as `r="0"`: the element is
+    // admitted and paints nothing — an honest nothing, not a refusal.
+    let r = effective_attr_f32(el, "r", values)?.unwrap_or(0.0).max(0.0);
+    let rect = Rectangle::from_xywh(cx - r, cy - r, r * 2.0, r * 2.0);
+    shape_node(el, Geometry::Ellipse(rect), viewport, next_id)
+}
+
+fn compile_ellipse(
+    el: HtmlElement<'_>,
+    viewport: AffineTransform,
+    next_id: &mut u64,
+    values: &EffectiveValues,
+) -> Result<FrameNode, CompileError> {
+    patrol_rendering_attributes(el, "ellipse", &[])?;
+    patrol_style_attribute(el, "ellipse")?;
+    patrol_computed_style(el, true, false)?;
+    reject_percentage_geometry(el, "ellipse", &["cx", "cy", "rx", "ry"])?;
+    let cx = effective_attr_f32(el, "cx", values)?.unwrap_or(0.0);
+    let cy = effective_attr_f32(el, "cy", values)?.unwrap_or(0.0);
+    // SVG2 §10.4: `rx`/`ry` initially `auto`; a negative value is invalid
+    // and must be ignored, which Chromium treats as `auto` (frozen donor's
+    // Chrome-confirmed reading, re-proved against Chromium 148: a single
+    // negative radius adopts the other axis). `auto` adopts the other
+    // radius; both `auto` resolve to zero; zero on either axis disables
+    // rendering — the zero-extent oval below paints nothing.
+    let rx = ellipse_radius(el, "rx", values)?;
+    let ry = ellipse_radius(el, "ry", values)?;
+    let (rx, ry) = match (rx, ry) {
+        (Some(rx), Some(ry)) => (rx, ry),
+        (Some(rx), None) => (rx, rx),
+        (None, Some(ry)) => (ry, ry),
+        (None, None) => (0.0, 0.0),
+    };
+    let rect = Rectangle::from_xywh(cx - rx, cy - ry, rx * 2.0, ry * 2.0);
+    shape_node(el, Geometry::Ellipse(rect), viewport, next_id)
+}
+
+/// The shared tail of every shape compile: resolve the typed fill and emit
+/// the resolved node. The node's `bounds` is the frame-space transform of
+/// its local geometry box — the exact-bounds law the n0 downstream
+/// re-checks on admission.
+fn shape_node(
+    el: HtmlElement<'_>,
+    geometry: Geometry,
+    viewport: AffineTransform,
+    next_id: &mut u64,
+) -> Result<FrameNode, CompileError> {
+    let rect = match &geometry {
+        Geometry::Rect(rect) | Geometry::Ellipse(rect) => *rect,
+    };
     let fill = resolve_fill(el)?;
     let paints = match fill {
         Some(color) => SolidPaintStack::solid(color),
@@ -935,12 +1176,38 @@ fn compile_rect(
     let node = FrameNode {
         owner: VisualRef::new(Identity::new(visual_id), Provenance::new(visual_id)),
         transform: viewport,
-        geometry: Geometry::Rect(rect),
+        geometry,
         bounds: math2::rect_transform(rect, &viewport),
         paints,
     };
     *next_id += 1;
     Ok(node)
+}
+
+/// An ellipse `rx`/`ry` read: `None` is the `auto` used value, which
+/// [`compile_ellipse`] resolves against the other axis.
+///
+/// A negative value is invalid per SVG2 §10.4 and must be ignored, which
+/// Chromium implements as `auto` (`LayoutSVGEllipse`'s treat-as-auto path,
+/// live-probed) — so it filters to `None` here.
+///
+/// The `auto` **keyword** is deliberately not read from an attribute.
+/// Only the *CSS* property takes keywords: Blink parses geometry
+/// presentation attributes with the SVGLength grammar, where `auto` is
+/// invalid and maps an explicit `0px` hint — rendering nothing, not
+/// adopting the other axis. That is the opposite of an absent attribute
+/// (computed initial `auto`, which does adopt), so reading the keyword
+/// here would paint an ellipse where Chromium paints none. The invalid
+/// keyword instead reaches [`attr_f32`] and refuses loudly as a bad
+/// number: over-refusal, never wrong pixels. (The root `width`/`height`
+/// keyword read is *not* the analogous case — there the CSS sizing
+/// properties genuinely accept `auto`.)
+fn ellipse_radius(
+    el: HtmlElement<'_>,
+    name: &str,
+    values: &EffectiveValues,
+) -> Result<Option<f32>, CompileError> {
+    Ok(effective_attr_f32(el, name, values)?.filter(|value| *value >= 0.0))
 }
 
 /// Resolve the SVG `fill` paint from the typed cascaded value — the one
@@ -1013,7 +1280,10 @@ fn parse_viewbox(v: &str) -> Result<(f32, f32, f32, f32), CompileError> {
     // More compact SVG number-list forms remain unsupported rather than
     // guessed.
     let comma_groups: Vec<&str> = v.split(',').collect();
-    if comma_groups.iter().any(|group| group.trim().is_empty()) {
+    if comma_groups
+        .iter()
+        .any(|group| trim_svg_whitespace(group).is_empty())
+    {
         return Err(CompileError::BadViewBox(v.to_string()));
     }
     let tokens: Vec<&str> = comma_groups
@@ -1178,7 +1448,8 @@ fn root_dimension_f32(
     values: &EffectiveValues,
 ) -> Result<Option<f32>, CompileError> {
     if values.scalar(svg.node_id(), name).is_none()
-        && get_attr(svg, name).is_some_and(|value| value.trim().eq_ignore_ascii_case("auto"))
+        && get_attr(svg, name)
+            .is_some_and(|value| trim_svg_whitespace(&value).eq_ignore_ascii_case("auto"))
     {
         return Ok(None);
     }
@@ -1191,7 +1462,7 @@ fn root_dimension_f32(
 /// [`CompileError::BadNumber`] junk.
 fn reject_percentage_dimension(svg: HtmlElement<'_>, attr: &str) -> Result<(), CompileError> {
     if let Some(value) = get_attr(svg, attr)
-        && value.trim().ends_with('%')
+        && trim_svg_whitespace(&value).ends_with('%')
     {
         return Err(CompileError::UnsupportedSizing(format!(
             "percentage {attr}={value:?} on the root <svg> is not yet consumed"
@@ -1210,16 +1481,24 @@ fn reject_negative_dimension(attr: &str, value: f32) -> Result<(), CompileError>
     Ok(())
 }
 
-/// Read an element attribute by exact local name from its owning document
-/// session. SVG attribute names are case-sensitive; each grammar entry
-/// already applies its own canonicalization (the HTML tokenizer lowercases
-/// and foreign-content-adjusts known SVG attributes to their canonical case;
-/// XML preserves authored case), so an authored `viewbox` in XML is honestly
-/// not `viewBox`.
+/// Read an element attribute by exact local name **in no namespace** from
+/// its owning document session.
+///
+/// SVG attribute names are case-sensitive; each grammar entry already
+/// applies its own canonicalization (the HTML tokenizer lowercases and
+/// foreign-content-adjusts known SVG attributes to their canonical case;
+/// XML preserves authored case), so an authored `viewbox` in XML is
+/// honestly not `viewBox`.
+///
+/// The namespace check is load-bearing under the namespace-aware XML
+/// entry: every SVG rendering attribute this compiler reads is defined in
+/// no namespace, so a prefixed `foo:r` is a foreign attribute Chromium
+/// ignores. Matching it on local name alone would consume it as geometry
+/// and paint a shape the browser does not.
 fn get_attr(element: HtmlElement<'_>, name: &str) -> Option<String> {
     if let DemoNodeData::Element(e) = &element.dom_node().data {
         for a in &e.attrs {
-            if a.name.local.as_ref() == name {
+            if a.name.ns.as_ref().is_empty() && a.name.local.as_ref() == name {
                 return Some(a.value.to_string());
             }
         }
@@ -1243,9 +1522,10 @@ fn effective_attr_f32(
 /// Whether every `.` in the token is followed by an ASCII digit. Rust's
 /// float grammar is a superset of the SVG/CSS number grammar: a trailing
 /// dot (`32.`, `3.e2`) parses as f32 but is an invalid number token to
-/// Chromium, which drops the attribute — silently resolving it to a
-/// different geometry than the oracle. The other Rust-accepted finite forms
-/// (`+3`, `.5`, `1e2`, `1E+2`) are valid SVG numbers.
+/// Chromium, whose invalid attribute resolves to the property's initial
+/// value — a different geometry than a parsed `32`. The other
+/// Rust-accepted finite forms (`+3`, `.5`, `1e2`, `1E+2`) are valid SVG
+/// numbers.
 fn dots_carry_digits(value: &str) -> bool {
     let bytes = value.as_bytes();
     bytes
@@ -1254,11 +1534,22 @@ fn dots_carry_digits(value: &str) -> bool {
         .all(|(index, byte)| *byte != b'.' || bytes.get(index + 1).is_some_and(u8::is_ascii_digit))
 }
 
+/// Strip the whitespace an SVG attribute value may carry around its
+/// content — exactly the five ASCII characters the SVG/CSS grammars call
+/// whitespace, never Rust's Unicode `str::trim` set. A value padded with
+/// NBSP or U+3000 is invalid to Chromium (which falls back to the
+/// property's initial value); trimming it here would parse a number the
+/// browser never sees and silently paint different geometry, so anything
+/// outside this set stays in the token and refuses as a bad number.
+fn trim_svg_whitespace(value: &str) -> &str {
+    value.trim_matches(|c| matches!(c, ' ' | '\t' | '\n' | '\r' | '\x0C'))
+}
+
 fn attr_f32(element: HtmlElement<'_>, name: &str) -> Result<Option<f32>, CompileError> {
     match get_attr(element, name) {
         None => Ok(None),
         Some(v) => {
-            let trimmed = v.trim();
+            let trimmed = trim_svg_whitespace(&v);
             if !dots_carry_digits(trimmed) {
                 return Err(CompileError::BadNumber {
                     attr: name.to_string(),

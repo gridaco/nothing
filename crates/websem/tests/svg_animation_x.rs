@@ -139,7 +139,10 @@ fn probe_x(frame: &Frame) -> f32 {
         .nodes
         .get(1)
         .expect("fixture keeps the black probe after the white background")
-        .geometry;
+        .geometry
+    else {
+        panic!("these animation fixtures materialize rects only");
+    };
     rect.x
 }
 
@@ -596,7 +599,9 @@ fn sampled_overrides_stay_local_under_a_scaling_viewport() {
         sampled.nodes[0].transform, viewport,
         "time never touches the viewport mapping"
     );
-    let Geometry::Rect(rect) = &sampled.nodes[0].geometry;
+    let Geometry::Rect(rect) = &sampled.nodes[0].geometry else {
+        panic!("these animation fixtures materialize rects only");
+    };
     assert_eq!(rect.x, 8.0, "the sampled override is local, pre-transform");
     assert_eq!(
         sampled.nodes[0].bounds,
@@ -606,6 +611,8 @@ fn sampled_overrides_stay_local_under_a_scaling_viewport() {
 }
 
 fn probe_single_x(frame: &Frame) -> f32 {
-    let Geometry::Rect(rect) = &frame.nodes[0].geometry;
+    let Geometry::Rect(rect) = &frame.nodes[0].geometry else {
+        panic!("these animation fixtures materialize rects only");
+    };
     rect.x
 }

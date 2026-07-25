@@ -9,7 +9,7 @@
 //! HTML/CSS/SVG syntax, no parser ASTs, no producer bindings, no backend
 //! objects, and no serialization.
 //!
-//! It is deliberately minimal for the first slice (solid-fill rectangles) and
+//! It is deliberately minimal (solid-fill rectangles and ellipses) and
 //! **breakable**: the enums grow as real producers force new visual facts, and
 //! the sharing boundary moves *down* (toward the engine's private drawlist)
 //! rather than admit a source-specific field.
@@ -146,12 +146,14 @@ impl VisualRef {
     }
 }
 
-/// Resolved vector geometry, in the node's local space. Rectangles only for
-/// the first slice; vector paths join here (they are not rasterized early —
-/// see the amendment) as the corpus grows.
+/// Resolved vector geometry, in the node's local space. Rectangles and
+/// ellipses for the current slice; vector paths join here (they are not
+/// rasterized early — see the amendment) as the corpus grows.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Geometry {
     Rect(Rectangle),
+    /// The axis-aligned ellipse inscribed in this local-space rectangle.
+    Ellipse(Rectangle),
 }
 
 /// One resolved node: identity, its local→frame transform, resolved geometry,
