@@ -208,3 +208,52 @@ What this amends and what it preserves:
   refuse by name under `--strict`. Everything else in the decision —
   donor status, gate classes, the FLIP posture, the rung order — stands
   unchanged.
+
+## Subsequent status (2026-07-25): the viewport rung lands
+
+The first evolution rung, taken out of the written static order — viewport
+semantics before basic shapes — because the best-effort default changed the
+payoff: root sizing is document-level, the one gap best-effort cannot
+soften, and viewBox-only documents (the most common real-world SVG shape)
+refused outright in both admissions. What landed:
+
+- **Root sizing follows SVG2 §8.2.** The host's requested raster is the
+  **initial viewport** — the window a standalone document loads into.
+  Explicit root `width`/`height` win; a missing or `auto` dimension
+  resolves to 100% of it; the inline HTML entry keeps refusing until CSS
+  replaced-element sizing (the `auto → 300×150` and aspect-ratio rules) is
+  its own rung. Percentage root dimensions refuse by name until the
+  percentage basis chain is consumed.
+- **The full `preserveAspectRatio` grammar** — nine case-sensitive
+  alignments plus `none`, `meet`/`slice` — applied through a near-literal
+  transplant of the frozen donor's `compute_viewbox_matrix`
+  (`crates/htmlcss/src/svg/layout/viewport.rs`, Blink lineage
+  `svg_svg_element.cc` ViewBoxToViewTransform). Unequal-aspect viewBoxes
+  letterbox under the default instead of refusing. The transplant was the
+  rung's method test and it passed at first contact: all seven new
+  Chromium bakes rendered pixel-exact with no math corrections. Malformed
+  grammar — including the SVG2-dropped `defer` prefix, which Chromium
+  treats as unparseable and silently defaults — refuses as
+  `BadPreserveAspectRatio` in both admissions; this slice refuses rather
+  than silently defaulting.
+- **The adversarial round closed a silent-wrong-pixels class the rung
+  would have widened**: cascaded CSS `width`/`height` (a `<style>` rule or
+  `style` attribute beats attributes and the auto default in Chromium) is
+  now patrolled at the computed level on the root and on rects — the flex
+  probe's refusal now names its true reason. Rust-superset number tokens
+  (`width="32."`, valid f32 but not an SVG number, dropped by Chromium)
+  refuse as bad numbers. The bare geometry longhands `x`/`y`/`rx`/`ry` do
+  not exist in the pinned Stylo build and stay inside the named open
+  boundary.
+- **The oracle corpus grew 10 → 17** (viewBox-only sizing, no-sizing auto,
+  letterbox, stretch, slice clip, alignment offset, explicit-PAR
+  admission), each Chromium-baked at a window sized to its declared
+  dimensions — the window *is* the initial viewport — with the ten prior
+  oracles verified byte-identical under the resized windows.
+  `unsupported/` holds the malformed-grammar and percentage cells with
+  typed-refusal laws. rframe and the n0 kernel needed no changes: the
+  per-node affine carried everything.
+
+Remaining static rungs are unchanged in content: basic shapes
+(circle/ellipse/line), paths + groups/transforms, strokes — the tiger
+milestone — then the rest of the written order.
