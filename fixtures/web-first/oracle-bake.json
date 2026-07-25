@@ -2,16 +2,20 @@
   "schema_version": 1,
   "kind": "chromium-primitive-suite",
   "browser_version": "149.0.7827.55",
-  "bake_script_sha256": "24e1b9c645b1d621b3b8a8a6ef1c3a9896204a4aae2faaeb7d723bdef0ffb284",
+  "bake_script_sha256": "a69212826776b14d57303b978e8a81bcd08f5596877b584eaf92e52a3a34c013",
   "suite": "primitives.json",
-  "suite_sha256": "cb3f13d1d9a70140f22ffb0180081e048a6f84c2347e2fd00e9d88bc43a2bd17",
+  "suite_sha256": "c4aabf1178fbac605f47ace8a295274ed084c17bfa7e3e3d6df753ee62dde4e3",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
     "source_transport": "data-url-from-file-bytes",
     "javascript_enabled": false,
     "network_enabled": false,
-    "target": "first-svg-element"
+    "target": "first-svg-element",
+    "viewport": {
+      "standalone-svg": "fixture-declared-dims (the initial viewport)",
+      "html-inline-svg": "1280x720"
+    }
   },
   "fixtures": [
     {
@@ -103,6 +107,69 @@
       "oracle_sha256": "08ea3a87af3072b2cfaec85313ee0ecb505bde33aef1db71b73111a5bc6f5221",
       "width": 80,
       "height": 40
+    },
+    {
+      "id": "svg-viewbox-unequal-default",
+      "source": "svg-viewbox-unequal-default.svg",
+      "source_sha256": "c9441fee41993b74ef29374499701ebdebf35d16eb2098c8659fa796b345bf71",
+      "oracle": "chromium/svg-viewbox-unequal-default.png",
+      "oracle_sha256": "64b8666335c9a3949a6e1e6794a891e7d9b9b7a27f8b955a66e68fee2bd7100e",
+      "width": 100,
+      "height": 50
+    },
+    {
+      "id": "svg-preserve-aspect-ratio-explicit",
+      "source": "svg-preserve-aspect-ratio-explicit.svg",
+      "source_sha256": "86a680162da274ddf42691b1be69ef3ebc54cb57717a8b22a3c947803adc615a",
+      "oracle": "chromium/svg-preserve-aspect-ratio-explicit.png",
+      "oracle_sha256": "6f4bc09437add7d83beb4429ffec5327b45c94ae909eab27f1225d6f82451d29",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-viewbox-only-sizing-rect",
+      "source": "svg-viewbox-only-sizing-rect.svg",
+      "source_sha256": "b38603e78588bd37cad8733feab7968691c9b6bbb9741d45fd9484543669fb0c",
+      "oracle": "chromium/svg-viewbox-only-sizing-rect.png",
+      "oracle_sha256": "eac596ee6b57154b42df60a7d79634abc3863c0a4827af3e51aa04e5f02e1e01",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-sizing-auto-rect",
+      "source": "svg-sizing-auto-rect.svg",
+      "source_sha256": "aa823521fbd91997550c0339f559303a68547502352bd52d23233f604e94709a",
+      "oracle": "chromium/svg-sizing-auto-rect.png",
+      "oracle_sha256": "588dabeaafeb64026db3b71d929e14e66f549ef7757bcb29dd10f3385c297324",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-preserve-aspect-ratio-none-stretch",
+      "source": "svg-preserve-aspect-ratio-none-stretch.svg",
+      "source_sha256": "5b7f733078e8b6bb364fa5c48fd9c84d5ff673684030fec5c883b5779cd66b0c",
+      "oracle": "chromium/svg-preserve-aspect-ratio-none-stretch.png",
+      "oracle_sha256": "287bd20cd12f0d39c722785d5b54abbee277f276e15baa3398ccf04287960130",
+      "width": 80,
+      "height": 40
+    },
+    {
+      "id": "svg-preserve-aspect-ratio-slice-clip",
+      "source": "svg-preserve-aspect-ratio-slice-clip.svg",
+      "source_sha256": "813beaf61600462fd2190b2fb82b216371707059f2ef9412bcc17efd40a94996",
+      "oracle": "chromium/svg-preserve-aspect-ratio-slice-clip.png",
+      "oracle_sha256": "e2283b2f13964f98791851e7a84a3347b5010ec3b3867c6b36dabe2ee9e231cd",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-preserve-aspect-ratio-align-max-meet",
+      "source": "svg-preserve-aspect-ratio-align-max-meet.svg",
+      "source_sha256": "c5b1d405cd76aa45dc92a21eed126063585080082b9a79ad63eaccc8b03b7208",
+      "oracle": "chromium/svg-preserve-aspect-ratio-align-max-meet.png",
+      "oracle_sha256": "51df354cd85421c344b2ce4f6bc04f8f11f3f25c3cc144789364a14e40153c6e",
+      "width": 96,
+      "height": 48
     }
   ]
 }

@@ -32,11 +32,11 @@ const TRAILING_COMMA: &str = include_str!(concat!(
 ));
 const UNEQUAL_DEFAULT: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../fixtures/web-first/unsupported/svg-viewbox-unequal-default.svg"
+    "/../../fixtures/web-first/svg-viewbox-unequal-default.svg"
 ));
 const EXPLICIT: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../fixtures/web-first/unsupported/svg-preserve-aspect-ratio-explicit.svg"
+    "/../../fixtures/web-first/svg-preserve-aspect-ratio-explicit.svg"
 ));
 
 fn viewport(width: f32, height: f32) -> InitialViewport {
@@ -271,6 +271,47 @@ fn malformed_preserve_aspect_ratio_refuses_in_both_admissions() {
                 Err(CompileError::BadPreserveAspectRatio(ref v)) if v == "xMidYMiddle meet"
             ),
             "{mode}: malformed grammar refuses even without a viewBox"
+        );
+    }
+}
+
+/// The committed `unsupported/` corpus refuses with the documented typed
+/// error — the fixture files and this law are one contract
+/// (`fixtures/web-first/unsupported/README.md`).
+#[test]
+fn unsupported_fixture_corpus_refuses_by_name() {
+    const INVALID_ALIGN: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../fixtures/web-first/unsupported/svg-preserve-aspect-ratio-invalid-align.svg"
+    ));
+    const CASE_FOLDED: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../fixtures/web-first/unsupported/svg-preserve-aspect-ratio-case-folded.svg"
+    ));
+    const DEFER: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../fixtures/web-first/unsupported/svg-preserve-aspect-ratio-defer.svg"
+    ));
+    const WIDTH_PERCENTAGE: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../fixtures/web-first/unsupported/svg-width-percentage.svg"
+    ));
+    for (fixture, source) in [
+        ("invalid-align", INVALID_ALIGN),
+        ("case-folded", CASE_FOLDED),
+        ("defer", DEFER),
+    ] {
+        for (mode, result) in both_admissions(source, viewport(64.0, 32.0)) {
+            assert!(
+                matches!(result, Err(CompileError::BadPreserveAspectRatio(_))),
+                "{fixture} ({mode}): refuses as malformed preserveAspectRatio"
+            );
+        }
+    }
+    for (mode, result) in both_admissions(WIDTH_PERCENTAGE, viewport(64.0, 64.0)) {
+        assert!(
+            matches!(result, Err(CompileError::UnsupportedSizing(_))),
+            "width-percentage ({mode}): refuses as unsupported sizing"
         );
     }
 }

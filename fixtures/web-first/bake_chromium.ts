@@ -67,6 +67,14 @@ function assertSamePixels(existing: Buffer, fresh: Buffer, id: string): void {
 }
 
 async function captureSvg(page: Page, fixture: Primitive, source: Buffer): Promise<Buffer> {
+  // standalone-svg: the window IS the initial viewport (SVG2 §8.2) the
+  // fixture's declared dims stand for — a missing root width/height is
+  // `auto` and resolves to 100% of it, so viewBox-only fixtures bake at
+  // exactly their declared size. html-inline-svg keeps the fixed 1280x720
+  // posture: that entry has no initial-viewport semantics yet.
+  if (fixture.entry === "standalone-svg") {
+    await page.setViewportSize({ width: fixture.width, height: fixture.height });
+  }
   const media = fixture.entry === "standalone-svg" ? "image/svg+xml" : "text/html";
   const dataUrl = `data:${media};base64,${source.toString("base64")}`;
   await page.goto(dataUrl, { waitUntil: "load" });
@@ -159,6 +167,10 @@ async function main(): Promise<void> {
       javascript_enabled: false,
       network_enabled: false,
       target: "first-svg-element",
+      viewport: {
+        "standalone-svg": "fixture-declared-dims (the initial viewport)",
+        "html-inline-svg": "1280x720",
+      },
     },
     fixtures: records,
   };

@@ -80,6 +80,62 @@
       "oracle": "chromium/svg-viewbox-uniform-offset-rect.png",
       "width": 80,
       "height": 40
+    },
+    {
+      "id": "svg-viewbox-unequal-default",
+      "source": "svg-viewbox-unequal-default.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-viewbox-unequal-default.png",
+      "width": 100,
+      "height": 50
+    },
+    {
+      "id": "svg-preserve-aspect-ratio-explicit",
+      "source": "svg-preserve-aspect-ratio-explicit.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-preserve-aspect-ratio-explicit.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-viewbox-only-sizing-rect",
+      "source": "svg-viewbox-only-sizing-rect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-viewbox-only-sizing-rect.png",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-sizing-auto-rect",
+      "source": "svg-sizing-auto-rect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-sizing-auto-rect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-preserve-aspect-ratio-none-stretch",
+      "source": "svg-preserve-aspect-ratio-none-stretch.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-preserve-aspect-ratio-none-stretch.png",
+      "width": 80,
+      "height": 40
+    },
+    {
+      "id": "svg-preserve-aspect-ratio-slice-clip",
+      "source": "svg-preserve-aspect-ratio-slice-clip.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-preserve-aspect-ratio-slice-clip.png",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-preserve-aspect-ratio-align-max-meet",
+      "source": "svg-preserve-aspect-ratio-align-max-meet.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-preserve-aspect-ratio-align-max-meet.png",
+      "width": 96,
+      "height": 48
     }
   ]
 }

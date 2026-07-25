@@ -11,7 +11,9 @@ the HTML→SVG boundary through one browser-grade cascade.**
 | --- | --- |
 | `html-inline-svg-currentcolor-rect.html` | HTML whose `<style> .mark { color:#16a34a }` cascades to a `<rect class="mark">` inside inline `<svg>`. |
 | `svg-currentcolor-rect.svg` | The equivalent standalone SVG (carries `color` via an inline `style`). Renders identically. |
-| `svg-viewbox-uniform-offset-rect.svg` | A non-zero-origin `viewBox` with uniform 2× viewport mapping; locks the proving shell's one supported non-identity viewport case. |
+| `svg-viewbox-uniform-offset-rect.svg` | A non-zero-origin `viewBox` with uniform 2× viewport mapping — the first supported non-identity viewport case. |
+| `svg-viewbox-only-sizing-rect.svg` · `svg-sizing-auto-rect.svg` | The viewport rung's sizing cells: no root `width`/`height` — `auto` resolves to 100% of the initial viewport (the baked window / the host's `WxH`), with and without a `viewBox`. |
+| `svg-viewbox-unequal-default.svg` · `svg-preserve-aspect-ratio-*.svg` | The viewport rung's `preserveAspectRatio` cells: the default `xMidYMid meet` letterbox, an explicit `none` (equal-aspect admission), non-uniform stretch, slice clipping, and an `xMaxYMid` alignment offset. |
 | `html-webpage-mockup.html` | A webpage-*design* (header / hero / cards / footer) expressed as 27 inline-SVG rects; the brand purple cascades from the HTML `<style>` via `fill="currentColor"`. Guarded by `crates/websem/tests/webpage_mockup.rs`. Not a real HTML/CSS layout — the slice renders solid-fill `<rect>` only. |
 | `primitives.json` | Closed enumeration of every root HTML/SVG primitive, its grammar entry, dimensions, and Chromium oracle. Adding an unlisted root input fails the test gate. |
 | `chromium/*.png` | One committed Chromium oracle per primitive, capturing the SVG-local raster at deviceScaleFactor=1. |
@@ -32,8 +34,8 @@ manual host check of the one engine, not a second renderer. Arbitrary SVG
 outside the closed suite is not capability coverage; beyond-slice *subtree*
 constructs render best-effort by default with each skip declared on stderr
 (`--strict` refuses them by name), while document-level contracts — the
-viewport/viewBox class collected in `unsupported/` — refuse in both
-admissions:
+malformed-grammar and not-yet-consumed sizing class collected in
+`unsupported/` — refuse in both admissions:
 
 ```sh
 cargo run -p n0_cli --bin n0 -- \
