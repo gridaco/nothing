@@ -14,8 +14,12 @@ the HTML→SVG boundary through one browser-grade cascade.**
 | `svg-viewbox-uniform-offset-rect.svg` | A non-zero-origin `viewBox` with uniform 2× viewport mapping — the first supported non-identity viewport case. |
 | `svg-viewbox-only-sizing-rect.svg` · `svg-sizing-auto-rect.svg` | The viewport rung's sizing cells: no root `width`/`height` — `auto` resolves to 100% of the initial viewport (the baked window / the host's `WxH`), with and without a `viewBox`. |
 | `svg-viewbox-unequal-default.svg` · `svg-preserve-aspect-ratio-*.svg` | The viewport rung's `preserveAspectRatio` cells: the default `xMidYMid meet` letterbox, an explicit `none` (equal-aspect admission), non-uniform stretch, slice clipping, and an `xMaxYMid` alignment offset. |
-| `html-webpage-mockup.html` | A webpage-*design* (header / hero / cards / footer) expressed as 27 inline-SVG rects; the brand purple cascades from the HTML `<style>` via `fill="currentColor"`. Guarded by `crates/websem/tests/webpage_mockup.rs`. Not a real HTML/CSS layout — the slice renders solid-fill `<rect>` only. |
-| `primitives.json` | Closed enumeration of every root HTML/SVG primitive, its grammar entry, dimensions, and Chromium oracle. Adding an unlisted root input fails the test gate. |
+| `svg-circle-fill.svg` · `svg-circle-viewbox-scaled.svg` · `svg-ellipse-fill.svg` | The basic-shapes rung's painting cells: a circle at rest, the same circle carried by a scaling `viewBox`, and an ellipse with distinct radii. |
+| `svg-circle-defaults-clip.svg` | `cx`/`cy` default to 0, so three quarters of the circle fall outside the viewport — the frame clip, not a guessed position. |
+| `svg-ellipse-auto-rx.svg` · `svg-ellipse-negative-rx-auto.svg` | The `auto` radius matrix: an absent `rx` adopts `ry`, and a *negative* `rx` is invalid-must-be-ignored, which Chromium resolves to that same `auto`. Both bake to the same circle. |
+| `svg-circle-zero-r.svg` | `r="0"` disables rendering (SVG2 §10.3) — an admitted nothing, baked as proof rather than asserted. |
+| `html-webpage-mockup.html` | A webpage-*design* (header / hero / cards / footer) expressed as 27 inline-SVG rects; the brand purple cascades from the HTML `<style>` via `fill="currentColor"`. Guarded by `crates/websem/tests/webpage_mockup.rs`. Not a real HTML/CSS layout — the slice renders solid-fill shapes only. |
+| `primitives.json` | Closed enumeration of every root HTML/SVG primitive, its grammar entry, dimensions, Chromium oracle, and (where its ideal raster is curved) its declared comparison tolerance. Adding an unlisted root input fails the test gate. |
 | `chromium/*.png` | One committed Chromium oracle per primitive, capturing the SVG-local raster at deviceScaleFactor=1. |
 | `oracle-bake.json` | Bake provenance (browser version + sha256 of the suite, sources, oracles, and bake script). |
 | `bake_chromium.ts` | Verifies existing oracle pixels and creates missing oracles; it never overwrites a differing baseline. Run: `pnpm -C packages/grida-reftest exec tsx "$(pwd)/fixtures/web-first/bake_chromium.ts"`. |
@@ -26,6 +30,21 @@ Exact expectation: every primitive's full RGBA raster matches its Chromium
 oracle with zero differing pixels. The gate also validates enumeration and
 provenance and double-runs both raw raster and PNG encoding (see
 `crates/websem/tests/reftest_oracle.rs`).
+
+One class departs from that, and only by declaration. A filled ellipse
+reaches the same `SkCanvas::drawOval` entry point in both engines, but
+through different builds of Skia, whose analytic-AA scan-converters
+disagree on fractional coverage along the curve — measured identical
+across every available construction (`draw_oval`, `draw_circle`,
+`PathBuilder::add_oval`/`add_circle`, an oval `RRect`), so no choice of
+call closes it. Those fixtures carry a `tolerance` block naming the ideal
+boundary and bounding the departure: at most N differing pixels, at most a
+D-per-channel delta, every one of them within a pixel of that boundary.
+The numbers are the measured values, not headroom — the corpus's worst
+cell today is 6 pixels at delta 3. A shape in the wrong place, at the
+wrong size, or in the wrong color moves pixels off the boundary ring and
+still fails loudly, and `svg-circle-defaults-clip` shows the bar is not
+unreachable: it bakes byte-exact and declares no tolerance at all.
 
 Render a primitive through the `n0` product command — since
 [D-N](../../docs/wg/consolidation/svg-engine-of-record.md) it routes through

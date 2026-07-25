@@ -33,6 +33,12 @@ interface Primitive {
   oracle: string;
   width: number;
   height: number;
+  /**
+   * Comparison-side gate policy, carried in the suite but never read here:
+   * capture is always the browser's own pixels. See
+   * `crates/websem/tests/reftest_oracle.rs` for its meaning.
+   */
+  tolerance?: unknown;
 }
 
 interface PrimitiveSuite {
@@ -95,7 +101,7 @@ async function captureSvg(page: Page, fixture: Primitive, source: Buffer): Promi
 async function main(): Promise<void> {
   const suiteBytes = await readFile(SUITE_PATH);
   const suite = JSON.parse(suiteBytes.toString("utf8")) as PrimitiveSuite;
-  if (suite.schema_version !== 0 || suite.fixtures.length === 0) {
+  if (suite.schema_version !== 1 || suite.fixtures.length === 0) {
     throw new Error("unsupported or empty primitive suite");
   }
 

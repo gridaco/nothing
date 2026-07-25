@@ -1,5 +1,5 @@
 {
-  "schema_version": 0,
+  "schema_version": 1,
   "fixtures": [
     {
       "id": "html-inline-svg-currentcolor-rect",
@@ -136,6 +136,127 @@
       "oracle": "chromium/svg-preserve-aspect-ratio-align-max-meet.png",
       "width": 96,
       "height": 48
+    },
+    {
+      "id": "svg-circle-fill",
+      "source": "svg-circle-fill.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-circle-fill.png",
+      "width": 64,
+      "height": 64,
+      "tolerance": {
+        "kind": "aa-boundary-ring",
+        "max_differing_pixels": 3,
+        "max_channel_delta": 7,
+        "boundaries": [
+          {
+            "cx": 32,
+            "cy": 32,
+            "rx": 12,
+            "ry": 12
+          }
+        ]
+      }
+    },
+    {
+      "id": "svg-circle-viewbox-scaled",
+      "source": "svg-circle-viewbox-scaled.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-circle-viewbox-scaled.png",
+      "width": 64,
+      "height": 64,
+      "tolerance": {
+        "kind": "aa-boundary-ring",
+        "max_differing_pixels": 6,
+        "max_channel_delta": 3,
+        "boundaries": [
+          {
+            "cx": 32,
+            "cy": 32,
+            "rx": 16,
+            "ry": 16
+          }
+        ]
+      }
+    },
+    {
+      "id": "svg-circle-defaults-clip",
+      "source": "svg-circle-defaults-clip.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-circle-defaults-clip.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-circle-zero-r",
+      "source": "svg-circle-zero-r.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-circle-zero-r.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-ellipse-fill",
+      "source": "svg-ellipse-fill.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-ellipse-fill.png",
+      "width": 96,
+      "height": 48,
+      "tolerance": {
+        "kind": "aa-boundary-ring",
+        "max_differing_pixels": 1,
+        "max_channel_delta": 8,
+        "boundaries": [
+          {
+            "cx": 48,
+            "cy": 24,
+            "rx": 32,
+            "ry": 16
+          }
+        ]
+      }
+    },
+    {
+      "id": "svg-ellipse-auto-rx",
+      "source": "svg-ellipse-auto-rx.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-ellipse-auto-rx.png",
+      "width": 64,
+      "height": 64,
+      "tolerance": {
+        "kind": "aa-boundary-ring",
+        "max_differing_pixels": 3,
+        "max_channel_delta": 7,
+        "boundaries": [
+          {
+            "cx": 32,
+            "cy": 32,
+            "rx": 12,
+            "ry": 12
+          }
+        ]
+      }
+    },
+    {
+      "id": "svg-ellipse-negative-rx-auto",
+      "source": "svg-ellipse-negative-rx-auto.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-ellipse-negative-rx-auto.png",
+      "width": 64,
+      "height": 64,
+      "tolerance": {
+        "kind": "aa-boundary-ring",
+        "max_differing_pixels": 3,
+        "max_channel_delta": 7,
+        "boundaries": [
+          {
+            "cx": 32,
+            "cy": 32,
+            "rx": 12,
+            "ry": 12
+          }
+        ]
+      }
     }
   ]
 }
