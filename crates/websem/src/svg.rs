@@ -13,7 +13,12 @@
 //!
 //! Deliberately narrow: the proving shell supports only the enumerated
 //! viewport/fill cases around an outer `<svg>` and solid-filled `<rect>`, plus
-//! one retained exact-time `<animate attributeName="x">` slice.
+//! one retained exact-time `<animate attributeName="x">` slice. Root sizing
+//! follows SVG2 §8.2: explicit `width`/`height` win; a missing dimension is
+//! `auto` and resolves to 100% of the host-established [`InitialViewport`]
+//! (standalone entry only — the inline HTML entry refuses until CSS
+//! replaced-element sizing is implemented); `viewBox` maps user units into
+//! the viewport under the full `preserveAspectRatio` grammar.
 //! [`CompileError`] makes patrolled static rejection cases explicit and
 //! [`crate::AnimationError`] closes the sampled standalone dynamic inventory.
 //! Inline HTML remains Base-only until its document-wide inventory is closed.
@@ -74,7 +79,7 @@ use style::computed_values::visibility::T as Visibility;
 use style::dom::TElement;
 use style::properties::ComputedValues;
 use style::thread_state::{self, ThreadState};
-use style::values::computed::SVGOpacity;
+use style::values::computed::{SVGOpacity, Size};
 use style::values::generics::svg::SVGPaintKind;
 
 use cg::CGColor;
@@ -181,6 +186,47 @@ impl std::fmt::Display for Degradation {
     }
 }
 
+/// The initial viewport (SVG2 §8.2) the embedding environment establishes
+/// for a standalone SVG document — the n0 host's requested raster size, the
+/// oracle harness's declared fixture dimensions. A missing root
+/// `width`/`height` is `auto`, and `auto` resolves to 100% of this viewport,
+/// exactly as Chromium sizes a standalone SVG document to its window
+/// (Blink: `core/layout/svg/layout_svg_root.cc`). Authored dimensions always
+/// win over it.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct InitialViewport {
+    width: f32,
+    height: f32,
+}
+
+impl InitialViewport {
+    /// The host contract requires finite, strictly positive dimensions —
+    /// hosts validate their own size input (the CLI parses `WxH` as positive
+    /// integers) before establishing a viewport, so a violation is a host
+    /// bug, not a document refusal.
+    ///
+    /// # Panics
+    /// If either dimension is non-finite or not strictly positive.
+    #[must_use]
+    pub fn new(width: f32, height: f32) -> Self {
+        assert!(
+            width.is_finite() && height.is_finite() && width > 0.0 && height > 0.0,
+            "initial viewport must be finite and strictly positive, got {width}x{height}"
+        );
+        Self { width, height }
+    }
+
+    #[must_use]
+    pub const fn width(self) -> f32 {
+        self.width
+    }
+
+    #[must_use]
+    pub const fn height(self) -> f32 {
+        self.height
+    }
+}
+
 /// An explicit failure in the proving shell's enumerated grammar checks.
 ///
 /// This list is not yet exhaustive over SVG attributes or computed style; the
@@ -210,8 +256,12 @@ pub enum CompileError {
     InvalidDimension { attr: String, value: String },
     /// A `viewBox` whose four-number grammar or positive extent is invalid.
     BadViewBox(String),
-    /// A valid SVG viewport mode the current slice does not implement.
-    UnsupportedViewport(String),
+    /// A `preserveAspectRatio` the SVG2 grammar Chromium implements does
+    /// not parse: an unknown or case-folded alignment keyword, a bad
+    /// `meet`/`slice` token, or the dropped SVG 1.1 `defer` prefix.
+    /// Chromium silently falls back to the default `xMidYMid meet` for
+    /// these; the slice refuses by name instead of silently defaulting.
+    BadPreserveAspectRatio(String),
     /// An element carried no computed style (cascade did not reach it).
     MissingComputedStyle,
     /// A known rendering-relevant SVG attribute the slice does not consume.
@@ -249,6 +299,10 @@ pub struct SvgFrameSource {
     animation: AnimationInventory,
     mode: CompileMode,
     degradations: Vec<Degradation>,
+    /// The host-established initial viewport, `Some` for the standalone
+    /// entry only. Fixed at construction so every sample recompile resolves
+    /// root sizing identically to Base.
+    initial_viewport: Option<InitialViewport>,
 }
 
 impl std::fmt::Debug for SvgFrameSource {
@@ -268,7 +322,12 @@ impl SvgFrameSource {
     /// the document's one Stylo cascade. Strict: the first beyond-slice
     /// construct refuses.
     pub fn from_html_inline_svg(source: impl Into<Arc<str>>) -> Result<Self, CompileError> {
-        Self::from_source(source.into(), SourceEntry::InlineHtml, CompileMode::Strict)
+        Self::from_source(
+            source.into(),
+            SourceEntry::InlineHtml,
+            CompileMode::Strict,
+            None,
+        )
     }
 
     /// The best-effort variant of [`Self::from_html_inline_svg`]: beyond-slice
@@ -282,10 +341,12 @@ impl SvgFrameSource {
             source.into(),
             SourceEntry::InlineHtml,
             CompileMode::BestEffort,
+            None,
         )
     }
 
-    /// Retain one conforming standalone SVG/XML document.
+    /// Retain one conforming standalone SVG/XML document under the
+    /// host-established initial viewport.
     ///
     /// The source parses through csscascade's namespace-aware, case-preserving
     /// XML grammar into the same semantic document shape the HTML entry
@@ -295,11 +356,19 @@ impl SvgFrameSource {
     /// treatment of standalone SVG documents; the recovery classes XML5
     /// leaves unrecorded (see [`CompileError::MalformedXml`]) remain a named
     /// leniency boundary, not a universal Chromium-alignment claim.
-    pub fn from_standalone_svg(source: impl Into<Arc<str>>) -> Result<Self, CompileError> {
+    ///
+    /// `initial_viewport` is what a browser window is to a standalone SVG
+    /// document: a missing root `width`/`height` is `auto` and resolves to
+    /// 100% of it; explicit dimensions win over it.
+    pub fn from_standalone_svg(
+        source: impl Into<Arc<str>>,
+        initial_viewport: InitialViewport,
+    ) -> Result<Self, CompileError> {
         Self::from_source(
             source.into(),
             SourceEntry::StandaloneSvg,
             CompileMode::Strict,
+            Some(initial_viewport),
         )
     }
 
@@ -309,11 +378,13 @@ impl SvgFrameSource {
     /// viewport sizing/mapping checks) still refuse.
     pub fn from_standalone_svg_best_effort(
         source: impl Into<Arc<str>>,
+        initial_viewport: InitialViewport,
     ) -> Result<Self, CompileError> {
         Self::from_source(
             source.into(),
             SourceEntry::StandaloneSvg,
             CompileMode::BestEffort,
+            Some(initial_viewport),
         )
     }
 
@@ -321,6 +392,7 @@ impl SvgFrameSource {
         source: Arc<str>,
         entry: SourceEntry,
         mode: CompileMode,
+        initial_viewport: Option<InitialViewport>,
     ) -> Result<Self, CompileError> {
         // Idempotent for the same state; safe to call per retained source.
         thread_state::initialize(ThreadState::LAYOUT);
@@ -362,8 +434,13 @@ impl SvgFrameSource {
             if entry == SourceEntry::InlineHtml && subtree_contains_script(svg) {
                 return Err(CompileError::ScriptInCompiledSvg);
             }
-            let compilation =
-                compile_svg_element(svg, &EffectiveValues::base(), mode, &mut degradations)?;
+            let compilation = compile_svg_element(
+                svg,
+                &EffectiveValues::base(),
+                mode,
+                &mut degradations,
+                initial_viewport,
+            )?;
             let animation = AnimationInventory::inspect(svg, &compilation.materialized, entry);
             (svg.node_id(), compilation, animation)
         };
@@ -385,6 +462,7 @@ impl SvgFrameSource {
             animation,
             mode,
             degradations,
+            initial_viewport,
         })
     }
 
@@ -456,8 +534,14 @@ impl SvgFrameSource {
         // The degradation set is a property of the retained source, declared
         // once at construction; the sample recompile reproduces the same
         // skips deterministically and its sink is discarded.
-        let compilation = compile_svg_element(svg, &values, self.mode, &mut Vec::new())
-            .expect("time changes effective values, not compilability of the retained source");
+        let compilation = compile_svg_element(
+            svg,
+            &values,
+            self.mode,
+            &mut Vec::new(),
+            self.initial_viewport,
+        )
+        .expect("time changes effective values, not compilability of the retained source");
         Ok(compilation.frame)
     }
 }
@@ -485,8 +569,8 @@ impl std::fmt::Display for CompileError {
                 write!(f, "invalid SVG viewport dimension {attr}={value:?}")
             }
             CompileError::BadViewBox(v) => write!(f, "viewBox {v:?} is invalid"),
-            CompileError::UnsupportedViewport(v) => {
-                write!(f, "unsupported SVG viewport mapping: {v}")
+            CompileError::BadPreserveAspectRatio(v) => {
+                write!(f, "preserveAspectRatio {v:?} is invalid")
             }
             CompileError::MissingComputedStyle => write!(f, "element has no computed style"),
             CompileError::UnsupportedAttribute { element, attr } => write!(
@@ -521,9 +605,13 @@ pub fn compile_html_inline_svg(html: &str) -> Result<Frame, CompileError> {
 
 /// Compile one conforming standalone SVG/XML document into an SVG-local
 /// [`Frame`], through csscascade's namespace-aware XML grammar and the same
-/// compiler as the inline entry.
-pub fn compile_standalone_svg(svg: &str) -> Result<Frame, CompileError> {
-    SvgFrameSource::from_standalone_svg(svg).map(|source| source.base_frame())
+/// compiler as the inline entry, under the host-established initial
+/// viewport.
+pub fn compile_standalone_svg(
+    svg: &str,
+    initial_viewport: InitialViewport,
+) -> Result<Frame, CompileError> {
+    SvgFrameSource::from_standalone_svg(svg, initial_viewport).map(|source| source.base_frame())
 }
 
 /// Whether any element in the subtree is a `<script>` (exact local name —
@@ -549,7 +637,7 @@ fn subtree_contains_script(el: HtmlElement<'_>) -> bool {
 /// SVG rendering vocabulary — `data-*`, case-folded junk like `viewbox`,
 /// foreign names — stay ignored exactly as Chromium ignores them (pinned by
 /// the standalone entry laws). `preserveAspectRatio` is absent here because
-/// the viewport check owns its named refusal.
+/// the viewport mapping consumes it.
 const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "transform",
     "transform-origin",
@@ -644,6 +732,27 @@ fn patrol_computed_style(
             "stroke paint is not yet consumed".to_string(),
         ));
     }
+    // SVG2 makes width/height geometry properties: a cascaded (stylesheet or
+    // style-attribute) value beats both the authored attribute and the auto
+    // default in Chromium, while this compiler reads geometry from
+    // attributes only. Only `fill` enters the cascade as a presentation
+    // hint (csscascade's admitted set), so a non-auto computed width or
+    // height here can only be a smuggled CSS value — refuse it by name
+    // rather than paint at the attribute-derived size. (The bare SVG
+    // geometry longhands `x`/`y`/`rx`/`ry` do not exist in this Stylo
+    // build, so they stay inside the named open boundary above.)
+    let width = style.clone_width();
+    if !matches!(width, Size::Auto) {
+        return Err(CompileError::UnsupportedStyle(format!(
+            "CSS width ({width:?}) is not yet consumed"
+        )));
+    }
+    let height = style.clone_height();
+    if !matches!(height, Size::Auto) {
+        return Err(CompileError::UnsupportedStyle(format!(
+            "CSS height ({height:?}) is not yet consumed"
+        )));
+    }
     Ok(())
 }
 
@@ -681,49 +790,64 @@ fn compile_svg_element(
     values: &EffectiveValues,
     mode: CompileMode,
     degradations: &mut Vec<Degradation>,
+    initial_viewport: Option<InitialViewport>,
 ) -> Result<FrameCompilation, CompileError> {
     // The outer <svg> is the canvas contract: a rendering attribute or a
     // cascaded value the slice cannot honor here would wrong every pixel,
     // so the root patrols are document-level in both modes.
     patrol_rendering_attributes(svg, "svg", &[])?;
     patrol_computed_style(svg, false)?;
-    let width = effective_attr_f32(svg, "width", values)?.ok_or_else(|| {
-        CompileError::UnsupportedSizing(
-            "missing width; CSS/default intrinsic sizing is not implemented".to_string(),
-        )
-    })?;
-    let height = effective_attr_f32(svg, "height", values)?.ok_or_else(|| {
-        CompileError::UnsupportedSizing(
-            "missing height; CSS/default intrinsic sizing is not implemented".to_string(),
-        )
-    })?;
+    reject_percentage_dimension(svg, "width")?;
+    reject_percentage_dimension(svg, "height")?;
+    let width_attr = root_dimension_f32(svg, "width", values)?;
+    let height_attr = root_dimension_f32(svg, "height", values)?;
+    // A missing root width/height is `auto` and resolves to 100% of the
+    // initial viewport the embedding environment establishes (SVG2 §8.2) —
+    // the standalone entry carries the host's viewport, exactly as Chromium
+    // sizes a standalone SVG document to its window. The inline HTML entry
+    // has no initial-viewport semantics until CSS replaced-element sizing
+    // (auto -> 300x150 and the aspect-ratio rules) is implemented, so a
+    // missing dimension there stays a named document-level refusal.
+    let (width, height) = match initial_viewport {
+        Some(viewport) => (
+            width_attr.unwrap_or_else(|| viewport.width()),
+            height_attr.unwrap_or_else(|| viewport.height()),
+        ),
+        None => (
+            width_attr.ok_or_else(|| {
+                CompileError::UnsupportedSizing(
+                    "missing width on the inline HTML entry; CSS replaced-element sizing \
+                     (auto -> 300x150 and the aspect-ratio rules) is not yet implemented"
+                        .to_string(),
+                )
+            })?,
+            height_attr.ok_or_else(|| {
+                CompileError::UnsupportedSizing(
+                    "missing height on the inline HTML entry; CSS replaced-element sizing \
+                     (auto -> 300x150 and the aspect-ratio rules) is not yet implemented"
+                        .to_string(),
+                )
+            })?,
+        ),
+    };
     reject_negative_dimension("width", width)?;
     reject_negative_dimension("height", height)?;
-    if let Some(value) = get_attr(svg, "preserveAspectRatio") {
-        return Err(CompileError::UnsupportedViewport(format!(
-            "preserveAspectRatio={value:?}"
-        )));
-    }
+    // width="0" / height="0" is admitted and disables rendering (SVG2 §8.2):
+    // the frame keeps a zero-extent viewport clip and every pixel stays
+    // transparent — an honest nothing, not a refusal.
+    let par = match get_attr(svg, "preserveAspectRatio") {
+        // Parsed before the viewBox and even without one: a malformed value
+        // refuses regardless, and a valid value without a viewBox is inert,
+        // as in Chromium.
+        Some(value) => parse_preserve_aspect_ratio(&value)?,
+        None => PreserveAspectRatio::default(),
+    };
     let viewbox = match get_attr(svg, "viewBox") {
         Some(v) => Some(parse_viewbox(&v)?),
         None => None,
     };
-
-    // The first slice proves only the equal-aspect default mapping. Reject
-    // every other valid preserveAspectRatio case rather than silently stretch.
     let viewport = match viewbox {
-        Some((vb_x, vb_y, vb_w, vb_h)) => {
-            let sx = width / vb_w;
-            let sy = height / vb_h;
-            let tolerance = f32::EPSILON * sx.abs().max(sy.abs()).max(1.0) * 8.0;
-            if (sx - sy).abs() > tolerance {
-                return Err(CompileError::UnsupportedViewport(
-                    "non-uniform viewBox mapping requires preserveAspectRatio semantics"
-                        .to_string(),
-                ));
-            }
-            AffineTransform::from_acebdf(sx, 0.0, -vb_x * sx, 0.0, sy, -vb_y * sy)
-        }
+        Some(viewbox) => viewbox_to_viewport_transform((width, height), viewbox, par),
         None => AffineTransform::identity(),
     };
     let frame_bounds = Rectangle::from_xywh(0.0, 0.0, width, height);
@@ -915,6 +1039,167 @@ fn parse_viewbox(v: &str) -> Result<(f32, f32, f32, f32), CompileError> {
     Ok((parts[0], parts[1], parts[2], parts[3]))
 }
 
+/// The `preserveAspectRatio` fit mode: how the viewBox scales into the
+/// viewport (SVG2 §8.2).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Fit {
+    /// `none`: non-uniform scale, each axis fills the viewport exactly.
+    None,
+    /// `meet`: uniform scale, the whole viewBox fits inside the viewport.
+    Meet,
+    /// `slice`: uniform scale, the viewBox covers the whole viewport (the
+    /// overhang is cut by the frame's viewport clip).
+    Slice,
+}
+
+/// One axis of the `preserveAspectRatio` alignment.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Align {
+    Min,
+    Mid,
+    Max,
+}
+
+/// A parsed `preserveAspectRatio` value.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct PreserveAspectRatio {
+    fit: Fit,
+    align_x: Align,
+    align_y: Align,
+}
+
+impl Default for PreserveAspectRatio {
+    /// The SVG default: `xMidYMid meet`.
+    fn default() -> Self {
+        Self {
+            fit: Fit::Meet,
+            align_x: Align::Mid,
+            align_y: Align::Mid,
+        }
+    }
+}
+
+/// Parse `preserveAspectRatio` with the exact SVG2 grammar Chromium
+/// implements: an alignment keyword (`none` or one of the nine
+/// case-sensitive `x{Min,Mid,Max}Y{Min,Mid,Max}` forms) optionally followed
+/// by `meet` or `slice`. The frozen donor's permissive fallback-to-default
+/// (`crates/htmlcss/src/svg/dom/attrs.rs`) is deliberately not ported:
+/// malformed grammar refuses loudly, the same posture as [`parse_viewbox`],
+/// where Chromium silently renders the default `xMidYMid meet` mapping.
+/// That includes the SVG 1.1 `defer` prefix: SVG2 dropped it, and Chromium
+/// treats any value carrying it as unparseable (falling back to the
+/// default), so it is malformed grammar here — a future rung must never
+/// "restore" it by honoring the remainder of the value.
+fn parse_preserve_aspect_ratio(v: &str) -> Result<PreserveAspectRatio, CompileError> {
+    let tokens: Vec<&str> = v.split_ascii_whitespace().collect();
+    let (align_token, fit_token) = match tokens.as_slice() {
+        [align] => (*align, None),
+        [align, fit] => (*align, Some(*fit)),
+        _ => return Err(CompileError::BadPreserveAspectRatio(v.to_string())),
+    };
+    let (align_x, align_y) = match align_token {
+        "none" | "xMinYMin" => (Align::Min, Align::Min),
+        "xMidYMin" => (Align::Mid, Align::Min),
+        "xMaxYMin" => (Align::Max, Align::Min),
+        "xMinYMid" => (Align::Min, Align::Mid),
+        "xMidYMid" => (Align::Mid, Align::Mid),
+        "xMaxYMid" => (Align::Max, Align::Mid),
+        "xMinYMax" => (Align::Min, Align::Max),
+        "xMidYMax" => (Align::Mid, Align::Max),
+        "xMaxYMax" => (Align::Max, Align::Max),
+        _ => return Err(CompileError::BadPreserveAspectRatio(v.to_string())),
+    };
+    let fit = match (align_token, fit_token) {
+        // `none` still permits an explicit meet|slice token grammatically;
+        // the token is validated, then ignored per spec.
+        ("none", None | Some("meet" | "slice")) => Fit::None,
+        (_, None | Some("meet")) => Fit::Meet,
+        (_, Some("slice")) => Fit::Slice,
+        _ => return Err(CompileError::BadPreserveAspectRatio(v.to_string())),
+    };
+    Ok(PreserveAspectRatio {
+        fit,
+        align_x,
+        align_y,
+    })
+}
+
+/// The viewBox → viewport transform (SVG2 §8.2 `computeViewBoxTransform`):
+/// translate to the aligned offset, scale by the fitted factors, translate
+/// by the negated viewBox origin. A near-literal transplant of the frozen
+/// donor's `compute_viewbox_matrix`
+/// (`crates/htmlcss/src/svg/layout/viewport.rs`), itself Blink-shaped
+/// (`core/svg/svg_svg_element.cc` ViewBoxToViewTransform as applied by
+/// `core/paint/svg_root_painter.cc`); the root viewport origin is (0, 0)
+/// here, so the donor's viewport-offset terms drop out.
+fn viewbox_to_viewport_transform(
+    viewport: (f32, f32),
+    viewbox: (f32, f32, f32, f32),
+    par: PreserveAspectRatio,
+) -> AffineTransform {
+    let (vp_w, vp_h) = viewport;
+    let (vb_x, vb_y, vb_w, vb_h) = viewbox;
+    let scale_x = vp_w / vb_w;
+    let scale_y = vp_h / vb_h;
+    let (sx, sy) = match par.fit {
+        Fit::None => (scale_x, scale_y),
+        Fit::Meet => {
+            let s = scale_x.min(scale_y);
+            (s, s)
+        }
+        Fit::Slice => {
+            let s = scale_x.max(scale_y);
+            (s, s)
+        }
+    };
+    let dx = align_offset(par.align_x, vp_w, vb_w * sx);
+    let dy = align_offset(par.align_y, vp_h, vb_h * sy);
+    // translate(dx, dy) ∘ scale(sx, sy) ∘ translate(-vb_x, -vb_y)
+    AffineTransform::from_acebdf(sx, 0.0, dx - vb_x * sx, 0.0, sy, dy - vb_y * sy)
+}
+
+/// One axis of the `preserveAspectRatio` alignment offset: where the scaled
+/// viewBox extent sits inside the viewport extent.
+fn align_offset(align: Align, viewport_extent: f32, scaled_viewbox_extent: f32) -> f32 {
+    match align {
+        Align::Min => 0.0,
+        Align::Mid => (viewport_extent - scaled_viewbox_extent) / 2.0,
+        Align::Max => viewport_extent - scaled_viewbox_extent,
+    }
+}
+
+/// A root `width`/`height` read: an authored `auto` (the CSS-wide keyword
+/// SVG2 gives these geometry properties, ASCII case-insensitive) is
+/// literally the absent-attribute value — both resolve as `auto` — so it
+/// reads as `None` instead of misreporting valid grammar as a bad number.
+fn root_dimension_f32(
+    svg: HtmlElement<'_>,
+    name: &str,
+    values: &EffectiveValues,
+) -> Result<Option<f32>, CompileError> {
+    if values.scalar(svg.node_id(), name).is_none()
+        && get_attr(svg, name).is_some_and(|value| value.trim().eq_ignore_ascii_case("auto"))
+    {
+        return Ok(None);
+    }
+    effective_attr_f32(svg, name, values)
+}
+
+/// Refuse a root `width`/`height` authored as a percentage. `N%` is valid
+/// SVG length grammar this slice does not yet resolve; refusing by name is
+/// honest where the numeric parse would misreport it as
+/// [`CompileError::BadNumber`] junk.
+fn reject_percentage_dimension(svg: HtmlElement<'_>, attr: &str) -> Result<(), CompileError> {
+    if let Some(value) = get_attr(svg, attr)
+        && value.trim().ends_with('%')
+    {
+        return Err(CompileError::UnsupportedSizing(format!(
+            "percentage {attr}={value:?} on the root <svg> is not yet consumed"
+        )));
+    }
+    Ok(())
+}
+
 fn reject_negative_dimension(attr: &str, value: f32) -> Result<(), CompileError> {
     if value < 0.0 {
         return Err(CompileError::InvalidDimension {
@@ -955,12 +1240,32 @@ fn effective_attr_f32(
     attr_f32(element, name)
 }
 
+/// Whether every `.` in the token is followed by an ASCII digit. Rust's
+/// float grammar is a superset of the SVG/CSS number grammar: a trailing
+/// dot (`32.`, `3.e2`) parses as f32 but is an invalid number token to
+/// Chromium, which drops the attribute — silently resolving it to a
+/// different geometry than the oracle. The other Rust-accepted finite forms
+/// (`+3`, `.5`, `1e2`, `1E+2`) are valid SVG numbers.
+fn dots_carry_digits(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    bytes
+        .iter()
+        .enumerate()
+        .all(|(index, byte)| *byte != b'.' || bytes.get(index + 1).is_some_and(u8::is_ascii_digit))
+}
+
 fn attr_f32(element: HtmlElement<'_>, name: &str) -> Result<Option<f32>, CompileError> {
     match get_attr(element, name) {
         None => Ok(None),
         Some(v) => {
-            let parsed = v
-                .trim()
+            let trimmed = v.trim();
+            if !dots_carry_digits(trimmed) {
+                return Err(CompileError::BadNumber {
+                    attr: name.to_string(),
+                    value: v.clone(),
+                });
+            }
+            let parsed = trimmed
                 .parse::<f32>()
                 .map_err(|_| CompileError::BadNumber {
                     attr: name.to_string(),

@@ -48,7 +48,8 @@ fn spawn_compile_loop(
     std::thread::spawn(move || {
         barrier.wait();
         for _ in 0..16 {
-            let frame = compile_standalone_svg(source).expect("compile isolated SVG");
+            let frame = compile_standalone_svg(source, websem::InitialViewport::new(64.0, 64.0))
+                .expect("compile isolated SVG");
             let node = frame.nodes.first().expect("one rectangle");
             let mut paints = node.paints.iter();
             assert_eq!(paints.next().expect("one solid fill").color, expected);

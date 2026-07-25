@@ -19,7 +19,7 @@ use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use skia_safe::{Color, surfaces};
 use support::{decode_png, render_through_n0};
-use websem::{compile_html_inline_svg, compile_standalone_svg};
+use websem::{InitialViewport, compile_html_inline_svg, compile_standalone_svg};
 
 #[derive(Debug, Deserialize)]
 struct PrimitiveSuite {
@@ -215,7 +215,17 @@ fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
             .unwrap_or_else(|e| panic!("read {}: {e}", fixture.source));
         let frame = match fixture.entry.as_str() {
             "html-inline-svg" => compile_html_inline_svg(&source),
-            "standalone-svg" => compile_standalone_svg(&source),
+            // The declared fixture dimensions serve as the initial
+            // viewport. Today every committed standalone fixture authors
+            // explicit root dimensions, so this value is inert, and the
+            // baker's element-box assertion (bake_chromium.ts, captureSvg)
+            // pins the captured size to exactly these dims. Auto-sized
+            // fixtures become bakeable when the corpus step sizes the
+            // browser window per fixture.
+            "standalone-svg" => compile_standalone_svg(
+                &source,
+                InitialViewport::new(fixture.width as f32, fixture.height as f32),
+            ),
             other => panic!("{} has unknown entry {other:?}", fixture.id),
         }
         .unwrap_or_else(|e| panic!("compile {}: {e}", fixture.id));

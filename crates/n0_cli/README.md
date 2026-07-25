@@ -27,7 +27,12 @@ cargo run -p n0_cli --bin n0 -- \
 ```
 
 - Input: one UTF-8 `.html`, `.htm`, or `.svg` file.
-- Output: one `.png` file at an explicit positive `WxH` size.
+- Output: one `.png` file at an explicit positive `WxH` size. For a
+  standalone SVG, `WxH` is also the **initial viewport** (SVG2 §8.2) — the
+  window the document is loaded into: explicit root `width`/`height` win, a
+  missing dimension is `auto` and resolves to 100% of `WxH`, and `viewBox`
+  maps user units into the viewport under the full `preserveAspectRatio`
+  grammar. A viewBox-only SVG therefore renders at the requested raster.
 - Resources: self-contained input only; external images and stylesheets are
   not resolved.
 - Capability: the admitted slice is deliberately narrow, and the default
@@ -43,8 +48,10 @@ cargo run -p n0_cli --bin n0 -- \
   loudly on the first beyond-slice construct instead — the dev harness and
   TODO surface (`--best-effort` is the explicit spelling of the default).
   Document-level contracts (no `<svg>` root, malformed standalone XML, a
-  script-suspended standalone parse, the outer viewport sizing and root
-  patrols) refuse in both admissions.
+  script-suspended standalone parse, the outer viewport grammar —
+  percentage root dimensions, malformed `preserveAspectRatio`,
+  CSS-cascaded root sizing, missing dimensions on the HTML entry — and
+  root patrols) refuse in both admissions.
 - The HTML entry compiles exactly the document's first inline SVG; when that
   subtree is admitted the render succeeds and the surrounding page
   contributes nothing (a pinned contract). Sampling inline HTML refuses

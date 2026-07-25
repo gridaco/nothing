@@ -23,6 +23,7 @@ fn standalone_svg_stylesheet_color_feeds_current_color() {
     // `currentColor` fill.
     let frame = compile_standalone_svg(
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="8" height="8" fill="currentColor"><style>svg { color: #ef4444 }</style></rect></svg>"##,
+        websem::InitialViewport::new(64.0, 64.0),
     )
     .expect("style-bearing subtree compiles for Base");
     assert_eq!(
@@ -57,6 +58,7 @@ fn sampling_still_refuses_style_bearing_subtrees() {
     // subtree still refuses Sample explicitly, whatever Base resolves.
     let source = websem::SvgFrameSource::from_standalone_svg(
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="8" height="8" fill="currentColor"><style>svg { color: #ef4444 }</style></rect></svg>"##,
+        websem::InitialViewport::new(64.0, 64.0),
     )
     .expect("Base materializes");
     let error = source

@@ -13,7 +13,7 @@ use std::path::PathBuf;
 
 use animation_sampling::SampleTime;
 use serde::Deserialize;
-use websem::{DegradationAction, SvgFrameSource};
+use websem::{DegradationAction, InitialViewport, SvgFrameSource};
 
 const ADMITTED_STATIC: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32" viewBox="0 0 64 32">
   <rect width="64" height="32" fill="#ffffff"/>
@@ -51,6 +51,16 @@ struct Primitive {
     id: String,
     source: String,
     entry: String,
+    width: i32,
+    height: i32,
+}
+
+/// The host-established initial viewport for this file's inline sources —
+/// inert: every inline source here authors explicit root dimensions or
+/// refuses before sizing resolves. The oracle-corpus law builds per-fixture
+/// viewports from the declared dimensions instead.
+fn host_viewport() -> InitialViewport {
+    InitialViewport::new(64.0, 64.0)
 }
 
 /// The FULL oracle corpus is admission-invariant: every enumerated
@@ -68,10 +78,11 @@ fn the_full_oracle_corpus_is_admission_invariant() {
     for primitive in &suite.fixtures {
         let source =
             std::fs::read_to_string(root.join(&primitive.source)).expect("read primitive source");
+        let viewport = InitialViewport::new(primitive.width as f32, primitive.height as f32);
         let (strict, best) = match primitive.entry.as_str() {
             "standalone-svg" => (
-                SvgFrameSource::from_standalone_svg(source.as_str()),
-                SvgFrameSource::from_standalone_svg_best_effort(source.as_str()),
+                SvgFrameSource::from_standalone_svg(source.as_str(), viewport),
+                SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport),
             ),
             "html-inline-svg" => (
                 SvgFrameSource::from_html_inline_svg(source.as_str()),
@@ -105,9 +116,10 @@ fn the_full_oracle_corpus_is_admission_invariant() {
 #[test]
 fn zero_degradation_best_effort_is_frame_identical_to_strict() {
     for source in [ADMITTED_STATIC, ADMITTED_ANIMATION] {
-        let strict = SvgFrameSource::from_standalone_svg(source).expect("strict compile");
-        let best =
-            SvgFrameSource::from_standalone_svg_best_effort(source).expect("best-effort compile");
+        let strict =
+            SvgFrameSource::from_standalone_svg(source, host_viewport()).expect("strict compile");
+        let best = SvgFrameSource::from_standalone_svg_best_effort(source, host_viewport())
+            .expect("best-effort compile");
         assert!(best.degradations().is_empty(), "nothing to degrade");
         assert_eq!(strict.base_frame(), best.base_frame(), "Base frames equal");
         for nanoseconds in [0, 1_000_000_000, 3_000_000_000] {
@@ -125,9 +137,11 @@ fn zero_degradation_best_effort_is_frame_identical_to_strict() {
 /// the admitted children still compile. Strict refuses the same source.
 #[test]
 fn beyond_slice_children_skip_by_name_and_admitted_children_render() {
-    SvgFrameSource::from_standalone_svg(MIXED).expect_err("strict refuses the circle");
+    SvgFrameSource::from_standalone_svg(MIXED, host_viewport())
+        .expect_err("strict refuses the circle");
 
-    let best = SvgFrameSource::from_standalone_svg_best_effort(MIXED).expect("best-effort");
+    let best = SvgFrameSource::from_standalone_svg_best_effort(MIXED, host_viewport())
+        .expect("best-effort");
     let skipped: Vec<(&str, &str)> = best
         .degradations()
         .iter()
@@ -155,7 +169,8 @@ fn beyond_slice_children_skip_by_name_and_admitted_children_render() {
 /// requests: the skips are a property of the retained source.
 #[test]
 fn degradations_and_frames_are_deterministic() {
-    let best = SvgFrameSource::from_standalone_svg_best_effort(MIXED).expect("best-effort");
+    let best = SvgFrameSource::from_standalone_svg_best_effort(MIXED, host_viewport())
+        .expect("best-effort");
     let first = best.base_frame();
     assert_eq!(first, best.base_frame(), "repeat Base compile");
     let time = SampleTime::from_nanoseconds(500_000_000);
@@ -172,13 +187,15 @@ fn degradations_and_frames_are_deterministic() {
 /// Strict refuses the same sample request.
 #[test]
 fn blocked_dynamic_surface_samples_as_base_and_declares_it() {
-    let strict = SvgFrameSource::from_standalone_svg(UNSUPPORTED_ANIMATION).expect("strict Base");
+    let strict = SvgFrameSource::from_standalone_svg(UNSUPPORTED_ANIMATION, host_viewport())
+        .expect("strict Base");
     strict
         .sample_frame(SampleTime::ZERO)
         .expect_err("strict sampling refuses the y animation");
 
-    let best = SvgFrameSource::from_standalone_svg_best_effort(UNSUPPORTED_ANIMATION)
-        .expect("best-effort");
+    let best =
+        SvgFrameSource::from_standalone_svg_best_effort(UNSUPPORTED_ANIMATION, host_viewport())
+            .expect("best-effort");
     let declared: Vec<_> = best
         .degradations()
         .iter()
@@ -255,14 +272,15 @@ fn unconsumed_rendering_attributes_never_paint_wrong_pixels() {
         let source = format!(
             r##"<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="16" height="16" fill="#ff0000" {rect_attrs}/></svg>"##
         );
-        let strict = SvgFrameSource::from_standalone_svg(source.as_str())
+        let strict = SvgFrameSource::from_standalone_svg(source.as_str(), host_viewport())
             .expect_err(&format!("{label}: strict refuses"));
         assert!(
             strict.to_string().contains(named),
             "{label}: strict names the attribute; got {strict}"
         );
-        let best = SvgFrameSource::from_standalone_svg_best_effort(source.as_str())
-            .unwrap_or_else(|error| panic!("{label}: best-effort compiles: {error}"));
+        let best =
+            SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), host_viewport())
+                .unwrap_or_else(|error| panic!("{label}: best-effort compiles: {error}"));
         assert_eq!(
             best.base_frame().nodes.len(),
             0,
@@ -281,9 +299,10 @@ fn unconsumed_rendering_attributes_never_paint_wrong_pixels() {
     // (the standalone entry law pins the case-folded `viewbox` form; this
     // pins the same shape for an arbitrary foreign name).
     let unknown = r##"<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="16" height="16" fill="#ff0000" data-name="hero"/></svg>"##;
-    let strict = SvgFrameSource::from_standalone_svg(unknown).expect("strict ignores unknown");
-    let best =
-        SvgFrameSource::from_standalone_svg_best_effort(unknown).expect("best-effort ignores");
+    let strict = SvgFrameSource::from_standalone_svg(unknown, host_viewport())
+        .expect("strict ignores unknown");
+    let best = SvgFrameSource::from_standalone_svg_best_effort(unknown, host_viewport())
+        .expect("best-effort ignores");
     assert!(best.degradations().is_empty());
     assert_eq!(strict.base_frame(), best.base_frame());
     assert_eq!(strict.base_frame().nodes.len(), 1, "the rect paints");
@@ -304,18 +323,23 @@ fn stylesheet_smuggled_values_are_patrolled_at_the_computed_level() {
             "rect { visibility: hidden }",
             "visibility",
         ),
+        // SVG2 geometry properties: a CSS width/height beats the authored
+        // attribute in Chromium, and the compiler reads attributes only.
+        ("stylesheet width", "rect { width: 10px }", "width"),
+        ("stylesheet height", "rect { height: 10px }", "height"),
     ] {
         let source = format!(
             r##"<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><style>{css}</style><rect width="16" height="16" fill="#ff0000"/></svg>"##
         );
-        let strict = SvgFrameSource::from_standalone_svg(source.as_str())
+        let strict = SvgFrameSource::from_standalone_svg(source.as_str(), host_viewport())
             .expect_err(&format!("{label}: strict refuses"));
         assert!(
             strict.to_string().contains(named),
             "{label}: strict names the property; got {strict}"
         );
-        let best = SvgFrameSource::from_standalone_svg_best_effort(source.as_str())
-            .unwrap_or_else(|error| panic!("{label}: best-effort compiles: {error}"));
+        let best =
+            SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), host_viewport())
+                .unwrap_or_else(|error| panic!("{label}: best-effort compiles: {error}"));
         assert_eq!(best.base_frame().nodes.len(), 0, "{label}: declared hole");
         assert!(
             best.degradations()[0].reason().contains(named),
@@ -326,8 +350,10 @@ fn stylesheet_smuggled_values_are_patrolled_at_the_computed_level() {
 
     // A style-attribute smuggle is the same surface.
     let styled = r##"<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="16" height="16" fill="#ff0000" style="opacity: 0.25"/></svg>"##;
-    SvgFrameSource::from_standalone_svg(styled).expect_err("strict refuses style opacity");
-    let best = SvgFrameSource::from_standalone_svg_best_effort(styled).expect("best-effort");
+    SvgFrameSource::from_standalone_svg(styled, host_viewport())
+        .expect_err("strict refuses style opacity");
+    let best = SvgFrameSource::from_standalone_svg_best_effort(styled, host_viewport())
+        .expect("best-effort");
     assert_eq!(best.base_frame().nodes.len(), 0);
     assert!(best.degradations()[0].reason().contains("opacity"));
 }
@@ -344,7 +370,8 @@ fn every_dynamic_blocker_is_declared_and_ordering_holds() {
     <animate attributeName="y" from="8" to="16" dur="2s" fill="freeze"/>
   </rect>
 </svg>"##;
-    let best = SvgFrameSource::from_standalone_svg_best_effort(source).expect("best-effort");
+    let best = SvgFrameSource::from_standalone_svg_best_effort(source, host_viewport())
+        .expect("best-effort");
     let entries: Vec<(DegradationAction, &str)> = best
         .degradations()
         .iter()
@@ -376,7 +403,8 @@ fn admitted_animation_samples_through_declared_skips() {
     <animate attributeName="x" from="20" to="44" dur="2s" fill="freeze"/>
   </rect>
 </svg>"##;
-    let best = SvgFrameSource::from_standalone_svg_best_effort(source).expect("best-effort");
+    let best = SvgFrameSource::from_standalone_svg_best_effort(source, host_viewport())
+        .expect("best-effort");
     assert_eq!(best.degradations().len(), 1, "only the circle degrades");
     assert_eq!(best.degradations()[0].action(), DegradationAction::Skipped);
     let base = best.base_frame();
@@ -431,13 +459,20 @@ outside the compiled subtree",
 }
 
 /// Document-level contracts refuse identically in both modes: best-effort
-/// degrades subtree content, it never invents the canvas.
+/// degrades subtree content, it never invents the canvas. (A missing
+/// standalone root width/height is no longer on this list — it is `auto`
+/// and resolves against the host's initial viewport; the viewport laws pin
+/// that admission.)
 #[test]
 fn document_level_contracts_refuse_in_both_modes() {
     for (label, source) in [
         (
-            "missing width (viewBox-only sizing)",
-            r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 32"><rect width="64" height="32" fill="#ffffff"/></svg>"##,
+            "percentage root sizing",
+            r##"<svg xmlns="http://www.w3.org/2000/svg" width="50%" height="32" viewBox="0 0 64 32"><rect width="64" height="32" fill="#ffffff"/></svg>"##,
+        ),
+        (
+            "malformed preserveAspectRatio",
+            r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32" viewBox="0 0 64 32" preserveAspectRatio="xMidYMiddle meet"><rect width="64" height="32" fill="#ffffff"/></svg>"##,
         ),
         ("no svg root", r##"<x xmlns="urn:none"/>"##),
         (
@@ -445,13 +480,27 @@ fn document_level_contracts_refuse_in_both_modes() {
             r##"<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="4" height="4"></svg>"##,
         ),
     ] {
-        let strict = SvgFrameSource::from_standalone_svg(source)
+        let strict = SvgFrameSource::from_standalone_svg(source, host_viewport())
             .expect_err(&format!("strict refuses: {label}"));
-        let best = SvgFrameSource::from_standalone_svg_best_effort(source)
+        let best = SvgFrameSource::from_standalone_svg_best_effort(source, host_viewport())
             .expect_err(&format!("best-effort refuses: {label}"));
         assert_eq!(
             strict, best,
             "{label}: one identical document-level refusal"
         );
     }
+
+    // The inline HTML entry has no initial-viewport semantics until CSS
+    // replaced-element sizing lands, so a missing dimension there stays a
+    // named document-level refusal in both modes.
+    let html = r##"<html><body><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 32"><rect width="64" height="32" fill="#ffffff"/></svg></body></html>"##;
+    let strict = SvgFrameSource::from_html_inline_svg(html)
+        .expect_err("strict refuses inline-HTML auto sizing");
+    let best = SvgFrameSource::from_html_inline_svg_best_effort(html)
+        .expect_err("best-effort refuses inline-HTML auto sizing");
+    assert_eq!(strict, best, "one identical inline-HTML sizing refusal");
+    assert!(
+        strict.to_string().contains("missing width"),
+        "the refusal names the missing dimension; got {strict}"
+    );
 }

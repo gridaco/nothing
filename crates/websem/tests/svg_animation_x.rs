@@ -16,7 +16,18 @@ use rframe::{Frame, Geometry};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use support::{decode_png, render_through_n0};
-use websem::SvgFrameSource;
+use websem::{InitialViewport, SvgFrameSource};
+
+/// The host-established initial viewport for this file's laws. Every law
+/// but `sampled_overrides_stay_local_under_a_scaling_viewport` authors
+/// explicit root dimensions, making this value inert; that one law
+/// deliberately leaves its height unauthored and takes 32 from here
+/// (auto -> 100% of the initial viewport), so its expected transform
+/// depends on these values. The viewport laws proper live in
+/// `viewport_contract.rs`.
+fn host_viewport() -> InitialViewport {
+    InitialViewport::new(64.0, 32.0)
+}
 
 #[derive(Debug, Deserialize)]
 struct Suite {
@@ -277,10 +288,10 @@ fn retained_rect_x_samples_are_exact_to_chromium_and_seek_order_independent() {
         fs::read_to_string(root.join(&suite.animation.source)).expect("read animated SVG source");
     let static_text =
         fs::read_to_string(root.join(&suite.base.source)).expect("read Base SVG source");
-    let source =
-        SvgFrameSource::from_standalone_svg(animated_text.clone()).expect("retain animated SVG");
-    let static_source =
-        SvgFrameSource::from_standalone_svg(static_text).expect("retain static Base SVG");
+    let source = SvgFrameSource::from_standalone_svg(animated_text.clone(), host_viewport())
+        .expect("retain animated SVG");
+    let static_source = SvgFrameSource::from_standalone_svg(static_text, host_viewport())
+        .expect("retain static Base SVG");
 
     assert_eq!(source.source(), animated_text);
     assert!(source.has_animation_elements());
@@ -356,6 +367,7 @@ fn chassis_damage_observes_the_same_stable_animated_visual() {
     let suite = suite();
     let source = SvgFrameSource::from_standalone_svg(
         fs::read_to_string(root.join(&suite.animation.source)).expect("read animated SVG"),
+        host_viewport(),
     )
     .expect("retain animated SVG");
     let base = source.base_frame();
@@ -409,7 +421,8 @@ fn unsupported_animation_is_retained_for_base_and_refused_for_sample() {
                  <rect x="4" y="4" width="4" height="4">{markup}</rect>
                </svg>"#
         );
-        let source = SvgFrameSource::from_standalone_svg(svg).expect("Base materializes");
+        let source =
+            SvgFrameSource::from_standalone_svg(svg, host_viewport()).expect("Base materializes");
         assert!(source.has_animation_elements());
         assert_eq!(probe_single_x(&source.base_frame()), 4.0);
         let error = source
@@ -452,7 +465,8 @@ fn sampling_refuses_dynamic_side_channels_and_unclosed_inline_html() {
                  <rect x="4" y="4" width="4" height="4" {rect_attributes}>{child}</rect>
                </svg>"#
         );
-        let source = SvgFrameSource::from_standalone_svg(svg).expect("Base materializes");
+        let source =
+            SvgFrameSource::from_standalone_svg(svg, host_viewport()).expect("Base materializes");
         let error = source
             .sample_frame(SampleTime::ZERO)
             .expect_err("dynamic side channel must refuse Sample");
@@ -469,10 +483,13 @@ fn sampling_refuses_dynamic_side_channels_and_unclosed_inline_html() {
          <rect x="4" y="4" width="4" height="4"><script>window.changed = true</script></rect>
        </svg>"#;
     for (label, result) in [
-        ("strict", SvgFrameSource::from_standalone_svg(script_svg)),
+        (
+            "strict",
+            SvgFrameSource::from_standalone_svg(script_svg, host_viewport()),
+        ),
         (
             "best-effort",
-            SvgFrameSource::from_standalone_svg_best_effort(script_svg),
+            SvgFrameSource::from_standalone_svg_best_effort(script_svg, host_viewport()),
         ),
     ] {
         let error = result.expect_err("script-bearing standalone document must refuse");
@@ -504,6 +521,7 @@ fn static_sample_equals_base_and_web_timing_observes_final_boundary() {
         r#"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">
              <rect x="4" y="4" width="4" height="4"/>
            </svg>"#,
+        host_viewport(),
     )
     .expect("retain static SVG");
     assert_eq!(
@@ -525,6 +543,7 @@ fn static_sample_equals_base_and_web_timing_observes_final_boundary() {
                <animate attributeName="x" from="0" to="1" dur="1ms" fill="freeze"/>
              </rect>
            </svg>"#,
+        host_viewport(),
     )
     .expect("retain boundary SVG");
     let before = probe_single_x(
@@ -545,6 +564,45 @@ fn static_sample_equals_base_and_web_timing_observes_final_boundary() {
     assert!(before < 1.0, "active sample immediately before final end");
     assert_eq!(at, 1.0, "freeze observes exact terminal endpoint");
     assert_eq!(after, 1.0, "freeze remains terminal after active end");
+}
+
+/// An admitted `x` animation composes with a non-identity root viewport:
+/// the sampled override lands in local (viewBox user-unit) space before
+/// the viewport transform, so a sampled node keeps Base's transform and
+/// its geometry carries the sampled local value. No Chromium bake — this
+/// pins the composition order, not pixels. (The source also exercises
+/// mixed sizing: authored width, auto height from the initial viewport.)
+#[test]
+fn sampled_overrides_stay_local_under_a_scaling_viewport() {
+    let animated = SvgFrameSource::from_standalone_svg(
+        r#"<svg xmlns="http://www.w3.org/2000/svg" width="64" viewBox="0 0 32 16">
+             <rect x="4" y="4" width="4" height="4">
+               <animate attributeName="x" from="4" to="12" dur="2s" fill="freeze"/>
+             </rect>
+           </svg>"#,
+        // 64x32: width authored, height auto -> 32, so sx = sy = 2.
+        host_viewport(),
+    )
+    .expect("retain scaled animated SVG");
+    let viewport = math2::transform::AffineTransform::from_acebdf(2.0, 0.0, 0.0, 0.0, 2.0, 0.0);
+    let base = animated.base_frame();
+    assert_eq!(base.bounds, Rectangle::from_xywh(0.0, 0.0, 64.0, 32.0));
+    assert_eq!(base.nodes[0].transform, viewport);
+
+    let sampled = animated
+        .sample_frame(SampleTime::from_nanoseconds(1_000_000_000))
+        .expect("midpoint sample");
+    assert_eq!(
+        sampled.nodes[0].transform, viewport,
+        "time never touches the viewport mapping"
+    );
+    let Geometry::Rect(rect) = &sampled.nodes[0].geometry;
+    assert_eq!(rect.x, 8.0, "the sampled override is local, pre-transform");
+    assert_eq!(
+        sampled.nodes[0].bounds,
+        math2::rect_transform(*rect, &viewport),
+        "bounds follow the one transform"
+    );
 }
 
 fn probe_single_x(frame: &Frame) -> f32 {

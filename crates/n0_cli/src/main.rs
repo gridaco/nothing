@@ -18,8 +18,14 @@
 //! across the full oracle corpus and byte-identical at the host's spot
 //! checks; the Chromium bakes drive the browser only). Document-level
 //! contracts — no `<svg>` root, malformed standalone XML, the script-free
-//! parses, the outer viewport sizing and root patrols — refuse identically
+//! parses, the outer viewport grammar and root patrols — refuse identically
 //! in both admissions.
+//!
+//! The requested `WxH` is the initial viewport (SVG2 §8.2) of a standalone
+//! document — the window it is loaded into. Explicit root `width`/`height`
+//! win; a missing dimension is `auto` and resolves to 100% of `WxH`, so
+//! viewBox-only documents render at the requested raster, mapped under the
+//! full `preserveAspectRatio` grammar.
 //!
 //! The HTML entry compiles exactly the document's first inline SVG: the
 //! surrounding page contributes nothing (a pinned contract, not a silent
@@ -238,10 +244,15 @@ fn render_source_to_png(
     policy: FramePolicy,
     admission: Admission,
 ) -> Result<(Vec<u8>, Vec<websem::Degradation>), String> {
+    // The requested raster is the initial viewport (SVG2 §8.2) a standalone
+    // document resolves auto sizing against — the CLI's WxH is the window.
+    let initial_viewport = websem::InitialViewport::new(width as f32, height as f32);
     let retained = match (kind, admission) {
-        (SourceKind::Svg, Admission::Strict) => websem::SvgFrameSource::from_standalone_svg(source),
+        (SourceKind::Svg, Admission::Strict) => {
+            websem::SvgFrameSource::from_standalone_svg(source, initial_viewport)
+        }
         (SourceKind::Svg, Admission::BestEffort) => {
-            websem::SvgFrameSource::from_standalone_svg_best_effort(source)
+            websem::SvgFrameSource::from_standalone_svg_best_effort(source, initial_viewport)
         }
         (SourceKind::Html, Admission::Strict) => {
             websem::SvgFrameSource::from_html_inline_svg(source)
@@ -428,10 +439,13 @@ mod tests {
                 "unsupported element <circle>",
             ),
             (
+                // The probe's `.mark` class CSS-sizes the inline <svg>:
+                // the root patrol names the cascaded width instead of
+                // painting at a size Chromium would not use.
                 "fixtures/test-html/probe/inline-svg-flex-probe.html",
                 SourceKind::Html,
                 (96, 48),
-                "unsupported SVG viewport sizing: missing width",
+                "unsupported computed style: CSS width",
             ),
         ] {
             let input = root.join(relative);
@@ -528,9 +542,12 @@ mod tests {
         assert_eq!(degradations[0].path(), "svg/circle[1]");
         assert_eq!(degradations[0].reason(), "unsupported element <circle>");
 
-        // Document-level contracts hold in both admissions: the flex probe's
-        // CSS-sized viewport still refuses; best-effort never invents the
-        // canvas.
+        // Document-level contracts hold in both admissions: the flex
+        // probe's <svg> is CSS-sized (`.mark { width: 32px }`), and the
+        // root patrol refuses the cascaded width by name rather than paint
+        // at a size Chromium would not use; best-effort never invents the
+        // canvas. (A standalone viewBox-only document sizes to WxH instead
+        // — pinned below.)
         let source = std::fs::read_to_string(
             root.join("fixtures/test-html/probe/inline-svg-flex-probe.html"),
         )
@@ -544,12 +561,82 @@ mod tests {
                 FramePolicy::Base,
                 admission,
             )
-            .expect_err("viewport sizing is document-level in both admissions");
+            .expect_err("root sizing is document-level in both admissions");
             assert!(
-                error.contains("unsupported SVG viewport sizing: missing width"),
+                error.contains("unsupported computed style: CSS width"),
                 "{admission:?}: {error}"
             );
         }
+    }
+
+    /// The viewport rung at the host: a viewBox-only standalone document
+    /// sizes to the requested `WxH` — the CLI's raster IS the initial
+    /// viewport (SVG2 §8.2) — and both admissions produce byte-identical
+    /// output with nothing degraded.
+    #[test]
+    fn viewbox_only_svg_sizes_to_the_requested_raster() {
+        let source = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 16">
+  <rect width="32" height="16" fill="#ffffff"/>
+  <rect x="2" y="2" width="4" height="4" fill="#16a34a"/>
+</svg>"##;
+        let (png, degradations) = render_source_to_png(
+            source,
+            SourceKind::Svg,
+            64,
+            32,
+            FramePolicy::Base,
+            Admission::BestEffort,
+        )
+        .expect("viewBox-only renders by default");
+        assert!(
+            degradations.is_empty(),
+            "sizing is the document contract, not a degradation"
+        );
+        let raster = decode_png(&png).expect("decode PNG");
+        // 2x mapping: the green rect (2,2,4,4) covers (4,4)..(12,12).
+        assert_eq!(
+            raster.at(8, 8),
+            [22, 163, 74, 255],
+            "user units scale to the raster"
+        );
+        assert_eq!(
+            raster.at(20, 8),
+            [255, 255, 255, 255],
+            "the background paints beyond the green rect"
+        );
+
+        let (strict_png, _) = render_source_to_png(
+            source,
+            SourceKind::Svg,
+            64,
+            32,
+            FramePolicy::Base,
+            Admission::Strict,
+        )
+        .expect("strict admits the same document");
+        assert_eq!(png, strict_png, "admissions agree byte-for-byte");
+
+        // A larger raster is a larger window: the same document scales.
+        let (large, _) = render_source_to_png(
+            source,
+            SourceKind::Svg,
+            256,
+            128,
+            FramePolicy::Base,
+            Admission::BestEffort,
+        )
+        .expect("the raster is the initial viewport");
+        let raster = decode_png(&large).expect("decode PNG");
+        assert_eq!(
+            raster.at(32, 32),
+            [22, 163, 74, 255],
+            "an 8x window maps the same rect"
+        );
+        assert_eq!(
+            raster.at(250, 4),
+            [255, 255, 255, 255],
+            "the background fills the window"
+        );
     }
 
     /// The legacy multi-SVG page pins the other half of the capability

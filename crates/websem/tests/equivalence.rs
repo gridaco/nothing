@@ -25,7 +25,8 @@ const SVG: &str = include_str!(concat!(
 #[test]
 fn inline_and_standalone_resolve_to_the_same_frame() {
     let inline = compile_html_inline_svg(HTML).expect("compile inline-SVG-in-HTML");
-    let standalone = compile_standalone_svg(SVG).expect("compile standalone SVG");
+    let standalone = compile_standalone_svg(SVG, websem::InitialViewport::new(64.0, 64.0))
+        .expect("compile standalone SVG");
     assert_eq!(
         inline, standalone,
         "inline and standalone SVG must reach the same SVG-local resolved frame"

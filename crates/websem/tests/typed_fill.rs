@@ -6,6 +6,13 @@
 
 use websem::{CompileError, compile_standalone_svg};
 
+/// The host-established initial viewport for this file's laws — inert:
+/// every source here authors explicit root dimensions or refuses before
+/// sizing resolves.
+fn host_viewport() -> websem::InitialViewport {
+    websem::InitialViewport::new(64.0, 64.0)
+}
+
 /// Chromium's paint-fallback semantics, recorded for the future step: an
 /// unresolvable paint server WITH a declared fallback renders the fallback
 /// color (`fill="url(#missing) red"` paints red). The slice models no paint
@@ -17,8 +24,8 @@ fn paint_server_fill_refuses_with_and_without_fallback() {
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="8" height="8" fill="url(#missing)"/></svg>"##,
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="8" height="8" fill="url(#missing) red"/></svg>"##,
     ] {
-        let error =
-            compile_standalone_svg(source).expect_err("paint servers are outside the slice");
+        let error = compile_standalone_svg(source, host_viewport())
+            .expect_err("paint servers are outside the slice");
         let CompileError::UnsupportedFill(value) = error else {
             panic!("expected an explicit fill refusal, got {error:?}");
         };
@@ -44,7 +51,7 @@ fn wide_gamut_fill_refuses_until_baked() {
         let source = format!(
             r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="8" height="8" fill="{value}"/></svg>"##
         );
-        let error = compile_standalone_svg(&source)
+        let error = compile_standalone_svg(&source, host_viewport())
             .expect_err("non-sRGB color spaces are outside the gated surface");
         let CompileError::UnsupportedFill(reason) = error else {
             panic!("expected an explicit fill refusal for {value}");
@@ -63,6 +70,7 @@ fn wide_gamut_fill_refuses_until_baked() {
 fn translucent_fill_refuses_until_baked() {
     let error = compile_standalone_svg(
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="8" height="8" fill="rgb(239 68 68 / 0.5)"/></svg>"##,
+        host_viewport(),
     )
     .expect_err("translucent fills are outside the gated surface");
     let CompileError::UnsupportedFill(reason) = error else {
@@ -81,6 +89,7 @@ fn translucent_fill_refuses_until_baked() {
 fn css_fill_opacity_refuses_until_admitted() {
     let error = compile_standalone_svg(
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="8" height="8" style="fill: #ef4444; fill-opacity: 0.5"/></svg>"##,
+        host_viewport(),
     )
     .expect_err("non-initial fill-opacity must refuse, not render opaque");
     let CompileError::UnsupportedFill(value) = error else {
