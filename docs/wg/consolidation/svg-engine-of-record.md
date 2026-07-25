@@ -257,3 +257,73 @@ refused outright in both admissions. What landed:
 Remaining static rungs are unchanged in content: basic shapes
 (circle/ellipse/line), paths + groups/transforms, strokes — the tiger
 milestone — then the rest of the written order.
+
+## Subsequent status (2026-07-26): the basic-shapes rung lands
+
+The second evolution rung, and the first to add geometry rather than
+mapping: `<circle>` and `<ellipse>` are admitted. `<line>` is deliberately
+left out of it — fill never paints on a line (SVG2 §10.5: line elements
+have no interior), so before the strokes rung it cannot produce a pixel;
+admitting it would grow the vocabulary without moving one.
+
+- **The kernel again needed nothing.** `rframe::Geometry` grows
+  `Ellipse(Rectangle)` — the axis-aligned ellipse inscribed in a
+  local-space box — and n0's glyphless compiler lowers it to
+  `ItemKind::OvalFill`, which the drawlist and painter already carried for
+  the n0-XML path. The exact-bounds law and the per-node affine were
+  unchanged: a scaling `viewBox` carries an ellipse exactly as it carries
+  a rect.
+- **Degenerate radii are admitted nothings, not refusals.** SVG2 says an
+  invalid radius must be ignored and a zero radius disables rendering, and
+  Chromium implements it as a used-value clamp (`LayoutSVGEllipse`), so a
+  missing, zero, or negative `r` resolves to zero extent and paints
+  nothing. The `rx`/`ry` `auto` matrix follows: absent adopts the other
+  axis, a *negative* radius is that same `auto` (the frozen donor's
+  Chrome-confirmed reading, re-proved against the pinned bake version),
+  both-auto and either-zero disable rendering.
+- **The `auto` keyword is a CSS value, not an attribute value.** The
+  adversarial round refuted the first implementation here: Blink parses
+  geometry presentation attributes with the SVGLength grammar, where
+  `auto` is invalid and maps an explicit `0px` — Chromium renders
+  *nothing*, the opposite of the absent attribute's adopting `auto`.
+  Reading the keyword would have painted an ellipse the browser does not,
+  so it refuses as a bad number instead. The root `width`/`height` keyword
+  read is not the analogous case: there the CSS sizing properties
+  genuinely take `auto`.
+- **Three silent-divergence classes closed with the rung**, each live-
+  probed rather than reasoned: attribute lookup ignored namespaces, so a
+  prefixed `foo:r` was consumed as geometry (it now requires the
+  no-namespace attribute every SVG rendering attribute lives in); numeric
+  attributes were trimmed with Rust's Unicode `str::trim`, admitting
+  NBSP-padded numbers Chromium rejects (now exactly the five ASCII
+  characters the SVG grammar calls whitespace); and CSS
+  `transform`/`clip-path`/`filter`/`mix-blend-mode` — all `engine =
+  "gecko"`-gated in the pinned servo-mode Stylo, so the cascade drops the
+  declaration and no computed value survives to patrol — rendered as if
+  absent. The authored text is now patrolled at both ingresses: the
+  `style` attribute per element, a `<style>` sheet at the document level,
+  since a stylesheet is not attributable to one element without selector
+  matching.
+- **The pixel gate learned a declared tolerance, and only for curves.**
+  Chromium reaches a filled ellipse through the same `SkCanvas::drawOval`
+  this engine calls, but through its own build of Skia; the two
+  analytic-AA scan-converters disagree on fractional coverage along the
+  curve, identically across every available construction (`draw_oval`,
+  `draw_circle`, `PathBuilder::add_oval`/`add_circle`, an oval `RRect`).
+  Byte exactness is therefore not reachable for a curved edge by any
+  choice of call. The gate drops that one property and keeps the rest: a
+  differing pixel must lie within a pixel of the fixture's declared ideal
+  boundary, within a declared per-channel delta, and under a declared
+  count — all three pinned at the *measured* values (worst cell: 6 pixels
+  at delta 3; farthest differing pixel: 0.51px from its boundary). A
+  misplaced, mis-sized, or miscolored shape still fails loudly, and
+  `svg-circle-defaults-clip` bakes byte-exact with no tolerance at all.
+  `primitives.json` goes to schema_version 1 because a passing gate now
+  means something an old reader would misread.
+- **The oracle corpus grew 17 → 24.** Sampling stays the rect-x proving
+  slice: an `<animate>` under a materialized circle is a declared blocker,
+  not a silent admission.
+
+Remaining static rungs: paths + groups/transforms, then strokes — the
+tiger milestone, at which `<line>` joins — then the rest of the written
+order.

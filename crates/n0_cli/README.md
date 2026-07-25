@@ -23,7 +23,7 @@ cargo run -p n0_cli --bin n0 -- \
 # dev harness: refuse on the first beyond-slice construct instead of
 # rendering best-effort with declared degradations (the default)
 cargo run -p n0_cli --bin n0 -- \
-  fixtures/test-svg/probe/circle-fill-probe.svg /tmp/probe.png 64x64 --strict
+  fixtures/test-svg/probe/path-fill-probe.svg /tmp/probe.png 64x64 --strict
 ```
 
 - Input: one UTF-8 `.html`, `.htm`, or `.svg` file.
@@ -35,10 +35,11 @@ cargo run -p n0_cli --bin n0 -- \
   grammar. A viewBox-only SVG therefore renders at the requested raster.
 - Resources: self-contained input only; external images and stylesheets are
   not resolved.
-- Capability: the admitted slice is deliberately narrow, and the default
-  admission is **best-effort**: the admitted subset renders and every
-  beyond-slice construct is declared on stderr with its node path and
-  reason (`degraded: skipped svg/circle[1]: unsupported element <circle>`);
+- Capability: the admitted slice is deliberately narrow — solid-filled
+  `<rect>`, `<circle>`, and `<ellipse>` under the outer `<svg>` — and the
+  default admission is **best-effort**: the admitted subset renders and
+  every beyond-slice construct is declared on stderr with its node path and
+  reason (`degraded: skipped svg/path[1]: unsupported element <path>`);
   a beyond-inventory dynamic surface samples as the Base view. Declared
   holes, never guessed pixels — the patrol is per attribute and per
   cascaded property, so an admitted element carrying a rendering attribute
@@ -50,8 +51,9 @@ cargo run -p n0_cli --bin n0 -- \
   Document-level contracts (no `<svg>` root, malformed standalone XML, a
   script-suspended standalone parse, the outer viewport grammar —
   percentage root dimensions, malformed `preserveAspectRatio`,
-  CSS-cascaded root sizing, missing dimensions on the HTML entry — and
-  root patrols) refuse in both admissions.
+  CSS-cascaded root sizing, missing dimensions on the HTML entry — a
+  stylesheet declaring a property the cascade cannot represent, and root
+  patrols) refuse in both admissions.
 - The HTML entry compiles exactly the document's first inline SVG; when that
   subtree is admitted the render succeeds and the surrounding page
   contributes nothing (a pinned contract). Sampling inline HTML refuses
