@@ -442,13 +442,13 @@ mod tests {
                 "stroke paint is not yet consumed",
             ),
             (
-                // The basic-shapes rung admitted <circle>/<ellipse>; the
-                // sibling path probe pins the next capability edge the
-                // paths rung must flip.
-                "fixtures/test-svg/probe/path-fill-probe.svg",
+                // The paths rung admitted <path>; the sibling polygon probe
+                // pins the next capability edge — the `points` grammar the
+                // polyline/polygon rung must flip.
+                "fixtures/test-svg/probe/polygon-fill-probe.svg",
                 SourceKind::Svg,
                 (64, 64),
-                "unsupported element <path>",
+                "unsupported element <polygon>",
             ),
             (
                 // The probe's `.mark` class CSS-sizes the inline <svg>:
@@ -579,12 +579,49 @@ mod tests {
         .expect("strict admits the circle too");
         assert_eq!(png, strict_png, "admissions are byte-identical");
 
-        // path-fill-probe.svg: the path stays a declared hole — the probe
-        // pixel Chromium paints green stays background white until the
-        // paths rung.
+        // path-fill-probe.svg: the paths rung admitted <path> — the probe
+        // pixel paints Chromium's green in both admissions, byte-identically,
+        // with nothing degraded.
         let source =
             std::fs::read_to_string(root.join("fixtures/test-svg/probe/path-fill-probe.svg"))
                 .expect("read path probe");
+        let (png, degradations) = render_source_to_png(
+            &source,
+            SourceKind::Svg,
+            64,
+            64,
+            FramePolicy::Base,
+            Admission::BestEffort,
+        )
+        .expect("best-effort renders the admitted path");
+        let raster = decode_png(&png).expect("decode PNG");
+        assert_eq!(raster.at(4, 4), [255, 255, 255, 255], "background paints");
+        assert_eq!(
+            raster.at(32, 40),
+            [22, 163, 74, 255],
+            "the admitted path paints its fill"
+        );
+        assert!(
+            degradations.is_empty(),
+            "nothing degrades: {degradations:?}"
+        );
+        let (strict_png, _) = render_source_to_png(
+            &source,
+            SourceKind::Svg,
+            64,
+            64,
+            FramePolicy::Base,
+            Admission::Strict,
+        )
+        .expect("strict admits the path too");
+        assert_eq!(png, strict_png, "admissions are byte-identical");
+
+        // polygon-fill-probe.svg: the same shape as points instead of path
+        // data stays a declared hole — the probe pixel Chromium paints green
+        // stays background white until the polyline/polygon rung.
+        let source =
+            std::fs::read_to_string(root.join("fixtures/test-svg/probe/polygon-fill-probe.svg"))
+                .expect("read polygon probe");
         let (png, degradations) = render_source_to_png(
             &source,
             SourceKind::Svg,
@@ -599,11 +636,11 @@ mod tests {
         assert_eq!(
             raster.at(32, 40),
             [255, 255, 255, 255],
-            "the skipped path is a declared hole, not a guessed paint"
+            "the skipped polygon is a declared hole, not a guessed paint"
         );
         assert_eq!(degradations.len(), 1);
-        assert_eq!(degradations[0].path(), "svg/path[1]");
-        assert_eq!(degradations[0].reason(), "unsupported element <path>");
+        assert_eq!(degradations[0].path(), "svg/polygon[1]");
+        assert_eq!(degradations[0].reason(), "unsupported element <polygon>");
 
         // Document-level contracts hold in both admissions: the flex
         // probe's <svg> is CSS-sized (`.mark { width: 32px }`), and the

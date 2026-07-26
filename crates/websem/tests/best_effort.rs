@@ -24,7 +24,7 @@ const MIXED: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" heigh
   <rect width="64" height="64" fill="#ffffff"/>
   <circle cx="32" cy="32" r="16" fill="#16a34a"/>
   <rect x="4" y="4" width="8" height="8" fill="#000000"/>
-  <path d="M0 0 h8 v8 z" fill="#000000"/>
+  <polygon points="0,0 8,0 8,8" fill="#000000"/>
 </svg>"##;
 
 const ADMITTED_ANIMATION: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32" viewBox="0 0 64 32">
@@ -138,7 +138,7 @@ fn zero_degradation_best_effort_is_frame_identical_to_strict() {
 #[test]
 fn beyond_slice_children_skip_by_name_and_admitted_children_render() {
     SvgFrameSource::from_standalone_svg(MIXED, host_viewport())
-        .expect_err("strict refuses the path");
+        .expect_err("strict refuses the polygon");
 
     let best = SvgFrameSource::from_standalone_svg_best_effort(MIXED, host_viewport())
         .expect("best-effort");
@@ -152,7 +152,7 @@ fn beyond_slice_children_skip_by_name_and_admitted_children_render() {
         .collect();
     assert_eq!(
         skipped,
-        vec![("svg/path[1]", "unsupported element <path>")],
+        vec![("svg/polygon[1]", "unsupported element <polygon>")],
         "each skip names its construct at its stable path"
     );
     assert_eq!(
@@ -365,7 +365,7 @@ fn stylesheet_smuggled_values_are_patrolled_at_the_computed_level() {
 #[test]
 fn every_dynamic_blocker_is_declared_and_ordering_holds() {
     let source = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32">
-  <path d="M0 0 h8 v8 z" fill="#16a34a"/>
+  <polygon points="0,0 8,0 8,8" fill="#16a34a"/>
   <rect x="4" y="8" width="8" height="16" fill="#000000" onclick="window.a = 1"/>
   <rect x="20" y="8" width="8" height="16" fill="#000000">
     <animate attributeName="y" from="8" to="16" dur="2s" fill="freeze"/>
@@ -381,7 +381,7 @@ fn every_dynamic_blocker_is_declared_and_ordering_holds() {
     assert_eq!(
         entries,
         vec![
-            (DegradationAction::Skipped, "svg/path[1]"),
+            (DegradationAction::Skipped, "svg/polygon[1]"),
             (DegradationAction::SamplesAsBase, "svg/rect[1]"),
             (DegradationAction::SamplesAsBase, "svg/rect[2]/animate[1]"),
         ],
@@ -399,14 +399,14 @@ fn every_dynamic_blocker_is_declared_and_ordering_holds() {
 #[test]
 fn admitted_animation_samples_through_declared_skips() {
     let source = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32">
-  <path d="M0 0 h8 v8 z" fill="#16a34a"/>
+  <polygon points="0,0 8,0 8,8" fill="#16a34a"/>
   <rect x="4" y="8" width="8" height="16" fill="#000000">
     <animate attributeName="x" from="20" to="44" dur="2s" fill="freeze"/>
   </rect>
 </svg>"##;
     let best = SvgFrameSource::from_standalone_svg_best_effort(source, host_viewport())
         .expect("best-effort");
-    assert_eq!(best.degradations().len(), 1, "only the path degrades");
+    assert_eq!(best.degradations().len(), 1, "only the polygon degrades");
     assert_eq!(best.degradations()[0].action(), DegradationAction::Skipped);
     let base = best.base_frame();
     let sampled = best

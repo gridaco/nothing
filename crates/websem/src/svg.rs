@@ -81,12 +81,14 @@ use style::dom::TElement;
 use style::properties::ComputedValues;
 use style::thread_state::{self, ThreadState};
 use style::values::computed::{SVGOpacity, Size};
+use style::values::generics::basic_shape::FillRule as StyloFillRule;
 use style::values::generics::svg::SVGPaintKind;
 
 use cg::CGColor;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::frame::{Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, VisualRef};
+use rframe::path::{FillRule, PathData};
 use std::sync::Arc;
 
 use crate::effective_values::EffectiveValues;
@@ -292,6 +294,25 @@ pub enum CompileError {
     /// Chromium silently falls back to the default `xMidYMid meet` for
     /// these; the slice refuses by name instead of silently defaulting.
     BadPreserveAspectRatio(String),
+    /// A `d` value outside the SVG2 §9.3 path-data grammar. Chromium renders
+    /// the value's valid prefix and drops the rest; this slice refuses the
+    /// whole path by name instead of shipping an unbaked partial geometry, so
+    /// the shape becomes one declared hole. Where the prefix is empty the two
+    /// agree exactly — both paint nothing.
+    BadPathData {
+        element: String,
+        /// Byte offset where the value stopped being valid path data.
+        offset: usize,
+        /// The authored text from that offset, clipped — a `d` value can be
+        /// kilobytes long and an error is not a place to reprint one.
+        excerpt: String,
+    },
+    /// A path command whose grammar is valid but whose geometry this slice
+    /// does not emit — the elliptical arc. Chromium rasterizes an arc through
+    /// the same rational conics as an `<ellipse>` (measured byte-identical),
+    /// and the contract carries no conic command yet, so the arc refuses by
+    /// name rather than paint a visibly different curve.
+    UnsupportedPathCommand { element: String, command: char },
     /// A `transform` list outside the SVG2 §8.3 grammar: an unknown
     /// function, a wrong argument count, or a number the SVG grammar does
     /// not accept. The frozen donor silently maps a subset of such a list;
@@ -645,6 +666,19 @@ impl std::fmt::Display for CompileError {
             CompileError::BadPreserveAspectRatio(v) => {
                 write!(f, "preserveAspectRatio {v:?} is invalid")
             }
+            CompileError::BadPathData {
+                element,
+                offset,
+                excerpt,
+            } => write!(
+                f,
+                "path data on <{element}> is invalid at byte {offset} (near {excerpt:?})"
+            ),
+            CompileError::UnsupportedPathCommand { element, command } => write!(
+                f,
+                "path command {command} on <{element}> is not yet consumed (an elliptical arc \
+                 reaches Chromium's rasterizer as conics, which this slice does not emit)"
+            ),
             CompileError::BadTransform { element, value } => {
                 write!(f, "transform {value:?} on <{element}> is invalid")
             }
@@ -734,7 +768,6 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "filter",
     "color",
     "fill-opacity",
-    "fill-rule",
     "stroke",
     "stroke-width",
     "stroke-opacity",
@@ -744,6 +777,14 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "stroke-linejoin",
     "stroke-miterlimit",
     "paint-order",
+    // Markers apply to `<path>`, `<line>`, `<polyline>` and `<polygon>`, and
+    // this slice admits the first of those. Nothing else "reads" a marker
+    // property — the property *is* the paint trigger — so unlike `pathLength`
+    // this patrol is load-bearing today: it is what keeps Chromium's arrowhead
+    // from becoming a silent hole.
+    "marker-start",
+    "marker-mid",
+    "marker-end",
     "shape-rendering",
     "image-rendering",
     "color-rendering",
@@ -758,6 +799,16 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
 /// are not painted by the slice.
 const RECT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["rx", "ry"];
 
+/// Rendering attributes additionally rejected on `<path>`.
+///
+/// `pathLength` scales the path's *user-space* length for everything that
+/// measures along it — `stroke-dasharray`, `stroke-dashoffset`, markers, and
+/// text on a path. Every one of those refuses today, so the attribute is
+/// provably inert and this refusal is pure over-refusal. It is here anyway:
+/// leaving it out would make the dasharray rung silently wrong unless someone
+/// remembered to add it back, and a declared hole is cheaper than that trap.
+const PATH_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["pathLength"];
+
 /// Rendering attributes additionally rejected on the root `<svg>`.
 ///
 /// `transform` is admitted on containers and shapes, where it maps user
@@ -768,20 +819,57 @@ const RECT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["rx", "ry"];
 /// silently dropped.
 const ROOT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["transform"];
 
-/// CSS properties that move, clip, or recolor Chromium's pixels and that
-/// the pinned servo-mode Stylo build cannot represent at all — every one is
-/// `engine = "gecko"`-gated in `longhands.toml`, so the cascade drops the
-/// declaration at parse and no computed value survives for
-/// [`patrol_computed_style`] to read.
+/// CSS property names that move, clip, or recolor Chromium's pixels and that no
+/// computed-value read here would catch. Three mechanisms put a name in this
+/// list, and the distinction is worth keeping straight because it decides
+/// whether a future rung could read the property instead:
 ///
-/// The attribute spellings of several of these are already refused by
-/// [`RENDERING_ATTRIBUTES_NOT_CONSUMED`]; this list closes the *CSS* leg,
-/// which would otherwise render silently as if the declaration were
-/// absent. It is a closed list of known-dangerous names, not a claim about
-/// every property: names outside it that Stylo does represent are reachable
-/// through the computed-level patrol, and the remainder stays the named
-/// open boundary the module doc declares.
+/// - **Not represented: engine-gated.** `d`, `vector-effect`,
+///   `shape-rendering`, `clip-rule`, `paint-order`, `transform-box`,
+///   `marker-start`/`-mid`/`-end` and `offset-distance`/`offset-rotate` are
+///   `engine = "gecko"` in the pinned Stylo `longhands.toml` (`marker` and
+///   `offset` likewise in `shorthands.toml`), so the cascade drops the
+///   declaration at parse and there is no computed value to read. (`d` is the
+///   sharpest of these: Chromium renders a stylesheet's `d: path(…)` in place
+///   of the attribute — measured — so a document could otherwise paint one
+///   geometry here and another in the browser.)
+/// - **Not represented: pref-gated.** `backdrop-filter`, `mask-image`,
+///   `mask` and `offset-path` carry `servo_pref = "layout.unimplemented"`,
+///   which this build pins off, so they are dropped exactly as the
+///   engine-gated names are.
+/// - **Represented but unconsumed.** `transform`, `translate`, `rotate`,
+///   `scale`, `transform-origin`, `clip-path`, `filter`, `mix-blend-mode` and
+///   `isolation` *do* compute in this build; this compiler simply does not read
+///   them, and reading them would mean implementing them.
+///
+/// Either way a cascaded declaration would paint in Chromium and not here, so
+/// the scan below reads the authored CSS text — the only ingresses this
+/// document model has are `<style>` elements and `style` attributes, and both
+/// are scanned.
+///
+/// Two kinds of entry are **not** longhands and must not be dropped as
+/// redundant. A **shorthand** changes the listed properties without naming any
+/// of them (`all` resets every one; `mask`, `marker` and `offset` expand into
+/// listed longhands), so it needs its own entry. And a **vendor alias** is the
+/// same property under another spelling — those are handled by prefix
+/// stripping in [`unrepresented_property`] rather than by listing each one.
+///
+/// The attribute spellings are refused separately by
+/// [`RENDERING_ATTRIBUTES_NOT_CONSUMED`]. This is a closed list of
+/// known-dangerous names, not a claim about every property: the remainder
+/// stays the named open boundary the module doc declares.
 const CASCADE_PROPERTIES_NOT_REPRESENTED: &[&str] = &[
+    // The shorthand that resets everything, including every name below it.
+    // Measured: `all: initial` and `all: unset` make Chromium paint nothing
+    // where this compiler would still paint attribute geometry.
+    "all",
+    "d",
+    "vector-effect",
+    "marker",
+    "marker-start",
+    "marker-mid",
+    "marker-end",
+    "shape-rendering",
     "transform",
     "transform-origin",
     "transform-box",
@@ -797,28 +885,88 @@ const CASCADE_PROPERTIES_NOT_REPRESENTED: &[&str] = &[
     "mix-blend-mode",
     "isolation",
     "paint-order",
+    // CSS motion path: measured to translate and rotate an SVG shape — and a
+    // whole `<g>` subtree — off its authored position.
+    "offset",
+    "offset-path",
+    "offset-distance",
+    "offset-rotate",
+    "offset-anchor",
+    "offset-position",
 ];
+
+/// Vendor prefixes stripped before a scanned property name is compared against
+/// [`CASCADE_PROPERTIES_NOT_REPRESENTED`].
+///
+/// Chromium honors `-webkit-clip-path`, `-webkit-transform` and
+/// `-webkit-filter` on an SVG shape with full effect (measured), and the
+/// unprefixed names are already on the list — so the alias was never a new
+/// capability question, only a spelling the scan missed. Stripping is the safer
+/// shape than enumerating aliases: it can only ever *add* a refusal, and the
+/// alias family keeps growing.
+const VENDOR_PREFIXES: &[&str] = &["-webkit-", "-moz-", "-ms-", "-o-"];
 
 /// The first [`CASCADE_PROPERTIES_NOT_REPRESENTED`] property name declared
 /// in a CSS fragment — a `style` attribute's declaration block or a
 /// `<style>` element's whole text.
 ///
-/// This reads the authored text rather than the cascade because the cascade
-/// is exactly what discards these declarations. It is a deliberately simple
-/// scanner over `{`/`}`/`;`-delimited chunks: it can only ever *add* a
-/// refusal for one of the enumerated names (loud), never admit one, and it
-/// makes no claim to be a CSS parser.
+/// This reads the authored text rather than the cascade because the cascade is
+/// exactly what discards these declarations.
+///
+/// **It is not a CSS tokenizer, and the gap is bounded deliberately.** A scan
+/// over `{`/`}`/`;`-delimited chunks sees a *different string* than Chromium's
+/// tokenizer does wherever CSS syntax lets a name be spelled indirectly, and
+/// each such spelling was a measured leak: `d/**/: path(…)` and `/**/d: path(…)`
+/// both render in Chromium, and so does the ident escape `\000064: path(…)`.
+/// So the scan now
+///
+/// - strips `/* … */` comments first, which is what makes the name contiguous;
+/// - strips a [vendor prefix](VENDOR_PREFIXES) before the lookup;
+/// - and refuses *any* declaration whose property name carries a backslash,
+///   without decoding it — an escape can spell any name at all, and this
+///   compiler consumes exactly two CSS properties (`fill`, `fill-rule`, plus
+///   the enumerated patrols), so a document that escapes a property name is one
+///   this slice should not be quietly rendering either way.
+///
+/// The honest fix is to tokenize with the CSS parser the document already
+/// carries; until then the direction of every rule here is the same — it can
+/// only ever *add* a refusal, never admit one.
 fn unrepresented_property(css: &str) -> Option<String> {
+    let css = strip_css_comments(css);
     for chunk in css.split([';', '{', '}']) {
         let Some((name, _)) = chunk.split_once(':') else {
             continue;
         };
         let name = trim_svg_whitespace(name).to_ascii_lowercase();
-        if CASCADE_PROPERTIES_NOT_REPRESENTED.contains(&name.as_str()) {
+        if name.contains('\\') {
+            return Some(name);
+        }
+        let unprefixed = VENDOR_PREFIXES
+            .iter()
+            .find_map(|prefix| name.strip_prefix(prefix))
+            .unwrap_or(name.as_str());
+        if CASCADE_PROPERTIES_NOT_REPRESENTED.contains(&unprefixed) {
             return Some(name);
         }
     }
     None
+}
+
+/// Remove `/* … */` comments so a property name split by one becomes
+/// contiguous, exactly as it is to the CSS tokenizer. An unterminated comment
+/// runs to the end of the fragment, which is also what CSS says.
+fn strip_css_comments(css: &str) -> String {
+    let mut out = String::with_capacity(css.len());
+    let mut rest = css;
+    while let Some(start) = rest.find("/*") {
+        out.push_str(&rest[..start]);
+        match rest[start + 2..].find("*/") {
+            Some(end) => rest = &rest[start + 2 + end + 2..],
+            None => return out,
+        }
+    }
+    out.push_str(rest);
+    out
 }
 
 /// Patrol an element's authored `style` attribute for a declaration the
@@ -852,18 +1000,26 @@ fn patrol_style_attribute(
 /// same tree the compiler bounds, and it runs *before* the compiler, so a
 /// deep document would exhaust the stack here instead of reaching the
 /// compiler's explicit refusal.
+///
+/// The sheet text is **concatenated across every text child**, which is what
+/// the cascade compiles (`csscascade::cascade::collect_author_styles`) and what
+/// a browser's `textContent` yields. Scanning each text node separately let a
+/// comment node inside `<style>` split a declaration across two nodes — the
+/// concatenated sheet was valid to Chromium while neither fragment named a
+/// listed property (measured). Whatever is in force is what must be patrolled.
 fn unrepresented_stylesheet_properties(root: HtmlElement<'_>) -> Vec<(String, String)> {
     let mut found = Vec::new();
     let mut stack = vec![(root, root.local_name_string())];
     while let Some((element, path)) = stack.pop() {
         if element.local_name_string() == "style" {
+            let mut sheet = String::new();
             for child_id in &element.dom_node().children {
-                if let DemoNodeData::Text(text) = &element.dom().node(*child_id).data
-                    && let Some(property) = unrepresented_property(text)
-                {
-                    found.push((property, path.clone()));
-                    break;
+                if let DemoNodeData::Text(text) = &element.dom().node(*child_id).data {
+                    sheet.push_str(text);
                 }
+            }
+            if let Some(property) = unrepresented_property(&sheet) {
+                found.push((property, path.clone()));
             }
         }
         let mut ordinals = HashMap::<String, usize>::new();
@@ -1250,8 +1406,12 @@ impl ChildWalk<'_> {
         transform: AffineTransform,
         top_level: bool,
     ) -> Result<(), CompileError> {
-        let node = compile_shape(el, transform, &mut self.next_id, self.values)?;
-        self.nodes.push(node);
+        // An admitted shape may resolve to no visual fact at all — a `<path>`
+        // whose `d` draws nothing. That is not a hole: the element is
+        // admitted, it is simply not a node.
+        if let Some(node) = compile_shape(el, transform, &mut self.next_id, self.values)? {
+            self.nodes.push(node);
+        }
         if top_level {
             self.top_level_shapes.push(el.node_id());
         }
@@ -1506,16 +1666,17 @@ fn compile_shape(
     inherited: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
-) -> Result<FrameNode, CompileError> {
+) -> Result<Option<FrameNode>, CompileError> {
     let tag = el.local_name_string();
     // A shape's own `transform` composes inside the mapping it inherits
     // from the viewport and its ancestor containers, exactly as a
     // container's does.
     let transform = compose_element_transform(el, inherited, &tag)?;
     match tag.as_str() {
-        "rect" => compile_rect(el, transform, next_id, values),
-        "circle" => compile_circle(el, transform, next_id, values),
-        "ellipse" => compile_ellipse(el, transform, next_id, values),
+        "rect" => compile_rect(el, transform, next_id, values).map(Some),
+        "circle" => compile_circle(el, transform, next_id, values).map(Some),
+        "ellipse" => compile_ellipse(el, transform, next_id, values).map(Some),
+        "path" => compile_path(el, transform, next_id),
         other => Err(CompileError::UnsupportedElement(other.to_string())),
     }
 }
@@ -1590,6 +1751,88 @@ fn compile_ellipse(
     shape_node(el, Geometry::Ellipse(rect), viewport, next_id)
 }
 
+/// Compile a `<path>`: the SVG path-data grammar into the resolved
+/// contract's canonical command stream, under the cascaded fill rule.
+///
+/// `d` is the only geometry `<path>` carries — no lengths, so no percentage
+/// basis to reject — and it is deliberately not read through
+/// [`EffectiveValues`]: the closed sampling inventory covers scalar `x` on a
+/// `<rect>`, and `d` is neither a scalar nor on the inventory.
+///
+/// A `d` that draws nothing — absent, empty, `none`'s effect, or contours that
+/// only move — resolves to no node. SVG renders nothing for it, and no visual
+/// fact is the honest way to carry nothing.
+fn compile_path(
+    el: HtmlElement<'_>,
+    viewport: AffineTransform,
+    next_id: &mut u64,
+) -> Result<Option<FrameNode>, CompileError> {
+    patrol_rendering_attributes(el, "path", PATH_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+    patrol_style_attribute(el, "path")?;
+    patrol_computed_style(el, true, false)?;
+    let commands = match get_attr(el, "d") {
+        None => Vec::new(),
+        Some(value) => crate::svg_path::parse_path_data(&value).map_err(|error| match error {
+            crate::svg_path::PathDataError::Syntax { offset } => CompileError::BadPathData {
+                element: "path".to_string(),
+                offset,
+                excerpt: excerpt_at(&value, offset),
+            },
+            crate::svg_path::PathDataError::UnsupportedCommand { command } => {
+                CompileError::UnsupportedPathCommand {
+                    element: "path".to_string(),
+                    command,
+                }
+            }
+        })?,
+    };
+    if commands.is_empty() {
+        return Ok(None);
+    }
+    let path = PathData::new(commands, resolve_fill_rule(el)?).map_err(|error| {
+        // The producer normalizes into the contract's canonical form, so a
+        // rejection here is this compiler's bug, not the document's. Refuse
+        // by name rather than paint something the contract would not admit.
+        CompileError::BadPathData {
+            element: "path".to_string(),
+            offset: 0,
+            excerpt: error.to_string(),
+        }
+    })?;
+    shape_node(el, Geometry::Path(Arc::new(path)), viewport, next_id).map(Some)
+}
+
+/// The authored text at an error offset, clipped to a readable excerpt on a
+/// character boundary.
+fn excerpt_at(value: &str, offset: usize) -> String {
+    /// Long enough to show the offending token, short enough that a
+    /// kilobyte-long `d` does not reach a terminal.
+    const WIDTH: usize = 24;
+    let start = (0..=offset.min(value.len()))
+        .rev()
+        .find(|index| value.is_char_boundary(*index))
+        .unwrap_or(0);
+    let end = (start..=(start + WIDTH).min(value.len()))
+        .rev()
+        .find(|index| value.is_char_boundary(*index))
+        .unwrap_or(value.len());
+    value[start..end].to_string()
+}
+
+/// The cascaded `fill-rule` — which regions of a self-overlapping path the
+/// fill covers. Read as a typed computed value like `fill`, so the SVG2
+/// precedence (presentation attribute below author rules), inheritance
+/// through containers, and CSS keyword case-insensitivity all come from the
+/// one cascade rather than from an attribute parse here.
+fn resolve_fill_rule(el: HtmlElement<'_>) -> Result<FillRule, CompileError> {
+    let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
+    let style: &ComputedValues = data.styles.primary();
+    Ok(match style.clone_fill_rule() {
+        StyloFillRule::Nonzero => FillRule::NonZero,
+        StyloFillRule::Evenodd => FillRule::EvenOdd,
+    })
+}
+
 /// The shared tail of every shape compile: resolve the typed fill and emit
 /// the resolved node. The node's `bounds` is the frame-space transform of
 /// its local geometry box — the exact-bounds law the n0 downstream
@@ -1600,9 +1843,7 @@ fn shape_node(
     viewport: AffineTransform,
     next_id: &mut u64,
 ) -> Result<FrameNode, CompileError> {
-    let rect = match &geometry {
-        Geometry::Rect(rect) | Geometry::Ellipse(rect) => *rect,
-    };
+    let rect = geometry.local_box();
     let fill = resolve_fill(el)?;
     let paints = match fill {
         Some(color) => SolidPaintStack::solid(color),

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- probe: (32,40)=#16a34a (4,4)=#ffffff -->
+  <rect width="64" height="64" fill="#ffffff"/>
+  <polygon points="32,16 48,56 16,56" fill="#16a34a"/>
+</svg>

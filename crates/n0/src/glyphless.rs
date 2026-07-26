@@ -3,8 +3,8 @@
 //! [`rframe::Frame`] is the backend-free resolved contract. It carries no
 //! authored n0 document, HTML/CSS/SVG syntax, parser binding, backend object,
 //! I/O handle, or clock. This module admits its current solid-fill
-//! rectangle-and-ellipse slice, compiles it into n0's one private drawlist,
-//! and executes it through n0's one private painter.
+//! rectangle, ellipse, and path slice, compiles it into n0's one private
+//! drawlist, and executes it through n0's one private painter.
 //!
 //! The resulting [`FrameProduct`] is intentionally separate from
 //! [`crate::frame::FrameProduct`]. The latter owns an n0-model
@@ -12,11 +12,13 @@
 //! foreign resolved frame cannot honestly manufacture either.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use n0_model::math::Affine;
 use n0_model::model::{
     BlendMode, Color, CornerSmoothing, Paint, Paints, RectangularCornerRadius, SolidPaint,
 };
+use n0_model::path::ResolvedPathArtifact;
 use rframe::{Frame, Geometry, SolidPaintStack, VisualRef};
 
 use crate::damage::{diff_inputs, DamageOwner, FrameDamageInput};
@@ -233,9 +235,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         }
         validate_rect(node.bounds).map_err(|_| BuildError::InvalidVisualBounds(node.owner))?;
         validate_transform(node.transform).map_err(|_| BuildError::InvalidTransform(node.owner))?;
-        let rect = match &node.geometry {
-            Geometry::Rect(rect) | Geometry::Ellipse(rect) => *rect,
-        };
+        let rect = node.geometry.local_box();
         validate_rect(rect).map_err(|_| BuildError::InvalidRectangle(node.owner))?;
         if node.bounds != math2::rect_transform(rect, &node.transform) {
             return Err(BuildError::VisualBoundsMismatch(node.owner));
@@ -250,20 +250,44 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
             continue;
         }
 
-        let world = to_affine(node.transform).then(&Affine::translate(rect.x, rect.y));
-        let kind = match &node.geometry {
-            Geometry::Rect(_) => ItemKind::RectFill {
-                w: rect.width,
-                h: rect.height,
-                corner_radius: RectangularCornerRadius::default(),
-                corner_smoothing: CornerSmoothing::default(),
-                paints,
-            },
-            Geometry::Ellipse(_) => ItemKind::OvalFill {
-                w: rect.width,
-                h: rect.height,
-                paints,
-            },
+        // A box primitive draws at its item's origin, so its own local offset
+        // enters the world transform. A path carries absolute local
+        // coordinates instead: its stream is the geometry, and translating it
+        // would be a second coordinate mapping over values the contract has
+        // already resolved.
+        let (world, kind) = match &node.geometry {
+            Geometry::Rect(_) => (
+                to_affine(node.transform).then(&Affine::translate(rect.x, rect.y)),
+                ItemKind::RectFill {
+                    w: rect.width,
+                    h: rect.height,
+                    corner_radius: RectangularCornerRadius::default(),
+                    corner_smoothing: CornerSmoothing::default(),
+                    paints,
+                },
+            ),
+            Geometry::Ellipse(_) => (
+                to_affine(node.transform).then(&Affine::translate(rect.x, rect.y)),
+                ItemKind::OvalFill {
+                    w: rect.width,
+                    h: rect.height,
+                    paints,
+                },
+            ),
+            Geometry::Path(path) => (
+                to_affine(node.transform),
+                ItemKind::PathFill {
+                    // The paint reference box is the geometry's own extent.
+                    // Its origin coincides with local space here, which only
+                    // a non-solid paint could observe — and the admitted
+                    // slice has none, so the rung that admits one decides
+                    // how the box travels.
+                    w: rect.width,
+                    h: rect.height,
+                    path: compile_path(path),
+                    paints,
+                },
+            ),
         };
         items.push(Item {
             node: owner,
@@ -281,6 +305,60 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         resolved,
         drawlist: DrawList::from_items(items),
         provenance,
+    })
+}
+
+/// Project the contract's checked command stream into the engine's resolved
+/// path material.
+///
+/// The engine model's *authored* path type keeps its geometry normalized into
+/// a unit reference box and multiplies out at resolve time. A resolved
+/// contract has no authored box and no such indirection: its coordinates are
+/// already final in the node's local space, so they enter the resolved
+/// artifact unchanged. Normalizing them into a unit box and multiplying back
+/// would put a divide and a multiply between the producer's numbers and the
+/// rasterizer's — different pixels for no gain.
+///
+/// Nothing is re-derived here: [`rframe::PathData`] is a checked type whose
+/// construction resolved the bounds and the closed-contour fact from these
+/// same commands.
+fn compile_path(data: &rframe::PathData) -> Arc<ResolvedPathArtifact> {
+    let commands = data
+        .commands()
+        .iter()
+        .map(|command| match *command {
+            rframe::PathCommand::MoveTo { x, y } => n0_model::path::PathCommand::MoveTo { x, y },
+            rframe::PathCommand::LineTo { x, y } => n0_model::path::PathCommand::LineTo { x, y },
+            rframe::PathCommand::QuadTo { x1, y1, x, y } => {
+                n0_model::path::PathCommand::QuadTo { x1, y1, x, y }
+            }
+            rframe::PathCommand::CubicTo {
+                x1,
+                y1,
+                x2,
+                y2,
+                x,
+                y,
+            } => n0_model::path::PathCommand::CubicTo {
+                x1,
+                y1,
+                x2,
+                y2,
+                x,
+                y,
+            },
+            rframe::PathCommand::Close => n0_model::path::PathCommand::Close,
+        })
+        .collect::<Vec<_>>();
+    let fill_rule = match data.fill_rule() {
+        rframe::FillRule::NonZero => n0_model::path::FillRule::NonZero,
+        rframe::FillRule::EvenOdd => n0_model::path::FillRule::EvenOdd,
+    };
+    Arc::new(ResolvedPathArtifact {
+        commands: commands.into(),
+        fill_rule,
+        local_bounds: to_rectf(data.local_bounds()),
+        all_contours_closed: data.all_contours_closed(),
     })
 }
 
@@ -489,9 +567,7 @@ mod tests {
         let mut frame = resolved_frame(SolidPaintStack::solid(CGColor::RED));
         frame.nodes[0].transform = AffineTransform::new(3.0, 4.0, 0.0);
         let expected = math2::rect_transform(
-            match frame.nodes[0].geometry {
-                Geometry::Rect(rect) | Geometry::Ellipse(rect) => rect,
-            },
+            frame.nodes[0].geometry.local_box(),
             &frame.nodes[0].transform,
         );
         frame.nodes[0].bounds = Rectangle {

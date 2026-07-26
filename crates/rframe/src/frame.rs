@@ -9,15 +9,19 @@
 //! HTML/CSS/SVG syntax, no parser ASTs, no producer bindings, no backend
 //! objects, and no serialization.
 //!
-//! It is deliberately minimal (solid-fill rectangles and ellipses) and
+//! It is deliberately minimal (solid-fill rectangles, ellipses, and paths) and
 //! **breakable**: the enums grow as real producers force new visual facts, and
 //! the sharing boundary moves *down* (toward the engine's private drawlist)
 //! rather than admit a source-specific field.
 //!
 //! This crate is backend-free (enforced by `tests/architecture.rs`).
 
+use std::sync::Arc;
+
 use math2::Rectangle;
 use math2::transform::AffineTransform;
+
+use crate::path::PathData;
 
 /// Why a producer paint stack cannot enter the current solid-only contract.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -146,14 +150,30 @@ impl VisualRef {
     }
 }
 
-/// Resolved vector geometry, in the node's local space. Rectangles and
-/// ellipses for the current slice; vector paths join here (they are not
-/// rasterized early — see the amendment) as the corpus grows.
+/// Resolved vector geometry, in the node's local space. Rectangles, ellipses,
+/// and vector paths — which join as resolved command streams, never
+/// rasterized early (see the amendment).
 #[derive(Clone, Debug, PartialEq)]
 pub enum Geometry {
     Rect(Rectangle),
     /// The axis-aligned ellipse inscribed in this local-space rectangle.
     Ellipse(Rectangle),
+    /// A checked canonical command stream with its fill rule. Shared rather
+    /// than copied: one resolved path is read by every frame a retained
+    /// producer emits.
+    Path(Arc<PathData>),
+}
+
+impl Geometry {
+    /// The local-space box the node's `bounds` maps: the rectangle itself,
+    /// the ellipse's inscribing rectangle, or the path's tight extent.
+    #[must_use]
+    pub fn local_box(&self) -> Rectangle {
+        match self {
+            Geometry::Rect(rect) | Geometry::Ellipse(rect) => *rect,
+            Geometry::Path(path) => path.local_bounds(),
+        }
+    }
 }
 
 /// One resolved node: identity, its local→frame transform, resolved geometry,

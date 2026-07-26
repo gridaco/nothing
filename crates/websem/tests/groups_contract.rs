@@ -49,9 +49,7 @@ fn admit_both(source: &str) -> rframe::Frame {
 }
 
 fn geometry_box(frame: &rframe::Frame, index: usize) -> Rectangle {
-    match &frame.nodes[index].geometry {
-        Geometry::Rect(rect) | Geometry::Ellipse(rect) => *rect,
-    }
+    frame.nodes[index].geometry.local_box()
 }
 
 #[test]
@@ -357,12 +355,12 @@ fn a_beyond_slice_descendant_is_its_own_declared_hole() {
     let source = document(
         r##"  <g transform="translate(4,4)">
     <rect width="8" height="8" fill="#16a34a"/>
-    <path d="M0 0 h4 v4 z" fill="#000000"/>
+    <polygon points="0,0 4,0 4,4" fill="#000000"/>
     <circle cx="20" cy="20" r="4" fill="#2563eb"/>
   </g>"##,
     );
     SvgFrameSource::from_standalone_svg(source.as_str(), viewport(64.0, 64.0))
-        .expect_err("strict refuses at the path");
+        .expect_err("strict refuses at the polygon");
 
     let best =
         SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
@@ -375,12 +373,12 @@ fn a_beyond_slice_descendant_is_its_own_declared_hole() {
     assert_eq!(best.degradations().len(), 1);
     assert_eq!(
         best.degradations()[0].path(),
-        "svg/g[1]/path[1]",
+        "svg/g[1]/polygon[1]",
         "the skip names its nested structural path"
     );
     assert_eq!(
         best.degradations()[0].reason(),
-        "unsupported element <path>"
+        "unsupported element <polygon>"
     );
 }
 
@@ -389,15 +387,15 @@ fn a_beyond_slice_descendant_is_its_own_declared_hole() {
 #[test]
 fn nested_degradation_paths_number_per_parent() {
     let source = document(
-        r##"  <path d="M0 0 h1 z"/>
+        r##"  <polygon points="0,0 1,0"/>
   <g>
-    <path d="M0 0 h1 z"/>
+    <polygon points="0,0 1,0"/>
     <g>
-      <path d="M0 0 h1 z"/>
+      <polygon points="0,0 1,0"/>
     </g>
   </g>
   <g>
-    <path d="M0 0 h1 z"/>
+    <polygon points="0,0 1,0"/>
   </g>"##,
     );
     let best =
@@ -407,10 +405,10 @@ fn nested_degradation_paths_number_per_parent() {
     assert_eq!(
         paths,
         vec![
-            "svg/path[1]",
-            "svg/g[1]/path[1]",
-            "svg/g[1]/g[1]/path[1]",
-            "svg/g[2]/path[1]",
+            "svg/polygon[1]",
+            "svg/g[1]/polygon[1]",
+            "svg/g[1]/g[1]/polygon[1]",
+            "svg/g[2]/polygon[1]",
         ]
     );
 }

@@ -706,6 +706,7 @@ fn derive_attr_metadata(
 fn admitted_svg_presentation_property(local: &str) -> Option<LonghandId> {
     match local {
         "fill" => Some(LonghandId::Fill),
+        "fill-rule" => Some(LonghandId::FillRule),
         _ => None,
     }
 }
