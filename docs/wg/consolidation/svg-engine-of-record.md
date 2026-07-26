@@ -704,3 +704,55 @@ path mixing open and closed contours (the cub has both) cannot be normalized
 wholesale — it needs per-contour cap handling in the stroke lowering, plus
 corpus cells at a one-device-pixel stroke width, which the corpus lacks
 entirely. Recorded rather than fixed, with the reproduction above.
+
+## Addendum — the cap defect, closed (2026-07-27)
+
+Fixed. Re-measuring first moved every part of the diagnosis above, which is
+worth recording as much as the fix:
+
+- **The attribution was wrong.** A centred SVG stroke does not fill
+  `StrokeRec::apply_to_path`'s outline; it sets `PaintStyle::Stroke` and hands
+  Skia the cap — the same stroker Blink drives. Two consumers of one stroker
+  were disagreeing.
+- **The fill is not involved.** A closed contour with `fill="none"` diverges
+  identically, so the earlier "fill + stroke" framing was incidental.
+- **It tracks the *device* width, not the authored one.** The same document
+  rendered at 2x diverges at an authored `0.5` and agrees at an authored `1`;
+  the threshold sits between 1 and 1.25 device pixels. The register's table read
+  as a property of the authored value, which it is not.
+- **An open contour is byte-exact at every width and every cap** — measured
+  across `butt`/`round`/`square` at 0.5, 0.75, 1, 1.25, 1.5, 2 and 3 device
+  pixels. So this was never thin-stroke rasterization in general. It is a cap
+  appearing where a closed contour rejoins.
+
+The fix is the semantics: a closed contour has no ends, Chromium's raster is
+cap-invariant on one, so n0 normalizes the cap to butt when every contour is
+closed. One draw, one composite pass, byte-exact at every width probed.
+
+**The exception the corpus caught.** A contour with no extent is a point, and
+SVG2 §13.2 makes the cap the *only* thing that renders it: `M44 32 Z` under a
+square cap is a dot Chromium paints, and normalizing that cap away erased it.
+`svg-stroke-zero-length-dot` failed within minutes of the change. The predicate
+now declines to normalize anything that closes on the point it opened at,
+comparing on-curve endpoints only — a false positive merely keeps the authored
+cap, a false negative would delete a dot.
+
+**The mixed case refuses instead.** A path carrying both open and closed
+contours needs two caps at once and one paint carries one. Splitting the draw
+was implemented and measured, and it is worse: byte-exact below a device pixel,
+then 32 to 47 differing pixels at 1.25 and 2 units, because the two runs'
+anti-aliased edges composite twice where they overlap. So websem refuses a
+non-butt `stroke-linecap` on a mixed path by name. It over-refuses — the error
+needs a device width the compiler cannot know — and serving the case properly
+means stroking each contour to an outline and unioning them into one filled
+path, which is its own rung.
+
+**The corpus gained the intersection it lacked**: a closed contour, a non-butt
+cap and a one-device-pixel width, one cell per cap, all three byte-identical to
+Chromium. The old cap cells stroke an open line sixteen units wide and the old
+closed-contour cell takes the default butt, so between them they covered each
+half of the trigger and never both at once.
+
+`svg-scene-cub` is now byte-exact at 48x48 as well as at 96x96, and the declared
+AA departure stays exactly where the strokes rung left it — the weighted
+rational conic alone.
