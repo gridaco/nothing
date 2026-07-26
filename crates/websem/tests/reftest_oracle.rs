@@ -176,6 +176,7 @@ fn contract_frame(paints: SolidPaintStack, transform: math2::transform::AffineTr
             geometry: Geometry::Rect(rect),
             bounds: math2::rect_transform(rect, &transform),
             paints,
+            stroke: None,
         }],
     }
 }

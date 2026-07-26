@@ -35,10 +35,13 @@ cargo run -p n0_cli --bin n0 -- \
   grammar. A viewBox-only SVG therefore renders at the requested raster.
 - Resources: self-contained input only; external images and stylesheets are
   not resolved.
-- Capability: the admitted slice is deliberately narrow — solid-filled
-  `<rect>`, `<circle>`, `<ellipse>` and `<path>` (the path-data grammar
-  except the elliptical arc, with `fill-rule`), nested in `<g>` containers
-  with the SVG `transform` grammar, under the outer `<svg>` — and the
+- Capability: the admitted slice is deliberately narrow — solid-filled and
+  solid-stroked `<rect>`, `<circle>`, `<ellipse>`, `<path>` (the path-data
+  grammar except the elliptical arc, with `fill-rule`) and `<line>`, nested in
+  `<g>` containers with the SVG `transform` grammar, under the outer `<svg>`.
+  A stroke is centred, its width is a cascaded length, and its cap, join and
+  miter limit come from the one cascade; `stroke-opacity` and dashing do not.
+  The
   default admission is **best-effort**: the admitted subset renders and
   every beyond-slice construct is declared on stderr with its node path and
   reason (`degraded: skipped svg/polygon[1]: unsupported element <polygon>`);

@@ -101,6 +101,7 @@ fn n0_rect_reaches_the_shared_downstream() {
             geometry: Geometry::Rect(geometry),
             bounds: geometry,
             paints: SolidPaintStack::solid(fill),
+            stroke: None,
         }],
     };
 
@@ -136,6 +137,7 @@ fn hand_built_frame_probes_and_re_raster_are_exact() {
             geometry: Geometry::Rect(rect),
             bounds: rect,
             paints: SolidPaintStack::solid(CGColor::from_rgb(0x16, 0xa3, 0x4a)),
+            stroke: None,
         }],
     };
 
@@ -171,6 +173,7 @@ fn hand_built_ellipse_fills_the_inscribed_oval_not_its_box_corners() {
             geometry: Geometry::Ellipse(bbox),
             bounds: bbox,
             paints: SolidPaintStack::solid(CGColor::from_rgb(0x16, 0xa3, 0x4a)),
+            stroke: None,
         }],
     };
 

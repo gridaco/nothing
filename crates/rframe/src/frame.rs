@@ -22,6 +22,7 @@ use math2::Rectangle;
 use math2::transform::AffineTransform;
 
 use crate::path::PathData;
+use crate::stroke::Stroke;
 
 /// Why a producer paint stack cannot enter the current solid-only contract.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -177,7 +178,7 @@ impl Geometry {
 }
 
 /// One resolved node: identity, its local→frame transform, resolved geometry,
-/// resolved bounds, and an ordered paint stack.
+/// resolved bounds, the fill's paint stack, and an optional stroke.
 #[derive(Clone, Debug, PartialEq)]
 pub struct FrameNode {
     /// Source-neutral product identity and opaque diagnostic provenance.
@@ -186,10 +187,19 @@ pub struct FrameNode {
     pub transform: AffineTransform,
     /// Resolved geometry, in local space.
     pub geometry: Geometry,
-    /// Resolved axis-aligned bounds, in frame space.
+    /// Resolved axis-aligned bounds of the **geometry**, in frame space.
+    ///
+    /// A stroke paints outside this box (see [`Stroke::outset`]), so a consumer
+    /// that needs the covered area — damage, culling — must inflate it. The
+    /// field is the geometry's bounds and not the ink's because that is the
+    /// quantity a producer can state exactly, and the exact-bounds law depends
+    /// on it being exact.
     pub bounds: Rectangle,
-    /// Ordered paint stack (bottom entry painted first).
+    /// Ordered fill paint stack (bottom entry painted first).
     pub paints: SolidPaintStack,
+    /// The resolved stroke, painted over the fill. `None` when nothing is
+    /// stroked — construction never yields an invisible stroke.
+    pub stroke: Option<Stroke>,
 }
 
 /// The resolved frame: an ordered list of nodes in painter order, plus the

@@ -19,13 +19,18 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
   <style>
     #rule-beats-hint { fill: #2563eb; }
     #style-attr-beats-rule { fill: #2563eb; }
+    #stroke-rule-beats-hint { stroke: #2563eb; }
   </style>
   <rect id="hint-only" fill="#16a34a" width="8" height="8"/>
   <rect id="named" fill="rebeccapurple" width="8" height="8"/>
   <rect id="rule-beats-hint" fill="#16a34a" width="8" height="8"/>
   <rect id="style-attr-beats-rule" fill="#16a34a" style="fill: #ef4444" width="8" height="8"/>
   <rect id="invalid-hint" fill="not-a-paint" width="8" height="8"/>
-  <rect id="unadmitted" stroke="#16a34a" width="8" height="8"/>
+  <rect id="stroked" stroke="#16a34a" stroke-width="4px" stroke-linecap="round"
+        stroke-linejoin="bevel" stroke-miterlimit="7" width="8" height="8"/>
+  <rect id="stroke-rule-beats-hint" stroke="#16a34a" width="8" height="8"/>
+  <rect id="unadmitted" stroke-opacity="0.5" width="8" height="8"/>
+  <g id="sized" font-size="32"><rect id="em-basis" stroke-width="0.5em" width="8" height="8"/></g>
 </svg>"##;
 
 #[test]
@@ -51,12 +56,46 @@ fn standalone_svg_presentation_hints_enter_below_author_rules() {
     // A hint value failing the property grammar drops like an invalid CSS
     // declaration: fill falls back to its initial black.
     assert_eq!(fill(root, "invalid-hint"), "rgb(0, 0, 0)");
-    // An unadmitted presentation attribute contributes nothing yet: stroke
-    // keeps its initial `none` until its own capability step admits it.
+    // The strokes rung admitted the stroke geometry hints, so each computes
+    // as its typed value — a unit-bearing length included, since the hint gets
+    // the full CSS value grammar.
     assert_eq!(
-        property(root, "unadmitted", LonghandId::Stroke),
-        "none",
+        property(root, "stroked", LonghandId::Stroke),
+        "rgb(22, 163, 74)"
+    );
+    assert_eq!(property(root, "stroked", LonghandId::StrokeWidth), "4px");
+    assert_eq!(
+        property(root, "stroked", LonghandId::StrokeLinecap),
+        "round"
+    );
+    assert_eq!(
+        property(root, "stroked", LonghandId::StrokeLinejoin),
+        "bevel"
+    );
+    assert_eq!(property(root, "stroked", LonghandId::StrokeMiterlimit), "7");
+    // And they lose to an author rule exactly as `fill` does.
+    assert_eq!(
+        property(root, "stroke-rule-beats-hint", LonghandId::Stroke),
+        "rgb(37, 99, 235)"
+    );
+    // An unadmitted presentation attribute still contributes nothing:
+    // `stroke-opacity` keeps its initial value until its own capability step.
+    // (The websem compiler refuses the *attribute* by name meanwhile, so a
+    // document carrying one is a declared hole, not a silent one.)
+    assert_eq!(
+        property(root, "unadmitted", LonghandId::StrokeOpacity),
+        "1",
         "unadmitted presentation attributes must not leak into the cascade"
+    );
+    // `font-size` is admitted for its *basis*, not because anything paints it:
+    // it is what an `em` length resolves against, and Chromium treats it as a
+    // presentation attribute. Inherited, so the shape reads the group's.
+    assert_eq!(property(root, "sized", LonghandId::FontSize), "32px");
+    assert_eq!(property(root, "em-basis", LonghandId::FontSize), "32px");
+    assert_eq!(
+        property(root, "em-basis", LonghandId::StrokeWidth),
+        "16px",
+        "an em stroke-width resolves against the presentation-attribute font size"
     );
 }
 

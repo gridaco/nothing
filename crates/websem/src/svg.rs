@@ -76,19 +76,22 @@ use csscascade::cascade::CascadeDriver;
 use csscascade::dom::{DemoDom, DemoNodeData, NodeId};
 
 use style::color::{AbsoluteColor, ColorSpace};
+use style::computed_values::stroke_linecap::T as StyloLinecap;
+use style::computed_values::stroke_linejoin::T as StyloLinejoin;
 use style::computed_values::visibility::T as Visibility;
 use style::dom::TElement;
 use style::properties::ComputedValues;
 use style::thread_state::{self, ThreadState};
 use style::values::computed::{SVGOpacity, Size};
 use style::values::generics::basic_shape::FillRule as StyloFillRule;
-use style::values::generics::svg::SVGPaintKind;
+use style::values::generics::svg::{SVGLength, SVGPaintKind, SVGStrokeDashArray};
 
 use cg::CGColor;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::frame::{Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, VisualRef};
 use rframe::path::{FillRule, PathData};
+use rframe::stroke::{Stroke, StrokeCap, StrokeJoin};
 use std::sync::Arc;
 
 use crate::effective_values::EffectiveValues;
@@ -270,6 +273,10 @@ pub enum CompileError {
     UnsupportedElement(String),
     /// A `fill` value the slice cannot resolve.
     UnsupportedFill(String),
+    /// A stroke value the slice cannot resolve: a paint server, a context
+    /// paint, a non-initial `stroke-opacity`, a dash pattern, or a percentage
+    /// width whose basis is the viewport's normalized diagonal.
+    UnsupportedStroke(String),
     /// A numeric attribute failed to parse.
     BadNumber { attr: String, value: String },
     /// Viewport sizing needs a default/CSS sizing path this slice lacks.
@@ -644,6 +651,7 @@ impl std::fmt::Display for CompileError {
             }
             CompileError::UnsupportedElement(t) => write!(f, "unsupported element <{t}>"),
             CompileError::UnsupportedFill(v) => write!(f, "unsupported fill value {v:?}"),
+            CompileError::UnsupportedStroke(v) => write!(f, "unsupported stroke value {v:?}"),
             CompileError::BadNumber { attr, value } => {
                 write!(f, "attribute {attr}={value:?} is not a number")
             }
@@ -768,17 +776,12 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "filter",
     "color",
     "fill-opacity",
-    "stroke",
-    "stroke-width",
     "stroke-opacity",
     "stroke-dasharray",
     "stroke-dashoffset",
-    "stroke-linecap",
-    "stroke-linejoin",
-    "stroke-miterlimit",
     "paint-order",
     // Markers apply to `<path>`, `<line>`, `<polyline>` and `<polygon>`, and
-    // this slice admits the first of those. Nothing else "reads" a marker
+    // this slice admits the first two. Nothing else "reads" a marker
     // property — the property *is* the paint trigger — so unlike `pathLength`
     // this patrol is load-bearing today: it is what keeps Chromium's arrowhead
     // from becoming a silent hole.
@@ -1110,10 +1113,31 @@ fn patrol_computed_style(
             "visibility {visibility:?} is not yet consumed"
         )));
     }
-    if include_stroke && !matches!(style.clone_stroke().kind, SVGPaintKind::None) {
-        return Err(CompileError::UnsupportedStyle(
-            "stroke paint is not yet consumed".to_string(),
-        ));
+    if include_stroke {
+        // The stroke *paint* is consumed; these three change a stroke's pixels
+        // and are not, so they refuse wherever a stroke could reach.
+        match style.clone_stroke_opacity() {
+            SVGOpacity::Opacity(1.0) => {}
+            other => {
+                return Err(CompileError::UnsupportedStroke(format!(
+                    "stroke-opacity {other:?} is not yet consumed"
+                )));
+            }
+        }
+        // Chromium renders `stroke-dasharray: 0`, `none` and an invalid value
+        // all as a solid stroke (measured), so the refusal tests for a dash
+        // that would actually paint rather than for a non-empty list.
+        match style.clone_stroke_dasharray() {
+            SVGStrokeDashArray::Values(values)
+                if values
+                    .iter()
+                    .all(|value| value.0.to_length().is_some_and(|length| length.px() == 0.0)) => {}
+            other => {
+                return Err(CompileError::UnsupportedStroke(format!(
+                    "stroke-dasharray {other:?} is not yet consumed"
+                )));
+            }
+        }
     }
     // SVG2 makes width/height geometry properties where they apply: a
     // cascaded (stylesheet or style-attribute) value beats both the
@@ -1677,6 +1701,7 @@ fn compile_shape(
         "circle" => compile_circle(el, transform, next_id, values).map(Some),
         "ellipse" => compile_ellipse(el, transform, next_id, values).map(Some),
         "path" => compile_path(el, transform, next_id),
+        "line" => compile_line(el, transform, next_id, values).map(Some),
         other => Err(CompileError::UnsupportedElement(other.to_string())),
     }
 }
@@ -1693,10 +1718,16 @@ fn compile_rect(
     reject_percentage_geometry(el, "rect", &["x", "y", "width", "height"])?;
     let x = effective_attr_f32(el, "x", values)?.unwrap_or(0.0);
     let y = effective_attr_f32(el, "y", values)?.unwrap_or(0.0);
-    let w = effective_attr_f32(el, "width", values)?.unwrap_or(0.0);
-    let h = effective_attr_f32(el, "height", values)?.unwrap_or(0.0);
+    let w = box_extent(effective_attr_f32(el, "width", values)?.unwrap_or(0.0));
+    let h = box_extent(effective_attr_f32(el, "height", values)?.unwrap_or(0.0));
     let rect = Rectangle::from_xywh(x, y, w, h);
-    shape_node(el, Geometry::Rect(rect), viewport, next_id)
+    shape_node(
+        el,
+        Geometry::Rect(rect),
+        viewport,
+        next_id,
+        box_strokable(w, h),
+    )
 }
 
 fn compile_circle(
@@ -1718,7 +1749,13 @@ fn compile_circle(
     // admitted and paints nothing — an honest nothing, not a refusal.
     let r = effective_attr_f32(el, "r", values)?.unwrap_or(0.0).max(0.0);
     let rect = Rectangle::from_xywh(cx - r, cy - r, r * 2.0, r * 2.0);
-    shape_node(el, Geometry::Ellipse(rect), viewport, next_id)
+    shape_node(
+        el,
+        Geometry::Ellipse(rect),
+        viewport,
+        next_id,
+        box_strokable(r, r),
+    )
 }
 
 fn compile_ellipse(
@@ -1748,7 +1785,13 @@ fn compile_ellipse(
         (None, None) => (0.0, 0.0),
     };
     let rect = Rectangle::from_xywh(cx - rx, cy - ry, rx * 2.0, ry * 2.0);
-    shape_node(el, Geometry::Ellipse(rect), viewport, next_id)
+    shape_node(
+        el,
+        Geometry::Ellipse(rect),
+        viewport,
+        next_id,
+        box_strokable(rx, ry),
+    )
 }
 
 /// Compile a `<path>`: the SVG path-data grammar into the resolved
@@ -1799,7 +1842,58 @@ fn compile_path(
             excerpt: error.to_string(),
         }
     })?;
-    shape_node(el, Geometry::Path(Arc::new(path)), viewport, next_id).map(Some)
+    shape_node(
+        el,
+        Geometry::Path(Arc::new(path)),
+        viewport,
+        next_id,
+        Strokable::Yes,
+    )
+    .map(Some)
+}
+
+/// Compile a `<line>` — as a two-command path, not a geometry kind of its own.
+///
+/// A line is a stroke-only shape: SVG gives it no interior, and Chromium paints
+/// nothing for a filled `<line>` with no stroke (measured). A two-point path
+/// carries exactly that — its fill has zero area and paints nothing — and
+/// Chromium's `<line>` is **byte-identical** to the equivalent `<path>`
+/// (measured), so the contract needs no line variant and the cap, join and
+/// zero-length rules come out identical for free.
+///
+/// `x1`/`y1`/`x2`/`y2` default to zero, which makes a bare `<line>` a
+/// zero-length segment: nothing under a butt cap, a dot under a round or square
+/// one (measured). That is why the path normalization keeps a zero-length
+/// segment.
+fn compile_line(
+    el: HtmlElement<'_>,
+    viewport: AffineTransform,
+    next_id: &mut u64,
+    values: &EffectiveValues,
+) -> Result<FrameNode, CompileError> {
+    patrol_rendering_attributes(el, "line", PATH_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+    patrol_style_attribute(el, "line")?;
+    patrol_computed_style(el, true, false)?;
+    reject_percentage_geometry(el, "line", &["x1", "y1", "x2", "y2"])?;
+    let x1 = effective_attr_f32(el, "x1", values)?.unwrap_or(0.0);
+    let y1 = effective_attr_f32(el, "y1", values)?.unwrap_or(0.0);
+    let x2 = effective_attr_f32(el, "x2", values)?.unwrap_or(0.0);
+    let y2 = effective_attr_f32(el, "y2", values)?.unwrap_or(0.0);
+    let path = PathData::new(
+        vec![
+            rframe::PathCommand::MoveTo { x: x1, y: y1 },
+            rframe::PathCommand::LineTo { x: x2, y: y2 },
+        ],
+        FillRule::NonZero,
+    )
+    .map_err(|error| CompileError::UnsupportedStroke(error.to_string()))?;
+    shape_node(
+        el,
+        Geometry::Path(Arc::new(path)),
+        viewport,
+        next_id,
+        Strokable::Yes,
+    )
 }
 
 /// The authored text at an error offset, clipped to a readable excerpt on a
@@ -1833,6 +1927,43 @@ fn resolve_fill_rule(el: HtmlElement<'_>) -> Result<FillRule, CompileError> {
     })
 }
 
+/// A box primitive's two extents decide whether it renders at all, and a
+/// negative extent is one of the ways it does not.
+///
+/// A negative `width`/`height` is an error that disables rendering of the
+/// element, and Chromium renders the rest of the document around it (measured:
+/// a sibling still paints). So the extent is clamped to zero rather than
+/// carried negative — a negative extent would reach the downstream's geometry
+/// validation and abort the whole render with an internal message naming no
+/// element, which is exactly what best-effort exists to prevent.
+fn box_extent(value: f32) -> f32 {
+    value.max(0.0)
+}
+
+fn box_strokable(width: f32, height: f32) -> Strokable {
+    if width > 0.0 && height > 0.0 {
+        Strokable::Yes
+    } else {
+        Strokable::RenderingDisabled
+    }
+}
+
+/// Whether a shape can carry a stroke at all.
+///
+/// A `<rect>` with a zero `width`/`height`, or a `<circle>`/`<ellipse>` with a
+/// zero radius, **disables rendering of the element** — not just its fill.
+/// Chromium paints nothing for a zero-extent *stroked* rect (measured), while a
+/// naive stroke of a zero-extent box would draw a line. A path is different: a
+/// zero-extent path is a zero-length segment, which strokes as a cap-shaped
+/// dot.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Strokable {
+    Yes,
+    /// A box primitive with a non-positive extent: admitted, and it paints
+    /// nothing at all.
+    RenderingDisabled,
+}
+
 /// The shared tail of every shape compile: resolve the typed fill and emit
 /// the resolved node. The node's `bounds` is the frame-space transform of
 /// its local geometry box — the exact-bounds law the n0 downstream
@@ -1842,12 +1973,17 @@ fn shape_node(
     geometry: Geometry,
     viewport: AffineTransform,
     next_id: &mut u64,
+    strokable: Strokable,
 ) -> Result<FrameNode, CompileError> {
     let rect = geometry.local_box();
     let fill = resolve_fill(el)?;
     let paints = match fill {
         Some(color) => SolidPaintStack::solid(color),
         None => SolidPaintStack::empty(),
+    };
+    let stroke = match strokable {
+        Strokable::Yes => resolve_stroke(el, &el.local_name_string())?,
+        Strokable::RenderingDisabled => None,
     };
 
     let visual_id = *next_id + 1;
@@ -1857,6 +1993,7 @@ fn shape_node(
         geometry,
         bounds: math2::rect_transform(rect, &viewport),
         paints,
+        stroke,
     };
     *next_id += 1;
     Ok(node)
@@ -1913,7 +2050,9 @@ fn resolve_fill(el: HtmlElement<'_>) -> Result<Option<CGColor>, CompileError> {
     let fill = style.clone_fill();
     match fill.kind {
         SVGPaintKind::None => Ok(None),
-        SVGPaintKind::Color(color) => admitted_srgb(style.resolve_color(&color)).map(Some),
+        SVGPaintKind::Color(color) => admitted_srgb(style.resolve_color(&color))
+            .map(Some)
+            .map_err(CompileError::UnsupportedFill),
         SVGPaintKind::PaintServer(url) => Err(CompileError::UnsupportedFill(
             url.url()
                 .map_or_else(|| "url(<invalid>)".to_string(), |url| format!("url({url})")),
@@ -1925,23 +2064,198 @@ fn resolve_fill(el: HtmlElement<'_>) -> Result<Option<CGColor>, CompileError> {
     }
 }
 
+/// Length units whose basis this build does not have, and which therefore must
+/// not reach a consumed length.
+///
+/// The cascade hands back an absolute `px` value, so the unit is gone by the
+/// time a computed value is read — the gate has to look at the authored text.
+/// Two families, both measured:
+///
+/// - **Viewport-relative** (`vw`/`vh`/`vmin`/`vmax` and their `sv`/`lv`/`dv`
+///   variants). Chromium resolves these against the SVG viewport: `1vw` on a
+///   64x64 document is 0.64px, byte-identical to an authored `0.64`. The
+///   cascade's device is pinned at 1280x720, so it computes 12.8px — a
+///   twentyfold error, and silent. Threading the document's real viewport into
+///   the cascade's device is the honest fix and its own rung (it moves media
+///   queries too); until then this refuses by name.
+/// - **Font-metric** (`ex`/`ch`/`ic`/`cap`/`lh`/`rlh`). The cascade's font
+///   provider returns placeholder metrics (x-height = half the font size), not
+///   measured ones: Chromium paints a `1ex` stroke 7.18 units wide where this
+///   build computes 8.0. `ch` agreeing today is an accident of the default
+///   font, not a property this engine holds.
+///
+/// `em` and `rem` are deliberately absent: they resolve against `font-size`,
+/// which this build represents and which csscascade now admits as a
+/// presentation attribute, so both are measured byte-exact.
+const LENGTH_UNITS_WITHOUT_A_BASIS: &[&str] = &[
+    "vw", "vh", "vmin", "vmax", "vi", "vb", "svw", "svh", "svmin", "svmax", "svi", "svb", "lvw",
+    "lvh", "lvmin", "lvmax", "lvi", "lvb", "dvw", "dvh", "dvmin", "dvmax", "dvi", "dvb", "ex",
+    "ch", "ic", "cap", "lh", "rlh",
+];
+
+/// Whether an authored length carries a unit whose basis this build lacks.
+///
+/// Scans for the unit as a token suffix rather than parsing CSS: a unit follows
+/// a digit or a `.`, and is followed by something that is not alphanumeric. That
+/// admits `calc(1vw + 2px)` into the refusal, which is correct — the calc
+/// carries the same basis.
+fn has_unit_without_a_basis(value: &str) -> Option<&'static str> {
+    let lower = value.to_ascii_lowercase();
+    let bytes = lower.as_bytes();
+    for unit in LENGTH_UNITS_WITHOUT_A_BASIS {
+        let mut from = 0;
+        while let Some(offset) = lower[from..].find(unit) {
+            let start = from + offset;
+            let end = start + unit.len();
+            let preceded_by_number =
+                start > 0 && (bytes[start - 1].is_ascii_digit() || bytes[start - 1] == b'.');
+            let ends_the_token = bytes
+                .get(end)
+                .is_none_or(|byte| !byte.is_ascii_alphanumeric() && *byte != b'-');
+            if preceded_by_number && ends_the_token {
+                return Some(unit);
+            }
+            from = start + 1;
+        }
+    }
+    None
+}
+
+/// Patrol every ingress an authored `stroke-width` can arrive through for a
+/// unit whose basis this build lacks: the presentation attribute, the element's
+/// `style` attribute, and — because the property inherits — the same two on
+/// every ancestor, plus any `<style>` sheet in the document.
+///
+/// The sheet leg is deliberately coarse (any sheet mentioning such a unit in a
+/// `stroke-width` declaration refuses the element) because attributing a sheet
+/// to an element needs selector matching. Over-refusal, never wrong pixels.
+fn patrol_stroke_width_units(el: HtmlElement<'_>, element_name: &str) -> Result<(), CompileError> {
+    let mut ancestor = Some(el);
+    while let Some(element) = ancestor {
+        for value in [
+            get_attr(element, "stroke-width"),
+            get_attr(element, "style").filter(|style| style.contains("stroke-width")),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            if let Some(unit) = has_unit_without_a_basis(&value) {
+                return Err(CompileError::UnsupportedStroke(format!(
+                    "a stroke-width in {unit} on <{element_name}> needs a basis this cascade does \
+                     not have"
+                )));
+            }
+        }
+        ancestor = element.traversal_parent();
+    }
+    Ok(())
+}
+
+/// Resolve the SVG stroke from the one cascade, as typed values — the same
+/// ingress discipline as [`resolve_fill`], so presentation attributes,
+/// stylesheet rules, inheritance through containers, unit-bearing lengths
+/// (`8px`, `0.5em`) and CSS keyword case-insensitivity all come from the
+/// cascade rather than from an attribute parse here.
+///
+/// `None` means nothing is stroked: `stroke: none`, or a zero width. Chromium
+/// paints nothing in both cases (measured), so this is an admitted nothing and
+/// not a hole.
+///
+/// A negative `stroke-width` never arrives: it fails the property's
+/// non-negative grammar, so the cascade drops the declaration and this read
+/// sees the inherited or initial value — exactly what Chromium paints.
+fn resolve_stroke(el: HtmlElement<'_>, element_name: &str) -> Result<Option<Stroke>, CompileError> {
+    let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
+    let style: &ComputedValues = data.styles.primary();
+
+    let paint = style.clone_stroke();
+    let color = match paint.kind {
+        SVGPaintKind::None => return Ok(None),
+        SVGPaintKind::Color(ref color) => {
+            admitted_srgb(style.resolve_color(color)).map_err(CompileError::UnsupportedStroke)?
+        }
+        SVGPaintKind::PaintServer(ref url) => {
+            return Err(CompileError::UnsupportedStroke(url.url().map_or_else(
+                || "url(<invalid>)".to_string(),
+                |url| format!("url({url})"),
+            )));
+        }
+        SVGPaintKind::ContextFill => {
+            return Err(CompileError::UnsupportedStroke("context-fill".to_string()));
+        }
+        SVGPaintKind::ContextStroke => {
+            return Err(CompileError::UnsupportedStroke(
+                "context-stroke".to_string(),
+            ));
+        }
+    };
+
+    // A percentage `stroke-width` resolves against the viewport's normalized
+    // diagonal (measured: `10%` on a 64x64 viewport paints 6.4 units wide) —
+    // the same basis chain the shape geometry percentages refuse on.
+    let width = match style.clone_stroke_width() {
+        SVGLength::ContextValue => {
+            return Err(CompileError::UnsupportedStroke(
+                "stroke-width: context-value".to_string(),
+            ));
+        }
+        SVGLength::LengthPercentage(width) => match width.0.to_length() {
+            Some(length) => {
+                // The unit is gone from a computed length, so the authored text
+                // is what says whether its basis was one this build has.
+                patrol_stroke_width_units(el, element_name)?;
+                length.px()
+            }
+            None => {
+                return Err(CompileError::UnsupportedStroke(
+                    "a percentage stroke-width needs the normalized-diagonal basis".to_string(),
+                ));
+            }
+        },
+    };
+
+    let cap = match style.clone_stroke_linecap() {
+        StyloLinecap::Butt => StrokeCap::Butt,
+        StyloLinecap::Round => StrokeCap::Round,
+        StyloLinecap::Square => StrokeCap::Square,
+    };
+    let join = match style.clone_stroke_linejoin() {
+        StyloLinejoin::Miter => StrokeJoin::Miter,
+        StyloLinejoin::Round => StrokeJoin::Round,
+        StyloLinejoin::Bevel => StrokeJoin::Bevel,
+    };
+    // Carried as resolved, including a limit below 1 that no miter can satisfy:
+    // the backend bevels it, which is what Chromium does with the same value.
+    let miter_limit = style.clone_stroke_miterlimit().0;
+
+    // The cascade's non-negative types make a rejection here unreachable from a
+    // document, so it would be this compiler's bug — named, never painted.
+    Stroke::new(SolidPaintStack::solid(color), width, cap, join, miter_limit)
+        .map_err(|error| CompileError::UnsupportedStroke(error.to_string()))
+}
+
 /// Admit a cascaded absolute color only where its fidelity is gated: the
 /// opaque sRGB values the Chromium-baked primitive suite covers. Any other
 /// color space would pass through an unverified conversion and per-channel
-/// clamp, and a translucent fill would ship unverified compositing — both
+/// clamp, and a translucent paint would ship unverified compositing — both
 /// refuse explicitly until their own capability steps bake fixtures.
-fn admitted_srgb(color: AbsoluteColor) -> Result<CGColor, CompileError> {
+///
+/// The *reason* is returned rather than the error, so each caller names its own
+/// property: the same unusable color is an unsupported `fill` in
+/// [`resolve_fill`] and an unsupported `stroke` in [`resolve_stroke`], and a
+/// declared hole that names the wrong property misdirects whoever reads it.
+fn admitted_srgb(color: AbsoluteColor) -> Result<CGColor, String> {
     if color.color_space != ColorSpace::Srgb {
-        return Err(CompileError::UnsupportedFill(format!(
+        return Err(format!(
             "color space {:?} is not yet gated against Chromium",
             color.color_space
-        )));
+        ));
     }
     if color.alpha != 1.0 {
-        return Err(CompileError::UnsupportedFill(format!(
-            "translucent fill (alpha {}) is not yet gated against Chromium",
+        return Err(format!(
+            "translucent paint (alpha {}) is not yet gated against Chromium",
             color.alpha
-        )));
+        ));
     }
     let c = color.raw_components();
     Ok(CGColor::from_rgb(to_u8(c[0]), to_u8(c[1]), to_u8(c[2])))

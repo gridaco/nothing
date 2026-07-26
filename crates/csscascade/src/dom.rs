@@ -707,6 +707,17 @@ fn admitted_svg_presentation_property(local: &str) -> Option<LonghandId> {
     match local {
         "fill" => Some(LonghandId::Fill),
         "fill-rule" => Some(LonghandId::FillRule),
+        "stroke" => Some(LonghandId::Stroke),
+        "stroke-width" => Some(LonghandId::StrokeWidth),
+        "stroke-linecap" => Some(LonghandId::StrokeLinecap),
+        "stroke-linejoin" => Some(LonghandId::StrokeLinejoin),
+        "stroke-miterlimit" => Some(LonghandId::StrokeMiterlimit),
+        // Not painted by any consumer yet, and admitted anyway: `font-size` is
+        // the basis for an `em`/`rem` length, and `stroke-width` is now a
+        // consumed length. Chromium treats it as a presentation attribute
+        // (measured: `<g font-size="32">` makes a `0.5em` stroke 16px), so
+        // dropping it here computed the wrong width from the right document.
+        "font-size" => Some(LonghandId::FontSize),
         _ => None,
     }
 }
@@ -734,19 +745,44 @@ fn svg_presentation_hints(
             continue;
         };
         let url_data = UrlExtraData::from(Url::parse("about:blank").unwrap());
-        if parse_one_declaration_into(
-            &mut source,
-            PropertyId::NonCustom(longhand.into()),
-            &attr.value,
-            Origin::Author,
-            &url_data,
-            None,
-            ParsingMode::DEFAULT,
-            StyleQuirksMode::NoQuirks,
-            CssRuleType::Style,
-        )
-        .is_ok()
-        {
+        fn parse(
+            source: &mut SourcePropertyDeclaration,
+            longhand: LonghandId,
+            url_data: &UrlExtraData,
+            value: &str,
+        ) -> bool {
+            parse_one_declaration_into(
+                source,
+                PropertyId::NonCustom(longhand.into()),
+                value,
+                Origin::Author,
+                url_data,
+                None,
+                ParsingMode::DEFAULT,
+                StyleQuirksMode::NoQuirks,
+                CssRuleType::Style,
+            )
+            .is_ok()
+        }
+        // SVG presentation attributes take a length in *user units*, so a bare
+        // number is valid where the CSS property grammar requires a unit —
+        // Blink parses these in a dedicated SVG attribute mode for exactly this
+        // reason. Retrying a rejected bare number as `px` reproduces it, and
+        // can only ever turn a dropped declaration into the one the browser
+        // computed: a property whose grammar takes no length rejects the number
+        // either way. (`stroke-width` needs no retry — SVG's own grammar for it
+        // admits a number, and Stylo implements that.)
+        let admitted = parse(&mut source, longhand, &url_data, &attr.value)
+            || (is_bare_number(&attr.value) && {
+                source.clear();
+                parse(
+                    &mut source,
+                    longhand,
+                    &url_data,
+                    &format!("{}px", attr.value.trim()),
+                )
+            });
+        if admitted {
             block.extend(source.drain(), Importance::Normal);
             parsed_any = true;
         } else {
@@ -754,6 +790,13 @@ fn svg_presentation_hints(
         }
     }
     parsed_any.then(|| Arc::new(shared_lock.wrap(block)))
+}
+
+/// Whether the whole value is one CSS number and nothing else — the shape an
+/// SVG presentation attribute may use for a length in user units.
+fn is_bare_number(value: &str) -> bool {
+    let trimmed = value.trim();
+    !trimmed.is_empty() && trimmed.parse::<f64>().is_ok_and(f64::is_finite)
 }
 
 fn parse_class_list(value: &str) -> Vec<AtomIdent> {

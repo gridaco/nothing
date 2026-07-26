@@ -260,9 +260,16 @@ fn unconsumed_rendering_attributes_never_paint_wrong_pixels() {
             "transform-origin",
         ),
         (
-            "stroke paint",
-            r##"stroke="#0000ff" stroke-width="8""##,
-            "stroke",
+            // The strokes rung consumed the stroke paint and its geometry; what
+            // remains unconsumed is the compositing and dashing half.
+            "stroke opacity",
+            r##"stroke="#0000ff" stroke-width="8" stroke-opacity="0.5""##,
+            "stroke-opacity",
+        ),
+        (
+            "stroke dashing",
+            r##"stroke="#0000ff" stroke-width="8" stroke-dasharray="4 4""##,
+            "stroke-dasharray",
         ),
         (
             "conditional processing",
@@ -316,7 +323,11 @@ fn unconsumed_rendering_attributes_never_paint_wrong_pixels() {
 #[test]
 fn stylesheet_smuggled_values_are_patrolled_at_the_computed_level() {
     for (label, css, named) in [
-        ("stylesheet stroke", "rect { stroke: #0000ff }", "stroke"),
+        (
+            "stylesheet stroke opacity",
+            "rect { stroke: #0000ff; stroke-opacity: 0.5 }",
+            "stroke-opacity",
+        ),
         ("stylesheet opacity", "rect { opacity: 0.5 }", "opacity"),
         ("stylesheet display", "rect { display: none }", "display"),
         (

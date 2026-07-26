@@ -16,7 +16,8 @@ use std::sync::Arc;
 
 use n0_model::math::Affine;
 use n0_model::model::{
-    BlendMode, Color, CornerSmoothing, Paint, Paints, RectangularCornerRadius, SolidPaint,
+    BlendMode, Color, CornerSmoothing, Paint, Paints, RectangularCornerRadius, SolidPaint, Stroke,
+    StrokeAlign, StrokeCap, StrokeJoin, StrokeWidth,
 };
 use n0_model::path::ResolvedPathArtifact;
 use rframe::{Frame, Geometry, SolidPaintStack, VisualRef};
@@ -194,8 +195,9 @@ fn damage_input(product: &FrameProduct) -> FrameDamageInput<'_, VisualRef, (), G
 ///
 /// Validation and private drawlist construction complete before the immutable
 /// product is returned. No raster command is issued here. The current admitted
-/// slice is rectangles and ellipses (each carried as its local-space bounding
-/// rectangle), ordinary solid `cg` paints, and the frame-bounds clip.
+/// slice is rectangles, ellipses (each carried as its local-space bounding
+/// rectangle) and paths, ordinary solid `cg` paints, a centred stroke over the
+/// fill, and the frame-bounds clip.
 pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
     validate_rect(resolved.bounds).map_err(|_| BuildError::InvalidFrameBounds)?;
     let owner_count = resolved
@@ -245,55 +247,86 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
             u32::try_from(provenance.owners.len()).expect("owner count checked above"),
         );
         provenance.owners.push(node.owner);
-        provenance.coverage.push(to_rectf(node.bounds));
-        if paints.is_empty() {
-            continue;
-        }
+        // A stroke paints outside the geometry, so the covered area — what the
+        // damage policy repaints — is the node's bounds inflated by the
+        // stroke's own reach, mapped through the same transform.
+        provenance.coverage.push(to_rectf(match &node.stroke {
+            None => node.bounds,
+            Some(stroke) => {
+                math2::rect_transform(math2::rect_inset(rect, -stroke.outset()), &node.transform)
+            }
+        }));
 
         // A box primitive draws at its item's origin, so its own local offset
         // enters the world transform. A path carries absolute local
         // coordinates instead: its stream is the geometry, and translating it
         // would be a second coordinate mapping over values the contract has
         // already resolved.
-        let (world, kind) = match &node.geometry {
-            Geometry::Rect(_) => (
-                to_affine(node.transform).then(&Affine::translate(rect.x, rect.y)),
-                ItemKind::RectFill {
-                    w: rect.width,
-                    h: rect.height,
+        let world = match &node.geometry {
+            Geometry::Rect(_) | Geometry::Ellipse(_) => {
+                to_affine(node.transform).then(&Affine::translate(rect.x, rect.y))
+            }
+            Geometry::Path(_) => to_affine(node.transform),
+        };
+        // The paint reference box is the geometry's own extent. For a path its
+        // origin coincides with local space, which only a non-solid paint could
+        // observe — and the admitted slice has none, so the rung that admits
+        // one decides how the box travels.
+        let (w, h) = (rect.width, rect.height);
+        let path = match &node.geometry {
+            Geometry::Path(path) => Some(compile_path(path)),
+            _ => None,
+        };
+        if !paints.is_empty() {
+            let kind = match &node.geometry {
+                Geometry::Rect(_) => ItemKind::RectFill {
+                    w,
+                    h,
                     corner_radius: RectangularCornerRadius::default(),
                     corner_smoothing: CornerSmoothing::default(),
                     paints,
                 },
-            ),
-            Geometry::Ellipse(_) => (
-                to_affine(node.transform).then(&Affine::translate(rect.x, rect.y)),
-                ItemKind::OvalFill {
-                    w: rect.width,
-                    h: rect.height,
+                Geometry::Ellipse(_) => ItemKind::OvalFill { w, h, paints },
+                Geometry::Path(_) => ItemKind::PathFill {
+                    w,
+                    h,
+                    path: Arc::clone(path.as_ref().expect("path geometry compiled its stream")),
                     paints,
                 },
-            ),
-            Geometry::Path(path) => (
-                to_affine(node.transform),
-                ItemKind::PathFill {
-                    // The paint reference box is the geometry's own extent.
-                    // Its origin coincides with local space here, which only
-                    // a non-solid paint could observe — and the admitted
-                    // slice has none, so the rung that admits one decides
-                    // how the box travels.
-                    w: rect.width,
-                    h: rect.height,
-                    path: compile_path(path),
-                    paints,
+            };
+            items.push(Item {
+                node: owner,
+                world,
+                kind,
+            });
+        }
+        // SVG's default paint order is fill, then stroke — one item after the
+        // other in the same private drawlist, which is why a stroke needs no
+        // group scope.
+        if let Some(stroke) = &node.stroke {
+            let stroke = compile_stroke(stroke);
+            let kind = match &node.geometry {
+                Geometry::Rect(_) => ItemKind::RectStroke {
+                    w,
+                    h,
+                    corner_radius: RectangularCornerRadius::default(),
+                    corner_smoothing: CornerSmoothing::default(),
+                    stroke,
                 },
-            ),
-        };
-        items.push(Item {
-            node: owner,
-            world,
-            kind,
-        });
+                Geometry::Ellipse(_) => ItemKind::OvalStroke { w, h, stroke },
+                Geometry::Path(_) => ItemKind::PathStroke {
+                    w,
+                    h,
+                    path: Arc::clone(path.as_ref().expect("path geometry compiled its stream")),
+                    stroke,
+                },
+            };
+            items.push(Item {
+                node: owner,
+                world,
+                kind,
+            });
+        }
     }
 
     items.push(Item {
@@ -360,6 +393,33 @@ fn compile_path(data: &rframe::PathData) -> Arc<ResolvedPathArtifact> {
         local_bounds: to_rectf(data.local_bounds()),
         all_contours_closed: data.all_contours_closed(),
     })
+}
+
+/// Project the contract's resolved stroke into the engine's private stroke.
+///
+/// The contract's stroke is centred on the geometry, which is the only
+/// alignment a Web source can express; the engine's own vocabulary carries an
+/// alignment, so the projection names it rather than relying on a default.
+/// Width is uniform because a Web stroke has one width, and the dash array is
+/// absent because the producer refuses a dashed stroke.
+fn compile_stroke(stroke: &rframe::Stroke) -> Stroke {
+    Stroke {
+        paints: compile_paints(stroke.paints()),
+        width: StrokeWidth::Uniform(stroke.width()),
+        align: StrokeAlign::Center,
+        cap: match stroke.cap() {
+            rframe::StrokeCap::Butt => StrokeCap::Butt,
+            rframe::StrokeCap::Round => StrokeCap::Round,
+            rframe::StrokeCap::Square => StrokeCap::Square,
+        },
+        join: match stroke.join() {
+            rframe::StrokeJoin::Miter => StrokeJoin::Miter,
+            rframe::StrokeJoin::Round => StrokeJoin::Round,
+            rframe::StrokeJoin::Bevel => StrokeJoin::Bevel,
+        },
+        miter_limit: stroke.miter_limit(),
+        dash_array: None,
+    }
 }
 
 fn validate_rect(rect: math2::Rectangle) -> Result<(), ()> {
@@ -454,6 +514,7 @@ mod tests {
                 geometry: Geometry::Rect(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0)),
                 bounds: Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0),
                 paints,
+                stroke: None,
             }],
         }
     }
@@ -656,6 +717,7 @@ mod tests {
                 geometry: Geometry::Rect(Rectangle::from_xywh(0.0, 0.0, 8.0, 8.0)),
                 bounds: Rectangle::from_xywh(0.0, 0.0, 8.0, 8.0),
                 paints: SolidPaintStack::solid(CGColor::RED),
+                stroke: None,
             }],
         };
         assert!(matches!(

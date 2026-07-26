@@ -14,9 +14,11 @@
 
 pub mod frame;
 pub mod path;
+pub mod stroke;
 
 pub use frame::{
     Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, SolidPaintStackError,
     VisualRef,
 };
 pub use path::{FillRule, PathCommand, PathData, PathDataError};
+pub use stroke::{Stroke, StrokeCap, StrokeError, StrokeJoin};

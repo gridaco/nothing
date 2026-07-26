@@ -432,14 +432,13 @@ mod tests {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         for (relative, kind, size, named) in [
             (
-                // Containers are compiled, and `<title>`/`<desc>` paint
-                // nothing, so strict now reaches this fixture's stroked
-                // shapes: the first refusal is the stroke paint the slice
-                // does not consume.
+                // The strokes rung consumed this fixture's stroked shapes and
+                // its two `<line>`s, so strict now reaches the labels: the
+                // first refusal is `<text>`, the next rung on the ladder.
                 "fixtures/test-svg/L0/basic-shapes.svg",
                 SourceKind::Svg,
                 (500, 500),
-                "stroke paint is not yet consumed",
+                "unsupported element <text>",
             ),
             (
                 // The paths rung admitted <path>; the sibling polygon probe
@@ -486,10 +485,13 @@ mod tests {
     fn best_effort_default_renders_the_admitted_subset_and_declares_the_rest() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
 
-        // basic-shapes.svg: the white background rect is admitted, the
-        // eight groups are compiled and their beyond-slice *descendants*
-        // are declared individually at nested paths, and `<title>`/`<desc>`
-        // declare nothing because Chromium paints nothing for them either.
+        // basic-shapes.svg: the white background rect is admitted, the eight
+        // groups are compiled and their beyond-slice *descendants* are declared
+        // individually at nested paths, and `<title>`/`<desc>` declare nothing
+        // because Chromium paints nothing for them either. After the strokes
+        // rung the stroked rect/circle/ellipse and both `<line>`s render, so
+        // what remains is the labels, the `points` shapes, and one rounded
+        // rect (`rx` is not consumed).
         let source = std::fs::read_to_string(root.join("fixtures/test-svg/L0/basic-shapes.svg"))
             .expect("read basic-shapes");
         let (png, degradations) = render_source_to_png(
@@ -511,16 +513,11 @@ mod tests {
         assert_eq!(
             skipped,
             vec![
-                "svg/g[1]/rect[1]",
                 "svg/g[1]/text[1]",
                 "svg/g[2]/rect[1]",
                 "svg/g[2]/text[1]",
-                "svg/g[3]/circle[1]",
                 "svg/g[3]/text[1]",
-                "svg/g[4]/ellipse[1]",
                 "svg/g[4]/text[1]",
-                "svg/g[5]/line[1]",
-                "svg/g[5]/line[2]",
                 "svg/g[5]/text[1]",
                 "svg/g[6]/polyline[1]",
                 "svg/g[6]/text[1]",
