@@ -1,8 +1,13 @@
-//! Exact retained-source gates for the first Web SVG animation slice.
+//! Exact retained-source gates for the Web SVG animation slice.
 //!
 //! The independent Chromium baker owns timeline control and committed oracle
 //! pixels. These tests consume only those artifacts; they never run the sealed
 //! consolidation scoreboard or compute a similarity score.
+//!
+//! The slice itself is one `<animate>` on a top-level `<rect>`'s `x`. Two
+//! fixtures exercise it: a bare rect on a backdrop, and `svg-scene-cub` — a
+//! whole composition whose animated rect is one node among seventeen, so the
+//! sampling path is gated over a scene rather than only over a single shape.
 
 mod support;
 
@@ -18,13 +23,14 @@ use sha2::{Digest, Sha256};
 use support::{decode_png, render_through_n0};
 use websem::{InitialViewport, SvgFrameSource};
 
-/// The host-established initial viewport for this file's laws. Every law
-/// but `sampled_overrides_stay_local_under_a_scaling_viewport` authors
-/// explicit root dimensions, making this value inert; that one law
-/// deliberately leaves its height unauthored and takes 32 from here
-/// (auto -> 100% of the initial viewport), so its expected transform
-/// depends on these values. The viewport laws proper live in
-/// `viewport_contract.rs`.
+/// The host-established initial viewport for this file's *inline* laws — the
+/// ones that author their own source instead of reading the corpus. Every such
+/// source authors explicit root dimensions, making this value inert, except
+/// `sampled_overrides_stay_local_under_a_scaling_viewport`, which deliberately
+/// leaves its height unauthored and takes 32 from here (auto -> 100% of the
+/// initial viewport), so its expected transform depends on these values. Corpus
+/// fixtures use their own declared dims (see [`Fixture::viewport`]); the
+/// viewport laws proper live in `viewport_contract.rs`.
 fn host_viewport() -> InitialViewport {
     InitialViewport::new(64.0, 32.0)
 }
@@ -32,11 +38,41 @@ fn host_viewport() -> InitialViewport {
 #[derive(Debug, Deserialize)]
 struct Suite {
     schema_version: u32,
+    fixtures: Vec<Fixture>,
+}
+
+#[derive(Debug, Deserialize)]
+struct Fixture {
+    id: String,
     width: i32,
     height: i32,
     authored_base_x: f32,
+    frame: FrameShape,
     base: BaseCase,
     animation: AnimationCase,
+}
+
+impl Fixture {
+    /// The declared dims are the initial viewport the fixture was baked at —
+    /// the browser window in `bake_chromium.ts`. A fixture that leaves the root
+    /// `width`/`height` unauthored (the cub does) resolves them from this, so
+    /// passing anything else would render a differently-sized scene than the
+    /// oracle.
+    fn viewport(&self) -> InitialViewport {
+        InitialViewport::new(self.width as f32, self.height as f32)
+    }
+}
+
+/// The resolved frame each fixture must compile to.
+///
+/// Declared rather than discovered: a fixture that silently stops
+/// materializing an element, or that materializes its animated rect at another
+/// index, fails here instead of quietly weakening every law that reads the
+/// animated node.
+#[derive(Debug, Deserialize)]
+struct FrameShape {
+    node_count: usize,
+    animated_node_index: usize,
 }
 
 #[derive(Debug, Deserialize)]
@@ -68,18 +104,28 @@ struct BakeManifest {
     suite: String,
     suite_sha256: String,
     capture: CapturePolicy,
-    cases: Vec<BakeRecord>,
+    fixtures: Vec<BakeFixture>,
 }
 
 #[derive(Debug, Deserialize)]
 struct CapturePolicy {
+    viewport: String,
     device_scale_factor: u32,
     network: String,
     timeline_control: String,
     comparison: String,
     fresh_captures_per_case: u32,
+}
+
+#[derive(Debug, Deserialize)]
+struct BakeFixture {
+    id: String,
+    width: i32,
+    height: i32,
+    authored_base_x: f32,
     retained_seek_order_ns: Vec<i64>,
     retained_seek_count: usize,
+    cases: Vec<BakeRecord>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -134,14 +180,20 @@ fn rgba_sha256_file(path: &Path) -> String {
     format!("{:x}", Sha256::digest(png.pixels))
 }
 
-fn probe_x(frame: &Frame) -> f32 {
-    let Geometry::Rect(rect) = &frame
+/// The `x` of the fixture's animated node, which the suite declares by index.
+fn probe_x(frame: &Frame, fixture: &Fixture) -> f32 {
+    assert_eq!(
+        frame.nodes.len(),
+        fixture.frame.node_count,
+        "{} materializes exactly its declared node count",
+        fixture.id
+    );
+    let node = frame
         .nodes
-        .get(1)
-        .expect("fixture keeps the black probe after the white background")
-        .geometry
-    else {
-        panic!("these animation fixtures materialize rects only");
+        .get(fixture.frame.animated_node_index)
+        .unwrap_or_else(|| panic!("{} declares an out-of-range animated node", fixture.id));
+    let Geometry::Rect(rect) = &node.geometry else {
+        panic!("{}: only a rect's x is animated in this slice", fixture.id);
     };
     rect.x
 }
@@ -173,9 +225,9 @@ fn assert_exact_oracle(frame: Frame, oracle: &Path, width: i32, height: i32, lab
 fn chromium_animation_oracle_provenance_is_current() {
     let root = fixture_root();
     let suite = suite();
-    assert_eq!(suite.schema_version, 0);
+    assert_eq!(suite.schema_version, 1);
     let manifest: BakeManifest = read_json(&root.join("oracle-bake.json"));
-    assert_eq!(manifest.schema_version, 0);
+    assert_eq!(manifest.schema_version, 1);
     assert_eq!(manifest.kind, "chromium-svg-animation-oracle");
     assert_eq!(manifest.suite, "cases.json");
     assert_eq!(manifest.suite_sha256, sha256_file(&root.join("cases.json")));
@@ -183,7 +235,10 @@ fn chromium_animation_oracle_provenance_is_current() {
         manifest.bake_script_sha256,
         sha256_file(&root.join("bake_chromium.ts"))
     );
-    assert_eq!(manifest.cases.len(), 1 + suite.animation.samples.len());
+    assert_eq!(
+        manifest.capture.viewport,
+        "per-fixture declared dims (the initial viewport)"
+    );
     assert_eq!(manifest.capture.device_scale_factor, 1);
     assert_eq!(
         manifest.capture.network,
@@ -198,195 +253,259 @@ fn chromium_animation_oracle_provenance_is_current() {
         "exact decoded RGBA; fresh PNG encodings also byte-identical"
     );
     assert_eq!(manifest.capture.fresh_captures_per_case, 2);
-    assert_eq!(
-        manifest.capture.retained_seek_order_ns,
-        suite.animation.retained_seek_order_ns
-    );
-    assert_eq!(
-        manifest.capture.retained_seek_count,
-        suite.animation.retained_seek_order_ns.len()
-    );
+    assert_eq!(manifest.fixtures.len(), suite.fixtures.len());
 
-    let mut record_ids = BTreeSet::new();
-    let mut sample_times = BTreeSet::new();
-    let mut saw_base = false;
-    for record in &manifest.cases {
-        assert!(record_ids.insert(record.id.as_str()), "duplicate record id");
-        assert_eq!(record.fresh_capture_count, 2);
-        assert!(record.observed.animations_paused);
+    let mut oracle_paths = BTreeSet::new();
+    for (fixture, baked) in suite.fixtures.iter().zip(&manifest.fixtures) {
+        assert_eq!(baked.id, fixture.id, "fixture order");
+        assert_eq!((baked.width, baked.height), (fixture.width, fixture.height));
+        assert_eq!(baked.authored_base_x, fixture.authored_base_x);
         assert_eq!(
-            record.source_sha256,
-            sha256_file(&root.join(&record.source)),
-            "{} source provenance",
-            record.policy
+            baked.retained_seek_order_ns,
+            fixture.animation.retained_seek_order_ns
         );
         assert_eq!(
-            record.oracle_sha256,
-            sha256_file(&root.join(&record.oracle)),
-            "{} oracle provenance",
-            record.policy
+            baked.retained_seek_count,
+            fixture.animation.retained_seek_order_ns.len()
         );
-        assert_eq!(
-            record.rgba_sha256,
-            rgba_sha256_file(&root.join(&record.oracle)),
-            "{} decoded RGBA provenance",
-            record.id
-        );
-        match record.time_ns {
-            None => {
-                assert!(!saw_base, "duplicate Base record");
-                saw_base = true;
-                assert_eq!(record.id, "base");
-                assert_eq!(record.policy, "base-static-projection");
-                assert_eq!(record.source, suite.base.source);
-                assert_eq!(record.oracle, suite.base.oracle);
-                assert_eq!(record.expected_x, suite.base.expected_x);
-                assert_eq!(record.observed.base_x, suite.authored_base_x);
-                assert_eq!(record.observed.anim_x, suite.base.expected_x);
-                assert_eq!(record.observed.bbox_x, suite.base.expected_x);
-                assert_eq!(record.observed.current_time_seconds, 0.0);
-                assert_eq!(record.observed.animation_element_count, 0);
-            }
-            Some(time) => {
-                assert!(sample_times.insert(time), "duplicate sample {time}ns");
-                assert_eq!(record.policy, "sample");
-                let sample = suite
-                    .animation
-                    .samples
-                    .iter()
-                    .find(|sample| sample.time_ns == time)
-                    .unwrap_or_else(|| panic!("manifest has undeclared sample {time}ns"));
-                assert_eq!(record.source, suite.animation.source);
-                assert_eq!(record.oracle, sample.oracle);
-                assert_eq!(record.expected_x, sample.expected_x);
-                assert_eq!(record.observed.base_x, suite.authored_base_x);
-                assert_eq!(record.observed.anim_x, sample.expected_x);
-                assert_eq!(record.observed.bbox_x, sample.expected_x);
-                assert_eq!(
-                    record.observed.current_time_seconds,
-                    time as f64 / 1_000_000_000.0
-                );
-                assert_eq!(record.observed.animation_element_count, 1);
+        assert_eq!(baked.cases.len(), 1 + fixture.animation.samples.len());
+
+        let mut record_ids = BTreeSet::new();
+        let mut sample_times = BTreeSet::new();
+        let mut saw_base = false;
+        for record in &baked.cases {
+            assert!(
+                record_ids.insert(record.id.as_str()),
+                "duplicate record id in {}",
+                fixture.id
+            );
+            assert!(
+                oracle_paths.insert(record.oracle.as_str()),
+                "two records claim oracle {}",
+                record.oracle
+            );
+            assert_eq!(record.fresh_capture_count, 2);
+            assert!(record.observed.animations_paused);
+            assert_eq!(
+                record.source_sha256,
+                sha256_file(&root.join(&record.source)),
+                "{} source provenance",
+                record.id
+            );
+            assert_eq!(
+                record.oracle_sha256,
+                sha256_file(&root.join(&record.oracle)),
+                "{} oracle provenance",
+                record.id
+            );
+            assert_eq!(
+                record.rgba_sha256,
+                rgba_sha256_file(&root.join(&record.oracle)),
+                "{} decoded RGBA provenance",
+                record.id
+            );
+            match record.time_ns {
+                None => {
+                    assert!(!saw_base, "duplicate Base record in {}", fixture.id);
+                    saw_base = true;
+                    assert_eq!(record.id, format!("{}/base", fixture.id));
+                    assert_eq!(record.policy, "base-static-projection");
+                    assert_eq!(record.source, fixture.base.source);
+                    assert_eq!(record.oracle, fixture.base.oracle);
+                    assert_eq!(record.expected_x, fixture.base.expected_x);
+                    assert_eq!(record.observed.base_x, fixture.authored_base_x);
+                    assert_eq!(record.observed.anim_x, fixture.base.expected_x);
+                    assert_eq!(record.observed.bbox_x, fixture.base.expected_x);
+                    assert_eq!(record.observed.current_time_seconds, 0.0);
+                    assert_eq!(record.observed.animation_element_count, 0);
+                }
+                Some(time) => {
+                    assert!(
+                        sample_times.insert(time),
+                        "duplicate sample {time}ns in {}",
+                        fixture.id
+                    );
+                    assert_eq!(record.id, format!("{}/sample-{time}ns", fixture.id));
+                    assert_eq!(record.policy, "sample");
+                    let sample = fixture
+                        .animation
+                        .samples
+                        .iter()
+                        .find(|sample| sample.time_ns == time)
+                        .unwrap_or_else(|| {
+                            panic!("{} manifest has undeclared sample {time}ns", fixture.id)
+                        });
+                    assert_eq!(record.source, fixture.animation.source);
+                    assert_eq!(record.oracle, sample.oracle);
+                    assert_eq!(record.expected_x, sample.expected_x);
+                    assert_eq!(record.observed.base_x, fixture.authored_base_x);
+                    assert_eq!(record.observed.anim_x, sample.expected_x);
+                    assert_eq!(record.observed.bbox_x, sample.expected_x);
+                    assert_eq!(
+                        record.observed.current_time_seconds,
+                        time as f64 / 1_000_000_000.0
+                    );
+                    assert_eq!(record.observed.animation_element_count, 1);
+                }
             }
         }
+        assert!(saw_base, "{} is missing its Base record", fixture.id);
+        assert_eq!(
+            sample_times,
+            fixture
+                .animation
+                .samples
+                .iter()
+                .map(|sample| sample.time_ns)
+                .collect(),
+            "{} must cover every declared sample exactly once",
+            fixture.id
+        );
     }
-    assert!(saw_base, "missing Base record");
-    assert_eq!(
-        sample_times,
-        suite
-            .animation
-            .samples
-            .iter()
-            .map(|sample| sample.time_ns)
-            .collect(),
-        "manifest must cover every declared sample exactly once"
-    );
 }
 
 #[test]
-fn retained_rect_x_samples_are_exact_to_chromium_and_seek_order_independent() {
+fn retained_samples_are_exact_to_chromium_and_seek_order_independent() {
     let root = fixture_root();
-    let suite = suite();
-    let animated_text =
-        fs::read_to_string(root.join(&suite.animation.source)).expect("read animated SVG source");
-    let static_text =
-        fs::read_to_string(root.join(&suite.base.source)).expect("read Base SVG source");
-    let source = SvgFrameSource::from_standalone_svg(animated_text.clone(), host_viewport())
-        .expect("retain animated SVG");
-    let static_source = SvgFrameSource::from_standalone_svg(static_text, host_viewport())
-        .expect("retain static Base SVG");
+    for fixture in suite().fixtures {
+        let id = &fixture.id;
+        let animated_text = fs::read_to_string(root.join(&fixture.animation.source))
+            .unwrap_or_else(|error| panic!("read {} animated source: {error}", id));
+        let static_text = fs::read_to_string(root.join(&fixture.base.source))
+            .unwrap_or_else(|error| panic!("read {} Base source: {error}", id));
+        let source = SvgFrameSource::from_standalone_svg(animated_text.clone(), fixture.viewport())
+            .unwrap_or_else(|error| panic!("retain {id} animated: {error}"));
+        let static_source = SvgFrameSource::from_standalone_svg(static_text, fixture.viewport())
+            .unwrap_or_else(|error| panic!("retain {id} Base: {error}"));
 
-    assert_eq!(source.source(), animated_text);
-    assert!(source.has_animation_elements());
-    assert!(!static_source.has_animation_elements());
-    let base = source.base_frame();
-    assert_eq!(base, static_source.base_frame());
-    assert_eq!(probe_x(&base), suite.authored_base_x);
-    assert_eq!(probe_x(&base), suite.base.expected_x);
-    assert_exact_oracle(
-        base.clone(),
-        &root.join(&suite.base.oracle),
-        suite.width,
-        suite.height,
-        "Base",
-    );
-
-    let pre_roll = source
-        .sample_frame(SampleTime::from_nanoseconds(-1))
-        .expect("pre-roll sample");
-    assert_eq!(pre_roll, base, "pre-roll reveals the authored Base value");
-
-    for sample in &suite.animation.samples {
-        let first = source
-            .sample_frame(SampleTime::from_nanoseconds(sample.time_ns))
-            .unwrap_or_else(|error| panic!("sample {}ns: {error}", sample.time_ns));
-        let second = source
-            .sample_frame(SampleTime::from_nanoseconds(sample.time_ns))
-            .unwrap_or_else(|error| panic!("repeat sample {}ns: {error}", sample.time_ns));
-        assert_eq!(first, second, "{}ns frame determinism", sample.time_ns);
-        assert_eq!(probe_x(&first), sample.expected_x, "{}ns x", sample.time_ns);
+        assert_eq!(source.source(), animated_text);
+        assert!(source.has_animation_elements(), "{id} carries an animation");
+        assert!(
+            !static_source.has_animation_elements(),
+            "{id} Base projection carries none"
+        );
+        let base = source.base_frame();
         assert_eq!(
-            first.nodes[1].owner, base.nodes[1].owner,
-            "{}ns stable visual identity",
-            sample.time_ns
+            base,
+            static_source.base_frame(),
+            "{id}: the Base view IS the static projection"
         );
+        assert_eq!(probe_x(&base, &fixture), fixture.authored_base_x);
+        assert_eq!(probe_x(&base, &fixture), fixture.base.expected_x);
         assert_exact_oracle(
-            first,
-            &root.join(&sample.oracle),
-            suite.width,
-            suite.height,
-            &format!("Sample({}ns)", sample.time_ns),
+            base.clone(),
+            &root.join(&fixture.base.oracle),
+            fixture.width,
+            fixture.height,
+            &format!("{id} Base"),
         );
-    }
 
-    assert_ne!(
-        source.sample_frame(SampleTime::ZERO).expect("zero sample"),
-        base,
-        "Base is not shorthand for Sample(0)"
-    );
-    for time in suite.animation.retained_seek_order_ns {
-        let frame = source
-            .sample_frame(SampleTime::from_nanoseconds(time))
-            .unwrap_or_else(|error| panic!("shuffled seek {time}ns: {error}"));
-        let expected = suite
-            .animation
-            .samples
-            .iter()
-            .find(|sample| sample.time_ns == time)
-            .expect("seek order is closed over declared samples");
-        assert_eq!(probe_x(&frame), expected.expected_x);
+        let pre_roll = source
+            .sample_frame(SampleTime::from_nanoseconds(-1))
+            .unwrap_or_else(|error| panic!("{id} pre-roll: {error}"));
+        assert_eq!(
+            pre_roll, base,
+            "{id} pre-roll reveals the authored Base value"
+        );
+
+        for sample in &fixture.animation.samples {
+            let first = source
+                .sample_frame(SampleTime::from_nanoseconds(sample.time_ns))
+                .unwrap_or_else(|error| panic!("{id} sample {}ns: {error}", sample.time_ns));
+            let second = source
+                .sample_frame(SampleTime::from_nanoseconds(sample.time_ns))
+                .unwrap_or_else(|error| panic!("{id} repeat sample {}ns: {error}", sample.time_ns));
+            assert_eq!(first, second, "{id} {}ns frame determinism", sample.time_ns);
+            assert_eq!(
+                probe_x(&first, &fixture),
+                sample.expected_x,
+                "{id} {}ns x",
+                sample.time_ns
+            );
+            let animated = fixture.frame.animated_node_index;
+            assert_eq!(
+                first.nodes[animated].owner, base.nodes[animated].owner,
+                "{id} {}ns stable visual identity",
+                sample.time_ns
+            );
+            assert_exact_oracle(
+                first,
+                &root.join(&sample.oracle),
+                fixture.width,
+                fixture.height,
+                &format!("{id} Sample({}ns)", sample.time_ns),
+            );
+        }
+
+        assert_ne!(
+            source
+                .sample_frame(SampleTime::ZERO)
+                .unwrap_or_else(|error| panic!("{id} zero sample: {error}")),
+            base,
+            "{id}: Base is not shorthand for Sample(0)"
+        );
+        for &time in &fixture.animation.retained_seek_order_ns {
+            let frame = source
+                .sample_frame(SampleTime::from_nanoseconds(time))
+                .unwrap_or_else(|error| panic!("{id} shuffled seek {time}ns: {error}"));
+            let expected = fixture
+                .animation
+                .samples
+                .iter()
+                .find(|sample| sample.time_ns == time)
+                .expect("seek order is closed over declared samples");
+            assert_eq!(probe_x(&frame, &fixture), expected.expected_x);
+        }
+        assert_eq!(
+            source.base_frame(),
+            base,
+            "{id}: sampling never mutates retained authored state"
+        );
+        assert_eq!(source.source(), animated_text);
     }
-    assert_eq!(
-        source.base_frame(),
-        base,
-        "sampling never mutates retained authored state"
-    );
-    assert_eq!(source.source(), animated_text);
 }
 
+/// Damage from a sample is the animated node and nothing else, over the union
+/// of where it was and where it went — including in a seventeen-node scene,
+/// where every other node must stay untouched.
 #[test]
 fn chassis_damage_observes_the_same_stable_animated_visual() {
     let root = fixture_root();
-    let suite = suite();
-    let source = SvgFrameSource::from_standalone_svg(
-        fs::read_to_string(root.join(&suite.animation.source)).expect("read animated SVG"),
-        host_viewport(),
-    )
-    .expect("retain animated SVG");
-    let base = source.base_frame();
-    let midpoint = source
-        .sample_frame(SampleTime::from_nanoseconds(1_000_000_000))
-        .expect("midpoint sample");
-    let owner = base.nodes[1].owner;
-    let before = n0::glyphless::compile(base).expect("compile Base product");
-    let after = n0::glyphless::compile(midpoint).expect("compile sample product");
-    let damage = n0::glyphless::diff_frame(&before, &after);
-    assert_eq!(damage.changed, vec![owner]);
-    assert_eq!(
-        damage.union_frame,
-        Some(Rectangle::from_xywh(4.0, 8.0, 36.0, 16.0))
-    );
-    assert!(n0::glyphless::diff_frame(&after, &after).is_empty());
+    for fixture in suite().fixtures {
+        let id = &fixture.id;
+        let source = SvgFrameSource::from_standalone_svg(
+            fs::read_to_string(root.join(&fixture.animation.source))
+                .unwrap_or_else(|error| panic!("read {id}: {error}")),
+            fixture.viewport(),
+        )
+        .unwrap_or_else(|error| panic!("retain {id}: {error}"));
+        let base = source.base_frame();
+        let midpoint = source
+            .sample_frame(SampleTime::from_nanoseconds(1_000_000_000))
+            .unwrap_or_else(|error| panic!("{id} midpoint sample: {error}"));
+        let animated = fixture.frame.animated_node_index;
+        let owner = base.nodes[animated].owner;
+        let expected_union =
+            math2::union(&[base.nodes[animated].bounds, midpoint.nodes[animated].bounds]);
+
+        let before = n0::glyphless::compile(base).expect("compile Base product");
+        let after = n0::glyphless::compile(midpoint).expect("compile sample product");
+        let damage = n0::glyphless::diff_frame(&before, &after);
+        assert_eq!(damage.changed, vec![owner], "{id} changed exactly one node");
+        assert_eq!(
+            damage.union_frame,
+            Some(expected_union),
+            "{id} damage covers both positions"
+        );
+        assert!(n0::glyphless::diff_frame(&after, &after).is_empty());
+
+        // The rect-x fixture's damage rectangle is also pinned by hand: the
+        // union above is derived from the same frames the diff came from, so a
+        // bounds regression that moved both would satisfy it.
+        if id == "svg-rect-x-animation" {
+            assert_eq!(expected_union, Rectangle::from_xywh(4.0, 8.0, 36.0, 16.0));
+        }
+    }
 }
 
 #[test]

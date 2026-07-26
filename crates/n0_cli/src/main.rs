@@ -47,6 +47,8 @@
 //!     fixtures/web-first/svg-fill-named-rect.svg /tmp/rect.png 64x64
 //!   cargo run -p n0_cli --bin n0 -- \
 //!     fixtures/web-first/animation/svg-rect-x-animation.svg /tmp/t1s.png 64x32 --time-ns 1000000000
+//!   cargo run -p n0_cli --bin n0 -- \
+//!     fixtures/web-first/animation/svg-scene-cub-animation.svg /tmp/cub.png 96x96 --strict
 
 use std::path::Path;
 use std::process::ExitCode;
@@ -863,22 +865,24 @@ mod tests {
             (
                 FramePolicy::Base,
                 4,
-                "fixtures/web-first/animation/chromium/base.png",
+                "fixtures/web-first/animation/chromium/svg-rect-x-animation/base.png",
             ),
             (
                 FramePolicy::Sample(SampleTime::from_nanoseconds(0)),
                 20,
-                "fixtures/web-first/animation/chromium/sample-0ns.png",
+                "fixtures/web-first/animation/chromium/svg-rect-x-animation/sample-0ns.png",
             ),
             (
                 FramePolicy::Sample(SampleTime::from_nanoseconds(1_000_000_000)),
                 32,
-                "fixtures/web-first/animation/chromium/sample-1000000000ns.png",
+                "fixtures/web-first/animation/chromium/svg-rect-x-animation/\
+                 sample-1000000000ns.png",
             ),
             (
                 FramePolicy::Sample(SampleTime::from_nanoseconds(2_000_000_000)),
                 44,
-                "fixtures/web-first/animation/chromium/sample-2000000000ns.png",
+                "fixtures/web-first/animation/chromium/svg-rect-x-animation/\
+                 sample-2000000000ns.png",
             ),
         ] {
             let (first, degradations) = render_source_to_png(
@@ -914,6 +918,156 @@ mod tests {
                 } else {
                     [255, 255, 255, 255]
                 }
+            );
+        }
+    }
+
+    /// The cub scene is the sampling slice over a whole composition: seventeen
+    /// nodes of containers, path curves, strokes and a `<line>`, sized from the
+    /// requested raster because its root is viewBox-only. Every frame is
+    /// byte-exact to its own Chromium oracle, and — the point of a scene — an
+    /// exact-time sample moves the animated node's pixels and no others.
+    #[test]
+    fn the_cub_scene_samples_move_only_the_animated_node() {
+        const TEAL: [u8; 4] = [0x0f, 0x76, 0x6e, 0xff];
+        const BACKDROP: [u8; 4] = [0xfe, 0xf3, 0xc7, 0xff];
+        /// `viewBox="0 0 48 48"` rendered into the requested 96x96 raster.
+        const SCALE: i32 = 2;
+        /// The animated rect is authored `y="38" height="5"`, in user units.
+        const BLOCK_ROWS: std::ops::Range<i32> = 38 * SCALE..43 * SCALE;
+        const AUTHORED_X: i32 = 12;
+
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let read = |relative: &str| {
+            std::fs::read_to_string(root.join(relative))
+                .unwrap_or_else(|error| panic!("read {relative}: {error}"))
+        };
+        let animated = read("fixtures/web-first/animation/svg-scene-cub-animation.svg");
+        let projection = read("fixtures/web-first/animation/svg-scene-cub-base.svg");
+        let render = |source: &str, policy: FramePolicy| {
+            let (best_effort, degradations) = render_source_to_png(
+                source,
+                SourceKind::Svg,
+                96,
+                96,
+                policy,
+                Admission::BestEffort,
+            )
+            .unwrap_or_else(|error| panic!("render {policy:?}: {error}"));
+            assert!(
+                degradations.is_empty(),
+                "the cub scene is fully admitted; {policy:?} declares {degradations:?}"
+            );
+            let (strict, _) =
+                render_source_to_png(source, SourceKind::Svg, 96, 96, policy, Admission::Strict)
+                    .unwrap_or_else(|error| panic!("strict render {policy:?}: {error}"));
+            assert_eq!(
+                best_effort, strict,
+                "{policy:?} byte-identical across admissions"
+            );
+            best_effort
+        };
+
+        let mut frames = Vec::new();
+        for (policy, expected_x, oracle) in [
+            (
+                FramePolicy::Base,
+                AUTHORED_X,
+                "fixtures/web-first/animation/chromium/svg-scene-cub/base.png",
+            ),
+            (
+                FramePolicy::Sample(SampleTime::from_nanoseconds(0)),
+                6,
+                "fixtures/web-first/animation/chromium/svg-scene-cub/sample-0ns.png",
+            ),
+            (
+                FramePolicy::Sample(SampleTime::from_nanoseconds(1_000_000_000)),
+                22,
+                "fixtures/web-first/animation/chromium/svg-scene-cub/sample-1000000000ns.png",
+            ),
+            (
+                FramePolicy::Sample(SampleTime::from_nanoseconds(2_000_000_000)),
+                38,
+                "fixtures/web-first/animation/chromium/svg-scene-cub/sample-2000000000ns.png",
+            ),
+            (
+                FramePolicy::Sample(SampleTime::from_nanoseconds(3_000_000_000)),
+                38,
+                "fixtures/web-first/animation/chromium/svg-scene-cub/sample-3000000000ns.png",
+            ),
+        ] {
+            let png = render(&animated, policy);
+            let raster = decode_png(&png).expect("decode cub PNG");
+            assert_eq!((raster.width, raster.height), (96, 96));
+            let expected = decode_png(
+                &std::fs::read(root.join(oracle))
+                    .unwrap_or_else(|error| panic!("read {oracle}: {error}")),
+            )
+            .unwrap_or_else(|| panic!("decode {oracle}"));
+            assert_eq!(raster.pixels, expected.pixels, "{policy:?} Chromium RGBA");
+
+            // The block is where the resolved `x` puts it, and nowhere else.
+            let row = BLOCK_ROWS.start + 2;
+            assert_eq!(
+                raster.at(expected_x * SCALE + 4, row),
+                TEAL,
+                "{policy:?} paints the block at x={expected_x}"
+            );
+            if expected_x != AUTHORED_X {
+                assert_eq!(
+                    raster.at(AUTHORED_X * SCALE + 4, row),
+                    BACKDROP,
+                    "{policy:?} leaves the authored position empty"
+                );
+            }
+            frames.push((format!("{policy:?}"), raster));
+        }
+
+        // Rendering the animated document at Base IS the static projection —
+        // the same pixels the separate Base source file produces.
+        assert_eq!(
+            decode_png(&render(&projection, FramePolicy::Base))
+                .expect("decode projection PNG")
+                .pixels,
+            frames[0].1.pixels,
+            "the Base view of the animated scene is its static projection"
+        );
+
+        // Time touches one node: every pixel that differs between the Base
+        // frame and a sample lies in the animated rect's own rows. Seventeen
+        // nodes of curves and strokes render identically at every time.
+        for (label, sampled) in &frames[1..] {
+            let mut differing = 0usize;
+            for (index, (base_pixel, sample_pixel)) in frames[0]
+                .1
+                .pixels
+                .chunks_exact(4)
+                .zip(sampled.pixels.chunks_exact(4))
+                .enumerate()
+            {
+                if base_pixel == sample_pixel {
+                    continue;
+                }
+                differing += 1;
+                let y = index as i32 / 96;
+                assert!(
+                    BLOCK_ROWS.contains(&y),
+                    "{label} differs from Base at row {y}, outside the animated node"
+                );
+            }
+            assert_ne!(
+                differing, 0,
+                "{label} must move the block off its authored x"
+            );
+        }
+
+        // The animation freezes: the last two samples are the same frame.
+        assert_eq!(frames[3].1.pixels, frames[4].1.pixels, "fill=freeze holds");
+        for pair in [(1, 2), (1, 3), (2, 3)] {
+            assert_ne!(
+                frames[pair.0].1.pixels, frames[pair.1].1.pixels,
+                "samples {} and {} must differ",
+                frames[pair.0].0, frames[pair.1].0
             );
         }
     }

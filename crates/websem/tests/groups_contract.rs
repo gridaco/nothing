@@ -15,7 +15,6 @@ mod support;
 
 use math2::Rectangle;
 use math2::transform::AffineTransform;
-use rframe::Geometry;
 use support::render_through_n0;
 use websem::{CompileError, DegradationAction, InitialViewport, SvgFrameSource};
 
