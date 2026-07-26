@@ -2028,6 +2028,7 @@ fn shape_node(
         Strokable::Yes => resolve_stroke(el, &el.local_name_string())?,
         Strokable::RenderingDisabled => None,
     };
+    patrol_mixed_contour_cap(&geometry, stroke.as_ref())?;
 
     let visual_id = *next_id + 1;
     let node = FrameNode {
@@ -2040,6 +2041,52 @@ fn shape_node(
     };
     *next_id += 1;
     Ok(node)
+}
+
+/// Refuse a path that mixes open and closed contours while a non-butt
+/// `stroke-linecap` is in force.
+///
+/// A cap is a per-*contour* property: a closed contour has no ends, so the cap
+/// is inert on it, and Chromium's raster agrees (its butt and round captures of
+/// a closed contour are byte-identical). The consumer holds one cap per draw,
+/// so it can honor that for a path whose contours are *all* closed — it strokes
+/// them under butt, byte-exact at every width — and for a path with none. A
+/// mixed path needs both caps at once, and the two ways to give it them are
+/// both measurably wrong: one draw paints the closed contours' rejoin with a
+/// cap Chromium does not (~84 of 2304 pixels below a device pixel wide), and
+/// two draws composite the overlapping runs' anti-aliased edges twice (32 to 47
+/// pixels at 1.25 and 2 units).
+///
+/// So it refuses by name. This over-refuses — the one-draw error only appears
+/// once the *device* width falls to about a pixel, which the compiler cannot
+/// know — and over-refusal is the trade this slice makes every time. Serving
+/// the case properly means stroking each contour to an outline and unioning
+/// them into one filled path, which is its own rung.
+fn patrol_mixed_contour_cap(
+    geometry: &Geometry,
+    stroke: Option<&rframe::Stroke>,
+) -> Result<(), CompileError> {
+    let Geometry::Path(path) = geometry else {
+        return Ok(());
+    };
+    let Some(stroke) = stroke else {
+        return Ok(());
+    };
+    if stroke.cap() == rframe::StrokeCap::Butt || path.all_contours_closed() {
+        return Ok(());
+    }
+    if path
+        .commands()
+        .iter()
+        .any(|command| matches!(command, rframe::PathCommand::Close))
+    {
+        return Err(CompileError::UnsupportedStroke(
+            "a stroke-linecap other than butt on a path that mixes open and closed contours \
+             needs a cap per contour, which this consumer cannot express in one draw"
+                .to_string(),
+        ));
+    }
+    Ok(())
 }
 
 /// An ellipse `rx`/`ry` read: `None` is the `auto` used value, which

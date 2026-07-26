@@ -514,6 +514,46 @@ fn a_stroke_width_whose_basis_this_build_lacks_refuses_by_name() {
     }
 }
 
+/// A cap is a per-*contour* property, and the consumer holds one cap per draw.
+/// It can serve a path whose contours are all closed (the cap is inert, so it
+/// strokes them under butt, byte-exact at every width) and a path with none.
+/// A path that mixes them needs both caps at once, so a non-butt cap on one
+/// refuses by name — over-refusal, since the divergence only appears once the
+/// *device* width falls to about a pixel, which the compiler cannot know.
+#[test]
+fn a_mixed_contour_path_refuses_a_cap_it_cannot_apply_per_contour() {
+    // One closed contour and one open contour, in one `d`.
+    let mixed = "M16 16 L32 16 L32 32 Z M8 40 L40 40";
+    for cap in ["round", "square"] {
+        let error = refusal(&document(&format!(
+            r##"  <path d="{mixed}" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="{cap}"/>"##
+        )));
+        assert!(
+            matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("mixes open and closed contours")),
+            "{cap} on a mixed path must refuse by name; got {error}"
+        );
+    }
+
+    // Butt needs no per-contour treatment, so the same geometry is admitted.
+    let frame = admit_both(&document(&format!(
+        r##"  <path d="{mixed}" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="butt"/>"##
+    )));
+    assert_eq!(stroke_of(&frame, 0).cap(), rframe::StrokeCap::Butt);
+
+    // So does a non-butt cap on a path that is wholly closed, or wholly open —
+    // those the consumer can serve.
+    for d in ["M16 16 L32 16 L32 32 Z", "M8 40 L40 40"] {
+        let frame = admit_both(&document(&format!(
+            r##"  <path d="{d}" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round"/>"##
+        )));
+        assert_eq!(
+            stroke_of(&frame, 0).cap(),
+            rframe::StrokeCap::Round,
+            "d={d:?}"
+        );
+    }
+}
+
 /// The sheet leg refuses on the unit, not on the word `stroke-width`: a width
 /// whose basis this build *does* have still renders from a sheet, and a
 /// basis-less unit belonging to some other property in the same rule is not

@@ -1300,6 +1300,80 @@ fn line_path(x1: f32, y1: f32, x2: f32, y2: f32) -> Path {
     builder.snapshot()
 }
 
+/// The cap a *closed* contour must be stroked with, whatever the author wrote.
+///
+/// A closed contour has no ends, so SVG's cap is inert on it — and Chromium
+/// agrees: its butt and round captures of a closed contour are byte-identical.
+/// Skia's stroker stops agreeing once the device-space width falls to about one
+/// pixel; it paints the cap where the contour rejoins. Measured on a 48x48
+/// closed cubic, filled or not:
+///
+/// | device width | butt | round | square |
+/// | --- | --- | --- | --- |
+/// | 0.5 · 0.75 · 1 | 0 | ~83 px, delta 46 | ~84 px, delta 55 |
+/// | 1.25 and above | 0 | 0 | 0 |
+///
+/// It tracks the *device* width, not the authored one: the same document at a
+/// 2x scale diverges at an authored 0.5 and agrees at an authored 1. Butt is
+/// byte-exact at every width, so butt is the answer, and normalising to it here
+/// is what the SVG semantics said all along.
+///
+/// The caller applies this only when **every** contour is closed. A path that
+/// mixes them cannot be served by one paint, and serving it by two draws is
+/// worse: measured on a closed contour crossed by an open one, splitting is
+/// byte-exact below a device pixel and then diverges by 32 to 47 pixels at 1.25
+/// and 2, because the two runs' anti-aliased edges composite twice where they
+/// overlap. So the mixed case refuses upstream instead, under its own name.
+fn stroke_cap_for_closed_contours(stroke: &Stroke) -> Stroke {
+    Stroke {
+        cap: StrokeCap::Butt,
+        ..stroke.clone()
+    }
+}
+
+/// Whether any contour may have no extent — a subpath that closes on the point
+/// it opened at.
+///
+/// This is the exception to "a closed contour has no ends". A zero-length
+/// subpath degenerates to a point, and SVG2 §13.2 makes the cap the *only*
+/// thing that renders it: `M44 32 Z` under a square cap paints a dot Chromium
+/// paints too, and normalising that cap to butt erases it. The corpus caught
+/// exactly that.
+///
+/// Only on-curve endpoints are compared, never control points, so a curve whose
+/// ends coincide reads as degenerate even where its hull bulges. That is the
+/// safe direction: a false positive only declines to normalise a cap, while a
+/// false negative would erase a dot the browser draws.
+fn any_contour_may_be_degenerate(path: &ResolvedPathArtifact) -> bool {
+    // `open` holds the current contour's start point, or `None` between
+    // contours; `moved` is whether an endpoint has left that start.
+    let mut open: Option<(f32, f32)> = None;
+    let mut moved = false;
+    for command in path.commands.iter() {
+        match *command {
+            PathCommand::MoveTo { x, y } => {
+                if open.is_some() && !moved {
+                    return true;
+                }
+                open = Some((x, y));
+                moved = false;
+            }
+            PathCommand::Close => {
+                if !moved {
+                    return true;
+                }
+                open = None;
+                moved = false;
+            }
+            PathCommand::LineTo { x, y }
+            | PathCommand::QuadTo { x, y, .. }
+            | PathCommand::CubicTo { x, y, .. }
+            | PathCommand::ConicTo { x, y, .. } => moved |= open != Some((x, y)),
+        }
+    }
+    open.is_some() && !moved
+}
+
 /// Project the already box-mapped, backend-independent command stream into
 /// Skia. Resolution performed the only coordinate mapping, so bounds and
 /// rasterization consume bit-identical f32 geometry.
@@ -1309,7 +1383,14 @@ fn backend_path(path: &ResolvedPathArtifact) -> Path {
         FillRule::EvenOdd => PathFillType::EvenOdd,
     };
     let mut builder = PathBuilder::new_with_fill_type(fill_type);
-    for command in path.commands.iter() {
+    emit_commands(&mut builder, &path.commands);
+    builder.snapshot()
+}
+
+/// Push a command run into a Skia builder verbatim — the one place the
+/// backend-independent vocabulary becomes Skia calls.
+fn emit_commands(builder: &mut PathBuilder, commands: &[PathCommand]) {
+    for command in commands {
         match *command {
             PathCommand::MoveTo { x, y } => {
                 builder.move_to((x, y));
@@ -1344,13 +1425,54 @@ fn backend_path(path: &ResolvedPathArtifact) -> Path {
             }
         }
     }
-    builder.snapshot()
 }
 
 #[cfg(test)]
 mod backend_path_tests {
-    use super::backend_path;
+    use super::{any_contour_may_be_degenerate, backend_path};
     use n0_model::path::{analyze, materialize, FillRule};
+
+    /// The predicate that decides whether a closed contour's cap may be
+    /// normalised away. It must say *yes, possibly degenerate* for anything
+    /// that closes on the point it opened at — that is the case SVG2 §13.2
+    /// renders as a dot from the cap alone — and *no* for a contour with real
+    /// extent, or the normalisation never happens and the defect stays.
+    ///
+    /// The move-only spelling of the dot (`M44 32 Z`) is not here: this door
+    /// (`analyze`) is the Grida-format one and requires a drawing segment,
+    /// while SVG's door admits it. That spelling is gated end-to-end by
+    /// `fixtures/web-first/svg-stroke-zero-length-dot.svg`, which is what
+    /// caught the normalisation erasing it.
+    #[test]
+    fn a_contour_that_closes_where_it_opened_reads_as_degenerate() {
+        let degenerate = [
+            "M.2 .5 L.2 .5",                   // open, zero length
+            "M.1 .1 L.1 .1 Z",                 // closed through a zero-length line
+            "M.1 .1 C.1 .1 .1 .1 .1 .1 Z",     // closed through a collapsed cubic
+            "M.1 .1 L.9 .9 Z M.2 .2 L.2 .2 Z", // one contour with extent, one dot
+        ];
+        for d in degenerate {
+            assert!(possibly_degenerate(d), "{d} must read as degenerate");
+        }
+
+        let extended = [
+            // the shape of the corpus's closed-contour cap cells
+            "M.5 .1 C.9 .1 1 .4 1 .6 C1 .85 .75 1 .5 1 C.25 1 0 .85 0 .6 C0 .4 .1 .1 .5 .1 Z",
+            "M.1 .1 L.9 .1 L.9 .9 Z",
+            "M0 0 L.5 0 Z M.6 .6 L.9 .6 Z", // two closed contours, both with extent
+            "M0 0 L.9 .9",                  // open, with extent
+        ];
+        for d in extended {
+            assert!(!possibly_degenerate(d), "{d} must read as extended");
+        }
+    }
+
+    fn possibly_degenerate(d: &str) -> bool {
+        let artifact = analyze(d, FillRule::NonZero).expect("probe path is valid");
+        let resolved = materialize(artifact.geometry(), artifact.fill_rule(), 64.0, 64.0)
+            .expect("probe path resolves");
+        any_contour_may_be_degenerate(&resolved)
+    }
 
     #[test]
     fn analytical_arc_bounds_match_the_materialized_conics() {
@@ -1731,13 +1853,26 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*w, *h);
                     let geometry = backend_path(path);
-                    if stroke.align == StrokeAlign::Center {
-                        draw_native_centered_stroke(stroke, paint_box, ctx, |paint| {
-                            canvas.draw_path(&geometry, paint);
-                        });
-                    } else {
+                    if stroke.align != StrokeAlign::Center {
                         draw_stroke(canvas, &geometry, stroke, paint_box, ctx);
+                        return;
                     }
+                    // One draw, so one composite pass. The cap a closed
+                    // contour is stroked with is the *only* thing that varies
+                    // here, and it can vary per path because
+                    // `all_contours_closed` is a property of the whole
+                    // artifact — a path that mixes open and closed contours
+                    // under a non-butt cap refuses upstream rather than
+                    // arriving here to be guessed at.
+                    let stroke = if path.all_contours_closed && !any_contour_may_be_degenerate(path)
+                    {
+                        &stroke_cap_for_closed_contours(stroke)
+                    } else {
+                        stroke
+                    };
+                    draw_native_centered_stroke(stroke, paint_box, ctx, |paint| {
+                        canvas.draw_path(&geometry, paint);
+                    });
                 });
             }
             ItemKind::TextStroke {
