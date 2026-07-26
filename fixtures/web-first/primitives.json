@@ -257,6 +257,70 @@
           }
         ]
       }
+    },
+    {
+      "id": "svg-group-transform-translate",
+      "source": "svg-group-transform-translate.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-transform-translate.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-nested-transforms",
+      "source": "svg-group-nested-transforms.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-nested-transforms.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-shape-transform-matrix",
+      "source": "svg-shape-transform-matrix.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-shape-transform-matrix.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-paint-order",
+      "source": "svg-group-paint-order.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-paint-order.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-inherited-fill",
+      "source": "svg-group-inherited-fill.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-inherited-fill.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-non-rendering-elements",
+      "source": "svg-non-rendering-elements.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-non-rendering-elements.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-rotate-quarter",
+      "source": "svg-group-rotate-quarter.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-rotate-quarter.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-rotate-diagonal",
+      "source": "svg-group-rotate-diagonal.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-rotate-diagonal.png",
+      "width": 64,
+      "height": 64
     }
   ]
 }

@@ -18,6 +18,10 @@ the HTML→SVG boundary through one browser-grade cascade.**
 | `svg-circle-defaults-clip.svg` | `cx`/`cy` default to 0, so three quarters of the circle fall outside the viewport — the frame clip, not a guessed position. |
 | `svg-ellipse-auto-rx.svg` · `svg-ellipse-negative-rx-auto.svg` | The `auto` radius matrix: an absent `rx` adopts `ry`, and a *negative* `rx` is invalid-must-be-ignored, which Chromium resolves to that same `auto`. Both bake to the same circle. |
 | `svg-circle-zero-r.svg` | `r="0"` disables rendering (SVG2 §10.3) — an admitted nothing, baked as proof rather than asserted. |
+| `svg-group-transform-translate.svg` · `svg-group-nested-transforms.svg` · `svg-shape-transform-matrix.svg` | The container rung's composition cells: a group's translate, a translate nested inside a scale (outermost-first, so the inner offset scales), and a `matrix()` on a shape. |
+| `svg-group-rotate-quarter.svg` · `svg-group-rotate-diagonal.svg` | Rotation about a pivot: an exact quarter turn, and a 45° turn whose edges land off the pixel grid. Both bake byte-exact. |
+| `svg-group-paint-order.svg` · `svg-group-inherited-fill.svg` | Flattening keeps document paint order across and into containers, and `fill` inherits through a group by the one cascade. |
+| `svg-non-rendering-elements.svg` | `<title>`/`<desc>`/`<metadata>` paint nothing and declare nothing — the raster is the same as if they were absent. |
 | `html-webpage-mockup.html` | A webpage-*design* (header / hero / cards / footer) expressed as 27 inline-SVG rects; the brand purple cascades from the HTML `<style>` via `fill="currentColor"`. Guarded by `crates/websem/tests/webpage_mockup.rs`. Not a real HTML/CSS layout — the slice renders solid-fill shapes only. |
 | `primitives.json` | Closed enumeration of every root HTML/SVG primitive, its grammar entry, dimensions, Chromium oracle, and (where its ideal raster is curved) its declared comparison tolerance. Adding an unlisted root input fails the test gate. |
 | `chromium/*.png` | One committed Chromium oracle per primitive, capturing the SVG-local raster at deviceScaleFactor=1. |
@@ -31,15 +35,20 @@ oracle with zero differing pixels. The gate also validates enumeration and
 provenance and double-runs both raw raster and PNG encoding (see
 `crates/websem/tests/reftest_oracle.rs`).
 
-One class departs from that, and only by declaration. A filled ellipse
-reaches the same `SkCanvas::drawOval` entry point in both engines, but
-through different builds of Skia, whose analytic-AA scan-converters
+One class departs from that, and only by declaration: **curved** edges.
+A filled ellipse reaches the same `SkCanvas::drawOval` entry point in both
+engines, but through different builds of Skia, whose conic scan-converters
 disagree on fractional coverage along the curve — measured identical
 across every available construction (`draw_oval`, `draw_circle`,
 `PathBuilder::add_oval`/`add_circle`, an oval `RRect`), so no choice of
-call closes it. Those fixtures carry a `tolerance` block naming the ideal
-boundary and bounding the departure: at most N differing pixels, at most a
-D-per-channel delta, every one of them within a pixel of that boundary.
+call closes it. Straight edges are not affected, even when a transform puts
+them off the pixel grid: the rotated cells above — including a 45° turn —
+bake byte-exact. Anti-aliasing as such is therefore not the boundary;
+conics are.
+
+The curved fixtures carry a `tolerance` block naming the ideal boundary and
+bounding the departure: at most N differing pixels, at most a D-per-channel
+delta, every one of them within a pixel of that boundary.
 The numbers are the measured values, not headroom — the corpus's worst
 cell today is 6 pixels at delta 3. A shape in the wrong place, at the
 wrong size, or in the wrong color moves pixels off the boundary ring and
