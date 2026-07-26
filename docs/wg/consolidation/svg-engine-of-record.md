@@ -327,3 +327,72 @@ admitting it would grow the vocabulary without moving one.
 Remaining static rungs: paths + groups/transforms, then strokes — the
 tiger milestone, at which `<line>` joins — then the rest of the written
 order.
+
+## Subsequent status (2026-07-26): the container rung lands
+
+`<g>` and the `transform` grammar are admitted — the rung that unblocks
+what the previous two already built. In the legacy L0 corpus 101 of the
+declared skips were `<g>`, and because a group skip drops its whole
+subtree, the shapes inside were unreachable: admitting circles and
+ellipses had bought fewer pixels than it looked like. All 37 of those
+documents now render and `<g>` is gone from the skip list entirely.
+
+- **Containers are flattened, not represented.** A `<g>` contributes a
+  transform and a place in paint order; the resolved contract already
+  carries both per node, so rframe and the n0 kernel changed *again* not at
+  all — three rungs now with no kernel change. The equivalence is exact
+  only while every construct needing a real group scope (`opacity`,
+  `clip-path`, `mask`, `filter`, `mix-blend-mode`, `isolation`, `display`)
+  still refuses; when a scope-bearing rung admits one, the contract grows a
+  scope then, driven by that producer, rather than speculatively now.
+- **The walk became recursive**, with nested degradation paths
+  (`svg/g[1]/path[1]`) and per-parent ordinals. A failure *on a container*
+  fails its subtree, because nothing inside can be placed without it; a
+  failure on one *descendant* is that descendant's own hole. Without that
+  split, best-effort would drop a whole illustration for one unsupported
+  child — the L0 corpus is mostly groups full of paths.
+- **The transform grammar is the donor's tokenizer with its leniencies
+  removed.** The donor filters unparseable arguments out of its list, so
+  `translate(10,abc)` silently becomes `translate(10,0)`; here one bad
+  number invalidates the list, arity is exact, and the `comma-wsp`
+  separator rules refuse a leading, trailing, or doubled comma — each of
+  which Chromium rejects outright, painting the element untransformed.
+  Quarter turns come from integer matrices (f32 cosine of a right angle is
+  `-4.37e-8`, not zero), and that shortcut is bounded: past `90 * 2^23`
+  every quotient is integral, so an unbounded test would snap arbitrary
+  angles onto an exact matrix.
+- **The AA boundary is narrower than the previous rung claimed.** All eight
+  new cells bake byte-exact, including a 45° rotation whose edges land off
+  the pixel grid. Straight edges agree between Chromium's Skia and the
+  pinned skia-safe; the declared tolerance is specific to **conic** edges,
+  not to anti-aliasing. Corpus 24 → 32.
+- **Two cleanups.** `<title>`/`<desc>`/`<metadata>` join `<style>` as
+  non-rendering — no geometry *and* no hole, where they had accounted for 72
+  skips reporting differences that do not exist. And a stylesheet declaring
+  a property the cascade cannot represent is now strict-refused but
+  best-effort-declared-and-rendered, restoring a document the previous
+  rung's document-level refusal had regressed. That required an honest third
+  degradation action: `DeclarationIgnored` — the element rendered without a
+  value Chromium honors, which is neither a skip nor a sampling policy.
+
+The adversarial round was the most productive yet, and six of its findings
+were defects in this rung's own work: the root `<svg>`'s transform was
+silently dropped (Chromium applies it to the CSS box, outside the viewBox
+mapping, so it refuses by name until that rung); `skewY` was a copy of
+`skewX`; a composed transform could overflow to a non-finite matrix from
+in-grammar input and kill the whole frame with nothing named;
+`display: contents` was unpatrolled; only the first stylesheet finding was
+reported, and on the inline-HTML entry its path was fabricated; and the
+depth bound could not prevent the crash it existed to prevent, because two
+other walks over the same tree recursed unbounded before the compiler ran.
+
+One process note worth recording: a verifier agent mutated engine source to
+test whether a law would catch a transposed matrix slot, and left the
+mutation in place. It was caught by the very law the round asked for, but
+the lesson generalizes — an adversarial round with write access must be
+treated as a source of edits to audit, not only of findings to read.
+
+Remaining static rungs: paths, then strokes — the tiger milestone, at which
+`<line>` joins — then translucency and opacity scopes, paint servers, text.
+Text is now the largest single block in the L0 corpus (167 declared skips,
+visible only because containers stopped masking it).

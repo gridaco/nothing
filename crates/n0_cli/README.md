@@ -36,7 +36,8 @@ cargo run -p n0_cli --bin n0 -- \
 - Resources: self-contained input only; external images and stylesheets are
   not resolved.
 - Capability: the admitted slice is deliberately narrow — solid-filled
-  `<rect>`, `<circle>`, and `<ellipse>` under the outer `<svg>` — and the
+  `<rect>`, `<circle>`, and `<ellipse>`, nested in `<g>` containers with the
+  SVG `transform` grammar, under the outer `<svg>` — and the
   default admission is **best-effort**: the admitted subset renders and
   every beyond-slice construct is declared on stderr with its node path and
   reason (`degraded: skipped svg/path[1]: unsupported element <path>`);
@@ -51,9 +52,11 @@ cargo run -p n0_cli --bin n0 -- \
   Document-level contracts (no `<svg>` root, malformed standalone XML, a
   script-suspended standalone parse, the outer viewport grammar —
   percentage root dimensions, malformed `preserveAspectRatio`,
-  CSS-cascaded root sizing, missing dimensions on the HTML entry — a
-  stylesheet declaring a property the cascade cannot represent, and root
-  patrols) refuse in both admissions.
+  CSS-cascaded root sizing, missing dimensions on the HTML entry — and root
+  patrols) refuse in both admissions. A stylesheet declaring a property the
+  cascade cannot represent is document-level too, but only `--strict`
+  refuses it: the default declares it against the sheet and renders, since
+  a sheet is not attributable to one element without selector matching.
 - The HTML entry compiles exactly the document's first inline SVG; when that
   subtree is admitted the render succeeds and the surrounding page
   contributes nothing (a pinned contract). Sampling inline HTML refuses
