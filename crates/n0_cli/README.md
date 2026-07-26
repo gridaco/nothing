@@ -23,7 +23,7 @@ cargo run -p n0_cli --bin n0 -- \
 # dev harness: refuse on the first beyond-slice construct instead of
 # rendering best-effort with declared degradations (the default)
 cargo run -p n0_cli --bin n0 -- \
-  fixtures/test-svg/probe/path-fill-probe.svg /tmp/probe.png 64x64 --strict
+  fixtures/test-svg/probe/polygon-fill-probe.svg /tmp/probe.png 64x64 --strict
 ```
 
 - Input: one UTF-8 `.html`, `.htm`, or `.svg` file.
@@ -36,11 +36,12 @@ cargo run -p n0_cli --bin n0 -- \
 - Resources: self-contained input only; external images and stylesheets are
   not resolved.
 - Capability: the admitted slice is deliberately narrow — solid-filled
-  `<rect>`, `<circle>`, and `<ellipse>`, nested in `<g>` containers with the
-  SVG `transform` grammar, under the outer `<svg>` — and the
+  `<rect>`, `<circle>`, `<ellipse>` and `<path>` (the path-data grammar
+  except the elliptical arc, with `fill-rule`), nested in `<g>` containers
+  with the SVG `transform` grammar, under the outer `<svg>` — and the
   default admission is **best-effort**: the admitted subset renders and
   every beyond-slice construct is declared on stderr with its node path and
-  reason (`degraded: skipped svg/path[1]: unsupported element <path>`);
+  reason (`degraded: skipped svg/polygon[1]: unsupported element <polygon>`);
   a beyond-inventory dynamic surface samples as the Base view. Declared
   holes, never guessed pixels — the patrol is per attribute and per
   cascaded property, so an admitted element carrying a rendering attribute

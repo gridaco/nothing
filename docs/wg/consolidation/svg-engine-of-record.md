@@ -396,3 +396,108 @@ Remaining static rungs: paths, then strokes — the tiger milestone, at which
 `<line>` joins — then translucency and opacity scopes, paint servers, text.
 Text is now the largest single block in the L0 corpus (167 declared skips,
 visible only because containers stopped masking it).
+
+## Addendum — the paths rung (2026-07-26)
+
+`<path>` is admitted: the SVG path-data grammar compiles to a resolved command
+stream, `fill-rule` is consumed from the one cascade, and the elliptical arc
+refuses by name. Thirteen new Chromium cells bake **byte-exact** (corpus
+32 → 46), and the contract grew its second geometry kind — the first growth in
+four rungs, and still no change to the n0 kernel.
+
+- **The contract grew minimally, and the growth is checked.**
+  `rframe::Geometry::Path` carries a `PathData`: canonical absolute commands,
+  the fill rule, the tight local bounds, and whether every contour closed. It
+  has **no arc command** — an arc is authored syntax whose lowering decides the
+  pixels, so that choice belongs to the producer, the only party that can
+  verify it against the browser it is matching — and **no rational conic**,
+  because the one producer that needs one is not admitted yet. Bounds are
+  solved once, by the contract, because the producer needs them for the node's
+  `bounds` and the consumer for coverage, and two implementations would have to
+  agree bit-for-bit.
+- **Canonical form is the producer's job, and each normalization was measured
+  first.** SVG allows move-only contours, redundant `Z`s and an implicit move
+  after a close; the contract does not. Each removal was verified pixel-neutral
+  in Chromium *on anti-aliased geometry* before being applied — see the
+  adversarial finding below for why that qualifier is the whole point.
+- **Two deliberate divergences, both declared.** A malformed `d` refuses the
+  whole path at its byte offset rather than rendering Chromium's valid prefix
+  (SVG2 §9.3.9); where the prefix is empty the two agree exactly, because both
+  paint nothing. And the arc refuses, for a measured reason: Blink's path
+  *normalizer* decomposes an arc into cubics, and those same cubics — authored
+  explicitly and rendered **by Chromium** — differ from Chromium's own `A` by
+  77 pixels at up to a 170-per-channel delta. What Chromium actually paints is
+  identifiable: the half-ellipse arc `M8 28 A24 20 0 0 1 56 28 Z` is
+  **byte-identical** to `<ellipse cx="32" cy="28" rx="24" ry="20">` over every
+  row they share. An arc reaches the rasterizer as the ellipse's conics. The
+  arc rung must emit conics, and it inherits the oval departure below.
+- **The AA boundary narrowed a third time.** The basic-shapes rung declared a
+  tolerance for "curved" edges; the container rung showed straight edges agree
+  even rotated 45°; this rung shows the **cubic, smooth-cubic and quadratic**
+  cells bake byte-exact. Curves as such are not the boundary — the weighted
+  **rational conic** is. No path cell carries a tolerance.
+- **Six CSS patrol leaks, each measured, each closed.** The `d` *property*
+  (Chromium paints a stylesheet's `d: path(…)` in place of the attribute); the
+  `all` shorthand (`all: initial` makes Chromium paint nothing where this
+  engine painted attribute geometry); vendor aliases of names already on the
+  list (`-webkit-clip-path`, `-webkit-transform`, `-webkit-filter` all paint);
+  CSS motion path (`offset-path`/`offset` move a shape, and a whole subtree on
+  a container); a CSS comment or an ident escape adjacent to a property name
+  (`d/**/:`, `\000064:`), which leaves the declaration valid for Chromium while
+  the scanned text no longer names a listed property; and a `<style>` whose CSS
+  is split across text nodes by a comment node, which the cascade concatenates
+  and the patrol scanned separately. The scan now strips comments and vendor
+  prefixes, refuses any escaped property name outright, and reads the sheet the
+  cascade actually compiles. It is still not a CSS tokenizer, and the honest fix
+  — tokenizing with the parser the document already carries — is recorded as
+  such in the code.
+- **A false explanation in earlier work, corrected.** The
+  `CASCADE_PROPERTIES_NOT_REPRESENTED` doc claimed every listed property is
+  `engine = "gecko"`-gated in Stylo. Checked name by name against the pinned
+  revision, that is true for `clip-rule`, `paint-order`, `transform-box` and
+  the `marker`/`offset` families; false for `transform`, `translate`, `rotate`,
+  `scale`, `transform-origin`, `clip-path`, `filter`, `mix-blend-mode` and
+  `isolation`, which the build represents and this compiler simply does not
+  read; and wrong a third way for `backdrop-filter`, `mask-image`, `mask` and
+  `offset-path`, which are `servo_pref = "layout.unimplemented"`-gated. The
+  list's *behaviour* was right — the authored-text scan is a superset of what a
+  computed-level patrol would catch — but the stated mechanism is what a next
+  author would rely on when deciding a name is safe to read.
+
+**The adversarial round found the rung's sharpest defect, and it was a defect in
+a claim.** `M x y Z` — a contour that only moves and then closes — was dropped
+as "a contour that draws nothing", with both the module doc and a law asserting
+Chromium paints the authored and normalized forms identically, "measured, not
+assumed". It is not neutral: dropping it moves up to 96 pixels of the
+*surviving* geometry, because an extra contour is an extra contour to the scan
+converter. The law passed only because its coordinates were integer and
+axis-aligned, where no edge has fractional coverage to perturb — a fuzz of 40
+randomized fractional-coordinate triangles diverged 40 out of 40. The construct
+also strokes as a cap-shaped dot, so the contract's stated reason for dropping
+it ("no fill area and no stroke geometry") was false in its second half and
+would have misled the strokes rung directly. The fix is exact rather than a
+tolerance: Chromium renders `M x y Z` byte-identically to `M x y L x y Z`, a
+form the contract already carries, so the producer resolves it into that
+spelling. Its corpus cell uses fractional coordinates on purpose.
+
+Two smaller claim defects from the same round: the module doc grounded the
+number grammar on a spec-versus-browser disagreement it could not verify from
+this machine (the code now states only what was measured), and both a law and a
+fixtures README called the `marker-*` patrol "provably inert" when nothing else
+reads a marker property — the property *is* the paint trigger, so that patrol is
+the load-bearing one and `pathLength` is the over-refusal.
+
+One finding is recorded rather than fixed, because it is systemic and predates
+this rung: a SMIL `<animate>`/`<set>` targeting a *consumed* attribute is active
+at load in Chromium, which paints the animated value, while a Base render paints
+the authored attribute and declares nothing. Admitting `d` and `fill-rule`
+widened the surface, but the same silence is measurable on `x` and `fill` from
+earlier rungs. It belongs to its own rung: declare it, keeping Base as the
+authored state while telling the caller the browser would paint something else.
+
+**Measured payoff.** The L0 corpus renders 37/37 documents, with its 38 `<path>`
+elements compiled instead of declared; text (167 skips) and strokes (66) are the
+two remaining blocks. The Ghostscript tiger — 240 paths, 241 groups, no arcs —
+now renders at exit 0 with **78 declared degradations, every one of them a
+`stroke` or `stroke-width` attribute on a `<g>`, and nothing else.** Strokes are
+the last rung between the ladder and the tiger.
