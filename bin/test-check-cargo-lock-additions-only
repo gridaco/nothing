@@ -1,0 +1,153 @@
+#!/usr/bin/env python3
+
+"""Controls for the Cargo.lock additions-only gate.
+
+The gate decides whether a crate cut may move the dependency graph, so its
+own logic needs a lock: a gate that cannot fail is not a gate.  Each case
+below is a negative control except where marked — it asserts that the gate
+*refuses* something, because that is the property worth defending.
+
+Revisions are synthetic.  The gate reaches git through exactly one function,
+`git_text`, so substituting it feeds the decision logic hand-written lockfiles
+without inventing commits.
+"""
+
+from __future__ import annotations
+
+import importlib.machinery
+import importlib.util
+import io
+import subprocess
+import sys
+from contextlib import redirect_stderr, redirect_stdout
+from pathlib import Path
+
+GATE = Path(__file__).with_name("check-cargo-lock-additions-only")
+
+_spec = importlib.util.spec_from_loader(
+    "lock_gate", importlib.machinery.SourceFileLoader("lock_gate", str(GATE))
+)
+gate = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(gate)
+
+NO_CUT = 'workspace = { members = ["crates/a"] }\n'
+CRATE_CUT = 'workspace = { members = ["crates/a", "crates/b"] }\n'
+
+LEDGER = """
+[[change]]
+decision = "D-X"
+package = "widget"
+from = "1.0.0"
+to = "2.0.0"
+why = "authorised by this control"
+"""
+
+
+def lock(*packages: tuple[str, str]) -> str:
+    return "".join(
+        f'[[package]]\nname = "{name}"\nversion = "{version}"\n\n'
+        for name, version in packages
+    )
+
+
+BASE_LOCK = lock(("widget", "1.0.0"), ("gizmo", "3.0.0"))
+
+
+def verdict(head_toml: str, head_lock: str, ledger: str | None) -> tuple[int, str]:
+    files = {
+        ("BASE", "Cargo.toml"): NO_CUT,
+        ("HEAD", "Cargo.toml"): head_toml,
+        ("BASE", "Cargo.lock"): BASE_LOCK,
+        ("HEAD", "Cargo.lock"): head_lock,
+    }
+    if ledger is not None:
+        files[("HEAD", gate.LEDGER_PATH)] = ledger
+
+    def git_text(ref: str, path: str) -> str:
+        try:
+            return files[(ref, path)]
+        except KeyError as missing:
+            raise subprocess.CalledProcessError(128, ["git", "show"]) from missing
+
+    gate.git_text = git_text
+    sys.argv = ["check-cargo-lock-additions-only", "BASE", "HEAD"]
+    out, err = io.StringIO(), io.StringIO()
+    with redirect_stdout(out), redirect_stderr(err):
+        code = gate.main()
+    return code, (out.getvalue() + err.getvalue()).strip()
+
+
+CASES: list[tuple[str, int, str, str, str | None]] = [
+    (
+        "a move the ledger authorises passes",
+        0,
+        CRATE_CUT,
+        lock(("widget", "2.0.0"), ("gizmo", "3.0.0"), ("newdep", "0.1.0")),
+        LEDGER,
+    ),
+    (
+        "a move the ledger is silent about fails",
+        1,
+        CRATE_CUT,
+        lock(("widget", "2.0.0"), ("gizmo", "4.0.0")),
+        LEDGER,
+    ),
+    (
+        "a dropped package fails, and no ledger row can rescue it",
+        1,
+        CRATE_CUT,
+        lock(("widget", "2.0.0")),
+        LEDGER,
+    ),
+    (
+        "a missing ledger authorises nothing",
+        1,
+        CRATE_CUT,
+        lock(("widget", "2.0.0"), ("gizmo", "3.0.0")),
+        None,
+    ),
+    (
+        "a ledger row must match the version that landed, not only the one withdrawn",
+        1,
+        CRATE_CUT,
+        lock(("widget", "2.5.0"), ("gizmo", "3.0.0")),
+        LEDGER,
+    ),
+    (
+        "without a crate cut the gate stays out of the way, removals and all",
+        0,
+        NO_CUT,
+        lock(("widget", "9.9.9")),
+        None,
+    ),
+    (
+        "additions alone pass with no ledger at all",
+        0,
+        CRATE_CUT,
+        lock(("widget", "1.0.0"), ("gizmo", "3.0.0"), ("newdep", "0.1.0")),
+        None,
+    ),
+]
+
+
+def main() -> int:
+    failures = 0
+    for name, expected, head_toml, head_lock, ledger in CASES:
+        code, output = verdict(head_toml, head_lock, ledger)
+        ok = code == expected
+        failures += not ok
+        print(f"  {'ok  ' if ok else 'FAIL'} {name}")
+        if not ok:
+            print(f"       expected exit {expected}, got {code}")
+            for line in output.splitlines():
+                print(f"       {line}")
+
+    print(
+        f"Cargo.lock gate controls: {'PASS' if not failures else 'FAIL'} "
+        f"({len(CASES) - failures}/{len(CASES)})"
+    )
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

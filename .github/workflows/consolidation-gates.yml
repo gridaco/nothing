@@ -73,6 +73,9 @@ jobs:
           fetch-depth: 0
           ref: ${{ needs.scope.outputs.head }}
 
+      - name: Check the gate still refuses what it must
+        run: python3 bin/test-check-cargo-lock-additions-only
+
       - name: Gate workspace crate cuts
         run: >-
           python3 bin/check-cargo-lock-additions-only
