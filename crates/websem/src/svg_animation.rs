@@ -82,7 +82,7 @@ impl AnimationInventory {
             errors: Vec::new(),
         };
         inspector.inspect_dynamic_surface(svg, "svg");
-        inspector.walk_children(svg, "svg");
+        inspector.walk_children(svg, "svg", 0);
         if entry == SourceEntry::InlineHtml {
             inspector.record_error(AnimationError::new(
                 "document",
@@ -139,6 +139,17 @@ struct RectXAnimation {
     curve: ScalarCurve,
 }
 
+/// How deep the inventory inspects before declaring the rest uninspected.
+///
+/// Derived from the compiler's container bound rather than chosen, so the
+/// two cannot drift: the deepest admitted container sits at nesting level
+/// `MAX_CONTAINER_DEPTH`, the shapes it materializes one level below that,
+/// and an `<animate>` under such a shape is found while inspecting the
+/// shape itself — so inspection must be permitted two levels past the
+/// container bound. Anything deeper cannot materialize, so declining to
+/// inspect it withholds nothing the compiler would have admitted.
+const MAX_INSPECTION_DEPTH: usize = crate::svg::MAX_CONTAINER_DEPTH + 2;
+
 struct Inspector {
     materialized: HashSet<NodeId>,
     animation_count: usize,
@@ -147,7 +158,18 @@ struct Inspector {
 }
 
 impl Inspector {
-    fn walk_children(&mut self, parent: HtmlElement<'_>, parent_path: &str) {
+    fn walk_children(&mut self, parent: HtmlElement<'_>, parent_path: &str, depth: usize) {
+        // The inventory descends the same tree the compiler does and runs
+        // whether or not the compiler admitted every container, so it
+        // carries its own bound: without one a deeply nested document would
+        // exhaust the stack here instead of reaching a named refusal.
+        if depth >= MAX_INSPECTION_DEPTH {
+            self.record_error(AnimationError::new(
+                parent_path,
+                format!("nesting deeper than {MAX_INSPECTION_DEPTH} is not inspected"),
+            ));
+            return;
+        }
         let mut ordinals = HashMap::<String, usize>::new();
         let mut child = parent.first_element_child();
         while let Some(element) = child {
@@ -176,7 +198,7 @@ impl Inspector {
                     ));
                 }
             } else {
-                self.walk_children(element, &path);
+                self.walk_children(element, &path, depth + 1);
             }
 
             child = element.next_element_sibling();
@@ -246,10 +268,11 @@ impl Inspector {
             ));
         }
         let target = parent.node_id();
-        // The tag check keeps the rect-x proving slice narrow now that
-        // circles and ellipses also materialize: an <animate> under one of
-        // them stays a declared blocker instead of silently admitting an
-        // override no shape read consumes.
+        // The candidate set is the root's own materialized children, and
+        // the tag check narrows it to rects: an <animate> under a circle,
+        // an ellipse, or a shape nested in a <g> stays a declared blocker
+        // rather than silently admitting an override the sampling corpus
+        // does not bake.
         if !self.materialized.contains(&target) || parent.local_name_string() != "rect" {
             return Err(AnimationError::new(
                 path,

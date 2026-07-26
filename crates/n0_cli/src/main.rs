@@ -272,7 +272,12 @@ fn render_source_to_png(
         .degradations()
         .iter()
         .filter(|degradation| match degradation.action() {
-            websem::DegradationAction::Skipped => true,
+            // Both change what the raster shows, at Base as much as at a
+            // sample: a skipped element leaves a hole, an ignored
+            // declaration renders without a value Chromium honors.
+            websem::DegradationAction::Skipped | websem::DegradationAction::DeclarationIgnored => {
+                true
+            }
             websem::DegradationAction::SamplesAsBase => {
                 matches!(policy, FramePolicy::Sample(_))
             }
@@ -427,10 +432,14 @@ mod tests {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         for (relative, kind, size, named) in [
             (
+                // Containers are compiled, and `<title>`/`<desc>` paint
+                // nothing, so strict now reaches this fixture's stroked
+                // shapes: the first refusal is the stroke paint the slice
+                // does not consume.
                 "fixtures/test-svg/L0/basic-shapes.svg",
                 SourceKind::Svg,
                 (500, 500),
-                "unsupported element <title>",
+                "stroke paint is not yet consumed",
             ),
             (
                 // The basic-shapes rung admitted <circle>/<ellipse>; the
@@ -477,8 +486,10 @@ mod tests {
     fn best_effort_default_renders_the_admitted_subset_and_declares_the_rest() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
 
-        // basic-shapes.svg: the white background rect is admitted; <title>,
-        // <desc>, and the eight <g> groups are declared skips.
+        // basic-shapes.svg: the white background rect is admitted, the
+        // eight groups are compiled and their beyond-slice *descendants*
+        // are declared individually at nested paths, and `<title>`/`<desc>`
+        // declare nothing because Chromium paints nothing for them either.
         let source = std::fs::read_to_string(root.join("fixtures/test-svg/L0/basic-shapes.svg"))
             .expect("read basic-shapes");
         let (png, degradations) = render_source_to_png(
@@ -500,24 +511,35 @@ mod tests {
         assert_eq!(
             skipped,
             vec![
-                "svg/title[1]",
-                "svg/desc[1]",
-                "svg/g[1]",
-                "svg/g[2]",
-                "svg/g[3]",
-                "svg/g[4]",
-                "svg/g[5]",
-                "svg/g[6]",
-                "svg/g[7]",
-                "svg/g[8]",
+                "svg/g[1]/rect[1]",
+                "svg/g[1]/text[1]",
+                "svg/g[2]/rect[1]",
+                "svg/g[2]/text[1]",
+                "svg/g[3]/circle[1]",
+                "svg/g[3]/text[1]",
+                "svg/g[4]/ellipse[1]",
+                "svg/g[4]/text[1]",
+                "svg/g[5]/line[1]",
+                "svg/g[5]/line[2]",
+                "svg/g[5]/text[1]",
+                "svg/g[6]/polyline[1]",
+                "svg/g[6]/text[1]",
+                "svg/g[7]/polygon[1]",
+                "svg/g[7]/text[1]",
+                "svg/g[8]/polygon[1]",
+                "svg/g[8]/text[1]",
             ],
-            "every beyond-slice child is declared at its path"
+            "every beyond-slice descendant is declared at its nested path"
         );
         assert!(
             degradations
                 .iter()
-                .any(|d| d.reason() == "unsupported element <g>"),
+                .any(|d| d.reason() == "unsupported element <text>"),
             "reasons name the construct"
+        );
+        assert!(
+            !degradations.iter().any(|d| d.path() == "svg/g[1]"),
+            "a container is compiled, not a hole"
         );
 
         // circle-fill-probe.svg: the basic-shapes rung admitted <circle> —

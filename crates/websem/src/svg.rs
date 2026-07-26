@@ -134,6 +134,12 @@ pub enum DegradationAction {
     /// even if the consumer only ever requests Base — a Base request is not
     /// degraded by it.
     SamplesAsBase,
+    /// The element rendered, but a declaration that would have changed its
+    /// pixels was not honored — the cascade cannot represent it, and it is
+    /// not attributable to one element without selector matching. Nothing
+    /// was left out of the frame, so this is neither [`Self::Skipped`] nor a
+    /// sampling policy.
+    DeclarationIgnored,
 }
 
 /// One declared best-effort degradation: a construct the strict admission
@@ -146,6 +152,11 @@ pub enum DegradationAction {
 /// and every Sample request share it. `path` follows the same stable
 /// structural convention as [`crate::AnimationError`] (e.g. `svg/circle[1]`);
 /// it is not an XML line or column.
+///
+/// Order is by *contract level*, then document order within a level:
+/// document-level findings (a stylesheet the cascade cannot represent) come
+/// first because they are established before the element walk, then the
+/// walk's skips in document order, then the sampling policy entries.
 ///
 /// [`Skipped`]: DegradationAction::Skipped
 /// [`SamplesAsBase`]: DegradationAction::SamplesAsBase
@@ -180,6 +191,13 @@ impl std::fmt::Display for Degradation {
                 write!(
                     formatter,
                     "samples as base ({}): {}",
+                    self.path, self.reason
+                )
+            }
+            DegradationAction::DeclarationIgnored => {
+                write!(
+                    formatter,
+                    "declaration ignored at {}: {}",
                     self.path, self.reason
                 )
             }
@@ -274,6 +292,16 @@ pub enum CompileError {
     /// Chromium silently falls back to the default `xMidYMid meet` for
     /// these; the slice refuses by name instead of silently defaulting.
     BadPreserveAspectRatio(String),
+    /// A `transform` list outside the SVG2 §8.3 grammar: an unknown
+    /// function, a wrong argument count, or a number the SVG grammar does
+    /// not accept. The frozen donor silently maps a subset of such a list;
+    /// this slice refuses it, the same posture as `viewBox` and
+    /// `preserveAspectRatio`.
+    BadTransform { element: String, value: String },
+    /// Container nesting deeper than the compiler descends. A recursive
+    /// walk cannot honor unbounded depth, so the limit is explicit rather
+    /// than a stack overflow.
+    ContainerTooDeep(usize),
     /// An element carried no computed style (cascade did not reach it).
     MissingComputedStyle,
     /// A known rendering-relevant SVG attribute the slice does not consume.
@@ -432,16 +460,29 @@ impl SvgFrameSource {
             if entry == SourceEntry::StandaloneSvg && subtree_contains_script(root) {
                 return Err(CompileError::ScriptSuspendsParse);
             }
-            // A stylesheet declaration the cascade cannot represent would
-            // paint as if absent wherever its selector matches. It is not
-            // attributable to one element without selector matching, so it
-            // refuses at the document level in both admissions. The scan
-            // starts at the document root: the HTML entry's stylesheet
+            // A stylesheet declaration the cascade cannot represent paints
+            // as if absent wherever its selector matches, and it is not
+            // attributable to one element without selector matching. So it
+            // is document-level: strict refuses, and best-effort declares
+            // it once against the sheet and renders — a named departure,
+            // never a silent one. (An *attribute* the slice cannot consume
+            // is attributable, so that stays a per-element hole. The
+            // asymmetry is the cost of not running selector matching.) The
+            // scan starts at the document root: the HTML entry's stylesheet
             // commonly lives in <head>, outside the compiled SVG subtree.
-            if let Some(property) = unrepresented_stylesheet_property(root) {
-                return Err(CompileError::UnsupportedStyle(format!(
-                    "a stylesheet declares {property}, which this cascade does not represent"
-                )));
+            for (property, path) in unrepresented_stylesheet_properties(root) {
+                let reason = format!(
+                    "a stylesheet declares {property}, which this cascade does not \
+                     represent; elements it matches render without it"
+                );
+                match mode {
+                    CompileMode::Strict => return Err(CompileError::UnsupportedStyle(reason)),
+                    CompileMode::BestEffort => degradations.push(Degradation {
+                        path,
+                        action: DegradationAction::DeclarationIgnored,
+                        reason,
+                    }),
+                }
             }
             let svg = match entry {
                 SourceEntry::StandaloneSvg => (root.is_svg_element()
@@ -464,7 +505,7 @@ impl SvgFrameSource {
                 &mut degradations,
                 initial_viewport,
             )?;
-            let animation = AnimationInventory::inspect(svg, &compilation.materialized, entry);
+            let animation = AnimationInventory::inspect(svg, &compilation.top_level_shapes, entry);
             (svg.node_id(), compilation, animation)
         };
         if mode == CompileMode::BestEffort {
@@ -604,6 +645,12 @@ impl std::fmt::Display for CompileError {
             CompileError::BadPreserveAspectRatio(v) => {
                 write!(f, "preserveAspectRatio {v:?} is invalid")
             }
+            CompileError::BadTransform { element, value } => {
+                write!(f, "transform {value:?} on <{element}> is invalid")
+            }
+            CompileError::ContainerTooDeep(limit) => {
+                write!(f, "container nesting deeper than {limit} is not compiled")
+            }
             CompileError::MissingComputedStyle => write!(f, "element has no computed style"),
             CompileError::UnsupportedAttribute { element, attr } => write!(
                 f,
@@ -649,15 +696,19 @@ pub fn compile_standalone_svg(
 /// Whether any element in the subtree is a `<script>` (exact local name —
 /// XML is case-sensitive, and only the exact tag suspends xml5ever).
 fn subtree_contains_script(el: HtmlElement<'_>) -> bool {
-    if el.local_name_string() == "script" {
-        return true;
-    }
-    let mut child = el.first_element_child();
-    while let Some(c) = child {
-        if subtree_contains_script(c) {
+    // Iterative: this runs before the compiler's own bounded descent, so a
+    // deep document must not exhaust the stack here instead of reaching the
+    // compiler's explicit refusal.
+    let mut stack = vec![el];
+    while let Some(element) = stack.pop() {
+        if element.local_name_string() == "script" {
             return true;
         }
-        child = c.next_element_sibling();
+        let mut child = element.first_element_child();
+        while let Some(c) = child {
+            stack.push(c);
+            child = c.next_element_sibling();
+        }
     }
     false
 }
@@ -671,7 +722,6 @@ fn subtree_contains_script(el: HtmlElement<'_>) -> bool {
 /// the standalone entry laws). `preserveAspectRatio` is absent here because
 /// the viewport mapping consumes it.
 const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
-    "transform",
     "transform-origin",
     "opacity",
     "display",
@@ -707,6 +757,16 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
 /// Rendering attributes additionally rejected on `<rect>`: rounded corners
 /// are not painted by the slice.
 const RECT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["rx", "ry"];
+
+/// Rendering attributes additionally rejected on the root `<svg>`.
+///
+/// `transform` is admitted on containers and shapes, where it maps user
+/// space. On the *outermost* `<svg>` it means something else — Chromium
+/// applies it to the element's CSS box, outside the viewBox mapping, so
+/// composing it like a container's would place the content wrongly. Until
+/// that rung, the root's own transform refuses by name rather than being
+/// silently dropped.
+const ROOT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["transform"];
 
 /// CSS properties that move, clip, or recolor Chromium's pixels and that
 /// the pinned servo-mode Stylo build cannot represent at all — every one is
@@ -778,33 +838,48 @@ fn patrol_style_attribute(
     Ok(())
 }
 
-/// The first `<style>` element in the document whose CSS declares a
-/// property the cascade drops but Chromium paints with.
+/// Every `<style>` element in the document whose CSS declares a property
+/// the cascade drops but Chromium paints with, each with its structural
+/// path.
 ///
-/// A stylesheet is not attributable to one element without running
-/// selector matching, so this refuses at the document level in both
-/// admissions — the same posture as the other document-level contracts.
-/// Over-refusal (a rule that matches only skipped elements) is loud; the
-/// alternative is silently painting an untransformed, unclipped, or
-/// unfiltered shape.
-fn unrepresented_stylesheet_property(element: HtmlElement<'_>) -> Option<String> {
-    if element.local_name_string() == "style" {
-        for child_id in &element.dom_node().children {
-            if let DemoNodeData::Text(text) = &element.dom().node(*child_id).data
-                && let Some(property) = unrepresented_property(text)
-            {
-                return Some(property);
+/// A stylesheet is not attributable to one element without running selector
+/// matching, so the caller treats each finding as document-level: strict
+/// refuses on the first, best-effort declares them all and renders. All of
+/// them, not just the first — a second sheet declaring a different property
+/// would otherwise render as-absent with nothing said.
+///
+/// The walk is iterative. A recursive one would be a second descent over the
+/// same tree the compiler bounds, and it runs *before* the compiler, so a
+/// deep document would exhaust the stack here instead of reaching the
+/// compiler's explicit refusal.
+fn unrepresented_stylesheet_properties(root: HtmlElement<'_>) -> Vec<(String, String)> {
+    let mut found = Vec::new();
+    let mut stack = vec![(root, root.local_name_string())];
+    while let Some((element, path)) = stack.pop() {
+        if element.local_name_string() == "style" {
+            for child_id in &element.dom_node().children {
+                if let DemoNodeData::Text(text) = &element.dom().node(*child_id).data
+                    && let Some(property) = unrepresented_property(text)
+                {
+                    found.push((property, path.clone()));
+                    break;
+                }
             }
         }
-    }
-    let mut child = element.first_element_child();
-    while let Some(c) = child {
-        if let Some(property) = unrepresented_stylesheet_property(c) {
-            return Some(property);
+        let mut ordinals = HashMap::<String, usize>::new();
+        let mut children = Vec::new();
+        let mut child = element.first_element_child();
+        while let Some(c) = child {
+            let tag = c.local_name_string();
+            let ordinal = ordinals.entry(tag.clone()).or_default();
+            *ordinal += 1;
+            children.push((c, format!("{path}/{tag}[{ordinal}]")));
+            child = c.next_element_sibling();
         }
-        child = c.next_element_sibling();
+        // Depth-first in document order: the stack pops in reverse.
+        stack.extend(children.into_iter().rev());
     }
-    None
+    found
 }
 
 fn patrol_rendering_attributes(
@@ -858,9 +933,19 @@ fn patrol_computed_style(
             "opacity {opacity} is not yet consumed"
         )));
     }
-    if style.clone_display().is_none() {
+    let display = style.clone_display();
+    if display.is_none() {
         return Err(CompileError::UnsupportedStyle(
             "display: none is not yet consumed".to_string(),
+        ));
+    }
+    // `display: contents` generates no box: Chromium drops the element
+    // itself and paints its children in the parent's place, so a container
+    // loses its transform and a shape never paints. Rendering it as an
+    // ordinary element would diverge silently.
+    if display.is_contents() {
+        return Err(CompileError::UnsupportedStyle(
+            "display: contents is not yet consumed".to_string(),
         ));
     }
     let visibility = style.clone_visibility();
@@ -942,10 +1027,12 @@ fn find_svg<'session>(el: HtmlElement<'session>) -> Option<HtmlElement<'session>
 /// Compile an `<svg>` element and its children into an SVG-local frame.
 struct FrameCompilation {
     frame: Frame,
-    /// Source nodes materialized as frame nodes, in document order — the
-    /// animation inventory's candidate target set (the inventory narrows it
-    /// further: the admitted sampling slice targets `<rect>` only).
-    materialized: Vec<NodeId>,
+    /// The materialized nodes that are direct children of the root `<svg>`
+    /// — the animation inventory's candidate target set, which it narrows
+    /// further to `<rect>`. A shape inside a `<g>` is deliberately not a
+    /// candidate: admitting overrides there would widen the sampling slice
+    /// past what the animation corpus bakes.
+    top_level_shapes: Vec<NodeId>,
 }
 
 /// The one SVG compiler. Base and Sample(time) both enter here; the only
@@ -964,7 +1051,7 @@ fn compile_svg_element(
     // The outer <svg> is the canvas contract: a rendering attribute or a
     // cascaded value the slice cannot honor here would wrong every pixel,
     // so the root patrols are document-level in both modes.
-    patrol_rendering_attributes(svg, "svg", &[])?;
+    patrol_rendering_attributes(svg, "svg", ROOT_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
     patrol_style_attribute(svg, "svg")?;
     patrol_computed_style(svg, false, true)?;
     reject_percentage_dimension(svg, "width")?;
@@ -1022,36 +1109,20 @@ fn compile_svg_element(
     };
     let frame_bounds = Rectangle::from_xywh(0.0, 0.0, width, height);
 
-    let mut nodes = Vec::new();
-    let mut materialized = Vec::new();
-    let mut next_id = 0u64;
-    let mut ordinals = HashMap::<String, usize>::new();
-    let mut child = svg.first_element_child();
-    while let Some(c) = child {
-        let tag = c.local_name_string();
-        let ordinal = ordinals.entry(tag.clone()).or_default();
-        *ordinal += 1;
-        // `<style>` is a non-rendering element: its CSS enters the one
-        // cascade (csscascade collects it); it materializes nothing here.
-        // Animation elements likewise contribute values, not geometry.
-        if !is_animation_element(&tag) && tag != "style" {
-            match compile_shape(c, viewport, &mut next_id, values) {
-                Ok(node) => {
-                    nodes.push(node);
-                    materialized.push(c.node_id());
-                }
-                Err(error) => match mode {
-                    CompileMode::Strict => return Err(error),
-                    CompileMode::BestEffort => degradations.push(Degradation {
-                        path: format!("svg/{tag}[{ordinal}]"),
-                        action: DegradationAction::Skipped,
-                        reason: error.to_string(),
-                    }),
-                },
-            }
-        }
-        child = c.next_element_sibling();
-    }
+    let mut walk = ChildWalk {
+        values,
+        mode,
+        degradations,
+        nodes: Vec::new(),
+        top_level_shapes: Vec::new(),
+        next_id: 0,
+    };
+    walk.compile_children(svg, viewport, "svg", 0)?;
+    let ChildWalk {
+        nodes,
+        top_level_shapes,
+        ..
+    } = walk;
 
     Ok(FrameCompilation {
         frame: Frame {
@@ -1059,8 +1130,370 @@ fn compile_svg_element(
             bounds: frame_bounds,
             nodes,
         },
-        materialized,
+        top_level_shapes,
     })
+}
+
+/// How deep a container subtree this compiler descends before refusing.
+///
+/// A document may nest `<g>` arbitrarily and this walk is recursive, so an
+/// adversarial or generated file could otherwise exhaust the stack. The
+/// bound is generous against real documents and the refusal is explicit
+/// rather than a crash. Every other walk over the same tree
+/// ([`subtree_contains_script`], [`unrepresented_stylesheet_properties`],
+/// and the animation inventory's own inspection) is iterative or bounded
+/// for the same reason — a bound here alone would not prevent the crash it
+/// exists to prevent.
+pub(crate) const MAX_CONTAINER_DEPTH: usize = 64;
+
+/// The recursive descent that materializes shapes in painter order.
+///
+/// Containers are **flattened**, not represented: a `<g>` contributes only
+/// its transform and its place in paint order, both of which compose into
+/// the per-node affine and the ordered node list the resolved contract
+/// already carries. That is exactly true while every construct needing a
+/// real group scope — `opacity`, `clip-path`, `mask`, `filter`,
+/// `mix-blend-mode`, `isolation` — is still refused by the patrols. When a
+/// scope-bearing rung admits one, the contract grows a scope then, driven
+/// by that producer.
+struct ChildWalk<'a> {
+    values: &'a EffectiveValues,
+    mode: CompileMode,
+    degradations: &'a mut Vec<Degradation>,
+    nodes: Vec<FrameNode>,
+    /// The materialized nodes that are direct children of the root `<svg>`
+    /// — the animation inventory's candidate targets, which it narrows
+    /// further to `<rect>`.
+    top_level_shapes: Vec<NodeId>,
+    next_id: u64,
+}
+
+impl ChildWalk<'_> {
+    fn compile_children(
+        &mut self,
+        parent: HtmlElement<'_>,
+        transform: AffineTransform,
+        parent_path: &str,
+        depth: usize,
+    ) -> Result<(), CompileError> {
+        let mut ordinals = HashMap::<String, usize>::new();
+        let mut child = parent.first_element_child();
+        while let Some(c) = child {
+            let tag = c.local_name_string();
+            let ordinal = {
+                let ordinal = ordinals.entry(tag.clone()).or_default();
+                *ordinal += 1;
+                *ordinal
+            };
+            let path = format!("{parent_path}/{tag}[{ordinal}]");
+            // Non-rendering elements contribute no geometry and no hole:
+            // `<style>`'s CSS enters the one cascade (csscascade collects
+            // it), `<title>`/`<desc>`/`<metadata>` are descriptive text
+            // Chromium never paints, and animation elements contribute
+            // values. Declaring any of them would report a hole where the
+            // browser also draws nothing.
+            if is_non_rendering_element(&tag) || is_animation_element(&tag) {
+                child = c.next_element_sibling();
+                continue;
+            }
+            let result = if tag == "g" {
+                self.compile_container(c, transform, &path, depth)
+            } else {
+                self.compile_leaf(c, transform, depth == 0)
+            };
+            if let Err(error) = result {
+                match self.mode {
+                    CompileMode::Strict => return Err(error),
+                    CompileMode::BestEffort => self.degradations.push(Degradation {
+                        path,
+                        action: DegradationAction::Skipped,
+                        reason: error.to_string(),
+                    }),
+                }
+            }
+            child = c.next_element_sibling();
+        }
+        Ok(())
+    }
+
+    /// A container element: patrolled like any admitted element, then
+    /// descended with its own transform composed onto the inherited one.
+    ///
+    /// A failure *on the container itself* — an unconsumed attribute, a
+    /// scope-bearing cascaded property, a malformed transform — fails the
+    /// whole subtree, because nothing inside it can be placed or composited
+    /// correctly without it. A failure on one *descendant* is that
+    /// descendant's own hole: its siblings still paint, each skip named at
+    /// its nested path. That keeps best-effort's "render what is admitted"
+    /// promise inside groups instead of dropping a whole illustration for
+    /// one unsupported child.
+    fn compile_container(
+        &mut self,
+        el: HtmlElement<'_>,
+        transform: AffineTransform,
+        path: &str,
+        depth: usize,
+    ) -> Result<(), CompileError> {
+        if depth >= MAX_CONTAINER_DEPTH {
+            return Err(CompileError::ContainerTooDeep(MAX_CONTAINER_DEPTH));
+        }
+        patrol_rendering_attributes(el, "g", &[])?;
+        patrol_style_attribute(el, "g")?;
+        patrol_computed_style(el, true, false)?;
+        let transform = compose_element_transform(el, transform, "g")?;
+        self.compile_children(el, transform, path, depth + 1)
+    }
+
+    fn compile_leaf(
+        &mut self,
+        el: HtmlElement<'_>,
+        transform: AffineTransform,
+        top_level: bool,
+    ) -> Result<(), CompileError> {
+        let node = compile_shape(el, transform, &mut self.next_id, self.values)?;
+        self.nodes.push(node);
+        if top_level {
+            self.top_level_shapes.push(el.node_id());
+        }
+        Ok(())
+    }
+}
+
+/// Whether the element paints nothing *and* affects no other element's
+/// painting, so it is neither compiled nor declared.
+///
+/// Both halves matter. `<defs>`, `<symbol>`, `<clipPath>`, `<mask>`,
+/// `<marker>` and the gradient elements also paint nothing directly, but
+/// they change what referencing elements paint — skipping one silently
+/// would change pixels — so they stay ordinary unsupported elements,
+/// declared by name until the rung that consumes them.
+fn is_non_rendering_element(tag: &str) -> bool {
+    matches!(tag, "style" | "title" | "desc" | "metadata")
+}
+
+/// Compose an element's authored `transform` onto the transform it
+/// inherits, giving the local→frame mapping for it and its subtree.
+///
+/// SVG composes a transform list left to right, outermost first, and an
+/// element's own list applies inside its inherited mapping — which is
+/// exactly [`AffineTransform::compose`]'s "apply `other` after `self`"
+/// order with the inherited mapping on the left.
+fn compose_element_transform(
+    el: HtmlElement<'_>,
+    inherited: AffineTransform,
+    element_name: &str,
+) -> Result<AffineTransform, CompileError> {
+    match get_attr(el, "transform") {
+        None => Ok(inherited),
+        Some(value) => {
+            let own = parse_transform_list(&value).ok_or_else(|| CompileError::BadTransform {
+                element: element_name.to_string(),
+                value: value.clone(),
+            })?;
+            let composed = inherited.compose(&own);
+            // Each function's own numbers are finite, but composing them
+            // can overflow. The downstream contract refuses a non-finite
+            // transform for the whole frame with no element named, which
+            // would turn one bad list into a blank render; refuse it here,
+            // where the element is known and best-effort leaves a single
+            // declared hole.
+            if !composed
+                .matrix
+                .iter()
+                .flatten()
+                .all(|component| component.is_finite())
+            {
+                return Err(CompileError::BadTransform {
+                    element: element_name.to_string(),
+                    value,
+                });
+            }
+            Ok(composed)
+        }
+    }
+}
+
+/// Parse an SVG `transform` list into one affine.
+///
+/// The tokenizer shape is the frozen donor's
+/// (`crates/htmlcss/src/svg/dom/attrs.rs`, `parse_transform`), re-expressed
+/// onto [`AffineTransform`] with two deliberate tightenings, because the
+/// donor's leniency is exactly the silent-divergence shape this engine
+/// refuses:
+///
+/// - **Every number must parse.** The donor filters unparseable arguments
+///   out of its list, so `translate(10, abc)` silently becomes
+///   `translate(10, 0)` — a different mapping than any browser computes.
+///   Here one bad number invalidates the list.
+/// - **Arity is exact** per SVG2 §8.3: `translate(tx [ty])`,
+///   `scale(sx [sy])`, `rotate(a [cx cy])`, `skewX(a)`, `skewY(a)`,
+///   `matrix(a b c d e f)`. The donor accepts any count and defaults the
+///   rest.
+///
+/// The number grammar is the same one every other attribute read uses
+/// ([`dots_carry_digits`]), so a Rust-superset token like `10.` is
+/// invalid here too. A malformed list refuses by name rather than
+/// silently mapping a subset of it — the posture [`parse_viewbox`] and
+/// [`parse_preserve_aspect_ratio`] already set.
+fn parse_transform_list(value: &str) -> Option<AffineTransform> {
+    let bytes = value.as_bytes();
+    let mut composed = AffineTransform::identity();
+    let mut index = 0usize;
+    let mut functions = 0usize;
+    while index < bytes.len() {
+        // Between two functions SVG's separator is `comma-wsp`: whitespace
+        // and/or at most one comma. Consuming any run of both would accept
+        // a leading comma and a doubled `,,`, which Chromium rejects — and
+        // a rejected list paints the element untransformed, so accepting
+        // one here would place content the browser leaves in place.
+        let mut commas = 0usize;
+        while index < bytes.len() {
+            if is_svg_whitespace(bytes[index]) {
+                index += 1;
+            } else if bytes[index] == b',' {
+                commas += 1;
+                if commas > 1 || functions == 0 {
+                    return None;
+                }
+                index += 1;
+            } else {
+                break;
+            }
+        }
+        if index >= bytes.len() {
+            break;
+        }
+        // A comma is a separator, not a terminator: it must be followed by
+        // another function.
+        if functions > 0 && commas == 0 && index > 0 && !is_svg_whitespace(bytes[index - 1]) {
+            return None;
+        }
+        let name_start = index;
+        while index < bytes.len() && bytes[index].is_ascii_alphabetic() {
+            index += 1;
+        }
+        if name_start == index {
+            return None;
+        }
+        let name = &value[name_start..index];
+        while index < bytes.len() && is_svg_whitespace(bytes[index]) {
+            index += 1;
+        }
+        if index >= bytes.len() || bytes[index] != b'(' {
+            return None;
+        }
+        index += 1;
+        let args_start = index;
+        while index < bytes.len() && bytes[index] != b')' {
+            index += 1;
+        }
+        if index >= bytes.len() {
+            return None;
+        }
+        let args = &value[args_start..index];
+        index += 1;
+        functions += 1;
+
+        let numbers = parse_number_list(args)?;
+
+        let step = match (name, numbers.as_slice()) {
+            ("matrix", [a, b, c, d, e, f]) => AffineTransform::from_acebdf(*a, *c, *e, *b, *d, *f),
+            ("translate", [tx]) => AffineTransform::from_acebdf(1.0, 0.0, *tx, 0.0, 1.0, 0.0),
+            ("translate", [tx, ty]) => AffineTransform::from_acebdf(1.0, 0.0, *tx, 0.0, 1.0, *ty),
+            ("scale", [s]) => AffineTransform::from_acebdf(*s, 0.0, 0.0, 0.0, *s, 0.0),
+            ("scale", [sx, sy]) => AffineTransform::from_acebdf(*sx, 0.0, 0.0, 0.0, *sy, 0.0),
+            ("rotate", [degrees]) => rotate_transform(*degrees),
+            ("rotate", [degrees, cx, cy]) => {
+                AffineTransform::from_acebdf(1.0, 0.0, *cx, 0.0, 1.0, *cy)
+                    .compose(&rotate_transform(*degrees))
+                    .compose(&AffineTransform::from_acebdf(
+                        1.0, 0.0, -*cx, 0.0, 1.0, -*cy,
+                    ))
+            }
+            ("skewX", [degrees]) => {
+                AffineTransform::from_acebdf(1.0, degrees.to_radians().tan(), 0.0, 0.0, 1.0, 0.0)
+            }
+            ("skewY", [degrees]) => {
+                AffineTransform::from_acebdf(1.0, 0.0, 0.0, degrees.to_radians().tan(), 1.0, 0.0)
+            }
+            _ => return None,
+        };
+        composed = composed.compose(&step);
+    }
+    // An empty or whitespace-only list authored no function; SVG treats it
+    // as the identity, and so does an absent attribute.
+    (functions > 0 || trim_svg_whitespace(value).is_empty()).then_some(composed)
+}
+
+/// Parse a transform function's argument list under SVG's `comma-wsp`
+/// separator grammar: numbers separated by whitespace and/or **at most one**
+/// comma, with no leading or trailing comma.
+///
+/// Splitting on separators and skipping empty tokens — the obvious
+/// implementation, and the frozen donor's — would silently accept
+/// `translate(1,,2)`, `translate(,1)` and `translate(1,)` as
+/// `translate(1,2)` / `translate(1)`, each of which Chromium rejects
+/// outright (painting the element untransformed). An empty token is
+/// therefore a hard error here, not a skip.
+fn parse_number_list(args: &str) -> Option<Vec<f32>> {
+    let trimmed = trim_svg_whitespace(args);
+    if trimmed.is_empty() {
+        return Some(Vec::new());
+    }
+    let mut numbers = Vec::new();
+    for group in trimmed.split(',') {
+        // One comma may separate numbers, so each comma-delimited group
+        // must itself hold at least one whitespace-separated number: an
+        // empty group is a doubled, leading, or trailing comma.
+        let mut tokens = group.split_ascii_whitespace().peekable();
+        tokens.peek()?;
+        for token in tokens {
+            if !dots_carry_digits(token) {
+                return None;
+            }
+            let number = token.parse::<f32>().ok()?;
+            if !number.is_finite() {
+                return None;
+            }
+            numbers.push(number);
+        }
+    }
+    Some(numbers)
+}
+
+/// A rotation about the origin.
+///
+/// A quarter turn is produced from its integer matrix rather than from
+/// `sin`/`cos`: in f32 the cosine of a right angle is `-4.37e-8`, not
+/// zero, so the generic path shears and shifts the shape by a fraction of
+/// a unit where the exact matrix does not.
+///
+/// Two guards keep the shortcut honest. The multiple-of-90 test uses `%`,
+/// which is exact in f32, rather than comparing a quotient to its
+/// truncation — past `90 * 2^23` every quotient is integral by
+/// construction, so a quotient test would snap arbitrary large angles onto
+/// one of four exact matrices. The magnitude bound then keeps the quadrant
+/// index meaningful, since reducing a huge quotient mod 4 is not.
+fn rotate_transform(degrees: f32) -> AffineTransform {
+    /// Well past any authored angle, and far below where f32 spacing makes
+    /// the quadrant reduction lossy.
+    const EXACT_QUARTER_TURN_LIMIT: f32 = 360.0 * 1024.0;
+    if degrees.abs() <= EXACT_QUARTER_TURN_LIMIT && degrees % 90.0 == 0.0 {
+        let (sin, cos) = match (degrees / 90.0).rem_euclid(4.0) as i32 {
+            0 => (0.0, 1.0),
+            1 => (1.0, 0.0),
+            2 => (0.0, -1.0),
+            _ => (-1.0, 0.0),
+        };
+        return AffineTransform::from_acebdf(cos, -sin, 0.0, sin, cos, 0.0);
+    }
+    let (sin, cos) = degrees.to_radians().sin_cos();
+    AffineTransform::from_acebdf(cos, -sin, 0.0, sin, cos, 0.0)
+}
+
+/// The five ASCII characters the SVG grammar calls whitespace.
+const fn is_svg_whitespace(byte: u8) -> bool {
+    matches!(byte, b' ' | b'\t' | b'\n' | b'\r' | 0x0C)
 }
 
 /// Compile a single shape element into a resolved node.
@@ -1070,15 +1503,19 @@ fn compile_svg_element(
 /// lowercases and foreign-content-adjusts; XML preserves authored case).
 fn compile_shape(
     el: HtmlElement<'_>,
-    viewport: AffineTransform,
+    inherited: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
 ) -> Result<FrameNode, CompileError> {
     let tag = el.local_name_string();
+    // A shape's own `transform` composes inside the mapping it inherits
+    // from the viewport and its ancestor containers, exactly as a
+    // container's does.
+    let transform = compose_element_transform(el, inherited, &tag)?;
     match tag.as_str() {
-        "rect" => compile_rect(el, viewport, next_id, values),
-        "circle" => compile_circle(el, viewport, next_id, values),
-        "ellipse" => compile_ellipse(el, viewport, next_id, values),
+        "rect" => compile_rect(el, transform, next_id, values),
+        "circle" => compile_circle(el, transform, next_id, values),
+        "ellipse" => compile_ellipse(el, transform, next_id, values),
         other => Err(CompileError::UnsupportedElement(other.to_string())),
     }
 }

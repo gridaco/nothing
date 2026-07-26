@@ -442,29 +442,39 @@ fn cascade_properties_the_build_cannot_represent_refuse_by_name() {
         assert!(reason.contains(property), "{label} names it: {reason}");
     }
 
+    // The stylesheet leg is document-level, because a sheet is not
+    // attributable to one element without selector matching: strict
+    // refuses, best-effort declares it once against the sheet and renders
+    // the document rather than dropping the canvas.
     let styled = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
   <style>circle { transform: translate(10px, 0); }</style>
   <rect width="64" height="64" fill="#ffffff"/>
   <circle cx="20" cy="32" r="10" fill="#16a34a"/>
 </svg>"##;
-    for (admission, result) in [
-        (
-            "strict",
-            SvgFrameSource::from_standalone_svg(styled, viewport(64.0, 64.0)),
-        ),
-        (
-            "best-effort",
-            SvgFrameSource::from_standalone_svg_best_effort(styled, viewport(64.0, 64.0)),
-        ),
-    ] {
-        let error = result
-            .err()
-            .unwrap_or_else(|| panic!("{admission} must refuse the stylesheet declaration"));
-        assert!(
-            error.to_string().contains("transform"),
-            "{admission}: {error}"
-        );
-    }
+    let strict = SvgFrameSource::from_standalone_svg(styled, viewport(64.0, 64.0))
+        .err()
+        .expect("strict refuses the stylesheet declaration");
+    assert!(strict.to_string().contains("transform"), "{strict}");
+
+    let best = SvgFrameSource::from_standalone_svg_best_effort(styled, viewport(64.0, 64.0))
+        .expect("best-effort renders and declares");
+    let declared: Vec<_> = best
+        .degradations()
+        .iter()
+        .filter(|d| d.reason().contains("stylesheet declares transform"))
+        .collect();
+    assert_eq!(declared.len(), 1, "declared exactly once");
+    assert_eq!(declared[0].path(), "svg/style[1]", "named at the sheet");
+    assert!(
+        declared[0].reason().contains("render without it"),
+        "the declaration states the consequence: {}",
+        declared[0].reason()
+    );
+    assert_eq!(
+        best.base_frame().nodes.len(),
+        2,
+        "the admitted shapes still render"
+    );
 }
 
 /// The rendering-attribute patrol covers the new elements: an authored
@@ -477,8 +487,8 @@ fn unconsumed_rendering_attributes_refuse_on_the_new_shapes() {
             r##"<circle cx="32" cy="32" r="12" fill="#16a34a" stroke="#000000"/>"##,
         ),
         (
-            "transform on ellipse",
-            r##"<ellipse cx="32" cy="32" rx="12" ry="8" fill="#16a34a" transform="translate(4)"/>"##,
+            "transform-origin on ellipse",
+            r##"<ellipse cx="32" cy="32" rx="12" ry="8" fill="#16a34a" transform-origin="center"/>"##,
         ),
     ] {
         let (error, _) = shape_failure(&on_canvas(shape));

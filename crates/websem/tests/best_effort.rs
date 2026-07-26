@@ -253,8 +253,12 @@ fn inline_html_sampling_falls_back_to_base_under_best_effort() {
 fn unconsumed_rendering_attributes_never_paint_wrong_pixels() {
     for (label, rect_attrs, named) in [
         ("element opacity", r#"opacity="0.5""#, "opacity"),
-        ("transform", r#"transform="translate(20,0)""#, "transform"),
         ("rounded corners", r#"rx="8""#, "rx"),
+        (
+            "transform-origin",
+            r#"transform-origin="center""#,
+            "transform-origin",
+        ),
         (
             "stroke paint",
             r##"stroke="#0000ff" stroke-width="8""##,
