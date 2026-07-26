@@ -1,48 +1,107 @@
 {
-  "schema_version": 0,
-  "fixture_id": "svg-rect-x-animation",
-  "width": 64,
-  "height": 32,
-  "probe": "#probe",
-  "authored_base_x": 4,
-  "base": {
-    "source": "svg-rect-x-base.svg",
-    "oracle": "chromium/base.png",
-    "expected_x": 4
-  },
-  "animation": {
-    "source": "svg-rect-x-animation.svg",
-    "samples": [
-      {
-        "time_ns": 0,
-        "oracle": "chromium/sample-0ns.png",
-        "expected_x": 20
+  "schema_version": 1,
+  "fixtures": [
+    {
+      "id": "svg-rect-x-animation",
+      "width": 64,
+      "height": 32,
+      "probe": "#probe",
+      "authored_base_x": 4,
+      "frame": {
+        "node_count": 2,
+        "animated_node_index": 1
       },
-      {
-        "time_ns": 1000000000,
-        "oracle": "chromium/sample-1000000000ns.png",
-        "expected_x": 32
+      "base": {
+        "source": "svg-rect-x-base.svg",
+        "oracle": "chromium/svg-rect-x-animation/base.png",
+        "expected_x": 4
       },
-      {
-        "time_ns": 2000000000,
-        "oracle": "chromium/sample-2000000000ns.png",
-        "expected_x": 44
-      },
-      {
-        "time_ns": 3000000000,
-        "oracle": "chromium/sample-3000000000ns.png",
-        "expected_x": 44
+      "animation": {
+        "source": "svg-rect-x-animation.svg",
+        "samples": [
+          {
+            "time_ns": 0,
+            "oracle": "chromium/svg-rect-x-animation/sample-0ns.png",
+            "expected_x": 20
+          },
+          {
+            "time_ns": 1000000000,
+            "oracle": "chromium/svg-rect-x-animation/sample-1000000000ns.png",
+            "expected_x": 32
+          },
+          {
+            "time_ns": 2000000000,
+            "oracle": "chromium/svg-rect-x-animation/sample-2000000000ns.png",
+            "expected_x": 44
+          },
+          {
+            "time_ns": 3000000000,
+            "oracle": "chromium/svg-rect-x-animation/sample-3000000000ns.png",
+            "expected_x": 44
+          }
+        ],
+        "retained_seek_order_ns": [
+          3000000000,
+          0,
+          2000000000,
+          1000000000,
+          0,
+          3000000000,
+          1000000000,
+          2000000000
+        ]
       }
-    ],
-    "retained_seek_order_ns": [
-      3000000000,
-      0,
-      2000000000,
-      1000000000,
-      0,
-      3000000000,
-      1000000000,
-      2000000000
-    ]
-  }
+    },
+    {
+      "id": "svg-scene-cub",
+      "width": 96,
+      "height": 96,
+      "probe": "#probe",
+      "authored_base_x": 12,
+      "frame": {
+        "node_count": 17,
+        "animated_node_index": 16
+      },
+      "base": {
+        "source": "svg-scene-cub-base.svg",
+        "oracle": "chromium/svg-scene-cub/base.png",
+        "expected_x": 12
+      },
+      "animation": {
+        "source": "svg-scene-cub-animation.svg",
+        "samples": [
+          {
+            "time_ns": 0,
+            "oracle": "chromium/svg-scene-cub/sample-0ns.png",
+            "expected_x": 6
+          },
+          {
+            "time_ns": 1000000000,
+            "oracle": "chromium/svg-scene-cub/sample-1000000000ns.png",
+            "expected_x": 22
+          },
+          {
+            "time_ns": 2000000000,
+            "oracle": "chromium/svg-scene-cub/sample-2000000000ns.png",
+            "expected_x": 38
+          },
+          {
+            "time_ns": 3000000000,
+            "oracle": "chromium/svg-scene-cub/sample-3000000000ns.png",
+            "expected_x": 38
+          }
+        ],
+        "retained_seek_order_ns": [
+          2000000000,
+          0,
+          3000000000,
+          1000000000,
+          0,
+          2000000000,
+          1000000000,
+          3000000000
+        ]
+      }
+    }
+  ]
 }

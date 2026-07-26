@@ -1,18 +1,15 @@
 {
-  "schema_version": 0,
+  "schema_version": 1,
   "kind": "chromium-svg-animation-oracle",
   "note": "Independent exact-RGBA oracle; no score or conformance pass claim.",
   "browser_version": "149.0.7827.55",
   "platform": "darwin-arm64",
   "node_version": "v25.9.0",
-  "bake_script_sha256": "e28bb95ab6fdeb05d2dc8a10e2eeedce002b6117b5559d028711718e87d6d824",
+  "bake_script_sha256": "3583d8693630f9262912cbe6f5013fce23e08aefddabd91b0c2b5616ce8cd20b",
   "suite": "cases.json",
-  "suite_sha256": "d771de1a54d073d56d48b733ea4c2f4ed96095274b99e68578e172a41d5e6cc2",
+  "suite_sha256": "bc68405be33a29c192d9fab6ac0ebe96acabacde88fd2a64a4deaed524260cb6",
   "capture": {
-    "viewport": {
-      "width": 64,
-      "height": 32
-    },
+    "viewport": "per-fixture declared dims (the initial viewport)",
     "device_scale_factor": 1,
     "color_scheme": "light",
     "locale": "en-US",
@@ -25,119 +22,248 @@
     "timeline_control": "pauseAnimations() then setCurrentTime(ns / 1e9)",
     "playwright_animation_capture_policy": "allow",
     "comparison": "exact decoded RGBA; fresh PNG encodings also byte-identical",
-    "fresh_captures_per_case": 2,
-    "retained_seek_order_ns": [
-      3000000000,
-      0,
-      2000000000,
-      1000000000,
-      0,
-      3000000000,
-      1000000000,
-      2000000000
-    ],
-    "retained_seek_count": 8
+    "fresh_captures_per_case": 2
   },
-  "cases": [
+  "fixtures": [
     {
-      "id": "base",
-      "policy": "base-static-projection",
-      "time_ns": null,
-      "source": "svg-rect-x-base.svg",
-      "source_sha256": "612d0675415629ee7b90ed1a33ba433c273dd87968624d3a3474cfc2a8d560cd",
-      "oracle": "chromium/base.png",
-      "oracle_sha256": "fcfab5af726011c28e1c245abfb31edf99e6d1a83f76b699eb1bff5ea54e600c",
-      "rgba_sha256": "519174c639baae75863a7f3304fc8809e6a7f3c58efd14f38205cd3a5b415692",
-      "expected_x": 4,
-      "observed": {
-        "base_x": 4,
-        "anim_x": 4,
-        "bbox_x": 4,
-        "current_time_seconds": 0,
-        "animation_element_count": 0,
-        "animations_paused": true
-      },
-      "fresh_capture_count": 2
+      "id": "svg-rect-x-animation",
+      "width": 64,
+      "height": 32,
+      "probe": "#probe",
+      "authored_base_x": 4,
+      "retained_seek_order_ns": [
+        3000000000,
+        0,
+        2000000000,
+        1000000000,
+        0,
+        3000000000,
+        1000000000,
+        2000000000
+      ],
+      "retained_seek_count": 8,
+      "cases": [
+        {
+          "id": "svg-rect-x-animation/base",
+          "policy": "base-static-projection",
+          "time_ns": null,
+          "source": "svg-rect-x-base.svg",
+          "source_sha256": "612d0675415629ee7b90ed1a33ba433c273dd87968624d3a3474cfc2a8d560cd",
+          "oracle": "chromium/svg-rect-x-animation/base.png",
+          "oracle_sha256": "fcfab5af726011c28e1c245abfb31edf99e6d1a83f76b699eb1bff5ea54e600c",
+          "rgba_sha256": "519174c639baae75863a7f3304fc8809e6a7f3c58efd14f38205cd3a5b415692",
+          "expected_x": 4,
+          "observed": {
+            "base_x": 4,
+            "anim_x": 4,
+            "bbox_x": 4,
+            "current_time_seconds": 0,
+            "animation_element_count": 0,
+            "animations_paused": true
+          },
+          "fresh_capture_count": 2
+        },
+        {
+          "id": "svg-rect-x-animation/sample-0ns",
+          "policy": "sample",
+          "time_ns": 0,
+          "source": "svg-rect-x-animation.svg",
+          "source_sha256": "e22432ffda8d4b4456f9912c9f11bb0478ec21ac88e7842aa25829f55a24b713",
+          "oracle": "chromium/svg-rect-x-animation/sample-0ns.png",
+          "oracle_sha256": "356270a0ba164066a5577e3563914bf192e3dd26482e27e760c5a991674f3cf0",
+          "rgba_sha256": "902e9fd288e7d33b5cb04a4b79d6c7267c39d05d52b374f02d8327dd43e94ab9",
+          "expected_x": 20,
+          "observed": {
+            "base_x": 4,
+            "anim_x": 20,
+            "bbox_x": 20,
+            "current_time_seconds": 0,
+            "animation_element_count": 1,
+            "animations_paused": true
+          },
+          "fresh_capture_count": 2
+        },
+        {
+          "id": "svg-rect-x-animation/sample-1000000000ns",
+          "policy": "sample",
+          "time_ns": 1000000000,
+          "source": "svg-rect-x-animation.svg",
+          "source_sha256": "e22432ffda8d4b4456f9912c9f11bb0478ec21ac88e7842aa25829f55a24b713",
+          "oracle": "chromium/svg-rect-x-animation/sample-1000000000ns.png",
+          "oracle_sha256": "57467f60456acd9f9142a93ecf50be4fab014c022d3b54a2a2815702ffeb933f",
+          "rgba_sha256": "3657271ea14dc0a8862cc5ee0897cce11c8fb3ef115514a16f4d0ac4d88bf970",
+          "expected_x": 32,
+          "observed": {
+            "base_x": 4,
+            "anim_x": 32,
+            "bbox_x": 32,
+            "current_time_seconds": 1,
+            "animation_element_count": 1,
+            "animations_paused": true
+          },
+          "fresh_capture_count": 2
+        },
+        {
+          "id": "svg-rect-x-animation/sample-2000000000ns",
+          "policy": "sample",
+          "time_ns": 2000000000,
+          "source": "svg-rect-x-animation.svg",
+          "source_sha256": "e22432ffda8d4b4456f9912c9f11bb0478ec21ac88e7842aa25829f55a24b713",
+          "oracle": "chromium/svg-rect-x-animation/sample-2000000000ns.png",
+          "oracle_sha256": "0bee4f2afae5efbfcef93ff8435349370bbd70e18054038218bdfed2b1ff64bb",
+          "rgba_sha256": "6015147d3fe015a6099f25606a5f7672d16c411ee93dc3a5e9431efb6de8dc6e",
+          "expected_x": 44,
+          "observed": {
+            "base_x": 4,
+            "anim_x": 44,
+            "bbox_x": 44,
+            "current_time_seconds": 2,
+            "animation_element_count": 1,
+            "animations_paused": true
+          },
+          "fresh_capture_count": 2
+        },
+        {
+          "id": "svg-rect-x-animation/sample-3000000000ns",
+          "policy": "sample",
+          "time_ns": 3000000000,
+          "source": "svg-rect-x-animation.svg",
+          "source_sha256": "e22432ffda8d4b4456f9912c9f11bb0478ec21ac88e7842aa25829f55a24b713",
+          "oracle": "chromium/svg-rect-x-animation/sample-3000000000ns.png",
+          "oracle_sha256": "0bee4f2afae5efbfcef93ff8435349370bbd70e18054038218bdfed2b1ff64bb",
+          "rgba_sha256": "6015147d3fe015a6099f25606a5f7672d16c411ee93dc3a5e9431efb6de8dc6e",
+          "expected_x": 44,
+          "observed": {
+            "base_x": 4,
+            "anim_x": 44,
+            "bbox_x": 44,
+            "current_time_seconds": 3,
+            "animation_element_count": 1,
+            "animations_paused": true
+          },
+          "fresh_capture_count": 2
+        }
+      ]
     },
     {
-      "id": "sample-0ns",
-      "policy": "sample",
-      "time_ns": 0,
-      "source": "svg-rect-x-animation.svg",
-      "source_sha256": "e22432ffda8d4b4456f9912c9f11bb0478ec21ac88e7842aa25829f55a24b713",
-      "oracle": "chromium/sample-0ns.png",
-      "oracle_sha256": "356270a0ba164066a5577e3563914bf192e3dd26482e27e760c5a991674f3cf0",
-      "rgba_sha256": "902e9fd288e7d33b5cb04a4b79d6c7267c39d05d52b374f02d8327dd43e94ab9",
-      "expected_x": 20,
-      "observed": {
-        "base_x": 4,
-        "anim_x": 20,
-        "bbox_x": 20,
-        "current_time_seconds": 0,
-        "animation_element_count": 1,
-        "animations_paused": true
-      },
-      "fresh_capture_count": 2
-    },
-    {
-      "id": "sample-1000000000ns",
-      "policy": "sample",
-      "time_ns": 1000000000,
-      "source": "svg-rect-x-animation.svg",
-      "source_sha256": "e22432ffda8d4b4456f9912c9f11bb0478ec21ac88e7842aa25829f55a24b713",
-      "oracle": "chromium/sample-1000000000ns.png",
-      "oracle_sha256": "57467f60456acd9f9142a93ecf50be4fab014c022d3b54a2a2815702ffeb933f",
-      "rgba_sha256": "3657271ea14dc0a8862cc5ee0897cce11c8fb3ef115514a16f4d0ac4d88bf970",
-      "expected_x": 32,
-      "observed": {
-        "base_x": 4,
-        "anim_x": 32,
-        "bbox_x": 32,
-        "current_time_seconds": 1,
-        "animation_element_count": 1,
-        "animations_paused": true
-      },
-      "fresh_capture_count": 2
-    },
-    {
-      "id": "sample-2000000000ns",
-      "policy": "sample",
-      "time_ns": 2000000000,
-      "source": "svg-rect-x-animation.svg",
-      "source_sha256": "e22432ffda8d4b4456f9912c9f11bb0478ec21ac88e7842aa25829f55a24b713",
-      "oracle": "chromium/sample-2000000000ns.png",
-      "oracle_sha256": "0bee4f2afae5efbfcef93ff8435349370bbd70e18054038218bdfed2b1ff64bb",
-      "rgba_sha256": "6015147d3fe015a6099f25606a5f7672d16c411ee93dc3a5e9431efb6de8dc6e",
-      "expected_x": 44,
-      "observed": {
-        "base_x": 4,
-        "anim_x": 44,
-        "bbox_x": 44,
-        "current_time_seconds": 2,
-        "animation_element_count": 1,
-        "animations_paused": true
-      },
-      "fresh_capture_count": 2
-    },
-    {
-      "id": "sample-3000000000ns",
-      "policy": "sample",
-      "time_ns": 3000000000,
-      "source": "svg-rect-x-animation.svg",
-      "source_sha256": "e22432ffda8d4b4456f9912c9f11bb0478ec21ac88e7842aa25829f55a24b713",
-      "oracle": "chromium/sample-3000000000ns.png",
-      "oracle_sha256": "0bee4f2afae5efbfcef93ff8435349370bbd70e18054038218bdfed2b1ff64bb",
-      "rgba_sha256": "6015147d3fe015a6099f25606a5f7672d16c411ee93dc3a5e9431efb6de8dc6e",
-      "expected_x": 44,
-      "observed": {
-        "base_x": 4,
-        "anim_x": 44,
-        "bbox_x": 44,
-        "current_time_seconds": 3,
-        "animation_element_count": 1,
-        "animations_paused": true
-      },
-      "fresh_capture_count": 2
+      "id": "svg-scene-cub",
+      "width": 96,
+      "height": 96,
+      "probe": "#probe",
+      "authored_base_x": 12,
+      "retained_seek_order_ns": [
+        2000000000,
+        0,
+        3000000000,
+        1000000000,
+        0,
+        2000000000,
+        1000000000,
+        3000000000
+      ],
+      "retained_seek_count": 8,
+      "cases": [
+        {
+          "id": "svg-scene-cub/base",
+          "policy": "base-static-projection",
+          "time_ns": null,
+          "source": "svg-scene-cub-base.svg",
+          "source_sha256": "89ff42803053b3aec0fdb01affe1919e2ce4633fbaaa0be1117dc739d1a51147",
+          "oracle": "chromium/svg-scene-cub/base.png",
+          "oracle_sha256": "da7ca6c93e59561c31755b0faaa6066e4336539433dbba6684b86b2b3d6171e0",
+          "rgba_sha256": "5308875440c7361abccab19a400780fdfbd7668f005f6b7158d82c255115fd1b",
+          "expected_x": 12,
+          "observed": {
+            "base_x": 12,
+            "anim_x": 12,
+            "bbox_x": 12,
+            "current_time_seconds": 0,
+            "animation_element_count": 0,
+            "animations_paused": true
+          },
+          "fresh_capture_count": 2
+        },
+        {
+          "id": "svg-scene-cub/sample-0ns",
+          "policy": "sample",
+          "time_ns": 0,
+          "source": "svg-scene-cub-animation.svg",
+          "source_sha256": "128f9f9a97310a72f756904cbc54af39966b9ad6c00b1c564a9c5bf8611ec376",
+          "oracle": "chromium/svg-scene-cub/sample-0ns.png",
+          "oracle_sha256": "5c3a343c4a2595d15dbce6cac829f3dbf785e8d289ec11047cea0f53101b74a5",
+          "rgba_sha256": "b04a393747f7745473fb8ac50fce50136fcfefa1ccfda860533a326bba19a13b",
+          "expected_x": 6,
+          "observed": {
+            "base_x": 12,
+            "anim_x": 6,
+            "bbox_x": 6,
+            "current_time_seconds": 0,
+            "animation_element_count": 1,
+            "animations_paused": true
+          },
+          "fresh_capture_count": 2
+        },
+        {
+          "id": "svg-scene-cub/sample-1000000000ns",
+          "policy": "sample",
+          "time_ns": 1000000000,
+          "source": "svg-scene-cub-animation.svg",
+          "source_sha256": "128f9f9a97310a72f756904cbc54af39966b9ad6c00b1c564a9c5bf8611ec376",
+          "oracle": "chromium/svg-scene-cub/sample-1000000000ns.png",
+          "oracle_sha256": "e871ad1233448989cceed5db6e537f99bb40026a09d5b0f3f9e3a4512f0a303c",
+          "rgba_sha256": "8a0b7395e799ba4ce58afe38a59f72b7ec20145da20ad5a78801df34b8a06bdf",
+          "expected_x": 22,
+          "observed": {
+            "base_x": 12,
+            "anim_x": 22,
+            "bbox_x": 22,
+            "current_time_seconds": 1,
+            "animation_element_count": 1,
+            "animations_paused": true
+          },
+          "fresh_capture_count": 2
+        },
+        {
+          "id": "svg-scene-cub/sample-2000000000ns",
+          "policy": "sample",
+          "time_ns": 2000000000,
+          "source": "svg-scene-cub-animation.svg",
+          "source_sha256": "128f9f9a97310a72f756904cbc54af39966b9ad6c00b1c564a9c5bf8611ec376",
+          "oracle": "chromium/svg-scene-cub/sample-2000000000ns.png",
+          "oracle_sha256": "81963c75c07dcf72f55b7b723388830d85c1b247f38312f1f85a26e32666d1cd",
+          "rgba_sha256": "8feb08418b885ad621bf0e160849bd041039b13d739bde4a4b02ea8e3bc2c119",
+          "expected_x": 38,
+          "observed": {
+            "base_x": 12,
+            "anim_x": 38,
+            "bbox_x": 38,
+            "current_time_seconds": 2,
+            "animation_element_count": 1,
+            "animations_paused": true
+          },
+          "fresh_capture_count": 2
+        },
+        {
+          "id": "svg-scene-cub/sample-3000000000ns",
+          "policy": "sample",
+          "time_ns": 3000000000,
+          "source": "svg-scene-cub-animation.svg",
+          "source_sha256": "128f9f9a97310a72f756904cbc54af39966b9ad6c00b1c564a9c5bf8611ec376",
+          "oracle": "chromium/svg-scene-cub/sample-3000000000ns.png",
+          "oracle_sha256": "81963c75c07dcf72f55b7b723388830d85c1b247f38312f1f85a26e32666d1cd",
+          "rgba_sha256": "8feb08418b885ad621bf0e160849bd041039b13d739bde4a4b02ea8e3bc2c119",
+          "expected_x": 38,
+          "observed": {
+            "base_x": 12,
+            "anim_x": 38,
+            "bbox_x": 38,
+            "current_time_seconds": 3,
+            "animation_element_count": 1,
+            "animations_paused": true
+          },
+          "fresh_capture_count": 2
+        }
+      ]
     }
   ]
 }
