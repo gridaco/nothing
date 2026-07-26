@@ -2,7 +2,10 @@
 
 Purpose-built inputs that must fail explicitly rather than render an
 approximation. They are not part of `primitives.json` because they have no
-pixel output; `crates/websem/tests/viewport_contract.rs` locks the rejection.
+pixel output. The rejections themselves are locked by the rung contracts in
+`crates/websem/tests/` — `viewport_contract.rs` reads the viewport files
+directly; the rest pin the same construct from an inline source, and these
+files are the readable corpus of what the slice refuses and why.
 
 | File | Required result |
 | --- | --- |
@@ -23,6 +26,7 @@ pixel output; `crates/websem/tests/viewport_contract.rs` locks the rejection.
 | `svg-stroke-opacity.svg` · `svg-stroke-dasharray.svg` | Refuse by name: the stroke's paint and geometry are consumed, its *compositing* and *dashing* are not. A dash array that would paint nothing (`none`, all-zero, invalid) is admitted instead — Chromium renders those solid. |
 | `svg-stroke-percentage-width.svg` | Refuse by name: a percentage `stroke-width` resolves against the viewport's normalized diagonal (measured — `10%` of a 64x64 viewport is 6.4 units), a basis chain this slice does not consume. |
 | `svg-stroke-vector-effect.svg` · `svg-stroke-paint-order.svg` | Refuse by name. Both were provably inert while strokes refused; consuming strokes made them load-bearing, which is exactly the trap the earlier patrol was kept for. |
+| `svg-stroke-sheet-unit-width.svg` | Refuse by name — the third spelling of the basis-less unit. The attribute patrol walks ancestors, so it never saw a `<style>` rule: this document rendered a 16-unit stroke silently while `stroke-width="2ex"` and `style="stroke-width:2ex"` both refused. A sheet is not attributable to one element without selector matching, so it refuses document-level (strict) and declares against the sheet (best-effort). |
 
 (The former `svg-viewbox-unequal-default.svg` and
 `svg-preserve-aspect-ratio-explicit.svg` graduated to root primitives when

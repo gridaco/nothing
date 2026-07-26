@@ -370,6 +370,74 @@ fn stylesheet_smuggled_values_are_patrolled_at_the_computed_level() {
     assert!(best.degradations()[0].reason().contains("opacity"));
 }
 
+/// A `stroke-width` whose basis this build lacks departs by name from every
+/// ingress, and the sheet is the ingress that used to paint quietly.
+///
+/// The presentation attribute and the `style` attribute are attributable, so
+/// they skip the element. A sheet is not — attributing a rule needs selector
+/// matching — so it is document-level: strict refuses, best-effort declares
+/// once against the sheet and renders. What best-effort renders is the wrong
+/// width (`2ex` resolves to 16 units against placeholder font metrics), which
+/// is precisely why silence was not an option.
+#[test]
+fn a_basis_less_stroke_width_departs_by_name_from_every_ingress() {
+    let sheet = r##"<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><style>rect { stroke-width: 2ex }</style><rect width="16" height="16" fill="none" stroke="#0000ff"/></svg>"##;
+    let attribute = r##"<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="16" height="16" fill="none" stroke="#0000ff" stroke-width="2ex"/></svg>"##;
+    let style_attribute = r##"<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="16" height="16" fill="none" stroke="#0000ff" style="stroke-width: 2ex"/></svg>"##;
+
+    for (label, source) in [
+        ("sheet", sheet),
+        ("attribute", attribute),
+        ("style attribute", style_attribute),
+    ] {
+        let strict = SvgFrameSource::from_standalone_svg(source, host_viewport())
+            .expect_err(&format!("{label}: strict refuses"));
+        assert!(
+            strict.to_string().contains("basis"),
+            "{label}: strict names the missing basis; got {strict}"
+        );
+        let best = SvgFrameSource::from_standalone_svg_best_effort(source, host_viewport())
+            .unwrap_or_else(|error| panic!("{label}: best-effort compiles: {error}"));
+        let declared: Vec<&websem::Degradation> = best
+            .degradations()
+            .iter()
+            .filter(|d| d.action() != DegradationAction::SamplesAsBase)
+            .collect();
+        assert_eq!(declared.len(), 1, "{label}: exactly one departure");
+        assert!(
+            declared[0].reason().contains("basis"),
+            "{label}: named; got {}",
+            declared[0].reason()
+        );
+    }
+
+    // The two admissions differ in what they do, not in whether they notice.
+    // A sheet leaves the shape in the frame and says so against the sheet; an
+    // attribute takes the shape out and says so against the shape.
+    let from_sheet =
+        SvgFrameSource::from_standalone_svg_best_effort(sheet, host_viewport()).expect("sheet");
+    assert_eq!(
+        from_sheet.base_frame().nodes.len(),
+        1,
+        "the rect still paints"
+    );
+    assert_eq!(
+        from_sheet.degradations()[0].action(),
+        DegradationAction::DeclarationIgnored
+    );
+    assert_eq!(from_sheet.degradations()[0].path(), "svg/style[1]");
+
+    let from_attribute =
+        SvgFrameSource::from_standalone_svg_best_effort(attribute, host_viewport())
+            .expect("attribute");
+    assert_eq!(from_attribute.base_frame().nodes.len(), 0, "declared hole");
+    assert_eq!(
+        from_attribute.degradations()[0].action(),
+        DegradationAction::Skipped
+    );
+    assert_eq!(from_attribute.degradations()[0].path(), "svg/rect[1]");
+}
+
 /// Every beyond-inventory dynamic construct is declared — not just the
 /// first: multiple blockers each get their own `SamplesAsBase` entry, and
 /// they follow the skips (which stay in document order).

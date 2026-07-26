@@ -140,10 +140,11 @@ pub enum DegradationAction {
     /// degraded by it.
     SamplesAsBase,
     /// The element rendered, but a declaration that would have changed its
-    /// pixels was not honored — the cascade cannot represent it, and it is
-    /// not attributable to one element without selector matching. Nothing
-    /// was left out of the frame, so this is neither [`Self::Skipped`] nor a
-    /// sampling policy.
+    /// pixels was not honored as authored — the cascade cannot represent it,
+    /// or represents it but resolves it against a basis this build lacks —
+    /// and it is not attributable to one element without selector matching.
+    /// Nothing was left out of the frame, so this is neither [`Self::Skipped`]
+    /// nor a sampling policy.
     DeclarationIgnored,
 }
 
@@ -488,21 +489,19 @@ impl SvgFrameSource {
             if entry == SourceEntry::StandaloneSvg && subtree_contains_script(root) {
                 return Err(CompileError::ScriptSuspendsParse);
             }
-            // A stylesheet declaration the cascade cannot represent paints
-            // as if absent wherever its selector matches, and it is not
-            // attributable to one element without selector matching. So it
-            // is document-level: strict refuses, and best-effort declares
-            // it once against the sheet and renders — a named departure,
-            // never a silent one. (An *attribute* the slice cannot consume
-            // is attributable, so that stays a per-element hole. The
-            // asymmetry is the cost of not running selector matching.) The
-            // scan starts at the document root: the HTML entry's stylesheet
-            // commonly lives in <head>, outside the compiled SVG subtree.
-            for (property, path) in unrepresented_stylesheet_properties(root) {
-                let reason = format!(
-                    "a stylesheet declares {property}, which this cascade does not \
-                     represent; elements it matches render without it"
-                );
+            // A stylesheet declaration this compiler cannot honor as authored
+            // — dropped by the cascade, or kept but resolved against a basis
+            // this build lacks — changes pixels wherever its selector matches,
+            // and it is not attributable to one element without selector
+            // matching. So it is document-level: strict refuses, and
+            // best-effort declares it once against the sheet and renders — a
+            // named departure, never a silent one. (An *attribute* the slice
+            // cannot consume is attributable, so that stays a per-element
+            // hole. The asymmetry is the cost of not running selector
+            // matching.) The scan starts at the document root: the HTML
+            // entry's stylesheet commonly lives in <head>, outside the
+            // compiled SVG subtree.
+            for (reason, path) in stylesheet_findings(root) {
                 match mode {
                     CompileMode::Strict => return Err(CompileError::UnsupportedStyle(reason)),
                     CompileMode::BestEffort => degradations.push(Degradation {
@@ -955,6 +954,26 @@ fn unrepresented_property(css: &str) -> Option<String> {
     None
 }
 
+/// The first basis-less length unit declared for `stroke-width` in a CSS
+/// fragment, or `None`.
+///
+/// The unit list and the token test are [`has_unit_without_a_basis`]'s, so a
+/// sheet refuses on exactly the units the two attribute ingresses refuse on —
+/// one rule, three spellings. Only the declaration's value is scanned, not the
+/// whole fragment, because a sheet carries every rule in the document and
+/// scanning it whole would refuse on a `1ex` belonging to some other property.
+///
+/// It shares [`unrepresented_property`]'s chunking and its bounded gap: this is
+/// not a CSS tokenizer. An escaped property name is already refused wholesale by
+/// that scan, so `\000073troke-width` needs no handling here.
+fn stylesheet_stroke_width_unit(css: &str) -> Option<&'static str> {
+    let css = strip_css_comments(css);
+    css.split([';', '{', '}'])
+        .filter_map(|chunk| chunk.split_once(':'))
+        .filter(|(name, _)| trim_svg_whitespace(name).eq_ignore_ascii_case("stroke-width"))
+        .find_map(|(_, value)| has_unit_without_a_basis(value))
+}
+
 /// Remove `/* … */` comments so a property name split by one becomes
 /// contiguous, exactly as it is to the CSS tokenizer. An unterminated comment
 /// runs to the end of the fragment, which is also what CSS says.
@@ -989,9 +1008,17 @@ fn patrol_style_attribute(
     Ok(())
 }
 
-/// Every `<style>` element in the document whose CSS declares a property
-/// the cascade drops but Chromium paints with, each with its structural
-/// path.
+/// Every reason a `<style>` element in the document forces a departure, each
+/// with the sheet's structural path.
+///
+/// Two scans, because a sheet can go wrong in two ways. It can declare a
+/// property the cascade drops but Chromium paints with, and it can declare one
+/// the cascade *keeps* but resolves against a basis this build lacks — a
+/// `stroke-width` in `ex` or `vw`. The second was the leak this scan was added
+/// for: [`patrol_stroke_width_units`] catches those units on the presentation
+/// attribute and the `style` attribute, but a sheet is not attributable to an
+/// element, so the same declaration rendered at a silently wrong width from a
+/// sheet while both attribute spellings refused by name.
 ///
 /// A stylesheet is not attributable to one element without running selector
 /// matching, so the caller treats each finding as document-level: strict
@@ -1010,7 +1037,7 @@ fn patrol_style_attribute(
 /// comment node inside `<style>` split a declaration across two nodes — the
 /// concatenated sheet was valid to Chromium while neither fragment named a
 /// listed property (measured). Whatever is in force is what must be patrolled.
-fn unrepresented_stylesheet_properties(root: HtmlElement<'_>) -> Vec<(String, String)> {
+fn stylesheet_findings(root: HtmlElement<'_>) -> Vec<(String, String)> {
     let mut found = Vec::new();
     let mut stack = vec![(root, root.local_name_string())];
     while let Some((element, path)) = stack.pop() {
@@ -1022,7 +1049,23 @@ fn unrepresented_stylesheet_properties(root: HtmlElement<'_>) -> Vec<(String, St
                 }
             }
             if let Some(property) = unrepresented_property(&sheet) {
-                found.push((property, path.clone()));
+                found.push((
+                    format!(
+                        "a stylesheet declares {property}, which this cascade does not \
+                         represent; elements it matches render without it"
+                    ),
+                    path.clone(),
+                ));
+            }
+            if let Some(unit) = stylesheet_stroke_width_unit(&sheet) {
+                found.push((
+                    format!(
+                        "a stylesheet declares a stroke-width in {unit}, which needs a basis \
+                         this cascade does not have; elements it matches render at the wrong \
+                         width"
+                    ),
+                    path.clone(),
+                ));
             }
         }
         let mut ordinals = HashMap::<String, usize>::new();
@@ -2121,14 +2164,20 @@ fn has_unit_without_a_basis(value: &str) -> Option<&'static str> {
     None
 }
 
-/// Patrol every ingress an authored `stroke-width` can arrive through for a
-/// unit whose basis this build lacks: the presentation attribute, the element's
-/// `style` attribute, and — because the property inherits — the same two on
-/// every ancestor, plus any `<style>` sheet in the document.
+/// Patrol every *attributable* ingress an authored `stroke-width` can arrive
+/// through for a unit whose basis this build lacks: the presentation attribute,
+/// the element's `style` attribute, and — because the property inherits — the
+/// same two on every ancestor.
 ///
-/// The sheet leg is deliberately coarse (any sheet mentioning such a unit in a
-/// `stroke-width` declaration refuses the element) because attributing a sheet
-/// to an element needs selector matching. Over-refusal, never wrong pixels.
+/// A `<style>` sheet is the third ingress and is deliberately not here: it is
+/// not attributable to one element without selector matching, so it is caught
+/// document-level by [`stylesheet_findings`] instead, which refuses the whole
+/// document under strict and declares once against the sheet under best-effort.
+/// Between the two, all three spellings of the same declaration depart by name.
+///
+/// Both legs read the authored text coarsely — the `style` attribute is scanned
+/// whole, so a basis-less unit belonging to some other property in the same
+/// block refuses this element too. Over-refusal, never wrong pixels.
 fn patrol_stroke_width_units(el: HtmlElement<'_>, element_name: &str) -> Result<(), CompileError> {
     let mut ancestor = Some(el);
     while let Some(element) = ancestor {

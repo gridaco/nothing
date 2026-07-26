@@ -495,7 +495,44 @@ fn a_stroke_width_whose_basis_this_build_lacks_refuses_by_name() {
                 "{unit} must refuse by name; got {error}"
             );
         }
+
+        // The fourth spelling is a `<style>` sheet, and it is the one that
+        // painted a silently wrong width: the attribute patrol walks
+        // ancestors, so it cannot see a rule. The sheet refuses under the
+        // document's name rather than the stroke's — a sheet is not
+        // attributable to one element without selector matching — but refuse
+        // it does, on the same unit list, so no spelling of the declaration
+        // gets through quietly.
+        let error = refusal(&document(&format!(
+            r##"  <style>rect {{ stroke-width: {unit} }}</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000"/>"##
+        )));
+        assert!(
+            matches!(error, CompileError::UnsupportedStyle(ref reason) if reason.contains("basis")),
+            "{unit} in a sheet must refuse by name; got {error}"
+        );
     }
+}
+
+/// The sheet leg refuses on the unit, not on the word `stroke-width`: a width
+/// whose basis this build *does* have still renders from a sheet, and a
+/// basis-less unit belonging to some other property in the same rule is not
+/// this patrol's business.
+#[test]
+fn the_sheet_leg_refuses_the_unit_rather_than_the_property() {
+    for (css, width) in [("8", 8.0), ("0.5em", 8.0), ("2px", 2.0)] {
+        let frame = admit_both(&document(&format!(
+            r##"  <style>rect {{ stroke-width: {css} }}</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000"/>"##
+        )));
+        assert_eq!(stroke_of(&frame, 0).width(), width, "css={css:?}");
+    }
+
+    let frame = admit_both(&document(
+        r##"  <style>rect { stroke-width: 2; font-size: 1ex }</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000"/>"##,
+    ));
+    assert_eq!(stroke_of(&frame, 0).width(), 2.0);
 }
 
 /// `em` and `rem` are *not* in that family: they resolve against `font-size`,
