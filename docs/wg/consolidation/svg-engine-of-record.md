@@ -501,3 +501,116 @@ two remaining blocks. The Ghostscript tiger — 240 paths, 241 groups, no arcs �
 now renders at exit 0 with **78 declared degradations, every one of them a
 `stroke` or `stroke-width` attribute on a `<g>`, and nothing else.** Strokes are
 the last rung between the ladder and the tiger.
+
+## Addendum — the strokes rung, and the tiger (2026-07-26)
+
+Strokes are admitted, `<line>` joins, and **the tiger renders**: 240 paths, 241
+groups, `--strict`, exit 0, **zero declared degradations**, both admissions
+byte-identical, and 96.27% of its pixels byte-identical to Chromium's render of
+the same file. Twenty-four new cells (corpus 46 → 70), 23 of them byte-exact.
+
+- **The contract grew a stroke, not a paint mode.** `FrameNode.stroke:
+  Option<Stroke>` carries paints, a width in the node's local space, a cap, a
+  join and a miter limit. Two absences are deliberate. There is **no alignment
+  field**: a Web stroke straddles its geometry, that is the only alignment any
+  Web source can express, and an inside- or outside-aligned stroke grows the
+  type when a producer needs one. And there is **no invisible stroke**:
+  construction returns `None` for a zero width or an empty paint stack, so no
+  consumer re-derives "is this visible".
+- **The width is a length, not a number.** Reading it as a typed cascaded value
+  buys `8px`, `0.5em`, inheritance through a `<g>`, a stylesheet override, CSS
+  keyword case-insensitivity on the cap and join, and the *correct* fallback for
+  a negative width — the declaration fails the property's non-negative grammar,
+  so the cascade drops it and the inherited or initial value stands, which is
+  what Chromium paints. None of that is this compiler's code.
+- **`bounds` stayed the geometry's.** A stroke paints outside it, so the field's
+  doc now says so and the consumer inflates it by the stroke's own reach
+  (`Stroke::outset`, which accounts for a miter's extra length) when it needs
+  the covered area for damage. Keeping `bounds` exact is what lets the
+  exact-bounds law stay a law.
+- **`<line>` needed no geometry kind.** It compiles to a two-command path.
+  Chromium's `<line>` is byte-identical to the equivalent `<path>` (measured), a
+  line has no interior for a fill to cover, and a two-point path has zero area —
+  so the caps, the joins and the zero-length rules all come out identical for
+  free. Its endpoints default to zero, which makes a bare `<line>` a zero-length
+  segment: nothing under a butt cap, a dot under a round one.
+- **The zero-extent rule is an element rule, not a fill rule.** SVG2 §10.1
+  disables rendering of a `<rect>` with a zero `width`/`height`, or a
+  `<circle>`/`<ellipse>` with a zero radius — *including its stroke*. Chromium
+  paints nothing for a zero-extent stroked rect (measured), while a naive stroke
+  of a zero-extent box would draw a line. A `<path>` is deliberately exempt: a
+  zero-extent path is a zero-length segment, which strokes as a cap-shaped dot.
+- **A dash array that paints nothing is admitted.** `stroke-dasharray: none`,
+  an all-zero array, and an invalid value all render solid in Chromium
+  (measured), so the refusal tests for a dash that would *paint* rather than for
+  a non-empty list. Refusing on non-empty would have dropped documents the
+  browser renders solid — and `stroke-dasharray="0"` is something authoring
+  tools actually emit.
+- **Two patrols stopped being over-refusals.** `vector-effect` and `paint-order`
+  were provably inert while strokes refused; consuming strokes made both
+  load-bearing. That is exactly the trap the earlier rungs kept them for, and
+  the reason `pathLength` is patrolled today even though nothing reads it yet.
+- **Strokes land inside the declared conic class, mostly below it.** 23 of 24
+  cells bake byte-exact — including every cap, every join, the miter-limit
+  bevel, the elliptical pen from `scale(2,1)`, and the stroked circle and
+  ellipse. The one exception is the round join at a *closed* contour's closing
+  corner: 4 pixels at delta 3, declared with that join's arc as its boundary.
+
+**The tiger.** The Ghostscript tiger is the de-facto SVG smoke test, and it is
+now a milestone rather than a target. It needs exactly what the last four rungs
+admitted and nothing else: a `viewBox`-only root (the viewport rung), one
+`matrix()` on a group (the container rung), 240 `<path>` elements with relative
+`s`/`c`/`m`/`l`/`v`/`z` data and no arcs (the paths rung), and `stroke` +
+`stroke-width` inherited through `<g>` (this one). Before this rung it rendered
+with 78 declared degradations, every one of them a stroke attribute on a group;
+now it renders with none.
+
+The remaining 3.7% of differing pixels are curve boundaries — the tiger is
+almost entirely conics and cubic outlines — and they sit where the corpus's
+declared departure says they will: 3042 of the 9788 differ by a single level,
+and only 25 pixels of 262144 differ by more than 64.
+
+*The tiger file is local-only and deliberately not committed.* It is AGPL
+(Ghostscript authors, derived from `tiger.eps`) and this repository is dual
+Apache-2.0 / MIT, which is precisely the license-restricted case `fixtures/local/`
+exists for, beside the W3C SVG 1.1 suite and resvg's tests. Provenance, the
+fetch command and the sha256 live in `fixtures/local/tiger/PROVENANCE.txt` on a
+machine that has fetched it. **The engine's capability is gated by the committed
+byte-exact corpus; the tiger is a measurement, and it is reproducible from that
+one command.**
+
+**The adversarial round found three unit-basis defects, all of the same
+shape.** The rung consumed its first cascaded *length*, and a length is only as
+good as its basis — which this build does not always have. A viewport-relative
+`stroke-width` was the sharp one: Chromium resolves `1vw` against the SVG
+viewport (0.64 units on a 64x64 document, byte-identical to an authored `0.64`),
+while the cascade's device is pinned at 1280x720 and computed 12.8 — a
+twentyfold error, painted silently. `ex`/`ch` resolve from placeholder font
+metrics rather than measured ones. Both families now refuse by name; threading
+the document's real viewport into the cascade's device is the honest fix and its
+own rung, since it moves media queries too. The third was the opposite problem:
+`em` was *correct* from a stylesheet and wrong from a presentation attribute,
+because a bare `font-size="32"` is invalid to the CSS grammar and was dropped —
+Blink parses SVG presentation attributes in a mode where a unitless length is
+user units, so csscascade now retries a bare number as `px` and admits
+`font-size` for its basis alone. My own law had tested only unitless, `px` and
+`em`-at-the-default, which is exactly why all three passed.
+
+The round also found that `Stroke::outset()` did not bound what its doc claimed:
+it inspected only the *join*, and a square cap's corners sit at `radius·√2` from
+the endpoint, so a round-joined square-capped diagonal inked outside the coverage
+box two consumers were told to trust. It was accidentally true in the common
+case, because the default miter join at limit 4 swallows the cap — which is why
+no law caught it. And a negative `<rect>` extent aborted the whole render with an
+internal message naming a `VisualRef`, where Chromium disables that one element
+and paints the rest: the shapes rung's defect, adjacent enough to this one's
+zero-extent rule that leaving it would have made the rule's doc a lie.
+
+**Where the ladder stands.** The L0 corpus renders 37/37 documents, and its
+declared skips are down to 351 with a clear shape: `<text>` is 167 of them
+(48%), then `<defs>`/`<use>`/`<filter>` and the paint-server fills, then
+`stroke-dasharray` (17), `<polygon>`/`<polyline>` (12), and rounded rects (8).
+Text is the next rung by a wide margin. Also queued, each with its brief already
+written by measurement: the arc (emit conics, inherit the oval tolerance), the
+`points` shapes, dashing, opacity and translucency, paint servers, and the
+declaration of a SMIL animation that targets a consumed attribute.
