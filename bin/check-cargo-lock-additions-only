@@ -1,10 +1,30 @@
 #!/usr/bin/env python3
 
-"""Gate workspace-crate cuts on an additions-only Cargo.lock diff.
+"""Gate workspace-crate cuts on a Cargo.lock whose graph only ever grows.
 
 The consolidation extraction rule makes a new workspace member the durable
 signal that a crate cut is happening.  Only those changes activate this gate;
 ordinary dependency-update PRs are outside its contract.
+
+A crate cut is a refactor, so it must not quietly change what the workspace
+depends on.  The gate reads the two lockfiles as package graphs rather than as
+text, which lets it say *what* moved instead of only that a line vanished:
+
+  * a package name present at the base and absent at the head fails, always —
+    a crate cut may not drop a dependency, and no ledger can authorise it;
+  * a version withdrawn from a package's locked set fails unless a committed
+    ledger enumerates that exact `from` → `to` move and names the registered
+    decision that authorises it;
+  * a package or a version that only appears is an addition, which is the
+    thing this gate is named for and has never objected to.
+
+The ledger is `docs/wg/consolidation/lock-graph-changes.toml`, read at the head
+revision.  It exists because a registered decision can have dependency
+provenance as its *subject* — D-L pins Stylo at a revision — and such a
+decision cannot satisfy a rule that forbids the graph from moving at all.  The
+answer is to make the move visible and reviewable rather than to bypass the
+gate: every authorised move is written down, keyed to its decision, and
+anything not written down still fails.
 """
 
 from __future__ import annotations
@@ -13,6 +33,8 @@ import argparse
 import subprocess
 import sys
 import tomllib
+
+LEDGER_PATH = "docs/wg/consolidation/lock-graph-changes.toml"
 
 
 def git_text(ref: str, path: str) -> str:
@@ -35,36 +57,63 @@ def workspace_members(ref: str) -> set[str]:
     return set(members)
 
 
-def lock_diff(base: str, head: str) -> list[str]:
-    result = subprocess.run(
-        [
-            "git",
-            "diff",
-            "--no-ext-diff",
-            "--unified=0",
-            base,
-            head,
-            "--",
-            "Cargo.lock",
-        ],
-        check=True,
-        stdout=subprocess.PIPE,
-        text=True,
-    )
-    return result.stdout.splitlines()
+def locked_versions(ref: str) -> dict[str, set[str]]:
+    """Every package in a lockfile, mapped to the version set locked for it.
+
+    A name can carry more than one version when the graph cannot unify them,
+    which is why the value is a set and why a "bump" is expressed as one
+    version leaving that set and another joining it.
+    """
+    lock = tomllib.loads(git_text(ref, "Cargo.lock"))
+    packages: dict[str, set[str]] = {}
+    for package in lock.get("package", []):
+        name, version = package.get("name"), package.get("version")
+        if not isinstance(name, str) or not isinstance(version, str):
+            raise ValueError(f"{ref}: Cargo.lock has a package without a name/version")
+        packages.setdefault(name, set()).add(version)
+    if not packages:
+        raise ValueError(f"{ref}: Cargo.lock lists no packages")
+    return packages
+
+
+def authorised_moves(ref: str) -> dict[tuple[str, str, str], str]:
+    """The ledger's `(package, from, to) -> decision` map, empty when absent.
+
+    A revision that predates the ledger authorises nothing, which is the same
+    verdict the textual gate gave before the ledger existed.
+    """
+    try:
+        text = git_text(ref, LEDGER_PATH)
+    except subprocess.CalledProcessError:
+        return {}
+
+    moves: dict[tuple[str, str, str], str] = {}
+    for change in tomllib.loads(text).get("change", []):
+        missing = [
+            field
+            for field in ("decision", "package", "from", "to", "why")
+            if not isinstance(change.get(field), str) or not change[field]
+        ]
+        if missing:
+            raise ValueError(f"{LEDGER_PATH}: a change is missing {', '.join(missing)}")
+        moves[(change["package"], change["from"], change["to"])] = change["decision"]
+    return moves
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Require Cargo.lock additions-only when a workspace crate is added."
+        description="Require an additions-only Cargo.lock graph when a workspace crate is added."
     )
     parser.add_argument("base", help="base git revision")
     parser.add_argument("head", nargs="?", default="HEAD", help="head git revision")
     args = parser.parse_args()
 
     try:
-        added_members = sorted(workspace_members(args.head) - workspace_members(args.base))
-        diff = lock_diff(args.base, args.head)
+        added_members = sorted(
+            workspace_members(args.head) - workspace_members(args.base)
+        )
+        base, head = locked_versions(args.base), locked_versions(args.head)
+        ledger = authorised_moves(args.head)
     except (subprocess.CalledProcessError, tomllib.TOMLDecodeError, ValueError) as error:
         print(
             f"Cargo.lock additions-only gate could not inspect the revisions: {error}",
@@ -76,23 +125,59 @@ def main() -> int:
         print("Cargo.lock additions-only: NOT APPLICABLE (no workspace crate added)")
         return 0
 
-    removed = [line for line in diff if line.startswith("-") and not line.startswith("---")]
-    if removed:
+    dropped = sorted(set(base) - set(head))
+    unauthorised: list[str] = []
+    authorised: list[str] = []
+
+    for name in sorted(set(base) & set(head)):
+        withdrawn = sorted(base[name] - head[name])
+        arrived = sorted(head[name] - base[name])
+        for version in withdrawn:
+            decision = next(
+                (
+                    ledger[(name, version, landed)]
+                    for landed in arrived
+                    if (name, version, landed) in ledger
+                ),
+                None,
+            )
+            if decision is None:
+                unauthorised.append(
+                    f"{name} {version} withdrawn"
+                    + (f" (head locks {', '.join(arrived)})" if arrived else "")
+                )
+            else:
+                authorised.append(
+                    f"{name} {version} -> {', '.join(arrived)} [{decision}]"
+                )
+
+    if dropped or unauthorised:
         print(
             "Cargo.lock additions-only: FAIL\n"
-            f"new workspace member(s): {', '.join(added_members)}\n"
-            "removed lockfile lines:",
+            f"new workspace member(s): {', '.join(added_members)}",
             file=sys.stderr,
         )
-        for line in removed:
-            print(f"  {line}", file=sys.stderr)
+        if dropped:
+            print("packages dropped (never authorisable):", file=sys.stderr)
+            for name in dropped:
+                print(f"  {name}", file=sys.stderr)
+        if unauthorised:
+            print(
+                f"version moves absent from {LEDGER_PATH}:",
+                file=sys.stderr,
+            )
+            for line in unauthorised:
+                print(f"  {line}", file=sys.stderr)
         return 1
 
-    added = sum(line.startswith("+") and not line.startswith("+++") for line in diff)
+    added_packages = sorted(set(head) - set(base))
     print(
         "Cargo.lock additions-only: PASS "
-        f"({', '.join(added_members)}; {added} added line(s), 0 removed)"
+        f"({', '.join(added_members)}; {len(added_packages)} package(s) added, "
+        f"0 dropped, {len(authorised)} version move(s) authorised)"
     )
+    for line in authorised:
+        print(f"  {line}")
     return 0
 
 
