@@ -6,10 +6,10 @@ computed CSS values. It does not perform layout or painting.
 
 The crate has one implementation:
 
-| Module | Ownership |
-| --- | --- |
-| `dom` | Frozen, arena-allocated `DemoDom` parsed by html5ever |
-| `adapter` | Stylo and selectors trait implementations over that DOM |
+| Module    | Ownership                                                        |
+| --------- | ---------------------------------------------------------------- |
+| `dom`     | Frozen, arena-allocated `DemoDom` parsed by html5ever            |
+| `adapter` | Stylo and selectors trait implementations over that DOM          |
 | `cascade` | Stylesheet collection, Stylo setup, and computed-style traversal |
 
 `DemoDom` and the `Html*` adapter names predate their use for namespace-aware
