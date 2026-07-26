@@ -20,6 +20,14 @@ cargo run -p n0_cli --bin n0 -- \
   fixtures/web-first/animation/svg-rect-x-animation.svg /tmp/t1s.png 64x32 \
   --time-ns 1000000000
 
+# the cub: a whole composition (viewBox-only, containers, curves, strokes,
+# a <line>) with one animated rect — the same file, static and at 1s
+cargo run -p n0_cli --bin n0 -- \
+  fixtures/web-first/animation/svg-scene-cub-animation.svg /tmp/cub.png 96x96
+cargo run -p n0_cli --bin n0 -- \
+  fixtures/web-first/animation/svg-scene-cub-animation.svg /tmp/cub-1s.png 96x96 \
+  --time-ns 1000000000
+
 # dev harness: refuse on the first beyond-slice construct instead of
 # rendering best-effort with declared degradations (the default)
 cargo run -p n0_cli --bin n0 -- \

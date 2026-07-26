@@ -44,6 +44,7 @@ the HTML→SVG boundary through one browser-grade cascade.**
 | `bake_chromium.ts` | Verifies existing oracle pixels and creates missing oracles; it never overwrites a differing baseline. Run: `pnpm -C packages/grida-reftest exec tsx "$(pwd)/fixtures/web-first/bake_chromium.ts"`. |
 | `pages/` | The target-only real-world page corpus. It is not a runnable reftest gate yet; see [`pages/README.md`](./pages/README.md). |
 | `unsupported/` | Inputs that deliberately have no pixels yet and must fail explicitly instead of being approximated; see [`unsupported/README.md`](./unsupported/README.md). |
+| `animation/` | The sampling corpus: animated documents with their static Base projections, baked at a paused Chromium timeline. It carries `svg-scene-cub` — a whole composition that exercises this rung ladder end to end, statically and at exact times; see [`animation/README.md`](./animation/README.md). |
 
 Exact expectation: every primitive's full RGBA raster matches its Chromium
 oracle with zero differing pixels. The gate also validates enumeration and

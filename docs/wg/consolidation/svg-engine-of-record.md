@@ -614,3 +614,93 @@ Text is the next rung by a wide margin. Also queued, each with its brief already
 written by measurement: the arc (emit conics, inherit the oval tolerance), the
 `points` shapes, dashing, opacity and translucency, paint servers, and the
 declaration of a SMIL animation that targets a consumed attribute.
+
+## Addendum — the cub: a committed scene, static and sampled (2026-07-26)
+
+The corpus gained `svg-scene-cub` — an **original** composition that covers the
+tiger's feature set in 17 materialized nodes instead of 240, committed as a
+fixture pair so the whole rung ladder is gated both statically and under
+exact-time sampling. Five frames per pair (Base plus four samples), ten across
+the two sampling fixtures, every one byte-identical to Chromium.
+
+- **It exists because the tiger cannot be committed.** The tiger proved the
+  ladder but stays untracked under `fixtures/local/` for its AGPL provenance, so
+  the capability it demonstrated had no committed cell. The cub is drawn to the
+  same *feature* list — viewBox-only root sizing, a container with a transform
+  and a nested `<g>`, `fill`/`stroke`/`stroke-width`/`stroke-linejoin`/
+  `stroke-linecap` inherited through both, cubics and quadratics, relative
+  command runs, multi-subpath paths, round caps and joins, `fill="none"` and
+  `stroke="none"`, `<rect>`s in a group, a `<line>` — and renders `--strict`
+  with zero declared degradations at zero differing pixels.
+- **A composition is a different gate from 70 single-feature cells.** Each
+  primitive cell isolates one construct; the cub is the only cell where
+  inheritance, container nesting, paint order, curve rasterization and stroking
+  must all be right *simultaneously* for the pixels to land. At its gate size it
+  passed on the first probe, before any harness code existed. At a *second* size
+  it found a defect five rungs of single-feature cells had missed — recorded
+  below.
+- **The sampling laws now hold over a scene, not just a shape.** The host law
+  states the property a composition makes checkable: every pixel that differs
+  between the Base frame and a sample lies in the animated rect's own rows.
+  Sixteen nodes of curves and strokes render identically at every time, and the
+  frozen pair is the same frame. The frame-side laws read the animated node by a
+  *declared* index and node count (`cases.json`'s `frame` block), so a fixture
+  that silently stops materializing an element fails there instead of quietly
+  weakening every law below it.
+- **Two absences in the drawing are the slice speaking.** The animated element
+  must be a top-level `<rect>` (the inventory admits an `<animate>` only on a
+  materialized direct child of the root), so the sliding block sits beside the
+  figure rather than inside its group. And the scene carries no `<style>`, no
+  `style=` and no `color=`: the first two are dynamic-inventory blockers, and
+  `color` is a presentation attribute Chromium honors that this engine declares
+  rather than paints — so `currentColor`, which the corpus reaches today only
+  through a `style` attribute, is unreachable in a *sampled* document by either
+  door until its own rung lands. Writing the fixture is what made that
+  intersection visible.
+- **No `<circle>` or `<ellipse>`, on purpose.** The muzzle, eyes and ear tips are
+  cubic approximations of ellipses. Filled *and stroked* cubics bake byte-exact
+  while a true rational conic does not, so the scene gates at zero difference
+  with no tolerance — the declared AA departure stays exactly where the strokes
+  rung left it, on the weighted conic alone.
+- **The sampling corpus is now plural.** `cases.json` carries a `fixtures` array
+  (schema 1), the baker loops it with a per-fixture initial viewport and
+  validates each declaration structurally — including that a fixture's authored
+  value differs from its first sample, so Base and `Sample(0ns)` can never
+  silently coincide — and each fixture's oracles live under
+  `chromium/<id>/`. The rect-x pixels moved directories and were re-verified
+  byte-identical by the bake, which is the proof the rename lost nothing.
+
+**Verifying the cub at a second size found a defect the five rungs never
+showed.** The scene gates byte-exact at 96x96. Rendered at 48x48 — the same
+document, a 1x viewport mapping — 242 of 2304 pixels differ from Chromium. That
+is not the declared conic departure. Bisecting it by measurement:
+
+| case (closed cubic contour, `fill` + `stroke`) | stroke width, at 1x | differing |
+| --- | --- | --- |
+| `stroke-linecap="butt"` | 1 device px | **0** |
+| `stroke-linecap="round"` | 1 device px | 185 of 2304, worst channel delta 100 |
+| `stroke-linecap="square"` | 1 device px | 185, worst delta 128 |
+| `stroke-linecap="round"` | 2 or 3 device px | **0** |
+
+**A cap cannot exist on a closed contour** — and Chromium agrees: its butt and
+round captures of that document are byte-identical to each other (0 differing
+pixels), so its raster is cap-invariant there. This engine's is not. The cap is
+carried correctly all the way down; the divergence is in the *consumer*, which
+paints a stroke by filling the outline `StrokeRec::apply_to_path` returns, and
+that outline is not cap-invariant for a closed contour at a stroke width near
+one device pixel. Butt is byte-exact, so butt is the right answer and the other
+two caps are silently wrong pixels — the invariant this program does not allow.
+
+Two things kept it hidden. No committed cell combines *all three* triggers (a
+closed contour, a non-butt cap, and a ~1-device-pixel stroke width): the cap
+cells stroke open contours, and the closed-contour cell uses the default butt.
+And the tiger never declares a `stroke-linecap` at all, so its 96.27% agreement
+was never going to show this. The cub is the first fixture that inherits a round
+cap onto closed contours — it just does so at a size where the artifact
+vanishes.
+
+The fix is its own rung, not a patch here: caps are inert per *contour*, so a
+path mixing open and closed contours (the cub has both) cannot be normalized
+wholesale — it needs per-contour cap handling in the stroke lowering, plus
+corpus cells at a one-device-pixel stroke width, which the corpus lacks
+entirely. Recorded rather than fixed, with the reproduction above.
