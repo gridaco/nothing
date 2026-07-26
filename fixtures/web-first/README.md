@@ -24,6 +24,15 @@ the HTML→SVG boundary through one browser-grade cascade.**
 | `svg-non-rendering-elements.svg` | `<title>`/`<desc>`/`<metadata>` paint nothing and declare nothing — the raster is the same as if they were absent. |
 | `svg-path-polygon-fill.svg` · `svg-path-unclosed-fill.svg` · `svg-path-relative-commands.svg` · `svg-path-hv-shorthand.svg` | The paths rung's straight-edge cells: **one triangle spelled four ways** — closed, unclosed (a fill closes it implicitly), relative with implicit repeats, and the `H`/`V` shorthands. All four oracles are byte-identical, which is the claim. |
 | `svg-path-closed-move-only-contour.svg` | `M x y Z` is a zero-length *closed* contour, not nothing: dropping it moves 96 pixels of the surviving triangle in Chromium. Fractional coordinates on purpose — integer axis-aligned edges hide this. |
+| `svg-stroke-rect-centred.svg` · `svg-stroke-over-fill.svg` | A Web stroke straddles its geometry — an 8-wide stroke on an edge at x=16 inks 12..19 — and paints *over* the fill, which is SVG's default paint order. |
+| `svg-stroke-default-width.svg` · `svg-stroke-invalid-width.svg` · `svg-stroke-length-units.svg` · `svg-stroke-zero-width.svg` | The width is a cascaded length: absent is 1, a negative value is an invalid declaration that falls back to the same 1 (byte-identical cells), `0.5em` resolves like any CSS length, and `0` paints nothing. |
+| `svg-stroke-inherited.svg` | `stroke` and `stroke-width` inherit through a `<g>` by the one cascade — the shape the tiger is built from. |
+| `svg-stroke-circle.svg` · `svg-stroke-ellipse.svg` · `svg-stroke-path-open.svg` · `svg-stroke-path-closed.svg` · `svg-stroke-line.svg` | A stroke on every admitted geometry. The closed path's round join at its closing corner is the corpus's only stroke cell that is not byte-exact — see the tolerance note below. |
+| `svg-stroke-line-fill-never-paints.svg` | A `<line>` with a fill and no stroke paints nothing: a line has no interior, and the two-command path it compiles to has zero area. |
+| `svg-stroke-cap-butt.svg` · `svg-stroke-cap-round.svg` · `svg-stroke-cap-square.svg` · `svg-stroke-zero-length-dot.svg` | The caps: butt stops at the endpoint, round and square extend by the radius, and a *zero-length* segment paints a cap-shaped dot (nothing at all under butt) — which is why the path normalization keeps one. |
+| `svg-stroke-join-miter.svg` · `svg-stroke-join-round.svg` · `svg-stroke-join-bevel.svg` · `svg-stroke-miter-limit.svg` | The joins, each with distinct ink at the same corner, plus a miter limit low enough to force the bevel. |
+| `svg-stroke-scaled-group.svg` · `svg-stroke-nonuniform-scale.svg` | The width is a length in local space, so a group's `scale(2)` doubles it and `scale(2,1)` makes the pen elliptical — the stroke *outline* is transformed, not the width. |
+| `svg-stroke-zero-extent-rect.svg` | A zero-extent `<rect>` or `r="0"` `<circle>` renders nothing **including its stroke** (SVG2 §10.1) — baked as proof, since a naive stroke of a zero-extent box would draw a line. |
 | `svg-path-cubic-fill.svg` · `svg-path-smooth-cubic.svg` · `svg-path-quadratic.svg` | Curved path cells: a cubic, an `S` continuation, and a `Q`+`T` pair. All three bake **byte-exact** — see the note below. |
 | `svg-path-fill-rule-nonzero.svg` · `svg-path-fill-rule-evenodd.svg` · `svg-path-fill-rule-inherited.svg` | One self-intersecting star under each fill rule (core filled vs hollow), and the rule inherited from a `<g>` through the one cascade. |
 | `svg-path-two-subpaths.svg` · `svg-path-in-scaled-group.svg` | Two closed contours in one `d`, and a path carried by a group's `scale(2)`. |
@@ -63,7 +72,10 @@ The curved fixtures carry a `tolerance` block naming the ideal boundary and
 bounding the departure: at most N differing pixels, at most a D-per-channel
 delta, every one of them within a pixel of that boundary.
 The numbers are the measured values, not headroom — the corpus's worst
-cell today is 6 pixels at delta 3. A shape in the wrong place, at the
+cell today is 6 pixels at delta 3. Strokes land in the same class and mostly
+below it: 23 of the 24 stroke cells are byte-exact, and the one that is not
+(`svg-stroke-path-closed`) differs in 4 pixels at delta 3 along the round join
+at its closing corner — an arc, declared with that arc as its boundary. A shape in the wrong place, at the
 wrong size, or in the wrong color moves pixels off the boundary ring and
 still fails loudly, and `svg-circle-defaults-clip` shows the bar is not
 unreachable: it bakes byte-exact and declares no tolerance at all.

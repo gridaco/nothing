@@ -20,6 +20,9 @@ pixel output; `crates/websem/tests/viewport_contract.rs` locks the rejection.
 | `svg-path-css-d-property.svg` | Declare a stylesheet's `d: path(…)`: Chromium honors it in place of the attribute, and the pinned Stylo build drops the declaration entirely. |
 | `svg-path-pathlength.svg` | Refuse by name — pure over-refusal. `pathLength` only scales what measures along the path (dashing, markers, text on a path), and every one of those already refuses; the patrol exists so the dashing rung cannot silently inherit a gap. |
 | `svg-path-marker-end.svg` | Refuse by name — **load-bearing**. Nothing else reads a marker property: the property *is* the paint trigger, so this refusal is what keeps Chromium's arrowhead from becoming a silent hole. |
+| `svg-stroke-opacity.svg` · `svg-stroke-dasharray.svg` | Refuse by name: the stroke's paint and geometry are consumed, its *compositing* and *dashing* are not. A dash array that would paint nothing (`none`, all-zero, invalid) is admitted instead — Chromium renders those solid. |
+| `svg-stroke-percentage-width.svg` | Refuse by name: a percentage `stroke-width` resolves against the viewport's normalized diagonal (measured — `10%` of a 64x64 viewport is 6.4 units), a basis chain this slice does not consume. |
+| `svg-stroke-vector-effect.svg` · `svg-stroke-paint-order.svg` | Refuse by name. Both were provably inert while strokes refused; consuming strokes made them load-bearing, which is exactly the trap the earlier patrol was kept for. |
 
 (The former `svg-viewbox-unequal-default.svg` and
 `svg-preserve-aspect-ratio-explicit.svg` graduated to root primitives when
