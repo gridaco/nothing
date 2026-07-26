@@ -188,3 +188,35 @@ until its own capability step. The direct-attribute fallback this evidence
 memo describes is retired. This addendum records execution status only; the
 E1–E7 evidence above remains the dated D-L record, and no SVG-vector
 capability gate is claimed while FLIP is unratified.
+
+## What the pin costs the lock graph (2026-07-27)
+
+Moving to the pinned revision moves eighteen locked versions, and the
+`Cargo.lock` additions-only gate refused the branch for it. Measured against
+`main`: **no package is dropped and none renamed**. Seven crates are members of
+the pinned Stylo tree (`stylo`, five `stylo_*`, `selectors`, `to_shmem`), two
+are its direct registry requirements (`cssparser`, `cssparser-macros`), and the
+rest follow transitively — `stylo_static_prefs 0.19.0` requires `toml ^1.1.2`,
+which pulls `serde_spanned`, `toml_datetime`, `toml_parser` and `toml_writer`
+onto the 1.1.x line, while `stylo 0.19.0` requires `indexmap ^2`, which requires
+`hashbrown ^0.16.1`.
+
+Compliance was attempted before the rule was touched: every one of the seven
+non-Stylo versions was offered back to cargo with `--precise`, and cargo refused
+all seven, naming the forcing edge each time. The bumps are not drift. They are
+the pin.
+
+The gate was line-textual, so it could only say that a line had vanished — it
+could not distinguish a dropped dependency from a version consolidated by a
+decision, and a branch carrying both a crate cut and this pin could never
+satisfy it. It now compares the two lockfiles as package graphs: a dropped
+package fails unconditionally, and a withdrawn version fails unless
+[`lock-graph-changes.toml`](./lock-graph-changes.toml) enumerates that exact
+`from`/`to` move and names the decision behind it. The eighteen moves above are
+its opening rows, all keyed to D-L. Additions stay free.
+
+The amendment makes the gate stricter in the way that matters — a dropped
+package was previously indistinguishable from a bump, and is now named — at the
+cost of one authorisation channel, which is a committed, reviewable file rather
+than a bypass. Seven controls in `bin/test-check-cargo-lock-additions-only`,
+six of them negative, run in CI ahead of the gate itself.
