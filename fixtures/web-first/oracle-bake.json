@@ -4,7 +4,7 @@
   "browser_version": "149.0.7827.55",
   "bake_script_sha256": "373cbea5476067163b6f8ebfc90eb49b7f49ae7758be0916d34db906399e1d5e",
   "suite": "primitives.json",
-  "suite_sha256": "23b7876b8fe420f4b8be8fe2aaf89aa4505541c09fbb646f050328f320e031b9",
+  "suite_sha256": "745d8cc741e91564a35bf2ba5bf5f9f7d080de72ced66a29a6cfc25eba8dfd00",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -456,6 +456,33 @@
       "source_sha256": "87bf1c48dfb281e2a54ef13a9d7474bd4691ca28a98196e034beee890dd0defb",
       "oracle": "chromium/svg-stroke-cap-square.png",
       "oracle_sha256": "5968b74bf5068a02cafcf2cc68b67b1ba084037c821bc01b6b66f6f251ebffcb",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-cap-closed-butt",
+      "source": "svg-stroke-cap-closed-butt.svg",
+      "source_sha256": "246ee329657fa576df2895e7e6bfd0042fc4a12f73dc7a1728097fc15ed6bffc",
+      "oracle": "chromium/svg-stroke-cap-closed-butt.png",
+      "oracle_sha256": "13ff1662dd630d4132d2e5887694f370aa24ff8bfd61c98d59e9a9cc4331c8e0",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-cap-closed-round",
+      "source": "svg-stroke-cap-closed-round.svg",
+      "source_sha256": "5c949b883168846f4845771aebadb130dfd8ae187ea3fde4a732f95385b7c97b",
+      "oracle": "chromium/svg-stroke-cap-closed-round.png",
+      "oracle_sha256": "13ff1662dd630d4132d2e5887694f370aa24ff8bfd61c98d59e9a9cc4331c8e0",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-cap-closed-square",
+      "source": "svg-stroke-cap-closed-square.svg",
+      "source_sha256": "2bf9eeb7970f2fbda539cc7781190c322223d2328b77cf17948e9df2d986fabf",
+      "oracle": "chromium/svg-stroke-cap-closed-square.png",
+      "oracle_sha256": "13ff1662dd630d4132d2e5887694f370aa24ff8bfd61c98d59e9a9cc4331c8e0",
       "width": 64,
       "height": 64
     },

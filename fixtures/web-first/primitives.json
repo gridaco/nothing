@@ -459,6 +459,30 @@
       "height": 64
     },
     {
+      "id": "svg-stroke-cap-closed-butt",
+      "source": "svg-stroke-cap-closed-butt.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-cap-closed-butt.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-cap-closed-round",
+      "source": "svg-stroke-cap-closed-round.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-cap-closed-round.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-cap-closed-square",
+      "source": "svg-stroke-cap-closed-square.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-cap-closed-square.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-stroke-circle",
       "source": "svg-stroke-circle.svg",
       "entry": "standalone-svg",
