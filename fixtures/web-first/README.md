@@ -22,6 +22,12 @@ the HTML→SVG boundary through one browser-grade cascade.**
 | `svg-group-rotate-quarter.svg` · `svg-group-rotate-diagonal.svg` | Rotation about a pivot: an exact quarter turn, and a 45° turn whose edges land off the pixel grid. Both bake byte-exact. |
 | `svg-group-paint-order.svg` · `svg-group-inherited-fill.svg` | Flattening keeps document paint order across and into containers, and `fill` inherits through a group by the one cascade. |
 | `svg-non-rendering-elements.svg` | `<title>`/`<desc>`/`<metadata>` paint nothing and declare nothing — the raster is the same as if they were absent. |
+| `svg-path-polygon-fill.svg` · `svg-path-unclosed-fill.svg` · `svg-path-relative-commands.svg` · `svg-path-hv-shorthand.svg` | The paths rung's straight-edge cells: **one triangle spelled four ways** — closed, unclosed (a fill closes it implicitly), relative with implicit repeats, and the `H`/`V` shorthands. All four oracles are byte-identical, which is the claim. |
+| `svg-path-closed-move-only-contour.svg` | `M x y Z` is a zero-length *closed* contour, not nothing: dropping it moves 96 pixels of the surviving triangle in Chromium. Fractional coordinates on purpose — integer axis-aligned edges hide this. |
+| `svg-path-cubic-fill.svg` · `svg-path-smooth-cubic.svg` · `svg-path-quadratic.svg` | Curved path cells: a cubic, an `S` continuation, and a `Q`+`T` pair. All three bake **byte-exact** — see the note below. |
+| `svg-path-fill-rule-nonzero.svg` · `svg-path-fill-rule-evenodd.svg` · `svg-path-fill-rule-inherited.svg` | One self-intersecting star under each fill rule (core filled vs hollow), and the rule inherited from a `<g>` through the one cascade. |
+| `svg-path-two-subpaths.svg` · `svg-path-in-scaled-group.svg` | Two closed contours in one `d`, and a path carried by a group's `scale(2)`. |
+| `svg-path-draws-nothing.svg` | An empty `d` and a move-only contour: both admitted, both paint nothing, baked as proof rather than asserted. |
 | `html-webpage-mockup.html` | A webpage-*design* (header / hero / cards / footer) expressed as 27 inline-SVG rects; the brand purple cascades from the HTML `<style>` via `fill="currentColor"`. Guarded by `crates/websem/tests/webpage_mockup.rs`. Not a real HTML/CSS layout — the slice renders solid-fill shapes only. |
 | `primitives.json` | Closed enumeration of every root HTML/SVG primitive, its grammar entry, dimensions, Chromium oracle, and (where its ideal raster is curved) its declared comparison tolerance. Adding an unlisted root input fails the test gate. |
 | `chromium/*.png` | One committed Chromium oracle per primitive, capturing the SVG-local raster at deviceScaleFactor=1. |
@@ -35,16 +41,23 @@ oracle with zero differing pixels. The gate also validates enumeration and
 provenance and double-runs both raw raster and PNG encoding (see
 `crates/websem/tests/reftest_oracle.rs`).
 
-One class departs from that, and only by declaration: **curved** edges.
+One class departs from that, and only by declaration: **rational conics**.
 A filled ellipse reaches the same `SkCanvas::drawOval` entry point in both
 engines, but through different builds of Skia, whose conic scan-converters
 disagree on fractional coverage along the curve — measured identical
 across every available construction (`draw_oval`, `draw_circle`,
 `PathBuilder::add_oval`/`add_circle`, an oval `RRect`), so no choice of
-call closes it. Straight edges are not affected, even when a transform puts
-them off the pixel grid: the rotated cells above — including a 45° turn —
-bake byte-exact. Anti-aliasing as such is therefore not the boundary;
-conics are.
+call closes it.
+
+Nothing else in the corpus departs, and the boundary has been narrowed twice
+by measurement. Straight edges agree even when a transform puts them off the
+pixel grid: the rotated cells above — including a 45° turn — bake byte-exact.
+And *curves* as such are not the boundary either: the cubic, smooth-cubic and
+quadratic path cells above bake byte-exact too. Only the weighted conic
+diverges. (That is also why an SVG elliptical arc is not in this corpus:
+Chromium rasterizes one through the ellipse's conics — measured
+byte-identical — so admitting arcs means emitting conics, and it inherits
+exactly this departure. See `unsupported/`.)
 
 The curved fixtures carry a `tolerance` block naming the ideal boundary and
 bounding the departure: at most N differing pixels, at most a D-per-channel
