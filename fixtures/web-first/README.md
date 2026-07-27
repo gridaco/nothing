@@ -29,7 +29,8 @@ the HTML→SVG boundary through one browser-grade cascade.**
 | `svg-stroke-inherited.svg` | `stroke` and `stroke-width` inherit through a `<g>` by the one cascade — the shape the tiger is built from. |
 | `svg-stroke-circle.svg` · `svg-stroke-ellipse.svg` · `svg-stroke-path-open.svg` · `svg-stroke-path-closed.svg` · `svg-stroke-line.svg` | A stroke on every admitted geometry. The closed path's round join at its closing corner is the corpus's only stroke cell that is not byte-exact — see the tolerance note below. |
 | `svg-stroke-line-fill-never-paints.svg` | A `<line>` with a fill and no stroke paints nothing: a line has no interior, and the two-command path it compiles to has zero area. |
-| `svg-stroke-cap-butt.svg` · `svg-stroke-cap-round.svg` · `svg-stroke-cap-square.svg` · `svg-stroke-zero-length-dot.svg` | The caps: butt stops at the endpoint, round and square extend by the radius, and a *zero-length* segment paints a cap-shaped dot (nothing at all under butt) — which is why the path normalization keeps one. |
+| `svg-stroke-cap-butt.svg` · `svg-stroke-cap-round.svg` · `svg-stroke-cap-square.svg` · `svg-stroke-zero-length-dot.svg` | The caps on an **open** contour: butt stops at the endpoint, round and square extend by the radius, and a *zero-length* segment paints a cap-shaped dot (nothing at all under butt) — which is why the path normalization keeps one. |
+| `svg-stroke-cap-closed-{butt,round,square}.svg` · `svg-stroke-cap-{circle,ellipse}-{round,square}.svg` | The same caps on a **closed** contour, where SVG makes them inert, at a one-device-pixel width. Chromium's three captures of each are byte-identical to one another; ours were not until the cap was normalized away per closed geometry. Seven cells because the defect was per painter arm, not per element: a path and an oval diverged, a rect never did. |
 | `svg-stroke-join-miter.svg` · `svg-stroke-join-round.svg` · `svg-stroke-join-bevel.svg` · `svg-stroke-miter-limit.svg` | The joins, each with distinct ink at the same corner, plus a miter limit low enough to force the bevel. |
 | `svg-stroke-scaled-group.svg` · `svg-stroke-nonuniform-scale.svg` | The width is a length in local space, so a group's `scale(2)` doubles it and `scale(2,1)` makes the pen elliptical — the stroke *outline* is transformed, not the width. |
 | `svg-stroke-zero-extent-rect.svg` | A zero-extent `<rect>` or `r="0"` `<circle>` renders nothing **including its stroke** (SVG2 §10.1) — baked as proof, since a naive stroke of a zero-extent box would draw a line. |
@@ -72,10 +73,13 @@ exactly this departure. See `unsupported/`.)
 The curved fixtures carry a `tolerance` block naming the ideal boundary and
 bounding the departure: at most N differing pixels, at most a D-per-channel
 delta, every one of them within a pixel of that boundary.
-The numbers are the measured values, not headroom — the corpus's worst
-cell today is 6 pixels at delta 3. Strokes land in the same class and mostly
-below it: 23 of the 24 stroke cells are byte-exact, and the one that is not
-(`svg-stroke-path-closed`) differs in 4 pixels at delta 3 along the round join
+The numbers are the measured values, not headroom. No single cell is worst on
+both axes: the largest differing-pixel count is 6 (`svg-circle-viewbox-scaled`,
+at delta 3) and the largest per-channel delta is 8 (`svg-ellipse-fill`, in 1
+pixel), so the corpus admits at most 6 pixels and at most delta 8, never both at
+once. Strokes land in the same class and mostly below it: 30 of the 31 stroke
+cells are byte-exact, and the one that is not (`svg-stroke-path-closed`) differs
+in 4 pixels at delta 3 along the round join
 at its closing corner — an arc, declared with that arc as its boundary. A shape in the wrong place, at the
 wrong size, or in the wrong color moves pixels off the boundary ring and
 still fails loudly, and `svg-circle-defaults-clip` shows the bar is not

@@ -4,7 +4,7 @@
   "browser_version": "149.0.7827.55",
   "bake_script_sha256": "373cbea5476067163b6f8ebfc90eb49b7f49ae7758be0916d34db906399e1d5e",
   "suite": "primitives.json",
-  "suite_sha256": "745d8cc741e91564a35bf2ba5bf5f9f7d080de72ced66a29a6cfc25eba8dfd00",
+  "suite_sha256": "bab58f00f10b4c9deef5da2b1aeedb28e9314740ef23760102783fcb85ec575c",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -483,6 +483,42 @@
       "source_sha256": "2bf9eeb7970f2fbda539cc7781190c322223d2328b77cf17948e9df2d986fabf",
       "oracle": "chromium/svg-stroke-cap-closed-square.png",
       "oracle_sha256": "13ff1662dd630d4132d2e5887694f370aa24ff8bfd61c98d59e9a9cc4331c8e0",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-cap-circle-round",
+      "source": "svg-stroke-cap-circle-round.svg",
+      "source_sha256": "fd3c2285625ece7f6795aa28f77818e51048a060ad91f5f700a73ad16cdfce79",
+      "oracle": "chromium/svg-stroke-cap-circle-round.png",
+      "oracle_sha256": "eee360d52065cc6ac2462fbc5cc10c23c180e820a634f5a2f8129fcbc1ae72f4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-cap-circle-square",
+      "source": "svg-stroke-cap-circle-square.svg",
+      "source_sha256": "d528b4dd2a4e9666f177edb02196e25a0520d6f6a682683db8d90e11354d0071",
+      "oracle": "chromium/svg-stroke-cap-circle-square.png",
+      "oracle_sha256": "eee360d52065cc6ac2462fbc5cc10c23c180e820a634f5a2f8129fcbc1ae72f4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-cap-ellipse-round",
+      "source": "svg-stroke-cap-ellipse-round.svg",
+      "source_sha256": "779ab85036d06bfa1ea7c874aaa8a9af4c5e98a84cdea1b00a85ac58c8e3e546",
+      "oracle": "chromium/svg-stroke-cap-ellipse-round.png",
+      "oracle_sha256": "69f61e66c4bdc82fe033b87f2b6f29ecc9c297f047616b483a433c2b4d7cdfa1",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-cap-ellipse-square",
+      "source": "svg-stroke-cap-ellipse-square.svg",
+      "source_sha256": "de03f1522e5957eb92128c1b4023652138936dbc6fc13eca6232c524fecb1641",
+      "oracle": "chromium/svg-stroke-cap-ellipse-square.png",
+      "oracle_sha256": "69f61e66c4bdc82fe033b87f2b6f29ecc9c297f047616b483a433c2b4d7cdfa1",
       "width": 64,
       "height": 64
     },

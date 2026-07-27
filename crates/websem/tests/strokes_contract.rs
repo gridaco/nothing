@@ -10,7 +10,7 @@
 //! resolved facts plus the refusals that keep the unconsumed half honest.
 //!
 //! Every pixel claim here was measured in Chromium 149 first; the corpus bakes
-//! them (`fixtures/web-first/svg-stroke-*.svg`, 26 of 27 byte-exact — only
+//! them (`fixtures/web-first/svg-stroke-*.svg`, 30 of 31 byte-exact — only
 //! `svg-stroke-path-closed` carries the declared conic tolerance).
 
 // This binary consumes only the n0 render half of the shared plumbing.
