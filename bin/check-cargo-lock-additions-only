@@ -12,9 +12,18 @@ text, which lets it say *what* moved instead of only that a line vanished:
 
   * a package name present at the base and absent at the head fails, always —
     a crate cut may not drop a dependency, and no ledger can authorise it;
+  * a package re-published under an unchanged version and source — same
+    coordinate, different checksum — fails, always: the bytes behind something
+    immutable moved, and no decision makes that legitimate;
   * a version withdrawn from a package's locked set fails unless a committed
     ledger enumerates that exact `from` → `to` move and names the registered
     decision that authorises it;
+  * a move that also changes *where* the package comes from fails unless the
+    same ledger row spells out `from_source` and `to_source` verbatim. Version
+    alone would hide a registry crate becoming a git revision, or one revision
+    becoming another — and the decision that authorises this workspace's Stylo
+    pin puts "a floating branch and private source fork" outside itself, so the
+    gate must be able to see the difference;
   * a package or a version that only appears is an addition, which is the
     thing this gate is named for and has never objected to.
 
@@ -57,46 +66,71 @@ def workspace_members(ref: str) -> set[str]:
     return set(members)
 
 
-def locked_versions(ref: str) -> dict[str, set[str]]:
-    """Every package in a lockfile, mapped to the version set locked for it.
+WORKSPACE = "<workspace>"
 
-    A name can carry more than one version when the graph cannot unify them,
-    which is why the value is a set and why a "bump" is expressed as one
-    version leaving that set and another joining it.
+
+def locked_coordinates(ref: str) -> dict[str, set[tuple[str, str, str]]]:
+    """Every package in a lockfile, mapped to the coordinates locked for it.
+
+    A coordinate is `(version, source, checksum)` — the whole of what cargo
+    records about *where a dependency came from*, not just which release it is.
+    Version alone cannot see a substitution: this workspace tracks Stylo by
+    `git+…?rev=…` with no checksum, so repointing that URL at a fork, or moving
+    the rev, leaves the version untouched. The decision that authorises the pin
+    excludes exactly those two things, so the gate has to be able to name them.
+
+    A name can carry more than one coordinate when the graph cannot unify them,
+    which is why the value is a set and why a "bump" is one coordinate leaving
+    it and another joining.
     """
     lock = tomllib.loads(git_text(ref, "Cargo.lock"))
-    packages: dict[str, set[str]] = {}
+    packages: dict[str, set[tuple[str, str, str]]] = {}
     for package in lock.get("package", []):
         name, version = package.get("name"), package.get("version")
         if not isinstance(name, str) or not isinstance(version, str):
             raise ValueError(f"{ref}: Cargo.lock has a package without a name/version")
-        packages.setdefault(name, set()).add(version)
+        source = package.get("source") or WORKSPACE
+        checksum = package.get("checksum") or ""
+        packages.setdefault(name, set()).add((version, source, checksum))
     if not packages:
         raise ValueError(f"{ref}: Cargo.lock lists no packages")
     return packages
 
 
-def authorised_moves(ref: str) -> dict[tuple[str, str, str], str]:
-    """The ledger's `(package, from, to) -> decision` map, empty when absent.
+def authorised_moves(ref: str) -> dict[tuple[str, str, str], dict[str, str]]:
+    """The ledger's `(package, from, to) -> row` map, empty when absent.
 
     A revision that predates the ledger authorises nothing, which is the same
     verdict the textual gate gave before the ledger existed.
+
+    `from_source`/`to_source` are optional in the schema and mandatory in
+    practice for any move that changes where the package comes from — the gate
+    below refuses such a move unless the row spells both out verbatim, so the
+    provenance change is legible in the file rather than implied by a version.
     """
     try:
         text = git_text(ref, LEDGER_PATH)
     except subprocess.CalledProcessError:
         return {}
 
-    moves: dict[tuple[str, str, str], str] = {}
+    moves: dict[tuple[str, str, str], dict[str, str]] = {}
     for change in tomllib.loads(text).get("change", []):
         missing = [
             field
             for field in ("decision", "package", "from", "to", "why")
             if not isinstance(change.get(field), str) or not change[field]
         ]
-        if missing:
-            raise ValueError(f"{LEDGER_PATH}: a change is missing {', '.join(missing)}")
-        moves[(change["package"], change["from"], change["to"])] = change["decision"]
+        optional = [
+            field
+            for field in ("from_source", "to_source")
+            if field in change and not isinstance(change[field], str)
+        ]
+        if missing or optional:
+            raise ValueError(
+                f"{LEDGER_PATH}: a change is missing or mistyped "
+                f"{', '.join(missing + optional)}"
+            )
+        moves[(change["package"], change["from"], change["to"])] = change
     return moves
 
 
@@ -112,7 +146,7 @@ def main() -> int:
         added_members = sorted(
             workspace_members(args.head) - workspace_members(args.base)
         )
-        base, head = locked_versions(args.base), locked_versions(args.head)
+        base, head = locked_coordinates(args.base), locked_coordinates(args.head)
         ledger = authorised_moves(args.head)
     except (subprocess.CalledProcessError, tomllib.TOMLDecodeError, ValueError) as error:
         print(
@@ -126,32 +160,70 @@ def main() -> int:
         return 0
 
     dropped = sorted(set(base) - set(head))
+    republished: list[str] = []
     unauthorised: list[str] = []
     authorised: list[str] = []
 
     for name in sorted(set(base) & set(head)):
         withdrawn = sorted(base[name] - head[name])
         arrived = sorted(head[name] - base[name])
-        for version in withdrawn:
-            decision = next(
+
+        # A package re-published under the same version and the same source is
+        # never a legitimate move: the bytes behind an immutable coordinate
+        # changed. No decision can authorise that, so it is reported before the
+        # ledger is consulted at all.
+        for version, source, checksum in withdrawn:
+            for landed in arrived:
+                if (version, source) == landed[:2] and checksum != landed[2]:
+                    republished.append(
+                        f"{name} {version} kept its source and changed checksum\n"
+                        f"      {checksum or '<none>'}\n"
+                        f"   -> {landed[2] or '<none>'}"
+                    )
+
+        for coordinate in withdrawn:
+            version, source, _ = coordinate
+            match = next(
                 (
-                    ledger[(name, version, landed)]
+                    (landed, ledger[(name, version, landed[0])])
                     for landed in arrived
-                    if (name, version, landed) in ledger
+                    if (name, version, landed[0]) in ledger
                 ),
                 None,
             )
-            if decision is None:
+            if match is None:
                 unauthorised.append(
                     f"{name} {version} withdrawn"
-                    + (f" (head locks {', '.join(arrived)})" if arrived else "")
+                    + (
+                        f" (head locks {', '.join(v for v, _, _ in arrived)})"
+                        if arrived
+                        else ""
+                    )
                 )
-            else:
-                authorised.append(
-                    f"{name} {version} -> {', '.join(arrived)} [{decision}]"
-                )
+                continue
 
-    if dropped or unauthorised:
+            landed, row = match
+            # Where the package comes from changed, so the ledger has to say so
+            # in full. A version pair alone would hide a registry crate becoming
+            # a git revision, or one git revision becoming another — which is
+            # the substitution this gate exists to catch.
+            if source != landed[1] and (
+                row.get("from_source") != source or row.get("to_source") != landed[1]
+            ):
+                unauthorised.append(
+                    f"{name} {version} -> {landed[0]} changes where the package comes "
+                    f"from, and the ledger row does not declare it\n"
+                    f"      from_source = {source!r}\n"
+                    f"      to_source   = {landed[1]!r}"
+                )
+                continue
+
+            moved = f"{name} {version} -> {landed[0]} [{row['decision']}]"
+            if source != landed[1]:
+                moved += f"\n      source {source}\n          -> {landed[1]}"
+            authorised.append(moved)
+
+    if dropped or republished or unauthorised:
         print(
             "Cargo.lock additions-only: FAIL\n"
             f"new workspace member(s): {', '.join(added_members)}",
@@ -161,9 +233,13 @@ def main() -> int:
             print("packages dropped (never authorisable):", file=sys.stderr)
             for name in dropped:
                 print(f"  {name}", file=sys.stderr)
+        if republished:
+            print("re-published under an unchanged coordinate:", file=sys.stderr)
+            for line in republished:
+                print(f"  {line}", file=sys.stderr)
         if unauthorised:
             print(
-                f"version moves absent from {LEDGER_PATH}:",
+                f"moves absent from or under-declared in {LEDGER_PATH}:",
                 file=sys.stderr,
             )
             for line in unauthorised:

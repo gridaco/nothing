@@ -33,6 +33,9 @@ _spec.loader.exec_module(gate)
 NO_CUT = 'workspace = { members = ["crates/a"] }\n'
 CRATE_CUT = 'workspace = { members = ["crates/a", "crates/b"] }\n'
 
+REGISTRY = "registry+https://example.invalid/index"
+FORK = "git+https://fork.invalid/widget.git?rev=deadbeef#deadbeef"
+
 LEDGER = """
 [[change]]
 decision = "D-X"
@@ -42,12 +45,48 @@ to = "2.0.0"
 why = "authorised by this control"
 """
 
+# A row that authorises the version pair but says nothing about where the
+# package now comes from — the shape that let a substitution through.
+LEDGER_SILENT_ON_SOURCE = f"""
+[[change]]
+decision = "D-X"
+package = "widget"
+from = "1.0.0"
+to = "1.0.0"
+why = "authorised by this control"
 
-def lock(*packages: tuple[str, str]) -> str:
-    return "".join(
-        f'[[package]]\nname = "{name}"\nversion = "{version}"\n\n'
-        for name, version in packages
-    )
+[[change]]
+decision = "D-X"
+package = "gizmo"
+from = "3.0.0"
+to = "3.0.0"
+why = "authorised by this control"
+"""
+
+LEDGER_DECLARES_SOURCE = f"""
+[[change]]
+decision = "D-X"
+package = "widget"
+from = "1.0.0"
+to = "1.0.0"
+from_source = "{REGISTRY}"
+to_source = "{FORK}"
+why = "the substitution, spelled out"
+"""
+
+
+def lock(*packages: tuple[str, ...]) -> str:
+    """Render lockfile entries from `(name, version[, source[, checksum]])`."""
+    out = []
+    for entry in packages:
+        name, version = entry[0], entry[1]
+        source = entry[2] if len(entry) > 2 else REGISTRY
+        checksum = entry[3] if len(entry) > 3 else f"sha-{name}-{version}"
+        out.append(
+            f'[[package]]\nname = "{name}"\nversion = "{version}"\n'
+            f'source = "{source}"\nchecksum = "{checksum}"\n\n'
+        )
+    return "".join(out)
 
 
 BASE_LOCK = lock(("widget", "1.0.0"), ("gizmo", "3.0.0"))
@@ -126,6 +165,44 @@ CASES: list[tuple[str, int, str, str, str | None]] = [
         CRATE_CUT,
         lock(("widget", "1.0.0"), ("gizmo", "3.0.0"), ("newdep", "0.1.0")),
         None,
+    ),
+    # The substitution family. A gate that compares name and version only calls
+    # every one of these "no change at all", which is how a registry crate can
+    # become a git revision — or somebody's fork — in silence.
+    (
+        "a same-version swap to a fork fails when the ledger is silent",
+        1,
+        CRATE_CUT,
+        lock(("widget", "1.0.0", FORK), ("gizmo", "3.0.0")),
+        None,
+    ),
+    (
+        "a same-version swap to a fork fails when the row omits the sources",
+        1,
+        CRATE_CUT,
+        lock(("widget", "1.0.0", FORK), ("gizmo", "3.0.0")),
+        LEDGER_SILENT_ON_SOURCE,
+    ),
+    (
+        "a same-version swap passes only when the row spells both sources out",
+        0,
+        CRATE_CUT,
+        lock(("widget", "1.0.0", FORK), ("gizmo", "3.0.0")),
+        LEDGER_DECLARES_SOURCE,
+    ),
+    (
+        "a row declaring the wrong destination source does not authorise the swap",
+        1,
+        CRATE_CUT,
+        lock(("widget", "1.0.0", "git+https://other.invalid/w.git?rev=1#1"), ("gizmo", "3.0.0")),
+        LEDGER_DECLARES_SOURCE,
+    ),
+    (
+        "a re-publish under an unchanged coordinate fails, ledger or no ledger",
+        1,
+        CRATE_CUT,
+        lock(("widget", "1.0.0", REGISTRY, "tampered"), ("gizmo", "3.0.0")),
+        LEDGER_SILENT_ON_SOURCE,
     ),
 ]
 
