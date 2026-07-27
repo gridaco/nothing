@@ -2,7 +2,8 @@
 
 `n0_cli` builds the `n0` executable: the thin product host for file-to-output
 rendering on the SVG engine of record
-([D-N](../../docs/wg/consolidation/svg-engine-of-record.md)). The command owns
+([the SVG engine of record](../../docs/wg/consolidation/svg-engine-of-record.md)).
+The command owns
 arguments, source I/O, raster surfaces, and encoding. It does not own source
 semantics, layout, the drawlist, or an authored document model.
 

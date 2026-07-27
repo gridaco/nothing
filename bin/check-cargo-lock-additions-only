@@ -29,7 +29,7 @@ text, which lets it say *what* moved instead of only that a line vanished:
 
 The ledger is `docs/wg/consolidation/lock-graph-changes.toml`, read at the head
 revision.  It exists because a registered decision can have dependency
-provenance as its *subject* — D-L pins Stylo at a revision — and such a
+provenance as its *subject* — this workspace's Stylo pin is one — and such a
 decision cannot satisfy a rule that forbids the graph from moving at all.  The
 answer is to make the move visible and reviewable rather than to bypass the
 gate: every authorised move is written down, keyed to its decision, and

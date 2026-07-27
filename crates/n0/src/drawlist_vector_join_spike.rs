@@ -113,7 +113,7 @@ impl IdentityProjection {
 
 /// A deliberately narrow, disposable paint witness. It is neither cg nor
 /// n0-model's permanent paint seat; it exists only to make independent literal
-/// construction possible while D-C remains open.
+/// construction possible while the shared leaf vocabulary was still open.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct EvidenceSolid {
     active: bool,

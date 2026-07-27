@@ -9,7 +9,8 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 readme = "README.md"
-# D-L temporarily requires an official Git revision newer than Stylo 0.19.0.
+# The SVG paint support this crate needs is only in an official upstream Stylo
+# revision, not yet in a published release.
 # Refuse packaging until a published Stylo release contains the required work;
 # otherwise Cargo would replace the reviewed Git source with registry crates.
 publish = false

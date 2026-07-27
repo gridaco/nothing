@@ -93,7 +93,7 @@ still fails loudly, and `svg-circle-defaults-clip` shows the bar is not
 unreachable: it bakes byte-exact and declares no tolerance at all.
 
 Render a primitive through the `n0` product command — since
-[D-N](../../docs/wg/consolidation/svg-engine-of-record.md) it routes through
+[the engine of record](../../docs/wg/consolidation/svg-engine-of-record.md) it routes through
 the same `websem → rframe → n0` pipeline the oracle gate proves, so this is a
 manual host check of the one engine, not a second renderer. Arbitrary SVG
 outside the closed suite is not capability coverage; beyond-slice *subtree*

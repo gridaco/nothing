@@ -50,7 +50,7 @@ fn websem_normal_edge_keeps_rframe_backend_free() {
     let contract_manifest = include_str!("../../rframe/Cargo.toml");
     assert!(
         !contract_manifest.contains("skia"),
-        "the resolved contract crate must stay backend-free (its proving painter retired with D-M)"
+        "the resolved contract crate must stay backend-free (its proving painter is retired)"
     );
     assert!(
         manifest.contains("animation-sampling = { path = \"../animation-sampling\" }"),

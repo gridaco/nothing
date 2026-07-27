@@ -2,7 +2,8 @@
 //!
 //! The host may perform file I/O and use a backend. It must not regain source
 //! semantics from the legacy engine or couple Web rendering to the n0 authored
-//! model. Per D-N (docs/wg/consolidation/svg-engine-of-record.md) there is one
+//! model. The n0 path is the SVG engine of record
+//! (docs/wg/consolidation/svg-engine-of-record.md), so there is one
 //! render route: websem lowers Web sources to the shared frame and the n0
 //! engine paints it — the retired mature route must not return silently.
 
@@ -49,7 +50,7 @@ fn manifest_keeps_the_one_engine_of_record() {
     ] {
         assert!(
             !manifest.contains(forbidden),
-            "D-N: the retired mature route, legacy engine, and authored n0 model \
+            "the retired mature route, legacy engine, and authored n0 model \
              must not re-enter the product host: {forbidden}"
         );
     }

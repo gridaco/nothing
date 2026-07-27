@@ -21,7 +21,7 @@ native-gl-context = ["dep:glutin", "dep:gl", "dep:raw-window-handle"]
 
 [dependencies]
 # Source-neutral geometry and the resolved-frame contract n0 compiles into
-# its one private drawlist and painter (the taken D-M vector join). The
+# its one private drawlist and painter. The
 # contract crate is backend-free by construction.
 math2 = { path = "../math2" }
 rframe = { path = "../rframe" }

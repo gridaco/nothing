@@ -1,6 +1,6 @@
 //! Dependency-direction lock for the resolved render contract.
 //!
-//! Since the D-M vector join retired the temporary proving drawlist and
+//! Since the vector join retired the temporary proving drawlist and
 //! painter, the whole crate is the shared boundary: every module must stay
 //! backend-free and producer-free, and the manifest must not reintroduce a
 //! backend, a feature gate, or a serialization surface. This is the

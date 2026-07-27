@@ -42,7 +42,7 @@ There is no similarity threshold and this harness produces no score or report.
 
 The Ghostscript tiger is the de-facto SVG smoke test, but it is AGPL and so
 lives untracked in `fixtures/local/` (see the
-[D-N register](../../../docs/wg/consolidation/svg-engine-of-record.md)). The cub
+[engine-of-record register](../../../docs/wg/consolidation/svg-engine-of-record.md)). The cub
 is an original drawing built to cover the same *features* in a fraction of the
 markup — 17 materialized nodes instead of 240 — so a committed fixture can
 exercise the whole admitted slice at once, statically and under sampling:

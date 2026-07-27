@@ -5,7 +5,7 @@
 //! [`rframe::Frame`] contract and reach pixels through the engine's one
 //! private drawlist and painter. Formerly `crates/rframe/tests/n0_canary.rs`,
 //! where the same facts rendered through rframe's temporary proving painter;
-//! that duplicate downstream retired when the D-M vector join was taken
+//! that duplicate downstream retired when the vector join was taken
 //! (docs/wg/consolidation/n0-join-point.md).
 //!
 //! It is an invariant probe, not an n0 product milestone, and it adds no
@@ -22,7 +22,7 @@ use n0_model::resolve::{resolve, ResolveOptions};
 use cg::CGColor;
 use math2::transform::AffineTransform;
 use math2::Rectangle;
-use rframe::frame::{Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, VisualRef};
+use rframe::{Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, VisualRef};
 
 const GREEN: [u8; 4] = [0x16, 0xa3, 0x4a, 0xff];
 

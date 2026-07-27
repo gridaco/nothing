@@ -396,7 +396,7 @@ fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
 }
 
 /// Formerly the both-downstreams byte-identity gate. Its replacement purpose
-/// completed with the D-M vector join: the proving downstream is gone, and
+/// completed when the vector join was taken: the proving downstream is gone, and
 /// the surviving laws are contract admission, geometry/clip coverage, and
 /// byte determinism through the one n0 downstream.
 #[test]

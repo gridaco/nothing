@@ -1,6 +1,7 @@
 //! The thin `n0` CLI host for the SVG engine of record.
 //!
-//! Per D-N (docs/wg/consolidation/svg-engine-of-record.md), every render
+//! The n0 path is this repository's SVG engine of record
+//! (docs/wg/consolidation/svg-engine-of-record.md), so every render
 //! goes through the one pipeline: the websem compiler lowers standalone SVG
 //! or inline-HTML SVG from the retained document session to the shared
 //! frame, which the n0 engine compiles and paints. Static renders are the
@@ -424,11 +425,11 @@ mod tests {
         assert!(parse_render_options(&["--time-ns".to_string(), "1.5".to_string()]).is_err());
     }
 
-    /// The strict admission keeps D-N's refusal harness: inputs the retired
+    /// The strict admission keeps the refusal harness: inputs the retired
     /// mature route rendered refuse loudly under `--strict`, with the
     /// unsupported construct named — never wrong pixels. Each pinned reason
-    /// is the current capability edge; an evolution rung that admits the
-    /// construct must update the pin alongside its Chromium-baked fixtures.
+    /// is the current capability edge; the change that admits the construct
+    /// must update the pin alongside its Chromium-baked fixtures.
     #[test]
     fn strict_admission_refuses_beyond_slice_by_name() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");

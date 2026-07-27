@@ -3,7 +3,7 @@
 //! Every rendered pixel here is produced by the one n0 downstream; the tests
 //! own decoding of the committed Chromium oracle PNGs. There is no second
 //! painter to compare against — rframe's temporary proving downstream retired
-//! when the D-M vector join was taken
+//! when the vector join was taken
 //! (docs/wg/consolidation/n0-join-point.md).
 
 use n0::paint::PaintCtx;

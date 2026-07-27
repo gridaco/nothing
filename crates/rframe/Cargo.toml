@@ -2,7 +2,7 @@
 name = "rframe"
 version = "0.0.0"
 edition = "2024"
-description = "PROVISIONAL, INTERNAL, BREAKABLE. The Web-first track's source-neutral resolved render contract (`Frame`). Contract-only and backend-free: the n0 engine owns the one downstream drawlist and painter (D-M). Produced by websem; not published; not a file format; no round-trip promise."
+description = "PROVISIONAL, INTERNAL, BREAKABLE. The resolved render contract (Frame): the visual facts a producer states after resolving its source. Contract-only and backend-free - the n0 engine owns the one downstream drawlist and painter. Not published, not a file format, no round-trip promise."
 license.workspace = true
 repository.workspace = true
 publish = false

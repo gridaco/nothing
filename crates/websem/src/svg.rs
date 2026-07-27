@@ -94,9 +94,10 @@ use style::values::generics::svg::{SVGLength, SVGPaintKind, SVGStrokeDashArray};
 use cg::CGColor;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
-use rframe::frame::{Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, VisualRef};
-use rframe::path::{FillRule, PathData};
-use rframe::stroke::{Stroke, StrokeCap, StrokeJoin};
+use rframe::{
+    FillRule, Frame, FrameNode, Geometry, Identity, PathData, Provenance, SolidPaintStack, Stroke,
+    StrokeCap, StrokeJoin, VisualRef,
+};
 use std::sync::Arc;
 
 use crate::effective_values::EffectiveValues;
