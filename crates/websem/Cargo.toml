@@ -1,0 +1,47 @@
+[package]
+name = "websem"
+version = "0.0.0"
+edition = "2024"
+description = "PROVISIONAL, INTERNAL, BREAKABLE. The Web semantic compiler: an SVG or HTML source through one namespace-aware document and one Stylo cascade into rframe::Frame, at Base or one exact-time sample. Owns no parser and no painter. No I/O, no network."
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+# Source-neutral exact time, timing, easing, and scalar sampling. SVG syntax
+# and target association stay in this Web semantic producer.
+animation-sampling = { path = "../animation-sampling" }
+# The selected source-neutral leaf-paint vocabulary.
+cg = { path = "../cg" }
+# The source-neutral resolved render contract this crate produces.
+# Contract-only and backend-free; the n0 engine owns the one downstream.
+rframe = { path = "../rframe" }
+# Neutral geometry.
+math2 = { path = "../math2" }
+# The one namespace-aware document + the one (Stylo) browser-grade cascade.
+csscascade = { path = "../csscascade" }
+# Read computed values (e.g. `color`) out of the shared cascade. Imported as `style`.
+stylo.workspace = true
+
+[dev-dependencies]
+# Pixel gates render the resolved frame through the n0-owned compiler and
+# painter — the one downstream. This edge is test-only; websem remains
+# backend-free.
+n0 = { path = "../n0" }
+# Pixel gates drive Skia directly for CPU surfaces and committed Chromium
+# oracle PNG decode. Test-only; this does not widen websem's normal library
+# dependency graph.
+skia-safe = { version = "=0.93.1", features = [
+  "gpu",
+  "gl",
+  "textlayout",
+  "pdf",
+  "svg",
+  "webp",
+] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+
+[lints]
+workspace = true

@@ -12,6 +12,10 @@ crate-type = ["cdylib", "rlib"]
 # shared canvas-graphics vocabulary
 cg = { path = "../cg" }
 
+# Mature Web-format renderer, extracted from this crate. `grida` remains a
+# compatibility consumer while Web hosts move to the independent owner.
+htmlcss = { path = "../htmlcss" }
+
 # skia
 skia-safe = { version = "0.93.1", features = [
   "gpu",
@@ -47,8 +51,8 @@ taffy = "0.9.2"
 usvg = { path = "../../third_party/usvg" }
 # html/css cascade (Stylo-based style resolution)
 csscascade = { path = "../csscascade" }
-stylo = "0.16"
-stylo_static_prefs = "0.16"
+stylo.workspace = true
+stylo_static_prefs.workspace = true
 # markdown parsing
 # (+0.25mb wasm32-unknown-emscripten@opt-level=3)
 pulldown-cmark = "0.13.0"

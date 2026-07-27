@@ -4,16 +4,11 @@
 //! traits for our arena DOM so that Stylo's cascade engine can match selectors
 //! and resolve styles against it.
 //!
-//! # Limitations (PoC)
-//!
-//! The DOM is stored in a process-global slot via [`bootstrap_dom`]. Each call
-//! replaces the previous document (the old one is leaked). This means only one
-//! document is live at a time, but multiple documents can be processed
-//! sequentially within the same process.
-
 use std::borrow::Borrow;
+use std::fmt;
+use std::hash::{Hash, Hasher};
+use std::ptr::NonNull;
 use std::sync::OnceLock;
-use std::sync::atomic::{AtomicPtr, Ordering};
 
 use euclid::default::Size2D;
 use markup5ever::{Attribute, Namespace as HtmlNamespace, ns};
@@ -26,11 +21,13 @@ use style::Namespace as StyleNamespace;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::context::SharedStyleContext;
 use style::data::{ElementDataMut, ElementDataRef, ElementDataWrapper};
-use style::dom::{AttributeProvider, LayoutIterator, OpaqueNode, TElement, TNode};
+use style::dom::{LayoutIterator, OpaqueNode, TElement, TNode};
 use style::properties::PropertyDeclarationBlock;
+use style::rule_tree::{CascadeLevel, CascadeOrigin};
 use style::selector_parser::{AttrValue as SelectorAttrValue, Lang, PseudoElement, SelectorImpl};
 use style::servo_arc::{Arc, ArcBorrow};
 use style::shared_lock::{Locked, SharedRwLock};
+use style::stylesheets::layer_rule::LayerOrder;
 use style::stylist::CascadeData;
 use style::values::AtomIdent;
 use style::values::computed::Au;
@@ -42,74 +39,222 @@ use crate::dom::{DemoDom, DemoElementData, DemoNode, DemoNodeData, NodeId};
 type Impl = SelectorImpl;
 
 // ---------------------------------------------------------------------------
-// Global DOM storage
+// Owned document session
 // ---------------------------------------------------------------------------
 
-static DEMO_DOM: AtomicPtr<DemoDom> = AtomicPtr::new(std::ptr::null_mut());
-static STYLE_LOCK: OnceLock<SharedRwLock> = OnceLock::new();
-
-/// Install a parsed [`DemoDom`] into the global slot and return a
-/// [`HtmlDocument`] handle.
+/// Owns one frozen DOM and the Stylo data tied to that DOM.
 ///
-/// Each call replaces the previous document. The old document is intentionally
-/// leaked (its `&'static` references remain valid through existing handles).
-/// This is acceptable for a dev/import tool; a future iteration will use
-/// `Arc`-based context to avoid the leak.
-pub fn bootstrap_dom(dom: DemoDom) -> HtmlDocument {
-    let document = dom.document_id();
-    let ptr = Box::into_raw(Box::new(dom));
-    // Swap in the new DOM; the old one (if any) is deliberately leaked so
-    // that any outstanding `&'static DemoDom` references stay valid.
-    DEMO_DOM.store(ptr, Ordering::Release);
-    HtmlDocument(document)
+/// Handles borrowed from a session cannot outlive it:
+///
+/// ```compile_fail
+/// use csscascade::{adapter::DocumentSession, dom::DemoDom};
+///
+/// let document = {
+///     let dom = DemoDom::parse_from_bytes(b"<html></html>").unwrap();
+///     let session = DocumentSession::new(dom);
+///     session.document()
+/// };
+/// let _ = document.root_element();
+/// ```
+pub struct DocumentSession {
+    inner: Box<SessionInner>,
 }
 
-/// Returns the process-global [`SharedRwLock`] used for stylesheet data.
-pub fn doc_shared_lock() -> &'static SharedRwLock {
-    STYLE_LOCK.get_or_init(SharedRwLock::new)
+#[derive(Debug)]
+struct SessionInner {
+    dom: DemoDom,
+    handles: Box<[SessionNode]>,
 }
 
-/// Returns a reference to the global [`DemoDom`].
-///
-/// # Panics
-///
-/// Panics if [`bootstrap_dom`] has not been called yet.
-pub fn dom() -> &'static DemoDom {
-    let ptr = DEMO_DOM.load(Ordering::Acquire);
-    assert!(!ptr.is_null(), "bootstrap_dom must run first");
-    // SAFETY: The pointer was created via Box::into_raw in bootstrap_dom
-    // and is never deallocated (intentional leak for &'static lifetime).
-    unsafe { &*ptr }
+#[derive(Clone, Copy, Debug)]
+struct SessionNode {
+    owner: NonNull<SessionInner>,
+    id: NodeId,
+}
+
+impl fmt::Debug for DocumentSession {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("DocumentSession")
+            .field("dom", &self.inner.dom)
+            .finish_non_exhaustive()
+    }
+}
+
+impl DocumentSession {
+    pub fn new(dom: DemoDom) -> Self {
+        let node_count = dom.node_count();
+        let mut inner = Box::new(SessionInner {
+            dom,
+            handles: Box::new([]),
+        });
+        let owner = NonNull::from(inner.as_mut());
+        inner.handles = (0..node_count)
+            .map(|index| SessionNode {
+                owner,
+                id: NodeId(index),
+            })
+            .collect();
+        Self { inner }
+    }
+
+    pub fn document(&self) -> HtmlDocument<'_> {
+        HtmlDocument(
+            self.handle(self.inner.dom.document_id())
+                .expect("document identifier must belong to its session"),
+        )
+    }
+
+    /// Read-only access to this session's frozen DOM.
+    pub fn dom(&self) -> &DemoDom {
+        &self.inner.dom
+    }
+
+    /// Resolve an arena-local node identifier inside this session.
+    pub fn node(&self, id: NodeId) -> Option<&DemoNode> {
+        self.inner.dom.get_node(id)
+    }
+
+    /// Resolve an arena-local element identifier into a session-bound handle.
+    pub fn element(&self, id: NodeId) -> Option<HtmlElement<'_>> {
+        matches!(
+            self.inner.dom.get_node(id).map(|node| &node.data),
+            Some(DemoNodeData::Element(_))
+        )
+        .then(|| {
+            HtmlElement(
+                self.handle(id)
+                    .expect("element identifier must be in bounds"),
+            )
+        })
+    }
+
+    fn handle(&self, id: NodeId) -> Option<SessionHandle<'_>> {
+        self.inner.handle(id)
+    }
+}
+
+impl SessionInner {
+    fn handle(&self, id: NodeId) -> Option<SessionHandle<'_>> {
+        self.handles.get(id.idx()).map(SessionHandle::new)
+    }
 }
 
 // ---------------------------------------------------------------------------
 // Wrapper types
 // ---------------------------------------------------------------------------
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct HtmlNode(NodeId);
+#[derive(Clone, Copy)]
+struct SessionHandle<'session> {
+    node: &'session SessionNode,
+}
+
+impl<'session> SessionHandle<'session> {
+    fn new(node: &'session SessionNode) -> Self {
+        Self { node }
+    }
+
+    fn with_id(self, id: NodeId) -> Self {
+        self.inner()
+            .handle(id)
+            .expect("related node identifier must belong to the same session")
+    }
+
+    fn id(self) -> NodeId {
+        self.record().id
+    }
+
+    fn inner(self) -> &'session SessionInner {
+        // SAFETY: DocumentSession allocates SessionInner before initializing
+        // the stable boxed record slice. Every record's owner points to that
+        // containing allocation, which is private and never moved or replaced.
+        // `node` carries the borrow lifetime of the owning DocumentSession, so
+        // the owner cannot be recovered after the session drops.
+        unsafe { self.node.owner.as_ref() }
+    }
+
+    fn record(self) -> &'session SessionNode {
+        self.node
+    }
+
+    fn dom(self) -> &'session DemoDom {
+        &self.inner().dom
+    }
+
+    fn dom_node(self) -> &'session DemoNode {
+        self.dom().node(self.id())
+    }
+
+    fn element(self, id: NodeId) -> Option<HtmlElement<'session>> {
+        matches!(
+            self.inner().dom.get_node(id).map(|node| &node.data),
+            Some(DemoNodeData::Element(_))
+        )
+        .then(|| HtmlElement(self.with_id(id)))
+    }
+}
+
+impl PartialEq for SessionHandle<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        std::ptr::eq(self.node, other.node)
+    }
+}
+
+impl Eq for SessionHandle<'_> {}
+
+impl Hash for SessionHandle<'_> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        std::ptr::from_ref(self.node).hash(state);
+    }
+}
+
+impl fmt::Debug for SessionHandle<'_> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("SessionHandle")
+            .field("session", &self.record().owner)
+            .field("id", &self.record().id)
+            .finish()
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct HtmlElement(NodeId);
+pub struct HtmlNode<'session>(SessionHandle<'session>);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct HtmlDocument(NodeId);
+pub struct HtmlElement<'session>(SessionHandle<'session>);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct HtmlShadowRoot {
-    host: HtmlElement,
+pub struct HtmlDocument<'session>(SessionHandle<'session>);
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct HtmlShadowRoot<'session> {
+    host: HtmlElement<'session>,
 }
 
 // ---------------------------------------------------------------------------
 // HtmlDocument
 // ---------------------------------------------------------------------------
 
-impl HtmlDocument {
-    pub fn root_element(&self) -> Option<HtmlElement> {
-        dom().document_children().iter().find_map(|child| {
-            matches!(dom().node(*child).data, DemoNodeData::Element(_))
-                .then_some(HtmlElement(*child))
-        })
+impl<'session> HtmlDocument<'session> {
+    pub fn dom(self) -> &'session DemoDom {
+        self.0.dom()
+    }
+
+    pub fn node(self, id: NodeId) -> Option<&'session DemoNode> {
+        self.0.dom().get_node(id)
+    }
+
+    pub fn element(self, id: NodeId) -> Option<HtmlElement<'session>> {
+        self.0.element(id)
+    }
+
+    pub fn root_element(&self) -> Option<HtmlElement<'session>> {
+        self.0
+            .dom()
+            .document_children()
+            .iter()
+            .find_map(|child| self.0.element(*child))
     }
 
     pub fn element_count(&self) -> usize {
@@ -134,46 +279,52 @@ impl HtmlDocument {
 // HtmlElement helpers
 // ---------------------------------------------------------------------------
 
-impl HtmlElement {
-    /// Wrap a DOM [`NodeId`] as an [`HtmlElement`].
-    ///
-    /// # Safety (logical)
-    /// The caller must ensure the node is actually an element node.
-    /// Calling methods on a non-element HtmlElement will panic.
-    pub fn from_node_id(id: NodeId) -> Self {
-        Self(id)
-    }
-
+impl<'session> HtmlElement<'session> {
     /// Returns the underlying DOM [`NodeId`].
     pub fn node_id(&self) -> NodeId {
-        self.0
+        self.0.id()
+    }
+
+    /// Returns this element's owning frozen DOM.
+    pub fn dom(self) -> &'session DemoDom {
+        self.0.dom()
+    }
+
+    /// Returns this element's arena node from its owning session.
+    pub fn dom_node(self) -> &'session DemoNode {
+        self.0.dom_node()
+    }
+
+    /// Resolve an arena-local element identifier in this handle's session.
+    pub fn element(self, id: NodeId) -> Option<HtmlElement<'session>> {
+        self.0.element(id)
     }
 
     pub fn local_name_string(&self) -> String {
         self.element_data().name.local.to_string()
     }
 
-    pub fn first_element_child(self) -> Option<HtmlElement> {
+    pub fn first_element_child(self) -> Option<HtmlElement<'session>> {
         self.node().first_element_child()
     }
 
-    pub fn next_element_sibling(self) -> Option<HtmlElement> {
+    pub fn next_element_sibling(self) -> Option<HtmlElement<'session>> {
         self.node().next_element_sibling()
     }
 
     fn element_data(&self) -> &DemoElementData {
-        match &dom().node(self.0).data {
+        match &self.dom_node().data {
             DemoNodeData::Element(data) => data,
             _ => panic!("HtmlElement must wrap an element node"),
         }
     }
 
-    fn node(self) -> HtmlNode {
+    fn node(self) -> HtmlNode<'session> {
         HtmlNode(self.0)
     }
 
-    fn data_slot(&self) -> &'static OnceLock<ElementDataWrapper> {
-        dom().element_data_slot(self.0)
+    fn data_slot(&self) -> &OnceLock<ElementDataWrapper> {
+        self.0.dom().element_data_slot(self.0.id())
     }
 
     fn attr_iter(&self) -> impl Iterator<Item = (&Attribute, &style::LocalName)> + '_ {
@@ -227,20 +378,20 @@ impl HtmlElement {
 // HtmlNode helpers
 // ---------------------------------------------------------------------------
 
-impl HtmlNode {
-    fn node(self) -> &'static DemoNode {
-        dom().node(self.0)
+impl<'session> HtmlNode<'session> {
+    fn node(self) -> &'session DemoNode {
+        self.0.dom_node()
     }
 
-    fn parent(self) -> Option<HtmlNode> {
-        self.node().parent.map(HtmlNode)
+    fn parent(self) -> Option<HtmlNode<'session>> {
+        self.node().parent.map(|id| HtmlNode(self.0.with_id(id)))
     }
 
-    fn to_element(self) -> Option<HtmlElement> {
+    fn to_element(self) -> Option<HtmlElement<'session>> {
         matches!(self.node().data, DemoNodeData::Element(_)).then_some(HtmlElement(self.0))
     }
 
-    fn first_element_child(self) -> Option<HtmlElement> {
+    fn first_element_child(self) -> Option<HtmlElement<'session>> {
         let mut child = self.first_child();
         while let Some(node) = child {
             if let Some(element) = node.to_element() {
@@ -251,7 +402,7 @@ impl HtmlNode {
         None
     }
 
-    fn prev_element_sibling(self) -> Option<HtmlElement> {
+    fn prev_element_sibling(self) -> Option<HtmlElement<'session>> {
         let mut prev = self.prev_sibling();
         while let Some(node) = prev {
             if let Some(element) = node.to_element() {
@@ -262,7 +413,7 @@ impl HtmlNode {
         None
     }
 
-    fn next_element_sibling(self) -> Option<HtmlElement> {
+    fn next_element_sibling(self) -> Option<HtmlElement<'session>> {
         let mut next = self.next_sibling();
         while let Some(node) = next {
             if let Some(element) = node.to_element() {
@@ -273,15 +424,19 @@ impl HtmlNode {
         None
     }
 
-    fn first_child(self) -> Option<HtmlNode> {
-        self.node().children.first().copied().map(HtmlNode)
+    fn first_child(self) -> Option<HtmlNode<'session>> {
+        self.node()
+            .children
+            .first()
+            .copied()
+            .map(|id| HtmlNode(self.0.with_id(id)))
     }
 
-    fn prev_sibling(self) -> Option<HtmlNode> {
+    fn prev_sibling(self) -> Option<HtmlNode<'session>> {
         sibling_pair(self.0).0
     }
 
-    fn next_sibling(self) -> Option<HtmlNode> {
+    fn next_sibling(self) -> Option<HtmlNode<'session>> {
         sibling_pair(self.0).1
     }
 }
@@ -290,7 +445,7 @@ impl HtmlNode {
 // style::dom::NodeInfo
 // ---------------------------------------------------------------------------
 
-impl ::style::dom::NodeInfo for HtmlNode {
+impl<'session> ::style::dom::NodeInfo for HtmlNode<'session> {
     fn is_element(&self) -> bool {
         matches!(self.node().data, DemoNodeData::Element(_))
     }
@@ -304,21 +459,29 @@ impl ::style::dom::NodeInfo for HtmlNode {
 // style::dom::TNode
 // ---------------------------------------------------------------------------
 
-impl ::style::dom::TNode for HtmlNode {
-    type ConcreteElement = HtmlElement;
-    type ConcreteDocument = HtmlDocument;
-    type ConcreteShadowRoot = HtmlShadowRoot;
+impl<'session> ::style::dom::TNode for HtmlNode<'session> {
+    type ConcreteElement = HtmlElement<'session>;
+    type ConcreteDocument = HtmlDocument<'session>;
+    type ConcreteShadowRoot = HtmlShadowRoot<'session>;
 
     fn parent_node(&self) -> Option<Self> {
         self.parent()
     }
 
     fn first_child(&self) -> Option<Self> {
-        self.node().children.first().copied().map(HtmlNode)
+        self.node()
+            .children
+            .first()
+            .copied()
+            .map(|id| HtmlNode(self.0.with_id(id)))
     }
 
     fn last_child(&self) -> Option<Self> {
-        self.node().children.last().copied().map(HtmlNode)
+        self.node()
+            .children
+            .last()
+            .copied()
+            .map(|id| HtmlNode(self.0.with_id(id)))
     }
 
     fn prev_sibling(&self) -> Option<Self> {
@@ -330,7 +493,7 @@ impl ::style::dom::TNode for HtmlNode {
     }
 
     fn owner_doc(&self) -> Self::ConcreteDocument {
-        HtmlDocument(dom().document_id())
+        HtmlDocument(self.0.with_id(self.0.dom().document_id()))
     }
 
     fn is_in_document(&self) -> bool {
@@ -342,11 +505,11 @@ impl ::style::dom::TNode for HtmlNode {
     }
 
     fn opaque(&self) -> OpaqueNode {
-        OpaqueNode(self.0.idx())
+        OpaqueNode(std::ptr::from_ref(self.node()) as usize)
     }
 
     fn debug_id(self) -> usize {
-        self.0.idx()
+        self.0.id().idx()
     }
 
     fn as_element(&self) -> Option<Self::ConcreteElement> {
@@ -366,8 +529,8 @@ impl ::style::dom::TNode for HtmlNode {
 // style::dom::TDocument
 // ---------------------------------------------------------------------------
 
-impl ::style::dom::TDocument for HtmlDocument {
-    type ConcreteNode = HtmlNode;
+impl<'session> ::style::dom::TDocument for HtmlDocument<'session> {
+    type ConcreteNode = HtmlNode<'session>;
 
     fn as_node(&self) -> Self::ConcreteNode {
         HtmlNode(self.0)
@@ -382,7 +545,7 @@ impl ::style::dom::TDocument for HtmlDocument {
     }
 
     fn shared_lock(&self) -> &SharedRwLock {
-        doc_shared_lock()
+        self.0.inner().dom.shared_lock()
     }
 }
 
@@ -390,8 +553,8 @@ impl ::style::dom::TDocument for HtmlDocument {
 // style::dom::TShadowRoot
 // ---------------------------------------------------------------------------
 
-impl ::style::dom::TShadowRoot for HtmlShadowRoot {
-    type ConcreteNode = HtmlNode;
+impl<'session> ::style::dom::TShadowRoot for HtmlShadowRoot<'session> {
+    type ConcreteNode = HtmlNode<'session>;
 
     fn as_node(&self) -> Self::ConcreteNode {
         self.host.as_node()
@@ -413,8 +576,8 @@ impl ::style::dom::TShadowRoot for HtmlShadowRoot {
 // style::dom::TElement
 // ---------------------------------------------------------------------------
 
-impl ::style::dom::TElement for HtmlElement {
-    type ConcreteNode = HtmlNode;
+impl<'session> ::style::dom::TElement for HtmlElement<'session> {
+    type ConcreteNode = HtmlNode<'session>;
     type TraversalChildrenIterator = std::vec::IntoIter<Self::ConcreteNode>;
 
     fn as_node(&self) -> Self::ConcreteNode {
@@ -427,7 +590,7 @@ impl ::style::dom::TElement for HtmlElement {
             .node()
             .children
             .iter()
-            .map(|child| HtmlNode(*child))
+            .map(|child| HtmlNode(self.0.with_id(*child)))
             .collect();
         LayoutIterator(nodes.into_iter())
     }
@@ -606,10 +769,19 @@ impl ::style::dom::TElement for HtmlElement {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(
         &self,
         _visited_handling: VisitedHandlingMode,
-        _hints: &mut V,
+        hints: &mut V,
     ) where
         V: Push<ApplicableDeclarationBlock>,
     {
+        // SVG2 presentation attributes: author-origin declarations below
+        // every author rule. Pre-parsed once at DOM freeze (dom.rs).
+        if let Some(block) = &self.element_data().presentation_hints {
+            hints.push(ApplicableDeclarationBlock::from_declarations(
+                block.clone(),
+                CascadeLevel::new(CascadeOrigin::PresHints),
+                LayerOrder::root(),
+            ));
+        }
     }
 
     fn synthesize_view_transition_dynamic_rules<V>(&self, _rules: &mut V)
@@ -637,13 +809,7 @@ impl ::style::dom::TElement for HtmlElement {
     fn relative_selector_search_direction(&self) -> ElementSelectorFlags {
         ElementSelectorFlags::empty()
     }
-}
 
-// ---------------------------------------------------------------------------
-// style::dom::AttributeProvider
-// ---------------------------------------------------------------------------
-
-impl AttributeProvider for HtmlElement {
     fn get_attr(&self, attr: &style::LocalName, namespace: &StyleNamespace) -> Option<String> {
         self.attr_iter()
             .filter(|(a, _)| {
@@ -660,11 +826,11 @@ impl AttributeProvider for HtmlElement {
 // selectors::Element
 // ---------------------------------------------------------------------------
 
-impl ::selectors::Element for HtmlElement {
+impl<'session> ::selectors::Element for HtmlElement<'session> {
     type Impl = Impl;
 
     fn opaque(&self) -> OpaqueElement {
-        OpaqueElement::new(dom().node(self.0))
+        OpaqueElement::new(self.dom_node())
     }
 
     fn parent_element(&self) -> Option<Self> {
@@ -820,20 +986,31 @@ fn atom_ident_str(atom: &AtomIdent) -> &str {
     atom.as_ref()
 }
 
-fn sibling_pair(id: NodeId) -> (Option<HtmlNode>, Option<HtmlNode>) {
-    let node = dom().node(id);
+fn sibling_pair<'session>(
+    handle: SessionHandle<'session>,
+) -> (Option<HtmlNode<'session>>, Option<HtmlNode<'session>>) {
+    let node = handle.dom_node();
     let Some(parent) = node.parent else {
         return (None, None);
     };
 
-    let siblings = &dom().node(parent).children;
+    let siblings = &handle
+        .dom()
+        .get_node(parent)
+        .expect("parent identifier must resolve in the same session")
+        .children;
     let idx = siblings
         .iter()
-        .position(|child| *child == id)
+        .position(|child| *child == handle.id())
         .expect("parent missing child");
 
-    let prev = idx.checked_sub(1).map(|i| HtmlNode(siblings[i]));
-    let next = siblings.get(idx + 1).copied().map(HtmlNode);
+    let prev = idx
+        .checked_sub(1)
+        .map(|i| HtmlNode(handle.with_id(siblings[i])));
+    let next = siblings
+        .get(idx + 1)
+        .copied()
+        .map(|id| HtmlNode(handle.with_id(id)));
 
     (prev, next)
 }

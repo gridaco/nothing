@@ -17,6 +17,7 @@ pub mod cache;
 pub mod damage;
 pub mod drawlist;
 pub mod frame;
+pub mod glyphless;
 pub mod ident;
 pub mod journal;
 pub mod oracle;

@@ -83,7 +83,16 @@ fn moving_one_node_damages_only_that_node() {
     );
     // The damage rect covers the node's before and after ink.
     let dr = d.union_world.expect("moved node has ink");
-    assert!(dr.w >= 40.0 && dr.h >= 40.0, "covers at least the node box");
+    assert_eq!(
+        dr,
+        RectF {
+            x: 50.0,
+            y: 50.0,
+            w: 790.0,
+            h: 40.0,
+        },
+        "coverage is the exact union of the before and after ink"
+    );
 }
 
 #[derive(Clone, Copy)]

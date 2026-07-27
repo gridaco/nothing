@@ -1,10 +1,39 @@
 #!/usr/bin/env python3
 
-"""Gate workspace-crate cuts on an additions-only Cargo.lock diff.
+"""Gate workspace-crate cuts on a Cargo.lock whose graph only ever grows.
 
 The consolidation extraction rule makes a new workspace member the durable
 signal that a crate cut is happening.  Only those changes activate this gate;
 ordinary dependency-update PRs are outside its contract.
+
+A crate cut is a refactor, so it must not quietly change what the workspace
+depends on.  The gate reads the two lockfiles as package graphs rather than as
+text, which lets it say *what* moved instead of only that a line vanished:
+
+  * a package name present at the base and absent at the head fails, always —
+    a crate cut may not drop a dependency, and no ledger can authorise it;
+  * a package re-published under an unchanged version and source — same
+    coordinate, different checksum — fails, always: the bytes behind something
+    immutable moved, and no decision makes that legitimate;
+  * a version withdrawn from a package's locked set fails unless a committed
+    ledger enumerates that exact `from` → `to` move and names the registered
+    decision that authorises it;
+  * a move that also changes *where* the package comes from fails unless the
+    same ledger row spells out `from_source` and `to_source` verbatim. Version
+    alone would hide a registry crate becoming a git revision, or one revision
+    becoming another — and the decision that authorises this workspace's Stylo
+    pin puts "a floating branch and private source fork" outside itself, so the
+    gate must be able to see the difference;
+  * a package or a version that only appears is an addition, which is the
+    thing this gate is named for and has never objected to.
+
+The ledger is `docs/wg/consolidation/lock-graph-changes.toml`, read at the head
+revision.  It exists because a registered decision can have dependency
+provenance as its *subject* — this workspace's Stylo pin is one — and such a
+decision cannot satisfy a rule that forbids the graph from moving at all.  The
+answer is to make the move visible and reviewable rather than to bypass the
+gate: every authorised move is written down, keyed to its decision, and
+anything not written down still fails.
 """
 
 from __future__ import annotations
@@ -13,6 +42,8 @@ import argparse
 import subprocess
 import sys
 import tomllib
+
+LEDGER_PATH = "docs/wg/consolidation/lock-graph-changes.toml"
 
 
 def git_text(ref: str, path: str) -> str:
@@ -35,36 +66,88 @@ def workspace_members(ref: str) -> set[str]:
     return set(members)
 
 
-def lock_diff(base: str, head: str) -> list[str]:
-    result = subprocess.run(
-        [
-            "git",
-            "diff",
-            "--no-ext-diff",
-            "--unified=0",
-            base,
-            head,
-            "--",
-            "Cargo.lock",
-        ],
-        check=True,
-        stdout=subprocess.PIPE,
-        text=True,
-    )
-    return result.stdout.splitlines()
+WORKSPACE = "<workspace>"
+
+
+def locked_coordinates(ref: str) -> dict[str, set[tuple[str, str, str]]]:
+    """Every package in a lockfile, mapped to the coordinates locked for it.
+
+    A coordinate is `(version, source, checksum)` — the whole of what cargo
+    records about *where a dependency came from*, not just which release it is.
+    Version alone cannot see a substitution: this workspace tracks Stylo by
+    `git+…?rev=…` with no checksum, so repointing that URL at a fork, or moving
+    the rev, leaves the version untouched. The decision that authorises the pin
+    excludes exactly those two things, so the gate has to be able to name them.
+
+    A name can carry more than one coordinate when the graph cannot unify them,
+    which is why the value is a set and why a "bump" is one coordinate leaving
+    it and another joining.
+    """
+    lock = tomllib.loads(git_text(ref, "Cargo.lock"))
+    packages: dict[str, set[tuple[str, str, str]]] = {}
+    for package in lock.get("package", []):
+        name, version = package.get("name"), package.get("version")
+        if not isinstance(name, str) or not isinstance(version, str):
+            raise ValueError(f"{ref}: Cargo.lock has a package without a name/version")
+        source = package.get("source") or WORKSPACE
+        checksum = package.get("checksum") or ""
+        packages.setdefault(name, set()).add((version, source, checksum))
+    if not packages:
+        raise ValueError(f"{ref}: Cargo.lock lists no packages")
+    return packages
+
+
+def authorised_moves(ref: str) -> dict[tuple[str, str, str], dict[str, str]]:
+    """The ledger's `(package, from, to) -> row` map, empty when absent.
+
+    A revision that predates the ledger authorises nothing, which is the same
+    verdict the textual gate gave before the ledger existed.
+
+    `from_source`/`to_source` are optional in the schema and mandatory in
+    practice for any move that changes where the package comes from — the gate
+    below refuses such a move unless the row spells both out verbatim, so the
+    provenance change is legible in the file rather than implied by a version.
+    """
+    try:
+        text = git_text(ref, LEDGER_PATH)
+    except subprocess.CalledProcessError:
+        return {}
+
+    moves: dict[tuple[str, str, str], dict[str, str]] = {}
+    for change in tomllib.loads(text).get("change", []):
+        missing = [
+            field
+            for field in ("decision", "package", "from", "to", "why")
+            if not isinstance(change.get(field), str) or not change[field]
+        ]
+        optional = [
+            field
+            for field in ("from_source", "to_source")
+            if field in change and not isinstance(change[field], str)
+        ]
+        if missing or optional:
+            raise ValueError(
+                f"{LEDGER_PATH}: a change is missing or mistyped "
+                f"{', '.join(missing + optional)}"
+            )
+        moves[(change["package"], change["from"], change["to"])] = change
+    return moves
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Require Cargo.lock additions-only when a workspace crate is added."
+        description="Require an additions-only Cargo.lock graph when a workspace crate is added."
     )
     parser.add_argument("base", help="base git revision")
     parser.add_argument("head", nargs="?", default="HEAD", help="head git revision")
     args = parser.parse_args()
 
     try:
-        added_members = sorted(workspace_members(args.head) - workspace_members(args.base))
-        diff = lock_diff(args.base, args.head)
+        added_members = sorted(
+            workspace_members(args.head) - workspace_members(args.base)
+        )
+        base, head = locked_coordinates(args.base), locked_coordinates(args.head)
+        ledger = authorised_moves(args.head)
     except (subprocess.CalledProcessError, tomllib.TOMLDecodeError, ValueError) as error:
         print(
             f"Cargo.lock additions-only gate could not inspect the revisions: {error}",
@@ -76,23 +159,101 @@ def main() -> int:
         print("Cargo.lock additions-only: NOT APPLICABLE (no workspace crate added)")
         return 0
 
-    removed = [line for line in diff if line.startswith("-") and not line.startswith("---")]
-    if removed:
+    dropped = sorted(set(base) - set(head))
+    republished: list[str] = []
+    unauthorised: list[str] = []
+    authorised: list[str] = []
+
+    for name in sorted(set(base) & set(head)):
+        withdrawn = sorted(base[name] - head[name])
+        arrived = sorted(head[name] - base[name])
+
+        # A package re-published under the same version and the same source is
+        # never a legitimate move: the bytes behind an immutable coordinate
+        # changed. No decision can authorise that, so it is reported before the
+        # ledger is consulted at all.
+        for version, source, checksum in withdrawn:
+            for landed in arrived:
+                if (version, source) == landed[:2] and checksum != landed[2]:
+                    republished.append(
+                        f"{name} {version} kept its source and changed checksum\n"
+                        f"      {checksum or '<none>'}\n"
+                        f"   -> {landed[2] or '<none>'}"
+                    )
+
+        for coordinate in withdrawn:
+            version, source, _ = coordinate
+            match = next(
+                (
+                    (landed, ledger[(name, version, landed[0])])
+                    for landed in arrived
+                    if (name, version, landed[0]) in ledger
+                ),
+                None,
+            )
+            if match is None:
+                unauthorised.append(
+                    f"{name} {version} withdrawn"
+                    + (
+                        f" (head locks {', '.join(v for v, _, _ in arrived)})"
+                        if arrived
+                        else ""
+                    )
+                )
+                continue
+
+            landed, row = match
+            # Where the package comes from changed, so the ledger has to say so
+            # in full. A version pair alone would hide a registry crate becoming
+            # a git revision, or one git revision becoming another — which is
+            # the substitution this gate exists to catch.
+            if source != landed[1] and (
+                row.get("from_source") != source or row.get("to_source") != landed[1]
+            ):
+                unauthorised.append(
+                    f"{name} {version} -> {landed[0]} changes where the package comes "
+                    f"from, and the ledger row does not declare it\n"
+                    f"      from_source = {source!r}\n"
+                    f"      to_source   = {landed[1]!r}"
+                )
+                continue
+
+            moved = f"{name} {version} -> {landed[0]} [{row['decision']}]"
+            if source != landed[1]:
+                moved += f"\n      source {source}\n          -> {landed[1]}"
+            authorised.append(moved)
+
+    if dropped or republished or unauthorised:
         print(
             "Cargo.lock additions-only: FAIL\n"
-            f"new workspace member(s): {', '.join(added_members)}\n"
-            "removed lockfile lines:",
+            f"new workspace member(s): {', '.join(added_members)}",
             file=sys.stderr,
         )
-        for line in removed:
-            print(f"  {line}", file=sys.stderr)
+        if dropped:
+            print("packages dropped (never authorisable):", file=sys.stderr)
+            for name in dropped:
+                print(f"  {name}", file=sys.stderr)
+        if republished:
+            print("re-published under an unchanged coordinate:", file=sys.stderr)
+            for line in republished:
+                print(f"  {line}", file=sys.stderr)
+        if unauthorised:
+            print(
+                f"moves absent from or under-declared in {LEDGER_PATH}:",
+                file=sys.stderr,
+            )
+            for line in unauthorised:
+                print(f"  {line}", file=sys.stderr)
         return 1
 
-    added = sum(line.startswith("+") and not line.startswith("+++") for line in diff)
+    added_packages = sorted(set(head) - set(base))
     print(
         "Cargo.lock additions-only: PASS "
-        f"({', '.join(added_members)}; {added} added line(s), 0 removed)"
+        f"({', '.join(added_members)}; {len(added_packages)} package(s) added, "
+        f"0 dropped, {len(authorised)} version move(s) authorised)"
     )
+    for line in authorised:
+        print(f"  {line}")
     return 0
 
 

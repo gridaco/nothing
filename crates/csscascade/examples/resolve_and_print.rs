@@ -10,7 +10,7 @@
 
 use std::{env, fs, mem, path::PathBuf};
 
-use csscascade::adapter::{self, HtmlDocument, HtmlElement};
+use csscascade::adapter::{DocumentSession, HtmlElement};
 use csscascade::cascade::CascadeDriver;
 use csscascade::dom::{DemoDom, DemoNodeData};
 
@@ -29,30 +29,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. Parse HTML into arena DOM
     let dom = DemoDom::parse_from_bytes(html.as_bytes())?;
 
-    // 2. Build cascade driver (collects <style> blocks)
-    let mut driver = CascadeDriver::new(&dom);
+    // 2. Bind the frozen DOM to one owned session.
+    let mut session = DocumentSession::new(dom);
 
-    // 3. Install DOM into global slot and get document handle
-    let document = adapter::bootstrap_dom(dom);
-
-    // 4. Flush stylist + resolve all styles
-    driver.flush(document);
-    let styled_count = driver.style_document(document);
+    // 3. Resolve all styles under an exclusive, one-pass driver.
+    let styled_count = CascadeDriver::new(&mut session).style_document();
     eprintln!("resolved {} elements\n", styled_count);
 
-    // 5. Print the resolved tree
+    // 4. Print the resolved tree
+    let document = session.document();
     if let Some(root) = document.root_element() {
-        print_element(root, &document, 0);
+        print_element(root, 0);
     }
 
     Ok(())
 }
 
 /// Recursively print an element with ALL computed style properties.
-fn print_element(element: HtmlElement, document: &HtmlDocument, depth: usize) {
+fn print_element(element: HtmlElement<'_>, depth: usize) {
     let indent = "  ".repeat(depth);
     let tag = element.local_name_string();
-    let dom = adapter::dom();
+    let dom = element.dom();
 
     let data = element.borrow_data();
     if let Some(data) = &data {
@@ -93,7 +90,7 @@ fn print_element(element: HtmlElement, document: &HtmlDocument, depth: usize) {
     // Recurse into child elements
     let mut child = element.first_element_child();
     while let Some(c) = child {
-        print_element(c, document, depth + 1);
+        print_element(c, depth + 1);
         child = c.next_element_sibling();
     }
 }

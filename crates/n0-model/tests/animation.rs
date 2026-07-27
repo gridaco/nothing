@@ -82,7 +82,7 @@ fn offset(numerator: u64, denominator: u64) -> KeyframeOffset {
 }
 
 fn keyframe(numerator: u64, denominator: u64, value: f32) -> ScalarKeyframe {
-    ScalarKeyframe::new(offset(numerator, denominator), value)
+    ScalarKeyframe::new(offset(numerator, denominator), value).unwrap()
 }
 
 fn segment(easing: Easing, numerator: u64, denominator: u64, value: f32) -> ScalarSegment {
@@ -421,7 +421,7 @@ fn offsets_are_exact_reduced_and_curves_have_one_canonical_structure() {
 
     assert!(matches!(
         ScalarCurve::new(
-            ScalarKeyframe::new(half, 0.0),
+            ScalarKeyframe::new(half, 0.0).unwrap(),
             vec![segment(Easing::Linear, 1, 1, 1.0)]
         ),
         Err(ScalarCurveError::FirstOffsetMustBeZero { actual }) if actual == half
@@ -450,8 +450,8 @@ fn offsets_are_exact_reduced_and_curves_have_one_canonical_structure() {
         }) if previous == half && current == half
     ));
 
-    let constant = ScalarCurve::new(ScalarKeyframe::new(half, 7.0), vec![]).unwrap();
-    assert_eq!(constant, ScalarCurve::constant(7.0));
+    let constant = ScalarCurve::new(ScalarKeyframe::new(half, 7.0).unwrap(), vec![]).unwrap();
+    assert_eq!(constant, ScalarCurve::constant(7.0).unwrap());
     assert_eq!(constant.first().offset(), KeyframeOffset::ZERO);
     assert_eq!(constant.keyframe_count(), 1);
 }
@@ -481,7 +481,7 @@ fn old_from_to_constructors_are_bit_equivalent_curve_sugar() {
         vec![Track::axis_start_curve(
             "explicit",
             target,
-            ScalarCurve::linear(f32::from_bits(0xbf80_0001), f32::from_bits(0x3f00_0001)),
+            ScalarCurve::linear(f32::from_bits(0xbf80_0001), f32::from_bits(0x3f00_0001)).unwrap(),
             timing,
             FillMode::Freeze,
         )
@@ -854,7 +854,7 @@ fn one_value_curves_are_constant_through_repeats_and_freeze() {
     let track = Track::opacity_curve(
         "constant",
         opacity,
-        ScalarCurve::constant(-0.0),
+        ScalarCurve::constant(-0.0).unwrap(),
         Timing::new(3, 5, 2).unwrap(),
         FillMode::Freeze,
     )

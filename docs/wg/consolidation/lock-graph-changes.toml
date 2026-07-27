@@ -1,0 +1,204 @@
+# Authorised Cargo.lock graph moves
+#
+# `bin/check-cargo-lock-additions-only` requires a crate cut to leave the
+# dependency graph additions-only: no package dropped, no locked version
+# withdrawn.  A registered decision can have dependency provenance as its
+# subject, though, and such a decision cannot satisfy a rule that forbids the
+# graph from moving at all.  This file is where those moves are written down.
+#
+# One `[[change]]` per withdrawn coordinate.  The gate matches `package`, `from`
+# and `to` exactly against the two lockfiles, so a row authorises one move and
+# nothing else; anything not listed here still fails.  Rows are a permanent
+# record — they stay after the move has merged, and go inert on their own once
+# the base already carries `to`.
+#
+# A coordinate is a version *and* where it came from.  When a move changes the
+# source, the row must carry `from_source` and `to_source` verbatim or the gate
+# refuses it: a version pair alone cannot distinguish a release upgrade from a
+# registry crate becoming a git revision, or one revision becoming a fork — and
+# eleven rows below are exactly that kind of move, two of them at an unchanged
+# version, which a version-only comparison reports as no change at all.
+#
+# `decision` names the registry entry that authorises the move.  Adding a row
+# without one is the thing this file exists to prevent.
+
+# ---------------------------------------------------------------------------
+# D-L — pin official Stylo SVG paint support
+#
+# The workspace tracks Stylo by git revision.  D-L moves that pin to
+# `a64923b5d5c67313c81c5056f5e30ec0babb04d6`, which carries Stylo's own SVG
+# paint properties.  Every row below is a consequence of that one pin: seven
+# crates are members of the pinned tree, four are its direct requirements, and
+# the rest are forced transitively.  Pinning any of them back was attempted and
+# refused by cargo — `stylo_static_prefs 0.19.0` requires `toml ^1.1.2`, and
+# `stylo 0.19.0` requires `indexmap ^2`, which in turn requires
+# `hashbrown ^0.16.1`.
+#
+# No package is dropped by this move, and no package is renamed.
+# ---------------------------------------------------------------------------
+
+[[change]]
+decision = "D-L"
+package = "stylo"
+from = "0.16.0"
+to = "0.19.0"
+from_source = "registry+https://github.com/rust-lang/crates.io-index"
+to_source = "git+https://github.com/servo/stylo.git?rev=a64923b5d5c67313c81c5056f5e30ec0babb04d6#a64923b5d5c67313c81c5056f5e30ec0babb04d6"
+why = "the pinned Stylo revision itself"
+
+[[change]]
+decision = "D-L"
+package = "stylo_atoms"
+from = "0.16.0"
+to = "0.19.0"
+from_source = "registry+https://github.com/rust-lang/crates.io-index"
+to_source = "git+https://github.com/servo/stylo.git?rev=a64923b5d5c67313c81c5056f5e30ec0babb04d6#a64923b5d5c67313c81c5056f5e30ec0babb04d6"
+why = "a member of the Stylo tree at the pinned revision"
+
+[[change]]
+decision = "D-L"
+package = "stylo_derive"
+from = "0.16.0"
+to = "0.19.0"
+from_source = "registry+https://github.com/rust-lang/crates.io-index"
+to_source = "git+https://github.com/servo/stylo.git?rev=a64923b5d5c67313c81c5056f5e30ec0babb04d6#a64923b5d5c67313c81c5056f5e30ec0babb04d6"
+why = "a member of the Stylo tree at the pinned revision"
+
+[[change]]
+decision = "D-L"
+package = "stylo_dom"
+from = "0.16.0"
+to = "0.19.0"
+from_source = "registry+https://github.com/rust-lang/crates.io-index"
+to_source = "git+https://github.com/servo/stylo.git?rev=a64923b5d5c67313c81c5056f5e30ec0babb04d6#a64923b5d5c67313c81c5056f5e30ec0babb04d6"
+why = "a member of the Stylo tree at the pinned revision"
+
+[[change]]
+decision = "D-L"
+package = "stylo_malloc_size_of"
+from = "0.16.0"
+to = "0.19.0"
+from_source = "registry+https://github.com/rust-lang/crates.io-index"
+to_source = "git+https://github.com/servo/stylo.git?rev=a64923b5d5c67313c81c5056f5e30ec0babb04d6#a64923b5d5c67313c81c5056f5e30ec0babb04d6"
+why = "a member of the Stylo tree at the pinned revision"
+
+[[change]]
+decision = "D-L"
+package = "stylo_static_prefs"
+from = "0.16.0"
+to = "0.19.0"
+from_source = "registry+https://github.com/rust-lang/crates.io-index"
+to_source = "git+https://github.com/servo/stylo.git?rev=a64923b5d5c67313c81c5056f5e30ec0babb04d6#a64923b5d5c67313c81c5056f5e30ec0babb04d6"
+why = "a member of the Stylo tree at the pinned revision"
+
+[[change]]
+decision = "D-L"
+package = "stylo_traits"
+from = "0.16.0"
+to = "0.19.0"
+from_source = "registry+https://github.com/rust-lang/crates.io-index"
+to_source = "git+https://github.com/servo/stylo.git?rev=a64923b5d5c67313c81c5056f5e30ec0babb04d6#a64923b5d5c67313c81c5056f5e30ec0babb04d6"
+why = "a member of the Stylo tree at the pinned revision"
+
+[[change]]
+decision = "D-L"
+package = "selectors"
+from = "0.37.0"
+to = "0.39.0"
+from_source = "registry+https://github.com/rust-lang/crates.io-index"
+to_source = "git+https://github.com/servo/stylo.git?rev=a64923b5d5c67313c81c5056f5e30ec0babb04d6#a64923b5d5c67313c81c5056f5e30ec0babb04d6"
+why = "a member of the Stylo tree at the pinned revision"
+
+[[change]]
+decision = "D-L"
+package = "to_shmem"
+from = "0.3.0"
+to = "0.5.0"
+from_source = "registry+https://github.com/rust-lang/crates.io-index"
+to_source = "git+https://github.com/servo/stylo.git?rev=a64923b5d5c67313c81c5056f5e30ec0babb04d6#a64923b5d5c67313c81c5056f5e30ec0babb04d6"
+why = "a member of the Stylo tree at the pinned revision"
+
+[[change]]
+decision = "D-L"
+package = "cssparser"
+from = "0.36.0"
+to = "0.37.0"
+why = "required by stylo, selectors, stylo_traits, stylo_malloc_size_of and to_shmem at the pinned revision"
+
+[[change]]
+decision = "D-L"
+package = "cssparser-macros"
+from = "0.6.1"
+to = "0.7.0"
+why = "required by cssparser 0.37.0"
+
+[[change]]
+decision = "D-L"
+package = "indexmap"
+from = "2.11.4"
+to = "2.13.1"
+why = "stylo 0.19.0 requires indexmap ^2; toml 1.1.3 narrows it to ^2.13.0"
+
+[[change]]
+decision = "D-L"
+package = "hashbrown"
+from = "0.15.3"
+to = "0.16.1"
+why = "required by indexmap 2.13.1 as ^0.16.1"
+
+[[change]]
+decision = "D-L"
+package = "toml"
+from = "1.0.7+spec-1.1.0"
+to = "1.1.3+spec-1.1.0"
+why = "stylo_static_prefs 0.19.0 requires toml ^1.1.2"
+
+[[change]]
+decision = "D-L"
+package = "serde_spanned"
+from = "1.0.4"
+to = "1.1.1"
+why = "required by toml 1.1.3 as ^1.1.1"
+
+[[change]]
+decision = "D-L"
+package = "toml_datetime"
+from = "1.0.1+spec-1.1.0"
+to = "1.1.1+spec-1.1.0"
+why = "required by toml 1.1.3 as ^1.1.1"
+
+[[change]]
+decision = "D-L"
+package = "toml_parser"
+from = "1.0.10+spec-1.1.0"
+to = "1.1.2+spec-1.1.0"
+why = "required by toml 1.1.3 as ^1.1.2"
+
+[[change]]
+decision = "D-L"
+package = "toml_writer"
+from = "1.0.7+spec-1.1.0"
+to = "1.1.2+spec-1.1.0"
+why = "required by toml 1.1.3 as ^1.1.2"
+
+# These two never changed version, so a gate comparing name and version alone
+# reported them as untouched. They moved from crates.io to the pinned revision
+# all the same — the substitution class the decision explicitly excludes.
+
+[[change]]
+decision = "D-L"
+package = "servo_arc"
+from = "0.4.3"
+to = "0.4.3"
+from_source = "registry+https://github.com/rust-lang/crates.io-index"
+to_source = "git+https://github.com/servo/stylo.git?rev=a64923b5d5c67313c81c5056f5e30ec0babb04d6#a64923b5d5c67313c81c5056f5e30ec0babb04d6"
+why = "the pinned Stylo tree supplies its own servo_arc at the same version"
+
+[[change]]
+decision = "D-L"
+package = "to_shmem_derive"
+from = "0.1.0"
+to = "0.1.0"
+from_source = "registry+https://github.com/rust-lang/crates.io-index"
+to_source = "git+https://github.com/servo/stylo.git?rev=a64923b5d5c67313c81c5056f5e30ec0babb04d6#a64923b5d5c67313c81c5056f5e30ec0babb04d6"
+why = "the pinned Stylo tree supplies its own to_shmem_derive at the same version"

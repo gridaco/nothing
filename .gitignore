@@ -126,3 +126,4 @@ docs/_build/
 *.plan.md
 *.todo.md
 .claude/launch.json
+.DS_Store

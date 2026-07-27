@@ -43,6 +43,15 @@ docs, in order:
    entry/exit gates, the first PRs, the owner decision registry, and the
    known unknowns.
 
+**Amendment (ratified 2026-07-21):** the **[Web-First
+Amendment](./web-first.md)** revises the topology to *one engine kernel,
+source-native semantic models, one provisional resolved render contract,
+many hosts*, and moves HTML/CSS + SVG to the front. Read it with the goal
+and topology — it supersedes their "one **model**" reading (the engine
+kernel converges downstream, not at one authored model) and reorders the
+charter's phases where they conflict. It leaves every standing rule
+below intact.
+
 Reference, consulted as needed: **[the glossary](./glossary.md)** — the
 program vocabulary. Use its terms; do not mint synonyms.
 
@@ -50,6 +59,23 @@ Decision proposal, not yet ratified: **[the conformance-bar flip
 rule](./flip-rule.md)** — the pre-score threshold, coverage, and
 oracle-discipline proposal tracked by
 [gridaco/nothing#49](https://github.com/gridaco/nothing/issues/49).
+
+Findings and decision evidence, with the decision each one carries and whether
+that decision is settled:
+
+| paper | genre | decision | status |
+| --- | --- | --- | --- |
+| [SVG paint in the shared cascade](./svg-paint-cascade.md) | finding | D-L — SVG paint enters through official-upstream Stylo, pinned at a revision | **taken** 2026-07-23; ingress and capability are not settled by it |
+| [where n0 joins the shared downstream](./n0-join-point.md) | finding | D-M — a staged join, per fact kind | **vector stage taken** 2026-07-23; the text stage remains open |
+| [the paint-vocabulary conformance gap](./paint-vocabulary-gap.md) | gap report | D-C — `cg` is the shared leaf-vocabulary seat | **taken for the glyphless vector scope** 2026-07-23; amendment-dependent and text leaves stay open |
+| [how the mature Web renderer enters](./web-renderer-adoption.md) | patrol | (evidence for D-M) | which capability is reusable, which topology must not cross |
+| [the SVG engine of record](./svg-engine-of-record.md) | finding | D-N — the n0 path is the one product path for SVG, static and animated | **taken** 2026-07-24; settles routing and succession, not capability |
+| [the conformance-bar flip rule](./flip-rule.md) | proposal | FLIP — thresholds, coverage, oracle discipline | **unratified** ([gridaco/nothing#49](https://github.com/gridaco/nothing/issues/49)); **no score may be produced or inspected** |
+| [lock-graph-changes.toml](./lock-graph-changes.toml) | gate ledger | (records moves D-L authorises) | read by `bin/check-cargo-lock-additions-only` |
+
+D-N demotes the mature Web renderer to a frozen semantics donor, with declared
+degradations (the default) or loud refusals (`--strict`) standing in for
+capability not yet ported.
 
 The charter is the only doc of the four that sequences work — and it
 records the *route*; the current *position* (active phase, landed PRs,

@@ -1,7 +1,10 @@
 //! Arena-based DOM representation for csscascade.
 //!
-//! Provides [`DemoDom`] — a flat, arena-allocated DOM tree built by html5ever's
-//! [`TreeSink`] trait.  Every node lives in a `Vec<DemoNode>` and is addressed
+//! Provides [`DemoDom`] — a flat, arena-allocated DOM tree built through the
+//! shared markup5ever [`TreeSink`] trait. Two grammar entries drive the same
+//! sink into the same semantic document shape: html5ever for HTML documents
+//! and xml5ever for conforming standalone SVG/XML documents (namespace-aware,
+//! case-preserving). Every node lives in a `Vec<DemoNode>` and is addressed
 //! by a lightweight [`NodeId`] index.  After parsing, the DOM is frozen and
 //! handed off to the Stylo adapter layer ([`crate::adapter`]).
 
@@ -20,16 +23,23 @@ use markup5ever::{Attribute, LocalName, Namespace, QualName};
 use std::sync::OnceLock;
 use style::context::QuirksMode as StyleQuirksMode;
 use style::data::ElementDataWrapper;
-use style::properties::parse_style_attribute;
-use style::servo_arc::Arc;
-use style::stylesheets::{CssRuleType, UrlExtraData};
-use style::{
-    LocalName as StyleLocalName, Namespace as StyleNamespace, properties::PropertyDeclarationBlock,
-    shared_lock::Locked, values::AtomIdent,
+use style::properties::{
+    Importance, LonghandId, PropertyId, SourcePropertyDeclaration, parse_one_declaration_into,
+    parse_style_attribute,
 };
+use style::servo_arc::Arc;
+use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
+use style::{
+    LocalName as StyleLocalName, Namespace as StyleNamespace,
+    properties::PropertyDeclarationBlock,
+    shared_lock::{Locked, SharedRwLock},
+    values::AtomIdent,
+};
+use style_traits::ParsingMode;
 use stylo_atoms::Atom as WeakAtom;
 use tendril::StrTendril;
 use url::Url;
+use xml5ever::driver::{XmlParseOpts, parse_document as parse_xml_document};
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -88,6 +98,10 @@ pub struct DemoElementData {
     pub style_namespace: StyleNamespace,
     /// Parsed inline `style` attribute, if present.
     pub style_attribute: Option<Arc<Locked<PropertyDeclarationBlock>>>,
+    /// Admitted SVG presentation attributes, pre-parsed as the SVG2
+    /// presentation-hint declaration block — author origin, below every
+    /// author rule (`CascadeLevel::PresHints`).
+    pub presentation_hints: Option<Arc<Locked<PropertyDeclarationBlock>>>,
 }
 
 /// The frozen, arena-allocated DOM tree.
@@ -96,6 +110,7 @@ pub struct DemoDom {
     nodes: Vec<DemoNode>,
     document: NodeId,
     quirks_mode: QuirksMode,
+    shared_lock: SharedRwLock,
     pub errors: Vec<String>,
     /// Per-node slot for Stylo [`ElementDataWrapper`] (only meaningful for
     /// elements). Populated lazily the first time Stylo's traversal calls
@@ -103,15 +118,30 @@ pub struct DemoDom {
     pub(crate) element_data: Vec<OnceLock<ElementDataWrapper>>,
 }
 
-// SAFETY: The DOM is frozen after parsing; no mutable aliasing across threads.
-unsafe impl Sync for DemoDom {}
-unsafe impl Send for DemoDom {}
-
 impl DemoDom {
     /// Parse a complete HTML document from raw bytes.
     pub fn parse_from_bytes(bytes: &[u8]) -> io::Result<Self> {
         let mut reader = Cursor::new(bytes);
         let dom = parse_document(DemoDomBuilder::new(), ParseOpts::default())
+            .from_utf8()
+            .read_from(&mut reader)?;
+        Ok(dom)
+    }
+
+    /// Parse a standalone SVG/XML document from raw bytes into the same
+    /// semantic DOM shape [`Self::parse_from_bytes`] produces for HTML.
+    ///
+    /// The XML grammar is namespace-aware and case-preserving: element and
+    /// attribute names keep their authored case, and namespaces come from
+    /// authored `xmlns` declarations rather than HTML foreign-content rules.
+    /// xml5ever implements the error-recovering XML5 grammar; recoveries the
+    /// grammar records are surfaced in [`DemoDom::errors`] so a strict caller
+    /// can refuse recovered-from input, while the recovery classes XML5
+    /// deliberately leaves unrecorded are pinned as executable boundary laws
+    /// in `tests/xml_document_entry.rs`.
+    pub fn parse_xml_from_bytes(bytes: &[u8]) -> io::Result<Self> {
+        let mut reader = Cursor::new(bytes);
+        let dom = parse_xml_document(DemoDomBuilder::new(), XmlParseOpts::default())
             .from_utf8()
             .read_from(&mut reader)?;
         Ok(dom)
@@ -133,12 +163,24 @@ impl DemoDom {
         &self.nodes[id.idx()]
     }
 
+    pub fn get_node(&self, id: NodeId) -> Option<&DemoNode> {
+        self.nodes.get(id.idx())
+    }
+
+    pub(crate) fn shared_lock(&self) -> &SharedRwLock {
+        &self.shared_lock
+    }
+
     pub(crate) fn element_data_slot(&self, id: NodeId) -> &OnceLock<ElementDataWrapper> {
         &self.element_data[id.idx()]
     }
 
     pub fn all_node_ids(&self) -> impl Iterator<Item = NodeId> + '_ {
         (0..self.nodes.len()).map(NodeId)
+    }
+
+    pub(crate) fn node_count(&self) -> usize {
+        self.nodes.len()
     }
 }
 
@@ -151,6 +193,7 @@ struct DemoDomBuilder {
     document: NodeId,
     errors: RefCell<Vec<Cow<'static, str>>>,
     quirks_mode: Cell<QuirksMode>,
+    shared_lock: SharedRwLock,
 }
 
 #[derive(Debug)]
@@ -216,6 +259,7 @@ impl DemoDomBuilder {
             document: NodeId(0),
             errors: RefCell::new(Vec::new()),
             quirks_mode: Cell::new(QuirksMode::NoQuirks),
+            shared_lock: SharedRwLock::new(),
         }
     }
 
@@ -339,6 +383,7 @@ impl TreeSink for DemoDomBuilder {
     fn finish(self) -> Self::Output {
         let quirks = self.quirks_mode.get();
         let document = self.document;
+        let shared_lock = self.shared_lock;
         let errors = self
             .errors
             .into_inner()
@@ -387,10 +432,11 @@ impl TreeSink for DemoDomBuilder {
                                 StyleQuirksMode::NoQuirks,
                                 CssRuleType::Style,
                             );
-                            use crate::adapter::doc_shared_lock;
-                            let locked = doc_shared_lock().wrap(block);
+                            let locked = shared_lock.wrap(block);
                             Arc::new(locked)
                         });
+                        let presentation_hints =
+                            svg_presentation_hints(&name, &attrs_vec, &shared_lock);
 
                         DemoNodeData::Element(DemoElementData {
                             name,
@@ -403,6 +449,7 @@ impl TreeSink for DemoDomBuilder {
                             style_local_name,
                             style_namespace,
                             style_attribute,
+                            presentation_hints,
                         })
                     }
                     NodeDataTemp::ProcessingInstruction { target, contents } => {
@@ -418,6 +465,7 @@ impl TreeSink for DemoDomBuilder {
             nodes,
             document,
             quirks_mode: quirks,
+            shared_lock,
             errors,
             element_data,
         }
@@ -649,6 +697,106 @@ fn derive_attr_metadata(
     }
 
     (id_attr, class_list, attr_local_names, style_value)
+}
+
+/// SVG presentation attributes admitted into the cascade as presentation
+/// hints. Each entry is a semantic claim gated by the precedence laws in
+/// `tests/svg_presentation_hints.rs`; the set grows one capability step at a
+/// time — never speculatively.
+fn admitted_svg_presentation_property(local: &str) -> Option<LonghandId> {
+    match local {
+        "fill" => Some(LonghandId::Fill),
+        "fill-rule" => Some(LonghandId::FillRule),
+        "stroke" => Some(LonghandId::Stroke),
+        "stroke-width" => Some(LonghandId::StrokeWidth),
+        "stroke-linecap" => Some(LonghandId::StrokeLinecap),
+        "stroke-linejoin" => Some(LonghandId::StrokeLinejoin),
+        "stroke-miterlimit" => Some(LonghandId::StrokeMiterlimit),
+        // Not painted by any consumer yet, and admitted anyway: `font-size` is
+        // the basis for an `em`/`rem` length, and `stroke-width` is now a
+        // consumed length. Chromium treats it as a presentation attribute
+        // (measured: `<g font-size="32">` makes a `0.5em` stroke 16px), so
+        // dropping it here computed the wrong width from the right document.
+        "font-size" => Some(LonghandId::FontSize),
+        _ => None,
+    }
+}
+
+/// Build the SVG2 presentation-hint declaration block for one SVG-namespace
+/// element, if any admitted presentation attribute parses. Hints enter the
+/// author origin below every author rule; a value that fails its property
+/// grammar is dropped exactly as an invalid CSS declaration would be.
+fn svg_presentation_hints(
+    name: &QualName,
+    attrs: &[Attribute],
+    shared_lock: &SharedRwLock,
+) -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
+    if name.ns != markup5ever::ns!(svg) {
+        return None;
+    }
+    let mut block = PropertyDeclarationBlock::new();
+    let mut source = SourcePropertyDeclaration::default();
+    let mut parsed_any = false;
+    for attr in attrs {
+        if !attr.name.ns.as_ref().is_empty() {
+            continue;
+        }
+        let Some(longhand) = admitted_svg_presentation_property(attr.name.local.as_ref()) else {
+            continue;
+        };
+        let url_data = UrlExtraData::from(Url::parse("about:blank").unwrap());
+        fn parse(
+            source: &mut SourcePropertyDeclaration,
+            longhand: LonghandId,
+            url_data: &UrlExtraData,
+            value: &str,
+        ) -> bool {
+            parse_one_declaration_into(
+                source,
+                PropertyId::NonCustom(longhand.into()),
+                value,
+                Origin::Author,
+                url_data,
+                None,
+                ParsingMode::DEFAULT,
+                StyleQuirksMode::NoQuirks,
+                CssRuleType::Style,
+            )
+            .is_ok()
+        }
+        // SVG presentation attributes take a length in *user units*, so a bare
+        // number is valid where the CSS property grammar requires a unit —
+        // Blink parses these in a dedicated SVG attribute mode for exactly this
+        // reason. Retrying a rejected bare number as `px` reproduces it, and
+        // can only ever turn a dropped declaration into the one the browser
+        // computed: a property whose grammar takes no length rejects the number
+        // either way. (`stroke-width` needs no retry — SVG's own grammar for it
+        // admits a number, and Stylo implements that.)
+        let admitted = parse(&mut source, longhand, &url_data, &attr.value)
+            || (is_bare_number(&attr.value) && {
+                source.clear();
+                parse(
+                    &mut source,
+                    longhand,
+                    &url_data,
+                    &format!("{}px", attr.value.trim()),
+                )
+            });
+        if admitted {
+            block.extend(source.drain(), Importance::Normal);
+            parsed_any = true;
+        } else {
+            source.clear();
+        }
+    }
+    parsed_any.then(|| Arc::new(shared_lock.wrap(block)))
+}
+
+/// Whether the whole value is one CSS number and nothing else — the shape an
+/// SVG presentation attribute may use for a length in user units.
+fn is_bare_number(value: &str) -> bool {
+    let trimmed = value.trim();
+    !trimmed.is_empty() && trimmed.parse::<f64>().is_ok_and(f64::is_finite)
 }
 
 fn parse_class_list(value: &str) -> Vec<AtomIdent> {

@@ -1,0 +1,754 @@
+//! The path contract: what the one SVG compiler admits for `<path>`, how the
+//! `d` grammar resolves into the resolved contract's canonical command stream,
+//! and what refuses by name.
+//!
+//! Every answer these laws pin was measured against Chromium 149, not read off
+//! SVG's BNF — the two disagree in places (a trailing dot is valid path-data
+//! grammar and Chromium rejects it), and where they disagree the browser wins.
+//! The pixel claims are Chromium-baked in `reftest_oracle.rs`; these laws pin
+//! the structure that produces them, plus the two deliberate divergences:
+//! a malformed `d` refuses the whole path instead of rendering its valid
+//! prefix, and an elliptical arc refuses instead of painting a cubic
+//! approximation of a curve Chromium draws with conics.
+
+// This binary consumes only the n0 render half of the shared plumbing.
+#[allow(dead_code)]
+mod support;
+
+use math2::transform::AffineTransform;
+use rframe::{FillRule, Geometry, PathCommand};
+use support::render_through_n0;
+use websem::{CompileError, DegradationAction, InitialViewport, SvgFrameSource};
+
+fn viewport(width: f32, height: f32) -> InitialViewport {
+    InitialViewport::new(width, height)
+}
+
+/// A 64x64 canvas around the markup under test.
+fn document(body: &str) -> String {
+    format!(
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+{body}
+</svg>"##
+    )
+}
+
+fn path_document(d: &str) -> String {
+    document(&format!(r##"  <path fill="#16a34a" d="{d}"/>"##))
+}
+
+/// Strict and best-effort agree, and nothing is declared.
+fn admit_both(source: &str) -> rframe::Frame {
+    admit(source, false)
+}
+
+/// The same, for a document carrying a `<style>` element. A stylesheet blocks
+/// the *sampling* inventory — it could declare a CSS animation — which is a
+/// policy about Sample requests, not a hole in the Base frame these laws read.
+fn admit_both_with_stylesheet(source: &str) -> rframe::Frame {
+    admit(source, true)
+}
+
+fn admit(source: &str, stylesheet: bool) -> rframe::Frame {
+    let strict =
+        SvgFrameSource::from_standalone_svg(source, viewport(64.0, 64.0)).expect("strict admits");
+    let best = SvgFrameSource::from_standalone_svg_best_effort(source, viewport(64.0, 64.0))
+        .expect("best-effort admits");
+    let declared: Vec<&websem::Degradation> = best
+        .degradations()
+        .iter()
+        .filter(|d| !(stylesheet && d.action() == DegradationAction::SamplesAsBase))
+        .collect();
+    assert!(
+        declared.is_empty(),
+        "an admitted document declares nothing: {declared:?}"
+    );
+    let frame = strict.base_frame();
+    assert_eq!(frame, best.base_frame(), "admissions are frame-identical");
+    frame
+}
+
+/// The resolved path of node `index`, asserting the path variant.
+fn path_of(frame: &rframe::Frame, index: usize) -> &rframe::PathData {
+    match &frame.nodes[index].geometry {
+        Geometry::Path(path) => path,
+        other => panic!("expected path geometry, got {other:?}"),
+    }
+}
+
+fn commands(d: &str) -> Vec<PathCommand> {
+    let frame = admit_both(&path_document(d));
+    path_of(&frame, 0).commands().to_vec()
+}
+
+/// The strict refusal for one document, or a panic if it was admitted.
+fn refusal(source: &str) -> CompileError {
+    SvgFrameSource::from_standalone_svg(source, viewport(64.0, 64.0))
+        .expect_err("must refuse")
+        .clone()
+}
+
+fn move_to(x: f32, y: f32) -> PathCommand {
+    PathCommand::MoveTo { x, y }
+}
+
+fn line_to(x: f32, y: f32) -> PathCommand {
+    PathCommand::LineTo { x, y }
+}
+
+// ─── the command stream ──────────────────────────────────────────────────
+
+#[test]
+fn a_closed_polygon_resolves_to_its_absolute_command_stream() {
+    let frame = admit_both(&path_document("M10 10 L54 10 L54 54 Z"));
+    assert_eq!(frame.nodes.len(), 1);
+    let path = path_of(&frame, 0);
+    assert_eq!(
+        path.commands(),
+        [
+            move_to(10.0, 10.0),
+            line_to(54.0, 10.0),
+            line_to(54.0, 54.0),
+            PathCommand::Close,
+        ]
+    );
+    assert_eq!(path.fill_rule(), FillRule::NonZero, "the initial fill rule");
+    assert!(path.all_contours_closed());
+    assert_eq!(
+        path.local_bounds(),
+        math2::Rectangle::from_xywh(10.0, 10.0, 44.0, 44.0),
+        "the tight extent of the geometry"
+    );
+    assert_eq!(
+        frame.nodes[0].bounds,
+        math2::rect_transform(path.local_bounds(), &frame.nodes[0].transform),
+        "the exact-bounds law holds for a path like any other geometry"
+    );
+}
+
+/// Relative commands, implicit repeats, and the `H`/`V` shorthands are
+/// spellings of the same absolute stream — the producer resolves them, and
+/// nothing downstream sees the difference.
+#[test]
+fn every_spelling_of_one_shape_resolves_to_the_same_stream() {
+    let closed = [
+        move_to(10.0, 10.0),
+        line_to(54.0, 10.0),
+        line_to(54.0, 54.0),
+        PathCommand::Close,
+    ];
+    for d in [
+        "M10 10 L54 10 L54 54 Z",
+        "m10 10 l44 0 0 44 z",
+        "M10 10 54 10 54 54 Z",
+        "M10 10L54 10 54 54Z",
+        "M10 10 H54 V54 Z",
+        "M10 10 h44 v44 z",
+        "M+10 +10 L54 10 L54 54 Z",
+        "M1e1 1e1 L54 10 L54 54 Z",
+        "  M10 10 L54 10 L54 54 Z",
+        "M10 10,L54 10,L54 54,Z",
+    ] {
+        assert_eq!(commands(d), closed, "d={d:?}");
+    }
+}
+
+/// An unclosed contour is carried as unclosed — the fill covers the same area
+/// either way (Chromium-baked twice, once for each spelling), and the
+/// difference is a stroke's, so the fact is resolved not discarded.
+#[test]
+fn an_unclosed_contour_keeps_its_open_fact_and_fills_the_same() {
+    let open = admit_both(&path_document("M10 10 L54 10 L54 54"));
+    let closed = admit_both(&path_document("M10 10 L54 10 L54 54 Z"));
+    assert!(!path_of(&open, 0).all_contours_closed());
+    assert!(path_of(&closed, 0).all_contours_closed());
+    assert_eq!(
+        render_through_n0(&open, 64, 64),
+        render_through_n0(&closed, 64, 64),
+        "a fill closes an open contour implicitly"
+    );
+}
+
+/// `S` reflects the previous cubic's second control point about the current
+/// point; after a non-cubic there is nothing to reflect, so the control point
+/// *is* the current point. Both are pinned against the explicit `C` spelling.
+#[test]
+fn a_smooth_cubic_reflects_only_a_previous_cubic() {
+    assert_eq!(
+        commands("M8 56 C8 32 20 20 32 20 S56 32 56 56 Z"),
+        commands("M8 56 C8 32 20 20 32 20 C44 20 56 32 56 56 Z"),
+        "S continues the previous cubic"
+    );
+    assert_eq!(
+        commands("M8 56 L20 30 S56 32 56 56 Z"),
+        commands("M8 56 L20 30 C20 30 56 32 56 56 Z"),
+        "after a line, S reflects about the current point"
+    );
+}
+
+#[test]
+fn a_smooth_quadratic_reflects_only_a_previous_quadratic() {
+    assert_eq!(
+        commands("M8 56 Q20 20 32 32 T56 56 Z"),
+        commands("M8 56 Q20 20 32 32 Q44 44 56 56 Z"),
+        "T continues the previous quadratic"
+    );
+    assert_eq!(
+        commands("M8 56 T56 56 Z"),
+        commands("M8 56 Q8 56 56 56 Z"),
+        "with no previous quadratic, T reflects about the current point"
+    );
+}
+
+/// SVG leaves the move implicit: after a `Z` the current point is the closed
+/// contour's start, and a drawing command there begins a new contour. The
+/// canonical stream says so explicitly.
+#[test]
+fn a_drawing_command_after_a_close_gets_its_explicit_move() {
+    assert_eq!(
+        commands("M10 10 L30 10 L30 30 Z L54 54 L10 54 Z"),
+        [
+            move_to(10.0, 10.0),
+            line_to(30.0, 10.0),
+            line_to(30.0, 30.0),
+            PathCommand::Close,
+            move_to(10.0, 10.0),
+            line_to(54.0, 54.0),
+            line_to(10.0, 54.0),
+            PathCommand::Close,
+        ]
+    );
+}
+
+/// Three shapes SVG allows and the canonical form does not: a redundant `Z`,
+/// a contour that only moves, and an implicit move after a close. Each was
+/// measured pixel-neutral in Chromium *on anti-aliased geometry* before being
+/// normalized away — integer axis-aligned edges hide this class of difference,
+/// as the law below shows.
+#[test]
+fn normalization_drops_only_what_paints_nothing() {
+    let normalized = [
+        move_to(10.0, 10.0),
+        line_to(54.0, 10.0),
+        line_to(54.0, 54.0),
+        PathCommand::Close,
+    ];
+    for d in [
+        "M10 10 L54 10 L54 54 ZZ",
+        "M10 10 L54 10 L54 54 Z Z",
+        "M10 10 L54 10 L54 54 Z M2 2",
+        "M10 10 L54 10 L54 54 z m0 0",
+        "M2 2 M10 10 L54 10 L54 54 Z",
+    ] {
+        assert_eq!(commands(d), normalized, "d={d:?}");
+    }
+}
+
+/// **`M x y Z` is not a contour that draws nothing.** It is a zero-length
+/// *closed* contour, and dropping it is measurably wrong twice over: it strokes
+/// as a cap-shaped dot, and it changes how the rest of the path is *filled* —
+/// an extra contour is an extra contour to the scan converter. Measured in
+/// Chromium on anti-aliased geometry, dropping it moves 96 pixels of the
+/// surviving triangle; the same document rendered with the contour spelled as
+/// an explicit zero-length segment is **byte-identical** to the authored form.
+/// So the producer resolves it into that spelling instead of discarding it.
+///
+/// The earlier claim that all three normalizations were "measured" held only
+/// for the integer axis-aligned coordinates the laws sampled — which is exactly
+/// why the corpus cell for this one (`svg-path-closed-move-only-contour.svg`)
+/// uses fractional coordinates.
+#[test]
+fn a_closed_move_only_contour_is_a_zero_length_contour_not_nothing() {
+    assert_eq!(
+        commands("M2 2 Z M10 10 L54 10 L54 54 Z"),
+        [
+            move_to(2.0, 2.0),
+            line_to(2.0, 2.0),
+            PathCommand::Close,
+            move_to(10.0, 10.0),
+            line_to(54.0, 10.0),
+            line_to(54.0, 54.0),
+            PathCommand::Close,
+        ]
+    );
+    // Alone, it is the whole path — a node, not an absence.
+    let frame = admit_both(&path_document("M20 20 Z"));
+    assert_eq!(frame.nodes.len(), 1);
+    let path = path_of(&frame, 0);
+    assert_eq!(
+        path.commands(),
+        [move_to(20.0, 20.0), line_to(20.0, 20.0), PathCommand::Close,]
+    );
+    assert!(path.all_contours_closed());
+    assert_eq!(
+        path.local_bounds(),
+        math2::Rectangle::from_xywh(20.0, 20.0, 0.0, 0.0),
+        "zero extent: it has no fill area, only stroke geometry"
+    );
+    // A second `Z`, closing nothing, really is inert (measured) — so the two
+    // cases never trade places.
+    assert_eq!(commands("M20 20 Z Z"), commands("M20 20 Z"));
+    // After the close, the current point is the subpath start, so a following
+    // command continues from there and not from the origin.
+    assert_eq!(
+        commands("M20 20 Z L30 30"),
+        [
+            move_to(20.0, 20.0),
+            line_to(20.0, 20.0),
+            PathCommand::Close,
+            move_to(20.0, 20.0),
+            line_to(30.0, 30.0),
+        ]
+    );
+}
+
+/// A zero-length contour *does* draw — it is a segment, not a bare move — so
+/// normalization keeps it. Its fill covers nothing, which is what Chromium
+/// paints; a stroke with a round cap would paint a dot, which is why the fact
+/// must survive.
+#[test]
+fn a_zero_length_segment_is_not_normalized_away() {
+    assert_eq!(
+        commands("M10 10 L10 10 Z"),
+        [move_to(10.0, 10.0), line_to(10.0, 10.0), PathCommand::Close,]
+    );
+}
+
+/// A `d` that draws nothing resolves to no node at all: the element is
+/// admitted (it is not a hole — Chromium paints nothing for it either), and
+/// there is no visual fact to carry.
+#[test]
+fn a_path_that_draws_nothing_resolves_to_no_node() {
+    for body in [
+        r##"  <path fill="#16a34a" d=""/>"##,
+        r##"  <path fill="#16a34a" d="   "/>"##,
+        r##"  <path fill="#16a34a"/>"##,
+        r##"  <path fill="#16a34a" d="M20 20"/>"##,
+        r##"  <path fill="#16a34a" d="M20 20 M30 30"/>"##,
+    ] {
+        let frame = admit_both(&document(body));
+        assert!(frame.nodes.is_empty(), "body={body:?}");
+    }
+}
+
+// ─── the fill rule ───────────────────────────────────────────────────────
+
+/// `fill-rule` is read as a typed computed value, so every CSS ingress and
+/// SVG2's precedence come from the one cascade: the presentation attribute,
+/// inheritance through a container, an author rule, ASCII-case-insensitive
+/// keywords, and an invalid value falling back to the initial `nonzero`.
+#[test]
+fn the_fill_rule_comes_from_the_one_cascade() {
+    let star = "M32 8 L44 50 L8 22 L56 22 L20 50 Z";
+    for (body, expected) in [
+        (
+            format!(r##"  <path fill="#16a34a" d="{star}"/>"##),
+            FillRule::NonZero,
+        ),
+        (
+            format!(r##"  <path fill="#16a34a" fill-rule="evenodd" d="{star}"/>"##),
+            FillRule::EvenOdd,
+        ),
+        (
+            format!(r##"  <path fill="#16a34a" fill-rule="EVENODD" d="{star}"/>"##),
+            FillRule::EvenOdd,
+        ),
+        (
+            format!(r##"  <path fill="#16a34a" fill-rule="qqq" d="{star}"/>"##),
+            FillRule::NonZero,
+        ),
+        (
+            format!(r##"  <g fill-rule="evenodd"><path fill="#16a34a" d="{star}"/></g>"##),
+            FillRule::EvenOdd,
+        ),
+        (
+            format!(
+                r##"  <style>path {{ fill-rule: evenodd }}</style>
+  <path fill="#16a34a" d="{star}"/>"##
+            ),
+            FillRule::EvenOdd,
+        ),
+        (
+            format!(
+                r##"  <style>path {{ fill-rule: nonzero }}</style>
+  <path fill="#16a34a" fill-rule="evenodd" d="{star}"/>"##
+            ),
+            FillRule::NonZero,
+        ),
+    ] {
+        let source = document(body.as_str());
+        let frame = if body.contains("<style>") {
+            admit_both_with_stylesheet(source.as_str())
+        } else {
+            admit_both(source.as_str())
+        };
+        assert_eq!(path_of(&frame, 0).fill_rule(), expected, "body={body}");
+    }
+}
+
+/// The two rules paint differently, so the resolved value is load-bearing:
+/// the star's core is filled under `nonzero` and hollow under `evenodd`.
+#[test]
+fn the_fill_rule_decides_the_interior() {
+    let star = "M32 8 L44 50 L8 22 L56 22 L20 50 Z";
+    let nonzero = admit_both(&path_document(star));
+    let evenodd = admit_both(&document(&format!(
+        r##"  <path fill="#16a34a" fill-rule="evenodd" d="{star}"/>"##
+    )));
+    let at = |pixels: &[u8], x: usize, y: usize| -> [u8; 4] {
+        let offset = (y * 64 + x) * 4;
+        pixels[offset..offset + 4].try_into().expect("pixel")
+    };
+    let nonzero = render_through_n0(&nonzero, 64, 64);
+    let evenodd = render_through_n0(&evenodd, 64, 64);
+    assert_eq!(at(&nonzero, 32, 30), [0x16, 0xa3, 0x4a, 255], "core filled");
+    assert_eq!(at(&evenodd, 32, 30), [0, 0, 0, 0], "core hollow");
+    assert_eq!(
+        at(&nonzero, 32, 15),
+        at(&evenodd, 32, 15),
+        "a single-wound point is filled by both rules"
+    );
+}
+
+// ─── the grammar's refusals ──────────────────────────────────────────────
+
+/// The path-data number grammar, measured. SVG's BNF allows a trailing dot
+/// (`digit-sequence "."`); Chromium's parser requires a digit after the dot
+/// and renders nothing for `M10. 10 …`, so this slice refuses it rather than
+/// parse a number the browser never sees.
+#[test]
+fn the_number_grammar_is_chromiums_not_the_bnfs() {
+    for d in [
+        "M10. 10 L54 10 L54 54 Z",
+        "M10 10 L54. 10 L54 54 Z",
+        "M. 10 L54 10 L54 54 Z",
+        "M1e 10 L54 10 L54 54 Z",
+        "M10 10 L1e40 10 L54 54 Z",
+    ] {
+        assert!(
+            matches!(refusal(&path_document(d)), CompileError::BadPathData { .. }),
+            "d={d:?} must refuse as malformed path data"
+        );
+    }
+    // A finite huge number is not an overflow.
+    admit_both(&path_document("M10 10 L1e30 10 L54 54 Z"));
+}
+
+/// A number consumes trailing whitespace and **at most one** comma. That one
+/// rule reproduces every measured case, and the asymmetry is real: a comma
+/// before a command letter parses (the preceding number ate it), while a comma
+/// right after a command letter, a doubled comma, and a leading comma are all
+/// errors Chromium reports by painting nothing.
+#[test]
+fn the_separator_grammar_admits_exactly_one_comma() {
+    admit_both(&path_document("M10 10 L54 10, 54 54 Z"));
+    admit_both(&path_document("M10 10,L54 10 L54 54 Z"));
+    for d in [
+        "M,10 10 L54 10 L54 54 Z",
+        "M10,,10 L54 10 L54 54 Z",
+        ",M10 10 L54 10 L54 54 Z",
+    ] {
+        assert!(
+            matches!(refusal(&path_document(d)), CompileError::BadPathData { .. }),
+            "d={d:?}"
+        );
+    }
+}
+
+/// Only the five ASCII whitespace characters separate path-data tokens. A
+/// value padded with U+00A0 is invalid to Chromium, which paints nothing.
+#[test]
+fn non_ascii_whitespace_is_not_a_separator() {
+    assert!(matches!(
+        refusal(&path_document("M10\u{00a0}10 L54 10 L54 54 Z")),
+        CompileError::BadPathData { .. }
+    ));
+}
+
+/// **The deliberate divergence.** Chromium renders an erroneous path's valid
+/// prefix and drops the rest (SVG2 §9.3.9). This slice refuses the whole path,
+/// naming the byte offset and quoting the text there — one declared hole
+/// instead of an unbaked partial geometry. Where the prefix is empty the two
+/// agree exactly, because both paint nothing.
+#[test]
+fn a_malformed_d_refuses_the_whole_path_at_its_offset() {
+    let source = path_document("M10 10 L54 10 L54 54 Z M2 2 Lqqq");
+    let CompileError::BadPathData {
+        element,
+        offset,
+        excerpt,
+    } = refusal(&source)
+    else {
+        panic!("expected malformed path data");
+    };
+    assert_eq!(element, "path");
+    assert_eq!(offset, 29, "the offset is where the value stopped parsing");
+    assert_eq!(excerpt, "qqq", "the excerpt quotes the authored text there");
+
+    // Best-effort declares that one hole and renders the rest of the document.
+    let best =
+        SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
+            .expect("best-effort");
+    assert_eq!(best.degradations().len(), 1);
+    assert_eq!(best.degradations()[0].path(), "svg/path[1]");
+    assert_eq!(best.degradations()[0].action(), DegradationAction::Skipped);
+    assert!(
+        best.degradations()[0]
+            .reason()
+            .starts_with("path data on <path> is invalid at byte 29"),
+        "the reason names the offset: {}",
+        best.degradations()[0].reason()
+    );
+    assert!(best.base_frame().nodes.is_empty());
+}
+
+/// Path data must begin with a moveto. Chromium's valid prefix is empty in
+/// that case, so it paints nothing — the refusal here costs no pixels.
+#[test]
+fn path_data_must_begin_with_a_moveto() {
+    assert!(matches!(
+        refusal(&path_document("L10 10 L54 54 Z")),
+        CompileError::BadPathData { offset: 0, .. }
+    ));
+}
+
+/// **The second deliberate divergence.** An arc's grammar parses and then
+/// refuses by name: Chromium rasterizes an arc through the same rational
+/// conics as an `<ellipse>` (measured byte-identical over the rows they
+/// share), and following Blink's cubic *normalizer* instead produces a
+/// visibly different curve — 77 pixels at up to a 170-per-channel delta, in
+/// Chromium's own renderer. The contract carries no conic command yet.
+#[test]
+fn an_elliptical_arc_refuses_by_name_in_both_admissions() {
+    for (d, command) in [
+        ("M8 28 A24 20 0 0 1 56 28 Z", 'A'),
+        ("M8 28 a24 20 0 0 1 48 0 Z", 'a'),
+    ] {
+        let source = path_document(d);
+        let error = refusal(&source);
+        assert_eq!(
+            error,
+            CompileError::UnsupportedPathCommand {
+                element: "path".to_string(),
+                command,
+            }
+        );
+        assert!(
+            error.to_string().contains("conics"),
+            "the reason says why: {error}"
+        );
+        let best =
+            SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
+                .expect("best-effort declares it");
+        assert_eq!(best.degradations().len(), 1);
+        assert_eq!(best.degradations()[0].path(), "svg/path[1]");
+        assert!(best.base_frame().nodes.is_empty(), "no guessed curve");
+    }
+    // A *malformed* arc is malformed, not unsupported: the whole argument list
+    // is parsed before the refusal, so the two never trade places.
+    assert!(matches!(
+        refusal(&path_document("M8 28 A24 20 0 2 1 56 28 Z")),
+        CompileError::BadPathData { .. }
+    ));
+}
+
+// ─── the patrols around `<path>` ─────────────────────────────────────────
+
+/// Chromium honors a stylesheet's `d: path(…)` in place of the attribute
+/// (measured), and the pinned Stylo build drops the declaration entirely —
+/// so it would silently paint the attribute's geometry, or nothing, where the
+/// browser paints the sheet's. A sheet is document-level; a `style` attribute
+/// is the element's own hole.
+#[test]
+fn the_css_d_property_is_declared_never_silently_dropped() {
+    let sheet = document(
+        r##"  <style>path { d: path("M10 10 L54 10 L54 54 Z") }</style>
+  <path fill="#16a34a"/>"##,
+    );
+    assert!(matches!(
+        refusal(&sheet),
+        CompileError::UnsupportedStyle(reason) if reason.contains("declares d")
+    ));
+    let best =
+        SvgFrameSource::from_standalone_svg_best_effort(sheet.as_str(), viewport(64.0, 64.0))
+            .expect("best-effort declares the sheet");
+    assert_eq!(
+        best.degradations()[0].action(),
+        DegradationAction::DeclarationIgnored
+    );
+
+    let inline =
+        document(r##"  <path fill="#16a34a" style="d: path('M10 10 L54 10 L54 54 Z')"/>"##);
+    assert!(matches!(
+        refusal(&inline),
+        CompileError::UnsupportedStyle(reason) if reason.contains("<path> declares d")
+    ));
+}
+
+/// `pathLength` and the marker properties are both refused by name on
+/// `<path>`, for opposite reasons.
+///
+/// `pathLength` is **inert today**: everything that reads it (dashing, markers,
+/// text on a path) already refuses, so its patrol is pure over-refusal, kept
+/// only so the dashing rung cannot silently inherit a gap.
+///
+/// `marker-start`/`-mid`/`-end` are **load-bearing now**: nothing else "reads"
+/// a marker property — the property *is* the paint trigger, so this refusal is
+/// what keeps Chromium's arrowhead from becoming a silent hole.
+#[test]
+fn pathlength_over_refuses_while_the_marker_patrol_is_load_bearing() {
+    for attr in [
+        r##"pathLength="100""##,
+        r##"marker-start="url(#a)""##,
+        r##"marker-mid="url(#a)""##,
+        r##"marker-end="url(#a)""##,
+    ] {
+        let source = document(&format!(
+            r##"  <path fill="#16a34a" {attr} d="M10 10 L54 10 L54 54 Z"/>"##
+        ));
+        let error = refusal(&source);
+        assert!(
+            matches!(error, CompileError::UnsupportedAttribute { ref element, .. } if element == "path"),
+            "{attr} must refuse by name; got {error}"
+        );
+    }
+}
+
+/// A path's own `transform` composes inside its inherited mapping exactly as
+/// any other shape's does, and the geometry stays in the authored user space.
+#[test]
+fn a_path_transform_composes_like_any_other_shape() {
+    let frame = admit_both(&document(
+        r##"  <g transform="scale(2)">
+    <path transform="translate(1,1)" fill="#16a34a" d="M5 5 L27 5 L27 27 Z"/>
+  </g>"##,
+    ));
+    assert_eq!(
+        frame.nodes[0].transform,
+        AffineTransform::from_acebdf(2.0, 0.0, 2.0, 0.0, 2.0, 2.0)
+    );
+    assert_eq!(
+        path_of(&frame, 0).commands()[0],
+        move_to(5.0, 5.0),
+        "the transform never enters the resolved geometry"
+    );
+    assert_eq!(
+        frame.nodes[0].bounds,
+        math2::rect_transform(path_of(&frame, 0).local_bounds(), &frame.nodes[0].transform),
+        "the exact-bounds law survives composition"
+    );
+}
+
+/// Curve extrema are solved, not approximated by the control hull: a control
+/// point lies outside its own curve, so a hull bound would claim ink where
+/// there is none and break the exact-bounds law's meaning.
+#[test]
+fn curve_bounds_are_the_solved_extent() {
+    let frame = admit_both(&path_document("M0 0 C0 100 100 100 100 0"));
+    assert_eq!(
+        path_of(&frame, 0).local_bounds(),
+        math2::Rectangle::from_xywh(0.0, 0.0, 100.0, 75.0),
+        "the cubic's apex is at three quarters of the control height"
+    );
+    let frame = admit_both(&path_document("M0 0 Q50 100 100 0"));
+    assert_eq!(
+        path_of(&frame, 0).local_bounds(),
+        math2::Rectangle::from_xywh(0.0, 0.0, 100.0, 50.0),
+        "the quadratic's apex is at half the control height"
+    );
+}
+
+// ─── the CSS patrol's ingresses ──────────────────────────────────────────
+
+/// Every measured way a stylesheet can change Chromium's pixels through a
+/// property this cascade cannot represent. Each case below was verified in
+/// Chromium 149 to actually paint differently from the unstyled document, and
+/// each must be *declared* — the text scan is not a CSS tokenizer, and every
+/// rule in it exists because one of these leaked.
+#[test]
+fn every_measured_css_ingress_is_declared() {
+    let triangle = r##"  <path fill="#16a34a" d="M10 10 L54 10 L54 54 Z"/>"##;
+    for (css, what) in [
+        // The shorthand that names none of its longhands: Chromium resets `d`
+        // and paints nothing at all.
+        ("all: initial", "the all shorthand"),
+        ("all: unset", "the all shorthand, unset"),
+        // Vendor aliases of names already on the list — a one-character bypass.
+        (
+            "-webkit-clip-path: circle(10px at 20px 20px)",
+            "a -webkit- clip",
+        ),
+        (
+            "-webkit-transform: translate(20px,20px)",
+            "a -webkit- transform",
+        ),
+        ("-webkit-filter: blur(3px)", "a -webkit- filter"),
+        // CSS motion path moves the shape off its authored position.
+        (
+            "offset-path: path(\"M0 0 L30 30\"); offset-distance: 100%",
+            "motion path",
+        ),
+        ("offset: path(\"M0 0 L30 30\") 100%", "the offset shorthand"),
+        // A comment adjacent to the property name keeps the declaration valid
+        // for Chromium's tokenizer while splitting the scanned text.
+        (
+            "d/**/: path(\"M2 2 L20 2 L20 20 Z\")",
+            "a comment before the colon",
+        ),
+        (
+            "/**/d: path(\"M2 2 L20 2 L20 20 Z\")",
+            "a comment before the name",
+        ),
+        // An ident escape spells the name without spelling it.
+        ("\\000064: path(\"M2 2 L20 2 L20 20 Z\")", "an ident escape"),
+    ] {
+        let sheet = document(&format!("  <style>path {{ {css} }}</style>\n{triangle}"));
+        assert!(
+            matches!(refusal(&sheet), CompileError::UnsupportedStyle(_)),
+            "{what} must be declared, not silently dropped: {css}"
+        );
+        // The same declaration inside an XML attribute: CSS strings take
+        // single quotes, which is what keeps the attribute well-formed.
+        let inline = document(&format!(
+            r##"  <path fill="#16a34a" style="{}" d="M10 10 L54 10 L54 54 Z"/>"##,
+            css.replace('"', "'")
+        ));
+        assert!(
+            matches!(refusal(&inline), CompileError::UnsupportedStyle(_)),
+            "{what} must be declared through the style attribute too: {css}"
+        );
+    }
+}
+
+/// A `<style>` element's CSS is patrolled as the **concatenation** of its text
+/// children, which is what the cascade compiles and what a browser's
+/// `textContent` yields. A comment node between two text nodes otherwise splits
+/// a declaration so that neither fragment names a listed property, while the
+/// sheet Chromium sees is perfectly valid (measured: it paints the CSS `d`).
+#[test]
+fn a_stylesheet_split_across_text_nodes_is_patrolled_as_one_sheet() {
+    let split = document(
+        r##"  <style>path{d:pa<!---->th("M2 2 L20 2 L20 20 Z")}</style>
+  <path fill="#16a34a" d="M10 10 L54 10 L54 54 Z"/>"##,
+    );
+    assert!(
+        matches!(refusal(&split), CompileError::UnsupportedStyle(reason) if reason.contains("declares d")),
+        "the sheet in force is what must be patrolled"
+    );
+}
+
+/// A property the cascade *does* represent and this compiler consumes is not
+/// swept up by the patrol: the scan must not over-refuse the two properties the
+/// slice actually reads, nor an unrelated one it can ignore safely.
+#[test]
+fn the_patrol_leaves_consumed_and_harmless_properties_alone() {
+    let star = "M32 8 L44 50 L8 22 L56 22 L20 50 Z";
+    admit_both_with_stylesheet(&document(&format!(
+        r##"  <style>path {{ fill: #16a34a; fill-rule: evenodd }}</style>
+  <path d="{star}"/>"##
+    )));
+    admit_both_with_stylesheet(&document(&format!(
+        r##"  <style>/* a comment naming nothing */ path {{ fill: #16a34a }}</style>
+  <path d="{star}"/>"##
+    )));
+}

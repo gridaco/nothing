@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How the CSS cascade actually resolves a color — Overpaint</title>
+<style>
+  :root{
+    --bg:#fbfaf8;
+    --surface:#ffffff;
+    --ink:#161418;
+    --ink-soft:#4a4650;
+    --ink-faint:#78727e;
+    --line:#e8e4ec;
+    --line-strong:#d8d2df;
+    --brand:#5b3df5;
+    --brand-ink:#2f1fa8;
+    --accent:#ff5a7a;
+    --amber:#f5a623;
+    --teal:#12b3a6;
+    --code-bg:#1c1830;
+    --code-ink:#e7e2ff;
+    --radius:14px;
+    --shadow-sm:0 1px 2px rgba(22,20,24,.06),0 2px 8px rgba(22,20,24,.05);
+    --shadow-md:0 6px 22px rgba(43,32,88,.10),0 2px 6px rgba(43,32,88,.06);
+    --maxw:1120px;
+    --readw:720px;
+    --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    font-family:var(--sans);
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 520px at 88% -8%,rgba(91,61,245,.08),transparent 60%),
+      radial-gradient(900px 460px at -6% 4%,rgba(255,90,122,.07),transparent 55%),
+      var(--bg);
+    line-height:1.65;
+    font-size:17px;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--brand-ink);text-decoration:none}
+  a:hover{text-decoration:underline}
+  img{max-width:100%;display:block}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+  /* ---------- Header ---------- */
+  .site-header{
+    position:sticky;top:0;z-index:20;
+    background:rgba(251,250,248,.82);
+    backdrop-filter:saturate(160%) blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .site-header .bar{
+    display:flex;align-items:center;gap:28px;
+    height:66px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em;font-size:19px;color:var(--ink)}
+  .brand:hover{text-decoration:none}
+  .brand svg{display:block}
+  nav.primary{display:flex;gap:26px;margin-left:8px}
+  nav.primary a{color:var(--ink-soft);font-weight:560;font-size:15px}
+  nav.primary a:hover{color:var(--ink);text-decoration:none}
+  .header-spacer{flex:1}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    font-weight:650;font-size:14.5px;
+    padding:9px 16px;border-radius:999px;border:1px solid transparent;cursor:pointer;
+  }
+  .btn-primary{background:var(--brand);color:#fff;box-shadow:0 4px 14px rgba(91,61,245,.32)}
+  .btn-primary:hover{background:#4a2fe0;text-decoration:none}
+  .btn-ghost{color:var(--ink-soft);border-color:var(--line-strong);background:var(--surface)}
+  .btn-ghost:hover{color:var(--ink);text-decoration:none}
+  @media(max-width:820px){nav.primary{display:none}}
+
+  /* ---------- Hero ---------- */
+  .hero{padding:56px 0 8px}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    text-transform:uppercase;letter-spacing:.13em;font-size:12.5px;font-weight:800;
+    color:var(--brand-ink);
+  }
+  .kicker .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+  h1.headline{
+    font-family:var(--serif);
+    font-size:clamp(2.1rem,5.2vw,3.6rem);
+    line-height:1.06;letter-spacing:-.02em;
+    margin:.5em 0 .35em;max-width:14ch;font-weight:700;
+  }
+  .dek{font-size:1.22rem;color:var(--ink-soft);max-width:60ch;margin:0 0 26px;line-height:1.5}
+  .byline{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .byline .avatar{flex:none}
+  .byline .who{font-weight:680;color:var(--ink)}
+  .byline .meta{color:var(--ink-faint);font-size:14.5px}
+  .byline .sep{color:var(--line-strong);margin:0 2px}
+
+  figure.hero-fig{margin:34px 0 0}
+  figure.hero-fig .frame{
+    border-radius:20px;overflow:hidden;border:1px solid var(--line);
+    box-shadow:var(--shadow-md);background:#0f0b1e;
+  }
+  figure.hero-fig svg{display:block;width:100%;height:auto}
+  figcaption{color:var(--ink-faint);font-size:13.5px;margin-top:12px;padding-left:2px}
+  figcaption b{color:var(--ink-soft);font-weight:650}
+
+  /* ---------- Article body ---------- */
+  main{padding:14px 0 40px}
+  .article-body{max-width:var(--readw);margin:0 auto}
+  .article-body p{margin:0 0 1.25em;font-family:var(--serif);font-size:1.18rem;line-height:1.72}
+  .article-body .lead:first-letter{
+    font-family:var(--serif);float:left;font-size:3.9rem;line-height:.78;
+    padding:6px 12px 0 0;color:var(--brand);font-weight:700;
+  }
+  .article-body h2{
+    font-family:var(--sans);font-size:1.72rem;letter-spacing:-.015em;
+    margin:2em 0 .5em;line-height:1.2;font-weight:750;
+  }
+  .article-body h3{font-size:1.24rem;margin:1.6em 0 .4em;font-weight:700;letter-spacing:-.01em}
+  .article-body ul{margin:0 0 1.4em;padding-left:0;list-style:none}
+  .article-body ul li{
+    position:relative;padding-left:30px;margin:.55em 0;
+    font-family:var(--serif);font-size:1.12rem;line-height:1.6;color:var(--ink-soft);
+  }
+  .article-body ul li::before{
+    content:"";position:absolute;left:4px;top:.62em;
+    width:9px;height:9px;border-radius:2px;transform:rotate(45deg);
+    background:linear-gradient(135deg,var(--brand),var(--accent));
+  }
+  .article-body ul li b{color:var(--ink)}
+
+  blockquote{
+    margin:1.8em 0;padding:6px 0 6px 26px;
+    border-left:4px solid var(--brand);
+    font-family:var(--serif);font-style:italic;
+    font-size:1.5rem;line-height:1.35;color:var(--ink);letter-spacing:-.01em;
+  }
+  blockquote cite{display:block;font-style:normal;font-family:var(--sans);font-size:.9rem;color:var(--ink-faint);margin-top:12px;letter-spacing:0}
+
+  figure.inline{margin:2em 0}
+  figure.inline .frame{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow-sm);padding:22px}
+  figure.inline svg{display:block;width:100%;height:auto}
+
+  pre{
+    margin:1.6em 0;background:var(--code-bg);color:var(--code-ink);
+    border-radius:var(--radius);padding:20px 22px;overflow-x:auto;
+    font-family:var(--mono);font-size:14px;line-height:1.7;
+    box-shadow:var(--shadow-md);border:1px solid rgba(255,255,255,.06);
+  }
+  pre code{font-family:inherit}
+  .tok-sel{color:#ffd479}
+  .tok-prop{color:#8ad2ff}
+  .tok-val{color:#c3f584}
+  .tok-com{color:#8b84a8;font-style:italic}
+  .tok-imp{color:#ff8fab;font-weight:700}
+  p code,li code{
+    font-family:var(--mono);font-size:.86em;
+    background:#efeafc;color:var(--brand-ink);
+    padding:1.5px 6px;border-radius:6px;border:1px solid #e2daf9;
+  }
+  .callout{
+    margin:1.8em 0;border:1px solid var(--line-strong);border-radius:var(--radius);
+    background:linear-gradient(180deg,#fff,#fbf8ff);
+    padding:18px 20px;display:flex;gap:14px;align-items:flex-start;box-shadow:var(--shadow-sm);
+  }
+  .callout .ico{flex:none;margin-top:2px}
+  .callout p{font-family:var(--sans);font-size:1rem;margin:0;color:var(--ink-soft);line-height:1.55}
+  .callout p b{color:var(--ink)}
+
+  /* ---------- Author bio ---------- */
+  .bio{
+    max-width:var(--readw);margin:44px auto 0;
+    display:flex;gap:20px;align-items:flex-start;
+    border:1px solid var(--line);border-radius:18px;background:var(--surface);
+    padding:24px;box-shadow:var(--shadow-sm);
+  }
+  .bio .avatar{flex:none}
+  .bio h4{margin:0 0 2px;font-size:1.12rem;letter-spacing:-.01em}
+  .bio .role{color:var(--brand-ink);font-weight:650;font-size:13px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+  .bio p{margin:0 0 12px;color:var(--ink-soft);font-size:1rem;line-height:1.55}
+  .bio .links{display:flex;gap:16px;font-size:14px;font-weight:600}
+
+  /* ---------- Related ---------- */
+  .related{border-top:1px solid var(--line);margin-top:56px;padding:44px 0 8px}
+  .related h2.section-title{font-size:1.4rem;letter-spacing:-.01em;margin:0 0 22px;font-weight:750}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .card{
+    display:flex;flex-direction:column;
+    border:1px solid var(--line);border-radius:16px;overflow:hidden;
+    background:var(--surface);box-shadow:var(--shadow-sm);
+    transition:transform .18s ease,box-shadow .18s ease;
+  }
+  .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+  .card .thumb{aspect-ratio:16/10;overflow:hidden}
+  .card .thumb svg{width:100%;height:100%;display:block}
+  .card .body{padding:16px 18px 20px}
+  .card .cat{font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--brand-ink)}
+  .card h3{margin:8px 0 6px;font-size:1.12rem;line-height:1.25;letter-spacing:-.01em}
+  .card h3 a{color:var(--ink)}
+  .card p{margin:0;color:var(--ink-faint);font-size:14.5px;line-height:1.5}
+  @media(max-width:800px){.cards{grid-template-columns:1fr}}
+
+  /* ---------- Footer ---------- */
+  footer.site-footer{
+    margin-top:60px;border-top:1px solid var(--line);
+    background:linear-gradient(180deg,#fbfaf8,#f3eff8);
+  }
+  .foot-grid{
+    display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:32px;
+    padding:52px 0 34px;
+  }
+  .foot-brand .brand{margin-bottom:12px}
+  .foot-brand p{color:var(--ink-faint);font-size:14.5px;max-width:34ch;margin:0 0 16px}
+  .social{display:flex;gap:10px}
+  .social a{
+    width:36px;height:36px;border-radius:50%;border:1px solid var(--line-strong);
+    display:inline-flex;align-items:center;justify-content:center;color:var(--ink-soft);background:var(--surface);
+  }
+  .social a:hover{color:var(--brand);border-color:var(--brand)}
+  .foot-col h5{font-size:12.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);margin:0 0 14px;font-weight:800}
+  .foot-col ul{list-style:none;margin:0;padding:0}
+  .foot-col li{margin:9px 0}
+  .foot-col a{color:var(--ink-soft);font-size:14.5px}
+  .foot-col a:hover{color:var(--ink)}
+  .foot-bottom{
+    border-top:1px solid var(--line);padding:20px 0;
+    display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;
+    color:var(--ink-faint);font-size:13.5px;
+  }
+  .foot-bottom .legal{display:flex;gap:20px;flex-wrap:wrap}
+  @media(max-width:800px){.foot-grid{grid-template-columns:1fr 1fr;gap:28px}}
+  @media(max-width:520px){.foot-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap bar">
+    <a class="brand" href="#" aria-label="Overpaint home">
+      <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect x="1.5" y="1.5" width="29" height="29" rx="8" fill="#5b3df5"/>
+        <path d="M9 22V10.5C9 9.7 9.7 9 10.5 9H17c3 0 5 1.9 5 4.6 0 2.7-2 4.6-5 4.6h-4.2V22" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="23.5" cy="9.5" r="2.4" fill="#ff5a7a"/>
+      </svg>
+      Overpaint
+    </a>
+    <nav class="primary" aria-label="Primary">
+      <a href="#">Engineering</a>
+      <a href="#">Design</a>
+      <a href="#">Deep Dives</a>
+      <a href="#">Changelog</a>
+    </nav>
+    <div class="header-spacer"></div>
+    <a class="btn btn-ghost" href="#">Sign in</a>
+    <a class="btn btn-primary" href="#">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+      Subscribe
+    </a>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="hero">
+    <span class="kicker"><span class="dot"></span>Browser Internals</span>
+    <h1 class="headline">How the CSS cascade actually resolves a color</h1>
+    <p class="dek">You wrote <code>color: teal</code> in six places. The pixel is one color. Here is the exact machinery — origin, specificity, order, inheritance, and computed values — that picks the winner.</p>
+
+    <div class="byline">
+      <span class="avatar">
+        <svg width="46" height="46" viewBox="0 0 46 46" aria-hidden="true">
+          <defs><linearGradient id="av1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b3df5"/><stop offset="1" stop-color="#ff5a7a"/></linearGradient></defs>
+          <circle cx="23" cy="23" r="23" fill="url(#av1)"/>
+          <circle cx="23" cy="18" r="7.5" fill="#fff" opacity=".95"/>
+          <path d="M9 40c2.6-8 7.8-12 14-12s11.4 4 14 12" fill="#fff" opacity=".95"/>
+        </svg>
+      </span>
+      <span class="who">Mara Delacroix</span>
+      <span class="sep">•</span>
+      <span class="meta">July 22, 2026</span>
+      <span class="sep">•</span>
+      <span class="meta">11 min read</span>
+    </div>
+
+    <figure class="hero-fig">
+      <div class="frame">
+        <svg viewBox="0 0 1120 470" role="img" aria-label="Illustration of competing CSS declarations flowing into a single resolved pixel">
+          <defs>
+            <linearGradient id="hg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#171033"/>
+              <stop offset="1" stop-color="#2a1358"/>
+            </linearGradient>
+            <linearGradient id="pipe" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#5b3df5"/>
+              <stop offset="1" stop-color="#12b3a6"/>
+            </linearGradient>
+            <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+              <stop offset="0" stop-color="#12b3a6" stop-opacity=".9"/>
+              <stop offset="1" stop-color="#12b3a6" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <rect width="1120" height="470" fill="url(#hg)"/>
+          <g opacity=".14" stroke="#8f7bff" stroke-width="1">
+            <path d="M0 60H1120M0 140H1120M0 220H1120M0 300H1120M0 380H1120"/>
+          </g>
+
+          <!-- competing declaration chips on the left -->
+          <g font-family="ui-monospace,Menlo,monospace" font-size="15">
+            <g transform="translate(60,70)">
+              <rect width="240" height="42" rx="9" fill="#241a4d" stroke="#4b3a86"/>
+              <text x="16" y="26" fill="#c9bcff">a { color: <tspan fill="#8ad2ff">blue</tspan> }</text>
+            </g>
+            <g transform="translate(60,130)">
+              <rect width="240" height="42" rx="9" fill="#241a4d" stroke="#4b3a86"/>
+              <text x="16" y="26" fill="#c9bcff">.link { color: <tspan fill="#ffd479">gray</tspan> }</text>
+            </g>
+            <g transform="translate(60,190)">
+              <rect width="240" height="42" rx="9" fill="#2a1f57" stroke="#6a52c9"/>
+              <text x="14" y="26" fill="#c9bcff">#hero a { <tspan fill="#c3f584">teal</tspan> }</text>
+            </g>
+            <g transform="translate(60,250)">
+              <rect width="240" height="42" rx="9" fill="#241a4d" stroke="#4b3a86"/>
+              <text x="16" y="26" fill="#c9bcff">* { color: <tspan fill="#ff8fab">red</tspan> }</text>
+            </g>
+            <g transform="translate(60,310)">
+              <rect width="240" height="42" rx="9" fill="#241a4d" stroke="#4b3a86"/>
+              <text x="14" y="26" fill="#7d76a8">/* inherited */</text>
+            </g>
+          </g>
+
+          <!-- funnel pipes -->
+          <g fill="none" stroke="url(#pipe)" stroke-width="3" opacity=".85">
+            <path d="M300 91C470 91 470 235 610 235"/>
+            <path d="M300 151C470 151 470 235 610 235"/>
+            <path d="M300 211C480 211 480 235 610 235"/>
+            <path d="M300 271C470 271 470 235 610 235"/>
+            <path d="M300 331C470 331 470 235 610 235"/>
+          </g>
+
+          <!-- cascade engine block -->
+          <g transform="translate(610,150)">
+            <rect width="230" height="170" rx="16" fill="#120a2b" stroke="#7a63e0" stroke-width="1.5"/>
+            <text x="115" y="34" text-anchor="middle" fill="#efe9ff" font-family="system-ui,sans-serif" font-size="16" font-weight="700">cascade()</text>
+            <g font-family="system-ui,sans-serif" font-size="12.5" fill="#b6a9ec">
+              <text x="24" y="66">1 · origin + importance</text>
+              <text x="24" y="90">2 · specificity</text>
+              <text x="24" y="114">3 · source order</text>
+              <text x="24" y="138">4 · inherit / initial</text>
+            </g>
+          </g>
+
+          <!-- resolved swatch -->
+          <circle cx="985" cy="235" r="92" fill="url(#glow)"/>
+          <g transform="translate(985,235)">
+            <circle r="58" fill="#12b3a6" stroke="#0c8f85" stroke-width="4"/>
+            <text y="-2" text-anchor="middle" fill="#00332f" font-family="ui-monospace,Menlo,monospace" font-size="15" font-weight="700">#12b3a6</text>
+            <text y="20" text-anchor="middle" fill="#00332f" font-family="system-ui,sans-serif" font-size="12.5">the winner</text>
+          </g>
+          <path d="M840 235H900" stroke="#12b3a6" stroke-width="3"/>
+          <polygon points="900,229 912,235 900,241" fill="#12b3a6"/>
+        </svg>
+      </div>
+      <figcaption><b>Five declarations enter, one value leaves.</b> The cascade is a total ordering, not a popularity contest — every candidate is compared on the same four axes, in order.</figcaption>
+    </figure>
+  </section>
+</div>
+
+<main>
+  <article class="article-body">
+    <p class="lead">Ask ten engineers why a link came out teal instead of blue, and you will get ten confident, partly-wrong answers. "Specificity won." "It was last in the file." "Inline styles always win." Each is a fragment of a single, fully-specified algorithm that the browser runs millions of times per page — and once you can run that algorithm in your head, CSS stops feeling like a slot machine.</p>
+
+    <p>The cascade is the part of CSS that decides, for one element and one property, which declared value survives. It does not lay anything out and it does not paint anything. It answers exactly one question — <em>whose value wins?</em> — and it answers it deterministically. The confusion is almost never about the rules; it is about the <em>order</em> in which the rules apply and where each one stops mattering.</p>
+
+    <h2>The four questions, asked in order</h2>
+    <p>When more than one declaration targets the same element and property, the browser sorts every candidate by four criteria, checked strictly top to bottom. It only moves to the next criterion when the current one is a tie. That ordering is the whole game:</p>
+
+    <ul>
+      <li><b>Origin and importance.</b> Where did the rule come from — the browser's default sheet, the user's stylesheet, or the author's — and was it marked <code>!important</code>? Author-important beats author-normal beats user-normal beats the user agent.</li>
+      <li><b>Specificity.</b> Only among declarations that survived step one. An ID selector outranks a class, which outranks a type selector. The <code>*</code> universal selector contributes nothing.</li>
+      <li><b>Source order.</b> Still tied? The declaration that appears later in the resolved stylesheet order wins. This is the only place "last one wins" is actually true.</li>
+      <li><b>Inheritance and defaults.</b> If <em>nothing</em> was declared, the property either inherits from the parent's computed value or falls back to its initial value.</li>
+    </ul>
+
+    <p>Notice what is <strong>not</strong> on that list. Proximity in the DOM does not matter. How "recently" you wrote the rule does not matter. Whether the selector "looks more specific" to a human does not matter. The engine compares structured tuples, and structured tuples do not have opinions.</p>
+
+    <blockquote>
+      Specificity is not a score you accumulate — it is a three-column number you compare left to right. A single ID beats a thousand classes, because the columns never carry.
+      <cite>— the mental model that fixes 80% of cascade bugs</cite>
+    </blockquote>
+
+    <h2>Specificity is a tuple, not a total</h2>
+    <p>The most common misconception is that specificity is additive weight — that enough classes eventually "add up" to an ID. They do not. Specificity is the tuple <code>(A, B, C)</code>: A counts ID selectors, B counts classes, attributes and pseudo-classes, and C counts type selectors and pseudo-elements. Comparison is lexicographic. <code>(1,0,0)</code> beats <code>(0,13,0)</code> every time, because you compare column A first and stop the moment one side is larger.</p>
+
+    <figure class="inline">
+      <div class="frame">
+        <svg viewBox="0 0 680 210" role="img" aria-label="Three selectors and their specificity tuples compared column by column">
+          <defs><linearGradient id="row" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#faf7ff"/><stop offset="1" stop-color="#fff"/></linearGradient></defs>
+          <g font-family="ui-monospace,Menlo,monospace" font-size="15">
+            <!-- header -->
+            <text x="24" y="30" font-family="system-ui,sans-serif" font-weight="700" fill="#161418" font-size="14">Selector</text>
+            <text x="360" y="30" font-family="system-ui,sans-serif" font-weight="700" fill="#161418" font-size="14" text-anchor="middle">A · ID</text>
+            <text x="470" y="30" font-family="system-ui,sans-serif" font-weight="700" fill="#161418" font-size="14" text-anchor="middle">B · class</text>
+            <text x="580" y="30" font-family="system-ui,sans-serif" font-weight="700" fill="#161418" font-size="14" text-anchor="middle">C · type</text>
+
+            <g transform="translate(0,44)">
+              <rect x="16" width="648" height="46" rx="9" fill="url(#row)" stroke="#e8e4ec"/>
+              <text x="30" y="30" fill="#4a4650">#hero a</text>
+              <text x="360" y="30" text-anchor="middle" fill="#12b3a6" font-weight="700">1</text>
+              <text x="470" y="30" text-anchor="middle" fill="#78727e">0</text>
+              <text x="580" y="30" text-anchor="middle" fill="#78727e">1</text>
+              <text x="632" y="30" text-anchor="middle" fill="#12b3a6" font-size="18">✓</text>
+            </g>
+            <g transform="translate(0,96)">
+              <rect x="16" width="648" height="46" rx="9" fill="#fff" stroke="#e8e4ec"/>
+              <text x="30" y="30" fill="#4a4650">.nav .link.active</text>
+              <text x="360" y="30" text-anchor="middle" fill="#78727e">0</text>
+              <text x="470" y="30" text-anchor="middle" fill="#5b3df5" font-weight="700">3</text>
+              <text x="580" y="30" text-anchor="middle" fill="#78727e">0</text>
+            </g>
+            <g transform="translate(0,148)">
+              <rect x="16" width="648" height="46" rx="9" fill="#fff" stroke="#e8e4ec"/>
+              <text x="30" y="30" fill="#4a4650">a</text>
+              <text x="360" y="30" text-anchor="middle" fill="#78727e">0</text>
+              <text x="470" y="30" text-anchor="middle" fill="#78727e">0</text>
+              <text x="580" y="30" text-anchor="middle" fill="#5b3df5" font-weight="700">1</text>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <figcaption>Compared column by column, <code>#hero a</code> — tuple <b>(1,0,1)</b> — wins on the first column and never gives it back, even though the middle row stacks three classes.</figcaption>
+    </figure>
+
+    <p>This is also why the newer <code>:where()</code> pseudo-class is such a useful tool: it wraps a selector list but contributes <em>zero</em> specificity, letting you write low-priority defaults that any later, more specific rule can trivially override. Its sibling <code>:is()</code>, by contrast, takes the specificity of its most specific argument.</p>
+
+    <h3>Where <code>!important</code> actually sits</h3>
+    <p>People treat <code>!important</code> as a bigger number bolted onto specificity. It is not — it lives one level up, in step one. Marking a declaration important moves it into a different, higher-priority origin bucket <em>before</em> specificity is ever consulted. That is why an important author declaration with specificity <code>(0,0,1)</code> beats a normal author declaration at <code>(1,0,0)</code>: they are no longer being compared in the same round.</p>
+
+    <div class="callout">
+      <span class="ico">
+        <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="12" fill="#f5a623" opacity=".16"/><path d="M13 7v7" stroke="#b9770a" stroke-width="2.4" stroke-linecap="round"/><circle cx="13" cy="18.5" r="1.6" fill="#b9770a"/></svg>
+      </span>
+      <p><b>A useful inversion:</b> the important origins run in <em>reverse</em>. Among <code>!important</code> declarations, the user agent's win over the user's, which win over the author's — the exact opposite of the normal order. That is the mechanism behind accessibility overrides: an important user rule for high-contrast text can defeat any author styling.</p>
+    </div>
+
+    <h2>Cascade layers changed the shape of step two</h2>
+    <p>For two decades the cascade had a stable silhouette, and then <code>@layer</code> quietly inserted a new tier between importance and specificity. Cascade layers let you declare an explicit priority order for whole groups of rules, so a low-layer rule loses to a high-layer rule <em>regardless of specificity</em>. A tiny type selector in your <code>components</code> layer can now beat a heavyweight ID selector sitting in your <code>reset</code> layer.</p>
+
+    <p>This is the single most important recent change to how the cascade resolves, because it moves the tie-break away from the specificity arms race that produced selectors like <code>#app #main .card.card.card</code>. With layers, you order intent explicitly instead of encoding it in selector length:</p>
+
+    <pre><code><span class="tok-com">/* declare priority once, low → high */</span>
+<span class="tok-imp">@layer</span> <span class="tok-sel">reset, base, components, utilities</span>;
+
+<span class="tok-imp">@layer</span> <span class="tok-sel">reset</span> {
+  <span class="tok-sel">#hero a</span> { <span class="tok-prop">color</span>: <span class="tok-val">blue</span>; }   <span class="tok-com">/* specificity (1,0,1) … */</span>
+}
+
+<span class="tok-imp">@layer</span> <span class="tok-sel">components</span> {
+  <span class="tok-sel">a</span> { <span class="tok-prop">color</span>: <span class="tok-val">teal</span>; }        <span class="tok-com">/* … still loses to this (0,0,1) */</span>
+}
+<span class="tok-com">/* resolved: teal — a later layer outranks earlier layers */</span></code></pre>
+
+    <p>The full priority ladder, from weakest to strongest, is now: user-agent styles, then the layered and unlayered normal declarations sorted by origin and layer order, then transitions, then the important declarations in reverse-origin order, and finally animations sit apart because active <code>@keyframes</code> override normal declarations while yielding to important ones. Most days you only touch the middle of that ladder — but knowing the ends exist is what lets you debug the weird cases.</p>
+
+    <h2>From "specified" to "computed": the value keeps moving</h2>
+    <p>Winning the cascade does not hand you a pixel color. The surviving declaration is the <em>specified value</em>. The browser then resolves it into a <em>computed value</em> — relative units become absolute-ish, <code>currentColor</code> and <code>inherit</code> get dereferenced, and custom properties are substituted. Only later, at used-value time, does <code>color: teal</code> become the concrete <code>rgb(0 128 128)</code> that the painter rasterizes.</p>
+
+    <p>This staging matters because inheritance operates on the <em>computed</em> value, not the specified one. When a child inherits <code>color</code>, it copies the parent's already-resolved value. So if a parent's color came from a custom property that later changed, the cascade you reasoned about upstream is exactly the input the child inherits downstream — no re-running of selectors, just a value handed down the tree.</p>
+
+    <blockquote>
+      The cascade picks a value once, per element, per property. Everything downstream — inheritance, computed values, the painted pixel — is bookkeeping on that decision.
+    </blockquote>
+
+    <p>So the next time a link renders teal when you swore it should be blue, do not reach for another <code>!important</code>. Walk the four questions in order: which origin bucket, which layer, which specificity tuple, which source position. The answer is always there, and it is always the same answer the engine found — because you are running the same algorithm it did.</p>
+  </article>
+
+  <div class="bio">
+    <span class="avatar">
+      <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+        <defs><linearGradient id="bio1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#12b3a6"/><stop offset="1" stop-color="#5b3df5"/></linearGradient></defs>
+        <circle cx="32" cy="32" r="32" fill="url(#bio1)"/>
+        <circle cx="32" cy="25" r="10.5" fill="#fff" opacity=".95"/>
+        <path d="M12 56c3.6-11 11-17 20-17s16.4 6 20 17" fill="#fff" opacity=".95"/>
+      </svg>
+    </span>
+    <div>
+      <div class="role">Staff Engineer · Rendering</div>
+      <h4>Mara Delacroix</h4>
+      <p>Mara works on layout and style resolution for a browser engine, and has spent an unreasonable share of her career explaining specificity to people who did not ask. She writes about the parts of the platform that feel magic until you read the spec.</p>
+      <div class="links">
+        <a href="#">Follow →</a>
+        <a href="#">All posts</a>
+        <a href="#">Newsletter</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="related" aria-label="Related articles">
+      <h2 class="section-title">Keep reading</h2>
+      <div class="cards">
+
+        <article class="card">
+          <div class="thumb">
+            <svg viewBox="0 0 320 200" role="img" aria-label="Abstract box model diagram">
+              <rect width="320" height="200" fill="#eef0ff"/>
+              <rect x="46" y="34" width="228" height="132" rx="10" fill="#c9d0ff"/>
+              <rect x="74" y="58" width="172" height="84" rx="8" fill="#8f9bff"/>
+              <rect x="102" y="82" width="116" height="36" rx="6" fill="#5b3df5"/>
+              <path d="M46 100h-22M296 100h-22M160 34V12M160 188v-22" stroke="#5b3df5" stroke-width="2"/>
+            </svg>
+          </div>
+          <div class="body">
+            <span class="cat">Layout</span>
+            <h3><a href="#">The box model is four boxes, and you only ever see one</a></h3>
+            <p>Content, padding, border, margin — and why <code>box-sizing</code> is the setting everyone eventually changes.</p>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="thumb">
+            <svg viewBox="0 0 320 200" role="img" aria-label="Stacking context layers illustration">
+              <rect width="320" height="200" fill="#fff0f4"/>
+              <g>
+                <rect x="60" y="70" width="150" height="90" rx="10" fill="#ffb3c4"/>
+                <rect x="95" y="52" width="150" height="90" rx="10" fill="#ff7d9c"/>
+                <rect x="130" y="34" width="150" height="90" rx="10" fill="#ff5a7a"/>
+              </g>
+            </svg>
+          </div>
+          <div class="body">
+            <span class="cat">Compositing</span>
+            <h3><a href="#">z-index does nothing until you understand stacking contexts</a></h3>
+            <p>Why your modal hides behind a header even at <code>z-index: 9999</code>, and the property that actually fixes it.</p>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="thumb">
+            <svg viewBox="0 0 320 200" role="img" aria-label="Custom property token flow">
+              <rect width="320" height="200" fill="#e9fbf7"/>
+              <circle cx="80" cy="100" r="26" fill="#12b3a6"/>
+              <circle cx="240" cy="60" r="20" fill="#0c8f85"/>
+              <circle cx="240" cy="140" r="20" fill="#5b3df5"/>
+              <path d="M104 92l112-28M104 108l112 28" stroke="#0c8f85" stroke-width="3"/>
+            </svg>
+          </div>
+          <div class="body">
+            <span class="cat">Custom Properties</span>
+            <h3><a href="#">Custom properties inherit — that is the whole feature</a></h3>
+            <p>Design tokens work because <code>--vars</code> cascade and inherit like any other property. Lean into it.</p>
+          </div>
+        </article>
+
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="brand" href="#" aria-label="Overpaint home">
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <rect x="1.5" y="1.5" width="29" height="29" rx="8" fill="#5b3df5"/>
+            <path d="M9 22V10.5C9 9.7 9.7 9 10.5 9H17c3 0 5 1.9 5 4.6 0 2.7-2 4.6-5 4.6h-4.2V22" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="23.5" cy="9.5" r="2.4" fill="#ff5a7a"/>
+          </svg>
+          Overpaint
+        </a>
+        <p>Field notes on browsers, rendering, and the parts of the web platform that reward reading the spec.</p>
+        <div class="social">
+          <a href="#" aria-label="RSS"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="4" cy="12" r="1.6" fill="currentColor"/><path d="M3 7.5a5.5 5.5 0 0 1 5.5 5.5M3 3.5a9.5 9.5 0 0 1 9.5 9.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></a>
+          <a href="#" aria-label="Mastodon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2c3 0 4.5 1.4 4.5 4.4 0 3-.2 4.6-4.5 4.6-1 0-2-.1-2.7-.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M5.5 6.2v3.1M8 5.9v2M10.5 6.2v3.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></a>
+          <a href="#" aria-label="GitHub"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 .8a7.2 7.2 0 0 0-2.3 14c.36.07.5-.15.5-.34v-1.2c-2 .43-2.43-.96-2.43-.96-.33-.83-.8-1.05-.8-1.05-.66-.45.05-.44.05-.44.73.05 1.1.75 1.1.75.65 1.1 1.7.78 2.11.6.07-.47.25-.79.46-.97-1.6-.18-3.28-.8-3.28-3.57 0-.79.28-1.43.75-1.94-.08-.18-.33-.92.07-1.91 0 0 .6-.2 1.98.74a6.9 6.9 0 0 1 3.6 0c1.37-.94 1.97-.74 1.97-.74.4.99.15 1.73.07 1.91.47.51.75 1.15.75 1.94 0 2.78-1.69 3.39-3.3 3.57.26.22.49.66.49 1.32v1.96c0 .19.13.42.5.34A7.2 7.2 0 0 0 8 .8Z"/></svg></a>
+        </div>
+      </div>
+      <div class="foot-col">
+        <h5>Sections</h5>
+        <ul>
+          <li><a href="#">Engineering</a></li>
+          <li><a href="#">Design systems</a></li>
+          <li><a href="#">Deep dives</a></li>
+          <li><a href="#">Changelog</a></li>
+        </ul>
+      </div>
+      <div class="foot-col">
+        <h5>Company</h5>
+        <ul>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Writers</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+      <div class="foot-col">
+        <h5>Subscribe</h5>
+        <ul>
+          <li><a href="#">Weekly digest</a></li>
+          <li><a href="#">RSS feed</a></li>
+          <li><a href="#">Newsletter</a></li>
+          <li><a href="#">Podcast</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Overpaint Media. Written and rendered on the open web.</span>
+      <span class="legal">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Cookie choices</a>
+      </span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

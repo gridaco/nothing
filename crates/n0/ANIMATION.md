@@ -558,7 +558,7 @@ rejected because the analyzer lowers arcs to rational conics; interpolating
 those conics would not implement SVG's arc-parameter and flag rules. Static and
 explicitly discrete arc-bearing paths remain valid.
 
-The proving shell uses the positive root viewport as one stable reference box
+This adapter uses the positive root viewport as one stable reference box
 for the static path and every keyframe. The analyzer lowers in SVG user space,
 then normalizes once into the existing unit-reference artifact; resolution maps
 back once through the path node's viewport-sized box. Geometry outside that

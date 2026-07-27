@@ -1,0 +1,15 @@
+[package]
+name = "animation-sampling"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "Source-neutral exact timing, easing, and scalar animation sampling."
+license.workspace = true
+
+[dependencies]
+num-bigint = "0.4"
+num-rational = "0.4"
+num-traits = "0.2"
+
+[lints]
+workspace = true

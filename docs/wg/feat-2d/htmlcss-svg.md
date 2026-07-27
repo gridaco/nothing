@@ -13,8 +13,8 @@ tags:
 # htmlcss::svg — Design Study
 
 The structure-and-semantics study that informs the Skia-backed SVG
-renderer at `crates/grida/src/htmlcss/svg/`. Companion to the module's
-`crates/grida/src/htmlcss/svg/README.md`.
+renderer at `crates/htmlcss/src/svg/`. Companion to the module's
+`crates/htmlcss/src/svg/README.md`.
 
 The renderer's lineage is **Blink** (Chromium). usvg and resvg are
 secondary references — usvg as a parse-time normalization model, resvg
@@ -325,10 +325,10 @@ through `htmlcss::ImageProvider`.
 
 Two wiring changes (not yet in place — happen as features land):
 
-1. `htmlcss::render_svg` (`crates/grida/src/htmlcss/mod.rs`)
+1. `htmlcss::render_svg` (`crates/htmlcss/src/lib.rs`)
    becomes a thin wrapper around `htmlcss::svg::render_to_picture`. The
    `skia_safe::svg::Dom` call is removed.
-2. `htmlcss::paint::paint_inline_svg` (`crates/grida/src/htmlcss/paint.rs`)
+2. `htmlcss::paint::paint_inline_svg` (`crates/htmlcss/src/paint.rs`)
    becomes a wrapper around `htmlcss::svg::render_into`. The
    `skia_safe::svg::Dom` call is removed.
 
@@ -447,8 +447,8 @@ arrays (acceptable simplicity; revisit if profiling demands).
 
 ## References
 
-- Module: `crates/grida/src/htmlcss/svg/`
-- Module README: `crates/grida/src/htmlcss/svg/README.md`
+- Module: `crates/htmlcss/src/svg/`
+- Module README: `crates/htmlcss/src/svg/README.md`
 - Chromium SVG research: [`docs/wg/research/chromium/svg/`](../research/chromium/svg/)
 - Cross-engine compare: [`docs/wg/research/chromium/svg/comparison.md`](../research/chromium/svg/comparison.md)
 - Reftest corpus: `fixtures/local/resvg-test-suite/` (1,679 SVGs)

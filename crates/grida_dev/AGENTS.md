@@ -62,7 +62,7 @@ shortlist. Add `--json` for orchestration.
 The harness scores each fixture against `expected.png` and (when a
 Chrome baseline is baked) `chrome.png`, classifying by upstream
 `results.csv` into consensus / disputed / UB buckets. See
-[`crates/grida/src/htmlcss/svg/README.md`](../grida/src/htmlcss/svg/README.md#multi-oracle-scoring-consensus--disputed--ub).
+[`crates/htmlcss/src/svg/README.md`](../htmlcss/src/svg/README.md#multi-oracle-scoring-consensus--disputed--ub).
 
 ## Notes
 

@@ -1,6 +1,6 @@
 {
   "name": "L0.coverage",
-  "description": "Aspirational L0 coverage. Fixtures here are tracked for progress; they are NOT required to be at 100%. Promote a fixture to L0.exact once it reaches 100.00% byte-exact parity with Chromium.",
+  "description": "Aspirational L0 coverage. Fixtures here are tracked for progress and need not reach 1.0. Promote a fixture to L0.exact once it reaches 1.0 Chromium similarity under the exact suite's configured threshold, AA-exclusion, and content-mask policy.",
   "defaults": {
     "viewport": { "width": 600, "height": 800 },
     "wait_for": ["fonts", "networkidle"],

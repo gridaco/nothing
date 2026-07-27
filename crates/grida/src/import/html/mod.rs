@@ -13,11 +13,11 @@ use crate::node::factory::NodeFactory;
 use crate::node::scene_graph::{Parent, SceneGraph};
 use crate::node::schema::*;
 
-use crate::htmlcss::collect::styled_of;
 use crate::htmlcss::style::StyledElement;
+use crate::htmlcss::styled_dom::styled_of;
 use crate::htmlcss::types::{Display as CssDisplay, Overflow as CssOverflow};
 
-use csscascade::adapter::{self, HtmlElement};
+use csscascade::adapter::HtmlElement;
 use csscascade::dom::DemoNodeData;
 
 mod from_styled;
@@ -31,14 +31,15 @@ use from_styled::{
 ///
 /// This is the main entry point, analogous to [`crate::import::svg::pack::from_svg_str`].
 ///
-/// # Thread Safety
+/// # Document lifetime
 ///
-/// This function uses a process-global DOM slot ([`csscascade::adapter::DEMO_DOM`])
-/// and is **not thread-safe**. Concurrent calls will race on the shared state.
-/// Callers must serialize access externally (e.g. via a mutex).
+/// Parsing and style resolution return an owned document session. That session
+/// stays alive for the complete scene-builder walk, and every DOM handle used
+/// below is borrowed from it.
 pub fn from_html_str(html: &str) -> Result<SceneGraph, String> {
-    // Parse + cascade via the shared front-end (htmlcss::frontend).
-    let document = crate::htmlcss::frontend::parse_and_style(html)?;
+    // Parse + cascade through the extracted renderer's narrow styled-DOM seam.
+    let session = crate::htmlcss::styled_dom::parse_and_style(html)?;
+    let document = session.document();
 
     // Build scene graph from styled DOM
     let mut builder = SceneBuilder::new();
@@ -66,8 +67,8 @@ impl SceneBuilder {
         }
     }
 
-    fn build_element(&mut self, element: HtmlElement, parent: Parent) {
-        let dom = adapter::dom();
+    fn build_element<'session>(&mut self, element: HtmlElement<'session>, parent: Parent) {
+        let dom = element.dom();
         // Shared per-element style record (htmlcss seam, gridaco/nothing#30).
         let Some(styled) = styled_of(element) else {
             return;
@@ -83,7 +84,7 @@ impl SceneBuilder {
         // Decide what IR node type to emit
         let has_element_children = element.first_element_child().is_some();
         let has_text_children = {
-            let node = dom.node(element.node_id());
+            let node = element.dom_node();
             node.children.iter().any(
                 |cid| matches!(&dom.node(*cid).data, DemoNodeData::Text(t) if !t.trim().is_empty()),
             )
@@ -120,7 +121,7 @@ impl SceneBuilder {
             let container_parent = Parent::NodeId(container_id);
 
             // Emit inline text children
-            let node = dom.node(element.node_id());
+            let node = element.dom_node();
             for child_id in &node.children {
                 let child_node = dom.node(*child_id);
                 if let DemoNodeData::Text(text) = &child_node.data {
@@ -283,16 +284,16 @@ impl SceneBuilder {
     /// text node with per-run styling.
     fn emit_attributed_text(
         &mut self,
-        element: HtmlElement,
+        element: HtmlElement<'_>,
         styled: &StyledElement,
         parent: Parent,
     ) {
-        let dom = adapter::dom();
+        let dom = element.dom();
         let (default_style, default_fills) = text_style_from(styled);
         let default_color = Some(styled.color);
 
         let mut builder = AttributedStringBuilder::new();
-        let node_data = dom.node(element.node_id());
+        let node_data = element.dom_node();
 
         // Walk children in DOM order — interleaved text nodes and inline elements.
         // Use CSS white-space collapsing: newlines/tabs → space, collapse runs of spaces.
@@ -307,7 +308,9 @@ impl SceneBuilder {
                 }
                 DemoNodeData::Element(_) => {
                     // Inline element — get its own style record and collect text.
-                    let child_el = HtmlElement::from_node_id(*child_id);
+                    let child_el = element
+                        .element(*child_id)
+                        .expect("element child identifier must resolve in its document session");
                     if let Some(child_styled) = styled_of(child_el) {
                         Self::collect_inline_text(&mut builder, child_el, &child_styled);
                     }
@@ -349,15 +352,15 @@ impl SceneBuilder {
     }
 
     /// Recursively collect text from an inline element and its children into the builder.
-    fn collect_inline_text(
+    fn collect_inline_text<'session>(
         builder: &mut AttributedStringBuilder,
-        element: HtmlElement,
+        element: HtmlElement<'session>,
         styled: &StyledElement,
     ) {
-        let dom = adapter::dom();
+        let dom = element.dom();
         let (run_style, _) = text_style_from(styled);
         let run_color = Some(styled.color);
-        let node_data = dom.node(element.node_id());
+        let node_data = element.dom_node();
 
         for child_id in &node_data.children {
             let child_node = dom.node(*child_id);
@@ -369,7 +372,9 @@ impl SceneBuilder {
                     }
                 }
                 DemoNodeData::Element(_) => {
-                    let child_el = HtmlElement::from_node_id(*child_id);
+                    let child_el = element
+                        .element(*child_id)
+                        .expect("element child identifier must resolve in its document session");
                     if let Some(child_styled) = styled_of(child_el) {
                         Self::collect_inline_text(builder, child_el, &child_styled);
                     }

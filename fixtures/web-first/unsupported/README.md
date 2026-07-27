@@ -1,0 +1,40 @@
+# Unsupported Web-first fixtures
+
+Purpose-built inputs that must fail explicitly rather than render an
+approximation. They are not part of `primitives.json` because they have no
+pixel output.
+
+**`crates/websem/tests/unsupported_corpus.rs` is the gate.** It reads this
+directory with `read_dir` and holds it against a declared table, so a file added
+here without a row fails, and a row without a file fails too. For each entry it
+asserts the departure names its construct in **both** admissions: the
+document-level ones (the viewport grammar and root sizing) refuse under
+best-effort as well, and the attributable ones are declared by name at a
+structural path. What that gate defends is the invariant, stated over a whole
+directory — *nothing here renders silently*. Individual constructs are pinned a
+second time, from inline sources, by the contract law that owns each rung.
+
+| File | Required result |
+| --- | --- |
+| `svg-viewbox-invalid-token.svg` | Reject the malformed `viewBox`; do not discard the bad token. |
+| `svg-viewbox-repeated-comma.svg` | Reject a repeated comma in the `viewBox` number list; do not filter empty separators. |
+| `svg-viewbox-trailing-comma.svg` | Reject a trailing comma in the `viewBox` number list; do not filter empty separators. |
+| `svg-preserve-aspect-ratio-invalid-align.svg` | Reject the unknown alignment keyword; Chromium silently renders the default mapping, this engine refuses by name. |
+| `svg-preserve-aspect-ratio-case-folded.svg` | Reject the case-folded alignment keyword — the SVG grammar is case-sensitive. |
+| `svg-preserve-aspect-ratio-defer.svg` | Reject the SVG 1.1 `defer` prefix as malformed grammar: SVG2 dropped it and Chromium treats the whole value as unparseable. |
+| `svg-width-percentage.svg` | Reject percentage root sizing by name until the percentage basis chain is consumed; do not misreport valid grammar as a bad number. |
+| `svg-path-arc.svg` | Refuse the elliptical arc **by name**, not as malformed: Chromium rasterizes an arc through the same rational conics as an `<ellipse>` (measured byte-identical over the rows they share), and the resolved contract carries no conic command yet. Following Blink's cubic *normalizer* instead differs from Chromium's own render of those same cubics by 77 pixels at up to a 170-per-channel delta. |
+| `svg-path-malformed-d.svg` | Refuse the whole path, naming the byte offset. Chromium renders the valid prefix (SVG2 §9.3.9); this slice does not ship an unbaked partial geometry — a deliberate, declared divergence. |
+| `svg-path-no-leading-moveto.svg` | Refuse path data that does not begin with a moveto. Chromium's valid prefix is empty here, so the refusal costs no pixels. |
+| `svg-path-trailing-dot-number.svg` | Refuse `10.` in path data. SVG's BNF allows a trailing dot; Blink requires a digit after it and renders nothing — the browser is the authority. |
+| `svg-path-css-d-property.svg` | Declare a stylesheet's `d: path(…)`: Chromium honors it in place of the attribute, and the pinned Stylo build drops the declaration entirely. |
+| `svg-path-pathlength.svg` | Refuse by name — pure over-refusal. `pathLength` only scales what measures along the path (dashing, markers, text on a path), and every one of those already refuses; the patrol exists so the dashing rung cannot silently inherit a gap. |
+| `svg-path-marker-end.svg` | Refuse by name — **load-bearing**. Nothing else reads a marker property: the property *is* the paint trigger, so this refusal is what keeps Chromium's arrowhead from becoming a silent hole. |
+| `svg-stroke-opacity.svg` · `svg-stroke-dasharray.svg` | Refuse by name: the stroke's paint and geometry are consumed, its *compositing* and *dashing* are not. A dash array that would paint nothing (`none`, all-zero, invalid) is admitted instead — Chromium renders those solid. |
+| `svg-stroke-percentage-width.svg` | Refuse by name: a percentage `stroke-width` resolves against the viewport's normalized diagonal (measured — `10%` of a 64x64 viewport is 6.4 units), a basis chain this slice does not consume. |
+| `svg-stroke-vector-effect.svg` · `svg-stroke-paint-order.svg` | Refuse by name. Both were provably inert while strokes refused; consuming strokes made them load-bearing, which is exactly the trap the earlier patrol was kept for. |
+| `svg-stroke-sheet-unit-width.svg` | Refuse by name — the third spelling of the basis-less unit. The attribute patrol walks ancestors, so it never saw a `<style>` rule: this document rendered a 16-unit stroke silently while `stroke-width="2ex"` and `style="stroke-width:2ex"` both refused. A sheet is not attributable to one element without selector matching, so it refuses document-level (strict) and declares against the sheet (best-effort). |
+
+(The former `svg-viewbox-unequal-default.svg` and
+`svg-preserve-aspect-ratio-explicit.svg` graduated to root primitives when
+the viewport rung landed their mappings.)

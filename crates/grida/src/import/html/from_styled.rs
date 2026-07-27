@@ -2,7 +2,7 @@
 //! ([`StyledElement`]) to the types the HTML importer's emitters consume.
 //!
 //! This is the importer's half of the htmlcss seam (gridaco/nothing#30):
-//! `crate::htmlcss::collect::styled_of` extracts one element's resolved
+//! `crate::htmlcss::styled_dom::styled_of` extracts one element's resolved
 //! style into a [`StyledElement`]; the functions here map that record
 //! onto v1 node-record fields. Every function is pure and total — no
 //! Stylo types, no DOM access.

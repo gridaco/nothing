@@ -1300,6 +1300,89 @@ fn line_path(x1: f32, y1: f32, x2: f32, y2: f32) -> Path {
     builder.snapshot()
 }
 
+/// The cap a *closed* contour must be stroked with, whatever the author wrote.
+///
+/// A closed contour has no ends, so SVG's cap is inert on it — and Chromium
+/// agrees: its butt, round and square captures of one are byte-identical to
+/// each other at every width measured. Skia's stroker stops agreeing once the
+/// device-space width falls to about one pixel; it paints the cap where the
+/// contour rejoins. Measured against Chromium 149 on a 48x48 canvas, per
+/// geometry and per cap, in differing pixels of 2304:
+///
+/// | device width | closed path | oval | rect | line (open) |
+/// | --- | --- | --- | --- | --- |
+/// | 0.5 · 1 | 84–95 | 84–95 | **0** | **0** |
+/// | 1.25 and above | 0 | 0 | 0 | 0 |
+///
+/// Three facts decide where this is applied. It tracks the *device* width, not
+/// the authored one — the same document at 2x diverges at an authored 0.5 and
+/// agrees at an authored 1. Butt is byte-exact at every width, so butt is the
+/// answer. And the divergence is per *arm*, not per closed contour: `draw_rect`
+/// does not take the thin-stroke path, so [`ItemKind::RectStroke`] needs no
+/// normalisation, while `draw_oval` and `draw_path` do.
+///
+/// `LineStroke` must never use this: a line is open, its caps are real, and
+/// Chromium's own captures of one are *not* cap-invariant. `TextStroke` strokes
+/// glyph outlines, which are closed, but no admitted source reaches it — the
+/// compiler refuses text — so it is left alone until text lands and can be
+/// measured against an oracle.
+///
+/// The caller applies this only when **every** contour is closed. A path that
+/// mixes them cannot be served by one paint, and serving it by two draws is
+/// worse: measured on a closed contour crossed by an open one, splitting is
+/// byte-exact below a device pixel and then diverges by 32 to 47 pixels at 1.25
+/// and 2, because the two runs' anti-aliased edges composite twice where they
+/// overlap. So the mixed case refuses upstream instead, under its own name.
+fn stroke_cap_for_closed_contours(stroke: &Stroke) -> Stroke {
+    Stroke {
+        cap: StrokeCap::Butt,
+        ..stroke.clone()
+    }
+}
+
+/// Whether any contour may have no extent — a subpath that closes on the point
+/// it opened at.
+///
+/// This is the exception to "a closed contour has no ends". A zero-length
+/// subpath degenerates to a point, and SVG2 §13.2 makes the cap the *only*
+/// thing that renders it: `M44 32 Z` under a square cap paints a dot Chromium
+/// paints too, and normalising that cap to butt erases it. The corpus caught
+/// exactly that.
+///
+/// Only on-curve endpoints are compared, never control points, so a curve whose
+/// ends coincide reads as degenerate even where its hull bulges. That is the
+/// safe direction: a false positive only declines to normalise a cap, while a
+/// false negative would erase a dot the browser draws.
+fn any_contour_may_be_degenerate(path: &ResolvedPathArtifact) -> bool {
+    // `open` holds the current contour's start point, or `None` between
+    // contours; `moved` is whether an endpoint has left that start.
+    let mut open: Option<(f32, f32)> = None;
+    let mut moved = false;
+    for command in path.commands.iter() {
+        match *command {
+            PathCommand::MoveTo { x, y } => {
+                if open.is_some() && !moved {
+                    return true;
+                }
+                open = Some((x, y));
+                moved = false;
+            }
+            PathCommand::Close => {
+                if !moved {
+                    return true;
+                }
+                open = None;
+                moved = false;
+            }
+            PathCommand::LineTo { x, y }
+            | PathCommand::QuadTo { x, y, .. }
+            | PathCommand::CubicTo { x, y, .. }
+            | PathCommand::ConicTo { x, y, .. } => moved |= open != Some((x, y)),
+        }
+    }
+    open.is_some() && !moved
+}
+
 /// Project the already box-mapped, backend-independent command stream into
 /// Skia. Resolution performed the only coordinate mapping, so bounds and
 /// rasterization consume bit-identical f32 geometry.
@@ -1309,7 +1392,14 @@ fn backend_path(path: &ResolvedPathArtifact) -> Path {
         FillRule::EvenOdd => PathFillType::EvenOdd,
     };
     let mut builder = PathBuilder::new_with_fill_type(fill_type);
-    for command in path.commands.iter() {
+    emit_commands(&mut builder, &path.commands);
+    builder.snapshot()
+}
+
+/// Push a command run into a Skia builder verbatim — the one place the
+/// backend-independent vocabulary becomes Skia calls.
+fn emit_commands(builder: &mut PathBuilder, commands: &[PathCommand]) {
+    for command in commands {
         match *command {
             PathCommand::MoveTo { x, y } => {
                 builder.move_to((x, y));
@@ -1344,13 +1434,54 @@ fn backend_path(path: &ResolvedPathArtifact) -> Path {
             }
         }
     }
-    builder.snapshot()
 }
 
 #[cfg(test)]
 mod backend_path_tests {
-    use super::backend_path;
+    use super::{any_contour_may_be_degenerate, backend_path};
     use n0_model::path::{analyze, materialize, FillRule};
+
+    /// The predicate that decides whether a closed contour's cap may be
+    /// normalised away. It must say *yes, possibly degenerate* for anything
+    /// that closes on the point it opened at — that is the case SVG2 §13.2
+    /// renders as a dot from the cap alone — and *no* for a contour with real
+    /// extent, or the normalisation never happens and the defect stays.
+    ///
+    /// The move-only spelling of the dot (`M44 32 Z`) is not here: this door
+    /// (`analyze`) is the Grida-format one and requires a drawing segment,
+    /// while SVG's door admits it. That spelling is gated end-to-end by
+    /// `fixtures/web-first/svg-stroke-zero-length-dot.svg`, which is what
+    /// caught the normalisation erasing it.
+    #[test]
+    fn a_contour_that_closes_where_it_opened_reads_as_degenerate() {
+        let degenerate = [
+            "M.2 .5 L.2 .5",                   // open, zero length
+            "M.1 .1 L.1 .1 Z",                 // closed through a zero-length line
+            "M.1 .1 C.1 .1 .1 .1 .1 .1 Z",     // closed through a collapsed cubic
+            "M.1 .1 L.9 .9 Z M.2 .2 L.2 .2 Z", // one contour with extent, one dot
+        ];
+        for d in degenerate {
+            assert!(possibly_degenerate(d), "{d} must read as degenerate");
+        }
+
+        let extended = [
+            // the shape of the corpus's closed-contour cap cells
+            "M.5 .1 C.9 .1 1 .4 1 .6 C1 .85 .75 1 .5 1 C.25 1 0 .85 0 .6 C0 .4 .1 .1 .5 .1 Z",
+            "M.1 .1 L.9 .1 L.9 .9 Z",
+            "M0 0 L.5 0 Z M.6 .6 L.9 .6 Z", // two closed contours, both with extent
+            "M0 0 L.9 .9",                  // open, with extent
+        ];
+        for d in extended {
+            assert!(!possibly_degenerate(d), "{d} must read as extended");
+        }
+    }
+
+    fn possibly_degenerate(d: &str) -> bool {
+        let artifact = analyze(d, FillRule::NonZero).expect("probe path is valid");
+        let resolved = materialize(artifact.geometry(), artifact.fill_rule(), 64.0, 64.0)
+            .expect("probe path resolves");
+        any_contour_may_be_degenerate(&resolved)
+    }
 
     #[test]
     fn analytical_arc_bounds_match_the_materialized_conics() {
@@ -1470,10 +1601,10 @@ struct GlyphScratch {
 }
 
 impl GlyphScratch {
-    fn with_run(
+    fn with_run<K>(
         &mut self,
         run: &n0_model::text_layout::TextGlyphRun,
-        list: &DrawList,
+        list: &DrawList<K>,
         mut use_run: impl FnMut(&Font, &[u16], &[Point]),
     ) {
         self.ids.clear();
@@ -1486,9 +1617,9 @@ impl GlyphScratch {
     }
 }
 
-fn text_path(
+fn text_path<K>(
     layout: &n0_model::text_layout::TextLayout,
-    list: &DrawList,
+    list: &DrawList<K>,
     scratch: &mut GlyphScratch,
 ) -> Path {
     let mut builder = PathBuilder::new();
@@ -1507,11 +1638,12 @@ fn text_path(
 
 /// Replay a raw [`DrawList`] without a frame-environment check.
 ///
-/// This low-level entry exists for glyphless structural probes and internal
-/// retained-list replay. A host rendering a complete semantic frame must call
+/// This low-level entry exists for engine-owned resource-free glyphless
+/// products, structural probes, and internal retained-list replay. A host
+/// rendering an ordinary semantic frame must call
 /// [`crate::frame::FrameProduct::execute`], which refuses a context whose
 /// incarnation or resource revision differs from the one captured at build.
-pub fn execute_unchecked(canvas: &Canvas, list: &DrawList, view: &Affine, ctx: &PaintCtx) {
+pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, ctx: &PaintCtx) {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum Scope {
         Opacity,
@@ -1691,6 +1823,17 @@ pub fn execute_unchecked(canvas: &Canvas, list: &DrawList, view: &Affine, ctx: &
             ItemKind::OvalStroke { w, h, stroke } => {
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*w, *h);
+                    // An oval is one closed contour, so its cap is inert —
+                    // see [`stroke_cap_for_closed_contours`], which measures
+                    // this arm diverging where the rect arm does not. An oval
+                    // with no extent is the exception, for the same reason a
+                    // zero-length contour is: it degenerates to a segment
+                    // whose ends the cap is the only thing that renders.
+                    let stroke = if *w > 0.0 && *h > 0.0 {
+                        &stroke_cap_for_closed_contours(stroke)
+                    } else {
+                        stroke
+                    };
                     if stroke.align == StrokeAlign::Center {
                         draw_native_centered_stroke(stroke, paint_box, ctx, |paint| {
                             canvas.draw_oval(Rect::from_wh(*w, *h), paint);
@@ -1730,13 +1873,26 @@ pub fn execute_unchecked(canvas: &Canvas, list: &DrawList, view: &Affine, ctx: &
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*w, *h);
                     let geometry = backend_path(path);
-                    if stroke.align == StrokeAlign::Center {
-                        draw_native_centered_stroke(stroke, paint_box, ctx, |paint| {
-                            canvas.draw_path(&geometry, paint);
-                        });
-                    } else {
+                    if stroke.align != StrokeAlign::Center {
                         draw_stroke(canvas, &geometry, stroke, paint_box, ctx);
+                        return;
                     }
+                    // One draw, so one composite pass. The cap a closed
+                    // contour is stroked with is the *only* thing that varies
+                    // here, and it can vary per path because
+                    // `all_contours_closed` is a property of the whole
+                    // artifact — a path that mixes open and closed contours
+                    // under a non-butt cap refuses upstream rather than
+                    // arriving here to be guessed at.
+                    let stroke = if path.all_contours_closed && !any_contour_may_be_degenerate(path)
+                    {
+                        &stroke_cap_for_closed_contours(stroke)
+                    } else {
+                        stroke
+                    };
+                    draw_native_centered_stroke(stroke, paint_box, ctx, |paint| {
+                        canvas.draw_path(&geometry, paint);
+                    });
                 });
             }
             ItemKind::TextStroke {
@@ -1785,10 +1941,10 @@ pub fn execute_unchecked(canvas: &Canvas, list: &DrawList, view: &Affine, ctx: &
 /// [`crate::frame::FrameProduct::raster_to_bytes`].
 ///
 /// Bytes, NOT PNG: the encoder is not the system under test, and byte
-/// equality is exact (ENG-0.3), not a tolerance. `font: None` in the gate
-/// removes font-availability nondeterminism.
-pub fn raster_to_bytes_unchecked(
-    list: &DrawList,
+/// equality is exact (ENG-0.3), not a tolerance. Resource-bearing complete
+/// products enter through [`crate::frame::FrameProduct::raster_to_bytes`].
+pub fn raster_to_bytes_unchecked<K>(
+    list: &DrawList<K>,
     view: &Affine,
     w: i32,
     h: i32,

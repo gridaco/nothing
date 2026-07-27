@@ -339,12 +339,12 @@ Everything is driven by **suite JSON files** at
 `fixtures/test-html/suites/`. A suite enumerates fixtures, their
 per-fixture render config, and the gate policy.
 
-| Suite              | What it contains                                                                              | Gate                       |
-| ------------------ | --------------------------------------------------------------------------------------------- | -------------------------- |
-| `L0.exact.json`    | Fixtures currently at 100.00% byte-exact parity with Chromium. Any drop is a real regression. | `floor: 1.0`, strict diff. |
-| `L0.coverage.json` | All aspirational L0 fixtures — the full backlog. Scores land wherever they land.              | Informational only.        |
+| Suite              | What it contains                                                                                                       | Gate                                           |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `L0.exact.json`    | Fixtures currently at 1.0 configured Chromium similarity. Any scored-pixel drop is a real regression.                 | `floor: 1.0`, threshold 0, AA exclusion active |
+| `L0.coverage.json` | All aspirational L0 fixtures — the full backlog. Scores land wherever they land.                                       | Informational only                             |
 
-**Promoting a fixture to `exact`** — once a fixture reaches 100.00%
+**Promoting a fixture to `exact`** — once a fixture reaches 1.0
 against the current suite config, move its entry from `coverage` →
 `exact`. Do **not** lower the exact suite's floor to fit new entries;
 the bar exists so regressions are loud.
@@ -357,7 +357,7 @@ per-fixture `.reftest.json` sidecars.
 ```json
 {
   "name": "L0.exact",
-  "description": "Byte-exact fixtures; any drop = regression.",
+  "description": "Configured-exact fixtures; any scored-pixel drop = regression.",
   "gate": { "threshold": 0, "aa": true, "floor": 1.0 },
   "defaults": {
     "wait_for": ["fonts", "networkidle"],
@@ -374,7 +374,7 @@ per-fixture `.reftest.json` sidecars.
 - `defaults` — applied to every fixture. Each fixture entry can override any field.
 - `fixtures[].path` and every `extra_css[]` path resolve **relative to the suite file**.
 - `gate.threshold` / `gate.aa` are inputs to the pixelmatch diff; `gate.floor` is the aggregate pass bar on similarity.
-- **`aa: true` (default)** → pixelmatch `includeAA: false`. Pixelmatch's AA detector fires and excludes anti-aliased edge pixels from the diff count, separating rasterizer edge noise (Skia vs. Blink) from real divergence. Set `aa: false` for strict byte-exact accounting (e.g. probing an AA-class regression).
+- **`aa: true` (default)** → pixelmatch `includeAA: false`. Pixelmatch's AA detector fires and excludes anti-aliased edge pixels from the diff count, separating rasterizer edge noise (Skia vs. Blink) from real divergence. Set `aa: false` for strict AA-inclusive accounting inside the scoring mask (e.g. probing an AA-class regression).
 
 #### The three-step pipeline
 
@@ -419,9 +419,9 @@ Default refbrowser diff: **`--threshold 0`** (pixelmatch's tightest
 color-delta) with **AA-ignore mode on by default** (`aa: true` →
 `includeAA: false`; pixelmatch's Vysniauskas AA detector fires and
 excludes edge AA pixels from the diff count). Pass `--no-aa` to flip
-to strict byte-exact accounting. Pass each fixture's similarity
-against the suite's `gate.floor` — for `L0.exact`, that's `1.0`
-(100.00% similarity with AA detection active).
+to strict AA-inclusive accounting inside the scoring mask. Pass each
+fixture's similarity against the suite's `gate.floor` — for
+`L0.exact`, that's `1.0` (100.00% similarity with AA detection active).
 
 ```sh
 pnpm -C packages/grida-reftest exec reftest \
@@ -545,10 +545,12 @@ diff image, not the numeric score.
 5. Run the refbrowser producer + diff against the same suite. Review
    the diff PNG — if the diff is dominated by a known divergence zone
    (see below), record it in the PR description, don't suppress it.
-6. If the fixture reaches 100.00% byte-exact, move its entry from
-   `L0.coverage.json` to `L0.exact.json`.
+6. If the fixture reaches 1.0 under the exact suite's configured
+   threshold, AA-exclusion, and content-mask policy, move its entry
+   from `L0.coverage.json` to `L0.exact.json`.
 
-**Known divergence surfaces** — areas where grida is not yet Blink-exact.
+**Known divergence surfaces** — areas where grida does not yet meet the
+configured Blink bar.
 These are **backlog items, not tolerance excuses**. Do not tune
 thresholds to suppress them. Document the specific divergence in the
 PR description; let the score carry the truth.

@@ -1,6 +1,6 @@
 {
   "name": "L0.exact",
-  "description": "Byte-exact L0 fixtures. Every fixture here MUST stay at 100.00% similarity against the Chromium oracle. Any drop = real regression.",
+  "description": "Configured-exact L0 fixtures. Every fixture MUST stay at 1.0 similarity against the Chromium oracle under this suite's threshold, AA-exclusion, and content-mask policy. Any drop is a real regression.",
   "gate": {
     "threshold": 0,
     "aa": true,
