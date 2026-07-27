@@ -3,9 +3,20 @@
 //! `fixtures/web-first/primitives.json` is the closed enumeration. The tests
 //! fail if a root `.html`/`.svg` input is not listed, if bake provenance drifts,
 //! if any RGBA pixel differs from Chromium, or if CPU/PNG output changes across
-//! two identical runs. Every pixel renders through n0's one downstream —
-//! rframe's proving painter retired with the D-M vector join. No similarity
-//! score is computed and the sealed scoreboard is never invoked.
+//! two identical runs.
+//!
+//! Six of the rows soften that last-but-one clause and only those six: a cell
+//! carrying a `tolerance` block is checked against its declared bound instead —
+//! at most N differing pixels, at most a D-per-channel delta, every one of them
+//! within a pixel of a named ideal boundary. They are the curved cells, where
+//! Chromium's Skia build and this one disagree along a rational conic; the
+//! bounds are measured values rather than headroom, and a shape in the wrong
+//! place still fails loudly because it leaves the boundary ring. Every other
+//! row is byte-exact with no tolerance at all.
+//!
+//! Every pixel renders through n0's one downstream — the proving painter
+//! retired when the vector join was taken. No similarity score is computed and
+//! the sealed scoreboard is never invoked.
 
 mod support;
 

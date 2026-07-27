@@ -11,20 +11,24 @@
 //! [`rframe::Frame`]. It never touches the legacy SVG-only matcher, never
 //! serializes-and-reparses inline SVG, and never paints.
 //!
-//! Deliberately narrow: the proving shell supports only the enumerated
-//! viewport/fill cases around an outer `<svg>` and solid-filled `<rect>`,
-//! `<circle>`, and `<ellipse>` children, plus one retained exact-time
-//! `<animate attributeName="x">` slice (rects only). Root sizing
-//! follows SVG2 §8.2: explicit `width`/`height` win; a missing dimension is
-//! `auto` and resolves to 100% of the host-established [`InitialViewport`]
-//! (standalone entry only — the inline HTML entry refuses until CSS
-//! replaced-element sizing is implemented); `viewBox` maps user units into
-//! the viewport under the full `preserveAspectRatio` grammar.
-//! [`CompileError`] makes patrolled static rejection cases explicit and
-//! [`crate::AnimationError`] closes the sampled standalone dynamic inventory.
-//! Inline HTML remains Base-only until its document-wide inventory is closed.
-//! This is not yet an exhaustive SVG-surface validator or an SVG capability
-//! claim.
+//! The admitted surface is a slice, and it is enumerated rather than implied.
+//! Shapes: `<rect>`, `<circle>`, `<ellipse>`, `<path>` and `<line>`, each with
+//! a solid `fill` and a solid `stroke` (`stroke-width`, `-linecap`,
+//! `-linejoin`, `-miterlimit`, and `fill-rule` on a path). Containers: `<g>`
+//! and the whole `transform` grammar, flattened into a per-node affine rather
+//! than represented. Root sizing follows SVG2 §8.2: explicit `width`/`height`
+//! win; a missing dimension is `auto` and resolves to 100% of the
+//! host-established [`InitialViewport`] (standalone entry only — the inline
+//! HTML entry refuses until CSS replaced-element sizing is implemented);
+//! `viewBox` maps user units into the viewport under the full
+//! `preserveAspectRatio` grammar. Time: one retained exact-time
+//! `<animate attributeName="x">` on a top-level `<rect>`.
+//!
+//! Everything outside that list departs by name. [`CompileError`] makes the
+//! static rejections explicit and [`crate::AnimationError`] closes the sampled
+//! standalone dynamic inventory. Inline HTML remains Base-only until its
+//! document-wide inventory is closed. This is a bounded slice with a stated
+//! edge, not an exhaustive SVG-surface validator and not a capability claim.
 //!
 //! Two admission modes share this one compiler. Strict refuses on the first
 //! beyond-slice construct — the dev harness. Best-effort (the product
@@ -41,9 +45,10 @@
 //! the slice does not consume refuse or skip by name
 //! ([`RENDERING_ATTRIBUTES_NOT_CONSUMED`]), while attributes outside the
 //! SVG rendering vocabulary stay ignored exactly as Chromium ignores them;
-//! the cascaded surface is patrolled for the enumerated properties
-//! `opacity`, `display: none`, `visibility`, and shape `stroke` beside the
-//! typed `fill`/`fill-opacity` reads. Cascaded properties beyond that
+//! the cascaded surface is patrolled for the enumerated properties `opacity`,
+//! `display: none`, `display: contents`, `visibility`, `stroke-opacity` and
+//! `stroke-dasharray`, beside the typed `fill`/`fill-opacity` and stroke reads
+//! and the `stroke-width` unit patrol. Cascaded properties beyond that
 //! enumeration remain a **named open boundary** of the slice — not a
 //! coverage claim.
 //!

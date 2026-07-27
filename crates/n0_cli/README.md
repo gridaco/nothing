@@ -59,8 +59,8 @@ cargo run -p n0_cli --bin n0 -- \
   or stylesheet value the slice does not consume becomes a declared hole,
   not a wrong paint (cascaded properties beyond the enumerated patrol are
   a named open boundary; see the websem compiler doc). `--strict` refuses
-  loudly on the first beyond-slice construct instead — the dev harness and
-  TODO surface (`--best-effort` is the explicit spelling of the default).
+  loudly on the first beyond-slice construct instead — the harness that names
+  the slice's edge (`--best-effort` is the explicit spelling of the default).
   Document-level contracts (no `<svg>` root, malformed standalone XML, a
   script-suspended standalone parse, the outer viewport grammar —
   percentage root dimensions, malformed `preserveAspectRatio`,

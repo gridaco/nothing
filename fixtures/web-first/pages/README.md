@@ -6,8 +6,10 @@ current capability. They are deliberately rich (real semantic HTML, real text
 content, images, real CSS), not minimized: "minimal, one concept per file" is
 the rule for *unit* fixtures, not for a real-world page corpus.
 
-> **The Web-first engine renders none of this yet.** The prototype
-> (`crates/websem` + `crates/rframe`) handles solid-fill SVG `<rect>` only. These
+> **The Web-first engine renders none of these pages.** What it does consume is
+> the SVG slice enumerated in [`../README.md`](../README.md); an HTML page needs
+> CSS layout, text and images, none of which it admits. Stating it that way
+> keeps the claim from going stale the next time the SVG slice grows. These
 > pages are the ground the engine grows toward; the ground truth is Chromium
 > (see references below). This is the same relationship
 > [`fixtures/test-html/`](../../test-html/README.md) has with the legacy

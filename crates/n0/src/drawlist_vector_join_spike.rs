@@ -1,17 +1,25 @@
-//! Disposable, bounded D-M vector-join evidence.
+//! The evidence that a source-neutral producer can join the kernel high.
 //!
-//! This is only the drawlist/painter plus mixed-private-text arm. It exists
-//! only in `n0`'s unit-test build and deliberately does not propose a public
-//! contract: the paint and stroke leaves below are test-local witnesses while
-//! D-C is open, and corner smoothing is rejected because it has not yet been
-//! resolved to source-neutral geometry.
+//! This is the independently constructed spike that was built to answer one
+//! question — can a second producer feed the private drawlist, painter, damage
+//! policy and cache and get bit-identical results — and it answered yes. That
+//! join was taken on 2026-07-23, and the production lowering that supersedes it
+//! lives in [`crate::glyphless`]; the whole of this file survives as the
+//! independent witness behind that decision, not as a proposal.
+//!
+//! It is only the drawlist/painter plus mixed-private-text arm, it exists only
+//! in `n0`'s unit-test build, and it deliberately proposes no public contract.
+//! The paint and stroke leaves below stay test-local: the shared leaf
+//! vocabulary now seats them in `cg` for the admitted vector scope, while the
+//! leaves that depend on the paint-RFD amendments and on text paint remain
+//! open and keep their own evidence bars. Corner smoothing is rejected here
+//! because it has not been resolved to source-neutral geometry.
 //!
 //! Candidate identity and provenance are consumed by this local compiler,
 //! orchestration proof, and the engine's private complete-frame damage policy
-//! as one opaque arm-local owner key. This does not define their future public
-//! relationship. Candidate compiled visual material also reaches the shared
-//! preview cache, but stable runtime identity remains unchosen and D-C still
-//! blocks the leaf vocabulary, so this spike does not complete D-M.
+//! as one opaque arm-local owner key. That does not define their future public
+//! relationship, and stable runtime identity for cached material remains
+//! unchosen — which is why this stays a witness rather than a contract.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;

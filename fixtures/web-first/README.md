@@ -1,11 +1,18 @@
 # fixtures/web-first
 
-Fixtures for the Web-first engine track's first architecture prototype
-(`crates/rframe`, `crates/websem`; see
-[docs/wg/consolidation/web-first.md](../../docs/wg/consolidation/web-first.md)).
+The Chromium-baked oracle corpus for the SVG engine of record — the path an
+`.svg` or `.html` source takes through one document, one cascade
+(`crates/csscascade`), one compiler (`crates/websem`), one resolved contract
+(`crates/rframe`) and one kernel (`crates/n0`).
 
-One concept: **an inline-SVG descendant is painted from a value that crosses
-the HTML→SVG boundary through one browser-grade cascade.**
+*Web-first* names the ratified amendment that path implements, not a phase of
+work: [docs/wg/consolidation/web-first.md](../../docs/wg/consolidation/web-first.md)
+defines it, and `fixtures/test-svg/` and `fixtures/test-html/` hold the **legacy**
+renderer's corpora, which is the distinction this directory name carries.
+
+Every cell here is a closed enumeration in `primitives.json` with a committed
+Chromium oracle beside it, and the gate is byte equality: what the corpus admits
+is exactly what the engine renders pixel-for-pixel.
 
 | File | Role |
 | --- | --- |
@@ -100,14 +107,14 @@ cargo run -p n0_cli --bin n0 -- \
   fixtures/web-first/svg-currentcolor-rect.svg /tmp/out.png 64x64
 ```
 
-## Why the proving shell still uses `color` + `fill="currentColor"`
+## What the `currentColor` cells prove
 
-The workspace's official Stylo revision now exposes typed basic SVG paint
-longhands under the Servo engine. The proving shell predates that pin and
-deliberately remains narrower: it does not yet feed presentation hints or SVG
-stylesheets into Stylo, and its compiler still reads the direct `fill`
-attribute. It reads computed `color` only to resolve `currentColor`.
+`svg-currentcolor-rect.svg` and `html-inline-svg-currentcolor-rect.html` are the
+two cells for one property: a value crossing the HTML→SVG boundary through a
+single cascade. `currentColor` is the sharpest witness for it, because resolving
+one requires the computed `color` of the SVG element to have inherited from the
+HTML ancestor — through the same Stylo cascade, not a second matcher.
 
-These fixtures therefore prove one HTML→inline-SVG inherited-value crossing;
-they do not prove cascaded `fill`. Dependency provenance is settled, while
-production paint ingress and consumption remain separate capability work.
+They are about the crossing, not about paint breadth: cascaded `fill` from a
+presentation hint and from an SVG-namespace stylesheet has its own cells
+elsewhere in this table.

@@ -508,6 +508,9 @@ Strokes are admitted, `<line>` joins, and **the tiger renders**: 240 paths, 241
 groups, `--strict`, exit 0, **zero declared degradations**, both admissions
 byte-identical, and 96.27% of its pixels byte-identical to Chromium's render of
 the same file. Twenty-four new cells (corpus 46 → 70), 23 of them byte-exact.
+(The stroke family has since grown to 31 cells, 30 byte-exact, when the
+closed-contour cap was finished across every painter arm; `primitives.json` is
+the count of record.)
 
 - **The contract grew a stroke, not a paint mode.** `FrameNode.stroke:
   Option<Stroke>` carries paints, a width in the node's local space, a cap, a
@@ -574,10 +577,13 @@ and only 25 pixels of 262144 differ by more than 64.
 (Ghostscript authors, derived from `tiger.eps`) and this repository is dual
 Apache-2.0 / MIT, which is precisely the license-restricted case `fixtures/local/`
 exists for, beside the W3C SVG 1.1 suite and resvg's tests. Provenance, the
-fetch command and the sha256 live in `fixtures/local/tiger/PROVENANCE.txt` on a
-machine that has fetched it. **The engine's capability is gated by the committed
-byte-exact corpus; the tiger is a measurement, and it is reproducible from that
-one command.**
+fetch command and the sha256 live in `fixtures/local/tiger/PROVENANCE.txt` — a
+file that exists only on a machine that has already fetched the tiger, so
+**this measurement is not reproducible from the repository alone**, and nothing
+committed here carries the URL or the hash to make it so. It is a reported
+observation, not a gate. **The engine's capability is gated by the committed
+byte-exact corpus**, which is reproducible from a clean checkout; the tiger says
+only that the ladder holds on a real-world drawing of that size.
 
 **The adversarial round found three unit-basis defects, all of the same
 shape.** The rung consumed its first cascaded *length*, and a length is only as
@@ -632,7 +638,7 @@ the two sampling fixtures, every one byte-identical to Chromium.
   command runs, multi-subpath paths, round caps and joins, `fill="none"` and
   `stroke="none"`, `<rect>`s in a group, a `<line>` — and renders `--strict`
   with zero declared degradations at zero differing pixels.
-- **A composition is a different gate from 70 single-feature cells.** Each
+- **A composition is a different gate from the single-feature cells.** Each
   primitive cell isolates one construct; the cub is the only cell where
   inheritance, container nesting, paint order, curve rasterization and stroking
   must all be right *simultaneously* for the pixels to land. At its gate size it

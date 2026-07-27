@@ -284,10 +284,13 @@ execution accepts any context after converting its public neutral
 products continue to require the exact captured paint environment. Both paths
 reach the same private painter.
 
-The admitted production slice is frame clipping plus rectangles whose ordered
-paint stack has already been normalized by `rframe` to visible, Normal solid
-`cg` paints. Compilation validates finite geometry and requires each published
-node bound to equal `math2::rect_transform` exactly. Compiled products expose
+The admitted production slice is frame clipping plus rectangles, ellipses and
+paths — filled, stroked, or both — whose ordered paint stack has already been
+normalized by `rframe` to visible, Normal solid `cg` paints. A stroke is centred
+on its geometry and carries width, cap, join and miter limit; where a contour is
+closed the cap is normalized away, because it is inert there and Skia's thin
+stroke does not agree. Compilation validates finite geometry and requires each
+published node bound to equal `math2::rect_transform` exactly. Compiled products expose
 an exact frame diff through n0's existing generic damage policy. Preview-cache
 integration is not admitted or implemented yet. This is a source-neutral
 chassis seam, not a general SVG importer; source parsing, cascade, animation
