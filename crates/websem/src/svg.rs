@@ -2222,6 +2222,12 @@ fn has_unit_without_a_basis(value: &str) -> Option<&'static str> {
 /// document under strict and declares once against the sheet under best-effort.
 /// Between the two, all three spellings of the same declaration depart by name.
 ///
+/// A CSS property name is case-insensitive, so the `style` leg lowercases before
+/// it looks. It did not always: `style="STROKE-WIDTH:1vw"` painted a stroke
+/// 12.8 units wide — the cascade's pinned 1280px device — where Chromium paints
+/// 0.64, silently, because the guard here was a case-sensitive `contains`. The
+/// sheet leg never had the bug; it compares with `eq_ignore_ascii_case`.
+///
 /// Both legs read the authored text coarsely — the `style` attribute is scanned
 /// whole, so a basis-less unit belonging to some other property in the same
 /// block refuses this element too. Over-refusal, never wrong pixels.
@@ -2230,7 +2236,8 @@ fn patrol_stroke_width_units(el: HtmlElement<'_>, element_name: &str) -> Result<
     while let Some(element) = ancestor {
         for value in [
             get_attr(element, "stroke-width"),
-            get_attr(element, "style").filter(|style| style.contains("stroke-width")),
+            get_attr(element, "style")
+                .filter(|style| style.to_ascii_lowercase().contains("stroke-width")),
         ]
         .into_iter()
         .flatten()

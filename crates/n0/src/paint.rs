@@ -1303,20 +1303,29 @@ fn line_path(x1: f32, y1: f32, x2: f32, y2: f32) -> Path {
 /// The cap a *closed* contour must be stroked with, whatever the author wrote.
 ///
 /// A closed contour has no ends, so SVG's cap is inert on it — and Chromium
-/// agrees: its butt and round captures of a closed contour are byte-identical.
-/// Skia's stroker stops agreeing once the device-space width falls to about one
-/// pixel; it paints the cap where the contour rejoins. Measured on a 48x48
-/// closed cubic, filled or not:
+/// agrees: its butt, round and square captures of one are byte-identical to
+/// each other at every width measured. Skia's stroker stops agreeing once the
+/// device-space width falls to about one pixel; it paints the cap where the
+/// contour rejoins. Measured against Chromium 149 on a 48x48 canvas, per
+/// geometry and per cap, in differing pixels of 2304:
 ///
-/// | device width | butt | round | square |
-/// | --- | --- | --- | --- |
-/// | 0.5 · 0.75 · 1 | 0 | ~83 px, delta 46 | ~84 px, delta 55 |
-/// | 1.25 and above | 0 | 0 | 0 |
+/// | device width | closed path | oval | rect | line (open) |
+/// | --- | --- | --- | --- | --- |
+/// | 0.5 · 1 | 84–95 | 84–95 | **0** | **0** |
+/// | 1.25 and above | 0 | 0 | 0 | 0 |
 ///
-/// It tracks the *device* width, not the authored one: the same document at a
-/// 2x scale diverges at an authored 0.5 and agrees at an authored 1. Butt is
-/// byte-exact at every width, so butt is the answer, and normalising to it here
-/// is what the SVG semantics said all along.
+/// Three facts decide where this is applied. It tracks the *device* width, not
+/// the authored one — the same document at 2x diverges at an authored 0.5 and
+/// agrees at an authored 1. Butt is byte-exact at every width, so butt is the
+/// answer. And the divergence is per *arm*, not per closed contour: `draw_rect`
+/// does not take the thin-stroke path, so [`ItemKind::RectStroke`] needs no
+/// normalisation, while `draw_oval` and `draw_path` do.
+///
+/// `LineStroke` must never use this: a line is open, its caps are real, and
+/// Chromium's own captures of one are *not* cap-invariant. `TextStroke` strokes
+/// glyph outlines, which are closed, but no admitted source reaches it — the
+/// compiler refuses text — so it is left alone until text lands and can be
+/// measured against an oracle.
 ///
 /// The caller applies this only when **every** contour is closed. A path that
 /// mixes them cannot be served by one paint, and serving it by two draws is
@@ -1814,6 +1823,17 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
             ItemKind::OvalStroke { w, h, stroke } => {
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*w, *h);
+                    // An oval is one closed contour, so its cap is inert —
+                    // see [`stroke_cap_for_closed_contours`], which measures
+                    // this arm diverging where the rect arm does not. An oval
+                    // with no extent is the exception, for the same reason a
+                    // zero-length contour is: it degenerates to a segment
+                    // whose ends the cap is the only thing that renders.
+                    let stroke = if *w > 0.0 && *h > 0.0 {
+                        &stroke_cap_for_closed_contours(stroke)
+                    } else {
+                        stroke
+                    };
                     if stroke.align == StrokeAlign::Center {
                         draw_native_centered_stroke(stroke, paint_box, ctx, |paint| {
                             canvas.draw_oval(Rect::from_wh(*w, *h), paint);

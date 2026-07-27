@@ -235,6 +235,60 @@ fn the_cap_decides_where_a_stroke_ends() {
     assert_eq!(at(&square, 7, 32), [0, 0, 0, 0], "by exactly the radius");
 }
 
+/// The converse of the law above: where a contour is *closed*, the cap has
+/// nothing to shape, so changing it must not change one pixel.
+///
+/// This is a whole-geometry law on purpose. The first version of the closed
+/// contour fix covered `<path>` and left `<circle>` and `<ellipse>` painting a
+/// cap Chromium does not — measured at 84 to 95 differing pixels of 2304 below
+/// about one device pixel of width, in silence. A per-element law would have
+/// missed it exactly the way the corpus did, so this one iterates every closed
+/// geometry the slice admits and asserts pixel identity across all three caps.
+///
+/// `<line>` is deliberately absent: it is the open contour, its caps are real,
+/// and the law directly above pins that they move ink.
+#[test]
+fn a_cap_cannot_change_a_closed_contour() {
+    let closed = [
+        (
+            "path",
+            r##"<path d="M24 8 C36 8 40 20 40 28 C40 38 33 44 24 44 C15 44 8 38 8 28 C8 20 12 8 24 8 Z" fill="none""##,
+        ),
+        ("circle", r##"<circle cx="24" cy="24" r="16" fill="none""##),
+        (
+            "ellipse",
+            r##"<ellipse cx="24" cy="24" rx="18" ry="10" fill="none""##,
+        ),
+        (
+            "rect",
+            r##"<rect x="10" y="14" width="28" height="20" fill="none""##,
+        ),
+    ];
+    // The divergence tracked the device width and vanished above about one
+    // pixel, so the law has to hold the widths where it lived.
+    for (element, head) in closed {
+        for width in ["0.5", "1", "1.25", "2"] {
+            let ink = |cap: &str| -> Vec<u8> {
+                let frame = admit_both(&document(&format!(
+                    r##"  {head} stroke="#000000" stroke-width="{width}" stroke-linecap="{cap}"/>"##
+                )));
+                render_through_n0(&frame, 64, 64)
+            };
+            let butt = ink("butt");
+            assert_eq!(
+                ink("round"),
+                butt,
+                "{element} at width {width}: a round cap changed a closed contour"
+            );
+            assert_eq!(
+                ink("square"),
+                butt,
+                "{element} at width {width}: a square cap changed a closed contour"
+            );
+        }
+    }
+}
+
 /// SVG2 §10.1: a zero `width`/`height` on a `<rect>`, or a zero radius on a
 /// `<circle>`/`<ellipse>`, disables rendering of **the element** — not just its
 /// fill. Chromium paints nothing for a zero-extent stroked rect (measured), so
@@ -551,6 +605,40 @@ fn a_mixed_contour_path_refuses_a_cap_it_cannot_apply_per_contour() {
             stroke_of(&frame, 0).cap(),
             rframe::StrokeCap::Round,
             "d={d:?}"
+        );
+    }
+}
+
+/// A CSS property name is case-insensitive, so every ingress must be too.
+///
+/// This is the shape of a real leak, not a hypothetical: the `style` leg used a
+/// case-sensitive `contains`, so `style="STROKE-WIDTH:1vw"` compiled to a stroke
+/// 12.8 units wide — the cascade's pinned 1280px device — where Chromium paints
+/// 0.64. The cascade honours the declaration whatever its case; the patrol
+/// looking for it did not.
+#[test]
+fn the_unit_patrol_reads_a_property_name_case_insensitively() {
+    for name in [
+        "stroke-width",
+        "STROKE-WIDTH",
+        "Stroke-Width",
+        "sTrOkE-wIdTh",
+    ] {
+        let attribute = refusal(&document(&format!(
+            r##"  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000" style="{name}: 1vw"/>"##
+        )));
+        assert!(
+            matches!(attribute, CompileError::UnsupportedStroke(ref reason) if reason.contains("basis")),
+            "style attribute spelled {name} must refuse; got {attribute}"
+        );
+
+        let sheet = refusal(&document(&format!(
+            r##"  <style>rect {{ {name}: 1vw }}</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000"/>"##
+        )));
+        assert!(
+            matches!(sheet, CompileError::UnsupportedStyle(ref reason) if reason.contains("basis")),
+            "sheet spelled {name} must refuse; got {sheet}"
         );
     }
 }
