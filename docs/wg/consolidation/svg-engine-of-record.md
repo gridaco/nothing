@@ -24,6 +24,28 @@ no new behavior lands there; evolution rungs port its semantics onto the
 engine of record. This settles routing and succession, not capability: no
 conformance claim is made or implied.
 
+## Current state
+
+The sections below are the decision and its dated record, in the order things
+happened. This is what is true at the tip, so a reader need not reconstruct it
+from eight addenda:
+
+- **The host renders best-effort by default.** The admitted subset renders and
+  every construct outside it is declared on stderr with a node path and a
+  reason. `--strict` refuses on the first one instead, and is the harness that
+  names the slice's edge. Document-level contracts refuse in both.
+- **The admitted slice** is `<rect>`, `<circle>`, `<ellipse>`, `<path>` and
+  `<line>`, filled and stroked; `<g>` and the whole `transform` grammar;
+  viewBox-only root sizing with the full `preserveAspectRatio` grammar; and one
+  exact-time `<animate attributeName="x">` on a top-level `<rect>`.
+  `crates/n0_cli/README.md` is the statement of record.
+- **The corpus** is 77 Chromium-baked primitive cells plus 10 sampled frames.
+  All byte-exact except six curved cells carrying a declared, geometrically
+  confined tolerance; the departure is the weighted rational conic alone.
+- **Not claimed:** no conformance score exists or may be computed — FLIP is
+  unratified. `opacity` and `rx`/`ry` are the two constructs still missing from
+  the scoreboard suite, so its coverage is 10 of 14.
+
 ## The crux
 
 Two SVG render paths existed and both were positioned to grow:

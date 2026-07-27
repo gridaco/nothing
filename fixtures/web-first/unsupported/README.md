@@ -2,10 +2,17 @@
 
 Purpose-built inputs that must fail explicitly rather than render an
 approximation. They are not part of `primitives.json` because they have no
-pixel output. The rejections themselves are locked by the rung contracts in
-`crates/websem/tests/` — `viewport_contract.rs` reads the viewport files
-directly; the rest pin the same construct from an inline source, and these
-files are the readable corpus of what the slice refuses and why.
+pixel output.
+
+**`crates/websem/tests/unsupported_corpus.rs` is the gate.** It reads this
+directory with `read_dir` and holds it against a declared table, so a file added
+here without a row fails, and a row without a file fails too. For each entry it
+asserts the departure names its construct in **both** admissions: the
+document-level ones (the viewport grammar and root sizing) refuse under
+best-effort as well, and the attributable ones are declared by name at a
+structural path. What that gate defends is the invariant, stated over a whole
+directory — *nothing here renders silently*. Individual constructs are pinned a
+second time, from inline sources, by the contract law that owns each rung.
 
 | File | Required result |
 | --- | --- |
