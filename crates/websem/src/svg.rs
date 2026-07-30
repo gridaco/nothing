@@ -122,7 +122,7 @@ use rframe::{
 use std::sync::Arc;
 
 use crate::effective_values::EffectiveValues;
-use crate::svg_animation::{AnimationInventory, is_animation_element};
+use crate::svg_animation::{AnimationError, AnimationInventory, is_animation_element};
 
 /// Which grammar entry retained the source.
 ///
@@ -379,6 +379,14 @@ pub enum CompileError {
     /// silently. (Scripts elsewhere on the page stay under the pinned
     /// first-SVG-only entry contract and the closed sampling inventory.)
     ScriptInCompiledSvg,
+    /// An animation element outside the closed sampling inventory. SMIL's
+    /// default `begin` is offset `0s`, so such an element is active the
+    /// moment Chromium loads the document: rendering its target's authored
+    /// state would be a wrong pixel, not a sampling gap. Strict refuses at
+    /// construction; best-effort skips the target and declares it. One that
+    /// cannot be attributed to a skippable element — an `href` retarget, a
+    /// root-`<svg>` target — refuses in both admissions, like `<script>`.
+    UnsupportedAnimation(AnimationError),
 }
 
 /// One retained, styled Web SVG source.
@@ -399,6 +407,11 @@ pub struct SvgFrameSource {
     /// entry only. Fixed at construction so every sample recompile resolves
     /// root sizing identically to Base.
     initial_viewport: Option<InitialViewport>,
+    /// Targets of load-active authored-state overrides, by node, with the
+    /// declared reason. Best-effort only, fixed at construction: Base and
+    /// every sample recompile leave these elements out identically, so a
+    /// skip is a property of the retained source, never of one view.
+    override_skips: HashMap<NodeId, String>,
 }
 
 impl std::fmt::Debug for SvgFrameSource {
@@ -505,7 +518,7 @@ impl SvgFrameSource {
         CascadeDriver::new(&mut session).style_document();
 
         let mut degradations = Vec::new();
-        let (svg_root, compilation, animation) = {
+        let (svg_root, compilation, animation, override_skips) = {
             let document = session.document();
             let root = document.root_element().ok_or(CompileError::NoSvgRoot)?;
             // xml5ever suspends its tokenizer at any <script> and the
@@ -552,15 +565,74 @@ impl SvgFrameSource {
             if entry == SourceEntry::InlineHtml && subtree_contains_script(svg) {
                 return Err(CompileError::ScriptInCompiledSvg);
             }
+            let mut walk_degradations = Vec::new();
             let compilation = compile_svg_element(
                 svg,
                 &EffectiveValues::base(),
                 mode,
-                &mut degradations,
+                &mut walk_degradations,
                 initial_viewport,
+                &HashMap::new(),
             )?;
             let animation = AnimationInventory::inspect(svg, &compilation.top_level_shapes, entry);
-            (svg.node_id(), compilation, animation)
+            // A beyond-inventory animation element is active at document
+            // load (SMIL defaults `begin` to offset 0s): Chromium paints
+            // the overridden value, so the target's authored state cannot
+            // render as the Base view. Strict refuses on the first, like
+            // any beyond-slice construct. One that cannot be attributed to
+            // a skippable element — an `href` retarget, a root-`<svg>`
+            // target — is document-level and refuses in both admissions,
+            // exactly as `<script>` does. Best-effort recompiles with the
+            // targets left out, so each becomes a declared hole in every
+            // view rather than a wrong pixel in any.
+            let (compilation, walk_degradations, override_skips) =
+                if let Some(first) = animation.overrides().first() {
+                    if mode == CompileMode::Strict {
+                        return Err(CompileError::UnsupportedAnimation(first.error().clone()));
+                    }
+                    if let Some(document_level) = animation
+                        .overrides()
+                        .iter()
+                        .find(|the_override| the_override.document_level())
+                    {
+                        return Err(CompileError::UnsupportedAnimation(
+                            document_level.error().clone(),
+                        ));
+                    }
+                    let override_skips: HashMap<NodeId, String> = animation
+                        .overrides()
+                        .iter()
+                        .map(|the_override| {
+                            (
+                                the_override.target(),
+                                format!(
+                                    "its authored state is overridden at document load by \
+                                     the unsupported animation at {}: {}",
+                                    the_override.error().path(),
+                                    the_override.error().reason()
+                                ),
+                            )
+                        })
+                        .collect();
+                    let mut declared = Vec::new();
+                    let compilation = compile_svg_element(
+                        svg,
+                        &EffectiveValues::base(),
+                        mode,
+                        &mut declared,
+                        initial_viewport,
+                        &override_skips,
+                    )
+                    .expect(
+                        "narrowing the walk with declared skips cannot change \
+                         document-level compilability",
+                    );
+                    (compilation, declared, override_skips)
+                } else {
+                    (compilation, walk_degradations, HashMap::new())
+                };
+            degradations.extend(walk_degradations);
+            (svg.node_id(), compilation, animation, override_skips)
         };
         if mode == CompileMode::BestEffort {
             for blocker in animation.blockers() {
@@ -581,6 +653,7 @@ impl SvgFrameSource {
             mode,
             degradations,
             initial_viewport,
+            override_skips,
         })
     }
 
@@ -651,13 +724,15 @@ impl SvgFrameSource {
         );
         // The degradation set is a property of the retained source, declared
         // once at construction; the sample recompile reproduces the same
-        // skips deterministically and its sink is discarded.
+        // skips — the walk's and the authored-state overrides' alike —
+        // deterministically, and its sink is discarded.
         let compilation = compile_svg_element(
             svg,
             &values,
             self.mode,
             &mut Vec::new(),
             self.initial_viewport,
+            &self.override_skips,
         )
         .expect("time changes effective values, not compilability of the retained source");
         Ok(compilation.frame)
@@ -736,6 +811,11 @@ impl std::fmt::Display for CompileError {
                 f,
                 "<script> inside the compiled inline SVG can rewrite the authored state \
                  the Base view renders, so it is refused in both admissions"
+            ),
+            CompileError::UnsupportedAnimation(error) => write!(
+                f,
+                "{error}; it is active at document load, so the authored state it \
+                 overrides cannot render as the Base view"
             ),
         }
     }
@@ -1297,6 +1377,7 @@ fn compile_svg_element(
     mode: CompileMode,
     degradations: &mut Vec<Degradation>,
     initial_viewport: Option<InitialViewport>,
+    override_skips: &HashMap<NodeId, String>,
 ) -> Result<FrameCompilation, CompileError> {
     // The outer <svg> is the canvas contract: a rendering attribute or a
     // cascaded value the slice cannot honor here would wrong every pixel,
@@ -1363,6 +1444,7 @@ fn compile_svg_element(
         values,
         mode,
         degradations,
+        override_skips,
         nodes: Vec::new(),
         top_level_shapes: Vec::new(),
         next_id: 0,
@@ -1410,6 +1492,11 @@ struct ChildWalk<'a> {
     values: &'a EffectiveValues,
     mode: CompileMode,
     degradations: &'a mut Vec<Degradation>,
+    /// Targets of load-active authored-state overrides, best-effort only —
+    /// non-empty exactly when the construction pass found attributable
+    /// overrides. The walk leaves each out and declares it here, where the
+    /// stable path and document order are known.
+    override_skips: &'a HashMap<NodeId, String>,
     nodes: Vec<FrameNode>,
     /// The materialized nodes that are direct children of the root `<svg>`
     /// — the animation inventory's candidate targets, which it narrows
@@ -1436,12 +1523,30 @@ impl ChildWalk<'_> {
                 *ordinal
             };
             let path = format!("{parent_path}/{tag}[{ordinal}]");
+            // The target of a load-active authored-state override: left out
+            // of the frame and declared here, where the walk knows its
+            // stable path — so override skips keep document order with
+            // every other skip. Strict never reaches this (it refuses the
+            // override at construction), and the reason names the animation
+            // element the inventory found.
+            if let Some(reason) = self.override_skips.get(&c.node_id()) {
+                self.degradations.push(Degradation {
+                    path,
+                    action: DegradationAction::Skipped,
+                    reason: reason.clone(),
+                });
+                child = c.next_element_sibling();
+                continue;
+            }
             // Non-rendering elements contribute no geometry and no hole:
             // `<style>`'s CSS enters the one cascade (csscascade collects
-            // it), `<title>`/`<desc>`/`<metadata>` are descriptive text
-            // Chromium never paints, and animation elements contribute
-            // values. Declaring any of them would report a hole where the
-            // browser also draws nothing.
+            // it), and `<title>`/`<desc>`/`<metadata>` are descriptive text
+            // Chromium never paints. An animation element paints nothing
+            // *itself* either — but it is never silently inert: the
+            // animation inventory owns it, admitting the one sampled
+            // `<animate>` and turning every other one into a construction
+            // refusal (strict) or a declared skip of its target
+            // (best-effort, the override map above).
             if is_non_rendering_element(&tag) || is_animation_element(&tag) {
                 child = c.next_element_sibling();
                 continue;
@@ -1521,7 +1626,7 @@ impl ChildWalk<'_> {
 /// they change what referencing elements paint — skipping one silently
 /// would change pixels — so they stay ordinary unsupported elements,
 /// declared by name until the rung that consumes them.
-fn is_non_rendering_element(tag: &str) -> bool {
+pub(crate) fn is_non_rendering_element(tag: &str) -> bool {
     matches!(tag, "style" | "title" | "desc" | "metadata")
 }
 

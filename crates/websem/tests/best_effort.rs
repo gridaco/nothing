@@ -34,11 +34,23 @@ const ADMITTED_ANIMATION: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" wid
   </rect>
 </svg>"##;
 
-const UNSUPPORTED_ANIMATION: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32" viewBox="0 0 64 32">
+const LOAD_ACTIVE_ANIMATION: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32" viewBox="0 0 64 32">
   <rect width="64" height="32" fill="#ffffff"/>
   <rect x="4" y="8" width="8" height="16" fill="#000000">
     <animate attributeName="y" from="8" to="16" dur="2s" fill="freeze"/>
   </rect>
+</svg>"##;
+
+const LOAD_ACTIVE_SET: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32" viewBox="0 0 64 32">
+  <rect width="64" height="32" fill="#ffffff"/>
+  <rect x="4" y="8" width="8" height="16" fill="#0000ff">
+    <set attributeName="fill" to="#ff0000"/>
+  </rect>
+</svg>"##;
+
+const DYNAMIC_SIDE_CHANNEL: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32" viewBox="0 0 64 32">
+  <rect width="64" height="32" fill="#ffffff"/>
+  <rect x="4" y="8" width="8" height="16" fill="#000000" onclick="window.a = 1"/>
 </svg>"##;
 
 #[derive(Debug, Deserialize)]
@@ -179,19 +191,20 @@ fn degradations_and_frames_are_deterministic() {
     assert_eq!(best.degradations().len(), 1, "the set does not grow");
 }
 
-/// A dynamic surface outside the closed sampling inventory resolves every
+/// A dynamic surface outside the closed sampling inventory — one that
+/// leaves the Base view honest, here an event handler — resolves every
 /// sample request to the Base view, declared once as `SamplesAsBase`.
-/// Strict refuses the same sample request.
+/// Strict compiles the same Base and refuses the same sample request.
 #[test]
 fn blocked_dynamic_surface_samples_as_base_and_declares_it() {
-    let strict = SvgFrameSource::from_standalone_svg(UNSUPPORTED_ANIMATION, host_viewport())
-        .expect("strict Base");
+    let strict = SvgFrameSource::from_standalone_svg(DYNAMIC_SIDE_CHANNEL, host_viewport())
+        .expect("strict Base: an event handler paints nothing at load");
     strict
         .sample_frame(SampleTime::ZERO)
-        .expect_err("strict sampling refuses the y animation");
+        .expect_err("strict sampling refuses the event handler");
 
     let best =
-        SvgFrameSource::from_standalone_svg_best_effort(UNSUPPORTED_ANIMATION, host_viewport())
+        SvgFrameSource::from_standalone_svg_best_effort(DYNAMIC_SIDE_CHANNEL, host_viewport())
             .expect("best-effort");
     let declared: Vec<_> = best
         .degradations()
@@ -199,13 +212,14 @@ fn blocked_dynamic_surface_samples_as_base_and_declares_it() {
         .filter(|d| d.action() == DegradationAction::SamplesAsBase)
         .collect();
     assert_eq!(declared.len(), 1, "declared exactly once");
-    assert_eq!(declared[0].path(), "svg/rect[2]/animate[1]");
+    assert_eq!(declared[0].path(), "svg/rect[2]");
     assert!(
-        declared[0].reason().contains("attributeName=\"x\""),
-        "the reason names the admitted subset: {}",
+        declared[0].reason().contains("event-handler"),
+        "the reason names the surface: {}",
         declared[0].reason()
     );
     let base = best.base_frame();
+    assert_eq!(base.nodes.len(), 2, "Base stays honest: both rects render");
     for nanoseconds in [0, 1_000_000_000, 2_500_000_000] {
         let sampled = best
             .sample_frame(SampleTime::from_nanoseconds(nanoseconds))
@@ -213,6 +227,65 @@ fn blocked_dynamic_surface_samples_as_base_and_declares_it() {
         assert_eq!(
             sampled, base,
             "Sample({nanoseconds}ns) equals the Base view"
+        );
+    }
+}
+
+/// A beyond-inventory animation element is active at document load (SMIL
+/// defaults `begin` to offset 0s): Chromium paints the overridden value, so
+/// the target's authored state never renders. Strict refuses at
+/// construction — not at sample time — and best-effort skips the target in
+/// every view, declared at the target's stable path with the animation
+/// element named. This is the law the recorded SMIL hole lacked: a Base
+/// render used to paint the authored state with exit 0 and no declaration.
+#[test]
+fn load_active_animation_never_renders_its_targets_authored_state() {
+    for (label, source, named) in [
+        (
+            "animate beyond the admitted attribute",
+            LOAD_ACTIVE_ANIMATION,
+            "attributeName=\"x\"",
+        ),
+        ("set on a consumed attribute", LOAD_ACTIVE_SET, "<set>"),
+    ] {
+        let strict = SvgFrameSource::from_standalone_svg(source, host_viewport())
+            .expect_err(&format!("{label}: strict refuses at construction"));
+        assert!(
+            matches!(strict, websem::CompileError::UnsupportedAnimation(_)),
+            "{label}: expected UnsupportedAnimation, got {strict}"
+        );
+        assert!(
+            strict.to_string().contains(named) && strict.to_string().contains("document load"),
+            "{label}: the refusal names the construct and the load-time law; got {strict}"
+        );
+
+        let best = SvgFrameSource::from_standalone_svg_best_effort(source, host_viewport())
+            .unwrap_or_else(|error| panic!("{label}: best-effort compiles: {error}"));
+        let base = best.base_frame();
+        assert_eq!(
+            base.nodes.len(),
+            1,
+            "{label}: the target is a declared hole; the backdrop still renders"
+        );
+        assert_eq!(best.degradations().len(), 1, "{label}");
+        assert_eq!(best.degradations()[0].action(), DegradationAction::Skipped);
+        assert_eq!(
+            best.degradations()[0].path(),
+            "svg/rect[2]",
+            "{label}: declared at the target's path"
+        );
+        assert!(
+            best.degradations()[0].reason().contains("document load")
+                && best.degradations()[0].reason().contains("svg/rect[2]/"),
+            "{label}: the reason names the law and the animation element; got {}",
+            best.degradations()[0].reason()
+        );
+        let sampled = best
+            .sample_frame(SampleTime::from_nanoseconds(1_000_000_000))
+            .expect("best-effort sampling never refuses a retained source");
+        assert_eq!(
+            sampled, base,
+            "{label}: the skip is a property of the source — every view shares it"
         );
     }
 }
@@ -439,8 +512,9 @@ fn a_basis_less_stroke_width_departs_by_name_from_every_ingress() {
 }
 
 /// Every beyond-inventory dynamic construct is declared — not just the
-/// first: multiple blockers each get their own `SamplesAsBase` entry, and
-/// they follow the skips (which stay in document order).
+/// first. Skips stay in document order, with a load-active animation's
+/// target among them; the sampling-only blockers follow as `SamplesAsBase`
+/// entries.
 #[test]
 fn every_dynamic_blocker_is_declared_and_ordering_holds() {
     let source = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32">
@@ -461,10 +535,17 @@ fn every_dynamic_blocker_is_declared_and_ordering_holds() {
         entries,
         vec![
             (DegradationAction::Skipped, "svg/polygon[1]"),
+            (DegradationAction::Skipped, "svg/rect[2]"),
             (DegradationAction::SamplesAsBase, "svg/rect[1]"),
-            (DegradationAction::SamplesAsBase, "svg/rect[2]/animate[1]"),
         ],
-        "skips first in document order, then every dynamic blocker"
+        "skips first in document order — the load-active animation's target \
+         among them — then every sampling-only blocker"
+    );
+    assert_eq!(
+        best.base_frame().nodes.len(),
+        1,
+        "the onclick rect renders (Base-honest); the polygon and the \
+         overridden rect are declared holes"
     );
     assert_eq!(
         best.sample_frame(SampleTime::from_nanoseconds(1_000_000_000))
@@ -558,6 +639,18 @@ fn document_level_contracts_refuse_in_both_modes() {
         (
             "malformed XML (recorded recovery: mismatched close tag)",
             r##"<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="4" height="4"></svg>"##,
+        ),
+        (
+            // The override reaches the whole canvas: no per-element hole
+            // can express it, so it refuses like <script> does.
+            "load-active animation targeting the root <svg>",
+            r##"<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><set attributeName="fill" to="#ff0000"/><rect width="4" height="4" fill="#0000ff"/></svg>"##,
+        ),
+        (
+            // href retargets by id, which this slice cannot resolve, so the
+            // override cannot be attributed to one skippable element.
+            "load-active animation retargeting through href",
+            r##"<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect id="hero" width="4" height="4" fill="#0000ff"/><rect x="4" width="4" height="4" fill="#000000"><set href="#hero" attributeName="fill" to="#ff0000"/></rect></svg>"##,
         ),
     ] {
         let strict = SvgFrameSource::from_standalone_svg(source, host_viewport())
