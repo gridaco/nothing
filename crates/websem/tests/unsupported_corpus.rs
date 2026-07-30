@@ -80,6 +80,17 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "preserveAspectRatio",
     ),
     (
+        "svg-smil-animate-transform",
+        DeclaredByBestEffort,
+        "animation element <animateTransform>",
+    ),
+    ("svg-smil-retarget-href", BothRefuse, "href"),
+    (
+        "svg-smil-set-load-active",
+        DeclaredByBestEffort,
+        "animation element <set>",
+    ),
+    (
         "svg-stroke-dasharray",
         DeclaredByBestEffort,
         "stroke-dasharray",
