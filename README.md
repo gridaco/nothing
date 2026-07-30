@@ -52,7 +52,7 @@ source bytes  (.svg | .html)
 
 Each stage owns one decision. `csscascade` resolves values and decides no
 meaning; `websem` decides what will and will not render, and never touches a
-canvas; `rframe` is a vocabulary whose value is what it *cannot* express; `n0`
+canvas; `rframe` is a vocabulary whose value is what it _cannot_ express; `n0`
 decides how to get pixels, never what they mean.
 
 Two pieces are borrowed on purpose. The cascade is **Stylo** — Firefox's style
@@ -136,7 +136,7 @@ correctness has earned the right to reuse.
 - **Reuse ≡ fresh.** Any frame produced with reuse is byte-identical to the same
   frame produced from scratch.
 - **The oracle is external.** Chromium, or declared consensus. Never this
-  engine's other half. Stylo bounds what can be *supported*; a gap there is a
+  engine's other half. Stylo bounds what can be _supported_; a gap there is a
   declared hole, never a wrong pixel.
 
 ## Why the Web first
@@ -172,14 +172,14 @@ foundation proven against an oracle that can grade it.
 
 The Web path — `csscascade` → `websem` → `rframe` → `n0`:
 
-| crate                                                         |                                                                    |
-| ------------------------------------------------------------- | ------------------------------------------------------------------ |
-| [`csscascade`](./crates/csscascade/README.md)                 | the Stylo bridge — one namespace-aware document, one cascade       |
-| [`websem`](./crates/websem/README.md)                         | the Web semantic compiler — what will and will not render          |
-| [`rframe`](./crates/rframe/README.md)                         | the resolved render contract — backend-free, provisional           |
-| [`animation-sampling`](./crates/animation-sampling/README.md) | the time axis — no ambient clock                                   |
-| [`n0`](./crates/n0/README.md) · [`n0-model`](./crates/n0-model/README.md) | the engine, and its skia-free model                     |
-| [`n0_cli`](./crates/n0_cli/README.md)                         | the `n0` binary                                                     |
+| crate                                                                     |                                                              |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [`csscascade`](./crates/csscascade/README.md)                             | the Stylo bridge — one namespace-aware document, one cascade |
+| [`websem`](./crates/websem/README.md)                                     | the Web semantic compiler — what will and will not render    |
+| [`rframe`](./crates/rframe/README.md)                                     | the resolved render contract — backend-free, provisional     |
+| [`animation-sampling`](./crates/animation-sampling/README.md)             | the time axis — no ambient clock                             |
+| [`n0`](./crates/n0/README.md) · [`n0-model`](./crates/n0-model/README.md) | the engine, and its skia-free model                          |
+| [`n0_cli`](./crates/n0_cli/README.md)                                     | the `n0` binary                                              |
 
 The v1 engine and its satellites: `grida`, `htmlcss`, `cg`, `grida_editor`,
 `grida-canvas-wasm`, `grida_dev`, `grida_wpt`. Foundations: `math2`, `fonts`.
