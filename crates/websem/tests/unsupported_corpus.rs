@@ -41,6 +41,38 @@ use Departure::{BothRefuse, DeclaredByBestEffort};
 /// construct itself — a refusal that stopped naming what it refused would pass
 /// a bare "does it error" check and fail this one.
 const CORPUS: &[(&str, Departure, &str)] = &[
+    (
+        "svg-anchor",
+        DeclaredByBestEffort,
+        "unsupported element <a>",
+    ),
+    ("svg-clip-path", DeclaredByBestEffort, "<clipPath>"),
+    (
+        "svg-css-transform-property",
+        DeclaredByBestEffort,
+        "transform",
+    ),
+    ("svg-display-none", DeclaredByBestEffort, "display"),
+    ("svg-element-opacity", DeclaredByBestEffort, "opacity"),
+    ("svg-fill-opacity", DeclaredByBestEffort, "fill-opacity"),
+    ("svg-filter", DeclaredByBestEffort, "<filter>"),
+    (
+        "svg-foreign-object",
+        DeclaredByBestEffort,
+        "<foreignObject>",
+    ),
+    (
+        "svg-gradient-paint-server",
+        DeclaredByBestEffort,
+        "<linearGradient>",
+    ),
+    ("svg-image", DeclaredByBestEffort, "<image>"),
+    ("svg-mask", DeclaredByBestEffort, "<mask>"),
+    (
+        "svg-nested-svg",
+        DeclaredByBestEffort,
+        "unsupported element <svg>",
+    ),
     ("svg-path-arc", DeclaredByBestEffort, "path command A"),
     (
         "svg-path-css-d-property",
@@ -65,6 +97,21 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "invalid at byte 1",
     ),
     (
+        "svg-pattern-paint-server",
+        DeclaredByBestEffort,
+        "<pattern>",
+    ),
+    (
+        "svg-polygon",
+        DeclaredByBestEffort,
+        "unsupported element <polygon>",
+    ),
+    (
+        "svg-polyline",
+        DeclaredByBestEffort,
+        "unsupported element <polyline>",
+    ),
+    (
         "svg-preserve-aspect-ratio-case-folded",
         BothRefuse,
         "preserveAspectRatio",
@@ -79,6 +126,8 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         BothRefuse,
         "preserveAspectRatio",
     ),
+    ("svg-rect-percentage-geometry", DeclaredByBestEffort, "50%"),
+    ("svg-rect-rounded", DeclaredByBestEffort, "rx"),
     (
         "svg-smil-animate-transform",
         DeclaredByBestEffort,
@@ -116,9 +165,22 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "vector-effect",
     ),
+    ("svg-switch", DeclaredByBestEffort, "<switch>"),
+    (
+        "svg-text",
+        DeclaredByBestEffort,
+        "unsupported element <text>",
+    ),
+    (
+        "svg-translucent-fill",
+        DeclaredByBestEffort,
+        "unsupported fill",
+    ),
+    ("svg-use", DeclaredByBestEffort, "unsupported element <use>"),
     ("svg-viewbox-invalid-token", BothRefuse, "viewBox"),
     ("svg-viewbox-repeated-comma", BothRefuse, "viewBox"),
     ("svg-viewbox-trailing-comma", BothRefuse, "viewBox"),
+    ("svg-visibility-hidden", DeclaredByBestEffort, "visibility"),
     ("svg-width-percentage", BothRefuse, "percentage width"),
 ];
 
