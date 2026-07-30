@@ -64,6 +64,15 @@ read it before starting work.
 
 ## Phases
 
+> **Read the phase table through the amendment below.** The ratified
+> [Web-First Amendment](./web-first.md) supersedes the legacy-adapter
+> routes in Phases 3–4 where they conflict, and D-N (2026-07-24) routed
+> SVG — static and animated — through the Web semantic path rather than
+> Phase 3's import-IR-plus-packer route. Phase 3's *import-to-document*
+> lane (SVG as authored, editable nodes) is deferred, not dead; its
+> render-route reading is superseded. The active capability sequence is
+> the amendment's row table.
+
 | # | Phase | Goal | Entry gate | Exit gate |
 |---|---|---|---|---|
 | 0 | **Land + arm** | n0 on main; [gridaco/nothing#5](https://github.com/gridaco/nothing/pull/5)'s one-time proofs become permanent required CI checks; sequencing declared where eager extractions will see it | Owner GO on gridaco/nothing#5; CI green on the tip | gridaco/nothing#5 merged `--no-ff`; CI arming PR landed (pixel-sweep subset declared, seam arch tests, lock-additions-only, wasm build, CI-hosted v2 gate baselines); every decision below filed as a tracked issue; the two long-pole docs lanes started (anchor-spec WG graduation; htmlcss font-provider study) |
@@ -96,6 +105,17 @@ land merely because its implementation exists.
 | 5 | **Page composition** — the article, landing, and docs fixtures render as complete documents | CSS box/layout exit | All three page fixtures meet their declared Chromium reftest floors, with content masks and font-fragile data assertions recorded rather than hidden by thresholds |
 
 ## First three PRs after merge
+
+> **Discharged.** All three landed — CI arming as
+> [gridaco/nothing#46](https://github.com/gridaco/nothing/pull/46), the
+> cg crate cut as
+> [gridaco/nothing#59](https://github.com/gridaco/nothing/pull/59), the
+> scoreboard v0 as
+> [gridaco/nothing#60](https://github.com/gridaco/nothing/pull/60) —
+> with one carried obligation still open: registering the armed
+> workflows as *required* checks on the `main` ruleset. Position lives
+> on [gridaco/nothing#43](https://github.com/gridaco/nothing/issues/43);
+> the list stays as the route record it was.
 
 1. **CI arming** — promote gridaco/nothing#5's proof machinery into required main checks;
    host the v2 gate baselines in CI (retiring the machine-local baselines
