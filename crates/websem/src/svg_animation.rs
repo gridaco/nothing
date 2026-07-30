@@ -59,14 +59,55 @@ impl std::fmt::Display for AnimationError {
 
 impl std::error::Error for AnimationError {}
 
+/// One beyond-inventory animation element, classified by what it distorts.
+///
+/// SMIL timing defaults `begin` to offset `0s`, so an animation element is
+/// active the moment Chromium loads the document: the authored state of its
+/// target is overridden *at load*, before any sample is requested. A Base
+/// render of the authored state would therefore be a silent wrong pixel —
+/// not a sampling gap — so the finding lands against the target element,
+/// which the compiler leaves out of every view and declares by name.
+#[derive(Debug)]
+pub(crate) struct AuthoredOverride {
+    error: AnimationError,
+    /// The element whose authored state the animation overrides — its
+    /// parent, the SMIL default target. The compiled views skip it.
+    target: NodeId,
+    /// The override cannot be attributed to one skippable element: it
+    /// carries `href` (retargeting needs id resolution this slice does not
+    /// own) or it targets the root `<svg>` (the override reaches the whole
+    /// canvas). Document-level, like `<script>`: both admissions refuse.
+    document_level: bool,
+}
+
+impl AuthoredOverride {
+    pub(crate) fn error(&self) -> &AnimationError {
+        &self.error
+    }
+
+    pub(crate) const fn target(&self) -> NodeId {
+        self.target
+    }
+
+    pub(crate) const fn document_level(&self) -> bool {
+        self.document_level
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct AnimationInventory {
     has_animation_elements: bool,
     plan: Option<RectXAnimation>,
     /// Every recorded reason the closed dynamic inventory rejects this
-    /// source, in inspection order. Strict sampling refuses with the first;
-    /// best-effort declares each one.
+    /// source's *sampling*, in inspection order — dynamic surfaces (event
+    /// handlers, CSS animation carriers) that leave the Base view honest.
+    /// Strict sampling refuses with the first; best-effort declares each
+    /// one and resolves samples to Base.
     blockers: Vec<AnimationError>,
+    /// Beyond-inventory animation elements, active at load in Chromium:
+    /// these distort Base itself, not just sampling. Strict refuses at
+    /// construction; best-effort skips each target and declares it.
+    overrides: Vec<AuthoredOverride>,
 }
 
 impl AnimationInventory {
@@ -80,6 +121,7 @@ impl AnimationInventory {
             animation_count: 0,
             plan: None,
             errors: Vec::new(),
+            overrides: Vec::new(),
         };
         inspector.inspect_dynamic_surface(svg, "svg");
         inspector.walk_children(svg, "svg", 0);
@@ -93,6 +135,7 @@ impl AnimationInventory {
             has_animation_elements: inspector.animation_count != 0,
             plan: inspector.plan,
             blockers: inspector.errors,
+            overrides: inspector.overrides,
         }
     }
 
@@ -101,10 +144,18 @@ impl AnimationInventory {
     }
 
     /// Every recorded reason the closed dynamic inventory rejects this
-    /// source — the facts the best-effort mode declares when it resolves
-    /// every sample request to the Base view instead.
+    /// source's sampling — the facts the best-effort mode declares when it
+    /// resolves every sample request to the Base view instead. The Base
+    /// view stays honest under each of these; contrast [`Self::overrides`].
     pub(crate) fn blockers(&self) -> &[AnimationError] {
         &self.blockers
+    }
+
+    /// Every beyond-inventory animation element, active at load in
+    /// Chromium, whose target's authored state therefore cannot render as
+    /// the Base view.
+    pub(crate) fn overrides(&self) -> &[AuthoredOverride] {
+        &self.overrides
     }
 
     /// Resolve one frame request's animated contribution into the
@@ -155,6 +206,7 @@ struct Inspector {
     animation_count: usize,
     plan: Option<RectXAnimation>,
     errors: Vec<AnimationError>,
+    overrides: Vec<AuthoredOverride>,
 }
 
 impl Inspector {
@@ -182,20 +234,34 @@ impl Inspector {
             if is_animation_element(&tag) {
                 self.animation_count += 1;
                 if self.animation_count > 1 {
-                    self.record_error(AnimationError::new(
-                        &path,
-                        "the proving slice admits at most one animation element",
-                    ));
+                    self.record_animation_finding(
+                        AnimationError::new(
+                            &path,
+                            "the proving slice admits at most one animation element",
+                        ),
+                        element,
+                        parent,
+                        parent_path,
+                    );
                 } else if tag == "animate" {
                     match self.compile_animate(element, parent, &path) {
                         Ok(plan) => self.plan = Some(plan),
-                        Err(error) => self.record_error(error),
+                        Err(error) => {
+                            self.record_animation_finding(error, element, parent, parent_path);
+                        }
                     }
                 } else {
-                    self.record_error(AnimationError::new(
-                        &path,
-                        format!("animation element <{tag}> is outside the rect-x proving slice"),
-                    ));
+                    self.record_animation_finding(
+                        AnimationError::new(
+                            &path,
+                            format!(
+                                "animation element <{tag}> is outside the rect-x proving slice"
+                            ),
+                        ),
+                        element,
+                        parent,
+                        parent_path,
+                    );
                 }
             } else {
                 self.walk_children(element, &path, depth + 1);
@@ -342,6 +408,67 @@ impl Inspector {
     fn record_error(&mut self, error: AnimationError) {
         self.errors.push(error);
     }
+
+    /// Classify one beyond-inventory animation element.
+    ///
+    /// SMIL's default `begin` is offset `0s`, so the element is active when
+    /// Chromium loads the document — it distorts the Base view, not just
+    /// sampling. The finding lands as an [`AuthoredOverride`] against its
+    /// SMIL default target (the parent), unless nothing renderable is
+    /// targeted: an animation element under a non-rendering parent can
+    /// distort no pixel the compiler paints, so sampling stays the only
+    /// surface it blocks.
+    fn record_animation_finding(
+        &mut self,
+        error: AnimationError,
+        element: HtmlElement<'_>,
+        parent: HtmlElement<'_>,
+        parent_path: &str,
+    ) {
+        if crate::svg::is_non_rendering_element(&parent.local_name_string()) {
+            self.errors.push(error);
+            return;
+        }
+        let carries_href = has_href(element);
+        let targets_root = parent_path == "svg";
+        let error = if carries_href {
+            AnimationError::new(
+                error.path(),
+                format!(
+                    "{}; it carries href, so its target cannot be attributed to one \
+                     element without id resolution",
+                    error.reason()
+                ),
+            )
+        } else if targets_root {
+            AnimationError::new(
+                error.path(),
+                format!(
+                    "{}; it targets the root <svg>, so the override reaches the whole canvas",
+                    error.reason()
+                ),
+            )
+        } else {
+            error
+        };
+        self.overrides.push(AuthoredOverride {
+            error,
+            target: parent.node_id(),
+            document_level: carries_href || targets_root,
+        });
+    }
+}
+
+/// Whether the animation element carries an `href` (or `xlink:href`)
+/// retargeting attribute, in any namespace: SMIL resolves it to an
+/// arbitrary element by id, which this slice cannot follow.
+fn has_href(element: HtmlElement<'_>) -> bool {
+    let DemoNodeData::Element(data) = &element.dom_node().data else {
+        unreachable!("HtmlElement always wraps element data");
+    };
+    data.attrs
+        .iter()
+        .any(|attribute| attribute.name.local.as_ref() == "href")
 }
 
 pub(crate) fn is_animation_element(tag: &str) -> bool {

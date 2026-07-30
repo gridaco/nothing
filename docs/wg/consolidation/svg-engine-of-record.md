@@ -33,7 +33,13 @@ from eight addenda:
 - **The host renders best-effort by default.** The admitted subset renders and
   every construct outside it is declared on stderr with a node path and a
   reason. `--strict` refuses on the first one instead, and is the harness that
-  names the slice's edge. Document-level contracts refuse in both.
+  names the slice's edge. Document-level contracts refuse in both — including
+  a load-active animation element that cannot be attributed to one skippable
+  element (an `href` retarget, a root-`<svg>` target). A beyond-inventory
+  animation element with an attributable target skips that target in every
+  view, declared; it never renders the authored state Chromium overrides at
+  load (the addendum below closed this — it was the register's one recorded
+  silent wrong pixel).
 - **The admitted slice** is `<rect>`, `<circle>`, `<ellipse>`, `<path>` and
   `<line>`, filled and stroked; `<g>` and the whole `transform` grammar;
   viewBox-only root sizing with the full `preserveAspectRatio` grammar; and one
@@ -784,3 +790,72 @@ half of the trigger and never both at once.
 `svg-scene-cub` is now byte-exact at 48x48 as well as at 96x96, and the declared
 AA departure stays exactly where the strokes rung left it — the weighted
 rational conic alone.
+
+## Addendum — the load-active SMIL hole, closed (2026-07-30)
+
+The finding recorded at the paths rung — *a SMIL `<animate>`/`<set>` targeting
+a consumed attribute is active at load in Chromium, which paints the animated
+value, while a Base render paints the authored attribute and declares
+nothing* — is closed. Measured before the fix, the hole was wider than the
+record stated: the host's Base-time degradation filter also swallowed the
+`SamplesAsBase` declaration the library did emit, so
+`<set attributeName="fill" to="red"/>` rendered the authored fill at exit 0
+with **zero declarations in both admissions**, `--strict` included, while
+Chromium paints red. The refusal corpus had no SMIL row, so no gate could
+notice.
+
+The fix is a classification, not a patch over the filter. The sampling
+inventory's findings now split by what they distort:
+
+- **Sampling-only blockers** — dynamic surfaces that leave the Base view
+  honest: event handlers, CSS animation carriers, `<style>` sheets, the
+  inline-HTML entry block. Unchanged: Base renders, strict refuses the
+  sample request, best-effort declares `SamplesAsBase` and resolves samples
+  to Base. Everything the host's Base-time filter hides is now genuinely
+  Base-inert, so the filter stands as written.
+- **Authored-state overrides** — beyond-inventory animation elements. SMIL
+  defaults `begin` to offset `0s`, so each is active the moment Chromium
+  loads the document: the target's authored state never honestly renders.
+  Strict refuses at construction, like any beyond-slice construct.
+  Best-effort recompiles with the SMIL default target (the parent) left
+  out of the frame — a declared hole at the target's stable path, in every
+  view, never a wrong pixel in any. An override that cannot be attributed
+  to one skippable element — an `href` retarget (id resolution is not
+  owned), a root-`<svg>` target (the override reaches the whole canvas) —
+  refuses in both admissions, exactly as `<script>` does.
+
+**A deliberate departure from the recorded remedy.** The paths-rung note
+sketched "declare it, keeping Base as the authored state while telling the
+caller the browser would paint something else." That would render a value
+Chromium does not paint, annotated — a declared *wrong pixel*, which the
+first law does not recognize as a category. The attribute patrol set the
+precedent: an admitted element carrying an unconsumed rendering attribute is
+skipped, not painted-with-a-note; painting-with-a-note is reserved for the
+one construct that is genuinely unattributable (a stylesheet, absent
+selector matching). An attributable SMIL override follows the attribute
+precedent.
+
+**Named over-refusals, kept.** The inventory owns no per-element
+applicability model, so `<animate attributeName="x">` under a `<circle>` —
+inert in Chromium, since `x` does not apply — still skips the circle: a
+declared hole where Chromium paints, preferred to the model the slice does
+not own. Likewise a `begin`-conditioned animation (`begin="click"`,
+`begin="2s"`) skips its target although Chromium's load-time picture shows
+the authored state; SMIL timing beyond the admitted `dur`/`fill=freeze`
+shape is the future animation rungs' business, and `animation-sampling`
+already models more than this front-end admits.
+
+**What remains open, now named.** The admitted `<animate attributeName="x">`
+keeps its corpus-pinned Base semantics: Base is the static *projection*
+(the animation contributes nothing), baked as `base-static-projection`
+cells against a Chromium document with the animation stripped, and "Base is
+not shorthand for Sample(0)" stays a law. The divergence between that
+projection and Chromium's load-time picture of the *animated* document is
+a documented, gated semantic for the one admitted element — no longer a
+silent one for every other.
+
+Three refusal-corpus rows gate the closure (`svg-smil-set-load-active`,
+`svg-smil-animate-transform`, `svg-smil-retarget-href`), and the laws that
+pinned the defective behavior moved with it
+(`crates/websem/tests/best_effort.rs`,
+`crates/websem/tests/svg_animation_x.rs`, the groups and shapes contracts).

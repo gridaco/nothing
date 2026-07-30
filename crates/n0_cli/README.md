@@ -54,7 +54,13 @@ cargo run -p n0_cli --bin n0 -- \
   default admission is **best-effort**: the admitted subset renders and
   every beyond-slice construct is declared on stderr with its node path and
   reason (`degraded: skipped svg/polygon[1]: unsupported element <polygon>`);
-  a beyond-inventory dynamic surface samples as the Base view. Declared
+  a beyond-inventory dynamic surface that leaves the Base view honest (an
+  event handler, a CSS animation carrier) samples as the Base view, while a
+  beyond-inventory _animation element_ — active at document load in
+  Chromium, so its target's authored state never honestly renders — skips
+  its target in every view, declared at the target's path (one that cannot
+  be attributed to a skippable element, an `href` retarget or a
+  root-`<svg>` target, refuses in both admissions like `<script>`). Declared
   holes, never guessed pixels — the patrol is per attribute and per
   cascaded property, so an admitted element carrying a rendering attribute
   or stylesheet value the slice does not consume becomes a declared hole,

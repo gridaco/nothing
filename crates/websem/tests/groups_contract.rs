@@ -460,12 +460,15 @@ fn container_nesting_beyond_the_bound_refuses() {
     );
 }
 
-/// An `<animate>` under a shape nested in a container stays a declared
-/// blocker: the sampling inventory's candidate set is the root's own
-/// materialized rects, and admitting overrides deeper would widen the
-/// slice past what the animation corpus bakes.
+/// An `<animate>` under a shape nested in a container stays outside the
+/// sampling inventory: the candidate set is the root's own materialized
+/// rects, and admitting overrides deeper would widen the slice past what
+/// the animation corpus bakes. Being outside the inventory, it is a
+/// load-active authored-state override like any other — strict refuses at
+/// construction, and best-effort skips the nested target at its nested
+/// path, in every view.
 #[test]
-fn animate_inside_a_container_stays_a_declared_blocker() {
+fn animate_inside_a_container_is_a_load_active_override() {
     let source = document(
         r##"  <g>
     <rect x="4" y="8" width="8" height="16" fill="#000000">
@@ -474,20 +477,31 @@ fn animate_inside_a_container_stays_a_declared_blocker() {
   </g>"##,
     );
     let strict = SvgFrameSource::from_standalone_svg(source.as_str(), viewport(64.0, 64.0))
-        .expect("strict Base compiles");
-    strict
-        .sample_frame(animation_sampling::SampleTime::ZERO)
-        .expect_err("strict sampling refuses");
+        .expect_err("strict refuses the override at construction");
+    assert!(
+        strict.to_string().contains("materialized top-level <rect>"),
+        "the refusal carries the inventory's reason; got {strict}"
+    );
 
     let best =
         SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
             .expect("best-effort");
+    assert_eq!(
+        best.base_frame().nodes.len(),
+        0,
+        "the nested target is a declared hole"
+    );
     let declared: Vec<_> = best
         .degradations()
         .iter()
-        .filter(|d| d.action() == DegradationAction::SamplesAsBase)
+        .filter(|d| d.action() == DegradationAction::Skipped)
         .collect();
     assert_eq!(declared.len(), 1);
+    assert_eq!(
+        declared[0].path(),
+        "svg/g[1]/rect[1]",
+        "declared at the target's nested path"
+    );
     assert!(
         declared[0]
             .reason()
@@ -499,8 +513,9 @@ fn animate_inside_a_container_stays_a_declared_blocker() {
         best.sample_frame(animation_sampling::SampleTime::from_nanoseconds(
             1_000_000_000
         ))
-        .expect("samples as base"),
-        best.base_frame()
+        .expect("best-effort sampling never refuses a retained source"),
+        best.base_frame(),
+        "every view shares the skip"
     );
 }
 

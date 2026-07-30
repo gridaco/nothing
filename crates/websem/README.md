@@ -44,9 +44,12 @@ what it refuses; this table is the compiler's map, not a second copy of it.
 **Strict** refuses on the first construct outside the slice — the harness that
 names the edge. **Best-effort**, the product default, compiles what it admits
 and declares everything else as a named degradation: a subtree construct is
-skipped by name at a stable path, a blocked dynamic surface resolves every
-sample to Base. Where nothing degrades the two are frame-identical, and a law
-checks that over the whole corpus.
+skipped by name at a stable path, a blocked dynamic surface that leaves Base
+honest resolves every sample to Base, and a beyond-inventory animation element
+— active at document load, so its target's authored state never honestly
+renders — skips its target in every view, declared at the target's path.
+Where nothing degrades the two are frame-identical, and a law checks that
+over the whole corpus.
 
 Neither mode ever guesses a pixel. That is the invariant the patrols exist for:
 a construct the compiler cannot honour must refuse loudly or be declared, and a

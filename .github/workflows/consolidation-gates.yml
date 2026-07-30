@@ -151,6 +151,14 @@ jobs:
             --test svg_architecture
           cargo test --locked -p n0_cli --test architecture
 
+      - name: Run the n0-path architecture locks
+        env:
+          FORCE_SKIA_BINARIES_DOWNLOAD: "1"
+        run: |
+          cargo test --locked -p websem --test architecture
+          cargo test --locked -p rframe --test architecture
+          cargo test --locked -p n0 --test architecture
+
   legacy_pixel_sweep:
     name: legacy pixel sweep
     needs: scope

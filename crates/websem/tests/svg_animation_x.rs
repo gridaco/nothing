@@ -508,8 +508,16 @@ fn chassis_damage_observes_the_same_stable_animated_visual() {
     }
 }
 
+/// A beyond-inventory animation element is active at document load, so its
+/// target's authored state never renders as the Base view. Strict refuses
+/// at construction with the inventory's reason; best-effort compiles, skips
+/// the target in every view, and declares it at the target's stable path.
+/// (This law replaced `unsupported_animation_is_retained_for_base_and_
+/// refused_for_sample`, which pinned the recorded SMIL hole: Base rendered
+/// the authored state with nothing declared while Chromium painted the
+/// overridden value.)
 #[test]
-fn unsupported_animation_is_retained_for_base_and_refused_for_sample() {
+fn load_active_animation_refuses_at_construction_and_skips_by_declaration() {
     const CASES: &[(&str, &str)] = &[
         (
             r#"<animate attributeName="y" from="1" to="2" dur="1s" fill="freeze"/>"#,
@@ -543,26 +551,42 @@ fn unsupported_animation_is_retained_for_base_and_refused_for_sample() {
                  <rect x="4" y="4" width="4" height="4">{markup}</rect>
                </svg>"#
         );
-        let source =
-            SvgFrameSource::from_standalone_svg(svg, host_viewport()).expect("Base materializes");
-        assert!(source.has_animation_elements());
-        assert_eq!(probe_single_x(&source.base_frame()), 4.0);
-        let error = source
-            .sample_frame(SampleTime::ZERO)
-            .expect_err("unsupported animation must refuse the whole sample");
+
+        let error = SvgFrameSource::from_standalone_svg(svg.clone(), host_viewport())
+            .expect_err("a load-active animation must refuse strict construction");
         assert!(
-            error.reason().contains(expected),
+            matches!(error, websem::CompileError::UnsupportedAnimation(_)),
+            "expected UnsupportedAnimation, got {error}"
+        );
+        assert!(
+            error.to_string().contains(expected),
             "expected {expected:?}, got {error}"
         );
         assert!(
-            matches!(
-                error.path(),
-                "svg/rect[1]/animate[1]"
-                    | "svg/rect[1]/animateTransform[1]"
-                    | "svg/rect[1]/animateColor[1]"
-            ),
-            "unexpected structural path: {}",
-            error.path()
+            error.to_string().contains("svg/rect[1]/animate"),
+            "the refusal names the structural path; got {error}"
+        );
+
+        let best = SvgFrameSource::from_standalone_svg_best_effort(svg, host_viewport())
+            .expect("best-effort compiles, skipping the target");
+        assert!(best.has_animation_elements());
+        assert_eq!(
+            best.base_frame().nodes.len(),
+            0,
+            "the target is a declared hole in the Base view"
+        );
+        assert_eq!(best.degradations().len(), 1);
+        assert_eq!(best.degradations()[0].path(), "svg/rect[1]");
+        assert!(
+            best.degradations()[0].reason().contains(expected),
+            "the declaration carries the inventory's reason; got {}",
+            best.degradations()[0].reason()
+        );
+        assert_eq!(
+            best.sample_frame(SampleTime::ZERO)
+                .expect("best-effort sampling never refuses a retained source"),
+            best.base_frame(),
+            "every view shares the skip"
         );
     }
 }

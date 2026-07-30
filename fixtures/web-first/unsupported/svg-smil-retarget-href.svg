@@ -1,0 +1,1 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect id="hero" x="8" y="8" width="24" height="24" fill="#0000ff"/><rect x="40" y="8" width="16" height="16" fill="#000000"><set href="#hero" attributeName="fill" to="#ff0000"/></rect></svg>

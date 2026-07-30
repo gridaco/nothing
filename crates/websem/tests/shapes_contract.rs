@@ -599,11 +599,15 @@ fn inert_css_sizing_on_the_new_shapes_admits() {
     }
 }
 
-/// `<animate>` under a circle stays a declared dynamic blocker: the
-/// sampling inventory is the rect-x proving slice, and a materialized
-/// circle must not silently admit an override no shape read consumes.
+/// `<animate>` under a circle stays outside the sampling inventory: the
+/// slice is rect-x, and a materialized circle must not silently admit an
+/// override no shape read consumes. Outside the inventory it is treated as
+/// a load-active override — a deliberate over-refusal here, since `x` does
+/// not apply to a circle and Chromium ignores it, but the inventory owns no
+/// per-element applicability model and a declared hole is never a wrong
+/// pixel.
 #[test]
-fn animate_under_a_circle_stays_a_declared_blocker() {
+fn animate_under_a_circle_is_a_load_active_override() {
     let source = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
   <rect width="64" height="64" fill="#ffffff"/>
   <circle cx="32" cy="32" r="12" fill="#16a34a">
@@ -611,32 +615,37 @@ fn animate_under_a_circle_stays_a_declared_blocker() {
   </circle>
 </svg>"##;
     let strict = SvgFrameSource::from_standalone_svg(source, viewport(64.0, 64.0))
-        .expect("strict Base compiles");
-    strict
-        .sample_frame(animation_sampling::SampleTime::ZERO)
-        .expect_err("strict sampling refuses the blocked surface");
+        .expect_err("strict refuses the override at construction");
+    assert!(
+        strict.to_string().contains("materialized top-level <rect>"),
+        "the refusal names the narrow slice: {strict}"
+    );
 
     let best = SvgFrameSource::from_standalone_svg_best_effort(source, viewport(64.0, 64.0))
         .expect("best-effort");
+    assert_eq!(
+        best.base_frame().nodes.len(),
+        1,
+        "the circle is a declared hole; the backdrop renders"
+    );
     let declared: Vec<_> = best.degradations().iter().collect();
     assert_eq!(declared.len(), 1);
-    assert_eq!(
-        declared[0].action(),
-        websem::DegradationAction::SamplesAsBase
-    );
+    assert_eq!(declared[0].action(), websem::DegradationAction::Skipped);
+    assert_eq!(declared[0].path(), "svg/circle[1]");
     assert!(
         declared[0]
             .reason()
             .contains("materialized top-level <rect>"),
-        "the blocker names the narrow slice: {}",
+        "the declaration names the narrow slice: {}",
         declared[0].reason()
     );
     assert_eq!(
         best.sample_frame(animation_sampling::SampleTime::from_nanoseconds(
             1_000_000_000
         ))
-        .expect("samples as base"),
-        best.base_frame()
+        .expect("best-effort sampling never refuses a retained source"),
+        best.base_frame(),
+        "every view shares the skip"
     );
 }
 

@@ -139,9 +139,12 @@ What is true right now, so a session does not infer it from ambition.
   artifact in the tree is the frozen v1 wasm package.
 - **There is no n0 WebAssembly target.** `grida-canvas-wasm` binds
   `crates/grida` only. The v2 port is priced work, not an assumption.
-- **Taffy is the layout engine.** A house-built layout engine is a stated goal,
-  not a current fact. The wall that would force it is browser-grade intrinsic
-  sizing across a namespace-aware tree — not flex.
+- **Taffy is the layout engine — where layout exists.** It sits in `htmlcss`,
+  `grida`, and `n0-model` only; the Web-first render path
+  (`websem → rframe → n0`) runs no layout of any kind today, and `n0-model`'s
+  resolve tier is never called on it. A house-built layout engine is a stated
+  goal, not a current fact. The wall that would force it is browser-grade
+  intrinsic sizing across a namespace-aware tree — not flex.
 - **No conformance score may be produced or inspected.** The FLIP rule is
   unratified ([gridaco/nothing#49](https://github.com/gridaco/nothing/issues/49)).
   A corpus may be described; results may not be scored, aggregated, or presented
