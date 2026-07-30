@@ -4,7 +4,7 @@
   "browser_version": "149.0.7827.55",
   "bake_script_sha256": "373cbea5476067163b6f8ebfc90eb49b7f49ae7758be0916d34db906399e1d5e",
   "suite": "primitives.json",
-  "suite_sha256": "bab58f00f10b4c9deef5da2b1aeedb28e9314740ef23760102783fcb85ec575c",
+  "suite_sha256": "36ee4810041d720881f3d6312a6c48012b99abafe0776bac76642b78c2ab2d85",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -708,6 +708,78 @@
       "source_sha256": "c0daf86ff41346af103a53f29cd8e310ff677300f94787a7f7db86b718ca82a3",
       "oracle": "chromium/svg-stroke-zero-width.png",
       "oracle_sha256": "1502272898b22a79c129dc16ab37a1280c353a18767753769bc82532dddd72a7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-trailing-comma",
+      "source": "svg-points-trailing-comma.svg",
+      "source_sha256": "920019095f23ae52494f5f0802ec9fad1009c553ad866e40cff8691061ec0399",
+      "oracle": "chromium/svg-points-trailing-comma.png",
+      "oracle_sha256": "5b5132bf617615a31e67d39a29adbc44c04527f054148708a2411b4da408f37c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-polygon-fill",
+      "source": "svg-polygon-fill.svg",
+      "source_sha256": "02435d330161c01651c9a5a480f70edbe75f90bbc0d09219ff609bc9275aa5d2",
+      "oracle": "chromium/svg-polygon-fill.png",
+      "oracle_sha256": "5b5132bf617615a31e67d39a29adbc44c04527f054148708a2411b4da408f37c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-polygon-fill-rule-evenodd",
+      "source": "svg-polygon-fill-rule-evenodd.svg",
+      "source_sha256": "e22f248eaa24df0d78eea39edcd06b2c0ceed8301dfbc500a0eb113f8c295c4c",
+      "oracle": "chromium/svg-polygon-fill-rule-evenodd.png",
+      "oracle_sha256": "a41a03423a872ba134db46f8a660a3da5b56702e5b2be1442703c15277776b07",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-polygon-single-point-square-cap",
+      "source": "svg-polygon-single-point-square-cap.svg",
+      "source_sha256": "af07f1b0d7d4d7cbadebe7378e6c27fa16b2eafc14dd827ffd7170e6d4bbcb2c",
+      "oracle": "chromium/svg-polygon-single-point-square-cap.png",
+      "oracle_sha256": "8cd6b6dd7dc97012ba26965e1b9d119efa44acab09c116e0f90f762ce3f92cd2",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-polygon-stroke-closed",
+      "source": "svg-polygon-stroke-closed.svg",
+      "source_sha256": "509cb29d01c808c9007e09a251cf1410d61d61deb3b7cfc93abf3ce203d7aa25",
+      "oracle": "chromium/svg-polygon-stroke-closed.png",
+      "oracle_sha256": "f631d05251271391d8badb96fe542c873c459a8d2359dc23c13a49890fe1b383",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-polyline-fill-implicit-close",
+      "source": "svg-polyline-fill-implicit-close.svg",
+      "source_sha256": "85b2661332e466d58689c8ac4a416dbf5a2a79b260f3095fcc42da2d505fb3a9",
+      "oracle": "chromium/svg-polyline-fill-implicit-close.png",
+      "oracle_sha256": "5b5132bf617615a31e67d39a29adbc44c04527f054148708a2411b4da408f37c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-polyline-single-point-square-cap",
+      "source": "svg-polyline-single-point-square-cap.svg",
+      "source_sha256": "34c4e91128409caeab2c239082427361a4c536c5fabc748ff876c28200cf7014",
+      "oracle": "chromium/svg-polyline-single-point-square-cap.png",
+      "oracle_sha256": "4f852cfe622067e2872424c8add5d3977db6b7d6ad84a6329f288f6d7da566fa",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-polyline-stroke-open",
+      "source": "svg-polyline-stroke-open.svg",
+      "source_sha256": "e6a822ed49fe578e18a7b1f2840de2c4b241c73aab0b88c8173f548797c873c2",
+      "oracle": "chromium/svg-polyline-stroke-open.png",
+      "oracle_sha256": "9c7c052401cfb971a94e3fd40dda0f77dd71b1cf16bcfbdd67ab33a55f06d50b",
       "width": 64,
       "height": 64
     }
