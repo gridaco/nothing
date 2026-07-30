@@ -1,11 +1,64 @@
-# Hi robots, welcome to nothing — the Grida graphics engine.
+# Hi robots, welcome to n0 ("nothing") — the Grida graphics engine.
 
-`n0` ("nothing") is the 2D graphics engine. This is a **Rust-first Cargo
-workspace** (resolver 3; members in the root `Cargo.toml`). The Grida product
-monorepo — editor, packages, services — is
-[gridaco/grida](https://github.com/gridaco/grida); it consumes this repo
-**only** as the published `@grida/canvas-wasm` npm artifact. Do not add
-product/editor code here.
+[README.md](./README.md) says what this engine is and why. This file is the
+working map: the laws that bind every change, the commands, the layout, and the
+caveats that are true right now.
+
+`n0` is a 2D graphics engine and a **Rust-first Cargo workspace** (resolver 3;
+members in the root `Cargo.toml`). The Grida product monorepo — editor,
+packages, services — is [gridaco/grida](https://github.com/gridaco/grida); it
+consumes this repo **only** as the published `@grida/canvas-wasm` npm artifact.
+Do not add product/editor code here.
+
+## The laws (bind every change)
+
+These are what keep two duty cycles, three source languages, and an editor from
+becoming three engines. Each has an enforcing mechanism — a law without one is
+a comment.
+
+- **Never a silent wrong pixel.** A construct the compiler cannot honour must
+  refuse loudly (`--strict`) or be declared by name at a stable node path
+  (best-effort). A patrol that over-refuses beats one that lets a wrong pixel
+  through. _Enforced by:_ the websem patrols, the refusal corpus, and the law
+  that both admissions are frame-identical where nothing degrades.
+
+- **One meaning, many policies.** Render modes may differ in _when and at what
+  quality_ they paint — never in _what things mean_. Static is not a second
+  renderer; it is the same pipeline with an empty temporal input set (no camera
+  delta, no previous frame, no dirty set). _Tripwire:_ a mode, budget, or
+  quality flag must never become readable from `websem`, `rframe`, or resolve.
+  The moment one is, two pipelines have started growing.
+
+- **Realtime in structure, static in policy.** The architecture that makes
+  realtime possible ships from day one, because retrofitting it _is_ the
+  rebuild. The optimizations realtime needs ship only once measured, because an
+  optimization is a relative claim — _same as X, faster_ — and a cache built
+  over an unverified X becomes a second place that believes the wrong answer.
+  _In tree:_ `DirtyClass` is fully classified in `n0-model/src/ops.rs` and
+  referenced **zero** times in `crates/n0/src`. The socket is shaped, the policy
+  is deliberately absent. Do not "finish" it without the gate below.
+
+- **Reuse ≡ fresh.** Any frame produced with reuse must be byte-identical to the
+  same frame produced from scratch. _Enforced by:_ `crates/n0/tests/cache.rs` —
+  the `*_matches_fresh` naming _is_ the law. Every new cache, damage path, or
+  incremental stage adds its own instance.
+
+- **A module's identity is what it refuses**, and the refusal has a guarding
+  test. `rframe` cannot express a gradient. `animation-sampling` owns no clock.
+  `csscascade` adds no matcher of its own. _Enforced by:_ the architecture tests
+  — `rframe`'s backend-free lock, the model tier's skia-free lock, `n0_cli`'s
+  lock against the retired `htmlcss` route. Before adding to a module, state
+  what it refuses; if the addition violates no refusal, the name is too loose.
+
+- **The oracle is external.** Chromium or declared consensus grades pixels —
+  never the other engine in this tree. Stylo bounds what can be _supported_: a
+  gap there is a declared hole, not a wrong pixel, and never a reason to add a
+  second matcher.
+
+- **Patrol before drop.** No deletion, replacement, or conflict resolution
+  without a triage pass and a captured-essence ledger first. Load-bearing
+  caveats are re-homed before the deletion merges; deliberate drops are named in
+  the commit message.
 
 ## Setup
 
@@ -72,6 +125,36 @@ python3 bin/activate-flatc -- --rust -o crates/grida/src/io/generated format/gri
 | `third_party/`              | vendored usvg (reference source) + emsdk submodule                                         |
 | `bin/`                      | `activate-flatc`, `activate-emsdk` — pinned tool activators                                |
 
+## Current state and caveats
+
+What is true right now, so a session does not infer it from ambition.
+
+- **Two engines are live, on purpose.** `crates/grida` still depends on
+  `crates/htmlcss` and still renders Web sources; D-N permitted breaking that
+  and the permission was never used. The n0 path (`websem → rframe → n0`) is the
+  SVG engine of record for **new** work — `htmlcss` is a frozen semantics donor
+  that evolution rungs mine, never extend.
+- **Nothing on the n0 path is publishable.** `n0_cli`, `n0-model`, `websem`, and
+  `rframe` are all `publish = false`, and there are no releases. The only shipped
+  artifact in the tree is the frozen v1 wasm package.
+- **There is no n0 WebAssembly target.** `grida-canvas-wasm` binds
+  `crates/grida` only. The v2 port is priced work, not an assumption.
+- **Taffy is the layout engine.** A house-built layout engine is a stated goal,
+  not a current fact. The wall that would force it is browser-grade intrinsic
+  sizing across a namespace-aware tree — not flex.
+- **No conformance score may be produced or inspected.** The FLIP rule is
+  unratified ([gridaco/nothing#49](https://github.com/gridaco/nothing/issues/49)).
+  A corpus may be described; results may not be scored, aggregated, or presented
+  as conformance.
+- **The admitted slice has one statement of record** —
+  [`crates/n0_cli/README.md`](./crates/n0_cli/README.md). Do not restate it
+  elsewhere; link it. The same holds for the v1 capability inventory
+  ([`crates/grida/README.md`](./crates/grida/README.md)) and the realtime
+  optimization estate ([`docs/wg/feat-2d/optimization.md`](./docs/wg/feat-2d/optimization.md)).
+- **Plans are `*.plan.md`** — gitignored scratch, never committed knowledge.
+  Durable knowledge lands in `docs/wg/` or a crate README; work items land in
+  issues.
+
 ## Skills
 
 Agent skills live in `.agents/skills/` (`.claude/skills` symlinks to it):
@@ -97,6 +180,23 @@ gridaco/grida is frozen on the published `@grida/canvas-wasm@0.91.0-canary.22`.
 This repo owns publishing and must never unpublish/deprecate that version.
 The `v1-freeze` branch pins the tree that built it, for emergency `canary.N+1`
 cuts.
+
+## Provenance
+
+The engine migrated from [gridaco/grida](https://github.com/gridaco/grida) with
+its full history (2025→); Grida remains the product monorepo. The v2 family was
+promoted from the `model-v2-anchor` research branch
+([gridaco/nothing#9](https://github.com/gridaco/nothing/issues/9)); its frozen
+workbench record lives in [`archive/model-v2/`](./archive/model-v2/README.md),
+and paths inside those frozen papers refer to the pre-promotion layout.
+
+How two engines become one is the **consolidation program** —
+[`docs/wg/consolidation/`](./docs/wg/consolidation/index.md). It owns the phases,
+the gates, and the owner decision registry (D-C, D-L, D-M, D-N taken; FLIP,
+NAME, D-D, D6, D-H, D-G(b), D-J, D-K, D-E/D-I open). Read
+[its index](./docs/wg/consolidation/index.md) before program work; the charter
+records the *route*, and the current *position* is tracked on
+[gridaco/nothing#43](https://github.com/gridaco/nothing/issues/43).
 
 ## Where work gets filed
 
