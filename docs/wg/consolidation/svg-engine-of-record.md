@@ -40,12 +40,13 @@ from eight addenda:
   view, declared; it never renders the authored state Chromium overrides at
   load (the addendum below closed this — it was the register's one recorded
   silent wrong pixel).
-- **The admitted slice** is `<rect>`, `<circle>`, `<ellipse>`, `<path>` and
-  `<line>`, filled and stroked; `<g>` and the whole `transform` grammar;
-  viewBox-only root sizing with the full `preserveAspectRatio` grammar; and one
-  exact-time `<animate attributeName="x">` on a top-level `<rect>`.
+- **The admitted slice** is `<rect>`, `<circle>`, `<ellipse>`, `<path>`,
+  `<line>`, `<polygon>` and `<polyline>`, filled and stroked; `<g>` and the
+  whole `transform` grammar; viewBox-only root sizing with the full
+  `preserveAspectRatio` grammar; and one exact-time
+  `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 77 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 85 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
   confined tolerance; the departure is the weighted rational conic alone.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
@@ -859,3 +860,44 @@ Three refusal-corpus rows gate the closure (`svg-smil-set-load-active`,
 pinned the defective behavior moved with it
 (`crates/websem/tests/best_effort.rs`,
 `crates/websem/tests/svg_animation_x.rs`, the groups and shapes contracts).
+
+## Addendum — the points rung (2026-07-30)
+
+`<polygon>` and `<polyline>` are admitted. Both lower to the line-segment
+path the contract already carries — `MoveTo` + `LineTo`\* (+ `Close` for a
+polygon) — exactly as `<line>` does, so the rung cost the contract nothing.
+Closure is the one semantic difference between the two elements, and the
+`points` grammar runs through the same number scanner as path data, so the
+two grammars cannot drift.
+
+**Measured before written.** The grammar's edges were probed against
+Chromium 149 before the parser existed, and the probe moved the design in
+one place: a trailing separator after the last complete pair is *accepted*
+in `points` (unlike the `viewBox` grammar, whose trailing comma stays a
+refusal), so the slice admits it, Chromium-baked. The rest confirmed the
+plan: a leading or doubled comma, a trailing dot, and a percent are errors
+whose valid *pair prefix* Chromium renders — this slice refuses the whole
+element by name instead, the paths rung's declared divergence restated
+(`svg-points-odd-coordinate` is its refusal-corpus row); a filled polyline
+paints as if closed; and a single point splits by closure — the polygon is
+the zero-length **closed** contour whose cap paints a dot, resolved into
+the contract's canonical `M x y L x y Z` spelling (the cap-normalization
+exception from the cap-defect addendum fires for it unchanged), while the
+polyline is a neutral move-only contour that paints nothing under any cap
+and is admitted as not-a-node.
+
+**Eight cells, byte-exact.** Fill with mixed separators, the trailing
+separator, an evenodd self-intersecting star (the cascaded `fill-rule`
+read, shared with `<path>`), the stroked closure split (closing segment
+and joins on the polygon, caps and no closing edge on the polyline), the
+implicit-close fill equivalence, and the two single-point cells. All eight
+bake byte-exact — no new tolerance; the declared AA departure stays the
+weighted rational conic alone.
+
+**The register moved with the slice.** The `svg-polygon`/`svg-polyline`
+refusal rows graduated (the enumeration gate forces the move), the L0
+`basic-shapes` host pin lost its three points-shape holes, and the
+`polygon-fill-probe` strict pin flipped from the capability edge to an
+admitted probe. The points shapes inherit the path patrols — `pathLength`
+and the marker properties stay refusals — and `points_contract.rs` is the
+rung's law file.
