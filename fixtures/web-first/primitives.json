@@ -694,6 +694,70 @@
       "oracle": "chromium/svg-stroke-zero-width.png",
       "width": 64,
       "height": 64
+    },
+    {
+      "id": "svg-points-trailing-comma",
+      "source": "svg-points-trailing-comma.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-points-trailing-comma.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-polygon-fill",
+      "source": "svg-polygon-fill.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-polygon-fill.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-polygon-fill-rule-evenodd",
+      "source": "svg-polygon-fill-rule-evenodd.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-polygon-fill-rule-evenodd.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-polygon-single-point-square-cap",
+      "source": "svg-polygon-single-point-square-cap.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-polygon-single-point-square-cap.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-polygon-stroke-closed",
+      "source": "svg-polygon-stroke-closed.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-polygon-stroke-closed.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-polyline-fill-implicit-close",
+      "source": "svg-polyline-fill-implicit-close.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-polyline-fill-implicit-close.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-polyline-single-point-square-cap",
+      "source": "svg-polyline-single-point-square-cap.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-polyline-single-point-square-cap.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-polyline-stroke-open",
+      "source": "svg-polyline-stroke-open.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-polyline-stroke-open.png",
+      "width": 64,
+      "height": 64
     }
   ]
 }

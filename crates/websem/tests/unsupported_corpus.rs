@@ -102,14 +102,9 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "<pattern>",
     ),
     (
-        "svg-polygon",
+        "svg-points-odd-coordinate",
         DeclaredByBestEffort,
-        "unsupported element <polygon>",
-    ),
-    (
-        "svg-polyline",
-        DeclaredByBestEffort,
-        "unsupported element <polyline>",
+        "points on <polygon>",
     ),
     (
         "svg-preserve-aspect-ratio-case-folded",

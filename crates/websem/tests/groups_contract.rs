@@ -354,12 +354,12 @@ fn a_beyond_slice_descendant_is_its_own_declared_hole() {
     let source = document(
         r##"  <g transform="translate(4,4)">
     <rect width="8" height="8" fill="#16a34a"/>
-    <polygon points="0,0 4,0 4,4" fill="#000000"/>
+    <text x="0" y="60" fill="#000000">hi</text>
     <circle cx="20" cy="20" r="4" fill="#2563eb"/>
   </g>"##,
     );
     SvgFrameSource::from_standalone_svg(source.as_str(), viewport(64.0, 64.0))
-        .expect_err("strict refuses at the polygon");
+        .expect_err("strict refuses at the text");
 
     let best =
         SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
@@ -372,12 +372,12 @@ fn a_beyond_slice_descendant_is_its_own_declared_hole() {
     assert_eq!(best.degradations().len(), 1);
     assert_eq!(
         best.degradations()[0].path(),
-        "svg/g[1]/polygon[1]",
+        "svg/g[1]/text[1]",
         "the skip names its nested structural path"
     );
     assert_eq!(
         best.degradations()[0].reason(),
-        "unsupported element <polygon>"
+        "unsupported element <text>"
     );
 }
 
@@ -386,15 +386,15 @@ fn a_beyond_slice_descendant_is_its_own_declared_hole() {
 #[test]
 fn nested_degradation_paths_number_per_parent() {
     let source = document(
-        r##"  <polygon points="0,0 1,0"/>
+        r##"  <text>a</text>
   <g>
-    <polygon points="0,0 1,0"/>
+    <text>b</text>
     <g>
-      <polygon points="0,0 1,0"/>
+      <text>c</text>
     </g>
   </g>
   <g>
-    <polygon points="0,0 1,0"/>
+    <text>d</text>
   </g>"##,
     );
     let best =
@@ -404,10 +404,10 @@ fn nested_degradation_paths_number_per_parent() {
     assert_eq!(
         paths,
         vec![
-            "svg/polygon[1]",
-            "svg/g[1]/polygon[1]",
-            "svg/g[1]/g[1]/polygon[1]",
-            "svg/g[2]/polygon[1]",
+            "svg/text[1]",
+            "svg/g[1]/text[1]",
+            "svg/g[1]/g[1]/text[1]",
+            "svg/g[2]/text[1]",
         ]
     );
 }

@@ -30,9 +30,9 @@ signed-nanosecond sample without re-parsing.
 
 ## The admitted slice
 
-Shapes `<rect>`, `<circle>`, `<ellipse>`, `<path>` and `<line>`, each with a
-solid fill and a solid stroke (width, cap, join, miter limit, and a path's fill
-rule). Containers `<g>` with the whole `transform` grammar, flattened into a
+Shapes `<rect>`, `<circle>`, `<ellipse>`, `<path>`, `<line>`, `<polygon>` and
+`<polyline>`, each with a solid fill and a solid stroke (width, cap, join,
+miter limit, and a path's fill rule — which the points shapes share). Containers `<g>` with the whole `transform` grammar, flattened into a
 per-node affine. Root sizing per SVG2 §8.2 with the full `preserveAspectRatio`
 grammar. One exact-time `<animate attributeName="x">` on a top-level `<rect>`.
 

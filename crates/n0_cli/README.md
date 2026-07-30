@@ -32,7 +32,7 @@ cargo run -p n0_cli --bin n0 -- \
 # dev harness: refuse on the first beyond-slice construct instead of
 # rendering best-effort with declared degradations (the default)
 cargo run -p n0_cli --bin n0 -- \
-  fixtures/test-svg/probe/polygon-fill-probe.svg /tmp/probe.png 64x64 --strict
+  fixtures/test-svg/L0/basic-shapes.svg /tmp/probe.png 500x500 --strict
 ```
 
 - Input: one UTF-8 `.html`, `.htm`, or `.svg` file.
@@ -46,7 +46,10 @@ cargo run -p n0_cli --bin n0 -- \
   not resolved.
 - Capability: the admitted slice is deliberately narrow — solid-filled and
   solid-stroked `<rect>`, `<circle>`, `<ellipse>`, `<path>` (the path-data
-  grammar except the elliptical arc, with `fill-rule`) and `<line>`, nested in
+  grammar except the elliptical arc, with `fill-rule`), `<line>`, `<polygon>`
+  and `<polyline>` (the `points` grammar through the same number scanner as
+  path data; an erroneous list refuses the whole element by name where
+  Chromium renders its valid pair prefix — a declared divergence), nested in
   `<g>` containers with the SVG `transform` grammar, under the outer `<svg>`.
   A stroke is centred, its width is a cascaded length, and its cap, join and
   miter limit come from the one cascade; `stroke-opacity` and dashing do not.

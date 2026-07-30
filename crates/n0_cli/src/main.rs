@@ -444,15 +444,6 @@ mod tests {
                 "unsupported element <text>",
             ),
             (
-                // The paths rung admitted <path>; the sibling polygon probe
-                // pins the next capability edge — the `points` grammar the
-                // polyline/polygon rung must flip.
-                "fixtures/test-svg/probe/polygon-fill-probe.svg",
-                SourceKind::Svg,
-                (64, 64),
-                "unsupported element <polygon>",
-            ),
-            (
                 // The probe's `.mark` class CSS-sizes the inline <svg>:
                 // the root patrol names the cascaded width instead of
                 // painting at a size Chromium would not use.
@@ -491,10 +482,9 @@ mod tests {
         // basic-shapes.svg: the white background rect is admitted, the eight
         // groups are compiled and their beyond-slice *descendants* are declared
         // individually at nested paths, and `<title>`/`<desc>` declare nothing
-        // because Chromium paints nothing for them either. After the strokes
-        // rung the stroked rect/circle/ellipse and both `<line>`s render, so
-        // what remains is the labels, the `points` shapes, and one rounded
-        // rect (`rx` is not consumed).
+        // because Chromium paints nothing for them either. After the points
+        // rung the polygons and the polyline render too, so what remains is
+        // the labels and one rounded rect (`rx` is not consumed).
         let source = std::fs::read_to_string(root.join("fixtures/test-svg/L0/basic-shapes.svg"))
             .expect("read basic-shapes");
         let (png, degradations) = render_source_to_png(
@@ -522,11 +512,8 @@ mod tests {
                 "svg/g[3]/text[1]",
                 "svg/g[4]/text[1]",
                 "svg/g[5]/text[1]",
-                "svg/g[6]/polyline[1]",
                 "svg/g[6]/text[1]",
-                "svg/g[7]/polygon[1]",
                 "svg/g[7]/text[1]",
-                "svg/g[8]/polygon[1]",
                 "svg/g[8]/text[1]",
             ],
             "every beyond-slice descendant is declared at its nested path"
@@ -616,9 +603,9 @@ mod tests {
         .expect("strict admits the path too");
         assert_eq!(png, strict_png, "admissions are byte-identical");
 
-        // polygon-fill-probe.svg: the same shape as points instead of path
-        // data stays a declared hole — the probe pixel Chromium paints green
-        // stays background white until the polyline/polygon rung.
+        // polygon-fill-probe.svg: the points rung admitted <polygon> — the
+        // probe pixel paints Chromium's green in both admissions,
+        // byte-identically, with nothing degraded.
         let source =
             std::fs::read_to_string(root.join("fixtures/test-svg/probe/polygon-fill-probe.svg"))
                 .expect("read polygon probe");
@@ -630,17 +617,28 @@ mod tests {
             FramePolicy::Base,
             Admission::BestEffort,
         )
-        .expect("best-effort renders the admitted background");
+        .expect("best-effort renders the admitted polygon");
         let raster = decode_png(&png).expect("decode PNG");
         assert_eq!(raster.at(4, 4), [255, 255, 255, 255], "background paints");
         assert_eq!(
             raster.at(32, 40),
-            [255, 255, 255, 255],
-            "the skipped polygon is a declared hole, not a guessed paint"
+            [22, 163, 74, 255],
+            "the admitted polygon paints its fill"
         );
-        assert_eq!(degradations.len(), 1);
-        assert_eq!(degradations[0].path(), "svg/polygon[1]");
-        assert_eq!(degradations[0].reason(), "unsupported element <polygon>");
+        assert!(
+            degradations.is_empty(),
+            "nothing degrades: {degradations:?}"
+        );
+        let (strict_png, _) = render_source_to_png(
+            &source,
+            SourceKind::Svg,
+            64,
+            64,
+            FramePolicy::Base,
+            Admission::Strict,
+        )
+        .expect("strict admits the polygon too");
+        assert_eq!(png, strict_png, "admissions are byte-identical");
 
         // Document-level contracts hold in both admissions: the flex
         // probe's <svg> is CSS-sized (`.mark { width: 32px }`), and the

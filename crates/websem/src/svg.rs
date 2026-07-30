@@ -12,7 +12,8 @@
 //! serializes-and-reparses inline SVG, and never paints.
 //!
 //! The admitted surface is a slice, and it is enumerated rather than implied.
-//! Shapes: `<rect>`, `<circle>`, `<ellipse>`, `<path>` and `<line>`, each with
+//! Shapes: `<rect>`, `<circle>`, `<ellipse>`, `<path>`, `<line>`, `<polygon>`
+//! and `<polyline>`, each with
 //! a solid `fill` and a solid `stroke` (`stroke-width`, `-linecap`,
 //! `-linejoin`, `-miterlimit`, and `fill-rule` on a path). Containers: `<g>`
 //! and the whole `transform` grammar, flattened into a per-node affine rather
@@ -296,8 +297,9 @@ pub enum CompileError {
     /// unrecorded — e.g. unquoted attribute values — are a named open
     /// boundary pinned in csscascade's entry laws, not a claim here.)
     MalformedXml(String),
-    /// An element the slice does not support (the outer `<svg>` plus
-    /// `<rect>`, `<circle>`, and `<ellipse>` children are admitted).
+    /// An element the slice does not support. The admitted set is the shape
+    /// and container dispatch in [`compile_shape`] and the child walk; the
+    /// statement of record is the host README.
     UnsupportedElement(String),
     /// A `fill` value the slice cannot resolve.
     UnsupportedFill(String),
@@ -329,6 +331,17 @@ pub enum CompileError {
     /// Chromium silently falls back to the default `xMidYMid meet` for
     /// these; the slice refuses by name instead of silently defaulting.
     BadPreserveAspectRatio(String),
+    /// A `points` list outside the SVG2 §10.4 grammar. Chromium renders the
+    /// valid coordinate-pair prefix and drops the rest; this slice refuses
+    /// the whole element by name instead — the same declared divergence as
+    /// [`Self::BadPathData`], so an odd trailing coordinate is one named
+    /// hole, never a silently different shape.
+    BadPoints {
+        element: String,
+        /// Byte offset where the value stopped being a valid points list.
+        offset: usize,
+        excerpt: String,
+    },
     /// A `d` value outside the SVG2 §9.3 path-data grammar. Chromium renders
     /// the value's valid prefix and drops the rest; this slice refuses the
     /// whole path by name instead of shipping an unbaked partial geometry, so
@@ -775,6 +788,14 @@ impl std::fmt::Display for CompileError {
             CompileError::BadPreserveAspectRatio(v) => {
                 write!(f, "preserveAspectRatio {v:?} is invalid")
             }
+            CompileError::BadPoints {
+                element,
+                offset,
+                excerpt,
+            } => write!(
+                f,
+                "points on <{element}> is invalid at byte {offset} (near {excerpt:?})"
+            ),
             CompileError::BadPathData {
                 element,
                 offset,
@@ -1694,6 +1715,8 @@ fn compile_shape(
         "ellipse" => compile_ellipse(el, transform, next_id, values).map(Some),
         "path" => compile_path(el, transform, next_id),
         "line" => compile_line(el, transform, next_id, values).map(Some),
+        "polygon" => compile_points_shape(el, transform, next_id, PointsClosure::Closed),
+        "polyline" => compile_points_shape(el, transform, next_id, PointsClosure::Open),
         other => Err(CompileError::UnsupportedElement(other.to_string())),
     }
 }
@@ -1886,6 +1909,110 @@ fn compile_line(
         next_id,
         Strokable::Yes,
     )
+}
+
+/// Whether a points shape closes its contour: the one semantic difference
+/// between `<polygon>` and `<polyline>`. Everything else — the `points`
+/// grammar, the fill (an open contour fills as if closed, so a filled
+/// polyline and the same polygon paint identical interiors), the patrols —
+/// is shared.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PointsClosure {
+    /// `<polygon>`: the contour closes, so its stroke paints the closing
+    /// segment and a single-point polygon is the zero-length *closed*
+    /// contour whose cap paints a dot (measured: Chromium renders
+    /// `points="32,32"` under a square cap exactly as `M32 32Z`).
+    Closed,
+    /// `<polyline>`: the contour stays open — no closing stroke segment,
+    /// and a single-point polyline is a neutral move-only contour that
+    /// paints nothing under any cap (measured).
+    Open,
+}
+
+/// Compile a `<polygon>` or `<polyline>` — as a line-segment path, not a
+/// geometry kind of its own, exactly as `<line>` lowers.
+///
+/// The `points` list maps to `MoveTo` + `LineTo`* (+ `Close` for a
+/// polygon). Chromium renders the valid coordinate-pair prefix of an
+/// erroneous list; this slice refuses the whole element by name instead
+/// (see [`CompileError::BadPoints`]). A missing or empty list is valid and
+/// renders nothing, like an empty `d`.
+fn compile_points_shape(
+    el: HtmlElement<'_>,
+    viewport: AffineTransform,
+    next_id: &mut u64,
+    closure: PointsClosure,
+) -> Result<Option<FrameNode>, CompileError> {
+    let element = match closure {
+        PointsClosure::Closed => "polygon",
+        PointsClosure::Open => "polyline",
+    };
+    patrol_rendering_attributes(el, element, PATH_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+    patrol_style_attribute(el, element)?;
+    patrol_computed_style(el, true, false)?;
+    let points = match get_attr(el, "points") {
+        None => Vec::new(),
+        Some(value) => crate::svg_path::parse_points(&value).map_err(|error| match error {
+            crate::svg_path::PathDataError::Syntax { offset } => CompileError::BadPoints {
+                element: element.to_string(),
+                offset,
+                excerpt: excerpt_at(&value, offset),
+            },
+            // The points grammar has no commands, so the scanner can only
+            // report syntax; an unsupported-command error here is this
+            // compiler's bug, not the document's.
+            crate::svg_path::PathDataError::UnsupportedCommand { .. } => {
+                unreachable!("a points list parses numbers only")
+            }
+        })?,
+    };
+    let Some(((first_x, first_y), rest)) = points.split_first() else {
+        return Ok(None);
+    };
+    // A single-point polyline is a neutral move-only contour: it paints
+    // nothing under any cap (measured), exactly as the path grammar's
+    // lone moveto does, so it is admitted and is not a node.
+    if rest.is_empty() && closure == PointsClosure::Open {
+        return Ok(None);
+    }
+    let mut commands = Vec::with_capacity(points.len() + 2);
+    commands.push(rframe::PathCommand::MoveTo {
+        x: *first_x,
+        y: *first_y,
+    });
+    // A single-point polygon is the zero-length *closed* contour, which
+    // the contract carries only in its canonical `M x y L x y Z`
+    // spelling — the same resolution the path grammar applies to
+    // `M x y Z`, and the cap decides whether it paints (measured).
+    if rest.is_empty() {
+        commands.push(rframe::PathCommand::LineTo {
+            x: *first_x,
+            y: *first_y,
+        });
+    }
+    for (x, y) in rest {
+        commands.push(rframe::PathCommand::LineTo { x: *x, y: *y });
+    }
+    if closure == PointsClosure::Closed {
+        commands.push(rframe::PathCommand::Close);
+    }
+    let path = PathData::new(commands, resolve_fill_rule(el)?).map_err(|error| {
+        // The producer normalizes into the contract's canonical form, so a
+        // rejection here is this compiler's bug, not the document's.
+        CompileError::BadPoints {
+            element: element.to_string(),
+            offset: 0,
+            excerpt: error.to_string(),
+        }
+    })?;
+    shape_node(
+        el,
+        Geometry::Path(Arc::new(path)),
+        viewport,
+        next_id,
+        Strokable::Yes,
+    )
+    .map(Some)
 }
 
 /// The authored text at an error offset, clipped to a readable excerpt on a

@@ -86,6 +86,30 @@ pub(crate) fn parse_path_data(d: &str) -> Result<Vec<PathCommand>, PathDataError
     Parser::new(d).parse()
 }
 
+/// Parse one `points` list (SVG2 §10.4) into coordinate pairs, through the
+/// same number scanner as path data so the two grammars cannot drift.
+///
+/// The separator rules are Blink's, measured against Chromium 149: a
+/// trailing separator after the last complete pair is accepted (unlike the
+/// `viewBox` grammar), a leading or doubled comma is an error, a trailing
+/// dot needs a digit, and a sign starts a new number (`32-56` is two).
+/// Chromium renders the valid *pair prefix* of an erroneous list; this
+/// slice refuses the whole element by name instead — the same declared
+/// divergence as path data, so an odd trailing coordinate is one named
+/// hole, never a silently different shape.
+///
+/// An empty (or whitespace-only) value is valid and resolves to no points,
+/// which renders nothing.
+pub(crate) fn parse_points(value: &str) -> Result<Vec<(f32, f32)>, PathDataError> {
+    let mut parser = Parser::new(value);
+    parser.skip_wsp();
+    let mut points = Vec::new();
+    while parser.at < parser.bytes.len() {
+        points.push(parser.coordinate_pair()?);
+    }
+    Ok(points)
+}
+
 /// The five ASCII characters Blink's SVG parsers treat as whitespace
 /// (`IsHTMLSpace`), which is also this compiler's attribute whitespace set.
 const fn is_wsp(byte: u8) -> bool {
