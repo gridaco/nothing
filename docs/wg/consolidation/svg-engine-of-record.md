@@ -46,7 +46,7 @@ from eight addenda:
   `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 85 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 92 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
   confined tolerance; the departure is the weighted rational conic alone.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
@@ -901,3 +901,40 @@ refusal rows graduated (the enumeration gate forces the move), the L0
 admitted probe. The points shapes inherit the path patrols — `pathLength`
 and the marker properties stay refusals — and `points_contract.rs` is the
 rung's law file.
+
+## Addendum — the visibility rung (2026-07-31)
+
+`display: none` and `visibility` are consumed — the first rung that turns
+over-refusals into the correct nothing rather than admitting new paint.
+Both enter as presentation hints through the one cascade (csscascade's
+admitted set grew its ninth and tenth properties, precedence-law-gated),
+so the attribute and every CSS spelling resolve identically and an author
+rule beats the attribute — measured, and baked as the un-hide cell.
+
+**The split is semantic, and each half is measured.** `display: none`
+generates no box: the subtree is pruned and a `visibility: visible`
+descendant stays gone. `visibility: hidden` and `collapse` (identical for
+shapes) turn off one element's *own* paint; the property inherits, and a
+descendant whose computed value is `visible` un-hides itself — the walk
+therefore still descends through hidden containers, and each element's own
+computed value decides its node. Neither is a hole: nothing is declared,
+because Chromium also paints nothing — `r="0"`'s admitted nothing,
+restated. A pruned or hidden element's other unconsumed properties stay
+silent too: a refusal there would turn a correct nothing into a false
+alarm. `display: contents` stays a named refusal (its own corpus row): it
+paints children in the parent's place, which the flattened walk cannot
+express without dropping a transform silently.
+
+**The oracle corrected the probe.** An embedded-context probe suggested a
+root `display: none` never paints; the bake of `svg-display-none-root`
+showed a **standalone** document's outermost `<svg>` ignores the property
+and paints normally — only an embedded (inline-HTML) root generates no
+box. The compiler now splits by entry, the law file pins both halves, and
+the divergence between probe context and document context is exactly why
+cells are baked from the entry they gate.
+
+**Seven cells, byte-exact** (92 total): the shape and container prunes,
+the standalone-root proof, hidden and collapse, the descendant un-hide,
+and the author-rule-beats-attribute cell. `visibility_contract.rs` is the
+rung's law file; the smuggle law's display/visibility rows graduated into
+it, and `svg-display-contents` replaced the pair in the refusal corpus.
