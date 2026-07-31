@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (106)
+## Chromium-baked cells (119)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells carry the one declared AA tolerance — see
@@ -131,8 +131,21 @@ Each renders byte-exact against its committed Chromium oracle
 - `svg-percent-rect-root-units` (standalone-svg)
 - `svg-percent-stroke-width` (standalone-svg)
 - `svg-anchor-container` (standalone-svg)
+- `svg-css-transform-property` (standalone-svg)
+- `svg-css-transform-beats-attribute` (standalone-svg)
+- `svg-css-transform-sheet-beats-attribute` (standalone-svg)
+- `svg-css-transform-none-restores` (standalone-svg)
+- `svg-css-transform-invalid-falls-back` (standalone-svg)
+- `svg-css-transform-compound` (standalone-svg)
+- `svg-css-transform-percent` (standalone-svg)
+- `svg-css-transform-group` (standalone-svg)
+- `svg-css-transform-rotate-quadrant` (standalone-svg)
+- `svg-css-transform-webkit` (standalone-svg)
+- `svg-transform-runtogether` (standalone-svg)
+- `svg-transform-no-separator` (standalone-svg)
+- `svg-transform-malformed-drops` (standalone-svg)
 
-## The refusal register (37)
+## The refusal register (40)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -140,7 +153,10 @@ the rest and names the hole. A rung that admits a construct moves
 its row into the cells above.
 
 - `svg-clip-path` — declared: skipped svg/clipPath[1]: unsupported element <clipPath>; skipped svg/rect[2]: unsupported rendering attribute clip-path on <rect> (not yet consumed)
-- `svg-css-transform-property` — declared: skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform, which this cascade does not represent
+- `svg-css-individual-rotate` — declared: skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares rotate, which this cascade does not represent
+- `svg-css-transform-3d` — declared: skipped svg/rect[2]: unsupported computed style: transform on <rect> uses translate3d(), which is outside the 2D affine function set this slice consumes
+- `svg-css-transform-box` — declared: skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform-box, which this cascade does not represent
+- `svg-css-transform-origin` — declared: skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform-origin, which this cascade does not represent
 - `svg-display-contents` — declared: skipped svg/g[1]: unsupported computed style: display: contents is not yet consumed
 - `svg-element-opacity` — declared: skipped svg/rect[2]: unsupported rendering attribute opacity on <rect> (not yet consumed)
 - `svg-filter` — declared: skipped svg/filter[1]: unsupported element <filter>; skipped svg/rect[2]: unsupported rendering attribute filter on <rect> (not yet consumed)

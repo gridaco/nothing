@@ -4,7 +4,7 @@
   "browser_version": "149.0.7827.55",
   "bake_script_sha256": "373cbea5476067163b6f8ebfc90eb49b7f49ae7758be0916d34db906399e1d5e",
   "suite": "primitives.json",
-  "suite_sha256": "dc09c191b34b65366ad359f20e7f51f338233032ee21374cec1b1f13bfbc62bd",
+  "suite_sha256": "483c5f5bfabf16fb5e2c850ac409d072a7b176da95b3004e5284300ffa28499a",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -969,6 +969,123 @@
       "source_sha256": "413cd05773c2d8576d961864bdf161d8668e649fea29b1228917d1ac9dfca276",
       "oracle": "chromium/svg-anchor-container.png",
       "oracle_sha256": "365cc66513d153406786e13968893aadc6bf992cd99cf94a4f27ac540a893c93",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-css-transform-property",
+      "source": "svg-css-transform-property.svg",
+      "source_sha256": "34d826326db9934e3ad61778cadb2115fc2a88a5cdce7d87ad61c45b06226cf3",
+      "oracle": "chromium/svg-css-transform-property.png",
+      "oracle_sha256": "6f02d539c4a44d18997c143eb04f198a0b3000662fc3930070a47d92b89bd849",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-css-transform-beats-attribute",
+      "source": "svg-css-transform-beats-attribute.svg",
+      "source_sha256": "e97e927ee7a70958148a003c21efcf35eb3d1d92c7208e67dcb6ba78345806c8",
+      "oracle": "chromium/svg-css-transform-beats-attribute.png",
+      "oracle_sha256": "effb91bdc79b14169bff9324b7c67677ead925fd971ea9b51d4554ffc997608d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-css-transform-sheet-beats-attribute",
+      "source": "svg-css-transform-sheet-beats-attribute.svg",
+      "source_sha256": "f431eb11db0d411145c226db8e492054b54d6e65d18782ca95c6cd8be46e6acf",
+      "oracle": "chromium/svg-css-transform-sheet-beats-attribute.png",
+      "oracle_sha256": "effb91bdc79b14169bff9324b7c67677ead925fd971ea9b51d4554ffc997608d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-css-transform-none-restores",
+      "source": "svg-css-transform-none-restores.svg",
+      "source_sha256": "a67c6dd9dfc491fc9314aa0ad140cc024387b8a598882f83acf175bb3541d39b",
+      "oracle": "chromium/svg-css-transform-none-restores.png",
+      "oracle_sha256": "f49dca345d56c31d08c1f4ff887f49522b8236bc97233bfa3858769b822b120d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-css-transform-invalid-falls-back",
+      "source": "svg-css-transform-invalid-falls-back.svg",
+      "source_sha256": "75a53f2b7e3dc2991c9a548c3ddbeb48150c21d801b6596374ec463751417d8a",
+      "oracle": "chromium/svg-css-transform-invalid-falls-back.png",
+      "oracle_sha256": "d4008bf18e8089c20928e96d85aa264e677744cd46ff3e458abbb487999a1457",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-css-transform-compound",
+      "source": "svg-css-transform-compound.svg",
+      "source_sha256": "50c15369d5647eec8345de9cbac3ccaf469c10fe4ba1fb6197475bc8ce2c2bda",
+      "oracle": "chromium/svg-css-transform-compound.png",
+      "oracle_sha256": "0b87189e09a1608cbca50b33a5dfeb6523359dfb216f4fa1370256feed6b4a5e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-css-transform-percent",
+      "source": "svg-css-transform-percent.svg",
+      "source_sha256": "6458abd882207a4d2cbc216e7fab8b6824184c8d14a2dfb5bf9c074911a95c18",
+      "oracle": "chromium/svg-css-transform-percent.png",
+      "oracle_sha256": "288c6b27475d41b9647dc047edd4fb4a7ac262b6f1715606cdf5c0de1d7830b0",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-css-transform-group",
+      "source": "svg-css-transform-group.svg",
+      "source_sha256": "30328b2896ad5d06181607a74f27abdd2768095a4adfe3565292693cadb98a34",
+      "oracle": "chromium/svg-css-transform-group.png",
+      "oracle_sha256": "d4008bf18e8089c20928e96d85aa264e677744cd46ff3e458abbb487999a1457",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-css-transform-rotate-quadrant",
+      "source": "svg-css-transform-rotate-quadrant.svg",
+      "source_sha256": "0fb06db72abd2b6bff1985e29553b694af7ffc1bed36e9219851f0af7904699d",
+      "oracle": "chromium/svg-css-transform-rotate-quadrant.png",
+      "oracle_sha256": "fbb16ee9892cdf853aa4fdbf56cfb73510fe2a45db824f18a7b6676fb4d391c4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-css-transform-webkit",
+      "source": "svg-css-transform-webkit.svg",
+      "source_sha256": "c0e6d42cfea2243e3397c3dce725811f9ca991572c8d9aed50cd019c671cb201",
+      "oracle": "chromium/svg-css-transform-webkit.png",
+      "oracle_sha256": "d4008bf18e8089c20928e96d85aa264e677744cd46ff3e458abbb487999a1457",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-transform-runtogether",
+      "source": "svg-transform-runtogether.svg",
+      "source_sha256": "3bb16863af73b49898b04bc152a559053d0917c795da0146d6174edfa7959871",
+      "oracle": "chromium/svg-transform-runtogether.png",
+      "oracle_sha256": "a9677ef08a248790fa2ac5a63b61758ae35cb34651eae33539abec038306c15b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-transform-no-separator",
+      "source": "svg-transform-no-separator.svg",
+      "source_sha256": "3f9b522f3e5d5f3a6856fabefad26850455133858fba52c5e805c1eb377ce17f",
+      "oracle": "chromium/svg-transform-no-separator.png",
+      "oracle_sha256": "0b87189e09a1608cbca50b33a5dfeb6523359dfb216f4fa1370256feed6b4a5e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-transform-malformed-drops",
+      "source": "svg-transform-malformed-drops.svg",
+      "source_sha256": "7f0770c8bf7f2f080c3f4da6481713776dbcf882a7f37ee5b0a126e7aae42fc6",
+      "oracle": "chromium/svg-transform-malformed-drops.png",
+      "oracle_sha256": "f49dca345d56c31d08c1f4ff887f49522b8236bc97233bfa3858769b822b120d",
       "width": 64,
       "height": 64
     }
