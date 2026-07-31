@@ -22,175 +22,178 @@ surface.
 ## Chromium-baked cells (166)
 
 Each renders byte-exact against its committed Chromium oracle
-(six curved cells carry the one declared AA tolerance — see
-[README.md](./README.md)).
+(six curved cells and one gradient ramp carry a declared, bounded
+tolerance — see [README.md](./README.md)). Every thumbnail below
+*is* that committed oracle, which byte-exactness makes this
+engine's own render too; hover for the cell's name, click through
+to its fixture source. No new image is committed for this view.
 
-- `html-inline-svg-currentcolor-rect` (html-inline-svg)
-- `html-webpage-mockup` (html-inline-svg)
-- `svg-currentcolor-rect` (standalone-svg)
-- `svg-fill-named-rect` (standalone-svg)
-- `svg-fill-inherited-rect` (standalone-svg)
-- `svg-fill-invalid-initial-rect` (standalone-svg)
-- `svg-fill-none-rect` (standalone-svg)
-- `svg-style-element-fill-rect` (standalone-svg)
-- `svg-style-attribute-fill-rect` (standalone-svg)
-- `svg-viewbox-uniform-offset-rect` (standalone-svg)
-- `svg-viewbox-unequal-default` (standalone-svg)
-- `svg-preserve-aspect-ratio-explicit` (standalone-svg)
-- `svg-viewbox-only-sizing-rect` (standalone-svg)
-- `svg-sizing-auto-rect` (standalone-svg)
-- `svg-preserve-aspect-ratio-none-stretch` (standalone-svg)
-- `svg-preserve-aspect-ratio-slice-clip` (standalone-svg)
-- `svg-preserve-aspect-ratio-align-max-meet` (standalone-svg)
-- `svg-circle-fill` (standalone-svg)
-- `svg-circle-viewbox-scaled` (standalone-svg)
-- `svg-circle-defaults-clip` (standalone-svg)
-- `svg-circle-zero-r` (standalone-svg)
-- `svg-ellipse-fill` (standalone-svg)
-- `svg-ellipse-auto-rx` (standalone-svg)
-- `svg-ellipse-negative-rx-auto` (standalone-svg)
-- `svg-group-transform-translate` (standalone-svg)
-- `svg-group-nested-transforms` (standalone-svg)
-- `svg-shape-transform-matrix` (standalone-svg)
-- `svg-group-paint-order` (standalone-svg)
-- `svg-group-inherited-fill` (standalone-svg)
-- `svg-non-rendering-elements` (standalone-svg)
-- `svg-group-rotate-quarter` (standalone-svg)
-- `svg-group-rotate-diagonal` (standalone-svg)
-- `svg-path-polygon-fill` (standalone-svg)
-- `svg-path-unclosed-fill` (standalone-svg)
-- `svg-path-relative-commands` (standalone-svg)
-- `svg-path-hv-shorthand` (standalone-svg)
-- `svg-path-cubic-fill` (standalone-svg)
-- `svg-path-smooth-cubic` (standalone-svg)
-- `svg-path-quadratic` (standalone-svg)
-- `svg-path-fill-rule-nonzero` (standalone-svg)
-- `svg-path-fill-rule-evenodd` (standalone-svg)
-- `svg-path-fill-rule-inherited` (standalone-svg)
-- `svg-path-two-subpaths` (standalone-svg)
-- `svg-path-draws-nothing` (standalone-svg)
-- `svg-path-in-scaled-group` (standalone-svg)
-- `svg-path-closed-move-only-contour` (standalone-svg)
-- `svg-stroke-cap-butt` (standalone-svg)
-- `svg-stroke-cap-round` (standalone-svg)
-- `svg-stroke-cap-square` (standalone-svg)
-- `svg-stroke-cap-closed-butt` (standalone-svg)
-- `svg-stroke-cap-closed-round` (standalone-svg)
-- `svg-stroke-cap-closed-square` (standalone-svg)
-- `svg-stroke-cap-circle-round` (standalone-svg)
-- `svg-stroke-cap-circle-square` (standalone-svg)
-- `svg-stroke-cap-ellipse-round` (standalone-svg)
-- `svg-stroke-cap-ellipse-square` (standalone-svg)
-- `svg-stroke-circle` (standalone-svg)
-- `svg-stroke-default-width` (standalone-svg)
-- `svg-stroke-ellipse` (standalone-svg)
-- `svg-stroke-inherited` (standalone-svg)
-- `svg-stroke-invalid-width` (standalone-svg)
-- `svg-stroke-join-bevel` (standalone-svg)
-- `svg-stroke-join-miter` (standalone-svg)
-- `svg-stroke-join-round` (standalone-svg)
-- `svg-stroke-length-units` (standalone-svg)
-- `svg-stroke-line-fill-never-paints` (standalone-svg)
-- `svg-stroke-line` (standalone-svg)
-- `svg-stroke-miter-limit` (standalone-svg)
-- `svg-stroke-nonuniform-scale` (standalone-svg)
-- `svg-stroke-over-fill` (standalone-svg)
-- `svg-stroke-path-closed` (standalone-svg)
-- `svg-stroke-path-open` (standalone-svg)
-- `svg-stroke-rect-centred` (standalone-svg)
-- `svg-stroke-scaled-group` (standalone-svg)
-- `svg-stroke-zero-extent-rect` (standalone-svg)
-- `svg-stroke-zero-length-dot` (standalone-svg)
-- `svg-stroke-zero-width` (standalone-svg)
-- `svg-points-trailing-comma` (standalone-svg)
-- `svg-polygon-fill` (standalone-svg)
-- `svg-polygon-fill-rule-evenodd` (standalone-svg)
-- `svg-polygon-single-point-square-cap` (standalone-svg)
-- `svg-polygon-stroke-closed` (standalone-svg)
-- `svg-polyline-fill-implicit-close` (standalone-svg)
-- `svg-polyline-single-point-square-cap` (standalone-svg)
-- `svg-polyline-stroke-open` (standalone-svg)
-- `svg-display-none-group` (standalone-svg)
-- `svg-display-none-root` (standalone-svg)
-- `svg-display-none-shape` (standalone-svg)
-- `svg-visibility-collapse-shape` (standalone-svg)
-- `svg-visibility-hidden-shape` (standalone-svg)
-- `svg-visibility-rule-beats-attribute` (standalone-svg)
-- `svg-visibility-unhide` (standalone-svg)
-- `svg-fill-opacity-inherited` (standalone-svg)
-- `svg-fill-opacity-overlap` (standalone-svg)
-- `svg-fill-opacity-percentage` (standalone-svg)
-- `svg-fill-opacity-times-alpha` (standalone-svg)
-- `svg-stroke-opacity-join` (standalone-svg)
-- `svg-stroke-opacity-over-fill` (standalone-svg)
-- `svg-translucent-fill-rgba` (standalone-svg)
-- `svg-percent-circle-diagonal` (standalone-svg)
-- `svg-percent-ellipse` (standalone-svg)
-- `svg-percent-line` (standalone-svg)
-- `svg-percent-rect-in-viewbox` (standalone-svg)
-- `svg-percent-rect-root-units` (standalone-svg)
-- `svg-percent-stroke-width` (standalone-svg)
-- `svg-anchor-container` (standalone-svg)
-- `svg-css-transform-property` (standalone-svg)
-- `svg-css-transform-beats-attribute` (standalone-svg)
-- `svg-css-transform-sheet-beats-attribute` (standalone-svg)
-- `svg-css-transform-none-restores` (standalone-svg)
-- `svg-css-transform-invalid-falls-back` (standalone-svg)
-- `svg-css-transform-compound` (standalone-svg)
-- `svg-css-transform-percent` (standalone-svg)
-- `svg-css-transform-group` (standalone-svg)
-- `svg-css-transform-rotate-quadrant` (standalone-svg)
-- `svg-css-transform-webkit` (standalone-svg)
-- `svg-transform-runtogether` (standalone-svg)
-- `svg-transform-no-separator` (standalone-svg)
-- `svg-transform-malformed-drops` (standalone-svg)
-- `svg-use` (standalone-svg)
-- `svg-use-defs-rect` (standalone-svg)
-- `svg-use-xy` (standalone-svg)
-- `svg-use-transform-xy` (standalone-svg)
-- `svg-use-inherit-fill` (standalone-svg)
-- `svg-use-own-fill-wins` (standalone-svg)
-- `svg-use-xlink-href` (standalone-svg)
-- `svg-use-group` (standalone-svg)
-- `svg-use-chain` (standalone-svg)
-- `svg-use-cycle-nothing` (standalone-svg)
-- `svg-use-rendered-twice` (standalone-svg)
-- `svg-use-missing-nothing` (standalone-svg)
-- `svg-use-forward-ref` (standalone-svg)
-- `svg-use-display-none-target` (standalone-svg)
-- `svg-use-wh-inert` (standalone-svg)
-- `svg-use-duplicate-id-first` (standalone-svg)
-- `svg-use-context-differs` (standalone-svg)
-- `svg-use-currentcolor` (standalone-svg)
-- `svg-use-ancestor-circle` (standalone-svg)
-- `svg-use-href-beats-xlink` (standalone-svg)
-- `svg-gradient-linear` (standalone-svg)
-- `svg-gradient-linear-userspace` (standalone-svg)
-- `svg-gradient-linear-bbox-offset` (standalone-svg)
-- `svg-gradient-css-transform` (standalone-svg)
-- `svg-gradient-transform` (standalone-svg)
-- `svg-gradient-spread-reflect` (standalone-svg)
-- `svg-gradient-spread-repeat` (standalone-svg)
-- `svg-gradient-degenerate-pad` (standalone-svg)
-- `svg-gradient-degenerate-repeat` (standalone-svg)
-- `svg-gradient-stop-nonmonotonic` (standalone-svg)
-- `svg-gradient-zero-stops-fallback` (standalone-svg)
-- `svg-gradient-fallback` (standalone-svg)
-- `svg-gradient-interp-unpremul` (standalone-svg)
-- `svg-gradient-currentcolor` (standalone-svg)
-- `svg-gradient-radial` (standalone-svg)
-- `svg-gradient-radial-custom` (standalone-svg)
-- `svg-gradient-radial-r0` (standalone-svg)
-- `svg-gradient-radial-diagonal-percent` (standalone-svg)
-- `svg-gradient-href-cross-type` (standalone-svg)
-- `svg-gradient-zero-bbox` (standalone-svg)
-- `svg-gradient-stroke` (standalone-svg)
-- `svg-gradient-path-bbox` (standalone-svg)
-- `svg-gradient-use-clone-order` (standalone-svg)
-- `svg-gradient-not-in-defs` (standalone-svg)
-- `svg-gradient-fill-opacity` (standalone-svg)
-- `svg-gradient-hard-stop` (standalone-svg)
-- `svg-gradient-stylesheet-fill` (standalone-svg)
+<a href="./html-inline-svg-currentcolor-rect.html" title="html-inline-svg-currentcolor-rect (html-inline-svg)"><img src="./chromium/html-inline-svg-currentcolor-rect.png" width="56" alt="html-inline-svg-currentcolor-rect"></a>
+<a href="./html-webpage-mockup.html" title="html-webpage-mockup (html-inline-svg)"><img src="./chromium/html-webpage-mockup.png" width="56" alt="html-webpage-mockup"></a>
+<a href="./svg-currentcolor-rect.svg" title="svg-currentcolor-rect (standalone-svg)"><img src="./chromium/svg-currentcolor-rect.png" width="56" alt="svg-currentcolor-rect"></a>
+<a href="./svg-fill-named-rect.svg" title="svg-fill-named-rect (standalone-svg)"><img src="./chromium/svg-fill-named-rect.png" width="56" alt="svg-fill-named-rect"></a>
+<a href="./svg-fill-inherited-rect.svg" title="svg-fill-inherited-rect (standalone-svg)"><img src="./chromium/svg-fill-inherited-rect.png" width="56" alt="svg-fill-inherited-rect"></a>
+<a href="./svg-fill-invalid-initial-rect.svg" title="svg-fill-invalid-initial-rect (standalone-svg)"><img src="./chromium/svg-fill-invalid-initial-rect.png" width="56" alt="svg-fill-invalid-initial-rect"></a>
+<a href="./svg-fill-none-rect.svg" title="svg-fill-none-rect (standalone-svg)"><img src="./chromium/svg-fill-none-rect.png" width="56" alt="svg-fill-none-rect"></a>
+<a href="./svg-style-element-fill-rect.svg" title="svg-style-element-fill-rect (standalone-svg)"><img src="./chromium/svg-style-element-fill-rect.png" width="56" alt="svg-style-element-fill-rect"></a>
+<a href="./svg-style-attribute-fill-rect.svg" title="svg-style-attribute-fill-rect (standalone-svg)"><img src="./chromium/svg-style-attribute-fill-rect.png" width="56" alt="svg-style-attribute-fill-rect"></a>
+<a href="./svg-viewbox-uniform-offset-rect.svg" title="svg-viewbox-uniform-offset-rect (standalone-svg)"><img src="./chromium/svg-viewbox-uniform-offset-rect.png" width="56" alt="svg-viewbox-uniform-offset-rect"></a>
+<a href="./svg-viewbox-unequal-default.svg" title="svg-viewbox-unequal-default (standalone-svg)"><img src="./chromium/svg-viewbox-unequal-default.png" width="56" alt="svg-viewbox-unequal-default"></a>
+<a href="./svg-preserve-aspect-ratio-explicit.svg" title="svg-preserve-aspect-ratio-explicit (standalone-svg)"><img src="./chromium/svg-preserve-aspect-ratio-explicit.png" width="56" alt="svg-preserve-aspect-ratio-explicit"></a>
+<a href="./svg-viewbox-only-sizing-rect.svg" title="svg-viewbox-only-sizing-rect (standalone-svg)"><img src="./chromium/svg-viewbox-only-sizing-rect.png" width="56" alt="svg-viewbox-only-sizing-rect"></a>
+<a href="./svg-sizing-auto-rect.svg" title="svg-sizing-auto-rect (standalone-svg)"><img src="./chromium/svg-sizing-auto-rect.png" width="56" alt="svg-sizing-auto-rect"></a>
+<a href="./svg-preserve-aspect-ratio-none-stretch.svg" title="svg-preserve-aspect-ratio-none-stretch (standalone-svg)"><img src="./chromium/svg-preserve-aspect-ratio-none-stretch.png" width="56" alt="svg-preserve-aspect-ratio-none-stretch"></a>
+<a href="./svg-preserve-aspect-ratio-slice-clip.svg" title="svg-preserve-aspect-ratio-slice-clip (standalone-svg)"><img src="./chromium/svg-preserve-aspect-ratio-slice-clip.png" width="56" alt="svg-preserve-aspect-ratio-slice-clip"></a>
+<a href="./svg-preserve-aspect-ratio-align-max-meet.svg" title="svg-preserve-aspect-ratio-align-max-meet (standalone-svg)"><img src="./chromium/svg-preserve-aspect-ratio-align-max-meet.png" width="56" alt="svg-preserve-aspect-ratio-align-max-meet"></a>
+<a href="./svg-circle-fill.svg" title="svg-circle-fill (standalone-svg)"><img src="./chromium/svg-circle-fill.png" width="56" alt="svg-circle-fill"></a>
+<a href="./svg-circle-viewbox-scaled.svg" title="svg-circle-viewbox-scaled (standalone-svg)"><img src="./chromium/svg-circle-viewbox-scaled.png" width="56" alt="svg-circle-viewbox-scaled"></a>
+<a href="./svg-circle-defaults-clip.svg" title="svg-circle-defaults-clip (standalone-svg)"><img src="./chromium/svg-circle-defaults-clip.png" width="56" alt="svg-circle-defaults-clip"></a>
+<a href="./svg-circle-zero-r.svg" title="svg-circle-zero-r (standalone-svg)"><img src="./chromium/svg-circle-zero-r.png" width="56" alt="svg-circle-zero-r"></a>
+<a href="./svg-ellipse-fill.svg" title="svg-ellipse-fill (standalone-svg)"><img src="./chromium/svg-ellipse-fill.png" width="56" alt="svg-ellipse-fill"></a>
+<a href="./svg-ellipse-auto-rx.svg" title="svg-ellipse-auto-rx (standalone-svg)"><img src="./chromium/svg-ellipse-auto-rx.png" width="56" alt="svg-ellipse-auto-rx"></a>
+<a href="./svg-ellipse-negative-rx-auto.svg" title="svg-ellipse-negative-rx-auto (standalone-svg)"><img src="./chromium/svg-ellipse-negative-rx-auto.png" width="56" alt="svg-ellipse-negative-rx-auto"></a>
+<a href="./svg-group-transform-translate.svg" title="svg-group-transform-translate (standalone-svg)"><img src="./chromium/svg-group-transform-translate.png" width="56" alt="svg-group-transform-translate"></a>
+<a href="./svg-group-nested-transforms.svg" title="svg-group-nested-transforms (standalone-svg)"><img src="./chromium/svg-group-nested-transforms.png" width="56" alt="svg-group-nested-transforms"></a>
+<a href="./svg-shape-transform-matrix.svg" title="svg-shape-transform-matrix (standalone-svg)"><img src="./chromium/svg-shape-transform-matrix.png" width="56" alt="svg-shape-transform-matrix"></a>
+<a href="./svg-group-paint-order.svg" title="svg-group-paint-order (standalone-svg)"><img src="./chromium/svg-group-paint-order.png" width="56" alt="svg-group-paint-order"></a>
+<a href="./svg-group-inherited-fill.svg" title="svg-group-inherited-fill (standalone-svg)"><img src="./chromium/svg-group-inherited-fill.png" width="56" alt="svg-group-inherited-fill"></a>
+<a href="./svg-non-rendering-elements.svg" title="svg-non-rendering-elements (standalone-svg)"><img src="./chromium/svg-non-rendering-elements.png" width="56" alt="svg-non-rendering-elements"></a>
+<a href="./svg-group-rotate-quarter.svg" title="svg-group-rotate-quarter (standalone-svg)"><img src="./chromium/svg-group-rotate-quarter.png" width="56" alt="svg-group-rotate-quarter"></a>
+<a href="./svg-group-rotate-diagonal.svg" title="svg-group-rotate-diagonal (standalone-svg)"><img src="./chromium/svg-group-rotate-diagonal.png" width="56" alt="svg-group-rotate-diagonal"></a>
+<a href="./svg-path-polygon-fill.svg" title="svg-path-polygon-fill (standalone-svg)"><img src="./chromium/svg-path-polygon-fill.png" width="56" alt="svg-path-polygon-fill"></a>
+<a href="./svg-path-unclosed-fill.svg" title="svg-path-unclosed-fill (standalone-svg)"><img src="./chromium/svg-path-unclosed-fill.png" width="56" alt="svg-path-unclosed-fill"></a>
+<a href="./svg-path-relative-commands.svg" title="svg-path-relative-commands (standalone-svg)"><img src="./chromium/svg-path-relative-commands.png" width="56" alt="svg-path-relative-commands"></a>
+<a href="./svg-path-hv-shorthand.svg" title="svg-path-hv-shorthand (standalone-svg)"><img src="./chromium/svg-path-hv-shorthand.png" width="56" alt="svg-path-hv-shorthand"></a>
+<a href="./svg-path-cubic-fill.svg" title="svg-path-cubic-fill (standalone-svg)"><img src="./chromium/svg-path-cubic-fill.png" width="56" alt="svg-path-cubic-fill"></a>
+<a href="./svg-path-smooth-cubic.svg" title="svg-path-smooth-cubic (standalone-svg)"><img src="./chromium/svg-path-smooth-cubic.png" width="56" alt="svg-path-smooth-cubic"></a>
+<a href="./svg-path-quadratic.svg" title="svg-path-quadratic (standalone-svg)"><img src="./chromium/svg-path-quadratic.png" width="56" alt="svg-path-quadratic"></a>
+<a href="./svg-path-fill-rule-nonzero.svg" title="svg-path-fill-rule-nonzero (standalone-svg)"><img src="./chromium/svg-path-fill-rule-nonzero.png" width="56" alt="svg-path-fill-rule-nonzero"></a>
+<a href="./svg-path-fill-rule-evenodd.svg" title="svg-path-fill-rule-evenodd (standalone-svg)"><img src="./chromium/svg-path-fill-rule-evenodd.png" width="56" alt="svg-path-fill-rule-evenodd"></a>
+<a href="./svg-path-fill-rule-inherited.svg" title="svg-path-fill-rule-inherited (standalone-svg)"><img src="./chromium/svg-path-fill-rule-inherited.png" width="56" alt="svg-path-fill-rule-inherited"></a>
+<a href="./svg-path-two-subpaths.svg" title="svg-path-two-subpaths (standalone-svg)"><img src="./chromium/svg-path-two-subpaths.png" width="56" alt="svg-path-two-subpaths"></a>
+<a href="./svg-path-draws-nothing.svg" title="svg-path-draws-nothing (standalone-svg)"><img src="./chromium/svg-path-draws-nothing.png" width="56" alt="svg-path-draws-nothing"></a>
+<a href="./svg-path-in-scaled-group.svg" title="svg-path-in-scaled-group (standalone-svg)"><img src="./chromium/svg-path-in-scaled-group.png" width="56" alt="svg-path-in-scaled-group"></a>
+<a href="./svg-path-closed-move-only-contour.svg" title="svg-path-closed-move-only-contour (standalone-svg)"><img src="./chromium/svg-path-closed-move-only-contour.png" width="56" alt="svg-path-closed-move-only-contour"></a>
+<a href="./svg-stroke-cap-butt.svg" title="svg-stroke-cap-butt (standalone-svg)"><img src="./chromium/svg-stroke-cap-butt.png" width="56" alt="svg-stroke-cap-butt"></a>
+<a href="./svg-stroke-cap-round.svg" title="svg-stroke-cap-round (standalone-svg)"><img src="./chromium/svg-stroke-cap-round.png" width="56" alt="svg-stroke-cap-round"></a>
+<a href="./svg-stroke-cap-square.svg" title="svg-stroke-cap-square (standalone-svg)"><img src="./chromium/svg-stroke-cap-square.png" width="56" alt="svg-stroke-cap-square"></a>
+<a href="./svg-stroke-cap-closed-butt.svg" title="svg-stroke-cap-closed-butt (standalone-svg)"><img src="./chromium/svg-stroke-cap-closed-butt.png" width="56" alt="svg-stroke-cap-closed-butt"></a>
+<a href="./svg-stroke-cap-closed-round.svg" title="svg-stroke-cap-closed-round (standalone-svg)"><img src="./chromium/svg-stroke-cap-closed-round.png" width="56" alt="svg-stroke-cap-closed-round"></a>
+<a href="./svg-stroke-cap-closed-square.svg" title="svg-stroke-cap-closed-square (standalone-svg)"><img src="./chromium/svg-stroke-cap-closed-square.png" width="56" alt="svg-stroke-cap-closed-square"></a>
+<a href="./svg-stroke-cap-circle-round.svg" title="svg-stroke-cap-circle-round (standalone-svg)"><img src="./chromium/svg-stroke-cap-circle-round.png" width="56" alt="svg-stroke-cap-circle-round"></a>
+<a href="./svg-stroke-cap-circle-square.svg" title="svg-stroke-cap-circle-square (standalone-svg)"><img src="./chromium/svg-stroke-cap-circle-square.png" width="56" alt="svg-stroke-cap-circle-square"></a>
+<a href="./svg-stroke-cap-ellipse-round.svg" title="svg-stroke-cap-ellipse-round (standalone-svg)"><img src="./chromium/svg-stroke-cap-ellipse-round.png" width="56" alt="svg-stroke-cap-ellipse-round"></a>
+<a href="./svg-stroke-cap-ellipse-square.svg" title="svg-stroke-cap-ellipse-square (standalone-svg)"><img src="./chromium/svg-stroke-cap-ellipse-square.png" width="56" alt="svg-stroke-cap-ellipse-square"></a>
+<a href="./svg-stroke-circle.svg" title="svg-stroke-circle (standalone-svg)"><img src="./chromium/svg-stroke-circle.png" width="56" alt="svg-stroke-circle"></a>
+<a href="./svg-stroke-default-width.svg" title="svg-stroke-default-width (standalone-svg)"><img src="./chromium/svg-stroke-default-width.png" width="56" alt="svg-stroke-default-width"></a>
+<a href="./svg-stroke-ellipse.svg" title="svg-stroke-ellipse (standalone-svg)"><img src="./chromium/svg-stroke-ellipse.png" width="56" alt="svg-stroke-ellipse"></a>
+<a href="./svg-stroke-inherited.svg" title="svg-stroke-inherited (standalone-svg)"><img src="./chromium/svg-stroke-inherited.png" width="56" alt="svg-stroke-inherited"></a>
+<a href="./svg-stroke-invalid-width.svg" title="svg-stroke-invalid-width (standalone-svg)"><img src="./chromium/svg-stroke-invalid-width.png" width="56" alt="svg-stroke-invalid-width"></a>
+<a href="./svg-stroke-join-bevel.svg" title="svg-stroke-join-bevel (standalone-svg)"><img src="./chromium/svg-stroke-join-bevel.png" width="56" alt="svg-stroke-join-bevel"></a>
+<a href="./svg-stroke-join-miter.svg" title="svg-stroke-join-miter (standalone-svg)"><img src="./chromium/svg-stroke-join-miter.png" width="56" alt="svg-stroke-join-miter"></a>
+<a href="./svg-stroke-join-round.svg" title="svg-stroke-join-round (standalone-svg)"><img src="./chromium/svg-stroke-join-round.png" width="56" alt="svg-stroke-join-round"></a>
+<a href="./svg-stroke-length-units.svg" title="svg-stroke-length-units (standalone-svg)"><img src="./chromium/svg-stroke-length-units.png" width="56" alt="svg-stroke-length-units"></a>
+<a href="./svg-stroke-line-fill-never-paints.svg" title="svg-stroke-line-fill-never-paints (standalone-svg)"><img src="./chromium/svg-stroke-line-fill-never-paints.png" width="56" alt="svg-stroke-line-fill-never-paints"></a>
+<a href="./svg-stroke-line.svg" title="svg-stroke-line (standalone-svg)"><img src="./chromium/svg-stroke-line.png" width="56" alt="svg-stroke-line"></a>
+<a href="./svg-stroke-miter-limit.svg" title="svg-stroke-miter-limit (standalone-svg)"><img src="./chromium/svg-stroke-miter-limit.png" width="56" alt="svg-stroke-miter-limit"></a>
+<a href="./svg-stroke-nonuniform-scale.svg" title="svg-stroke-nonuniform-scale (standalone-svg)"><img src="./chromium/svg-stroke-nonuniform-scale.png" width="56" alt="svg-stroke-nonuniform-scale"></a>
+<a href="./svg-stroke-over-fill.svg" title="svg-stroke-over-fill (standalone-svg)"><img src="./chromium/svg-stroke-over-fill.png" width="56" alt="svg-stroke-over-fill"></a>
+<a href="./svg-stroke-path-closed.svg" title="svg-stroke-path-closed (standalone-svg)"><img src="./chromium/svg-stroke-path-closed.png" width="56" alt="svg-stroke-path-closed"></a>
+<a href="./svg-stroke-path-open.svg" title="svg-stroke-path-open (standalone-svg)"><img src="./chromium/svg-stroke-path-open.png" width="56" alt="svg-stroke-path-open"></a>
+<a href="./svg-stroke-rect-centred.svg" title="svg-stroke-rect-centred (standalone-svg)"><img src="./chromium/svg-stroke-rect-centred.png" width="56" alt="svg-stroke-rect-centred"></a>
+<a href="./svg-stroke-scaled-group.svg" title="svg-stroke-scaled-group (standalone-svg)"><img src="./chromium/svg-stroke-scaled-group.png" width="56" alt="svg-stroke-scaled-group"></a>
+<a href="./svg-stroke-zero-extent-rect.svg" title="svg-stroke-zero-extent-rect (standalone-svg)"><img src="./chromium/svg-stroke-zero-extent-rect.png" width="56" alt="svg-stroke-zero-extent-rect"></a>
+<a href="./svg-stroke-zero-length-dot.svg" title="svg-stroke-zero-length-dot (standalone-svg)"><img src="./chromium/svg-stroke-zero-length-dot.png" width="56" alt="svg-stroke-zero-length-dot"></a>
+<a href="./svg-stroke-zero-width.svg" title="svg-stroke-zero-width (standalone-svg)"><img src="./chromium/svg-stroke-zero-width.png" width="56" alt="svg-stroke-zero-width"></a>
+<a href="./svg-points-trailing-comma.svg" title="svg-points-trailing-comma (standalone-svg)"><img src="./chromium/svg-points-trailing-comma.png" width="56" alt="svg-points-trailing-comma"></a>
+<a href="./svg-polygon-fill.svg" title="svg-polygon-fill (standalone-svg)"><img src="./chromium/svg-polygon-fill.png" width="56" alt="svg-polygon-fill"></a>
+<a href="./svg-polygon-fill-rule-evenodd.svg" title="svg-polygon-fill-rule-evenodd (standalone-svg)"><img src="./chromium/svg-polygon-fill-rule-evenodd.png" width="56" alt="svg-polygon-fill-rule-evenodd"></a>
+<a href="./svg-polygon-single-point-square-cap.svg" title="svg-polygon-single-point-square-cap (standalone-svg)"><img src="./chromium/svg-polygon-single-point-square-cap.png" width="56" alt="svg-polygon-single-point-square-cap"></a>
+<a href="./svg-polygon-stroke-closed.svg" title="svg-polygon-stroke-closed (standalone-svg)"><img src="./chromium/svg-polygon-stroke-closed.png" width="56" alt="svg-polygon-stroke-closed"></a>
+<a href="./svg-polyline-fill-implicit-close.svg" title="svg-polyline-fill-implicit-close (standalone-svg)"><img src="./chromium/svg-polyline-fill-implicit-close.png" width="56" alt="svg-polyline-fill-implicit-close"></a>
+<a href="./svg-polyline-single-point-square-cap.svg" title="svg-polyline-single-point-square-cap (standalone-svg)"><img src="./chromium/svg-polyline-single-point-square-cap.png" width="56" alt="svg-polyline-single-point-square-cap"></a>
+<a href="./svg-polyline-stroke-open.svg" title="svg-polyline-stroke-open (standalone-svg)"><img src="./chromium/svg-polyline-stroke-open.png" width="56" alt="svg-polyline-stroke-open"></a>
+<a href="./svg-display-none-group.svg" title="svg-display-none-group (standalone-svg)"><img src="./chromium/svg-display-none-group.png" width="56" alt="svg-display-none-group"></a>
+<a href="./svg-display-none-root.svg" title="svg-display-none-root (standalone-svg)"><img src="./chromium/svg-display-none-root.png" width="56" alt="svg-display-none-root"></a>
+<a href="./svg-display-none-shape.svg" title="svg-display-none-shape (standalone-svg)"><img src="./chromium/svg-display-none-shape.png" width="56" alt="svg-display-none-shape"></a>
+<a href="./svg-visibility-collapse-shape.svg" title="svg-visibility-collapse-shape (standalone-svg)"><img src="./chromium/svg-visibility-collapse-shape.png" width="56" alt="svg-visibility-collapse-shape"></a>
+<a href="./svg-visibility-hidden-shape.svg" title="svg-visibility-hidden-shape (standalone-svg)"><img src="./chromium/svg-visibility-hidden-shape.png" width="56" alt="svg-visibility-hidden-shape"></a>
+<a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
+<a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
+<a href="./svg-fill-opacity-inherited.svg" title="svg-fill-opacity-inherited (standalone-svg)"><img src="./chromium/svg-fill-opacity-inherited.png" width="56" alt="svg-fill-opacity-inherited"></a>
+<a href="./svg-fill-opacity-overlap.svg" title="svg-fill-opacity-overlap (standalone-svg)"><img src="./chromium/svg-fill-opacity-overlap.png" width="56" alt="svg-fill-opacity-overlap"></a>
+<a href="./svg-fill-opacity-percentage.svg" title="svg-fill-opacity-percentage (standalone-svg)"><img src="./chromium/svg-fill-opacity-percentage.png" width="56" alt="svg-fill-opacity-percentage"></a>
+<a href="./svg-fill-opacity-times-alpha.svg" title="svg-fill-opacity-times-alpha (standalone-svg)"><img src="./chromium/svg-fill-opacity-times-alpha.png" width="56" alt="svg-fill-opacity-times-alpha"></a>
+<a href="./svg-stroke-opacity-join.svg" title="svg-stroke-opacity-join (standalone-svg)"><img src="./chromium/svg-stroke-opacity-join.png" width="56" alt="svg-stroke-opacity-join"></a>
+<a href="./svg-stroke-opacity-over-fill.svg" title="svg-stroke-opacity-over-fill (standalone-svg)"><img src="./chromium/svg-stroke-opacity-over-fill.png" width="56" alt="svg-stroke-opacity-over-fill"></a>
+<a href="./svg-translucent-fill-rgba.svg" title="svg-translucent-fill-rgba (standalone-svg)"><img src="./chromium/svg-translucent-fill-rgba.png" width="56" alt="svg-translucent-fill-rgba"></a>
+<a href="./svg-percent-circle-diagonal.svg" title="svg-percent-circle-diagonal (standalone-svg)"><img src="./chromium/svg-percent-circle-diagonal.png" width="56" alt="svg-percent-circle-diagonal"></a>
+<a href="./svg-percent-ellipse.svg" title="svg-percent-ellipse (standalone-svg)"><img src="./chromium/svg-percent-ellipse.png" width="56" alt="svg-percent-ellipse"></a>
+<a href="./svg-percent-line.svg" title="svg-percent-line (standalone-svg)"><img src="./chromium/svg-percent-line.png" width="56" alt="svg-percent-line"></a>
+<a href="./svg-percent-rect-in-viewbox.svg" title="svg-percent-rect-in-viewbox (standalone-svg)"><img src="./chromium/svg-percent-rect-in-viewbox.png" width="56" alt="svg-percent-rect-in-viewbox"></a>
+<a href="./svg-percent-rect-root-units.svg" title="svg-percent-rect-root-units (standalone-svg)"><img src="./chromium/svg-percent-rect-root-units.png" width="56" alt="svg-percent-rect-root-units"></a>
+<a href="./svg-percent-stroke-width.svg" title="svg-percent-stroke-width (standalone-svg)"><img src="./chromium/svg-percent-stroke-width.png" width="56" alt="svg-percent-stroke-width"></a>
+<a href="./svg-anchor-container.svg" title="svg-anchor-container (standalone-svg)"><img src="./chromium/svg-anchor-container.png" width="56" alt="svg-anchor-container"></a>
+<a href="./svg-css-transform-property.svg" title="svg-css-transform-property (standalone-svg)"><img src="./chromium/svg-css-transform-property.png" width="56" alt="svg-css-transform-property"></a>
+<a href="./svg-css-transform-beats-attribute.svg" title="svg-css-transform-beats-attribute (standalone-svg)"><img src="./chromium/svg-css-transform-beats-attribute.png" width="56" alt="svg-css-transform-beats-attribute"></a>
+<a href="./svg-css-transform-sheet-beats-attribute.svg" title="svg-css-transform-sheet-beats-attribute (standalone-svg)"><img src="./chromium/svg-css-transform-sheet-beats-attribute.png" width="56" alt="svg-css-transform-sheet-beats-attribute"></a>
+<a href="./svg-css-transform-none-restores.svg" title="svg-css-transform-none-restores (standalone-svg)"><img src="./chromium/svg-css-transform-none-restores.png" width="56" alt="svg-css-transform-none-restores"></a>
+<a href="./svg-css-transform-invalid-falls-back.svg" title="svg-css-transform-invalid-falls-back (standalone-svg)"><img src="./chromium/svg-css-transform-invalid-falls-back.png" width="56" alt="svg-css-transform-invalid-falls-back"></a>
+<a href="./svg-css-transform-compound.svg" title="svg-css-transform-compound (standalone-svg)"><img src="./chromium/svg-css-transform-compound.png" width="56" alt="svg-css-transform-compound"></a>
+<a href="./svg-css-transform-percent.svg" title="svg-css-transform-percent (standalone-svg)"><img src="./chromium/svg-css-transform-percent.png" width="56" alt="svg-css-transform-percent"></a>
+<a href="./svg-css-transform-group.svg" title="svg-css-transform-group (standalone-svg)"><img src="./chromium/svg-css-transform-group.png" width="56" alt="svg-css-transform-group"></a>
+<a href="./svg-css-transform-rotate-quadrant.svg" title="svg-css-transform-rotate-quadrant (standalone-svg)"><img src="./chromium/svg-css-transform-rotate-quadrant.png" width="56" alt="svg-css-transform-rotate-quadrant"></a>
+<a href="./svg-css-transform-webkit.svg" title="svg-css-transform-webkit (standalone-svg)"><img src="./chromium/svg-css-transform-webkit.png" width="56" alt="svg-css-transform-webkit"></a>
+<a href="./svg-transform-runtogether.svg" title="svg-transform-runtogether (standalone-svg)"><img src="./chromium/svg-transform-runtogether.png" width="56" alt="svg-transform-runtogether"></a>
+<a href="./svg-transform-no-separator.svg" title="svg-transform-no-separator (standalone-svg)"><img src="./chromium/svg-transform-no-separator.png" width="56" alt="svg-transform-no-separator"></a>
+<a href="./svg-transform-malformed-drops.svg" title="svg-transform-malformed-drops (standalone-svg)"><img src="./chromium/svg-transform-malformed-drops.png" width="56" alt="svg-transform-malformed-drops"></a>
+<a href="./svg-use.svg" title="svg-use (standalone-svg)"><img src="./chromium/svg-use.png" width="56" alt="svg-use"></a>
+<a href="./svg-use-defs-rect.svg" title="svg-use-defs-rect (standalone-svg)"><img src="./chromium/svg-use-defs-rect.png" width="56" alt="svg-use-defs-rect"></a>
+<a href="./svg-use-xy.svg" title="svg-use-xy (standalone-svg)"><img src="./chromium/svg-use-xy.png" width="56" alt="svg-use-xy"></a>
+<a href="./svg-use-transform-xy.svg" title="svg-use-transform-xy (standalone-svg)"><img src="./chromium/svg-use-transform-xy.png" width="56" alt="svg-use-transform-xy"></a>
+<a href="./svg-use-inherit-fill.svg" title="svg-use-inherit-fill (standalone-svg)"><img src="./chromium/svg-use-inherit-fill.png" width="56" alt="svg-use-inherit-fill"></a>
+<a href="./svg-use-own-fill-wins.svg" title="svg-use-own-fill-wins (standalone-svg)"><img src="./chromium/svg-use-own-fill-wins.png" width="56" alt="svg-use-own-fill-wins"></a>
+<a href="./svg-use-xlink-href.svg" title="svg-use-xlink-href (standalone-svg)"><img src="./chromium/svg-use-xlink-href.png" width="56" alt="svg-use-xlink-href"></a>
+<a href="./svg-use-group.svg" title="svg-use-group (standalone-svg)"><img src="./chromium/svg-use-group.png" width="56" alt="svg-use-group"></a>
+<a href="./svg-use-chain.svg" title="svg-use-chain (standalone-svg)"><img src="./chromium/svg-use-chain.png" width="56" alt="svg-use-chain"></a>
+<a href="./svg-use-cycle-nothing.svg" title="svg-use-cycle-nothing (standalone-svg)"><img src="./chromium/svg-use-cycle-nothing.png" width="56" alt="svg-use-cycle-nothing"></a>
+<a href="./svg-use-rendered-twice.svg" title="svg-use-rendered-twice (standalone-svg)"><img src="./chromium/svg-use-rendered-twice.png" width="56" alt="svg-use-rendered-twice"></a>
+<a href="./svg-use-missing-nothing.svg" title="svg-use-missing-nothing (standalone-svg)"><img src="./chromium/svg-use-missing-nothing.png" width="56" alt="svg-use-missing-nothing"></a>
+<a href="./svg-use-forward-ref.svg" title="svg-use-forward-ref (standalone-svg)"><img src="./chromium/svg-use-forward-ref.png" width="56" alt="svg-use-forward-ref"></a>
+<a href="./svg-use-display-none-target.svg" title="svg-use-display-none-target (standalone-svg)"><img src="./chromium/svg-use-display-none-target.png" width="56" alt="svg-use-display-none-target"></a>
+<a href="./svg-use-wh-inert.svg" title="svg-use-wh-inert (standalone-svg)"><img src="./chromium/svg-use-wh-inert.png" width="56" alt="svg-use-wh-inert"></a>
+<a href="./svg-use-duplicate-id-first.svg" title="svg-use-duplicate-id-first (standalone-svg)"><img src="./chromium/svg-use-duplicate-id-first.png" width="56" alt="svg-use-duplicate-id-first"></a>
+<a href="./svg-use-context-differs.svg" title="svg-use-context-differs (standalone-svg)"><img src="./chromium/svg-use-context-differs.png" width="56" alt="svg-use-context-differs"></a>
+<a href="./svg-use-currentcolor.svg" title="svg-use-currentcolor (standalone-svg)"><img src="./chromium/svg-use-currentcolor.png" width="56" alt="svg-use-currentcolor"></a>
+<a href="./svg-use-ancestor-circle.svg" title="svg-use-ancestor-circle (standalone-svg)"><img src="./chromium/svg-use-ancestor-circle.png" width="56" alt="svg-use-ancestor-circle"></a>
+<a href="./svg-use-href-beats-xlink.svg" title="svg-use-href-beats-xlink (standalone-svg)"><img src="./chromium/svg-use-href-beats-xlink.png" width="56" alt="svg-use-href-beats-xlink"></a>
+<a href="./svg-gradient-linear.svg" title="svg-gradient-linear (standalone-svg)"><img src="./chromium/svg-gradient-linear.png" width="56" alt="svg-gradient-linear"></a>
+<a href="./svg-gradient-linear-userspace.svg" title="svg-gradient-linear-userspace (standalone-svg)"><img src="./chromium/svg-gradient-linear-userspace.png" width="56" alt="svg-gradient-linear-userspace"></a>
+<a href="./svg-gradient-linear-bbox-offset.svg" title="svg-gradient-linear-bbox-offset (standalone-svg)"><img src="./chromium/svg-gradient-linear-bbox-offset.png" width="56" alt="svg-gradient-linear-bbox-offset"></a>
+<a href="./svg-gradient-css-transform.svg" title="svg-gradient-css-transform (standalone-svg)"><img src="./chromium/svg-gradient-css-transform.png" width="56" alt="svg-gradient-css-transform"></a>
+<a href="./svg-gradient-transform.svg" title="svg-gradient-transform (standalone-svg)"><img src="./chromium/svg-gradient-transform.png" width="56" alt="svg-gradient-transform"></a>
+<a href="./svg-gradient-spread-reflect.svg" title="svg-gradient-spread-reflect (standalone-svg)"><img src="./chromium/svg-gradient-spread-reflect.png" width="56" alt="svg-gradient-spread-reflect"></a>
+<a href="./svg-gradient-spread-repeat.svg" title="svg-gradient-spread-repeat (standalone-svg)"><img src="./chromium/svg-gradient-spread-repeat.png" width="56" alt="svg-gradient-spread-repeat"></a>
+<a href="./svg-gradient-degenerate-pad.svg" title="svg-gradient-degenerate-pad (standalone-svg)"><img src="./chromium/svg-gradient-degenerate-pad.png" width="56" alt="svg-gradient-degenerate-pad"></a>
+<a href="./svg-gradient-degenerate-repeat.svg" title="svg-gradient-degenerate-repeat (standalone-svg)"><img src="./chromium/svg-gradient-degenerate-repeat.png" width="56" alt="svg-gradient-degenerate-repeat"></a>
+<a href="./svg-gradient-stop-nonmonotonic.svg" title="svg-gradient-stop-nonmonotonic (standalone-svg)"><img src="./chromium/svg-gradient-stop-nonmonotonic.png" width="56" alt="svg-gradient-stop-nonmonotonic"></a>
+<a href="./svg-gradient-zero-stops-fallback.svg" title="svg-gradient-zero-stops-fallback (standalone-svg)"><img src="./chromium/svg-gradient-zero-stops-fallback.png" width="56" alt="svg-gradient-zero-stops-fallback"></a>
+<a href="./svg-gradient-fallback.svg" title="svg-gradient-fallback (standalone-svg)"><img src="./chromium/svg-gradient-fallback.png" width="56" alt="svg-gradient-fallback"></a>
+<a href="./svg-gradient-interp-unpremul.svg" title="svg-gradient-interp-unpremul (standalone-svg)"><img src="./chromium/svg-gradient-interp-unpremul.png" width="56" alt="svg-gradient-interp-unpremul"></a>
+<a href="./svg-gradient-currentcolor.svg" title="svg-gradient-currentcolor (standalone-svg)"><img src="./chromium/svg-gradient-currentcolor.png" width="56" alt="svg-gradient-currentcolor"></a>
+<a href="./svg-gradient-radial.svg" title="svg-gradient-radial (standalone-svg)"><img src="./chromium/svg-gradient-radial.png" width="56" alt="svg-gradient-radial"></a>
+<a href="./svg-gradient-radial-custom.svg" title="svg-gradient-radial-custom (standalone-svg)"><img src="./chromium/svg-gradient-radial-custom.png" width="56" alt="svg-gradient-radial-custom"></a>
+<a href="./svg-gradient-radial-r0.svg" title="svg-gradient-radial-r0 (standalone-svg)"><img src="./chromium/svg-gradient-radial-r0.png" width="56" alt="svg-gradient-radial-r0"></a>
+<a href="./svg-gradient-radial-diagonal-percent.svg" title="svg-gradient-radial-diagonal-percent (standalone-svg)"><img src="./chromium/svg-gradient-radial-diagonal-percent.png" width="56" alt="svg-gradient-radial-diagonal-percent"></a>
+<a href="./svg-gradient-href-cross-type.svg" title="svg-gradient-href-cross-type (standalone-svg)"><img src="./chromium/svg-gradient-href-cross-type.png" width="56" alt="svg-gradient-href-cross-type"></a>
+<a href="./svg-gradient-zero-bbox.svg" title="svg-gradient-zero-bbox (standalone-svg)"><img src="./chromium/svg-gradient-zero-bbox.png" width="56" alt="svg-gradient-zero-bbox"></a>
+<a href="./svg-gradient-stroke.svg" title="svg-gradient-stroke (standalone-svg)"><img src="./chromium/svg-gradient-stroke.png" width="56" alt="svg-gradient-stroke"></a>
+<a href="./svg-gradient-path-bbox.svg" title="svg-gradient-path-bbox (standalone-svg)"><img src="./chromium/svg-gradient-path-bbox.png" width="56" alt="svg-gradient-path-bbox"></a>
+<a href="./svg-gradient-use-clone-order.svg" title="svg-gradient-use-clone-order (standalone-svg)"><img src="./chromium/svg-gradient-use-clone-order.png" width="56" alt="svg-gradient-use-clone-order"></a>
+<a href="./svg-gradient-not-in-defs.svg" title="svg-gradient-not-in-defs (standalone-svg)"><img src="./chromium/svg-gradient-not-in-defs.png" width="56" alt="svg-gradient-not-in-defs"></a>
+<a href="./svg-gradient-fill-opacity.svg" title="svg-gradient-fill-opacity (standalone-svg)"><img src="./chromium/svg-gradient-fill-opacity.png" width="56" alt="svg-gradient-fill-opacity"></a>
+<a href="./svg-gradient-hard-stop.svg" title="svg-gradient-hard-stop (standalone-svg)"><img src="./chromium/svg-gradient-hard-stop.png" width="56" alt="svg-gradient-hard-stop"></a>
+<a href="./svg-gradient-stylesheet-fill.svg" title="svg-gradient-stylesheet-fill (standalone-svg)"><img src="./chromium/svg-gradient-stylesheet-fill.png" width="56" alt="svg-gradient-stylesheet-fill"></a>
 
 ## The refusal register (47)
 

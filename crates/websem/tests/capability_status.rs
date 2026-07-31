@@ -29,6 +29,7 @@ struct PrimitiveSuite {
 #[derive(Debug, Deserialize)]
 struct Primitive {
     id: String,
+    source: String,
     entry: String,
 }
 
@@ -98,11 +99,25 @@ fn generate() -> String {
     writeln!(out, "## Chromium-baked cells ({})\n", suite.fixtures.len()).unwrap();
     out.push_str(
         "Each renders byte-exact against its committed Chromium oracle\n\
-         (six curved cells carry the one declared AA tolerance — see\n\
-         [README.md](./README.md)).\n\n",
+         (six curved cells and one gradient ramp carry a declared, bounded\n\
+         tolerance — see [README.md](./README.md)). Every thumbnail below\n\
+         *is* that committed oracle, which byte-exactness makes this\n\
+         engine's own render too; hover for the cell's name, click through\n\
+         to its fixture source. No new image is committed for this view.\n\n",
     );
     for cell in &suite.fixtures {
-        writeln!(out, "- `{}` ({})", cell.id, cell.entry).unwrap();
+        // One line per cell: the lines flow into one wrapping gallery
+        // paragraph when rendered, and a rung's diff stays one line per
+        // new cell. The alt text keeps every id greppable in the raw file.
+        writeln!(
+            out,
+            "<a href=\"./{source}\" title=\"{id} ({entry})\"><img \
+             src=\"./chromium/{id}.png\" width=\"56\" alt=\"{id}\"></a>",
+            id = cell.id,
+            source = cell.source,
+            entry = cell.entry,
+        )
+        .unwrap();
     }
     out.push('\n');
 

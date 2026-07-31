@@ -13,9 +13,13 @@ format: md
 
 The compact tracker for the SVG engine of record (`websem → rframe → n0`).
 One line per construct; a checked box means a Chromium-gated rung landed it.
-An unchecked box is a departure the compiler already names (see
-[the refusal register](../../../fixtures/web-first/STATUS.md)) or surface not
-yet reached. This list tracks *position only*: semantics live in
+An unchecked box is a departure the compiler already names or surface not
+yet reached. **To *see* what is done, open
+[the visual corpus](../../../fixtures/web-first/STATUS.md)** — the generated
+status view renders every baked cell as a thumbnail gallery (each image is
+the committed Chromium oracle, which byte-exactness makes the engine's own
+render too) with the refusal register beneath it. This list tracks
+*position only*: semantics live in
 [the statement of record](../../../crates/n0_cli/README.md), rung history in
 [the D-N register](./svg-engine-of-record.md), and no score is computed from
 it (FLIP is unratified). A rung's docs commit ticks its rows.
