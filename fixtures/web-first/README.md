@@ -1,5 +1,10 @@
 # fixtures/web-first
 
+> **Scannable status:** [STATUS.md](./STATUS.md) is the generated,
+> freshness-gated view of both corpora — the baked cells and the refusal
+> register in the compiler's own words
+> (`crates/websem/tests/capability_status.rs` regenerates and gates it).
+
 The Chromium-baked oracle corpus for the SVG engine of record — the path an
 `.svg` or `.html` source takes through one document, one cascade
 (`crates/csscascade`), one compiler (`crates/websem`), one resolved contract

@@ -14,6 +14,10 @@ structural path. What that gate defends is the invariant, stated over a whole
 directory — *nothing here renders silently*. Individual constructs are pinned a
 second time, from inline sources, by the contract law that owns each rung.
 
+The scannable, generated view of this register (beside the baked cells) is
+[../STATUS.md](../STATUS.md), freshness-gated by
+`crates/websem/tests/capability_status.rs`.
+
 | File | Required result |
 | --- | --- |
 | `svg-viewbox-invalid-token.svg` | Reject the malformed `viewBox`; do not discard the bad token. |
