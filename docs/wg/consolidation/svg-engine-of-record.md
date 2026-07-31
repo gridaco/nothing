@@ -41,12 +41,12 @@ from eight addenda:
   load (the addendum below closed this — it was the register's one recorded
   silent wrong pixel).
 - **The admitted slice** is `<rect>`, `<circle>`, `<ellipse>`, `<path>`,
-  `<line>`, `<polygon>` and `<polyline>`, filled and stroked; `<g>` and the
-  whole `transform` grammar; viewBox-only root sizing with the full
+  `<line>`, `<polygon>` and `<polyline>`, filled and stroked; `<g>` and
+  `<a>` containers and the whole `transform` grammar; viewBox-only root sizing with the full
   `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 105 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 106 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
   confined tolerance; the departure is the weighted rational conic alone.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
@@ -994,3 +994,13 @@ percentage refusal; with the resolution landed nothing constructs it, and
 its essence lives on as the `PercentBases` resolver and its laws. The
 malformed spellings (`5 0%`, junk digits) stay `BadNumber` refusals, the
 same posture as every other invalid number.
+
+## Addendum — the anchor rung (2026-07-31)
+
+`<a>` is admitted as a container: SVG2 §16.2 makes its `href` interaction,
+not paint, so it shares `<g>`'s compiler, patrols, transform composition,
+and flattening — one law asserts the equivalent `<g>` resolves to the
+identical frame, and one Chromium-baked cell (`svg-anchor-container`)
+proves the composed transform and a translucent overlap through it. The
+container dispatch is now parameterized by element name; nothing else
+moved.
