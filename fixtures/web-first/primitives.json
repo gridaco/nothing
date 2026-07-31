@@ -918,6 +918,14 @@
       "oracle": "chromium/svg-percent-stroke-width.png",
       "width": 64,
       "height": 64
+    },
+    {
+      "id": "svg-anchor-container",
+      "source": "svg-anchor-container.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-anchor-container.png",
+      "width": 64,
+      "height": 64
     }
   ]
 }

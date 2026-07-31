@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (105)
+## Chromium-baked cells (106)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells carry the one declared AA tolerance — see
@@ -130,15 +130,15 @@ Each renders byte-exact against its committed Chromium oracle
 - `svg-percent-rect-in-viewbox` (standalone-svg)
 - `svg-percent-rect-root-units` (standalone-svg)
 - `svg-percent-stroke-width` (standalone-svg)
+- `svg-anchor-container` (standalone-svg)
 
-## The refusal register (38)
+## The refusal register (37)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
 the rest and names the hole. A rung that admits a construct moves
 its row into the cells above.
 
-- `svg-anchor` — declared: skipped svg/a[1]: unsupported element <a>
 - `svg-clip-path` — declared: skipped svg/clipPath[1]: unsupported element <clipPath>; skipped svg/rect[2]: unsupported rendering attribute clip-path on <rect> (not yet consumed)
 - `svg-css-transform-property` — declared: skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform, which this cascade does not represent
 - `svg-display-contents` — declared: skipped svg/g[1]: unsupported computed style: display: contents is not yet consumed
