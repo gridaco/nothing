@@ -277,6 +277,7 @@ fn primitive_oracle_provenance_is_current() {
 #[test]
 fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
     let root = fixture_root();
+    let mut divergences: Vec<String> = Vec::new();
     for fixture in suite().fixtures {
         let source = fs::read_to_string(root.join(&fixture.source))
             .unwrap_or_else(|e| panic!("read {}: {e}", fixture.source));
@@ -346,12 +347,20 @@ fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
             }
         }
 
+        // Divergences accumulate across the whole suite instead of failing
+        // fast: one run reports every departing fixture with its measured
+        // bounds, so a cross-platform Skia difference is fully mapped in a
+        // single CI round-trip.
         match &fixture.tolerance {
-            None => assert_eq!(
-                differing_pixels, 0,
-                "{} has {differing_pixels} pixels differing from Chromium; first: {first_difference:?}",
-                fixture.id
-            ),
+            None => {
+                if differing_pixels != 0 {
+                    divergences.push(format!(
+                        "{}: {differing_pixels} pixels differ (worst channel delta \
+                         {worst_channel_delta}); first: {first_difference:?}",
+                        fixture.id
+                    ));
+                }
+            }
             Some(tolerance) => {
                 assert!(
                     matches!(
@@ -361,19 +370,16 @@ fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
                     "{} declares an unknown tolerance kind",
                     fixture.id
                 );
-                assert!(
-                    differing_pixels <= tolerance.max_differing_pixels,
-                    "{} differs from Chromium in {differing_pixels} pixels, over its declared \
-                     {}; first: {first_difference:?}",
-                    fixture.id,
-                    tolerance.max_differing_pixels
-                );
-                assert!(
-                    worst_channel_delta <= tolerance.max_channel_delta,
-                    "{} differs by {worst_channel_delta} in a channel, over its declared {}",
-                    fixture.id,
-                    tolerance.max_channel_delta
-                );
+                if differing_pixels > tolerance.max_differing_pixels
+                    || worst_channel_delta > tolerance.max_channel_delta
+                {
+                    divergences.push(format!(
+                        "{}: {differing_pixels} pixels differ (worst channel delta \
+                         {worst_channel_delta}), over its declared {}/{}; first: \
+                         {first_difference:?}",
+                        fixture.id, tolerance.max_differing_pixels, tolerance.max_channel_delta
+                    ));
+                }
                 if tolerance.kind == "aa-boundary-ring" {
                     assert!(
                         worst_boundary_distance <= 1.0,
@@ -385,10 +391,10 @@ fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
                 // "ramp-quantization" has no geometric confinement to
                 // declare: a gradient ramp fills its region, and the
                 // departure is a rounding flip at a ramp knife-edge where
-                // the two Skia builds' float paths differ by an ulp
-                // (delta 1, measured count). A wrong gradient still fails
-                // loudly — misplaced geometry moves far more pixels than
-                // the declared count and further than the declared delta.
+                // two Skia builds' float paths differ by an ulp (delta 1,
+                // measured counts). A wrong gradient still fails loudly —
+                // misplaced geometry moves far more pixels than the
+                // declared count and further than the declared delta.
             }
         }
 
@@ -406,6 +412,11 @@ fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
             fixture.id
         );
     }
+    assert!(
+        divergences.is_empty(),
+        "fixtures diverging from their Chromium oracles:\n{}",
+        divergences.join("\n")
+    );
 }
 
 /// Formerly the both-downstreams byte-identity gate. Its replacement purpose
