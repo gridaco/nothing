@@ -21,14 +21,14 @@ contributes nothing, which is a pinned contract rather than an accident. A
 retained session is compiled once and can then be read at Base or at an exact
 signed-nanosecond sample without re-parsing.
 
-| Module             | Ownership                                                                                                      |
-| ------------------ | -------------------------------------------------------------------------------------------------------------- |
-| `svg`              | the two entries, the element walk, the patrols, viewport mapping, shapes, paint                                |
-| `svg_path`         | the `d` grammar, normalised to absolute commands                                                               |
-| `svg_transform`    | the computed `transform` operation list, converted to one affine (the _attribute_ grammar lives in csscascade) |
+| Module             | Ownership                                                                                                                                |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `svg`              | the two entries, the element walk, the patrols, viewport mapping, shapes, paint                                                          |
+| `svg_path`         | the `d` grammar, normalised to absolute commands                                                                                         |
+| `svg_transform`    | the computed `transform` operation list, converted to one affine (the _attribute_ grammar lives in csscascade)                           |
 | `svg_paint_server` | the gradient id table, href template chains, stops, and the fold of every gradient coordinate system into the contract's unit-box paints |
-| `svg_animation`    | the closed exact-time sampling inventory                                                                       |
-| `effective_values` | the Base-or-Sample view the compiler reads through                                                             |
+| `svg_animation`    | the closed exact-time sampling inventory                                                                                                 |
+| `effective_values` | the Base-or-Sample view the compiler reads through                                                                                       |
 
 ## The admitted slice
 

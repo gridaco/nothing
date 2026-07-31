@@ -105,7 +105,7 @@ cargo run -p n0_cli --bin n0 -- \
   `transform` attribute is inert there, and the value applies about the raw
   origin of gradient space, all Chromium-measured. Ramps interpolate
   unpremultiplied sRGB and dither exactly as Chromium's rasterizer does.
-  The authored fallback fires only on an *invalid* reference (a missing id
+  The authored fallback fires only on an _invalid_ reference (a missing id
   or a non-gradient target); the measured correct nothings — zero stops
   (fallback unfired), a self-cycle, a non-invertible gradient transform, an
   object-bounding-box gradient on zero-area geometry — paint nothing. A

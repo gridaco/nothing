@@ -19,11 +19,11 @@ producer (e.g. websem, from SVG)
 
 ## What it holds
 
-| Module   | Ownership                                                                     |
-| -------- | ----------------------------------------------------------------------------- |
+| Module   | Ownership                                                                        |
+| -------- | -------------------------------------------------------------------------------- |
 | `frame`  | `Frame`, `FrameNode`, `Geometry`, the admitted paint stack, and product identity |
-| `path`   | `PathData` — checked absolute commands, fill rule, tight bounds solved once   |
-| `stroke` | `Stroke` — centred, one width, cap, join, miter limit, and its `outset`       |
+| `path`   | `PathData` — checked absolute commands, fill rule, tight bounds solved once      |
+| `stroke` | `Stroke` — centred, one width, cap, join, miter limit, and its `outset`          |
 
 Two details are load-bearing enough to state here. A node's `bounds` is the
 **geometry's** box, never the ink's: a stroke paints outside it, so a consumer
@@ -50,7 +50,7 @@ zero width, so no consumer re-derives "is this visible".
 The vocabulary is deliberately narrower than SVG or CSS. Solid, linear- and
 radial-gradient paints only — a gradient is a self-contained normal-blend
 color ramp stated in the unit square of the geometry's own box, so a paint
-that *references* something (a pattern, an image resource, a context paint)
+that _references_ something (a pattern, an image resource, a context paint)
 or needs a focal geometry the shared radial leaf cannot state remains
 inexpressible here. Beyond paint: one stroke width; geometry is rect, ellipse
 or path. Constructs outside that — dashes, clips, groups as first-class
