@@ -753,10 +753,42 @@ fn svg_presentation_hints(
         if !attr.name.ns.as_ref().is_empty() {
             continue;
         }
+        let url_data = UrlExtraData::from(Url::parse("about:blank").unwrap());
+        // The `transform` attribute is a presentation attribute of the CSS
+        // `transform` property (CSS Transforms L1 §7) whose grammar the CSS
+        // parser cannot read — unitless numbers, comma-wsp, the 3-argument
+        // rotate. It enters through its own measured rewrite: a valid list
+        // becomes equivalent CSS text, a malformed one becomes no hint at
+        // all, which renders untransformed exactly as Chromium drops it.
+        if attr.name.local.as_ref() == "transform" {
+            if let Some(css) = crate::svg_transform::transform_attribute_to_css(&attr.value) {
+                let mut throwaway = SourcePropertyDeclaration::default();
+                if parse_one_declaration_into(
+                    &mut throwaway,
+                    PropertyId::NonCustom(LonghandId::Transform.into()),
+                    &css,
+                    Origin::Author,
+                    &url_data,
+                    None,
+                    ParsingMode::DEFAULT,
+                    StyleQuirksMode::NoQuirks,
+                    CssRuleType::Style,
+                )
+                .is_ok()
+                {
+                    block.extend(throwaway.drain(), Importance::Normal);
+                    parsed_any = true;
+                } else {
+                    // The rewrite's output is CSS by construction; a parse
+                    // failure here is a rewrite bug, never author input.
+                    debug_assert!(false, "rewritten transform must parse: {css}");
+                }
+            }
+            continue;
+        }
         let Some(longhand) = admitted_svg_presentation_property(attr.name.local.as_ref()) else {
             continue;
         };
-        let url_data = UrlExtraData::from(Url::parse("about:blank").unwrap());
         fn parse(
             source: &mut SourcePropertyDeclaration,
             longhand: LonghandId,

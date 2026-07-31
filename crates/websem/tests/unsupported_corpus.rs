@@ -42,10 +42,21 @@ use Departure::{BothRefuse, DeclaredByBestEffort};
 /// a bare "does it error" check and fail this one.
 const CORPUS: &[(&str, Departure, &str)] = &[
     ("svg-clip-path", DeclaredByBestEffort, "<clipPath>"),
+    // The CSS `transform` property graduated with the transform rung (its
+    // fixture is now a baked cell); the family's still-refused members each
+    // hold a row: the individual transform properties, the beyond-2D
+    // function forms, and the origin/box knobs.
+    ("svg-css-individual-rotate", DeclaredByBestEffort, "rotate"),
+    ("svg-css-transform-3d", DeclaredByBestEffort, "translate3d"),
     (
-        "svg-css-transform-property",
+        "svg-css-transform-box",
         DeclaredByBestEffort,
-        "transform",
+        "transform-box",
+    ),
+    (
+        "svg-css-transform-origin",
+        DeclaredByBestEffort,
+        "transform-origin",
     ),
     (
         "svg-display-contents",

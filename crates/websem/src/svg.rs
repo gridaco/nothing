@@ -69,9 +69,11 @@
 //! | paint | `resolve_fill`, `resolve_stroke`, `resolve_fill_rule`, and the admitted colour surface |
 //! | viewport | [`InitialViewport`], `parse_viewbox`, the `preserveAspectRatio` grammar and its viewport mapping |
 //!
-//! Two grammars *are* separate files, because they are string-in/value-out and
-//! owe the compiler nothing: `svg_path` for the `d` grammar and
-//! `svg_transform` for the `transform` list.
+//! Two conversions *are* separate files, because they are value-in/value-out
+//! and owe the compiler nothing: `svg_path` for the `d` grammar and
+//! `svg_transform` for the computed `transform` operation list (the
+//! *attribute* grammar lives in csscascade, which rewrites it into the one
+//! CSS property at presentation-hint level).
 //!
 //! ## SVG paint boundary
 //! Paint is consumed from the one Stylo cascade as typed values:
@@ -109,7 +111,7 @@ use style::computed_values::stroke_linejoin::T as StyloLinejoin;
 use style::computed_values::visibility::T as Visibility;
 use style::dom::TElement;
 
-use crate::svg_transform::parse_transform_list;
+use crate::svg_transform::{TransformRefusal, computed_transform_to_affine};
 use style::properties::ComputedValues;
 use style::thread_state::{self, ThreadState};
 use style::values::computed::{SVGOpacity, Size};
@@ -354,12 +356,12 @@ pub enum CompileError {
     /// and the contract carries no conic command yet, so the arc refuses by
     /// name rather than paint a visibly different curve.
     UnsupportedPathCommand { element: String, command: char },
-    /// A `transform` list outside the SVG2 §8.3 grammar: an unknown
-    /// function, a wrong argument count, or a number the SVG grammar does
-    /// not accept. The frozen donor silently maps a subset of such a list;
-    /// this slice refuses it, the same posture as `viewBox` and
-    /// `preserveAspectRatio`.
-    BadTransform { element: String, value: String },
+    /// A composed transform that overflowed to a non-finite matrix. Every
+    /// computed component is finite, but composition can overflow, and the
+    /// downstream contract refuses a non-finite frame transform with no
+    /// element named — which would turn one bad list into a blank render.
+    /// The refusal lands here, where the element is known.
+    NonFiniteTransform { element: String },
     /// Container nesting deeper than the compiler descends. A recursive
     /// walk cannot honor unbounded depth, so the limit is explicit rather
     /// than a stack overflow.
@@ -793,8 +795,8 @@ impl std::fmt::Display for CompileError {
                 "path command {command} on <{element}> is not yet consumed (an elliptical arc \
                  reaches Chromium's rasterizer as conics, which this slice does not emit)"
             ),
-            CompileError::BadTransform { element, value } => {
-                write!(f, "transform {value:?} on <{element}> is invalid")
+            CompileError::NonFiniteTransform { element } => {
+                write!(f, "the composed transform on <{element}> is not finite")
             }
             CompileError::ContainerTooDeep(limit) => {
                 write!(f, "container nesting deeper than {limit} is not compiled")
@@ -950,10 +952,15 @@ const ROOT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["transform"];
 ///   `mask` and `offset-path` carry `servo_pref = "layout.unimplemented"`,
 ///   which this build pins off, so they are dropped exactly as the
 ///   engine-gated names are.
-/// - **Represented but unconsumed.** `transform`, `translate`, `rotate`,
-///   `scale`, `transform-origin`, `clip-path`, `filter`, `mix-blend-mode` and
+/// - **Represented but unconsumed.** `translate`, `rotate`, `scale`,
+///   `transform-origin`, `clip-path`, `filter`, `mix-blend-mode` and
 ///   `isolation` *do* compute in this build; this compiler simply does not read
-///   them, and reading them would mean implementing them.
+///   them, and reading them would mean implementing them. (`transform` was the
+///   first name to leave this list: the transform rung reads its computed
+///   value in [`compose_element_transform`], so a cascaded declaration is
+///   consumed, not smuggled. The individual `translate`/`rotate`/`scale`
+///   properties stay — Chromium composes them *with* `transform`, so reading
+///   one without the others would compose a different matrix.)
 ///
 /// Either way a cascaded declaration would paint in Chromium and not here, so
 /// the scan below reads the authored CSS text — the only ingresses this
@@ -983,7 +990,6 @@ const CASCADE_PROPERTIES_NOT_REPRESENTED: &[&str] = &[
     "marker-mid",
     "marker-end",
     "shape-rendering",
-    "transform",
     "transform-origin",
     "transform-box",
     "translate",
@@ -1013,10 +1019,14 @@ const CASCADE_PROPERTIES_NOT_REPRESENTED: &[&str] = &[
 ///
 /// Chromium honors `-webkit-clip-path`, `-webkit-transform` and
 /// `-webkit-filter` on an SVG shape with full effect (measured), and the
-/// unprefixed names are already on the list — so the alias was never a new
-/// capability question, only a spelling the scan missed. Stripping is the safer
-/// shape than enumerating aliases: it can only ever *add* a refusal, and the
-/// alias family keeps growing.
+/// unprefixed names of the *refused* pair are on the list — so the alias was
+/// never a new capability question, only a spelling the scan missed. Stripping
+/// is the safer shape than enumerating aliases: it can only ever *add* a
+/// refusal, and the alias family keeps growing. A name that graduates off the
+/// list takes its aliases with it, and that is checked, not assumed:
+/// `-webkit-transform` passes this scan *and* computes — the pinned Stylo
+/// implements the alias (a precedence row pins it), so the spelling Chromium
+/// applies is the spelling the cascade carries.
 const VENDOR_PREFIXES: &[&str] = &["-webkit-", "-moz-", "-ms-", "-o-"];
 
 /// The first [`CASCADE_PROPERTIES_NOT_REPRESENTED`] property name declared
@@ -1423,6 +1433,26 @@ fn compile_svg_element(
     // both entries: the root paints nothing itself, and each descendant's
     // own computed (inherited) visibility decides its node.
     let root_disposition = patrol_computed_style(svg, false, true)?;
+    // The root's transform applies to its CSS box *outside* the viewBox
+    // mapping (the reason its attribute spelling is a root refusal), and
+    // since the transform rung both spellings meet in the computed value —
+    // the attribute enters as a presentation hint and a stylesheet can
+    // reach the root directly. Composing it like a container's would place
+    // every pixel wrongly, so a non-`none` computed transform on the root
+    // refuses by name in both admissions. The attribute patrol above still
+    // fires first for the attribute spelling, keeping its message.
+    {
+        let data = svg
+            .borrow_data()
+            .ok_or(CompileError::MissingComputedStyle)?;
+        if !data.styles.primary().clone_transform().0.is_empty() {
+            return Err(CompileError::UnsupportedStyle(
+                "transform on the root <svg> is not yet consumed (it applies to the CSS box \
+                 outside the viewBox mapping)"
+                    .to_string(),
+            ));
+        }
+    }
     reject_percentage_dimension(svg, "width")?;
     reject_percentage_dimension(svg, "height")?;
     let width_attr = root_dimension_f32(svg, "width", values)?;
@@ -1660,7 +1690,7 @@ impl ChildWalk<'_> {
             RenderDisposition::PrunedSubtree => return Ok(()),
             RenderDisposition::Renders | RenderDisposition::HiddenPaint => {}
         }
-        let transform = compose_element_transform(el, transform, element)?;
+        let transform = compose_element_transform(el, transform, element, self.bases)?;
         self.compile_children(el, transform, path, depth + 1)
     }
 
@@ -1697,46 +1727,63 @@ pub(crate) fn is_non_rendering_element(tag: &str) -> bool {
     matches!(tag, "style" | "title" | "desc" | "metadata")
 }
 
-/// Compose an element's authored `transform` onto the transform it
+/// Compose an element's computed `transform` onto the transform it
 /// inherits, giving the local→frame mapping for it and its subtree.
 ///
-/// SVG composes a transform list left to right, outermost first, and an
-/// element's own list applies inside its inherited mapping — which is
-/// exactly [`AffineTransform::compose`]'s "apply `other` after `self`"
-/// order with the inherited mapping on the left.
+/// The computed value is the one place both spellings meet: the `transform`
+/// *attribute* enters the cascade as a presentation hint (csscascade's
+/// measured rewrite), so author CSS beats it — `transform: none` included —
+/// an invalid CSS declaration falls back to it, and a malformed attribute
+/// contributes nothing and renders untransformed, each exactly as Chromium
+/// resolves the pair (the transform rung's probe matrix). SVG composes a
+/// transform list left to right and an element's own list applies inside its
+/// inherited mapping — which is exactly [`AffineTransform::compose`]'s
+/// "apply `other` after `self`" order with the inherited mapping on the left.
+/// Percentage translations resolve against the viewport's user-unit extent
+/// ([`PercentBases`]), the measured reference box.
 fn compose_element_transform(
     el: HtmlElement<'_>,
     inherited: AffineTransform,
     element_name: &str,
+    bases: PercentBases,
 ) -> Result<AffineTransform, CompileError> {
-    match get_attr(el, "transform") {
-        None => Ok(inherited),
-        Some(value) => {
-            let own = parse_transform_list(&value).ok_or_else(|| CompileError::BadTransform {
-                element: element_name.to_string(),
-                value: value.clone(),
-            })?;
-            let composed = inherited.compose(&own);
-            // Each function's own numbers are finite, but composing them
-            // can overflow. The downstream contract refuses a non-finite
-            // transform for the whole frame with no element named, which
-            // would turn one bad list into a blank render; refuse it here,
-            // where the element is known and best-effort leaves a single
-            // declared hole.
-            if !composed
-                .matrix
-                .iter()
-                .flatten()
-                .all(|component| component.is_finite())
-            {
-                return Err(CompileError::BadTransform {
-                    element: element_name.to_string(),
-                    value,
-                });
-            }
-            Ok(composed)
-        }
+    let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
+    let style: &ComputedValues = data.styles.primary();
+    let transform = style.clone_transform();
+    if transform.0.is_empty() {
+        return Ok(inherited);
     }
+    let own = computed_transform_to_affine(&transform, (bases.width, bases.height)).map_err(
+        |refusal| {
+            CompileError::UnsupportedStyle(match refusal {
+                TransformRefusal::Function(name) => format!(
+                    "transform on <{element_name}> uses {name}(), which is outside the 2D \
+                     affine function set this slice consumes"
+                ),
+                TransformRefusal::Calc => format!(
+                    "transform on <{element_name}> uses a calc() length, which is not yet \
+                     consumed"
+                ),
+            })
+        },
+    )?;
+    let composed = inherited.compose(&own);
+    // Each computed component is finite, but composing them can overflow.
+    // The downstream contract refuses a non-finite transform for the whole
+    // frame with no element named, which would turn one bad list into a
+    // blank render; refuse it here, where the element is known and
+    // best-effort leaves a single declared hole.
+    if !composed
+        .matrix
+        .iter()
+        .flatten()
+        .all(|component| component.is_finite())
+    {
+        return Err(CompileError::NonFiniteTransform {
+            element: element_name.to_string(),
+        });
+    }
+    Ok(composed)
 }
 
 /// Compile a single shape element into a resolved node.
@@ -1755,7 +1802,7 @@ fn compile_shape(
     // A shape's own `transform` composes inside the mapping it inherits
     // from the viewport and its ancestor containers, exactly as a
     // container's does.
-    let transform = compose_element_transform(el, inherited, &tag)?;
+    let transform = compose_element_transform(el, inherited, &tag, bases)?;
     match tag.as_str() {
         "rect" => compile_rect(el, transform, next_id, values, bases),
         "circle" => compile_circle(el, transform, next_id, values, bases),

@@ -55,8 +55,22 @@ cargo run -p n0_cli --bin n0 -- \
   and `<polyline>` (the `points` grammar through the same number scanner as
   path data; an erroneous list refuses the whole element by name where
   Chromium renders its valid pair prefix — a declared divergence), nested in
-  `<g>` (and `<a>`, the same container semantics) with the SVG `transform`
+  `<g>` (and `<a>`, the same container semantics) with the whole `transform`
   grammar, under the outer `<svg>`.
+  `transform` is consumed in both spellings: the attribute is a presentation
+  attribute of the one CSS `transform` property (CSS Transforms L1 §7),
+  entering the cascade at hint level, so author CSS beats it —
+  `transform: none` included — an invalid CSS declaration falls back to it,
+  and a malformed attribute list drops whole and renders untransformed,
+  each exactly as Chromium resolves the pair (Chromium-baked, including the
+  measured run-together leniency no browser ever tightened). Transforms
+  pivot on the measured SVG used origin — the local user-space origin —
+  and percentage translations resolve against the viewport's user-unit
+  extent; authored `transform-origin` and `transform-box`, the individual
+  `rotate`/`translate`/`scale` properties, and the beyond-2D function forms
+  (`translate3d`, `matrix3d`, `perspective`, …) stay named refusals, and
+  the root `<svg>`'s own transform refuses in both spellings (it applies
+  to the CSS box outside the viewBox mapping).
   A stroke is centred, its width is a cascaded length, and its cap, join and
   miter limit come from the one cascade; dashing does not. Paint is solid
   sRGB, opaque or translucent: `fill-opacity`, `stroke-opacity`, and a

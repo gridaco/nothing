@@ -674,13 +674,12 @@ fn every_measured_css_ingress_is_declared() {
         ("all: initial", "the all shorthand"),
         ("all: unset", "the all shorthand, unset"),
         // Vendor aliases of names already on the list — a one-character bypass.
+        // (`-webkit-transform` sat here until the transform rung: the
+        // scan now passes it and the pinned Stylo implements the alias,
+        // so that spelling *composes* — the law below pins it.)
         (
             "-webkit-clip-path: circle(10px at 20px 20px)",
             "a -webkit- clip",
-        ),
-        (
-            "-webkit-transform: translate(20px,20px)",
-            "a -webkit- transform",
         ),
         ("-webkit-filter: blur(3px)", "a -webkit- filter"),
         // CSS motion path moves the shape off its authored position.
@@ -718,6 +717,25 @@ fn every_measured_css_ingress_is_declared() {
             "{what} must be declared through the style attribute too: {css}"
         );
     }
+}
+
+/// A vendor alias of a *consumed* property is consumed, not refused: the
+/// scan strips the prefix and finds no refusal, and the pinned Stylo
+/// implements the `-webkit-transform` alias, so the spelling Chromium
+/// applies (measured: it moves an SVG rect) is the spelling the cascade
+/// carries. A graduating name takes its aliases with it — checked, not
+/// assumed.
+#[test]
+fn a_webkit_transform_alias_composes_like_the_unprefixed_property() {
+    // A style attribute is the same sampling-only blocker a sheet is; the
+    // stylesheet-tolerant helper reads the identical Base frame.
+    let aliased = admit_both_with_stylesheet(&document(
+        r##"  <path fill="#16a34a" style="-webkit-transform: translate(20px, 20px)" d="M10 10 L20 10 L20 20 Z"/>"##,
+    ));
+    let unprefixed = admit_both_with_stylesheet(&document(
+        r##"  <path fill="#16a34a" style="transform: translate(20px, 20px)" d="M10 10 L20 10 L20 20 Z"/>"##,
+    ));
+    assert_eq!(aliased, unprefixed, "one property under two spellings");
 }
 
 /// A `<style>` element's CSS is patrolled as the **concatenation** of its text

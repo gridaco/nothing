@@ -21,20 +21,24 @@ contributes nothing, which is a pinned contract rather than an accident. A
 retained session is compiled once and can then be read at Base or at an exact
 signed-nanosecond sample without re-parsing.
 
-| Module             | Ownership                                                                       |
-| ------------------ | ------------------------------------------------------------------------------- |
-| `svg`              | the two entries, the element walk, the patrols, viewport mapping, shapes, paint |
-| `svg_path`         | the `d` grammar, normalised to absolute commands                                |
-| `svg_animation`    | the closed exact-time sampling inventory                                        |
-| `effective_values` | the Base-or-Sample view the compiler reads through                              |
+| Module             | Ownership                                                                                                      |
+| ------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `svg`              | the two entries, the element walk, the patrols, viewport mapping, shapes, paint                                |
+| `svg_path`         | the `d` grammar, normalised to absolute commands                                                               |
+| `svg_transform`    | the computed `transform` operation list, converted to one affine (the _attribute_ grammar lives in csscascade) |
+| `svg_animation`    | the closed exact-time sampling inventory                                                                       |
+| `effective_values` | the Base-or-Sample view the compiler reads through                                                             |
 
 ## The admitted slice
 
 Shapes `<rect>`, `<circle>`, `<ellipse>`, `<path>`, `<line>`, `<polygon>` and
 `<polyline>`, each with a solid fill and a solid stroke (width, cap, join,
-miter limit, and a path's fill rule — which the points shapes share). Containers `<g>` with the whole `transform` grammar, flattened into a
-per-node affine. Root sizing per SVG2 §8.2 with the full `preserveAspectRatio`
-grammar. One exact-time `<animate attributeName="x">` on a top-level `<rect>`.
+miter limit, and a path's fill rule — which the points shapes share).
+Containers `<g>` with the whole `transform` grammar in both spellings — the
+attribute enters the one cascade as a presentation hint of the CSS
+`transform` property — flattened into a per-node affine. Root sizing per
+SVG2 §8.2 with the full `preserveAspectRatio` grammar. One exact-time
+`<animate attributeName="x">` on a top-level `<rect>`.
 
 `crates/n0_cli/README.md` is the single statement of record for that slice and
 what it refuses; this table is the compiler's map, not a second copy of it.

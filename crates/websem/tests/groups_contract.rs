@@ -47,6 +47,29 @@ fn admit_both(source: &str) -> rframe::Frame {
     frame
 }
 
+/// The same, for markup carrying a `style` attribute or `<style>` sheet:
+/// either blocks the *sampling* inventory (it could carry a CSS animation),
+/// which is a policy about Sample requests, not a hole in the Base frame
+/// these laws read — the static degradation set must still be empty.
+fn admit_both_styled(source: &str) -> rframe::Frame {
+    let strict =
+        SvgFrameSource::from_standalone_svg(source, viewport(64.0, 64.0)).expect("strict admits");
+    let best = SvgFrameSource::from_standalone_svg_best_effort(source, viewport(64.0, 64.0))
+        .expect("best-effort admits");
+    let static_degradations: Vec<_> = best
+        .degradations()
+        .iter()
+        .filter(|d| d.action() != DegradationAction::SamplesAsBase)
+        .collect();
+    assert!(
+        static_degradations.is_empty(),
+        "an admitted document declares nothing static: {static_degradations:?}"
+    );
+    let frame = strict.base_frame();
+    assert_eq!(frame, best.base_frame(), "admissions are frame-identical");
+    frame
+}
+
 fn geometry_box(frame: &rframe::Frame, index: usize) -> Rectangle {
     frame.nodes[index].geometry.local_box()
 }
@@ -244,12 +267,23 @@ fn skew_maps_by_the_tangent_of_its_angle() {
     assert_eq!(matrix[1][0], 0.0, "skewX leaves the other axis alone");
 }
 
-/// A malformed transform refuses by name in both admissions — the posture
-/// `viewBox` and `preserveAspectRatio` already set. The frozen donor
-/// instead filters unparseable arguments out of the list, silently mapping
-/// a subset; that is the divergence this refusal exists to prevent.
+/// A malformed transform list drops the whole attribute and renders the
+/// element untransformed — no refusal and no declared hole, because the
+/// drop *is* Chromium's measured behavior for every list here (the
+/// transform rung's probe matrix baked all of them) and the pixels agree
+/// exactly. This flipped from a refusal when the attribute became a
+/// presentation hint: a malformed list contributes no hint, which is the
+/// same computed `none` Chromium resolves. The frozen donor instead
+/// filters unparseable arguments out of the list, silently mapping a
+/// subset — a *different transform* than any browser computes, which is
+/// the divergence the whole-list drop exists to prevent. The
+/// accepted-vs-dropped boundary itself is pinned in csscascade's
+/// `svg_transform` tests, one row per probe.
 #[test]
-fn malformed_transform_lists_refuse_by_name() {
+fn a_malformed_transform_list_drops_the_attribute() {
+    let baseline = admit_both(&document(
+        r##"  <g><rect width="4" height="4" fill="#16a34a"/></g>"##,
+    ));
     for list in [
         "translate(10, abc)",
         "translate()",
@@ -268,10 +302,10 @@ fn malformed_transform_lists_refuse_by_name() {
         "translate(NaN)",
         "translate(1e999)",
         // Separator grammar: SVG's comma-wsp permits whitespace and at
-        // most one comma, never a leading or doubled one. Skipping empty
-        // tokens — the obvious implementation — would read each of these
-        // as a well-formed shorter list, while Chromium rejects them and
-        // paints the element untransformed.
+        // most one comma, never a leading, doubled, or trailing one.
+        // Skipping empty tokens — the obvious implementation — would read
+        // each of these as a well-formed shorter list, while Chromium
+        // rejects them and paints the element untransformed.
         "translate(1,,2)",
         "translate(,1)",
         "translate(1,)",
@@ -279,28 +313,20 @@ fn malformed_transform_lists_refuse_by_name() {
         "matrix(1,0,0,1,,0)",
         ",translate(1,2)",
         "translate(1,2),,scale(2)",
+        "translate(1,2),",
+        // Function names are case-sensitive, and the CSS-only spellings —
+        // units, `!important` — are not attribute grammar.
+        "Translate(1,2)",
+        "translate(10px, 10px)",
+        "translate(1 2) !important",
     ] {
         let source = document(&format!(
             r##"  <g transform="{list}"><rect width="4" height="4" fill="#16a34a"/></g>"##
         ));
-        let error = SvgFrameSource::from_standalone_svg(source.as_str(), viewport(64.0, 64.0))
-            .err()
-            .unwrap_or_else(|| panic!("{list}: strict must refuse"));
-        assert!(
-            matches!(&error, CompileError::BadTransform { element, .. } if element == "g"),
-            "{list}: {error:?}"
-        );
-
-        let best =
-            SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
-                .unwrap_or_else(|e| panic!("{list}: best-effort compiles the document: {e}"));
-        assert_eq!(best.base_frame().nodes.len(), 0, "{list}: nothing paints");
-        assert_eq!(best.degradations().len(), 1, "{list}");
-        assert_eq!(best.degradations()[0].path(), "svg/g[1]", "{list}");
+        let frame = admit_both(source.as_str());
         assert_eq!(
-            best.degradations()[0].reason(),
-            error.to_string(),
-            "{list}: one reason, both admissions"
+            frame, baseline,
+            "{list}: a dropped list ≡ an absent attribute"
         );
     }
 }
@@ -323,15 +349,14 @@ fn an_empty_transform_list_is_the_identity() {
 #[test]
 fn scope_bearing_containers_still_refuse() {
     for (label, attrs, named) in [
+        // A cascaded `transform` sat beside these until its rung consumed
+        // it — a transform needs no compositing scope, it was only ever
+        // waiting on the computed read. The four below are the real
+        // scope-bearers, refused until the group scope exists.
         ("group opacity", r#"opacity="0.5""#, "opacity"),
         ("group clip-path", r#"clip-path="url(#c)""#, "clip-path"),
         ("group mask", r#"mask="url(#m)""#, "mask"),
         ("group filter", r#"filter="url(#f)""#, "filter"),
-        (
-            "cascaded transform",
-            r#"style="transform: translate(4px,0)""#,
-            "transform",
-        ),
     ] {
         let source = document(&format!(
             r##"  <g {attrs}><rect width="8" height="8" fill="#16a34a"/></g>"##
@@ -356,6 +381,139 @@ fn scope_bearing_containers_still_refuse() {
             0,
             "{label}: the whole subtree is one hole — nothing inside it can be \
              placed or composited without the construct"
+        );
+    }
+}
+
+/// The CSS-spelled transform is the same property as the attribute (CSS
+/// Transforms L1 §7), so both spellings must produce the same frame — a
+/// container's cascaded translate composes for every descendant exactly as
+/// the attribute spelling does (probe: the two Chromium bakes are
+/// byte-identical).
+#[test]
+fn a_cascaded_transform_composes_like_the_attribute() {
+    let css = admit_both_styled(&document(
+        r##"  <g style="transform: translate(10px, 10px)"><rect x="8" y="8" width="20" height="12" fill="#16a34a"/></g>"##,
+    ));
+    let attr = admit_both(&document(
+        r##"  <g transform="translate(10 10)"><rect x="8" y="8" width="20" height="12" fill="#16a34a"/></g>"##,
+    ));
+    assert_eq!(css, attr, "one property, two spellings, one frame");
+}
+
+/// Precedence is the cascade's, measured against Chromium: any author rule
+/// beats the attribute — `transform: none` included — and an *invalid* CSS
+/// declaration never enters, so the attribute stands. (The cascade-level
+/// rows live in csscascade's precedence laws; these pin that the compiler
+/// composes the winner.)
+#[test]
+fn author_css_wins_the_transform_attribute_and_invalid_css_falls_back() {
+    // The style attribute beats the attribute: the rect lands at the CSS
+    // translate, not the attribute's.
+    let both = admit_both_styled(&document(
+        r##"  <g transform="translate(10 10)" style="transform: translate(30px, 0px)"><rect width="4" height="4" fill="#16a34a"/></g>"##,
+    ));
+    let css_only = admit_both_styled(&document(
+        r##"  <g style="transform: translate(30px, 0px)"><rect width="4" height="4" fill="#16a34a"/></g>"##,
+    ));
+    assert_eq!(both, css_only, "the author CSS is the one transform");
+
+    // `transform: none` from a sheet un-transforms the attribute.
+    let none = admit_both_styled(&document(
+        r##"  <style>g { transform: none }</style>
+  <g transform="translate(10 10)"><rect width="4" height="4" fill="#16a34a"/></g>"##,
+    ));
+    let bare = admit_both_styled(&document(
+        r##"  <style>g { transform: none }</style>
+  <g><rect width="4" height="4" fill="#16a34a"/></g>"##,
+    ));
+    assert_eq!(none, bare, "authored none beats the attribute");
+
+    // An invalid CSS declaration (unitless lengths are CSS-invalid) drops
+    // at parse, so the attribute hint stands.
+    let invalid = admit_both_styled(&document(
+        r##"  <g transform="translate(10 10)" style="transform: translate(30, 0)"><rect width="4" height="4" fill="#16a34a"/></g>"##,
+    ));
+    let attr_only = admit_both(&document(
+        r##"  <g transform="translate(10 10)"><rect width="4" height="4" fill="#16a34a"/></g>"##,
+    ));
+    assert_eq!(
+        invalid, attr_only,
+        "invalid CSS falls back to the attribute"
+    );
+}
+
+/// Percentage translations resolve against the viewport's user-unit extent
+/// — the `viewBox` when one maps the viewport (measured: `translate(50%,
+/// 25%)` in a 64-unit viewBox moves exactly (+32, +16), and the same
+/// percentages in a 128-unit viewBox move (+64, +32) regardless of the
+/// raster size).
+#[test]
+fn percent_translations_resolve_against_the_viewbox() {
+    let source = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect x="8" y="8" width="20" height="12" fill="#16a34a" style="transform: translate(50%, 25%)"/>
+</svg>"##;
+    let percent = admit_both_styled(source);
+    let explicit = admit_both_styled(
+        r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect x="8" y="8" width="20" height="12" fill="#16a34a" style="transform: translate(32px, 16px)"/>
+</svg>"##,
+    );
+    assert_eq!(
+        percent, explicit,
+        "50%/25% of a 64-unit viewBox is (32, 16)"
+    );
+}
+
+/// The beyond-2D function family refuses by its CSS spelling. Chromium
+/// composes these on SVG content (measured: `translate3d` moves a rect),
+/// so a silent drop would move nothing where Chromium moves — the element
+/// is a declared hole until a flattening rung measures the family.
+#[test]
+fn the_beyond_2d_transform_family_refuses_by_name() {
+    let source = document(
+        r##"  <rect width="4" height="4" fill="#16a34a" style="transform: translate3d(10px, 10px, 0px)"/>"##,
+    );
+    let error = SvgFrameSource::from_standalone_svg(source.as_str(), viewport(64.0, 64.0))
+        .err()
+        .expect("strict refuses the 3D form");
+    assert!(
+        error.to_string().contains("translate3d()"),
+        "the refusal names the function: {error}"
+    );
+
+    let best =
+        SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
+            .expect("best-effort compiles");
+    assert_eq!(best.base_frame().nodes.len(), 0);
+    let skipped: Vec<_> = best
+        .degradations()
+        .iter()
+        .filter(|d| d.action() == DegradationAction::Skipped)
+        .collect();
+    assert_eq!(skipped.len(), 1);
+    assert_eq!(skipped[0].path(), "svg/rect[1]");
+    assert_eq!(skipped[0].reason(), error.to_string());
+}
+
+/// The CSS spelling reaches the root too — a stylesheet can select the
+/// outermost `<svg>` — and the root's transform applies to its CSS box
+/// outside the viewBox mapping, exactly why the attribute spelling is a
+/// root refusal. Both spellings refuse in both admissions, document-level.
+#[test]
+fn a_css_transform_on_the_root_svg_refuses_in_both_admissions() {
+    let source = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <style>svg { transform: translate(4px, 0px) }</style>
+  <rect width="16" height="16" fill="#16a34a"/>
+</svg>"##;
+    for result in [
+        SvgFrameSource::from_standalone_svg(source, viewport(64.0, 64.0)).err(),
+        SvgFrameSource::from_standalone_svg_best_effort(source, viewport(64.0, 64.0)).err(),
+    ] {
+        let error = result.expect("document-level refusal in both admissions");
+        assert!(
+            error.to_string().contains("root <svg>"),
+            "the refusal names the root: {error}"
         );
     }
 }
@@ -671,7 +829,7 @@ fn the_container_depth_bound_admits_its_limit_and_refuses_past_it() {
 #[test]
 fn every_stylesheet_declaring_an_unrepresentable_property_is_declared() {
     let source = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
-  <style>rect { transform: translate(4px,0) }</style>
+  <style>rect { transform-origin: 4px 4px }</style>
   <style>circle { filter: blur(2px) }</style>
   <rect width="16" height="16" fill="#16a34a"/>
 </svg>"##;
@@ -690,7 +848,11 @@ fn every_stylesheet_declaring_an_unrepresentable_property_is_declared() {
     assert_eq!(ignored.len(), 2, "both sheets: {ignored:?}");
     assert_eq!(ignored[0].0, "svg/style[1]");
     assert_eq!(ignored[1].0, "svg/style[2]");
-    assert!(ignored[0].1.contains("transform"), "{}", ignored[0].1);
+    assert!(
+        ignored[0].1.contains("transform-origin"),
+        "{}",
+        ignored[0].1
+    );
     assert!(ignored[1].1.contains("filter"), "{}", ignored[1].1);
     assert_eq!(
         best.base_frame().nodes.len(),
@@ -720,33 +882,28 @@ fn an_inline_html_stylesheet_is_declared_at_its_real_path() {
     );
 }
 
-/// A malformed transform on a *shape* refuses naming that shape, not the
-/// container it happens to sit in — the shape call site has its own
-/// element name.
+/// A malformed transform on a *shape* drops on that shape exactly as it
+/// does on a container: the shape renders untransformed, identical to the
+/// same shape with no attribute at all.
 #[test]
-fn a_malformed_shape_transform_names_the_shape() {
-    for (element, shape) in [
+fn a_malformed_shape_transform_drops_on_the_shape() {
+    for (bad, clean) in [
         (
-            "rect",
             r##"<rect transform="translate(1,,2)" width="4" height="4" fill="#16a34a"/>"##,
+            r##"<rect width="4" height="4" fill="#16a34a"/>"##,
         ),
         (
-            "circle",
             r##"<circle transform="shear(2)" cx="8" cy="8" r="4" fill="#16a34a"/>"##,
+            r##"<circle cx="8" cy="8" r="4" fill="#16a34a"/>"##,
         ),
         (
-            "ellipse",
             r##"<ellipse transform="scale()" cx="8" cy="8" rx="4" ry="2" fill="#16a34a"/>"##,
+            r##"<ellipse cx="8" cy="8" rx="4" ry="2" fill="#16a34a"/>"##,
         ),
     ] {
-        let source = document(&format!("  {shape}"));
-        let error = SvgFrameSource::from_standalone_svg(source.as_str(), viewport(64.0, 64.0))
-            .err()
-            .unwrap_or_else(|| panic!("{element}: strict must refuse"));
-        assert!(
-            matches!(&error, CompileError::BadTransform { element: named, .. } if named == element),
-            "{element}: {error:?}"
-        );
+        let frame = admit_both(&document(&format!("  {bad}")));
+        let baseline = admit_both(&document(&format!("  {clean}")));
+        assert_eq!(frame, baseline, "{bad}: dropped ≡ absent");
     }
 }
 
@@ -768,7 +925,7 @@ fn an_overflowing_transform_composition_refuses_at_its_element() {
         .err()
         .expect("strict refuses the overflow");
     assert!(
-        matches!(&error, CompileError::BadTransform { element, .. } if element == "g"),
+        matches!(&error, CompileError::NonFiniteTransform { element } if element == "g"),
         "{error:?}"
     );
 

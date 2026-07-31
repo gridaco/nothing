@@ -1,163 +1,161 @@
-//! The SVG `transform` attribute grammar: a token list in, one affine out.
+//! The computed `transform` value: a typed operation list in, one affine out.
 //!
 //! Separated from the compiler because it is exactly that and nothing else —
-//! no document, no cascade, no error type, no element. It reads a string and
-//! returns `Some(affine)` or `None`, which is why it can be read, tested and
-//! reasoned about without the compiler around it.
+//! no document, no attribute text, no compiler error type, no element. Since
+//! the transform rung, the *attribute* grammar lives in csscascade
+//! (`svg_transform::transform_attribute_to_css`), which rewrites the SVG
+//! spelling into the one CSS `transform` property at presentation-hint level;
+//! by the time this module runs, both spellings are the same computed
+//! operation list and precedence has already been decided by the cascade.
 //!
-//! What it deliberately does *not* inherit from the frozen donor is leniency;
-//! the two tightenings are documented on [`parse_transform_list`].
+//! What this module refuses is the boundary of the admitted function set: an
+//! operation outside the 2D affine family (the 3D forms, `perspective`) and a
+//! `calc()` length both name themselves in a [`TransformRefusal`] rather than
+//! flatten or approximate — Chromium applies 3D forms on SVG (measured:
+//! `translate3d` moves a rect), so dropping one silently would move nothing
+//! where Chromium moves.
 
 use math2::transform::AffineTransform;
+use style::values::computed::LengthPercentage;
+use style::values::computed::transform::{Transform, TransformOperation};
 
-use crate::svg::{dots_carry_digits, trim_svg_whitespace};
+/// Why a computed transform is outside the admitted slice, named for the
+/// declared hole. The compiler owns the sentence; this module owns the fact.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum TransformRefusal {
+    /// An operation outside the 2D affine set, in its CSS spelling.
+    Function(&'static str),
+    /// A `calc()` length, which needs resolution machinery this slice
+    /// does not carry.
+    Calc,
+}
 
-/// Parse an SVG `transform` list into one affine.
+/// Convert a computed transform list into one affine.
 ///
-/// The tokenizer shape is the frozen donor's
-/// (`crates/htmlcss/src/svg/dom/attrs.rs`, `parse_transform`), re-expressed
-/// onto [`AffineTransform`] with two deliberate tightenings, because the
-/// donor's leniency is exactly the silent-divergence shape this engine
-/// refuses:
-///
-/// - **Every number must parse.** The donor filters unparseable arguments
-///   out of its list, so `translate(10, abc)` silently becomes
-///   `translate(10, 0)` — a different mapping than any browser computes.
-///   Here one bad number invalidates the list.
-/// - **Arity is exact** per SVG2 §8.3: `translate(tx [ty])`,
-///   `scale(sx [sy])`, `rotate(a [cx cy])`, `skewX(a)`, `skewY(a)`,
-///   `matrix(a b c d e f)`. The donor accepts any count and defaults the
-///   rest.
-///
-/// The number grammar is the same one every other attribute read uses
-/// ([`dots_carry_digits`]), so a Rust-superset token like `10.` is
-/// invalid here too. A malformed list refuses by name rather than
-/// silently mapping a subset of it — the posture [`parse_viewbox`] and
-/// [`parse_preserve_aspect_ratio`] already set.
-pub(crate) fn parse_transform_list(value: &str) -> Option<AffineTransform> {
-    let bytes = value.as_bytes();
+/// The list composes left to right — each operation applies inside the
+/// mapping accumulated before it, which is [`AffineTransform::compose`]'s
+/// "apply `other` after `self`" order. Percentages in translations resolve
+/// against `basis` — the viewport's user-unit extent (the `viewBox` when one
+/// maps the viewport), horizontal against its width, vertical against its
+/// height: the transform reference box with the measured used origin `0 0`,
+/// which is the local user-space origin (the transform rung's probe matrix;
+/// Chromium ignores a `viewBox` min for this purpose).
+pub(crate) fn computed_transform_to_affine(
+    transform: &Transform,
+    basis: (f32, f32),
+) -> Result<AffineTransform, TransformRefusal> {
+    let (basis_width, basis_height) = basis;
     let mut composed = AffineTransform::identity();
-    let mut index = 0usize;
-    let mut functions = 0usize;
-    while index < bytes.len() {
-        // Between two functions SVG's separator is `comma-wsp`: whitespace
-        // and/or at most one comma. Consuming any run of both would accept
-        // a leading comma and a doubled `,,`, which Chromium rejects — and
-        // a rejected list paints the element untransformed, so accepting
-        // one here would place content the browser leaves in place.
-        let mut commas = 0usize;
-        while index < bytes.len() {
-            if is_svg_whitespace(bytes[index]) {
-                index += 1;
-            } else if bytes[index] == b',' {
-                commas += 1;
-                if commas > 1 || functions == 0 {
-                    return None;
-                }
-                index += 1;
-            } else {
-                break;
+    for operation in transform.0.iter() {
+        let step = match operation {
+            TransformOperation::Matrix(m) => {
+                AffineTransform::from_acebdf(m.a, m.c, m.e, m.b, m.d, m.f)
             }
-        }
-        if index >= bytes.len() {
-            break;
-        }
-        // A comma is a separator, not a terminator: it must be followed by
-        // another function.
-        if functions > 0 && commas == 0 && index > 0 && !is_svg_whitespace(bytes[index - 1]) {
-            return None;
-        }
-        let name_start = index;
-        while index < bytes.len() && bytes[index].is_ascii_alphabetic() {
-            index += 1;
-        }
-        if name_start == index {
-            return None;
-        }
-        let name = &value[name_start..index];
-        while index < bytes.len() && is_svg_whitespace(bytes[index]) {
-            index += 1;
-        }
-        if index >= bytes.len() || bytes[index] != b'(' {
-            return None;
-        }
-        index += 1;
-        let args_start = index;
-        while index < bytes.len() && bytes[index] != b')' {
-            index += 1;
-        }
-        if index >= bytes.len() {
-            return None;
-        }
-        let args = &value[args_start..index];
-        index += 1;
-        functions += 1;
-
-        let numbers = parse_number_list(args)?;
-
-        let step = match (name, numbers.as_slice()) {
-            ("matrix", [a, b, c, d, e, f]) => AffineTransform::from_acebdf(*a, *c, *e, *b, *d, *f),
-            ("translate", [tx]) => AffineTransform::from_acebdf(1.0, 0.0, *tx, 0.0, 1.0, 0.0),
-            ("translate", [tx, ty]) => AffineTransform::from_acebdf(1.0, 0.0, *tx, 0.0, 1.0, *ty),
-            ("scale", [s]) => AffineTransform::from_acebdf(*s, 0.0, 0.0, 0.0, *s, 0.0),
-            ("scale", [sx, sy]) => AffineTransform::from_acebdf(*sx, 0.0, 0.0, 0.0, *sy, 0.0),
-            ("rotate", [degrees]) => rotate_transform(*degrees),
-            ("rotate", [degrees, cx, cy]) => {
-                AffineTransform::from_acebdf(1.0, 0.0, *cx, 0.0, 1.0, *cy)
-                    .compose(&rotate_transform(*degrees))
-                    .compose(&AffineTransform::from_acebdf(
-                        1.0, 0.0, -*cx, 0.0, 1.0, -*cy,
-                    ))
+            TransformOperation::Translate(x, y) => {
+                let tx = resolve_length(x, basis_width)?;
+                let ty = resolve_length(y, basis_height)?;
+                AffineTransform::from_acebdf(1.0, 0.0, tx, 0.0, 1.0, ty)
             }
-            ("skewX", [degrees]) => {
-                AffineTransform::from_acebdf(1.0, degrees.to_radians().tan(), 0.0, 0.0, 1.0, 0.0)
+            TransformOperation::TranslateX(x) => {
+                let tx = resolve_length(x, basis_width)?;
+                AffineTransform::from_acebdf(1.0, 0.0, tx, 0.0, 1.0, 0.0)
             }
-            ("skewY", [degrees]) => {
-                AffineTransform::from_acebdf(1.0, 0.0, 0.0, degrees.to_radians().tan(), 1.0, 0.0)
+            TransformOperation::TranslateY(y) => {
+                let ty = resolve_length(y, basis_height)?;
+                AffineTransform::from_acebdf(1.0, 0.0, 0.0, 0.0, 1.0, ty)
             }
-            _ => return None,
+            TransformOperation::Scale(sx, sy) => {
+                AffineTransform::from_acebdf(*sx, 0.0, 0.0, 0.0, *sy, 0.0)
+            }
+            TransformOperation::ScaleX(sx) => {
+                AffineTransform::from_acebdf(*sx, 0.0, 0.0, 0.0, 1.0, 0.0)
+            }
+            TransformOperation::ScaleY(sy) => {
+                AffineTransform::from_acebdf(1.0, 0.0, 0.0, 0.0, *sy, 0.0)
+            }
+            TransformOperation::Rotate(angle) => rotate_transform(angle.degrees()),
+            TransformOperation::Skew(ax, ay) => AffineTransform::from_acebdf(
+                1.0,
+                ax.degrees().to_radians().tan(),
+                0.0,
+                ay.degrees().to_radians().tan(),
+                1.0,
+                0.0,
+            ),
+            TransformOperation::SkewX(angle) => AffineTransform::from_acebdf(
+                1.0,
+                angle.degrees().to_radians().tan(),
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+            ),
+            TransformOperation::SkewY(angle) => AffineTransform::from_acebdf(
+                1.0,
+                0.0,
+                0.0,
+                angle.degrees().to_radians().tan(),
+                1.0,
+                0.0,
+            ),
+            // The beyond-2D family refuses by CSS spelling. Chromium
+            // composes each of these on SVG content (measured for
+            // `translate3d`), so a silent drop would be a wrong pixel;
+            // flattening them is a future rung's measured work.
+            TransformOperation::Matrix3D(_) => {
+                return Err(TransformRefusal::Function("matrix3d"));
+            }
+            TransformOperation::TranslateZ(_) => {
+                return Err(TransformRefusal::Function("translateZ"));
+            }
+            TransformOperation::Translate3D(..) => {
+                return Err(TransformRefusal::Function("translate3d"));
+            }
+            TransformOperation::ScaleZ(_) => {
+                return Err(TransformRefusal::Function("scaleZ"));
+            }
+            TransformOperation::Scale3D(..) => {
+                return Err(TransformRefusal::Function("scale3d"));
+            }
+            TransformOperation::RotateX(_) => {
+                return Err(TransformRefusal::Function("rotateX"));
+            }
+            TransformOperation::RotateY(_) => {
+                return Err(TransformRefusal::Function("rotateY"));
+            }
+            TransformOperation::RotateZ(_) => {
+                return Err(TransformRefusal::Function("rotateZ"));
+            }
+            TransformOperation::Rotate3D(..) => {
+                return Err(TransformRefusal::Function("rotate3d"));
+            }
+            TransformOperation::Perspective(_) => {
+                return Err(TransformRefusal::Function("perspective"));
+            }
+            // Animation-composition intermediates cannot appear in a static
+            // cascade; total matching keeps that a named fact rather than a
+            // panic if one ever does.
+            TransformOperation::InterpolateMatrix { .. } => {
+                return Err(TransformRefusal::Function("interpolatematrix"));
+            }
+            TransformOperation::AccumulateMatrix { .. } => {
+                return Err(TransformRefusal::Function("accumulatematrix"));
+            }
         };
         composed = composed.compose(&step);
     }
-    // An empty or whitespace-only list authored no function; SVG treats it
-    // as the identity, and so does an absent attribute.
-    (functions > 0 || trim_svg_whitespace(value).is_empty()).then_some(composed)
+    Ok(composed)
 }
 
-/// Parse a transform function's argument list under SVG's `comma-wsp`
-/// separator grammar: numbers separated by whitespace and/or **at most one**
-/// comma, with no leading or trailing comma.
-///
-/// Splitting on separators and skipping empty tokens — the obvious
-/// implementation, and the frozen donor's — would silently accept
-/// `translate(1,,2)`, `translate(,1)` and `translate(1,)` as
-/// `translate(1,2)` / `translate(1)`, each of which Chromium rejects
-/// outright (painting the element untransformed). An empty token is
-/// therefore a hard error here, not a skip.
-fn parse_number_list(args: &str) -> Option<Vec<f32>> {
-    let trimmed = trim_svg_whitespace(args);
-    if trimmed.is_empty() {
-        return Some(Vec::new());
+/// One translation length: absolute px, or a percentage of its axis basis.
+fn resolve_length(length: &LengthPercentage, basis: f32) -> Result<f32, TransformRefusal> {
+    if let Some(absolute) = length.to_length() {
+        return Ok(absolute.px());
     }
-    let mut numbers = Vec::new();
-    for group in trimmed.split(',') {
-        // One comma may separate numbers, so each comma-delimited group
-        // must itself hold at least one whitespace-separated number: an
-        // empty group is a doubled, leading, or trailing comma.
-        let mut tokens = group.split_ascii_whitespace().peekable();
-        tokens.peek()?;
-        for token in tokens {
-            if !dots_carry_digits(token) {
-                return None;
-            }
-            let number = token.parse::<f32>().ok()?;
-            if !number.is_finite() {
-                return None;
-            }
-            numbers.push(number);
-        }
+    if let Some(percentage) = length.to_percentage() {
+        return Ok(percentage.0 * basis);
     }
-    Some(numbers)
+    Err(TransformRefusal::Calc)
 }
 
 /// A rotation about the origin.
@@ -165,7 +163,9 @@ fn parse_number_list(args: &str) -> Option<Vec<f32>> {
 /// A quarter turn is produced from its integer matrix rather than from
 /// `sin`/`cos`: in f32 the cosine of a right angle is `-4.37e-8`, not
 /// zero, so the generic path shears and shifts the shape by a fraction of
-/// a unit where the exact matrix does not.
+/// a unit where the exact matrix does not. This applies to both spellings
+/// alike — the attribute's `rotate(90)` reaches here as the computed
+/// `rotate(90deg)`.
 ///
 /// Two guards keep the shortcut honest. The multiple-of-90 test uses `%`,
 /// which is exact in f32, rather than comparing a quotient to its
@@ -188,9 +188,4 @@ fn rotate_transform(degrees: f32) -> AffineTransform {
     }
     let (sin, cos) = degrees.to_radians().sin_cos();
     AffineTransform::from_acebdf(cos, -sin, 0.0, sin, cos, 0.0)
-}
-
-/// The five ASCII characters the SVG grammar calls whitespace.
-const fn is_svg_whitespace(byte: u8) -> bool {
-    matches!(byte, b' ' | b'\t' | b'\n' | b'\r' | 0x0C)
 }

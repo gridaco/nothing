@@ -6,7 +6,7 @@
 //! property grammar drops exactly like an invalid CSS declaration; and SVG's
 //! own `<style>` element feeds the same one cascade, so a standalone SVG/XML
 //! document styles itself with no HTML wrapper. Only the admitted hint set
-//! (`fill` today) enters — every widening lands with its own law here.
+//! enters — every widening lands with its own law here.
 
 use csscascade::adapter::{DocumentSession, HtmlElement};
 use csscascade::cascade::CascadeDriver;
@@ -21,6 +21,10 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
     #style-attr-beats-rule { fill: #2563eb; }
     #stroke-rule-beats-hint { stroke: #2563eb; }
     #visibility-rule-beats-hint { visibility: visible; }
+    #transform-rule-beats-hint { transform: translate(30px, 0px); }
+    #transform-none-beats-hint { transform: none; }
+    #transform-style-attr-beats-rule { transform: translate(30px, 0px); }
+    #transform-webkit-alias { -webkit-transform: translate(30px, 0px); }
   </style>
   <rect id="hint-only" fill="#16a34a" width="8" height="8"/>
   <rect id="named" fill="rebeccapurple" width="8" height="8"/>
@@ -37,6 +41,17 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
   <rect id="invalid-visibility-hint" visibility="bogus" width="8" height="8"/>
   <rect id="visibility-rule-beats-hint" visibility="hidden" width="8" height="8"/>
   <rect id="translucent" fill-opacity="0.5" stroke-opacity="25%" width="8" height="8"/>
+  <rect id="transform-hint" transform="translate(10 10)" width="8" height="8"/>
+  <rect id="transform-rule-beats-hint" transform="translate(10 10)" width="8" height="8"/>
+  <rect id="transform-none-beats-hint" transform="translate(10 10)" width="8" height="8"/>
+  <rect id="transform-style-attr-beats-rule" transform="translate(10 10)"
+        style="transform: translate(50px, 0px)" width="8" height="8"/>
+  <rect id="transform-invalid-css-falls-back" transform="translate(10 10)"
+        style="transform: translate(30, 0)" width="8" height="8"/>
+  <rect id="transform-malformed-attr" transform="translate(10 10)," width="8" height="8"/>
+  <rect id="transform-three-arg" transform="rotate(45 32 16)" width="8" height="8"/>
+  <rect id="transform-run-together" transform="translate(10-10)" width="8" height="8"/>
+  <rect id="transform-webkit-alias" width="8" height="8"/>
 </svg>"##;
 
 #[test]
@@ -134,6 +149,64 @@ fn standalone_svg_presentation_hints_enter_below_author_rules() {
     assert_eq!(
         property(root, "translucent", LonghandId::StrokeOpacity),
         "0.25"
+    );
+    // The transform rung: the attribute is a presentation attribute of the
+    // one CSS `transform` property (CSS Transforms L1 §7), entering through
+    // the measured rewrite. Precedence is the cascade's, not reimplemented:
+    // any author rule beats the attribute — `transform: none` included —
+    // the style attribute beats the rule, and an *invalid* CSS declaration
+    // never enters, so the attribute hint stands (all Chromium-measured).
+    assert_eq!(
+        property(root, "transform-hint", LonghandId::Transform),
+        "translate(10px, 10px)"
+    );
+    assert_eq!(
+        property(root, "transform-rule-beats-hint", LonghandId::Transform),
+        "translate(30px)"
+    );
+    assert_eq!(
+        property(root, "transform-none-beats-hint", LonghandId::Transform),
+        "none"
+    );
+    assert_eq!(
+        property(
+            root,
+            "transform-style-attr-beats-rule",
+            LonghandId::Transform
+        ),
+        "translate(50px)"
+    );
+    assert_eq!(
+        property(
+            root,
+            "transform-invalid-css-falls-back",
+            LonghandId::Transform
+        ),
+        "translate(10px, 10px)"
+    );
+    // A malformed attribute list contributes no hint at all — the element
+    // computes `none`, rendering untransformed exactly as Chromium drops
+    // the whole attribute (measured across every refusal-boundary probe).
+    assert_eq!(
+        property(root, "transform-malformed-attr", LonghandId::Transform),
+        "none"
+    );
+    // The attribute-only 3-argument rotate enters as its §7.3 defining
+    // expansion; the computed list carries the sandwich.
+    assert_eq!(
+        property(root, "transform-three-arg", LonghandId::Transform),
+        "translate(32px, 16px) rotate(45deg) translate(-32px, -16px)"
+    );
+    // The run-together leniency (csswg-drafts#2623) is part of the grammar.
+    assert_eq!(
+        property(root, "transform-run-together", LonghandId::Transform),
+        "translate(10px, -10px)"
+    );
+    // The pinned Stylo implements the `-webkit-transform` alias, so that
+    // spelling reaches the same longhand (Chromium applies it on SVG).
+    assert_eq!(
+        property(root, "transform-webkit-alias", LonghandId::Transform),
+        "translate(30px)"
     );
 }
 

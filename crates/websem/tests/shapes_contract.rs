@@ -400,10 +400,13 @@ fn non_ascii_whitespace_padding_refuses_as_a_bad_number() {
 #[test]
 fn cascade_properties_the_build_cannot_represent_refuse_by_name() {
     for (label, shape, property) in [
+        // `transform` sat first in this table until its rung consumed it;
+        // `transform-origin` holds the family's place — it changes where
+        // every transform pivots (measured), and stays unread.
         (
-            "transform",
-            r##"<circle cx="20" cy="32" r="10" style="transform: translate(10px, 0px)" fill="#16a34a"/>"##,
-            "transform",
+            "transform-origin",
+            r##"<circle cx="20" cy="32" r="10" style="transform: rotate(90deg); transform-origin: 20px 32px" fill="#16a34a"/>"##,
+            "transform-origin",
         ),
         (
             "clip-path",
@@ -432,23 +435,25 @@ fn cascade_properties_the_build_cannot_represent_refuse_by_name() {
     // The stylesheet leg is document-level, because a sheet is not
     // attributable to one element without selector matching: strict
     // refuses, best-effort declares it once against the sheet and renders
-    // the document rather than dropping the canvas.
+    // the document rather than dropping the canvas. (`transform` was this
+    // leg's canonical until its rung consumed it; `clip-path` — computed
+    // but unread — succeeds it.)
     let styled = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
-  <style>circle { transform: translate(10px, 0); }</style>
+  <style>circle { clip-path: inset(0 50% 0 0); }</style>
   <rect width="64" height="64" fill="#ffffff"/>
   <circle cx="20" cy="32" r="10" fill="#16a34a"/>
 </svg>"##;
     let strict = SvgFrameSource::from_standalone_svg(styled, viewport(64.0, 64.0))
         .err()
         .expect("strict refuses the stylesheet declaration");
-    assert!(strict.to_string().contains("transform"), "{strict}");
+    assert!(strict.to_string().contains("clip-path"), "{strict}");
 
     let best = SvgFrameSource::from_standalone_svg_best_effort(styled, viewport(64.0, 64.0))
         .expect("best-effort renders and declares");
     let declared: Vec<_> = best
         .degradations()
         .iter()
-        .filter(|d| d.reason().contains("stylesheet declares transform"))
+        .filter(|d| d.reason().contains("stylesheet declares clip-path"))
         .collect();
     assert_eq!(declared.len(), 1, "declared exactly once");
     assert_eq!(declared[0].path(), "svg/style[1]", "named at the sheet");

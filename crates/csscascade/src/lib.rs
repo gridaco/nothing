@@ -24,6 +24,7 @@
 pub mod adapter;
 pub mod cascade;
 pub mod dom;
+mod svg_transform;
 
 use style::servo::media_features::PointerCapabilities;
 
