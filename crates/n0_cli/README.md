@@ -45,7 +45,7 @@ cargo run -p n0_cli --bin n0 -- \
   Shape-geometry and `stroke-width` percentages resolve against the
   viewport's user-unit extent (the `viewBox` when present) per SVG2 §7.10 —
   x-axis against width, y-axis against height, radii and stroke widths
-  against the normalized diagonal; *root* percentage sizing stays a
+  against the normalized diagonal; _root_ percentage sizing stays a
   document-level refusal until a host-level oracle can bake it.
 - Resources: self-contained input only; external images and stylesheets are
   not resolved.
