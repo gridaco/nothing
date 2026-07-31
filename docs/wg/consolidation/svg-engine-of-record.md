@@ -46,12 +46,14 @@ from eight addenda:
   `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 92 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 99 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
   confined tolerance; the departure is the weighted rational conic alone.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
-  unratified. `opacity` and `rx`/`ry` are the two constructs still missing from
-  the scoreboard suite, so its coverage is 10 of 14.
+  unratified. Element `opacity` and `rx`/`ry` are the constructs still missing
+  from the scoreboard suite; the translucency rung moved its
+  `path-opacity`/`rect-opacity` rows within reach only where they spell
+  `fill-opacity` — the element-`opacity` rows wait on the group scope.
 
 ## The crux
 
@@ -938,3 +940,31 @@ the standalone-root proof, hidden and collapse, the descendant un-hide,
 and the author-rule-beats-attribute cell. `visibility_contract.rs` is the
 rung's law file; the smuggle law's display/visibility rows graduated into
 it, and `svg-display-contents` replaced the pair in the refusal corpus.
+
+## Addendum — the translucency rung (2026-07-31)
+
+`fill-opacity`, `stroke-opacity`, and translucent sRGB paint are consumed.
+One rule generates the rung: paint alpha is the product of the colour's own
+alpha and the paint-level opacity, multiplied in float and quantized
+**once** — Chromium composites the product, not the quantized factors, and
+the multiplied cell (`svg-fill-opacity-times-alpha`) pins the rounding
+byte-exactly. Both properties enter as presentation hints (csscascade's
+admitted set grows to twelve) and fold at the two typed paint reads; the
+fill and stroke stacks are separate, so the fold can never composite the
+wrong paint, and a zero opacity resolves to the same admitted nothing as
+`fill: none`.
+
+**Seven cells, byte-exact** (99 total): the overlap composite in both
+spellings of the one `<alpha-value>` grammar, the rgba equivalence, the
+multiplied quantization cell, inheritance through a container, the
+stroke-over-own-fill compositing split, and the miter join's single-pass
+self-overlap. The first quantization guess (round, once) matched Chromium
+on every cell — no tolerance entered.
+
+**Element `opacity` stays refused, by design.** It composites fill and
+stroke through one layer; folding it into per-paint alpha would
+double-blend where they overlap. It is the group-scope rung's first
+producer, and the refusal-law table says so at its row. The strokes-rung
+laws that pinned `stroke-opacity` and translucent paint as refusals
+graduated into the translucency contract, and the beyond-surface paint
+laws keep their point through a colour space the slice still refuses.
