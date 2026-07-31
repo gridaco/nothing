@@ -44,11 +44,12 @@ from eight addenda:
   `<line>`, `<polygon>` and `<polyline>`, filled and stroked; `<g>` and
   `<a>` containers and the whole `transform` grammar in both spellings (the
   attribute is a presentation hint of the CSS `transform` property);
+  `<use>`/`<defs>` same-document references (the id-resolution table);
   viewBox-only root sizing with the full
   `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 119 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 139 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
   confined tolerance; the departure is the weighted rational conic alone.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
@@ -1056,3 +1057,53 @@ patrol closed the stylesheet route to the root that the scan's graduation
 would have opened. `BadTransform` retired with the drop-semantics flip;
 its overflow half lives on as `NonFiniteTransform`, still named at the
 element.
+
+## Addendum — the use/defs rung (2026-07-31)
+
+The engine's first id-resolution table, and with it `<use>` and `<defs>`.
+The architecture is the one the probe matrix forced: the referenced
+subtree is **physically cloned under the `<use>` before the one cascade
+runs** (csscascade's `svg_use`, at DOM freeze), so the instance is styled
+by the same single pass — presentation attributes and `style` clone with
+it, and inheritance flows from the use site, which is exactly Chromium's
+measured behavior (`fill` on the use colors a clone that authors none;
+the clone's own attribute beats it; `currentColor` resolves against the
+use site's `color` — and `color` joined the admitted hint set for it).
+websem renders `<use>` as a container of its shadow content and skips
+`<defs>` by name; the walk, the paths, the patrols and the animation
+inventory all see the expanded tree, so a beyond-slice construct inside
+an instance is a declared hole at the clone's real path, and a cloned
+animation element classifies against the clone it targets.
+
+**The 31-measurement probe matrix's load-bearing verdict is the styling
+boundary.** Selector matching against an instance is *totally* scoped to
+the cloned subtree: `#id`, class, type and clone-internal structural
+selectors match; NO selector involving any ancestor outside the clone
+does — not `defs > rect` (the original's position does not carry), not
+`use > rect`, not even descendant combinators like `svg rect`. A clone
+parented in the one flattened tree cannot reproduce that boundary in
+either direction, so **author CSS and `<use>` refuse together, by name**,
+until a shadow-matching rung earns it with Stylo's shadow machinery. The
+2018-era svgwg#504 claim that Blink copies the original's computed style
+is measurably no longer true of Chromium 149.
+
+Everything else measured landed as law and cell: `x`/`y` translate
+appended inside the use's own transform; whole-document first-id-wins
+resolution with forward references; plain `href` over `xlink:href`;
+`width`/`height` inert for admitted targets; the correct nothings (an
+unresolved reference, a mutual cycle, an ancestor circle — each baked as
+pixels, each rendering exactly Chromium's nothing with nothing declared);
+a light-tree target painting in place and as an instance; `display: none`
+cloning onto the instance. Chains expand through with cycle guards on the
+expansion chain (use ids and target ids alike, push/pop so siblings never
+see each other's history); indirect cycles beyond the measured shapes hit
+a depth budget and refuse loudly as expansion overflow, as do external
+references and authored element children — each a register row with a
+fixture. `<symbol>` targets surface the symbol element at the clone's own
+path and refuse like the nested viewport they are.
+
+Twenty cells baked byte-exact (corpus 119 → 139, the largest single rung
+yet). The refusal register moved one row out (`svg-use` graduates) and
+four in; `svg-path-marker-end`'s defs half stopped declaring the moment
+defs was consumed, leaving the marker attribute itself as the named hole
+— the row now names it directly.
