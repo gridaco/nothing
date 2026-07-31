@@ -1190,6 +1190,227 @@
       "oracle": "chromium/svg-use-href-beats-xlink.png",
       "width": 64,
       "height": 64
+    },
+    {
+      "id": "svg-gradient-linear",
+      "source": "svg-gradient-linear.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-linear.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-linear-userspace",
+      "source": "svg-gradient-linear-userspace.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-linear-userspace.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-linear-bbox-offset",
+      "source": "svg-gradient-linear-bbox-offset.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-linear-bbox-offset.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-css-transform",
+      "source": "svg-gradient-css-transform.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-css-transform.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-transform",
+      "source": "svg-gradient-transform.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-transform.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-spread-reflect",
+      "source": "svg-gradient-spread-reflect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-spread-reflect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-spread-repeat",
+      "source": "svg-gradient-spread-repeat.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-spread-repeat.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-degenerate-pad",
+      "source": "svg-gradient-degenerate-pad.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-degenerate-pad.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-degenerate-repeat",
+      "source": "svg-gradient-degenerate-repeat.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-degenerate-repeat.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-stop-nonmonotonic",
+      "source": "svg-gradient-stop-nonmonotonic.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-stop-nonmonotonic.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-zero-stops-fallback",
+      "source": "svg-gradient-zero-stops-fallback.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-zero-stops-fallback.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-fallback",
+      "source": "svg-gradient-fallback.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-fallback.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-interp-unpremul",
+      "source": "svg-gradient-interp-unpremul.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-interp-unpremul.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-currentcolor",
+      "source": "svg-gradient-currentcolor.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-currentcolor.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-radial",
+      "source": "svg-gradient-radial.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-radial.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-radial-custom",
+      "source": "svg-gradient-radial-custom.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-radial-custom.png",
+      "width": 64,
+      "height": 64,
+      "tolerance": {
+        "kind": "ramp-quantization",
+        "max_differing_pixels": 1,
+        "max_channel_delta": 1
+      }
+    },
+    {
+      "id": "svg-gradient-radial-r0",
+      "source": "svg-gradient-radial-r0.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-radial-r0.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-radial-diagonal-percent",
+      "source": "svg-gradient-radial-diagonal-percent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-radial-diagonal-percent.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-href-cross-type",
+      "source": "svg-gradient-href-cross-type.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-href-cross-type.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-zero-bbox",
+      "source": "svg-gradient-zero-bbox.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-zero-bbox.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-stroke",
+      "source": "svg-gradient-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-path-bbox",
+      "source": "svg-gradient-path-bbox.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-path-bbox.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-use-clone-order",
+      "source": "svg-gradient-use-clone-order.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-use-clone-order.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-not-in-defs",
+      "source": "svg-gradient-not-in-defs.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-not-in-defs.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-fill-opacity",
+      "source": "svg-gradient-fill-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-fill-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-hard-stop",
+      "source": "svg-gradient-hard-stop.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-hard-stop.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-stylesheet-fill",
+      "source": "svg-gradient-stylesheet-fill.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-stylesheet-fill.png",
+      "width": 64,
+      "height": 64
     }
   ]
 }

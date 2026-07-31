@@ -79,6 +79,16 @@ is exactly what the engine renders pixel-for-pixel.
 | `svg-use-cycle-nothing.svg` · `svg-use-missing-nothing.svg` · `svg-use-ancestor-circle.svg` | The correct nothings, each baked: a mutual reference cycle renders nothing while the document renders, an unresolved reference renders nothing, and a reference to a shadow-including ancestor is an invalid circle whose content paints exactly once. |
 | `svg-use-inherit-fill.svg` · `svg-use-own-fill-wins.svg` · `svg-use-context-differs.svg` · `svg-use-currentcolor.svg` | The styling model, measured: inheritance flows from the **use site** — a hint on the use colors a clone that authors no fill, the clone's own attribute beats it, a definition-site ancestor's paint does *not* carry (the instance inherits black, not the defs wrapper's blue), and `currentColor` resolves against the use site's `color` (the hint this rung admitted). |
 | `svg-use-display-none-target.svg` · `svg-use-wh-inert.svg` | `display: none` clones onto the instance and prunes it, and `width`/`height` on a use are inert for every admitted target (they size only `<svg>`/`<symbol>` targets, which refuse). |
+| `svg-gradient-linear.svg` · `svg-gradient-linear-userspace.svg` · `svg-gradient-linear-bbox-offset.svg` | The gradient rung's base cells: the default objectBoundingBox ramp, the byte-identical userSpaceOnUse equivalent (the canary for the box-inverse fold), and a bbox-relative ramp on offset geometry. |
+| `svg-gradient-transform.svg` · `svg-gradient-css-transform.svg` | `gradientTransform` and an author `transform` declaration are one computed value — the attribute cell and the non-quarter CSS rotation cell (the discriminating measurement: the value applies about the raw origin of gradient space, both spellings). |
+| `svg-gradient-spread-reflect.svg` · `svg-gradient-spread-repeat.svg` · `svg-gradient-hard-stop.svg` · `svg-gradient-stop-nonmonotonic.svg` | The ramp grammar: both non-pad spread methods with their measured seams, equal-offset hard stops rendering crisp, and non-monotonic offsets clamping to the running maximum (never sorted). |
+| `svg-gradient-degenerate-pad.svg` · `svg-gradient-degenerate-repeat.svg` · `svg-gradient-radial-r0.svg` | The degenerate rules, resolved by the producer and Chromium-baked: coincident linear endpoints are the last stop under `pad` and the ramp's integral average under `repeat`; a zero radius is a solid of the last stop. |
+| `svg-gradient-zero-stops-fallback.svg` · `svg-gradient-fallback.svg` · `svg-gradient-zero-bbox.svg` | The reference semantics: a valid but stopless gradient paints nothing and the authored fallback does **not** fire; a missing id is invalid and the fallback does; an objectBoundingBox gradient on zero-area geometry paints nothing. |
+| `svg-gradient-interp-unpremul.svg` · `svg-gradient-fill-opacity.svg` · `svg-gradient-currentcolor.svg` | The color model: stops interpolate unpremultiplied sRGB, `fill-opacity` multiplies the whole ramp at the backend's 8-bit alpha step (measured: ×128/255, not ×0.5), and a `currentColor` stop resolves against the gradient's own ancestor chain — never the referencing element. |
+| `svg-gradient-radial.svg` · `svg-gradient-radial-custom.svg` · `svg-gradient-radial-diagonal-percent.svg` | Concentric radials: the default, an off-center `cx`/`cy`/`r` (this corpus's one `ramp-quantization` tolerance — see below), and the userSpaceOnUse `r="50%"` cell that pins the §7.10 normalized-diagonal basis. |
+| `svg-gradient-href-cross-type.svg` | A radial templated on a linear inherits its stops — the href chain crosses gradient types for everything but geometry. |
+| `svg-gradient-stroke.svg` · `svg-gradient-path-bbox.svg` | The consumers: a gradient stroke's paint box is the geometry's own box (the stroke's inked reach pads beyond it), and a path's paint box anchors at its tight-bounds origin — the glyphless compile's once-deferred decision, taken and baked. |
+| `svg-gradient-not-in-defs.svg` · `svg-gradient-use-clone-order.svg` · `svg-gradient-stylesheet-fill.svg` | The table: a gradient outside `<defs>` is non-rendering in place and referencable; a `<use>` clone of a gradient earlier in expanded order does not shadow the document's element; a stylesheet-authored `fill: url(#…)` resolves identically to the attribute spelling (the two same-document URL bases). |
 | `svg-path-cubic-fill.svg` · `svg-path-smooth-cubic.svg` · `svg-path-quadratic.svg` | Curved path cells: a cubic, an `S` continuation, and a `Q`+`T` pair. All three bake **byte-exact** — see the note below. |
 | `svg-path-fill-rule-nonzero.svg` · `svg-path-fill-rule-evenodd.svg` · `svg-path-fill-rule-inherited.svg` | One self-intersecting star under each fill rule (core filled vs hollow), and the rule inherited from a `<g>` through the one cascade. |
 | `svg-path-two-subpaths.svg` · `svg-path-in-scaled-group.svg` | Two closed contours in one `d`, and a path carried by a group's `scale(2)`. |
@@ -129,6 +139,16 @@ at its closing corner — an arc, declared with that arc as its boundary. A shap
 wrong size, or in the wrong color moves pixels off the boundary ring and
 still fails loudly, and `svg-circle-defaults-clip` shows the bar is not
 unreachable: it bakes byte-exact and declares no tolerance at all.
+
+The gradient cells brought a second tolerance kind, used exactly once:
+`svg-gradient-radial-custom` declares `ramp-quantization` — one pixel, one
+code value. An off-center radial reaches the backend through the shared
+radial leaf's unit circle and a similarity, and the two Skia builds' float
+paths differ by an ulp at one ramp knife-edge, flipping a single dithered
+quantization. A ramp has no boundary ring to confine the departure to, and
+none is needed: a wrong gradient moves far more than one pixel by far more
+than one code value and still fails loudly. Every other gradient cell —
+ramps, seams, hard stops, the dither itself — is byte-exact.
 
 Render a primitive through the `n0` product command — since
 [the engine of record](../../docs/wg/consolidation/svg-engine-of-record.md) it routes through

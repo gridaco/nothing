@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (139)
+## Chromium-baked cells (166)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells carry the one declared AA tolerance — see
@@ -164,8 +164,35 @@ Each renders byte-exact against its committed Chromium oracle
 - `svg-use-currentcolor` (standalone-svg)
 - `svg-use-ancestor-circle` (standalone-svg)
 - `svg-use-href-beats-xlink` (standalone-svg)
+- `svg-gradient-linear` (standalone-svg)
+- `svg-gradient-linear-userspace` (standalone-svg)
+- `svg-gradient-linear-bbox-offset` (standalone-svg)
+- `svg-gradient-css-transform` (standalone-svg)
+- `svg-gradient-transform` (standalone-svg)
+- `svg-gradient-spread-reflect` (standalone-svg)
+- `svg-gradient-spread-repeat` (standalone-svg)
+- `svg-gradient-degenerate-pad` (standalone-svg)
+- `svg-gradient-degenerate-repeat` (standalone-svg)
+- `svg-gradient-stop-nonmonotonic` (standalone-svg)
+- `svg-gradient-zero-stops-fallback` (standalone-svg)
+- `svg-gradient-fallback` (standalone-svg)
+- `svg-gradient-interp-unpremul` (standalone-svg)
+- `svg-gradient-currentcolor` (standalone-svg)
+- `svg-gradient-radial` (standalone-svg)
+- `svg-gradient-radial-custom` (standalone-svg)
+- `svg-gradient-radial-r0` (standalone-svg)
+- `svg-gradient-radial-diagonal-percent` (standalone-svg)
+- `svg-gradient-href-cross-type` (standalone-svg)
+- `svg-gradient-zero-bbox` (standalone-svg)
+- `svg-gradient-stroke` (standalone-svg)
+- `svg-gradient-path-bbox` (standalone-svg)
+- `svg-gradient-use-clone-order` (standalone-svg)
+- `svg-gradient-not-in-defs` (standalone-svg)
+- `svg-gradient-fill-opacity` (standalone-svg)
+- `svg-gradient-hard-stop` (standalone-svg)
+- `svg-gradient-stylesheet-fill` (standalone-svg)
 
-## The refusal register (43)
+## The refusal register (47)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -181,7 +208,11 @@ its row into the cells above.
 - `svg-element-opacity` — declared: skipped svg/rect[2]: unsupported rendering attribute opacity on <rect> (not yet consumed)
 - `svg-filter` — declared: skipped svg/filter[1]: unsupported element <filter>; skipped svg/rect[2]: unsupported rendering attribute filter on <rect> (not yet consumed)
 - `svg-foreign-object` — declared: skipped svg/foreignObject[1]: unsupported element <foreignObject>
-- `svg-gradient-paint-server` — declared: skipped svg/linearGradient[1]: unsupported element <linearGradient>; skipped svg/rect[2]: unsupported fill value "url(about:blank#g)"
+- `svg-gradient-focal` — declared: skipped svg/rect[1]: unsupported fill value "url(#g): the radial gradient has a focal point or focal radius, which the shared radial paint leaf cannot state (concentric radials only)"
+- `svg-gradient-linearrgb` — declared: skipped svg/rect[1]: unsupported fill value "url(#g): color-interpolation: linearRGB interpolates stops in linear-light sRGB, which this slice does not execute (sRGB interpolation only)"
+- `svg-gradient-stop-css` — declared: declaration ignored at svg/style[1]: a stylesheet declares stop-color, which this cascade does not represent; elements it matches render without it
+- `svg-gradient-stop-style-attr` — declared: skipped svg/rect[1]: unsupported fill value "url(#g): a gradient <stop> declares stop-color in a style attribute, which this cascade does not represent"
+- `svg-gradient-unit-basis` — declared: skipped svg/rect[1]: unsupported fill value "url(#g): gradient geometry x2=\"4em\" uses a unit whose basis this slice does not consume (numbers, px, and percentages only)"
 - `svg-image` — declared: skipped svg/image[1]: unsupported element <image>
 - `svg-mask` — declared: skipped svg/mask[1]: unsupported element <mask>; skipped svg/rect[2]: unsupported rendering attribute mask on <rect> (not yet consumed)
 - `svg-nested-svg` — declared: skipped svg/svg[1]: unsupported element <svg>
@@ -192,7 +223,7 @@ its row into the cells above.
 - `svg-path-no-leading-moveto` — declared: skipped svg/path[1]: path data on <path> is invalid at byte 0 (near "L10 10 L54 54 Z")
 - `svg-path-pathlength` — declared: skipped svg/path[1]: unsupported rendering attribute pathLength on <path> (not yet consumed)
 - `svg-path-trailing-dot-number` — declared: skipped svg/path[1]: path data on <path> is invalid at byte 1 (near "10. 10 L54 10 L54 54 Z")
-- `svg-pattern-paint-server` — declared: skipped svg/pattern[1]: unsupported element <pattern>; skipped svg/rect[2]: unsupported fill value "url(about:blank#p)"
+- `svg-pattern-paint-server` — declared: skipped svg/pattern[1]: unsupported element <pattern>
 - `svg-points-odd-coordinate` — declared: skipped svg/polygon[1]: points on <polygon> is invalid at byte 17 (near "")
 - `svg-preserve-aspect-ratio-case-folded` — **both refuse**: preserveAspectRatio "xmidymid meet" is invalid
 - `svg-preserve-aspect-ratio-defer` — **both refuse**: preserveAspectRatio "defer xMidYMid meet" is invalid
