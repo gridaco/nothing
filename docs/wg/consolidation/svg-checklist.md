@@ -74,12 +74,12 @@ it (FLIP is unratified). A rung's docs commit ticks its rows.
 
 ## Paint servers
 
-- [ ] `<linearGradient>`
-- [ ] `<radialGradient>`
-- [ ] `<stop>` (`offset`, `stop-color`, `stop-opacity`)
-- [ ] `gradientUnits` / `gradientTransform` / `spreadMethod`
-- [ ] `href` inheritance between gradients
-- [ ] `fill`/`stroke` `url(#…)` with fallback
+- [x] `<linearGradient>`
+- [x] `<radialGradient>` (concentric; focal `fx`/`fy`/`fr` refuse by name)
+- [x] `<stop>` (`offset`, `stop-color`, `stop-opacity` — attribute reads; author CSS on stops refuses)
+- [x] `gradientUnits` / `gradientTransform` / `spreadMethod`
+- [x] `href` inheritance between gradients (cycles → correct nothing)
+- [x] `fill`/`stroke` `url(#…)` with fallback
 - [ ] `<pattern>`
 
 ## Stroke

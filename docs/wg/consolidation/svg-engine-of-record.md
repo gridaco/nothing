@@ -41,17 +41,21 @@ from eight addenda:
   load (the addendum below closed this — it was the register's one recorded
   silent wrong pixel).
 - **The admitted slice** is `<rect>`, `<circle>`, `<ellipse>`, `<path>`,
-  `<line>`, `<polygon>` and `<polyline>`, filled and stroked; `<g>` and
+  `<line>`, `<polygon>` and `<polyline>`, filled and stroked — solid or
+  gradient paint (`<linearGradient>`/`<radialGradient>` paint servers, the
+  gradient rung); `<g>` and
   `<a>` containers and the whole `transform` grammar in both spellings (the
-  attribute is a presentation hint of the CSS `transform` property);
+  attribute is a presentation hint of the CSS `transform` property, and
+  `gradientTransform` is that attribute on gradient elements);
   `<use>`/`<defs>` same-document references (the id-resolution table);
   viewBox-only root sizing with the full
   `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 139 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 166 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
-  confined tolerance; the departure is the weighted rational conic alone.
+  confined tolerance (the weighted rational conic) and one gradient cell
+  carrying a declared one-pixel, one-code-value ramp-quantization tolerance.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. Element `opacity` and `rx`/`ry` are the constructs still missing
   from the scoreboard suite; the translucency rung moved its
@@ -1107,3 +1111,75 @@ yet). The refusal register moved one row out (`svg-use` graduates) and
 four in; `svg-path-marker-end`'s defs half stopped declaring the moment
 defs was consumed, leaving the marker attribute itself as the named hole
 — the row now names it directly.
+
+## Addendum — the gradient rung (2026-08-01)
+
+The engine's first non-solid paint, and the first contract amendment of the
+rung ladder: `rframe`'s `SolidPaintStack` became `PaintStack`, admitting
+linear and radial gradients from the shared `cg` leaf vocabulary alongside
+solids (visible, normal-blend; sweep, diamond, image, and non-normal blends
+stay construction rejections). The repo law that read "`rframe` cannot
+express a gradient" was falsified by design and re-stated: rframe cannot
+express a paint that *references* a resource. A gradient's geometry is
+stated in the unit square of the item's paint box; the producer folds every
+SVG coordinate system into that fact, and no `gradientUnits`, `href`, or
+spread keyword crosses the contract.
+
+A 72-probe Chromium matrix decided the semantics before code. The
+load-bearing verdicts:
+
+- **`gradientTransform` is the transform property's presentation attribute
+  on gradient elements** — the attribute and an author `transform`
+  declaration are byte-identical through non-quarter rotations and scales,
+  the plain `transform` attribute is inert there, `transform: none` disarms
+  the attribute with ordinary cascade precedence, and the value applies
+  about the *raw origin* of gradient space (a scale-2 probe discriminated;
+  the CSS-origin hypothesis died). csscascade hints `gradientTransform`
+  through the same measured rewrite the transform rung built.
+- **The fallback fires only on an invalid reference.** A valid gradient
+  with zero stops — including a self-cycle that composes to zero — paints
+  nothing and leaves the authored fallback unfired; a missing id or a
+  non-gradient target is invalid and the fallback paints. Baked as cells.
+- **The degenerate rules are the backend's own**, resolved by the producer
+  so the engine's preflight never meets them: one stop or `r ≤ 0` is a
+  solid of the (last) stop; coincident linear endpoints are the last stop
+  under `pad` and the ramp's *integral average* under `reflect`/`repeat`
+  (measured 128,0,128 — Chromium shares the backend's rule).
+- **Ramps dither.** Chromium's rasterizer dithers gradient ramps with the
+  backend's ordered matrix; the painter now sets the same flag and 26 of 27
+  gradient cells bake byte-exact — including the dither pattern itself.
+  `fill-opacity` over a gradient multiplies at the backend's 8-bit alpha
+  step (measured ×128/255, not ×0.5), pinned in the painter and its cell.
+- **Stops are attribute reads** — the pinned servo Stylo has no
+  `stop-color`/`stop-opacity` longhands, so author CSS on stops refuses by
+  name (a sheet at document level, a stop's style attribute at the paint),
+  closing what was a silent drop. `currentColor` in a stop resolves against
+  the gradient's own ancestor chain through the one cascade — never the
+  referencing element (measured).
+- **The id table is the document's**: whole-document, first-id-wins,
+  `<use>` shadow clones excluded (a clone earlier in expanded order does
+  not shadow the original — measured), gradients referencable outside
+  `<defs>`, `href` beating `xlink:href`, chains crossing gradient types for
+  stops and common attributes but never geometry, cycles killing only the
+  edge.
+
+The glyphless engine seam took its once-deferred decision: a path's paint
+box anchors at the tight-bounds origin (a unit-space pre-translate on the
+gradient's transform), and `preflight_gradients` — generic over the
+drawlist owner now — runs inside the glyphless compile, so a gradient the
+backend cannot shade is a named `BuildError` before any product exists,
+never a painter panic.
+
+What refuses by name: focal radials (the shared radial leaf is concentric —
+`fx`/`fy`/`fr` wait on the paint RFD's focal amendment),
+`color-interpolation: linearRGB` (honored by Chromium, measured, and
+inexpressible in one backend ramp), font-relative units in gradient
+geometry, percentages in a gradient's computed transform (Chromium
+resolves them against mismatched spaces — measured and declined), external
+references, and `<pattern>`.
+
+Twenty-seven cells baked (corpus 139 → 166), 26 byte-exact on the first
+gate run and one — the off-center radial — carrying the corpus's first
+`ramp-quantization` tolerance: one pixel, one code value, an ulp between
+the two Skia builds' float paths at a ramp knife-edge. The refusal
+register moved `svg-gradient-paint-server` out and five named rows in.

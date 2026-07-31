@@ -49,8 +49,8 @@ cargo run -p n0_cli --bin n0 -- \
   document-level refusal until a host-level oracle can bake it.
 - Resources: self-contained input only; external images and stylesheets are
   not resolved.
-- Capability: the admitted slice is deliberately narrow — solid-filled and
-  solid-stroked `<rect>`, `<circle>`, `<ellipse>`, `<path>` (the path-data
+- Capability: the admitted slice is deliberately narrow — solid- or
+  gradient-filled and -stroked `<rect>`, `<circle>`, `<ellipse>`, `<path>` (the path-data
   grammar except the elliptical arc, with `fill-rule`), `<line>`, `<polygon>`
   and `<polyline>` (the `points` grammar through the same number scanner as
   path data; an erroneous list refuses the whole element by name where
@@ -90,6 +90,36 @@ cargo run -p n0_cli --bin n0 -- \
   colour's own alpha multiply in float and quantize once (the translucency
   rung), Chromium-baked; element `opacity` needs a compositing scope and
   stays a named refusal.
+  `<linearGradient>` and `<radialGradient>` paint servers are consumed
+  (the gradient rung): `fill`/`stroke` `url(#…)` references resolve through
+  a whole-document, first-id-wins gradient table (shadow-content clones
+  excluded — the document's element wins, measured), with both
+  `gradientUnits`, `spreadMethod`, stops from attributes (`offset` clamps
+  to the running maximum and is never sorted; `stop-color` — `currentColor`
+  against the gradient's own ancestor chain — and `stop-opacity` fold and
+  quantize once; equal-offset hard stops render crisp), `href`/`xlink:href`
+  template chains (stops all-or-nothing from the first owner; geometry
+  never crosses gradient types; a cycle kills only the edge), and
+  `gradientTransform` as the transform property's presentation attribute on
+  gradient elements — an author `transform` declaration beats it, the plain
+  `transform` attribute is inert there, and the value applies about the raw
+  origin of gradient space, all Chromium-measured. Ramps interpolate
+  unpremultiplied sRGB and dither exactly as Chromium's rasterizer does.
+  The authored fallback fires only on an *invalid* reference (a missing id
+  or a non-gradient target); the measured correct nothings — zero stops
+  (fallback unfired), a self-cycle, a non-invertible gradient transform, an
+  object-bounding-box gradient on zero-area geometry — paint nothing. A
+  zero or negative radial radius is a solid of the last stop, and linear
+  endpoints inside the backend's degenerate threshold resolve to the
+  measured solid (last stop under `pad`, the ramp's integral average under
+  `reflect`/`repeat`). What refuses by name: a focal radial (`fx`/`fy` off
+  the center or `fr > 0` — the shared radial leaf is concentric),
+  `color-interpolation: linearRGB`, author CSS on stops (`stop-color` /
+  `stop-opacity` — the pinned cascade has no such longhands, so a sheet
+  declaring one is a document-level declaration and a stop's style
+  attribute refuses the paint), font-relative units in gradient geometry,
+  a percentage in a gradient's computed transform (Chromium resolves it
+  against mismatched spaces), an external reference, and `<pattern>`.
   `display: none` and `visibility` are consumed from the one cascade
   (attribute and CSS spellings alike): a pruned or hidden element renders
   the correct nothing rather than a declared hole, a `visibility: visible`

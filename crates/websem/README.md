@@ -26,6 +26,7 @@ signed-nanosecond sample without re-parsing.
 | `svg`              | the two entries, the element walk, the patrols, viewport mapping, shapes, paint                                |
 | `svg_path`         | the `d` grammar, normalised to absolute commands                                                               |
 | `svg_transform`    | the computed `transform` operation list, converted to one affine (the _attribute_ grammar lives in csscascade) |
+| `svg_paint_server` | the gradient id table, href template chains, stops, and the fold of every gradient coordinate system into the contract's unit-box paints |
 | `svg_animation`    | the closed exact-time sampling inventory                                                                       |
 | `effective_values` | the Base-or-Sample view the compiler reads through                                                             |
 
@@ -39,6 +40,10 @@ attribute enters the one cascade as a presentation hint of the CSS
 `transform` property — flattened into a per-node affine. `<use>`/`<defs>`
 same-document references, expanded into the one tree before the cascade
 (csscascade's `svg_use`), rendered as containers of their shadow content.
+`<linearGradient>`/`<radialGradient>` paint servers, resolved through a
+whole-document first-id-wins table into the contract's gradient paints —
+concentric radials only, stops from attributes, `gradientTransform` through
+the one cascade as the transform property's hint on gradient elements.
 Root sizing per SVG2 §8.2 with the full `preserveAspectRatio` grammar. One
 exact-time `<animate attributeName="x">` on a top-level `<rect>`.
 
