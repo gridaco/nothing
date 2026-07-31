@@ -58,7 +58,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "display: contents",
     ),
     ("svg-element-opacity", DeclaredByBestEffort, "opacity"),
-    ("svg-fill-opacity", DeclaredByBestEffort, "fill-opacity"),
     ("svg-filter", DeclaredByBestEffort, "<filter>"),
     (
         "svg-foreign-object",
@@ -143,7 +142,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "stroke-dasharray",
     ),
-    ("svg-stroke-opacity", DeclaredByBestEffort, "stroke-opacity"),
     (
         "svg-stroke-paint-order",
         DeclaredByBestEffort,
@@ -169,11 +167,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "svg-text",
         DeclaredByBestEffort,
         "unsupported element <text>",
-    ),
-    (
-        "svg-translucent-fill",
-        DeclaredByBestEffort,
-        "unsupported fill",
     ),
     ("svg-use", DeclaredByBestEffort, "unsupported element <use>"),
     ("svg-viewbox-invalid-token", BothRefuse, "viewBox"),

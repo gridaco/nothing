@@ -80,11 +80,13 @@
 //! style attributes all feed with SVG2 precedence — csscascade owns every
 //! ingress. `currentColor` resolves against the cascaded `color`; invalid
 //! authored values fall back exactly as invalid CSS declarations. The
-//! admitted value surface is opaque sRGB solid colors — exactly what the
+//! admitted value surface is sRGB solid colors, opaque or translucent —
+//! the colour's alpha and the paint-level opacity (`fill-opacity`,
+//! `stroke-opacity`) multiply in float and quantize once, exactly what the
 //! Chromium-baked primitive suite gates pixel-exactly. Everything else
 //! refuses explicitly until its own capability step bakes fixtures: paint
-//! servers, context paints, non-initial `fill-opacity`, non-sRGB color
-//! spaces, and translucent fills (`tests/typed_fill.rs` pins each).
+//! servers, context paints and context opacities, and non-sRGB color
+//! spaces (`tests/typed_fill.rs` and the translucency contract pin each).
 //!
 //! ## Document lifetime
 //! Each retained source owns one [`csscascade::adapter::DocumentSession`].
@@ -904,8 +906,6 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "mask",
     "filter",
     "color",
-    "fill-opacity",
-    "stroke-opacity",
     "stroke-dasharray",
     "stroke-dashoffset",
     "paint-order",
@@ -1316,14 +1316,6 @@ fn patrol_computed_style(
         // or pruned element's stroke reaches nothing — and stroke properties
         // inherit, so a visible descendant re-checks its own computed values
         // here on its own walk step.
-        match style.clone_stroke_opacity() {
-            SVGOpacity::Opacity(1.0) => {}
-            other => {
-                return Err(CompileError::UnsupportedStroke(format!(
-                    "stroke-opacity {other:?} is not yet consumed"
-                )));
-            }
-        }
         // Chromium renders `stroke-dasharray: 0`, `none` and an invalid value
         // all as a solid stroke (measured), so the refusal tests for a dash
         // that would actually paint rather than for a non-empty list.
@@ -2278,26 +2270,23 @@ fn ellipse_radius(
 /// Stylo cascade, with SVG2 precedence; `currentColor` resolves against the
 /// cascaded `color`, and an invalid authored value falls back exactly as an
 /// invalid CSS declaration would. Paint servers and context paints are
-/// refused explicitly. `fill-opacity` is deliberately not yet consumed —
-/// its admission is a later capability step.
+/// refused explicitly. `fill-opacity` (the translucency rung) folds into
+/// the paint's alpha — one float multiply, quantized once.
 fn resolve_fill(el: HtmlElement<'_>) -> Result<Option<CGColor>, CompileError> {
     let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     let style: &ComputedValues = data.styles.primary();
-    // The slice consumes no fill-opacity: a non-initial cascaded value would
-    // silently render opaque where Chromium renders translucent, so it
-    // refuses explicitly until its own capability step admits it.
-    match style.clone_fill_opacity() {
-        SVGOpacity::Opacity(1.0) => {}
+    let opacity = match style.clone_fill_opacity() {
+        SVGOpacity::Opacity(value) => value,
         other => {
             return Err(CompileError::UnsupportedFill(format!(
-                "fill-opacity {other:?} is not yet consumed"
+                "fill-opacity {other:?} is a context value this slice does not consume"
             )));
         }
-    }
+    };
     let fill = style.clone_fill();
     match fill.kind {
         SVGPaintKind::None => Ok(None),
-        SVGPaintKind::Color(color) => admitted_srgb(style.resolve_color(&color))
+        SVGPaintKind::Color(color) => admitted_srgb(style.resolve_color(&color), opacity)
             .map(Some)
             .map_err(CompileError::UnsupportedFill),
         SVGPaintKind::PaintServer(url) => Err(CompileError::UnsupportedFill(
@@ -2428,12 +2417,19 @@ fn resolve_stroke(el: HtmlElement<'_>, element_name: &str) -> Result<Option<Stro
     let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     let style: &ComputedValues = data.styles.primary();
 
+    let opacity = match style.clone_stroke_opacity() {
+        SVGOpacity::Opacity(value) => value,
+        other => {
+            return Err(CompileError::UnsupportedStroke(format!(
+                "stroke-opacity {other:?} is a context value this slice does not consume"
+            )));
+        }
+    };
     let paint = style.clone_stroke();
     let color = match paint.kind {
         SVGPaintKind::None => return Ok(None),
-        SVGPaintKind::Color(ref color) => {
-            admitted_srgb(style.resolve_color(color)).map_err(CompileError::UnsupportedStroke)?
-        }
+        SVGPaintKind::Color(ref color) => admitted_srgb(style.resolve_color(color), opacity)
+            .map_err(CompileError::UnsupportedStroke)?,
         SVGPaintKind::PaintServer(ref url) => {
             return Err(CompileError::UnsupportedStroke(url.url().map_or_else(
                 || "url(<invalid>)".to_string(),
@@ -2497,28 +2493,31 @@ fn resolve_stroke(el: HtmlElement<'_>, element_name: &str) -> Result<Option<Stro
 /// Admit a cascaded absolute color only where its fidelity is gated: the
 /// opaque sRGB values the Chromium-baked primitive suite covers. Any other
 /// color space would pass through an unverified conversion and per-channel
-/// clamp, and a translucent paint would ship unverified compositing — both
-/// refuse explicitly until their own capability steps bake fixtures.
+/// clamp refuses explicitly until its own capability step bakes fixtures.
+///
+/// The translucency rung folds paint alpha here: the color's own alpha and
+/// the paint-level opacity (`fill-opacity` / `stroke-opacity`) multiply in
+/// float and quantize **once** — Chromium composites the product, not the
+/// quantized factors, and the multiplied cell is baked to pin the rounding.
 ///
 /// The *reason* is returned rather than the error, so each caller names its own
 /// property: the same unusable color is an unsupported `fill` in
 /// [`resolve_fill`] and an unsupported `stroke` in [`resolve_stroke`], and a
 /// declared hole that names the wrong property misdirects whoever reads it.
-fn admitted_srgb(color: AbsoluteColor) -> Result<CGColor, String> {
+fn admitted_srgb(color: AbsoluteColor, paint_opacity: f32) -> Result<CGColor, String> {
     if color.color_space != ColorSpace::Srgb {
         return Err(format!(
             "color space {:?} is not yet gated against Chromium",
             color.color_space
         ));
     }
-    if color.alpha != 1.0 {
-        return Err(format!(
-            "translucent paint (alpha {}) is not yet gated against Chromium",
-            color.alpha
-        ));
-    }
     let c = color.raw_components();
-    Ok(CGColor::from_rgb(to_u8(c[0]), to_u8(c[1]), to_u8(c[2])))
+    Ok(CGColor::from_rgba(
+        to_u8(c[0]),
+        to_u8(c[1]),
+        to_u8(c[2]),
+        to_u8(color.alpha * paint_opacity),
+    ))
 }
 
 fn to_u8(component: f32) -> u8 {

@@ -30,12 +30,13 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
   <rect id="stroked" stroke="#16a34a" stroke-width="4px" stroke-linecap="round"
         stroke-linejoin="bevel" stroke-miterlimit="7" width="8" height="8"/>
   <rect id="stroke-rule-beats-hint" stroke="#16a34a" width="8" height="8"/>
-  <rect id="unadmitted" stroke-opacity="0.5" width="8" height="8"/>
+  <rect id="unadmitted" pathLength="100" width="8" height="8"/>
   <g id="sized" font-size="32"><rect id="em-basis" stroke-width="0.5em" width="8" height="8"/></g>
   <rect id="hidden-hint" visibility="hidden" width="8" height="8"/>
   <rect id="display-none-hint" display="none" width="8" height="8"/>
   <rect id="invalid-visibility-hint" visibility="bogus" width="8" height="8"/>
   <rect id="visibility-rule-beats-hint" visibility="hidden" width="8" height="8"/>
+  <rect id="translucent" fill-opacity="0.5" stroke-opacity="25%" width="8" height="8"/>
 </svg>"##;
 
 #[test]
@@ -83,10 +84,11 @@ fn standalone_svg_presentation_hints_enter_below_author_rules() {
         property(root, "stroke-rule-beats-hint", LonghandId::Stroke),
         "rgb(37, 99, 235)"
     );
-    // An unadmitted presentation attribute still contributes nothing:
-    // `stroke-opacity` keeps its initial value until its own capability step.
-    // (The websem compiler refuses the *attribute* by name meanwhile, so a
-    // document carrying one is a declared hole, not a silent one.)
+    // An unadmitted presentation attribute still contributes nothing —
+    // `pathLength` has no CSS longhand at all, and the block synthesizer
+    // must skip it rather than invent one. (The websem compiler refuses
+    // rendering-relevant unadmitted attributes by name, so a document
+    // carrying one is a declared hole, not a silent one.)
     assert_eq!(
         property(root, "unadmitted", LonghandId::StrokeOpacity),
         "1",
@@ -122,6 +124,16 @@ fn standalone_svg_presentation_hints_enter_below_author_rules() {
     assert_eq!(
         property(root, "visibility-rule-beats-hint", LonghandId::Visibility),
         "visible"
+    );
+    // The translucency pair: number and percentage spellings both compute
+    // through the CSS <alpha-value> grammar.
+    assert_eq!(
+        property(root, "translucent", LonghandId::FillOpacity),
+        "0.5"
+    );
+    assert_eq!(
+        property(root, "translucent", LonghandId::StrokeOpacity),
+        "0.25"
     );
 }
 

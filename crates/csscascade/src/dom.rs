@@ -725,6 +725,11 @@ fn admitted_svg_presentation_property(local: &str) -> Option<LonghandId> {
         // declaration — `display="bogus"` renders (measured).
         "display" => Some(LonghandId::Display),
         "visibility" => Some(LonghandId::Visibility),
+        // The translucency rung's pair: both fold into paint alpha at the
+        // consumer, and both take the CSS <alpha-value> grammar (number or
+        // percentage, clamped) exactly as the SVG2 presentation attribute.
+        "fill-opacity" => Some(LonghandId::FillOpacity),
+        "stroke-opacity" => Some(LonghandId::StrokeOpacity),
         _ => None,
     }
 }

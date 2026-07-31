@@ -52,7 +52,11 @@ cargo run -p n0_cli --bin n0 -- \
   Chromium renders its valid pair prefix — a declared divergence), nested in
   `<g>` containers with the SVG `transform` grammar, under the outer `<svg>`.
   A stroke is centred, its width is a cascaded length, and its cap, join and
-  miter limit come from the one cascade; `stroke-opacity` and dashing do not.
+  miter limit come from the one cascade; dashing does not. Paint is solid
+  sRGB, opaque or translucent: `fill-opacity`, `stroke-opacity`, and a
+  colour's own alpha multiply in float and quantize once (the translucency
+  rung), Chromium-baked; element `opacity` needs a compositing scope and
+  stays a named refusal.
   `display: none` and `visibility` are consumed from the one cascade
   (attribute and CSS spellings alike): a pruned or hidden element renders
   the correct nothing rather than a declared hole, a `visibility: visible`

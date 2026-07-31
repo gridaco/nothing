@@ -414,7 +414,6 @@ fn a_lines_fill_never_paints_and_its_endpoints_default_to_zero() {
 #[test]
 fn the_unconsumed_stroke_properties_refuse_by_name() {
     for attr in [
-        r##"stroke-opacity="0.5""##,
         r##"stroke-dasharray="8 8""##,
         r##"stroke-dashoffset="4""##,
         r##"paint-order="stroke""##,
@@ -429,7 +428,6 @@ fn the_unconsumed_stroke_properties_refuse_by_name() {
     // The same values through a stylesheet, where only a computed-level read or
     // the CSS-name patrol can catch them.
     for css in [
-        "stroke-opacity: 0.5",
         "stroke-dasharray: 8 8",
         "paint-order: stroke",
         "vector-effect: non-scaling-stroke",
@@ -492,7 +490,6 @@ fn stroke_paint_beyond_the_gated_surface_refuses_by_name() {
         "stroke: url(#gradient)",
         "stroke: context-fill",
         "stroke: context-stroke",
-        "stroke: rgba(0,0,0,0.5)",
     ] {
         let error = refusal(&document(&format!(
             r##"  <style>rect {{ {css}; stroke-width: 8 }}</style>
@@ -733,17 +730,19 @@ fn a_negative_box_extent_disables_one_element_not_the_document() {
 /// A stroke paint outside the gated surface is declared as a *stroke* problem.
 /// The same unusable colour is an unsupported `fill` when it arrives as one —
 /// a declared hole that names the wrong property misdirects whoever reads it.
+/// (Translucent sRGB graduated with the translucency rung, so the pair here
+/// is a colour space the slice still refuses.)
 #[test]
 fn an_unusable_stroke_paint_is_declared_under_the_strokes_name() {
     let error = refusal(&document(
-        r##"  <rect x="16" y="16" width="32" height="32" fill="#16a34a" stroke="rgba(0,0,0,0.5)" stroke-width="8"/>"##,
+        r##"  <rect x="16" y="16" width="32" height="32" fill="#16a34a" stroke="color(display-p3 0 0 0)" stroke-width="8"/>"##,
     ));
     assert!(
-        matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("translucent")),
+        matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("color space")),
         "the stroke's own name: {error}"
     );
     let fill = refusal(&document(
-        r##"  <rect x="16" y="16" width="32" height="32" fill="rgba(0,0,0,0.5)"/>"##,
+        r##"  <rect x="16" y="16" width="32" height="32" fill="color(display-p3 0 0 0)"/>"##,
     ));
     assert!(
         matches!(fill, CompileError::UnsupportedFill(_)),

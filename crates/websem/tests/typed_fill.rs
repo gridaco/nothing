@@ -63,40 +63,31 @@ fn wide_gamut_fill_refuses_until_baked() {
     }
 }
 
-/// A translucent fill would ship unverified straight-alpha compositing, so
-/// it refuses explicitly — the same discipline the fill-opacity refusal
-/// applies — until its capability step bakes fixtures.
+/// The translucency rung folds a translucent sRGB fill into the paint's
+/// alpha — the typed read now admits it, frame-identically across both
+/// admissions, and the compositing itself is Chromium-baked in the corpus
+/// (`svg-translucent-fill-rgba`).
 #[test]
-fn translucent_fill_refuses_until_baked() {
-    let error = compile_standalone_svg(
+fn translucent_fill_folds_into_the_paint_alpha() {
+    let frame = compile_standalone_svg(
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="8" height="8" fill="rgb(239 68 68 / 0.5)"/></svg>"##,
         host_viewport(),
     )
-    .expect_err("translucent fills are outside the gated surface");
-    let CompileError::UnsupportedFill(reason) = error else {
-        panic!("expected an explicit fill refusal");
-    };
-    assert!(
-        reason.contains("translucent"),
-        "the refusal names the translucency: {reason}"
-    );
+    .expect("a translucent fill is admitted");
+    let solid = frame.nodes[0].paints.iter().next().expect("one paint");
+    assert_eq!(solid.color.a(), 128, "alpha 0.5 quantizes to 128, once");
 }
 
-/// fill-opacity is deliberately not yet consumed. A non-initial cascaded
-/// value would silently render opaque where Chromium renders translucent, so
-/// Base compilation refuses it explicitly until its capability step lands.
+/// `fill-opacity` multiplies into the colour's own alpha in float and
+/// quantizes once — the multiplied cell (`svg-fill-opacity-times-alpha`)
+/// pins the rounding against Chromium.
 #[test]
-fn css_fill_opacity_refuses_until_admitted() {
-    let error = compile_standalone_svg(
+fn css_fill_opacity_multiplies_into_the_paint_alpha() {
+    let frame = compile_standalone_svg(
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="8" height="8" style="fill: #ef4444; fill-opacity: 0.5"/></svg>"##,
         host_viewport(),
     )
-    .expect_err("non-initial fill-opacity must refuse, not render opaque");
-    let CompileError::UnsupportedFill(value) = error else {
-        panic!("expected an explicit fill refusal");
-    };
-    assert!(
-        value.contains("fill-opacity"),
-        "the refusal names the property: {value}"
-    );
+    .expect("fill-opacity is consumed");
+    let solid = frame.nodes[0].paints.iter().next().expect("one paint");
+    assert_eq!(solid.color.a(), 128);
 }

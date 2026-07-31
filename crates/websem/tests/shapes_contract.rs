@@ -483,10 +483,10 @@ fn cascade_properties_the_build_cannot_represent_refuse_by_name() {
 fn unconsumed_rendering_attributes_refuse_on_the_new_shapes() {
     for (label, shape) in [
         (
-            // The strokes rung consumed the stroke paint; `stroke-opacity` is
-            // the half still unconsumed.
-            "stroke opacity on circle",
-            r##"<circle cx="32" cy="32" r="12" fill="#16a34a" stroke="#000000" stroke-opacity="0.5"/>"##,
+            // The strokes rung consumed the stroke paint, the translucency
+            // rung its compositing; dashing is the half still unconsumed.
+            "stroke dashing on circle",
+            r##"<circle cx="32" cy="32" r="12" fill="#16a34a" stroke="#000000" stroke-dasharray="4 4"/>"##,
         ),
         (
             "transform-origin on ellipse",
@@ -501,13 +501,13 @@ fn unconsumed_rendering_attributes_refuse_on_the_new_shapes() {
     }
 }
 
-/// A stylesheet-set `stroke-opacity` is patrolled at the computed level on both
-/// new shapes, exactly as on `<rect>` — the compositing half of a stroke is
-/// still unconsumed even though the paint and its geometry now resolve. (The
-/// `<style>` element itself always declares its own dynamic blocker beside the
-/// skip.)
+/// A stylesheet-set `stroke-dasharray` is patrolled at the computed level on
+/// both new shapes, exactly as on `<rect>` — the dashing half of a stroke is
+/// still unconsumed even though its paint, geometry, and (since the
+/// translucency rung) compositing now resolve. (The `<style>` element itself
+/// always declares its own dynamic blocker beside the skip.)
 #[test]
-fn stylesheet_stroke_opacity_is_patrolled_on_the_new_shapes() {
+fn stylesheet_stroke_dasharray_is_patrolled_on_the_new_shapes() {
     for (element, shape) in [
         (
             "circle",
@@ -520,7 +520,7 @@ fn stylesheet_stroke_opacity_is_patrolled_on_the_new_shapes() {
     ] {
         let source = format!(
             r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
-  <style>{element} {{ stroke: #000000; stroke-opacity: 0.5; }}</style>
+  <style>{element} {{ stroke: #000000; stroke-dasharray: 4 4; }}</style>
   <rect width="64" height="64" fill="#ffffff"/>
   {shape}
 </svg>"##
@@ -532,7 +532,7 @@ fn stylesheet_stroke_opacity_is_patrolled_on_the_new_shapes() {
             "{element}: {error:?}"
         );
         assert!(
-            error.to_string().contains("stroke-opacity"),
+            error.to_string().contains("stroke-dasharray"),
             "{element}: {error}"
         );
 
