@@ -6534,6 +6534,8 @@ dependencies = [
  "sha2",
  "skia-safe",
  "stylo",
+ "stylo_traits",
+ "url",
 ]
 
 [[package]]

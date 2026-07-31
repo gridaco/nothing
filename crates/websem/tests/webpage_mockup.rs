@@ -19,7 +19,10 @@ fn solid_colors(frame: &rframe::Frame) -> Vec<[u8; 4]> {
         .nodes
         .iter()
         .flat_map(|n| n.paints.iter())
-        .map(|solid| [solid.color.r, solid.color.g, solid.color.b, solid.color.a])
+        .map(|paint| match paint {
+            cg::Paint::Solid(solid) => [solid.color.r, solid.color.g, solid.color.b, solid.color.a],
+            other => panic!("expected a solid paint, got {other:?}"),
+        })
         .collect()
 }
 

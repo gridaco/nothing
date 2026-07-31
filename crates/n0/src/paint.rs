@@ -88,10 +88,15 @@ pub enum GradientPreflightReason {
 
 /// One exact drawlist gradient failed capability validation. The paint index
 /// is explicitly post-visibility-filtering; authored inactive or zero-opacity
-/// entries are absent from the drawlist.
+/// entries are absent from the drawlist. Ownership is generic like the
+/// drawlist's: the native route reports the authored [`NodeId`], while the
+/// glyphless route reports its product-local slot and maps it back to the
+/// contract's opaque owner before the error leaves the engine.
+///
+/// [`NodeId`]: n0_model::model::NodeId
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GradientPreflightError {
-    pub node: n0_model::model::NodeId,
+pub struct GradientPreflightError<K = n0_model::model::NodeId> {
+    pub node: K,
     pub gradient: GradientKind,
     pub context: PaintUseContext,
     pub draw_item: usize,
@@ -99,14 +104,9 @@ pub struct GradientPreflightError {
     pub reason: GradientPreflightReason,
 }
 
-impl std::fmt::Display for GradientPreflightError {
+impl std::fmt::Display for GradientPreflightReason {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} gradient on node {} {} visible paint {} in draw item {}: ",
-            self.gradient, self.node, self.context, self.visible_paint_index, self.draw_item
-        )?;
-        match &self.reason {
+        match self {
             GradientPreflightReason::InvalidPaint(error) => error.fmt(f),
             GradientPreflightReason::BackendMatrixNotInvertible => {
                 f.write_str("no invertible backend matrix exists for its resolved paint box")
@@ -118,7 +118,22 @@ impl std::fmt::Display for GradientPreflightError {
     }
 }
 
-impl std::error::Error for GradientPreflightError {}
+impl<K: std::fmt::Display> std::fmt::Display for GradientPreflightError<K> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} gradient on node {} {} visible paint {} in draw item {}: {}",
+            self.gradient,
+            self.node,
+            self.context,
+            self.visible_paint_index,
+            self.draw_item,
+            self.reason
+        )
+    }
+}
+
+impl<K: std::fmt::Display + std::fmt::Debug> std::error::Error for GradientPreflightError<K> {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ImagePreflightReason {
@@ -320,7 +335,7 @@ mod paint_ctx_tests {
     }
 
     #[test]
-    fn shader_paint_opacity_remains_float_precision() {
+    fn shader_paint_opacity_folds_into_stop_colors_without_quantizing() {
         let opacity = 0.123_456_7;
         let gradient = LinearGradientPaint {
             opacity,
@@ -343,7 +358,11 @@ mod paint_ctx_tests {
             &PaintCtx::new(None),
         )
         .expect("valid gradient paint");
-        assert_eq!(paint.alpha_f().to_bits(), opacity.to_bits());
+        // The paint alpha carries the opacity at the backend's own 8-bit
+        // step — the measured Chromium quantization (one round to 255ths,
+        // then the backend's float fold into the stops).
+        let expected = (opacity * 255.0f32).round() / 255.0;
+        assert_eq!(paint.alpha_f().to_bits(), expected.to_bits());
     }
 }
 
@@ -456,13 +475,13 @@ fn gradient_transform(model: &ModelPaint) -> Option<(GradientKind, &Affine)> {
     }
 }
 
-fn preflight_paints(
-    node: n0_model::model::NodeId,
+fn preflight_paints<K: Copy>(
+    node: K,
     draw_item: usize,
     context: PaintUseContext,
     paints: &Paints,
     paint_box: PaintBox,
-) -> Result<(), GradientPreflightError> {
+) -> Result<(), GradientPreflightError<K>> {
     for (visible_paint_index, model) in paints.iter().enumerate() {
         let Some((gradient, transform)) = gradient_transform(model) else {
             continue;
@@ -515,7 +534,9 @@ fn preflight_paints(
 /// deliberately later than authored paint validation: multiplying a finite,
 /// mathematically invertible transform by a concrete box can rescue or defeat
 /// binary32 backend representability.
-pub(crate) fn preflight_gradients(list: &DrawList) -> Result<(), GradientPreflightError> {
+pub(crate) fn preflight_gradients<K: Copy>(
+    list: &DrawList<K>,
+) -> Result<(), GradientPreflightError<K>> {
     for (draw_item, item) in list.items.iter().enumerate() {
         match &item.kind {
             ItemKind::RectFill { w, h, paints, .. }
@@ -867,6 +888,19 @@ fn sk_paint(model: &ModelPaint, paint_box: PaintBox, ctx: &PaintCtx) -> Option<P
     let mut paint = Paint::default();
     paint.set_anti_alias(true);
     paint.set_blend_mode(sk_blend_mode(model.blend_mode()));
+    // Gradient ramps dither: the backend's ordered dither breaks the banding
+    // an 8-bit quantized ramp would show, and Chromium's rasterizer dithers
+    // its gradients the same way — the gradient cells are byte-exact *with*
+    // it and one-off per ramp pixel without it.
+    if matches!(
+        model,
+        ModelPaint::LinearGradient(_)
+            | ModelPaint::RadialGradient(_)
+            | ModelPaint::SweepGradient(_)
+            | ModelPaint::DiamondGradient(_)
+    ) {
+        paint.set_dither(true);
+    }
     match model {
         ModelPaint::Solid(solid) => {
             paint.set_color(Color::new(solid.color.argb()));
@@ -899,11 +933,22 @@ fn sk_paint(model: &ModelPaint, paint_box: PaintBox, ctx: &PaintCtx) -> Option<P
             paint.set_shader(image_shader(model, paint_box, ctx)?);
         }
     }
-    // Solids store opacity in their RGBA8 color. Gradient and image opacity
-    // remains the model's independent f32 value and must not be quantized into
-    // an 8-bit shader mask before stack compositing.
-    if !matches!(model, ModelPaint::Solid(_)) {
-        paint.set_alpha_f(model.opacity().clamp(0.0, 1.0));
+    // Solids store opacity in their RGBA8 color. An image's opacity stays the
+    // paint's float alpha modulation. A gradient's opacity quantizes to the
+    // paint's 8-bit alpha step once and then scales the shader's float stops
+    // by that step — Chromium reaches a translucent gradient through the
+    // same 8-bit paint alpha (measured: a 0.5 `fill-opacity` ramp is the
+    // full-opacity ramp times 128/255, not times 0.5), and the gradient
+    // cells pin the product byte-exactly.
+    match model {
+        ModelPaint::Solid(_) => {}
+        ModelPaint::Image(_) => {
+            paint.set_alpha_f(model.opacity().clamp(0.0, 1.0));
+        }
+        _ => {
+            let opacity = model.opacity().clamp(0.0, 1.0);
+            paint.set_alpha_f((opacity * 255.0).round() / 255.0);
+        }
     }
     Some(paint)
 }

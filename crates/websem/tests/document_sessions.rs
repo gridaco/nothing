@@ -52,7 +52,10 @@ fn spawn_compile_loop(
                 .expect("compile isolated SVG");
             let node = frame.nodes.first().expect("one rectangle");
             let mut paints = node.paints.iter();
-            assert_eq!(paints.next().expect("one solid fill").color, expected);
+            let cg::Paint::Solid(solid) = paints.next().expect("one solid fill") else {
+                panic!("expected a solid paint");
+            };
+            assert_eq!(solid.color, expected);
             assert!(paints.next().is_none(), "only one paint");
         }
     })

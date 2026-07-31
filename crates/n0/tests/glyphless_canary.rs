@@ -22,7 +22,7 @@ use n0_model::resolve::{resolve, ResolveOptions};
 use cg::CGColor;
 use math2::transform::AffineTransform;
 use math2::Rectangle;
-use rframe::{Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, VisualRef};
+use rframe::{Frame, FrameNode, Geometry, Identity, PaintStack, Provenance, VisualRef};
 
 const GREEN: [u8; 4] = [0x16, 0xa3, 0x4a, 0xff];
 
@@ -100,7 +100,7 @@ fn n0_rect_reaches_the_shared_downstream() {
             transform: to_math2(n0_world),
             geometry: Geometry::Rect(geometry),
             bounds: geometry,
-            paints: SolidPaintStack::solid(fill),
+            paints: PaintStack::solid(fill),
             stroke: None,
         }],
     };
@@ -136,7 +136,7 @@ fn hand_built_frame_probes_and_re_raster_are_exact() {
             transform: AffineTransform::identity(),
             geometry: Geometry::Rect(rect),
             bounds: rect,
-            paints: SolidPaintStack::solid(CGColor::from_rgb(0x16, 0xa3, 0x4a)),
+            paints: PaintStack::solid(CGColor::from_rgb(0x16, 0xa3, 0x4a)),
             stroke: None,
         }],
     };
@@ -172,7 +172,7 @@ fn hand_built_ellipse_fills_the_inscribed_oval_not_its_box_corners() {
             transform: AffineTransform::identity(),
             geometry: Geometry::Ellipse(bbox),
             bounds: bbox,
-            paints: SolidPaintStack::solid(CGColor::from_rgb(0x16, 0xa3, 0x4a)),
+            paints: PaintStack::solid(CGColor::from_rgb(0x16, 0xa3, 0x4a)),
             stroke: None,
         }],
     };

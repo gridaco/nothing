@@ -111,6 +111,7 @@ use style::computed_values::stroke_linejoin::T as StyloLinejoin;
 use style::computed_values::visibility::T as Visibility;
 use style::dom::TElement;
 
+use crate::svg_paint_server::{GradientBases, PaintServers, ResolvedPaintServer};
 use crate::svg_transform::{TransformRefusal, computed_transform_to_affine};
 use style::properties::ComputedValues;
 use style::thread_state::{self, ThreadState};
@@ -122,7 +123,7 @@ use cg::CGColor;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
-    FillRule, Frame, FrameNode, Geometry, Identity, PathData, Provenance, SolidPaintStack, Stroke,
+    FillRule, Frame, FrameNode, Geometry, Identity, PaintStack, PathData, Provenance, Stroke,
     StrokeCap, StrokeJoin, VisualRef,
 };
 use std::sync::Arc;
@@ -889,11 +890,17 @@ fn subtree_contains_script(el: HtmlElement<'_>) -> bool {
 /// selector matching to the cloned subtree alone, and the one flattened
 /// tree cannot express that scoping, so author CSS and `<use>` refuse
 /// together until the shadow-matching rung.
-fn document_has_author_css(el: HtmlElement<'_>) -> bool {
+/// The outermost element of the document `el` belongs to.
+fn document_root(el: HtmlElement<'_>) -> HtmlElement<'_> {
     let mut top = el;
     while let Some(parent) = top.traversal_parent() {
         top = parent;
     }
+    top
+}
+
+fn document_has_author_css(el: HtmlElement<'_>) -> bool {
+    let top = document_root(el);
     let mut stack = vec![top];
     while let Some(element) = stack.pop() {
         if element.local_name_string() == "style" {
@@ -1046,6 +1053,13 @@ const CASCADE_PROPERTIES_NOT_REPRESENTED: &[&str] = &[
     "mix-blend-mode",
     "isolation",
     "paint-order",
+    // The gradient rung's sheet-level patrol: Chromium consumes these from
+    // the cascade (measured: `stop { stop-color: red }` beats the
+    // attribute), but the pinned servo cascade has no such longhands — a
+    // sheet declaring one was a silent drop before this row.
+    "stop-color",
+    "stop-opacity",
+    "color-interpolation",
     // CSS motion path: measured to translate and rotate an SVG shape — and a
     // whole `<g>` subtree — off its authored position.
     "offset",
@@ -1559,6 +1573,12 @@ fn compile_svg_element(
         },
         None => PercentBases { width, height },
     };
+    // The gradient id table: whole-document, document-ordered,
+    // first-id-wins, shadow-content excluded — `url(#id)` resolves against
+    // the document, and a reference that resolves outside this compiled
+    // subtree refuses rather than paints (the surrounding page contributes
+    // nothing).
+    let servers = PaintServers::collect(document_root(svg), svg);
     let mut walk = ChildWalk {
         values,
         bases,
@@ -1566,6 +1586,7 @@ fn compile_svg_element(
         degradations,
         override_skips,
         has_author_css: document_has_author_css(svg),
+        servers: &servers,
         nodes: Vec::new(),
         top_level_shapes: Vec::new(),
         next_id: 0,
@@ -1626,6 +1647,9 @@ struct ChildWalk<'a> {
     /// Whether the document carries any author stylesheet — the `<use>`
     /// patrol's document fact (see [`document_has_author_css`]).
     has_author_css: bool,
+    /// The document's gradient id table (the gradient rung): built once
+    /// before the walk, first-id-wins, shadow-content excluded.
+    servers: &'a PaintServers<'a>,
     nodes: Vec<FrameNode>,
     /// The materialized nodes that are direct children of the root `<svg>`
     /// — the animation inventory's candidate targets, which it narrows
@@ -1688,6 +1712,17 @@ impl ChildWalk<'_> {
             // own computed display is deliberately not consulted: the
             // pinned cascade's UA sheet carries no defs rule.
             if tag == "defs" {
+                child = c.next_element_sibling();
+                continue;
+            }
+            // A gradient element is reference-only wherever it appears —
+            // in `<defs>` or in the open (measured: it paints nothing in
+            // place either way). Its effect — what a referencing `url(#…)`
+            // paints — is consumed through the paint-server table, which
+            // indexed the whole document before this walk, so the walk
+            // skips the subtree (its `<stop>` children are the table's
+            // material, never paintable content).
+            if tag == "linearGradient" || tag == "radialGradient" {
                 child = c.next_element_sibling();
                 continue;
             }
@@ -1837,9 +1872,14 @@ impl ChildWalk<'_> {
         // An admitted shape may resolve to no visual fact at all — a `<path>`
         // whose `d` draws nothing. That is not a hole: the element is
         // admitted, it is simply not a node.
-        if let Some(node) =
-            compile_shape(el, transform, &mut self.next_id, self.values, self.bases)?
-        {
+        if let Some(node) = compile_shape(
+            el,
+            transform,
+            &mut self.next_id,
+            self.values,
+            self.servers,
+            self.bases,
+        )? {
             self.nodes.push(node);
         }
         if top_level {
@@ -1889,7 +1929,7 @@ fn compose_element_transform(
     if transform.0.is_empty() {
         return Ok(inherited);
     }
-    let own = computed_transform_to_affine(&transform, (bases.width, bases.height)).map_err(
+    let own = computed_transform_to_affine(&transform, Some((bases.width, bases.height))).map_err(
         |refusal| {
             CompileError::UnsupportedStyle(match refusal {
                 TransformRefusal::Function(name) => format!(
@@ -1900,6 +1940,11 @@ fn compose_element_transform(
                     "transform on <{element_name}> uses a calc() length, which is not yet \
                      consumed"
                 ),
+                // Unreachable with a supplied basis; named for the exhaustive
+                // match rather than silently aliased to another hole.
+                TransformRefusal::Percentage => {
+                    format!("transform on <{element_name}> uses a percentage without a basis")
+                }
             })
         },
     )?;
@@ -1932,6 +1977,7 @@ fn compile_shape(
     inherited: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
+    servers: &PaintServers<'_>,
     bases: PercentBases,
 ) -> Result<Option<FrameNode>, CompileError> {
     let tag = el.local_name_string();
@@ -1940,13 +1986,22 @@ fn compile_shape(
     // container's does.
     let transform = compose_element_transform(el, inherited, &tag, bases)?;
     match tag.as_str() {
-        "rect" => compile_rect(el, transform, next_id, values, bases),
-        "circle" => compile_circle(el, transform, next_id, values, bases),
-        "ellipse" => compile_ellipse(el, transform, next_id, values, bases),
-        "path" => compile_path(el, transform, next_id, bases),
-        "line" => compile_line(el, transform, next_id, values, bases),
-        "polygon" => compile_points_shape(el, transform, next_id, PointsClosure::Closed, bases),
-        "polyline" => compile_points_shape(el, transform, next_id, PointsClosure::Open, bases),
+        "rect" => compile_rect(el, transform, next_id, values, servers, bases),
+        "circle" => compile_circle(el, transform, next_id, values, servers, bases),
+        "ellipse" => compile_ellipse(el, transform, next_id, values, servers, bases),
+        "path" => compile_path(el, transform, next_id, servers, bases),
+        "line" => compile_line(el, transform, next_id, values, servers, bases),
+        "polygon" => compile_points_shape(
+            el,
+            transform,
+            next_id,
+            PointsClosure::Closed,
+            servers,
+            bases,
+        ),
+        "polyline" => {
+            compile_points_shape(el, transform, next_id, PointsClosure::Open, servers, bases)
+        }
         other => Err(CompileError::UnsupportedElement(other.to_string())),
     }
 }
@@ -1956,6 +2011,7 @@ fn compile_rect(
     viewport: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
+    servers: &PaintServers<'_>,
     bases: PercentBases,
 ) -> Result<Option<FrameNode>, CompileError> {
     patrol_rendering_attributes(el, "rect", RECT_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
@@ -1977,6 +2033,7 @@ fn compile_rect(
         viewport,
         next_id,
         box_strokable(w, h),
+        servers,
         bases,
     )
     .map(Some)
@@ -1987,6 +2044,7 @@ fn compile_circle(
     viewport: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
+    servers: &PaintServers<'_>,
     bases: PercentBases,
 ) -> Result<Option<FrameNode>, CompileError> {
     patrol_rendering_attributes(el, "circle", &[])?;
@@ -2014,6 +2072,7 @@ fn compile_circle(
         viewport,
         next_id,
         box_strokable(r, r),
+        servers,
         bases,
     )
     .map(Some)
@@ -2024,6 +2083,7 @@ fn compile_ellipse(
     viewport: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
+    servers: &PaintServers<'_>,
     bases: PercentBases,
 ) -> Result<Option<FrameNode>, CompileError> {
     patrol_rendering_attributes(el, "ellipse", &[])?;
@@ -2057,6 +2117,7 @@ fn compile_ellipse(
         viewport,
         next_id,
         box_strokable(rx, ry),
+        servers,
         bases,
     )
     .map(Some)
@@ -2077,6 +2138,7 @@ fn compile_path(
     el: HtmlElement<'_>,
     viewport: AffineTransform,
     next_id: &mut u64,
+    servers: &PaintServers<'_>,
     bases: PercentBases,
 ) -> Result<Option<FrameNode>, CompileError> {
     patrol_rendering_attributes(el, "path", PATH_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
@@ -2122,6 +2184,7 @@ fn compile_path(
         viewport,
         next_id,
         Strokable::Yes,
+        servers,
         bases,
     )
     .map(Some)
@@ -2145,6 +2208,7 @@ fn compile_line(
     viewport: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
+    servers: &PaintServers<'_>,
     bases: PercentBases,
 ) -> Result<Option<FrameNode>, CompileError> {
     patrol_rendering_attributes(el, "line", PATH_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
@@ -2173,6 +2237,7 @@ fn compile_line(
         viewport,
         next_id,
         Strokable::Yes,
+        servers,
         bases,
     )
     .map(Some)
@@ -2209,6 +2274,7 @@ fn compile_points_shape(
     viewport: AffineTransform,
     next_id: &mut u64,
     closure: PointsClosure,
+    servers: &PaintServers<'_>,
     bases: PercentBases,
 ) -> Result<Option<FrameNode>, CompileError> {
     let element = match closure {
@@ -2284,6 +2350,7 @@ fn compile_points_shape(
         viewport,
         next_id,
         Strokable::Yes,
+        servers,
         bases,
     )
     .map(Some)
@@ -2367,16 +2434,13 @@ fn shape_node(
     viewport: AffineTransform,
     next_id: &mut u64,
     strokable: Strokable,
+    servers: &PaintServers<'_>,
     bases: PercentBases,
 ) -> Result<FrameNode, CompileError> {
     let rect = geometry.local_box();
-    let fill = resolve_fill(el)?;
-    let paints = match fill {
-        Some(color) => SolidPaintStack::solid(color),
-        None => SolidPaintStack::empty(),
-    };
+    let paints = resolve_fill(el, servers, rect, bases)?;
     let stroke = match strokable {
-        Strokable::Yes => resolve_stroke(el, &el.local_name_string(), bases)?,
+        Strokable::Yes => resolve_stroke(el, &el.local_name_string(), servers, rect, bases)?,
         Strokable::RenderingDisabled => None,
     };
     patrol_mixed_contour_cap(&geometry, stroke.as_ref())?;
@@ -2468,14 +2532,21 @@ fn ellipse_radius(
 }
 
 /// Resolve the SVG `fill` paint from the typed cascaded value — the one
-/// place paint meaning enters the compiler. Presentation hints, stylesheet
+/// place fill meaning enters the compiler. Presentation hints, stylesheet
 /// rules, and inline style attributes all feed this read through the one
 /// Stylo cascade, with SVG2 precedence; `currentColor` resolves against the
 /// cascaded `color`, and an invalid authored value falls back exactly as an
-/// invalid CSS declaration would. Paint servers and context paints are
+/// invalid CSS declaration would. A `url(#…)` paint resolves through the
+/// document's paint-server table (the gradient rung); context paints are
 /// refused explicitly. `fill-opacity` (the translucency rung) folds into
-/// the paint's alpha — one float multiply, quantized once.
-fn resolve_fill(el: HtmlElement<'_>) -> Result<Option<CGColor>, CompileError> {
+/// the paint's alpha — one float multiply, quantized once for a solid, and
+/// carried as the gradient paint's float opacity for a server.
+fn resolve_fill(
+    el: HtmlElement<'_>,
+    servers: &PaintServers<'_>,
+    consumer_box: Rectangle,
+    bases: PercentBases,
+) -> Result<PaintStack, CompileError> {
     let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     let style: &ComputedValues = data.styles.primary();
     let opacity = match style.clone_fill_opacity() {
@@ -2487,20 +2558,78 @@ fn resolve_fill(el: HtmlElement<'_>) -> Result<Option<CGColor>, CompileError> {
         }
     };
     let fill = style.clone_fill();
-    match fill.kind {
-        SVGPaintKind::None => Ok(None),
-        SVGPaintKind::Color(color) => admitted_srgb(style.resolve_color(&color), opacity)
-            .map(Some)
+    let fallback = || match &fill.fallback {
+        style::values::generics::svg::SVGPaintFallback::Color(color) => {
+            admitted_srgb(style.resolve_color(color), opacity)
+                .map(PaintStack::solid)
+                .map_err(CompileError::UnsupportedFill)
+        }
+        _ => Ok(PaintStack::empty()),
+    };
+    match &fill.kind {
+        SVGPaintKind::None => Ok(PaintStack::empty()),
+        SVGPaintKind::Color(color) => admitted_srgb(style.resolve_color(color), opacity)
+            .map(PaintStack::solid)
             .map_err(CompileError::UnsupportedFill),
-        SVGPaintKind::PaintServer(url) => Err(CompileError::UnsupportedFill(
-            url.url()
-                .map_or_else(|| "url(<invalid>)".to_string(), |url| format!("url({url})")),
-        )),
+        SVGPaintKind::PaintServer(url) => {
+            match resolve_paint_server_stack(servers, url, consumer_box, bases, opacity, "fill")? {
+                Some(stack) => Ok(stack),
+                None => fallback(),
+            }
+        }
         SVGPaintKind::ContextFill => Err(CompileError::UnsupportedFill("context-fill".to_string())),
         SVGPaintKind::ContextStroke => {
             Err(CompileError::UnsupportedFill("context-stroke".to_string()))
         }
     }
+}
+
+/// Resolve one `url(#…)` paint through the table. `Ok(None)` is an
+/// **invalid reference** — the caller's authored fallback decides. A valid
+/// reference yields its stack (possibly empty: the measured correct
+/// nothings paint nothing and deliberately do not fall back).
+fn resolve_paint_server_stack(
+    servers: &PaintServers<'_>,
+    url: &style::values::computed::url::ComputedUrl,
+    consumer_box: Rectangle,
+    bases: PercentBases,
+    paint_opacity: f32,
+    property: &str,
+) -> Result<Option<PaintStack>, CompileError> {
+    let refusal = |reason: String| match property {
+        "fill" => CompileError::UnsupportedFill(reason),
+        _ => CompileError::UnsupportedStroke(reason),
+    };
+    let Some(resolved_url) = url.url() else {
+        return Err(refusal("url(<invalid>)".to_string()));
+    };
+    let Some(fragment) = crate::svg_paint_server::same_document_fragment(resolved_url) else {
+        return Err(refusal(format!(
+            "url({resolved_url}) is not a same-document fragment, and external resources \
+             are not resolved"
+        )));
+    };
+    let gradient_bases = GradientBases {
+        width: bases.width,
+        height: bases.height,
+    };
+    let resolved = crate::svg_paint_server::resolve(
+        servers,
+        fragment,
+        consumer_box,
+        gradient_bases,
+        paint_opacity,
+    )
+    .map_err(|reason| refusal(format!("url(#{fragment}): {reason}")))?;
+    Ok(match resolved {
+        ResolvedPaintServer::Invalid => None,
+        ResolvedPaintServer::Nothing => Some(PaintStack::empty()),
+        ResolvedPaintServer::Solid(color) => Some(PaintStack::solid(color)),
+        ResolvedPaintServer::Gradient(paint) => Some(
+            PaintStack::try_from_paints(cg::Paints::new([paint]))
+                .map_err(|error| refusal(error.to_string()))?,
+        ),
+    })
 }
 
 /// Length units whose basis this build does not have, and which therefore must
@@ -2619,6 +2748,8 @@ fn patrol_stroke_width_units(el: HtmlElement<'_>, element_name: &str) -> Result<
 fn resolve_stroke(
     el: HtmlElement<'_>,
     element_name: &str,
+    servers: &PaintServers<'_>,
+    consumer_box: Rectangle,
     bases: PercentBases,
 ) -> Result<Option<Stroke>, CompileError> {
     let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
@@ -2633,15 +2764,27 @@ fn resolve_stroke(
         }
     };
     let paint = style.clone_stroke();
-    let color = match paint.kind {
+    let stroke_fallback = || match &paint.fallback {
+        style::values::generics::svg::SVGPaintFallback::Color(color) => {
+            admitted_srgb(style.resolve_color(color), opacity)
+                .map(PaintStack::solid)
+                .map_err(CompileError::UnsupportedStroke)
+        }
+        _ => Ok(PaintStack::empty()),
+    };
+    let paints = match paint.kind {
         SVGPaintKind::None => return Ok(None),
         SVGPaintKind::Color(ref color) => admitted_srgb(style.resolve_color(color), opacity)
+            .map(PaintStack::solid)
             .map_err(CompileError::UnsupportedStroke)?,
         SVGPaintKind::PaintServer(ref url) => {
-            return Err(CompileError::UnsupportedStroke(url.url().map_or_else(
-                || "url(<invalid>)".to_string(),
-                |url| format!("url({url})"),
-            )));
+            // The stroke's paint box is the geometry's own box — the stroke's
+            // inked reach beyond it pads (measured).
+            match resolve_paint_server_stack(servers, url, consumer_box, bases, opacity, "stroke")?
+            {
+                Some(stack) => stack,
+                None => stroke_fallback()?,
+            }
         }
         SVGPaintKind::ContextFill => {
             return Err(CompileError::UnsupportedStroke("context-fill".to_string()));
@@ -2652,6 +2795,11 @@ fn resolve_stroke(
             ));
         }
     };
+    if paints.is_empty() {
+        // A paint-server stroke that resolves to nothing painted (or an
+        // invalid reference with no usable fallback) strokes nothing.
+        return Ok(None);
+    }
 
     // A percentage `stroke-width` resolves against the viewport's normalized
     // diagonal (measured: `10%` on a 64x64 viewport paints 6.4 units wide) —
@@ -2701,7 +2849,7 @@ fn resolve_stroke(
 
     // The cascade's non-negative types make a rejection here unreachable from a
     // document, so it would be this compiler's bug — named, never painted.
-    Stroke::new(SolidPaintStack::solid(color), width, cap, join, miter_limit)
+    Stroke::new(paints, width, cap, join, miter_limit)
         .map_err(|error| CompileError::UnsupportedStroke(error.to_string()))
 }
 
@@ -2719,7 +2867,7 @@ fn resolve_stroke(
 /// property: the same unusable color is an unsupported `fill` in
 /// [`resolve_fill`] and an unsupported `stroke` in [`resolve_stroke`], and a
 /// declared hole that names the wrong property misdirects whoever reads it.
-fn admitted_srgb(color: AbsoluteColor, paint_opacity: f32) -> Result<CGColor, String> {
+pub(crate) fn admitted_srgb(color: AbsoluteColor, paint_opacity: f32) -> Result<CGColor, String> {
     if color.color_space != ColorSpace::Srgb {
         return Err(format!(
             "color space {:?} is not yet gated against Chromium",
@@ -2961,7 +3109,7 @@ fn reject_negative_dimension(attr: &str, value: f32) -> Result<(), CompileError>
 /// no namespace, so a prefixed `foo:r` is a foreign attribute Chromium
 /// ignores. Matching it on local name alone would consume it as geometry
 /// and paint a shape the browser does not.
-fn get_attr(element: HtmlElement<'_>, name: &str) -> Option<String> {
+pub(crate) fn get_attr(element: HtmlElement<'_>, name: &str) -> Option<String> {
     if let DemoNodeData::Element(e) = &element.dom_node().data {
         for a in &e.attrs {
             if a.name.ns.as_ref().is_empty() && a.name.local.as_ref() == name {

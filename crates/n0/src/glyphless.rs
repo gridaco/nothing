@@ -2,9 +2,9 @@
 //!
 //! [`rframe::Frame`] is the backend-free resolved contract. It carries no
 //! authored n0 document, HTML/CSS/SVG syntax, parser binding, backend object,
-//! I/O handle, or clock. This module admits its current solid-fill
-//! rectangle, ellipse, and path slice, compiles it into n0's one private
-//! drawlist, and executes it through n0's one private painter.
+//! I/O handle, or clock. This module admits its current solid- and
+//! gradient-filled rectangle, ellipse, and path slice, compiles it into n0's
+//! one private drawlist, and executes it through n0's one private painter.
 //!
 //! The resulting [`FrameProduct`] is intentionally separate from
 //! [`crate::frame::FrameProduct`]. The latter owns an n0-model
@@ -14,13 +14,14 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
+use cg::Paint as CgPaint;
 use n0_model::math::Affine;
 use n0_model::model::{
     BlendMode, Color, CornerSmoothing, Paint, Paints, RectangularCornerRadius, SolidPaint, Stroke,
     StrokeAlign, StrokeCap, StrokeJoin, StrokeWidth,
 };
 use n0_model::path::ResolvedPathArtifact;
-use rframe::{Frame, Geometry, SolidPaintStack, VisualRef};
+use rframe::{Frame, Geometry, PaintStack, VisualRef};
 
 use crate::damage::{diff_inputs, DamageOwner, FrameDamageInput};
 use crate::drawlist::{DrawList, GlyphlessOwnerSlot, Item, ItemKind};
@@ -54,6 +55,13 @@ pub enum BuildError {
     VisualBoundsMismatch(VisualRef),
     DuplicateOwner(VisualRef),
     TooManyVisuals,
+    /// A gradient in the admitted paint stack failed the engine's paint
+    /// preflight for its resolved paint box, so executing it would reach a
+    /// backend construction the painter treats as already proven.
+    Paint {
+        owner: VisualRef,
+        reason: String,
+    },
 }
 
 impl std::fmt::Display for BuildError {
@@ -81,6 +89,12 @@ impl std::fmt::Display for BuildError {
             }
             BuildError::TooManyVisuals => {
                 f.write_str("glyphless frame exceeds the private owner-slot space")
+            }
+            BuildError::Paint { owner, reason } => {
+                write!(
+                    f,
+                    "glyphless visual {owner:?} paint preflight failed: {reason}"
+                )
             }
         }
     }
@@ -196,8 +210,10 @@ fn damage_input(product: &FrameProduct) -> FrameDamageInput<'_, VisualRef, (), G
 /// Validation and private drawlist construction complete before the immutable
 /// product is returned. No raster command is issued here. The current admitted
 /// slice is rectangles, ellipses (each carried as its local-space bounding
-/// rectangle) and paths, ordinary solid `cg` paints, a centred stroke over the
-/// fill, and the frame-bounds clip.
+/// rectangle) and paths, the contract's admitted `cg` paints (solids, linear
+/// and radial gradients — every gradient preflighted against its resolved
+/// paint box before the product exists), a centred stroke over the fill, and
+/// the frame-bounds clip.
 pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
     validate_rect(resolved.bounds).map_err(|_| BuildError::InvalidFrameBounds)?;
     let owner_count = resolved
@@ -242,7 +258,22 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         if node.bounds != math2::rect_transform(rect, &node.transform) {
             return Err(BuildError::VisualBoundsMismatch(node.owner));
         }
-        let paints = compile_paints(&node.paints);
+        // The paint reference box is the geometry's own extent. A box primitive
+        // draws at its item's origin, so its paint box already starts there. A
+        // path's stream carries absolute local coordinates, so its box starts
+        // at the tight-bounds origin instead — the painter's unit box does not,
+        // and the difference is observable only by a non-solid paint. The
+        // origin travels as a unit-space pre-translate on each gradient's
+        // transform: box(x,y,w,h) × T = box(0,0,w,h) × translate(x/w, y/h) × T.
+        // A degenerate axis skips the fold; the producer resolves or refuses
+        // gradients on degenerate geometry before they reach this compile.
+        let unit_offset = match &node.geometry {
+            Geometry::Path(_) if rect.width > 0.0 && rect.height > 0.0 => {
+                Some((rect.x / rect.width, rect.y / rect.height))
+            }
+            _ => None,
+        };
+        let paints = compile_paints(&node.paints, unit_offset);
         let owner = GlyphlessOwnerSlot::new(
             u32::try_from(provenance.owners.len()).expect("owner count checked above"),
         );
@@ -268,10 +299,6 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
             }
             Geometry::Path(_) => to_affine(node.transform),
         };
-        // The paint reference box is the geometry's own extent. For a path its
-        // origin coincides with local space, which only a non-solid paint could
-        // observe — and the admitted slice has none, so the rung that admits
-        // one decides how the box travels.
         let (w, h) = (rect.width, rect.height);
         let path = match &node.geometry {
             Geometry::Path(path) => Some(compile_path(path)),
@@ -304,7 +331,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         // other in the same private drawlist, which is why a stroke needs no
         // group scope.
         if let Some(stroke) = &node.stroke {
-            let stroke = compile_stroke(stroke);
+            let stroke = compile_stroke(stroke, unit_offset);
             let kind = match &node.geometry {
                 Geometry::Rect(_) => ItemKind::RectStroke {
                     w,
@@ -334,9 +361,25 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         world: frame_world,
         kind: ItemKind::EndClip,
     });
+    let drawlist = DrawList::from_items(items);
+    // The painter treats gradient shader construction as already proven
+    // (`execute_unchecked` expects), so the same preflight the native route
+    // runs must pass here before the product exists. The slot maps back to
+    // the contract's opaque owner; slot zero is the frame itself and carries
+    // no paints, so a preflight failure always names a visual.
+    if let Err(error) = crate::paint::preflight_gradients(&drawlist) {
+        let owner = *provenance
+            .owners
+            .get(error.node.index())
+            .expect("preflighted item slots are minted from the owner table");
+        return Err(BuildError::Paint {
+            owner,
+            reason: error.reason.to_string(),
+        });
+    }
     Ok(FrameProduct {
         resolved,
-        drawlist: DrawList::from_items(items),
+        drawlist,
         provenance,
     })
 }
@@ -402,9 +445,9 @@ fn compile_path(data: &rframe::PathData) -> Arc<ResolvedPathArtifact> {
 /// alignment, so the projection names it rather than relying on a default.
 /// Width is uniform because a Web stroke has one width, and the dash array is
 /// absent because the producer refuses a dashed stroke.
-fn compile_stroke(stroke: &rframe::Stroke) -> Stroke {
+fn compile_stroke(stroke: &rframe::Stroke, unit_offset: Option<(f32, f32)>) -> Stroke {
     Stroke {
-        paints: compile_paints(stroke.paints()),
+        paints: compile_paints(stroke.paints(), unit_offset),
         width: StrokeWidth::Uniform(stroke.width()),
         align: StrokeAlign::Center,
         cap: match stroke.cap() {
@@ -446,19 +489,83 @@ fn to_affine(transform: math2::transform::AffineTransform) -> Affine {
     Affine { a, b, c, d, e, f }
 }
 
-fn compile_paints(paints: &SolidPaintStack) -> Paints {
-    let mut compiled = Vec::with_capacity(paints.len());
-    for solid in paints.iter() {
-        let color = solid.color;
-        let argb = (u32::from(color.a()) << 24)
+fn compile_color(color: cg::CGColor) -> Color {
+    Color(
+        (u32::from(color.a()) << 24)
             | (u32::from(color.r()) << 16)
             | (u32::from(color.g()) << 8)
-            | u32::from(color.b());
-        let paint = Paint::Solid(SolidPaint {
-            active: solid.active,
-            color: Color(argb),
-            blend_mode: BlendMode::Normal,
-        });
+            | u32::from(color.b()),
+    )
+}
+
+fn compile_gradient_stops(stops: &[cg::GradientStop]) -> Vec<n0_model::model::GradientStop> {
+    stops
+        .iter()
+        .map(|stop| n0_model::model::GradientStop {
+            offset: stop.offset,
+            color: compile_color(stop.color),
+        })
+        .collect()
+}
+
+fn compile_tile_mode(mode: cg::TileMode) -> n0_model::model::TileMode {
+    match mode {
+        cg::TileMode::Clamp => n0_model::model::TileMode::Clamp,
+        cg::TileMode::Repeated => n0_model::model::TileMode::Repeated,
+        cg::TileMode::Mirror => n0_model::model::TileMode::Mirror,
+        cg::TileMode::Decal => n0_model::model::TileMode::Decal,
+    }
+}
+
+/// Project a contract gradient transform into the engine's unit space,
+/// pre-translating by the item's paint-box origin when the geometry does not
+/// start at the item origin (paths). Both transforms compose in the unit
+/// square, so the origin enters as a plain offset on the translation column.
+fn compile_gradient_transform(
+    transform: &math2::transform::AffineTransform,
+    unit_offset: Option<(f32, f32)>,
+) -> Affine {
+    let mut affine = to_affine(*transform);
+    if let Some((u, v)) = unit_offset {
+        affine.e += u;
+        affine.f += v;
+    }
+    affine
+}
+
+fn compile_paints(paints: &PaintStack, unit_offset: Option<(f32, f32)>) -> Paints {
+    let mut compiled = Vec::with_capacity(paints.len());
+    for paint in paints.iter() {
+        let paint = match paint {
+            CgPaint::Solid(solid) => Paint::Solid(SolidPaint {
+                active: solid.active,
+                color: compile_color(solid.color),
+                blend_mode: BlendMode::Normal,
+            }),
+            CgPaint::LinearGradient(gradient) => {
+                Paint::LinearGradient(n0_model::model::LinearGradientPaint {
+                    active: gradient.active,
+                    xy1: n0_model::model::Alignment(gradient.xy1.0, gradient.xy1.1),
+                    xy2: n0_model::model::Alignment(gradient.xy2.0, gradient.xy2.1),
+                    tile_mode: compile_tile_mode(gradient.tile_mode),
+                    transform: compile_gradient_transform(&gradient.transform, unit_offset),
+                    stops: compile_gradient_stops(&gradient.stops),
+                    opacity: gradient.opacity,
+                    blend_mode: BlendMode::Normal,
+                })
+            }
+            CgPaint::RadialGradient(gradient) => {
+                Paint::RadialGradient(n0_model::model::RadialGradientPaint {
+                    active: gradient.active,
+                    transform: compile_gradient_transform(&gradient.transform, unit_offset),
+                    stops: compile_gradient_stops(&gradient.stops),
+                    opacity: gradient.opacity,
+                    blend_mode: BlendMode::Normal,
+                    tile_mode: compile_tile_mode(gradient.tile_mode),
+                })
+            }
+            _ => unreachable!("PaintStack construction closes the variant set"),
+        };
         compiled.push(paint);
     }
     Paints::new(compiled)
@@ -499,12 +606,12 @@ mod tests {
         CgPaint::Solid(CgSolidPaint::new_color(CGColor::from_u32_argb(argb)))
     }
 
-    fn solid_stack<const N: usize>(paints: [CgPaint; N]) -> SolidPaintStack {
-        SolidPaintStack::try_from_paints(CgPaints::new(paints))
+    fn solid_stack<const N: usize>(paints: [CgPaint; N]) -> PaintStack {
+        PaintStack::try_from_paints(CgPaints::new(paints))
             .expect("test paints are visible ordinary solids")
     }
 
-    fn resolved_frame(paints: SolidPaintStack) -> Frame {
+    fn resolved_frame(paints: PaintStack) -> Frame {
         Frame {
             owner: FRAME_OWNER,
             bounds: Rectangle::from_xywh(0.0, 0.0, 64.0, 48.0),
@@ -625,7 +732,7 @@ mod tests {
 
     #[test]
     fn transformed_geometry_requires_exact_contract_bounds() {
-        let mut frame = resolved_frame(SolidPaintStack::solid(CGColor::RED));
+        let mut frame = resolved_frame(PaintStack::solid(CGColor::RED));
         frame.nodes[0].transform = AffineTransform::new(3.0, 4.0, 0.0);
         let expected = math2::rect_transform(
             frame.nodes[0].geometry.local_box(),
@@ -649,7 +756,7 @@ mod tests {
     #[test]
     fn transformed_ellipse_requires_exact_contract_bounds() {
         let bbox = Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0);
-        let mut frame = resolved_frame(SolidPaintStack::solid(CGColor::RED));
+        let mut frame = resolved_frame(PaintStack::solid(CGColor::RED));
         frame.nodes[0].geometry = Geometry::Ellipse(bbox);
         frame.nodes[0].transform = AffineTransform::new(3.0, 4.0, 0.0);
         let expected = math2::rect_transform(bbox, &frame.nodes[0].transform);
@@ -672,7 +779,7 @@ mod tests {
     #[test]
     fn ellipse_geometry_rasters_the_inscribed_oval() {
         let context = PaintCtx::new(None);
-        let mut frame = resolved_frame(SolidPaintStack::solid(CGColor::from_rgb(0x16, 0xa3, 0x4a)));
+        let mut frame = resolved_frame(PaintStack::solid(CGColor::from_rgb(0x16, 0xa3, 0x4a)));
         frame.nodes[0].geometry = Geometry::Ellipse(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0));
         let product = compile(frame).expect("admitted glyphless ellipse frame");
         let ItemKind::OvalFill { w, h, .. } = &product.drawlist.items[1].kind else {
@@ -716,7 +823,7 @@ mod tests {
                 transform: AffineTransform::identity(),
                 geometry: Geometry::Rect(Rectangle::from_xywh(0.0, 0.0, 8.0, 8.0)),
                 bounds: Rectangle::from_xywh(0.0, 0.0, 8.0, 8.0),
-                paints: SolidPaintStack::solid(CGColor::RED),
+                paints: PaintStack::solid(CGColor::RED),
                 stroke: None,
             }],
         };
@@ -728,8 +835,8 @@ mod tests {
 
     #[test]
     fn frame_diff_reuses_the_complete_generic_damage_policy() {
-        let before = compile(resolved_frame(SolidPaintStack::solid(CGColor::RED))).expect("before");
-        let after = compile(resolved_frame(SolidPaintStack::solid(CGColor::BLUE))).expect("after");
+        let before = compile(resolved_frame(PaintStack::solid(CGColor::RED))).expect("before");
+        let after = compile(resolved_frame(PaintStack::solid(CGColor::BLUE))).expect("after");
 
         assert_eq!(
             diff_frame(&before, &after),

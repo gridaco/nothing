@@ -483,11 +483,11 @@ fn a_percentage_stroke_width_resolves_against_the_normalized_diagonal() {
 /// fill value does — one paint boundary, read twice.
 #[test]
 fn stroke_paint_beyond_the_gated_surface_refuses_by_name() {
-    for css in [
-        "stroke: url(#gradient)",
-        "stroke: context-fill",
-        "stroke: context-stroke",
-    ] {
+    // `stroke: url(#…)` left this list with the gradient rung — a resolvable
+    // reference strokes the gradient and an unresolvable one strokes the
+    // measured nothing (see `gradients_contract`). The context paints remain
+    // the named boundary.
+    for css in ["stroke: context-fill", "stroke: context-stroke"] {
         let error = refusal(&document(&format!(
             r##"  <style>rect {{ {css}; stroke-width: 8 }}</style>
   <rect x="16" y="16" width="32" height="32" fill="none"/>"##

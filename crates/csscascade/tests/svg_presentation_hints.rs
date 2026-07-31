@@ -53,6 +53,8 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
   <rect id="transform-run-together" transform="translate(10-10)" width="8" height="8"/>
   <rect id="transform-webkit-alias" width="8" height="8"/>
   <g color="#d0342c"><rect id="color-basis" fill="currentColor" width="8" height="8"/></g>
+  <linearGradient id="gradient-transform-hint" gradientTransform="translate(10 10)"/>
+  <linearGradient id="gradient-plain-transform-inert" transform="translate(10 10)"/>
 </svg>"##;
 
 #[test]
@@ -214,6 +216,23 @@ fn standalone_svg_presentation_hints_enter_below_author_rules() {
     assert_eq!(
         property(root, "color-basis", LonghandId::Color),
         "rgb(208, 52, 44)"
+    );
+    // The gradient rung: on a gradient element the transform property's
+    // presentation attribute is `gradientTransform` (measured byte-identical
+    // to an author `transform` declaration through non-quarter rotations
+    // and scales), and the plain `transform` attribute is inert there
+    // (measured: it changes no pixel in Chromium).
+    assert_eq!(
+        property(root, "gradient-transform-hint", LonghandId::Transform),
+        "translate(10px, 10px)"
+    );
+    assert_eq!(
+        property(
+            root,
+            "gradient-plain-transform-inert",
+            LonghandId::Transform
+        ),
+        "none"
     );
 }
 

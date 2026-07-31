@@ -21,7 +21,7 @@ producer (e.g. websem, from SVG)
 
 | Module   | Ownership                                                                     |
 | -------- | ----------------------------------------------------------------------------- |
-| `frame`  | `Frame`, `FrameNode`, `Geometry`, the solid paint stack, and product identity |
+| `frame`  | `Frame`, `FrameNode`, `Geometry`, the admitted paint stack, and product identity |
 | `path`   | `PathData` — checked absolute commands, fill rule, tight bounds solved once   |
 | `stroke` | `Stroke` — centred, one width, cap, join, miter limit, and its `outset`       |
 
@@ -47,11 +47,16 @@ zero width, so no consumer re-derives "is this visible".
 
 ## Boundaries
 
-The vocabulary is deliberately narrower than SVG or CSS. Solid paints only;
-one stroke width; geometry is rect, ellipse or path. Constructs outside that —
-gradients, dashes, clips, groups as first-class nodes — are absent rather than
-approximated, so a producer that meets one must refuse or declare it rather than
-lower it into something this contract can hold.
+The vocabulary is deliberately narrower than SVG or CSS. Solid, linear- and
+radial-gradient paints only — a gradient is a self-contained normal-blend
+color ramp stated in the unit square of the geometry's own box, so a paint
+that *references* something (a pattern, an image resource, a context paint)
+or needs a focal geometry the shared radial leaf cannot state remains
+inexpressible here. Beyond paint: one stroke width; geometry is rect, ellipse
+or path. Constructs outside that — dashes, clips, groups as first-class
+nodes — are absent rather than approximated, so a producer that meets one must
+refuse or declare it rather than lower it into something this contract can
+hold.
 
 Why this shape is chosen, and where the renderer joins it, is recorded in
 [docs/wg/consolidation/n0-join-point.md](../../docs/wg/consolidation/n0-join-point.md).

@@ -44,7 +44,8 @@ a comment.
   incremental stage adds its own instance.
 
 - **A module's identity is what it refuses**, and the refusal has a guarding
-  test. `rframe` cannot express a gradient. `animation-sampling` owns no clock.
+  test. `rframe` cannot express a paint that references a resource — a
+  pattern, an image. `animation-sampling` owns no clock.
   `csscascade` adds no matcher of its own. _Enforced by:_ the architecture tests
   — `rframe`'s backend-free lock, the model tier's skia-free lock, `n0_cli`'s
   lock against the retired `htmlcss` route. Before adding to a module, state

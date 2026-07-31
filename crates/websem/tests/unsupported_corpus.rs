@@ -70,10 +70,26 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "<foreignObject>",
     ),
+    ("svg-gradient-focal", DeclaredByBestEffort, "focal"),
+    ("svg-gradient-linearrgb", DeclaredByBestEffort, "linearRGB"),
+    // Sheet-level: the pinned cascade cannot represent stop-color, so the
+    // declaration is named against the sheet and the gradient renders with
+    // its attribute colors — a declared divergence (Chromium honors the
+    // sheet).
     (
-        "svg-gradient-paint-server",
+        "svg-gradient-stop-css",
         DeclaredByBestEffort,
-        "<linearGradient>",
+        "declares stop-color",
+    ),
+    (
+        "svg-gradient-stop-style-attr",
+        DeclaredByBestEffort,
+        "stop-color",
+    ),
+    (
+        "svg-gradient-unit-basis",
+        DeclaredByBestEffort,
+        "unit whose basis",
     ),
     ("svg-image", DeclaredByBestEffort, "<image>"),
     ("svg-mask", DeclaredByBestEffort, "<mask>"),

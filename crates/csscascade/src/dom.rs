@@ -762,11 +762,25 @@ fn svg_presentation_hints(
     if name.ns != markup5ever::ns!(svg) {
         return None;
     }
+    // On a gradient element the transform property's presentation attribute
+    // is `gradientTransform`, and the plain `transform` attribute is inert
+    // (measured: it changes no pixel in Chromium). Both spellings share one
+    // grammar and one measured rewrite; the computed value is applied about
+    // the raw origin in gradient space, identically for the attribute and an
+    // author `transform` declaration (measured with non-quarter rotations and
+    // scales — byte-identical).
+    let transform_attribute = match name.local.as_ref() {
+        "linearGradient" | "radialGradient" => "gradientTransform",
+        _ => "transform",
+    };
     let mut block = PropertyDeclarationBlock::new();
     let mut source = SourcePropertyDeclaration::default();
     let mut parsed_any = false;
     for attr in attrs {
         if !attr.name.ns.as_ref().is_empty() {
+            continue;
+        }
+        if attr.name.local.as_ref() == "transform" && transform_attribute != "transform" {
             continue;
         }
         let url_data = UrlExtraData::from(Url::parse("about:blank").unwrap());
@@ -776,7 +790,7 @@ fn svg_presentation_hints(
         // rotate. It enters through its own measured rewrite: a valid list
         // becomes equivalent CSS text, a malformed one becomes no hint at
         // all, which renders untransformed exactly as Chromium drops it.
-        if attr.name.local.as_ref() == "transform" {
+        if attr.name.local.as_ref() == transform_attribute {
             if let Some(css) = crate::svg_transform::transform_attribute_to_css(&attr.value) {
                 let mut throwaway = SourcePropertyDeclaration::default();
                 if parse_one_declaration_into(

@@ -9,7 +9,8 @@
 //! HTML/CSS/SVG syntax, no parser ASTs, no producer bindings, no backend
 //! objects, and no serialization.
 //!
-//! It is deliberately minimal (solid-fill rectangles, ellipses, and paths) and
+//! It is deliberately minimal (solid- and gradient-filled rectangles,
+//! ellipses, and paths) and
 //! **breakable**: the enums grow as real producers force new visual facts, and
 //! the sharing boundary moves *down* (toward the engine's private drawlist)
 //! rather than admit a source-specific field.
@@ -24,33 +25,44 @@ use math2::transform::AffineTransform;
 use crate::path::PathData;
 use crate::stroke::Stroke;
 
-/// Why a producer paint stack cannot enter the current solid-only contract.
+/// Why a producer paint stack cannot enter the admitted resolved contract.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct SolidPaintStackError {
+pub struct PaintStackError {
     pub index: usize,
 }
 
-impl std::fmt::Display for SolidPaintStackError {
+impl std::fmt::Display for PaintStackError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "visible paint {} is outside the ordinary-solid resolved scope",
+            "visible paint {} is outside the admitted resolved paint scope",
             self.index
         )
     }
 }
 
-impl std::error::Error for SolidPaintStackError {}
+impl std::error::Error for PaintStackError {}
 
-/// A validated ordered stack of visible ordinary solid `cg` paints.
+/// A validated ordered stack of visible normal-blend `cg` paints: solids,
+/// linear gradients, and radial gradients.
 ///
 /// This is an admitted subset of the shared leaf vocabulary, not a competing
 /// paint vocabulary. Construction removes paints with no visual effect and
-/// rejects every visible variant or blend mode outside the current scope.
+/// rejects every visible variant or blend mode outside the admitted set —
+/// sweep and diamond gradients, image paints, and non-normal blends stay
+/// producer refusals.
+///
+/// A gradient's geometry is stated in the unit square of the item's **paint
+/// box** — the tight local bounds of the geometry the stack paints (for a
+/// stroke, the stroked geometry's own box, never the stroke's inked reach; a
+/// degenerate box axis is the consumer's stable one-pixel interval). The
+/// gradient's transform composes in that unit space. A producer resolves its
+/// source's coordinate systems into these unit-box facts; no source vocabulary
+/// (units, references, spread keywords) crosses the contract.
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct SolidPaintStack(cg::Paints);
+pub struct PaintStack(cg::Paints);
 
-impl SolidPaintStack {
+impl PaintStack {
     pub fn empty() -> Self {
         Self::default()
     }
@@ -64,27 +76,29 @@ impl SolidPaintStack {
         )]))
     }
 
-    pub fn try_from_paints(paints: cg::Paints) -> Result<Self, SolidPaintStackError> {
+    pub fn try_from_paints(paints: cg::Paints) -> Result<Self, PaintStackError> {
         let mut admitted = Vec::with_capacity(paints.len());
         for (index, paint) in paints.into_iter().enumerate() {
             if !paint.visible() {
                 continue;
             }
+            if paint.blend_mode() != cg::BlendMode::Normal {
+                return Err(PaintStackError { index });
+            }
             match paint {
-                cg::Paint::Solid(solid) if solid.blend_mode == cg::BlendMode::Normal => {
-                    admitted.push(cg::Paint::Solid(solid));
+                cg::Paint::Solid(_)
+                | cg::Paint::LinearGradient(_)
+                | cg::Paint::RadialGradient(_) => {
+                    admitted.push(paint);
                 }
-                _ => return Err(SolidPaintStackError { index }),
+                _ => return Err(PaintStackError { index }),
             }
         }
         Ok(Self(cg::Paints::new(admitted)))
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &cg::SolidPaint> {
-        self.0.iter().map(|paint| match paint {
-            cg::Paint::Solid(solid) => solid,
-            _ => unreachable!("SolidPaintStack construction closes the variant set"),
-        })
+    pub fn iter(&self) -> impl Iterator<Item = &cg::Paint> {
+        self.0.iter()
     }
 
     pub fn len(&self) -> usize {
@@ -196,7 +210,7 @@ pub struct FrameNode {
     /// on it being exact.
     pub bounds: Rectangle,
     /// Ordered fill paint stack (bottom entry painted first).
-    pub paints: SolidPaintStack,
+    pub paints: PaintStack,
     /// The resolved stroke, painted over the fill. `None` when nothing is
     /// stroked — construction never yields an invisible stroke.
     pub stroke: Option<Stroke>,

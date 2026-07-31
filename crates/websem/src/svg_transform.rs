@@ -28,6 +28,11 @@ pub(crate) enum TransformRefusal {
     /// A `calc()` length, which needs resolution machinery this slice
     /// does not carry.
     Calc,
+    /// A percentage translation in a context whose caller supplies no
+    /// basis — a gradient's transform, where Chromium resolves the
+    /// percentage against the viewport and then applies the raw number in
+    /// fraction space (measured), an incoherence this slice refuses.
+    Percentage,
 }
 
 /// Convert a computed transform list into one affine.
@@ -42,9 +47,12 @@ pub(crate) enum TransformRefusal {
 /// Chromium ignores a `viewBox` min for this purpose).
 pub(crate) fn computed_transform_to_affine(
     transform: &Transform,
-    basis: (f32, f32),
+    basis: Option<(f32, f32)>,
 ) -> Result<AffineTransform, TransformRefusal> {
-    let (basis_width, basis_height) = basis;
+    let (basis_width, basis_height) = match basis {
+        Some((width, height)) => (Some(width), Some(height)),
+        None => (None, None),
+    };
     let mut composed = AffineTransform::identity();
     for operation in transform.0.iter() {
         let step = match operation {
@@ -148,11 +156,14 @@ pub(crate) fn computed_transform_to_affine(
 }
 
 /// One translation length: absolute px, or a percentage of its axis basis.
-fn resolve_length(length: &LengthPercentage, basis: f32) -> Result<f32, TransformRefusal> {
+fn resolve_length(length: &LengthPercentage, basis: Option<f32>) -> Result<f32, TransformRefusal> {
     if let Some(absolute) = length.to_length() {
         return Ok(absolute.px());
     }
     if let Some(percentage) = length.to_percentage() {
+        let Some(basis) = basis else {
+            return Err(TransformRefusal::Percentage);
+        };
         return Ok(percentage.0 * basis);
     }
     Err(TransformRefusal::Calc)

@@ -24,7 +24,7 @@
 //! width, a negative or non-finite miter limit, or a reach that cannot be
 //! represented.
 
-use crate::frame::SolidPaintStack;
+use crate::frame::PaintStack;
 
 /// The shape of a stroked contour's open ends.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -87,7 +87,7 @@ impl std::error::Error for StrokeError {}
 /// look like.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Stroke {
-    paints: SolidPaintStack,
+    paints: PaintStack,
     width: f32,
     cap: StrokeCap,
     join: StrokeJoin,
@@ -102,7 +102,7 @@ impl Stroke {
     /// differently here would diverge from the browser this contract's producer
     /// is matching.
     pub fn new(
-        paints: SolidPaintStack,
+        paints: PaintStack,
         width: f32,
         cap: StrokeCap,
         join: StrokeJoin,
@@ -136,7 +136,7 @@ impl Stroke {
     }
 
     #[must_use]
-    pub const fn paints(&self) -> &SolidPaintStack {
+    pub const fn paints(&self) -> &PaintStack {
         &self.paints
     }
 
@@ -202,8 +202,8 @@ mod tests {
 
     use super::*;
 
-    fn black() -> SolidPaintStack {
-        SolidPaintStack::solid(CGColor::from_rgb(0, 0, 0))
+    fn black() -> PaintStack {
+        PaintStack::solid(CGColor::from_rgb(0, 0, 0))
     }
 
     #[test]
@@ -215,7 +215,7 @@ mod tests {
         );
         assert_eq!(
             Stroke::new(
-                SolidPaintStack::empty(),
+                PaintStack::empty(),
                 8.0,
                 StrokeCap::Butt,
                 StrokeJoin::Miter,
@@ -226,7 +226,7 @@ mod tests {
         );
         assert_eq!(
             Stroke::new(
-                SolidPaintStack::solid(CGColor::TRANSPARENT),
+                PaintStack::solid(CGColor::TRANSPARENT),
                 8.0,
                 StrokeCap::Butt,
                 StrokeJoin::Miter,

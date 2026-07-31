@@ -42,13 +42,15 @@ fn admit_both(source: &str) -> rframe::Frame {
 }
 
 fn fill_alpha(frame: &rframe::Frame, index: usize) -> u8 {
-    frame.nodes[index]
+    match frame.nodes[index]
         .paints
         .iter()
         .next()
         .expect("a fill paint")
-        .color
-        .a()
+    {
+        cg::Paint::Solid(solid) => solid.color.a(),
+        other => panic!("expected a solid paint, got {other:?}"),
+    }
 }
 
 /// The number and percentage spellings of `fill-opacity` are one grammar
@@ -92,13 +94,10 @@ fn stroke_opacity_folds_into_the_stroke_alone() {
     assert_eq!(fill_alpha(&frame, 0), 255, "the fill stays opaque");
     let stroke = frame.nodes[0].stroke.as_ref().expect("a stroke");
     assert_eq!(
-        stroke
-            .paints()
-            .iter()
-            .next()
-            .expect("a stroke paint")
-            .color
-            .a(),
+        match stroke.paints().iter().next().expect("a stroke paint") {
+            cg::Paint::Solid(solid) => solid.color.a(),
+            other => panic!("expected a solid paint, got {other:?}"),
+        },
         128
     );
 }

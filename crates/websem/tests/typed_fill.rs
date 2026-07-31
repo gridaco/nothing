@@ -13,27 +13,38 @@ fn host_viewport() -> websem::InitialViewport {
     websem::InitialViewport::new(64.0, 64.0)
 }
 
-/// Chromium's paint-fallback semantics, recorded for the future step: an
+/// Chromium's paint-fallback semantics, honored since the gradient rung (the
+/// obligation this law carried from the day the refusal was pinned): an
 /// unresolvable paint server WITH a declared fallback renders the fallback
-/// color (`fill="url(#missing) red"` paints red). The slice models no paint
-/// servers, so both forms refuse today; whichever step admits paint servers
-/// must honor the fallback, and this law is where that obligation lives.
+/// color (`fill="url(#missing) red"` paints red — Chromium-baked as the
+/// `svg-gradient-fallback` cell), and one without a fallback paints nothing
+/// at all.
 #[test]
-fn paint_server_fill_refuses_with_and_without_fallback() {
-    for source in [
+fn paint_server_fill_honors_the_authored_fallback() {
+    let without = compile_standalone_svg(
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="8" height="8" fill="url(#missing)"/></svg>"##,
+        host_viewport(),
+    )
+    .expect("an invalid reference without a fallback is admitted");
+    assert!(
+        without.nodes[0].paints.is_empty(),
+        "no fallback paints nothing"
+    );
+
+    let with = compile_standalone_svg(
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="8" height="8" fill="url(#missing) red"/></svg>"##,
-    ] {
-        let error = compile_standalone_svg(source, host_viewport())
-            .expect_err("paint servers are outside the slice");
-        let CompileError::UnsupportedFill(value) = error else {
-            panic!("expected an explicit fill refusal, got {error:?}");
-        };
-        assert!(
-            value.contains("url("),
-            "the refusal names the server: {value}"
-        );
-    }
+        host_viewport(),
+    )
+    .expect("an invalid reference with a fallback is admitted");
+    let cg::Paint::Solid(solid) = with.nodes[0]
+        .paints
+        .iter()
+        .next()
+        .expect("the fallback paint")
+    else {
+        panic!("expected the fallback to resolve solid");
+    };
+    assert_eq!(solid.color, cg::CGColor::from_rgba(255, 0, 0, 255));
 }
 
 /// The admitted color surface is opaque sRGB — exactly what the
@@ -74,7 +85,9 @@ fn translucent_fill_folds_into_the_paint_alpha() {
         host_viewport(),
     )
     .expect("a translucent fill is admitted");
-    let solid = frame.nodes[0].paints.iter().next().expect("one paint");
+    let cg::Paint::Solid(solid) = frame.nodes[0].paints.iter().next().expect("one paint") else {
+        panic!("expected a solid paint");
+    };
     assert_eq!(solid.color.a(), 128, "alpha 0.5 quantizes to 128, once");
 }
 
@@ -88,6 +101,8 @@ fn css_fill_opacity_multiplies_into_the_paint_alpha() {
         host_viewport(),
     )
     .expect("fill-opacity is consumed");
-    let solid = frame.nodes[0].paints.iter().next().expect("one paint");
+    let cg::Paint::Solid(solid) = frame.nodes[0].paints.iter().next().expect("one paint") else {
+        panic!("expected a solid paint");
+    };
     assert_eq!(solid.color.a(), 128);
 }

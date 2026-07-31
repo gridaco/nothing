@@ -25,7 +25,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use n0::paint::PaintCtx;
-use rframe::{Frame, FrameNode, Geometry, Identity, Provenance, SolidPaintStack, VisualRef};
+use rframe::{Frame, FrameNode, Geometry, Identity, PaintStack, Provenance, VisualRef};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use skia_safe::{Color, surfaces};
@@ -76,6 +76,7 @@ struct Tolerance {
     kind: String,
     max_differing_pixels: usize,
     max_channel_delta: u8,
+    #[serde(default)]
     boundaries: Vec<Boundary>,
 }
 
@@ -176,7 +177,7 @@ fn pixel(pixels: &[u8], width: i32, x: i32, y: i32) -> [u8; 4] {
     pixels[offset..offset + 4].try_into().expect("RGBA pixel")
 }
 
-fn contract_frame(paints: SolidPaintStack, transform: math2::transform::AffineTransform) -> Frame {
+fn contract_frame(paints: PaintStack, transform: math2::transform::AffineTransform) -> Frame {
     let rect = math2::Rectangle::from_xywh(2.0, 3.0, 8.0, 6.0);
     Frame {
         owner: VisualRef::new(Identity::new(1), Provenance::new(10)),
@@ -352,8 +353,11 @@ fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
                 fixture.id
             ),
             Some(tolerance) => {
-                assert_eq!(
-                    tolerance.kind, "aa-boundary-ring",
+                assert!(
+                    matches!(
+                        tolerance.kind.as_str(),
+                        "aa-boundary-ring" | "ramp-quantization"
+                    ),
                     "{} declares an unknown tolerance kind",
                     fixture.id
                 );
@@ -370,12 +374,21 @@ fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
                     fixture.id,
                     tolerance.max_channel_delta
                 );
-                assert!(
-                    worst_boundary_distance <= 1.0,
-                    "{} differs {worst_boundary_distance}px away from any declared shape \
-                     boundary — that is a geometry defect, not anti-aliasing",
-                    fixture.id
-                );
+                if tolerance.kind == "aa-boundary-ring" {
+                    assert!(
+                        worst_boundary_distance <= 1.0,
+                        "{} differs {worst_boundary_distance}px away from any declared shape \
+                         boundary — that is a geometry defect, not anti-aliasing",
+                        fixture.id
+                    );
+                }
+                // "ramp-quantization" has no geometric confinement to
+                // declare: a gradient ramp fills its region, and the
+                // departure is a rounding flip at a ramp knife-edge where
+                // the two Skia builds' float paths differ by an ulp
+                // (delta 1, measured count). A wrong gradient still fails
+                // loudly — misplaced geometry moves far more pixels than
+                // the declared count and further than the declared delta.
             }
         }
 
@@ -404,12 +417,12 @@ fn admitted_frame_contract_shapes_raster_deterministically_through_n0() {
     use cg::{CGColor, Paint, Paints, SolidPaint};
     use math2::transform::AffineTransform;
 
-    let transparent = SolidPaintStack::try_from_paints(Paints::new([Paint::Solid(
+    let transparent = PaintStack::try_from_paints(Paints::new([Paint::Solid(
         SolidPaint::new_color(CGColor::TRANSPARENT),
     )]))
     .expect("transparent paint normalizes to no visual paint");
-    let translucent = SolidPaintStack::solid(CGColor::from_rgba(0x16, 0xa3, 0x4a, 0x80));
-    let layered = SolidPaintStack::try_from_paints(Paints::new([
+    let translucent = PaintStack::solid(CGColor::from_rgba(0x16, 0xa3, 0x4a, 0x80));
+    let layered = PaintStack::try_from_paints(Paints::new([
         Paint::Solid(SolidPaint::new_color(CGColor::from_rgba(
             0xef, 0x44, 0x44, 0x80,
         ))),
@@ -426,7 +439,7 @@ fn admitted_frame_contract_shapes_raster_deterministically_through_n0() {
     for (name, frame, coverage) in [
         (
             "empty",
-            contract_frame(SolidPaintStack::empty(), AffineTransform::identity()),
+            contract_frame(PaintStack::empty(), AffineTransform::identity()),
             None,
         ),
         (

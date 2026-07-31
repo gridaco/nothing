@@ -127,10 +127,13 @@ fn gradient_transform_is_composed_in_unit_space_before_box_scale() {
 </container></grida>
 "##;
     let (image, _) = render(source, 100, 90, &PaintCtx::new(None));
+    // Gradient paints dither, and the ordered-dither matrix keys on device
+    // x,y — so the equivalence probe compares rows in the same dither phase
+    // (20 ≡ 68 mod 8), or a true equivalence would read as a ±1 mismatch.
     for x in [10, 49, 60, 75, 95] {
         assert_eq!(
             image.at(x, 20),
-            image.at(x, 70),
+            image.at(x, 68),
             "unit-space transform diverged at x={x}"
         );
     }
