@@ -54,8 +54,10 @@ from eight addenda:
   `crates/n0_cli/README.md` is the statement of record.
 - **The corpus** is 166 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
-  confined tolerance (the weighted rational conic) and one gradient cell
-  carrying a declared one-pixel, one-code-value ramp-quantization tolerance.
+  confined tolerance (the weighted rational conic) and two gradient cells
+  carrying a declared one-code-value ramp-quantization tolerance (one pixel
+  against Chromium's Skia; 18 knife-edge pixels between this engine's own
+  macOS and Linux Skia builds).
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. Element `opacity` and `rx`/`ry` are the constructs still missing
   from the scoreboard suite; the translucency rung moved its
@@ -1179,7 +1181,12 @@ resolves them against mismatched spaces — measured and declined), external
 references, and `<pattern>`.
 
 Twenty-seven cells baked (corpus 139 → 166), 26 byte-exact on the first
-gate run and one — the off-center radial — carrying the corpus's first
-`ramp-quantization` tolerance: one pixel, one code value, an ulp between
-the two Skia builds' float paths at a ramp knife-edge. The refusal
-register moved `svg-gradient-paint-server` out and five named rows in.
+gate run. Two carry the corpus's new `ramp-quantization` tolerance, both
+at one code value with measured counts: the off-center radial differs
+from Chromium's Skia in one pixel (an ulp at a ramp knife-edge), and the
+non-monotonic-stops cell — byte-exact on macOS — differs in 18 clamp-edge
+pixels under the Linux Skia build's SIMD path, the corpus's first
+measured cross-platform departure. Mapping it taught the gate to sweep
+the whole suite before failing, so a platform difference is now one CI
+round-trip. The refusal register moved `svg-gradient-paint-server` out
+and five named rows in.

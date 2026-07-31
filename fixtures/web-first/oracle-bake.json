@@ -4,7 +4,7 @@
   "browser_version": "149.0.7827.55",
   "bake_script_sha256": "373cbea5476067163b6f8ebfc90eb49b7f49ae7758be0916d34db906399e1d5e",
   "suite": "primitives.json",
-  "suite_sha256": "15e52f48ca8f3f1227143160c6b874a0483b2543030c577d9384ef0e683f04e6",
+  "suite_sha256": "1a7a57a9d61d0a0ddd765009bb3bd99b254427290ae68f126d79c233b0ec53c8",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,

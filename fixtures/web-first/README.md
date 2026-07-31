@@ -140,15 +140,20 @@ wrong size, or in the wrong color moves pixels off the boundary ring and
 still fails loudly, and `svg-circle-defaults-clip` shows the bar is not
 unreachable: it bakes byte-exact and declares no tolerance at all.
 
-The gradient cells brought a second tolerance kind, used exactly once:
-`svg-gradient-radial-custom` declares `ramp-quantization` — one pixel, one
-code value. An off-center radial reaches the backend through the shared
-radial leaf's unit circle and a similarity, and the two Skia builds' float
-paths differ by an ulp at one ramp knife-edge, flipping a single dithered
-quantization. A ramp has no boundary ring to confine the departure to, and
-none is needed: a wrong gradient moves far more than one pixel by far more
-than one code value and still fails loudly. Every other gradient cell —
-ramps, seams, hard stops, the dither itself — is byte-exact.
+The gradient cells brought a second tolerance kind, `ramp-quantization`,
+declared on two cells with their measured bounds — always one code value,
+never confined to a boundary ring (a ramp has none; none is needed, since a
+wrong gradient moves far more pixels by far more than one code value and
+still fails loudly). `svg-gradient-radial-custom` differs in 1 pixel: an
+off-center radial reaches the backend through the shared radial leaf's unit
+circle and a similarity, and Chromium's Skia and the pinned one differ by
+an ulp at one knife-edge. `svg-gradient-stop-nonmonotonic` differs in at
+most 18 pixels *across this engine's own platforms*: byte-exact under the
+macOS Skia build, one code value at 18 clamp-edge pixels under the Linux
+build's SIMD path — the corpus's first measured cross-platform departure,
+found the day the gate learned to sweep the whole suite before failing.
+Every other gradient cell — ramps, seams, hard stops, the dither itself —
+is byte-exact.
 
 Render a primitive through the `n0` product command — since
 [the engine of record](../../docs/wg/consolidation/svg-engine-of-record.md) it routes through

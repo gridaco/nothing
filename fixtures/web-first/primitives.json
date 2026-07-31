@@ -1269,7 +1269,12 @@
       "entry": "standalone-svg",
       "oracle": "chromium/svg-gradient-stop-nonmonotonic.png",
       "width": 64,
-      "height": 64
+      "height": 64,
+      "tolerance": {
+        "kind": "ramp-quantization",
+        "max_differing_pixels": 18,
+        "max_channel_delta": 1
+      }
     },
     {
       "id": "svg-gradient-zero-stops-fallback",

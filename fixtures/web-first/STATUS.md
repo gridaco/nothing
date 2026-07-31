@@ -22,7 +22,7 @@ surface.
 ## Chromium-baked cells (166)
 
 Each renders byte-exact against its committed Chromium oracle
-(six curved cells and one gradient ramp carry a declared, bounded
+(six curved cells and two gradient ramps carry a declared, bounded
 tolerance — see [README.md](./README.md)). Every thumbnail below
 *is* that committed oracle, which byte-exactness makes this
 engine's own render too; hover for the cell's name, click through
