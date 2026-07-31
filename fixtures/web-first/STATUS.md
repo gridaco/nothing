@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (119)
+## Chromium-baked cells (139)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells carry the one declared AA tolerance — see
@@ -144,8 +144,28 @@ Each renders byte-exact against its committed Chromium oracle
 - `svg-transform-runtogether` (standalone-svg)
 - `svg-transform-no-separator` (standalone-svg)
 - `svg-transform-malformed-drops` (standalone-svg)
+- `svg-use` (standalone-svg)
+- `svg-use-defs-rect` (standalone-svg)
+- `svg-use-xy` (standalone-svg)
+- `svg-use-transform-xy` (standalone-svg)
+- `svg-use-inherit-fill` (standalone-svg)
+- `svg-use-own-fill-wins` (standalone-svg)
+- `svg-use-xlink-href` (standalone-svg)
+- `svg-use-group` (standalone-svg)
+- `svg-use-chain` (standalone-svg)
+- `svg-use-cycle-nothing` (standalone-svg)
+- `svg-use-rendered-twice` (standalone-svg)
+- `svg-use-missing-nothing` (standalone-svg)
+- `svg-use-forward-ref` (standalone-svg)
+- `svg-use-display-none-target` (standalone-svg)
+- `svg-use-wh-inert` (standalone-svg)
+- `svg-use-duplicate-id-first` (standalone-svg)
+- `svg-use-context-differs` (standalone-svg)
+- `svg-use-currentcolor` (standalone-svg)
+- `svg-use-ancestor-circle` (standalone-svg)
+- `svg-use-href-beats-xlink` (standalone-svg)
 
-## The refusal register (40)
+## The refusal register (43)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -168,7 +188,7 @@ its row into the cells above.
 - `svg-path-arc` — declared: skipped svg/path[1]: path command A on <path> is not yet consumed (an elliptical arc reaches Chromium's rasterizer as conics, which this slice does not emit)
 - `svg-path-css-d-property` — declared: declaration ignored at svg/style[1]: a stylesheet declares d, which this cascade does not represent; elements it matches render without it
 - `svg-path-malformed-d` — declared: skipped svg/path[1]: path data on <path> is invalid at byte 29 (near "qqq")
-- `svg-path-marker-end` — declared: skipped svg/defs[1]: unsupported element <defs>; skipped svg/path[1]: unsupported rendering attribute marker-end on <path> (not yet consumed)
+- `svg-path-marker-end` — declared: skipped svg/path[1]: unsupported rendering attribute marker-end on <path> (not yet consumed)
 - `svg-path-no-leading-moveto` — declared: skipped svg/path[1]: path data on <path> is invalid at byte 0 (near "L10 10 L54 54 Z")
 - `svg-path-pathlength` — declared: skipped svg/path[1]: unsupported rendering attribute pathLength on <path> (not yet consumed)
 - `svg-path-trailing-dot-number` — declared: skipped svg/path[1]: path data on <path> is invalid at byte 1 (near "10. 10 L54 10 L54 54 Z")
@@ -187,7 +207,10 @@ its row into the cells above.
 - `svg-stroke-vector-effect` — declared: skipped svg/g[1]/rect[1]: unsupported rendering attribute vector-effect on <rect> (not yet consumed)
 - `svg-switch` — declared: skipped svg/switch[1]: unsupported element <switch>
 - `svg-text` — declared: skipped svg/text[1]: unsupported element <text>
-- `svg-use` — declared: skipped svg/use[1]: unsupported element <use>; skipped svg/defs[1]: unsupported element <defs>
+- `svg-use-authored-children` — declared: skipped svg/use[1]: unsupported <use>: it has authored element children, which Chromium replaces with the shadow content
+- `svg-use-external` — declared: skipped svg/use[1]: unsupported <use>: its reference is not a same-document fragment, and external resources are not resolved
+- `svg-use-stylesheet` — declared: skipped svg/use[1]: unsupported <use>: the document carries author CSS, and shadow-scoped selector matching is not yet consumed (selectors must match inside the cloned subtree alone — measured)
+- `svg-use-symbol` — declared: skipped svg/symbol[1]: unsupported element <symbol>; skipped svg/use[1]/symbol[1]: unsupported element <symbol>
 - `svg-viewbox-invalid-token` — **both refuse**: viewBox "0 0 invalid 64 64" is invalid
 - `svg-viewbox-repeated-comma` — **both refuse**: viewBox "0 0,,64 64" is invalid
 - `svg-viewbox-trailing-comma` — **both refuse**: viewBox "0 0 64 64," is invalid

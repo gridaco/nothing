@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g fill="#2563eb"><defs><rect id="w" x="8" y="8" width="20" height="12"/></defs></g>
+  <use href="#w"/>
+</svg>

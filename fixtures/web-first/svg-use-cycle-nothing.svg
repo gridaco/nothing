@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs><use id="a" href="#b"/><use id="b" href="#a"/></defs>
+  <use href="#a"/>
+  <rect x="40" y="40" width="8" height="8" fill="#2563eb"/>
+</svg>

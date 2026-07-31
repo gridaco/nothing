@@ -1030,6 +1030,166 @@
       "oracle": "chromium/svg-transform-malformed-drops.png",
       "width": 64,
       "height": 64
+    },
+    {
+      "id": "svg-use",
+      "source": "svg-use.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-defs-rect",
+      "source": "svg-use-defs-rect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-defs-rect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-xy",
+      "source": "svg-use-xy.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-xy.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-transform-xy",
+      "source": "svg-use-transform-xy.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-transform-xy.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-inherit-fill",
+      "source": "svg-use-inherit-fill.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-inherit-fill.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-own-fill-wins",
+      "source": "svg-use-own-fill-wins.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-own-fill-wins.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-xlink-href",
+      "source": "svg-use-xlink-href.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-xlink-href.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-group",
+      "source": "svg-use-group.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-group.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-chain",
+      "source": "svg-use-chain.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-chain.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-cycle-nothing",
+      "source": "svg-use-cycle-nothing.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-cycle-nothing.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-rendered-twice",
+      "source": "svg-use-rendered-twice.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-rendered-twice.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-missing-nothing",
+      "source": "svg-use-missing-nothing.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-missing-nothing.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-forward-ref",
+      "source": "svg-use-forward-ref.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-forward-ref.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-display-none-target",
+      "source": "svg-use-display-none-target.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-display-none-target.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-wh-inert",
+      "source": "svg-use-wh-inert.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-wh-inert.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-duplicate-id-first",
+      "source": "svg-use-duplicate-id-first.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-duplicate-id-first.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-context-differs",
+      "source": "svg-use-context-differs.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-context-differs.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-currentcolor",
+      "source": "svg-use-currentcolor.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-currentcolor.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-ancestor-circle",
+      "source": "svg-use-ancestor-circle.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-ancestor-circle.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-href-beats-xlink",
+      "source": "svg-use-href-beats-xlink.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-use-href-beats-xlink.png",
+      "width": 64,
+      "height": 64
     }
   ]
 }

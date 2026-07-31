@@ -4,7 +4,7 @@
   "browser_version": "149.0.7827.55",
   "bake_script_sha256": "373cbea5476067163b6f8ebfc90eb49b7f49ae7758be0916d34db906399e1d5e",
   "suite": "primitives.json",
-  "suite_sha256": "483c5f5bfabf16fb5e2c850ac409d072a7b176da95b3004e5284300ffa28499a",
+  "suite_sha256": "38eb6c823303e3f81e1678bde4429c9bb20ff4b2898beaf6ac39fdf54efb7457",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -1086,6 +1086,186 @@
       "source_sha256": "7f0770c8bf7f2f080c3f4da6481713776dbcf882a7f37ee5b0a126e7aae42fc6",
       "oracle": "chromium/svg-transform-malformed-drops.png",
       "oracle_sha256": "f49dca345d56c31d08c1f4ff887f49522b8236bc97233bfa3858769b822b120d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use",
+      "source": "svg-use.svg",
+      "source_sha256": "d3dd595d9205d71b72be5f6fc98d432a68dbabfcc505be78ebe6cbab58857622",
+      "oracle": "chromium/svg-use.png",
+      "oracle_sha256": "4dfe92dd51f8e616f8e711c53876af193086d283e23fc7eb73ce8bfcb88d201b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-defs-rect",
+      "source": "svg-use-defs-rect.svg",
+      "source_sha256": "85323e921c4c1d8e58db7ba6e9a76b2912947c2ad98f4ecc7e5ee890ab614438",
+      "oracle": "chromium/svg-use-defs-rect.png",
+      "oracle_sha256": "d41cb6ff8f4b3e13791844a052e64858796007a753b843b7815614f918dfd8a4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-xy",
+      "source": "svg-use-xy.svg",
+      "source_sha256": "b2f5dae025e52f8e598bf4d3f48db12b96221a4c210a039d789577bb7db52276",
+      "oracle": "chromium/svg-use-xy.png",
+      "oracle_sha256": "c15596e9337ea3da65c9a1b25355f84e502b7d065508b56ccefa5ccde0f7edf6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-transform-xy",
+      "source": "svg-use-transform-xy.svg",
+      "source_sha256": "5efdc77593bc73564cc29bbdd0ff64caa5055782a066187966a2ad1108597b0d",
+      "oracle": "chromium/svg-use-transform-xy.png",
+      "oracle_sha256": "06c1ce31176e5ef5fb4309e1303e75d778ce4bb89f4dc797efabe4a9a8204977",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-inherit-fill",
+      "source": "svg-use-inherit-fill.svg",
+      "source_sha256": "885186658321e3b2e7f7bf3237b0ab2687960cf881a7b91fe6ed3a2b335c46e5",
+      "oracle": "chromium/svg-use-inherit-fill.png",
+      "oracle_sha256": "d41cb6ff8f4b3e13791844a052e64858796007a753b843b7815614f918dfd8a4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-own-fill-wins",
+      "source": "svg-use-own-fill-wins.svg",
+      "source_sha256": "44c9ebd508bc12b3089ceb386374bbfb2dde26e9b9d6097162d637ccf2a2761f",
+      "oracle": "chromium/svg-use-own-fill-wins.png",
+      "oracle_sha256": "d41cb6ff8f4b3e13791844a052e64858796007a753b843b7815614f918dfd8a4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-xlink-href",
+      "source": "svg-use-xlink-href.svg",
+      "source_sha256": "9dfb89a8d8f6fc69aacfe82ebcb05a93937180295b4702eea766ab2509ac6057",
+      "oracle": "chromium/svg-use-xlink-href.png",
+      "oracle_sha256": "d41cb6ff8f4b3e13791844a052e64858796007a753b843b7815614f918dfd8a4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-group",
+      "source": "svg-use-group.svg",
+      "source_sha256": "d35fef4059299e5c2a66a134a772d200d3eb4edb74aadd960f80e3befe98db83",
+      "oracle": "chromium/svg-use-group.png",
+      "oracle_sha256": "df91c5fefe73de677bcc9bd1d10fe4a27d28a094c7e3c5965bd5f604126507b9",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-chain",
+      "source": "svg-use-chain.svg",
+      "source_sha256": "443c692f69178fd989b8e6b81f11832614f5e0c2eb843ff19eec7405cdd36e51",
+      "oracle": "chromium/svg-use-chain.png",
+      "oracle_sha256": "e4c26592cc60f12714b0f9e709a6d8780704065f4160e1db81c9af7fe3301e30",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-cycle-nothing",
+      "source": "svg-use-cycle-nothing.svg",
+      "source_sha256": "d2767b5dee271cdf231fad6d1e608c7eeecaf43ee9cedf393d762b7cd5f29604",
+      "oracle": "chromium/svg-use-cycle-nothing.png",
+      "oracle_sha256": "4e98bc95dd15746767dc6cbacc8ef4a4c7d7c9339765f1644a63365802f0f25a",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-rendered-twice",
+      "source": "svg-use-rendered-twice.svg",
+      "source_sha256": "56b62e8e112e6ac7c04bc75b45c6efd6e294de9fa14a8a8ed19609e437977f22",
+      "oracle": "chromium/svg-use-rendered-twice.png",
+      "oracle_sha256": "368e9aa76868ca9813cafac235ca75bb5aa77e9c2552e5de491719bf487a1d2f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-missing-nothing",
+      "source": "svg-use-missing-nothing.svg",
+      "source_sha256": "9fc65d35538e1d8bb31f858a42179f36c2b1a6771e55009db0e436896fd288bc",
+      "oracle": "chromium/svg-use-missing-nothing.png",
+      "oracle_sha256": "4e98bc95dd15746767dc6cbacc8ef4a4c7d7c9339765f1644a63365802f0f25a",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-forward-ref",
+      "source": "svg-use-forward-ref.svg",
+      "source_sha256": "e10db63d3e414d82d8117540406d83696557d9033cc31974bd959219b7803b5c",
+      "oracle": "chromium/svg-use-forward-ref.png",
+      "oracle_sha256": "d41cb6ff8f4b3e13791844a052e64858796007a753b843b7815614f918dfd8a4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-display-none-target",
+      "source": "svg-use-display-none-target.svg",
+      "source_sha256": "32ac61be68578c5cce327cedde21eb329c5b1d7d1e6d09318ac932b398202de2",
+      "oracle": "chromium/svg-use-display-none-target.png",
+      "oracle_sha256": "4e98bc95dd15746767dc6cbacc8ef4a4c7d7c9339765f1644a63365802f0f25a",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-wh-inert",
+      "source": "svg-use-wh-inert.svg",
+      "source_sha256": "562347b32e855b9930185cf9450df25ef270913ef7060f4f93b83a6781f90107",
+      "oracle": "chromium/svg-use-wh-inert.png",
+      "oracle_sha256": "d41cb6ff8f4b3e13791844a052e64858796007a753b843b7815614f918dfd8a4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-duplicate-id-first",
+      "source": "svg-use-duplicate-id-first.svg",
+      "source_sha256": "6e3707be64b723a80cc23b830e51913119c3e6d031e74d17bb204449566f2ce9",
+      "oracle": "chromium/svg-use-duplicate-id-first.png",
+      "oracle_sha256": "d41cb6ff8f4b3e13791844a052e64858796007a753b843b7815614f918dfd8a4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-context-differs",
+      "source": "svg-use-context-differs.svg",
+      "source_sha256": "80c3fb6ff20b609eabe1f080c830d2dcb3ca29f60ddc12b1d6c1b697a5beedf6",
+      "oracle": "chromium/svg-use-context-differs.png",
+      "oracle_sha256": "66be1bd1f761f7dc25a73a1584ba584abe06e39f7f1b07bf5b10b9393742a40d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-currentcolor",
+      "source": "svg-use-currentcolor.svg",
+      "source_sha256": "ea8caaf72cc95f370158ad6b7f2ad2ca5780e91f0b3261bd838a58b45aab21ad",
+      "oracle": "chromium/svg-use-currentcolor.png",
+      "oracle_sha256": "d41cb6ff8f4b3e13791844a052e64858796007a753b843b7815614f918dfd8a4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-ancestor-circle",
+      "source": "svg-use-ancestor-circle.svg",
+      "source_sha256": "2cfd6b66c0e9a684b1c0909947c42db91338ce34f1522e5d96aa61824b18ac4c",
+      "oracle": "chromium/svg-use-ancestor-circle.png",
+      "oracle_sha256": "53c960028967169b28dcf55b426cde6c7cae173fa8bf514980680ac2c5611fc6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-use-href-beats-xlink",
+      "source": "svg-use-href-beats-xlink.svg",
+      "source_sha256": "a0d987fe1f96e0dbe7a1663af5eafd672b194b1233620569819d08e1cb2cd6ce",
+      "oracle": "chromium/svg-use-href-beats-xlink.png",
+      "oracle_sha256": "53c960028967169b28dcf55b426cde6c7cae173fa8bf514980680ac2c5611fc6",
       "width": 64,
       "height": 64
     }
