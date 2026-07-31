@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (85)
+## Chromium-baked cells (92)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells carry the one declared AA tolerance — see
@@ -110,8 +110,15 @@ Each renders byte-exact against its committed Chromium oracle
 - `svg-polyline-fill-implicit-close` (standalone-svg)
 - `svg-polyline-single-point-square-cap` (standalone-svg)
 - `svg-polyline-stroke-open` (standalone-svg)
+- `svg-display-none-group` (standalone-svg)
+- `svg-display-none-root` (standalone-svg)
+- `svg-display-none-shape` (standalone-svg)
+- `svg-visibility-collapse-shape` (standalone-svg)
+- `svg-visibility-hidden-shape` (standalone-svg)
+- `svg-visibility-rule-beats-attribute` (standalone-svg)
+- `svg-visibility-unhide` (standalone-svg)
 
-## The refusal register (44)
+## The refusal register (43)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -121,7 +128,7 @@ its row into the cells above.
 - `svg-anchor` — declared: skipped svg/a[1]: unsupported element <a>
 - `svg-clip-path` — declared: skipped svg/clipPath[1]: unsupported element <clipPath>; skipped svg/rect[2]: unsupported rendering attribute clip-path on <rect> (not yet consumed)
 - `svg-css-transform-property` — declared: skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform, which this cascade does not represent
-- `svg-display-none` — declared: skipped svg/rect[2]: unsupported rendering attribute display on <rect> (not yet consumed)
+- `svg-display-contents` — declared: skipped svg/g[1]: unsupported computed style: display: contents is not yet consumed
 - `svg-element-opacity` — declared: skipped svg/rect[2]: unsupported rendering attribute opacity on <rect> (not yet consumed)
 - `svg-fill-opacity` — declared: skipped svg/rect[2]: unsupported rendering attribute fill-opacity on <rect> (not yet consumed)
 - `svg-filter` — declared: skipped svg/filter[1]: unsupported element <filter>; skipped svg/rect[2]: unsupported rendering attribute filter on <rect> (not yet consumed)
@@ -160,5 +167,4 @@ its row into the cells above.
 - `svg-viewbox-invalid-token` — **both refuse**: viewBox "0 0 invalid 64 64" is invalid
 - `svg-viewbox-repeated-comma` — **both refuse**: viewBox "0 0,,64 64" is invalid
 - `svg-viewbox-trailing-comma` — **both refuse**: viewBox "0 0 64 64," is invalid
-- `svg-visibility-hidden` — declared: skipped svg/rect[2]: unsupported rendering attribute visibility on <rect> (not yet consumed)
 - `svg-width-percentage` — **both refuse**: unsupported SVG viewport sizing: percentage width="50%" on the root <svg> is not yet consumed

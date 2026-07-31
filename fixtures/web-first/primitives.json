@@ -758,6 +758,62 @@
       "oracle": "chromium/svg-polyline-stroke-open.png",
       "width": 64,
       "height": 64
+    },
+    {
+      "id": "svg-display-none-group",
+      "source": "svg-display-none-group.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-display-none-group.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-display-none-root",
+      "source": "svg-display-none-root.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-display-none-root.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-display-none-shape",
+      "source": "svg-display-none-shape.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-display-none-shape.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-visibility-collapse-shape",
+      "source": "svg-visibility-collapse-shape.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-visibility-collapse-shape.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-visibility-hidden-shape",
+      "source": "svg-visibility-hidden-shape.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-visibility-hidden-shape.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-visibility-rule-beats-attribute",
+      "source": "svg-visibility-rule-beats-attribute.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-visibility-rule-beats-attribute.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-visibility-unhide",
+      "source": "svg-visibility-unhide.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-visibility-unhide.png",
+      "width": 64,
+      "height": 64
     }
   ]
 }

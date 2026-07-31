@@ -4,7 +4,7 @@
   "browser_version": "149.0.7827.55",
   "bake_script_sha256": "373cbea5476067163b6f8ebfc90eb49b7f49ae7758be0916d34db906399e1d5e",
   "suite": "primitives.json",
-  "suite_sha256": "36ee4810041d720881f3d6312a6c48012b99abafe0776bac76642b78c2ab2d85",
+  "suite_sha256": "432c8bb78df19e8005bf99c91e155786b7aa14033cbf27819406256e5c74c081",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -780,6 +780,69 @@
       "source_sha256": "e6a822ed49fe578e18a7b1f2840de2c4b241c73aab0b88c8173f548797c873c2",
       "oracle": "chromium/svg-polyline-stroke-open.png",
       "oracle_sha256": "9c7c052401cfb971a94e3fd40dda0f77dd71b1cf16bcfbdd67ab33a55f06d50b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-display-none-group",
+      "source": "svg-display-none-group.svg",
+      "source_sha256": "085cd9a850becabb36e9091173f2211b679e776075b17c0959aaf7a0a2fec2a6",
+      "oracle": "chromium/svg-display-none-group.png",
+      "oracle_sha256": "4394a5d18f78bd87df257f041d72b1558f721313e57b5553a921c21ffef6dca9",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-display-none-root",
+      "source": "svg-display-none-root.svg",
+      "source_sha256": "bcf6282df1f70b260db1a9efa42fcff7fdcf443f0a08b21c56de095563c71068",
+      "oracle": "chromium/svg-display-none-root.png",
+      "oracle_sha256": "6f4bc09437add7d83beb4429ffec5327b45c94ae909eab27f1225d6f82451d29",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-display-none-shape",
+      "source": "svg-display-none-shape.svg",
+      "source_sha256": "650179e9e702e89471ccf1fba09cceef6973d7e99801a472ad95e381fb29be4e",
+      "oracle": "chromium/svg-display-none-shape.png",
+      "oracle_sha256": "831c3be5b6157bd832a66fe920dcf771917d9348d6274352186929646dc84380",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-visibility-collapse-shape",
+      "source": "svg-visibility-collapse-shape.svg",
+      "source_sha256": "8b63a0f0daa2bb0d8d3a9e0cae4fe7a477128220c74cbd9723eb785096a9704f",
+      "oracle": "chromium/svg-visibility-collapse-shape.png",
+      "oracle_sha256": "831c3be5b6157bd832a66fe920dcf771917d9348d6274352186929646dc84380",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-visibility-hidden-shape",
+      "source": "svg-visibility-hidden-shape.svg",
+      "source_sha256": "331607a93dafa875bff356dc20ec24166ac66dea50bee54f8e3ef85043cc9770",
+      "oracle": "chromium/svg-visibility-hidden-shape.png",
+      "oracle_sha256": "831c3be5b6157bd832a66fe920dcf771917d9348d6274352186929646dc84380",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-visibility-rule-beats-attribute",
+      "source": "svg-visibility-rule-beats-attribute.svg",
+      "source_sha256": "d013e8eec717cdae9acd1ec0c551b6012772abb57f1b78b705a480faf016237b",
+      "oracle": "chromium/svg-visibility-rule-beats-attribute.png",
+      "oracle_sha256": "4dfe92dd51f8e616f8e711c53876af193086d283e23fc7eb73ce8bfcb88d201b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-visibility-unhide",
+      "source": "svg-visibility-unhide.svg",
+      "source_sha256": "20a60343555d11b4197a6feede603279b1127a28e5a85abe8fdf967473eff655",
+      "oracle": "chromium/svg-visibility-unhide.png",
+      "oracle_sha256": "4dfe92dd51f8e616f8e711c53876af193086d283e23fc7eb73ce8bfcb88d201b",
       "width": 64,
       "height": 64
     }
