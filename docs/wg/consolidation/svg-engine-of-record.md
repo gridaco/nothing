@@ -42,11 +42,13 @@ from eight addenda:
   silent wrong pixel).
 - **The admitted slice** is `<rect>`, `<circle>`, `<ellipse>`, `<path>`,
   `<line>`, `<polygon>` and `<polyline>`, filled and stroked; `<g>` and
-  `<a>` containers and the whole `transform` grammar; viewBox-only root sizing with the full
+  `<a>` containers and the whole `transform` grammar in both spellings (the
+  attribute is a presentation hint of the CSS `transform` property);
+  viewBox-only root sizing with the full
   `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 106 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 119 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
   confined tolerance; the departure is the weighted rational conic alone.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
@@ -1004,3 +1006,53 @@ identical frame, and one Chromium-baked cell (`svg-anchor-container`)
 proves the composed transform and a translucent overlap through it. The
 container dispatch is now parameterized by element name; nothing else
 moved.
+
+## Addendum — the transform rung (2026-07-31)
+
+The CSS `transform` property is consumed, and consuming it dissolved the
+attribute as a separate concept: CSS Transforms L1 §7 makes the SVG
+`transform` attribute a presentation attribute of the one property, so the
+rung moved the attribute grammar into csscascade, which rewrites a valid
+list into equivalent CSS text (§7.3's unit assignment; the 3-argument
+`rotate` expands to its defining translate·rotate·translate sandwich) and
+injects it at presentation-hint level. Precedence is therefore the
+cascade's, not reimplemented: any author rule beats the attribute —
+`transform: none` included — the style attribute beats the rule, and an
+invalid CSS declaration never enters, so the attribute stands. websem reads
+only the computed operation list, converting it per-op to one affine with
+the exact quarter-turn matrices the attribute path always had.
+
+**A 40-measurement probe matrix decided the semantics before any code.**
+The load-bearing verdicts, each now a law or a cell: SVG elements pivot on
+used `transform-origin 0 0` — the local user-space origin, which Chromium
+keeps even under a negative-min `viewBox` (spec letter says the reference
+box moves with `viewBox` min; the oracle says it does not); percentage
+translations resolve against the viewport's user-unit extent; a malformed
+attribute list **drops whole and renders untransformed** (all 23
+previously-refused lists re-baked as drops, so the old
+refuse-by-name posture flipped to Chromium-exact silence — the pixels
+agree, which is the law); and the grammar carries the measured leniency no
+browser ever tightened (csswg-drafts#2623): numbers may run together
+(`translate(10-10)` is (10, −10)) and functions need no separator, while
+every comma strictness (leading, doubled, trailing — list-level trailing
+included, a tightening this rung added) stays enforced.
+
+**Thirteen cells baked byte-exact** (corpus 106 → 119): the graduated
+refusal fixture, both precedence directions, `none`-restores,
+invalid-falls-back, compound composition, the percentage basis, a
+container's cascaded transform, the negative-quadrant rotation, the
+`-webkit-transform` alias (the pinned Stylo implements it — verified, not
+assumed, when the name left the scan denylist), the two leniency forms,
+and the malformed-drop. The refusal register moved one row out and four
+in: `transform-origin` and `transform-box` (the knobs that move every
+pixel a transform touches — the second does not exist in the servo-mode
+build at all), the beyond-2D function family (Chromium composes
+`translate3d` on SVG — measured — so it refuses by function name rather
+than flattening under-measured), and the individual `rotate` property
+(Chromium composes the individual properties *with* `transform`;
+consuming one without the others would compose a different matrix). The
+root `<svg>`'s transform now refuses in both spellings — the computed
+patrol closed the stylesheet route to the root that the scan's graduation
+would have opened. `BadTransform` retired with the drop-semantics flip;
+its overflow half lives on as `NonFiniteTransform`, still named at the
+element.
