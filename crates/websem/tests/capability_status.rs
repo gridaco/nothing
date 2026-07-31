@@ -37,6 +37,13 @@ fn corpus_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/web-first")
 }
 
+/// A departure message rendered into one table cell: the register is a
+/// GitHub-flavored table, so a pipe or newline in the compiler's words
+/// must not break the row it reports.
+fn cell(text: &str) -> String {
+    text.replace('|', "\\|").replace('\n', " ")
+}
+
 fn viewport() -> InitialViewport {
     InitialViewport::new(64.0, 64.0)
 }
@@ -126,7 +133,9 @@ fn generate() -> String {
         "What the slice refuses, by name, in the compiler's own words —\n\
          **both refuse** is a document-level contract; **declared** renders\n\
          the rest and names the hole. A rung that admits a construct moves\n\
-         its row into the cells above.\n\n",
+         its row into the cells above.\n\n\
+         | Fixture | Admission | The compiler's departure |\n\
+         | --- | --- | --- |\n",
     );
     for id in &refusals {
         let source = fs::read_to_string(root.join("unsupported").join(format!("{id}.svg")))
@@ -136,7 +145,12 @@ fn generate() -> String {
             .unwrap_or_else(|| panic!("{id}: an unsupported fixture must refuse under strict"));
         match SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport()) {
             Err(_) => {
-                writeln!(out, "- `{id}` — **both refuse**: {strict}").unwrap();
+                writeln!(
+                    out,
+                    "| `{id}` | **both refuse** | {} |",
+                    cell(&strict.to_string())
+                )
+                .unwrap();
             }
             Ok(best) => {
                 let declared: Vec<String> = best
@@ -149,7 +163,12 @@ fn generate() -> String {
                     !declared.is_empty(),
                     "{id}: best-effort rendered it with nothing declared — a silent hole"
                 );
-                writeln!(out, "- `{id}` — declared: {}", declared.join("; ")).unwrap();
+                writeln!(
+                    out,
+                    "| `{id}` | declared | {} |",
+                    cell(&declared.join("; "))
+                )
+                .unwrap();
             }
         }
     }

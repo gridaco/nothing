@@ -202,50 +202,52 @@ What the slice refuses, by name, in the compiler's own words —
 the rest and names the hole. A rung that admits a construct moves
 its row into the cells above.
 
-- `svg-clip-path` — declared: skipped svg/clipPath[1]: unsupported element <clipPath>; skipped svg/rect[2]: unsupported rendering attribute clip-path on <rect> (not yet consumed)
-- `svg-css-individual-rotate` — declared: skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares rotate, which this cascade does not represent
-- `svg-css-transform-3d` — declared: skipped svg/rect[2]: unsupported computed style: transform on <rect> uses translate3d(), which is outside the 2D affine function set this slice consumes
-- `svg-css-transform-box` — declared: skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform-box, which this cascade does not represent
-- `svg-css-transform-origin` — declared: skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform-origin, which this cascade does not represent
-- `svg-display-contents` — declared: skipped svg/g[1]: unsupported computed style: display: contents is not yet consumed
-- `svg-element-opacity` — declared: skipped svg/rect[2]: unsupported rendering attribute opacity on <rect> (not yet consumed)
-- `svg-filter` — declared: skipped svg/filter[1]: unsupported element <filter>; skipped svg/rect[2]: unsupported rendering attribute filter on <rect> (not yet consumed)
-- `svg-foreign-object` — declared: skipped svg/foreignObject[1]: unsupported element <foreignObject>
-- `svg-gradient-focal` — declared: skipped svg/rect[1]: unsupported fill value "url(#g): the radial gradient has a focal point or focal radius, which the shared radial paint leaf cannot state (concentric radials only)"
-- `svg-gradient-linearrgb` — declared: skipped svg/rect[1]: unsupported fill value "url(#g): color-interpolation: linearRGB interpolates stops in linear-light sRGB, which this slice does not execute (sRGB interpolation only)"
-- `svg-gradient-stop-css` — declared: declaration ignored at svg/style[1]: a stylesheet declares stop-color, which this cascade does not represent; elements it matches render without it
-- `svg-gradient-stop-style-attr` — declared: skipped svg/rect[1]: unsupported fill value "url(#g): a gradient <stop> declares stop-color in a style attribute, which this cascade does not represent"
-- `svg-gradient-unit-basis` — declared: skipped svg/rect[1]: unsupported fill value "url(#g): gradient geometry x2=\"4em\" uses a unit whose basis this slice does not consume (numbers, px, and percentages only)"
-- `svg-image` — declared: skipped svg/image[1]: unsupported element <image>
-- `svg-mask` — declared: skipped svg/mask[1]: unsupported element <mask>; skipped svg/rect[2]: unsupported rendering attribute mask on <rect> (not yet consumed)
-- `svg-nested-svg` — declared: skipped svg/svg[1]: unsupported element <svg>
-- `svg-path-arc` — declared: skipped svg/path[1]: path command A on <path> is not yet consumed (an elliptical arc reaches Chromium's rasterizer as conics, which this slice does not emit)
-- `svg-path-css-d-property` — declared: declaration ignored at svg/style[1]: a stylesheet declares d, which this cascade does not represent; elements it matches render without it
-- `svg-path-malformed-d` — declared: skipped svg/path[1]: path data on <path> is invalid at byte 29 (near "qqq")
-- `svg-path-marker-end` — declared: skipped svg/path[1]: unsupported rendering attribute marker-end on <path> (not yet consumed)
-- `svg-path-no-leading-moveto` — declared: skipped svg/path[1]: path data on <path> is invalid at byte 0 (near "L10 10 L54 54 Z")
-- `svg-path-pathlength` — declared: skipped svg/path[1]: unsupported rendering attribute pathLength on <path> (not yet consumed)
-- `svg-path-trailing-dot-number` — declared: skipped svg/path[1]: path data on <path> is invalid at byte 1 (near "10. 10 L54 10 L54 54 Z")
-- `svg-pattern-paint-server` — declared: skipped svg/pattern[1]: unsupported element <pattern>
-- `svg-points-odd-coordinate` — declared: skipped svg/polygon[1]: points on <polygon> is invalid at byte 17 (near "")
-- `svg-preserve-aspect-ratio-case-folded` — **both refuse**: preserveAspectRatio "xmidymid meet" is invalid
-- `svg-preserve-aspect-ratio-defer` — **both refuse**: preserveAspectRatio "defer xMidYMid meet" is invalid
-- `svg-preserve-aspect-ratio-invalid-align` — **both refuse**: preserveAspectRatio "xMidYMiddle meet" is invalid
-- `svg-rect-rounded` — declared: skipped svg/rect[2]: unsupported rendering attribute rx on <rect> (not yet consumed)
-- `svg-smil-animate-transform` — declared: skipped svg/g[1]: its authored state is overridden at document load by the unsupported animation at svg/g[1]/animateTransform[1]: animation element <animateTransform> is outside the rect-x proving slice
-- `svg-smil-retarget-href` — **both refuse**: SVG animation at svg/rect[2]/set[1] is unsupported: animation element <set> is outside the rect-x proving slice; it carries href, so its target cannot be attributed to one element without id resolution; it is active at document load, so the authored state it overrides cannot render as the Base view
-- `svg-smil-set-load-active` — declared: skipped svg/rect[2]: its authored state is overridden at document load by the unsupported animation at svg/rect[2]/set[1]: animation element <set> is outside the rect-x proving slice
-- `svg-stroke-dasharray` — declared: skipped svg/path[1]: unsupported rendering attribute stroke-dasharray on <path> (not yet consumed)
-- `svg-stroke-paint-order` — declared: skipped svg/rect[1]: unsupported rendering attribute paint-order on <rect> (not yet consumed)
-- `svg-stroke-sheet-unit-width` — declared: declaration ignored at svg/style[1]: a stylesheet declares a stroke-width in ex, which needs a basis this cascade does not have; elements it matches render at the wrong width
-- `svg-stroke-vector-effect` — declared: skipped svg/g[1]/rect[1]: unsupported rendering attribute vector-effect on <rect> (not yet consumed)
-- `svg-switch` — declared: skipped svg/switch[1]: unsupported element <switch>
-- `svg-text` — declared: skipped svg/text[1]: unsupported element <text>
-- `svg-use-authored-children` — declared: skipped svg/use[1]: unsupported <use>: it has authored element children, which Chromium replaces with the shadow content
-- `svg-use-external` — declared: skipped svg/use[1]: unsupported <use>: its reference is not a same-document fragment, and external resources are not resolved
-- `svg-use-stylesheet` — declared: skipped svg/use[1]: unsupported <use>: the document carries author CSS, and shadow-scoped selector matching is not yet consumed (selectors must match inside the cloned subtree alone — measured)
-- `svg-use-symbol` — declared: skipped svg/symbol[1]: unsupported element <symbol>; skipped svg/use[1]/symbol[1]: unsupported element <symbol>
-- `svg-viewbox-invalid-token` — **both refuse**: viewBox "0 0 invalid 64 64" is invalid
-- `svg-viewbox-repeated-comma` — **both refuse**: viewBox "0 0,,64 64" is invalid
-- `svg-viewbox-trailing-comma` — **both refuse**: viewBox "0 0 64 64," is invalid
-- `svg-width-percentage` — **both refuse**: unsupported SVG viewport sizing: percentage width="50%" on the root <svg> is not yet consumed
+| Fixture | Admission | The compiler's departure |
+| --- | --- | --- |
+| `svg-clip-path` | declared | skipped svg/clipPath[1]: unsupported element <clipPath>; skipped svg/rect[2]: unsupported rendering attribute clip-path on <rect> (not yet consumed) |
+| `svg-css-individual-rotate` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares rotate, which this cascade does not represent |
+| `svg-css-transform-3d` | declared | skipped svg/rect[2]: unsupported computed style: transform on <rect> uses translate3d(), which is outside the 2D affine function set this slice consumes |
+| `svg-css-transform-box` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform-box, which this cascade does not represent |
+| `svg-css-transform-origin` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform-origin, which this cascade does not represent |
+| `svg-display-contents` | declared | skipped svg/g[1]: unsupported computed style: display: contents is not yet consumed |
+| `svg-element-opacity` | declared | skipped svg/rect[2]: unsupported rendering attribute opacity on <rect> (not yet consumed) |
+| `svg-filter` | declared | skipped svg/filter[1]: unsupported element <filter>; skipped svg/rect[2]: unsupported rendering attribute filter on <rect> (not yet consumed) |
+| `svg-foreign-object` | declared | skipped svg/foreignObject[1]: unsupported element <foreignObject> |
+| `svg-gradient-focal` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): the radial gradient has a focal point or focal radius, which the shared radial paint leaf cannot state (concentric radials only)" |
+| `svg-gradient-linearrgb` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): color-interpolation: linearRGB interpolates stops in linear-light sRGB, which this slice does not execute (sRGB interpolation only)" |
+| `svg-gradient-stop-css` | declared | declaration ignored at svg/style[1]: a stylesheet declares stop-color, which this cascade does not represent; elements it matches render without it |
+| `svg-gradient-stop-style-attr` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): a gradient <stop> declares stop-color in a style attribute, which this cascade does not represent" |
+| `svg-gradient-unit-basis` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): gradient geometry x2=\"4em\" uses a unit whose basis this slice does not consume (numbers, px, and percentages only)" |
+| `svg-image` | declared | skipped svg/image[1]: unsupported element <image> |
+| `svg-mask` | declared | skipped svg/mask[1]: unsupported element <mask>; skipped svg/rect[2]: unsupported rendering attribute mask on <rect> (not yet consumed) |
+| `svg-nested-svg` | declared | skipped svg/svg[1]: unsupported element <svg> |
+| `svg-path-arc` | declared | skipped svg/path[1]: path command A on <path> is not yet consumed (an elliptical arc reaches Chromium's rasterizer as conics, which this slice does not emit) |
+| `svg-path-css-d-property` | declared | declaration ignored at svg/style[1]: a stylesheet declares d, which this cascade does not represent; elements it matches render without it |
+| `svg-path-malformed-d` | declared | skipped svg/path[1]: path data on <path> is invalid at byte 29 (near "qqq") |
+| `svg-path-marker-end` | declared | skipped svg/path[1]: unsupported rendering attribute marker-end on <path> (not yet consumed) |
+| `svg-path-no-leading-moveto` | declared | skipped svg/path[1]: path data on <path> is invalid at byte 0 (near "L10 10 L54 54 Z") |
+| `svg-path-pathlength` | declared | skipped svg/path[1]: unsupported rendering attribute pathLength on <path> (not yet consumed) |
+| `svg-path-trailing-dot-number` | declared | skipped svg/path[1]: path data on <path> is invalid at byte 1 (near "10. 10 L54 10 L54 54 Z") |
+| `svg-pattern-paint-server` | declared | skipped svg/pattern[1]: unsupported element <pattern> |
+| `svg-points-odd-coordinate` | declared | skipped svg/polygon[1]: points on <polygon> is invalid at byte 17 (near "") |
+| `svg-preserve-aspect-ratio-case-folded` | **both refuse** | preserveAspectRatio "xmidymid meet" is invalid |
+| `svg-preserve-aspect-ratio-defer` | **both refuse** | preserveAspectRatio "defer xMidYMid meet" is invalid |
+| `svg-preserve-aspect-ratio-invalid-align` | **both refuse** | preserveAspectRatio "xMidYMiddle meet" is invalid |
+| `svg-rect-rounded` | declared | skipped svg/rect[2]: unsupported rendering attribute rx on <rect> (not yet consumed) |
+| `svg-smil-animate-transform` | declared | skipped svg/g[1]: its authored state is overridden at document load by the unsupported animation at svg/g[1]/animateTransform[1]: animation element <animateTransform> is outside the rect-x proving slice |
+| `svg-smil-retarget-href` | **both refuse** | SVG animation at svg/rect[2]/set[1] is unsupported: animation element <set> is outside the rect-x proving slice; it carries href, so its target cannot be attributed to one element without id resolution; it is active at document load, so the authored state it overrides cannot render as the Base view |
+| `svg-smil-set-load-active` | declared | skipped svg/rect[2]: its authored state is overridden at document load by the unsupported animation at svg/rect[2]/set[1]: animation element <set> is outside the rect-x proving slice |
+| `svg-stroke-dasharray` | declared | skipped svg/path[1]: unsupported rendering attribute stroke-dasharray on <path> (not yet consumed) |
+| `svg-stroke-paint-order` | declared | skipped svg/rect[1]: unsupported rendering attribute paint-order on <rect> (not yet consumed) |
+| `svg-stroke-sheet-unit-width` | declared | declaration ignored at svg/style[1]: a stylesheet declares a stroke-width in ex, which needs a basis this cascade does not have; elements it matches render at the wrong width |
+| `svg-stroke-vector-effect` | declared | skipped svg/g[1]/rect[1]: unsupported rendering attribute vector-effect on <rect> (not yet consumed) |
+| `svg-switch` | declared | skipped svg/switch[1]: unsupported element <switch> |
+| `svg-text` | declared | skipped svg/text[1]: unsupported element <text> |
+| `svg-use-authored-children` | declared | skipped svg/use[1]: unsupported <use>: it has authored element children, which Chromium replaces with the shadow content |
+| `svg-use-external` | declared | skipped svg/use[1]: unsupported <use>: its reference is not a same-document fragment, and external resources are not resolved |
+| `svg-use-stylesheet` | declared | skipped svg/use[1]: unsupported <use>: the document carries author CSS, and shadow-scoped selector matching is not yet consumed (selectors must match inside the cloned subtree alone — measured) |
+| `svg-use-symbol` | declared | skipped svg/symbol[1]: unsupported element <symbol>; skipped svg/use[1]/symbol[1]: unsupported element <symbol> |
+| `svg-viewbox-invalid-token` | **both refuse** | viewBox "0 0 invalid 64 64" is invalid |
+| `svg-viewbox-repeated-comma` | **both refuse** | viewBox "0 0,,64 64" is invalid |
+| `svg-viewbox-trailing-comma` | **both refuse** | viewBox "0 0 64 64," is invalid |
+| `svg-width-percentage` | **both refuse** | unsupported SVG viewport sizing: percentage width="50%" on the root <svg> is not yet consumed |
