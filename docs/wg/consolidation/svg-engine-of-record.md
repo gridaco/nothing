@@ -46,7 +46,7 @@ from eight addenda:
   `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 99 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 105 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
   confined tolerance; the departure is the weighted rational conic alone.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
@@ -968,3 +968,29 @@ producer, and the refusal-law table says so at its row. The strokes-rung
 laws that pinned `stroke-opacity` and translucent paint as refusals
 graduated into the translucency contract, and the beyond-surface paint
 laws keep their point through a colour space the slice still refuses.
+
+## Addendum — the percentages rung (2026-07-31)
+
+Shape-geometry and `stroke-width` percentages are consumed. The bases are
+SVG2 §7.10's, threaded once from the root: the viewport's user-unit extent
+— the `viewBox` when one maps the viewport, the root's own extent
+otherwise — with x-axis lengths against its width, y-axis against its
+height, and the "other" lengths (a radius, a stroke width) against the
+normalized diagonal `sqrt(w² + h²)/√2`. The `10%`-of-64x64-is-6.4-units
+measurement recorded when this was a refusal became the resolution's first
+assertion, and all six cells (both bases, the non-square axis split, the
+line endpoints, the stroke width) baked byte-exact.
+
+**Scoped away from the root, deliberately.** Root percentage sizing keeps
+its document-level refusal: its basis is the host window itself, which the
+element-capture baker cannot express as a cell (the window is the basis,
+so any declared fixture dimension is circular). It graduates only with a
+host-level oracle. The CSS-spelled geometry surface likewise keeps its
+`Size::Auto` refusal — the compiler reads geometry from attributes, and a
+cascaded width on a `<rect>` stays a named skip.
+
+**A refusal variant retired.** `UnsupportedLength` existed to name the
+percentage refusal; with the resolution landed nothing constructs it, and
+its essence lives on as the `PercentBases` resolver and its laws. The
+malformed spellings (`5 0%`, junk digits) stay `BadNumber` refusals, the
+same posture as every other invalid number.
