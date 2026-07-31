@@ -124,7 +124,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         BothRefuse,
         "preserveAspectRatio",
     ),
-    ("svg-rect-percentage-geometry", DeclaredByBestEffort, "50%"),
     ("svg-rect-rounded", DeclaredByBestEffort, "rx"),
     (
         "svg-smil-animate-transform",
@@ -146,11 +145,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "svg-stroke-paint-order",
         DeclaredByBestEffort,
         "paint-order",
-    ),
-    (
-        "svg-stroke-percentage-width",
-        DeclaredByBestEffort,
-        "percentage stroke-width",
     ),
     (
         "svg-stroke-sheet-unit-width",

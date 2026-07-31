@@ -42,6 +42,11 @@ cargo run -p n0_cli --bin n0 -- \
   missing dimension is `auto` and resolves to 100% of `WxH`, and `viewBox`
   maps user units into the viewport under the full `preserveAspectRatio`
   grammar. A viewBox-only SVG therefore renders at the requested raster.
+  Shape-geometry and `stroke-width` percentages resolve against the
+  viewport's user-unit extent (the `viewBox` when present) per SVG2 §7.10 —
+  x-axis against width, y-axis against height, radii and stroke widths
+  against the normalized diagonal; *root* percentage sizing stays a
+  document-level refusal until a host-level oracle can bake it.
 - Resources: self-contained input only; external images and stylesheets are
   not resolved.
 - Capability: the admitted slice is deliberately narrow — solid-filled and

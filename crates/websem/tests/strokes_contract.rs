@@ -467,19 +467,16 @@ fn a_dash_array_that_paints_nothing_is_admitted() {
 }
 
 /// A percentage `stroke-width` resolves against the viewport's normalized
-/// diagonal (measured: `10%` on a 64x64 viewport paints 6.4 units wide) — the
-/// same basis chain the shape geometry percentages refuse on, so it refuses by
-/// name rather than being read as 10 units.
+/// diagonal (SVG2 §7.10; measured — `10%` of a 64x64 viewport paints 6.4
+/// units), from the attribute and the CSS spellings alike, since both
+/// arrive as the same computed percentage.
 #[test]
-fn a_percentage_stroke_width_refuses_by_name() {
-    let error = refusal(&document(
-        r##"  <style>rect { stroke: #000000; stroke-width: 10% }</style>
-  <rect x="16" y="16" width="32" height="32" fill="none"/>"##,
+fn a_percentage_stroke_width_resolves_against_the_normalized_diagonal() {
+    let frame = admit_both(&document(
+        r##"  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000" stroke-width="10%"/>"##,
     ));
-    assert!(
-        matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("normalized-diagonal")),
-        "the reason names the missing basis: {error}"
-    );
+    let stroke = frame.nodes[0].stroke.as_ref().expect("a stroke");
+    assert_eq!(stroke.width(), 6.4, "10% of sqrt(64² + 64²)/√2");
 }
 
 /// A stroke paint outside the gated value surface refuses exactly as the same

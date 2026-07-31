@@ -314,16 +314,6 @@ pub enum CompileError {
     BadNumber { attr: String, value: String },
     /// Viewport sizing needs a default/CSS sizing path this slice lacks.
     UnsupportedSizing(String),
-    /// A shape geometry attribute in valid SVG length grammar the slice
-    /// cannot yet resolve: percentages, whose basis chain (viewport axes,
-    /// and the normalized diagonal for `<circle r>`) is not consumed.
-    /// Refusing by name is honest where the numeric parse would misreport
-    /// the value as [`CompileError::BadNumber`] junk.
-    UnsupportedLength {
-        element: String,
-        attr: String,
-        value: String,
-    },
     /// A viewport dimension is syntactically numeric but invalid.
     InvalidDimension { attr: String, value: String },
     /// A `viewBox` whose four-number grammar or positive extent is invalid.
@@ -775,15 +765,6 @@ impl std::fmt::Display for CompileError {
             CompileError::UnsupportedSizing(reason) => {
                 write!(f, "unsupported SVG viewport sizing: {reason}")
             }
-            CompileError::UnsupportedLength {
-                element,
-                attr,
-                value,
-            } => write!(
-                f,
-                "unsupported length {attr}={value:?} on <{element}>: the percentage basis is \
-                 not yet consumed"
-            ),
             CompileError::InvalidDimension { attr, value } => {
                 write!(f, "invalid SVG viewport dimension {attr}={value:?}")
             }
@@ -1358,27 +1339,34 @@ fn patrol_computed_style(
     Ok(disposition)
 }
 
-/// Refuse a shape geometry attribute authored as a percentage — the
-/// sibling of [`reject_percentage_dimension`] for admitted shape elements.
-/// This one is element-level, so best-effort declares-and-skips the shape
-/// instead of refusing the document.
-fn reject_percentage_geometry(
-    element: HtmlElement<'_>,
-    element_name: &str,
-    attrs: &[&str],
-) -> Result<(), CompileError> {
-    for attr in attrs {
-        if let Some(value) = get_attr(element, attr)
-            && trim_svg_whitespace(&value).ends_with('%')
-        {
-            return Err(CompileError::UnsupportedLength {
-                element: element_name.to_string(),
-                attr: (*attr).to_string(),
-                value,
-            });
+/// The percentage bases of the one viewport (SVG2 §7.10): a shape
+/// geometry percentage resolves against the viewport's user-unit extent —
+/// the `viewBox` when one maps the viewport, the root's own extent
+/// otherwise — with x-axis lengths against its width, y-axis lengths
+/// against its height, and the "other" lengths (a radius, a stroke width)
+/// against the normalized diagonal `sqrt(w² + h²)/√2` (measured: `10%` on
+/// a 64x64 viewport paints 6.4 units). Root sizing percentages stay a
+/// document-level refusal: their basis is the host window itself, a cell
+/// the element-capture baker cannot express, so they graduate only with a
+/// host-level oracle.
+#[derive(Debug, Clone, Copy)]
+struct PercentBases {
+    width: f32,
+    height: f32,
+}
+
+impl PercentBases {
+    fn diagonal(self) -> f32 {
+        (self.width * self.width + self.height * self.height).sqrt() / std::f32::consts::SQRT_2
+    }
+
+    fn axis(self, attr: &str) -> f32 {
+        match attr {
+            "x" | "x1" | "x2" | "cx" | "rx" | "width" => self.width,
+            "y" | "y1" | "y2" | "cy" | "ry" | "height" => self.height,
+            _ => self.diagonal(),
         }
     }
-    Ok(())
 }
 
 /// First `<svg>` element in document order.
@@ -1490,8 +1478,18 @@ fn compile_svg_element(
     };
     let frame_bounds = Rectangle::from_xywh(0.0, 0.0, width, height);
 
+    // The percentage bases are the viewport's user-unit extent: the
+    // viewBox when one maps the viewport, the root's own extent otherwise.
+    let bases = match viewbox {
+        Some((_, _, vb_width, vb_height)) => PercentBases {
+            width: vb_width,
+            height: vb_height,
+        },
+        None => PercentBases { width, height },
+    };
     let mut walk = ChildWalk {
         values,
+        bases,
         mode,
         degradations,
         override_skips,
@@ -1542,6 +1540,9 @@ pub(crate) const MAX_CONTAINER_DEPTH: usize = 64;
 /// by that producer.
 struct ChildWalk<'a> {
     values: &'a EffectiveValues,
+    /// The one viewport's percentage bases (SVG2 §7.10), fixed at the
+    /// root: no nested viewport is admitted, so every shape shares them.
+    bases: PercentBases,
     mode: CompileMode,
     degradations: &'a mut Vec<Degradation>,
     /// Targets of load-active authored-state overrides, best-effort only —
@@ -1668,7 +1669,9 @@ impl ChildWalk<'_> {
         // An admitted shape may resolve to no visual fact at all — a `<path>`
         // whose `d` draws nothing. That is not a hole: the element is
         // admitted, it is simply not a node.
-        if let Some(node) = compile_shape(el, transform, &mut self.next_id, self.values)? {
+        if let Some(node) =
+            compile_shape(el, transform, &mut self.next_id, self.values, self.bases)?
+        {
             self.nodes.push(node);
         }
         if top_level {
@@ -1742,6 +1745,7 @@ fn compile_shape(
     inherited: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
+    bases: PercentBases,
 ) -> Result<Option<FrameNode>, CompileError> {
     let tag = el.local_name_string();
     // A shape's own `transform` composes inside the mapping it inherits
@@ -1749,13 +1753,13 @@ fn compile_shape(
     // container's does.
     let transform = compose_element_transform(el, inherited, &tag)?;
     match tag.as_str() {
-        "rect" => compile_rect(el, transform, next_id, values),
-        "circle" => compile_circle(el, transform, next_id, values),
-        "ellipse" => compile_ellipse(el, transform, next_id, values),
-        "path" => compile_path(el, transform, next_id),
-        "line" => compile_line(el, transform, next_id, values),
-        "polygon" => compile_points_shape(el, transform, next_id, PointsClosure::Closed),
-        "polyline" => compile_points_shape(el, transform, next_id, PointsClosure::Open),
+        "rect" => compile_rect(el, transform, next_id, values, bases),
+        "circle" => compile_circle(el, transform, next_id, values, bases),
+        "ellipse" => compile_ellipse(el, transform, next_id, values, bases),
+        "path" => compile_path(el, transform, next_id, bases),
+        "line" => compile_line(el, transform, next_id, values, bases),
+        "polygon" => compile_points_shape(el, transform, next_id, PointsClosure::Closed, bases),
+        "polyline" => compile_points_shape(el, transform, next_id, PointsClosure::Open, bases),
         other => Err(CompileError::UnsupportedElement(other.to_string())),
     }
 }
@@ -1765,6 +1769,7 @@ fn compile_rect(
     viewport: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
+    bases: PercentBases,
 ) -> Result<Option<FrameNode>, CompileError> {
     patrol_rendering_attributes(el, "rect", RECT_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
     patrol_style_attribute(el, "rect")?;
@@ -1774,11 +1779,10 @@ fn compile_rect(
         // admitted, and not a node.
         RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
     }
-    reject_percentage_geometry(el, "rect", &["x", "y", "width", "height"])?;
-    let x = effective_attr_f32(el, "x", values)?.unwrap_or(0.0);
-    let y = effective_attr_f32(el, "y", values)?.unwrap_or(0.0);
-    let w = box_extent(effective_attr_f32(el, "width", values)?.unwrap_or(0.0));
-    let h = box_extent(effective_attr_f32(el, "height", values)?.unwrap_or(0.0));
+    let x = geometry_attr_f32(el, "x", values, bases)?.unwrap_or(0.0);
+    let y = geometry_attr_f32(el, "y", values, bases)?.unwrap_or(0.0);
+    let w = box_extent(geometry_attr_f32(el, "width", values, bases)?.unwrap_or(0.0));
+    let h = box_extent(geometry_attr_f32(el, "height", values, bases)?.unwrap_or(0.0));
     let rect = Rectangle::from_xywh(x, y, w, h);
     shape_node(
         el,
@@ -1786,6 +1790,7 @@ fn compile_rect(
         viewport,
         next_id,
         box_strokable(w, h),
+        bases,
     )
     .map(Some)
 }
@@ -1795,6 +1800,7 @@ fn compile_circle(
     viewport: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
+    bases: PercentBases,
 ) -> Result<Option<FrameNode>, CompileError> {
     patrol_rendering_attributes(el, "circle", &[])?;
     patrol_style_attribute(el, "circle")?;
@@ -1804,15 +1810,16 @@ fn compile_circle(
         // admitted, and not a node.
         RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
     }
-    reject_percentage_geometry(el, "circle", &["cx", "cy", "r"])?;
-    let cx = effective_attr_f32(el, "cx", values)?.unwrap_or(0.0);
-    let cy = effective_attr_f32(el, "cy", values)?.unwrap_or(0.0);
+    let cx = geometry_attr_f32(el, "cx", values, bases)?.unwrap_or(0.0);
+    let cy = geometry_attr_f32(el, "cy", values, bases)?.unwrap_or(0.0);
     // SVG2 §10.3: a negative `r` is invalid and must be ignored, and a
     // computed value of zero disables rendering. Chromium clamps the used
     // value at layout (`LayoutSVGEllipse`: `std::max(radius, 0.f)`), so
     // negative and missing both resolve exactly as `r="0"`: the element is
     // admitted and paints nothing — an honest nothing, not a refusal.
-    let r = effective_attr_f32(el, "r", values)?.unwrap_or(0.0).max(0.0);
+    let r = geometry_attr_f32(el, "r", values, bases)?
+        .unwrap_or(0.0)
+        .max(0.0);
     let rect = Rectangle::from_xywh(cx - r, cy - r, r * 2.0, r * 2.0);
     shape_node(
         el,
@@ -1820,6 +1827,7 @@ fn compile_circle(
         viewport,
         next_id,
         box_strokable(r, r),
+        bases,
     )
     .map(Some)
 }
@@ -1829,6 +1837,7 @@ fn compile_ellipse(
     viewport: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
+    bases: PercentBases,
 ) -> Result<Option<FrameNode>, CompileError> {
     patrol_rendering_attributes(el, "ellipse", &[])?;
     patrol_style_attribute(el, "ellipse")?;
@@ -1838,17 +1847,16 @@ fn compile_ellipse(
         // admitted, and not a node.
         RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
     }
-    reject_percentage_geometry(el, "ellipse", &["cx", "cy", "rx", "ry"])?;
-    let cx = effective_attr_f32(el, "cx", values)?.unwrap_or(0.0);
-    let cy = effective_attr_f32(el, "cy", values)?.unwrap_or(0.0);
+    let cx = geometry_attr_f32(el, "cx", values, bases)?.unwrap_or(0.0);
+    let cy = geometry_attr_f32(el, "cy", values, bases)?.unwrap_or(0.0);
     // SVG2 §10.4: `rx`/`ry` initially `auto`; a negative value is invalid
     // and must be ignored, which Chromium treats as `auto` (frozen donor's
     // Chrome-confirmed reading, re-proved against Chromium 148: a single
     // negative radius adopts the other axis). `auto` adopts the other
     // radius; both `auto` resolve to zero; zero on either axis disables
     // rendering — the zero-extent oval below paints nothing.
-    let rx = ellipse_radius(el, "rx", values)?;
-    let ry = ellipse_radius(el, "ry", values)?;
+    let rx = ellipse_radius(el, "rx", values, bases)?;
+    let ry = ellipse_radius(el, "ry", values, bases)?;
     let (rx, ry) = match (rx, ry) {
         (Some(rx), Some(ry)) => (rx, ry),
         (Some(rx), None) => (rx, rx),
@@ -1862,6 +1870,7 @@ fn compile_ellipse(
         viewport,
         next_id,
         box_strokable(rx, ry),
+        bases,
     )
     .map(Some)
 }
@@ -1881,6 +1890,7 @@ fn compile_path(
     el: HtmlElement<'_>,
     viewport: AffineTransform,
     next_id: &mut u64,
+    bases: PercentBases,
 ) -> Result<Option<FrameNode>, CompileError> {
     patrol_rendering_attributes(el, "path", PATH_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
     patrol_style_attribute(el, "path")?;
@@ -1925,6 +1935,7 @@ fn compile_path(
         viewport,
         next_id,
         Strokable::Yes,
+        bases,
     )
     .map(Some)
 }
@@ -1947,6 +1958,7 @@ fn compile_line(
     viewport: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
+    bases: PercentBases,
 ) -> Result<Option<FrameNode>, CompileError> {
     patrol_rendering_attributes(el, "line", PATH_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
     patrol_style_attribute(el, "line")?;
@@ -1956,11 +1968,10 @@ fn compile_line(
         // admitted, and not a node.
         RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
     }
-    reject_percentage_geometry(el, "line", &["x1", "y1", "x2", "y2"])?;
-    let x1 = effective_attr_f32(el, "x1", values)?.unwrap_or(0.0);
-    let y1 = effective_attr_f32(el, "y1", values)?.unwrap_or(0.0);
-    let x2 = effective_attr_f32(el, "x2", values)?.unwrap_or(0.0);
-    let y2 = effective_attr_f32(el, "y2", values)?.unwrap_or(0.0);
+    let x1 = geometry_attr_f32(el, "x1", values, bases)?.unwrap_or(0.0);
+    let y1 = geometry_attr_f32(el, "y1", values, bases)?.unwrap_or(0.0);
+    let x2 = geometry_attr_f32(el, "x2", values, bases)?.unwrap_or(0.0);
+    let y2 = geometry_attr_f32(el, "y2", values, bases)?.unwrap_or(0.0);
     let path = PathData::new(
         vec![
             rframe::PathCommand::MoveTo { x: x1, y: y1 },
@@ -1975,6 +1986,7 @@ fn compile_line(
         viewport,
         next_id,
         Strokable::Yes,
+        bases,
     )
     .map(Some)
 }
@@ -2010,6 +2022,7 @@ fn compile_points_shape(
     viewport: AffineTransform,
     next_id: &mut u64,
     closure: PointsClosure,
+    bases: PercentBases,
 ) -> Result<Option<FrameNode>, CompileError> {
     let element = match closure {
         PointsClosure::Closed => "polygon",
@@ -2084,6 +2097,7 @@ fn compile_points_shape(
         viewport,
         next_id,
         Strokable::Yes,
+        bases,
     )
     .map(Some)
 }
@@ -2166,6 +2180,7 @@ fn shape_node(
     viewport: AffineTransform,
     next_id: &mut u64,
     strokable: Strokable,
+    bases: PercentBases,
 ) -> Result<FrameNode, CompileError> {
     let rect = geometry.local_box();
     let fill = resolve_fill(el)?;
@@ -2174,7 +2189,7 @@ fn shape_node(
         None => SolidPaintStack::empty(),
     };
     let stroke = match strokable {
-        Strokable::Yes => resolve_stroke(el, &el.local_name_string())?,
+        Strokable::Yes => resolve_stroke(el, &el.local_name_string(), bases)?,
         Strokable::RenderingDisabled => None,
     };
     patrol_mixed_contour_cap(&geometry, stroke.as_ref())?;
@@ -2260,8 +2275,9 @@ fn ellipse_radius(
     el: HtmlElement<'_>,
     name: &str,
     values: &EffectiveValues,
+    bases: PercentBases,
 ) -> Result<Option<f32>, CompileError> {
-    Ok(effective_attr_f32(el, name, values)?.filter(|value| *value >= 0.0))
+    Ok(geometry_attr_f32(el, name, values, bases)?.filter(|value| *value >= 0.0))
 }
 
 /// Resolve the SVG `fill` paint from the typed cascaded value — the one
@@ -2413,7 +2429,11 @@ fn patrol_stroke_width_units(el: HtmlElement<'_>, element_name: &str) -> Result<
 /// A negative `stroke-width` never arrives: it fails the property's
 /// non-negative grammar, so the cascade drops the declaration and this read
 /// sees the inherited or initial value — exactly what Chromium paints.
-fn resolve_stroke(el: HtmlElement<'_>, element_name: &str) -> Result<Option<Stroke>, CompileError> {
+fn resolve_stroke(
+    el: HtmlElement<'_>,
+    element_name: &str,
+    bases: PercentBases,
+) -> Result<Option<Stroke>, CompileError> {
     let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     let style: &ComputedValues = data.styles.primary();
 
@@ -2462,11 +2482,19 @@ fn resolve_stroke(el: HtmlElement<'_>, element_name: &str) -> Result<Option<Stro
                 patrol_stroke_width_units(el, element_name)?;
                 length.px()
             }
-            None => {
-                return Err(CompileError::UnsupportedStroke(
-                    "a percentage stroke-width needs the normalized-diagonal basis".to_string(),
-                ));
-            }
+            // A pure percentage resolves against the viewport's normalized
+            // diagonal (SVG2 §7.10; measured — `10%` of 64x64 paints 6.4
+            // units). A calc() mixing lengths and percentages has neither a
+            // computed length nor a pure percentage and stays refused.
+            None => match width.0.to_percentage() {
+                Some(percentage) => percentage.0 * bases.diagonal(),
+                None => {
+                    return Err(CompileError::UnsupportedStroke(
+                        "a calc() stroke-width mixing lengths and percentages is not consumed"
+                            .to_string(),
+                    ));
+                }
+            },
         },
     };
 
@@ -2766,6 +2794,43 @@ fn effective_attr_f32(
 ) -> Result<Option<f32>, CompileError> {
     if let Some(value) = values.scalar(element.node_id(), name) {
         return Ok(Some(value));
+    }
+    attr_f32(element, name)
+}
+
+/// [`effective_attr_f32`] for shape geometry, where the SVG length grammar
+/// admits a percentage: `<number>%`, no space, resolved against the
+/// attribute's axis basis. A sampled override is already resolved user
+/// units and never a percentage. Anything else malformed stays the
+/// [`CompileError::BadNumber`] refusal the plain read gives it.
+fn geometry_attr_f32(
+    element: HtmlElement<'_>,
+    name: &str,
+    values: &EffectiveValues,
+    bases: PercentBases,
+) -> Result<Option<f32>, CompileError> {
+    if let Some(value) = values.scalar(element.node_id(), name) {
+        return Ok(Some(value));
+    }
+    let Some(v) = get_attr(element, name) else {
+        return Ok(None);
+    };
+    let trimmed = trim_svg_whitespace(&v);
+    if let Some(number) = trimmed.strip_suffix('%') {
+        if !dots_carry_digits(number) {
+            return Err(CompileError::BadNumber {
+                attr: name.to_string(),
+                value: v.clone(),
+            });
+        }
+        let parsed = number.parse::<f32>().ok().filter(|value| value.is_finite());
+        let Some(parsed) = parsed else {
+            return Err(CompileError::BadNumber {
+                attr: name.to_string(),
+                value: v,
+            });
+        };
+        return Ok(Some(parsed / 100.0 * bases.axis(name)));
     }
     attr_f32(element, name)
 }

@@ -289,59 +289,46 @@ fn rust_float_superset_radii_refuse_as_bad_numbers() {
     }
 }
 
-/// A percentage geometry attribute is valid SVG length grammar whose basis
-/// chain (viewport axes, the normalized diagonal for `<circle r>`) is not
-/// yet consumed: it refuses/skips by name instead of misreporting as a bad
-/// number — on the new shapes and, same posture, on `<rect>`.
+/// Percentage geometry resolves against the one viewport's user-unit
+/// extent (SVG2 §7.10): x-axis lengths against its width, y-axis against
+/// its height, and a radius against the normalized diagonal — on a square
+/// 64x64 viewport all three bases are 64, so `50%` is 32 everywhere, and
+/// the Chromium-baked percentage cells pin the distinct-axis cases.
 #[test]
-fn percentage_geometry_refuses_by_name() {
-    for (label, shape) in [
-        (
-            "circle r",
-            r##"<circle cx="32" cy="32" r="50%" fill="#16a34a"/>"##,
-        ),
-        (
-            "circle cx",
-            r##"<circle cx="50%" cy="32" r="12" fill="#16a34a"/>"##,
-        ),
-        (
-            "ellipse ry",
-            r##"<ellipse cx="32" cy="32" rx="12" ry="25%" fill="#16a34a"/>"##,
-        ),
-        (
-            "rect width",
-            r##"<rect x="4" y="4" width="50%" height="8" fill="#16a34a"/>"##,
-        ),
-    ] {
-        let (error, reason) = shape_failure(&on_canvas(shape));
-        assert!(
-            matches!(error, CompileError::UnsupportedLength { .. }),
-            "{label}: {error:?}"
-        );
-        assert!(
-            reason.contains("percentage basis"),
-            "{label} names the boundary: {reason}"
-        );
-    }
-
-    // The refusal names the offending element, attribute, and value — not
-    // merely that something percentage-shaped was seen.
-    let (error, _) = shape_failure(&on_canvas(
-        r##"<circle cx="32" cy="32" r="50%" fill="#16a34a"/>"##,
+fn percentage_geometry_resolves_against_the_axis_bases() {
+    let frame = admit_both(&on_canvas(
+        r##"<circle cx="50%" cy="50%" r="25%" fill="#16a34a"/>"##,
     ));
     assert_eq!(
-        error.to_string(),
-        "unsupported length r=\"50%\" on <circle>: the percentage basis is not yet consumed"
+        ellipse_box(&frame, 1),
+        Rectangle::from_xywh(16.0, 16.0, 32.0, 32.0),
+        "cx/cy against the axes, r against the normalized diagonal"
     );
 
-    // Surrounding SVG whitespace does not disguise a percentage into the
-    // numeric path, where it would misreport as a bad number.
-    let (padded, _) = shape_failure(&on_canvas(
-        "<circle cx=\"32\" cy=\"32\" r=\" 50%\t\" fill=\"#16a34a\"/>",
+    // With a viewBox, the basis is the viewBox's user-unit extent, not the
+    // root's pixel extent.
+    let viewbox = admit_both(
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 32 32">
+  <rect x="25%" y="25%" width="50%" height="50%" fill="#16a34a"/>
+</svg>"##,
+    );
+    let rframe::Geometry::Rect(rect) = &viewbox.nodes[0].geometry else {
+        panic!("a rect");
+    };
+    assert_eq!(
+        *rect,
+        Rectangle::from_xywh(8.0, 8.0, 16.0, 16.0),
+        "50% of the 32-unit viewBox, in user units"
+    );
+
+    // The grammar stays the number scanner's: junk around the sign refuses
+    // as a bad number, exactly as it would without the percent.
+    let (error, _) = shape_failure(&on_canvas(
+        r##"<rect x="4" y="4" width="5 0%" height="8" fill="#16a34a"/>"##,
     ));
     assert!(
-        matches!(padded, CompileError::UnsupportedLength { .. }),
-        "{padded:?}"
+        matches!(error, CompileError::BadNumber { .. }),
+        "malformed percentage: {error:?}"
     );
 }
 
