@@ -62,6 +62,10 @@ is exactly what the engine renders pixel-for-pixel.
 | `svg-fill-opacity-inherited.svg` | `fill-opacity` inherits through a `<g>`, and two translucent siblings composite over each other. |
 | `svg-stroke-opacity-over-fill.svg` | The compositing split: a translucent stroke paints over its own opaque fill — the inner half composites over the fill, the outer over the canvas. |
 | `svg-stroke-opacity-join.svg` | A translucent stroke is one paint pass: the miter join's self-overlap does not double-blend. |
+| `svg-percent-rect-in-viewbox.svg` · `svg-percent-rect-root-units.svg` | Percentage geometry resolves against the viewport's user-unit extent: the `viewBox` when one maps the viewport, the root's own extent otherwise. |
+| `svg-percent-circle-diagonal.svg` · `svg-percent-ellipse.svg` | The axis split on a non-square viewport: `cx`/`rx` against the width, `cy`/`ry` against the height, and a circle's `r` against the normalized diagonal `sqrt(w²+h²)/√2`. |
+| `svg-percent-line.svg` | Percentage line endpoints, per axis. |
+| `svg-percent-stroke-width.svg` | A percentage `stroke-width` against the normalized diagonal — `10%` of 64x64 paints 6.4 units, the value measured back when this was a refusal. |
 | `svg-path-cubic-fill.svg` · `svg-path-smooth-cubic.svg` · `svg-path-quadratic.svg` | Curved path cells: a cubic, an `S` continuation, and a `Q`+`T` pair. All three bake **byte-exact** — see the note below. |
 | `svg-path-fill-rule-nonzero.svg` · `svg-path-fill-rule-evenodd.svg` · `svg-path-fill-rule-inherited.svg` | One self-intersecting star under each fill rule (core filled vs hollow), and the rule inherited from a `<g>` through the one cascade. |
 | `svg-path-two-subpaths.svg` · `svg-path-in-scaled-group.svg` | Two closed contours in one `d`, and a path carried by a group's `scale(2)`. |

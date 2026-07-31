@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (99)
+## Chromium-baked cells (105)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells carry the one declared AA tolerance — see
@@ -124,8 +124,14 @@ Each renders byte-exact against its committed Chromium oracle
 - `svg-stroke-opacity-join` (standalone-svg)
 - `svg-stroke-opacity-over-fill` (standalone-svg)
 - `svg-translucent-fill-rgba` (standalone-svg)
+- `svg-percent-circle-diagonal` (standalone-svg)
+- `svg-percent-ellipse` (standalone-svg)
+- `svg-percent-line` (standalone-svg)
+- `svg-percent-rect-in-viewbox` (standalone-svg)
+- `svg-percent-rect-root-units` (standalone-svg)
+- `svg-percent-stroke-width` (standalone-svg)
 
-## The refusal register (40)
+## The refusal register (38)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -155,14 +161,12 @@ its row into the cells above.
 - `svg-preserve-aspect-ratio-case-folded` — **both refuse**: preserveAspectRatio "xmidymid meet" is invalid
 - `svg-preserve-aspect-ratio-defer` — **both refuse**: preserveAspectRatio "defer xMidYMid meet" is invalid
 - `svg-preserve-aspect-ratio-invalid-align` — **both refuse**: preserveAspectRatio "xMidYMiddle meet" is invalid
-- `svg-rect-percentage-geometry` — declared: skipped svg/rect[2]: unsupported length width="50%" on <rect>: the percentage basis is not yet consumed
 - `svg-rect-rounded` — declared: skipped svg/rect[2]: unsupported rendering attribute rx on <rect> (not yet consumed)
 - `svg-smil-animate-transform` — declared: skipped svg/g[1]: its authored state is overridden at document load by the unsupported animation at svg/g[1]/animateTransform[1]: animation element <animateTransform> is outside the rect-x proving slice
 - `svg-smil-retarget-href` — **both refuse**: SVG animation at svg/rect[2]/set[1] is unsupported: animation element <set> is outside the rect-x proving slice; it carries href, so its target cannot be attributed to one element without id resolution; it is active at document load, so the authored state it overrides cannot render as the Base view
 - `svg-smil-set-load-active` — declared: skipped svg/rect[2]: its authored state is overridden at document load by the unsupported animation at svg/rect[2]/set[1]: animation element <set> is outside the rect-x proving slice
 - `svg-stroke-dasharray` — declared: skipped svg/path[1]: unsupported rendering attribute stroke-dasharray on <path> (not yet consumed)
 - `svg-stroke-paint-order` — declared: skipped svg/rect[1]: unsupported rendering attribute paint-order on <rect> (not yet consumed)
-- `svg-stroke-percentage-width` — declared: skipped svg/rect[1]: unsupported stroke value "a percentage stroke-width needs the normalized-diagonal basis"
 - `svg-stroke-sheet-unit-width` — declared: declaration ignored at svg/style[1]: a stylesheet declares a stroke-width in ex, which needs a basis this cascade does not have; elements it matches render at the wrong width
 - `svg-stroke-vector-effect` — declared: skipped svg/g[1]/rect[1]: unsupported rendering attribute vector-effect on <rect> (not yet consumed)
 - `svg-switch` — declared: skipped svg/switch[1]: unsupported element <switch>

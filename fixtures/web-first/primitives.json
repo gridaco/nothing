@@ -870,6 +870,54 @@
       "oracle": "chromium/svg-translucent-fill-rgba.png",
       "width": 64,
       "height": 64
+    },
+    {
+      "id": "svg-percent-circle-diagonal",
+      "source": "svg-percent-circle-diagonal.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-percent-circle-diagonal.png",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-percent-ellipse",
+      "source": "svg-percent-ellipse.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-percent-ellipse.png",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-percent-line",
+      "source": "svg-percent-line.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-percent-line.png",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-percent-rect-in-viewbox",
+      "source": "svg-percent-rect-in-viewbox.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-percent-rect-in-viewbox.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-percent-rect-root-units",
+      "source": "svg-percent-rect-root-units.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-percent-rect-root-units.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-percent-stroke-width",
+      "source": "svg-percent-stroke-width.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-percent-stroke-width.png",
+      "width": 64,
+      "height": 64
     }
   ]
 }
