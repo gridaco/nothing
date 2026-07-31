@@ -36,9 +36,11 @@ Shapes `<rect>`, `<circle>`, `<ellipse>`, `<path>`, `<line>`, `<polygon>` and
 miter limit, and a path's fill rule — which the points shapes share).
 Containers `<g>` with the whole `transform` grammar in both spellings — the
 attribute enters the one cascade as a presentation hint of the CSS
-`transform` property — flattened into a per-node affine. Root sizing per
-SVG2 §8.2 with the full `preserveAspectRatio` grammar. One exact-time
-`<animate attributeName="x">` on a top-level `<rect>`.
+`transform` property — flattened into a per-node affine. `<use>`/`<defs>`
+same-document references, expanded into the one tree before the cascade
+(csscascade's `svg_use`), rendered as containers of their shadow content.
+Root sizing per SVG2 §8.2 with the full `preserveAspectRatio` grammar. One
+exact-time `<animate attributeName="x">` on a top-level `<rect>`.
 
 `crates/n0_cli/README.md` is the single statement of record for that slice and
 what it refuses; this table is the compiler's map, not a second copy of it.

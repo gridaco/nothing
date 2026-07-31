@@ -362,6 +362,16 @@ pub enum CompileError {
     /// element named — which would turn one bad list into a blank render.
     /// The refusal lands here, where the element is known.
     NonFiniteTransform { element: String },
+    /// A `<use>` this slice must refuse by name rather than walk: an
+    /// external reference (the engine is declared resource-free, and
+    /// Chromium with a network would render the target), authored element
+    /// children (Chromium renders the shadow content in their place), an
+    /// expansion overflow (an indirect reference cycle or pathological
+    /// fan-out beyond the measured shapes), or a document carrying author
+    /// CSS (the measured shadow boundary scopes selector matching to the
+    /// cloned subtree alone, which the one flattened tree cannot express —
+    /// the shadow-matching rung's earned work).
+    UnsupportedUse(String),
     /// Container nesting deeper than the compiler descends. A recursive
     /// walk cannot honor unbounded depth, so the limit is explicit rather
     /// than a stack overflow.
@@ -798,6 +808,9 @@ impl std::fmt::Display for CompileError {
             CompileError::NonFiniteTransform { element } => {
                 write!(f, "the composed transform on <{element}> is not finite")
             }
+            CompileError::UnsupportedUse(reason) => {
+                write!(f, "unsupported <use>: {reason}")
+            }
             CompileError::ContainerTooDeep(limit) => {
                 write!(f, "container nesting deeper than {limit} is not compiled")
             }
@@ -868,6 +881,33 @@ fn subtree_contains_script(el: HtmlElement<'_>) -> bool {
     false
 }
 
+/// Whether the whole document carries any author stylesheet. Scanned from
+/// the outermost element — the HTML entry's `<style>` commonly lives in
+/// `<head>`, outside the compiled SVG subtree — and iterative for the same
+/// stack-safety reason as [`subtree_contains_script`]. This is the
+/// `<use>` patrol's document fact: the measured shadow boundary scopes
+/// selector matching to the cloned subtree alone, and the one flattened
+/// tree cannot express that scoping, so author CSS and `<use>` refuse
+/// together until the shadow-matching rung.
+fn document_has_author_css(el: HtmlElement<'_>) -> bool {
+    let mut top = el;
+    while let Some(parent) = top.traversal_parent() {
+        top = parent;
+    }
+    let mut stack = vec![top];
+    while let Some(element) = stack.pop() {
+        if element.local_name_string() == "style" {
+            return true;
+        }
+        let mut child = element.first_element_child();
+        while let Some(c) = child {
+            stack.push(c);
+            child = c.next_element_sibling();
+        }
+    }
+    false
+}
+
 /// Known rendering-relevant SVG attributes the slice does not consume. An
 /// authored attribute from this set changes Chromium's pixels, so an
 /// admitted element carrying one refuses (strict) or skips-and-declares
@@ -888,7 +928,9 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "clip-rule",
     "mask",
     "filter",
-    "color",
+    // `color` is absent here since the use/defs rung: it is an admitted
+    // presentation hint (csscascade), the currentColor basis the paint
+    // resolvers already read from the cascade.
     "stroke-dasharray",
     "stroke-dashoffset",
     "paint-order",
@@ -1523,6 +1565,7 @@ fn compile_svg_element(
         mode,
         degradations,
         override_skips,
+        has_author_css: document_has_author_css(svg),
         nodes: Vec::new(),
         top_level_shapes: Vec::new(),
         next_id: 0,
@@ -1580,6 +1623,9 @@ struct ChildWalk<'a> {
     /// overrides. The walk leaves each out and declares it here, where the
     /// stable path and document order are known.
     override_skips: &'a HashMap<NodeId, String>,
+    /// Whether the document carries any author stylesheet — the `<use>`
+    /// patrol's document fact (see [`document_has_author_css`]).
+    has_author_css: bool,
     nodes: Vec<FrameNode>,
     /// The materialized nodes that are direct children of the root `<svg>`
     /// — the animation inventory's candidate targets, which it narrows
@@ -1634,11 +1680,25 @@ impl ChildWalk<'_> {
                 child = c.next_element_sibling();
                 continue;
             }
+            // `<defs>` is reference-only since the use/defs rung: its
+            // contents never paint in place (SVG2's UA sheet makes it
+            // `display: none !important`) and the effect it exists for —
+            // changing what referencing elements paint — is consumed by
+            // the use expansion, which indexed it before this walk. Its
+            // own computed display is deliberately not consulted: the
+            // pinned cascade's UA sheet carries no defs rule.
+            if tag == "defs" {
+                child = c.next_element_sibling();
+                continue;
+            }
             // `<a>` renders as a container exactly like `<g>` (SVG2 §16.2:
             // its `href` is interaction, not paint), so the two share the
-            // one container compiler and its patrols.
+            // one container compiler and its patrols. `<use>` is a
+            // container whose children are its expanded shadow content.
             let result = if tag == "g" || tag == "a" {
                 self.compile_container(c, transform, &path, depth, &tag)
+            } else if tag == "use" {
+                self.compile_use(c, transform, &path, depth)
             } else {
                 self.compile_leaf(c, transform, depth == 0)
             };
@@ -1694,6 +1754,80 @@ impl ChildWalk<'_> {
         self.compile_children(el, transform, path, depth + 1)
     }
 
+    /// A `<use>` element: SVG2 renders it "as if the host element was a
+    /// container and the shadow content was its descendents", and the
+    /// expansion (csscascade) has already made that literal — the children
+    /// are the cloned instance, styled by the one cascade with inheritance
+    /// from this element. What remains here is the container walk plus the
+    /// use-specific mapping and patrols, each Chromium-measured:
+    ///
+    /// - `x`/`y` append a translate *inside* the element's own transform
+    ///   (SVG2 §5.6.2 — "appended to the right-side of the transformation
+    ///   list"); `width`/`height` are inert for every admitted target
+    ///   (they only size `<svg>`/`<symbol>` targets, which refuse as
+    ///   unsupported elements when the clone surfaces them).
+    /// - An unresolved or cyclic reference expanded to nothing, and this
+    ///   walk paints the same nothing Chromium paints — no declaration,
+    ///   because nothing degrades.
+    /// - The refusals by name: the expansion's own flags (external
+    ///   reference, authored children, overflow) and the author-CSS
+    ///   boundary — the measured shadow scope admits only selectors
+    ///   satisfiable inside the cloned subtree, which the one flattened
+    ///   tree cannot express, so a document with any author stylesheet
+    ///   refuses every `<use>` until the shadow-matching rung.
+    fn compile_use(
+        &mut self,
+        el: HtmlElement<'_>,
+        transform: AffineTransform,
+        path: &str,
+        depth: usize,
+    ) -> Result<(), CompileError> {
+        if depth >= MAX_CONTAINER_DEPTH {
+            return Err(CompileError::ContainerTooDeep(MAX_CONTAINER_DEPTH));
+        }
+        patrol_rendering_attributes(el, "use", &[])?;
+        patrol_style_attribute(el, "use")?;
+        if let DemoNodeData::Element(element) = &el.dom_node().data
+            && let Some(refusal) = element.svg_use_refusal
+        {
+            use csscascade::svg_use::SvgUseRefusal;
+            return Err(CompileError::UnsupportedUse(match refusal {
+                SvgUseRefusal::ExternalReference => {
+                    "its reference is not a same-document fragment, and external \
+                     resources are not resolved"
+                        .to_string()
+                }
+                SvgUseRefusal::AuthoredChildren => {
+                    "it has authored element children, which Chromium replaces with \
+                     the shadow content"
+                        .to_string()
+                }
+                SvgUseRefusal::ExpansionOverflow => {
+                    "its expansion overflows the reference-chain budget — an \
+                     indirect cycle or pathological fan-out"
+                        .to_string()
+                }
+            }));
+        }
+        if self.has_author_css {
+            return Err(CompileError::UnsupportedUse(
+                "the document carries author CSS, and shadow-scoped selector \
+                 matching is not yet consumed (selectors must match inside the \
+                 cloned subtree alone — measured)"
+                    .to_string(),
+            ));
+        }
+        match patrol_computed_style(el, true, false)? {
+            RenderDisposition::PrunedSubtree => return Ok(()),
+            RenderDisposition::Renders | RenderDisposition::HiddenPaint => {}
+        }
+        let transform = compose_element_transform(el, transform, "use", self.bases)?;
+        let x = geometry_attr_f32(el, "x", self.values, self.bases)?.unwrap_or(0.0);
+        let y = geometry_attr_f32(el, "y", self.values, self.bases)?.unwrap_or(0.0);
+        let transform = transform.compose(&AffineTransform::from_acebdf(1.0, 0.0, x, 0.0, 1.0, y));
+        self.compile_children(el, transform, path, depth + 1)
+    }
+
     fn compile_leaf(
         &mut self,
         el: HtmlElement<'_>,
@@ -1718,11 +1852,13 @@ impl ChildWalk<'_> {
 /// Whether the element paints nothing *and* affects no other element's
 /// painting, so it is neither compiled nor declared.
 ///
-/// Both halves matter. `<defs>`, `<symbol>`, `<clipPath>`, `<mask>`,
-/// `<marker>` and the gradient elements also paint nothing directly, but
-/// they change what referencing elements paint — skipping one silently
-/// would change pixels — so they stay ordinary unsupported elements,
-/// declared by name until the rung that consumes them.
+/// Both halves matter. `<symbol>`, `<clipPath>`, `<mask>`, `<marker>` and
+/// the gradient elements also paint nothing directly, but they change what
+/// referencing elements paint — skipping one silently would change pixels —
+/// so they stay ordinary unsupported elements, declared by name until the
+/// rung that consumes them. (`<defs>` graduated with the use/defs rung: the
+/// use expansion consumes its reference effect, so the walk skips it in its
+/// own branch above.)
 pub(crate) fn is_non_rendering_element(tag: &str) -> bool {
     matches!(tag, "style" | "title" | "desc" | "metadata")
 }

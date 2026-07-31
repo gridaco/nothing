@@ -71,6 +71,19 @@ cargo run -p n0_cli --bin n0 -- \
   (`translate3d`, `matrix3d`, `perspective`, …) stay named refusals, and
   the root `<svg>`'s own transform refuses in both spellings (it applies
   to the CSS box outside the viewBox mapping).
+  `<use>` and `<defs>` are consumed: same-document references resolve
+  through a whole-document, first-id-wins table (forward references and
+  the legacy `xlink:href` spelling included; a plain `href` beats it), the
+  instance renders as the use's shadow content with inheritance from the
+  use site (a `fill` or `color` on the use colors clones that author none
+  of their own — `color` is an admitted hint since this rung), `x`/`y`
+  append a translate inside the use's transform, and the measured correct
+  nothings render as nothing: an unresolved reference, a reference cycle,
+  an ancestor reference. What refuses by name: a document with any author
+  stylesheet (the measured shadow boundary scopes selectors to the cloned
+  subtree, which the flattened tree cannot express), an external
+  reference, authored element children, a `<symbol>`/nested-`<svg>`
+  target, and reference chains beyond the expansion budget.
   A stroke is centred, its width is a cascaded length, and its cap, join and
   miter limit come from the one cascade; dashing does not. Paint is solid
   sRGB, opaque or translucent: `fill-opacity`, `stroke-opacity`, and a

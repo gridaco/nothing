@@ -93,7 +93,9 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "invalid at byte 29",
     ),
-    ("svg-path-marker-end", DeclaredByBestEffort, "<defs>"),
+    // The <defs> half of this fixture stopped declaring when the use/defs
+    // rung consumed defs; the marker attribute itself is the named hole.
+    ("svg-path-marker-end", DeclaredByBestEffort, "marker-end"),
     (
         "svg-path-no-leading-moveto",
         DeclaredByBestEffort,
@@ -168,7 +170,24 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "unsupported element <text>",
     ),
-    ("svg-use", DeclaredByBestEffort, "unsupported element <use>"),
+    // The use/defs rung's residue: `<use>` itself graduated (its fixture
+    // is a baked cell), and the named refusals that remain each hold a row.
+    (
+        "svg-use-authored-children",
+        DeclaredByBestEffort,
+        "authored element children",
+    ),
+    (
+        "svg-use-external",
+        DeclaredByBestEffort,
+        "same-document fragment",
+    ),
+    ("svg-use-stylesheet", DeclaredByBestEffort, "author CSS"),
+    (
+        "svg-use-symbol",
+        DeclaredByBestEffort,
+        "unsupported element <symbol>",
+    ),
     ("svg-viewbox-invalid-token", BothRefuse, "viewBox"),
     ("svg-viewbox-repeated-comma", BothRefuse, "viewBox"),
     ("svg-viewbox-trailing-comma", BothRefuse, "viewBox"),

@@ -52,6 +52,7 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
   <rect id="transform-three-arg" transform="rotate(45 32 16)" width="8" height="8"/>
   <rect id="transform-run-together" transform="translate(10-10)" width="8" height="8"/>
   <rect id="transform-webkit-alias" width="8" height="8"/>
+  <g color="#d0342c"><rect id="color-basis" fill="currentColor" width="8" height="8"/></g>
 </svg>"##;
 
 #[test]
@@ -207,6 +208,12 @@ fn standalone_svg_presentation_hints_enter_below_author_rules() {
     assert_eq!(
         property(root, "transform-webkit-alias", LonghandId::Transform),
         "translate(30px)"
+    );
+    // The use/defs rung's addition: `color` is an admitted hint — the
+    // inherited currentColor basis, measured through a `<use>` instance.
+    assert_eq!(
+        property(root, "color-basis", LonghandId::Color),
+        "rgb(208, 52, 44)"
     );
 }
 

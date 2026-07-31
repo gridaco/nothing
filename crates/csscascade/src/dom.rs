@@ -102,6 +102,11 @@ pub struct DemoElementData {
     /// presentation-hint declaration block — author origin, below every
     /// author rule (`CascadeLevel::PresHints`).
     pub presentation_hints: Option<Arc<Locked<PropertyDeclarationBlock>>>,
+    /// Set on an SVG `<use>` element whose expansion the compiler must
+    /// refuse by name instead of walking (see [`crate::svg_use`]).
+    /// `None` for every other element and for every cleanly expanded,
+    /// empty, or reference-less use.
+    pub svg_use_refusal: Option<crate::svg_use::SvgUseRefusal>,
 }
 
 /// The frozen, arena-allocated DOM tree.
@@ -384,6 +389,8 @@ impl TreeSink for DemoDomBuilder {
         let quirks = self.quirks_mode.get();
         let document = self.document;
         let shared_lock = self.shared_lock;
+        // (SVG use expansion runs below, after the node vector is built and
+        // before element_data is sized to it.)
         let errors = self
             .errors
             .into_inner()
@@ -450,6 +457,7 @@ impl TreeSink for DemoDomBuilder {
                             style_namespace,
                             style_attribute,
                             presentation_hints,
+                            svg_use_refusal: None,
                         })
                     }
                     NodeDataTemp::ProcessingInstruction { target, contents } => {
@@ -458,6 +466,9 @@ impl TreeSink for DemoDomBuilder {
                 },
             })
             .collect();
+
+        let mut nodes = nodes;
+        crate::svg_use::expand_svg_use_references(&mut nodes, document);
 
         let element_data = nodes.iter().map(|_| OnceLock::new()).collect();
 
@@ -730,6 +741,11 @@ fn admitted_svg_presentation_property(local: &str) -> Option<LonghandId> {
         // percentage, clamped) exactly as the SVG2 presentation attribute.
         "fill-opacity" => Some(LonghandId::FillOpacity),
         "stroke-opacity" => Some(LonghandId::StrokeOpacity),
+        // The use/defs rung's addition: `color` is the `currentColor`
+        // basis, inherited, and Chromium honors the attribute spelling
+        // (measured: `color` on a `<use>` colors a `currentColor` fill
+        // inside the instance).
+        "color" => Some(LonghandId::Color),
         _ => None,
     }
 }
