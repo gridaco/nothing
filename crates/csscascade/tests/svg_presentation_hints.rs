@@ -20,6 +20,7 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
     #rule-beats-hint { fill: #2563eb; }
     #style-attr-beats-rule { fill: #2563eb; }
     #stroke-rule-beats-hint { stroke: #2563eb; }
+    #visibility-rule-beats-hint { visibility: visible; }
   </style>
   <rect id="hint-only" fill="#16a34a" width="8" height="8"/>
   <rect id="named" fill="rebeccapurple" width="8" height="8"/>
@@ -31,6 +32,10 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
   <rect id="stroke-rule-beats-hint" stroke="#16a34a" width="8" height="8"/>
   <rect id="unadmitted" stroke-opacity="0.5" width="8" height="8"/>
   <g id="sized" font-size="32"><rect id="em-basis" stroke-width="0.5em" width="8" height="8"/></g>
+  <rect id="hidden-hint" visibility="hidden" width="8" height="8"/>
+  <rect id="display-none-hint" display="none" width="8" height="8"/>
+  <rect id="invalid-visibility-hint" visibility="bogus" width="8" height="8"/>
+  <rect id="visibility-rule-beats-hint" visibility="hidden" width="8" height="8"/>
 </svg>"##;
 
 #[test]
@@ -96,6 +101,27 @@ fn standalone_svg_presentation_hints_enter_below_author_rules() {
         property(root, "em-basis", LonghandId::StrokeWidth),
         "16px",
         "an em stroke-width resolves against the presentation-attribute font size"
+    );
+    // The visibility rung's pair: both hints compute as typed values, an
+    // author rule beats the hint (measured: a stylesheet
+    // `visibility: visible` un-hides `visibility="hidden"` in Chromium),
+    // and an invalid value drops to the initial `visible` exactly as
+    // `display="bogus"` renders in Chromium.
+    assert_eq!(
+        property(root, "hidden-hint", LonghandId::Visibility),
+        "hidden"
+    );
+    assert_eq!(
+        property(root, "display-none-hint", LonghandId::Display),
+        "none"
+    );
+    assert_eq!(
+        property(root, "invalid-visibility-hint", LonghandId::Visibility),
+        "visible"
+    );
+    assert_eq!(
+        property(root, "visibility-rule-beats-hint", LonghandId::Visibility),
+        "visible"
     );
 }
 

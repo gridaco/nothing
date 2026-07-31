@@ -52,7 +52,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "transform",
     ),
-    ("svg-display-none", DeclaredByBestEffort, "display"),
+    (
+        "svg-display-contents",
+        DeclaredByBestEffort,
+        "display: contents",
+    ),
     ("svg-element-opacity", DeclaredByBestEffort, "opacity"),
     ("svg-fill-opacity", DeclaredByBestEffort, "fill-opacity"),
     ("svg-filter", DeclaredByBestEffort, "<filter>"),
@@ -175,7 +179,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     ("svg-viewbox-invalid-token", BothRefuse, "viewBox"),
     ("svg-viewbox-repeated-comma", BothRefuse, "viewBox"),
     ("svg-viewbox-trailing-comma", BothRefuse, "viewBox"),
-    ("svg-visibility-hidden", DeclaredByBestEffort, "visibility"),
     ("svg-width-percentage", BothRefuse, "percentage width"),
 ];
 

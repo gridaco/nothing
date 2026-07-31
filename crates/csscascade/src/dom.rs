@@ -718,6 +718,13 @@ fn admitted_svg_presentation_property(local: &str) -> Option<LonghandId> {
         // (measured: `<g font-size="32">` makes a `0.5em` stroke 16px), so
         // dropping it here computed the wrong width from the right document.
         "font-size" => Some(LonghandId::FontSize),
+        // The visibility rung's pair. Both are SVG2 presentation attributes
+        // whose author-rule precedence is measured (a stylesheet
+        // `visibility: visible` overrides `visibility="hidden"` in
+        // Chromium), and an invalid value drops exactly as an invalid CSS
+        // declaration — `display="bogus"` renders (measured).
+        "display" => Some(LonghandId::Display),
+        "visibility" => Some(LonghandId::Visibility),
         _ => None,
     }
 }

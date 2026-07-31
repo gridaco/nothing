@@ -53,6 +53,12 @@ cargo run -p n0_cli --bin n0 -- \
   `<g>` containers with the SVG `transform` grammar, under the outer `<svg>`.
   A stroke is centred, its width is a cascaded length, and its cap, join and
   miter limit come from the one cascade; `stroke-opacity` and dashing do not.
+  `display: none` and `visibility` are consumed from the one cascade
+  (attribute and CSS spellings alike): a pruned or hidden element renders
+  the correct nothing rather than a declared hole, a `visibility: visible`
+  descendant un-hides inside a hidden container, and a standalone
+  document's outermost `<svg>` ignores `display: none` exactly as Chromium
+  does (`display: contents` stays a named refusal).
   The
   default admission is **best-effort**: the admitted subset renders and
   every beyond-slice construct is declared on stderr with its node path and

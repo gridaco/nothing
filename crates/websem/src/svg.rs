@@ -47,9 +47,10 @@
 //! (`RENDERING_ATTRIBUTES_NOT_CONSUMED`), while attributes outside the
 //! SVG rendering vocabulary stay ignored exactly as Chromium ignores them;
 //! the cascaded surface is patrolled for the enumerated properties `opacity`,
-//! `display: none`, `display: contents`, `visibility`, `stroke-opacity` and
-//! `stroke-dasharray`, beside the typed `fill`/`fill-opacity` and stroke reads
-//! and the `stroke-width` unit patrol. Cascaded properties beyond that
+//! `display: contents`, `stroke-opacity` and
+//! `stroke-dasharray`, beside the consumed reads — typed `fill`/`fill-opacity`,
+//! the stroke family, the `stroke-width` unit patrol, and the visibility
+//! rung's `display: none`/`visibility` disposition. Cascaded properties beyond that
 //! enumeration remain a **named open boundary** of the slice — not a
 //! coverage claim.
 //!
@@ -893,8 +894,9 @@ fn subtree_contains_script(el: HtmlElement<'_>) -> bool {
 const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "transform-origin",
     "opacity",
-    "display",
-    "visibility",
+    // `display` and `visibility` are absent here because the visibility
+    // rung consumes them: both are admitted presentation hints
+    // (csscascade), read as computed values by the disposition patrol.
     "overflow",
     "clip",
     "clip-path",
@@ -1248,45 +1250,72 @@ fn patrol_rendering_attributes(
 /// elements (`cx`/`cy`/`r`/`rx`/`ry`) do not exist as longhands in the
 /// pinned servo-mode Stylo build (`engine = "gecko"`-gated, like the bare
 /// `x`/`y` longhands) — they stay inside the named open boundary above.
+/// What the cascaded values decide about an element's participation in the
+/// frame — the visibility rung's consumed pair, beside the patrols that
+/// still refuse.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RenderDisposition {
+    /// The element participates normally.
+    Renders,
+    /// `visibility: hidden | collapse` (identical for shapes — measured):
+    /// the element's own paint is off, and that is the whole effect.
+    /// `visibility` inherits, so a descendant whose computed value is
+    /// `visible` un-hides itself (measured) — the walk therefore still
+    /// descends; each element's *own* computed value decides its node.
+    HiddenPaint,
+    /// `display: none`: the element generates no box, so the whole subtree
+    /// is pruned — a `visibility: visible` descendant stays gone
+    /// (measured). Nothing else about the element matters.
+    PrunedSubtree,
+}
+
 fn patrol_computed_style(
     element: HtmlElement<'_>,
     include_stroke: bool,
     include_css_sizing: bool,
-) -> Result<(), CompileError> {
+) -> Result<RenderDisposition, CompileError> {
     let data = element
         .borrow_data()
         .ok_or(CompileError::MissingComputedStyle)?;
     let style: &ComputedValues = data.styles.primary();
-    let opacity = style.clone_opacity();
-    if opacity != 1.0 {
-        return Err(CompileError::UnsupportedStyle(format!(
-            "opacity {opacity} is not yet consumed"
-        )));
-    }
+    // Order is load-bearing: a pruned or hidden element paints nothing in
+    // Chromium regardless of its other properties, so those dispositions
+    // are decided before the refusing patrols — an unconsumed property on
+    // an element that paints nothing must not turn a correct nothing into
+    // a refusal. (`include_css_sizing` still runs below for the root: the
+    // canvas contract is sizing's, not visibility's.)
     let display = style.clone_display();
-    if display.is_none() {
-        return Err(CompileError::UnsupportedStyle(
-            "display: none is not yet consumed".to_string(),
-        ));
-    }
-    // `display: contents` generates no box: Chromium drops the element
-    // itself and paints its children in the parent's place, so a container
-    // loses its transform and a shape never paints. Rendering it as an
-    // ordinary element would diverge silently.
+    // `display: contents` generates no box but paints its children in the
+    // parent's place: a container loses its transform and a shape never
+    // paints. Rendering it as an ordinary element would diverge silently,
+    // and pruning it would drop children Chromium paints — refuse by name.
     if display.is_contents() {
         return Err(CompileError::UnsupportedStyle(
             "display: contents is not yet consumed".to_string(),
         ));
     }
-    let visibility = style.clone_visibility();
-    if !matches!(visibility, Visibility::Visible) {
+    let disposition = if display.is_none() {
+        RenderDisposition::PrunedSubtree
+    } else if !matches!(style.clone_visibility(), Visibility::Visible) {
+        RenderDisposition::HiddenPaint
+    } else {
+        RenderDisposition::Renders
+    };
+    if disposition == RenderDisposition::PrunedSubtree && !include_css_sizing {
+        return Ok(disposition);
+    }
+    let opacity = style.clone_opacity();
+    if opacity != 1.0 && disposition == RenderDisposition::Renders {
         return Err(CompileError::UnsupportedStyle(format!(
-            "visibility {visibility:?} is not yet consumed"
+            "opacity {opacity} is not yet consumed"
         )));
     }
-    if include_stroke {
+    if include_stroke && disposition == RenderDisposition::Renders {
         // The stroke *paint* is consumed; these three change a stroke's pixels
-        // and are not, so they refuse wherever a stroke could reach.
+        // and are not, so they refuse wherever a stroke could reach. A hidden
+        // or pruned element's stroke reaches nothing — and stroke properties
+        // inherit, so a visible descendant re-checks its own computed values
+        // here on its own walk step.
         match style.clone_stroke_opacity() {
             SVGOpacity::Opacity(1.0) => {}
             other => {
@@ -1334,7 +1363,7 @@ fn patrol_computed_style(
             )));
         }
     }
-    Ok(())
+    Ok(disposition)
 }
 
 /// Refuse a shape geometry attribute authored as a percentage — the
@@ -1405,7 +1434,15 @@ fn compile_svg_element(
     // so the root patrols are document-level in both modes.
     patrol_rendering_attributes(svg, "svg", ROOT_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
     patrol_style_attribute(svg, "svg")?;
-    patrol_computed_style(svg, false, true)?;
+    // A root `display: none` splits by entry, and the split is measured:
+    // a *standalone* document's outermost `<svg>` ignores it — the baked
+    // `svg-display-none-root` oracle paints normally — while an *embedded*
+    // (inline-HTML) root generates no box, so its subtree contributes the
+    // empty canvas. The entry is legible here as the initial viewport: the
+    // standalone entry always carries one. A *hidden* root is inert in
+    // both entries: the root paints nothing itself, and each descendant's
+    // own computed (inherited) visibility decides its node.
+    let root_disposition = patrol_computed_style(svg, false, true)?;
     reject_percentage_dimension(svg, "width")?;
     reject_percentage_dimension(svg, "height")?;
     let width_attr = root_dimension_f32(svg, "width", values)?;
@@ -1470,7 +1507,9 @@ fn compile_svg_element(
         top_level_shapes: Vec::new(),
         next_id: 0,
     };
-    walk.compile_children(svg, viewport, "svg", 0)?;
+    if root_disposition != RenderDisposition::PrunedSubtree || initial_viewport.is_some() {
+        walk.compile_children(svg, viewport, "svg", 0)?;
+    }
     let ChildWalk {
         nodes,
         top_level_shapes,
@@ -1615,7 +1654,15 @@ impl ChildWalk<'_> {
         }
         patrol_rendering_attributes(el, "g", &[])?;
         patrol_style_attribute(el, "g")?;
-        patrol_computed_style(el, true, false)?;
+        match patrol_computed_style(el, true, false)? {
+            // `display: none` generates no box: the subtree is pruned —
+            // Chromium's correct nothing, not a hole to declare. A *hidden*
+            // container still descends: `visibility` inherits and a
+            // descendant whose computed value is `visible` un-hides itself,
+            // while the container itself never painted anything to omit.
+            RenderDisposition::PrunedSubtree => return Ok(()),
+            RenderDisposition::Renders | RenderDisposition::HiddenPaint => {}
+        }
         let transform = compose_element_transform(el, transform, "g")?;
         self.compile_children(el, transform, path, depth + 1)
     }
@@ -1710,11 +1757,11 @@ fn compile_shape(
     // container's does.
     let transform = compose_element_transform(el, inherited, &tag)?;
     match tag.as_str() {
-        "rect" => compile_rect(el, transform, next_id, values).map(Some),
-        "circle" => compile_circle(el, transform, next_id, values).map(Some),
-        "ellipse" => compile_ellipse(el, transform, next_id, values).map(Some),
+        "rect" => compile_rect(el, transform, next_id, values),
+        "circle" => compile_circle(el, transform, next_id, values),
+        "ellipse" => compile_ellipse(el, transform, next_id, values),
         "path" => compile_path(el, transform, next_id),
-        "line" => compile_line(el, transform, next_id, values).map(Some),
+        "line" => compile_line(el, transform, next_id, values),
         "polygon" => compile_points_shape(el, transform, next_id, PointsClosure::Closed),
         "polyline" => compile_points_shape(el, transform, next_id, PointsClosure::Open),
         other => Err(CompileError::UnsupportedElement(other.to_string())),
@@ -1726,10 +1773,15 @@ fn compile_rect(
     viewport: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
-) -> Result<FrameNode, CompileError> {
+) -> Result<Option<FrameNode>, CompileError> {
     patrol_rendering_attributes(el, "rect", RECT_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
     patrol_style_attribute(el, "rect")?;
-    patrol_computed_style(el, true, true)?;
+    match patrol_computed_style(el, true, true)? {
+        RenderDisposition::Renders => {}
+        // A hidden or display-pruned shape is Chromium's correct nothing —
+        // admitted, and not a node.
+        RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
+    }
     reject_percentage_geometry(el, "rect", &["x", "y", "width", "height"])?;
     let x = effective_attr_f32(el, "x", values)?.unwrap_or(0.0);
     let y = effective_attr_f32(el, "y", values)?.unwrap_or(0.0);
@@ -1743,6 +1795,7 @@ fn compile_rect(
         next_id,
         box_strokable(w, h),
     )
+    .map(Some)
 }
 
 fn compile_circle(
@@ -1750,10 +1803,15 @@ fn compile_circle(
     viewport: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
-) -> Result<FrameNode, CompileError> {
+) -> Result<Option<FrameNode>, CompileError> {
     patrol_rendering_attributes(el, "circle", &[])?;
     patrol_style_attribute(el, "circle")?;
-    patrol_computed_style(el, true, false)?;
+    match patrol_computed_style(el, true, false)? {
+        RenderDisposition::Renders => {}
+        // A hidden or display-pruned shape is Chromium's correct nothing —
+        // admitted, and not a node.
+        RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
+    }
     reject_percentage_geometry(el, "circle", &["cx", "cy", "r"])?;
     let cx = effective_attr_f32(el, "cx", values)?.unwrap_or(0.0);
     let cy = effective_attr_f32(el, "cy", values)?.unwrap_or(0.0);
@@ -1771,6 +1829,7 @@ fn compile_circle(
         next_id,
         box_strokable(r, r),
     )
+    .map(Some)
 }
 
 fn compile_ellipse(
@@ -1778,10 +1837,15 @@ fn compile_ellipse(
     viewport: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
-) -> Result<FrameNode, CompileError> {
+) -> Result<Option<FrameNode>, CompileError> {
     patrol_rendering_attributes(el, "ellipse", &[])?;
     patrol_style_attribute(el, "ellipse")?;
-    patrol_computed_style(el, true, false)?;
+    match patrol_computed_style(el, true, false)? {
+        RenderDisposition::Renders => {}
+        // A hidden or display-pruned shape is Chromium's correct nothing —
+        // admitted, and not a node.
+        RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
+    }
     reject_percentage_geometry(el, "ellipse", &["cx", "cy", "rx", "ry"])?;
     let cx = effective_attr_f32(el, "cx", values)?.unwrap_or(0.0);
     let cy = effective_attr_f32(el, "cy", values)?.unwrap_or(0.0);
@@ -1807,6 +1871,7 @@ fn compile_ellipse(
         next_id,
         box_strokable(rx, ry),
     )
+    .map(Some)
 }
 
 /// Compile a `<path>`: the SVG path-data grammar into the resolved
@@ -1827,7 +1892,12 @@ fn compile_path(
 ) -> Result<Option<FrameNode>, CompileError> {
     patrol_rendering_attributes(el, "path", PATH_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
     patrol_style_attribute(el, "path")?;
-    patrol_computed_style(el, true, false)?;
+    match patrol_computed_style(el, true, false)? {
+        RenderDisposition::Renders => {}
+        // A hidden or display-pruned shape is Chromium's correct nothing —
+        // admitted, and not a node.
+        RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
+    }
     let commands = match get_attr(el, "d") {
         None => Vec::new(),
         Some(value) => crate::svg_path::parse_path_data(&value).map_err(|error| match error {
@@ -1885,10 +1955,15 @@ fn compile_line(
     viewport: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
-) -> Result<FrameNode, CompileError> {
+) -> Result<Option<FrameNode>, CompileError> {
     patrol_rendering_attributes(el, "line", PATH_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
     patrol_style_attribute(el, "line")?;
-    patrol_computed_style(el, true, false)?;
+    match patrol_computed_style(el, true, false)? {
+        RenderDisposition::Renders => {}
+        // A hidden or display-pruned shape is Chromium's correct nothing —
+        // admitted, and not a node.
+        RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
+    }
     reject_percentage_geometry(el, "line", &["x1", "y1", "x2", "y2"])?;
     let x1 = effective_attr_f32(el, "x1", values)?.unwrap_or(0.0);
     let y1 = effective_attr_f32(el, "y1", values)?.unwrap_or(0.0);
@@ -1909,6 +1984,7 @@ fn compile_line(
         next_id,
         Strokable::Yes,
     )
+    .map(Some)
 }
 
 /// Whether a points shape closes its contour: the one semantic difference
@@ -1949,7 +2025,12 @@ fn compile_points_shape(
     };
     patrol_rendering_attributes(el, element, PATH_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
     patrol_style_attribute(el, element)?;
-    patrol_computed_style(el, true, false)?;
+    match patrol_computed_style(el, true, false)? {
+        RenderDisposition::Renders => {}
+        // A hidden or display-pruned shape is Chromium's correct nothing —
+        // admitted, and not a node.
+        RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
+    }
     let points = match get_attr(el, "points") {
         None => Vec::new(),
         Some(value) => crate::svg_path::parse_points(&value).map_err(|error| match error {

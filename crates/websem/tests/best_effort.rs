@@ -402,11 +402,10 @@ fn stylesheet_smuggled_values_are_patrolled_at_the_computed_level() {
             "stroke-opacity",
         ),
         ("stylesheet opacity", "rect { opacity: 0.5 }", "opacity"),
-        ("stylesheet display", "rect { display: none }", "display"),
         (
-            "stylesheet visibility",
-            "rect { visibility: hidden }",
-            "visibility",
+            "stylesheet display: contents",
+            "rect { display: contents }",
+            "display: contents",
         ),
         // SVG2 geometry properties: a CSS width/height beats the authored
         // attribute in Chromium, and the compiler reads attributes only.
