@@ -41,11 +41,6 @@ use Departure::{BothRefuse, DeclaredByBestEffort};
 /// construct itself — a refusal that stopped naming what it refused would pass
 /// a bare "does it error" check and fail this one.
 const CORPUS: &[(&str, Departure, &str)] = &[
-    (
-        "svg-anchor",
-        DeclaredByBestEffort,
-        "unsupported element <a>",
-    ),
     ("svg-clip-path", DeclaredByBestEffort, "<clipPath>"),
     (
         "svg-css-transform-property",

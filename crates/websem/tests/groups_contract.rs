@@ -51,6 +51,21 @@ fn geometry_box(frame: &rframe::Frame, index: usize) -> Rectangle {
     frame.nodes[index].geometry.local_box()
 }
 
+/// `<a>` is a container exactly like `<g>` (SVG2 §16.2: `href` is
+/// interaction, not paint): it flattens, its transform composes, and the
+/// equivalent `<g>` resolves to the identical frame. Chromium-baked as
+/// `svg-anchor-container`.
+#[test]
+fn an_anchor_is_a_container_like_a_group() {
+    let anchor = admit_both(&document(
+        r##"  <a href="https://example.com" transform="translate(8,8)"><rect width="24" height="24" fill="#16a34a"/></a>"##,
+    ));
+    let group = admit_both(&document(
+        r##"  <g transform="translate(8,8)"><rect width="24" height="24" fill="#16a34a"/></g>"##,
+    ));
+    assert_eq!(anchor.nodes, group.nodes, "one container semantics");
+}
+
 #[test]
 fn a_group_contributes_its_transform_to_every_descendant() {
     let frame = admit_both(&document(

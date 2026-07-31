@@ -1604,8 +1604,11 @@ impl ChildWalk<'_> {
                 child = c.next_element_sibling();
                 continue;
             }
-            let result = if tag == "g" {
-                self.compile_container(c, transform, &path, depth)
+            // `<a>` renders as a container exactly like `<g>` (SVG2 §16.2:
+            // its `href` is interaction, not paint), so the two share the
+            // one container compiler and its patrols.
+            let result = if tag == "g" || tag == "a" {
+                self.compile_container(c, transform, &path, depth, &tag)
             } else {
                 self.compile_leaf(c, transform, depth == 0)
             };
@@ -1641,12 +1644,13 @@ impl ChildWalk<'_> {
         transform: AffineTransform,
         path: &str,
         depth: usize,
+        element: &str,
     ) -> Result<(), CompileError> {
         if depth >= MAX_CONTAINER_DEPTH {
             return Err(CompileError::ContainerTooDeep(MAX_CONTAINER_DEPTH));
         }
-        patrol_rendering_attributes(el, "g", &[])?;
-        patrol_style_attribute(el, "g")?;
+        patrol_rendering_attributes(el, element, &[])?;
+        patrol_style_attribute(el, element)?;
         match patrol_computed_style(el, true, false)? {
             // `display: none` generates no box: the subtree is pruned —
             // Chromium's correct nothing, not a hole to declare. A *hidden*
@@ -1656,7 +1660,7 @@ impl ChildWalk<'_> {
             RenderDisposition::PrunedSubtree => return Ok(()),
             RenderDisposition::Renders | RenderDisposition::HiddenPaint => {}
         }
-        let transform = compose_element_transform(el, transform, "g")?;
+        let transform = compose_element_transform(el, transform, element)?;
         self.compile_children(el, transform, path, depth + 1)
     }
 
