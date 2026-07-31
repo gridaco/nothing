@@ -814,6 +814,62 @@
       "oracle": "chromium/svg-visibility-unhide.png",
       "width": 64,
       "height": 64
+    },
+    {
+      "id": "svg-fill-opacity-inherited",
+      "source": "svg-fill-opacity-inherited.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-fill-opacity-inherited.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-fill-opacity-overlap",
+      "source": "svg-fill-opacity-overlap.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-fill-opacity-overlap.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-fill-opacity-percentage",
+      "source": "svg-fill-opacity-percentage.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-fill-opacity-percentage.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-fill-opacity-times-alpha",
+      "source": "svg-fill-opacity-times-alpha.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-fill-opacity-times-alpha.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-opacity-join",
+      "source": "svg-stroke-opacity-join.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-opacity-join.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-opacity-over-fill",
+      "source": "svg-stroke-opacity-over-fill.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-opacity-over-fill.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-translucent-fill-rgba",
+      "source": "svg-translucent-fill-rgba.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-translucent-fill-rgba.png",
+      "width": 64,
+      "height": 64
     }
   ]
 }

@@ -56,6 +56,12 @@ is exactly what the engine renders pixel-for-pixel.
 | `svg-visibility-hidden-shape.svg` · `svg-visibility-collapse-shape.svg` | `visibility: hidden` and `collapse` are identical for shapes: the element's own paint turns off, siblings render. |
 | `svg-visibility-unhide.svg` | `visibility` inherits and a descendant whose computed value is `visible` un-hides itself while its sibling stays inherited-hidden — the cell that forces the per-element (not per-subtree) reading. |
 | `svg-visibility-rule-beats-attribute.svg` | An author rule beats the presentation attribute: a stylesheet `visibility: visible` un-hides `visibility="hidden"` — the hint-precedence law, baked. |
+| `svg-fill-opacity-overlap.svg` · `svg-fill-opacity-percentage.svg` | `fill-opacity` composites over another shape, in both spellings of the one <alpha-value> grammar — baked identically. |
+| `svg-translucent-fill-rgba.svg` | A translucent sRGB colour composites exactly as the equivalent `fill-opacity` — alpha is alpha, whichever door it entered by. |
+| `svg-fill-opacity-times-alpha.svg` | The multiplied cell: `rgba(…, 0.5)` under `fill-opacity="0.5"` — the colour's alpha and the paint opacity multiply in float and quantize **once**, and this cell pins the rounding against Chromium. |
+| `svg-fill-opacity-inherited.svg` | `fill-opacity` inherits through a `<g>`, and two translucent siblings composite over each other. |
+| `svg-stroke-opacity-over-fill.svg` | The compositing split: a translucent stroke paints over its own opaque fill — the inner half composites over the fill, the outer over the canvas. |
+| `svg-stroke-opacity-join.svg` | A translucent stroke is one paint pass: the miter join's self-overlap does not double-blend. |
 | `svg-path-cubic-fill.svg` · `svg-path-smooth-cubic.svg` · `svg-path-quadratic.svg` | Curved path cells: a cubic, an `S` continuation, and a `Q`+`T` pair. All three bake **byte-exact** — see the note below. |
 | `svg-path-fill-rule-nonzero.svg` · `svg-path-fill-rule-evenodd.svg` · `svg-path-fill-rule-inherited.svg` | One self-intersecting star under each fill rule (core filled vs hollow), and the rule inherited from a `<g>` through the one cascade. |
 | `svg-path-two-subpaths.svg` · `svg-path-in-scaled-group.svg` | Two closed contours in one `d`, and a path carried by a group's `scale(2)`. |

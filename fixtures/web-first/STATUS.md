@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (92)
+## Chromium-baked cells (99)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells carry the one declared AA tolerance — see
@@ -117,8 +117,15 @@ Each renders byte-exact against its committed Chromium oracle
 - `svg-visibility-hidden-shape` (standalone-svg)
 - `svg-visibility-rule-beats-attribute` (standalone-svg)
 - `svg-visibility-unhide` (standalone-svg)
+- `svg-fill-opacity-inherited` (standalone-svg)
+- `svg-fill-opacity-overlap` (standalone-svg)
+- `svg-fill-opacity-percentage` (standalone-svg)
+- `svg-fill-opacity-times-alpha` (standalone-svg)
+- `svg-stroke-opacity-join` (standalone-svg)
+- `svg-stroke-opacity-over-fill` (standalone-svg)
+- `svg-translucent-fill-rgba` (standalone-svg)
 
-## The refusal register (43)
+## The refusal register (40)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -130,7 +137,6 @@ its row into the cells above.
 - `svg-css-transform-property` — declared: skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform, which this cascade does not represent
 - `svg-display-contents` — declared: skipped svg/g[1]: unsupported computed style: display: contents is not yet consumed
 - `svg-element-opacity` — declared: skipped svg/rect[2]: unsupported rendering attribute opacity on <rect> (not yet consumed)
-- `svg-fill-opacity` — declared: skipped svg/rect[2]: unsupported rendering attribute fill-opacity on <rect> (not yet consumed)
 - `svg-filter` — declared: skipped svg/filter[1]: unsupported element <filter>; skipped svg/rect[2]: unsupported rendering attribute filter on <rect> (not yet consumed)
 - `svg-foreign-object` — declared: skipped svg/foreignObject[1]: unsupported element <foreignObject>
 - `svg-gradient-paint-server` — declared: skipped svg/linearGradient[1]: unsupported element <linearGradient>; skipped svg/rect[2]: unsupported fill value "url(about:blank#g)"
@@ -155,14 +161,12 @@ its row into the cells above.
 - `svg-smil-retarget-href` — **both refuse**: SVG animation at svg/rect[2]/set[1] is unsupported: animation element <set> is outside the rect-x proving slice; it carries href, so its target cannot be attributed to one element without id resolution; it is active at document load, so the authored state it overrides cannot render as the Base view
 - `svg-smil-set-load-active` — declared: skipped svg/rect[2]: its authored state is overridden at document load by the unsupported animation at svg/rect[2]/set[1]: animation element <set> is outside the rect-x proving slice
 - `svg-stroke-dasharray` — declared: skipped svg/path[1]: unsupported rendering attribute stroke-dasharray on <path> (not yet consumed)
-- `svg-stroke-opacity` — declared: skipped svg/rect[1]: unsupported rendering attribute stroke-opacity on <rect> (not yet consumed)
 - `svg-stroke-paint-order` — declared: skipped svg/rect[1]: unsupported rendering attribute paint-order on <rect> (not yet consumed)
 - `svg-stroke-percentage-width` — declared: skipped svg/rect[1]: unsupported stroke value "a percentage stroke-width needs the normalized-diagonal basis"
 - `svg-stroke-sheet-unit-width` — declared: declaration ignored at svg/style[1]: a stylesheet declares a stroke-width in ex, which needs a basis this cascade does not have; elements it matches render at the wrong width
 - `svg-stroke-vector-effect` — declared: skipped svg/g[1]/rect[1]: unsupported rendering attribute vector-effect on <rect> (not yet consumed)
 - `svg-switch` — declared: skipped svg/switch[1]: unsupported element <switch>
 - `svg-text` — declared: skipped svg/text[1]: unsupported element <text>
-- `svg-translucent-fill` — declared: skipped svg/rect[2]: unsupported fill value "translucent paint (alpha 0.5) is not yet gated against Chromium"
 - `svg-use` — declared: skipped svg/use[1]: unsupported element <use>; skipped svg/defs[1]: unsupported element <defs>
 - `svg-viewbox-invalid-token` — **both refuse**: viewBox "0 0 invalid 64 64" is invalid
 - `svg-viewbox-repeated-comma` — **both refuse**: viewBox "0 0,,64 64" is invalid
