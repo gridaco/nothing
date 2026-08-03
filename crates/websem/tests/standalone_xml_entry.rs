@@ -99,7 +99,7 @@ fn xml_prolog_is_tolerated() {
         host_viewport(),
     )
     .expect("prolog and trailing whitespace are conforming XML");
-    assert_eq!(frame.nodes.len(), 1);
+    assert_eq!(frame.nodes().len(), 1);
 }
 
 #[test]

@@ -64,7 +64,8 @@ fn a_use_of_a_defs_shape_renders_as_the_shape_in_place() {
         r##"  <rect x="8" y="8" width="20" height="12" fill="#16a34a"/>"##,
     ));
     assert_eq!(
-        referenced.nodes, inline.nodes,
+        referenced.nodes(),
+        inline.nodes(),
         "one geometry, two spellings"
     );
 }
@@ -79,7 +80,7 @@ fn use_x_y_translate_inside_the_uses_transform() {
   <use href="#r" transform="scale(2)" x="5" y="5"/>"##,
     ));
     assert_eq!(
-        frame.nodes[0].transform,
+        frame.nodes()[0].transform,
         AffineTransform::from_acebdf(2.0, 0.0, 10.0, 0.0, 2.0, 10.0),
         "scale, then translate in the scaled frame"
     );
@@ -95,9 +96,9 @@ fn chains_cycles_and_unresolved_references_match_chromium() {
         r##"  <defs><rect id="leaf" width="8" height="8" fill="#16a34a"/><use id="mid" href="#leaf" x="10"/></defs>
   <use href="#mid" y="10"/>"##,
     ));
-    assert_eq!(chain.nodes.len(), 1, "the chain reaches the leaf");
+    assert_eq!(chain.nodes().len(), 1, "the chain reaches the leaf");
     assert_eq!(
-        chain.nodes[0].transform,
+        chain.nodes()[0].transform,
         AffineTransform::from_acebdf(1.0, 0.0, 10.0, 0.0, 1.0, 10.0),
         "each hop's x/y composes"
     );
@@ -108,7 +109,7 @@ fn chains_cycles_and_unresolved_references_match_chromium() {
   <rect x="40" y="40" width="8" height="8" fill="#2563eb"/>"##,
     ));
     assert_eq!(
-        cycle.nodes.len(),
+        cycle.nodes().len(),
         1,
         "the cycle renders nothing; the sibling paints"
     );
@@ -118,7 +119,7 @@ fn chains_cycles_and_unresolved_references_match_chromium() {
   <rect x="40" y="40" width="8" height="8" fill="#2563eb"/>"##,
     ));
     assert_eq!(
-        missing.nodes.len(),
+        missing.nodes().len(),
         1,
         "unresolved renders nothing, silently"
     );
@@ -127,7 +128,7 @@ fn chains_cycles_and_unresolved_references_match_chromium() {
         r##"  <g id="cy"><rect width="8" height="8" fill="#16a34a"/><use href="#cy" y="20"/></g>"##,
     ));
     assert_eq!(
-        ancestor.nodes.len(),
+        ancestor.nodes().len(),
         1,
         "the ancestor reference is an invalid circle: content paints once"
     );
@@ -142,7 +143,7 @@ fn the_id_table_is_whole_document_and_first_wins() {
         r##"  <use href="#fwd"/>
   <defs><rect id="fwd" x="8" y="8" width="20" height="12" fill="#16a34a"/></defs>"##,
     ));
-    assert_eq!(forward.nodes.len(), 1);
+    assert_eq!(forward.nodes().len(), 1);
 
     let duplicate = admit_both(&document(
         r##"  <defs>
@@ -151,9 +152,9 @@ fn the_id_table_is_whole_document_and_first_wins() {
   </defs>
   <use href="#dup"/>"##,
     ));
-    assert_eq!(duplicate.nodes.len(), 1);
+    assert_eq!(duplicate.nodes().len(), 1);
     assert!(
-        matches!(duplicate.nodes[0].geometry, rframe::Geometry::Rect(_)),
+        matches!(duplicate.nodes()[0].geometry, rframe::Geometry::Rect(_)),
         "the first id in tree order is the target"
     );
 }
@@ -166,12 +167,12 @@ fn defs_never_paints_in_place_and_a_light_target_paints_twice() {
         r##"  <rect id="dup2" x="4" y="4" width="12" height="8" fill="#16a34a"/>
   <use href="#dup2" x="20"/>"##,
     ));
-    assert_eq!(twice.nodes.len(), 2, "in place and as an instance");
+    assert_eq!(twice.nodes().len(), 2, "in place and as an instance");
 
     let defs_only = admit_both(&document(
         r##"  <defs><rect x="8" y="8" width="20" height="12" fill="#16a34a"/></defs>"##,
     ));
-    assert_eq!(defs_only.nodes.len(), 0, "defs content is reference-only");
+    assert_eq!(defs_only.nodes().len(), 0, "defs content is reference-only");
 }
 
 /// Inheritance flows from the use site (measured): a hint on the `<use>`
@@ -200,7 +201,7 @@ fn instance_styling_inherits_from_the_use_site() {
         ("own attribute wins", own),
         ("currentColor at the use site", current),
     ] {
-        assert_eq!(frame.nodes, reference.nodes, "{label}");
+        assert_eq!(frame.nodes(), reference.nodes(), "{label}");
     }
 }
 
@@ -215,7 +216,7 @@ fn instance_disposition_follows_the_one_cascade() {
   <use href="#h"/>
   <rect x="40" y="40" width="8" height="8" fill="#2563eb"/>"##,
     ));
-    assert_eq!(none_target.nodes.len(), 1, "the instance is pruned");
+    assert_eq!(none_target.nodes().len(), 1, "the instance is pruned");
 
     let hidden_use = admit_both(&document(
         r##"  <defs><rect id="r" width="20" height="12" fill="#16a34a"/></defs>
@@ -223,7 +224,7 @@ fn instance_disposition_follows_the_one_cascade() {
   <rect x="40" y="40" width="8" height="8" fill="#2563eb"/>"##,
     ));
     assert_eq!(
-        hidden_use.nodes.len(),
+        hidden_use.nodes().len(),
         1,
         "visibility inherits into the clone"
     );
@@ -232,7 +233,11 @@ fn instance_disposition_follows_the_one_cascade() {
         r##"  <defs><rect id="u" width="20" height="12" fill="#16a34a" visibility="visible"/></defs>
   <use href="#u" visibility="hidden"/>"##,
     ));
-    assert_eq!(unhidden.nodes.len(), 1, "the clone's own visible un-hides");
+    assert_eq!(
+        unhidden.nodes().len(),
+        1,
+        "the clone's own visible un-hides"
+    );
 }
 
 /// `width`/`height` on a use are inert for every admitted target
@@ -262,7 +267,11 @@ fn a_beyond_slice_clone_is_its_own_declared_hole() {
     let best =
         SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
             .expect("best-effort renders the admitted clone");
-    assert_eq!(best.base_frame().nodes.len(), 1, "the rect instance paints");
+    assert_eq!(
+        best.base_frame().nodes().len(),
+        1,
+        "the rect instance paints"
+    );
     let skipped: Vec<_> = best
         .degradations()
         .iter()
@@ -317,7 +326,7 @@ fn the_use_refusals_name_their_boundary() {
             SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
                 .expect("best-effort renders the rest");
         assert_eq!(
-            best.base_frame().nodes.len(),
+            best.base_frame().nodes().len(),
             1,
             "{label}: the sibling paints"
         );
@@ -373,7 +382,7 @@ fn xlink_href_resolves_and_loses_to_the_plain_spelling() {
   <use xlink:href="#r"/>
 </svg>"##;
     let legacy = admit_both(source);
-    assert_eq!(legacy.nodes.len(), 1);
+    assert_eq!(legacy.nodes().len(), 1);
 
     let both = admit_both(
         r##"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="64" height="64">
@@ -381,5 +390,5 @@ fn xlink_href_resolves_and_loses_to_the_plain_spelling() {
   <use href="#r" xlink:href="#missing"/>
 </svg>"##,
     );
-    assert_eq!(both.nodes.len(), 1, "the plain spelling wins");
+    assert_eq!(both.nodes().len(), 1, "the plain spelling wins");
 }

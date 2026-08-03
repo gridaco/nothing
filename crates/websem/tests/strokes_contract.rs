@@ -62,7 +62,7 @@ fn refusal(source: &str) -> CompileError {
 }
 
 fn stroke_of(frame: &rframe::Frame, index: usize) -> &rframe::Stroke {
-    frame.nodes[index]
+    frame.nodes()[index]
         .stroke
         .as_ref()
         .expect("node carries a resolved stroke")
@@ -88,7 +88,7 @@ fn at(pixels: &[u8], x: usize, y: usize) -> [u8; 4] {
 #[test]
 fn a_stroke_is_centred_on_its_geometry() {
     let frame = admit_both(&stroked_rect(r##"stroke-width="8""##));
-    assert_eq!(frame.nodes.len(), 1, "the stroke is not a second node");
+    assert_eq!(frame.nodes().len(), 1, "the stroke is not a second node");
     assert_eq!(stroke_of(&frame, 0).width(), 8.0);
     let pixels = render_through_n0(&frame, 64, 64);
     assert_eq!(at(&pixels, 12, 32), [0, 0, 0, 255], "the outer half paints");
@@ -154,16 +154,16 @@ fn a_stroke_that_paints_nothing_resolves_to_none() {
             r##"  <rect x="16" y="16" width="32" height="32" fill="#16a34a" {extra}/>"##
         ));
         let frame = admit_both(&source);
-        assert!(frame.nodes[0].stroke.is_none(), "extra={extra:?}");
+        assert!(frame.nodes()[0].stroke.is_none(), "extra={extra:?}");
     }
     // A shape with neither fill nor stroke is still a node — it has geometry,
     // it simply paints nothing.
     let frame = admit_both(&document(
         r##"  <rect x="16" y="16" width="32" height="32" fill="none"/>"##,
     ));
-    assert_eq!(frame.nodes.len(), 1);
-    assert!(frame.nodes[0].stroke.is_none());
-    assert!(frame.nodes[0].paints.is_empty());
+    assert_eq!(frame.nodes().len(), 1);
+    assert!(frame.nodes()[0].stroke.is_none());
+    assert!(frame.nodes()[0].paints.is_empty());
 }
 
 /// Caps, joins and the miter limit are cascaded keywords: case-insensitive,
@@ -303,7 +303,7 @@ fn a_zero_extent_box_primitive_disables_its_stroke_too() {
     ] {
         let frame = admit_both(&document(body));
         assert!(
-            frame.nodes[0].stroke.is_none(),
+            frame.nodes()[0].stroke.is_none(),
             "rendering is disabled, stroke included: {body}"
         );
         assert!(
@@ -318,7 +318,7 @@ fn a_zero_extent_box_primitive_disables_its_stroke_too() {
     let dot = admit_both(&document(
         r##"  <path d="M32 32 L32 32" fill="none" stroke="#000000" stroke-width="16" stroke-linecap="round"/>"##,
     ));
-    assert!(dot.nodes[0].stroke.is_some());
+    assert!(dot.nodes()[0].stroke.is_some());
     assert_eq!(
         at(&render_through_n0(&dot, 64, 64), 32, 32),
         [0, 0, 0, 255],
@@ -337,7 +337,7 @@ fn a_line_is_a_two_point_path() {
     let frame = admit_both(&document(
         r##"  <line x1="8" y1="32" x2="56" y2="32" stroke="#000000" stroke-width="8"/>"##,
     ));
-    let Geometry::Path(path) = &frame.nodes[0].geometry else {
+    let Geometry::Path(path) = &frame.nodes()[0].geometry else {
         panic!("a line resolves to path geometry");
     };
     assert_eq!(
@@ -379,7 +379,7 @@ fn a_lines_fill_never_paints_and_its_endpoints_default_to_zero() {
     let bare = admit_both(&document(
         r##"  <line stroke="#000000" stroke-width="8"/>"##,
     ));
-    let Geometry::Path(path) = &bare.nodes[0].geometry else {
+    let Geometry::Path(path) = &bare.nodes()[0].geometry else {
         panic!("path geometry");
     };
     assert_eq!(
@@ -475,7 +475,7 @@ fn a_percentage_stroke_width_resolves_against_the_normalized_diagonal() {
     let frame = admit_both(&document(
         r##"  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000" stroke-width="10%"/>"##,
     ));
-    let stroke = frame.nodes[0].stroke.as_ref().expect("a stroke");
+    let stroke = frame.nodes()[0].stroke.as_ref().expect("a stroke");
     assert_eq!(stroke.width(), 6.4, "10% of sqrt(64² + 64²)/√2");
 }
 
@@ -709,8 +709,8 @@ fn a_negative_box_extent_disables_one_element_not_the_document() {
         r##"  <rect x="16" y="16" width="-32" height="32" fill="#16a34a" stroke="#000000" stroke-width="8"/>
   <rect x="4" y="4" width="8" height="8" fill="#2563eb"/>"##,
     ));
-    assert_eq!(frame.nodes.len(), 2, "both elements are admitted");
-    assert!(frame.nodes[0].stroke.is_none(), "rendering is disabled");
+    assert_eq!(frame.nodes().len(), 2, "both elements are admitted");
+    assert!(frame.nodes()[0].stroke.is_none(), "rendering is disabled");
     let pixels = render_through_n0(&frame, 64, 64);
     assert_eq!(
         at(&pixels, 6, 6),

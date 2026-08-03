@@ -21,7 +21,7 @@ use n0_model::model::{
     StrokeAlign, StrokeCap, StrokeJoin, StrokeWidth,
 };
 use n0_model::path::ResolvedPathArtifact;
-use rframe::{Frame, Geometry, PaintStack, VisualRef};
+use rframe::{Frame, FrameItem, Geometry, PaintStack, ScopeEffect, VisualRef};
 
 use crate::damage::{diff_inputs, DamageOwner, FrameDamageInput};
 use crate::drawlist::{DrawList, GlyphlessOwnerSlot, Item, ItemKind};
@@ -212,13 +212,20 @@ fn damage_input(product: &FrameProduct) -> FrameDamageInput<'_, VisualRef, (), G
 /// slice is rectangles, ellipses (each carried as its local-space bounding
 /// rectangle) and paths, the contract's admitted `cg` paints (solids, linear
 /// and radial gradients — every gradient preflighted against its resolved
-/// paint box before the product exists), a centred stroke over the fill, and
-/// the frame-bounds clip.
+/// paint box before the product exists), a centred stroke over the fill,
+/// isolated opacity scopes, and the frame-bounds clip.
+///
+/// The contract's item stream is a checked type ([`rframe::FrameItems`]):
+/// balance, non-emptiness, and bounded nesting were proven at construction,
+/// so this compile trusts them the way it trusts [`rframe::PathData`] —
+/// nothing is re-derived, and the scope walk uses plain `expect`s.
 pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
     validate_rect(resolved.bounds).map_err(|_| BuildError::InvalidFrameBounds)?;
     let owner_count = resolved
-        .nodes
-        .len()
+        .items
+        .iter()
+        .filter(|item| !matches!(item, FrameItem::ScopeEnd))
+        .count()
         .checked_add(1)
         .ok_or(BuildError::TooManyVisuals)?;
     u32::try_from(owner_count).map_err(|_| BuildError::TooManyVisuals)?;
@@ -247,7 +254,55 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         },
     }];
 
-    for node in &resolved.nodes {
+    // Open scopes: each entry is the scope's owner slot and the union of
+    // the coverage that has accumulated inside it so far. A scope's damage
+    // coverage is that union — an opacity edit repaints everything the
+    // scope composites — and a child scope's union folds into its parent's
+    // when it closes.
+    let mut open_scopes: Vec<(GlyphlessOwnerSlot, Option<n0_model::math::RectF>)> = Vec::new();
+
+    for frame_item in resolved.items.iter() {
+        let node = match frame_item {
+            FrameItem::Node(node) => node,
+            FrameItem::ScopeBegin(scope) => {
+                if !unique.insert(scope.owner) {
+                    return Err(BuildError::DuplicateOwner(scope.owner));
+                }
+                let slot = GlyphlessOwnerSlot::new(
+                    u32::try_from(provenance.owners.len()).expect("owner count checked above"),
+                );
+                provenance.owners.push(scope.owner);
+                // Placeholder until the scope closes and its union is known.
+                provenance.coverage.push(to_rectf(resolved.bounds));
+                let ScopeEffect::Opacity(opacity) = scope.effect;
+                items.push(Item {
+                    node: slot,
+                    world: frame_world,
+                    kind: ItemKind::BeginIsolatedOpacity {
+                        opacity: opacity.get(),
+                    },
+                });
+                open_scopes.push((slot, None));
+                continue;
+            }
+            FrameItem::ScopeEnd => {
+                let (slot, coverage) = open_scopes.pop().expect("checked stream is balanced");
+                let coverage = coverage.expect("checked stream has no empty scope");
+                provenance.coverage[slot.index()] = coverage;
+                if let Some((_, parent)) = open_scopes.last_mut() {
+                    *parent = Some(match parent {
+                        None => coverage,
+                        Some(parent) => union_rectf(*parent, coverage),
+                    });
+                }
+                items.push(Item {
+                    node: slot,
+                    world: frame_world,
+                    kind: ItemKind::EndOpacity,
+                });
+                continue;
+            }
+        };
         if !unique.insert(node.owner) {
             return Err(BuildError::DuplicateOwner(node.owner));
         }
@@ -281,12 +336,19 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         // A stroke paints outside the geometry, so the covered area — what the
         // damage policy repaints — is the node's bounds inflated by the
         // stroke's own reach, mapped through the same transform.
-        provenance.coverage.push(to_rectf(match &node.stroke {
+        let coverage = to_rectf(match &node.stroke {
             None => node.bounds,
             Some(stroke) => {
                 math2::rect_transform(math2::rect_inset(rect, -stroke.outset()), &node.transform)
             }
-        }));
+        });
+        provenance.coverage.push(coverage);
+        if let Some((_, accumulated)) = open_scopes.last_mut() {
+            *accumulated = Some(match accumulated {
+                None => coverage,
+                Some(accumulated) => union_rectf(*accumulated, coverage),
+            });
+        }
 
         // A box primitive draws at its item's origin, so its own local offset
         // enters the world transform. A path carries absolute local
@@ -580,6 +642,17 @@ fn to_rectf(rect: math2::Rectangle) -> n0_model::math::RectF {
     }
 }
 
+fn union_rectf(a: n0_model::math::RectF, b: n0_model::math::RectF) -> n0_model::math::RectF {
+    let x = a.x.min(b.x);
+    let y = a.y.min(b.y);
+    n0_model::math::RectF {
+        x,
+        y,
+        w: (a.x + a.w).max(b.x + b.w) - x,
+        h: (a.y + a.h).max(b.y + b.h) - y,
+    }
+}
+
 fn from_rectf(rect: n0_model::math::RectF) -> math2::Rectangle {
     math2::Rectangle::from_xywh(rect.x, rect.y, rect.w, rect.h)
 }
@@ -594,13 +667,15 @@ mod tests {
         SizeIntent,
     };
     use n0_model::resolve::ResolveOptions;
-    use rframe::{FrameNode, Identity, Provenance};
+    use rframe::{FrameItems, FrameNode, Identity, Provenance, Scope, ScopeOpacity};
     use skia_safe::surfaces;
 
     use super::*;
 
     const FRAME_OWNER: VisualRef = VisualRef::new(Identity::new(10), Provenance::new(100));
     const RECT_OWNER: VisualRef = VisualRef::new(Identity::new(20), Provenance::new(200));
+    const SCOPE_OWNER: VisualRef = VisualRef::new(Identity::new(30), Provenance::new(300));
+    const OTHER_OWNER: VisualRef = VisualRef::new(Identity::new(40), Provenance::new(400));
 
     fn cg_solid(argb: u32) -> CgPaint {
         CgPaint::Solid(CgSolidPaint::new_color(CGColor::from_u32_argb(argb)))
@@ -611,18 +686,47 @@ mod tests {
             .expect("test paints are visible ordinary solids")
     }
 
-    fn resolved_frame(paints: PaintStack) -> Frame {
+    fn base_node(paints: PaintStack) -> FrameNode {
+        let rect = Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0);
+        FrameNode {
+            owner: RECT_OWNER,
+            transform: AffineTransform::identity(),
+            geometry: Geometry::Rect(rect),
+            bounds: rect,
+            paints,
+            stroke: None,
+        }
+    }
+
+    fn frame_of(items: FrameItems) -> Frame {
         Frame {
             owner: FRAME_OWNER,
             bounds: Rectangle::from_xywh(0.0, 0.0, 64.0, 48.0),
-            nodes: vec![FrameNode {
-                owner: RECT_OWNER,
-                transform: AffineTransform::identity(),
-                geometry: Geometry::Rect(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0)),
-                bounds: Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0),
-                paints,
-                stroke: None,
-            }],
+            items,
+        }
+    }
+
+    fn resolved_frame(paints: PaintStack) -> Frame {
+        frame_of(FrameItems::from_nodes(vec![base_node(paints)]))
+    }
+
+    fn scope_begin(owner: VisualRef, opacity: f32) -> FrameItem {
+        FrameItem::ScopeBegin(Scope {
+            owner,
+            effect: ScopeEffect::Opacity(
+                ScopeOpacity::new(opacity).expect("test opacity is a scope fact"),
+            ),
+        })
+    }
+
+    fn rect_node(owner: VisualRef, rect: Rectangle, argb: u32) -> FrameNode {
+        FrameNode {
+            owner,
+            transform: AffineTransform::identity(),
+            geometry: Geometry::Rect(rect),
+            bounds: rect,
+            paints: PaintStack::solid(CGColor::from_u32_argb(argb)),
+            stroke: None,
         }
     }
 
@@ -732,23 +836,21 @@ mod tests {
 
     #[test]
     fn transformed_geometry_requires_exact_contract_bounds() {
-        let mut frame = resolved_frame(PaintStack::solid(CGColor::RED));
-        frame.nodes[0].transform = AffineTransform::new(3.0, 4.0, 0.0);
-        let expected = math2::rect_transform(
-            frame.nodes[0].geometry.local_box(),
-            &frame.nodes[0].transform,
-        );
-        frame.nodes[0].bounds = Rectangle {
+        let mut node = base_node(PaintStack::solid(CGColor::RED));
+        node.transform = AffineTransform::new(3.0, 4.0, 0.0);
+        let expected = math2::rect_transform(node.geometry.local_box(), &node.transform);
+        node.bounds = Rectangle {
             x: f32::from_bits(expected.x.to_bits() + 1),
             ..expected
         };
         assert!(matches!(
-            compile(frame.clone()),
+            compile(frame_of(FrameItems::from_nodes(vec![node.clone()]))),
             Err(BuildError::VisualBoundsMismatch(RECT_OWNER))
         ));
 
-        frame.nodes[0].bounds = expected;
-        compile(frame).expect("exact transformed bounds are admitted");
+        node.bounds = expected;
+        compile(frame_of(FrameItems::from_nodes(vec![node])))
+            .expect("exact transformed bounds are admitted");
     }
 
     /// An ellipse node admits only bounds that exactly equal its transformed
@@ -756,21 +858,22 @@ mod tests {
     #[test]
     fn transformed_ellipse_requires_exact_contract_bounds() {
         let bbox = Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0);
-        let mut frame = resolved_frame(PaintStack::solid(CGColor::RED));
-        frame.nodes[0].geometry = Geometry::Ellipse(bbox);
-        frame.nodes[0].transform = AffineTransform::new(3.0, 4.0, 0.0);
-        let expected = math2::rect_transform(bbox, &frame.nodes[0].transform);
-        frame.nodes[0].bounds = Rectangle {
+        let mut node = base_node(PaintStack::solid(CGColor::RED));
+        node.geometry = Geometry::Ellipse(bbox);
+        node.transform = AffineTransform::new(3.0, 4.0, 0.0);
+        let expected = math2::rect_transform(bbox, &node.transform);
+        node.bounds = Rectangle {
             x: f32::from_bits(expected.x.to_bits() + 1),
             ..expected
         };
         assert!(matches!(
-            compile(frame.clone()),
+            compile(frame_of(FrameItems::from_nodes(vec![node.clone()]))),
             Err(BuildError::VisualBoundsMismatch(RECT_OWNER))
         ));
 
-        frame.nodes[0].bounds = expected;
-        compile(frame).expect("exact transformed ellipse bounds are admitted");
+        node.bounds = expected;
+        compile(frame_of(FrameItems::from_nodes(vec![node])))
+            .expect("exact transformed ellipse bounds are admitted");
     }
 
     /// An ellipse compiles to the oval fill inscribed in its local-space
@@ -779,8 +882,9 @@ mod tests {
     #[test]
     fn ellipse_geometry_rasters_the_inscribed_oval() {
         let context = PaintCtx::new(None);
-        let mut frame = resolved_frame(PaintStack::solid(CGColor::from_rgb(0x16, 0xa3, 0x4a)));
-        frame.nodes[0].geometry = Geometry::Ellipse(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0));
+        let mut node = base_node(PaintStack::solid(CGColor::from_rgb(0x16, 0xa3, 0x4a)));
+        node.geometry = Geometry::Ellipse(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0));
+        let frame = frame_of(FrameItems::from_nodes(vec![node]));
         let product = compile(frame).expect("admitted glyphless ellipse frame");
         let ItemKind::OvalFill { w, h, .. } = &product.drawlist.items[1].kind else {
             panic!("second item is the oval fill");
@@ -815,22 +919,191 @@ mod tests {
 
     #[test]
     fn duplicate_owners_fail_explicitly() {
-        let duplicate = Frame {
-            owner: FRAME_OWNER,
-            bounds: Rectangle::from_xywh(0.0, 0.0, 64.0, 48.0),
-            nodes: vec![FrameNode {
-                owner: FRAME_OWNER,
-                transform: AffineTransform::identity(),
-                geometry: Geometry::Rect(Rectangle::from_xywh(0.0, 0.0, 8.0, 8.0)),
-                bounds: Rectangle::from_xywh(0.0, 0.0, 8.0, 8.0),
-                paints: PaintStack::solid(CGColor::RED),
-                stroke: None,
-            }],
-        };
+        let duplicate = frame_of(FrameItems::from_nodes(vec![rect_node(
+            FRAME_OWNER,
+            Rectangle::from_xywh(0.0, 0.0, 8.0, 8.0),
+            0xFFFF_0000,
+        )]));
         assert!(matches!(
             compile(duplicate),
             Err(BuildError::DuplicateOwner(FRAME_OWNER))
         ));
+    }
+
+    /// A scope owner shares the one owner namespace: a scope repeating a
+    /// node's owner fails exactly as a repeated node does.
+    #[test]
+    fn duplicate_scope_owner_fails_explicitly() {
+        let items = FrameItems::try_new(vec![
+            scope_begin(RECT_OWNER, 0.5),
+            FrameItem::Node(base_node(PaintStack::solid(CGColor::RED))),
+            FrameItem::ScopeEnd,
+        ])
+        .expect("balanced scope stream");
+        assert!(matches!(
+            compile(frame_of(items)),
+            Err(BuildError::DuplicateOwner(RECT_OWNER))
+        ));
+    }
+
+    /// The scope lowers onto the one private opacity layer: Begin/End
+    /// items owned by the scope, enclosing its span, with the frame clip
+    /// outside.
+    #[test]
+    fn scope_lowers_onto_the_private_opacity_items() {
+        let items = FrameItems::try_new(vec![
+            scope_begin(SCOPE_OWNER, 0.5),
+            FrameItem::Node(base_node(PaintStack::solid(CGColor::RED))),
+            FrameItem::ScopeEnd,
+        ])
+        .expect("balanced scope stream");
+        let product = compile(frame_of(items)).expect("admitted scoped frame");
+        let kinds = product
+            .drawlist
+            .items
+            .iter()
+            .map(|item| std::mem::discriminant(&item.kind))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            kinds,
+            [
+                std::mem::discriminant(&ItemKind::BeginClipRect {
+                    w: 0.0,
+                    h: 0.0,
+                    corner_radius: RectangularCornerRadius::default(),
+                    corner_smoothing: CornerSmoothing::default(),
+                }),
+                std::mem::discriminant(&ItemKind::BeginIsolatedOpacity { opacity: 0.5 }),
+                std::mem::discriminant(&ItemKind::RectFill {
+                    w: 0.0,
+                    h: 0.0,
+                    corner_radius: RectangularCornerRadius::default(),
+                    corner_smoothing: CornerSmoothing::default(),
+                    paints: Paints::default(),
+                }),
+                std::mem::discriminant(&ItemKind::EndOpacity),
+                std::mem::discriminant(&ItemKind::EndClip),
+            ],
+            "frame clip, then the scope enclosing its span"
+        );
+        let ItemKind::BeginIsolatedOpacity { opacity } = product.drawlist.items[1].kind else {
+            panic!("second item begins the opacity scope");
+        };
+        assert_eq!(opacity, 0.5);
+        assert_eq!(
+            product.drawlist.items[1].node, product.drawlist.items[3].node,
+            "begin and end are owned by the one scope"
+        );
+    }
+
+    /// A scope opacity edit damages exactly the union of what the scope
+    /// composites.
+    #[test]
+    fn scope_opacity_edit_damages_the_scope_union() {
+        let scene = |opacity: f32| {
+            let items = FrameItems::try_new(vec![
+                scope_begin(SCOPE_OWNER, opacity),
+                FrameItem::Node(rect_node(
+                    RECT_OWNER,
+                    Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0),
+                    0xFF16_A34A,
+                )),
+                FrameItem::Node(rect_node(
+                    OTHER_OWNER,
+                    Rectangle::from_xywh(24.0, 18.0, 20.0, 16.0),
+                    0xFF25_63EB,
+                )),
+                FrameItem::ScopeEnd,
+            ])
+            .expect("balanced scope stream");
+            compile(frame_of(items)).expect("admitted scoped frame")
+        };
+        let damage = diff_frame(&scene(0.5), &scene(0.25));
+        assert_eq!(damage.changed, vec![SCOPE_OWNER]);
+        assert_eq!(
+            damage.union_frame,
+            Some(Rectangle::from_xywh(8.0, 6.0, 36.0, 28.0)),
+            "the scope's coverage is the union of its span"
+        );
+    }
+
+    /// The layer meaning, pinned against Chromium 149.0.7827.55 (probe
+    /// p4a of the group-scope rung): two opaque children under one 0.5
+    /// scope over white — every covered pixel is the topmost child at the
+    /// scope's alpha over the backdrop, at the oracle's own layer
+    /// quantization.
+    #[test]
+    fn scope_raster_matches_the_chromium_layer_composite() {
+        let context = PaintCtx::new(None);
+        let items = FrameItems::try_new(vec![
+            scope_begin(SCOPE_OWNER, 0.5),
+            FrameItem::Node(rect_node(
+                RECT_OWNER,
+                Rectangle::from_xywh(8.0, 8.0, 32.0, 32.0),
+                0xFF16_A34A,
+            )),
+            FrameItem::Node(rect_node(
+                OTHER_OWNER,
+                Rectangle::from_xywh(24.0, 24.0, 32.0, 32.0),
+                0xFF25_63EB,
+            )),
+            FrameItem::ScopeEnd,
+        ])
+        .expect("balanced scope stream");
+        let frame = Frame {
+            owner: FRAME_OWNER,
+            bounds: Rectangle::from_xywh(0.0, 0.0, 64.0, 64.0),
+            items,
+        };
+        let product = compile(frame).expect("admitted scoped frame");
+        let pixels = product
+            .raster_to_bytes(&AffineTransform::identity(), 64, 64, &context)
+            .expect("resource-free scoped raster");
+        let at = |x: i32, y: i32| -> [u8; 4] {
+            let offset = ((y * 64 + x) * 4) as usize;
+            pixels[offset..offset + 4].try_into().expect("RGBA pixel")
+        };
+        assert_eq!(at(16, 16), [137, 208, 163, 255], "green-only region");
+        assert_eq!(
+            at(32, 32),
+            [145, 176, 244, 255],
+            "overlap is the topmost child at the scope alpha — composited once"
+        );
+        assert_eq!(at(48, 48), [145, 176, 244, 255], "blue-only region");
+    }
+
+    /// The nested meaning, pinned against Chromium (probe p5a): an outer
+    /// 0.5 layer over an inner *folded* translucent draw (alpha 128) — the
+    /// per-layer quantization Chromium shows, one code value below the
+    /// flat 0.25 fold.
+    #[test]
+    fn nested_scope_raster_matches_the_chromium_per_layer_quantization() {
+        let context = PaintCtx::new(None);
+        let items = FrameItems::try_new(vec![
+            scope_begin(SCOPE_OWNER, 0.5),
+            FrameItem::Node(rect_node(
+                RECT_OWNER,
+                Rectangle::from_xywh(8.0, 8.0, 48.0, 48.0),
+                0x8016_A34A,
+            )),
+            FrameItem::ScopeEnd,
+        ])
+        .expect("balanced scope stream");
+        let frame = Frame {
+            owner: FRAME_OWNER,
+            bounds: Rectangle::from_xywh(0.0, 0.0, 64.0, 64.0),
+            items,
+        };
+        let product = compile(frame).expect("admitted scoped frame");
+        let pixels = product
+            .raster_to_bytes(&AffineTransform::identity(), 64, 64, &context)
+            .expect("resource-free scoped raster");
+        let offset = ((32 * 64 + 32) * 4) as usize;
+        assert_eq!(
+            &pixels[offset..offset + 4],
+            [196, 232, 209, 255],
+            "layer-over-folded-draw quantization matches the oracle"
+        );
     }
 
     #[test]

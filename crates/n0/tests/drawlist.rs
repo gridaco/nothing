@@ -16,6 +16,7 @@ fn opts() -> ResolveOptions {
 fn tag(k: &ItemKind) -> &'static str {
     match k {
         ItemKind::BeginOpacity { .. } => "opacity-begin",
+        ItemKind::BeginIsolatedOpacity { .. } => "isolated-opacity-begin",
         ItemKind::EndOpacity => "opacity-end",
         ItemKind::BeginClipRect { .. } => "clip-begin",
         ItemKind::EndClip => "clip-end",

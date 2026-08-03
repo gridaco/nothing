@@ -50,7 +50,7 @@ fn spawn_compile_loop(
         for _ in 0..16 {
             let frame = compile_standalone_svg(source, websem::InitialViewport::new(64.0, 64.0))
                 .expect("compile isolated SVG");
-            let node = frame.nodes.first().expect("one rectangle");
+            let node = frame.nodes().first().copied().expect("one rectangle");
             let mut paints = node.paints.iter();
             let cg::Paint::Solid(solid) = paints.next().expect("one solid fill") else {
                 panic!("expected a solid paint");

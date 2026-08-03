@@ -11,7 +11,7 @@
 use websem::{compile_html_inline_svg, compile_standalone_svg};
 
 fn sole_paint(frame: &rframe::Frame) -> [u8; 4] {
-    let node = frame.nodes.first().expect("one compiled rect");
+    let node = frame.nodes().first().copied().expect("one compiled rect");
     let cg::Paint::Solid(solid) = node.paints.iter().next().expect("one solid paint") else {
         panic!("expected a solid paint");
     };

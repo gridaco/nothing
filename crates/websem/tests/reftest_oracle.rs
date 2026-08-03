@@ -182,14 +182,14 @@ fn contract_frame(paints: PaintStack, transform: math2::transform::AffineTransfo
     Frame {
         owner: VisualRef::new(Identity::new(1), Provenance::new(10)),
         bounds: math2::Rectangle::from_xywh(0.0, 0.0, 32.0, 24.0),
-        nodes: vec![FrameNode {
+        items: rframe::FrameItems::from_nodes(vec![FrameNode {
             owner: VisualRef::new(Identity::new(2), Provenance::new(20)),
             transform,
             geometry: Geometry::Rect(rect),
             bounds: math2::rect_transform(rect, &transform),
             paints,
             stroke: None,
-        }],
+        }]),
     }
 }
 

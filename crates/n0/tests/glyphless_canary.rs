@@ -22,7 +22,7 @@ use n0_model::resolve::{resolve, ResolveOptions};
 use cg::CGColor;
 use math2::transform::AffineTransform;
 use math2::Rectangle;
-use rframe::{Frame, FrameNode, Geometry, Identity, PaintStack, Provenance, VisualRef};
+use rframe::{Frame, FrameItems, FrameNode, Geometry, Identity, PaintStack, Provenance, VisualRef};
 
 const GREEN: [u8; 4] = [0x16, 0xa3, 0x4a, 0xff];
 
@@ -95,14 +95,14 @@ fn n0_rect_reaches_the_shared_downstream() {
     let frame = Frame {
         owner: VisualRef::new(Identity::new(1), Provenance::new(1)),
         bounds: Rectangle::from_xywh(0.0, 0.0, 64.0, 64.0),
-        nodes: vec![FrameNode {
+        items: FrameItems::from_nodes(vec![FrameNode {
             owner: VisualRef::new(Identity::new(2), Provenance::new(2)),
             transform: to_math2(n0_world),
             geometry: Geometry::Rect(geometry),
             bounds: geometry,
             paints: PaintStack::solid(fill),
             stroke: None,
-        }],
+        }]),
     };
 
     // 4. Render through the same downstream the Web producers use.
@@ -131,14 +131,14 @@ fn hand_built_frame_probes_and_re_raster_are_exact() {
     let frame = Frame {
         owner: VisualRef::new(Identity::new(1), Provenance::new(1)),
         bounds: rect,
-        nodes: vec![FrameNode {
+        items: FrameItems::from_nodes(vec![FrameNode {
             owner: VisualRef::new(Identity::new(2), Provenance::new(2)),
             transform: AffineTransform::identity(),
             geometry: Geometry::Rect(rect),
             bounds: rect,
             paints: PaintStack::solid(CGColor::from_rgb(0x16, 0xa3, 0x4a)),
             stroke: None,
-        }],
+        }]),
     };
 
     let pixels = raster(&frame, 64, 64);
@@ -167,14 +167,14 @@ fn hand_built_ellipse_fills_the_inscribed_oval_not_its_box_corners() {
     let frame = Frame {
         owner: VisualRef::new(Identity::new(1), Provenance::new(1)),
         bounds: Rectangle::from_xywh(0.0, 0.0, 64.0, 48.0),
-        nodes: vec![FrameNode {
+        items: FrameItems::from_nodes(vec![FrameNode {
             owner: VisualRef::new(Identity::new(2), Provenance::new(2)),
             transform: AffineTransform::identity(),
             geometry: Geometry::Ellipse(bbox),
             bounds: bbox,
             paints: PaintStack::solid(CGColor::from_rgb(0x16, 0xa3, 0x4a)),
             stroke: None,
-        }],
+        }]),
     };
 
     let pixels = raster(&frame, 64, 48);

@@ -168,7 +168,7 @@ fn beyond_slice_children_skip_by_name_and_admitted_children_render() {
         "each skip names its construct at its stable path"
     );
     assert_eq!(
-        best.base_frame().nodes.len(),
+        best.base_frame().nodes().len(),
         3,
         "the admitted rects and the circle materialize; the skip leaves a hole, not a guess"
     );
@@ -219,7 +219,11 @@ fn blocked_dynamic_surface_samples_as_base_and_declares_it() {
         declared[0].reason()
     );
     let base = best.base_frame();
-    assert_eq!(base.nodes.len(), 2, "Base stays honest: both rects render");
+    assert_eq!(
+        base.nodes().len(),
+        2,
+        "Base stays honest: both rects render"
+    );
     for nanoseconds in [0, 1_000_000_000, 2_500_000_000] {
         let sampled = best
             .sample_frame(SampleTime::from_nanoseconds(nanoseconds))
@@ -263,7 +267,7 @@ fn load_active_animation_never_renders_its_targets_authored_state() {
             .unwrap_or_else(|error| panic!("{label}: best-effort compiles: {error}"));
         let base = best.base_frame();
         assert_eq!(
-            base.nodes.len(),
+            base.nodes().len(),
             1,
             "{label}: the target is a declared hole; the backdrop still renders"
         );
@@ -324,8 +328,9 @@ fn inline_html_sampling_falls_back_to_base_under_best_effort() {
 /// SVG rendering vocabulary stay ignored, exactly as Chromium ignores them.
 #[test]
 fn unconsumed_rendering_attributes_never_paint_wrong_pixels() {
+    // Element `opacity` left this table with the group-scope rung: it is
+    // consumed (fold or scope), and its laws live in the opacity contract.
     for (label, rect_attrs, named) in [
-        ("element opacity", r#"opacity="0.5""#, "opacity"),
         ("rounded corners", r#"rx="8""#, "rx"),
         (
             "transform-origin",
@@ -358,7 +363,7 @@ fn unconsumed_rendering_attributes_never_paint_wrong_pixels() {
             SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), host_viewport())
                 .unwrap_or_else(|error| panic!("{label}: best-effort compiles: {error}"));
         assert_eq!(
-            best.base_frame().nodes.len(),
+            best.base_frame().nodes().len(),
             0,
             "{label}: the rect is a declared hole, not a wrong paint"
         );
@@ -381,7 +386,7 @@ fn unconsumed_rendering_attributes_never_paint_wrong_pixels() {
         .expect("best-effort ignores");
     assert!(best.degradations().is_empty());
     assert_eq!(strict.base_frame(), best.base_frame());
-    assert_eq!(strict.base_frame().nodes.len(), 1, "the rect paints");
+    assert_eq!(strict.base_frame().nodes().len(), 1, "the rect paints");
 }
 
 /// Values a stylesheet or `style` attribute could smuggle past the
@@ -391,7 +396,6 @@ fn unconsumed_rendering_attributes_never_paint_wrong_pixels() {
 #[test]
 fn stylesheet_smuggled_values_are_patrolled_at_the_computed_level() {
     for (label, css, named) in [
-        ("stylesheet opacity", "rect { opacity: 0.5 }", "opacity"),
         (
             "stylesheet display: contents",
             "rect { display: contents }",
@@ -414,7 +418,7 @@ fn stylesheet_smuggled_values_are_patrolled_at_the_computed_level() {
         let best =
             SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), host_viewport())
                 .unwrap_or_else(|error| panic!("{label}: best-effort compiles: {error}"));
-        assert_eq!(best.base_frame().nodes.len(), 0, "{label}: declared hole");
+        assert_eq!(best.base_frame().nodes().len(), 0, "{label}: declared hole");
         assert!(
             best.degradations()[0].reason().contains(named),
             "{label}: named; got {}",
@@ -422,14 +426,28 @@ fn stylesheet_smuggled_values_are_patrolled_at_the_computed_level() {
         );
     }
 
-    // A style-attribute smuggle is the same surface.
+    // Element `opacity` used to be this patrol's first row; since the
+    // group-scope rung the same smuggle *consumes*: a style-attribute
+    // opacity folds into the lone fill exactly as the presentation
+    // attribute does, with nothing declared.
     let styled = r##"<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="16" height="16" fill="#ff0000" style="opacity: 0.25"/></svg>"##;
-    SvgFrameSource::from_standalone_svg(styled, host_viewport())
-        .expect_err("strict refuses style opacity");
+    let strict = SvgFrameSource::from_standalone_svg(styled, host_viewport())
+        .expect("strict admits style opacity");
     let best = SvgFrameSource::from_standalone_svg_best_effort(styled, host_viewport())
         .expect("best-effort");
-    assert_eq!(best.base_frame().nodes.len(), 0);
-    assert!(best.degradations()[0].reason().contains("opacity"));
+    assert!(
+        best.degradations()
+            .iter()
+            .all(|d| d.action() == DegradationAction::SamplesAsBase),
+        "nothing skips — any declaration is the style attribute's standing          sampling caveat, not a paint hole: {:?}",
+        best.degradations()
+    );
+    assert_eq!(strict.base_frame(), best.base_frame());
+    assert_eq!(
+        strict.base_frame().nodes().len(),
+        1,
+        "the rect paints, folded"
+    );
 }
 
 /// A `stroke-width` whose basis this build lacks departs by name from every
@@ -479,7 +497,7 @@ fn a_basis_less_stroke_width_departs_by_name_from_every_ingress() {
     let from_sheet =
         SvgFrameSource::from_standalone_svg_best_effort(sheet, host_viewport()).expect("sheet");
     assert_eq!(
-        from_sheet.base_frame().nodes.len(),
+        from_sheet.base_frame().nodes().len(),
         1,
         "the rect still paints"
     );
@@ -492,7 +510,11 @@ fn a_basis_less_stroke_width_departs_by_name_from_every_ingress() {
     let from_attribute =
         SvgFrameSource::from_standalone_svg_best_effort(attribute, host_viewport())
             .expect("attribute");
-    assert_eq!(from_attribute.base_frame().nodes.len(), 0, "declared hole");
+    assert_eq!(
+        from_attribute.base_frame().nodes().len(),
+        0,
+        "declared hole"
+    );
     assert_eq!(
         from_attribute.degradations()[0].action(),
         DegradationAction::Skipped
@@ -531,7 +553,7 @@ fn every_dynamic_blocker_is_declared_and_ordering_holds() {
          among them — then every sampling-only blocker"
     );
     assert_eq!(
-        best.base_frame().nodes.len(),
+        best.base_frame().nodes().len(),
         1,
         "the onclick rect renders (Base-honest); the text and the \
          overridden rect are declared holes"
@@ -562,7 +584,11 @@ fn admitted_animation_samples_through_declared_skips() {
         .sample_frame(SampleTime::from_nanoseconds(1_000_000_000))
         .expect("the admitted x animation samples");
     assert_ne!(sampled, base, "time moves the admitted rect");
-    assert_eq!(sampled.nodes.len(), base.nodes.len(), "same declared holes");
+    assert_eq!(
+        sampled.nodes().len(),
+        base.nodes().len(),
+        "same declared holes"
+    );
 }
 
 /// `<script>` inside the compiled inline SVG refuses in both admissions at
@@ -605,7 +631,7 @@ fn script_inside_the_compiled_inline_svg_refuses_in_both_admissions() {
         "page script is
 outside the compiled subtree",
     );
-    assert_eq!(best.base_frame().nodes.len(), 1, "the rect renders");
+    assert_eq!(best.base_frame().nodes().len(), 1, "the rect renders");
 }
 
 /// Document-level contracts refuse identically in both modes: best-effort

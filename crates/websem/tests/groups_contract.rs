@@ -71,7 +71,7 @@ fn admit_both_styled(source: &str) -> rframe::Frame {
 }
 
 fn geometry_box(frame: &rframe::Frame, index: usize) -> Rectangle {
-    frame.nodes[index].geometry.local_box()
+    frame.nodes()[index].geometry.local_box()
 }
 
 /// `<a>` is a container exactly like `<g>` (SVG2 §16.2: `href` is
@@ -86,7 +86,7 @@ fn an_anchor_is_a_container_like_a_group() {
     let group = admit_both(&document(
         r##"  <g transform="translate(8,8)"><rect width="24" height="24" fill="#16a34a"/></g>"##,
     ));
-    assert_eq!(anchor.nodes, group.nodes, "one container semantics");
+    assert_eq!(anchor.nodes(), group.nodes(), "one container semantics");
 }
 
 #[test]
@@ -97,12 +97,12 @@ fn a_group_contributes_its_transform_to_every_descendant() {
     <circle cx="20" cy="20" r="5" fill="#2563eb"/>
   </g>"##,
     ));
-    assert_eq!(frame.nodes.len(), 2, "the group itself is not a node");
+    assert_eq!(frame.nodes().len(), 2, "the group itself is not a node");
     let expected = AffineTransform::from_acebdf(1.0, 0.0, 10.0, 0.0, 1.0, 4.0);
     for index in 0..2 {
-        assert_eq!(frame.nodes[index].transform, expected, "node {index}");
+        assert_eq!(frame.nodes()[index].transform, expected, "node {index}");
         assert_eq!(
-            frame.nodes[index].bounds,
+            frame.nodes()[index].bounds,
             math2::rect_transform(geometry_box(&frame, index), &expected),
             "node {index} keeps the exact-bounds law"
         );
@@ -127,12 +127,12 @@ fn nested_group_transforms_compose_outermost_first() {
   </g>"##,
     ));
     assert_eq!(
-        frame.nodes[0].transform,
+        frame.nodes()[0].transform,
         AffineTransform::from_acebdf(2.0, 0.0, 10.0, 0.0, 2.0, 6.0),
         "scale(2) then translate(5,3) maps the origin to (10,6) at 2x"
     );
     assert_eq!(
-        frame.nodes[0].bounds,
+        frame.nodes()[0].bounds,
         Rectangle::from_xywh(10.0, 6.0, 8.0, 8.0)
     );
 }
@@ -150,11 +150,12 @@ fn a_shape_transform_composes_inside_its_inherited_mapping() {
         r##"  <rect transform="translate(10,0) scale(3)" width="4" height="4" fill="#16a34a"/>"##,
     ));
     assert_eq!(
-        nested.nodes[0].transform, flat.nodes[0].transform,
+        nested.nodes()[0].transform,
+        flat.nodes()[0].transform,
         "nesting and one list are the same mapping"
     );
     assert_eq!(
-        nested.nodes[0].transform,
+        nested.nodes()[0].transform,
         AffineTransform::from_acebdf(3.0, 0.0, 10.0, 0.0, 3.0, 0.0)
     );
 }
@@ -174,7 +175,7 @@ fn flattening_preserves_painter_order_across_containers() {
     </g>
   </g>"##,
     ));
-    assert_eq!(frame.nodes.len(), 3);
+    assert_eq!(frame.nodes().len(), 3);
     let pixels = render_through_n0(&frame, 64, 64);
     let at = |x: i32, y: i32| -> [u8; 4] {
         let offset = ((y * 64 + x) * 4) as usize;
@@ -250,7 +251,7 @@ fn the_admitted_transform_functions_map_exactly() {
         let frame = admit_both(&document(&format!(
             r##"  <g transform="{list}"><rect width="4" height="4" fill="#16a34a"/></g>"##
         )));
-        assert_eq!(frame.nodes[0].transform, expected, "{list}");
+        assert_eq!(frame.nodes()[0].transform, expected, "{list}");
     }
 }
 
@@ -259,7 +260,7 @@ fn skew_maps_by_the_tangent_of_its_angle() {
     let frame = admit_both(&document(
         r##"  <g transform="skewX(45)"><rect width="4" height="4" fill="#16a34a"/></g>"##,
     ));
-    let matrix = frame.nodes[0].transform.matrix;
+    let matrix = frame.nodes()[0].transform.matrix;
     assert!(
         (matrix[0][1] - 1.0).abs() < 1e-6,
         "tan(45°) = 1: {matrix:?}"
@@ -339,7 +340,7 @@ fn an_empty_transform_list_is_the_identity() {
         let frame = admit_both(&document(&format!(
             r##"  <g transform="{list}"><rect width="4" height="4" fill="#16a34a"/></g>"##
         )));
-        assert_eq!(frame.nodes[0].transform, AffineTransform::identity());
+        assert_eq!(frame.nodes()[0].transform, AffineTransform::identity());
     }
 }
 
@@ -349,11 +350,11 @@ fn an_empty_transform_list_is_the_identity() {
 #[test]
 fn scope_bearing_containers_still_refuse() {
     for (label, attrs, named) in [
-        // A cascaded `transform` sat beside these until its rung consumed
-        // it — a transform needs no compositing scope, it was only ever
-        // waiting on the computed read. The four below are the real
-        // scope-bearers, refused until the group scope exists.
-        ("group opacity", r#"opacity="0.5""#, "opacity"),
+        // `opacity` left this table with the group-scope rung — the
+        // contract grew the scope it was waiting for, and its laws live in
+        // `opacity_contract.rs`. The three below still refuse: each
+        // references a resource, which the scope's effect vocabulary
+        // cannot express until its own rung.
         ("group clip-path", r#"clip-path="url(#c)""#, "clip-path"),
         ("group mask", r#"mask="url(#m)""#, "mask"),
         ("group filter", r#"filter="url(#f)""#, "filter"),
@@ -377,7 +378,7 @@ fn scope_bearing_containers_still_refuse() {
         assert_eq!(skipped.len(), 1, "{label}");
         assert_eq!(skipped[0].path(), "svg/g[1]", "{label}");
         assert_eq!(
-            best.base_frame().nodes.len(),
+            best.base_frame().nodes().len(),
             0,
             "{label}: the whole subtree is one hole — nothing inside it can be \
              placed or composited without the construct"
@@ -485,7 +486,7 @@ fn the_beyond_2d_transform_family_refuses_by_name() {
     let best =
         SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
             .expect("best-effort compiles");
-    assert_eq!(best.base_frame().nodes.len(), 0);
+    assert_eq!(best.base_frame().nodes().len(), 0);
     let skipped: Vec<_> = best
         .degradations()
         .iter()
@@ -538,7 +539,7 @@ fn a_beyond_slice_descendant_is_its_own_declared_hole() {
         SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
             .expect("best-effort");
     assert_eq!(
-        best.base_frame().nodes.len(),
+        best.base_frame().nodes().len(),
         2,
         "the rect and the circle still paint"
     );
@@ -599,7 +600,7 @@ fn non_rendering_elements_are_neither_compiled_nor_declared() {
     <rect width="8" height="8" fill="#16a34a"/>
   </g>"##,
     ));
-    assert_eq!(frame.nodes.len(), 1, "only the rect materializes");
+    assert_eq!(frame.nodes().len(), 1, "only the rect materializes");
 }
 
 /// The recursive walk bounds its depth explicitly instead of exhausting
@@ -623,7 +624,7 @@ fn container_nesting_beyond_the_bound_refuses() {
     let best =
         SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
             .expect("best-effort declares instead of crashing");
-    assert_eq!(best.base_frame().nodes.len(), 0);
+    assert_eq!(best.base_frame().nodes().len(), 0);
     assert!(
         best.degradations()
             .iter()
@@ -660,7 +661,7 @@ fn animate_inside_a_container_is_a_load_active_override() {
         SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
             .expect("best-effort");
     assert_eq!(
-        best.base_frame().nodes.len(),
+        best.base_frame().nodes().len(),
         0,
         "the nested target is a declared hole"
     );
@@ -700,7 +701,7 @@ fn skew_y_maps_on_the_other_axis() {
     let frame = admit_both(&document(
         r##"  <g transform="skewY(45)"><rect width="4" height="4" fill="#16a34a"/></g>"##,
     ));
-    let matrix = frame.nodes[0].transform.matrix;
+    let matrix = frame.nodes()[0].transform.matrix;
     assert!(
         (matrix[1][0] - 1.0).abs() < 1e-6,
         "tan(45°) = 1: {matrix:?}"
@@ -732,7 +733,7 @@ fn quarter_turns_are_exact_at_every_multiple() {
         let frame = admit_both(&document(&format!(
             r##"  <g transform="{list}"><rect width="4" height="4" fill="#16a34a"/></g>"##
         )));
-        assert_eq!(frame.nodes[0].transform, expected, "{list}");
+        assert_eq!(frame.nodes()[0].transform, expected, "{list}");
     }
 }
 
@@ -749,12 +750,12 @@ fn container_transforms_are_user_units_under_a_viewbox() {
 </svg>"##;
     let frame = admit_both(source);
     assert_eq!(
-        frame.nodes[0].transform,
+        frame.nodes()[0].transform,
         AffineTransform::from_acebdf(2.0, 0.0, 8.0, 0.0, 2.0, 4.0),
         "the viewBox's 2x scales the group's translate: (4,2) user units -> (8,4) device"
     );
     assert_eq!(
-        frame.nodes[0].bounds,
+        frame.nodes()[0].bounds,
         Rectangle::from_xywh(8.0, 4.0, 16.0, 16.0)
     );
     let pixels = render_through_n0(&frame, 64, 64);
@@ -810,7 +811,7 @@ fn the_container_depth_bound_admits_its_limit_and_refuses_past_it() {
     };
     let admitted = nest(64);
     let frame = admit_both(&admitted);
-    assert_eq!(frame.nodes.len(), 1, "64 levels compile");
+    assert_eq!(frame.nodes().len(), 1, "64 levels compile");
 
     let refused = nest(65);
     let error = SvgFrameSource::from_standalone_svg(refused.as_str(), viewport(64.0, 64.0))
@@ -855,7 +856,7 @@ fn every_stylesheet_declaring_an_unrepresentable_property_is_declared() {
     );
     assert!(ignored[1].1.contains("filter"), "{}", ignored[1].1);
     assert_eq!(
-        best.base_frame().nodes.len(),
+        best.base_frame().nodes().len(),
         1,
         "the rect rendered — nothing was skipped"
     );
@@ -933,7 +934,7 @@ fn an_overflowing_transform_composition_refuses_at_its_element() {
         SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
             .expect("best-effort still compiles the document");
     assert_eq!(
-        best.base_frame().nodes.len(),
+        best.base_frame().nodes().len(),
         1,
         "the sibling rect still renders — the overflow is one hole"
     );
@@ -948,7 +949,7 @@ fn huge_rotation_angles_do_not_snap_to_a_quarter_turn() {
     let frame = admit_both(&document(
         r##"  <g transform="rotate(1e30)"><rect width="4" height="4" fill="#16a34a"/></g>"##,
     ));
-    let matrix = frame.nodes[0].transform.matrix;
+    let matrix = frame.nodes()[0].transform.matrix;
     let exact = [
         AffineTransform::identity().matrix,
         AffineTransform::from_acebdf(0.0, -1.0, 0.0, 1.0, 0.0, 0.0).matrix,
@@ -1036,7 +1037,7 @@ fn a_style_element_contributes_cascade_but_no_hole() {
         .expect("strict admits")
         .base_frame();
     assert_eq!(frame, best.base_frame());
-    assert_eq!(frame.nodes.len(), 1, "only the rect materializes");
+    assert_eq!(frame.nodes().len(), 1, "only the rect materializes");
     let pixels = render_through_n0(&frame, 64, 64);
     assert_eq!(
         &pixels[0..4],

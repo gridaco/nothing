@@ -97,7 +97,7 @@ fn unequal_aspect_viewbox_maps_under_the_default_meet() {
     // viewBox 0 0 100 100 into 100x50: s = min(1.0, 0.5) = 0.5,
     // dx = (100 - 100*0.5) / 2 = 25, dy = (50 - 100*0.5) / 2 = 0.
     assert_eq!(
-        frame.nodes[0].transform,
+        frame.nodes()[0].transform,
         AffineTransform::from_acebdf(0.5, 0.0, 25.0, 0.0, 0.5, 0.0)
     );
 }
@@ -110,7 +110,7 @@ fn explicit_preserve_aspect_ratio_is_admitted() {
     let frame = compile_standalone_svg(EXPLICIT, viewport(64.0, 64.0))
         .expect("preserveAspectRatio=\"none\" is admitted");
     assert_eq!(
-        frame.nodes[0].transform,
+        frame.nodes()[0].transform,
         AffineTransform::from_acebdf(1.0, 0.0, 0.0, 0.0, 1.0, 0.0)
     );
 }
@@ -134,7 +134,7 @@ fn viewbox_only_documents_size_to_the_initial_viewport() {
     let frame = strict.base_frame();
     assert_eq!(frame.bounds, Rectangle::from_xywh(0.0, 0.0, 64.0, 32.0));
     assert_eq!(
-        frame.nodes[0].transform,
+        frame.nodes()[0].transform,
         AffineTransform::from_acebdf(2.0, 0.0, 0.0, 0.0, 2.0, 0.0)
     );
 
@@ -143,7 +143,7 @@ fn viewbox_only_documents_size_to_the_initial_viewport() {
         .expect("the initial viewport scales the mapping");
     assert_eq!(resized.bounds, Rectangle::from_xywh(0.0, 0.0, 128.0, 64.0));
     assert_eq!(
-        resized.nodes[0].transform,
+        resized.nodes()[0].transform,
         AffineTransform::from_acebdf(4.0, 0.0, 0.0, 0.0, 4.0, 0.0)
     );
 }
@@ -220,7 +220,7 @@ fn preserve_aspect_ratio_maps_fit_and_alignment() {
             .unwrap_or_else(|error| panic!("{par}: {error}"));
         let (sx, dx, sy, dy) = expected;
         assert_eq!(
-            frame.nodes[0].transform,
+            frame.nodes()[0].transform,
             AffineTransform::from_acebdf(sx, 0.0, dx, 0.0, sy, dy),
             "{par}"
         );

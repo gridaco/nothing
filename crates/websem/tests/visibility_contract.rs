@@ -63,7 +63,7 @@ fn display_none_removes_the_shape_in_every_spelling() {
         r##"  <rect x="8" y="8" width="24" height="24" fill="#16a34a" display="none"/>
   <rect x="40" y="8" width="16" height="16" fill="#2563eb"/>"##,
     ));
-    assert_eq!(attribute.nodes.len(), 1, "the sibling alone materializes");
+    assert_eq!(attribute.nodes().len(), 1, "the sibling alone materializes");
 
     let style_attribute = admit_both(&document(
         r##"  <rect x="8" y="8" width="24" height="24" fill="#16a34a" style="display: none"/>
@@ -83,7 +83,11 @@ fn display_none_removes_the_shape_in_every_spelling() {
     )
     .expect("strict admits the sheet at Base")
     .base_frame();
-    assert_eq!(attribute.nodes, sheet.nodes, "the sheet spelling agrees");
+    assert_eq!(
+        attribute.nodes(),
+        sheet.nodes(),
+        "the sheet spelling agrees"
+    );
 }
 
 /// `display: none` on a container prunes the subtree: a
@@ -96,7 +100,7 @@ fn display_none_prunes_the_subtree_past_visible_descendants() {
   <rect x="40" y="40" width="16" height="16" fill="#2563eb"/>"##,
     ));
     assert_eq!(
-        frame.nodes.len(),
+        frame.nodes().len(),
         1,
         "the pruned subtree contributes nothing"
     );
@@ -113,7 +117,11 @@ fn visibility_hides_per_element_and_a_visible_descendant_unhides() {
             r##"  <rect x="8" y="8" width="24" height="24" fill="#16a34a" visibility="{value}"/>
   <rect x="40" y="8" width="16" height="16" fill="#2563eb"/>"##
         )));
-        assert_eq!(frame.nodes.len(), 1, "visibility {value}: sibling renders");
+        assert_eq!(
+            frame.nodes().len(),
+            1,
+            "visibility {value}: sibling renders"
+        );
     }
 
     let unhide = admit_both(&document(
@@ -123,12 +131,12 @@ fn visibility_hides_per_element_and_a_visible_descendant_unhides() {
   </g>"##,
     ));
     assert_eq!(
-        unhide.nodes.len(),
+        unhide.nodes().len(),
         1,
         "the visible descendant un-hides; its sibling inherits hidden"
     );
     assert_eq!(
-        unhide.nodes[0].bounds,
+        unhide.nodes()[0].bounds,
         math2::Rectangle::from_xywh(8.0, 8.0, 24.0, 24.0),
         "and it is the un-hidden rect that materialized"
     );
@@ -146,7 +154,7 @@ fn an_author_rule_beats_the_visibility_attribute() {
     let frame = SvgFrameSource::from_standalone_svg(source, viewport())
         .expect("strict admits")
         .base_frame();
-    assert_eq!(frame.nodes.len(), 1, "the rule un-hides the rect");
+    assert_eq!(frame.nodes().len(), 1, "the rule un-hides the rect");
 }
 
 /// A root `display: none` splits by entry, and both halves are measured:
@@ -160,7 +168,7 @@ fn a_root_display_none_splits_by_entry() {
     let standalone = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" display="none"><rect width="64" height="64" fill="#16a34a"/></svg>"##;
     let frame = admit_both(standalone);
     assert_eq!(
-        frame.nodes.len(),
+        frame.nodes().len(),
         1,
         "the standalone outermost svg ignores display: none (measured)"
     );
@@ -168,7 +176,7 @@ fn a_root_display_none_splits_by_entry() {
     let html = r##"<html><body><svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" display="none"><rect width="64" height="64" fill="#16a34a"/></svg></body></html>"##;
     let inline = websem::compile_html_inline_svg(html).expect("the inline entry admits");
     assert_eq!(
-        inline.nodes.len(),
+        inline.nodes().len(),
         0,
         "an embedded root generates no box (measured)"
     );
@@ -189,7 +197,7 @@ fn hidden_elements_do_not_false_alarm_on_unconsumed_properties() {
         r##"  <rect x="8" y="8" width="24" height="24" fill="#16a34a" stroke="#000000" visibility="hidden" style="stroke-dasharray: 4 4"/>"##,
     ));
     assert_eq!(
-        hidden.nodes.len(),
+        hidden.nodes().len(),
         0,
         "hidden: the property reaches nothing"
     );
@@ -219,7 +227,7 @@ fn display_contents_stays_a_named_refusal() {
     );
     let best = SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport())
         .expect("best-effort declares");
-    assert_eq!(best.base_frame().nodes.len(), 0, "a declared hole");
+    assert_eq!(best.base_frame().nodes().len(), 0, "a declared hole");
     assert!(
         best.degradations()[0]
             .reason()

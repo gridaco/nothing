@@ -10,7 +10,8 @@
 //! objects, and no serialization.
 //!
 //! It is deliberately minimal (solid- and gradient-filled rectangles,
-//! ellipses, and paths) and
+//! ellipses, and paths, composited flat or through isolated opacity
+//! scopes) and
 //! **breakable**: the enums grow as real producers force new visual facts, and
 //! the sharing boundary moves *down* (toward the engine's private drawlist)
 //! rather than admit a source-specific field.
@@ -23,6 +24,7 @@ use math2::Rectangle;
 use math2::transform::AffineTransform;
 
 use crate::path::PathData;
+use crate::scope::Scope;
 use crate::stroke::Stroke;
 
 /// Why a producer paint stack cannot enter the admitted resolved contract.
@@ -216,7 +218,141 @@ pub struct FrameNode {
     pub stroke: Option<Stroke>,
 }
 
-/// The resolved frame: an ordered list of nodes in painter order, plus the
+/// One entry of the painter-ordered item stream: a painted node, or a
+/// scope boundary.
+///
+/// A scope's contents are the items between its begin and its end — a
+/// contiguous span, because an isolated group *is* a contiguous span of
+/// painter order. Balance, nesting depth, and non-emptiness are invariants
+/// of [`FrameItems`] construction, so a consumer matching on this enum
+/// never meets a dangling boundary.
+#[derive(Clone, Debug, PartialEq)]
+pub enum FrameItem {
+    /// One resolved painted node.
+    Node(FrameNode),
+    /// The following items, up to the matching [`FrameItem::ScopeEnd`],
+    /// composite as one isolated group under this scope's effect.
+    ScopeBegin(Scope),
+    /// Closes the innermost open scope.
+    ScopeEnd,
+}
+
+/// The deepest scope nesting a checked stream admits. Mirrors the
+/// producer-side container bound so a within-slice source can never
+/// out-nest its own contract.
+pub const MAX_SCOPE_DEPTH: usize = 64;
+
+/// Why a producer item stream cannot enter the admitted resolved contract.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FrameItemsError {
+    /// A [`FrameItem::ScopeEnd`] at this index closes no open scope.
+    UnopenedScopeEnd { index: usize },
+    /// The [`FrameItem::ScopeBegin`] at this index is never closed.
+    UnclosedScope { index: usize },
+    /// The [`FrameItem::ScopeBegin`] at this index encloses nothing. An
+    /// empty group is not a resolved visual fact — a producer whose scope
+    /// resolved to nothing states nothing.
+    EmptyScope { index: usize },
+    /// The [`FrameItem::ScopeBegin`] at this index nests deeper than
+    /// [`MAX_SCOPE_DEPTH`].
+    ScopeTooDeep { index: usize },
+}
+
+impl std::fmt::Display for FrameItemsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FrameItemsError::UnopenedScopeEnd { index } => {
+                write!(f, "item {index} ends a scope no begin opened")
+            }
+            FrameItemsError::UnclosedScope { index } => {
+                write!(f, "the scope begun at item {index} is never closed")
+            }
+            FrameItemsError::EmptyScope { index } => {
+                write!(f, "the scope begun at item {index} encloses nothing")
+            }
+            FrameItemsError::ScopeTooDeep { index } => write!(
+                f,
+                "the scope begun at item {index} nests deeper than {MAX_SCOPE_DEPTH}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for FrameItemsError {}
+
+/// A checked painter-ordered item stream: every scope is balanced,
+/// non-empty, and nested within [`MAX_SCOPE_DEPTH`].
+///
+/// Like [`PathData`], this is a checked type: construction proves the
+/// invariants once, and a consumer trusts them rather than re-deriving
+/// them.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct FrameItems(Vec<FrameItem>);
+
+impl FrameItems {
+    pub fn try_new(items: Vec<FrameItem>) -> Result<Self, FrameItemsError> {
+        let mut open = Vec::new();
+        for (index, item) in items.iter().enumerate() {
+            match item {
+                FrameItem::Node(_) => {}
+                FrameItem::ScopeBegin(_) => {
+                    if open.len() >= MAX_SCOPE_DEPTH {
+                        return Err(FrameItemsError::ScopeTooDeep { index });
+                    }
+                    open.push(index);
+                }
+                FrameItem::ScopeEnd => {
+                    let Some(begin) = open.pop() else {
+                        return Err(FrameItemsError::UnopenedScopeEnd { index });
+                    };
+                    if begin + 1 == index {
+                        return Err(FrameItemsError::EmptyScope { index: begin });
+                    }
+                }
+            }
+        }
+        if let Some(&begin) = open.first() {
+            return Err(FrameItemsError::UnclosedScope { index: begin });
+        }
+        Ok(Self(items))
+    }
+
+    /// A scope-free stream is trivially checked.
+    pub fn from_nodes(nodes: Vec<FrameNode>) -> Self {
+        Self(nodes.into_iter().map(FrameItem::Node).collect())
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &FrameItem> {
+        self.0.iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    /// The painted nodes in painter order, flattened across scopes.
+    pub fn nodes(&self) -> impl Iterator<Item = &FrameNode> {
+        self.0.iter().filter_map(|item| match item {
+            FrameItem::Node(node) => Some(node),
+            FrameItem::ScopeBegin(_) | FrameItem::ScopeEnd => None,
+        })
+    }
+}
+
+impl<'a> IntoIterator for &'a FrameItems {
+    type Item = &'a FrameItem;
+    type IntoIter = std::slice::Iter<'a, FrameItem>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+/// The resolved frame: a checked item stream in painter order, plus the
 /// frame's own bounds (the viewport the frame is clipped to).
 #[derive(Clone, Debug, PartialEq)]
 pub struct Frame {
@@ -224,6 +360,15 @@ pub struct Frame {
     pub owner: VisualRef,
     /// The frame viewport, in frame space. Content is clipped to it.
     pub bounds: Rectangle,
-    /// Resolved nodes, in painter order (first painted first).
-    pub nodes: Vec<FrameNode>,
+    /// Painter-ordered items (first painted first).
+    pub items: FrameItems,
+}
+
+impl Frame {
+    /// The painted nodes in painter order, flattened across scopes —
+    /// indexable convenience for laws and diagnostics; a consumer that
+    /// composites walks [`Frame::items`] instead.
+    pub fn nodes(&self) -> Vec<&FrameNode> {
+        self.items.nodes().collect()
+    }
 }

@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (166)
+## Chromium-baked cells (167)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells and two gradient ramps carry a declared, bounded
@@ -194,8 +194,9 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-gradient-fill-opacity.svg" title="svg-gradient-fill-opacity (standalone-svg)"><img src="./chromium/svg-gradient-fill-opacity.png" width="56" alt="svg-gradient-fill-opacity"></a>
 <a href="./svg-gradient-hard-stop.svg" title="svg-gradient-hard-stop (standalone-svg)"><img src="./chromium/svg-gradient-hard-stop.png" width="56" alt="svg-gradient-hard-stop"></a>
 <a href="./svg-gradient-stylesheet-fill.svg" title="svg-gradient-stylesheet-fill (standalone-svg)"><img src="./chromium/svg-gradient-stylesheet-fill.png" width="56" alt="svg-gradient-stylesheet-fill"></a>
+<a href="./svg-element-opacity.svg" title="svg-element-opacity (standalone-svg)"><img src="./chromium/svg-element-opacity.png" width="56" alt="svg-element-opacity"></a>
 
-## The refusal register (47)
+## The refusal register (48)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -210,7 +211,7 @@ its row into the cells above.
 | `svg-css-transform-box` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform-box, which this cascade does not represent |
 | `svg-css-transform-origin` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform-origin, which this cascade does not represent |
 | `svg-display-contents` | declared | skipped svg/g[1]: unsupported computed style: display: contents is not yet consumed |
-| `svg-element-opacity` | declared | skipped svg/rect[2]: unsupported rendering attribute opacity on <rect> (not yet consumed) |
+| `svg-element-opacity-gradient` | declared | skipped svg/rect[2]: unsupported computed style: opacity 0.5 over a gradient paint is not yet consumed (the paint carries one quantized alpha, and Chromium composites the element opacity after that quantization — expressing both needs a second paint-alpha factor) |
 | `svg-filter` | declared | skipped svg/filter[1]: unsupported element <filter>; skipped svg/rect[2]: unsupported rendering attribute filter on <rect> (not yet consumed) |
 | `svg-foreign-object` | declared | skipped svg/foreignObject[1]: unsupported element <foreignObject> |
 | `svg-gradient-focal` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): the radial gradient has a focal point or focal radius, which the shared radial paint leaf cannot state (concentric radials only)" |
@@ -234,6 +235,7 @@ its row into the cells above.
 | `svg-preserve-aspect-ratio-defer` | **both refuse** | preserveAspectRatio "defer xMidYMid meet" is invalid |
 | `svg-preserve-aspect-ratio-invalid-align` | **both refuse** | preserveAspectRatio "xMidYMiddle meet" is invalid |
 | `svg-rect-rounded` | declared | skipped svg/rect[2]: unsupported rendering attribute rx on <rect> (not yet consumed) |
+| `svg-root-opacity` | **both refuse** | unsupported computed style: opacity 0.5 on the root <svg> is not yet consumed (it composites the whole canvas, which needs a translucent surface entry) |
 | `svg-smil-animate-transform` | declared | skipped svg/g[1]: its authored state is overridden at document load by the unsupported animation at svg/g[1]/animateTransform[1]: animation element <animateTransform> is outside the rect-x proving slice |
 | `svg-smil-retarget-href` | **both refuse** | SVG animation at svg/rect[2]/set[1] is unsupported: animation element <set> is outside the rect-x proving slice; it carries href, so its target cannot be attributed to one element without id resolution; it is active at document load, so the authored state it overrides cannot render as the Base view |
 | `svg-smil-set-load-active` | declared | skipped svg/rect[2]: its authored state is overridden at document load by the unsupported animation at svg/rect[2]/set[1]: animation element <set> is outside the rect-x proving slice |

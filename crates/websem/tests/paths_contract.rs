@@ -70,7 +70,7 @@ fn admit(source: &str, stylesheet: bool) -> rframe::Frame {
 
 /// The resolved path of node `index`, asserting the path variant.
 fn path_of(frame: &rframe::Frame, index: usize) -> &rframe::PathData {
-    match &frame.nodes[index].geometry {
+    match &frame.nodes()[index].geometry {
         Geometry::Path(path) => path,
         other => panic!("expected path geometry, got {other:?}"),
     }
@@ -101,7 +101,7 @@ fn line_to(x: f32, y: f32) -> PathCommand {
 #[test]
 fn a_closed_polygon_resolves_to_its_absolute_command_stream() {
     let frame = admit_both(&path_document("M10 10 L54 10 L54 54 Z"));
-    assert_eq!(frame.nodes.len(), 1);
+    assert_eq!(frame.nodes().len(), 1);
     let path = path_of(&frame, 0);
     assert_eq!(
         path.commands(),
@@ -120,8 +120,8 @@ fn a_closed_polygon_resolves_to_its_absolute_command_stream() {
         "the tight extent of the geometry"
     );
     assert_eq!(
-        frame.nodes[0].bounds,
-        math2::rect_transform(path.local_bounds(), &frame.nodes[0].transform),
+        frame.nodes()[0].bounds,
+        math2::rect_transform(path.local_bounds(), &frame.nodes()[0].transform),
         "the exact-bounds law holds for a path like any other geometry"
     );
 }
@@ -273,7 +273,7 @@ fn a_closed_move_only_contour_is_a_zero_length_contour_not_nothing() {
     );
     // Alone, it is the whole path — a node, not an absence.
     let frame = admit_both(&path_document("M20 20 Z"));
-    assert_eq!(frame.nodes.len(), 1);
+    assert_eq!(frame.nodes().len(), 1);
     let path = path_of(&frame, 0);
     assert_eq!(
         path.commands(),
@@ -327,7 +327,7 @@ fn a_path_that_draws_nothing_resolves_to_no_node() {
         r##"  <path fill="#16a34a" d="M20 20 M30 30"/>"##,
     ] {
         let frame = admit_both(&document(body));
-        assert!(frame.nodes.is_empty(), "body={body:?}");
+        assert!(frame.nodes().is_empty(), "body={body:?}");
     }
 }
 
@@ -499,7 +499,7 @@ fn a_malformed_d_refuses_the_whole_path_at_its_offset() {
         "the reason names the offset: {}",
         best.degradations()[0].reason()
     );
-    assert!(best.base_frame().nodes.is_empty());
+    assert!(best.base_frame().nodes().is_empty());
 }
 
 /// Path data must begin with a moveto. Chromium's valid prefix is empty in
@@ -542,7 +542,7 @@ fn an_elliptical_arc_refuses_by_name_in_both_admissions() {
                 .expect("best-effort declares it");
         assert_eq!(best.degradations().len(), 1);
         assert_eq!(best.degradations()[0].path(), "svg/path[1]");
-        assert!(best.base_frame().nodes.is_empty(), "no guessed curve");
+        assert!(best.base_frame().nodes().is_empty(), "no guessed curve");
     }
     // A *malformed* arc is malformed, not unsupported: the whole argument list
     // is parsed before the refusal, so the two never trade places.
@@ -624,7 +624,7 @@ fn a_path_transform_composes_like_any_other_shape() {
   </g>"##,
     ));
     assert_eq!(
-        frame.nodes[0].transform,
+        frame.nodes()[0].transform,
         AffineTransform::from_acebdf(2.0, 0.0, 2.0, 0.0, 2.0, 2.0)
     );
     assert_eq!(
@@ -633,8 +633,11 @@ fn a_path_transform_composes_like_any_other_shape() {
         "the transform never enters the resolved geometry"
     );
     assert_eq!(
-        frame.nodes[0].bounds,
-        math2::rect_transform(path_of(&frame, 0).local_bounds(), &frame.nodes[0].transform),
+        frame.nodes()[0].bounds,
+        math2::rect_transform(
+            path_of(&frame, 0).local_bounds(),
+            &frame.nodes()[0].transform
+        ),
         "the exact-bounds law survives composition"
     );
 }

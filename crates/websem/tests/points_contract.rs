@@ -47,7 +47,7 @@ fn admit_both(source: &str) -> rframe::Frame {
 }
 
 fn commands(frame: &rframe::Frame, index: usize) -> &[PathCommand] {
-    let Geometry::Path(path) = &frame.nodes[index].geometry else {
+    let Geometry::Path(path) = &frame.nodes()[index].geometry else {
         panic!("points shapes lower to paths");
     };
     path.commands()
@@ -58,7 +58,7 @@ fn a_polygon_lowers_to_a_closed_line_path() {
     let frame = admit_both(&document(
         r##"  <polygon points="8,8 56,8 32,56" fill="#16a34a"/>"##,
     ));
-    assert_eq!(frame.nodes.len(), 1);
+    assert_eq!(frame.nodes().len(), 1);
     assert_eq!(
         commands(&frame, 0),
         &[
@@ -97,7 +97,8 @@ fn a_polygon_equals_its_equivalent_path() {
         r##"  <path d="M8 8L56 8L32 56Z" fill="#16a34a"/>"##,
     ));
     assert_eq!(
-        polygon.nodes[0].geometry, path.nodes[0].geometry,
+        polygon.nodes()[0].geometry,
+        path.nodes()[0].geometry,
         "one geometry, two grammars"
     );
     assert_eq!(
@@ -127,10 +128,11 @@ fn fill_rule_comes_from_the_cascade() {
     .expect("strict admits the sheet at Base")
     .base_frame();
     assert_eq!(
-        attribute.nodes[0].geometry, sheet.nodes[0].geometry,
+        attribute.nodes()[0].geometry,
+        sheet.nodes()[0].geometry,
         "both spellings reach the shape through the cascade"
     );
-    let Geometry::Path(path) = &attribute.nodes[0].geometry else {
+    let Geometry::Path(path) = &attribute.nodes()[0].geometry else {
         panic!("a polygon lowers to a path");
     };
     assert_eq!(path.fill_rule(), rframe::FillRule::EvenOdd);
@@ -204,7 +206,7 @@ fn a_trailing_separator_after_the_last_pair_is_admitted() {
     let clean = admit_both(&document(
         r##"  <polygon points="8,8 56,8 32,56" fill="#16a34a"/>"##,
     ));
-    assert_eq!(trailing.nodes[0].geometry, clean.nodes[0].geometry);
+    assert_eq!(trailing.nodes()[0].geometry, clean.nodes()[0].geometry);
 }
 
 /// An erroneous list refuses the whole element by name, with the byte
@@ -236,7 +238,11 @@ fn an_erroneous_points_list_refuses_the_whole_element_by_name() {
 
         let best = SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport())
             .unwrap_or_else(|error| panic!("{label}: best-effort compiles: {error}"));
-        assert_eq!(best.base_frame().nodes.len(), 0, "{label}: a declared hole");
+        assert_eq!(
+            best.base_frame().nodes().len(),
+            0,
+            "{label}: a declared hole"
+        );
         assert_eq!(best.degradations().len(), 1, "{label}");
         assert!(
             best.degradations()[0]
@@ -263,7 +269,7 @@ fn a_single_point_splits_by_closure() {
     let polygon = admit_both(&document(
         r##"  <polygon points="32,32" fill="none" stroke="#000000" stroke-width="8" stroke-linecap="square"/>"##,
     ));
-    assert_eq!(polygon.nodes.len(), 1);
+    assert_eq!(polygon.nodes().len(), 1);
     assert_eq!(
         commands(&polygon, 0),
         &[
@@ -278,7 +284,7 @@ fn a_single_point_splits_by_closure() {
         r##"  <polyline points="32,32" fill="none" stroke="#000000" stroke-width="8" stroke-linecap="square"/>"##,
     ));
     assert_eq!(
-        polyline.nodes.len(),
+        polyline.nodes().len(),
         0,
         "a move-only open contour paints nothing under any cap (measured)"
     );
@@ -294,7 +300,7 @@ fn empty_and_missing_points_render_nothing() {
         r##"  <polyline points="   " fill="#16a34a"/>"##,
     ] {
         let frame = admit_both(&document(body));
-        assert_eq!(frame.nodes.len(), 0, "{body}: an admitted nothing");
+        assert_eq!(frame.nodes().len(), 0, "{body}: an admitted nothing");
     }
 }
 
@@ -317,7 +323,11 @@ fn points_shapes_are_patrolled_like_paths() {
         );
         let best = SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport())
             .unwrap_or_else(|error| panic!("{label}: best-effort compiles: {error}"));
-        assert_eq!(best.base_frame().nodes.len(), 0, "{label}: a declared hole");
+        assert_eq!(
+            best.base_frame().nodes().len(),
+            0,
+            "{label}: a declared hole"
+        );
         assert!(
             best.degradations()[0].reason().contains(named),
             "{label}: named; got {}",

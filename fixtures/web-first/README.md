@@ -62,6 +62,7 @@ is exactly what the engine renders pixel-for-pixel.
 | `svg-fill-opacity-inherited.svg` | `fill-opacity` inherits through a `<g>`, and two translucent siblings composite over each other. |
 | `svg-stroke-opacity-over-fill.svg` | The compositing split: a translucent stroke paints over its own opaque fill — the inner half composites over the fill, the outer over the canvas. |
 | `svg-stroke-opacity-join.svg` | A translucent stroke is one paint pass: the miter join's self-overlap does not double-blend. |
+| `svg-element-opacity.svg` | The group-scope rung's graduated refusal fixture: element `opacity` on a lone unstroked rect **folds** into the fill's alpha — one float product with the colour's alpha and `fill-opacity`, quantized once, measured byte-identical to Chromium's own fold route. |
 | `svg-percent-rect-in-viewbox.svg` · `svg-percent-rect-root-units.svg` | Percentage geometry resolves against the viewport's user-unit extent: the `viewBox` when one maps the viewport, the root's own extent otherwise. |
 | `svg-percent-circle-diagonal.svg` · `svg-percent-ellipse.svg` | The axis split on a non-square viewport: `cx`/`rx` against the width, `cy`/`ry` against the height, and a circle's `r` against the normalized diagonal `sqrt(w²+h²)/√2`. |
 | `svg-percent-line.svg` | Percentage line endpoints, per axis. |

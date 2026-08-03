@@ -741,6 +741,12 @@ fn admitted_svg_presentation_property(local: &str) -> Option<LonghandId> {
         // percentage, clamped) exactly as the SVG2 presentation attribute.
         "fill-opacity" => Some(LonghandId::FillOpacity),
         "stroke-opacity" => Some(LonghandId::StrokeOpacity),
+        // The group-scope rung's addition: element `opacity` is the same
+        // <alpha-value> grammar as a presentation attribute (measured: the
+        // percentage spelling paints, an author rule or style attribute
+        // beats it, and an invalid value drops so the element renders
+        // opaque), consumed by websem as a fold or a compositing scope.
+        "opacity" => Some(LonghandId::Opacity),
         // The use/defs rung's addition: `color` is the `currentColor`
         // basis, inherited, and Chromium honors the attribute spelling
         // (measured: `color` on a `<use>` colors a `currentColor` fill

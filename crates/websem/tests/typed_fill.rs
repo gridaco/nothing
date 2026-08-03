@@ -27,7 +27,7 @@ fn paint_server_fill_honors_the_authored_fallback() {
     )
     .expect("an invalid reference without a fallback is admitted");
     assert!(
-        without.nodes[0].paints.is_empty(),
+        without.nodes()[0].paints.is_empty(),
         "no fallback paints nothing"
     );
 
@@ -36,7 +36,7 @@ fn paint_server_fill_honors_the_authored_fallback() {
         host_viewport(),
     )
     .expect("an invalid reference with a fallback is admitted");
-    let cg::Paint::Solid(solid) = with.nodes[0]
+    let cg::Paint::Solid(solid) = with.nodes()[0]
         .paints
         .iter()
         .next()
@@ -85,7 +85,7 @@ fn translucent_fill_folds_into_the_paint_alpha() {
         host_viewport(),
     )
     .expect("a translucent fill is admitted");
-    let cg::Paint::Solid(solid) = frame.nodes[0].paints.iter().next().expect("one paint") else {
+    let cg::Paint::Solid(solid) = frame.nodes()[0].paints.iter().next().expect("one paint") else {
         panic!("expected a solid paint");
     };
     assert_eq!(solid.color.a(), 128, "alpha 0.5 quantizes to 128, once");
@@ -101,7 +101,7 @@ fn css_fill_opacity_multiplies_into_the_paint_alpha() {
         host_viewport(),
     )
     .expect("fill-opacity is consumed");
-    let cg::Paint::Solid(solid) = frame.nodes[0].paints.iter().next().expect("one paint") else {
+    let cg::Paint::Solid(solid) = frame.nodes()[0].paints.iter().next().expect("one paint") else {
         panic!("expected a solid paint");
     };
     assert_eq!(solid.color.a(), 128);

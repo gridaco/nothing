@@ -25,7 +25,7 @@ fn viewport(width: f32, height: f32) -> InitialViewport {
 
 /// The local geometry box of node `index`, asserting the ellipse variant.
 fn ellipse_box(frame: &rframe::Frame, index: usize) -> Rectangle {
-    match &frame.nodes[index].geometry {
+    match &frame.nodes()[index].geometry {
         Geometry::Ellipse(rect) => *rect,
         other => panic!("expected ellipse geometry, got {other:?}"),
     }
@@ -86,15 +86,15 @@ fn circle_resolves_to_its_inscribing_box() {
     let frame = admit_both(&on_canvas(
         r##"<circle cx="32" cy="32" r="12" fill="#16a34a"/>"##,
     ));
-    assert_eq!(frame.nodes.len(), 2);
+    assert_eq!(frame.nodes().len(), 2);
     assert_eq!(
         ellipse_box(&frame, 1),
         Rectangle::from_xywh(20.0, 20.0, 24.0, 24.0),
         "the circle's local geometry is the box inscribing it"
     );
-    assert_eq!(frame.nodes[1].transform, AffineTransform::identity());
+    assert_eq!(frame.nodes()[1].transform, AffineTransform::identity());
     assert_eq!(
-        frame.nodes[1].bounds,
+        frame.nodes()[1].bounds,
         Rectangle::from_xywh(20.0, 20.0, 24.0, 24.0)
     );
 }
@@ -121,12 +121,12 @@ fn circle_geometry_stays_local_under_a_scaling_viewport() {
         "geometry is authored user units"
     );
     assert_eq!(
-        frame.nodes[0].transform,
+        frame.nodes()[0].transform,
         AffineTransform::from_acebdf(2.0, 0.0, 0.0, 0.0, 2.0, 0.0),
         "the one viewport transform carries the scale"
     );
     assert_eq!(
-        frame.nodes[0].bounds,
+        frame.nodes()[0].bounds,
         Rectangle::from_xywh(16.0, 16.0, 32.0, 32.0)
     );
 }
@@ -312,7 +312,7 @@ fn percentage_geometry_resolves_against_the_axis_bases() {
   <rect x="25%" y="25%" width="50%" height="50%" fill="#16a34a"/>
 </svg>"##,
     );
-    let rframe::Geometry::Rect(rect) = &viewbox.nodes[0].geometry else {
+    let rframe::Geometry::Rect(rect) = &viewbox.nodes()[0].geometry else {
         panic!("a rect");
     };
     assert_eq!(
@@ -463,7 +463,7 @@ fn cascade_properties_the_build_cannot_represent_refuse_by_name() {
         declared[0].reason()
     );
     assert_eq!(
-        best.base_frame().nodes.len(),
+        best.base_frame().nodes().len(),
         2,
         "the admitted shapes still render"
     );
@@ -616,7 +616,7 @@ fn animate_under_a_circle_is_a_load_active_override() {
     let best = SvgFrameSource::from_standalone_svg_best_effort(source, viewport(64.0, 64.0))
         .expect("best-effort");
     assert_eq!(
-        best.base_frame().nodes.len(),
+        best.base_frame().nodes().len(),
         1,
         "the circle is a declared hole; the backdrop renders"
     );

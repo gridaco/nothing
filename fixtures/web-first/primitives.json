@@ -1416,6 +1416,14 @@
       "oracle": "chromium/svg-gradient-stylesheet-fill.png",
       "width": 64,
       "height": 64
+    },
+    {
+      "id": "svg-element-opacity",
+      "source": "svg-element-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-element-opacity.png",
+      "width": 64,
+      "height": 64
     }
   ]
 }

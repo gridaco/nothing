@@ -54,8 +54,8 @@ fn refusal(source: &str) -> CompileError {
 }
 
 fn sole_fill(frame: &rframe::Frame) -> &cg::Paint {
-    assert_eq!(frame.nodes.len(), 1, "one shape");
-    frame.nodes[0].paints.iter().next().expect("one paint")
+    assert_eq!(frame.nodes().len(), 1, "one shape");
+    frame.nodes()[0].paints.iter().next().expect("one paint")
 }
 
 fn linear_of(paint: &cg::Paint) -> &cg::LinearGradientPaint {
@@ -122,7 +122,7 @@ fn a_noninvertible_gradient_transform_paints_nothing() {
         r##"  <defs><linearGradient id="g" gradientTransform="scale(0)">{RAMP}</linearGradient></defs>
   {RECT}"##
     )));
-    assert!(frame.nodes[0].paints.is_empty());
+    assert!(frame.nodes()[0].paints.is_empty());
 }
 
 /// A percentage in a gradient element's computed transform refuses by name:
@@ -184,7 +184,7 @@ fn a_reference_cycle_kills_only_the_edge() {
   <rect x="8" y="8" width="48" height="48" fill="url(#g) red"/>"##,
     ));
     assert!(
-        composed_empty.nodes[0].paints.is_empty(),
+        composed_empty.nodes()[0].paints.is_empty(),
         "a valid reference that composes to zero stops paints nothing, fallback unfired"
     );
 }

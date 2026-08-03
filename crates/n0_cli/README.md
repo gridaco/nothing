@@ -88,8 +88,23 @@ cargo run -p n0_cli --bin n0 -- \
   miter limit come from the one cascade; dashing does not. Paint is solid
   sRGB, opaque or translucent: `fill-opacity`, `stroke-opacity`, and a
   colour's own alpha multiply in float and quantize once (the translucency
-  rung), Chromium-baked; element `opacity` needs a compositing scope and
-  stays a named refusal.
+  rung), Chromium-baked.
+  Element `opacity` is consumed (the group-scope rung), in every spelling
+  (presentation attribute, style attribute, stylesheet — one <alpha-value>
+  grammar, clamped exactly as Chromium clamps), by the measured fold rule:
+  over a single un-transformed, un-folded draw it folds into that draw's
+  paint — joining the translucency rung's one float product, quantized once
+  (byte-identical in Chromium) — and everything else composites through a
+  real isolated layer: a shape's fill and stroke together, a group of
+  several draws, nested opacities (which quantize per layer and never
+  flatten to a product — measured one code value apart), and any opacity
+  whose content carries a transform strictly below it. `opacity: 0` renders
+  the correct nothing. `<use>` and `<a>` scope exactly as `<g>`. What
+  refuses by name: element opacity folding over a gradient or `url()`
+  paint (the paint carries one quantized alpha, and Chromium composites
+  the element factor after that quantization), and the root `<svg>`'s own
+  opacity (it composites the whole canvas, which the opaque raster surface
+  cannot express — like the root's transform).
   `<linearGradient>` and `<radialGradient>` paint servers are consumed
   (the gradient rung): `fill`/`stroke` `url(#…)` references resolve through
   a whole-document, first-id-wins gradient table (shadow-content clones

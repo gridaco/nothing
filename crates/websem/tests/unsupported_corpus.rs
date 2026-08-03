@@ -63,7 +63,17 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "display: contents",
     ),
-    ("svg-element-opacity", DeclaredByBestEffort, "opacity"),
+    // `svg-element-opacity` graduated with the group-scope rung (its
+    // fixture is now a baked cell); the family's still-refused members
+    // each hold a row: the fold over a gradient paint (the paint carries
+    // one quantized alpha, and Chromium composites the element opacity
+    // after that quantization) and the root, whose opacity composites the
+    // whole canvas — inexpressible over this engine's opaque surface.
+    (
+        "svg-element-opacity-gradient",
+        DeclaredByBestEffort,
+        "gradient",
+    ),
     ("svg-filter", DeclaredByBestEffort, "<filter>"),
     (
         "svg-foreign-object",
@@ -149,6 +159,7 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "preserveAspectRatio",
     ),
     ("svg-rect-rounded", DeclaredByBestEffort, "rx"),
+    ("svg-root-opacity", BothRefuse, "root <svg>"),
     (
         "svg-smil-animate-transform",
         DeclaredByBestEffort,

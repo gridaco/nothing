@@ -183,13 +183,13 @@ fn rgba_sha256_file(path: &Path) -> String {
 /// The `x` of the fixture's animated node, which the suite declares by index.
 fn probe_x(frame: &Frame, fixture: &Fixture) -> f32 {
     assert_eq!(
-        frame.nodes.len(),
+        frame.nodes().len(),
         fixture.frame.node_count,
         "{} materializes exactly its declared node count",
         fixture.id
     );
-    let node = frame
-        .nodes
+    let nodes = frame.nodes();
+    let node = nodes
         .get(fixture.frame.animated_node_index)
         .unwrap_or_else(|| panic!("{} declares an out-of-range animated node", fixture.id));
     let Geometry::Rect(rect) = &node.geometry else {
@@ -424,7 +424,8 @@ fn retained_samples_are_exact_to_chromium_and_seek_order_independent() {
             );
             let animated = fixture.frame.animated_node_index;
             assert_eq!(
-                first.nodes[animated].owner, base.nodes[animated].owner,
+                first.nodes()[animated].owner,
+                base.nodes()[animated].owner,
                 "{id} {}ns stable visual identity",
                 sample.time_ns
             );
@@ -484,9 +485,11 @@ fn chassis_damage_observes_the_same_stable_animated_visual() {
             .sample_frame(SampleTime::from_nanoseconds(1_000_000_000))
             .unwrap_or_else(|error| panic!("{id} midpoint sample: {error}"));
         let animated = fixture.frame.animated_node_index;
-        let owner = base.nodes[animated].owner;
-        let expected_union =
-            math2::union(&[base.nodes[animated].bounds, midpoint.nodes[animated].bounds]);
+        let owner = base.nodes()[animated].owner;
+        let expected_union = math2::union(&[
+            base.nodes()[animated].bounds,
+            midpoint.nodes()[animated].bounds,
+        ]);
 
         let before = n0::glyphless::compile(base).expect("compile Base product");
         let after = n0::glyphless::compile(midpoint).expect("compile sample product");
@@ -571,7 +574,7 @@ fn load_active_animation_refuses_at_construction_and_skips_by_declaration() {
             .expect("best-effort compiles, skipping the target");
         assert!(best.has_animation_elements());
         assert_eq!(
-            best.base_frame().nodes.len(),
+            best.base_frame().nodes().len(),
             0,
             "the target is a declared hole in the Base view"
         );
@@ -733,28 +736,29 @@ fn sampled_overrides_stay_local_under_a_scaling_viewport() {
     let viewport = math2::transform::AffineTransform::from_acebdf(2.0, 0.0, 0.0, 0.0, 2.0, 0.0);
     let base = animated.base_frame();
     assert_eq!(base.bounds, Rectangle::from_xywh(0.0, 0.0, 64.0, 32.0));
-    assert_eq!(base.nodes[0].transform, viewport);
+    assert_eq!(base.nodes()[0].transform, viewport);
 
     let sampled = animated
         .sample_frame(SampleTime::from_nanoseconds(1_000_000_000))
         .expect("midpoint sample");
     assert_eq!(
-        sampled.nodes[0].transform, viewport,
+        sampled.nodes()[0].transform,
+        viewport,
         "time never touches the viewport mapping"
     );
-    let Geometry::Rect(rect) = &sampled.nodes[0].geometry else {
+    let Geometry::Rect(rect) = &sampled.nodes()[0].geometry else {
         panic!("these animation fixtures materialize rects only");
     };
     assert_eq!(rect.x, 8.0, "the sampled override is local, pre-transform");
     assert_eq!(
-        sampled.nodes[0].bounds,
+        sampled.nodes()[0].bounds,
         math2::rect_transform(*rect, &viewport),
         "bounds follow the one transform"
     );
 }
 
 fn probe_single_x(frame: &Frame) -> f32 {
-    let Geometry::Rect(rect) = &frame.nodes[0].geometry else {
+    let Geometry::Rect(rect) = &frame.nodes()[0].geometry else {
         panic!("these animation fixtures materialize rects only");
     };
     rect.x

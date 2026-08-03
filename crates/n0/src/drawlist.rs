@@ -87,9 +87,23 @@ impl TextPaints {
 /// space; the executor applies `world` and the host view.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ItemKind {
+    /// The model's node opacity: the group layer is initialized with the
+    /// backdrop so descendant paint blend modes see the accumulated result,
+    /// and the restore blends `opacity·group + (1−opacity)·backdrop`
+    /// arithmetically.
     BeginOpacity {
         opacity: f32,
     },
+    /// The Web's group opacity: an **isolated** layer that starts empty, so
+    /// contents blend only among themselves, and the restore composites the
+    /// layer source-over at this opacity. Byte-distinct from
+    /// [`ItemKind::BeginOpacity`] (measured: the two quantize one code value
+    /// apart against the Chromium oracle), which is why it is a second
+    /// meaning and not a flag.
+    BeginIsolatedOpacity {
+        opacity: f32,
+    },
+    /// Closes the innermost opacity scope, of either meaning.
     EndOpacity,
     BeginClipRect {
         w: f32,

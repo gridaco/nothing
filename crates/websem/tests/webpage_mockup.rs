@@ -16,7 +16,7 @@ const HTML: &str = include_str!(concat!(
 
 fn solid_colors(frame: &rframe::Frame) -> Vec<[u8; 4]> {
     frame
-        .nodes
+        .nodes()
         .iter()
         .flat_map(|n| n.paints.iter())
         .map(|paint| match paint {
@@ -30,9 +30,9 @@ fn solid_colors(frame: &rframe::Frame) -> Vec<[u8; 4]> {
 fn webpage_mockup_cascades_brand_color_into_inline_svg() {
     let frame = compile_html_inline_svg(HTML).expect("compile webpage mockup");
     assert!(
-        frame.nodes.len() > 10,
+        frame.nodes().len() > 10,
         "the mockup is a multi-rect layout, got {} nodes",
-        frame.nodes.len()
+        frame.nodes().len()
     );
     let colors = solid_colors(&frame);
     // #4a3aa7 is authored only in the HTML `<style> .brand` rule; its presence

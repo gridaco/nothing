@@ -4,7 +4,7 @@
   "browser_version": "149.0.7827.55",
   "bake_script_sha256": "373cbea5476067163b6f8ebfc90eb49b7f49ae7758be0916d34db906399e1d5e",
   "suite": "primitives.json",
-  "suite_sha256": "1a7a57a9d61d0a0ddd765009bb3bd99b254427290ae68f126d79c233b0ec53c8",
+  "suite_sha256": "f0a97c746e6567e65a57281aca9340e6867998b8247a0347bb1a0c6cb3e4550a",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -1509,6 +1509,15 @@
       "source_sha256": "7dec8883c548abb7e11943c77563d30ed438fded178bf7b83efbfe908c68fb4f",
       "oracle": "chromium/svg-gradient-stylesheet-fill.png",
       "oracle_sha256": "b5696e4375f2b989b7f799312f91d73ab7e694dc7c21907680a090ccf6441d97",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-element-opacity",
+      "source": "svg-element-opacity.svg",
+      "source_sha256": "d96423f12fc6cfefd37f14d2084de1ea8affcea28e2435f791c458c1a1b64a74",
+      "oracle": "chromium/svg-element-opacity.png",
+      "oracle_sha256": "61cfaf8092af32870a0f0faff6c3614c7b9e4dac75eb6209b864599d9f84de7d",
       "width": 64,
       "height": 64
     }

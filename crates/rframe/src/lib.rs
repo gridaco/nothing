@@ -14,10 +14,13 @@
 
 mod frame;
 mod path;
+mod scope;
 mod stroke;
 
 pub use frame::{
-    Frame, FrameNode, Geometry, Identity, PaintStack, PaintStackError, Provenance, VisualRef,
+    Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry, Identity, MAX_SCOPE_DEPTH,
+    PaintStack, PaintStackError, Provenance, VisualRef,
 };
 pub use path::{FillRule, PathCommand, PathData, PathDataError};
+pub use scope::{Scope, ScopeEffect, ScopeOpacity, ScopeOpacityError};
 pub use stroke::{Stroke, StrokeCap, StrokeError, StrokeJoin};

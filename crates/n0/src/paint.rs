@@ -609,6 +609,7 @@ pub(crate) fn preflight_gradients<K: Copy>(
                 }
             }
             ItemKind::BeginOpacity { .. }
+            | ItemKind::BeginIsolatedOpacity { .. }
             | ItemKind::EndOpacity
             | ItemKind::BeginClipRect { .. }
             | ItemKind::EndClip => {}
@@ -776,6 +777,7 @@ pub(crate) fn preflight_images(
                 }
             }
             ItemKind::BeginOpacity { .. }
+            | ItemKind::BeginIsolatedOpacity { .. }
             | ItemKind::EndOpacity
             | ItemKind::BeginClipRect { .. }
             | ItemKind::EndClip => {}
@@ -1716,6 +1718,19 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 let layer = SaveLayerRec::default()
                     .paint(&restore_paint)
                     .flags(SaveLayerFlags::INIT_WITH_PREVIOUS);
+                canvas.save_layer(&layer);
+                scopes.push(Scope::Opacity);
+            }
+            ItemKind::BeginIsolatedOpacity { opacity } => {
+                // The Web's isolated group: the layer starts empty (no
+                // backdrop copy), contents blend among themselves, and the
+                // restore composites the layer source-over modulated by the
+                // opacity — the plain Skia layer Chromium itself restores
+                // through, which is what makes the quantization match the
+                // oracle byte-for-byte.
+                let mut restore_paint = Paint::default();
+                restore_paint.set_alpha_f(opacity.clamp(0.0, 1.0));
+                let layer = SaveLayerRec::default().paint(&restore_paint);
                 canvas.save_layer(&layer);
                 scopes.push(Scope::Opacity);
             }
