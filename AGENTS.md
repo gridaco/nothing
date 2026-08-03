@@ -63,19 +63,9 @@ a comment.
 
 ## Setup
 
-```sh
-# 1. emsdk submodule (needed for WASM builds only). `bin/activate-emsdk` pins
-#    the SDK version and needs python >= 3.10 — macOS ships 3.9, so a WASM
-#    build there wants `brew install python` first.
-git submodule update --init
-
-# 2. Rust toolchain auto-pins via rust-toolchain.toml (rustfmt + clippy included)
-cargo --version
-
-# 3. ninja is required for skia-bindings
-brew install ninja            # macOS
-# sudo apt-get install -y ninja-build   # Ubuntu/Debian
-```
+[`docs/contributing/setup.md`](./docs/contributing/setup.md) is the statement of
+record — Rust toolchain and `ninja` for the base, the pinned emsdk for a WASM
+build. Do not restate it here.
 
 ## Commands
 
