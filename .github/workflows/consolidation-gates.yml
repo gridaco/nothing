@@ -235,7 +235,7 @@ jobs:
       N0_GATE_SOURCE_SHA: ${{ needs.scope.outputs.head }}
       N0_GATE_CI_RUN_ID: ${{ github.run_id }}
       N0_GATE_RUST_TOOLCHAIN: "1.92.0"
-      N0_GATE_SKIA_SAFE: "0.93.1"
+      N0_GATE_SKIA_SAFE: "0.99.0"
     steps:
       - name: Checkout head revision
         uses: actions/checkout@v4

@@ -2,7 +2,7 @@ use crate::{
     backends::skia::{sk_matrix, IntoSkia},
     cg::prelude::*,
 };
-use skia_safe::gradient_shader::{Gradient, GradientColors, Interpolation};
+use skia_safe::gradient::{Colors as GradientColors, Gradient, Interpolation};
 
 fn build_gradient_stops(
     stops: &[GradientStop],

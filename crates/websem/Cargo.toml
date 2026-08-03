@@ -38,7 +38,7 @@ n0 = { path = "../n0" }
 # Pixel gates drive Skia directly for CPU surfaces and committed Chromium
 # oracle PNG decode. Test-only; this does not widen websem's normal library
 # dependency graph.
-skia-safe = { version = "=0.93.1", features = [
+skia-safe = { version = "=0.99.0", features = [
   "gpu",
   "gl",
   "textlayout",
