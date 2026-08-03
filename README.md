@@ -109,7 +109,7 @@ yet: any layout engine, any editor host, any WebAssembly target.
 
 **Nothing here is published.** There are no releases, and the only shipped
 artifact in the tree is the frozen v1 wasm package. Run it from a clone —
-[setup](./AGENTS.md#setup).
+[setup](./docs/contributing/setup.md).
 
 ## One pipeline
 
