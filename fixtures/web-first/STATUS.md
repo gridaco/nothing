@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (167)
+## Chromium-baked cells (181)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells and two gradient ramps carry a declared, bounded
@@ -195,6 +195,20 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-gradient-hard-stop.svg" title="svg-gradient-hard-stop (standalone-svg)"><img src="./chromium/svg-gradient-hard-stop.png" width="56" alt="svg-gradient-hard-stop"></a>
 <a href="./svg-gradient-stylesheet-fill.svg" title="svg-gradient-stylesheet-fill (standalone-svg)"><img src="./chromium/svg-gradient-stylesheet-fill.png" width="56" alt="svg-gradient-stylesheet-fill"></a>
 <a href="./svg-element-opacity.svg" title="svg-element-opacity (standalone-svg)"><img src="./chromium/svg-element-opacity.png" width="56" alt="svg-element-opacity"></a>
+<a href="./svg-opacity-fill-stroke.svg" title="svg-opacity-fill-stroke (standalone-svg)"><img src="./chromium/svg-opacity-fill-stroke.png" width="56" alt="svg-opacity-fill-stroke"></a>
+<a href="./svg-opacity-group-overlap.svg" title="svg-opacity-group-overlap (standalone-svg)"><img src="./chromium/svg-opacity-group-overlap.png" width="56" alt="svg-opacity-group-overlap"></a>
+<a href="./svg-opacity-group-nonhalf.svg" title="svg-opacity-group-nonhalf (standalone-svg)"><img src="./chromium/svg-opacity-group-nonhalf.png" width="56" alt="svg-opacity-group-nonhalf"></a>
+<a href="./svg-opacity-nested-groups.svg" title="svg-opacity-nested-groups (standalone-svg)"><img src="./chromium/svg-opacity-nested-groups.png" width="56" alt="svg-opacity-nested-groups"></a>
+<a href="./svg-opacity-times-fill-opacity.svg" title="svg-opacity-times-fill-opacity (standalone-svg)"><img src="./chromium/svg-opacity-times-fill-opacity.png" width="56" alt="svg-opacity-times-fill-opacity"></a>
+<a href="./svg-opacity-transform-below.svg" title="svg-opacity-transform-below (standalone-svg)"><img src="./chromium/svg-opacity-transform-below.png" width="56" alt="svg-opacity-transform-below"></a>
+<a href="./svg-opacity-transform-on-element.svg" title="svg-opacity-transform-on-element (standalone-svg)"><img src="./chromium/svg-opacity-transform-on-element.png" width="56" alt="svg-opacity-transform-on-element"></a>
+<a href="./svg-opacity-hidden-in-group.svg" title="svg-opacity-hidden-in-group (standalone-svg)"><img src="./chromium/svg-opacity-hidden-in-group.png" width="56" alt="svg-opacity-hidden-in-group"></a>
+<a href="./svg-opacity-use-compound.svg" title="svg-opacity-use-compound (standalone-svg)"><img src="./chromium/svg-opacity-use-compound.png" width="56" alt="svg-opacity-use-compound"></a>
+<a href="./svg-opacity-gradient-in-group.svg" title="svg-opacity-gradient-in-group (standalone-svg)"><img src="./chromium/svg-opacity-gradient-in-group.png" width="56" alt="svg-opacity-gradient-in-group"></a>
+<a href="./svg-opacity-rotated-group.svg" title="svg-opacity-rotated-group (standalone-svg)"><img src="./chromium/svg-opacity-rotated-group.png" width="56" alt="svg-opacity-rotated-group"></a>
+<a href="./svg-opacity-stroke-only-fold.svg" title="svg-opacity-stroke-only-fold (standalone-svg)"><img src="./chromium/svg-opacity-stroke-only-fold.png" width="56" alt="svg-opacity-stroke-only-fold"></a>
+<a href="./svg-opacity-zero-sibling.svg" title="svg-opacity-zero-sibling (standalone-svg)"><img src="./chromium/svg-opacity-zero-sibling.png" width="56" alt="svg-opacity-zero-sibling"></a>
+<a href="./svg-opacity-translucent-overlap.svg" title="svg-opacity-translucent-overlap (standalone-svg)"><img src="./chromium/svg-opacity-translucent-overlap.png" width="56" alt="svg-opacity-translucent-overlap"></a>
 
 ## The refusal register (48)
 

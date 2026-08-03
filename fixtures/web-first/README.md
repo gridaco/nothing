@@ -63,6 +63,17 @@ is exactly what the engine renders pixel-for-pixel.
 | `svg-stroke-opacity-over-fill.svg` | The compositing split: a translucent stroke paints over its own opaque fill — the inner half composites over the fill, the outer over the canvas. |
 | `svg-stroke-opacity-join.svg` | A translucent stroke is one paint pass: the miter join's self-overlap does not double-blend. |
 | `svg-element-opacity.svg` | The group-scope rung's graduated refusal fixture: element `opacity` on a lone unstroked rect **folds** into the fill's alpha — one float product with the colour's alpha and `fill-opacity`, quantized once, measured byte-identical to Chromium's own fold route. |
+| `svg-opacity-fill-stroke.svg` | The fact that kept element opacity a refusal, baked: a stroked shape composites fill and stroke through **one isolated layer** — the stroke-over-fill overlap blends once at the group alpha, where per-paint folding double-blends (measured 57 code values apart). |
+| `svg-opacity-group-overlap.svg` · `svg-opacity-group-nonhalf.svg` | Layer isolation: two overlapping opaque children under one group opacity — the overlap is the topmost child at the group alpha over the backdrop, at `0.5` and at the non-half `0.7`. |
+| `svg-opacity-nested-groups.svg` · `svg-opacity-use-compound.svg` | Nesting never flattens: `g(.5) > g(.5)` quantizes **per layer** — one code value below the flat `0.25` fold across the entire fill — and `use(.5)` of a translucent target compounds identically. |
+| `svg-opacity-times-fill-opacity.svg` | Element opacity joins the one float product: `opacity=".5"` × `fill-opacity=".5"` on a lone shape quantizes once — byte-identical to `fill-opacity=".25"`. |
+| `svg-opacity-transform-below.svg` · `svg-opacity-transform-on-element.svg` | The fold's structural boundary: a transform strictly *below* the scope element forces the real layer, while transform and opacity on the *same* element still fold — the discriminating pair, one code value apart. |
+| `svg-opacity-hidden-in-group.svg` | A hidden child paints nothing and does not break the fold: the group's one visible draw folds (Chromium's bytes are the fold's, not the layer's). |
+| `svg-opacity-stroke-only-fold.svg` | A stroke-only child alone in a translucent group folds into the stroke paint, and its ink outside the geometry bounds still paints — a fold clamps nothing. |
+| `svg-opacity-rotated-group.svg` | A 45°-rotated translucent group: straight-edge AA composited once through the layer, byte-exact. |
+| `svg-opacity-translucent-overlap.svg` | Translucent rgba children overlapping inside a translucent layer — contents blend among themselves at their own alphas, then the composite restores once at the group alpha. |
+| `svg-opacity-zero-sibling.svg` | `opacity="0"` composites nothing — an admitted nothing with the sibling painting, baked as proof. |
+| `svg-opacity-gradient-in-group.svg` | A dithered gradient ramp inside a real layer (the fold over a lone gradient refuses by name — see `unsupported/`). Carries the corpus's third `ramp-quantization` tolerance: the layer restore halves every ramp value, and the two Skia builds round one code value apart at 336 of 2304 pixels (measured; a wrong gradient or a wrong layer alpha moves far more, by far more). |
 | `svg-percent-rect-in-viewbox.svg` · `svg-percent-rect-root-units.svg` | Percentage geometry resolves against the viewport's user-unit extent: the `viewBox` when one maps the viewport, the root's own extent otherwise. |
 | `svg-percent-circle-diagonal.svg` · `svg-percent-ellipse.svg` | The axis split on a non-square viewport: `cx`/`rx` against the width, `cy`/`ry` against the height, and a circle's `r` against the normalized diagonal `sqrt(w²+h²)/√2`. |
 | `svg-percent-line.svg` | Percentage line endpoints, per axis. |
@@ -142,7 +153,7 @@ still fails loudly, and `svg-circle-defaults-clip` shows the bar is not
 unreachable: it bakes byte-exact and declares no tolerance at all.
 
 The gradient cells brought a second tolerance kind, `ramp-quantization`,
-declared on two cells with their measured bounds — always one code value,
+declared on three cells with their measured bounds — always one code value,
 never confined to a boundary ring (a ramp has none; none is needed, since a
 wrong gradient moves far more pixels by far more than one code value and
 still fails loudly). `svg-gradient-radial-custom` differs in 1 pixel: an
@@ -153,8 +164,12 @@ most 18 pixels *across this engine's own platforms*: byte-exact under the
 macOS Skia build, one code value at 18 clamp-edge pixels under the Linux
 build's SIMD path — the corpus's first measured cross-platform departure,
 found the day the gate learned to sweep the whole suite before failing.
-Every other gradient cell — ramps, seams, hard stops, the dither itself —
-is byte-exact.
+`svg-opacity-gradient-in-group` (the group-scope rung) differs in at most
+336 pixels: the isolated layer's restore halves every dithered ramp value,
+and the two Skia builds round one code value apart across the ramp — the
+same physics, multiplied by the layer. Every other gradient cell — ramps,
+seams, hard stops, the dither itself, the ramp *under* the fold — is
+byte-exact.
 
 Render a primitive through the `n0` product command — since
 [the engine of record](../../docs/wg/consolidation/svg-engine-of-record.md) it routes through
