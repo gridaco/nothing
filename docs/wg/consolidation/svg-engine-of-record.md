@@ -52,17 +52,17 @@ from eight addenda:
   `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 166 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 181 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
-  confined tolerance (the weighted rational conic) and two gradient cells
+  confined tolerance (the weighted rational conic) and three gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
-  macOS and Linux Skia builds).
+  macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
+  restore).
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
-  unratified. Element `opacity` and `rx`/`ry` are the constructs still missing
-  from the scoreboard suite; the translucency rung moved its
-  `path-opacity`/`rect-opacity` rows within reach only where they spell
-  `fill-opacity` — the element-`opacity` rows wait on the group scope.
+  unratified. `rx`/`ry` is the construct still missing from the scoreboard
+  suite: the group-scope rung consumed element `opacity`, so the
+  `path-opacity`/`rect-opacity` rows are within reach in both spellings.
 
 ## The crux
 
@@ -1190,3 +1190,92 @@ measured cross-platform departure. Mapping it taught the gate to sweep
 the whole suite before failing, so a platform difference is now one CI
 round-trip. The refusal register moved `svg-gradient-paint-server` out
 and five named rows in.
+
+## Addendum — the group-scope rung (2026-08-04)
+
+Element `opacity` is consumed, and consuming it grew the contract's first
+**structural** amendment — the second amendment overall, and the one the
+container rung's flattening promise waited on. `rframe`'s flat node list
+became a checked painter-ordered item stream: a compositing `Scope`
+encloses a contiguous span as one isolated group, with balance,
+non-emptiness, and bounded nesting proven at construction (`PathData`'s
+posture), and the new item enum forcing every consumer match site at
+compile time — the shape was chosen precisely so a consumer *cannot*
+read the nodes and silently skip the scopes. The effect vocabulary opens
+with `Opacity` over the open unit interval (identity and zero are
+producer resolutions, not scope facts) and grows per producer —
+`clip-path` is the named next effect. What a scope refuses is what the
+crate refuses: an effect that references a resource (mask, filter,
+pattern) has no representation.
+
+**A 49-document probe matrix decided the semantics before code**, and its
+load-bearing verdict reframed the rung: Chromium's element opacity is not
+one route but two, one code value apart, and both are meaning.
+
+- **The fold.** Over content that is a single un-transformed, un-folded
+  draw, element opacity is byte-identical to the `fill-opacity` fold — it
+  joins the translucency rung's one float product (colour alpha ×
+  paint-level opacity × element factor), quantized once; the multiplied
+  probes pinned the product in both stacking orders. The fold reaches
+  through plain containers, past zero-draw and hidden siblings, and holds
+  on stroke-only shapes (ink beyond the geometry bounds included).
+- **The layer.** Everything else composites through a real isolated
+  layer, whose quantization sits one code value below the fold:
+  fill+stroke on one shape (the double-blend fact that motivated the
+  refusal — 57 code values from the per-paint spelling at the overlap),
+  sibling overlap (topmost child at the group alpha, composited once),
+  and nesting, which quantizes **per layer** and never flattens to a
+  scalar product (`g(.5)›g(.5)` differs from `opacity=.25` by exactly one
+  code value across the whole fill).
+- **The boundary between them is structural.** The fold fires at most
+  once per draw — a group over an already-folded draw runs a layer — and
+  any non-`none` computed transform strictly *below* the scope element
+  breaks it, while transform and opacity on the same element still fold.
+  The measured rule websem implements: *fold iff the span is exactly one
+  draw, un-folded, un-scoped, and un-transformed below the scope element;
+  layer otherwise* — a fold replays the span with the factor threaded
+  into the paint resolve so the product still quantizes once, identically
+  in both admissions.
+
+**The painter's existing opacity route was measured and found to be a
+different meaning.** n0's arithmetic-blender `BeginOpacity` (the model's
+backdrop-initialized group) produces the *fold* bytes — one code value
+from Chromium's layer. Rather than change the model's meaning, the
+drawlist vocabulary grew `BeginIsolatedOpacity`: a plain Skia layer
+restored source-over at the group alpha, which matches the oracle
+byte-for-byte, with two in-crate laws pinning the layer and nested-layer
+rasters against the measured bytes. Scope owners carry identity and
+provenance like nodes; damage treats a scope-opacity edit as the union of
+its span.
+
+**Fourteen cells baked (corpus 167 → 181), thirteen byte-exact on the
+first gate run** — the rotated translucent group's straight-edge AA and
+the per-layer nesting quantization included. The fourteenth, the dithered
+ramp under a real layer, carries the corpus's third `ramp-quantization`
+tolerance at its measured bounds (336 of 2304 pixels, one code value):
+the layer restore halves every ramp value, and the two Skia builds round
+one code value apart across the ramp — the radial knife-edge's physics,
+multiplied by the layer.
+
+The refusal register moved one row out and two in. `svg-element-opacity`
+graduated (the lone-fill fold, byte-exact). Element opacity over a
+gradient or `url()` paint refuses by name: the gradient paint carries one
+8-bit-quantized alpha (this corpus's own fill-opacity pin), and Chromium
+composites the element factor *after* that quantization — measured one
+code value apart across 64% of the ramp — so one slot cannot express
+both, and silence would be a wrong pixel; it graduates with a paint-alpha
+amendment carrying the second factor. And the root `<svg>`'s own opacity
+refuses in both admissions: the captured raster carries the multiplied
+alpha across the whole canvas, identically in the standalone and
+inline-HTML entries (no entry split, unlike `display: none`), which an
+opaque raster surface cannot express — the root transform's posture,
+until a translucent-surface entry exists.
+
+`opacity` joined csscascade's admitted presentation hints (one
+<alpha-value> grammar; percentage spelling, clamping, hint precedence,
+and invalid-drops all measured and baked). `<use>` and `<a>` scope
+exactly as `<g>`; opacity through a translucent target compounds
+per-layer, byte-identical to the nested-group cell. `opacity: 0` renders
+the correct nothing for shapes and containers alike. The scoreboard
+suite's element-`opacity` rows are now within reach; `rx`/`ry` is the
+remaining row-1 construct.

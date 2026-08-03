@@ -112,8 +112,8 @@ it (FLIP is unratified). A rung's docs commit ticks its rows.
 
 | | Construct | Notes |
 | --- | --- | --- |
-| ⬜ | element `opacity` | needs the compositing scope |
-| ⬜ | `clip-path` | |
+| ✅ | element `opacity` | the group-scope rung: fold or isolated layer by the measured rule; over a gradient/`url()` paint and on the root it refuses by name |
+| ⬜ | `clip-path` | the scope's named next effect |
 | ⬜ | `mask` | |
 | ⬜ | `<filter>` / `filter` | |
 | ⬜ | `mix-blend-mode` / `isolation` | |
