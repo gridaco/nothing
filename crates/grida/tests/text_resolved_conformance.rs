@@ -101,7 +101,7 @@ fn resolution_identity_records_the_oracle_version_and_environment_identity() {
     let mut ctx = Ctx::new();
     let artifact = ctx.resolve("hello", None);
     assert_eq!(artifact.oracle_version, SKPARAGRAPH_ORACLE_VERSION);
-    assert_eq!(artifact.oracle_version, "skparagraph@skia-0.93.1");
+    assert_eq!(artifact.oracle_version, "skparagraph@skia-0.99.0");
     assert_eq!(
         artifact.environment.font_generation,
         ctx.fonts.generation(),

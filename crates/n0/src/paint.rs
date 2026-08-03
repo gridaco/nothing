@@ -23,7 +23,7 @@ use n0_model::path::{FillRule, PathCommand, ResolvedPathArtifact};
 use n0_model::renderability::{self, RenderabilityError};
 use n0_model::rounded_box::smooth_corner_params;
 use skia_safe::canvas::{SaveLayerFlags, SaveLayerRec};
-use skia_safe::gradient_shader::{Gradient, GradientColors, Interpolation};
+use skia_safe::gradient::{Colors as GradientColors, Gradient, Interpolation};
 use skia_safe::{
     image::CachingHint, path_effect::PathEffect, shaders, stroke_rec::InitStyle, Blender, Canvas,
     ClipOp, Color, CubicResampler, Data, Font, Image, ImageInfo, Matrix, Paint, PaintCap,
@@ -1673,7 +1673,7 @@ fn text_path<K>(
             for (glyph, position) in glyphs.iter().zip(positions) {
                 if let Some(path) = font.get_path(*glyph) {
                     let path = path.make_transform(&Matrix::translate((position.x, position.y)));
-                    builder.add_path(&path);
+                    builder.add_path(&path, None);
                 }
             }
         });

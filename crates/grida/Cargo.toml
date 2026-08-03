@@ -17,7 +17,7 @@ cg = { path = "../cg" }
 htmlcss = { path = "../htmlcss" }
 
 # skia
-skia-safe = { version = "0.93.1", features = [
+skia-safe = { version = "0.99.0", features = [
   "gpu",
   "gl",
   "textlayout",

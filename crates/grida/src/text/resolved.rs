@@ -103,7 +103,7 @@ use std::ops::Range;
 /// a conformance test asserts the two stay in lockstep.
 macro_rules! pinned_skia_safe_version {
     () => {
-        "0.93.1"
+        "0.99.0"
     };
 }
 

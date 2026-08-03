@@ -14,7 +14,7 @@ pub const TEXT_STUB: &str = "text=stub@lab-0";
 /// This identifies the shaping/layout result, not a persisted document value.
 /// A promoted deterministic oracle will receive a new version rather than
 /// silently reinterpreting existing resolved artifacts.
-pub const TEXT_SKPARAGRAPH: &str = "skparagraph@skia-0.93.1";
+pub const TEXT_SKPARAGRAPH: &str = "skparagraph@skia-0.99.0";
 
 /// The oracle version set stamped into the current lab replay header. Grows a
 /// field per oracle as they land (pathops, image); today it is text only.

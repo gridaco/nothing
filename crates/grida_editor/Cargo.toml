@@ -23,7 +23,7 @@ glutin = { version = "0.32.0", optional = true }
 glutin-winit = { version = "0.5.0", optional = true }
 raw-window-handle = { version = "0.6.0", optional = true }
 gl = { version = "0.14.0", optional = true }
-skia-safe = { version = "0.93.1", features = [
+skia-safe = { version = "0.99.0", features = [
   "gpu",
   "gl",
   "textlayout",
@@ -53,7 +53,7 @@ glow = { version = "0.17", optional = true }
 # Pixel readback in the frame conformance suite (FRAME-1/FRAME-3):
 # reading the headless raster surface the tests paint into. Version
 # and features match crates/grida so cargo unifies one skia build.
-skia-safe = { version = "0.93.1", features = [
+skia-safe = { version = "0.99.0", features = [
   "gpu",
   "gl",
   "textlayout",

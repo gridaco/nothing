@@ -34,9 +34,9 @@ pub fn draw_text_stroke(
             if offset.x != 0.0 || offset.y != 0.0 {
                 let transformed =
                     glyph_path.make_transform(&Matrix::translate((offset.x, offset.y)));
-                builder.add_path(&transformed);
+                builder.add_path(&transformed, None);
             } else {
-                builder.add_path(&glyph_path);
+                builder.add_path(&glyph_path, None);
             }
         }
     }

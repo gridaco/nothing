@@ -36,7 +36,7 @@ sha2 = "0.10"
 
 # `use skia_safe` stays confined to paint.rs — raster access is a single
 # module's concern (see src/lib.rs).
-skia-safe = { version = "=0.93.1", features = [
+skia-safe = { version = "=0.99.0", features = [
   "gpu",
   "gl",
   "textlayout",

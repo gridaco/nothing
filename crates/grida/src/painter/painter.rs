@@ -822,9 +822,9 @@ impl<'a> Painter<'a> {
                         if offset.x != 0.0 || offset.y != 0.0 {
                             let transformed =
                                 glyph_path.make_transform(&Matrix::translate((offset.x, offset.y)));
-                            builder.add_path(&transformed);
+                            builder.add_path(&transformed, None);
                         } else {
-                            builder.add_path(&glyph_path);
+                            builder.add_path(&glyph_path, None);
                         }
                     }
                 }
@@ -2480,9 +2480,9 @@ impl<'a> Painter<'a> {
                         if offset.x != 0.0 || offset.y != 0.0 {
                             let transformed =
                                 glyph_path.make_transform(&Matrix::translate((offset.x, offset.y)));
-                            builder.add_path(&transformed);
+                            builder.add_path(&transformed, None);
                         } else {
-                            builder.add_path(&glyph_path);
+                            builder.add_path(&glyph_path, None);
                         }
                     }
                 }
@@ -2835,7 +2835,7 @@ impl<'a> Painter<'a> {
             match command {
                 PainterRenderCommand::Draw(layer) => {
                     if let Some(layer_path) = Self::layer_to_path(layer) {
-                        builder.add_path(&layer_path);
+                        builder.add_path(&layer_path, None);
                     }
                 }
                 PainterRenderCommand::MaskGroup(group) => {

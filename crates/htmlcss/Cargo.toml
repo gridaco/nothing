@@ -13,7 +13,7 @@ csscascade = { path = "../csscascade" }
 math2 = { path = "../math2" }
 pulldown-cmark = "0.13.0"
 rustc-hash = "2"
-skia-safe = { version = "0.93.1", features = [
+skia-safe = { version = "0.99.0", features = [
   "gpu",
   "gl",
   "textlayout",

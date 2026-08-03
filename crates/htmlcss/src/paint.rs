@@ -1289,7 +1289,7 @@ fn build_filter_chain(filters: &[FilterFunction]) -> Option<skia_safe::ImageFilt
 
 // ─── Gradient shaders ────────────────────────────────────────────────
 
-use skia_safe::gradient_shader::{Gradient, GradientColors, Interpolation};
+use skia_safe::gradient::{Colors as GradientColors, Gradient, Interpolation};
 use skia_safe::{Point, TileMode};
 
 use super::style::{GradientPosition, RadialShape, RadialSize};
@@ -1396,7 +1396,7 @@ fn make_gradient<'a>(
 
 fn to_skia_interpolation(v: super::style::GradientInterpolation) -> Interpolation {
     use super::style::{GradientColorSpace as CS, GradientHueMethod as HM};
-    use skia_safe::gradient_shader::interpolation::{ColorSpace, HueMethod, InPremul};
+    use skia_safe::gradient::interpolation::{ColorSpace, HueMethod, InPremul};
     let color_space = match v.color_space {
         CS::Oklab => ColorSpace::OKLab,
         CS::Srgb => ColorSpace::SRGB,

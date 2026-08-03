@@ -20,7 +20,7 @@ websem = { path = "../websem" }
 n0 = { path = "../n0" }
 math2 = { path = "../math2" }
 rframe = { path = "../rframe" }
-skia-safe = { version = "=0.93.1", features = [
+skia-safe = { version = "=0.99.0", features = [
   "gpu",
   "gl",
   "textlayout",

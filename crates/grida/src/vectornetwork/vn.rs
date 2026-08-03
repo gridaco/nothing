@@ -431,7 +431,7 @@ impl VectorNetwork {
     pub fn to_appended_path(&self) -> skia_safe::Path {
         let mut builder = skia_safe::PathBuilder::new();
         for p in self.to_paths() {
-            builder.add_path(&p);
+            builder.add_path(&p, None);
         }
         builder.detach()
     }

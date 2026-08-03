@@ -10,7 +10,7 @@
 //! and `*radial_gradient.cc`.
 
 use csscascade::dom::{DemoDom, DemoNodeData, NodeId};
-use skia_safe::{gradient_shader, Color, Color4f, Matrix, Point, Rect, Shader, TileMode};
+use skia_safe::{gradient, Color, Color4f, Matrix, Point, Rect, Shader, TileMode};
 
 use crate::svg::dom::attrs::{parse_color, parse_length_px, parse_paint, parse_transform, Paint};
 use crate::svg::dom::element::{get_attr, ElementKind};
@@ -100,27 +100,43 @@ pub fn resolve_to_shader(
     let local = Matrix::concat(&bbox_matrix, &gradient_transform);
 
     // NOTE: do NOT pass an explicit `Some(ColorSpace::new_srgb())` here.
-    // skia-safe 0.93.x has a use-after-free in
+    // sRGB is the default interpretation in Skia when no explicit space is
+    // given, so passing `None` yields identical visual output. This was also
+    // the workaround for a use-after-free in skia-safe 0.93.x's
     // `gradient_shader::{linear,radial,two_point_conical}` when the
-    // interpolation color space is non-null: the second call with that
-    // configuration corrupts heap state and triggers SIGSEGV / SIGTRAP
+    // interpolation color space was non-null: the second call with that
+    // configuration corrupted heap state and triggered SIGSEGV / SIGTRAP
     // on macOS (visible only with the default malloc; `MallocNanoZone=0`
-    // suppresses the symptom). Tracked upstream at
-    // <https://github.com/rust-skia/rust-skia/issues/1281>. sRGB is the
-    // default interpretation in Skia when no explicit space is given,
-    // so passing `None` yields identical visual output.
+    // suppressed the symptom). That bug is fixed upstream
+    // (<https://github.com/rust-skia/rust-skia/issues/1281>) — the pinned
+    // skia-safe clones the space before handing it to C++, balancing the
+    // adopting `sk_sp` — so `None` is now a rendering choice, not a crash
+    // workaround.
+    //
+    // `Interpolation::default()` reproduces exactly what the retired
+    // `gradient_shader` flags argument resolved to when it was `None`:
+    // `in_premul: No`, `color_space: Destination`, `hue_method: Shorter`.
+    //
+    // Built per-arm rather than hoisted: `Colors::new` asserts that the
+    // offset count matches the colour count, and the `r <= 0.0` arm below
+    // returns before any gradient is constructed.
+    let gradient_stops = || {
+        gradient::Gradient::new(
+            gradient::Colors::new(
+                &colors,
+                Some(&offsets[..]),
+                common.tile,
+                None::<skia_safe::ColorSpace>,
+            ),
+            gradient::Interpolation::default(),
+        )
+    };
     match kind {
         ElementKind::LinearGradient => {
             let (x1, y1, x2, y2) = resolve_linear_endpoints(dom, &chain, &common, viewport);
-            gradient_shader::linear(
+            gradient::shaders::linear_gradient(
                 (Point::new(x1, y1), Point::new(x2, y2)),
-                gradient_shader::GradientShaderColors::ColorsInSpace(
-                    &colors,
-                    None::<skia_safe::ColorSpace>,
-                ),
-                Some(&offsets[..]),
-                common.tile,
-                None,
+                &gradient_stops(),
                 Some(&local),
             )
         }
@@ -140,31 +156,12 @@ pub fn resolve_to_shader(
             let center = Point::new(cx, cy);
             let focal = Point::new(fx, fy);
             if (focal - center).length() < 1e-6 && fr == 0.0 {
-                gradient_shader::radial(
-                    center,
-                    r,
-                    gradient_shader::GradientShaderColors::ColorsInSpace(
-                        &colors,
-                        None::<skia_safe::ColorSpace>,
-                    ),
-                    Some(&offsets[..]),
-                    common.tile,
-                    None,
-                    Some(&local),
-                )
+                gradient::shaders::radial_gradient((center, r), &gradient_stops(), Some(&local))
             } else {
-                gradient_shader::two_point_conical(
-                    focal,
-                    fr,
-                    center,
-                    r,
-                    gradient_shader::GradientShaderColors::ColorsInSpace(
-                        &colors,
-                        None::<skia_safe::ColorSpace>,
-                    ),
-                    Some(&offsets[..]),
-                    common.tile,
-                    None,
+                gradient::shaders::two_point_conical_gradient(
+                    (focal, fr),
+                    (center, r),
+                    &gradient_stops(),
                     Some(&local),
                 )
             }
