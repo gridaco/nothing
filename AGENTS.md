@@ -64,7 +64,9 @@ a comment.
 ## Setup
 
 ```sh
-# 1. emsdk submodule (needed for WASM builds only)
+# 1. emsdk submodule (needed for WASM builds only). `bin/activate-emsdk` pins
+#    the SDK version and needs python >= 3.10 — macOS ships 3.9, so a WASM
+#    build there wants `brew install python` first.
 git submodule update --init
 
 # 2. Rust toolchain auto-pins via rust-toolchain.toml (rustfmt + clippy included)
