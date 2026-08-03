@@ -12,10 +12,12 @@ _wasm32_unknown_emscripten_env := "rustup target add wasm32-unknown-emscripten; 
 # every emscripten target, because Skia's wasm GN toolchain emits that suffix
 # since milestone 148. The published prebuilt archives ship those libraries
 # already named `lib<x>.a`, so the copy panics on a missing source before a
-# single line is compiled. The library list comes from the enabled features,
-# not from whether ninja ran, so this only bites feature sets pulling in
-# textlayout or svg — which is exactly this crate's. Present in every
-# skia-bindings from 0.97.0 through 0.99.0; no version choice avoids it.
+# single line is compiled. The enabled features extend that library list but
+# `skia` itself is always on it, so every published emscripten prebuilt is
+# affected, whatever the feature set. Present in every skia-bindings from
+# 0.97.0 through 0.99.0; no version choice avoids it. Reported upstream as
+# <https://github.com/rust-skia/rust-skia/issues/1310>; removing this shim is
+# gridaco/nothing#66.
 #
 # Seeding the expected names is an identity operation: the build script copies
 # each seeded file straight back onto the file it was copied from, so nothing
