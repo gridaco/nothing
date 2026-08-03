@@ -5,6 +5,24 @@
 # Keep this inline (vs. a separate recipe) so the sourced `emsdk_env.sh` affects the same shell.
 _wasm32_unknown_emscripten_env := "rustup target add wasm32-unknown-emscripten; (cd ../.. && ./bin/activate-emsdk); . ../../third_party/externals/emsdk/emsdk_env.sh; command -v emcc >/dev/null 2>&1; export CC=emcc CXX=em++ AR=emar"
 
+# Retry snippet for a skia-bindings defect that makes prebuilt emscripten
+# binaries unusable, so `cargo build` has to be attempted twice.
+#
+# `BinariesConfig::commit_to_cargo` copies `lib<x>.wasm.a` onto `lib<x>.a` for
+# every emscripten target, because Skia's wasm GN toolchain emits that suffix
+# since milestone 148. The published prebuilt archives ship those libraries
+# already named `lib<x>.a`, so the copy panics on a missing source before a
+# single line is compiled. The library list comes from the enabled features,
+# not from whether ninja ran, so this only bites feature sets pulling in
+# textlayout or svg — which is exactly this crate's. Present in every
+# skia-bindings from 0.97.0 through 0.99.0; no version choice avoids it.
+#
+# Seeding the expected names is an identity operation: the build script copies
+# each seeded file straight back onto the file it was copied from, so nothing
+# that gets linked changes. Remove this once commit_to_cargo tolerates an
+# absent `.wasm.a`.
+_seed_emscripten_archives := "for f in ../../target/wasm32-unknown-emscripten/*/build/skia-bindings-*/out/skia/lib*.a; do [ -e \"$f\" ] || continue; [ -e \"${f%.a}.wasm.a\" ] || cp \"$f\" \"${f%.a}.wasm.a\"; done"
+
 # Default recipe - shows available commands
 default:
     @echo "🚀 Grida Canvas WASM Build System"
@@ -88,7 +106,8 @@ _build_wasm32_unknown_emscripten_debug:
     @bash -c 'set -euo pipefail; \
         {{_wasm32_unknown_emscripten_env}}; \
         echo "🧰 $(emcc --version | { IFS= read -r l; echo "$l"; })"; \
-        time cargo build --target wasm32-unknown-emscripten'
+        time { cargo build --target wasm32-unknown-emscripten \
+            || { {{_seed_emscripten_archives}}; cargo build --target wasm32-unknown-emscripten; }; }'
     @echo "✅ Build completed successfully!"
     @echo "📁 Output file: ../../target/wasm32-unknown-emscripten/debug/grida_canvas_wasm.wasm"
     @echo "🎉 Grida Canvas WASM is ready for use!"
@@ -99,7 +118,8 @@ _build_wasm32_unknown_emscripten_release:
     @bash -c 'set -euo pipefail; \
         {{_wasm32_unknown_emscripten_env}}; \
         echo "🧰 $(emcc --version | { IFS= read -r l; echo "$l"; })"; \
-        time cargo build --release --target wasm32-unknown-emscripten'
+        time { cargo build --release --target wasm32-unknown-emscripten \
+            || { {{_seed_emscripten_archives}}; cargo build --release --target wasm32-unknown-emscripten; }; }'
     @echo "✅ Production build completed successfully!"
     @echo "📁 Output file: ../../target/wasm32-unknown-emscripten/release/grida_canvas_wasm.wasm"
     @echo "⚡ Production optimizations applied:"
