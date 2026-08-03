@@ -14,9 +14,9 @@ EMSDK_ROOT = os.path.join('third_party', 'externals', 'emsdk')
 
 EMSDK_PATH = os.path.join(EMSDK_ROOT, 'emsdk.py')
 
-# Keep this aligned with local and CI builds. The emsdk submodule carries a
-# few installer fixes beyond its 5.0.0 tag; the installed SDK stays at 5.0.0.
-EMSDK_VERSION = '5.0.0'
+# Keep this aligned with local and CI builds. The submodule is pinned to the
+# emsdk tag of the same name, so the installer and the SDK it installs agree.
+EMSDK_VERSION = '6.0.5'
 
 def main():
     if sysconfig.get_platform() in ['linux-aarch64', 'linux-arm64']:

@@ -224,11 +224,12 @@ The steps below were tested on a fresh Ubuntu container and produced
 
 2. **Install and activate Emscripten**
 
+   Use the activator rather than `emsdk install latest` — it holds the pinned
+   SDK version, and an unpinned `latest` drifts away from what CI builds. It
+   needs python >= 3.10.
+
    ```bash
-   cd third_party/externals/emsdk
-   ./emsdk install latest
-   ./emsdk activate latest
-   cd -
+   python3 bin/activate-emsdk   # from the repo root
    ```
 
 3. **(Ubuntu only) provide missing locale headers**
