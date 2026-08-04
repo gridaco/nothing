@@ -25,6 +25,7 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
     #transform-none-beats-hint { transform: none; }
     #transform-style-attr-beats-rule { transform: translate(30px, 0px); }
     #transform-webkit-alias { -webkit-transform: translate(30px, 0px); }
+    #family-rule-beats-hint { font-family: monospace; }
   </style>
   <rect id="hint-only" fill="#16a34a" width="8" height="8"/>
   <rect id="named" fill="rebeccapurple" width="8" height="8"/>
@@ -53,6 +54,10 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
   <rect id="transform-run-together" transform="translate(10-10)" width="8" height="8"/>
   <rect id="transform-webkit-alias" width="8" height="8"/>
   <g color="#d0342c"><rect id="color-basis" fill="currentColor" width="8" height="8"/></g>
+  <text id="family-hint" font-family="Ahem">X</text>
+  <text id="family-rule-beats-hint" font-family="Ahem">X</text>
+  <text id="family-invalid-hint" font-family="">X</text>
+  <g font-family="Ahem"><text id="family-inherited">X</text></g>
   <linearGradient id="gradient-transform-hint" gradientTransform="translate(10 10)"/>
   <linearGradient id="gradient-plain-transform-inert" transform="translate(10 10)"/>
 </svg>"##;
@@ -111,6 +116,25 @@ fn standalone_svg_presentation_hints_enter_below_author_rules() {
         property(root, "unadmitted", LonghandId::StrokeOpacity),
         "1",
         "unadmitted presentation attributes must not leak into the cascade"
+    );
+    // The text rung's hint: `font-family` is what a run resolves against.
+    // Measured in Chromium: the attribute alone selects the face, an author
+    // rule beats it, `font-family=""` drops to the default family, and the
+    // property inherits.
+    assert_eq!(property(root, "family-hint", LonghandId::FontFamily), "Ahem");
+    assert_eq!(
+        property(root, "family-rule-beats-hint", LonghandId::FontFamily),
+        "monospace"
+    );
+    assert_ne!(
+        property(root, "family-invalid-hint", LonghandId::FontFamily),
+        "Ahem",
+        "an invalid family hint drops like an invalid CSS declaration"
+    );
+    assert_eq!(
+        property(root, "family-inherited", LonghandId::FontFamily),
+        "Ahem",
+        "font-family inherits from the group carrying the hint"
     );
     // `font-size` is admitted for its *basis*, not because anything paints it:
     // it is what an `em` length resolves against, and Chromium treats it as a

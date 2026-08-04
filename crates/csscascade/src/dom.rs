@@ -729,6 +729,13 @@ fn admitted_svg_presentation_property(local: &str) -> Option<LonghandId> {
         // (measured: `<g font-size="32">` makes a `0.5em` stroke 16px), so
         // dropping it here computed the wrong width from the right document.
         "font-size" => Some(LonghandId::FontSize),
+        // The text rung's addition: the family a run resolves against.
+        // Chromium treats it as a presentation attribute (measured: the
+        // attribute alone selects the face, an author rule beats it, and
+        // `font-family=""` drops so the element renders in the default
+        // family). The consumer matches the computed family against its
+        // declared font environment — a name is not a font identity.
+        "font-family" => Some(LonghandId::FontFamily),
         // The visibility rung's pair. Both are SVG2 presentation attributes
         // whose author-rule precedence is measured (a stylesheet
         // `visibility: visible` overrides `visibility="hidden"` in
