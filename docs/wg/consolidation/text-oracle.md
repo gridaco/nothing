@@ -12,7 +12,10 @@ format: md
 
 # The text oracle method
 
-**Status: proposed.** This brief is the text-0 milestone: it puts the *method*
+**Status: ratified 2026-08-04** ([gridaco/nothing#68](https://github.com/gridaco/nothing/pull/68)).
+Its decisions bind the text arc's rungs; the D-M shaped-text stage remains
+open, and text-2 is the spike that closes it.
+This brief is the text-0 milestone: it puts the *method*
 for gating text on the SVG engine of record (`websem → rframe → n0`) before
 the owner, with the Chromium probe record that grounds it. It decides no code
 and touches no open decision — the D-M shaped-text stage in
