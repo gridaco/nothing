@@ -111,6 +111,23 @@ Two findings shape the method:
    rasterizer agree wherever coverage per pixel is 0 or 1. Only default macOS
    smoothing diverges, because it alone paints outside true coverage.
 
+### The engine-side crux
+
+The Chromium rounds establish the oracle half; the method also claims the
+engine half — that a run shaped hermetically and lowered as outline path
+facts rasters the same bytes. A scratch spike (never committed, per the
+growth law) proved it: rustybuzz `0.20.1` + the pinned Ahem shaped three
+runs — the em-box `X`, the collapsed `X X` (the space is a glyph with
+advance and no outline), and a middle-anchored `XXX` — lowered them to
+`rframe` path facts under the nonzero rule with the y-flip applied
+(font units are y-up), and rendered through `n0::glyphless` on the reftest
+gate's exact posture (transparent clear, identity view, straight-alpha
+readback). **All three came back byte-identical to the round-2 captures,
+deterministic across double renders.** The coincidence argument is now
+measured on both sides: within the admitted numeric domain, Chromium's
+bilevel glyph raster and the engine's anti-aliased path raster produce the
+same bytes.
+
 ## The method (rung A, concrete)
 
 **The admitted numeric domain.** A text cell is admissible only where the
