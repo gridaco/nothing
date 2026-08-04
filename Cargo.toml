@@ -17,6 +17,7 @@ members = [
   "crates/n0_cli",
   "crates/n0_dev",
   "crates/rframe",
+  "crates/textlayout",
   "crates/websem",
 ]
 
