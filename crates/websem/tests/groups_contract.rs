@@ -549,9 +549,13 @@ fn a_beyond_slice_descendant_is_its_own_declared_hole() {
         "svg/g[1]/text[1]",
         "the skip names its nested structural path"
     );
+    // The text rung admitted `<text>` itself; this fixture declares no
+    // family, so the run computes to the generic initial — which names no
+    // font in a declared environment — and that is the hole it declares.
     assert_eq!(
         best.degradations()[0].reason(),
-        "unsupported element <text>"
+        "unsupported computed style: <text> resolves to a generic font family, which names no \
+         font in the declared environment — a family is declared by exact name or the run refuses"
     );
 }
 

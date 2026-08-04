@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "font": {
+    "family": "Ahem",
+    "path": "../fonts/ahem.ttf",
+    "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448"
+  },
+  "cases": [
+    {
+      "id": "svg-text-em-box",
+      "source": "svg-text-em-box.svg",
+      "oracle": "chromium/svg-text-em-box.png",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-space-advance",
+      "source": "svg-text-space-advance.svg",
+      "oracle": "chromium/svg-text-space-advance.png",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-anchor-middle",
+      "source": "svg-text-anchor-middle.svg",
+      "oracle": "chromium/svg-text-anchor-middle.png",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-anchor-end",
+      "source": "svg-text-anchor-end.svg",
+      "oracle": "chromium/svg-text-anchor-end.png",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-whitespace-collapse",
+      "source": "svg-text-whitespace-collapse.svg",
+      "oracle": "chromium/svg-text-whitespace-collapse.png",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-fill-color",
+      "source": "svg-text-fill-color.svg",
+      "oracle": "chromium/svg-text-fill-color.png",
+      "width": 100,
+      "height": 100
+    }
+  ]
+}

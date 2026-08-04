@@ -16,6 +16,10 @@ cg = { path = "../cg" }
 # The source-neutral resolved render contract this crate produces.
 # Contract-only and backend-free; the n0 engine owns the one downstream.
 rframe = { path = "../rframe" }
+# The Web family's text resolution oracle (the text rung): websem states what
+# the document says, textlayout states what the glyphs are. No font byte and
+# no ambient face enters through this edge — the environment is the host's.
+textlayout = { path = "../textlayout" }
 # Neutral geometry.
 math2 = { path = "../math2" }
 # The one namespace-aware document + the one (Stylo) browser-grade cascade.
