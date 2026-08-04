@@ -139,6 +139,16 @@ probes proved all rasterizers coincide:
   fractional refuses);
 - content whose Ahem glyphs are the em box or the space.
 
+The domain binds **final device-space geometry**: every glyph-box edge must
+land on an integer device coordinate after the full CTM, so integer local
+inputs qualify only under a transform that preserves them — the slice admits
+`<text>` under identity and integer-translation CTMs first, and a scaling,
+rotating, or fractional transform above a text node refuses by name like any
+other out-of-domain number. Which *constructs* are admitted (single run, LTR;
+no `tspan`, `dx`/`dy`/`rotate` lists, `direction`, `textLength`, …) is owned
+by the slice's statement of record per standing practice; rung A's pipeline
+claim gates the admitted slice, not all of SVG text.
+
 Everything outside the domain **refuses by name at a stable node path** — the
 standing law, now applied to numbers. Chromium's snapping behavior is a
 declared divergence-by-refusal: Chromium renders a snapped box; the engine
@@ -149,7 +159,8 @@ rounding.
 `-webkit-font-smoothing: none` on the text element as **bake posture**, the
 way they already carry width/height as viewport posture. It suppresses the one
 rasterizer behavior (macOS smoothing dilation) that breaks coincidence; on
-non-macOS Chromium it is a no-op and the raster already coincides. Within the
+non-macOS Chromium the property is a no-op by design, and coincidence there
+rests on the exact-coverage argument below until a re-bake measures it. Within the
 admitted domain the declaration is *semantically empty for the engine* — AA
 and bilevel raster are byte-identical there — so no quality flag becomes
 readable from `websem`, `rframe`, or resolve: the one-meaning tripwire holds.
@@ -157,12 +168,15 @@ Text-1 must verify (and pin in the corpus) that websem's strict admission
 treats the declaration as standard CSS unknown-property discard rather than a
 refusal.
 
-**Why the bake stays maintainer-portable.** The committed cell is the
-contract; the bake harness already fails loudly on a differing re-capture
-rather than blessing a new baseline. Because the admitted domain makes every
-rasterizer's output coincide, a re-bake on FreeType or DirectWrite Chromium is
-expected to reproduce the committed bytes — and if one ever does not, the
-harness refuses loudly instead of drifting.
+**Why the bake stays maintainer-portable.** The measured oracle identity is
+macOS arm64 Chromium 149 — the platform behind every probe above — and the
+engine-side spike measures the Skia half of the coincidence. Cross-rasterizer
+coincidence (FreeType, DirectWrite) over the admitted domain is an argument
+from exact pixel coverage, not yet a measurement. The harness is what makes
+that safe to leave unmeasured: an existing oracle is verification-only, so a
+differing re-capture fails loudly instead of blessing a drift, and the first
+re-bake that reproduces the cells on another rasterizer graduates the
+expectation into evidence.
 
 ## The hermetic font environment
 
@@ -170,10 +184,13 @@ Per [the text-layout RFD](../feat-paragraph/text-layout.md), the resolution
 environment is a manifest, not an ambient promise, and a family name is not a
 font identity. Applied to the engine of record:
 
-- A render's fonts are **declared inputs pinned by content hash**. Proposed
-  n0_cli surface: a repeatable `--font FAMILY=PATH` (exact grammar owned by
-  [the statement of record](../../../crates/n0_cli/README.md) when text-1
-  lands).
+- A render's fonts are **declared inputs pinned by content hash**, and the
+  hash is executable, not documentation. Proposed n0_cli surface: a
+  repeatable, hash-bearing `--font FAMILY=PATH@sha256:HEX` (exact grammar
+  owned by [the statement of record](../../../crates/n0_cli/README.md) when
+  text-1 lands); the host verifies the loaded bytes against the declared
+  digest and refuses — typed, before any pixel — on mismatch, so a swapped
+  file can never silently re-bake.
 - The default environment is **empty**: any `<text>` with no declared font is
   a typed refusal, never tofu and never a system-font fallback. The
   missing-font probe shows what ambient fallback costs — machine-local pixels
@@ -213,14 +230,16 @@ Ratifying this brief decides:
 2. **The admitted numeric domain** and refusal-over-snapping stance.
 3. **The oracle posture declaration** (`-webkit-font-smoothing: none` as bake
    posture carried by text fixtures).
-4. **The hermetic environment surface** — empty by default, `--font`-declared,
-   content-hash identity.
+4. **The hermetic environment surface** — empty by default, hash-bearing
+   `--font` declarations verified before rendering.
 5. **The corpus-growth law.**
 6. **The lowering shape for text-1: outlines first, no rframe amendment.**
-   Resolved glyphs lower to the contract's existing path facts (`rframe`
-   refuses resource references, and a glyph run referencing a font key is
-   one). The shaped-text *fact* enters `rframe` only if the D-M deciding
-   spike says the join is high — that spike, per
+   Resolved glyphs lower to the contract's existing path facts: `rframe`
+   refuses paints that reference a resource, and a glyph run naming a font
+   key is exactly such a reference — lowering to outlines resolves the font
+   away before the fact enters the contract, so the path fact carries
+   geometry only. The shaped-text *fact* enters `rframe` only if the D-M
+   deciding spike says the join is high — that spike, per
    [the join point](./n0-join-point.md), runs once the Web family's producer
    exists, i.e. after text-1.
 7. **The resolver's home**: a new backend-free workspace crate implementing
