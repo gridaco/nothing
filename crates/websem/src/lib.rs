@@ -27,6 +27,7 @@ pub mod svg;
 mod svg_animation;
 mod svg_paint_server;
 mod svg_path;
+mod svg_text;
 mod svg_transform;
 
 pub use svg::{

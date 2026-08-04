@@ -164,7 +164,15 @@ fn beyond_slice_children_skip_by_name_and_admitted_children_render() {
         .collect();
     assert_eq!(
         skipped,
-        vec![("svg/text[1]", "unsupported element <text>")],
+        vec![(
+            "svg/text[1]",
+            // The text rung admitted `<text>`; this fixture declares no
+            // family, so the run computes to the generic initial and names
+            // that hole instead of reaching for an ambient face.
+            "unsupported computed style: <text> resolves to a generic font family, which names \
+             no font in the declared environment — a family is declared by exact name or the \
+             run refuses",
+        )],
         "each skip names its construct at its stable path"
     );
     assert_eq!(

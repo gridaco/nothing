@@ -121,7 +121,10 @@ fn standalone_svg_presentation_hints_enter_below_author_rules() {
     // Measured in Chromium: the attribute alone selects the face, an author
     // rule beats it, `font-family=""` drops to the default family, and the
     // property inherits.
-    assert_eq!(property(root, "family-hint", LonghandId::FontFamily), "Ahem");
+    assert_eq!(
+        property(root, "family-hint", LonghandId::FontFamily),
+        "Ahem"
+    );
     assert_eq!(
         property(root, "family-rule-beats-hint", LonghandId::FontFamily),
         "monospace"

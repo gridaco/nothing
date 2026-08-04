@@ -436,6 +436,11 @@ pub struct SvgFrameSource {
     /// every sample recompile leave these elements out identically, so a
     /// skip is a property of the retained source, never of one view.
     override_skips: HashMap<NodeId, String>,
+    /// The declared font environment, fixed at construction: Base and every
+    /// sample recompile resolve text against exactly the same fonts, so a
+    /// run's geometry is a property of the retained source, never of one
+    /// view.
+    fonts: textlayout::Environment,
 }
 
 impl std::fmt::Debug for SvgFrameSource {
@@ -521,11 +526,63 @@ impl SvgFrameSource {
         )
     }
 
+    /// Retain a standalone SVG document together with the fonts a `<text>`
+    /// run may resolve against. The environment is a manifest of exact bytes
+    /// the host has already verified against their declared digests — this
+    /// crate reads no font file and consults no ambient font database.
+    pub fn from_standalone_svg_with_fonts(
+        source: impl Into<Arc<str>>,
+        initial_viewport: InitialViewport,
+        fonts: textlayout::Environment,
+    ) -> Result<Self, CompileError> {
+        Self::from_source_with_fonts(
+            source.into(),
+            SourceEntry::StandaloneSvg,
+            CompileMode::Strict,
+            Some(initial_viewport),
+            fonts,
+        )
+    }
+
+    /// The best-effort variant of [`Self::from_standalone_svg_with_fonts`].
+    pub fn from_standalone_svg_best_effort_with_fonts(
+        source: impl Into<Arc<str>>,
+        initial_viewport: InitialViewport,
+        fonts: textlayout::Environment,
+    ) -> Result<Self, CompileError> {
+        Self::from_source_with_fonts(
+            source.into(),
+            SourceEntry::StandaloneSvg,
+            CompileMode::BestEffort,
+            Some(initial_viewport),
+            fonts,
+        )
+    }
+
     fn from_source(
         source: Arc<str>,
         entry: SourceEntry,
         mode: CompileMode,
         initial_viewport: Option<InitialViewport>,
+    ) -> Result<Self, CompileError> {
+        // No declared fonts: a `<text>` run refuses by name rather than
+        // reaching for an ambient face. That is the hermetic default the
+        // text-oracle method ratified, not an omission.
+        Self::from_source_with_fonts(
+            source,
+            entry,
+            mode,
+            initial_viewport,
+            textlayout::Environment::default(),
+        )
+    }
+
+    fn from_source_with_fonts(
+        source: Arc<str>,
+        entry: SourceEntry,
+        mode: CompileMode,
+        initial_viewport: Option<InitialViewport>,
+        fonts: textlayout::Environment,
     ) -> Result<Self, CompileError> {
         // Idempotent for the same state; safe to call per retained source.
         thread_state::initialize(ThreadState::LAYOUT);
@@ -597,6 +654,7 @@ impl SvgFrameSource {
                 &mut walk_degradations,
                 initial_viewport,
                 &HashMap::new(),
+                &fonts,
             )?;
             let animation = AnimationInventory::inspect(svg, &compilation.top_level_shapes, entry);
             // A beyond-inventory animation element is active at document
@@ -646,6 +704,7 @@ impl SvgFrameSource {
                         &mut declared,
                         initial_viewport,
                         &override_skips,
+                        &fonts,
                     )
                     .expect(
                         "narrowing the walk with declared skips cannot change \
@@ -678,6 +737,7 @@ impl SvgFrameSource {
             degradations,
             initial_viewport,
             override_skips,
+            fonts,
         })
     }
 
@@ -757,6 +817,7 @@ impl SvgFrameSource {
             &mut Vec::new(),
             self.initial_viewport,
             &self.override_skips,
+            &self.fonts,
         )
         .expect("time changes effective values, not compilability of the retained source");
         Ok(compilation.frame)
@@ -967,6 +1028,37 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
 /// Rendering attributes additionally rejected on `<rect>`: rounded corners
 /// are not painted by the slice.
 const RECT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["rx", "ry"];
+
+/// Rendering attributes additionally rejected on `<text>`.
+///
+/// The text slice resolves one run at one position: every attribute here
+/// moves, re-measures, or re-splits that run in Chromium, so an authored one
+/// refuses rather than painting a run that ignores it. `x`/`y` are consumed —
+/// but only in their single-number form; the SVG list spellings that
+/// position glyphs individually are a different construct, refused by the
+/// number grammar itself.
+const TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
+    "dx",
+    "dy",
+    "rotate",
+    "textLength",
+    "lengthAdjust",
+    "xml:space",
+    "writing-mode",
+    "direction",
+    "unicode-bidi",
+    "letter-spacing",
+    "word-spacing",
+    "text-decoration",
+    "dominant-baseline",
+    "alignment-baseline",
+    "baseline-shift",
+    "font-weight",
+    "font-style",
+    "font-stretch",
+    "font-variant",
+    "font",
+];
 
 /// Rendering attributes additionally rejected on `<path>`.
 ///
@@ -1492,6 +1584,7 @@ struct FrameCompilation {
 /// strict returns its error, best-effort records it in `degradations` and
 /// leaves the child out of the frame. The checks up to and including the
 /// outer viewport mapping are document-level and refuse in both modes.
+#[allow(clippy::too_many_arguments)]
 fn compile_svg_element(
     svg: HtmlElement<'_>,
     values: &EffectiveValues,
@@ -1499,6 +1592,7 @@ fn compile_svg_element(
     degradations: &mut Vec<Degradation>,
     initial_viewport: Option<InitialViewport>,
     override_skips: &HashMap<NodeId, String>,
+    fonts: &textlayout::Environment,
 ) -> Result<FrameCompilation, CompileError> {
     // The outer <svg> is the canvas contract: a rendering attribute or a
     // cascaded value the slice cannot honor here would wrong every pixel,
@@ -1628,6 +1722,7 @@ fn compile_svg_element(
         override_skips,
         has_author_css: document_has_author_css(svg),
         servers: &servers,
+        fonts,
         items: Vec::new(),
         top_level_shapes: Vec::new(),
         next_id: 0,
@@ -1727,6 +1822,10 @@ struct ChildWalk<'a> {
     /// The document's gradient id table (the gradient rung): built once
     /// before the walk, first-id-wins, shadow-content excluded.
     servers: &'a PaintServers<'a>,
+    /// The declared font environment (the text rung). Empty unless the host
+    /// declared fonts, so a `<text>` in an undeclared document refuses by
+    /// name instead of reaching for an ambient face.
+    fonts: &'a textlayout::Environment,
     items: Vec<FrameItem>,
     /// The materialized nodes that are direct children of the root `<svg>`
     /// — the animation inventory's candidate targets, which it narrows
@@ -2061,6 +2160,7 @@ impl ChildWalk<'_> {
             self.servers,
             self.bases,
             fold_opacity,
+            self.fonts,
         )? {
             facts.folded = outcome.folded;
             facts.transformed = outcome.transformed;
@@ -2192,6 +2292,7 @@ fn compose_element_transform(
 /// Local names match exactly: SVG element names are case-sensitive, and each
 /// grammar entry already applies its own canonicalization (the HTML tokenizer
 /// lowercases and foreign-content-adjusts; XML preserves authored case).
+#[allow(clippy::too_many_arguments)]
 fn compile_shape(
     el: HtmlElement<'_>,
     inherited: AffineTransform,
@@ -2200,6 +2301,7 @@ fn compile_shape(
     servers: &PaintServers<'_>,
     bases: PercentBases,
     fold_opacity: f32,
+    fonts: &textlayout::Environment,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
     let tag = el.local_name_string();
     let transformed = element_has_computed_transform(el)?;
@@ -2212,6 +2314,16 @@ fn compile_shape(
         "circle" => compile_circle(el, transform, next_id, values, servers, bases, fold_opacity),
         "ellipse" => compile_ellipse(el, transform, next_id, values, servers, bases, fold_opacity),
         "path" => compile_path(el, transform, next_id, servers, bases, fold_opacity),
+        "text" => compile_text(
+            el,
+            transform,
+            next_id,
+            values,
+            servers,
+            bases,
+            fold_opacity,
+            fonts,
+        ),
         "line" => compile_line(el, transform, next_id, values, servers, bases, fold_opacity),
         "polygon" => compile_points_shape(
             el,
@@ -2237,6 +2349,134 @@ fn compile_shape(
         transformed,
         ..outcome
     }))
+}
+
+/// Compile one `<text>` element: the document's run, resolved once by the
+/// text oracle and lowered as the resolved contract's path facts.
+///
+/// No font identity crosses into the contract — the glyphs arrive as
+/// outlines, which is what keeps the resolved frame glyphless and leaves the
+/// D-M shaped-text join undecided. The run is admitted only inside the
+/// ratified numeric domain, so a construct Chromium would snap refuses by
+/// name here instead.
+#[allow(clippy::too_many_arguments)]
+fn compile_text(
+    el: HtmlElement<'_>,
+    viewport: AffineTransform,
+    next_id: &mut u64,
+    values: &EffectiveValues,
+    servers: &PaintServers<'_>,
+    bases: PercentBases,
+    fold_opacity: f32,
+    fonts: &textlayout::Environment,
+) -> Result<Option<ShapeOutcome>, CompileError> {
+    patrol_rendering_attributes(el, "text", TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+    patrol_style_attribute(el, "text")?;
+    let patrol = patrol_computed_style(el, true, true)?;
+    match patrol.disposition {
+        RenderDisposition::Renders => {}
+        RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
+    }
+    if patrol.opacity == 0.0 {
+        return Ok(None);
+    }
+
+    // A stroked run strokes glyph outlines, whose edges leave the admitted
+    // numeric domain — the byte-exact gate could not hold. It refuses by
+    // name rather than painting a fill-only approximation.
+    if resolve_stroke(
+        el,
+        "text",
+        servers,
+        Rectangle::from_xywh(0.0, 0.0, 1.0, 1.0),
+        bases,
+        1.0,
+    )?
+    .is_some()
+    {
+        return Err(CompileError::UnsupportedStroke(
+            "stroke on <text> is outside the admitted text slice".to_string(),
+        ));
+    }
+
+    // Only element children were walked, so the run's characters are read
+    // here — the same DOM-children read the `<style>` patrol performs, and
+    // for the same reason: a comment can split character data in two.
+    let mut raw = String::new();
+    for child_id in &el.dom_node().children {
+        match &el.dom().node(*child_id).data {
+            DemoNodeData::Text(text) => raw.push_str(text),
+            // An element child is `<tspan>`, `<textPath>`, `<a>`, … — every
+            // one re-positions or re-styles part of the run, none admitted.
+            DemoNodeData::Element(child) => {
+                return Err(CompileError::UnsupportedElement(
+                    child.name.local.to_string(),
+                ));
+            }
+            _ => {}
+        }
+    }
+    let content = crate::svg_text::collapse_whitespace(&raw);
+
+    let x = geometry_attr_f32(el, "x", values, bases)?.unwrap_or(0.0);
+    let y = geometry_attr_f32(el, "y", values, bases)?.unwrap_or(0.0);
+    let anchor = match get_attr(el, "text-anchor") {
+        Some(value) => crate::svg_text::Anchor::parse(&value).ok_or_else(|| {
+            CompileError::UnsupportedStyle(format!(
+                "text-anchor \"{value}\" is not an admitted keyword"
+            ))
+        })?,
+        None => crate::svg_text::Anchor::Start,
+    };
+
+    let data = el.borrow_data().expect("styled element");
+    let style: &ComputedValues = data.styles.primary();
+    let font_size = style.clone_font_size().used_size().px();
+    // The cascade's family list is a preference order; the environment
+    // answers exact declared names only, so the first entry is the request
+    // and a miss refuses by name rather than walking to a second candidate
+    // (v0 has no fallback).
+    // The environment answers exact declared names only, so a generic
+    // keyword (`serif`, `monospace`, … — including the initial value a
+    // document that names no family computes to) selects nothing. It refuses
+    // here rather than reaching the oracle as an empty name, so the
+    // diagnostic says what is actually wrong with the document.
+    let family = match style.clone_font_family().families.iter().next() {
+        Some(style::values::computed::font::SingleFontFamily::FamilyName(name)) => {
+            name.name.to_string()
+        }
+        Some(style::values::computed::font::SingleFontFamily::Generic(_)) | None => {
+            drop(data);
+            return Err(CompileError::UnsupportedStyle(
+                "<text> resolves to a generic font family, which names no font in the declared \
+                 environment — a family is declared by exact name or the run refuses"
+                    .to_string(),
+            ));
+        }
+    };
+    drop(data);
+
+    let path =
+        crate::svg_text::resolve_text_path(&content, &family, font_size, x, y, anchor, fonts)
+            .map_err(|error| CompileError::UnsupportedStyle(error.to_string()))?;
+    let Some(path) = path else {
+        // A run that resolves to no ink is an admitted nothing, not a node.
+        return Ok(None);
+    };
+
+    shape_node(
+        el,
+        Geometry::Path(std::sync::Arc::new(path)),
+        viewport,
+        next_id,
+        Strokable::RenderingDisabled,
+        servers,
+        bases,
+        patrol.opacity,
+        fold_opacity,
+        false,
+    )
+    .map(Some)
 }
 
 fn compile_rect(

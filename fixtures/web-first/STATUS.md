@@ -210,7 +210,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-opacity-zero-sibling.svg" title="svg-opacity-zero-sibling (standalone-svg)"><img src="./chromium/svg-opacity-zero-sibling.png" width="56" alt="svg-opacity-zero-sibling"></a>
 <a href="./svg-opacity-translucent-overlap.svg" title="svg-opacity-translucent-overlap (standalone-svg)"><img src="./chromium/svg-opacity-translucent-overlap.png" width="56" alt="svg-opacity-translucent-overlap"></a>
 
-## The refusal register (48)
+## The refusal register (49)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -258,7 +258,8 @@ its row into the cells above.
 | `svg-stroke-sheet-unit-width` | declared | declaration ignored at svg/style[1]: a stylesheet declares a stroke-width in ex, which needs a basis this cascade does not have; elements it matches render at the wrong width |
 | `svg-stroke-vector-effect` | declared | skipped svg/g[1]/rect[1]: unsupported rendering attribute vector-effect on <rect> (not yet consumed) |
 | `svg-switch` | declared | skipped svg/switch[1]: unsupported element <switch> |
-| `svg-text` | declared | skipped svg/text[1]: unsupported element <text> |
+| `svg-text-tspan` | declared | skipped svg/text[1]: unsupported element <tspan> |
+| `svg-text-undeclared-font` | declared | skipped svg/text[1]: unsupported computed style: text resolution refused: font family "Undeclared" is not in the declared environment |
 | `svg-use-authored-children` | declared | skipped svg/use[1]: unsupported <use>: it has authored element children, which Chromium replaces with the shadow content |
 | `svg-use-external` | declared | skipped svg/use[1]: unsupported <use>: its reference is not a same-document fragment, and external resources are not resolved |
 | `svg-use-stylesheet` | declared | skipped svg/use[1]: unsupported <use>: the document carries author CSS, and shadow-scoped selector matching is not yet consumed (selectors must match inside the cloned subtree alone — measured) |

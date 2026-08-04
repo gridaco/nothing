@@ -192,11 +192,18 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "vector-effect",
     ),
     ("svg-switch", DeclaredByBestEffort, "<switch>"),
+    // The text rung's residue: `<text>` itself graduated (its fixtures are
+    // baked cells in `fixtures/web-first/text/`), and what remains refused
+    // holds a row. The hermetic default is the load-bearing one — a run
+    // whose family is not in the declared font environment refuses by name
+    // rather than reaching for an ambient face, so there is no tofu and no
+    // machine-local pixel anywhere on this path.
     (
-        "svg-text",
+        "svg-text-undeclared-font",
         DeclaredByBestEffort,
-        "unsupported element <text>",
+        "not in the declared environment",
     ),
+    ("svg-text-tspan", DeclaredByBestEffort, "tspan"),
     // The use/defs rung's residue: `<use>` itself graduated (its fixture
     // is a baked cell), and the named refusals that remain each hold a row.
     (

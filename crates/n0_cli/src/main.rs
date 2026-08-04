@@ -435,13 +435,15 @@ mod tests {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         for (relative, kind, size, named) in [
             (
-                // The strokes rung consumed this fixture's stroked shapes and
-                // its two `<line>`s, so strict now reaches the labels: the
-                // first refusal is `<text>`, the next rung on the ladder.
+                // The text rung admitted `<text>` itself, so strict now
+                // reaches this fixture's *stylesheet* first: `.label`
+                // declares `text-anchor`, which Chromium consumes from the
+                // cascade and the pinned servo build cannot represent. It
+                // was a silent drop before that row existed.
                 "fixtures/test-svg/L0/basic-shapes.svg",
                 SourceKind::Svg,
                 (500, 500),
-                "unsupported element <text>",
+                "a stylesheet declares text-anchor",
             ),
             (
                 // The probe's `.mark` class CSS-sizes the inline <svg>:
@@ -485,6 +487,12 @@ mod tests {
         // because Chromium paints nothing for them either. After the points
         // rung the polygons and the polyline render too, so what remains is
         // the labels and one rounded rect (`rx` is not consumed).
+        //
+        // After the text rung the labels are still declared, for reasons
+        // that moved one layer up: the sheet's `text-anchor` cannot be
+        // represented (declared once at `svg/style[1]`), and each label asks
+        // for the generic `monospace`, which names no font in a declared
+        // environment. Both are named holes where a silent drop used to be.
         let source = std::fs::read_to_string(root.join("fixtures/test-svg/L0/basic-shapes.svg"))
             .expect("read basic-shapes");
         let (png, degradations) = render_source_to_png(
@@ -506,6 +514,7 @@ mod tests {
         assert_eq!(
             skipped,
             vec![
+                "svg/style[1]",
                 "svg/g[1]/text[1]",
                 "svg/g[2]/rect[1]",
                 "svg/g[2]/text[1]",
@@ -521,8 +530,15 @@ mod tests {
         assert!(
             degradations
                 .iter()
-                .any(|d| d.reason() == "unsupported element <text>"),
-            "reasons name the construct"
+                .any(|d| d.reason().contains("a stylesheet declares text-anchor")),
+            "the sheet's unrepresentable declaration is named once"
+        );
+        assert!(
+            degradations
+                .iter()
+                .any(|d| d.reason().contains("generic font family")),
+            "the labels' `font-family: monospace` names no declared font, and the run says so \
+             instead of falling back to an ambient face"
         );
         assert!(
             !degradations.iter().any(|d| d.path() == "svg/g[1]"),

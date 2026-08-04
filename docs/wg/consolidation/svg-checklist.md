@@ -156,7 +156,13 @@ it (FLIP is unratified). A rung's docs commit ticks its rows.
 
 | | Construct | Notes |
 | --- | --- | --- |
-| ⬜ | `<text>` | all of it |
+| ✅ | `<text>` single run | the text rung: one style run of printable ASCII, LTR, resolved once by [the text oracle](../feat-paragraph/text-layout.md) and lowered as outline path facts; admitted inside the ratified [numeric domain](./text-oracle.md) only |
+| ✅ | `text-anchor` attribute | `start`/`middle`/`end`; the CSS spelling refuses (Gecko-only at the Stylo pin) |
+| ✅ | `font-family` / `font-size` | cascaded; the family must name a font the host declared — no ambient fallback, ever |
+| ⬜ | `<tspan>` / `<textPath>` | |
+| ⬜ | `dx` / `dy` / `rotate` lists, `textLength` | |
+| ⬜ | real-font runs | needs the geometry oracle (rung B of the text method) |
+| ⬜ | wrapping, bidi, fallback, stroke on text | |
 
 ## Images & resources
 
