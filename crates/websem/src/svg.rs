@@ -1065,6 +1065,14 @@ const CASCADE_PROPERTIES_NOT_REPRESENTED: &[&str] = &[
     "stop-color",
     "stop-opacity",
     "color-interpolation",
+    // The text rung's row, the same shape one rung later: Chromium consumes
+    // `text-anchor` from the cascade (measured: a rule anchors an
+    // attribute-free `<text>`, and `text-anchor: end` beats
+    // `text-anchor="middle"`), but the property is `engine = "gecko"` at the
+    // Stylo pin, so the servo build has no such longhand and a sheet
+    // declaring one is a silent drop. The *attribute* spelling is admitted
+    // and read directly by the text compiler.
+    "text-anchor",
     // CSS motion path: measured to translate and rotate an SVG shape — and a
     // whole `<g>` subtree — off its authored position.
     "offset",
