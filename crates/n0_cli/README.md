@@ -29,6 +29,12 @@ cargo run -p n0_cli --bin n0 -- \
   fixtures/web-first/animation/svg-scene-cub-animation.svg /tmp/cub-1s.png 96x96 \
   --time-ns 1000000000
 
+# text: the font is a declared, verified input of the render — the family
+# names bytes, and the bytes are checked before any pixel
+cargo run -p n0_cli --bin n0 -- \
+  fixtures/web-first/text/svg-text-em-box.svg /tmp/text.png 100x100 \
+  --font Ahem=fixtures/web-first/fonts/ahem.ttf@sha256:b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448
+
 # dev harness: refuse on the first beyond-slice construct instead of
 # rendering best-effort with declared degradations (the default)
 cargo run -p n0_cli --bin n0 -- \
@@ -135,6 +141,36 @@ cargo run -p n0_cli --bin n0 -- \
   attribute refuses the paint), font-relative units in gradient geometry,
   a percentage in a gradient's computed transform (Chromium resolves it
   against mismatched spaces), an external reference, and `<pattern>`.
+  `<text>` is consumed (the text rung), and its font environment is the
+  host's: text resolves only against fonts declared with
+  `--font FAMILY=PATH@sha256:HEX` (repeatable), whose bytes are **verified
+  against the declared digest before any pixel exists** — a family name is
+  not a font identity, and a mismatch refuses the render rather than
+  producing a silently different one. A `<text>` run whose family was never
+  declared refuses by name; there is no system fallback, no ambient face,
+  and therefore no machine-local pixel anywhere on this path. Inside that
+  environment one run resolves once through
+  [the text oracle](../../docs/wg/feat-paragraph/text-layout.md) at its v0
+  profile — one style run of printable ASCII, horizontal and
+  left-to-right, no wrapping and no fallback — and its glyph outlines lower
+  to the contract's ordinary path facts, so no font identity crosses into
+  the resolved frame. `x`, `y`, and the `text-anchor` attribute
+  (`start`/`middle`/`end`) place the run; `font-family` and `font-size`
+  come from the one cascade, where an author rule beats the presentation
+  attribute exactly as Chromium measured. Geometry is admitted only inside
+  the ratified [numeric domain](../../docs/wg/consolidation/text-oracle.md)
+  — integer position, a `font-size` that is an integer multiple of 5, an
+  integer anchor-resolved start — because that is where every rasterizer's
+  per-pixel coverage is 0 or 1 and the byte-exact gate holds; Chromium
+  snaps everything else by a rasterizer-internal rule, and this refuses by
+  name instead of codifying it. What refuses by name: the CSS spelling of
+  `text-anchor` (Chromium consumes it from the cascade, the pinned Stylo
+  build has no such longhand — a silent drop before the rung), a generic
+  family (which names no declared font), `<tspan>` and any other element
+  child, `dx`/`dy`/`rotate` lists, `textLength`, decorations, letter and
+  word spacing, writing mode and direction, stroke on text, a colour or
+  bitmap face, and any character outside the v0 repertoire. The inline-HTML
+  entry declares no fonts, so its `<text>` refuses there.
   `display: none` and `visibility` are consumed from the one cascade
   (attribute and CSS spellings alike): a pruned or hidden element renders
   the correct nothing rather than a declared hole, a `visibility: visible`

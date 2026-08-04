@@ -20,6 +20,10 @@ websem = { path = "../websem" }
 n0 = { path = "../n0" }
 math2 = { path = "../math2" }
 rframe = { path = "../rframe" }
+# The host declares the fonts text resolves against, and verifies their
+# bytes against the declared digest before any pixel exists.
+textlayout = { path = "../textlayout" }
+sha2 = "0.10"
 skia-safe = { version = "=0.99.0", features = [
   "gpu",
   "gl",
