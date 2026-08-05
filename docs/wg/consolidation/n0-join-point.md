@@ -191,30 +191,35 @@ candidate fact: a content-digest font key (digest, face index, variation
 coordinates), font size, baseline-relative glyph placements, advance, and line
 metrics — no live object, no registry address, no raster-facing flags.
 
-- **The shaping facts join.** For the overlapping slice — printable-ASCII LTR
-  text in one declared face — the producers state bit-identical *measured*
-  shaping facts: the same glyph identities, pen positions, and advance. (The
-  content key matches by construction, not by measurement: n0's artifact
-  cannot state it — the fourth bullet — so the spike joins it back from the
-  host's declaration.) The inputs genuinely match at the shaping layer, which
-  licenses the low join's shared glyph/raster-utility seat by measurement and
-  means the low join hides no shaping divergence.
-- **The metric facts do not join.** The same resolution's ascent, descent, and
-  baseline arrive exact from the Web producer's font-unit arithmetic and one
-  scaler quantum off from n0's paragraph backend — 2⁻¹⁴ per metric on the
-  declared Darwin-arm64 build; a new platform declares its own value through
-  one loud CI round-trip. The skew is below coverage resolution (the outline
-  arm proves the quantized baseline moves no pixel), so this leg is not a
-  pixel break — it is a fact-identity break: a neutral contract would have to
-  legislate metric derivation, rebuilding n0's oracle output, or carry one
-  fact with two meanings.
+- **Glyph identity joins.** For the overlapping slice — printable-ASCII LTR
+  text in one declared face — the producers select bit-identical glyphs on
+  every measured platform. (The content key matches by construction, not by
+  measurement: n0's artifact cannot state it — the fourth bullet — so the
+  spike joins it back from the host's declaration.) The shapers genuinely
+  agree on what the text *is*, which licenses the low join's shared
+  glyph/raster-utility seat by measurement and means the low join hides no
+  selection divergence.
+- **Placement and metric facts do not join — they are the scaler's.** The Web
+  producer's pen positions, advance, and metrics are exact font-unit
+  arithmetic on every platform. n0's pass through its scaler backend, and
+  *which* of them arrives exact is itself platform-dependent, declared per
+  platform in the spike: the Darwin-arm64 CoreText build states exact pen x
+  with metrics one 2⁻¹⁴ step off; the Linux-x86_64 FreeType build states
+  exact metrics with each em advance one 2⁻¹⁶ step short. The skews sit
+  below coverage resolution (the outline arm proves the quantized baseline
+  moves no pixel), so this leg is not a pixel break — it is a fact-identity
+  break: one producer's facts are not even self-consistent across platforms,
+  so a neutral contract would have to legislate the derivation, rebuilding
+  n0's oracle output, or carry one fact with two meanings.
 - **Outlines are meaning; glyph replay is policy.** Two outline extractions of
   the same candidate fact — Skia `get_path` over environment bytes, and the
   artifact's own ttf-parser stream — are byte-identical through the one
   shared path-fill rasterizer at every probed anchor, on and off the integer
   lattice, and bilevel on it (the admitted-domain law); the controlled
   question is whether lowering to outlines loses anything, and it loses
-  nothing. n0's replay through its oracle's live font, which arrives with
+  nothing. (Even here policy had to be stripped explicitly: the FreeType
+  build hints `get_path` by default — measured in the first Linux round — so
+  a consumer realizing meaning turns hinting off.) n0's replay through its oracle's live font, which arrives with
   hinting, subpixel positioning, and edging set by the paragraph backend,
   paints a measured non-bilevel fringe against those same outlines *on the
   lattice itself* (432 bytes at the probed cell on Darwin-arm64; control

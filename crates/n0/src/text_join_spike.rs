@@ -13,19 +13,19 @@
 //!
 //! What the arms measured:
 //!
-//! - **Shaping facts join.** Both producers state the overlapping run —
-//!   printable-ASCII LTR text in one declared face — with bit-identical
-//!   *measured* facts: glyph identities, pen positions, advance. (The
-//!   content key matches by construction — n0's artifact cannot state it,
-//!   so the host's declaration is joined back in.) The inputs genuinely
-//!   match at the shaping layer, which is what licenses the low join's
-//!   shared glyph/raster utilities.
-//! - **Metric facts do not.** The same resolution's ascent, descent, and
-//!   baseline arrive scaler-quantized from n0's paragraph backend (one
-//!   2⁻¹⁴ step on the Darwin CoreText build) and exact from the Web
-//!   family's font-unit arithmetic. A neutral contract would have to
-//!   legislate metric derivation — rebuilding n0's oracle output — or carry
-//!   two meanings for one fact.
+//! - **Glyph identity joins; placement and metrics are the scaler's.** Both
+//!   shapers select identical glyphs from the same declared face on every
+//!   platform (the content key matches by construction — n0's artifact
+//!   cannot state it, so the host's declaration is joined back in). The Web
+//!   producer's pen positions, advance, and metrics are exact font-unit
+//!   arithmetic everywhere. n0's pass through its scaler backend, and
+//!   *which* of them arrives exact is itself platform-dependent: the
+//!   CoreText build states exact pen x with 2⁻¹⁴-quantized metrics; the
+//!   FreeType build states exact metrics with each em advance one 2⁻¹⁶
+//!   step short. One producer's facts are not even self-consistent across
+//!   platforms — a neutral contract would have to legislate the
+//!   derivation, rebuilding n0's oracle output, or carry one fact with two
+//!   meanings.
 //! - **Outlines are meaning; glyph replay is policy.** Two independent
 //!   outline extractions of the same candidate fact (Skia `get_path` from
 //!   environment bytes; the artifact's own ttf-parser stream) agree
@@ -97,29 +97,59 @@ const FRACTIONAL_ANCHOR: (f32, f32) = (10.5, 30.25);
 // declaration fails its arm loudly with the value to declare. One CI
 // round-trip maps a new platform.
 
-/// The declared platform: Darwin-arm64, exactly — the build the values
-/// below were measured on. An Intel mac is *not* declared and reports its
-/// own measurement like any other new platform.
-fn declared_platform() -> bool {
+/// The two declared platforms — exactly the builds the values below were
+/// measured on. Any other target (an Intel mac included) is undeclared and
+/// reports its own measurement like any new platform.
+fn darwin_arm64() -> bool {
     cfg!(all(target_os = "macos", target_arch = "aarch64"))
+}
+
+fn linux_x86_64() -> bool {
+    cfg!(all(target_os = "linux", target_arch = "x86_64"))
 }
 
 /// The scaler quantum n0's metric facts arrive in: ascent, descent, and
 /// baseline each land one step of this off the exact font-unit value on
 /// the declared platform. Darwin-arm64 (the CoreText scaler): 2⁻¹⁴, a
-/// 16.16 fixed-point step. A platform whose divergence has a different
-/// *shape* (not just magnitude) restructures the metric arm rather than
-/// forcing a false declaration through this scalar.
+/// 16.16 fixed-point step. Linux-x86_64 (the FreeType scaler): exactly
+/// zero — its metrics are exact while its *advances* are not (below),
+/// which is the finding: which facts arrive exact is itself
+/// platform-dependent. A platform whose divergence has a different *shape*
+/// restructures the arm rather than forcing a false declaration through
+/// this scalar.
 fn declared_metric_quantum() -> Option<f32> {
-    declared_platform().then_some(1.0 / 16384.0)
+    if darwin_arm64() {
+        Some(1.0 / 16384.0)
+    } else if linux_x86_64() {
+        Some(0.0)
+    } else {
+        None
+    }
+}
+
+/// The em advance n0's producer states for one Ahem glyph at the probed
+/// size: exact (20px) from the CoreText scaler, one 2⁻¹⁶ step short from
+/// the FreeType scaler. The Web producer states exactly 20px on every
+/// platform — its arithmetic never passes through a scaler.
+fn declared_n0_em_advance() -> Option<f32> {
+    if darwin_arm64() {
+        Some(FONT_SIZE)
+    } else if linux_x86_64() {
+        Some(FONT_SIZE - 1.0 / 65536.0)
+    } else {
+        None
+    }
 }
 
 /// Bytes by which n0's glyph replay of the candidate run differs from its
-/// exact outline realization, at the lattice and fractional anchors.
-/// Darwin-arm64: a 432-byte non-bilevel fringe on the lattice, 843 bytes
-/// off it.
+/// policy-stripped outline realization, at the lattice and fractional
+/// anchors. Darwin-arm64: a 432-byte non-bilevel fringe on the lattice,
+/// 843 bytes off it. Linux is undeclared *on purpose*: its first round
+/// measured 60/657 against a consumer that still carried FreeType hinting
+/// in `get_path`; the consumer now strips policy, so Linux re-declares
+/// against the corrected baseline through the normal loud round-trip.
 fn declared_replay_divergence() -> Option<(usize, usize)> {
-    declared_platform().then_some((432, 843))
+    darwin_arm64().then_some((432, 843))
 }
 
 // --- the candidate neutral contract -------------------------------------
@@ -383,7 +413,12 @@ fn realize_candidate_outlines(
     let typeface = FontMgr::new()
         .new_from_data(bytes, run.key.face_index as usize)
         .ok_or("declared bytes do not parse as a face")?;
-    let font = Font::new(typeface, run.font_size);
+    let mut font = Font::new(typeface, run.font_size);
+    // A backend `Font` is policy-tinted by default even for *outline
+    // extraction*: the FreeType build hints `get_path` unless told not to
+    // (measured — 60 differing bytes on the lattice in the first Linux
+    // round). A consumer realizing meaning strips raster policy explicitly.
+    font.set_hinting(FontHinting::None);
     let mut builder = PathBuilder::new();
     for glyph in &run.glyphs {
         if let Some(path) = font.get_path(glyph.id) {
@@ -463,27 +498,55 @@ fn non_bilevel_bytes(image: &[u8]) -> usize {
 
 // --- the arms ------------------------------------------------------------
 
-/// Where the inputs genuinely match — one face, one style, printable-ASCII
-/// LTR — the two producers state identical shaping facts, bit-exact: the
-/// glyph identities, pen positions, and advance are the *measured*
-/// agreement; the content key matches by construction (n0's side is joined
-/// back from the host declaration — see the process-identity arm), so key
-/// equality here validates the projection, not a second producer of the
-/// key. This is what licenses the low join's shared glyph/raster
-/// utilities, and it means the low join hides no shaping divergence.
+/// The platform-invariant join is glyph *identity*: both shapers select
+/// the same glyphs from the same declared face at the same size, on every
+/// platform. Placement splits by producer: the Web producer's pen
+/// positions and advance are exact font-unit arithmetic everywhere, while
+/// n0's pass through its scaler backend and arrive per-platform (exact
+/// from CoreText; one 2⁻¹⁶ step short per em from FreeType). One
+/// producer's placement facts are not even self-consistent across
+/// platforms — which is the sharpest form of the metric finding, and the
+/// content key still matches by construction only (n0's side is joined
+/// back from the host declaration — see the process-identity arm).
 #[test]
-fn the_shaping_facts_agree_bit_exactly() {
+fn glyph_identity_joins_and_placement_carries_the_scaler() {
     let web = candidate_from_web(&web_layout(RUN_TEXT));
 
     let ctx = ahem_paint_ctx();
     let (layout, font) = n0_layout(&ctx, RUN_TEXT);
     let n0 = candidate_from_n0(&layout, &font, ahem_digest());
 
-    assert_eq!(web.shaping_facts(), n0.shaping_facts());
-    // The run is not degenerate evidence: four glyphs (including the space,
-    // which advances without ink), an em advance each.
+    // Identity joins everywhere. The run is not degenerate evidence: four
+    // glyphs, including the space, which advances without ink.
+    assert_eq!(web.key, n0.key);
+    assert_eq!(web.font_size, n0.font_size);
+    let ids =
+        |run: &CandidateShapedRun| run.glyphs.iter().map(|glyph| glyph.id).collect::<Vec<_>>();
+    assert_eq!(ids(&web), ids(&n0));
     assert_eq!(web.glyphs.len(), 4);
+
+    // The Web producer's placement is exact on every platform: no scaler
+    // ever touches its arithmetic.
+    for (index, glyph) in web.glyphs.iter().enumerate() {
+        assert_eq!(glyph.x, index as f32 * FONT_SIZE);
+    }
     assert_eq!(web.advance, 4.0 * FONT_SIZE);
+
+    // n0's placement is its scaler backend's, declared per platform.
+    let Some(step) = declared_n0_em_advance() else {
+        panic!(
+            "undeclared platform: measured n0 pen x {:?}, advance {:?} — declare this \
+             platform's em advance",
+            n0.glyphs.iter().map(|glyph| glyph.x).collect::<Vec<_>>(),
+            n0.advance,
+        );
+    };
+    let mut pen = 0.0f32;
+    for glyph in &n0.glyphs {
+        assert_eq!(glyph.x, pen);
+        pen += step;
+    }
+    assert_eq!(n0.advance, pen);
 }
 
 /// The metric facts of the same resolution do not join: the Web family's
