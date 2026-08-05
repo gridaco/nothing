@@ -3336,7 +3336,9 @@ dependencies = [
  "math2",
  "n0",
  "rframe",
+ "sha2",
  "skia-safe",
+ "textlayout",
  "websem",
 ]
 

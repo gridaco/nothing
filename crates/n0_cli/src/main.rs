@@ -36,12 +36,19 @@
 //! images and external stylesheets are not resolved; directory input and
 //! non-PNG output remain outside the admitted host contract.
 //!
+//! Text resolves against fonts the host declares, never an ambient one:
+//! `--font FAMILY=PATH@sha256:HEX` (repeatable) names the exact bytes a
+//! family means, and the host verifies them before any pixel. A `<text>`
+//! run whose family was not declared refuses by name — there is no system
+//! fallback to render a machine-local pixel from.
+//!
 //! Usage:
 //!   cargo run -p n0_cli --bin n0 -- <input.svg|input.html> <out.png> <WxH>
 //!   cargo run -p n0_cli --bin n0 -- <input.svg|input.html> <out.png> <WxH> --base
 //!   cargo run -p n0_cli --bin n0 -- <input.svg|input.html> <out.png> <WxH> --time-ns <i64>
 //!   ... any form plus --strict (refuse beyond-slice) or --best-effort (the
-//!   explicit spelling of the default)
+//!   explicit spelling of the default), and any number of
+//!   --font FAMILY=PATH@sha256:HEX
 //!
 //! Examples:
 //!   cargo run -p n0_cli --bin n0 -- \
@@ -50,6 +57,8 @@
 //!     fixtures/web-first/animation/svg-rect-x-animation.svg /tmp/t1s.png 64x32 --time-ns 1000000000
 //!   cargo run -p n0_cli --bin n0 -- \
 //!     fixtures/web-first/animation/svg-scene-cub-animation.svg /tmp/cub.png 96x96 --strict
+
+mod fonts;
 
 use std::path::Path;
 use std::process::ExitCode;
@@ -84,14 +93,15 @@ enum Admission {
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    if !matches!(args.len(), 3..=6) {
+    if args.len() < 3 {
         eprintln!(
             "usage:\n\
              n0 <input.svg|input.html> <out.png> <WxH>\n\
              n0 <input.svg|input.html> <out.png> <WxH> --base\n\
              n0 <input.svg|input.html> <out.png> <WxH> --time-ns <signed-nanoseconds>\n\
              any form may add --strict (refuse beyond-slice constructs)\n\
-             or --best-effort (declare and render; the default)"
+             or --best-effort (declare and render; the default),\n\
+             and any number of --font FAMILY=PATH@sha256:HEX"
         );
         return ExitCode::from(2);
     }
@@ -101,8 +111,17 @@ fn main() -> ExitCode {
         eprintln!("error: size must look like 128x128 and be positive");
         return ExitCode::from(2);
     };
-    let (policy, admission) = match parse_render_options(&args[3..]) {
+    let (policy, admission, font_declarations) = match parse_render_options(&args[3..]) {
         Ok(options) => options,
+        Err(message) => {
+            eprintln!("error: {message}");
+            return ExitCode::from(2);
+        }
+    };
+    // Verified before a frame exists: a font that is not the declared
+    // identity can never reach a pixel.
+    let font_environment = match fonts::load_environment(&font_declarations) {
+        Ok(environment) => environment,
         Err(message) => {
             eprintln!("error: {message}");
             return ExitCode::from(2);
@@ -129,13 +148,14 @@ fn main() -> ExitCode {
         }
     };
 
-    let (png, degradations) = match render_source_to_png(&source, kind, w, h, policy, admission) {
-        Ok(rendered) => rendered,
-        Err(e) => {
-            eprintln!("error: render failed: {e}");
-            return ExitCode::FAILURE;
-        }
-    };
+    let (png, degradations) =
+        match render_source_to_png(&source, kind, w, h, policy, admission, font_environment) {
+            Ok(rendered) => rendered,
+            Err(e) => {
+                eprintln!("error: render failed: {e}");
+                return ExitCode::FAILURE;
+            }
+        };
 
     if let Err(e) = std::fs::write(output, &png) {
         eprintln!("error: cannot write {output}: {e}");
@@ -173,10 +193,23 @@ impl FramePolicy {
 /// Parse the trailing options: an optional frame policy (`--base` or
 /// `--time-ns <ns>`) and an optional admission (`--strict` or
 /// `--best-effort`), in any order.
-fn parse_render_options(args: &[String]) -> Result<(FramePolicy, Admission), String> {
+fn parse_render_options(
+    args: &[String],
+) -> Result<(FramePolicy, Admission, Vec<fonts::FontDeclaration>), String> {
     let mut admission = None;
     let mut policy_args = Vec::new();
+    let mut declarations = Vec::new();
+    let mut expecting_font = false;
     for arg in args {
+        if expecting_font {
+            declarations.push(fonts::parse_declaration(arg)?);
+            expecting_font = false;
+            continue;
+        }
+        if arg == "--font" {
+            expecting_font = true;
+            continue;
+        }
         let flag = match arg.as_str() {
             "--strict" => Some(Admission::Strict),
             "--best-effort" => Some(Admission::BestEffort),
@@ -190,8 +223,15 @@ fn parse_render_options(args: &[String]) -> Result<(FramePolicy, Admission), Str
             None => policy_args.push(arg.clone()),
         }
     }
+    if expecting_font {
+        return Err("--font needs a FAMILY=PATH@sha256:HEX declaration".to_string());
+    }
     let policy = parse_frame_policy(&policy_args)?;
-    Ok((policy, admission.unwrap_or(Admission::BestEffort)))
+    Ok((
+        policy,
+        admission.unwrap_or(Admission::BestEffort),
+        declarations,
+    ))
 }
 
 fn parse_frame_policy(args: &[String]) -> Result<FramePolicy, String> {
@@ -239,6 +279,7 @@ fn has_extension(path: &Path, expected: &str) -> bool {
 /// Render one source through the engine of record and return the PNG plus
 /// the degradations relevant to this request: skips always apply, a
 /// samples-as-base declaration only describes `--time-ns` requests.
+#[allow(clippy::too_many_arguments)]
 fn render_source_to_png(
     source: &str,
     kind: SourceKind,
@@ -246,17 +287,24 @@ fn render_source_to_png(
     height: i32,
     policy: FramePolicy,
     admission: Admission,
+    fonts: textlayout::Environment,
 ) -> Result<(Vec<u8>, Vec<websem::Degradation>), String> {
     // The requested raster is the initial viewport (SVG2 §8.2) a standalone
     // document resolves auto sizing against — the CLI's WxH is the window.
     let initial_viewport = websem::InitialViewport::new(width as f32, height as f32);
     let retained = match (kind, admission) {
         (SourceKind::Svg, Admission::Strict) => {
-            websem::SvgFrameSource::from_standalone_svg(source, initial_viewport)
+            websem::SvgFrameSource::from_standalone_svg_with_fonts(source, initial_viewport, fonts)
         }
         (SourceKind::Svg, Admission::BestEffort) => {
-            websem::SvgFrameSource::from_standalone_svg_best_effort(source, initial_viewport)
+            websem::SvgFrameSource::from_standalone_svg_best_effort_with_fonts(
+                source,
+                initial_viewport,
+                fonts,
+            )
         }
+        // The inline-HTML entry declares no fonts yet: its `<text>` runs
+        // refuse by name, which is the hermetic default, not a silent drop.
         (SourceKind::Html, Admission::Strict) => {
             websem::SvgFrameSource::from_html_inline_svg(source)
         }
@@ -379,20 +427,20 @@ mod tests {
         assert_eq!(parse_size("auto"), None);
         assert_eq!(
             parse_render_options(&[]),
-            Ok((FramePolicy::Base, Admission::BestEffort)),
+            Ok((FramePolicy::Base, Admission::BestEffort, Vec::new())),
             "the unqualified default is best-effort Base"
         );
         assert_eq!(
             parse_render_options(&["--base".to_string()]),
-            Ok((FramePolicy::Base, Admission::BestEffort))
+            Ok((FramePolicy::Base, Admission::BestEffort, Vec::new()))
         );
         assert_eq!(
             parse_render_options(&["--strict".to_string()]),
-            Ok((FramePolicy::Base, Admission::Strict))
+            Ok((FramePolicy::Base, Admission::Strict, Vec::new()))
         );
         assert_eq!(
             parse_render_options(&["--best-effort".to_string()]),
-            Ok((FramePolicy::Base, Admission::BestEffort))
+            Ok((FramePolicy::Base, Admission::BestEffort, Vec::new()))
         );
         assert_eq!(
             parse_render_options(&[
@@ -402,7 +450,8 @@ mod tests {
             ]),
             Ok((
                 FramePolicy::Sample(SampleTime::from_nanoseconds(-1)),
-                Admission::Strict
+                Admission::Strict,
+                Vec::new()
             ))
         );
         assert_eq!(
@@ -413,7 +462,8 @@ mod tests {
             ]),
             Ok((
                 FramePolicy::Sample(SampleTime::from_nanoseconds(7)),
-                Admission::Strict
+                Admission::Strict,
+                Vec::new()
             )),
             "flag order is free"
         );
@@ -423,6 +473,73 @@ mod tests {
         );
         assert!(parse_render_options(&["--time-ns".to_string()]).is_err());
         assert!(parse_render_options(&["--time-ns".to_string(), "1.5".to_string()]).is_err());
+    }
+
+    /// The text slice is reachable from the product surface: a declared,
+    /// verified font makes a `<text>` run render, and the render is exactly
+    /// the Chromium oracle the text suite baked. Without the declaration
+    /// the same document refuses by name — the hermetic default, visible at
+    /// the CLI boundary rather than only inside the compiler.
+    #[test]
+    fn declared_fonts_render_text_and_an_undeclared_one_refuses() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let source =
+            std::fs::read_to_string(root.join("fixtures/web-first/text/svg-text-em-box.svg"))
+                .expect("read the text cell");
+
+        // No declaration: the run names the family it cannot resolve, and
+        // best-effort renders the rest of the document rather than guessing.
+        let (_, degradations) = render_source_to_png(
+            &source,
+            SourceKind::Svg,
+            100,
+            100,
+            FramePolicy::Base,
+            Admission::BestEffort,
+            textlayout::Environment::default(),
+        )
+        .expect("best-effort renders the admitted subset");
+        assert!(
+            degradations
+                .iter()
+                .any(|d| d.reason().contains("not in the declared environment")),
+            "an undeclared family is a named hole, never an ambient face"
+        );
+
+        // Declared and verified: the run renders, byte-identical to the
+        // committed Chromium oracle for the same cell.
+        let font = root.join("fixtures/web-first/fonts/ahem.ttf");
+        let declaration = fonts::parse_declaration(&format!(
+            "Ahem={}@sha256:b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+            font.display()
+        ))
+        .expect("a well-formed declaration");
+        let environment = fonts::load_environment(&[declaration]).expect("the pinned bytes verify");
+        let (png, degradations) = render_source_to_png(
+            &source,
+            SourceKind::Svg,
+            100,
+            100,
+            FramePolicy::Base,
+            Admission::Strict,
+            environment,
+        )
+        .expect("a declared font resolves the run under --strict");
+        assert!(
+            degradations.is_empty(),
+            "nothing is degraded once the font is declared"
+        );
+
+        let raster = decode_png(&png).expect("decode the text render");
+        let oracle = decode_png(
+            &std::fs::read(root.join("fixtures/web-first/text/chromium/svg-text-em-box.png"))
+                .expect("read the committed oracle"),
+        )
+        .expect("decode the oracle");
+        assert_eq!(
+            raster.pixels, oracle.pixels,
+            "the host's text render is the Chromium oracle, byte for byte"
+        );
     }
 
     /// The strict admission keeps the refusal harness: inputs the retired
@@ -465,6 +582,7 @@ mod tests {
                 size.1,
                 FramePolicy::Base,
                 Admission::Strict,
+                textlayout::Environment::default(),
             )
             .expect_err("beyond-slice input must refuse under --strict, not render");
             assert!(
@@ -502,6 +620,7 @@ mod tests {
             400,
             FramePolicy::Base,
             Admission::BestEffort,
+            textlayout::Environment::default(),
         )
         .expect("best-effort renders the admitted subset");
         let raster = decode_png(&png).expect("decode PNG");
@@ -558,6 +677,7 @@ mod tests {
             64,
             FramePolicy::Base,
             Admission::BestEffort,
+            textlayout::Environment::default(),
         )
         .expect("best-effort renders the admitted circle");
         let raster = decode_png(&png).expect("decode PNG");
@@ -578,6 +698,7 @@ mod tests {
             64,
             FramePolicy::Base,
             Admission::Strict,
+            textlayout::Environment::default(),
         )
         .expect("strict admits the circle too");
         assert_eq!(png, strict_png, "admissions are byte-identical");
@@ -595,6 +716,7 @@ mod tests {
             64,
             FramePolicy::Base,
             Admission::BestEffort,
+            textlayout::Environment::default(),
         )
         .expect("best-effort renders the admitted path");
         let raster = decode_png(&png).expect("decode PNG");
@@ -615,6 +737,7 @@ mod tests {
             64,
             FramePolicy::Base,
             Admission::Strict,
+            textlayout::Environment::default(),
         )
         .expect("strict admits the path too");
         assert_eq!(png, strict_png, "admissions are byte-identical");
@@ -632,6 +755,7 @@ mod tests {
             64,
             FramePolicy::Base,
             Admission::BestEffort,
+            textlayout::Environment::default(),
         )
         .expect("best-effort renders the admitted polygon");
         let raster = decode_png(&png).expect("decode PNG");
@@ -652,6 +776,7 @@ mod tests {
             64,
             FramePolicy::Base,
             Admission::Strict,
+            textlayout::Environment::default(),
         )
         .expect("strict admits the polygon too");
         assert_eq!(png, strict_png, "admissions are byte-identical");
@@ -674,6 +799,7 @@ mod tests {
                 48,
                 FramePolicy::Base,
                 admission,
+                textlayout::Environment::default(),
             )
             .expect_err("root sizing is document-level in both admissions");
             assert!(
@@ -700,6 +826,7 @@ mod tests {
             32,
             FramePolicy::Base,
             Admission::BestEffort,
+            textlayout::Environment::default(),
         )
         .expect("viewBox-only renders by default");
         assert!(
@@ -726,6 +853,7 @@ mod tests {
             32,
             FramePolicy::Base,
             Admission::Strict,
+            textlayout::Environment::default(),
         )
         .expect("strict admits the same document");
         assert_eq!(png, strict_png, "admissions agree byte-for-byte");
@@ -738,6 +866,7 @@ mod tests {
             128,
             FramePolicy::Base,
             Admission::BestEffort,
+            textlayout::Environment::default(),
         )
         .expect("the raster is the initial viewport");
         let raster = decode_png(&large).expect("decode PNG");
@@ -771,6 +900,7 @@ mod tests {
             600,
             FramePolicy::Base,
             Admission::BestEffort,
+            textlayout::Environment::default(),
         )
         .expect("the first inline SVG is the admitted rect");
         assert!(
@@ -785,6 +915,7 @@ mod tests {
             600,
             FramePolicy::Base,
             Admission::Strict,
+            textlayout::Environment::default(),
         )
         .expect("repeat render (strict admission)");
         assert_eq!(first, second, "encoded determinism across admissions");
@@ -838,6 +969,7 @@ mod tests {
                 size.1,
                 FramePolicy::Base,
                 Admission::BestEffort,
+                textlayout::Environment::default(),
             )
             .unwrap_or_else(|error| panic!("render {relative}: {error}"));
             assert!(
@@ -851,6 +983,7 @@ mod tests {
                 size.1,
                 FramePolicy::Base,
                 Admission::Strict,
+                textlayout::Environment::default(),
             )
             .unwrap_or_else(|error| panic!("repeat {relative}: {error}"));
             assert_eq!(first, second, "{relative} byte-identical across admissions");
@@ -907,15 +1040,23 @@ mod tests {
                 32,
                 policy,
                 Admission::BestEffort,
+                textlayout::Environment::default(),
             )
             .unwrap_or_else(|error| panic!("render {policy:?}: {error}"));
             assert!(
                 degradations.is_empty(),
                 "the admitted x animation degrades nothing"
             );
-            let (second, _) =
-                render_source_to_png(&source, SourceKind::Svg, 64, 32, policy, Admission::Strict)
-                    .unwrap_or_else(|error| panic!("repeat {policy:?}: {error}"));
+            let (second, _) = render_source_to_png(
+                &source,
+                SourceKind::Svg,
+                64,
+                32,
+                policy,
+                Admission::Strict,
+                textlayout::Environment::default(),
+            )
+            .unwrap_or_else(|error| panic!("repeat {policy:?}: {error}"));
             assert_eq!(first, second, "{policy:?} byte-identical across admissions");
             let raster = decode_png(&first).expect("decode exact-time PNG");
             let expected = decode_png(
@@ -967,15 +1108,23 @@ mod tests {
                 96,
                 policy,
                 Admission::BestEffort,
+                textlayout::Environment::default(),
             )
             .unwrap_or_else(|error| panic!("render {policy:?}: {error}"));
             assert!(
                 degradations.is_empty(),
                 "the cub scene is fully admitted; {policy:?} declares {degradations:?}"
             );
-            let (strict, _) =
-                render_source_to_png(source, SourceKind::Svg, 96, 96, policy, Admission::Strict)
-                    .unwrap_or_else(|error| panic!("strict render {policy:?}: {error}"));
+            let (strict, _) = render_source_to_png(
+                source,
+                SourceKind::Svg,
+                96,
+                96,
+                policy,
+                Admission::Strict,
+                textlayout::Environment::default(),
+            )
+            .unwrap_or_else(|error| panic!("strict render {policy:?}: {error}"));
             assert_eq!(
                 best_effort, strict,
                 "{policy:?} byte-identical across admissions"
@@ -1105,6 +1254,7 @@ mod tests {
             64,
             FramePolicy::Sample(SampleTime::ZERO),
             Admission::Strict,
+            textlayout::Environment::default(),
         )
         .expect_err("inline-HTML sampling is not admitted under --strict");
         assert!(
@@ -1119,6 +1269,7 @@ mod tests {
             64,
             FramePolicy::Sample(SampleTime::ZERO),
             Admission::BestEffort,
+            textlayout::Environment::default(),
         )
         .expect("the default admission samples as the Base view");
         assert_eq!(degradations.len(), 1, "declared exactly once");
@@ -1134,6 +1285,7 @@ mod tests {
             64,
             FramePolicy::Base,
             Admission::BestEffort,
+            textlayout::Environment::default(),
         )
         .expect("Base render");
         assert!(
@@ -1150,6 +1302,7 @@ mod tests {
                 32,
                 FramePolicy::Base,
                 admission,
+                textlayout::Environment::default(),
             )
             .expect_err("a document with no inline SVG refuses at construction");
             assert!(
