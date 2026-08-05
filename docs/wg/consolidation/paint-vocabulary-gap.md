@@ -175,7 +175,7 @@ remains per-leaf. The decision does not support one wholesale type swap.
 | Solid paint, normal blend, ordered paint stack | `cg` is selected for the solid-fill proving scope. | Run the applicable RFD laws directly, including active/visible behavior and bottom-to-top order; color's gate also applies. |
 | Other blends, tile/alignment, gradients, and image paints | `cg` is the vector seat, but these leaves are not adopted by the solid-fill proving scope. | Preserve the full field matrices and settle transform/math/serialization policy; amendment-dependent gradient behavior and resource-bearing image facts retain their own gates. |
 | Stroke application | `cg` is the selected seat, but its current ungrouped surface is not conforming and remains unmapped into production. | Add grouped, repeatable applications without flattening, then run the stroke laws directly. |
-| Text paint partition | Open and outside the taken vector scope. | Resolve the text-stage decision, tri-state run-fill amendment, decoration color, and full run stroke applications. |
+| Text paint partition | Open and outside the taken vector scope. The text-stage decision has since resolved **low** (2026-08-05, [the text-stage evidence](./n0-join-point.md#the-text-stage-evidence)): text paints never cross the shared contract, so this partition is each engine's private question, not a shared-seat adoption. | Tri-state run-fill amendment, decoration color, and full run stroke applications — now gated per engine, below the join. |
 
 No production adapter landed with this report. The test-local conformance
 bindings remain evidence and deletion gates. For leaves outside the taken

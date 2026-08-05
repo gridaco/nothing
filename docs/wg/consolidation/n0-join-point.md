@@ -1,6 +1,6 @@
 ---
 title: "Finding: where n0 joins the shared downstream"
-description: "The amendment defers whether n0 emits the common resolved contract or keeps a private drawlist and joins only at the leaf-paint/backend tier. A staged gap analysis names the evidence needed for glyphless visual facts and, later, shaped text."
+description: "Where n0 joins the shared downstream, decided per fact kind on staged evidence: glyphless visual facts join high (2026-07-23); shaped text joins low on the two-producer spike (2026-08-05), keeping text artifacts, font registries, and glyph replay policy engine-private."
 tags:
   - internal
   - wg
@@ -15,15 +15,18 @@ spec and not a plan. It reframes a question the
 [Web-First Amendment](./web-first.md) defers, using n0's actual downstream
 types, so the decision can be taken on evidence when it is ripe.
 
-**Status:** the **D-M vector stage was taken on 2026-07-23**, coupled to the
-glyphless vector scope of **D-C**, in the
-[charter's registry](./charter.md). Source-neutral glyphless facts join high
-into the shared downstream: one engine-private compiler, private drawlist,
-painter, damage policy, and cache policy. `cg` is the shared leaf-vocabulary
-seat; adoption remains per-leaf, and the proving-shell downstream does not
-survive as a peer engine. The text stage remains **not yet ripe** because its
-second producer does not exist. The complete evidence bar remains recorded in
-the [Web renderer adoption patrol](./web-renderer-adoption.md).
+**Status:** the staged decision is **complete**. The **vector stage was taken
+on 2026-07-23**, coupled to the glyphless vector scope of **D-C**, in the
+[charter's registry](./charter.md): source-neutral glyphless facts join high
+into the shared downstream — one engine-private compiler, private drawlist,
+painter, damage policy, and cache policy — with `cg` as the shared
+leaf-vocabulary seat, adoption per-leaf, and the proving-shell downstream
+retired rather than surviving as a peer engine. The **text stage was taken on
+2026-08-05: shaped text joins low**, on the two-producer spike this finding
+required ([the text-stage evidence](#the-text-stage-evidence) below;
+[gridaco/nothing#73](https://github.com/gridaco/nothing/pull/73)). The
+complete vector evidence bar remains recorded in the
+[Web renderer adoption patrol](./web-renderer-adoption.md).
 
 ## The crux
 
@@ -44,7 +47,8 @@ nothing about the facts that actually differ between producers. The amendment
 already supplies the resolving principle — *sharing begins only where the
 inputs genuinely match* — so the real question is **per fact kind**, not one
 global switch. The completed vector spike and owner decision answer this
-question high for glyphless vector facts; shaped text remains open.
+question high for glyphless vector facts; the shaped-text stage was answered
+separately — **low** — by [the two-producer spike](#the-text-stage-evidence).
 
 ## The reframing
 
@@ -63,29 +67,30 @@ effective values, as the adoption patrol records.
 | Geometry — rect / oval / line / path, resolved bounds | Neutral (geometry + bounds are on the MAY list) | **High** | each adopted geometry still needs a neutral path/geometry seat and explicit coordinate-space/bounds laws |
 | Ordered paint stacks (solid / gradient / image), strokes | Neutral *concepts*, but carried as n0-model value types | **High**, with per-leaf gates | `cg` is the shared leaf-vocabulary seat; each leaf must conform before its mapping is deleted |
 | Corner smoothing (squircle) | An authoring semantic carried as a *parameter* in n0's drawlist and resolved in n0's painter | **High only after resolution** | n0 must resolve smoothed corners to neutral geometry *before* the contract; carrying the parameter would leak an n0/authoring concept — forbidden |
-| Shaped text (glyph layout + font registry) | Bound to n0's font environment: the shaped-text artifact references a font registry kept opaque and private to n0, shaped through n0's own oracle | **Undecided — the deciding fact** | needs a *neutral* shaped-text representation **and** a neutral font-key/registry boundary that both n0's and the Web family's shapers can produce; neither exists |
+| Shaped text (glyph layout + font registry) | Bound to n0's font environment: the shaped-text artifact references a font registry kept opaque and private to n0, shaped through n0's own oracle | **Low — taken 2026-08-05** | the two-producer spike measured the candidate neutral boundary: shaping facts join, but metric facts arrive scaler-tinted, glyph replay is pixel-visible raster policy, and the fact itself is a resource reference the contract refuses — see [the text-stage evidence](#the-text-stage-evidence) |
 
 ## The deciding factor
 
 Everything except text proved eligible to converge high, and the vector-stage
 compiler-equivalence evidence selected that join. `cg` now owns the shared
-leaf-vocabulary seat, while adoption remains gated per leaf. Shaped text is a
+leaf-vocabulary seat, while adoption remains gated per leaf. Shaped text was a
 separate later question where
 "emit the common contract" and "join below the private drawlist" genuinely
-diverge:
+diverged:
 
 - The amendment's MAY list *does* admit "shaped-text artifacts" and "declared
   font/image/resource environments" — so a neutral shaped-text contract is not
-  forbidden. The blocker is that n0's shaped text is *implemented* coupled to a
+  forbidden. The blocker was that n0's shaped text is *implemented* coupled to a
   private font registry and its own oracle; there is no neutral font-key boundary.
-- So the choice is: (a) define that neutral shaped-text + font-key boundary and
+- So the choice was: (a) define that neutral shaped-text + font-key boundary and
   push text into the high join too, or (b) let text join *low* — each engine's
   private compiler and executor retain its own text artifact, font registry,
   glyph replay policy, and text item. Sharing then stops at backend glyph/raster
   utilities that require no common font key or shaped-text representation.
-  Both remain D-M candidates; (a) is more work and more sharing, (b) is less of
-  both. The evidence that should decide it does not exist yet, because there is
-  only one shaped-text producer today.
+  (a) is more work and more sharing, (b) is less of both. Until the Web family
+  gained a real producer, the deciding evidence could not exist; with
+  `textlayout` live, the two-producer spike ran and chose **(b)** — see
+  [the text-stage evidence](#the-text-stage-evidence).
 
 ## Decision by stage
 
@@ -96,14 +101,14 @@ diverge:
   replacement.
 - **The boundary remains per-fact.** Facts that cannot normalize without
   source semantics stay below the join or remain excluded pending evidence.
-  The separate shaped-text stage stays open.
-- **Name the smallest deciding spike, and gate it on a second text producer.**
-  When the Web family gains a real shaped-text producer, push a text run from
-  *both* it and n0 toward a candidate neutral shaped-text + font-key contract,
-  and observe whether a neutral font-key boundary holds (→ text joins high) or
-  forces the boundary down (→ text joins low). Until that second producer
-  exists, per the amendment's "two real producers first," the text join stays
-  deliberately undecided.
+- **The text stage joins low** (taken 2026-08-05). The smallest deciding spike
+  this entry required — a text run from *both* producers pushed at a candidate
+  neutral shaped-text + font-key contract — ran once the Web family gained a
+  real producer, and the boundary failed at three seams: the measured
+  replay-policy divergence, the metric-fact identity, and the resource
+  reference the contract's standing identity refuses. Each engine keeps
+  its own text artifact, font registry, glyph replay policy, and text item;
+  sharing stops at backend glyph/raster utilities.
 - **Prove mixed-fact composition before treating the stages as independent.**
   The vector spike must preserve order, scopes, identity, damage, and cache
   behavior for a frame that mixes admitted vector facts with still-private
@@ -172,13 +177,105 @@ the one private preview-cache policy without making source identity part of
 raster reuse. The decision does not admit source-specific fields, settle
 cross-frame replacement identity, or authorize parallel policies.
 
+## The text-stage evidence
+
+The two-producer spike this finding required ran on 2026-08-05 as
+[`crates/n0/src/text_join_spike.rs`](../../../crates/n0/src/text_join_spike.rs)
+— in-tree and unit-test-only, like the vector spike, surviving as the witness
+behind the decision rather than as a proposal. The Web family's producer is
+[`crates/textlayout`](../../../crates/textlayout/src/lib.rs) at oracle v0
+(`textlayout` enters `n0` as a dev-dependency for this evidence alone, and the
+spike locks it out of the shipping graph); n0's producer is its Skia Paragraph
+oracle over its private font registry. Both were pushed at one spike-local
+candidate fact: a content-digest font key (digest, face index, variation
+coordinates), font size, baseline-relative glyph placements, advance, and line
+metrics — no live object, no registry address, no raster-facing flags.
+
+- **The shaping facts join.** For the overlapping slice — printable-ASCII LTR
+  text in one declared face — the producers state bit-identical *measured*
+  shaping facts: the same glyph identities, pen positions, and advance. (The
+  content key matches by construction, not by measurement: n0's artifact
+  cannot state it — the fourth bullet — so the spike joins it back from the
+  host's declaration.) The inputs genuinely match at the shaping layer, which
+  licenses the low join's shared glyph/raster-utility seat by measurement and
+  means the low join hides no shaping divergence.
+- **The metric facts do not join.** The same resolution's ascent, descent, and
+  baseline arrive exact from the Web producer's font-unit arithmetic and one
+  scaler quantum off from n0's paragraph backend — 2⁻¹⁴ per metric on the
+  declared Darwin-arm64 build; a new platform declares its own value through
+  one loud CI round-trip. The skew is below coverage resolution (the outline
+  arm proves the quantized baseline moves no pixel), so this leg is not a
+  pixel break — it is a fact-identity break: a neutral contract would have to
+  legislate metric derivation, rebuilding n0's oracle output, or carry one
+  fact with two meanings.
+- **Outlines are meaning; glyph replay is policy.** Two outline extractions of
+  the same candidate fact — Skia `get_path` over environment bytes, and the
+  artifact's own ttf-parser stream — are byte-identical through the one
+  shared path-fill rasterizer at every probed anchor, on and off the integer
+  lattice, and bilevel on it (the admitted-domain law); the controlled
+  question is whether lowering to outlines loses anything, and it loses
+  nothing. n0's replay through its oracle's live font, which arrives with
+  hinting, subpixel positioning, and edging set by the paragraph backend,
+  paints a measured non-bilevel fringe against those same outlines *on the
+  lattice itself* (432 bytes at the probed cell on Darwin-arm64; control
+  isolation attributes the fringe to the anti-alias glyph-mask pipeline at
+  this cell — an alias-edged replay matches the outlines byte-exactly) —
+  where the external oracle gates byte-exactly. Carrying the fact without the
+  policy makes that fringe a silent wrong pixel; carrying the policy puts
+  raster flags into a meaning-only contract; and the remaining branch — one
+  downstream-mandated uniform replay policy — either mandates n0's policy
+  (breaking the Web route's byte-exact gate by exactly the measured fringe)
+  or mandates outline realization (fixing replay as contract meaning and
+  rewriting n0's product raster with no oracle to certify it). None is
+  admissible.
+- **The fact is a resource reference.** Realizing the candidate requires a
+  declared digest→bytes environment and gains an undeclared-key refusal — the
+  exact boundary `rframe`'s standing identity refuses ("no fact that
+  references a resource") and the `n0::glyphless` route is named for. This
+  leg is a structural cost, not a pixel measurement: admitting the fact
+  spends that refusal. And n0's artifact itself carries process-local
+  identity only: the content digest never flows through its oracle and had to
+  be joined back from the host's declaration.
+- **Beyond the overlap the second producer still does not exist.** Line
+  structure is a typed refusal in the Web producer's v0 profile, and styled
+  runs and variable instances are not even expressible in its input surface —
+  while n0 resolves all three today. Everywhere the join would have
+  substance, the amendment's two-producers-first rule still fails.
+
+**The decision: shaped text joins low.** Each engine's private compiler and
+executor retain their own text artifact, font registry, glyph replay policy,
+and text item. Sharing stops at backend glyph/raster utilities — licensed by
+the shaping-agreement measurement, requiring no common font key or shaped-text
+fact in the contract. Content-digest font identity remains a *host-seam*
+convention, which the tree already shares by convergence rather than by
+contract: the CLI `--font` surface, `textlayout::FontKey`, and the bake
+manifests all state fonts as sha256 content identities. The Web route keeps
+lowering glyphs to resolved outline geometry before `rframe`, which the
+evidence shows is no degradation: outline realization is the one realization
+every party agrees on byte-exactly where the oracle gates.
+
+The decision fixes where the *contract* boundary sits; it does not forbid the
+engines from later sharing a shaping oracle as a utility below it. Re-opening
+is a new registered decision and requires both of: a declared resource
+environment entering the shared contract for some other fact kind on its own
+evidence, and a measured need for cross-contract glyph replay. Producer
+maturity alone — a `textlayout` that grows styled runs, line structure, and
+variable instances — does not re-open it, because the legs that decided it
+(the metric fact identity, the pixel-visible replay policy, the one-meaning
+tripwire) are independent of how much text the Web producer can state.
+Neither re-opening condition exists today; speculative sharing infrastructure
+is forbidden by the amendment's evidence-first discipline, and a
+replay-performance motive would additionally need the optimization law's
+measurement.
+
 ## The registered stages
 
 **D-M** is registered in the [charter's decision registry](./charter.md) with
-independent stages. The **vector stage**, coupled with D-C and the
-leaf-vocabulary seat, is taken high on the compiler-read inventory,
-paint/stroke gap report, and normalized-input equivalence spike, including its
-mixed-fact composition condition. The proving-shell downstream therefore
-retires after the n0 route earns its gates; it does not grow into a peer
-engine. The **text stage** later chooses high or low for shaped text after the
-two-producer font-key spike.
+independent stages, and both are now taken. The **vector stage**, coupled with
+D-C and the leaf-vocabulary seat, is taken high on the compiler-read
+inventory, paint/stroke gap report, and normalized-input equivalence spike,
+including its mixed-fact composition condition. The proving-shell downstream
+therefore retires after the n0 route earns its gates; it does not grow into a
+peer engine. The **text stage** is taken low on the two-producer font-key
+spike above: shaped text stays below the join, in each engine's private tier,
+with sharing confined to backend glyph/raster utilities.

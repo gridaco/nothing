@@ -14,7 +14,8 @@ format: md
 and evidence memo. It is not a contract, a work plan, or an owner decision.
 
 **Status:** evidence for the staged **D-M** decision, 2026-07-22. The vector
-stage was taken high on 2026-07-23; the shaped-text stage remains open. The
+stage was taken high on 2026-07-23; the shaped-text stage was taken **low**
+on 2026-08-05 ([the text-stage evidence](./n0-join-point.md#the-text-stage-evidence)). The
 [Web-First Amendment](./web-first.md) governs the source topology. The
 [goal](./goal.md), [topology](./topology.md),
 [glossary](./glossary.md), and ratified
@@ -38,7 +39,7 @@ backend renderer, ambient process state, and legacy importer seam are not a
 package boundary. The exact n0 join and the proving shell's disposition were
 owner decisions. The subsequent bounded spike recorded in the
 [n0 join-point finding](./n0-join-point.md) completed the vector evidence; the
-charter records the taken vector stage, while text remains open.
+charter records both taken stages — vector high, text low.
 
 ## Three paths exist today
 
@@ -129,7 +130,7 @@ drawlist compiler reads both the resolved tier and the authored/effective model:
 | effective fills and strokes | visible paint stacks and stroke items | the join is selected high and `cg` owns the shared seat; each paint/stroke leaf retains its conformance and mapping-deletion gate |
 | resolved path artifact, including commands, fill rule, bounds, and contour closure | path fills/strokes and their geometry/renderability | plausible normalized geometry, but it needs a neutral path seat and explicit fill-rule/bounds laws |
 | payload-dependent stroke filtering | decides whether a stroke is visible or meaningful for each primitive kind | private compile policy that needs a normalized primitive classification; copying the n0 payload enum would fail source neutrality |
-| text payload, resolved text layout, run paints, and exact font registry | text item materialization and replay validity | deliberately excluded from the vector decision; requires the later two-producer text evidence |
+| text payload, resolved text layout, run paints, and exact font registry | text item materialization and replay validity | deliberately excluded from the vector decision; the later two-producer evidence ran and kept it below the join ([text stage: low](./n0-join-point.md#the-text-stage-evidence)) |
 
 This is not proof that a source-neutral compiler input is impossible. It is
 proof that changing the compiler's dependency from n0 model state to a common
@@ -329,10 +330,13 @@ shell remains bounded until its n0 replacement earns the applicable gates.
   policy, and cache policy. `cg` is the shared leaf-vocabulary seat; adoption
   remains per-leaf. The proving-shell downstream retires after replacement
   gates rather than becoming a peer engine.
-- **D-M text stage** remains open until two real shapers exercise a candidate
-  shaped-text/font-key/resource-environment boundary. A vector-stage decision
-  can leave that later stage open only if the mixed-composition spike proves
-  one private orchestration seam can interleave both outcomes.
+- **D-M text stage** stayed open until two real shapers exercised a candidate
+  shaped-text/font-key/resource-environment boundary — which happened on
+  2026-08-05, and the stage was taken **low**
+  ([the text-stage evidence](./n0-join-point.md#the-text-stage-evidence)). A
+  vector-stage decision could leave that later stage open only because the
+  mixed-composition spike proved one private orchestration seam can
+  interleave both outcomes.
 - **FLIP** still gates every capability-landed claim. This finding reports no
   score and makes no bar-flip claim.
 
