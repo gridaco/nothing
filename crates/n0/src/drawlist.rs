@@ -701,3 +701,7 @@ mod text_paint_tests {
 #[cfg(test)]
 #[path = "drawlist_vector_join_spike.rs"]
 mod vector_join_spike;
+
+#[cfg(test)]
+#[path = "text_join_spike.rs"]
+mod text_join_spike;

@@ -2355,8 +2355,12 @@ fn compile_shape(
 /// text oracle and lowered as the resolved contract's path facts.
 ///
 /// No font identity crosses into the contract — the glyphs arrive as
-/// outlines, which is what keeps the resolved frame glyphless and leaves the
-/// D-M shaped-text join undecided. The run is admitted only inside the
+/// outlines, which keeps the resolved frame glyphless. Once the posture that
+/// left the D-M shaped-text join undecided, this is now what the taken low
+/// join mandates: the contract carries no text fact and no resource
+/// reference, and promoting one is a registered re-opening (see
+/// [the text-stage evidence](../../../docs/wg/consolidation/n0-join-point.md#the-text-stage-evidence)).
+/// The run is admitted only inside the
 /// ratified numeric domain, so a construct Chromium would snap refuses by
 /// name here instead.
 #[allow(clippy::too_many_arguments)]

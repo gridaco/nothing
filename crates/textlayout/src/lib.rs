@@ -18,11 +18,13 @@
 //! oracle version, exactly as the RFD prescribes.
 //!
 //! This crate is the *Web family's* producer, not an engine-wide text
-//! service: whether the n0 family shares a text artifact with it is the open
-//! D-M shaped-text stage ([`docs/wg/consolidation/n0-join-point.md`]), and
-//! building this crate as the anointed shared resolver would decide that
-//! join by construction. The Web producer depends on this crate; nothing
-//! here depends back.
+//! service — by decision, not by accident of youth: the D-M shaped-text
+//! stage was taken **low** on the two-producer spike
+//! ([`docs/wg/consolidation/n0-join-point.md`]), so the n0 family keeps its
+//! own text artifact and font registry, and this crate never becomes the
+//! anointed shared resolver. The Web producer depends on this crate; nothing
+//! here depends back (n0 consumes it as a dev-dependency for the spike's
+//! evidence alone, and locks it out of its shipping graph).
 //!
 //! A module's identity is what it refuses. This one:
 //!
