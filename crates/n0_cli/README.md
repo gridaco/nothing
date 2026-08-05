@@ -41,7 +41,11 @@ cargo run -p n0_cli --bin n0 -- \
   fixtures/test-svg/L0/basic-shapes.svg /tmp/probe.png 500x500 --strict
 ```
 
-- Input: one UTF-8 `.html`, `.htm`, or `.svg` file.
+- Input: one UTF-8 `.html`, `.htm`, or `.svg` file. A `<!DOCTYPE …>`
+  declaration is accepted and ignored — as Chromium ignores it for SVG — but
+  a document carrying an internal DTD subset (entity declarations) refuses as
+  not-well-formed XML in both admissions; entity content is never silently
+  dropped.
 - Output: one `.png` file at an explicit positive `WxH` size. For a
   standalone SVG, `WxH` is also the **initial viewport** (SVG2 §8.2) — the
   window the document is loaded into: explicit root `width`/`height` win, a

@@ -83,8 +83,9 @@ records the *route*; the current *position* (active phase, landed PRs,
 taken decisions) is tracked on
 [gridaco/nothing#43](https://github.com/gridaco/nothing/issues/43),
 which a session reads before starting work. The per-construct position
-of the SVG engine of record is [the SVG checklist](./svg-checklist.md) —
-a compact box-per-construct tracker, ticked by each rung's docs commit. The other three docs are
+of the n0 path is [the Web checklist](./web-checklist.md) — the
+HTML, CSS, and SVG surface as one box-per-construct tracker in the
+platform's own vocabulary, ticked by each rung's docs commit. The other three docs are
 direction: stable in shape, expected to gain detail as decisions in the
 registry land.
 
