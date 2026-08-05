@@ -205,12 +205,15 @@ metrics — no live object, no registry address, no raster-facing flags.
   *which* of them arrives exact is itself platform-dependent, declared per
   platform in the spike: the Darwin-arm64 CoreText build states exact pen x
   with metrics one 2⁻¹⁴ step off; the Linux-x86_64 FreeType build states
-  exact metrics with each em advance one 2⁻¹⁶ step short. The skews sit
-  below coverage resolution (the outline arm proves the quantized baseline
-  moves no pixel), so this leg is not a pixel break — it is a fact-identity
-  break: one producer's facts are not even self-consistent across platforms,
-  so a neutral contract would have to legislate the derivation, rebuilding
-  n0's oracle output, or carry one fact with two meanings.
+  exact metrics with each em advance one 2⁻¹⁶ step short. On the CoreText
+  build the y-skew sits below coverage resolution and moves no pixel; on the
+  FreeType build the accumulated advance quantum *is* pixel-visible when the
+  placement is realized exactly — one alpha code value along the run's final
+  edge. So this leg is a fact-identity break that reaches pixels on one
+  declared platform: one producer's facts are not even self-consistent
+  across platforms, and a neutral contract would have to legislate the
+  derivation, rebuilding n0's oracle output, or carry one fact with two
+  meanings.
 - **The artifact stream is the meaning; every backend realization is the
   scaler's policy.** The artifact's own outline stream — ttf-parser over the
   resolved bytes, the lowering `websem` performs — is bilevel on the integer
@@ -225,11 +228,16 @@ metrics — no live object, no registry address, no raster-facing flags.
   432-byte non-bilevel fringe against the same outlines *on the lattice
   itself* — where the external oracle gates byte-exactly — while a
   policy-stripped control (alias, unhinted, no subpixel) is exact, isolating
-  the fringe to the AA mask policy. On the Linux-x86_64 FreeType build, even
-  *unhinted extraction* differs from the stream at the lattice: the scaler's
-  quantum lands one box edge off the lattice and its fringe reaches pixels.
-  Carrying the fact without the policy makes every such fringe a silent
-  wrong pixel; carrying the policy puts raster flags into a meaning-only
+  the fringe to the AA mask policy. On the Linux-x86_64 FreeType build the
+  divergences invert: extraction and even anti-alias replay are byte-exact
+  and bilevel on the lattice — replay's subpixel phase snapping *rewrites
+  the producer's scaler-quantized placement back onto it* — while realizing
+  that same placement exactly flips the code value the previous bullet
+  measures. The producer's quantum and its replay's snapping cancel only
+  inside the matched engine-private pair; split across a contract, each is a
+  silent wrong pixel somewhere.
+  Carrying the fact without the policy therefore breaks byte-exactness on
+  every declared platform, each in its own way; carrying the policy puts raster flags into a meaning-only
   contract; and the remaining branch — one downstream-mandated uniform
   replay policy — either mandates a backend's policy (breaking the Web
   route's byte-exact gate by exactly the measured fringes) or mandates

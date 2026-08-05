@@ -26,19 +26,20 @@
 //!   platforms — a neutral contract would have to legislate the
 //!   derivation, rebuilding n0's oracle output, or carry one fact with two
 //!   meanings.
-//! - **The artifact stream is the meaning; every backend realization is
-//!   the scaler's policy.** The artifact's own outline stream (ttf-parser
-//!   over the resolved bytes) is bilevel on the integer lattice on every
-//!   platform — the admitted-domain law, and the one platform-invariant
-//!   realization. Everything through a backend font object is measured and
-//!   declared per platform: on the CoreText build, `get_path` extraction
-//!   coincides byte-exactly with the stream and only the anti-alias glyph
-//!   replay fringes (432 non-bilevel lattice bytes; a policy-stripped
-//!   control is exact, isolating the fringe to the AA mask policy); on the
-//!   FreeType build, even *unhinted extraction* carries the scaler's
-//!   quantum onto pixels at the lattice. A contract carrying the fact but
-//!   not the policy makes every such fringe a silent wrong pixel; carrying
-//!   the policy is the one-meaning tripwire.
+//! - **The artifact stream is the meaning; replay is the engine's matched
+//!   policy.** The artifact's own outline stream (ttf-parser over the
+//!   resolved bytes) is bilevel on the integer lattice on every platform —
+//!   the admitted-domain law — and unhinted backend extraction coincides
+//!   with it byte-exactly on both declared builds. The divergences are the
+//!   producer/replay pair's, in opposite directions per platform: on
+//!   CoreText, replay's anti-alias masks fringe 432 non-bilevel lattice
+//!   bytes against the exact outlines (a policy-stripped control is
+//!   exact); on FreeType, replay is lattice-exact *because its subpixel
+//!   snapping rewrites the producer's quantized placement*, while
+//!   realizing that placement exactly flips an alpha code value along the
+//!   run's final edge. The quantum and the snapping cancel only inside the
+//!   engine-private pair — split across a contract, each is a silent wrong
+//!   pixel; carrying the policy instead is the one-meaning tripwire.
 //! - **The fact is a resource reference.** Realizing the candidate requires
 //!   a declared digest→bytes environment and gains a lookup refusal — the
 //!   exact boundary `rframe` refuses ("no fact that references a resource")
@@ -402,12 +403,11 @@ fn realize_candidate_outlines(
         .new_from_data(bytes, run.key.face_index as usize)
         .ok_or("declared bytes do not parse as a face")?;
     let mut font = Font::new(typeface, run.font_size);
-    // A consumer realizing meaning strips raster policy explicitly. This
-    // is posture, not a cure: the Linux rounds measured that FreeType's
-    // extraction still carries its scaler quantum *unhinted* (one box edge
-    // lands off the lattice and fringes) — declared per platform in the
-    // realization matrix. The backend-free realization is the artifact's
-    // own stream.
+    // A consumer realizing meaning strips raster policy explicitly —
+    // unhinted extraction then coincides with the artifact's own stream
+    // byte-exactly on both declared builds (the realization matrix). What
+    // reaches pixels is never the extraction: it is the *run's* placement,
+    // exactly as the producer stated it.
     font.set_hinting(FontHinting::None);
     let mut builder = PathBuilder::new();
     for glyph in &run.glyphs {
@@ -579,7 +579,9 @@ struct RealizationMatrix {
     /// own stream, at the lattice / fractional anchors.
     extraction_vs_stream: (usize, usize),
     /// The consumer realization of n0's scaler-quantized run vs the exact
-    /// run, at the lattice — the sub-coverage-quantum invariance probe.
+    /// run, at the lattice — whether the producer's quantum reaches
+    /// pixels when its placement is realized exactly. (It does on the
+    /// FreeType build: one alpha code value along the run's final edge.)
     quantized_run_vs_exact: usize,
     /// n0's live-font glyph replay vs the consumer realization, at the
     /// lattice / fractional anchors.
@@ -592,11 +594,24 @@ struct RealizationMatrix {
     stripped_replay_vs_consumer: usize,
 }
 
-/// The declared per-platform matrix. Darwin-arm64: backend extraction
-/// coincides with the artifact stream everywhere, and only the anti-alias
-/// replay fringes (432 lattice bytes, all non-bilevel; 843 fractional;
-/// the stripped control is exact). An undeclared platform panics with its
-/// full measured matrix.
+/// The declared per-platform matrix. Backend extraction coincides with the
+/// artifact stream on both declared builds — the divergences live
+/// elsewhere, and *where* is itself the platform finding:
+///
+/// - **Darwin-arm64** (CoreText): the producer's 2⁻¹⁴ y-quantum sits below
+///   coverage (row 0), and only the anti-alias glyph replay fringes — 432
+///   lattice bytes, all non-bilevel; the stripped control is exact.
+/// - **Linux-x86_64** (FreeType): realizing the producer's
+///   scaler-quantized run *exactly* flips one alpha code value along the
+///   run's final edge (60 bytes) — the accumulated 2⁻¹⁶ advance quantum
+///   reaching pixels — while AA glyph replay is byte-exact and bilevel on
+///   the lattice, because its subpixel phase snapping rewrites the
+///   quantized positions back onto it. Replay is placement-rewriting
+///   policy: what it corrects here it would move elsewhere.
+///
+/// The producer's quantum and its replay's snapping cancel only inside the
+/// matched engine-private pair; split across a contract, each is a wrong
+/// pixel. An undeclared platform panics with its full measured matrix.
 fn declared_realization_matrix() -> Option<RealizationMatrix> {
     if darwin_arm64() {
         Some(RealizationMatrix {
@@ -604,6 +619,14 @@ fn declared_realization_matrix() -> Option<RealizationMatrix> {
             quantized_run_vs_exact: 0,
             replay_vs_consumer: (432, 843),
             replay_non_bilevel: 432,
+            stripped_replay_vs_consumer: 0,
+        })
+    } else if linux_x86_64() {
+        Some(RealizationMatrix {
+            extraction_vs_stream: (0, 0),
+            quantized_run_vs_exact: 60,
+            replay_vs_consumer: (0, 657),
+            replay_non_bilevel: 0,
             stripped_replay_vs_consumer: 0,
         })
     } else {
@@ -673,16 +696,20 @@ fn the_artifact_stream_is_exact_ink_on_the_lattice() {
 }
 
 /// Every realization that passes through a backend font object is that
-/// backend's *policy*, measured and declared per platform. On the CoreText
-/// build, extraction coincides with the artifact stream and only the
-/// anti-alias glyph replay fringes — on the lattice itself, where the
-/// external oracle gates byte-exactly. The first Linux rounds measured that
-/// even *unhinted extraction* differs there (one box edge lands a scaler
-/// quantum off the lattice and fringes): the backend's quantum reaches
-/// pixels. A contract carrying the fact without the policy makes every one
-/// of these fringes a silent wrong pixel; carrying the policy puts raster
-/// flags in a meaning-only contract. Neither is admissible, so the fact
-/// stays below the join and the artifact stream stays the meaning.
+/// backend's *policy*, measured and declared per platform — and the two
+/// declared builds diverge in opposite directions. On CoreText, extraction
+/// coincides with the artifact stream and only the anti-alias glyph replay
+/// fringes — on the lattice itself, where the external oracle gates
+/// byte-exactly. On FreeType, replay is exact on the lattice *because its
+/// subpixel phase snapping rewrites the producer's scaler-quantized
+/// placement back onto it*, while realizing that same placement exactly
+/// flips an alpha code value along the run's final edge: the producer's
+/// quantum and its replay's snapping cancel only inside the matched
+/// engine-private pair. A contract carrying the fact without the policy
+/// makes each divergence a silent wrong pixel somewhere; carrying the
+/// policy puts raster flags in a meaning-only contract. Neither is
+/// admissible, so the fact stays below the join and the artifact stream
+/// stays the meaning.
 #[test]
 fn backend_realization_is_the_scalers_policy_declared_per_platform() {
     let ctx = ahem_paint_ctx();
