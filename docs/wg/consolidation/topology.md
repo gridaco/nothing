@@ -23,6 +23,17 @@ the sibling wg clusters and are only referenced, never restated.
 > the questions it defers to an evidence spike; the per-domain map below
 > stands as the substance being consolidated.
 
+> **Amended (2026-08-05).** The D-M text stage joined **low**
+> ([the text-stage evidence](./n0-join-point.md#the-text-stage-evidence)):
+> no shaped-text artifact enters the shared resolved contract, and each
+> engine keeps its own text artifact, font registry, and glyph replay
+> policy. Where this doc names the
+> [shaped-text artifact](../feat-paragraph/text-layout.md) as a bridge
+> contract, read it as the **text-resolution contract each engine's own
+> producer implements** — a shared *shape of answer* (and, permitted, a
+> shared shaping utility below the join) — never a fact the engines
+> exchange through the render contract.
+
 ## The two sources
 
 **The v2 family is the chassis.** Its topology is adopted as-is:

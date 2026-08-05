@@ -64,3 +64,64 @@ fn manifest_reintroduces_no_backend_or_feature_gate() {
         );
     }
 }
+
+/// Scan every source file for forbidden token substrings, with a
+/// provenance-specific message. The same walk as the backend lock above;
+/// each refusal below names the decision or law that owns it, so deleting
+/// one is visibly re-opening *that* record and no other.
+fn assert_source_free_of(needles: &[&str], provenance: &str) {
+    fn walk_for(dir: &Path, needles: &[&str], provenance: &str, checked: &mut usize) {
+        for entry in fs::read_dir(dir).expect("read dir") {
+            let path = entry.expect("dir entry").path();
+            if path.is_dir() {
+                walk_for(&path, needles, provenance, checked);
+                continue;
+            }
+            if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
+                continue;
+            }
+            let name = path.file_name().unwrap().to_str().unwrap().to_owned();
+            let content = fs::read_to_string(&path).expect("read source");
+            for needle in needles {
+                assert!(
+                    !content.contains(needle),
+                    "{name} references {needle:?}; {provenance}"
+                );
+            }
+            *checked += 1;
+        }
+    }
+    let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let mut checked = 0;
+    walk_for(&src, needles, provenance, &mut checked);
+    assert!(checked >= 2, "expected to check lib.rs and frame.rs");
+}
+
+/// The D-M text-stage decision (taken low, 2026-08-05 — see
+/// docs/wg/consolidation/n0-join-point.md#the-text-stage-evidence): the
+/// contract gains no shaped-text fact. Web text enters as resolved outline
+/// geometry; n0 text stays in its private tier. Deleting this lock is
+/// re-opening that decision.
+#[test]
+fn the_contract_carries_no_shaped_text_fact() {
+    assert_source_free_of(
+        &["Glyph", "FontKey", "ShapedText", "Typeface"],
+        "the D-M text stage joined low, so the resolved contract admits no shaped-text \
+         fact (docs/wg/consolidation/n0-join-point.md#the-text-stage-evidence)",
+    );
+}
+
+/// The contract's standing identity: no fact that references a resource.
+/// This refusal predates and stands apart from the D-M text decision — the
+/// charter's phase 3 (images through a declared resource environment) may
+/// revisit it on its own evidence, and editing this lock then is *that*
+/// decision's business, not a re-opening of the text stage.
+#[test]
+fn the_contract_carries_no_resource_reference() {
+    assert_source_free_of(
+        &["Resource"],
+        "the resolved contract's standing identity refuses facts that reference a \
+         resource (docs/wg/consolidation/web-first.md); phase 3 revisits this on its \
+         own image evidence, by its own registered decision",
+    );
+}

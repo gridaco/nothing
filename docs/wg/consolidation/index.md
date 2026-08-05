@@ -66,12 +66,12 @@ that decision is settled:
 | paper | genre | decision | status |
 | --- | --- | --- | --- |
 | [SVG paint in the shared cascade](./svg-paint-cascade.md) | finding | D-L — SVG paint enters through official-upstream Stylo, pinned at a revision | **taken** 2026-07-23; ingress and capability are not settled by it |
-| [where n0 joins the shared downstream](./n0-join-point.md) | finding | D-M — a staged join, per fact kind | **vector stage taken** 2026-07-23; the text stage remains open |
-| [the paint-vocabulary conformance gap](./paint-vocabulary-gap.md) | gap report | D-C — `cg` is the shared leaf-vocabulary seat | **taken for the glyphless vector scope** 2026-07-23; amendment-dependent and text leaves stay open |
+| [where n0 joins the shared downstream](./n0-join-point.md) | finding | D-M — a staged join, per fact kind | **complete**: vector stage taken high 2026-07-23; text stage taken **low** 2026-08-05 on the two-producer spike |
+| [the paint-vocabulary conformance gap](./paint-vocabulary-gap.md) | gap report | D-C — `cg` is the shared leaf-vocabulary seat | **taken for the glyphless vector scope** 2026-07-23; amendment-dependent leaves stay open; the text leaves went engine-private with the low text join (2026-08-05) |
 | [how the mature Web renderer enters](./web-renderer-adoption.md) | patrol | (evidence for D-M) | which capability is reusable, which topology must not cross |
 | [the SVG engine of record](./svg-engine-of-record.md) | finding | D-N — the n0 path is the one product path for SVG, static and animated | **taken** 2026-07-24; settles routing and succession, not capability |
 | [the conformance-bar flip rule](./flip-rule.md) | proposal | FLIP — thresholds, coverage, oracle discipline | **unratified** ([gridaco/nothing#49](https://github.com/gridaco/nothing/issues/49)); **no score may be produced or inspected** |
-| [the text oracle method](./text-oracle.md) | finding | how text is gated on the engine of record: the deterministic-font rung, the admitted numeric domain, the hermetic font environment, the corpus-growth law | **ratified** 2026-08-04 ([gridaco/nothing#68](https://github.com/gridaco/nothing/pull/68)); binds the text rungs, leaves the D-M text stage open |
+| [the text oracle method](./text-oracle.md) | finding | how text is gated on the engine of record: the deterministic-font rung, the admitted numeric domain, the hermetic font environment, the corpus-growth law | **ratified** 2026-08-04 ([gridaco/nothing#68](https://github.com/gridaco/nothing/pull/68)); binds the text rungs; the D-M text stage it left open closed low 2026-08-05 |
 | [lock-graph-changes.toml](./lock-graph-changes.toml) | gate ledger | (records moves D-L authorises) | read by `bin/check-cargo-lock-additions-only` |
 
 D-N demotes the mature Web renderer to a frozen semantics donor, with declared

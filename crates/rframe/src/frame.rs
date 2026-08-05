@@ -14,7 +14,15 @@
 //! scopes) and
 //! **breakable**: the enums grow as real producers force new visual facts, and
 //! the sharing boundary moves *down* (toward the engine's private drawlist)
-//! rather than admit a source-specific field.
+//! rather than admit a source-specific field. One such move is decided, not
+//! pending: the D-M text stage joined **low**, so this contract admits no
+//! shaped-text fact — Web text arrives as resolved outline geometry ([the
+//! text-stage
+//! evidence](../../../docs/wg/consolidation/n0-join-point.md#the-text-stage-evidence)).
+//! That decision leaned on this crate's *standing* identity — no fact that
+//! references a resource — which phase 3 (images) may revisit on its own
+//! evidence. `tests/architecture.rs` holds both refusals, each under its own
+//! provenance.
 //!
 //! This crate is backend-free (enforced by `tests/architecture.rs`).
 

@@ -142,8 +142,16 @@ This amendment originally left three questions to later evidence:
 > The generic frontend trait and the D-M shaped-text stage remain deferred. The
 > [charter registry](./charter.md) is the current decision record.
 
-- **D-M: n0's join point** — the vector stage now selects the common resolved
-  contract and shared downstream; the shaped-text stage remains open. A
+> **Subsequent status (2026-08-05):** the D-M shaped-text stage is taken
+> **low** on the two-producer spike
+> ([the text-stage evidence](./n0-join-point.md#the-text-stage-evidence)):
+> shaped text stays below the join in each engine's private tier, and the
+> shared contract gains no text fact and no resource reference. The generic
+> frontend trait remains deferred.
+
+- **D-M: n0's join point** — the vector stage selects the common resolved
+  contract and shared downstream; the shaped-text stage is since taken **low**
+  (2026-08-05). A
   deliberately tiny n0 canary exercises the shared downstream to keep it
   source-neutral; that canary is an invariant probe, **not** an n0 product
   milestone, and n0 XML
@@ -152,7 +160,8 @@ This amendment originally left three questions to later evidence:
   [n0-join-point finding](./n0-join-point.md) — reframes this as a
   staged, *per-fact* boundary. The vector-input equivalence and
   mixed-composition spike established the high join for glyphless visual
-  primitives and proved that the shaped-text stage can remain open. D-M is
+  primitives and proved that the shaped-text stage could stay open until its
+  own two-producer evidence ran. D-M is
   coupled to D-C's paint/stroke gap report and was not inferred from the
   canary.
 - **A generic frontend trait** — none is published or stabilized yet.
@@ -162,8 +171,8 @@ This amendment originally left three questions to later evidence:
   and deletion gates.
 
 The [charter's decision registry](./charter.md) records the taken D-C/D-M
-vector dispositions and the open D-M shaped-text stage. The generic frontend
-trait remains deferred here under the two-producer rule.
+vector dispositions and the low-taken D-M shaped-text stage. The generic
+frontend trait remains deferred here under the two-producer rule.
 
 A fourth, concrete decision the first prototype surfaced with evidence is now
 taken: **D-L, how SVG paint enters the shared cascade.** The answer is
