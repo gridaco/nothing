@@ -26,20 +26,19 @@
 //!   platforms — a neutral contract would have to legislate the
 //!   derivation, rebuilding n0's oracle output, or carry one fact with two
 //!   meanings.
-//! - **Outlines are meaning; glyph replay is policy.** Two independent
-//!   outline extractions of the same candidate fact (Skia `get_path` from
-//!   environment bytes; the artifact's own ttf-parser stream) agree
-//!   byte-identically through the one shared path fill at every probed
-//!   anchor, on and off the integer lattice, and are bilevel on it — the
-//!   admitted-domain law. n0's glyph replay through its oracle's live
-//!   `Font` (hinting, subpixel, edging riding the instance) paints a
-//!   measured non-bilevel fringe against those same outlines *on the
-//!   lattice itself* — where the external oracle gates byte-exactly; a
-//!   control with policy stripped (alias, unhinted, no subpixel) matches
-//!   the outlines byte-exactly, attributing the fringe to the anti-alias
-//!   mask policy. A contract that carried the fact but not the policy would
-//!   make that fringe a silent wrong pixel; carrying the policy is the
-//!   one-meaning tripwire.
+//! - **The artifact stream is the meaning; every backend realization is
+//!   the scaler's policy.** The artifact's own outline stream (ttf-parser
+//!   over the resolved bytes) is bilevel on the integer lattice on every
+//!   platform — the admitted-domain law, and the one platform-invariant
+//!   realization. Everything through a backend font object is measured and
+//!   declared per platform: on the CoreText build, `get_path` extraction
+//!   coincides byte-exactly with the stream and only the anti-alias glyph
+//!   replay fringes (432 non-bilevel lattice bytes; a policy-stripped
+//!   control is exact, isolating the fringe to the AA mask policy); on the
+//!   FreeType build, even *unhinted extraction* carries the scaler's
+//!   quantum onto pixels at the lattice. A contract carrying the fact but
+//!   not the policy makes every such fringe a silent wrong pixel; carrying
+//!   the policy is the one-meaning tripwire.
 //! - **The fact is a resource reference.** Realizing the candidate requires
 //!   a declared digest→bytes environment and gains a lookup refusal — the
 //!   exact boundary `rframe` refuses ("no fact that references a resource")
@@ -139,17 +138,6 @@ fn declared_n0_em_advance() -> Option<f32> {
     } else {
         None
     }
-}
-
-/// Bytes by which n0's glyph replay of the candidate run differs from its
-/// policy-stripped outline realization, at the lattice and fractional
-/// anchors. Darwin-arm64: a 432-byte non-bilevel fringe on the lattice,
-/// 843 bytes off it. Linux is undeclared *on purpose*: its first round
-/// measured 60/657 against a consumer that still carried FreeType hinting
-/// in `get_path`; the consumer now strips policy, so Linux re-declares
-/// against the corrected baseline through the normal loud round-trip.
-fn declared_replay_divergence() -> Option<(usize, usize)> {
-    darwin_arm64().then_some((432, 843))
 }
 
 // --- the candidate neutral contract -------------------------------------
@@ -414,10 +402,12 @@ fn realize_candidate_outlines(
         .new_from_data(bytes, run.key.face_index as usize)
         .ok_or("declared bytes do not parse as a face")?;
     let mut font = Font::new(typeface, run.font_size);
-    // A backend `Font` is policy-tinted by default even for *outline
-    // extraction*: the FreeType build hints `get_path` unless told not to
-    // (measured — 60 differing bytes on the lattice in the first Linux
-    // round). A consumer realizing meaning strips raster policy explicitly.
+    // A consumer realizing meaning strips raster policy explicitly. This
+    // is posture, not a cure: the Linux rounds measured that FreeType's
+    // extraction still carries its scaler quantum *unhinted* (one box edge
+    // lands off the lattice and fringes) — declared per platform in the
+    // realization matrix. The backend-free realization is the artifact's
+    // own stream.
     font.set_hinting(FontHinting::None);
     let mut builder = PathBuilder::new();
     for glyph in &run.glyphs {
@@ -580,100 +570,138 @@ fn the_metric_facts_carry_the_scaler_quantum() {
     assert_eq!(n0.glyphs[0].y, -quantum);
 }
 
-/// Outline realization is resolved meaning, not policy: the candidate
-/// consumer's environment-resolved outlines (Skia `get_path`) and the Web
-/// family's artifact-streamed outlines (ttf-parser) are byte-identical at
-/// every probed anchor — on the integer lattice, where they are also
-/// bilevel (the admitted-domain law), and off it, where both carry the
-/// identical analytic coverage. n0's quantized baseline sits below coverage
-/// resolution and changes nothing.
-#[test]
-fn outline_realizations_agree_at_every_probed_anchor() {
+/// The full realization-comparison matrix at both anchors, measured in one
+/// sweep so an undeclared platform reports everything in a single CI
+/// round — the corpus's lesson: sweep before failing.
+#[derive(Debug, PartialEq, Eq)]
+struct RealizationMatrix {
+    /// Backend extraction (`get_path`, policy-stripped) vs the artifact's
+    /// own stream, at the lattice / fractional anchors.
+    extraction_vs_stream: (usize, usize),
+    /// The consumer realization of n0's scaler-quantized run vs the exact
+    /// run, at the lattice — the sub-coverage-quantum invariance probe.
+    quantized_run_vs_exact: usize,
+    /// n0's live-font glyph replay vs the consumer realization, at the
+    /// lattice / fractional anchors.
+    replay_vs_consumer: (usize, usize),
+    /// Non-bilevel bytes in the lattice replay — the fringe's shape.
+    replay_non_bilevel: usize,
+    /// Policy-stripped (alias, unhinted, no-subpixel) replay vs the
+    /// consumer, at the lattice — the control isolating the fringe to the
+    /// anti-alias mask policy.
+    stripped_replay_vs_consumer: usize,
+}
+
+/// The declared per-platform matrix. Darwin-arm64: backend extraction
+/// coincides with the artifact stream everywhere, and only the anti-alias
+/// replay fringes (432 lattice bytes, all non-bilevel; 843 fractional;
+/// the stripped control is exact). An undeclared platform panics with its
+/// full measured matrix.
+fn declared_realization_matrix() -> Option<RealizationMatrix> {
+    if darwin_arm64() {
+        Some(RealizationMatrix {
+            extraction_vs_stream: (0, 0),
+            quantized_run_vs_exact: 0,
+            replay_vs_consumer: (432, 843),
+            replay_non_bilevel: 432,
+            stripped_replay_vs_consumer: 0,
+        })
+    } else {
+        None
+    }
+}
+
+fn measure_realization_matrix() -> RealizationMatrix {
     let ctx = ahem_paint_ctx();
     let (layout, font) = n0_layout(&ctx, RUN_TEXT);
     let n0_run = candidate_from_n0(&layout, &font, ahem_digest());
     let web_run = candidate_from_web(&web_layout(RUN_TEXT));
     let environment = BTreeMap::from([(ahem_digest(), AHEM.to_vec())]);
+    let consumer = |run: &CandidateShapedRun, anchor| {
+        realize_candidate_outlines(run, &environment, anchor)
+            .expect("the declared environment carries the key")
+    };
 
-    for anchor in [LATTICE_ANCHOR, FRACTIONAL_ANCHOR] {
-        let candidate = realize_candidate_outlines(&web_run, &environment, anchor)
-            .expect("the declared environment carries the key");
-        let quantized = realize_candidate_outlines(&n0_run, &environment, anchor)
-            .expect("the declared environment carries the key");
-        let web = realize_web_outlines(&web_layout(RUN_TEXT), anchor);
+    let mut stripped = font.clone();
+    stripped.set_edging(Edging::Alias);
+    stripped.set_hinting(FontHinting::None);
+    stripped.set_subpixel(false);
 
-        assert_eq!(differing_bytes(&candidate, &web), 0, "at {anchor:?}");
-        assert_eq!(differing_bytes(&candidate, &quantized), 0, "at {anchor:?}");
+    let lattice_consumer = consumer(&web_run, LATTICE_ANCHOR);
+    let lattice_replay = realize_glyph_replay(&n0_run, &font, LATTICE_ANCHOR);
+    RealizationMatrix {
+        extraction_vs_stream: (
+            differing_bytes(
+                &lattice_consumer,
+                &realize_web_outlines(&web_layout(RUN_TEXT), LATTICE_ANCHOR),
+            ),
+            differing_bytes(
+                &consumer(&web_run, FRACTIONAL_ANCHOR),
+                &realize_web_outlines(&web_layout(RUN_TEXT), FRACTIONAL_ANCHOR),
+            ),
+        ),
+        quantized_run_vs_exact: differing_bytes(
+            &consumer(&n0_run, LATTICE_ANCHOR),
+            &lattice_consumer,
+        ),
+        replay_vs_consumer: (
+            differing_bytes(&lattice_replay, &lattice_consumer),
+            differing_bytes(
+                &realize_glyph_replay(&n0_run, &font, FRACTIONAL_ANCHOR),
+                &consumer(&web_run, FRACTIONAL_ANCHOR),
+            ),
+        ),
+        replay_non_bilevel: non_bilevel_bytes(&lattice_replay),
+        stripped_replay_vs_consumer: differing_bytes(
+            &realize_glyph_replay(&n0_run, &stripped, LATTICE_ANCHOR),
+            &lattice_consumer,
+        ),
     }
+}
 
-    // Ink exists and the lattice render is bilevel — the comparisons are
-    // neither vacuous nor smoothed. Sample inside the first em box.
+/// The artifact's own outline stream is the platform-invariant realization:
+/// bilevel on the integer lattice with real ink — the admitted-domain law,
+/// asserted identically on every platform. Everything a backend object
+/// touches is measured per platform in the matrix arm below.
+#[test]
+fn the_artifact_stream_is_exact_ink_on_the_lattice() {
     let lattice = realize_web_outlines(&web_layout(RUN_TEXT), LATTICE_ANCHOR);
+    // Sample inside the first em box — the render is not vacuously white.
     let index = ((20 * CELL + 15) * 4) as usize;
     assert_eq!(&lattice[index..index + 4], &[0, 0, 0, 255]);
     assert_eq!(non_bilevel_bytes(&lattice), 0);
 }
 
-/// Glyph replay is raster policy, not resolved meaning. The oracle's live
-/// `Font` carries pinned raster-facing settings, and replaying the same
-/// candidate fact through it paints a measured non-bilevel fringe against
-/// the exact outlines — on the integer lattice itself, where the external
-/// oracle gates byte-exactly. A contract carrying the fact without the
-/// policy would make this fringe a silent wrong pixel; carrying the policy
-/// would put raster flags in a meaning-only contract. Neither is
-/// admissible, so the fact stays below the join.
+/// Every realization that passes through a backend font object is that
+/// backend's *policy*, measured and declared per platform. On the CoreText
+/// build, extraction coincides with the artifact stream and only the
+/// anti-alias glyph replay fringes — on the lattice itself, where the
+/// external oracle gates byte-exactly. The first Linux rounds measured that
+/// even *unhinted extraction* differs there (one box edge lands a scaler
+/// quantum off the lattice and fringes): the backend's quantum reaches
+/// pixels. A contract carrying the fact without the policy makes every one
+/// of these fringes a silent wrong pixel; carrying the policy puts raster
+/// flags in a meaning-only contract. Neither is admissible, so the fact
+/// stays below the join and the artifact stream stays the meaning.
 #[test]
-fn glyph_replay_is_raster_policy_not_resolved_meaning() {
+fn backend_realization_is_the_scalers_policy_declared_per_platform() {
     let ctx = ahem_paint_ctx();
-    let (layout, font) = n0_layout(&ctx, RUN_TEXT);
-    let run = candidate_from_n0(&layout, &font, ahem_digest());
-    let environment = BTreeMap::from([(ahem_digest(), AHEM.to_vec())]);
-
-    // The policy is real and rides the live instance — set by the pinned
-    // paragraph backend, not chosen by this spike.
+    let (_, font) = n0_layout(&ctx, RUN_TEXT);
+    // The replay policy is real and rides the live instance — set by the
+    // pinned paragraph backend, not chosen by this spike; these settings
+    // are platform-invariant.
     assert_eq!(font.edging(), Edging::AntiAlias);
     assert_eq!(font.hinting(), FontHinting::Slight);
     assert!(font.is_subpixel());
 
-    let Some((on_lattice, off_lattice)) = declared_replay_divergence() else {
-        let lattice = differing_bytes(
-            &realize_glyph_replay(&run, &font, LATTICE_ANCHOR),
-            &realize_candidate_outlines(&run, &environment, LATTICE_ANCHOR).unwrap(),
-        );
-        let fractional = differing_bytes(
-            &realize_glyph_replay(&run, &font, FRACTIONAL_ANCHOR),
-            &realize_candidate_outlines(&run, &environment, FRACTIONAL_ANCHOR).unwrap(),
-        );
-        panic!(
-            "undeclared platform: measured replay divergence {lattice} bytes on the lattice, \
-             {fractional} off it — declare this platform's measurement"
-        );
+    let measured = measure_realization_matrix();
+    let Some(declared) = declared_realization_matrix() else {
+        panic!("undeclared platform: measured {measured:#?} — declare this platform's matrix");
     };
-
-    let replayed = realize_glyph_replay(&run, &font, LATTICE_ANCHOR);
-    let resolved = realize_candidate_outlines(&run, &environment, LATTICE_ANCHOR).unwrap();
-    assert_eq!(differing_bytes(&replayed, &resolved), on_lattice);
-    // The divergence is a smoothing fringe, not displaced ink: every
-    // differing byte is a partial-coverage value the outline render does
-    // not contain.
-    assert_eq!(non_bilevel_bytes(&replayed), on_lattice);
-
-    let replayed = realize_glyph_replay(&run, &font, FRACTIONAL_ANCHOR);
-    let resolved = realize_candidate_outlines(&run, &environment, FRACTIONAL_ANCHOR).unwrap();
-    assert_eq!(differing_bytes(&replayed, &resolved), off_lattice);
-
-    // Control isolation: with policy stripped — alias edging, no hinting,
-    // no subpixel — the same glyph pipeline reproduces the outlines
-    // byte-exactly at the lattice cell. The fringe above is therefore the
-    // anti-alias glyph-mask policy itself, not a defect of glyph replay per
-    // se; policy is exactly what the candidate key refuses to carry.
-    let mut stripped = font.clone();
-    stripped.set_edging(Edging::Alias);
-    stripped.set_hinting(FontHinting::None);
-    stripped.set_subpixel(false);
-    let replayed = realize_glyph_replay(&run, &stripped, LATTICE_ANCHOR);
-    let resolved = realize_candidate_outlines(&run, &environment, LATTICE_ANCHOR).unwrap();
-    assert_eq!(differing_bytes(&replayed, &resolved), 0);
+    assert_eq!(measured, declared);
+    // The lattice fringe is smoothing, not displaced ink: every differing
+    // byte is partial coverage the outline render does not contain.
+    assert_eq!(measured.replay_non_bilevel, measured.replay_vs_consumer.0);
 }
 
 /// The candidate fact is unrealizable without a declared resource

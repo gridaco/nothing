@@ -211,26 +211,29 @@ metrics — no live object, no registry address, no raster-facing flags.
   break: one producer's facts are not even self-consistent across platforms,
   so a neutral contract would have to legislate the derivation, rebuilding
   n0's oracle output, or carry one fact with two meanings.
-- **Outlines are meaning; glyph replay is policy.** Two outline extractions of
-  the same candidate fact — Skia `get_path` over environment bytes, and the
-  artifact's own ttf-parser stream — are byte-identical through the one
-  shared path-fill rasterizer at every probed anchor, on and off the integer
-  lattice, and bilevel on it (the admitted-domain law); the controlled
-  question is whether lowering to outlines loses anything, and it loses
-  nothing. (Even here policy had to be stripped explicitly: the FreeType
-  build hints `get_path` by default — measured in the first Linux round — so
-  a consumer realizing meaning turns hinting off.) n0's replay through its oracle's live font, which arrives with
-  hinting, subpixel positioning, and edging set by the paragraph backend,
-  paints a measured non-bilevel fringe against those same outlines *on the
-  lattice itself* (432 bytes at the probed cell on Darwin-arm64; control
-  isolation attributes the fringe to the anti-alias glyph-mask pipeline at
-  this cell — an alias-edged replay matches the outlines byte-exactly) —
-  where the external oracle gates byte-exactly. Carrying the fact without the
-  policy makes that fringe a silent wrong pixel; carrying the policy puts
-  raster flags into a meaning-only contract; and the remaining branch — one
-  downstream-mandated uniform replay policy — either mandates n0's policy
-  (breaking the Web route's byte-exact gate by exactly the measured fringe)
-  or mandates outline realization (fixing replay as contract meaning and
+- **The artifact stream is the meaning; every backend realization is the
+  scaler's policy.** The artifact's own outline stream — ttf-parser over the
+  resolved bytes, the lowering `websem` performs — is bilevel on the integer
+  lattice on every measured platform: the admitted-domain law, and the one
+  platform-invariant realization, so lowering to it loses nothing. Every
+  realization through a backend font object is measured and declared per
+  platform in the spike's realization matrix. On the Darwin-arm64 CoreText
+  build, `get_path` extraction coincides byte-exactly with the stream at
+  every probed anchor, and only the anti-alias glyph replay fringes: n0's
+  oracle hands back live fonts with hinting, subpixel positioning, and
+  edging set by the paragraph backend, and replaying through them paints a
+  432-byte non-bilevel fringe against the same outlines *on the lattice
+  itself* — where the external oracle gates byte-exactly — while a
+  policy-stripped control (alias, unhinted, no subpixel) is exact, isolating
+  the fringe to the AA mask policy. On the Linux-x86_64 FreeType build, even
+  *unhinted extraction* differs from the stream at the lattice: the scaler's
+  quantum lands one box edge off the lattice and its fringe reaches pixels.
+  Carrying the fact without the policy makes every such fringe a silent
+  wrong pixel; carrying the policy puts raster flags into a meaning-only
+  contract; and the remaining branch — one downstream-mandated uniform
+  replay policy — either mandates a backend's policy (breaking the Web
+  route's byte-exact gate by exactly the measured fringes) or mandates
+  artifact-stream realization (fixing replay as contract meaning and
   rewriting n0's product raster with no oracle to certify it). None is
   admissible.
 - **The fact is a resource reference.** Realizing the candidate requires a
