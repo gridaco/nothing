@@ -336,10 +336,10 @@ fn inline_html_sampling_falls_back_to_base_under_best_effort() {
 /// SVG rendering vocabulary stay ignored, exactly as Chromium ignores them.
 #[test]
 fn unconsumed_rendering_attributes_never_paint_wrong_pixels() {
-    // Element `opacity` left this table with the group-scope rung: it is
-    // consumed (fold or scope), and its laws live in the opacity contract.
+    // Element `opacity` left this table with the group-scope rung, and
+    // `rx`/`ry` left it with the conic rung: both are consumed, and their
+    // laws live in the opacity and paths contracts.
     for (label, rect_attrs, named) in [
-        ("rounded corners", r#"rx="8""#, "rx"),
         (
             "transform-origin",
             r#"transform-origin="center""#,

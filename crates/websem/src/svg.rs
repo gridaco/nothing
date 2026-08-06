@@ -356,12 +356,6 @@ pub enum CompileError {
         /// kilobytes long and an error is not a place to reprint one.
         excerpt: String,
     },
-    /// A path command whose grammar is valid but whose geometry this slice
-    /// does not emit — the elliptical arc. Chromium rasterizes an arc through
-    /// the same rational conics as an `<ellipse>` (measured byte-identical),
-    /// and the contract carries no conic command yet, so the arc refuses by
-    /// name rather than paint a visibly different curve.
-    UnsupportedPathCommand { element: String, command: char },
     /// A composed transform that overflowed to a non-finite matrix. Every
     /// computed component is finite, but composition can overflow, and the
     /// downstream contract refuses a non-finite frame transform with no
@@ -867,11 +861,6 @@ impl std::fmt::Display for CompileError {
                 f,
                 "path data on <{element}> is invalid at byte {offset} (near {excerpt:?})"
             ),
-            CompileError::UnsupportedPathCommand { element, command } => write!(
-                f,
-                "path command {command} on <{element}> is not yet consumed (an elliptical arc \
-                 reaches Chromium's rasterizer as conics, which this slice does not emit)"
-            ),
             CompileError::NonFiniteTransform { element } => {
                 write!(f, "the composed transform on <{element}> is not finite")
             }
@@ -1025,10 +1014,6 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "systemLanguage",
 ];
 
-/// Rendering attributes additionally rejected on `<rect>`: rounded corners
-/// are not painted by the slice.
-const RECT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["rx", "ry"];
-
 /// Rendering attributes additionally rejected on `<text>`.
 ///
 /// The text slice resolves one run at one position: every attribute here
@@ -1130,6 +1115,12 @@ const CASCADE_PROPERTIES_NOT_REPRESENTED: &[&str] = &[
     // where this compiler would still paint attribute geometry.
     "all",
     "d",
+    // Consumed as attributes by the conic rung, and Chromium honors the CSS
+    // spelling over the attribute (measured) — but the pinned cascade cannot
+    // represent these longhands, so a stylesheet declaring one would paint
+    // attribute geometry here and property geometry there.
+    "rx",
+    "ry",
     "vector-effect",
     "marker",
     "marker-start",
@@ -2492,7 +2483,7 @@ fn compile_rect(
     bases: PercentBases,
     fold_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
-    patrol_rendering_attributes(el, "rect", RECT_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+    patrol_rendering_attributes(el, "rect", &[])?;
     patrol_style_attribute(el, "rect")?;
     let patrol = patrol_computed_style(el, true, true)?;
     match patrol.disposition {
@@ -2511,9 +2502,13 @@ fn compile_rect(
     let w = box_extent(geometry_attr_f32(el, "width", values, bases)?.unwrap_or(0.0));
     let h = box_extent(geometry_attr_f32(el, "height", values, bases)?.unwrap_or(0.0));
     let rect = Rectangle::from_xywh(x, y, w, h);
+    let geometry = match rect_corner_radii(el, values, bases, w, h)? {
+        Some((rx, ry)) => Geometry::Path(Arc::new(rounded_rect_path(rect, rx, ry)?)),
+        None => Geometry::Rect(rect),
+    };
     shape_node(
         el,
-        Geometry::Rect(rect),
+        geometry,
         viewport,
         next_id,
         box_strokable(w, h),
@@ -2665,19 +2660,13 @@ fn compile_path(
     }
     let commands = match get_attr(el, "d") {
         None => Vec::new(),
-        Some(value) => crate::svg_path::parse_path_data(&value).map_err(|error| match error {
-            crate::svg_path::PathDataError::Syntax { offset } => CompileError::BadPathData {
+        Some(value) => crate::svg_path::parse_path_data(&value).map_err(
+            |crate::svg_path::PathDataError::Syntax { offset }| CompileError::BadPathData {
                 element: "path".to_string(),
                 offset,
                 excerpt: excerpt_at(&value, offset),
             },
-            crate::svg_path::PathDataError::UnsupportedCommand { command } => {
-                CompileError::UnsupportedPathCommand {
-                    element: "path".to_string(),
-                    command,
-                }
-            }
-        })?,
+        )?,
     };
     if commands.is_empty() {
         return Ok(None);
@@ -2825,19 +2814,13 @@ fn compile_points_shape(
     }
     let points = match get_attr(el, "points") {
         None => Vec::new(),
-        Some(value) => crate::svg_path::parse_points(&value).map_err(|error| match error {
-            crate::svg_path::PathDataError::Syntax { offset } => CompileError::BadPoints {
+        Some(value) => crate::svg_path::parse_points(&value).map_err(
+            |crate::svg_path::PathDataError::Syntax { offset }| CompileError::BadPoints {
                 element: element.to_string(),
                 offset,
                 excerpt: excerpt_at(&value, offset),
             },
-            // The points grammar has no commands, so the scanner can only
-            // report syntax; an unsupported-command error here is this
-            // compiler's bug, not the document's.
-            crate::svg_path::PathDataError::UnsupportedCommand { .. } => {
-                unreachable!("a points list parses numbers only")
-            }
-        })?,
+        )?,
     };
     let Some(((first_x, first_y), rest)) = points.split_first() else {
         return Ok(None);
@@ -3123,6 +3106,107 @@ fn patrol_mixed_contour_cap(
         ));
     }
     Ok(())
+}
+
+/// The used corner radii of a `<rect>`, or `None` for sharp corners.
+///
+/// The resolution order is measured, not assumed: `auto` adopts the other
+/// axis's *authored* value first, and each axis then clamps to half its own
+/// extent independently — `rx="30"` on a 40-wide, 48-tall rect rounds as
+/// `(20, 24)`, not `(20, 20)`. A negative value is invalid-and-ignored,
+/// which Chromium treats as `auto` (the [`ellipse_radius`] rule), and a used
+/// radius of zero on either axis squares every corner. Percentages resolve
+/// through the shared geometry-attribute bases: `rx` against the viewport
+/// width, `ry` against its height.
+fn rect_corner_radii(
+    el: HtmlElement<'_>,
+    values: &EffectiveValues,
+    bases: PercentBases,
+    width: f32,
+    height: f32,
+) -> Result<Option<(f32, f32)>, CompileError> {
+    let rx = ellipse_radius(el, "rx", values, bases)?;
+    let ry = ellipse_radius(el, "ry", values, bases)?;
+    let (Some(rx), Some(ry)) = (rx.or(ry), ry.or(rx)) else {
+        return Ok(None);
+    };
+    if !(width > 0.0 && height > 0.0) {
+        return Ok(None);
+    }
+    let rx = rx.min(width / 2.0);
+    let ry = ry.min(height / 2.0);
+    if rx <= 0.0 || ry <= 0.0 {
+        return Ok(None);
+    }
+    Ok(Some((rx, ry)))
+}
+
+/// The rounded rect's canonical contour: four edges and four quarter-turn
+/// conics of weight `cos 45°`, clockwise from the end of the top-left
+/// corner — measured byte-identical to Chromium's rounded rect, circular
+/// and elliptical corners alike. A fully-rounded axis makes its straight
+/// edges zero-length; those are omitted and the conic chain carries the
+/// contour alone.
+fn rounded_rect_path(rect: Rectangle, rx: f32, ry: f32) -> Result<rframe::PathData, CompileError> {
+    use rframe::PathCommand;
+    let (x, y, w, h) = (rect.x, rect.y, rect.width, rect.height);
+    let weight = std::f32::consts::FRAC_1_SQRT_2;
+    let mut commands = vec![PathCommand::MoveTo { x: x + rx, y }];
+    let edge = |commands: &mut Vec<PathCommand>, to_x: f32, to_y: f32| {
+        let from = match *commands.last().expect("contour is open") {
+            PathCommand::MoveTo { x, y }
+            | PathCommand::LineTo { x, y }
+            | PathCommand::ConicTo { x, y, .. } => (x, y),
+            _ => unreachable!("the contour emits moves, lines and conics only"),
+        };
+        if from != (to_x, to_y) {
+            commands.push(PathCommand::LineTo { x: to_x, y: to_y });
+        }
+    };
+    edge(&mut commands, x + w - rx, y);
+    commands.push(PathCommand::ConicTo {
+        x1: x + w,
+        y1: y,
+        x: x + w,
+        y: y + ry,
+        weight,
+    });
+    edge(&mut commands, x + w, y + h - ry);
+    commands.push(PathCommand::ConicTo {
+        x1: x + w,
+        y1: y + h,
+        x: x + w - rx,
+        y: y + h,
+        weight,
+    });
+    edge(&mut commands, x + rx, y + h);
+    commands.push(PathCommand::ConicTo {
+        x1: x,
+        y1: y + h,
+        x,
+        y: y + h - ry,
+        weight,
+    });
+    edge(&mut commands, x, y + ry);
+    commands.push(PathCommand::ConicTo {
+        x1: x,
+        y1: y,
+        x: x + rx,
+        y,
+        weight,
+    });
+    commands.push(PathCommand::Close);
+    rframe::PathData::new(commands, rframe::FillRule::NonZero).map_err(|error| {
+        // Finite attribute reads make this contour canonical by
+        // construction; a rejection here is arithmetic overflow on an
+        // extreme authored geometry — this compiler's refusal, not a wrong
+        // paint.
+        CompileError::BadPathData {
+            element: "rect".to_string(),
+            offset: 0,
+            excerpt: error.to_string(),
+        }
+    })
 }
 
 /// An ellipse `rx`/`ry` read: `None` is the `auto` used value, which

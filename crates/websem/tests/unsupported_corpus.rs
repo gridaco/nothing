@@ -108,7 +108,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "unsupported element <svg>",
     ),
-    ("svg-path-arc", DeclaredByBestEffort, "path command A"),
     (
         "svg-path-css-d-property",
         DeclaredByBestEffort,
@@ -158,7 +157,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         BothRefuse,
         "preserveAspectRatio",
     ),
-    ("svg-rect-rounded", DeclaredByBestEffort, "rx"),
     ("svg-root-opacity", BothRefuse, "root <svg>"),
     (
         "svg-smil-animate-transform",

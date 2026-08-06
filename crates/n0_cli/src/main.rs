@@ -603,8 +603,8 @@ mod tests {
         // groups are compiled and their beyond-slice *descendants* are declared
         // individually at nested paths, and `<title>`/`<desc>` declare nothing
         // because Chromium paints nothing for them either. After the points
-        // rung the polygons and the polyline render too, so what remains is
-        // the labels and one rounded rect (`rx` is not consumed).
+        // rung the polygons and the polyline render, and after the conic rung
+        // the rounded rect does too — what remains is the labels.
         //
         // After the text rung the labels are still declared, for reasons
         // that moved one layer up: the sheet's `text-anchor` cannot be
@@ -635,7 +635,6 @@ mod tests {
             vec![
                 "svg/style[1]",
                 "svg/g[1]/text[1]",
-                "svg/g[2]/rect[1]",
                 "svg/g[2]/text[1]",
                 "svg/g[3]/text[1]",
                 "svg/g[4]/text[1]",
