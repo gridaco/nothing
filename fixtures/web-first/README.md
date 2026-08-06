@@ -36,6 +36,13 @@ is exactly what the engine renders pixel-for-pixel.
 | `svg-non-rendering-elements.svg` | `<title>`/`<desc>` paint nothing and declare nothing — the raster is the same as if they were absent. (`<metadata>` shares the skip in `websem`'s law tests but is not yet in this cell.) |
 | `svg-path-polygon-fill.svg` · `svg-path-unclosed-fill.svg` · `svg-path-relative-commands.svg` · `svg-path-hv-shorthand.svg` | The paths rung's straight-edge cells: **one triangle spelled four ways** — closed, unclosed (a fill closes it implicitly), relative with implicit repeats, and the `H`/`V` shorthands. All four oracles are byte-identical, which is the claim. |
 | `svg-path-closed-move-only-contour.svg` | `M x y Z` is a zero-length *closed* contour, not nothing: dropping it moves 96 pixels of the surviving triangle in Chromium. Fractional coordinates on purpose — integer axis-aligned edges hide this. |
+| `svg-path-arc.svg` · `svg-path-arc-flags.svg` · `svg-path-arc-rotated.svg` | The conic rung's arc cells: the half-ellipse sweep (the byte-identity measurement's own geometry, graduated from the refusal register), all four large-arc/sweep flag combinations selecting four distinct arcs, and a rotated elliptical sweep. Every one bakes byte-exact — the emitted conics are Chromium's own curve class. |
+| `svg-path-arc-degenerate.svg` | The arc's measured correct nothings: a zero radius degenerates to the authored straight line, and coincident endpoints elide the segment entirely. |
+| `svg-path-arc-stroked.svg` | An open arc under a stroke: the conic geometry feeds the same stroker as every other path, caps and all. Byte-exact. |
+| `svg-rect-rounded.svg` · `svg-rect-rounded-elliptical.svg` | `<rect rx ry>` lowers to four quarter-turn conics of weight cos 45° — measured byte-identical to the equivalent `A`-command contour in Chromium itself, circular and elliptical corners alike. |
+| `svg-rect-rounded-mirror-auto.svg` · `svg-rect-rounded-negative-rx-auto.svg` | The auto matrix: an absent `rx` adopts `ry`, and a *negative* `rx` is invalid-must-be-ignored, which Chromium resolves to that same `auto`. Both bake to the same rounding. |
+| `svg-rect-rounded-clamp.svg` | The measured resolution order: `auto` mirrors the *authored* value first, then each axis clamps to half its own extent independently — `rx="30"` on a 40×48 rect rounds as (20, 24), not (20, 20). |
+| `svg-rect-rounded-stroked.svg` | A stroked rounded rect: the corner conics under the stroker. Byte-exact. |
 | `svg-stroke-rect-centred.svg` · `svg-stroke-over-fill.svg` | A Web stroke straddles its geometry — an 8-wide stroke on an edge at x=16 inks 12..19 — and paints *over* the fill, which is SVG's default paint order. |
 | `svg-stroke-default-width.svg` · `svg-stroke-invalid-width.svg` · `svg-stroke-length-units.svg` · `svg-stroke-zero-width.svg` | The width is a cascaded length: absent is 1, a negative value is an invalid declaration that falls back to the same 1 (byte-identical cells), `0.5em` resolves like any CSS length, and `0` paints nothing. |
 | `svg-stroke-inherited.svg` | `stroke` and `stroke-width` inherit through a `<g>` by the one cascade — the shape the tiger is built from. |
@@ -132,10 +139,12 @@ by measurement. Straight edges agree even when a transform puts them off the
 pixel grid: the rotated cells above — including a 45° turn — bake byte-exact.
 And *curves* as such are not the boundary either: the cubic, smooth-cubic and
 quadratic path cells above bake byte-exact too. Only the weighted conic
-diverges. (That is also why an SVG elliptical arc is not in this corpus:
-Chromium rasterizes one through the ellipse's conics — measured
-byte-identical — so admitting arcs means emitting conics, and it inherits
-exactly this departure. See `unsupported/`.)
+diverges — and only through the `drawOval` entry point. The conic rung's
+measurement narrowed the boundary a third time: an SVG elliptical arc *is*
+this corpus now, emitted as explicit `ConicTo` segments, and all eleven
+arc and rounded-rect cells — rotated elliptical sweep and strokes included
+— bake **byte-exact** with no tolerance at all. The departure class is the
+oval construction's, not the curve class's.
 
 The curved fixtures carry a `tolerance` block naming the ideal boundary and
 bounding the departure: at most N differing pixels, at most a D-per-channel

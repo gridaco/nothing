@@ -1464,8 +1464,8 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `paint-order`
 - [ ] `pointer-events`
 - [ ] `r`
-- [ ] `rx`
-- [ ] `ry`
+- [x] `rx`
+- [x] `ry`
 - [ ] `shape-rendering`
 - [ ] `stop-color`
 - [ ] `stop-opacity`

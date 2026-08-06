@@ -60,8 +60,11 @@ cargo run -p n0_cli --bin n0 -- \
 - Resources: self-contained input only; external images and stylesheets are
   not resolved.
 - Capability: the admitted slice is deliberately narrow — solid- or
-  gradient-filled and -stroked `<rect>`, `<circle>`, `<ellipse>`, `<path>` (the path-data
-  grammar except the elliptical arc, with `fill-rule`), `<line>`, `<polygon>`
+  gradient-filled and -stroked `<rect>` (rounded corners included: `rx`/`ry`
+  resolve by the measured auto/clamp matrix and lower to the conics Chromium
+  draws them through), `<circle>`, `<ellipse>`, `<path>` (the whole path-data
+  grammar — the elliptical arc resolves to conic segments — with
+  `fill-rule`), `<line>`, `<polygon>`
   and `<polyline>` (the `points` grammar through the same number scanner as
   path data; an erroneous list refuses the whole element by name where
   Chromium renders its valid pair prefix — a declared divergence), nested in

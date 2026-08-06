@@ -1279,3 +1279,81 @@ per-layer, byte-identical to the nested-group cell. `opacity: 0` renders
 the correct nothing for shapes and containers alike. The scoreboard
 suite's element-`opacity` rows are now within reach; `rx`/`ry` is the
 remaining row-1 construct.
+
+## Addendum — the conic rung (2026-08-06)
+
+The elliptical arc and the rounded rect are consumed, and consuming them
+grew the contract's **third amendment**: `rframe::PathCommand` gained
+`ConicTo { x1, y1, x, y, weight }` — the rational quadratic, the curve
+class Chromium's rasterizer draws arcs and rounded corners through. The
+weight has its own checked domain (positive and finite,
+`BadConicWeight` by index), a conic's tight bounds are solved from the
+rational derivative in f64 (the quadratic `N'D − ND'`, whose cubic terms
+cancel), and the amendment deliberately stops there: **no arc command**
+remains the crate's refusal. The arc parameterization is authored
+syntax, and which curve sequence it becomes decides pixels, so the
+resolution stays with the producer — exactly as the module doc's
+reserved slot said it would.
+
+The repo law that read "the contract carries no conic command yet" was
+repaid rather than falsified; but one measured *prediction* fell: the
+corpus README reasoned that admitting arcs "inherits exactly this
+departure" — the oval cells' declared conic scan-converter divergence.
+Measured, it does not. All eleven new cells — the half-ellipse identity
+arc, all four flag combinations, a rotated elliptical sweep, both
+degenerate correct-nothings, uniform and elliptical rounded rects, the
+measured clamp order, and both strokes — bake **byte-exact** against
+Chromium 149.0.7827.55 with no tolerance blocks. The departure class
+belongs to the `drawOval` construction, not to the conic as a curve.
+
+**A 24-probe Chromium matrix decided the semantics before code:**
+
+- **A rounded rect is a conic path.** `<rect rx="8">` and the equivalent
+  explicit `A`-command contour render byte-identically in Chromium
+  itself (elliptical corners: 1 pixel at delta 2). The rect therefore
+  lowers at the producer to four quarter-turn conics of weight cos 45°,
+  and `rframe::Geometry` needed no rounded-rect variant.
+- **The rect's resolution order is measured, not assumed.** `auto`
+  adopts the other axis's *authored* value first, then each axis clamps
+  to half its own extent independently — `rx="30"` on a 40×48 rect is
+  (20, 24), not (20, 20). Negative is invalid-to-auto; a used zero on
+  either axis squares every corner; percentages base on width and
+  height respectively.
+- **Arc corrections are the spec's, byte-for-byte.** Too-small radii
+  scale up uniformly (identical to authoring the scaled radii);
+  negative radii take absolute value; zero radius is the authored
+  straight line; coincident endpoints elide; a smooth cubic after an
+  arc reflects about the current point.
+- **Nothing canonicalizes, and nothing reduces.** Chromium paints a
+  rotated circular arc 2 pixels from its unrotated spelling and `390°`
+  51 pixels from `30°` — its internal float noise, which no external
+  construction can or should chase. The producer feeds the authored
+  angle through plain f64 arithmetic: a circle's rotation then cancels
+  algebraically, the unreduced angle's residue sits below f32, and each
+  cell gates against its own oracle. n0-model's native-route
+  canonicalizations (circle rotation to zero) were deliberately **not**
+  copied — the Web producer's conversion is its own, verified against
+  the browser it matches.
+
+Consuming `rx`/`ry` closed a latent silent-divergence class: Chromium
+honors the CSS `rx`/`ry` spellings over the attributes (measured), and
+the pinned cascade cannot represent those longhands — so both names
+joined the `d`-property stylesheet patrol, declared by name instead of
+silently painting attribute geometry where the browser paints the
+sheet's. The `websem` parser's arc arm keeps the malformed-before-
+unsupported ordering it always had, now with nothing left to be
+unsupported: `PathDataError::UnsupportedCommand` and
+`CompileError::UnsupportedPathCommand` are deleted — the `d` grammar's
+every command letter emits, and the sole path refusal is a value that
+stops being path data. The whole-path refusal on erroneous data (vs
+Chromium's valid-prefix rendering) stands unchanged; admitting the
+prefix rule remains a rung of its own.
+
+Graduated: `svg-path-arc` and `svg-rect-rounded` left the refusal
+register for the admitted corpus (the identity-measurement geometry is
+now its own cell), and the checklist's `rx`/`ry` presentation-attribute
+rows tick. `d` stays unchecked while the prefix rule is refused, and
+the CSS-property twins stay unchecked at the pin. With `rx`/`ry`
+landed, the row-1 scoreboard construct the register named after the
+gradient rung is in hand: the corpus-growth step toward FLIP
+eligibility no longer waits on capability.
