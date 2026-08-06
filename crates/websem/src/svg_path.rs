@@ -65,17 +65,16 @@
 
 use rframe::PathCommand;
 
-/// Why a `d` value did not resolve to a command stream.
+/// Why a `d` value did not resolve to a command stream. Every command letter
+/// of the grammar now emits — the elliptical arc was the last, resolved to
+/// conics by the conic rung — so the one refusal left is a value that stops
+/// being path data.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum PathDataError {
     /// The value stopped being valid SVG path data at this byte offset.
     /// Sufficient to excerpt the offending text without carrying a kilobyte of
     /// `d` in an error.
     Syntax { offset: usize },
-    /// A command whose grammar parses but whose geometry this slice does not
-    /// emit. Distinct from [`Self::Syntax`] on purpose: the document is
-    /// correct and the engine is not finished.
-    UnsupportedCommand { command: char },
 }
 
 /// Parse one `d` value into the canonical absolute command stream.
@@ -256,18 +255,15 @@ impl<'a> Parser<'a> {
                     self.emit_quad(one, end);
                 }
                 b'A' | b'a' => {
-                    // The whole argument list is parsed before refusing, so a
-                    // malformed arc is reported as malformed rather than as
-                    // unsupported.
-                    let _rx = self.number()?;
-                    let _ry = self.number()?;
-                    let _angle = self.number()?;
-                    let _large = self.flag()?;
-                    let _sweep = self.flag()?;
-                    let _end = self.coordinate_pair()?;
-                    return Err(PathDataError::UnsupportedCommand {
-                        command: char::from(command),
-                    });
+                    let rx = self.number()?;
+                    let ry = self.number()?;
+                    let angle = self.number()?;
+                    let large = self.flag()?;
+                    let sweep = self.flag()?;
+                    let end = self.coordinate_pair()?;
+                    let end = self.absolute(relative, end.0, end.1);
+                    self.emit_arc((rx, ry), angle, large, sweep, end);
+                    self.reset_reflection();
                 }
                 b'Z' | b'z' => {
                     self.emit_close();
@@ -416,6 +412,134 @@ impl<'a> Parser<'a> {
             None => {}
         }
         self.current = self.subpath_start;
+    }
+
+    fn emit_conic(&mut self, one: (f32, f32), end: (f32, f32), weight: f32) {
+        self.open_contour();
+        self.commands.push(PathCommand::ConicTo {
+            x1: one.0,
+            y1: one.1,
+            x: end.0,
+            y: end.1,
+            weight,
+        });
+        self.drew();
+        self.current = end;
+    }
+
+    /// Resolve one elliptical arc to the conic segments Chromium's rasterizer
+    /// draws it through. Every rule below is a Chromium 149 measurement:
+    ///
+    /// - coincident endpoints elide the segment entirely;
+    /// - a zero radius degenerates to a straight line, byte-identical to the
+    ///   authored `L`;
+    /// - negative radii take their absolute value, byte-identical to the
+    ///   positive spelling;
+    /// - too-small radii scale up uniformly until the endpoints fit,
+    ///   byte-identical to authoring the scaled radii;
+    /// - the rotation angle feeds `sin`/`cos` **as authored** — `390` is not
+    ///   `30` (51 boundary pixels apart), and a rotated circle is not the
+    ///   unrotated one (2 pixels apart), so nothing here canonicalizes;
+    /// - the sweep splits into at most four segments of at most a quarter
+    ///   turn, each an exact conic of weight `cos(step / 2)`, and the last
+    ///   segment reuses the authored endpoint so the current-point chain
+    ///   stays exact.
+    ///
+    /// The center parameterization is SVG2 §B.2.4-5 arithmetic in f64.
+    fn emit_arc(
+        &mut self,
+        radii: (f32, f32),
+        angle: f32,
+        large: bool,
+        sweep: bool,
+        end: (f32, f32),
+    ) {
+        let start = if self.open.is_none() {
+            // An arc after a close continues from the closed contour's start,
+            // which is where `emit_conic`'s implicit reopen will put the pen.
+            self.subpath_start
+        } else {
+            self.current
+        };
+        if start == end {
+            return;
+        }
+        let rx = radii.0.abs();
+        let ry = radii.1.abs();
+        if rx == 0.0 || ry == 0.0 {
+            self.emit_line(end);
+            return;
+        }
+
+        let (x1, y1) = (f64::from(start.0), f64::from(start.1));
+        let (x2, y2) = (f64::from(end.0), f64::from(end.1));
+        let mut rx = f64::from(rx);
+        let mut ry = f64::from(ry);
+        let phi = f64::from(angle).to_radians();
+        let (sin_phi, cos_phi) = phi.sin_cos();
+
+        // §B.2.4 step 1: the midpoint frame.
+        let dx = (x1 - x2) / 2.0;
+        let dy = (y1 - y2) / 2.0;
+        let x1p = cos_phi * dx + sin_phi * dy;
+        let y1p = -sin_phi * dx + cos_phi * dy;
+
+        // §B.2.5: radii too small to span the endpoints scale up uniformly.
+        let lambda = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry);
+        if lambda > 1.0 {
+            let scale = lambda.sqrt();
+            rx *= scale;
+            ry *= scale;
+        }
+
+        // §B.2.4 step 2: the center in the midpoint frame. The radicand is
+        // non-negative by construction after the scale-up; float noise below
+        // zero clamps.
+        let rxsq = rx * rx;
+        let rysq = ry * ry;
+        let numerator = rxsq * rysq - rxsq * y1p * y1p - rysq * x1p * x1p;
+        let denominator = rxsq * y1p * y1p + rysq * x1p * x1p;
+        let radicand = (numerator / denominator).max(0.0);
+        let coefficient = if large != sweep { 1.0 } else { -1.0 } * radicand.sqrt();
+        let cxp = coefficient * rx * y1p / ry;
+        let cyp = -coefficient * ry * x1p / rx;
+
+        // §B.2.4 step 3: back to user space.
+        let cx = cos_phi * cxp - sin_phi * cyp + (x1 + x2) / 2.0;
+        let cy = sin_phi * cxp + cos_phi * cyp + (y1 + y2) / 2.0;
+
+        // §B.2.4 step 4: start angle and sweep extent on the unit circle.
+        let theta1 = ((y1p - cyp) / ry).atan2((x1p - cxp) / rx);
+        let theta2 = ((-y1p - cyp) / ry).atan2((-x1p - cxp) / rx);
+        let mut delta = theta2 - theta1;
+        if sweep && delta < 0.0 {
+            delta += std::f64::consts::TAU;
+        } else if !sweep && delta > 0.0 {
+            delta -= std::f64::consts::TAU;
+        }
+
+        let segments = ((delta.abs() / std::f64::consts::FRAC_PI_2).ceil() as usize).clamp(1, 4);
+        let step = delta / segments as f64;
+        let weight = (step / 2.0).cos();
+        // A point of the resolved ellipse from its unit-circle frame.
+        let ellipse_point = |u: f64, v: f64| -> (f32, f32) {
+            (
+                (cx + rx * u * cos_phi - ry * v * sin_phi) as f32,
+                (cy + rx * u * sin_phi + ry * v * cos_phi) as f32,
+            )
+        };
+        for segment in 0..segments {
+            let from = theta1 + step * segment as f64;
+            let mid = from + step / 2.0;
+            let to = from + step;
+            let control = ellipse_point(mid.cos() / weight, mid.sin() / weight);
+            let endpoint = if segment + 1 == segments {
+                end
+            } else {
+                ellipse_point(to.cos(), to.sin())
+            };
+            self.emit_conic(control, endpoint, weight as f32);
+        }
     }
 
     // ─── tokenizer ───────────────────────────────────────────────────────

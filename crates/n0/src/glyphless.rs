@@ -470,6 +470,22 @@ fn compile_path(data: &rframe::PathData) -> Arc<ResolvedPathArtifact> {
             rframe::PathCommand::QuadTo { x1, y1, x, y } => {
                 n0_model::path::PathCommand::QuadTo { x1, y1, x, y }
             }
+            // rframe checked the weight's positive finite domain at
+            // construction; the model's own validation re-states the same
+            // domain, so this projection cannot manufacture a refusal.
+            rframe::PathCommand::ConicTo {
+                x1,
+                y1,
+                x,
+                y,
+                weight,
+            } => n0_model::path::PathCommand::ConicTo {
+                x1,
+                y1,
+                x,
+                y,
+                weight,
+            },
             rframe::PathCommand::CubicTo {
                 x1,
                 y1,

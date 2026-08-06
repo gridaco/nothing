@@ -512,44 +512,113 @@ fn path_data_must_begin_with_a_moveto() {
     ));
 }
 
-/// **The second deliberate divergence.** An arc's grammar parses and then
-/// refuses by name: Chromium rasterizes an arc through the same rational
-/// conics as an `<ellipse>` (measured byte-identical over the rows they
-/// share), and following Blink's cubic *normalizer* instead produces a
-/// visibly different curve — 77 pixels at up to a 170-per-channel delta, in
-/// Chromium's own renderer. The contract carries no conic command yet.
+/// **The second deliberate divergence is repaid.** The conic rung resolved
+/// it: an arc's grammar parses and emits the rational conics Chromium
+/// rasterizes it through — never Blink's cubic *normalizer*, whose explicit
+/// cubics differ from Chromium's own `A` by 77 pixels at up to a
+/// 170-per-channel delta. The half-ellipse sweep resolves to two quarter-turn
+/// conics of weight `cos 45°`, and the authored endpoint is reused exactly on
+/// the last segment so the current-point chain never drifts.
 #[test]
-fn an_elliptical_arc_refuses_by_name_in_both_admissions() {
-    for (d, command) in [
-        ("M8 28 A24 20 0 0 1 56 28 Z", 'A'),
-        ("M8 28 a24 20 0 0 1 48 0 Z", 'a'),
-    ] {
-        let source = path_document(d);
-        let error = refusal(&source);
-        assert_eq!(
-            error,
-            CompileError::UnsupportedPathCommand {
-                element: "path".to_string(),
-                command,
+fn an_elliptical_arc_resolves_to_conics_in_both_admissions() {
+    for d in ["M8 28 A24 20 0 0 1 56 28 Z", "M8 28 a24 20 0 0 1 48 0 Z"] {
+        let stream = commands(d);
+        assert_eq!(stream.len(), 4, "move, two conics, close: {stream:?}");
+        assert_eq!(stream[0], move_to(8.0, 28.0));
+        let (mid, end) = match (stream[1], stream[2]) {
+            (
+                PathCommand::ConicTo {
+                    x, y, weight: w1, ..
+                },
+                PathCommand::ConicTo {
+                    x: x2,
+                    y: y2,
+                    weight: w2,
+                    ..
+                },
+            ) => {
+                assert!(
+                    (w1 - std::f32::consts::FRAC_1_SQRT_2).abs() < 1e-6
+                        && (w2 - std::f32::consts::FRAC_1_SQRT_2).abs() < 1e-6,
+                    "a quarter-turn segment's weight is cos 45°"
+                );
+                ((x, y), (x2, y2))
             }
-        );
+            other => panic!("expected two conics, got {other:?}"),
+        };
         assert!(
-            error.to_string().contains("conics"),
-            "the reason says why: {error}"
+            (mid.0 - 32.0).abs() < 1e-3 && (mid.1 - 8.0).abs() < 1e-3,
+            "the split lands on the ellipse's apex, got {mid:?}"
         );
-        let best =
-            SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
-                .expect("best-effort declares it");
-        assert_eq!(best.degradations().len(), 1);
-        assert_eq!(best.degradations()[0].path(), "svg/path[1]");
-        assert!(best.base_frame().nodes().is_empty(), "no guessed curve");
+        assert_eq!(end, (56.0, 28.0), "the authored endpoint, exactly");
+        assert_eq!(stream[3], PathCommand::Close);
     }
-    // A *malformed* arc is malformed, not unsupported: the whole argument list
-    // is parsed before the refusal, so the two never trade places.
+    // A *malformed* arc is malformed, exactly as before the admission: the
+    // whole argument list still parses first, so a bad flag never becomes a
+    // half-emitted curve.
     assert!(matches!(
         refusal(&path_document("M8 28 A24 20 0 2 1 56 28 Z")),
         CompileError::BadPathData { .. }
     ));
+}
+
+/// The arc's degenerate and out-of-range rules, each the measured Chromium
+/// behavior — byte-identical to the equivalent explicit spelling, so the
+/// resolved streams must be identical too:
+///
+/// - coincident endpoints elide the segment;
+/// - a zero radius degenerates to the authored line;
+/// - negative radii take their absolute value;
+/// - radii too small to span the endpoints scale up uniformly;
+/// - a smooth cubic after an arc reflects about the current point
+///   (the arc resets both reflections);
+/// - the rotation is fed through as authored, and nothing canonicalizes:
+///   on a *circle* the rotation cancels arithmetically (rotate ∘ scale
+///   commutes for equal radii, so the split points coincide bit for bit),
+///   and `390` collapses to `30` only because their `sin`/`cos` residue
+///   sits below f32. Chromium paints each of those pairs measurably apart
+///   (2 and 51 pixels) — its own internal float noise, which no external
+///   construction can or should chase; every cell gates against its own
+///   oracle instead. The case where rotation genuinely changes geometry —
+///   the rotated *elliptical* arc — is pinned byte-exact by its corpus
+///   cell.
+#[test]
+fn arc_degenerates_and_corrections_resolve_as_chromium_paints_them() {
+    assert_eq!(
+        commands("M8 8 L56 8 A10 10 0 0 1 56 8 L56 56 Z"),
+        commands("M8 8 L56 8 L56 56 Z"),
+        "coincident endpoints elide"
+    );
+    assert_eq!(
+        commands("M8 8 A0 20 0 0 1 56 40 L56 56 Z"),
+        commands("M8 8 L56 40 L56 56 Z"),
+        "zero radius is the authored line"
+    );
+    assert_eq!(
+        commands("M8 28 A-24 -20 0 0 1 56 28 Z"),
+        commands("M8 28 A24 20 0 0 1 56 28 Z"),
+        "negative radii take their absolute value"
+    );
+    assert_eq!(
+        commands("M12 32 A5 5 0 0 1 52 32 Z"),
+        commands("M12 32 A20 20 0 0 1 52 32 Z"),
+        "too-small radii scale up uniformly"
+    );
+    assert_eq!(
+        commands("M8 32 A12 12 0 0 1 32 32 S44 44 56 32"),
+        commands("M8 32 A12 12 0 0 1 32 32 C32 32 44 44 56 32"),
+        "a smooth cubic after an arc reflects about the current point"
+    );
+    assert_eq!(
+        commands("M12 32 A20 20 45 0 1 52 32 Z"),
+        commands("M12 32 A20 20 0 0 1 52 32 Z"),
+        "a circle's rotation cancels arithmetically, not by canonicalization"
+    );
+    assert_eq!(
+        commands("M12 40 A24 12 390 0 1 52 40 Z"),
+        commands("M12 40 A24 12 30 0 1 52 40 Z"),
+        "the unreduced angle's residue sits below f32"
+    );
 }
 
 // ─── the patrols around `<path>` ─────────────────────────────────────────
