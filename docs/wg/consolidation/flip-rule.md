@@ -101,3 +101,14 @@ score exists requires a new explicit owner decision and a new rule version.
 No ratification has occurred. Owner GO, the accepted rule version, and the
 date belong here only after they are recorded on
 [gridaco/nothing#49](https://github.com/gridaco/nothing/issues/49).
+
+**Preparation note (2026-08-06).** The decision's evidence bar — scoreboard
+v0 design plus corpus enumeration — is met and validated: the sealed
+instrument and the enumerated `svg-rect-path-v0` corpus are on `main`, and
+`scoreboard check` passes (source and oracle hashes, dimensions, and both
+entry-point acceptance preflights over all 14 rows — no rasterization).
+Chassis render success and pixel agreement are deliberately unestablished
+until the first authorized run; measuring them is what the run exists for.
+The prepared GO text — what a ratification would accept, and what it would
+not do — is prepared for the registry issue, for the owner to adopt, amend,
+or decline. This note prepares; it does not ratify.
