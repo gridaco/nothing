@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (192)
+## Chromium-baked cells (202)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells and two gradient ramps carry a declared, bounded
@@ -169,13 +169,23 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-stroke-ellipse.svg" title="svg-stroke-ellipse (standalone-svg)"><img src="./chromium/svg-stroke-ellipse.png" width="56" alt="svg-stroke-ellipse"></a>
 <a href="./svg-stroke-inherited.svg" title="svg-stroke-inherited (standalone-svg)"><img src="./chromium/svg-stroke-inherited.png" width="56" alt="svg-stroke-inherited"></a>
 <a href="./svg-stroke-invalid-width.svg" title="svg-stroke-invalid-width (standalone-svg)"><img src="./chromium/svg-stroke-invalid-width.png" width="56" alt="svg-stroke-invalid-width"></a>
+<a href="./svg-stroke-join-arcs.svg" title="svg-stroke-join-arcs (standalone-svg)"><img src="./chromium/svg-stroke-join-arcs.png" width="56" alt="svg-stroke-join-arcs"></a>
 <a href="./svg-stroke-join-bevel.svg" title="svg-stroke-join-bevel (standalone-svg)"><img src="./chromium/svg-stroke-join-bevel.png" width="56" alt="svg-stroke-join-bevel"></a>
+<a href="./svg-stroke-join-css-arcs.svg" title="svg-stroke-join-css-arcs (standalone-svg)"><img src="./chromium/svg-stroke-join-css-arcs.png" width="56" alt="svg-stroke-join-css-arcs"></a>
+<a href="./svg-stroke-join-css-bevel.svg" title="svg-stroke-join-css-bevel (standalone-svg)"><img src="./chromium/svg-stroke-join-css-bevel.png" width="56" alt="svg-stroke-join-css-bevel"></a>
+<a href="./svg-stroke-join-css-miter.svg" title="svg-stroke-join-css-miter (standalone-svg)"><img src="./chromium/svg-stroke-join-css-miter.png" width="56" alt="svg-stroke-join-css-miter"></a>
+<a href="./svg-stroke-join-css-miter-clip.svg" title="svg-stroke-join-css-miter-clip (standalone-svg)"><img src="./chromium/svg-stroke-join-css-miter-clip.png" width="56" alt="svg-stroke-join-css-miter-clip"></a>
+<a href="./svg-stroke-join-css-over-attr.svg" title="svg-stroke-join-css-over-attr (standalone-svg)"><img src="./chromium/svg-stroke-join-css-over-attr.png" width="56" alt="svg-stroke-join-css-over-attr"></a>
+<a href="./svg-stroke-join-css-round.svg" title="svg-stroke-join-css-round (standalone-svg)"><img src="./chromium/svg-stroke-join-css-round.png" width="56" alt="svg-stroke-join-css-round"></a>
 <a href="./svg-stroke-join-miter.svg" title="svg-stroke-join-miter (standalone-svg)"><img src="./chromium/svg-stroke-join-miter.png" width="56" alt="svg-stroke-join-miter"></a>
+<a href="./svg-stroke-join-miter-clip.svg" title="svg-stroke-join-miter-clip (standalone-svg)"><img src="./chromium/svg-stroke-join-miter-clip.png" width="56" alt="svg-stroke-join-miter-clip"></a>
 <a href="./svg-stroke-join-round.svg" title="svg-stroke-join-round (standalone-svg)"><img src="./chromium/svg-stroke-join-round.png" width="56" alt="svg-stroke-join-round"></a>
 <a href="./svg-stroke-length-units.svg" title="svg-stroke-length-units (standalone-svg)"><img src="./chromium/svg-stroke-length-units.png" width="56" alt="svg-stroke-length-units"></a>
 <a href="./svg-stroke-line.svg" title="svg-stroke-line (standalone-svg)"><img src="./chromium/svg-stroke-line.png" width="56" alt="svg-stroke-line"></a>
 <a href="./svg-stroke-line-fill-never-paints.svg" title="svg-stroke-line-fill-never-paints (standalone-svg)"><img src="./chromium/svg-stroke-line-fill-never-paints.png" width="56" alt="svg-stroke-line-fill-never-paints"></a>
 <a href="./svg-stroke-miter-limit.svg" title="svg-stroke-miter-limit (standalone-svg)"><img src="./chromium/svg-stroke-miter-limit.png" width="56" alt="svg-stroke-miter-limit"></a>
+<a href="./svg-stroke-miter-limit-css.svg" title="svg-stroke-miter-limit-css (standalone-svg)"><img src="./chromium/svg-stroke-miter-limit-css.png" width="56" alt="svg-stroke-miter-limit-css"></a>
+<a href="./svg-stroke-miter-limit-css-below-one.svg" title="svg-stroke-miter-limit-css-below-one (standalone-svg)"><img src="./chromium/svg-stroke-miter-limit-css-below-one.png" width="56" alt="svg-stroke-miter-limit-css-below-one"></a>
 <a href="./svg-stroke-nonuniform-scale.svg" title="svg-stroke-nonuniform-scale (standalone-svg)"><img src="./chromium/svg-stroke-nonuniform-scale.png" width="56" alt="svg-stroke-nonuniform-scale"></a>
 <a href="./svg-stroke-opacity-join.svg" title="svg-stroke-opacity-join (standalone-svg)"><img src="./chromium/svg-stroke-opacity-join.png" width="56" alt="svg-stroke-opacity-join"></a>
 <a href="./svg-stroke-opacity-over-fill.svg" title="svg-stroke-opacity-over-fill (standalone-svg)"><img src="./chromium/svg-stroke-opacity-over-fill.png" width="56" alt="svg-stroke-opacity-over-fill"></a>

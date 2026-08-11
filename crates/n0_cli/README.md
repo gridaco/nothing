@@ -98,7 +98,10 @@ cargo run -p n0_cli --bin n0 -- \
   reference, authored element children, a `<symbol>`/nested-`<svg>`
   target, and reference chains beyond the expansion budget.
   A stroke is centred, its width is a cascaded length, and its cap, join and
-  miter limit come from the one cascade; dashing does not. Paint is solid
+  miter limit come from the one cascade; dashing does not. The SVG2-only
+  join values `miter-clip` and `arcs` drop as invalid declarations exactly
+  as Chromium drops them (measured, celled) — an agreement, not a hole.
+  Paint is solid
   sRGB, opaque or translucent: `fill-opacity`, `stroke-opacity`, and a
   colour's own alpha multiply in float and quantize once (the translucency
   rung), Chromium-baked.

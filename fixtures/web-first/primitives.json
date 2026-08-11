@@ -1210,6 +1210,14 @@
       "height": 64
     },
     {
+      "id": "svg-stroke-join-arcs",
+      "source": "svg-stroke-join-arcs.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-join-arcs.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-stroke-join-bevel",
       "source": "svg-stroke-join-bevel.svg",
       "entry": "standalone-svg",
@@ -1218,10 +1226,66 @@
       "height": 64
     },
     {
+      "id": "svg-stroke-join-css-arcs",
+      "source": "svg-stroke-join-css-arcs.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-join-css-arcs.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-join-css-bevel",
+      "source": "svg-stroke-join-css-bevel.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-join-css-bevel.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-join-css-miter",
+      "source": "svg-stroke-join-css-miter.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-join-css-miter.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-join-css-miter-clip",
+      "source": "svg-stroke-join-css-miter-clip.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-join-css-miter-clip.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-join-css-over-attr",
+      "source": "svg-stroke-join-css-over-attr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-join-css-over-attr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-join-css-round",
+      "source": "svg-stroke-join-css-round.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-join-css-round.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-stroke-join-miter",
       "source": "svg-stroke-join-miter.svg",
       "entry": "standalone-svg",
       "oracle": "chromium/svg-stroke-join-miter.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-join-miter-clip",
+      "source": "svg-stroke-join-miter-clip.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-join-miter-clip.png",
       "width": 64,
       "height": 64
     },
@@ -1262,6 +1326,22 @@
       "source": "svg-stroke-miter-limit.svg",
       "entry": "standalone-svg",
       "oracle": "chromium/svg-stroke-miter-limit.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-miter-limit-css",
+      "source": "svg-stroke-miter-limit-css.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-miter-limit-css.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-miter-limit-css-below-one",
+      "source": "svg-stroke-miter-limit-css-below-one.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-miter-limit-css-below-one.png",
       "width": 64,
       "height": 64
     },

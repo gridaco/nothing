@@ -17,7 +17,9 @@ surface ahead of it — HTML, CSS, and SVG in one document, because the three
 share one cascade and half a vocabulary. Items only, in the platform's
 own words, enumerated from the external spec indexes linked at each section
 head — never from this tree. A box ticks only when a Chromium-gated rung
-lands the named construct at its full listed grammar; a partial admission
+lands the named construct at its full listed grammar — where cited
+references disagree, the standard-track grammar is the bar, and an
+experimental draft grammar does not raise it; a partial admission
 stays unchecked — the remaining grammar is remaining work, and a construct's
 finer-grained gaps live in their own rows (`<rect>` is landed; `rx`/`ry` are
 not). A row ticks only for its own section's index entry: an attribute
@@ -967,8 +969,8 @@ excluded.
 - [ ] `stroke-dasharray`
 - [ ] `stroke-dashoffset`
 - [ ] `stroke-linecap`
-- [ ] `stroke-linejoin`
-- [ ] `stroke-miterlimit`
+- [x] `stroke-linejoin`
+- [x] `stroke-miterlimit`
 - [ ] `marker`
 - [ ] `marker-start`
 - [ ] `marker-mid`
@@ -1473,7 +1475,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `stroke-dasharray`
 - [ ] `stroke-dashoffset`
 - [ ] `stroke-linecap`
-- [ ] `stroke-linejoin`
+- [x] `stroke-linejoin`
 - [x] `stroke-miterlimit`
 - [x] `stroke-opacity`
 - [ ] `stroke-width`

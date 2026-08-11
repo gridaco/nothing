@@ -4,7 +4,7 @@
   "browser_version": "149.0.7827.55",
   "bake_script_sha256": "373cbea5476067163b6f8ebfc90eb49b7f49ae7758be0916d34db906399e1d5e",
   "suite": "primitives.json",
-  "suite_sha256": "b58713a332bc2f6c1366477c3740f4f462b50f0072b4b76d1da2366ed76b3ab8",
+  "suite_sha256": "df09af29423bb697b33c35bfc876a0dbb5c014428653ea72cdc5096a97f2ae86",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -1288,6 +1288,15 @@
       "height": 64
     },
     {
+      "id": "svg-stroke-join-arcs",
+      "source": "svg-stroke-join-arcs.svg",
+      "source_sha256": "6f3edc4422d2d72601b73003f02ad8333da63664113f4805fb3c2494130e4b9c",
+      "oracle": "chromium/svg-stroke-join-arcs.png",
+      "oracle_sha256": "2f58648188ff8a91c2394d503aaeff1563e95236ec89084d9fdf0cde1424c36f",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-stroke-join-bevel",
       "source": "svg-stroke-join-bevel.svg",
       "source_sha256": "920cb1724d6d5c70501c63839068aef0ad91ba641631f0a0d5a495e8128a2a6f",
@@ -1297,10 +1306,73 @@
       "height": 64
     },
     {
+      "id": "svg-stroke-join-css-arcs",
+      "source": "svg-stroke-join-css-arcs.svg",
+      "source_sha256": "9605544acf90ed0646703e271d520744c76cddf0b1831a1051984ed5fec119bd",
+      "oracle": "chromium/svg-stroke-join-css-arcs.png",
+      "oracle_sha256": "e6fab77effab558121064acb437772cf465ca9ecb1a006f6a4b7ba1fa15f5428",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-join-css-bevel",
+      "source": "svg-stroke-join-css-bevel.svg",
+      "source_sha256": "b9d1e6c224c1b33442a37a7aee86fee8cbcb41235469317bae6ae1cc3afb4fa2",
+      "oracle": "chromium/svg-stroke-join-css-bevel.png",
+      "oracle_sha256": "2d19cfee922ae19d3bb58888f1b30846f3fea89fa591c21dbcdbe2efd8158cba",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-join-css-miter",
+      "source": "svg-stroke-join-css-miter.svg",
+      "source_sha256": "5d981a239d797b12b8dfa3ad981a76f54be96b30e8757fe654799926f4b9198f",
+      "oracle": "chromium/svg-stroke-join-css-miter.png",
+      "oracle_sha256": "2f58648188ff8a91c2394d503aaeff1563e95236ec89084d9fdf0cde1424c36f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-join-css-miter-clip",
+      "source": "svg-stroke-join-css-miter-clip.svg",
+      "source_sha256": "1347e3779fdce8a576db3a547dbbc3ea8af0acce85612eacd9905d4e09d494c2",
+      "oracle": "chromium/svg-stroke-join-css-miter-clip.png",
+      "oracle_sha256": "e6fab77effab558121064acb437772cf465ca9ecb1a006f6a4b7ba1fa15f5428",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-join-css-over-attr",
+      "source": "svg-stroke-join-css-over-attr.svg",
+      "source_sha256": "84c066d57c3ff950275bd3782ae9204af6a89a30f3484fae02fe4193a371f560",
+      "oracle": "chromium/svg-stroke-join-css-over-attr.png",
+      "oracle_sha256": "e6fab77effab558121064acb437772cf465ca9ecb1a006f6a4b7ba1fa15f5428",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-join-css-round",
+      "source": "svg-stroke-join-css-round.svg",
+      "source_sha256": "06cd4c1a838d1645c50bb06309df94561818665c9d1b1c7e48a0e2004d92abe8",
+      "oracle": "chromium/svg-stroke-join-css-round.png",
+      "oracle_sha256": "e6fab77effab558121064acb437772cf465ca9ecb1a006f6a4b7ba1fa15f5428",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-stroke-join-miter",
       "source": "svg-stroke-join-miter.svg",
       "source_sha256": "4b3d7bf53421c971a78312dd8804fccee388a5c53f0f10acb5ba28a4a10c0d0e",
       "oracle": "chromium/svg-stroke-join-miter.png",
+      "oracle_sha256": "2f58648188ff8a91c2394d503aaeff1563e95236ec89084d9fdf0cde1424c36f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-join-miter-clip",
+      "source": "svg-stroke-join-miter-clip.svg",
+      "source_sha256": "707e84799fac845796b33d0b5a5631e71b4f8a13659e828c571af3690db365e1",
+      "oracle": "chromium/svg-stroke-join-miter-clip.png",
       "oracle_sha256": "2f58648188ff8a91c2394d503aaeff1563e95236ec89084d9fdf0cde1424c36f",
       "width": 64,
       "height": 64
@@ -1346,6 +1418,24 @@
       "source": "svg-stroke-miter-limit.svg",
       "source_sha256": "eba660ec06688fb3f9d0eda654d5ad09f371b44891afa5824f95ca60f189069b",
       "oracle": "chromium/svg-stroke-miter-limit.png",
+      "oracle_sha256": "2a4cebda7da9e2657a1b6a6abf7451483ac9015e0d54fb317249e60d512fc4e8",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-miter-limit-css",
+      "source": "svg-stroke-miter-limit-css.svg",
+      "source_sha256": "19fb5fb4fbe8c2cb991637cdd862c8b56f85c197741a43047e153c146813e3bd",
+      "oracle": "chromium/svg-stroke-miter-limit-css.png",
+      "oracle_sha256": "2a4cebda7da9e2657a1b6a6abf7451483ac9015e0d54fb317249e60d512fc4e8",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-miter-limit-css-below-one",
+      "source": "svg-stroke-miter-limit-css-below-one.svg",
+      "source_sha256": "6db591071e481dda8ff38a5fce84dd2bca00f98e294985c86458567d14d78cf4",
+      "oracle": "chromium/svg-stroke-miter-limit-css-below-one.png",
       "oracle_sha256": "2a4cebda7da9e2657a1b6a6abf7451483ac9015e0d54fb317249e60d512fc4e8",
       "width": 64,
       "height": 64
