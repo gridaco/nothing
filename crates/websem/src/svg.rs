@@ -3565,6 +3565,11 @@ fn resolve_stroke(
         StyloLinecap::Round => StrokeCap::Round,
         StyloLinecap::Square => StrokeCap::Square,
     };
+    // Three variants is the full supported grammar, not a subset: the
+    // SVG2-only `miter-clip` and `arcs` are invalid declarations in Chromium
+    // too (measured — byte-identical to `miter`, and an invalid style-attribute
+    // spelling drops so a valid attribute survives), so Stylo's three-keyword
+    // parse lands both admissions on the same fallback by construction.
     let join = match style.clone_stroke_linejoin() {
         StyloLinejoin::Miter => StrokeJoin::Miter,
         StyloLinejoin::Round => StrokeJoin::Round,
