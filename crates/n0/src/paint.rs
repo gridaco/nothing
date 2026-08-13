@@ -1347,7 +1347,8 @@ fn line_path(x1: f32, y1: f32, x2: f32, y2: f32) -> Path {
     builder.snapshot()
 }
 
-/// The cap a *closed* contour must be stroked with, whatever the author wrote.
+/// The cap a solid *closed* contour must be stroked with, whatever the author
+/// wrote. A dashed contour keeps the authored cap because every dash has ends.
 ///
 /// A closed contour has no ends, so SVG's cap is inert on it — and Chromium
 /// agrees: its butt, round and square captures of one are byte-identical to
@@ -1368,11 +1369,16 @@ fn line_path(x1: f32, y1: f32, x2: f32, y2: f32) -> Path {
 /// does not take the thin-stroke path, so [`ItemKind::RectStroke`] needs no
 /// normalisation, while `draw_oval` and `draw_path` do.
 ///
-/// `LineStroke` must never use this: a line is open, its caps are real, and
-/// Chromium's own captures of one are *not* cap-invariant. `TextStroke` strokes
-/// glyph outlines, which are closed, but no admitted source reaches it — the
-/// compiler refuses text — so it is left alone until text lands and can be
-/// measured against an oracle.
+/// Dashing changes that premise: even on a closed contour, every dash is an
+/// open segment whose authored cap is visible. In particular, a zero-length
+/// painted interval under a round or square cap is a dot; replacing that cap
+/// with butt erases it. This helper therefore leaves dashed strokes unchanged.
+///
+/// `LineStroke` must never use the solid normalization: a line is open, its
+/// caps are real, and Chromium's own captures of one are *not* cap-invariant.
+/// `TextStroke` strokes glyph outlines, which are closed, but no admitted
+/// source reaches it — the Web text slice refuses stroked text — so it remains
+/// outside this measured normalization.
 ///
 /// The caller applies this only when **every** contour is closed. A path that
 /// mixes them cannot be served by one paint, and serving it by two draws is
@@ -1382,8 +1388,52 @@ fn line_path(x1: f32, y1: f32, x2: f32, y2: f32) -> Path {
 /// overlap. So the mixed case refuses upstream instead, under its own name.
 fn stroke_cap_for_closed_contours(stroke: &Stroke) -> Stroke {
     Stroke {
-        cap: StrokeCap::Butt,
+        cap: if stroke
+            .dash_array
+            .as_ref()
+            .is_some_and(|intervals| !intervals.is_empty())
+        {
+            stroke.cap
+        } else {
+            StrokeCap::Butt
+        },
         ..stroke.clone()
+    }
+}
+
+#[cfg(test)]
+mod closed_contour_cap_tests {
+    use super::stroke_cap_for_closed_contours;
+    use n0_model::model::{Paints, Stroke, StrokeAlign, StrokeCap, StrokeJoin, StrokeWidth};
+
+    fn round_stroke(dash_array: Option<Vec<f32>>) -> Stroke {
+        Stroke {
+            paints: Paints::default(),
+            width: StrokeWidth::Uniform(1.0),
+            align: StrokeAlign::Center,
+            cap: StrokeCap::Round,
+            join: StrokeJoin::Miter,
+            miter_limit: 4.0,
+            dash_array,
+        }
+    }
+
+    #[test]
+    fn only_a_nonempty_dash_cycle_preserves_the_authored_cap() {
+        assert_eq!(
+            stroke_cap_for_closed_contours(&round_stroke(None)).cap,
+            StrokeCap::Butt
+        );
+        assert_eq!(
+            stroke_cap_for_closed_contours(&round_stroke(Some(Vec::new()))).cap,
+            StrokeCap::Butt,
+            "the private vocabulary treats an empty present array as solid"
+        );
+        assert_eq!(
+            stroke_cap_for_closed_contours(&round_stroke(Some(vec![0.0, 8.0]))).cap,
+            StrokeCap::Round,
+            "an active dash cycle has cap-bearing segment ends"
+        );
     }
 }
 
@@ -1883,12 +1933,13 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
             ItemKind::OvalStroke { w, h, stroke } => {
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*w, *h);
-                    // An oval is one closed contour, so its cap is inert —
-                    // see [`stroke_cap_for_closed_contours`], which measures
-                    // this arm diverging where the rect arm does not. An oval
-                    // with no extent is the exception, for the same reason a
-                    // zero-length contour is: it degenerates to a segment
-                    // whose ends the cap is the only thing that renders.
+                    // A solid oval is one closed contour, so its cap is inert;
+                    // a dashed oval keeps the authored cap because every dash
+                    // has ends. See [`stroke_cap_for_closed_contours`], which
+                    // also carries the thin-solid normalization this arm needs
+                    // where the rect arm does not. An oval with no extent is
+                    // the other exception: it degenerates to a segment whose
+                    // ends the cap is the only thing that renders.
                     let stroke = if *w > 0.0 && *h > 0.0 {
                         &stroke_cap_for_closed_contours(stroke)
                     } else {
@@ -1937,9 +1988,10 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                         draw_stroke(canvas, &geometry, stroke, paint_box, ctx);
                         return;
                     }
-                    // One draw, so one composite pass. The cap a closed
+                    // One draw, so one composite pass. The cap a solid closed
                     // contour is stroked with is the *only* thing that varies
-                    // here, and it can vary per path because
+                    // here; a dashed path keeps its authored cap. The solid
+                    // normalization can vary per path because
                     // `all_contours_closed` is a property of the whole
                     // artifact — a path that mixes open and closed contours
                     // under a non-butt cap refuses upstream rather than

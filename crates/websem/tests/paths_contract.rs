@@ -657,15 +657,15 @@ fn the_css_d_property_is_declared_never_silently_dropped() {
 /// `pathLength` and the marker properties are both refused by name on
 /// `<path>`, for opposite reasons.
 ///
-/// `pathLength` is **inert today**: everything that reads it (dashing, markers,
-/// text on a path) already refuses, so its patrol is pure over-refusal, kept
-/// only so the dashing rung cannot silently inherit a gap.
+/// `pathLength` is **load-bearing now**: it calibrates admitted dash distances
+/// in Chromium, while the zero-calibration frame contract deliberately carries
+/// no such fact. The patrol prevents a silently different cycle.
 ///
 /// `marker-start`/`-mid`/`-end` are **load-bearing now**: nothing else "reads"
 /// a marker property — the property *is* the paint trigger, so this refusal is
 /// what keeps Chromium's arrowhead from becoming a silent hole.
 #[test]
-fn pathlength_over_refuses_while_the_marker_patrol_is_load_bearing() {
+fn pathlength_and_marker_patrols_are_load_bearing() {
     for attr in [
         r##"pathLength="100""##,
         r##"marker-start="url(#a)""##,

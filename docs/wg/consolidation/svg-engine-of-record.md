@@ -28,7 +28,7 @@ conformance claim is made or implied.
 
 The sections below are the decision and its dated record, in the order things
 happened. This is what is true at the tip, so a reader need not reconstruct it
-from eight addenda:
+from the dated addenda below:
 
 - **The host renders best-effort by default.** The admitted subset renders and
   every construct outside it is declared on stderr with a node path and a
@@ -43,16 +43,18 @@ from eight addenda:
 - **The admitted slice** is `<rect>`, `<circle>`, `<ellipse>`, `<path>`,
   `<line>`, `<polygon>` and `<polyline>`, filled and stroked — solid or
   gradient paint (`<linearGradient>`/`<radialGradient>` paint servers, the
-  gradient rung); `<g>` and
-  `<a>` containers and the whole `transform` grammar in both spellings (the
-  attribute is a presentation hint of the CSS `transform` property, and
-  `gradientTransform` is that attribute on gradient elements);
+  gradient rung), with centred stroke geometry, the closed cap/join family,
+  opacity, and the zero-phase resolved dash cycles this amendment admits;
+  `<g>` and `<a>` containers, visibility, isolated element/group opacity, and
+  the whole `transform` grammar in both spellings (the attribute is a
+  presentation hint of the CSS `transform` property, and `gradientTransform`
+  is that attribute on gradient elements);
   `<use>`/`<defs>` same-document references (the id-resolution table);
-  viewBox-only root sizing with the full
-  `preserveAspectRatio` grammar; and one exact-time
+  one declared-font, single-run `<text>` profile; viewBox-only root sizing with
+  the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 181 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 255 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
   confined tolerance (the weighted rational conic) and three gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
@@ -60,9 +62,9 @@ from eight addenda:
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore).
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
-  unratified. `rx`/`ry` is the construct still missing from the scoreboard
-  suite: the group-scope rung consumed element `opacity`, so the
-  `path-opacity`/`rect-opacity` rows are within reach in both spellings.
+  unratified. The FLIP record and identity-changing review are prepared, but
+  only the owner act on gridaco/nothing#49 may authorize them and the first
+  run. The Web checklist, not a score, remains the work queue.
 
 ## The crux
 
@@ -1357,3 +1359,90 @@ the CSS-property twins stay unchecked at the pin. With `rx`/`ry`
 landed, the row-1 scoreboard construct the register named after the
 gradient rung is in hand: the corpus-growth step toward FLIP
 eligibility no longer waits on capability.
+
+## Ratified amendment — resolved stroke dash intervals (2026-08-13)
+
+The resolved render contract may now carry an optional stroke-dash interval
+cycle. This is the fourth contract amendment of the Web-first ladder, ratified
+before producer or consumer code under the contract-first precedent of
+gridaco/nothing#75.
+
+The fact is deliberately narrower than the source grammar. It is an immutable,
+even-length sequence of local-space distances, alternating painted and
+unpainted intervals and beginning with paint. A present cycle is non-empty;
+each distance is finite and non-negative; and the finite sum of the cycle is
+strictly positive. The phase is exactly zero and the cycle restarts at the
+beginning of every contour. Nothing in the fact names a source unit,
+percentage, cascade rule, authored list length, or path calibration.
+
+The producer resolves the source language into that canonical form. An odd
+source list repeats once to become even. A source `none` or an all-zero list
+reaches the same solid-stroke dash absence. An invalid declaration contributes
+nothing, so the cascade's surviving winner — a lower declaration, an inherited
+cycle, or the solid initial value — is what resolves. A positive cycle with
+zero-length painted intervals remains meaningful under round or square caps,
+which paint at those interval endpoints; under a butt cap, a cycle whose every
+painted interval is zero paints nothing and the stroke itself resolves away.
+Dashes do not alter the stroke's conservative reach beyond its geometry.
+
+Two nearby facts remain expressly outside this amendment. A non-zero dash
+offset is phase and stays inexpressible. `pathLength` is authored calibration,
+not a resolved render fact, and also stays inexpressible. Both are
+load-bearing refusals once dashing exists: the probe matrix measured offset
+moving the pattern, and measured `pathLength` scaling dash distances on paths,
+rectangles, circles, and ellipses. The latter patrol therefore belongs on every
+admitted geometry element, not only path-like elements.
+
+The same matrix fixed the producer boundary before code: numbers and lengths,
+comma and whitespace separators, attribute and CSS spellings, inheritance,
+invalid-declaration fallback, and odd-list repetition all converge on the one
+cycle; percentages and mixed length-percentage arithmetic resolve against the
+normalized viewport diagonal. As earned in gridaco/nothing#80, unit classes
+with their own checklist rows may remain refused only when every silently
+divergent ingress is named, registered, and guarded. Viewport-, container-, and
+unavailable font-metric bases, variable indirection, poisoned font-relative
+bases, and escaped spellings retain that refusal burden here. The standard
+grammar remains the bar, following gridaco/nothing#77; a partial admission
+would be the unticked split established by gridaco/nothing#81, not grounds to
+widen this contract.
+
+### Dasharray rung verdict — cells landed, rows split
+
+The amendment is exercised by 25 Chromium-149-baked cells. Together they cover
+the attribute and CSS spellings; number, length, percentage, exponent, comma
+and whitespace forms; CSS math and an authored font-size basis; odd-list
+repetition; invalid-declaration fallback; author-over-hint precedence;
+inheritance through containers and use-site instances; the `none`, all-zero,
+negative-invalid, and zero-painted cap edges; all admitted geometry kinds;
+closed and mixed contours; per-contour restart; and local-space scaling. Every
+new cell is byte-exact through the shared Web producer, resolved contract, and
+kernel. The corpus therefore moves from 230 to 255 gated cells. The final cell
+pins Chromium's renderer-level saturation of a cycle dense enough to exceed
+the painter's bounded dash expansion: line, cubic, rect, ellipse, and round-cap
+routes do not share one coarse fallback, so the cell discriminates both an
+all-solid and an all-absent implementation. This is measured renderer behavior,
+not a source normalization or a resolved-contract limit.
+
+The probe also turned two prepared over-refusals into load-bearing patrols.
+Dash offset changes phase for positive, negative, and percentage values.
+`pathLength` calibrates dashes on paths and the basic geometry shapes, and
+calibrates dash offset on paths; its patrol now states one law across all seven
+admitted geometry elements. Neither fact was smuggled into the zero-phase,
+uncalibrated contract.
+The solid-stroke mixed-contour cap refusal narrows in the other direction:
+dashed segments have ends on closed contours, so one authored cap is correct
+for every contour and the dashed case is admitted.
+
+Six new residual classes hold named refusal rows: dash offset; untrustworthy unit
+bases; variable indirection; a poisoned font-relative basis; escaped spelling;
+and a cycle whose individually finite intervals sum beyond the representable
+contract range. The existing `pathLength` patrol is the seventh load-bearing
+class. The first five new classes and `pathLength` carry their gaps in their
+own checklist rows or the unit rows, under the gridaco/nothing#80 precedent.
+The cycle-sum class does not:
+Chromium honors the standard-track dasharray grammar for that magnitude class,
+and a zero-painted round-cap probe proves it cannot be normalized wholesale to
+a solid stroke. That is gridaco/nothing#81's exact split condition. The cells
+land, but both `stroke-dasharray` checklist rows remain unchecked until a
+representability rung closes the measured, registered remainder. No record
+claims the rows ahead of that evidence.

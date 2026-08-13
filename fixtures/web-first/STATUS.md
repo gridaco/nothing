@@ -19,10 +19,10 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (230)
+## Chromium-baked cells (255)
 
 Each renders byte-exact against its committed Chromium oracle
-(six curved cells and two gradient ramps carry a declared, bounded
+(six curved cells and three gradient ramps carry a declared, bounded
 tolerance — see [README.md](./README.md)). Every thumbnail below
 *is* that committed oracle, which byte-exactness makes this
 engine's own render too; hover for the cell's name, click through
@@ -170,6 +170,31 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-stroke-cap-round.svg" title="svg-stroke-cap-round (standalone-svg)"><img src="./chromium/svg-stroke-cap-round.png" width="56" alt="svg-stroke-cap-round"></a>
 <a href="./svg-stroke-cap-square.svg" title="svg-stroke-cap-square (standalone-svg)"><img src="./chromium/svg-stroke-cap-square.png" width="56" alt="svg-stroke-cap-square"></a>
 <a href="./svg-stroke-circle.svg" title="svg-stroke-circle (standalone-svg)"><img src="./chromium/svg-stroke-circle.png" width="56" alt="svg-stroke-circle"></a>
+<a href="./svg-stroke-dasharray.svg" title="svg-stroke-dasharray (standalone-svg)"><img src="./chromium/svg-stroke-dasharray.png" width="56" alt="svg-stroke-dasharray"></a>
+<a href="./svg-stroke-dasharray-all-zero.svg" title="svg-stroke-dasharray-all-zero (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-all-zero.png" width="56" alt="svg-stroke-dasharray-all-zero"></a>
+<a href="./svg-stroke-dasharray-backend-saturation.svg" title="svg-stroke-dasharray-backend-saturation (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-backend-saturation.png" width="56" alt="svg-stroke-dasharray-backend-saturation"></a>
+<a href="./svg-stroke-dasharray-calc.svg" title="svg-stroke-dasharray-calc (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-calc.png" width="56" alt="svg-stroke-dasharray-calc"></a>
+<a href="./svg-stroke-dasharray-closed-ellipse-round.svg" title="svg-stroke-dasharray-closed-ellipse-round (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-closed-ellipse-round.png" width="56" alt="svg-stroke-dasharray-closed-ellipse-round"></a>
+<a href="./svg-stroke-dasharray-closed-path-square.svg" title="svg-stroke-dasharray-closed-path-square (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-closed-path-square.png" width="56" alt="svg-stroke-dasharray-closed-path-square"></a>
+<a href="./svg-stroke-dasharray-comma.svg" title="svg-stroke-dasharray-comma (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-comma.png" width="56" alt="svg-stroke-dasharray-comma"></a>
+<a href="./svg-stroke-dasharray-css.svg" title="svg-stroke-dasharray-css (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-css.png" width="56" alt="svg-stroke-dasharray-css"></a>
+<a href="./svg-stroke-dasharray-css-invalid-falls-back.svg" title="svg-stroke-dasharray-css-invalid-falls-back (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-css-invalid-falls-back.png" width="56" alt="svg-stroke-dasharray-css-invalid-falls-back"></a>
+<a href="./svg-stroke-dasharray-css-math.svg" title="svg-stroke-dasharray-css-math (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-css-math.png" width="56" alt="svg-stroke-dasharray-css-math"></a>
+<a href="./svg-stroke-dasharray-css-over-attr.svg" title="svg-stroke-dasharray-css-over-attr (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-css-over-attr.png" width="56" alt="svg-stroke-dasharray-css-over-attr"></a>
+<a href="./svg-stroke-dasharray-em-font-size.svg" title="svg-stroke-dasharray-em-font-size (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-em-font-size.png" width="56" alt="svg-stroke-dasharray-em-font-size"></a>
+<a href="./svg-stroke-dasharray-exponent.svg" title="svg-stroke-dasharray-exponent (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-exponent.png" width="56" alt="svg-stroke-dasharray-exponent"></a>
+<a href="./svg-stroke-dasharray-geometries.svg" title="svg-stroke-dasharray-geometries (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-geometries.png" width="56" alt="svg-stroke-dasharray-geometries"></a>
+<a href="./svg-stroke-dasharray-inherited.svg" title="svg-stroke-dasharray-inherited (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-inherited.png" width="56" alt="svg-stroke-dasharray-inherited"></a>
+<a href="./svg-stroke-dasharray-mixed-contours-round.svg" title="svg-stroke-dasharray-mixed-contours-round (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-mixed-contours-round.png" width="56" alt="svg-stroke-dasharray-mixed-contours-round"></a>
+<a href="./svg-stroke-dasharray-negative.svg" title="svg-stroke-dasharray-negative (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-negative.png" width="56" alt="svg-stroke-dasharray-negative"></a>
+<a href="./svg-stroke-dasharray-none.svg" title="svg-stroke-dasharray-none (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-none.png" width="56" alt="svg-stroke-dasharray-none"></a>
+<a href="./svg-stroke-dasharray-odd.svg" title="svg-stroke-dasharray-odd (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-odd.png" width="56" alt="svg-stroke-dasharray-odd"></a>
+<a href="./svg-stroke-dasharray-percent.svg" title="svg-stroke-dasharray-percent (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-percent.png" width="56" alt="svg-stroke-dasharray-percent"></a>
+<a href="./svg-stroke-dasharray-scaled-group.svg" title="svg-stroke-dasharray-scaled-group (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-scaled-group.png" width="56" alt="svg-stroke-dasharray-scaled-group"></a>
+<a href="./svg-stroke-dasharray-subpath-restart.svg" title="svg-stroke-dasharray-subpath-restart (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-subpath-restart.png" width="56" alt="svg-stroke-dasharray-subpath-restart"></a>
+<a href="./svg-stroke-dasharray-use-inherited.svg" title="svg-stroke-dasharray-use-inherited (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-use-inherited.png" width="56" alt="svg-stroke-dasharray-use-inherited"></a>
+<a href="./svg-stroke-dasharray-viewbox-percent.svg" title="svg-stroke-dasharray-viewbox-percent (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-viewbox-percent.png" width="56" alt="svg-stroke-dasharray-viewbox-percent"></a>
+<a href="./svg-stroke-dasharray-zero-round.svg" title="svg-stroke-dasharray-zero-round (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-zero-round.png" width="56" alt="svg-stroke-dasharray-zero-round"></a>
 <a href="./svg-stroke-default-width.svg" title="svg-stroke-default-width (standalone-svg)"><img src="./chromium/svg-stroke-default-width.png" width="56" alt="svg-stroke-default-width"></a>
 <a href="./svg-stroke-ellipse.svg" title="svg-stroke-ellipse (standalone-svg)"><img src="./chromium/svg-stroke-ellipse.png" width="56" alt="svg-stroke-ellipse"></a>
 <a href="./svg-stroke-inherited.svg" title="svg-stroke-inherited (standalone-svg)"><img src="./chromium/svg-stroke-inherited.png" width="56" alt="svg-stroke-inherited"></a>
@@ -259,7 +284,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (51)
+## The refusal register (56)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -301,7 +326,12 @@ its row into the cells above.
 | `svg-smil-retarget-href` | **both refuse** | SVG animation at svg/rect[2]/set[1] is unsupported: animation element <set> is outside the rect-x proving slice; it carries href, so its target cannot be attributed to one element without id resolution; it is active at document load, so the authored state it overrides cannot render as the Base view |
 | `svg-smil-set-load-active` | declared | skipped svg/rect[2]: its authored state is overridden at document load by the unsupported animation at svg/rect[2]/set[1]: animation element <set> is outside the rect-x proving slice |
 | `svg-stroke-context-paint` | declared | skipped svg/use[1]/rect[1]: unsupported stroke value "context-fill" |
-| `svg-stroke-dasharray` | declared | skipped svg/path[1]: unsupported rendering attribute stroke-dasharray on <path> (not yet consumed) |
+| `svg-stroke-dasharray-cycle-overflow` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dasharray cycle has a finite authored grammar but its resolved total is not representable by this frame contract" |
+| `svg-stroke-dasharray-escape` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dasharray on <path> carries a CSS escape this patrol cannot read" |
+| `svg-stroke-dasharray-font-basis` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dasharray in em on <path> under an authored font-size carrying vw needs a basis this cascade does not have" |
+| `svg-stroke-dasharray-sheet-unit` | declared | declaration ignored at svg/style[1]: a stylesheet declares a stroke-dasharray in ex, which needs a basis this cascade does not have; elements it matches render the wrong dash cycle |
+| `svg-stroke-dasharray-var` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dasharray on <path> resolves through var(), an indirection this patrol cannot follow" |
+| `svg-stroke-dashoffset` | declared | skipped svg/path[1]: unsupported computed style: style attribute on <path> declares stroke-dashoffset, which this cascade does not represent |
 | `svg-stroke-paint-order` | declared | skipped svg/rect[1]: unsupported rendering attribute paint-order on <rect> (not yet consumed) |
 | `svg-stroke-sheet-unit-width` | declared | declaration ignored at svg/style[1]: a stylesheet declares a stroke-width in ex, which needs a basis this cascade does not have; elements it matches render at the wrong width |
 | `svg-stroke-vector-effect` | declared | skipped svg/g[1]/rect[1]: unsupported rendering attribute vector-effect on <rect> (not yet consumed) |

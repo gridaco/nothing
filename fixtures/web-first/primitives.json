@@ -1218,6 +1218,206 @@
       "height": 64
     },
     {
+      "id": "svg-stroke-dasharray",
+      "source": "svg-stroke-dasharray.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-all-zero",
+      "source": "svg-stroke-dasharray-all-zero.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-all-zero.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-backend-saturation",
+      "source": "svg-stroke-dasharray-backend-saturation.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-backend-saturation.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-calc",
+      "source": "svg-stroke-dasharray-calc.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-calc.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-closed-ellipse-round",
+      "source": "svg-stroke-dasharray-closed-ellipse-round.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-closed-ellipse-round.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-closed-path-square",
+      "source": "svg-stroke-dasharray-closed-path-square.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-closed-path-square.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-comma",
+      "source": "svg-stroke-dasharray-comma.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-comma.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-css",
+      "source": "svg-stroke-dasharray-css.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-css.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-css-invalid-falls-back",
+      "source": "svg-stroke-dasharray-css-invalid-falls-back.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-css-invalid-falls-back.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-css-math",
+      "source": "svg-stroke-dasharray-css-math.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-css-math.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-css-over-attr",
+      "source": "svg-stroke-dasharray-css-over-attr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-css-over-attr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-em-font-size",
+      "source": "svg-stroke-dasharray-em-font-size.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-em-font-size.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-exponent",
+      "source": "svg-stroke-dasharray-exponent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-exponent.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-geometries",
+      "source": "svg-stroke-dasharray-geometries.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-geometries.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-inherited",
+      "source": "svg-stroke-dasharray-inherited.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-inherited.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-mixed-contours-round",
+      "source": "svg-stroke-dasharray-mixed-contours-round.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-mixed-contours-round.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-negative",
+      "source": "svg-stroke-dasharray-negative.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-negative.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-none",
+      "source": "svg-stroke-dasharray-none.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-none.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-odd",
+      "source": "svg-stroke-dasharray-odd.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-odd.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-percent",
+      "source": "svg-stroke-dasharray-percent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-percent.png",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-stroke-dasharray-scaled-group",
+      "source": "svg-stroke-dasharray-scaled-group.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-scaled-group.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-subpath-restart",
+      "source": "svg-stroke-dasharray-subpath-restart.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-subpath-restart.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-use-inherited",
+      "source": "svg-stroke-dasharray-use-inherited.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-use-inherited.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-viewbox-percent",
+      "source": "svg-stroke-dasharray-viewbox-percent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-viewbox-percent.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-zero-round",
+      "source": "svg-stroke-dasharray-zero-round.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-zero-round.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-stroke-default-width",
       "source": "svg-stroke-default-width.svg",
       "entry": "standalone-svg",

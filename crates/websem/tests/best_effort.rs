@@ -346,11 +346,11 @@ fn unconsumed_rendering_attributes_never_paint_wrong_pixels() {
             "transform-origin",
         ),
         (
-            // The strokes rung consumed the stroke paint and its geometry, the
-            // translucency rung its compositing; dashing remains unconsumed.
-            "stroke dashing",
-            r##"stroke="#0000ff" stroke-width="8" stroke-dasharray="4 4""##,
-            "stroke-dasharray",
+            // Dasharray is consumed; its phase remains the named zero-phase
+            // contract boundary.
+            "stroke dash offset",
+            r##"stroke="#0000ff" stroke-width="8" stroke-dasharray="4 4" stroke-dashoffset="2""##,
+            "stroke-dashoffset",
         ),
         (
             "conditional processing",

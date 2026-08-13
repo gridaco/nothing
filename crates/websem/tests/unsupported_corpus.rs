@@ -175,9 +175,30 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "context-fill",
     ),
     (
-        "svg-stroke-dasharray",
+        "svg-stroke-dasharray-cycle-overflow",
         DeclaredByBestEffort,
-        "stroke-dasharray",
+        "resolved total is not representable",
+    ),
+    (
+        "svg-stroke-dasharray-escape",
+        DeclaredByBestEffort,
+        "CSS escape",
+    ),
+    (
+        "svg-stroke-dasharray-font-basis",
+        DeclaredByBestEffort,
+        "font-size",
+    ),
+    (
+        "svg-stroke-dasharray-sheet-unit",
+        DeclaredByBestEffort,
+        "stroke-dasharray in",
+    ),
+    ("svg-stroke-dasharray-var", DeclaredByBestEffort, "var()"),
+    (
+        "svg-stroke-dashoffset",
+        DeclaredByBestEffort,
+        "stroke-dashoffset",
     ),
     (
         "svg-stroke-paint-order",

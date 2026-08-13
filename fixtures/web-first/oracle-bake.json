@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "97484506803bf43e952f8a3a4dc5ca0d633c7399721625e30082738864e55218",
+  "suite_sha256": "dcc131d8f4a1c692d8051bd8a6e1f02848d1bbe9d1b7a8f4c72629092aeeb323",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -1294,6 +1294,231 @@
       "source_sha256": "34791d60be7a89823cdb4d0e85890981b7973842ae89b0dc993cf48806d04a06",
       "oracle": "chromium/svg-stroke-circle.png",
       "oracle_sha256": "b26fe5dbf4a42492d631354bbfb35f3be01e9b5a2d0ef7a104318ff23daf25ff",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray",
+      "source": "svg-stroke-dasharray.svg",
+      "source_sha256": "bbaedf5f866594ce257436779252a0d76208e9ffa0a95086eafa224113dc0c50",
+      "oracle": "chromium/svg-stroke-dasharray.png",
+      "oracle_sha256": "3e8549a609057ecf02294e5a4fb9796022eac28b311722fc9cc0800fa4675703",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-all-zero",
+      "source": "svg-stroke-dasharray-all-zero.svg",
+      "source_sha256": "ce349abc5d1030b782328b8ea7f806f5e6e1f5fcdaf01dafc85d4ed3b92949c1",
+      "oracle": "chromium/svg-stroke-dasharray-all-zero.png",
+      "oracle_sha256": "9a29959b0589197729307b791873b1d3daffa47473e99d2471a63bb1046b24f7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-backend-saturation",
+      "source": "svg-stroke-dasharray-backend-saturation.svg",
+      "source_sha256": "0176808fb0ef98c211ea9f1d9f364f841edd05b3a712efd937f2a04076021dcc",
+      "oracle": "chromium/svg-stroke-dasharray-backend-saturation.png",
+      "oracle_sha256": "c02b089c6ae3ed263d49189beade4d1ba796602e761fb14088d3dbd4d5c989fc",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-calc",
+      "source": "svg-stroke-dasharray-calc.svg",
+      "source_sha256": "93475a5d1c3516a72e2982a8e923568ae96fa51bca7bbed65686c53e6e720723",
+      "oracle": "chromium/svg-stroke-dasharray-calc.png",
+      "oracle_sha256": "1916b36d3859fdbbd319a5477fe86a5d1636d471e849ff425d5da73da3378004",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-closed-ellipse-round",
+      "source": "svg-stroke-dasharray-closed-ellipse-round.svg",
+      "source_sha256": "cd9beca2f20dc1fd05a78b923099a43c2adb48b2d79dea9b01558194bc8af505",
+      "oracle": "chromium/svg-stroke-dasharray-closed-ellipse-round.png",
+      "oracle_sha256": "1b5c2d7ce5096def5f7d3260eaef8783cc244fa055c2bf60f1ac8174ffd7aa8b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-closed-path-square",
+      "source": "svg-stroke-dasharray-closed-path-square.svg",
+      "source_sha256": "3d3610afb623dcc0a6e98844212c90b492ad59a03b1c10ec2155d43ab7f81d83",
+      "oracle": "chromium/svg-stroke-dasharray-closed-path-square.png",
+      "oracle_sha256": "35b5a4fa19c8757c9c97a9d6fb2a03237fc59b8a25df0c21e1012e1a442da02c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-comma",
+      "source": "svg-stroke-dasharray-comma.svg",
+      "source_sha256": "ede2708c072b2762f0c136c596bd269e32e7079701202e067690dd26475d2c35",
+      "oracle": "chromium/svg-stroke-dasharray-comma.png",
+      "oracle_sha256": "1916b36d3859fdbbd319a5477fe86a5d1636d471e849ff425d5da73da3378004",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-css",
+      "source": "svg-stroke-dasharray-css.svg",
+      "source_sha256": "a293cb01f3e156c147d955905b3d89c18ac38b2bbff280ff3358d8d21fe7463b",
+      "oracle": "chromium/svg-stroke-dasharray-css.png",
+      "oracle_sha256": "3e8549a609057ecf02294e5a4fb9796022eac28b311722fc9cc0800fa4675703",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-css-invalid-falls-back",
+      "source": "svg-stroke-dasharray-css-invalid-falls-back.svg",
+      "source_sha256": "c6a43008335529dc874646e0db199e979d3a89eb6a6c578396419c411a35b1d2",
+      "oracle": "chromium/svg-stroke-dasharray-css-invalid-falls-back.png",
+      "oracle_sha256": "1916b36d3859fdbbd319a5477fe86a5d1636d471e849ff425d5da73da3378004",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-css-math",
+      "source": "svg-stroke-dasharray-css-math.svg",
+      "source_sha256": "2ccf3a77efbd1d30196e1bfb4481d30b85f15ad1f87b38440676bc724e3f7c3e",
+      "oracle": "chromium/svg-stroke-dasharray-css-math.png",
+      "oracle_sha256": "1916b36d3859fdbbd319a5477fe86a5d1636d471e849ff425d5da73da3378004",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-css-over-attr",
+      "source": "svg-stroke-dasharray-css-over-attr.svg",
+      "source_sha256": "479e6cc8f211b4daa677e4ddd8428b936377dbaeb49dfc80d498d5b18f37d073",
+      "oracle": "chromium/svg-stroke-dasharray-css-over-attr.png",
+      "oracle_sha256": "1916b36d3859fdbbd319a5477fe86a5d1636d471e849ff425d5da73da3378004",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-em-font-size",
+      "source": "svg-stroke-dasharray-em-font-size.svg",
+      "source_sha256": "ea555a57d2c9980dfee6183e9d64f787baffd4a0224d0b13a4682d90654c3fe3",
+      "oracle": "chromium/svg-stroke-dasharray-em-font-size.png",
+      "oracle_sha256": "1916b36d3859fdbbd319a5477fe86a5d1636d471e849ff425d5da73da3378004",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-exponent",
+      "source": "svg-stroke-dasharray-exponent.svg",
+      "source_sha256": "9cdfdfa7bd30465c187a81e7421134603f1459cd94b47a144f9bd5cd09123963",
+      "oracle": "chromium/svg-stroke-dasharray-exponent.png",
+      "oracle_sha256": "1916b36d3859fdbbd319a5477fe86a5d1636d471e849ff425d5da73da3378004",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-geometries",
+      "source": "svg-stroke-dasharray-geometries.svg",
+      "source_sha256": "14621df85509d6ea3b540aad71a504f47072737c7eb38ebe3e610ce26c226b4a",
+      "oracle": "chromium/svg-stroke-dasharray-geometries.png",
+      "oracle_sha256": "9c12bdeb80706158324fc27e0ea5a99ca3a33edad1a133caf6751c16ecf0ee2d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-inherited",
+      "source": "svg-stroke-dasharray-inherited.svg",
+      "source_sha256": "04397c2dd5a1c3c773b072f5575fb687920d94644c82717bfd4858474190169b",
+      "oracle": "chromium/svg-stroke-dasharray-inherited.png",
+      "oracle_sha256": "1916b36d3859fdbbd319a5477fe86a5d1636d471e849ff425d5da73da3378004",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-mixed-contours-round",
+      "source": "svg-stroke-dasharray-mixed-contours-round.svg",
+      "source_sha256": "a82ac546ff68846a7b3a881a15b3dbb2deff10e7dbbab4525d0e2c7c0de36f8d",
+      "oracle": "chromium/svg-stroke-dasharray-mixed-contours-round.png",
+      "oracle_sha256": "797629b6e0d0098d2a37419450595b1e764b62a1f18256e53e877416d3ad2500",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-negative",
+      "source": "svg-stroke-dasharray-negative.svg",
+      "source_sha256": "68665fe24ef77ce25b21b55784706ca2bca7af22407a6035024fc2b169343475",
+      "oracle": "chromium/svg-stroke-dasharray-negative.png",
+      "oracle_sha256": "e4044dc5e8d88dffd06054916eb5d29eff954849e022a692dbd2c911eb1a5197",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-none",
+      "source": "svg-stroke-dasharray-none.svg",
+      "source_sha256": "5c75a2b0d501b2fbd8265a0e5908a739ee789c9d437e3fe9540ccf4ff1585a9d",
+      "oracle": "chromium/svg-stroke-dasharray-none.png",
+      "oracle_sha256": "e4044dc5e8d88dffd06054916eb5d29eff954849e022a692dbd2c911eb1a5197",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-odd",
+      "source": "svg-stroke-dasharray-odd.svg",
+      "source_sha256": "b466a930acdcbf1de7ee0d146c118bfb8c89d40581c23f6b71a2ee0c3704ce0b",
+      "oracle": "chromium/svg-stroke-dasharray-odd.png",
+      "oracle_sha256": "1c76a05dacb2a82811b5784b4b62ab463a7691d78214a63a52ac9e3ef9df7e34",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-percent",
+      "source": "svg-stroke-dasharray-percent.svg",
+      "source_sha256": "0a89b95265033b42428e3d72889254ac1ccdab15cb32bb2f6260e739e317e2d3",
+      "oracle": "chromium/svg-stroke-dasharray-percent.png",
+      "oracle_sha256": "69a7861719396af6f22fc7099b1303c57000ea212d8190373ed2466b2039c5e2",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-stroke-dasharray-scaled-group",
+      "source": "svg-stroke-dasharray-scaled-group.svg",
+      "source_sha256": "1c843ef8f246c9a9e4cec4a13a744ec9b17c23dc2fcf7588605ab7e7bb77fc5f",
+      "oracle": "chromium/svg-stroke-dasharray-scaled-group.png",
+      "oracle_sha256": "1be4712edfb8f4b4c962780fa4870483047e1a343c922b0d34ff01aad89bac60",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-subpath-restart",
+      "source": "svg-stroke-dasharray-subpath-restart.svg",
+      "source_sha256": "753f52ca4f7a4fe62733ab8d990e2f6a8b4cf43f80146645d1164ce63f3dd996",
+      "oracle": "chromium/svg-stroke-dasharray-subpath-restart.png",
+      "oracle_sha256": "19c58302a975be0d1d4b553ec0874b27fc9b5d81a657236b212838fd20c4d6ec",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-use-inherited",
+      "source": "svg-stroke-dasharray-use-inherited.svg",
+      "source_sha256": "1ec7b6202b72f8cb6e86f1eed0515c347eefc7189851ea5e025eee42fe7253aa",
+      "oracle": "chromium/svg-stroke-dasharray-use-inherited.png",
+      "oracle_sha256": "1916b36d3859fdbbd319a5477fe86a5d1636d471e849ff425d5da73da3378004",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-viewbox-percent",
+      "source": "svg-stroke-dasharray-viewbox-percent.svg",
+      "source_sha256": "7e113392b1f6ccf2e5968926473806de5bf4d5ef081034c05c6ada71f015a581",
+      "oracle": "chromium/svg-stroke-dasharray-viewbox-percent.png",
+      "oracle_sha256": "2c243f55f42e6927ff806c2e0049760c1e530a49deba45373948f655ffb6a75b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-zero-round",
+      "source": "svg-stroke-dasharray-zero-round.svg",
+      "source_sha256": "f7be2d6b043f4d85427ffb15161f2cba9a699563dd92f4df1ea46f52a9fff1dd",
+      "oracle": "chromium/svg-stroke-dasharray-zero-round.png",
+      "oracle_sha256": "fdc47f83fbc142811032ce05e21591b558d14f414ad72c7884bbc753ff0e5a23",
       "width": 64,
       "height": 64
     },

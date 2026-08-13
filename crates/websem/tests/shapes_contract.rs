@@ -475,10 +475,10 @@ fn cascade_properties_the_build_cannot_represent_refuse_by_name() {
 fn unconsumed_rendering_attributes_refuse_on_the_new_shapes() {
     for (label, shape) in [
         (
-            // The strokes rung consumed the stroke paint, the translucency
-            // rung its compositing; dashing is the half still unconsumed.
-            "stroke dashing on circle",
-            r##"<circle cx="32" cy="32" r="12" fill="#16a34a" stroke="#000000" stroke-dasharray="4 4"/>"##,
+            // pathLength calibrates distance on basic shapes too; dashing
+            // makes this old over-refusal load-bearing.
+            "pathLength on circle",
+            r##"<circle cx="32" cy="32" r="12" fill="#16a34a" stroke="#000000" stroke-dasharray="4 4" pathLength="24"/>"##,
         ),
         (
             "transform-origin on ellipse",
@@ -493,13 +493,11 @@ fn unconsumed_rendering_attributes_refuse_on_the_new_shapes() {
     }
 }
 
-/// A stylesheet-set `stroke-dasharray` is patrolled at the computed level on
-/// both new shapes, exactly as on `<rect>` — the dashing half of a stroke is
-/// still unconsumed even though its paint, geometry, and (since the
-/// translucency rung) compositing now resolve. (The `<style>` element itself
-/// always declares its own dynamic blocker beside the skip.)
+/// A stylesheet-set `stroke-dasharray` resolves on both basic shapes exactly as
+/// on `<rect>`. The property is inherited and consumed from the one computed
+/// style; the `<style>` element carries only the separate Sample blocker.
 #[test]
-fn stylesheet_stroke_dasharray_is_patrolled_on_the_new_shapes() {
+fn stylesheet_stroke_dasharray_resolves_on_the_new_shapes() {
     for (element, shape) in [
         (
             "circle",
@@ -517,28 +515,30 @@ fn stylesheet_stroke_dasharray_is_patrolled_on_the_new_shapes() {
   {shape}
 </svg>"##
         );
-        let error = compile_standalone_svg(&source, viewport(64.0, 64.0))
-            .expect_err("strict refuses the smuggled stroke");
-        assert!(
-            matches!(error, CompileError::UnsupportedStroke(_)),
-            "{element}: {error:?}"
-        );
-        assert!(
-            error.to_string().contains("stroke-dasharray"),
-            "{element}: {error}"
-        );
-
+        let strict = SvgFrameSource::from_standalone_svg(source.as_str(), viewport(64.0, 64.0))
+            .expect("strict admits the stylesheet dash");
         let best =
             SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
-                .expect("best-effort still compiles the document");
-        let skipped: Vec<_> = best
-            .degradations()
-            .iter()
-            .filter(|d| d.action() == websem::DegradationAction::Skipped)
-            .collect();
-        assert_eq!(skipped.len(), 1, "{element}: the skip is declared once");
-        assert_eq!(skipped[0].path(), format!("svg/{element}[1]"));
-        assert_eq!(skipped[0].reason(), error.to_string());
+                .expect("best-effort admits the stylesheet dash");
+        assert!(
+            best.degradations()
+                .iter()
+                .all(|d| d.action() == websem::DegradationAction::SamplesAsBase),
+            "only the separate stylesheet sampling blocker remains"
+        );
+        assert_eq!(strict.base_frame(), best.base_frame());
+        let frame = strict.base_frame();
+        assert_eq!(
+            frame.nodes()[1]
+                .stroke
+                .as_ref()
+                .expect("stroke")
+                .dash_intervals()
+                .expect("dash cycle")
+                .as_slice(),
+            [4.0, 4.0],
+            "{element}"
+        );
     }
 }
 
