@@ -431,13 +431,12 @@ fn a_lines_fill_never_paints_and_its_endpoints_default_to_zero() {
 
 // ─── what still refuses ──────────────────────────────────────────────────
 
-/// The stroke properties this slice does not consume refuse by name, through
-/// both the attribute patrol and the computed-level read a stylesheet would
-/// smuggle them past.
+/// The stroke properties this slice does not consume refuse by name through
+/// both authored spellings. Dasharray left this list with the capability rung;
+/// dashoffset remains deliberately outside the zero-phase frame contract.
 #[test]
 fn the_unconsumed_stroke_properties_refuse_by_name() {
     for attr in [
-        r##"stroke-dasharray="8 8""##,
         r##"stroke-dashoffset="4""##,
         r##"paint-order="stroke""##,
         r##"vector-effect="non-scaling-stroke""##,
@@ -451,7 +450,7 @@ fn the_unconsumed_stroke_properties_refuse_by_name() {
     // The same values through a stylesheet, where only a computed-level read or
     // the CSS-name patrol can catch them.
     for css in [
-        "stroke-dasharray: 8 8",
+        "stroke-dashoffset: 4",
         "paint-order: stroke",
         "vector-effect: non-scaling-stroke",
     ] {
@@ -468,24 +467,209 @@ fn the_unconsumed_stroke_properties_refuse_by_name() {
             "{css} must be declared, not silently dropped; got {error}"
         );
     }
+
+    // Offset inherits, and an authored zero is still patrolled: a value in a
+    // basis this cascade lacks can compute to zero here while moving the cycle
+    // in Chromium. Attribute, style-attribute, ancestor, and sheet routes all
+    // stay named until the phase contract exists.
+    for source in [
+        stroked_rect(r##"stroke-width="8" style="stroke-dashoffset: 0""##),
+        document(
+            r##"  <g stroke="#000" stroke-width="8" style="stroke-dashoffset: 4">
+    <rect x="16" y="16" width="32" height="32" fill="none" stroke-dasharray="8 4"/>
+  </g>"##,
+        ),
+    ] {
+        let error = refusal(&source);
+        assert!(
+            error.to_string().contains("stroke-dashoffset"),
+            "offset must refuse at every authored ingress; got {error}"
+        );
+    }
 }
 
-/// A dash array that would paint nothing is admitted, because Chromium paints a
-/// solid stroke for it: `none`, an all-zero array, and an invalid value are all
-/// measured identical to no dash array at all. Refusing on a *non-empty* list
-/// instead of a *painting* one would drop documents the browser renders solid.
+/// `pathLength` calibrates every SVGGeometryElement's distance space in
+/// Chromium, including rect, circle, and ellipse. The zero-calibration dash
+/// contract cannot carry that fact, so all seven admitted geometry elements
+/// keep the same named patrol rather than silently scaling only some cycles.
 #[test]
-fn a_dash_array_that_paints_nothing_is_admitted() {
-    for css in [
-        "stroke-dasharray: none",
-        "stroke-dasharray: 0",
-        "stroke-dasharray: qqq",
+fn pathlength_refuses_on_every_admitted_geometry_element() {
+    for shape in [
+        r##"<rect x="8" y="8" width="48" height="48"/>"##,
+        r##"<circle cx="32" cy="32" r="24"/>"##,
+        r##"<ellipse cx="32" cy="32" rx="24" ry="16"/>"##,
+        r##"<path d="M8 32 H56"/>"##,
+        r##"<line x1="8" y1="32" x2="56" y2="32"/>"##,
+        r##"<polygon points="8,8 56,8 32,56"/>"##,
+        r##"<polyline points="8,8 32,56 56,8"/>"##,
     ] {
-        let frame = admit_both(&document(&format!(
-            r##"  <style>rect {{ stroke: #000000; stroke-width: 8; {css} }}</style>
-  <rect x="16" y="16" width="32" height="32" fill="none"/>"##
-        )));
-        assert_eq!(stroke_of(&frame, 0).width(), 8.0, "css={css:?}");
+        let shape = shape.replacen(
+            "/>",
+            r##" fill="none" stroke="#000" stroke-dasharray="8 4" pathLength="24"/>"##,
+            1,
+        );
+        let error = refusal(&document(&format!("  {shape}")));
+        assert!(
+            matches!(error, CompileError::UnsupportedAttribute { ref attr, .. } if attr == "pathLength"),
+            "{shape}: got {error}"
+        );
+    }
+}
+
+/// Dasharray is one cascaded, resolved cycle: both source spellings enter the
+/// same longhand, percentages use the normalized diagonal, calc() resolves on
+/// that basis, commas and spaces are separators, and an odd authored list is
+/// repeated once before the frame boundary.
+#[test]
+fn a_dash_array_resolves_to_one_even_local_space_cycle() {
+    for (extra, expected) in [
+        (r##"stroke-dasharray="8 4""##, vec![8.0, 4.0]),
+        (r##"style="stroke-dasharray: 8px, 4px""##, vec![8.0, 4.0]),
+        (
+            r##"stroke-dasharray="5 3 2""##,
+            vec![5.0, 3.0, 2.0, 5.0, 3.0, 2.0],
+        ),
+        (r##"stroke-dasharray="10% 5%""##, vec![6.4, 3.2]),
+        (
+            r##"stroke-dasharray="calc(10% + 1.6px) 4""##,
+            vec![8.0, 4.0],
+        ),
+        (r##"stroke-dasharray="0.5em 0.25em""##, vec![8.0, 4.0]),
+    ] {
+        let frame = admit_both(&stroked_rect(&format!(r##"stroke-width="8" {extra}"##)));
+        assert_eq!(
+            stroke_of(&frame, 0)
+                .dash_intervals()
+                .expect("active dash cycle")
+                .as_slice(),
+            expected,
+            "extra={extra:?}"
+        );
+    }
+}
+
+/// The cascade owns precedence and inheritance for the property: a rule beats
+/// its presentation hint, an inline declaration beats the rule, an invalid CSS
+/// declaration exposes the valid hint, and a container passes the computed
+/// cycle to its descendant.
+#[test]
+fn dasharray_precedence_and_inheritance_are_the_cascades() {
+    let frame = admit_both(&document(
+        r##"  <style>
+    #rule { stroke-dasharray: 6 2 }
+    #inline { stroke-dasharray: 6 2 }
+    #invalid { stroke-dasharray: qqq }
+  </style>
+  <rect id="rule" x="4" y="4" width="8" height="8" fill="none" stroke="#000" stroke-dasharray="8 4"/>
+  <rect id="inline" x="16" y="4" width="8" height="8" fill="none" stroke="#000" stroke-dasharray="8 4" style="stroke-dasharray: 10 5"/>
+  <rect id="invalid" x="28" y="4" width="8" height="8" fill="none" stroke="#000" stroke-dasharray="8 4"/>
+  <g stroke="#000" stroke-dasharray="12 3"><rect x="40" y="4" width="8" height="8" fill="none"/></g>"##,
+    ));
+    let cycles: Vec<&[f32]> = frame
+        .nodes()
+        .iter()
+        .map(|node| {
+            node.stroke
+                .as_ref()
+                .expect("stroke")
+                .dash_intervals()
+                .expect("cycle")
+                .as_slice()
+        })
+        .collect();
+    assert_eq!(
+        cycles,
+        [&[6.0, 2.0][..], &[10.0, 5.0], &[8.0, 4.0], &[12.0, 3.0]]
+    );
+}
+
+#[test]
+fn dasharray_inherits_from_the_root() {
+    let frame = admit_both(
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" stroke="#000000" stroke-dasharray="8 4">
+  <path d="M8 32 H56" fill="none" stroke-width="8"/>
+</svg>"##,
+    );
+    assert_eq!(
+        stroke_of(&frame, 0)
+            .dash_intervals()
+            .expect("root-inherited cycle")
+            .as_slice(),
+        [8.0, 4.0]
+    );
+}
+
+/// `<use>` establishes the inherited style for its instantiated subtree. The
+/// clone receives the computed dash cycle from the use site; no source-facing
+/// dash syntax leaks across the resolved frame boundary.
+#[test]
+fn dasharray_inherits_from_a_use_site() {
+    let frame = admit_both(&document(
+        r##"  <defs><path id="p" d="M8 32 H56" fill="none"/></defs>
+  <use href="#p" stroke="#000000" stroke-width="8" stroke-dasharray="8 4"/>"##,
+    ));
+    assert_eq!(frame.nodes().len(), 1);
+    assert_eq!(
+        stroke_of(&frame, 0)
+            .dash_intervals()
+            .expect("use-site cycle")
+            .as_slice(),
+        [8.0, 4.0]
+    );
+}
+
+/// `none`, an all-zero list, and an invalid or negative declaration all paint
+/// the solid fallback in Chromium. They therefore normalize to dash absence,
+/// not to a second present-cycle spelling. A zero-painted butt cycle paints
+/// nothing, while round caps make its zero-length painted entries visible.
+#[test]
+fn neutral_and_zero_painted_dash_cycles_keep_their_measured_meaning() {
+    for extra in [
+        r##"stroke-dasharray="none""##,
+        r##"stroke-dasharray="0 0""##,
+        r##"stroke-dasharray="qqq""##,
+        r##"stroke-dasharray="-1 4""##,
+        r##"style="stroke-dasharray: none""##,
+        r##"style="stroke-dasharray: 0 0""##,
+    ] {
+        let frame = admit_both(&stroked_rect(&format!(r##"stroke-width="8" {extra}"##)));
+        assert!(
+            stroke_of(&frame, 0).dash_intervals().is_none(),
+            "extra={extra:?}"
+        );
+    }
+
+    let butt = admit_both(&stroked_rect(
+        r##"stroke-width="8" stroke-dasharray="0 8""##,
+    ));
+    assert!(butt.nodes()[0].stroke.is_none(), "butt dots paint nothing");
+
+    let round = admit_both(&stroked_rect(
+        r##"stroke-width="8" stroke-dasharray="0 8" stroke-linecap="round""##,
+    ));
+    assert_eq!(
+        stroke_of(&round, 0)
+            .dash_intervals()
+            .expect("round dots remain active")
+            .as_slice(),
+        [0.0, 8.0]
+    );
+}
+
+/// Chromium accepts individually finite intervals whose repeated f32 cycle
+/// overflows, but this frame boundary cannot state their period. The gap is a
+/// named refusal rather than a backend-rejected path effect that erases paint.
+#[test]
+fn an_unrepresentable_dash_cycle_refuses_before_the_frame_boundary() {
+    for extra in [
+        r##"stroke-dasharray="3.4e38 3.4e38""##,
+        r##"style="stroke-dasharray: 3.4e38 3.4e38""##,
+    ] {
+        let error = refusal(&stroked_rect(&format!(r##"stroke-width="8" {extra}"##)));
+        assert!(
+            matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("resolved total is not representable")),
+            "{extra}: got {error}"
+        );
     }
 }
 
@@ -631,6 +815,147 @@ fn a_stroke_width_whose_basis_this_build_lacks_refuses_by_name() {
         assert!(
             matches!(error, CompileError::UnsupportedStyle(ref reason) if reason.contains("basis")),
             "{unit} in a sheet must refuse by name; got {error}"
+        );
+    }
+}
+
+/// Dash lengths share the width rung's authored-basis patrol. The computed
+/// list has already forgotten whether a number came from a viewport/container
+/// basis, var() substitution, an escaped token, or an em basis poisoned by an
+/// unrepresentable font-size; every measured silent-divergence class therefore
+/// refuses through both source spellings before a cycle reaches rframe.
+#[test]
+fn a_dasharray_with_an_untrustworthy_basis_refuses_by_name() {
+    for unit in [
+        "1vw",
+        "1vh",
+        "1vi",
+        "1vb",
+        "10vmin",
+        "10vmax",
+        "1dvw",
+        "1lvh",
+        "1ex",
+        "1ch",
+        "1cap",
+        "1lh",
+        "1rex",
+        "1rch",
+        "1ric",
+        "1rcap",
+        "12.5cqw",
+        "12.5cqh",
+        "12.5cqi",
+        "12.5cqb",
+        "12.5cqmin",
+        "12.5cqmax",
+        "calc(1vw + 2px)",
+    ] {
+        for source in [
+            stroked_rect(&format!(r##"stroke-dasharray="{unit} 4""##)),
+            document(&format!(
+                r##"  <style>rect {{ stroke-dasharray: {unit} 4 }}</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000"/>"##
+            )),
+        ] {
+            let error = refusal(&source);
+            assert!(
+                matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("basis"))
+                    || matches!(error, CompileError::UnsupportedStyle(ref reason) if reason.contains("basis")),
+                "{unit} must refuse by name; got {error}"
+            );
+        }
+    }
+
+    for extra in [
+        r##"style="--d: 8px; stroke-dasharray: var(--d) 4""##,
+        r##"stroke-dasharray="1\76 w 4""##,
+        r##"font-size="2vw" stroke-dasharray="1em 4""##,
+    ] {
+        let error = refusal(&stroked_rect(extra));
+        assert!(
+            matches!(error, CompileError::UnsupportedStroke(ref reason)
+                if reason.contains("var()") || reason.contains("escape") || reason.contains("font-size")),
+            "{extra} must refuse by name; got {error}"
+        );
+    }
+
+    for source in [
+        // Presentation attributes accept substitution too; the authored
+        // provenance must be patrolled before the typed value forgets it.
+        stroked_rect(r##"style="--d: 8px" stroke-dasharray="var(--d) 4""##),
+        // The property inherits, so the ancestor's authored provenance must
+        // remain visible when the descendant resolves its stroke.
+        document(
+            r##"  <g stroke="#000000" style="--d: 8px; stroke-dasharray: var(--d) 4">
+    <rect x="16" y="16" width="32" height="32" fill="none"/>
+  </g>"##,
+        ),
+        // A comment can split the property name at either authored CSS
+        // ingress; stripping it is what lets the patrol see the unit.
+        document(
+            r##"  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000" style="stroke-/**/dasharray: 1vw 4"/>"##,
+        ),
+        document(
+            r##"  <style>rect { stroke-/**/dasharray: 1vw 4 }</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000"/>"##,
+        ),
+        // A sheet can carry both halves of the poisoned em relationship.
+        document(
+            r##"  <style>rect { font-size: 2vw; stroke-dasharray: 1em 4 }</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000"/>"##,
+        ),
+        // A sheet is scanned before selector matching, so its var() leg has
+        // its own document-level guard rather than relying on element text.
+        document(
+            r##"  <style>rect { --d: 8px; stroke-dasharray: var(--d) 4 }</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000"/>"##,
+        ),
+        // An escaped property name can hide any declaration from a coarse
+        // name scan, so it takes the earlier blanket CSS-escape refusal.
+        document(
+            r##"  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000" style="stroke-\64 asharray: 8 4"/>"##,
+        ),
+    ] {
+        let error = refusal(&source);
+        assert!(
+            error.to_string().contains("stroke-dasharray")
+                || error.to_string().contains("escape")
+                || error.to_string().contains("\\64 asharray"),
+            "every hidden dasharray ingress must refuse by name; got {error}"
+        );
+    }
+}
+
+/// Absolute units and the two trustworthy font-relative units are resolved by
+/// the cascade before the dash contract. This sweep guards the admitted half
+/// of the unit split while the other unit classes retain their own rows.
+#[test]
+fn dasharray_admits_the_trustworthy_length_unit_family() {
+    for (value, expected) in [
+        ("8px 4px", [8.0, 4.0]),
+        ("6pt 3pt", [8.0, 4.0]),
+        ("0.5pc 0.25pc", [8.0, 4.0]),
+        ("0.083333333in 0.041666667in", [8.0, 4.0]),
+        ("0.211666667cm 0.105833333cm", [8.0, 4.0]),
+        ("2.11666667mm 1.05833333mm", [8.0, 4.0]),
+        ("8.46666667Q 4.23333333Q", [8.0, 4.0]),
+        ("0.5em 0.25em", [8.0, 4.0]),
+        ("0.5rem 0.25rem", [8.0, 4.0]),
+    ] {
+        let frame = admit_both(&stroked_rect(&format!(
+            r##"stroke-width="8" stroke-dasharray="{value}""##
+        )));
+        let actual = stroke_of(&frame, 0)
+            .dash_intervals()
+            .expect("cycle")
+            .as_slice();
+        assert!(
+            actual
+                .iter()
+                .zip(expected)
+                .all(|(actual, expected)| (*actual - expected).abs() < 0.001),
+            "value={value:?}: got {actual:?}"
         );
     }
 }
@@ -864,12 +1189,12 @@ fn a_stroke_width_spelled_through_css_escapes_refuses_by_name() {
     );
 }
 
-/// A cap is a per-*contour* property, and the consumer holds one cap per draw.
-/// It can serve a path whose contours are all closed (the cap is inert, so it
-/// strokes them under butt, byte-exact at every width) and a path with none.
-/// A path that mixes them needs both caps at once, so a non-butt cap on one
-/// refuses by name — over-refusal, since the divergence only appears once the
-/// *device* width falls to about a pixel, which the compiler cannot know.
+/// A cap is a per-*contour* property on a solid stroke, and the consumer holds
+/// one cap per draw. It can serve a path whose solid contours are all closed
+/// (the cap is inert, so it strokes them under butt) and a path with none. A
+/// solid path that mixes them needs both caps at once, so a non-butt cap refuses
+/// by name. With dashing, every painted segment has ends even on a closed
+/// contour, so the same authored cap correctly applies to both kinds.
 #[test]
 fn a_mixed_contour_path_refuses_a_cap_it_cannot_apply_per_contour() {
     // One closed contour and one open contour, in one `d`.
@@ -902,6 +1227,19 @@ fn a_mixed_contour_path_refuses_a_cap_it_cannot_apply_per_contour() {
             "d={d:?}"
         );
     }
+
+    let dashed = admit_both(&document(&format!(
+        r##"  <path d="{mixed}" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4"/>"##
+    )));
+    let stroke = stroke_of(&dashed, 0);
+    assert_eq!(stroke.cap(), rframe::StrokeCap::Round);
+    assert_eq!(
+        stroke
+            .dash_intervals()
+            .expect("the dashed mixed path is active")
+            .as_slice(),
+        [4.0, 4.0]
+    );
 }
 
 /// A CSS property name is case-insensitive, so every ingress must be too.

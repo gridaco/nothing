@@ -20,6 +20,8 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
     #rule-beats-hint { fill: #2563eb; }
     #style-attr-beats-rule { fill: #2563eb; }
     #stroke-rule-beats-hint { stroke: #2563eb; }
+    #dash-rule-beats-hint { stroke-dasharray: 6px 2px; }
+    #dash-style-attr-beats-rule { stroke-dasharray: 6px 2px; }
     #visibility-rule-beats-hint { visibility: visible; }
     #transform-rule-beats-hint { transform: translate(30px, 0px); }
     #transform-none-beats-hint { transform: none; }
@@ -35,6 +37,14 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
   <rect id="stroked" stroke="#16a34a" stroke-width="4px" stroke-linecap="round"
         stroke-linejoin="bevel" stroke-miterlimit="7" width="8" height="8"/>
   <rect id="stroke-rule-beats-hint" stroke="#16a34a" width="8" height="8"/>
+  <rect id="dash-hint" stroke-dasharray="8 4" width="8" height="8"/>
+  <rect id="dash-rule-beats-hint" stroke-dasharray="8 4" width="8" height="8"/>
+  <rect id="dash-style-attr-beats-rule" stroke-dasharray="8 4"
+        style="stroke-dasharray: 10px 5px" width="8" height="8"/>
+  <rect id="dash-invalid-css-falls-back" stroke-dasharray="8 4"
+        style="stroke-dasharray: 8px -4px" width="8" height="8"/>
+  <rect id="dash-invalid-hint" stroke-dasharray="8 -4" width="8" height="8"/>
+  <g stroke-dasharray="8 4"><rect id="dash-inherited" width="8" height="8"/></g>
   <rect id="unadmitted" pathLength="100" width="8" height="8"/>
   <g id="sized" font-size="32"><rect id="em-basis" stroke-width="0.5em" width="8" height="8"/></g>
   <rect id="hidden-hint" visibility="hidden" width="8" height="8"/>
@@ -102,6 +112,41 @@ fn standalone_svg_presentation_hints_enter_below_author_rules() {
         "bevel"
     );
     assert_eq!(property(root, "stroked", LonghandId::StrokeMiterlimit), "7");
+    // Dasharray joins the same hint intake only with the dashing capability:
+    // typed grammar, author-origin precedence, invalid-declaration fallback,
+    // and inheritance are all the one cascade's work.
+    assert_eq!(
+        property(root, "dash-hint", LonghandId::StrokeDasharray),
+        "8px, 4px"
+    );
+    assert_eq!(
+        property(root, "dash-rule-beats-hint", LonghandId::StrokeDasharray),
+        "6px, 2px"
+    );
+    assert_eq!(
+        property(
+            root,
+            "dash-style-attr-beats-rule",
+            LonghandId::StrokeDasharray
+        ),
+        "10px, 5px"
+    );
+    assert_eq!(
+        property(
+            root,
+            "dash-invalid-css-falls-back",
+            LonghandId::StrokeDasharray
+        ),
+        "8px, 4px"
+    );
+    assert_eq!(
+        property(root, "dash-invalid-hint", LonghandId::StrokeDasharray),
+        "none"
+    );
+    assert_eq!(
+        property(root, "dash-inherited", LonghandId::StrokeDasharray),
+        "8px, 4px"
+    );
     // And they lose to an author rule exactly as `fill` does.
     assert_eq!(
         property(root, "stroke-rule-beats-hint", LonghandId::Stroke),

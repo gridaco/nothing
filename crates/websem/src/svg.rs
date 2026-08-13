@@ -49,9 +49,9 @@
 //! (`RENDERING_ATTRIBUTES_NOT_CONSUMED`), while attributes outside the
 //! SVG rendering vocabulary stay ignored exactly as Chromium ignores them;
 //! the cascaded surface is patrolled for the enumerated properties
-//! `display: contents`, `stroke-opacity` and
-//! `stroke-dasharray`, beside the consumed reads — typed `fill`/`fill-opacity`,
-//! the stroke family, the `stroke-width` unit patrol, the visibility
+//! `display: contents` and `stroke-dashoffset`, beside the consumed reads —
+//! typed `fill`/`fill-opacity`, the stroke family (including resolved dash
+//! intervals and their authored-unit patrol), the visibility
 //! rung's `display: none`/`visibility` disposition, and the group-scope
 //! rung's `opacity`. Cascaded properties beyond that
 //! enumeration remain a **named open boundary** of the slice — not a
@@ -120,7 +120,7 @@ use crate::svg_paint_server::{GradientBases, PaintServers, ResolvedPaintServer};
 use crate::svg_transform::{TransformRefusal, computed_transform_to_affine};
 use style::properties::ComputedValues;
 use style::thread_state::{self, ThreadState};
-use style::values::computed::{SVGOpacity, Size};
+use style::values::computed::{Length, SVGOpacity, Size};
 use style::values::generics::basic_shape::FillRule as StyloFillRule;
 use style::values::generics::svg::{SVGLength, SVGPaintKind, SVGStrokeDashArray};
 
@@ -129,7 +129,8 @@ use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
     FillRule, Frame, FrameItem, FrameItems, FrameNode, Geometry, Identity, PaintStack, PathData,
-    Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeJoin, VisualRef,
+    Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeDashIntervals,
+    StrokeDashIntervalsError, StrokeJoin, VisualRef,
 };
 use std::sync::Arc;
 
@@ -314,9 +315,9 @@ pub enum CompileError {
     UnsupportedElement(String),
     /// A `fill` value the slice cannot resolve.
     UnsupportedFill(String),
-    /// A stroke value the slice cannot resolve: a paint server, a context
-    /// paint, a non-initial `stroke-opacity`, a dash pattern, or a percentage
-    /// width whose basis is the viewport's normalized diagonal.
+    /// A stroke value the slice cannot resolve: a context paint, an
+    /// untrustworthy length basis or spelling, dash phase/path calibration,
+    /// or a resolved magnitude the frame contract cannot represent.
     UnsupportedStroke(String),
     /// A numeric attribute failed to parse.
     BadNumber { attr: String, value: String },
@@ -993,9 +994,8 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     // `color` is absent here since the use/defs rung: it is an admitted
     // presentation hint (csscascade), the currentColor basis the paint
     // resolvers already read from the cascade.
-    "stroke-dasharray",
-    "stroke-dashoffset",
     "paint-order",
+    "stroke-dashoffset",
     // Markers apply to `<path>`, `<line>`, `<polyline>` and `<polygon>`, and
     // this slice admits the first two. Nothing else "reads" a marker
     // property — the property *is* the paint trigger — so unlike `pathLength`
@@ -1045,15 +1045,18 @@ const TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "font",
 ];
 
-/// Rendering attributes additionally rejected on `<path>`.
+/// Rendering attributes additionally rejected on every admitted geometry
+/// element (`rect`, `circle`, `ellipse`, `path`, `line`, `polygon`, and
+/// `polyline`).
 ///
-/// `pathLength` scales the path's *user-space* length for everything that
-/// measures along it — `stroke-dasharray`, `stroke-dashoffset`, markers, and
-/// text on a path. Every one of those refuses today, so the attribute is
-/// provably inert and this refusal is pure over-refusal. It is here anyway:
-/// leaving it out would make the dasharray rung silently wrong unless someone
-/// remembered to add it back, and a declared hole is cheaper than that trap.
-const PATH_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["pathLength"];
+/// `pathLength` scales user-space distance for dashing. That interaction was
+/// measured in Chromium on `path`, `rect`, `circle`, and `ellipse`; the patrol
+/// covers all seven admitted SVG geometry elements because `pathLength` is an
+/// SVGGeometryElement attribute. It also affects dash offset, markers, and text
+/// on a path. Dashing is consumed now, so this patrol is load-bearing: dropping
+/// it would feed uncalibrated intervals to the resolved contract and paint a
+/// silently different cycle.
+const GEOMETRY_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["pathLength"];
 
 /// Rendering attributes additionally rejected on the root `<svg>`.
 ///
@@ -1085,8 +1088,9 @@ const ROOT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["transform"];
 ///   engine-gated names are.
 /// - **Represented but unconsumed.** `translate`, `rotate`, `scale`,
 ///   `transform-origin`, `clip-path`, `filter`, `mix-blend-mode` and
-///   `isolation` *do* compute in this build; this compiler simply does not read
-///   them, and reading them would mean implementing them. (`transform` was the
+///   `isolation` and `stroke-dashoffset` *do* compute in this build; this
+///   compiler simply does not read them, and reading them would mean
+///   implementing them. (`transform` was the
 ///   first name to leave this list: the transform rung reads its computed
 ///   value in [`compose_element_transform`], so a cascaded declaration is
 ///   consumed, not smuggled. The individual `translate`/`rotate`/`scale`
@@ -1141,6 +1145,11 @@ const CASCADE_PROPERTIES_NOT_REPRESENTED: &[&str] = &[
     "mix-blend-mode",
     "isolation",
     "paint-order",
+    // Represented by the pinned cascade but deliberately not consumed by the
+    // zero-phase dash contract. Scanning authored CSS is load-bearing: a unit
+    // whose basis this build lacks can compute to zero while Chromium moves
+    // the pattern, so checking only the computed nonzero case would leak.
+    "stroke-dashoffset",
     // The gradient rung's sheet-level patrol: Chromium consumes these from
     // the cascade (measured: `stop { stop-color: red }` beats the
     // attribute), but the pinned servo cascade has no such longhands — a
@@ -1239,34 +1248,58 @@ fn unrepresented_property(css: &str) -> Option<String> {
 /// It shares [`unrepresented_property`]'s chunking and its bounded gap: this is
 /// not a CSS tokenizer. An escaped property name is already refused wholesale by
 /// that scan, so `\000073troke-width` needs no handling here.
-fn stylesheet_stroke_width_unit(css: &str) -> Option<&'static str> {
+fn stylesheet_stroke_length_unit(css: &str, property: &str) -> Option<&'static str> {
     let css = strip_css_comments(css);
     css.split([';', '{', '}'])
         .filter_map(|chunk| chunk.split_once(':'))
-        .filter(|(name, _)| trim_svg_whitespace(name).eq_ignore_ascii_case("stroke-width"))
+        .filter(|(name, _)| trim_svg_whitespace(name).eq_ignore_ascii_case(property))
         .find_map(|(_, value)| has_unit_without_a_basis(value))
+}
+
+fn stylesheet_stroke_width_unit(css: &str) -> Option<&'static str> {
+    stylesheet_stroke_length_unit(css, "stroke-width")
+}
+
+fn stylesheet_stroke_dasharray_unit(css: &str) -> Option<&'static str> {
+    stylesheet_stroke_length_unit(css, "stroke-dasharray")
 }
 
 /// Whether a sheet declares a `stroke-width` through `var()` — an indirection
 /// the unit scan above cannot follow (measured: `--w: 1vw` substituted to a
 /// silent 12.8 where Chromium paints 0.64).
-fn stylesheet_stroke_width_var(css: &str) -> bool {
+fn stylesheet_stroke_length_var(css: &str, property: &str) -> bool {
     let css = strip_css_comments(css);
     css.split([';', '{', '}'])
         .filter_map(|chunk| chunk.split_once(':'))
-        .filter(|(name, _)| trim_svg_whitespace(name).eq_ignore_ascii_case("stroke-width"))
+        .filter(|(name, _)| trim_svg_whitespace(name).eq_ignore_ascii_case(property))
         .any(|(_, value)| value.to_ascii_lowercase().contains("var("))
+}
+
+fn stylesheet_stroke_width_var(css: &str) -> bool {
+    stylesheet_stroke_length_var(css, "stroke-width")
+}
+
+fn stylesheet_stroke_dasharray_var(css: &str) -> bool {
+    stylesheet_stroke_length_var(css, "stroke-dasharray")
 }
 
 /// Whether a sheet declares a `stroke-width` in `em`/`rem` — admitted units
 /// whose basis is the cascaded `font-size`, which must then be trustworthy
 /// everywhere (see [`poisons_font_basis`]).
-fn stylesheet_stroke_width_font_relative(css: &str) -> Option<&'static str> {
+fn stylesheet_stroke_length_font_relative(css: &str, property: &str) -> Option<&'static str> {
     let css = strip_css_comments(css);
     css.split([';', '{', '}'])
         .filter_map(|chunk| chunk.split_once(':'))
-        .filter(|(name, _)| trim_svg_whitespace(name).eq_ignore_ascii_case("stroke-width"))
+        .filter(|(name, _)| trim_svg_whitespace(name).eq_ignore_ascii_case(property))
         .find_map(|(_, value)| has_font_relative_unit(value))
+}
+
+fn stylesheet_stroke_width_font_relative(css: &str) -> Option<&'static str> {
+    stylesheet_stroke_length_font_relative(css, "stroke-width")
+}
+
+fn stylesheet_stroke_dasharray_font_relative(css: &str) -> Option<&'static str> {
+    stylesheet_stroke_length_font_relative(css, "stroke-dasharray")
 }
 
 /// Whether a sheet's `font-size` (or `font` shorthand) declaration would set
@@ -1297,6 +1330,16 @@ fn strip_css_comments(css: &str) -> String {
     }
     out.push_str(rest);
     out
+}
+
+/// Whether a CSS declaration fragment names one exact property after comments
+/// are removed. Property names are ASCII-case-insensitive; escaped names are
+/// refused earlier by [`unrepresented_property`] rather than decoded here.
+fn css_declares_property(css: &str, property: &str) -> bool {
+    let css = strip_css_comments(css);
+    css.split([';', '{', '}'])
+        .filter_map(|chunk| chunk.split_once(':'))
+        .any(|(name, _)| trim_svg_whitespace(name).eq_ignore_ascii_case(property))
 }
 
 /// Patrol an element's authored `style` attribute for a declaration the
@@ -1351,7 +1394,8 @@ fn stylesheet_findings(root: HtmlElement<'_>) -> Vec<(String, String)> {
     // font-size basis may be poisoned anywhere: in the same sheet, another
     // sheet, or an element's own attributes. The walk visits all of them, so
     // both halves are collected and judged after it.
-    let mut sheet_font_relative: Option<(&'static str, String)> = None;
+    let mut sheet_width_font_relative: Option<(&'static str, String)> = None;
+    let mut sheet_dasharray_font_relative: Option<(&'static str, String)> = None;
     let mut font_poison: Option<&'static str> = None;
     let mut stack = vec![(root, root.local_name_string())];
     while let Some((element, path)) = stack.pop() {
@@ -1400,10 +1444,34 @@ fn stylesheet_findings(root: HtmlElement<'_>) -> Vec<(String, String)> {
                     path.clone(),
                 ));
             }
-            if sheet_font_relative.is_none()
+            if let Some(unit) = stylesheet_stroke_dasharray_unit(&sheet) {
+                found.push((
+                    format!(
+                        "a stylesheet declares a stroke-dasharray in {unit}, which needs a \
+                         basis this cascade does not have; elements it matches render the \
+                         wrong dash cycle"
+                    ),
+                    path.clone(),
+                ));
+            }
+            if stylesheet_stroke_dasharray_var(&sheet) {
+                found.push((
+                    "a stylesheet declares a stroke-dasharray through var(), an indirection \
+                     this patrol cannot follow; elements it matches may render the wrong dash \
+                     cycle"
+                        .to_string(),
+                    path.clone(),
+                ));
+            }
+            if sheet_width_font_relative.is_none()
                 && let Some(unit) = stylesheet_stroke_width_font_relative(&sheet)
             {
-                sheet_font_relative = Some((unit, path.clone()));
+                sheet_width_font_relative = Some((unit, path.clone()));
+            }
+            if sheet_dasharray_font_relative.is_none()
+                && let Some(unit) = stylesheet_stroke_dasharray_font_relative(&sheet)
+            {
+                sheet_dasharray_font_relative = Some((unit, path.clone()));
             }
             if font_poison.is_none() {
                 font_poison = stylesheet_font_size_poison(&sheet);
@@ -1437,12 +1505,22 @@ fn stylesheet_findings(root: HtmlElement<'_>) -> Vec<(String, String)> {
         // Depth-first in document order: the stack pops in reverse.
         stack.extend(children.into_iter().rev());
     }
-    if let (Some((unit, path)), Some(poison)) = (sheet_font_relative, font_poison) {
+    if let (Some((unit, path)), Some(poison)) = (sheet_width_font_relative, font_poison) {
         found.push((
             format!(
                 "a stylesheet declares a stroke-width in {unit} while an authored font-size \
                  carries {poison}; the em basis cannot be trusted and elements it matches may \
                  render at the wrong width"
+            ),
+            path,
+        ));
+    }
+    if let (Some((unit, path)), Some(poison)) = (sheet_dasharray_font_relative, font_poison) {
+        found.push((
+            format!(
+                "a stylesheet declares a stroke-dasharray in {unit} while an authored \
+                 font-size carries {poison}; the em basis cannot be trusted and elements it \
+                 matches may render the wrong dash cycle"
             ),
             path,
         ));
@@ -1518,7 +1596,6 @@ struct ComputedPatrol {
 
 fn patrol_computed_style(
     element: HtmlElement<'_>,
-    include_stroke: bool,
     include_css_sizing: bool,
 ) -> Result<ComputedPatrol, CompileError> {
     let data = element
@@ -1554,27 +1631,6 @@ fn patrol_computed_style(
             disposition,
             opacity,
         });
-    }
-    if include_stroke && disposition == RenderDisposition::Renders {
-        // The stroke *paint* is consumed; these three change a stroke's pixels
-        // and are not, so they refuse wherever a stroke could reach. A hidden
-        // or pruned element's stroke reaches nothing — and stroke properties
-        // inherit, so a visible descendant re-checks its own computed values
-        // here on its own walk step.
-        // Chromium renders `stroke-dasharray: 0`, `none` and an invalid value
-        // all as a solid stroke (measured), so the refusal tests for a dash
-        // that would actually paint rather than for a non-empty list.
-        match style.clone_stroke_dasharray() {
-            SVGStrokeDashArray::Values(values)
-                if values
-                    .iter()
-                    .all(|value| value.0.to_length().is_some_and(|length| length.px() == 0.0)) => {}
-            other => {
-                return Err(CompileError::UnsupportedStroke(format!(
-                    "stroke-dasharray {other:?} is not yet consumed"
-                )));
-            }
-        }
     }
     // SVG2 makes width/height geometry properties where they apply: a
     // cascaded (stylesheet or style-attribute) value beats both the
@@ -1691,7 +1747,7 @@ fn compile_svg_element(
     // standalone entry always carries one. A *hidden* root is inert in
     // both entries: the root paints nothing itself, and each descendant's
     // own computed (inherited) visibility decides its node.
-    let root_patrol = patrol_computed_style(svg, false, true)?;
+    let root_patrol = patrol_computed_style(svg, true)?;
     let root_disposition = root_patrol.disposition;
     // The root's opacity composites the *whole canvas* — measured: the
     // captured SVG-local raster carries the multiplied alpha, identically
@@ -2044,7 +2100,7 @@ impl ChildWalk<'_> {
         }
         patrol_rendering_attributes(el, element, &[])?;
         patrol_style_attribute(el, element)?;
-        let patrol = patrol_computed_style(el, true, false)?;
+        let patrol = patrol_computed_style(el, false)?;
         match patrol.disposition {
             // `display: none` generates no box: the subtree is pruned —
             // Chromium's correct nothing, not a hole to declare. A *hidden*
@@ -2194,7 +2250,7 @@ impl ChildWalk<'_> {
                     .to_string(),
             ));
         }
-        let patrol = patrol_computed_style(el, true, false)?;
+        let patrol = patrol_computed_style(el, false)?;
         match patrol.disposition {
             RenderDisposition::PrunedSubtree => return Ok(SpanFacts::default()),
             RenderDisposition::Renders | RenderDisposition::HiddenPaint => {}
@@ -2460,7 +2516,7 @@ fn compile_text(
 ) -> Result<Option<ShapeOutcome>, CompileError> {
     patrol_rendering_attributes(el, "text", TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
     patrol_style_attribute(el, "text")?;
-    let patrol = patrol_computed_style(el, true, true)?;
+    let patrol = patrol_computed_style(el, true)?;
     match patrol.disposition {
         RenderDisposition::Renders => {}
         RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
@@ -2576,9 +2632,9 @@ fn compile_rect(
     bases: PercentBases,
     fold_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
-    patrol_rendering_attributes(el, "rect", &[])?;
+    patrol_rendering_attributes(el, "rect", GEOMETRY_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
     patrol_style_attribute(el, "rect")?;
-    let patrol = patrol_computed_style(el, true, true)?;
+    let patrol = patrol_computed_style(el, true)?;
     match patrol.disposition {
         RenderDisposition::Renders => {}
         // A hidden or display-pruned shape is Chromium's correct nothing —
@@ -2623,9 +2679,9 @@ fn compile_circle(
     bases: PercentBases,
     fold_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
-    patrol_rendering_attributes(el, "circle", &[])?;
+    patrol_rendering_attributes(el, "circle", GEOMETRY_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
     patrol_style_attribute(el, "circle")?;
-    let patrol = patrol_computed_style(el, true, false)?;
+    let patrol = patrol_computed_style(el, false)?;
     match patrol.disposition {
         RenderDisposition::Renders => {}
         // A hidden or display-pruned shape is Chromium's correct nothing —
@@ -2672,9 +2728,9 @@ fn compile_ellipse(
     bases: PercentBases,
     fold_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
-    patrol_rendering_attributes(el, "ellipse", &[])?;
+    patrol_rendering_attributes(el, "ellipse", GEOMETRY_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
     patrol_style_attribute(el, "ellipse")?;
-    let patrol = patrol_computed_style(el, true, false)?;
+    let patrol = patrol_computed_style(el, false)?;
     match patrol.disposition {
         RenderDisposition::Renders => {}
         // A hidden or display-pruned shape is Chromium's correct nothing —
@@ -2737,9 +2793,9 @@ fn compile_path(
     bases: PercentBases,
     fold_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
-    patrol_rendering_attributes(el, "path", PATH_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+    patrol_rendering_attributes(el, "path", GEOMETRY_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
     patrol_style_attribute(el, "path")?;
-    let patrol = patrol_computed_style(el, true, false)?;
+    let patrol = patrol_computed_style(el, false)?;
     match patrol.disposition {
         RenderDisposition::Renders => {}
         // A hidden or display-pruned shape is Chromium's correct nothing —
@@ -2811,9 +2867,9 @@ fn compile_line(
     bases: PercentBases,
     fold_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
-    patrol_rendering_attributes(el, "line", PATH_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+    patrol_rendering_attributes(el, "line", GEOMETRY_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
     patrol_style_attribute(el, "line")?;
-    let patrol = patrol_computed_style(el, true, false)?;
+    let patrol = patrol_computed_style(el, false)?;
     match patrol.disposition {
         RenderDisposition::Renders => {}
         // A hidden or display-pruned shape is Chromium's correct nothing —
@@ -2891,9 +2947,9 @@ fn compile_points_shape(
         PointsClosure::Closed => "polygon",
         PointsClosure::Open => "polyline",
     };
-    patrol_rendering_attributes(el, element, PATH_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+    patrol_rendering_attributes(el, element, GEOMETRY_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
     patrol_style_attribute(el, element)?;
-    let patrol = patrol_computed_style(el, true, false)?;
+    let patrol = patrol_computed_style(el, false)?;
     match patrol.disposition {
         RenderDisposition::Renders => {}
         // A hidden or display-pruned shape is Chromium's correct nothing —
@@ -3158,16 +3214,20 @@ fn shape_node(
 /// Refuse a path that mixes open and closed contours while a non-butt
 /// `stroke-linecap` is in force.
 ///
-/// A cap is a per-*contour* property: a closed contour has no ends, so the cap
-/// is inert on it, and Chromium's raster agrees (its butt and round captures of
-/// a closed contour are byte-identical). The consumer holds one cap per draw,
-/// so it can honor that for a path whose contours are *all* closed — it strokes
-/// them under butt, byte-exact at every width — and for a path with none. A
-/// mixed path needs both caps at once, and the two ways to give it them are
-/// both measurably wrong: one draw paints the closed contours' rejoin with a
-/// cap Chromium does not (~84 of 2304 pixels below a device pixel wide), and
-/// two draws composite the overlapping runs' anti-aliased edges twice (32 to 47
-/// pixels at 1.25 and 2 units).
+/// A cap is a per-*contour* property on a solid stroke: a closed contour has no
+/// ends, so the cap is inert on it, and Chromium's raster agrees (its butt and
+/// round captures of a closed solid contour are byte-identical). The consumer
+/// holds one cap per draw, so it can honor that for a path whose contours are
+/// *all* closed — it strokes them under butt, byte-exact at every width — and
+/// for a path with none. A mixed solid path needs both caps at once, and the two
+/// ways to give it them are both measurably wrong: one draw paints the closed
+/// contours' rejoin with a cap Chromium does not (~84 of 2304 pixels below a
+/// device pixel wide), and two draws composite the overlapping runs'
+/// anti-aliased edges twice (32 to 47 pixels at 1.25 and 2 units).
+///
+/// A dash cycle changes that fact: every painted dash segment has ends even on
+/// a closed contour, so one authored cap is correct for every contour. The
+/// dashed path therefore bypasses this solid-only patrol.
 ///
 /// So it refuses by name. This over-refuses — the one-draw error only appears
 /// once the *device* width falls to about a pixel, which the compiler cannot
@@ -3184,7 +3244,10 @@ fn patrol_mixed_contour_cap(
     let Some(stroke) = stroke else {
         return Ok(());
     };
-    if stroke.cap() == rframe::StrokeCap::Butt || path.all_contours_closed() {
+    if stroke.dash_intervals().is_some()
+        || stroke.cap() == rframe::StrokeCap::Butt
+        || path.all_contours_closed()
+    {
         return Ok(());
     }
     if path
@@ -3556,10 +3619,10 @@ fn poisons_font_basis(text: &str) -> Option<&'static str> {
     None
 }
 
-/// Patrol every *attributable* ingress an authored `stroke-width` can arrive
-/// through for a unit whose basis this build lacks: the presentation attribute,
-/// the element's `style` attribute, and — because the property inherits — the
-/// same two on every ancestor.
+/// Patrol every *attributable* ingress an authored stroke length property can
+/// arrive through for a unit whose basis this build lacks: the presentation
+/// attribute, the element's `style` attribute, and — because both supported
+/// properties inherit — the same two on every ancestor.
 ///
 /// A `<style>` sheet is the third ingress and is deliberately not here: it is
 /// not attributable to one element without selector matching, so it is caught
@@ -3596,45 +3659,48 @@ fn poisons_font_basis(text: &str) -> Option<&'static str> {
 ///   presentation attribute, `font`-bearing style attributes, and every
 ///   `<style>` sheet (a sheet is not attributable, so it is reached by a
 ///   descent from the root) — must pass [`poisons_font_basis`].
-fn patrol_stroke_width_units(el: HtmlElement<'_>, element_name: &str) -> Result<(), CompileError> {
+fn patrol_stroke_length_units(
+    el: HtmlElement<'_>,
+    element_name: &str,
+    property: &str,
+) -> Result<(), CompileError> {
     let mut font_relative: Option<&'static str> = None;
     let mut root = el;
     let mut ancestor = Some(el);
     while let Some(element) = ancestor {
         // An escape can hide the property name itself (`stroke-\77idth`), so
         // this check runs on every style attribute in scope, before the
-        // stroke-width-bearing filter below could be fooled into skipping one.
+        // property-bearing filter below could be fooled into skipping one.
         if let Some(style) = get_attr(element, "style")
             && style.contains('\\')
         {
             return Err(CompileError::UnsupportedStroke(format!(
                 "a style attribute in scope of <{element_name}> carries a CSS escape this \
-                 stroke-width patrol cannot read"
+                 {property} patrol cannot read"
             )));
         }
         for value in [
-            get_attr(element, "stroke-width"),
-            get_attr(element, "style")
-                .filter(|style| style.to_ascii_lowercase().contains("stroke-width")),
+            get_attr(element, property),
+            get_attr(element, "style").filter(|style| css_declares_property(style, property)),
         ]
         .into_iter()
         .flatten()
         {
             if let Some(unit) = has_unit_without_a_basis(&value) {
                 return Err(CompileError::UnsupportedStroke(format!(
-                    "a stroke-width in {unit} on <{element_name}> needs a basis this cascade does \
+                    "a {property} in {unit} on <{element_name}> needs a basis this cascade does \
                      not have"
                 )));
             }
             if value.contains('\\') {
                 return Err(CompileError::UnsupportedStroke(format!(
-                    "a stroke-width on <{element_name}> carries a CSS escape this patrol cannot \
+                    "a {property} on <{element_name}> carries a CSS escape this patrol cannot \
                      read"
                 )));
             }
             if value.to_ascii_lowercase().contains("var(") {
                 return Err(CompileError::UnsupportedStroke(format!(
-                    "a stroke-width on <{element_name}> resolves through var(), an indirection \
+                    "a {property} on <{element_name}> resolves through var(), an indirection \
                      this patrol cannot follow"
                 )));
             }
@@ -3662,7 +3728,7 @@ fn patrol_stroke_width_units(el: HtmlElement<'_>, element_name: &str) -> Result<
         {
             if let Some(poison) = poisons_font_basis(&text) {
                 return Err(CompileError::UnsupportedStroke(format!(
-                    "a stroke-width in {unit} on <{element_name}> under an authored font-size \
+                    "a {property} in {unit} on <{element_name}> under an authored font-size \
                      carrying {poison} needs a basis this cascade does not have"
                 )));
             }
@@ -3682,7 +3748,7 @@ fn patrol_stroke_width_units(el: HtmlElement<'_>, element_name: &str) -> Result<
             }
             if let Some(poison) = stylesheet_font_size_poison(&sheet) {
                 return Err(CompileError::UnsupportedStroke(format!(
-                    "a stroke-width in {unit} on <{element_name}> under a stylesheet font-size \
+                    "a {property} in {unit} on <{element_name}> under a stylesheet font-size \
                      carrying {poison} needs a basis this cascade does not have"
                 )));
             }
@@ -3694,6 +3760,17 @@ fn patrol_stroke_width_units(el: HtmlElement<'_>, element_name: &str) -> Result<
         }
     }
     Ok(())
+}
+
+fn patrol_stroke_width_units(el: HtmlElement<'_>, element_name: &str) -> Result<(), CompileError> {
+    patrol_stroke_length_units(el, element_name, "stroke-width")
+}
+
+fn patrol_stroke_dasharray_units(
+    el: HtmlElement<'_>,
+    element_name: &str,
+) -> Result<(), CompileError> {
+    patrol_stroke_length_units(el, element_name, "stroke-dasharray")
 }
 
 /// Resolve the SVG stroke from the one cascade, as typed values — the same
@@ -3806,6 +3883,48 @@ fn resolve_stroke(
             },
         },
     };
+    if width == 0.0 {
+        return Ok(None);
+    }
+
+    // Computed values have already lost the authored unit and substitution
+    // provenance. Patrol every ingress before looking at the typed list: a
+    // basis-less unit or var() can compute to the empty initial value in this
+    // build while Chromium still paints a dash cycle, so `Values([])` is not
+    // permission to skip the authored-text guard.
+    patrol_stroke_dasharray_units(el, element_name)?;
+    let dash_intervals = match style.clone_stroke_dasharray() {
+        SVGStrokeDashArray::ContextValue => {
+            return Err(CompileError::UnsupportedStroke(
+                "stroke-dasharray: context-value".to_string(),
+            ));
+        }
+        SVGStrokeDashArray::Values(values) if values.is_empty() => None,
+        SVGStrokeDashArray::Values(values) => {
+            let mut intervals = Vec::with_capacity(values.len() * 2);
+            for value in values.iter() {
+                intervals.push(value.0.resolve(Length::new(bases.diagonal())).px());
+            }
+            if !intervals.len().is_multiple_of(2) {
+                intervals.extend_from_within(..);
+            }
+            match StrokeDashIntervals::new(intervals) {
+                Ok(intervals) => intervals,
+                Err(StrokeDashIntervalsError::UnrepresentableCycleLength) => {
+                    return Err(CompileError::UnsupportedStroke(
+                        "a stroke-dasharray cycle has a finite authored grammar but its \
+                         resolved total is not representable by this frame contract"
+                            .to_string(),
+                    ));
+                }
+                Err(error) => {
+                    return Err(CompileError::UnsupportedStroke(format!(
+                        "stroke-dasharray did not resolve to one checked cycle: {error}"
+                    )));
+                }
+            }
+        }
+    };
 
     let cap = match style.clone_stroke_linecap() {
         StyloLinecap::Butt => StrokeCap::Butt,
@@ -3828,7 +3947,7 @@ fn resolve_stroke(
 
     // The cascade's non-negative types make a rejection here unreachable from a
     // document, so it would be this compiler's bug — named, never painted.
-    Stroke::new(paints, width, cap, join, miter_limit)
+    Stroke::new_with_dash_intervals(paints, width, cap, join, miter_limit, dash_intervals)
         .map_err(|error| CompileError::UnsupportedStroke(error.to_string()))
 }
 

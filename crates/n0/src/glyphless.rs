@@ -521,8 +521,10 @@ fn compile_path(data: &rframe::PathData) -> Arc<ResolvedPathArtifact> {
 /// The contract's stroke is centred on the geometry, which is the only
 /// alignment a Web source can express; the engine's own vocabulary carries an
 /// alignment, so the projection names it rather than relying on a default.
-/// Width is uniform because a Web stroke has one width, and the dash array is
-/// absent because the producer refuses a dashed stroke.
+/// Width is uniform because a Web stroke has one width. A checked dash cycle
+/// crosses unchanged: its intervals are already even, finite, non-negative,
+/// positive-sum local-space distances, so the private painter has nothing to
+/// parse or resolve again.
 fn compile_stroke(stroke: &rframe::Stroke, unit_offset: Option<(f32, f32)>) -> Stroke {
     Stroke {
         paints: compile_paints(stroke.paints(), unit_offset),
@@ -539,7 +541,9 @@ fn compile_stroke(stroke: &rframe::Stroke, unit_offset: Option<(f32, f32)>) -> S
             rframe::StrokeJoin::Bevel => StrokeJoin::Bevel,
         },
         miter_limit: stroke.miter_limit(),
-        dash_array: None,
+        dash_array: stroke
+            .dash_intervals()
+            .map(|intervals| intervals.as_slice().to_vec()),
     }
 }
 
@@ -702,6 +706,39 @@ mod tests {
             .expect("test paints are visible ordinary solids")
     }
 
+    fn dashed_stroke(intervals: Vec<f32>, cap: rframe::StrokeCap) -> rframe::Stroke {
+        let intervals = rframe::StrokeDashIntervals::new(intervals)
+            .expect("test dash intervals are valid")
+            .expect("test dash cycle is present");
+        rframe::Stroke::new_with_dash_intervals(
+            PaintStack::solid(CGColor::BLACK),
+            8.0,
+            cap,
+            rframe::StrokeJoin::Miter,
+            4.0,
+            Some(intervals),
+        )
+        .expect("test stroke is valid")
+        .expect("test stroke paints")
+    }
+
+    fn dashed_node(owner: VisualRef, geometry: Geometry, intervals: Vec<f32>) -> FrameNode {
+        let bounds = geometry.local_box();
+        FrameNode {
+            owner,
+            transform: AffineTransform::identity(),
+            geometry,
+            bounds,
+            paints: PaintStack::empty(),
+            stroke: Some(dashed_stroke(intervals, rframe::StrokeCap::Round)),
+        }
+    }
+
+    fn rgba_at(pixels: &[u8], width: i32, x: i32, y: i32) -> [u8; 4] {
+        let offset = ((y * width + x) * 4) as usize;
+        pixels[offset..offset + 4].try_into().expect("RGBA pixel")
+    }
+
     fn base_node(paints: PaintStack) -> FrameNode {
         let rect = Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0);
         FrameNode {
@@ -848,6 +885,119 @@ mod tests {
         };
         assert_eq!(error.expected, ordinary.environment());
         assert_eq!(error.actual, other.environment_key());
+    }
+
+    /// The source-neutral seam copies a checked local-space cycle exactly; it
+    /// does not drop, repeat, scale, or otherwise reinterpret producer facts.
+    #[test]
+    fn resolved_dash_intervals_project_exactly_into_private_stroke_material() {
+        let mut node = base_node(PaintStack::empty());
+        node.stroke = Some(dashed_stroke(
+            vec![0.0, 8.0, 3.0, 0.0],
+            rframe::StrokeCap::Round,
+        ));
+        let product =
+            compile(frame_of(FrameItems::from_nodes(vec![node]))).expect("admitted dashed frame");
+        let ItemKind::RectStroke { stroke, .. } = &product.drawlist.items[1].kind else {
+            panic!("second item is the rectangle stroke");
+        };
+
+        assert_eq!(
+            stroke.dash_array.as_deref(),
+            Some(&[0.0, 8.0, 3.0, 0.0][..])
+        );
+        assert_eq!(stroke.cap, StrokeCap::Round);
+        assert_eq!(stroke.width, StrokeWidth::Uniform(8.0));
+    }
+
+    /// Changing only the resolved dash cycle changes the private draw item and
+    /// therefore participates in the complete-frame damage policy.
+    #[test]
+    fn resolved_dash_intervals_participate_in_frame_damage() {
+        let scene = |intervals| {
+            let node = dashed_node(
+                RECT_OWNER,
+                Geometry::Rect(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0)),
+                intervals,
+            );
+            compile(frame_of(FrameItems::from_nodes(vec![node]))).expect("admitted dashed frame")
+        };
+        let before = scene(vec![4.0, 4.0]);
+        let after = scene(vec![8.0, 8.0]);
+
+        assert_eq!(diff_frame(&before, &after).changed, vec![RECT_OWNER]);
+        assert!(diff_frame(&before, &before).is_empty());
+    }
+
+    /// A closed ellipse has no ends only while its stroke is solid. The zero
+    /// painted slots in this cycle are visible round dots, so the solid-only
+    /// cap normalization must leave the authored cap intact.
+    #[test]
+    fn round_zero_length_dashes_survive_closed_ellipse_cap_normalization() {
+        let node = dashed_node(
+            RECT_OWNER,
+            Geometry::Ellipse(Rectangle::from_xywh(16.0, 8.0, 32.0, 32.0)),
+            vec![0.0, 16.0],
+        );
+        let product = compile(frame_of(FrameItems::from_nodes(vec![node])))
+            .expect("admitted dashed ellipse frame");
+        let context = PaintCtx::new(None);
+        let neutral_view = AffineTransform::identity();
+        let pixels = product
+            .raster_to_bytes(&neutral_view, 64, 48, &context)
+            .expect("resource-free dashed ellipse raster");
+
+        assert_eq!(
+            rgba_at(&pixels, 64, 48, 24),
+            [0, 0, 0, 255],
+            "the zero-length dash at the oval origin is a round dot"
+        );
+        assert_eq!(
+            rgba_at(&pixels, 64, 32, 24),
+            [255, 255, 255, 255],
+            "the unfilled oval center stays at the clear color"
+        );
+        assert_eq!(
+            pixels,
+            product
+                .raster_to_bytes(&neutral_view, 64, 48, &context)
+                .expect("deterministic repeat")
+        );
+    }
+
+    /// The path arm shares the same solid-only normalization but is a distinct
+    /// painter route. Pin its closed-contour zero-length dash independently.
+    #[test]
+    fn round_zero_length_dashes_survive_closed_path_cap_normalization() {
+        let path = rframe::PathData::new(
+            vec![
+                rframe::PathCommand::MoveTo { x: 12.0, y: 8.0 },
+                rframe::PathCommand::LineTo { x: 44.0, y: 8.0 },
+                rframe::PathCommand::LineTo { x: 44.0, y: 40.0 },
+                rframe::PathCommand::LineTo { x: 12.0, y: 40.0 },
+                rframe::PathCommand::Close,
+            ],
+            rframe::FillRule::NonZero,
+        )
+        .expect("test path is valid");
+        let node = dashed_node(RECT_OWNER, Geometry::Path(Arc::new(path)), vec![0.0, 16.0]);
+        let product = compile(frame_of(FrameItems::from_nodes(vec![node])))
+            .expect("admitted dashed path frame");
+        let context = PaintCtx::new(None);
+        let pixels = product
+            .raster_to_bytes(&AffineTransform::identity(), 64, 48, &context)
+            .expect("resource-free dashed path raster");
+
+        assert_eq!(
+            rgba_at(&pixels, 64, 12, 8),
+            [0, 0, 0, 255],
+            "the zero-length dash at the path origin is a round dot"
+        );
+        assert_eq!(
+            rgba_at(&pixels, 64, 20, 8),
+            [255, 255, 255, 255],
+            "the midpoint of the following gap stays clear"
+        );
     }
 
     #[test]

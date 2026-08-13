@@ -194,7 +194,7 @@ fn a_root_display_none_splits_by_entry() {
 #[test]
 fn hidden_elements_do_not_false_alarm_on_unconsumed_properties() {
     let hidden = admit_both(&document(
-        r##"  <rect x="8" y="8" width="24" height="24" fill="#16a34a" stroke="#000000" visibility="hidden" style="stroke-dasharray: 4 4"/>"##,
+        r##"  <rect x="8" y="8" width="24" height="24" fill="#16a34a" visibility="hidden" style="stroke: context-fill; stroke-width: 4"/>"##,
     ));
     assert_eq!(
         hidden.nodes().len(),
@@ -204,7 +204,7 @@ fn hidden_elements_do_not_false_alarm_on_unconsumed_properties() {
 
     SvgFrameSource::from_standalone_svg(
         document(
-            r##"  <rect x="8" y="8" width="24" height="24" fill="#16a34a" stroke="#000000" style="stroke-dasharray: 4 4"/>"##,
+            r##"  <rect x="8" y="8" width="24" height="24" fill="#16a34a" style="stroke: context-fill; stroke-width: 4"/>"##,
         ),
         viewport(),
     )
