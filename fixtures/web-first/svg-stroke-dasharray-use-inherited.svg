@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs><path id="dash-source" d="M4 32 H60" fill="none"/></defs>
+  <use href="#dash-source" stroke="#000000" stroke-width="8" stroke-dasharray="8 4"/>
+</svg>
