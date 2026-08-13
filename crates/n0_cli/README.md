@@ -105,7 +105,7 @@ cargo run -p n0_cli --bin n0 -- \
   `calc()`/`min()`, precedence, and fallback claims are Chromium-baked
   cells; the remaining absolute units are pinned by the strokes contract
   against the same cascade constants (`6pt ≡ 8px` measured). Its
-  cap, join and miter limit come from the one cascade; dashing does not.
+  cap, join and miter limit come from the one cascade.
   A width whose basis this cascade lacks (viewport-, container-, and
   font-metric-relative units, root-relative twins included), a `calc()`
   mixing lengths and percentages, a font-size that would poison the `em`
@@ -113,6 +113,23 @@ cargo run -p n0_cli --bin n0 -- \
   indirection and CSS escapes — all refuse by name. The SVG2-only
   join values `miter-clip` and `arcs` drop as invalid declarations exactly
   as Chromium drops them (measured, celled) — an agreement, not a hole.
+  `stroke-dasharray` is consumed in both spellings from that same cascade:
+  numbers/lengths/percentages, comma or whitespace separators, CSS math,
+  odd-list repetition, inheritance through containers and `<use>`, and
+  author-over-hint precedence resolve to one checked even cycle in local
+  user-space distance. Every admitted geometry receives it, every contour
+  restarts at phase zero, and transforms scale the resolved cycle with the
+  geometry. `none`, an all-zero list, and an invalid negative list retain
+  Chromium's solid fallback; zero painted intervals remain meaningful under
+  round/square caps, including on closed contours. These claims are covered by
+  25 Chromium-baked cells. The named remainder is exact: `stroke-dashoffset`
+  (both spellings) and `pathLength` calibration remain refused because the
+  frame contract is zero-phase and uncalibrated; dash lengths with the same
+  untrustworthy basis/provenance classes as width refuse; and a list of finite
+  intervals whose f32 cycle sum overflows refuses before the frame boundary.
+  Chromium honors that last in-grammar magnitude class (measured, not celled),
+  so the checklist twins remain an explicit split even though the capability
+  slice renders the committed grammar cells.
   The stroke's `<paint>` grammar is celled: hex and named colours,
   `currentColor` against the `color` hint, `none` (the initial — an
   invalid paint drops to it), and the full `url() [none | <color>]?`
