@@ -4,7 +4,7 @@
   "browser_version": "149.0.7827.55",
   "bake_script_sha256": "373cbea5476067163b6f8ebfc90eb49b7f49ae7758be0916d34db906399e1d5e",
   "suite": "primitives.json",
-  "suite_sha256": "df09af29423bb697b33c35bfc876a0dbb5c014428653ea72cdc5096a97f2ae86",
+  "suite_sha256": "e792f6de71eb311a8270f63d09d46dfdad3de0b0aef447a0514643c280f510b4",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -1203,6 +1203,42 @@
       "source_sha256": "2bf9eeb7970f2fbda539cc7781190c322223d2328b77cf17948e9df2d986fabf",
       "oracle": "chromium/svg-stroke-cap-closed-square.png",
       "oracle_sha256": "13ff1662dd630d4132d2e5887694f370aa24ff8bfd61c98d59e9a9cc4331c8e0",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-cap-css-butt",
+      "source": "svg-stroke-cap-css-butt.svg",
+      "source_sha256": "4b7f3ac12c2669b21b6beacbf45393a8217597642f172c4161debab2f01163f6",
+      "oracle": "chromium/svg-stroke-cap-css-butt.png",
+      "oracle_sha256": "592e6b5cd116148f4b52d373d9a918294e6e74a297c35b30d7fcdde2f4099474",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-cap-css-over-attr",
+      "source": "svg-stroke-cap-css-over-attr.svg",
+      "source_sha256": "b9fc173caccc0f7afcec24caf05dc4bb4facc8639286479232239c7a1e0fae96",
+      "oracle": "chromium/svg-stroke-cap-css-over-attr.png",
+      "oracle_sha256": "5968b74bf5068a02cafcf2cc68b67b1ba084037c821bc01b6b66f6f251ebffcb",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-cap-css-round",
+      "source": "svg-stroke-cap-css-round.svg",
+      "source_sha256": "e1da53953953a984536a2d5cccc80ed9114c0e26bb6087f1ae3b5ce607575617",
+      "oracle": "chromium/svg-stroke-cap-css-round.png",
+      "oracle_sha256": "97f9db96b9f43538841997ea8432058f23262176b061a6bdc53eed7fcac07a5b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-cap-css-square",
+      "source": "svg-stroke-cap-css-square.svg",
+      "source_sha256": "a5e74dbecb84a41093ad0323417d1cd5c48cbb3668f086306baaf6d2afe555fe",
+      "oracle": "chromium/svg-stroke-cap-css-square.png",
+      "oracle_sha256": "5968b74bf5068a02cafcf2cc68b67b1ba084037c821bc01b6b66f6f251ebffcb",
       "width": 64,
       "height": 64
     },

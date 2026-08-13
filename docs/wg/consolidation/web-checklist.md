@@ -968,7 +968,7 @@ excluded.
 - [x] `stroke-opacity`
 - [ ] `stroke-dasharray`
 - [ ] `stroke-dashoffset`
-- [ ] `stroke-linecap`
+- [x] `stroke-linecap`
 - [x] `stroke-linejoin`
 - [x] `stroke-miterlimit`
 - [ ] `marker`
@@ -1474,7 +1474,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `stroke`
 - [ ] `stroke-dasharray`
 - [ ] `stroke-dashoffset`
-- [ ] `stroke-linecap`
+- [x] `stroke-linecap`
 - [x] `stroke-linejoin`
 - [x] `stroke-miterlimit`
 - [x] `stroke-opacity`

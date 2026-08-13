@@ -1138,6 +1138,38 @@
       "height": 64
     },
     {
+      "id": "svg-stroke-cap-css-butt",
+      "source": "svg-stroke-cap-css-butt.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-cap-css-butt.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-cap-css-over-attr",
+      "source": "svg-stroke-cap-css-over-attr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-cap-css-over-attr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-cap-css-round",
+      "source": "svg-stroke-cap-css-round.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-cap-css-round.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-cap-css-square",
+      "source": "svg-stroke-cap-css-square.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-cap-css-square.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-stroke-cap-ellipse-round",
       "source": "svg-stroke-cap-ellipse-round.svg",
       "entry": "standalone-svg",
