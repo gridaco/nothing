@@ -97,8 +97,20 @@ cargo run -p n0_cli --bin n0 -- \
   subtree, which the flattened tree cannot express), an external
   reference, authored element children, a `<symbol>`/nested-`<svg>`
   target, and reference chains beyond the expansion budget.
-  A stroke is centred, its width is a cascaded length, and its cap, join and
-  miter limit come from the one cascade; dashing does not. The SVG2-only
+  A stroke is centred, its width is a cascaded length in either spelling —
+  numbers, absolute units, `em`/`rem` against an authored or default
+  font-size, percentages against the normalized diagonal, and pure-length
+  `calc()`/`min()`; the CSS property beats the attribute and an invalid
+  declaration drops so the attribute survives. The `px`, `em`, `rem`, percentage,
+  `calc()`/`min()`, precedence, and fallback claims are Chromium-baked
+  cells; the remaining absolute units are pinned by the strokes contract
+  against the same cascade constants (`6pt ≡ 8px` measured). Its
+  cap, join and miter limit come from the one cascade; dashing does not.
+  A width whose basis this cascade lacks (viewport-, container-, and
+  font-metric-relative units, root-relative twins included), a `calc()`
+  mixing lengths and percentages, a font-size that would poison the `em`
+  basis, and the spellings the authored-text patrol cannot read — `var()`
+  indirection and CSS escapes — all refuse by name. The SVG2-only
   join values `miter-clip` and `arcs` drop as invalid declarations exactly
   as Chromium drops them (measured, celled) — an agreement, not a hole.
   Paint is solid

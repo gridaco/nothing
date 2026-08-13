@@ -1247,6 +1247,41 @@ fn stylesheet_stroke_width_unit(css: &str) -> Option<&'static str> {
         .find_map(|(_, value)| has_unit_without_a_basis(value))
 }
 
+/// Whether a sheet declares a `stroke-width` through `var()` — an indirection
+/// the unit scan above cannot follow (measured: `--w: 1vw` substituted to a
+/// silent 12.8 where Chromium paints 0.64).
+fn stylesheet_stroke_width_var(css: &str) -> bool {
+    let css = strip_css_comments(css);
+    css.split([';', '{', '}'])
+        .filter_map(|chunk| chunk.split_once(':'))
+        .filter(|(name, _)| trim_svg_whitespace(name).eq_ignore_ascii_case("stroke-width"))
+        .any(|(_, value)| value.to_ascii_lowercase().contains("var("))
+}
+
+/// Whether a sheet declares a `stroke-width` in `em`/`rem` — admitted units
+/// whose basis is the cascaded `font-size`, which must then be trustworthy
+/// everywhere (see [`poisons_font_basis`]).
+fn stylesheet_stroke_width_font_relative(css: &str) -> Option<&'static str> {
+    let css = strip_css_comments(css);
+    css.split([';', '{', '}'])
+        .filter_map(|chunk| chunk.split_once(':'))
+        .filter(|(name, _)| trim_svg_whitespace(name).eq_ignore_ascii_case("stroke-width"))
+        .find_map(|(_, value)| has_font_relative_unit(value))
+}
+
+/// Whether a sheet's `font-size` (or `font` shorthand) declaration would set
+/// an `em` basis this build cannot reproduce.
+fn stylesheet_font_size_poison(css: &str) -> Option<&'static str> {
+    let css = strip_css_comments(css);
+    css.split([';', '{', '}'])
+        .filter_map(|chunk| chunk.split_once(':'))
+        .filter(|(name, _)| {
+            let name = trim_svg_whitespace(name);
+            name.eq_ignore_ascii_case("font-size") || name.eq_ignore_ascii_case("font")
+        })
+        .find_map(|(_, value)| poisons_font_basis(value))
+}
+
 /// Remove `/* … */` comments so a property name split by one becomes
 /// contiguous, exactly as it is to the CSS tokenizer. An unterminated comment
 /// runs to the end of the fragment, which is also what CSS says.
@@ -1312,6 +1347,12 @@ fn patrol_style_attribute(
 /// listed property (measured). Whatever is in force is what must be patrolled.
 fn stylesheet_findings(root: HtmlElement<'_>) -> Vec<(String, String)> {
     let mut found = Vec::new();
+    // A sheet can declare a stroke-width in `em`/`rem` — an admitted unit whose
+    // font-size basis may be poisoned anywhere: in the same sheet, another
+    // sheet, or an element's own attributes. The walk visits all of them, so
+    // both halves are collected and judged after it.
+    let mut sheet_font_relative: Option<(&'static str, String)> = None;
+    let mut font_poison: Option<&'static str> = None;
     let mut stack = vec![(root, root.local_name_string())];
     while let Some((element, path)) = stack.pop() {
         if element.local_name_string() == "style" {
@@ -1320,6 +1361,17 @@ fn stylesheet_findings(root: HtmlElement<'_>) -> Vec<(String, String)> {
                 if let DemoNodeData::Text(text) = &element.dom().node(*child_id).data {
                     sheet.push_str(text);
                 }
+            }
+            if sheet.contains('\\') {
+                // An escape can hide a property name or a unit from every scan
+                // below (`1\76 w` is `1vw` to the tokenizer) — measured painting
+                // a silent 12.8 before this finding existed.
+                found.push((
+                    "a stylesheet carries a CSS escape these patrols cannot read; its \
+                     declarations cannot be checked by name"
+                        .to_string(),
+                    path.clone(),
+                ));
             }
             if let Some(property) = unrepresented_property(&sheet) {
                 found.push((
@@ -1340,6 +1392,37 @@ fn stylesheet_findings(root: HtmlElement<'_>) -> Vec<(String, String)> {
                     path.clone(),
                 ));
             }
+            if stylesheet_stroke_width_var(&sheet) {
+                found.push((
+                    "a stylesheet declares a stroke-width through var(), an indirection this \
+                     patrol cannot follow; elements it matches may render at the wrong width"
+                        .to_string(),
+                    path.clone(),
+                ));
+            }
+            if sheet_font_relative.is_none()
+                && let Some(unit) = stylesheet_stroke_width_font_relative(&sheet)
+            {
+                sheet_font_relative = Some((unit, path.clone()));
+            }
+            if font_poison.is_none() {
+                font_poison = stylesheet_font_size_poison(&sheet);
+            }
+        }
+        if font_poison.is_none() {
+            for text in [
+                get_attr(element, "font-size"),
+                get_attr(element, "style")
+                    .filter(|style| style.to_ascii_lowercase().contains("font")),
+            ]
+            .into_iter()
+            .flatten()
+            {
+                font_poison = poisons_font_basis(&text);
+                if font_poison.is_some() {
+                    break;
+                }
+            }
         }
         let mut ordinals = HashMap::<String, usize>::new();
         let mut children = Vec::new();
@@ -1353,6 +1436,16 @@ fn stylesheet_findings(root: HtmlElement<'_>) -> Vec<(String, String)> {
         }
         // Depth-first in document order: the stack pops in reverse.
         stack.extend(children.into_iter().rev());
+    }
+    if let (Some((unit, path)), Some(poison)) = (sheet_font_relative, font_poison) {
+        found.push((
+            format!(
+                "a stylesheet declares a stroke-width in {unit} while an authored font-size \
+                 carries {poison}; the em basis cannot be trusted and elements it matches may \
+                 render at the wrong width"
+            ),
+            path,
+        ));
     }
     found
 }
@@ -3363,19 +3456,30 @@ fn resolve_paint_server_stack(
 ///   twentyfold error, and silent. Threading the document's real viewport into
 ///   the cascade's device is the honest fix and its own rung (it moves media
 ///   queries too); until then this refuses by name.
-/// - **Font-metric** (`ex`/`ch`/`ic`/`cap`/`lh`/`rlh`). The cascade's font
-///   provider returns placeholder metrics (x-height = half the font size), not
-///   measured ones: Chromium paints a `1ex` stroke 7.18 units wide where this
-///   build computes 8.0. `ch` agreeing today is an accident of the default
-///   font, not a property this engine holds.
+/// - **Font-metric** (`ex`/`ch`/`ic`/`cap`/`lh`/`rlh`, and their root-relative
+///   twins `rex`/`rch`/`ric`/`rcap`). The cascade's font provider returns
+///   placeholder metrics (x-height = half the font size), not measured ones:
+///   Chromium paints a `1ex` stroke 7.18 units wide where this build computes
+///   8.0, and `1rex` is the same measurement against the root. `ch` and `ric`
+///   agreeing today is an accident of the default font, not a property this
+///   engine holds, so the whole family refuses.
+/// - **Container-query** (`cqw`/`cqh`/`cqi`/`cqb`/`cqmin`/`cqmax`). The pinned
+///   Stylo drops these as invalid declarations — the computed value falls to
+///   the initial 1 — where Chromium resolves them against the small-viewport
+///   fallback (measured: `12.5cqw` on a 64x64 document paints 8). A different
+///   failure shape from the device pin, the same silent divergence, the same
+///   refusal.
 ///
 /// `em` and `rem` are deliberately absent: they resolve against `font-size`,
 /// which this build represents and which csscascade now admits as a
-/// presentation attribute, so both are measured byte-exact.
+/// presentation attribute, so both are measured byte-exact — *provided* the
+/// font-size that set the basis is itself trustworthy, which
+/// [`poisons_font_basis`] patrols.
 const LENGTH_UNITS_WITHOUT_A_BASIS: &[&str] = &[
     "vw", "vh", "vmin", "vmax", "vi", "vb", "svw", "svh", "svmin", "svmax", "svi", "svb", "lvw",
     "lvh", "lvmin", "lvmax", "lvi", "lvb", "dvw", "dvh", "dvmin", "dvmax", "dvi", "dvb", "ex",
-    "ch", "ic", "cap", "lh", "rlh",
+    "rex", "ch", "rch", "ic", "ric", "cap", "rcap", "lh", "rlh", "cqw", "cqh", "cqi", "cqb",
+    "cqmin", "cqmax",
 ];
 
 /// Whether an authored length carries a unit whose basis this build lacks.
@@ -3406,6 +3510,52 @@ fn has_unit_without_a_basis(value: &str) -> Option<&'static str> {
     None
 }
 
+/// Whether an authored length carries `em` or `rem` — the two font-relative
+/// units the admitted grammar resolves, whose basis is only as trustworthy as
+/// the `font-size` that set it. Same token scan as
+/// [`has_unit_without_a_basis`]; `0.5rem` never false-matches `em` because the
+/// `e` is preceded by `r`, not a digit.
+fn has_font_relative_unit(value: &str) -> Option<&'static str> {
+    let lower = value.to_ascii_lowercase();
+    let bytes = lower.as_bytes();
+    for unit in ["em", "rem"] {
+        let mut from = 0;
+        while let Some(offset) = lower[from..].find(unit) {
+            let start = from + offset;
+            let end = start + unit.len();
+            let preceded_by_number =
+                start > 0 && (bytes[start - 1].is_ascii_digit() || bytes[start - 1] == b'.');
+            let ends_the_token = bytes
+                .get(end)
+                .is_none_or(|byte| !byte.is_ascii_alphanumeric() && *byte != b'-');
+            if preceded_by_number && ends_the_token {
+                return Some(unit);
+            }
+            from = start + 1;
+        }
+    }
+    None
+}
+
+/// Whether authored `font-size`-bearing text would set an `em` basis this
+/// patrol cannot vouch for: a basis-less unit (the device pin, measured
+/// twentyfold wrong), `var()` indirection (the unit hides in a custom
+/// property), or a CSS escape (the unit hides in the tokenizer). All three
+/// were measured painting a wrong width silently before this scan.
+fn poisons_font_basis(text: &str) -> Option<&'static str> {
+    if let Some(unit) = has_unit_without_a_basis(text) {
+        return Some(unit);
+    }
+    let lower = text.to_ascii_lowercase();
+    if lower.contains("var(") {
+        return Some("var()");
+    }
+    if lower.contains('\\') {
+        return Some("a CSS escape");
+    }
+    None
+}
+
 /// Patrol every *attributable* ingress an authored `stroke-width` can arrive
 /// through for a unit whose basis this build lacks: the presentation attribute,
 /// the element's `style` attribute, and — because the property inherits — the
@@ -3426,9 +3576,42 @@ fn has_unit_without_a_basis(value: &str) -> Option<&'static str> {
 /// Both legs read the authored text coarsely — the `style` attribute is scanned
 /// whole, so a basis-less unit belonging to some other property in the same
 /// block refuses this element too. Over-refusal, never wrong pixels.
+///
+/// Three spellings can hide a unit from a text scan, and each was measured
+/// painting a silently wrong width before it was refused here:
+///
+/// - **`var()` indirection**: the unit lives in a custom property
+///   (`--w: 1vw; stroke-width: var(--w)` painted 12.8 where Chromium paints
+///   0.64). Which declaration feeds the substitution is a resolver question,
+///   not a patrol question, so any `var(` in stroke-width-bearing text refuses
+///   — including a `var()` that would have resolved to an honest length.
+/// - **CSS escapes**: `1\76 w` is `1vw` to the tokenizer and nothing to this
+///   scan (measured: the same 12.8), and an escape can hide the property name
+///   as well as the unit — so any escape in a `style` attribute in scope, or
+///   in the stroke-width attribute's own value, refuses.
+/// - **a poisoned `em` basis**: `em`/`rem` are admitted because `font-size` is
+///   a basis this cascade has — but `font-size: 2vw` under a `stroke-width`
+///   in `1em` painted 25.6 where Chromium paints 1.28. When the walk finds a
+///   font-relative stroke-width, every authored `font-size` in scope — the
+///   presentation attribute, `font`-bearing style attributes, and every
+///   `<style>` sheet (a sheet is not attributable, so it is reached by a
+///   descent from the root) — must pass [`poisons_font_basis`].
 fn patrol_stroke_width_units(el: HtmlElement<'_>, element_name: &str) -> Result<(), CompileError> {
+    let mut font_relative: Option<&'static str> = None;
+    let mut root = el;
     let mut ancestor = Some(el);
     while let Some(element) = ancestor {
+        // An escape can hide the property name itself (`stroke-\77idth`), so
+        // this check runs on every style attribute in scope, before the
+        // stroke-width-bearing filter below could be fooled into skipping one.
+        if let Some(style) = get_attr(element, "style")
+            && style.contains('\\')
+        {
+            return Err(CompileError::UnsupportedStroke(format!(
+                "a style attribute in scope of <{element_name}> carries a CSS escape this \
+                 stroke-width patrol cannot read"
+            )));
+        }
         for value in [
             get_attr(element, "stroke-width"),
             get_attr(element, "style")
@@ -3443,8 +3626,72 @@ fn patrol_stroke_width_units(el: HtmlElement<'_>, element_name: &str) -> Result<
                      not have"
                 )));
             }
+            if value.contains('\\') {
+                return Err(CompileError::UnsupportedStroke(format!(
+                    "a stroke-width on <{element_name}> carries a CSS escape this patrol cannot \
+                     read"
+                )));
+            }
+            if value.to_ascii_lowercase().contains("var(") {
+                return Err(CompileError::UnsupportedStroke(format!(
+                    "a stroke-width on <{element_name}> resolves through var(), an indirection \
+                     this patrol cannot follow"
+                )));
+            }
+            if font_relative.is_none() {
+                font_relative = has_font_relative_unit(&value);
+            }
+        }
+        root = element;
+        ancestor = element.traversal_parent();
+    }
+
+    let Some(unit) = font_relative else {
+        return Ok(());
+    };
+    // The em basis is the cascaded font-size: first the attributable
+    // spellings on the ancestor chain…
+    let mut ancestor = Some(el);
+    while let Some(element) = ancestor {
+        for text in [
+            get_attr(element, "font-size"),
+            get_attr(element, "style").filter(|style| style.to_ascii_lowercase().contains("font")),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            if let Some(poison) = poisons_font_basis(&text) {
+                return Err(CompileError::UnsupportedStroke(format!(
+                    "a stroke-width in {unit} on <{element_name}> under an authored font-size \
+                     carrying {poison} needs a basis this cascade does not have"
+                )));
+            }
         }
         ancestor = element.traversal_parent();
+    }
+    // …then every sheet, which can match any ancestor without being
+    // attributable to one.
+    let mut stack = vec![root];
+    while let Some(element) = stack.pop() {
+        if element.local_name_string() == "style" {
+            let mut sheet = String::new();
+            for child_id in &element.dom_node().children {
+                if let DemoNodeData::Text(text) = &element.dom().node(*child_id).data {
+                    sheet.push_str(text);
+                }
+            }
+            if let Some(poison) = stylesheet_font_size_poison(&sheet) {
+                return Err(CompileError::UnsupportedStroke(format!(
+                    "a stroke-width in {unit} on <{element_name}> under a stylesheet font-size \
+                     carrying {poison} needs a basis this cascade does not have"
+                )));
+            }
+        }
+        let mut child = element.first_element_child();
+        while let Some(c) = child {
+            stack.push(c);
+            child = c.next_element_sibling();
+        }
     }
     Ok(())
 }

@@ -1455,6 +1455,94 @@
       "height": 64
     },
     {
+      "id": "svg-stroke-width-calc",
+      "source": "svg-stroke-width-calc.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-width-calc.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-css",
+      "source": "svg-stroke-width-css.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-width-css.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-css-calc",
+      "source": "svg-stroke-width-css-calc.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-width-css-calc.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-css-invalid-falls-back",
+      "source": "svg-stroke-width-css-invalid-falls-back.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-width-css-invalid-falls-back.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-css-min",
+      "source": "svg-stroke-width-css-min.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-width-css-min.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-css-over-attr",
+      "source": "svg-stroke-width-css-over-attr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-width-css-over-attr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-css-percent",
+      "source": "svg-stroke-width-css-percent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-width-css-percent.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-css-unitless",
+      "source": "svg-stroke-width-css-unitless.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-width-css-unitless.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-em-font-size",
+      "source": "svg-stroke-width-em-font-size.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-width-em-font-size.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-px",
+      "source": "svg-stroke-width-px.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-width-px.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-rem",
+      "source": "svg-stroke-width-rem.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-width-rem.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-stroke-zero-extent-rect",
       "source": "svg-stroke-zero-extent-rect.svg",
       "entry": "standalone-svg",
