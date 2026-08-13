@@ -1446,3 +1446,46 @@ a solid stroke. That is gridaco/nothing#81's exact split condition. The cells
 land, but both `stroke-dasharray` checklist rows remain unchecked until a
 representability rung closes the measured, registered remainder. No record
 claims the rows ahead of that evidence.
+
+## Ratified amendment — context paint resolves before the frame (2026-08-13)
+
+The resolved render contract does not gain a context-paint value. The owner
+ratified this fifth contract amendment by authorizing the full context-paint
+arc after its recursion and reference-box scope was stated. A context paint is
+a source relationship, not a visual fact: it selects another element's fill or
+stroke, while the frame states only the eventual no-paint, solid, linear-ramp,
+or radial-ramp result. The relationship must therefore finish before the
+resolved boundary, and no context element, use chain, paint-server reference,
+or reference-box provenance may cross it.
+
+The selection rule is exact. Without a context element, either context keyword
+selects no paint. Inside an instantiated subtree, the immediate use element is
+the next context: `context-fill` selects its computed fill and
+`context-stroke` selects its computed stroke. A selected context keyword
+repeats that step. Selection ends at the first ordinary paint value or at no
+paint. The paint's own colour alpha belongs to the selected paint; fill and
+stroke opacity remain separately inherited properties and are not copied as
+part of context selection.
+
+A selected paint server keeps the coordinate space and reference box of the
+context element that authored that eventual server value. An intermediate use
+whose own paint is another context keyword does not take ownership of the
+server's box. Before the resolved frame is stated, the selected ramp is rebased
+from that context space into each destination geometry's self-contained paint
+facts. Object-bounding-box and user-space ramps therefore remain continuous
+across differently transformed descendants without asking the consumer to
+recover an instance relation. The context box contains geometry hidden by
+visibility or zero opacity, but excludes a display-pruned subtree.
+
+The amendment is deliberately no wider than the resolved paint vocabulary.
+Patterns, images, and external resources remain inexpressible even when a
+context relation selects them; source handling must refuse them by their own
+names rather than disguise them as context-paint failures. Marker context is a
+separate applicability rung. A source parser's extension that permits a
+fallback after a context keyword is likewise not admitted: the standard-track
+paint grammar permits a fallback only after a URL, and the Chromium oracle
+drops the extended declaration.
+
+This is a contract-first amendment. It authorizes a producer to emit an
+already selected and rebased paint through the existing resolved vocabulary;
+it does not claim that the producer, cells, or checklist rows have landed.

@@ -125,3 +125,15 @@ fn the_contract_carries_no_resource_reference() {
          own image evidence, by its own registered decision",
     );
 }
+
+/// Context paint is a producer-side selection relation, not a resolved render
+/// fact. A producer may emit the eventual source-free no-paint, solid, or
+/// gradient result, but the relationship itself cannot grow a contract variant.
+#[test]
+fn the_contract_carries_no_context_paint_relation() {
+    assert_source_free_of(
+        &["ContextPaint", "ContextFill", "ContextStroke"],
+        "context paint must be selected and fully rebased by the producer; the \
+         resolved frame carries only its eventual source-free paint fact",
+    );
+}
