@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (202)
+## Chromium-baked cells (206)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells and two gradient ramps carry a declared, bounded
@@ -160,6 +160,10 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-stroke-cap-closed-butt.svg" title="svg-stroke-cap-closed-butt (standalone-svg)"><img src="./chromium/svg-stroke-cap-closed-butt.png" width="56" alt="svg-stroke-cap-closed-butt"></a>
 <a href="./svg-stroke-cap-closed-round.svg" title="svg-stroke-cap-closed-round (standalone-svg)"><img src="./chromium/svg-stroke-cap-closed-round.png" width="56" alt="svg-stroke-cap-closed-round"></a>
 <a href="./svg-stroke-cap-closed-square.svg" title="svg-stroke-cap-closed-square (standalone-svg)"><img src="./chromium/svg-stroke-cap-closed-square.png" width="56" alt="svg-stroke-cap-closed-square"></a>
+<a href="./svg-stroke-cap-css-butt.svg" title="svg-stroke-cap-css-butt (standalone-svg)"><img src="./chromium/svg-stroke-cap-css-butt.png" width="56" alt="svg-stroke-cap-css-butt"></a>
+<a href="./svg-stroke-cap-css-over-attr.svg" title="svg-stroke-cap-css-over-attr (standalone-svg)"><img src="./chromium/svg-stroke-cap-css-over-attr.png" width="56" alt="svg-stroke-cap-css-over-attr"></a>
+<a href="./svg-stroke-cap-css-round.svg" title="svg-stroke-cap-css-round (standalone-svg)"><img src="./chromium/svg-stroke-cap-css-round.png" width="56" alt="svg-stroke-cap-css-round"></a>
+<a href="./svg-stroke-cap-css-square.svg" title="svg-stroke-cap-css-square (standalone-svg)"><img src="./chromium/svg-stroke-cap-css-square.png" width="56" alt="svg-stroke-cap-css-square"></a>
 <a href="./svg-stroke-cap-ellipse-round.svg" title="svg-stroke-cap-ellipse-round (standalone-svg)"><img src="./chromium/svg-stroke-cap-ellipse-round.png" width="56" alt="svg-stroke-cap-ellipse-round"></a>
 <a href="./svg-stroke-cap-ellipse-square.svg" title="svg-stroke-cap-ellipse-square (standalone-svg)"><img src="./chromium/svg-stroke-cap-ellipse-square.png" width="56" alt="svg-stroke-cap-ellipse-square"></a>
 <a href="./svg-stroke-cap-round.svg" title="svg-stroke-cap-round (standalone-svg)"><img src="./chromium/svg-stroke-cap-round.png" width="56" alt="svg-stroke-cap-round"></a>
