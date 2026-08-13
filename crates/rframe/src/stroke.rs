@@ -1,8 +1,8 @@
 //! The resolved stroke — a second painted fact per node, beside the fill.
 //!
 //! A stroke is carried, not derived: the producer resolves the paint, the width
-//! in the node's local space, and the three shapes a corner or an end can take,
-//! and the consumer paints exactly that.
+//! in the node's local space, the three shapes a corner or an end can take, and
+//! an optional dash-interval cycle, and the consumer paints exactly that.
 //!
 //! **Centred, with no alignment field.** A Web stroke straddles its geometry:
 //! half the width falls inside the outline and half outside. That is the only
@@ -22,7 +22,9 @@
 //! is `None` whenever nothing would be drawn and no consumer re-derives that.
 //! It errors only for a value no stroke can have: a negative or non-finite
 //! width, a negative or non-finite miter limit, or a reach that cannot be
-//! represented.
+//! represented. A butt-capped dash cycle whose painted intervals are all zero
+//! is invisible too; round and square caps can paint dots at those same
+//! zero-length intervals, so those strokes remain present.
 
 use crate::frame::PaintStack;
 
@@ -49,6 +51,118 @@ pub enum StrokeJoin {
     Round,
     /// Cut the corner off straight.
     Bevel,
+}
+
+/// Why an interval sequence is not one resolved stroke dash cycle.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StrokeDashIntervalsError {
+    /// A present cycle must contain at least one painted-gap pair. Absence,
+    /// rather than an empty present value, states a solid stroke.
+    Empty,
+    /// A resolved cycle contains complete painted-gap pairs. Repetition of an
+    /// odd authored list belongs to the producer and has already happened.
+    OddIntervalCount { count: usize },
+    /// Every interval is a finite local-space distance.
+    NonFiniteInterval { index: usize },
+    /// Every interval is non-negative. Zero-length intervals remain
+    /// meaningful under round and square caps.
+    NegativeInterval { index: usize },
+    /// The intervals are individually finite, but their sum is not finite in
+    /// `f32`, so a consumer could not represent the repeating cycle.
+    UnrepresentableCycleLength,
+}
+
+impl std::fmt::Display for StrokeDashIntervalsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StrokeDashIntervalsError::Empty => {
+                f.write_str("resolved stroke dash intervals must not be empty")
+            }
+            StrokeDashIntervalsError::OddIntervalCount { count } => write!(
+                f,
+                "resolved stroke dash intervals must contain an even number of entries, got {count}"
+            ),
+            StrokeDashIntervalsError::NonFiniteInterval { index } => {
+                write!(f, "resolved stroke dash interval {index} must be finite")
+            }
+            StrokeDashIntervalsError::NegativeInterval { index } => write!(
+                f,
+                "resolved stroke dash interval {index} must be non-negative"
+            ),
+            StrokeDashIntervalsError::UnrepresentableCycleLength => f.write_str(
+                "resolved stroke dash interval cycle length must be finite and positive",
+            ),
+        }
+    }
+}
+
+impl std::error::Error for StrokeDashIntervalsError {}
+
+/// One checked, zero-phase stroke dash cycle.
+///
+/// The immutable intervals are local-space path distances before the node
+/// transform. They alternate painted, unpainted, painted, unpainted, beginning
+/// with paint, and the cycle restarts at the beginning of every contour. A
+/// present cycle is non-empty and even-length; every interval is finite and
+/// non-negative; and their `f32` sum is finite and positive.
+///
+/// Source syntax does not cross this type. A producer has already resolved
+/// units, percentages, and odd-list repetition. The phase is exactly zero;
+/// this type deliberately owns neither an offset nor a path-calibration fact.
+#[derive(Clone, Debug, PartialEq)]
+pub struct StrokeDashIntervals {
+    intervals: Box<[f32]>,
+}
+
+impl StrokeDashIntervals {
+    /// Check one resolved interval cycle.
+    ///
+    /// An all-zero cycle normalizes to `Ok(None)`: dash absence is the one
+    /// spelling of a solid stroke. Empty input is invalid because a present
+    /// value may not provide a second spelling for absence.
+    pub fn new(intervals: Vec<f32>) -> Result<Option<Self>, StrokeDashIntervalsError> {
+        if intervals.is_empty() {
+            return Err(StrokeDashIntervalsError::Empty);
+        }
+        if !intervals.len().is_multiple_of(2) {
+            return Err(StrokeDashIntervalsError::OddIntervalCount {
+                count: intervals.len(),
+            });
+        }
+
+        for (index, interval) in intervals.iter().copied().enumerate() {
+            if !interval.is_finite() {
+                return Err(StrokeDashIntervalsError::NonFiniteInterval { index });
+            }
+            if interval < 0.0 {
+                return Err(StrokeDashIntervalsError::NegativeInterval { index });
+            }
+        }
+
+        let cycle_length = intervals.iter().copied().sum::<f32>();
+        if !cycle_length.is_finite() {
+            return Err(StrokeDashIntervalsError::UnrepresentableCycleLength);
+        }
+        if cycle_length == 0.0 {
+            return Ok(None);
+        }
+
+        Ok(Some(Self {
+            intervals: intervals.into_boxed_slice(),
+        }))
+    }
+
+    /// The alternating painted and unpainted local-space distances.
+    #[must_use]
+    pub fn as_slice(&self) -> &[f32] {
+        &self.intervals
+    }
+
+    fn has_positive_painted_interval(&self) -> bool {
+        self.intervals
+            .chunks_exact(2)
+            .any(|paint_and_gap| paint_and_gap[0] > 0.0)
+    }
 }
 
 /// Why a resolved stroke is not one.
@@ -92,10 +206,14 @@ pub struct Stroke {
     cap: StrokeCap,
     join: StrokeJoin,
     miter_limit: f32,
+    dash_intervals: Option<StrokeDashIntervals>,
 }
 
 impl Stroke {
     /// Resolve one stroke, or `None` when nothing would be painted.
+    ///
+    /// This compatibility constructor always creates a solid stroke. Use
+    /// [`Stroke::new_with_dash_intervals`] for a checked dash cycle.
     ///
     /// The miter limit is carried as resolved, including a value below 1, which
     /// no miter can satisfy — a backend turns that into a bevel, and choosing
@@ -108,6 +226,23 @@ impl Stroke {
         join: StrokeJoin,
         miter_limit: f32,
     ) -> Result<Option<Self>, StrokeError> {
+        Self::new_with_dash_intervals(paints, width, cap, join, miter_limit, None)
+    }
+
+    /// Resolve one optionally dashed stroke, or `None` when nothing would be
+    /// painted.
+    ///
+    /// Dash absence states a solid stroke. A present cycle has already been
+    /// checked by [`StrokeDashIntervals::new`]; this constructor never accepts
+    /// raw intervals and therefore cannot bypass that validation.
+    pub fn new_with_dash_intervals(
+        paints: PaintStack,
+        width: f32,
+        cap: StrokeCap,
+        join: StrokeJoin,
+        miter_limit: f32,
+        dash_intervals: Option<StrokeDashIntervals>,
+    ) -> Result<Option<Self>, StrokeError> {
         if !miter_limit.is_finite() || miter_limit < 0.0 {
             return Err(StrokeError::InvalidMiterLimit);
         }
@@ -117,12 +252,20 @@ impl Stroke {
         if width == 0.0 || paints.is_empty() {
             return Ok(None);
         }
+        if cap == StrokeCap::Butt
+            && dash_intervals
+                .as_ref()
+                .is_some_and(|intervals| !intervals.has_positive_painted_interval())
+        {
+            return Ok(None);
+        }
         let stroke = Self {
             paints,
             width,
             cap,
             join,
             miter_limit,
+            dash_intervals,
         };
         // A width can be finite while its *reach* is not: half of `f32::MAX`
         // times a miter limit of 4 overflows. A consumer that cannot compute
@@ -159,6 +302,12 @@ impl Stroke {
     #[must_use]
     pub const fn miter_limit(&self) -> f32 {
         self.miter_limit
+    }
+
+    /// The checked dash cycle, or `None` for a solid stroke.
+    #[must_use]
+    pub const fn dash_intervals(&self) -> Option<&StrokeDashIntervals> {
+        self.dash_intervals.as_ref()
     }
 
     /// How far the stroke can reach outside the geometry it follows, in local

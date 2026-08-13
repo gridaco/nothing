@@ -23,7 +23,7 @@ producer (e.g. websem, from SVG)
 | -------- | -------------------------------------------------------------------------------- |
 | `frame`  | `Frame`, `FrameNode`, `Geometry`, the admitted paint stack, and product identity |
 | `path`   | `PathData` — checked absolute commands, fill rule, tight bounds solved once      |
-| `stroke` | `Stroke` — centred, one width, cap, join, miter limit, and its `outset`          |
+| `stroke` | `Stroke` — centred width, cap, join, miter limit, optional checked dash intervals, and `outset` |
 
 Two details are load-bearing enough to state here. A node's `bounds` is the
 **geometry's** box, never the ink's: a stroke paints outside it, so a consumer
@@ -52,11 +52,15 @@ radial-gradient paints only — a gradient is a self-contained normal-blend
 color ramp stated in the unit square of the geometry's own box, so a paint
 that _references_ something (a pattern, an image resource, a context paint)
 or needs a focal geometry the shared radial leaf cannot state remains
-inexpressible here. Beyond paint: one stroke width; geometry is rect, ellipse
-or path. Constructs outside that — dashes, clips, groups as first-class
-nodes — are absent rather than approximated, so a producer that meets one must
-refuse or declare it rather than lower it into something this contract can
-hold.
+inexpressible here. Beyond paint: one stroke width and an optional immutable,
+even-length dash cycle of finite non-negative local-space intervals. Its phase
+is zero and restarts at every contour. Source units, percentages, and authored
+odd-list repetition resolve before this boundary. Nonzero dash phase and
+path-length calibration remain inexpressible here rather than being ignored or
+approximated. Geometry is rect, ellipse or path. Constructs outside that —
+clips and groups as first-class nodes — are absent rather than approximated, so
+a producer that meets one must refuse or declare it rather than lower it into
+something this contract can hold.
 
 Why this shape is chosen, and where the renderer joins it, is recorded in
 [docs/wg/consolidation/n0-join-point.md](../../docs/wg/consolidation/n0-join-point.md).

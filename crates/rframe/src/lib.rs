@@ -23,4 +23,6 @@ pub use frame::{
 };
 pub use path::{FillRule, PathCommand, PathData, PathDataError};
 pub use scope::{Scope, ScopeEffect, ScopeOpacity, ScopeOpacityError};
-pub use stroke::{Stroke, StrokeCap, StrokeError, StrokeJoin};
+pub use stroke::{
+    Stroke, StrokeCap, StrokeDashIntervals, StrokeDashIntervalsError, StrokeError, StrokeJoin,
+};
