@@ -170,6 +170,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "animation element <set>",
     ),
     (
+        "svg-stroke-context-paint",
+        DeclaredByBestEffort,
+        "context-fill",
+    ),
+    (
         "svg-stroke-dasharray",
         DeclaredByBestEffort,
         "stroke-dasharray",

@@ -113,6 +113,20 @@ cargo run -p n0_cli --bin n0 -- \
   indirection and CSS escapes — all refuse by name. The SVG2-only
   join values `miter-clip` and `arcs` drop as invalid declarations exactly
   as Chromium drops them (measured, celled) — an agreement, not a hole.
+  The stroke's `<paint>` grammar is celled: hex and named colours,
+  `currentColor` against the `color` hint, `none` (the initial — an
+  invalid paint drops to it), and the full `url() [none | <color>]?`
+  reference semantics (a dead reference falls back, a stopless gradient
+  paints nothing with the fallback inert) in the attribute spelling; the
+  hex declaration, the CSS-over-attribute precedence pair, the
+  invalid-declaration fallback, and the gradient reference in the CSS
+  spelling — one computed paint, the CSS cells byte-identical to their
+  attribute twins. The remaining cross products (a named colour,
+  `currentColor`, or a fallback in CSS spelling) are measured, not
+  celled. `context-fill`/`context-stroke` refuse by name — a
+  load-bearing refusal: Chromium paints them as nothing on a plain shape
+  but resolves them against the use site's paint under `<use>` (measured),
+  which this slice admits.
   Paint is solid
   sRGB, opaque or translucent: `fill-opacity`, `stroke-opacity`, and a
   colour's own alpha multiply in float and quantize once (the translucency

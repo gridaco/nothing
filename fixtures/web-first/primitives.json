@@ -517,6 +517,14 @@
       "height": 64
     },
     {
+      "id": "svg-gradient-stroke-css",
+      "source": "svg-gradient-stroke-css.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-stroke-css.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-gradient-stylesheet-fill",
       "source": "svg-gradient-stylesheet-fill.svg",
       "entry": "standalone-svg",
@@ -1406,6 +1414,102 @@
       "source": "svg-stroke-over-fill.svg",
       "entry": "standalone-svg",
       "oracle": "chromium/svg-stroke-over-fill.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-css",
+      "source": "svg-stroke-paint-css.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-paint-css.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-css-invalid-falls-back",
+      "source": "svg-stroke-paint-css-invalid-falls-back.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-paint-css-invalid-falls-back.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-css-over-attr",
+      "source": "svg-stroke-paint-css-over-attr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-paint-css-over-attr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-currentcolor",
+      "source": "svg-stroke-paint-currentcolor.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-paint-currentcolor.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-hex",
+      "source": "svg-stroke-paint-hex.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-paint-hex.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-invalid-none",
+      "source": "svg-stroke-paint-invalid-none.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-paint-invalid-none.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-named",
+      "source": "svg-stroke-paint-named.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-paint-named.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-none",
+      "source": "svg-stroke-paint-none.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-paint-none.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-url-fallback",
+      "source": "svg-stroke-paint-url-fallback.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-paint-url-fallback.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-url-fallback-none",
+      "source": "svg-stroke-paint-url-fallback-none.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-paint-url-fallback-none.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-url-missing",
+      "source": "svg-stroke-paint-url-missing.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-paint-url-missing.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-url-stopless-fallback-inert",
+      "source": "svg-stroke-paint-url-stopless-fallback-inert.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-paint-url-stopless-fallback-inert.png",
       "width": 64,
       "height": 64
     },

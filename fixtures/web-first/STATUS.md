@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (217)
+## Chromium-baked cells (230)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells and two gradient ramps carry a declared, bounded
@@ -83,6 +83,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-gradient-spread-repeat.svg" title="svg-gradient-spread-repeat (standalone-svg)"><img src="./chromium/svg-gradient-spread-repeat.png" width="56" alt="svg-gradient-spread-repeat"></a>
 <a href="./svg-gradient-stop-nonmonotonic.svg" title="svg-gradient-stop-nonmonotonic (standalone-svg)"><img src="./chromium/svg-gradient-stop-nonmonotonic.png" width="56" alt="svg-gradient-stop-nonmonotonic"></a>
 <a href="./svg-gradient-stroke.svg" title="svg-gradient-stroke (standalone-svg)"><img src="./chromium/svg-gradient-stroke.png" width="56" alt="svg-gradient-stroke"></a>
+<a href="./svg-gradient-stroke-css.svg" title="svg-gradient-stroke-css (standalone-svg)"><img src="./chromium/svg-gradient-stroke-css.png" width="56" alt="svg-gradient-stroke-css"></a>
 <a href="./svg-gradient-stylesheet-fill.svg" title="svg-gradient-stylesheet-fill (standalone-svg)"><img src="./chromium/svg-gradient-stylesheet-fill.png" width="56" alt="svg-gradient-stylesheet-fill"></a>
 <a href="./svg-gradient-transform.svg" title="svg-gradient-transform (standalone-svg)"><img src="./chromium/svg-gradient-transform.png" width="56" alt="svg-gradient-transform"></a>
 <a href="./svg-gradient-use-clone-order.svg" title="svg-gradient-use-clone-order (standalone-svg)"><img src="./chromium/svg-gradient-use-clone-order.png" width="56" alt="svg-gradient-use-clone-order"></a>
@@ -194,6 +195,18 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-stroke-opacity-join.svg" title="svg-stroke-opacity-join (standalone-svg)"><img src="./chromium/svg-stroke-opacity-join.png" width="56" alt="svg-stroke-opacity-join"></a>
 <a href="./svg-stroke-opacity-over-fill.svg" title="svg-stroke-opacity-over-fill (standalone-svg)"><img src="./chromium/svg-stroke-opacity-over-fill.png" width="56" alt="svg-stroke-opacity-over-fill"></a>
 <a href="./svg-stroke-over-fill.svg" title="svg-stroke-over-fill (standalone-svg)"><img src="./chromium/svg-stroke-over-fill.png" width="56" alt="svg-stroke-over-fill"></a>
+<a href="./svg-stroke-paint-css.svg" title="svg-stroke-paint-css (standalone-svg)"><img src="./chromium/svg-stroke-paint-css.png" width="56" alt="svg-stroke-paint-css"></a>
+<a href="./svg-stroke-paint-css-invalid-falls-back.svg" title="svg-stroke-paint-css-invalid-falls-back (standalone-svg)"><img src="./chromium/svg-stroke-paint-css-invalid-falls-back.png" width="56" alt="svg-stroke-paint-css-invalid-falls-back"></a>
+<a href="./svg-stroke-paint-css-over-attr.svg" title="svg-stroke-paint-css-over-attr (standalone-svg)"><img src="./chromium/svg-stroke-paint-css-over-attr.png" width="56" alt="svg-stroke-paint-css-over-attr"></a>
+<a href="./svg-stroke-paint-currentcolor.svg" title="svg-stroke-paint-currentcolor (standalone-svg)"><img src="./chromium/svg-stroke-paint-currentcolor.png" width="56" alt="svg-stroke-paint-currentcolor"></a>
+<a href="./svg-stroke-paint-hex.svg" title="svg-stroke-paint-hex (standalone-svg)"><img src="./chromium/svg-stroke-paint-hex.png" width="56" alt="svg-stroke-paint-hex"></a>
+<a href="./svg-stroke-paint-invalid-none.svg" title="svg-stroke-paint-invalid-none (standalone-svg)"><img src="./chromium/svg-stroke-paint-invalid-none.png" width="56" alt="svg-stroke-paint-invalid-none"></a>
+<a href="./svg-stroke-paint-named.svg" title="svg-stroke-paint-named (standalone-svg)"><img src="./chromium/svg-stroke-paint-named.png" width="56" alt="svg-stroke-paint-named"></a>
+<a href="./svg-stroke-paint-none.svg" title="svg-stroke-paint-none (standalone-svg)"><img src="./chromium/svg-stroke-paint-none.png" width="56" alt="svg-stroke-paint-none"></a>
+<a href="./svg-stroke-paint-url-fallback.svg" title="svg-stroke-paint-url-fallback (standalone-svg)"><img src="./chromium/svg-stroke-paint-url-fallback.png" width="56" alt="svg-stroke-paint-url-fallback"></a>
+<a href="./svg-stroke-paint-url-fallback-none.svg" title="svg-stroke-paint-url-fallback-none (standalone-svg)"><img src="./chromium/svg-stroke-paint-url-fallback-none.png" width="56" alt="svg-stroke-paint-url-fallback-none"></a>
+<a href="./svg-stroke-paint-url-missing.svg" title="svg-stroke-paint-url-missing (standalone-svg)"><img src="./chromium/svg-stroke-paint-url-missing.png" width="56" alt="svg-stroke-paint-url-missing"></a>
+<a href="./svg-stroke-paint-url-stopless-fallback-inert.svg" title="svg-stroke-paint-url-stopless-fallback-inert (standalone-svg)"><img src="./chromium/svg-stroke-paint-url-stopless-fallback-inert.png" width="56" alt="svg-stroke-paint-url-stopless-fallback-inert"></a>
 <a href="./svg-stroke-path-closed.svg" title="svg-stroke-path-closed (standalone-svg)"><img src="./chromium/svg-stroke-path-closed.png" width="56" alt="svg-stroke-path-closed"></a>
 <a href="./svg-stroke-path-open.svg" title="svg-stroke-path-open (standalone-svg)"><img src="./chromium/svg-stroke-path-open.png" width="56" alt="svg-stroke-path-open"></a>
 <a href="./svg-stroke-rect-centred.svg" title="svg-stroke-rect-centred (standalone-svg)"><img src="./chromium/svg-stroke-rect-centred.png" width="56" alt="svg-stroke-rect-centred"></a>
@@ -246,7 +259,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (50)
+## The refusal register (51)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -287,6 +300,7 @@ its row into the cells above.
 | `svg-smil-animate-transform` | declared | skipped svg/g[1]: its authored state is overridden at document load by the unsupported animation at svg/g[1]/animateTransform[1]: animation element <animateTransform> is outside the rect-x proving slice |
 | `svg-smil-retarget-href` | **both refuse** | SVG animation at svg/rect[2]/set[1] is unsupported: animation element <set> is outside the rect-x proving slice; it carries href, so its target cannot be attributed to one element without id resolution; it is active at document load, so the authored state it overrides cannot render as the Base view |
 | `svg-smil-set-load-active` | declared | skipped svg/rect[2]: its authored state is overridden at document load by the unsupported animation at svg/rect[2]/set[1]: animation element <set> is outside the rect-x proving slice |
+| `svg-stroke-context-paint` | declared | skipped svg/use[1]/rect[1]: unsupported stroke value "context-fill" |
 | `svg-stroke-dasharray` | declared | skipped svg/path[1]: unsupported rendering attribute stroke-dasharray on <path> (not yet consumed) |
 | `svg-stroke-paint-order` | declared | skipped svg/rect[1]: unsupported rendering attribute paint-order on <rect> (not yet consumed) |
 | `svg-stroke-sheet-unit-width` | declared | declaration ignored at svg/style[1]: a stylesheet declares a stroke-width in ex, which needs a basis this cascade does not have; elements it matches render at the wrong width |

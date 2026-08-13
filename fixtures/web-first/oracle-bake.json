@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "c2c68ad274352ecacbfab6c2a8aa9d591f15a82277b76943f3f708020598e72b",
+  "suite_sha256": "97484506803bf43e952f8a3a4dc5ca0d633c7399721625e30082738864e55218",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -510,6 +510,15 @@
       "source": "svg-gradient-stroke.svg",
       "source_sha256": "86497f1c535e97b179d2b6feb40ea5f8ad0f8f0f7421a051c16cf1405bbf2373",
       "oracle": "chromium/svg-gradient-stroke.png",
+      "oracle_sha256": "09207d476443292a01a7d13fbf1be2cfdef8aaa9118ad25df3adbdfcdbf18a81",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-stroke-css",
+      "source": "svg-gradient-stroke-css.svg",
+      "source_sha256": "6ef007777ec609812dac67f87e7ac6c52ed3c136e2289203b08aed793e9e2716",
+      "oracle": "chromium/svg-gradient-stroke-css.png",
       "oracle_sha256": "09207d476443292a01a7d13fbf1be2cfdef8aaa9118ad25df3adbdfcdbf18a81",
       "width": 64,
       "height": 64
@@ -1510,6 +1519,114 @@
       "source_sha256": "921669ec149b6c898ec2804c2f6491f6b16cd7847fad6bdb1c567f06198802ec",
       "oracle": "chromium/svg-stroke-over-fill.png",
       "oracle_sha256": "f7110f7b6bcfcbb5f3e6bfd72983606727ed415951d1ac4c6245747e4127dfe9",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-css",
+      "source": "svg-stroke-paint-css.svg",
+      "source_sha256": "e1d56b83ba2c5f67ba32e38b0118c4bca67c9e942adb1ee4038ad82b3a9b172c",
+      "oracle": "chromium/svg-stroke-paint-css.png",
+      "oracle_sha256": "c63712212076568d36cc5d672529e71d00ad637a5ed5f9b1f19e1b08cf8778e6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-css-invalid-falls-back",
+      "source": "svg-stroke-paint-css-invalid-falls-back.svg",
+      "source_sha256": "1999ead07d0c1dfa4babc9d099b10caff0c2b3f3b846615f7a711b39bc122d55",
+      "oracle": "chromium/svg-stroke-paint-css-invalid-falls-back.png",
+      "oracle_sha256": "c63712212076568d36cc5d672529e71d00ad637a5ed5f9b1f19e1b08cf8778e6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-css-over-attr",
+      "source": "svg-stroke-paint-css-over-attr.svg",
+      "source_sha256": "042ef297c3a2d05dde39bdeeeffe797d5f9a5588ec66511f109822ed6a690577",
+      "oracle": "chromium/svg-stroke-paint-css-over-attr.png",
+      "oracle_sha256": "c63712212076568d36cc5d672529e71d00ad637a5ed5f9b1f19e1b08cf8778e6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-currentcolor",
+      "source": "svg-stroke-paint-currentcolor.svg",
+      "source_sha256": "9a5668a5469d46cdfc517f474238d6b7dfaf4be4fbf881cd84fd83da0e6cf133",
+      "oracle": "chromium/svg-stroke-paint-currentcolor.png",
+      "oracle_sha256": "c63712212076568d36cc5d672529e71d00ad637a5ed5f9b1f19e1b08cf8778e6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-hex",
+      "source": "svg-stroke-paint-hex.svg",
+      "source_sha256": "3276cc827957b210675285f14aa2327ae8bacfc051b27e57106ac6b5916eedee",
+      "oracle": "chromium/svg-stroke-paint-hex.png",
+      "oracle_sha256": "c63712212076568d36cc5d672529e71d00ad637a5ed5f9b1f19e1b08cf8778e6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-invalid-none",
+      "source": "svg-stroke-paint-invalid-none.svg",
+      "source_sha256": "acd3ab42289ae456e02eef319fcdf4d6c050541a3925b6be38647a6dc94b6cf6",
+      "oracle": "chromium/svg-stroke-paint-invalid-none.png",
+      "oracle_sha256": "0f5de3c24db7d0a6bacafd62a1c081c83d121c1a8cccf0ef3fb4ff1862620ab3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-named",
+      "source": "svg-stroke-paint-named.svg",
+      "source_sha256": "5d639c6bdb90423c9848f7cf95625a77fe5a5fc7b485d95726c1f2d9d79ca4d3",
+      "oracle": "chromium/svg-stroke-paint-named.png",
+      "oracle_sha256": "c63712212076568d36cc5d672529e71d00ad637a5ed5f9b1f19e1b08cf8778e6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-none",
+      "source": "svg-stroke-paint-none.svg",
+      "source_sha256": "d277fc20ee3e363a533202b8dbf5e511d152bbb287f3d0cf68b9d3732b37fc94",
+      "oracle": "chromium/svg-stroke-paint-none.png",
+      "oracle_sha256": "0f5de3c24db7d0a6bacafd62a1c081c83d121c1a8cccf0ef3fb4ff1862620ab3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-url-fallback",
+      "source": "svg-stroke-paint-url-fallback.svg",
+      "source_sha256": "d0e3ed7a8fe640f157f433453767dff91577e31445485dd839d2b29af13e322a",
+      "oracle": "chromium/svg-stroke-paint-url-fallback.png",
+      "oracle_sha256": "c63712212076568d36cc5d672529e71d00ad637a5ed5f9b1f19e1b08cf8778e6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-url-fallback-none",
+      "source": "svg-stroke-paint-url-fallback-none.svg",
+      "source_sha256": "119ef52b0aaa9dde02e8ae747b095d3de7965065362ab366009ce841c82a2310",
+      "oracle": "chromium/svg-stroke-paint-url-fallback-none.png",
+      "oracle_sha256": "0f5de3c24db7d0a6bacafd62a1c081c83d121c1a8cccf0ef3fb4ff1862620ab3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-url-missing",
+      "source": "svg-stroke-paint-url-missing.svg",
+      "source_sha256": "9e32382e269fe018286e08f03e22558339e353fdd8eeb0b7dd0111921bdda8b5",
+      "oracle": "chromium/svg-stroke-paint-url-missing.png",
+      "oracle_sha256": "0f5de3c24db7d0a6bacafd62a1c081c83d121c1a8cccf0ef3fb4ff1862620ab3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-paint-url-stopless-fallback-inert",
+      "source": "svg-stroke-paint-url-stopless-fallback-inert.svg",
+      "source_sha256": "5002e149b1a081f66f18cde0ebe0b1ee27635a97a4d1220accf6c49b37511bd9",
+      "oracle": "chromium/svg-stroke-paint-url-stopless-fallback-inert.png",
+      "oracle_sha256": "0f5de3c24db7d0a6bacafd62a1c081c83d121c1a8cccf0ef3fb4ff1862620ab3",
       "width": 64,
       "height": 64
     },
