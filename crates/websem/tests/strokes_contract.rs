@@ -10,7 +10,7 @@
 //! resolved facts plus the refusals that keep the unconsumed half honest.
 //!
 //! Every pixel claim here was measured in Chromium 149 first; the corpus bakes
-//! them (`fixtures/web-first/svg-stroke-*.svg`, 30 of 31 byte-exact — only
+//! them (`fixtures/web-first/svg-stroke-*.svg`, 57 of 58 byte-exact — only
 //! `svg-stroke-path-closed` carries the declared conic tolerance).
 
 // This binary consumes only the n0 render half of the shared plumbing.
@@ -118,6 +118,8 @@ fn the_stroke_width_is_a_cascaded_length() {
         (r##"stroke-width="8""##, 8.0),
         (r##"stroke-width="8px""##, 8.0),
         (r##"stroke-width="0.5em""##, 8.0),
+        // The same length grammar in the CSS-property spelling.
+        (r##"style="stroke-width: 0.5em""##, 8.0),
         (r##"stroke-width="8.5""##, 8.5),
         ("", 1.0),
         // Negative fails the property's non-negative grammar, so the cascade
@@ -127,6 +129,27 @@ fn the_stroke_width_is_a_cascaded_length() {
     ] {
         let frame = admit_both(&stroked_rect(extra));
         assert_eq!(stroke_of(&frame, 0).width(), expected, "extra={extra:?}");
+    }
+    // The whole absolute-unit family folds to px by the cascade's own
+    // constants (this rung's lesson from the cq* family: a unit no test ever
+    // spells is a unit whose parse can silently rot at the next Stylo pin).
+    // The physical units are inexact in binary — 1cm is 96/2.54 px — so this
+    // sweep pins them to a hair, not to the bit.
+    let cm = 96.0 / 2.54;
+    for (extra, expected) in [
+        (r##"stroke-width="6pt""##, 8.0),
+        (r##"stroke-width="0.5pc""##, 8.0),
+        (r##"stroke-width="0.25in""##, 24.0),
+        (r##"stroke-width="1cm""##, cm),
+        (r##"stroke-width="10mm""##, cm),
+        (r##"stroke-width="40Q""##, cm),
+    ] {
+        let frame = admit_both(&stroked_rect(extra));
+        let width = stroke_of(&frame, 0).width();
+        assert!(
+            (width - expected).abs() < 0.01,
+            "extra={extra:?}: width {width} is not {expected}"
+        );
     }
     // Inherited through a container, and from a stylesheet, by the one cascade.
     let inherited = admit_both(&document(
@@ -515,6 +538,8 @@ fn a_stroke_width_whose_basis_this_build_lacks_refuses_by_name() {
     for unit in [
         "1vw",
         "1vh",
+        "1vi",
+        "1vb",
         "10vmin",
         "10vmax",
         "1dvw",
@@ -523,6 +548,23 @@ fn a_stroke_width_whose_basis_this_build_lacks_refuses_by_name() {
         "1ch",
         "1cap",
         "1lh",
+        // The root-relative twins are their own tokens — `1rex` never matches
+        // an `ex` entry (the `e` is preceded by `r`, not a digit), so each
+        // needs its own list row; `1rex` painted a silent 8.0 where Chromium
+        // paints the root ex-height before these were listed.
+        "1rex",
+        "1rch",
+        "1ric",
+        "1rcap",
+        // Container-query units: the pinned Stylo drops them to the initial 1
+        // where Chromium resolves the small-viewport fallback (12.5cqw of a
+        // 64px document is 8) — a silent 1-versus-8 before these were listed.
+        "12.5cqw",
+        "12.5cqh",
+        "12.5cqi",
+        "12.5cqb",
+        "12.5cqmin",
+        "12.5cqmax",
         // A calc carries the same basis, so it refuses with it.
         "calc(1vw + 2px)",
     ] {
@@ -561,6 +603,235 @@ fn a_stroke_width_whose_basis_this_build_lacks_refuses_by_name() {
             "{unit} in a sheet must refuse by name; got {error}"
         );
     }
+}
+
+/// A `calc()` mixing lengths and percentages is the one `<length-percentage>`
+/// that survives to computed-value time unresolved: pure-length math folds to
+/// an absolute length in the cascade, and a pure percentage resolves against
+/// the normalized diagonal, but the mixed sum needs both bases at once and the
+/// resolve reads neither through a calc tree. Chromium resolves it (measured:
+/// `calc(10% + 0.8px)` is byte-identical to an authored `7.2` on a 64x64
+/// document), so a silent drop of either term would be a wrong pixel.
+///
+/// Unlike the basis-less units above, no authored-text patrol is involved:
+/// the mixed value is caught at resolve, where the element is known — so all
+/// four spellings refuse under the stroke's own name, the `<style>` sheet
+/// included.
+#[test]
+fn a_stroke_width_calc_mixing_lengths_and_percentages_refuses_by_name() {
+    for value in ["calc(10% + 2px)", "min(10%, 12px)"] {
+        for source in [
+            stroked_rect(&format!(r##"stroke-width="{value}""##)),
+            document(&format!(
+                r##"  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000" style="stroke-width: {value}"/>"##
+            )),
+            // The property inherits, so an ancestor's value reaches the shape.
+            document(&format!(
+                r##"  <g stroke="#000000" stroke-width="{value}">
+    <rect x="16" y="16" width="32" height="32" fill="none"/>
+  </g>"##
+            )),
+            document(&format!(
+                r##"  <style>rect {{ stroke-width: {value} }}</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000"/>"##
+            )),
+        ] {
+            let error = refusal(&source);
+            assert!(
+                matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("mixing lengths and percentages")),
+                "{value} must refuse by name; got {error}"
+            );
+        }
+    }
+
+    // The fold boundaries stay admitted: pure-length math is absolute by
+    // computed-value time, and a pure percentage has the diagonal basis —
+    // both resolve to the same 8-unit stroke (Chromium-baked as
+    // `svg-stroke-width-calc`, `svg-stroke-width-css-min`, and the percent
+    // cells).
+    for value in ["calc(4px + 4px)", "min(8px, 12px)"] {
+        let frame = admit_both(&stroked_rect(&format!(r##"stroke-width="{value}""##)));
+        assert_eq!(stroke_of(&frame, 0).width(), 8.0, "value={value:?}");
+    }
+}
+
+/// `var()` hides the unit from the authored-text patrol: `--w: 1vw` fed
+/// through a sheet's `stroke-width: var(--w)` painted a silent 12.8 where
+/// Chromium paints 0.64 (measured) — the exact wrong number the device-pin
+/// doc warns about, reached through a spelling the unit scan cannot see.
+/// Which declaration feeds a substitution is a resolver question, not a
+/// patrol question, so every `var(` in stroke-width-bearing text refuses —
+/// including one that would have resolved to an honest length (Chromium
+/// substitutes `var()` in all four spellings, the presentation attribute
+/// included; measured).
+#[test]
+fn a_stroke_width_through_var_indirection_refuses_by_name() {
+    for extra in [
+        // Undefined: the substitution fails to the inherited/initial width in
+        // both engines — but the *next* author edit defines it, so the patrol
+        // refuses the spelling, not the outcome.
+        r##"stroke-width="var(--w)""##,
+        r##"style="--w: 8px; stroke-width: var(--w)""##,
+    ] {
+        let error = refusal(&stroked_rect(extra));
+        assert!(
+            matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("var()")),
+            "{extra} must refuse by name; got {error}"
+        );
+    }
+
+    // The property inherits, so an ancestor's var()-spelled width reaches the
+    // shape; the walk sees the ancestor's style attribute.
+    let error = refusal(&document(
+        r##"  <g stroke="#000000" style="stroke-width: var(--w)">
+    <rect x="16" y="16" width="32" height="32" fill="none"/>
+  </g>"##,
+    ));
+    assert!(
+        matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("var()")),
+        "an inherited var() width must refuse by name; got {error}"
+    );
+
+    // The sheet spelling — the one that painted the measured 12.8 — refuses
+    // under the document's name, like every sheet finding.
+    for sheet in [
+        r##"rect { --w: 1vw; stroke-width: var(--w) }"##,
+        // A var() that would have resolved honestly refuses too: over-refusal
+        // is the contract, a resolver is not.
+        r##"rect { --w: 8px; stroke-width: var(--w) }"##,
+    ] {
+        let error = refusal(&document(&format!(
+            r##"  <style>{sheet}</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000"/>"##
+        )));
+        assert!(
+            matches!(error, CompileError::UnsupportedStyle(ref reason) if reason.contains("var()")),
+            "{sheet} must refuse by name; got {error}"
+        );
+    }
+}
+
+/// `em` and `rem` are admitted because `font-size` is a basis the cascade
+/// has — which makes the *font-size* an ingress for every basis the cascade
+/// lacks. `font-size: 2vw` under `stroke-width: 1em` painted a silent ~25.6
+/// where Chromium paints 1.28 (2vw of the 64px viewport = 1.28, measured).
+/// So when a stroke-width in scope is font-relative, every authored
+/// font-size — attribute, style attribute (the `font` shorthand included),
+/// ancestor, or sheet — must be free of basis-less units, `var()`, and
+/// escapes; and a sheet's own em-width refuses when a poisoned font-size is
+/// authored anywhere.
+#[test]
+fn a_font_relative_stroke_width_under_a_poisoned_font_size_refuses_by_name() {
+    // The attributable combinations refuse at the element.
+    for extra in [
+        r##"style="font-size: 2vw" stroke-width="1em""##,
+        r##"font-size="2vw" style="stroke-width: 1em""##,
+        r##"style="font: 2vw sans-serif" stroke-width="1em""##,
+        r##"style="font-size: var(--fs)" stroke-width="1em""##,
+        r##"font-size="2vw" stroke-width="0.5rem""##,
+    ] {
+        let error = refusal(&stroked_rect(extra));
+        assert!(
+            matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("font-size")),
+            "{extra} must refuse by name; got {error}"
+        );
+    }
+
+    // The basis inherits, so an ancestor's poisoned font-size reaches the
+    // shape's em width.
+    let error = refusal(&document(
+        r##"  <g style="font-size: 2vw">
+    <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000" stroke-width="1em"/>
+  </g>"##,
+    ));
+    assert!(
+        matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("font-size")),
+        "an inherited poisoned font-size must refuse by name; got {error}"
+    );
+
+    // A sheet can set the font-size of any ancestor without being
+    // attributable to one — the element's em width refuses on a descent.
+    let error = refusal(&document(
+        r##"  <style>rect { font-size: 2vw }</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000" stroke-width="1em"/>"##,
+    ));
+    assert!(
+        matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("font-size")),
+        "a sheet-poisoned em width must refuse by name; got {error}"
+    );
+
+    // And a sheet's own em-spelled width refuses when the poison is authored
+    // anywhere — on an element or in the same sheet.
+    for body in [
+        r##"  <style>rect { stroke-width: 1em }</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000" font-size="2vw"/>"##,
+        r##"  <style>rect { stroke-width: 1em; font-size: 2vw }</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000"/>"##,
+    ] {
+        let error = refusal(&document(body));
+        assert!(
+            matches!(error, CompileError::UnsupportedStyle(ref reason) if reason.contains("font-size")),
+            "a sheet em width under authored poison must refuse by name; got {error}"
+        );
+    }
+
+    // The honest half stays admitted: an authored absolute font-size IS the
+    // em basis (Chromium-baked as `svg-stroke-width-em-font-size` at 8px,
+    // where the default 16px basis would paint double and fail the raster),
+    // and a poisoned font-size with no font-relative width in scope is inert.
+    for (font_size, expected) in [("8px", 8.0), ("32px", 32.0)] {
+        let frame = admit_both(&stroked_rect(&format!(
+            r##"style="font-size: {font_size}" stroke-width="1em""##
+        )));
+        assert_eq!(stroke_of(&frame, 0).width(), expected);
+    }
+    let frame = admit_both(&stroked_rect(
+        r##"style="font-size: 2vw" stroke-width="8""##,
+    ));
+    assert_eq!(stroke_of(&frame, 0).width(), 8.0);
+}
+
+/// A CSS escape is the tokenizer's spelling, not this patrol's: `1\76 w` is
+/// `1vw` to the cascade and nothing to a text scan — measured painting the
+/// same silent 12.8 in all three ingresses — and an escape can hide the
+/// *property name* as well as the unit. So an escape anywhere in
+/// stroke-width-bearing text refuses: the attribute's own value, any `style`
+/// attribute in scope (scanned whole, before the name filter an escaped name
+/// would fool), and any sheet.
+#[test]
+fn a_stroke_width_spelled_through_css_escapes_refuses_by_name() {
+    for extra in [
+        r##"stroke-width="1\76 w""##,
+        r##"style="stroke-width: 1\76 w""##,
+    ] {
+        let error = refusal(&stroked_rect(extra));
+        assert!(
+            matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("escape")),
+            "{extra} must refuse by name; got {error}"
+        );
+    }
+
+    // The escaped property name: no scan that filters on "stroke-width" can
+    // see this declaration — the style attribute's *name* patrol wins the
+    // race and refuses it as a property it cannot check, which is the same
+    // loud outcome through an earlier door.
+    let error = refusal(&stroked_rect(
+        r##"style="stroke-\77 idth: 1vw" stroke-width="8""##,
+    ));
+    assert!(
+        matches!(error, CompileError::UnsupportedStyle(ref reason) if reason.contains("stroke-\\77 idth"))
+            || matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("escape")),
+        "an escaped property name must refuse by name; got {error}"
+    );
+
+    let error = refusal(&document(
+        r##"  <style>rect { stroke-width: 1\76 w }</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000"/>"##,
+    ));
+    assert!(
+        matches!(error, CompileError::UnsupportedStyle(ref reason) if reason.contains("escape")),
+        "a sheet escape must refuse by name; got {error}"
+    );
 }
 
 /// A cap is a per-*contour* property, and the consumer holds one cap per draw.

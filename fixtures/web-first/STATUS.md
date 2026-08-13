@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (206)
+## Chromium-baked cells (217)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells and two gradient ramps carry a declared, bounded
@@ -198,6 +198,17 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-stroke-path-open.svg" title="svg-stroke-path-open (standalone-svg)"><img src="./chromium/svg-stroke-path-open.png" width="56" alt="svg-stroke-path-open"></a>
 <a href="./svg-stroke-rect-centred.svg" title="svg-stroke-rect-centred (standalone-svg)"><img src="./chromium/svg-stroke-rect-centred.png" width="56" alt="svg-stroke-rect-centred"></a>
 <a href="./svg-stroke-scaled-group.svg" title="svg-stroke-scaled-group (standalone-svg)"><img src="./chromium/svg-stroke-scaled-group.png" width="56" alt="svg-stroke-scaled-group"></a>
+<a href="./svg-stroke-width-calc.svg" title="svg-stroke-width-calc (standalone-svg)"><img src="./chromium/svg-stroke-width-calc.png" width="56" alt="svg-stroke-width-calc"></a>
+<a href="./svg-stroke-width-css.svg" title="svg-stroke-width-css (standalone-svg)"><img src="./chromium/svg-stroke-width-css.png" width="56" alt="svg-stroke-width-css"></a>
+<a href="./svg-stroke-width-css-calc.svg" title="svg-stroke-width-css-calc (standalone-svg)"><img src="./chromium/svg-stroke-width-css-calc.png" width="56" alt="svg-stroke-width-css-calc"></a>
+<a href="./svg-stroke-width-css-invalid-falls-back.svg" title="svg-stroke-width-css-invalid-falls-back (standalone-svg)"><img src="./chromium/svg-stroke-width-css-invalid-falls-back.png" width="56" alt="svg-stroke-width-css-invalid-falls-back"></a>
+<a href="./svg-stroke-width-css-min.svg" title="svg-stroke-width-css-min (standalone-svg)"><img src="./chromium/svg-stroke-width-css-min.png" width="56" alt="svg-stroke-width-css-min"></a>
+<a href="./svg-stroke-width-css-over-attr.svg" title="svg-stroke-width-css-over-attr (standalone-svg)"><img src="./chromium/svg-stroke-width-css-over-attr.png" width="56" alt="svg-stroke-width-css-over-attr"></a>
+<a href="./svg-stroke-width-css-percent.svg" title="svg-stroke-width-css-percent (standalone-svg)"><img src="./chromium/svg-stroke-width-css-percent.png" width="56" alt="svg-stroke-width-css-percent"></a>
+<a href="./svg-stroke-width-css-unitless.svg" title="svg-stroke-width-css-unitless (standalone-svg)"><img src="./chromium/svg-stroke-width-css-unitless.png" width="56" alt="svg-stroke-width-css-unitless"></a>
+<a href="./svg-stroke-width-em-font-size.svg" title="svg-stroke-width-em-font-size (standalone-svg)"><img src="./chromium/svg-stroke-width-em-font-size.png" width="56" alt="svg-stroke-width-em-font-size"></a>
+<a href="./svg-stroke-width-px.svg" title="svg-stroke-width-px (standalone-svg)"><img src="./chromium/svg-stroke-width-px.png" width="56" alt="svg-stroke-width-px"></a>
+<a href="./svg-stroke-width-rem.svg" title="svg-stroke-width-rem (standalone-svg)"><img src="./chromium/svg-stroke-width-rem.png" width="56" alt="svg-stroke-width-rem"></a>
 <a href="./svg-stroke-zero-extent-rect.svg" title="svg-stroke-zero-extent-rect (standalone-svg)"><img src="./chromium/svg-stroke-zero-extent-rect.png" width="56" alt="svg-stroke-zero-extent-rect"></a>
 <a href="./svg-stroke-zero-length-dot.svg" title="svg-stroke-zero-length-dot (standalone-svg)"><img src="./chromium/svg-stroke-zero-length-dot.png" width="56" alt="svg-stroke-zero-length-dot"></a>
 <a href="./svg-stroke-zero-width.svg" title="svg-stroke-zero-width (standalone-svg)"><img src="./chromium/svg-stroke-zero-width.png" width="56" alt="svg-stroke-zero-width"></a>
@@ -235,7 +246,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (47)
+## The refusal register (50)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -280,6 +291,9 @@ its row into the cells above.
 | `svg-stroke-paint-order` | declared | skipped svg/rect[1]: unsupported rendering attribute paint-order on <rect> (not yet consumed) |
 | `svg-stroke-sheet-unit-width` | declared | declaration ignored at svg/style[1]: a stylesheet declares a stroke-width in ex, which needs a basis this cascade does not have; elements it matches render at the wrong width |
 | `svg-stroke-vector-effect` | declared | skipped svg/g[1]/rect[1]: unsupported rendering attribute vector-effect on <rect> (not yet consumed) |
+| `svg-stroke-width-calc-mixed` | declared | skipped svg/rect[1]: unsupported stroke value "a calc() stroke-width mixing lengths and percentages is not consumed" |
+| `svg-stroke-width-font-basis` | declared | skipped svg/rect[1]: unsupported stroke value "a stroke-width in em on <rect> under an authored font-size carrying vw needs a basis this cascade does not have" |
+| `svg-stroke-width-var` | declared | declaration ignored at svg/style[1]: a stylesheet declares a stroke-width through var(), an indirection this patrol cannot follow; elements it matches may render at the wrong width |
 | `svg-switch` | declared | skipped svg/switch[1]: unsupported element <switch> |
 | `svg-text-tspan` | declared | skipped svg/text[1]: unsupported element <tspan> |
 | `svg-text-undeclared-font` | declared | skipped svg/text[1]: unsupported computed style: text resolution refused: font family "Undeclared" is not in the declared environment |

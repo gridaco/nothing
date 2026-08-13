@@ -189,6 +189,17 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "vector-effect",
     ),
+    (
+        "svg-stroke-width-calc-mixed",
+        DeclaredByBestEffort,
+        "mixing lengths and percentages",
+    ),
+    (
+        "svg-stroke-width-font-basis",
+        DeclaredByBestEffort,
+        "font-size",
+    ),
+    ("svg-stroke-width-var", DeclaredByBestEffort, "var()"),
     ("svg-switch", DeclaredByBestEffort, "<switch>"),
     // The text rung's residue: `<text>` itself graduated (its fixtures are
     // baked cells in `fixtures/web-first/text/`), and what remains refused
