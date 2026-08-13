@@ -43,8 +43,10 @@ from the dated addenda below:
 - **The admitted slice** is `<rect>`, `<circle>`, `<ellipse>`, `<path>`,
   `<line>`, `<polygon>` and `<polyline>`, filled and stroked — solid or
   gradient paint (`<linearGradient>`/`<radialGradient>` paint servers, the
-  gradient rung), with centred stroke geometry, the closed cap/join family,
-  opacity, and the zero-phase resolved dash cycles this amendment admits;
+  gradient rung), including `context-fill`/`context-stroke` selected through
+  same-document use instances and fully resolved before the frame; with
+  centred stroke geometry, the closed cap/join family, opacity, and the
+  zero-phase resolved dash cycles this amendment admits;
   `<g>` and `<a>` containers, visibility, isolated element/group opacity, and
   the whole `transform` grammar in both spellings (the attribute is a
   presentation hint of the CSS `transform` property, and `gradientTransform`
@@ -54,7 +56,7 @@ from the dated addenda below:
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 255 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 277 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
   confined tolerance (the weighted rational conic) and three gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
@@ -1446,3 +1448,98 @@ a solid stroke. That is gridaco/nothing#81's exact split condition. The cells
 land, but both `stroke-dasharray` checklist rows remain unchecked until a
 representability rung closes the measured, registered remainder. No record
 claims the rows ahead of that evidence.
+
+## Ratified amendment — context paint resolves before the frame (2026-08-13)
+
+The resolved render contract does not gain a context-paint value. The owner
+ratified this fifth contract amendment by authorizing the full context-paint
+arc after its recursion and reference-box scope was stated. A context paint is
+a source relationship, not a visual fact: it selects another element's fill or
+stroke, while the frame states only the eventual no-paint, solid, linear-ramp,
+or radial-ramp result. The relationship must therefore finish before the
+resolved boundary, and no context element, use chain, paint-server reference,
+or reference-box provenance may cross it.
+
+The selection rule is exact. Without a context element, either context keyword
+selects no paint. Inside an instantiated subtree, the immediate use element is
+the next context: `context-fill` selects its computed fill and
+`context-stroke` selects its computed stroke. A selected context keyword
+repeats that step. Selection ends at the first ordinary paint value or at no
+paint. The paint's own colour alpha belongs to the selected paint; fill and
+stroke opacity remain separately inherited properties and are not copied as
+part of context selection.
+
+A selected paint server keeps the coordinate space and reference box of the
+context element that authored that eventual server value. An intermediate use
+whose own paint is another context keyword does not take ownership of the
+server's box. Before the resolved frame is stated, the selected ramp is rebased
+from that context space into each destination geometry's self-contained paint
+facts. Object-bounding-box and user-space ramps therefore remain continuous
+across differently transformed descendants without asking the consumer to
+recover an instance relation. The context box contains geometry hidden by
+visibility or zero opacity, but excludes a display-pruned subtree.
+
+The amendment is deliberately no wider than the resolved paint vocabulary.
+Patterns, images, and external resources remain inexpressible even when a
+context relation selects them; source handling must refuse them by their own
+names rather than disguise them as context-paint failures. Marker context is a
+separate applicability rung. A source parser's extension that permits a
+fallback after a context keyword is likewise not admitted: the standard-track
+paint grammar permits a fallback only after a URL, and the Chromium oracle
+drops the extended declaration.
+
+This was ratified as a contract-first amendment: by itself it authorized a
+producer to emit an already selected and rebased paint through the existing
+resolved vocabulary and made no claim that the producer, cells, or checklist
+rows had landed. The rung verdict below records that subsequent evidence.
+
+### Context-paint rung verdict — four rows close
+
+A 102-capture Chromium 149 matrix fixed the source semantics before the
+capability landed. It measured both context keywords in both destination
+properties and both source spellings; the no-context no-paint result; host
+`none`, `currentColor`, colour alpha, inheritance and CSS-wide values; all
+four property crossings; nearest-context recursion and independent instances;
+URL fallback; linear and radial gradients in object-bounding-box and user
+space; the eventual outer URL owner's box through nested context references;
+and the box contribution of hidden, zero-opacity, and display-pruned geometry.
+Paint opacity is not part of selection: it remains an independently inherited
+property.
+
+Twenty-two of those cases are now committed Chromium cells. Eight are the
+atomic product of destination fill/stroke, selected fill/stroke, and
+attribute/CSS spelling. Four cells isolate no context, host no-paint,
+`currentColor`/alpha, and inherited/CSS-wide values. Two establish recursive
+selection, nearest-owner precedence, light-tree absence, and independent
+instances. The remaining eight establish missing-URL fallback, the inert
+fallback behind a valid stopless gradient, both gradient kinds in both unit
+systems, eventual-owner anchoring, and the three box-participation cases.
+Every new cell crosses the same resolved-frame and kernel boundary as the
+existing corpus; no context relation or reference-box provenance crosses it.
+
+Two scratch follow-ups remain explicitly measured, not celled. Every `<use>`
+`x`/`y` translation on a nested consumption chain moves the selected paint,
+while the eventual ordinary paint owner remains the owner of its URL and box.
+Chromium constructs a context object bounding box from each descendant's
+transformed *local axis-aligned box*, not from exact post-transform curve
+extrema; rotated and skewed controls discriminate the two. A singular
+destination transform paints nothing across the admitted filled and stroked
+shape classes. These verdicts close the coordinate forks without widening the
+resolved contract.
+
+The standard-track boundary stays sharp. Chromium drops a fallback following
+`context-fill` or `context-stroke`, because `<paint>` permits that tail only
+after a URL; the pinned source parser accepts the extension, so one new named
+registered refusal and guards cover attribute, inline-style, and stylesheet
+ingresses. The former load-bearing context-paint refusal graduates, leaving the
+register at 56 rows. Context-selected patterns and external paint resources
+were also measured to propagate in Chromium, but remain refused by their own
+resource names. Marker context and author stylesheets across a use-shadow
+boundary likewise retain their own rows. Under the own-row precedent of
+gridaco/nothing#75 and gridaco/nothing#80, none of those gaps belongs to the
+four paint rows; under gridaco/nothing#77, the non-standard fallback extension
+is outside their grammar bar.
+
+The CSS SVG-presentation `fill` and `stroke` rows and their SVG
+presentation-attribute twins therefore tick together. This is a capability
+verdict only. It produces no conformance score and takes no FLIP action.

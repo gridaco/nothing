@@ -686,56 +686,6 @@ fn a_percentage_stroke_width_resolves_against_the_normalized_diagonal() {
     assert_eq!(stroke.width(), 6.4, "10% of sqrt(64² + 64²)/√2");
 }
 
-/// A stroke paint outside the gated value surface refuses exactly as the same
-/// fill value does — one paint boundary, read twice.
-///
-/// The context paints are a *load-bearing* refusal, not an over-refusal: on a
-/// plain shape Chromium paints them as nothing (measured — byte-identical to
-/// the same document with no stroke), but a `<use>` clone resolves them
-/// against the use site's own paint (measured — `stroke="context-fill"` under
-/// `<use fill="#4682b4">` is byte-identical to an authored steelblue stroke),
-/// and markers do the same. This slice admits `<use>`, so lowering the
-/// plain-document nothing would silently mispaint every instantiated shape —
-/// the refusal is registered (`unsupported/svg-stroke-context-paint.svg`).
-#[test]
-fn stroke_paint_beyond_the_gated_surface_refuses_by_name() {
-    // `stroke: url(#…)` left this list with the gradient rung — a resolvable
-    // reference strokes the gradient and an unresolvable one strokes the
-    // measured nothing (see `gradients_contract`). The context paints remain
-    // the named boundary.
-    for css in ["stroke: context-fill", "stroke: context-stroke"] {
-        let error = refusal(&document(&format!(
-            r##"  <style>rect {{ {css}; stroke-width: 8 }}</style>
-  <rect x="16" y="16" width="32" height="32" fill="none"/>"##
-        )));
-        assert!(
-            matches!(error, CompileError::UnsupportedStroke(_)),
-            "{css} must refuse under the stroke's own name; got {error}"
-        );
-    }
-
-    // Both keywords, in the attribute spelling and where the refusal is
-    // load-bearing — on a use-instantiated clone.
-    for paint in ["context-fill", "context-stroke"] {
-        let error = refusal(&document(&format!(
-            r##"  <rect x="16" y="16" width="32" height="32" fill="none" stroke-width="8" stroke="{paint}"/>"##
-        )));
-        assert!(
-            matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains(paint)),
-            "{paint} must refuse under the stroke's own name; got {error}"
-        );
-
-        let error = refusal(&document(&format!(
-            r##"  <defs><rect id="r" x="16" y="16" width="32" height="32" fill="none" stroke-width="8" stroke="{paint}"/></defs>
-  <use href="#r" fill="#4682b4"/>"##
-        )));
-        assert!(
-            matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains(paint)),
-            "{paint} on a use clone must refuse under the stroke's own name; got {error}"
-        );
-    }
-}
-
 // ─── the unit surface ────────────────────────────────────────────────────
 
 /// A cascaded length is only as good as its basis, and this build lacks two.

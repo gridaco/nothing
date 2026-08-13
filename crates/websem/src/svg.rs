@@ -90,9 +90,12 @@
 //! `stroke-opacity`), and a folded element `opacity` multiply in float and
 //! quantize once, exactly what the Chromium-baked primitive suite gates
 //! pixel-exactly — plus same-document linear and radial gradient paint
-//! servers (the gradient rung). Everything else refuses explicitly until
-//! its own capability step bakes fixtures: context paints and context
-//! opacities, non-sRGB color spaces, and `<pattern>`
+//! servers (the gradient rung), plus standard `context-fill` / `context-stroke`
+//! relationships under expanded `<use>` instances. Context relationships
+//! resolve completely here — including recursive selection, currentColor and
+//! gradient reference spaces — and never cross `rframe`. Everything else
+//! refuses explicitly: Stylo's non-standard context-paint fallback extension,
+//! context-valued opacities, non-sRGB color spaces, and `<pattern>`
 //! (`tests/typed_fill.rs` and the translucency contract pin each).
 //!
 //! ## Document lifetime
@@ -120,7 +123,7 @@ use crate::svg_paint_server::{GradientBases, PaintServers, ResolvedPaintServer};
 use crate::svg_transform::{TransformRefusal, computed_transform_to_affine};
 use style::properties::ComputedValues;
 use style::thread_state::{self, ThreadState};
-use style::values::computed::{Length, SVGOpacity, Size};
+use style::values::computed::{Length, SVGOpacity, SVGPaint, Size};
 use style::values::generics::basic_shape::FillRule as StyloFillRule;
 use style::values::generics::svg::{SVGLength, SVGPaintKind, SVGStrokeDashArray};
 
@@ -315,9 +318,9 @@ pub enum CompileError {
     UnsupportedElement(String),
     /// A `fill` value the slice cannot resolve.
     UnsupportedFill(String),
-    /// A stroke value the slice cannot resolve: a context paint, an
-    /// untrustworthy length basis or spelling, dash phase/path calibration,
-    /// or a resolved magnitude the frame contract cannot represent.
+    /// A stroke value the slice cannot resolve: an untrustworthy length basis
+    /// or spelling, dash phase/path calibration, an unsupported paint
+    /// resource, or a resolved magnitude the frame contract cannot represent.
     UnsupportedStroke(String),
     /// A numeric attribute failed to parse.
     BadNumber { attr: String, value: String },
@@ -1594,6 +1597,319 @@ struct ComputedPatrol {
     opacity: f32,
 }
 
+#[derive(Debug, Clone, Copy)]
+enum MeasuredGeometry {
+    /// An admitted subtree whose geometry is known to be empty.
+    Empty,
+    /// A complete geometry box.
+    Rect(Rectangle),
+    /// A subtree containing geometry this prepass cannot measure. This is
+    /// deliberately distinct from `Empty`: using the admitted siblings'
+    /// partial union would silently move a context gradient.
+    Unknown,
+}
+
+impl MeasuredGeometry {
+    fn include(&mut self, next: Self) {
+        *self = match (*self, next) {
+            (Self::Unknown, _) | (_, Self::Unknown) => Self::Unknown,
+            (Self::Empty, other) | (other, Self::Empty) => other,
+            (Self::Rect(current), Self::Rect(next)) => Self::Rect(math2::union(&[current, next])),
+        };
+    }
+
+    fn transformed(self, transform: AffineTransform) -> Self {
+        match self {
+            Self::Empty => Self::Empty,
+            Self::Rect(rect) => Self::Rect(measured_geometry_box(rect, transform)),
+            Self::Unknown => Self::Unknown,
+        }
+    }
+
+    fn reference_box(self) -> Option<Rectangle> {
+        match self {
+            Self::Empty => Some(Rectangle::empty()),
+            Self::Rect(rect) => Some(rect),
+            Self::Unknown => None,
+        }
+    }
+}
+
+/// Chromium defines a context element's object box from each descendant's
+/// transformed *local AABB*, including for rotated/skewed curves. That is not
+/// the tight affine bounds of the rendered curve; the capability probe's
+/// tight-bounds controls discriminate this rule.
+fn measured_geometry_box(geometry: Rectangle, transform: AffineTransform) -> Rectangle {
+    math2::rect_transform(geometry, &transform)
+}
+
+/// Paint-independent geometry inventory for context paint. Each `<use>` box
+/// is the union of its expanded descendants in that use's own user space.
+/// Visibility and opacity do not remove geometry; `display:none` prunes it.
+/// Measuring all use boxes before emitting a node prevents paint order from
+/// choosing a partial objectBoundingBox.
+fn measure_use_boxes(
+    svg: HtmlElement<'_>,
+    values: &EffectiveValues,
+    bases: PercentBases,
+    fonts: &textlayout::Environment,
+) -> Result<HashMap<NodeId, Option<Rectangle>>, CompileError> {
+    let mut boxes = HashMap::new();
+    measure_use_boxes_in_subtree(svg, values, bases, fonts, &mut boxes, 0)?;
+    Ok(boxes)
+}
+
+fn measure_use_boxes_in_subtree(
+    parent: HtmlElement<'_>,
+    values: &EffectiveValues,
+    bases: PercentBases,
+    fonts: &textlayout::Environment,
+    boxes: &mut HashMap<NodeId, Option<Rectangle>>,
+    depth: usize,
+) -> Result<(), CompileError> {
+    if depth >= MAX_CONTAINER_DEPTH {
+        return Err(CompileError::ContainerTooDeep(MAX_CONTAINER_DEPTH));
+    }
+    let mut child = parent.first_element_child();
+    while let Some(el) = child {
+        let tag = el.local_name_string();
+        if is_non_rendering_element(&tag)
+            || is_animation_element(&tag)
+            || tag == "defs"
+            || tag == "linearGradient"
+            || tag == "radialGradient"
+            || tag == "pattern"
+        {
+            child = el.next_element_sibling();
+            continue;
+        }
+        let Some(data) = el.borrow_data() else {
+            return Err(CompileError::MissingComputedStyle);
+        };
+        let display_none = data.styles.primary().clone_display().is_none();
+        drop(data);
+        if display_none {
+            child = el.next_element_sibling();
+            continue;
+        }
+        if tag == "use" {
+            let measured = match measure_subtree_geometry(
+                el,
+                values,
+                bases,
+                fonts,
+                boxes,
+                AffineTransform::identity(),
+                depth + 1,
+            ) {
+                Ok(measured) => measured.reference_box(),
+                Err(_) => None,
+            };
+            boxes.insert(el.node_id(), measured);
+        } else {
+            // A nested use is indexed independently. An unrelated malformed
+            // or unsupported subtree cannot make a context-free document
+            // fail merely because the prepass saw it.
+            let _ = measure_use_boxes_in_subtree(el, values, bases, fonts, boxes, depth + 1);
+        }
+        child = el.next_element_sibling();
+    }
+    Ok(())
+}
+
+fn measure_subtree_geometry(
+    parent: HtmlElement<'_>,
+    values: &EffectiveValues,
+    bases: PercentBases,
+    fonts: &textlayout::Environment,
+    boxes: &mut HashMap<NodeId, Option<Rectangle>>,
+    transform: AffineTransform,
+    depth: usize,
+) -> Result<MeasuredGeometry, CompileError> {
+    if depth >= MAX_CONTAINER_DEPTH {
+        return Err(CompileError::ContainerTooDeep(MAX_CONTAINER_DEPTH));
+    }
+    let mut union = MeasuredGeometry::Empty;
+    let mut child = parent.first_element_child();
+    while let Some(el) = child {
+        let tag = el.local_name_string();
+        if is_non_rendering_element(&tag)
+            || is_animation_element(&tag)
+            || tag == "defs"
+            || tag == "linearGradient"
+            || tag == "radialGradient"
+            || tag == "pattern"
+        {
+            child = el.next_element_sibling();
+            continue;
+        }
+        let Some(data) = el.borrow_data() else {
+            return Err(CompileError::MissingComputedStyle);
+        };
+        let style: &ComputedValues = data.styles.primary();
+        if style.clone_display().is_none() {
+            child = el.next_element_sibling();
+            continue;
+        }
+        drop(data);
+        let next = if tag == "g" || tag == "a" {
+            let own = compose_element_transform(el, transform, &tag, bases)?;
+            measure_subtree_geometry(el, values, bases, fonts, boxes, own, depth + 1)?
+        } else if tag == "use" {
+            let use_space = compose_element_transform(el, transform, "use", bases)?;
+            let x = geometry_attr_f32(el, "x", values, bases)?.unwrap_or(0.0);
+            let y = geometry_attr_f32(el, "y", values, bases)?.unwrap_or(0.0);
+            let child_space = AffineTransform::from_acebdf(1.0, 0.0, x, 0.0, 1.0, y);
+            // A use owns its descendants' box *before its own x/y*. The x/y
+            // belongs to the consumption chain and is applied when this use
+            // contributes to an outer owner's union. Keeping that convention
+            // prevents an immediate inner URL owner from counting its x/y in
+            // both its stored box and the clone's paint translation.
+            let local = measure_subtree_geometry(
+                el,
+                values,
+                bases,
+                fonts,
+                boxes,
+                AffineTransform::identity(),
+                depth + 1,
+            )?;
+            boxes.insert(el.node_id(), local.reference_box());
+            local.transformed(use_space.compose(&child_space))
+        } else {
+            let own = compose_element_transform(el, transform, &tag, bases)?;
+            measure_leaf_geometry(el, values, bases, fonts)?.transformed(own)
+        };
+        union.include(next);
+        child = el.next_element_sibling();
+    }
+    Ok(union)
+}
+
+fn measure_leaf_geometry(
+    el: HtmlElement<'_>,
+    values: &EffectiveValues,
+    bases: PercentBases,
+    fonts: &textlayout::Environment,
+) -> Result<MeasuredGeometry, CompileError> {
+    let rect = match el.local_name_string().as_str() {
+        "rect" => {
+            let x = geometry_attr_f32(el, "x", values, bases)?.unwrap_or(0.0);
+            let y = geometry_attr_f32(el, "y", values, bases)?.unwrap_or(0.0);
+            let w = box_extent(geometry_attr_f32(el, "width", values, bases)?.unwrap_or(0.0));
+            let h = box_extent(geometry_attr_f32(el, "height", values, bases)?.unwrap_or(0.0));
+            Rectangle::from_xywh(x, y, w, h)
+        }
+        "circle" => {
+            let cx = geometry_attr_f32(el, "cx", values, bases)?.unwrap_or(0.0);
+            let cy = geometry_attr_f32(el, "cy", values, bases)?.unwrap_or(0.0);
+            let r = geometry_attr_f32(el, "r", values, bases)?
+                .unwrap_or(0.0)
+                .max(0.0);
+            Rectangle::from_xywh(cx - r, cy - r, r * 2.0, r * 2.0)
+        }
+        "ellipse" => {
+            let cx = geometry_attr_f32(el, "cx", values, bases)?.unwrap_or(0.0);
+            let cy = geometry_attr_f32(el, "cy", values, bases)?.unwrap_or(0.0);
+            let rx = ellipse_radius(el, "rx", values, bases)?;
+            let ry = ellipse_radius(el, "ry", values, bases)?;
+            let (rx, ry) = match (rx, ry) {
+                (Some(rx), Some(ry)) => (rx, ry),
+                (Some(rx), None) => (rx, rx),
+                (None, Some(ry)) => (ry, ry),
+                (None, None) => (0.0, 0.0),
+            };
+            Rectangle::from_xywh(cx - rx, cy - ry, rx * 2.0, ry * 2.0)
+        }
+        "path" => {
+            let Some(value) = get_attr(el, "d") else {
+                return Ok(MeasuredGeometry::Empty);
+            };
+            let commands = crate::svg_path::parse_path_data(&value).map_err(
+                |crate::svg_path::PathDataError::Syntax { offset }| CompileError::BadPathData {
+                    element: "path".to_string(),
+                    offset,
+                    excerpt: excerpt_at(&value, offset),
+                },
+            )?;
+            if commands.is_empty() {
+                return Ok(MeasuredGeometry::Empty);
+            }
+            PathData::new(commands, resolve_fill_rule(el)?)
+                .map_err(|error| CompileError::BadPathData {
+                    element: "path".to_string(),
+                    offset: 0,
+                    excerpt: error.to_string(),
+                })?
+                .local_bounds()
+        }
+        "line" => {
+            let x1 = geometry_attr_f32(el, "x1", values, bases)?.unwrap_or(0.0);
+            let y1 = geometry_attr_f32(el, "y1", values, bases)?.unwrap_or(0.0);
+            let x2 = geometry_attr_f32(el, "x2", values, bases)?.unwrap_or(0.0);
+            let y2 = geometry_attr_f32(el, "y2", values, bases)?.unwrap_or(0.0);
+            Rectangle::from_points(&[[x1, y1], [x2, y2]])
+        }
+        "polygon" | "polyline" => {
+            let Some(value) = get_attr(el, "points") else {
+                return Ok(MeasuredGeometry::Empty);
+            };
+            let points = crate::svg_path::parse_points(&value).map_err(
+                |crate::svg_path::PathDataError::Syntax { offset }| CompileError::BadPoints {
+                    element: el.local_name_string(),
+                    offset,
+                    excerpt: excerpt_at(&value, offset),
+                },
+            )?;
+            if points.is_empty() {
+                return Ok(MeasuredGeometry::Empty);
+            }
+            let points: Vec<[f32; 2]> = points.into_iter().map(|(x, y)| [x, y]).collect();
+            Rectangle::from_points(&points)
+        }
+        // Text geometry depends on the declared oracle; re-use it only when
+        // it can be resolved without changing any paint fact.
+        "text" => {
+            let Some(data) = el.borrow_data() else {
+                return Err(CompileError::MissingComputedStyle);
+            };
+            let style: &ComputedValues = data.styles.primary();
+            let font_size = style.clone_font_size().used_size().px();
+            let family = match style.clone_font_family().families.iter().next() {
+                Some(style::values::computed::font::SingleFontFamily::FamilyName(name)) => {
+                    name.name.to_string()
+                }
+                _ => return Ok(MeasuredGeometry::Unknown),
+            };
+            drop(data);
+            let mut raw = String::new();
+            for child_id in &el.dom_node().children {
+                match &el.dom().node(*child_id).data {
+                    DemoNodeData::Text(text) => raw.push_str(text),
+                    DemoNodeData::Element(_) => return Ok(MeasuredGeometry::Unknown),
+                    _ => {}
+                }
+            }
+            let content = crate::svg_text::collapse_whitespace(&raw);
+            let x = geometry_attr_f32(el, "x", values, bases)?.unwrap_or(0.0);
+            let y = geometry_attr_f32(el, "y", values, bases)?.unwrap_or(0.0);
+            let anchor = get_attr(el, "text-anchor")
+                .and_then(|value| crate::svg_text::Anchor::parse(&value))
+                .unwrap_or(crate::svg_text::Anchor::Start);
+            let Some(path) = crate::svg_text::resolve_text_path(
+                &content, &family, font_size, x, y, anchor, fonts,
+            )
+            .map_err(|error| CompileError::UnsupportedStyle(error.to_string()))?
+            else {
+                return Ok(MeasuredGeometry::Empty);
+            };
+            path.local_bounds()
+        }
+        _ => return Ok(MeasuredGeometry::Unknown),
+    };
+    Ok(MeasuredGeometry::Rect(rect))
+}
+
 fn patrol_computed_style(
     element: HtmlElement<'_>,
     include_css_sizing: bool,
@@ -1848,12 +2164,13 @@ fn compile_svg_element(
         },
         None => PercentBases { width, height },
     };
-    // The gradient id table: whole-document, document-ordered,
-    // first-id-wins, shadow-content excluded — `url(#id)` resolves against
-    // the document, and a reference that resolves outside this compiled
-    // subtree refuses rather than paints (the surrounding page contributes
-    // nothing).
+    // The paint-resource id table: whole-document, document-ordered,
+    // first-id-wins, shadow-content excluded. It classifies every id so a
+    // pattern can never masquerade as a missing gradient; `url(#id)` resolves
+    // against the document, and a gradient outside this compiled subtree
+    // refuses rather than paints.
     let servers = PaintServers::collect(document_root(svg), svg);
+    let use_boxes = measure_use_boxes(svg, values, bases, fonts)?;
     let mut walk = ChildWalk {
         values,
         bases,
@@ -1862,6 +2179,9 @@ fn compile_svg_element(
         override_skips,
         has_author_css: document_has_author_css(svg),
         servers: &servers,
+        use_boxes,
+        paint_contexts: Vec::new(),
+        context_paint_transform: viewport,
         fonts,
         items: Vec::new(),
         top_level_shapes: Vec::new(),
@@ -1959,9 +2279,24 @@ struct ChildWalk<'a> {
     /// Whether the document carries any author stylesheet — the `<use>`
     /// patrol's document fact (see [`document_has_author_css`]).
     has_author_css: bool,
-    /// The document's gradient id table (the gradient rung): built once
-    /// before the walk, first-id-wins, shadow-content excluded.
+    /// The document's paint-resource id table: built once before the walk,
+    /// first-id-wins, shadow-content excluded.
     servers: &'a PaintServers<'a>,
+    /// Complete geometry boxes of expanded `<use>` instances, in each use
+    /// element's own user space. They are measured before paint resolution so
+    /// a context URL never learns its reference box from whichever leaf
+    /// happened to compile first.
+    use_boxes: HashMap<NodeId, Option<Rectangle>>,
+    /// Nearest use last. A context keyword selects from this stack and a
+    /// selected context keyword continues at the next outer entry.
+    paint_contexts: Vec<PaintContext<'a>>,
+    /// Cumulative frame mapping for context-paint coordinates. It includes
+    /// the viewport and every computed `transform`, but deliberately omits
+    /// every `<use x/y>` translation: Chromium applies those translations to
+    /// the resolved paint along with the consuming clone instead of cancelling
+    /// them during owner-to-leaf rebasing. The capability probe discriminates
+    /// nested and immediate-owner cases from doubled and cancelled controls.
+    context_paint_transform: AffineTransform,
     /// The declared font environment (the text rung). Empty unless the host
     /// declared fonts, so a `<text>` in an undeclared document refuses by
     /// name instead of reaching for an ambient face.
@@ -1974,14 +2309,27 @@ struct ChildWalk<'a> {
     next_id: u64,
 }
 
-impl ChildWalk<'_> {
+#[derive(Clone, Copy)]
+struct PaintContext<'d> {
+    element: HtmlElement<'d>,
+    /// `None` means an unsupported descendant made the box unknowable. A
+    /// context solid remains usable, but a context paint server refuses by
+    /// name instead of silently using a partial box.
+    reference_box: Option<Rectangle>,
+    /// Mapping from the context element's paint-coordinate space into frame
+    /// space. Computed transforms participate; `<use x/y>` translations do
+    /// not, so every translation in a nested consumption chain accumulates.
+    to_frame: AffineTransform,
+}
+
+impl<'a> ChildWalk<'a> {
     /// Compile a parent's children in painter order, accumulating the span
     /// facts the parent's own opacity decision reads. `fold_opacity` is an
     /// enclosing scope's fold factor mid-replay (see
     /// [`ChildWalk::compile_container`]); it is `1.0` on the first pass.
     fn compile_children(
         &mut self,
-        parent: HtmlElement<'_>,
+        parent: HtmlElement<'a>,
         transform: AffineTransform,
         parent_path: &str,
         depth: usize,
@@ -2088,7 +2436,7 @@ impl ChildWalk<'_> {
     /// one unsupported child.
     fn compile_container(
         &mut self,
-        el: HtmlElement<'_>,
+        el: HtmlElement<'a>,
         transform: AffineTransform,
         path: &str,
         depth: usize,
@@ -2119,6 +2467,9 @@ impl ChildWalk<'_> {
         }
         let own_transformed = element_has_computed_transform(el)?;
         let transform = compose_element_transform(el, transform, element, self.bases)?;
+        let previous_context_paint_transform = self.context_paint_transform;
+        self.context_paint_transform =
+            compose_element_transform(el, previous_context_paint_transform, element, self.bases)?;
         let facts = self.compile_span_with_opacity(
             el,
             transform,
@@ -2126,7 +2477,9 @@ impl ChildWalk<'_> {
             depth,
             patrol.opacity,
             fold_opacity,
-        )?;
+        );
+        self.context_paint_transform = previous_context_paint_transform;
+        let facts = facts?;
         Ok(SpanFacts {
             transformed: facts.transformed || own_transformed,
             ..facts
@@ -2143,7 +2496,7 @@ impl ChildWalk<'_> {
     /// are oracle-pinned meaning.
     fn compile_span_with_opacity(
         &mut self,
-        el: HtmlElement<'_>,
+        el: HtmlElement<'a>,
         transform: AffineTransform,
         path: &str,
         depth: usize,
@@ -2209,7 +2562,7 @@ impl ChildWalk<'_> {
     ///   refuses every `<use>` until the shadow-matching rung.
     fn compile_use(
         &mut self,
-        el: HtmlElement<'_>,
+        el: HtmlElement<'a>,
         transform: AffineTransform,
         path: &str,
         depth: usize,
@@ -2259,10 +2612,29 @@ impl ChildWalk<'_> {
             return Ok(SpanFacts::default());
         }
         let own_transformed = element_has_computed_transform(el)?;
-        let transform = compose_element_transform(el, transform, "use", self.bases)?;
+        let context_transform = compose_element_transform(el, transform, "use", self.bases)?;
+        let previous_context_paint_transform = self.context_paint_transform;
+        let context_paint_transform =
+            compose_element_transform(el, previous_context_paint_transform, "use", self.bases)?;
         let x = geometry_attr_f32(el, "x", self.values, self.bases)?.unwrap_or(0.0);
         let y = geometry_attr_f32(el, "y", self.values, self.bases)?.unwrap_or(0.0);
-        let transform = transform.compose(&AffineTransform::from_acebdf(1.0, 0.0, x, 0.0, 1.0, y));
+        let transform =
+            context_transform.compose(&AffineTransform::from_acebdf(1.0, 0.0, x, 0.0, 1.0, y));
+        let reference_box = self
+            .use_boxes
+            .get(&el.node_id())
+            .copied()
+            // A genuinely empty use was indexed as `Some(empty)`. Absence
+            // means an earlier measurement error prevented this nested use
+            // from being indexed; treating that as empty would silently turn
+            // its context gradient into no paint.
+            .unwrap_or(None);
+        self.paint_contexts.push(PaintContext {
+            element: el,
+            reference_box,
+            to_frame: context_paint_transform,
+        });
+        self.context_paint_transform = context_paint_transform;
         let facts = self.compile_span_with_opacity(
             el,
             transform,
@@ -2270,7 +2642,10 @@ impl ChildWalk<'_> {
             depth,
             patrol.opacity,
             fold_opacity,
-        )?;
+        );
+        self.context_paint_transform = previous_context_paint_transform;
+        self.paint_contexts.pop();
+        let facts = facts?;
         // The `x`/`y` translate is part of the use's own transform (SVG2
         // §5.6.2), so like the transform property it stays *on* this
         // element — an enclosing scope's fold is broken only by a transform
@@ -2283,7 +2658,7 @@ impl ChildWalk<'_> {
 
     fn compile_leaf(
         &mut self,
-        el: HtmlElement<'_>,
+        el: HtmlElement<'a>,
         transform: AffineTransform,
         top_level: bool,
         fold_opacity: f32,
@@ -2295,9 +2670,11 @@ impl ChildWalk<'_> {
         if let Some(outcome) = compile_shape(
             el,
             transform,
+            self.context_paint_transform,
             &mut self.next_id,
             self.values,
             self.servers,
+            &self.paint_contexts,
             self.bases,
             fold_opacity,
             self.fonts,
@@ -2436,9 +2813,11 @@ fn compose_element_transform(
 fn compile_shape(
     el: HtmlElement<'_>,
     inherited: AffineTransform,
+    context_paint_inherited: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
     servers: &PaintServers<'_>,
+    paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     fold_opacity: f32,
     fonts: &textlayout::Environment,
@@ -2449,37 +2828,94 @@ fn compile_shape(
     // from the viewport and its ancestor containers, exactly as a
     // container's does.
     let transform = compose_element_transform(el, inherited, &tag, bases)?;
+    let context_paint_transform =
+        compose_element_transform(el, context_paint_inherited, &tag, bases)?;
     let outcome = match tag.as_str() {
-        "rect" => compile_rect(el, transform, next_id, values, servers, bases, fold_opacity),
-        "circle" => compile_circle(el, transform, next_id, values, servers, bases, fold_opacity),
-        "ellipse" => compile_ellipse(el, transform, next_id, values, servers, bases, fold_opacity),
-        "path" => compile_path(el, transform, next_id, servers, bases, fold_opacity),
-        "text" => compile_text(
+        "rect" => compile_rect(
             el,
             transform,
+            context_paint_transform,
             next_id,
             values,
             servers,
+            paint_contexts,
+            bases,
+            fold_opacity,
+        ),
+        "circle" => compile_circle(
+            el,
+            transform,
+            context_paint_transform,
+            next_id,
+            values,
+            servers,
+            paint_contexts,
+            bases,
+            fold_opacity,
+        ),
+        "ellipse" => compile_ellipse(
+            el,
+            transform,
+            context_paint_transform,
+            next_id,
+            values,
+            servers,
+            paint_contexts,
+            bases,
+            fold_opacity,
+        ),
+        "path" => compile_path(
+            el,
+            transform,
+            context_paint_transform,
+            next_id,
+            servers,
+            paint_contexts,
+            bases,
+            fold_opacity,
+        ),
+        "text" => compile_text(
+            el,
+            transform,
+            context_paint_transform,
+            next_id,
+            values,
+            servers,
+            paint_contexts,
             bases,
             fold_opacity,
             fonts,
         ),
-        "line" => compile_line(el, transform, next_id, values, servers, bases, fold_opacity),
+        "line" => compile_line(
+            el,
+            transform,
+            context_paint_transform,
+            next_id,
+            values,
+            servers,
+            paint_contexts,
+            bases,
+            fold_opacity,
+        ),
         "polygon" => compile_points_shape(
             el,
             transform,
+            context_paint_transform,
             next_id,
             PointsClosure::Closed,
             servers,
+            paint_contexts,
             bases,
             fold_opacity,
         ),
         "polyline" => compile_points_shape(
             el,
             transform,
+            context_paint_transform,
             next_id,
             PointsClosure::Open,
             servers,
+            paint_contexts,
             bases,
             fold_opacity,
         ),
@@ -2507,9 +2943,11 @@ fn compile_shape(
 fn compile_text(
     el: HtmlElement<'_>,
     viewport: AffineTransform,
+    context_paint_transform: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
     servers: &PaintServers<'_>,
+    paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     fold_opacity: f32,
     fonts: &textlayout::Environment,
@@ -2532,7 +2970,9 @@ fn compile_text(
         el,
         "text",
         servers,
+        paint_contexts,
         Rectangle::from_xywh(0.0, 0.0, 1.0, 1.0),
+        context_paint_transform,
         bases,
         1.0,
     )?
@@ -2612,9 +3052,11 @@ fn compile_text(
         el,
         Geometry::Path(std::sync::Arc::new(path)),
         viewport,
+        context_paint_transform,
         next_id,
         Strokable::RenderingDisabled,
         servers,
+        paint_contexts,
         bases,
         patrol.opacity,
         fold_opacity,
@@ -2626,9 +3068,11 @@ fn compile_text(
 fn compile_rect(
     el: HtmlElement<'_>,
     viewport: AffineTransform,
+    context_paint_transform: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
     servers: &PaintServers<'_>,
+    paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     fold_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
@@ -2659,9 +3103,11 @@ fn compile_rect(
         el,
         geometry,
         viewport,
+        context_paint_transform,
         next_id,
         box_strokable(w, h),
         servers,
+        paint_contexts,
         bases,
         patrol.opacity,
         fold_opacity,
@@ -2673,9 +3119,11 @@ fn compile_rect(
 fn compile_circle(
     el: HtmlElement<'_>,
     viewport: AffineTransform,
+    context_paint_transform: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
     servers: &PaintServers<'_>,
+    paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     fold_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
@@ -2708,9 +3156,11 @@ fn compile_circle(
         el,
         Geometry::Ellipse(rect),
         viewport,
+        context_paint_transform,
         next_id,
         box_strokable(r, r),
         servers,
+        paint_contexts,
         bases,
         patrol.opacity,
         fold_opacity,
@@ -2722,9 +3172,11 @@ fn compile_circle(
 fn compile_ellipse(
     el: HtmlElement<'_>,
     viewport: AffineTransform,
+    context_paint_transform: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
     servers: &PaintServers<'_>,
+    paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     fold_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
@@ -2763,9 +3215,11 @@ fn compile_ellipse(
         el,
         Geometry::Ellipse(rect),
         viewport,
+        context_paint_transform,
         next_id,
         box_strokable(rx, ry),
         servers,
+        paint_contexts,
         bases,
         patrol.opacity,
         fold_opacity,
@@ -2788,8 +3242,10 @@ fn compile_ellipse(
 fn compile_path(
     el: HtmlElement<'_>,
     viewport: AffineTransform,
+    context_paint_transform: AffineTransform,
     next_id: &mut u64,
     servers: &PaintServers<'_>,
+    paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     fold_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
@@ -2834,9 +3290,11 @@ fn compile_path(
         el,
         Geometry::Path(Arc::new(path)),
         viewport,
+        context_paint_transform,
         next_id,
         Strokable::Yes,
         servers,
+        paint_contexts,
         bases,
         patrol.opacity,
         fold_opacity,
@@ -2861,9 +3319,11 @@ fn compile_path(
 fn compile_line(
     el: HtmlElement<'_>,
     viewport: AffineTransform,
+    context_paint_transform: AffineTransform,
     next_id: &mut u64,
     values: &EffectiveValues,
     servers: &PaintServers<'_>,
+    paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     fold_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
@@ -2897,9 +3357,11 @@ fn compile_line(
         el,
         Geometry::Path(Arc::new(path)),
         viewport,
+        context_paint_transform,
         next_id,
         Strokable::Yes,
         servers,
+        paint_contexts,
         bases,
         patrol.opacity,
         fold_opacity,
@@ -2937,9 +3399,11 @@ enum PointsClosure {
 fn compile_points_shape(
     el: HtmlElement<'_>,
     viewport: AffineTransform,
+    context_paint_transform: AffineTransform,
     next_id: &mut u64,
     closure: PointsClosure,
     servers: &PaintServers<'_>,
+    paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     fold_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
@@ -3014,9 +3478,11 @@ fn compile_points_shape(
         el,
         Geometry::Path(Arc::new(path)),
         viewport,
+        context_paint_transform,
         next_id,
         Strokable::Yes,
         servers,
+        paint_contexts,
         bases,
         patrol.opacity,
         fold_opacity,
@@ -3131,18 +3597,37 @@ fn shape_node(
     el: HtmlElement<'_>,
     geometry: Geometry,
     viewport: AffineTransform,
+    context_paint_transform: AffineTransform,
     next_id: &mut u64,
     strokable: Strokable,
     servers: &PaintServers<'_>,
+    paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     own_opacity: f32,
     fold_opacity: f32,
     fill_never_paints: bool,
 ) -> Result<ShapeOutcome, CompileError> {
     let rect = geometry.local_box();
-    let mut paints = resolve_fill(el, servers, rect, bases, 1.0)?;
+    let mut paints = resolve_fill(
+        el,
+        servers,
+        paint_contexts,
+        rect,
+        context_paint_transform,
+        bases,
+        1.0,
+    )?;
     let mut stroke = match strokable {
-        Strokable::Yes => resolve_stroke(el, &el.local_name_string(), servers, rect, bases, 1.0)?,
+        Strokable::Yes => resolve_stroke(
+            el,
+            &el.local_name_string(),
+            servers,
+            paint_contexts,
+            rect,
+            context_paint_transform,
+            bases,
+            1.0,
+        )?,
         Strokable::RenderingDisabled => None,
     };
     patrol_mixed_contour_cap(&geometry, stroke.as_ref())?;
@@ -3183,10 +3668,26 @@ fn shape_node(
                 )));
             }
             if fill_passes == 1 {
-                paints = resolve_fill(el, servers, rect, bases, opacity)?;
+                paints = resolve_fill(
+                    el,
+                    servers,
+                    paint_contexts,
+                    rect,
+                    context_paint_transform,
+                    bases,
+                    opacity,
+                )?;
             } else {
-                stroke =
-                    resolve_stroke(el, &el.local_name_string(), servers, rect, bases, opacity)?;
+                stroke = resolve_stroke(
+                    el,
+                    &el.local_name_string(),
+                    servers,
+                    paint_contexts,
+                    rect,
+                    context_paint_transform,
+                    bases,
+                    opacity,
+                )?;
             }
             folded = true;
         }
@@ -3398,14 +3899,122 @@ fn ellipse_radius(
 /// Stylo cascade, with SVG2 precedence; `currentColor` resolves against the
 /// cascaded `color`, and an invalid authored value falls back exactly as an
 /// invalid CSS declaration would. A `url(#…)` paint resolves through the
-/// document's paint-server table (the gradient rung); context paints are
-/// refused explicitly. `fill-opacity` (the translucency rung) folds into
-/// the paint's alpha — one float multiply, quantized once for a solid, and
-/// carried as the gradient paint's float opacity for a server.
+/// document's paint-server table (the gradient rung). Standard context paints
+/// recursively select the nearest `<use>` paint and resolve away before the
+/// frame; Stylo's non-standard `context-* <fallback>` extension refuses by
+/// name. `fill-opacity` belongs to the destination property (it is never
+/// selected from the context owner) and folds into the paint's alpha — one
+/// float multiply, quantized once for a solid, and carried as the gradient
+/// paint's float opacity for a server.
+#[derive(Clone, Copy)]
+enum PaintProperty {
+    Fill,
+    Stroke,
+}
+
+struct SelectedPaint<'d> {
+    value: SVGPaint,
+    owner: HtmlElement<'d>,
+    context: Option<PaintContext<'d>>,
+}
+
+fn computed_paint(el: HtmlElement<'_>, property: PaintProperty) -> Result<SVGPaint, CompileError> {
+    let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
+    let style: &ComputedValues = data.styles.primary();
+    Ok(match property {
+        PaintProperty::Fill => style.clone_fill(),
+        PaintProperty::Stroke => style.clone_stroke(),
+    })
+}
+
+/// Select the eventual ordinary paint. The nearest use is the first context;
+/// a selected context keyword continues one entry outward. The eventual
+/// ordinary owner's computed style remains attached so `currentColor`, URL
+/// fallback, and gradient reference-box ownership all resolve there.
+fn select_paint<'d>(
+    element: HtmlElement<'d>,
+    property: PaintProperty,
+    contexts: &[PaintContext<'d>],
+) -> Result<Option<SelectedPaint<'d>>, String> {
+    let mut owner = element;
+    let mut property = property;
+    let mut next_context = contexts.len();
+    loop {
+        let value = computed_paint(owner, property).map_err(|error| error.to_string())?;
+        if matches!(
+            value.kind,
+            SVGPaintKind::ContextFill | SVGPaintKind::ContextStroke
+        ) && !matches!(
+            value.fallback,
+            style::values::generics::svg::SVGPaintFallback::Unset
+        ) {
+            return Err(
+                "a context paint carries Stylo's non-standard fallback extension; Chromium drops this declaration"
+                    .to_string(),
+            );
+        }
+        let selected_property = match value.kind {
+            SVGPaintKind::ContextFill => Some(PaintProperty::Fill),
+            SVGPaintKind::ContextStroke => Some(PaintProperty::Stroke),
+            _ => None,
+        };
+        let Some(selected_property) = selected_property else {
+            let context = if next_context < contexts.len() {
+                Some(contexts[next_context])
+            } else {
+                None
+            };
+            return Ok(Some(SelectedPaint {
+                value,
+                owner,
+                context,
+            }));
+        };
+        if next_context == 0 {
+            return Ok(None);
+        }
+        next_context -= 1;
+        owner = contexts[next_context].element;
+        property = selected_property;
+    }
+}
+
+/// Map the eventual context owner's user space into the destination leaf's
+/// local space. A singular destination transform paints no pixels, so no
+/// gradient fact is needed and the caller resolves it to no paint.
+fn context_reference_space(
+    context: Option<PaintContext<'_>>,
+    destination_box: Rectangle,
+    destination_to_frame: AffineTransform,
+) -> Result<Option<(Rectangle, AffineTransform)>, String> {
+    match context {
+        None => Ok(Some((destination_box, AffineTransform::identity()))),
+        Some(context) => {
+            // Chromium paints no context gradient through a singular
+            // destination CTM (full or either one-axis singularity, across
+            // fill/stroke and box/path geometry). The capability probe pins
+            // each as a measured nothing.
+            let Some(frame_to_destination) = destination_to_frame.inverse() else {
+                return Ok(None);
+            };
+            let reference_box = context.reference_box.ok_or_else(|| {
+                "the context element's geometry box is incomplete because its instance contains an unsupported descendant"
+                    .to_string()
+            })?;
+            Ok(Some((
+                reference_box,
+                frame_to_destination.compose(&context.to_frame),
+            )))
+        }
+    }
+}
+
 fn resolve_fill(
     el: HtmlElement<'_>,
     servers: &PaintServers<'_>,
+    paint_contexts: &[PaintContext<'_>],
     consumer_box: Rectangle,
+    destination_to_frame: AffineTransform,
     bases: PercentBases,
     extra_opacity: f32,
 ) -> Result<PaintStack, CompileError> {
@@ -3423,10 +4032,21 @@ fn resolve_fill(
             )));
         }
     };
-    let fill = style.clone_fill();
+    drop(data);
+    let Some(selected) = select_paint(el, PaintProperty::Fill, paint_contexts)
+        .map_err(CompileError::UnsupportedFill)?
+    else {
+        return Ok(PaintStack::empty());
+    };
+    let owner_data = selected
+        .owner
+        .borrow_data()
+        .ok_or(CompileError::MissingComputedStyle)?;
+    let owner_style: &ComputedValues = owner_data.styles.primary();
+    let fill = selected.value;
     let fallback = || match &fill.fallback {
         style::values::generics::svg::SVGPaintFallback::Color(color) => {
-            admitted_srgb(style.resolve_color(color), opacity)
+            admitted_srgb(owner_style.resolve_color(color), opacity)
                 .map(PaintStack::solid)
                 .map_err(CompileError::UnsupportedFill)
         }
@@ -3434,7 +4054,7 @@ fn resolve_fill(
     };
     match &fill.kind {
         SVGPaintKind::None => Ok(PaintStack::empty()),
-        SVGPaintKind::Color(color) => admitted_srgb(style.resolve_color(color), opacity)
+        SVGPaintKind::Color(color) => admitted_srgb(owner_style.resolve_color(color), opacity)
             .map(PaintStack::solid)
             .map_err(CompileError::UnsupportedFill),
         SVGPaintKind::PaintServer(url) => {
@@ -3445,14 +4065,21 @@ fn resolve_fill(
                         .to_string(),
                 ));
             }
-            match resolve_paint_server_stack(servers, url, consumer_box, bases, opacity, "fill")? {
+            match resolve_paint_server_stack(
+                servers,
+                url,
+                || context_reference_space(selected.context, consumer_box, destination_to_frame),
+                consumer_box,
+                bases,
+                opacity,
+                "fill",
+            )? {
                 Some(stack) => Ok(stack),
                 None => fallback(),
             }
         }
-        SVGPaintKind::ContextFill => Err(CompileError::UnsupportedFill("context-fill".to_string())),
-        SVGPaintKind::ContextStroke => {
-            Err(CompileError::UnsupportedFill("context-stroke".to_string()))
+        SVGPaintKind::ContextFill | SVGPaintKind::ContextStroke => {
+            unreachable!("select_paint removes every context relation")
         }
     }
 }
@@ -3464,7 +4091,8 @@ fn resolve_fill(
 fn resolve_paint_server_stack(
     servers: &PaintServers<'_>,
     url: &style::values::computed::url::ComputedUrl,
-    consumer_box: Rectangle,
+    reference_space: impl FnOnce() -> Result<Option<(Rectangle, AffineTransform)>, String>,
+    destination_box: Rectangle,
     bases: PercentBases,
     paint_opacity: f32,
     property: &str,
@@ -3482,6 +4110,11 @@ fn resolve_paint_server_stack(
              are not resolved"
         )));
     };
+    let valid_gradient = crate::svg_paint_server::classify(servers, fragment)
+        .map_err(|reason| refusal(format!("url(#{fragment}): {reason}")))?;
+    if !valid_gradient {
+        return Ok(None);
+    }
     let gradient_bases = GradientBases {
         width: bases.width,
         height: bases.height,
@@ -3489,7 +4122,8 @@ fn resolve_paint_server_stack(
     let resolved = crate::svg_paint_server::resolve(
         servers,
         fragment,
-        consumer_box,
+        destination_box,
+        reference_space,
         gradient_bases,
         paint_opacity,
     )
@@ -3790,7 +4424,9 @@ fn resolve_stroke(
     el: HtmlElement<'_>,
     element_name: &str,
     servers: &PaintServers<'_>,
+    paint_contexts: &[PaintContext<'_>],
     consumer_box: Rectangle,
+    destination_to_frame: AffineTransform,
     bases: PercentBases,
     extra_opacity: f32,
 ) -> Result<Option<Stroke>, CompileError> {
@@ -3807,10 +4443,21 @@ fn resolve_stroke(
             )));
         }
     };
-    let paint = style.clone_stroke();
+    drop(data);
+    let Some(selected) = select_paint(el, PaintProperty::Stroke, paint_contexts)
+        .map_err(CompileError::UnsupportedStroke)?
+    else {
+        return Ok(None);
+    };
+    let owner_data = selected
+        .owner
+        .borrow_data()
+        .ok_or(CompileError::MissingComputedStyle)?;
+    let owner_style: &ComputedValues = owner_data.styles.primary();
+    let paint = selected.value;
     let stroke_fallback = || match &paint.fallback {
         style::values::generics::svg::SVGPaintFallback::Color(color) => {
-            admitted_srgb(style.resolve_color(color), opacity)
+            admitted_srgb(owner_style.resolve_color(color), opacity)
                 .map(PaintStack::solid)
                 .map_err(CompileError::UnsupportedStroke)
         }
@@ -3818,7 +4465,7 @@ fn resolve_stroke(
     };
     let paints = match paint.kind {
         SVGPaintKind::None => return Ok(None),
-        SVGPaintKind::Color(ref color) => admitted_srgb(style.resolve_color(color), opacity)
+        SVGPaintKind::Color(ref color) => admitted_srgb(owner_style.resolve_color(color), opacity)
             .map(PaintStack::solid)
             .map_err(CompileError::UnsupportedStroke)?,
         SVGPaintKind::PaintServer(ref url) => {
@@ -3831,19 +4478,21 @@ fn resolve_stroke(
             }
             // The stroke's paint box is the geometry's own box — the stroke's
             // inked reach beyond it pads (measured).
-            match resolve_paint_server_stack(servers, url, consumer_box, bases, opacity, "stroke")?
-            {
+            match resolve_paint_server_stack(
+                servers,
+                url,
+                || context_reference_space(selected.context, consumer_box, destination_to_frame),
+                consumer_box,
+                bases,
+                opacity,
+                "stroke",
+            )? {
                 Some(stack) => stack,
                 None => stroke_fallback()?,
             }
         }
-        SVGPaintKind::ContextFill => {
-            return Err(CompileError::UnsupportedStroke("context-fill".to_string()));
-        }
-        SVGPaintKind::ContextStroke => {
-            return Err(CompileError::UnsupportedStroke(
-                "context-stroke".to_string(),
-            ));
+        SVGPaintKind::ContextFill | SVGPaintKind::ContextStroke => {
+            unreachable!("select_paint removes every context relation")
         }
     };
     if paints.is_empty() {
@@ -3855,7 +4504,9 @@ fn resolve_stroke(
     // A percentage `stroke-width` resolves against the viewport's normalized
     // diagonal (measured: `10%` on a 64x64 viewport paints 6.4 units wide) —
     // the same basis chain the shape geometry percentages refuse on.
-    let width = match style.clone_stroke_width() {
+    let destination_data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
+    let destination_style: &ComputedValues = destination_data.styles.primary();
+    let width = match destination_style.clone_stroke_width() {
         SVGLength::ContextValue => {
             return Err(CompileError::UnsupportedStroke(
                 "stroke-width: context-value".to_string(),
@@ -3893,7 +4544,7 @@ fn resolve_stroke(
     // build while Chromium still paints a dash cycle, so `Values([])` is not
     // permission to skip the authored-text guard.
     patrol_stroke_dasharray_units(el, element_name)?;
-    let dash_intervals = match style.clone_stroke_dasharray() {
+    let dash_intervals = match destination_style.clone_stroke_dasharray() {
         SVGStrokeDashArray::ContextValue => {
             return Err(CompileError::UnsupportedStroke(
                 "stroke-dasharray: context-value".to_string(),
@@ -3926,7 +4577,7 @@ fn resolve_stroke(
         }
     };
 
-    let cap = match style.clone_stroke_linecap() {
+    let cap = match destination_style.clone_stroke_linecap() {
         StyloLinecap::Butt => StrokeCap::Butt,
         StyloLinecap::Round => StrokeCap::Round,
         StyloLinecap::Square => StrokeCap::Square,
@@ -3936,14 +4587,14 @@ fn resolve_stroke(
     // too (measured — byte-identical to `miter`, and an invalid style-attribute
     // spelling drops so a valid attribute survives), so Stylo's three-keyword
     // parse lands both admissions on the same fallback by construction.
-    let join = match style.clone_stroke_linejoin() {
+    let join = match destination_style.clone_stroke_linejoin() {
         StyloLinejoin::Miter => StrokeJoin::Miter,
         StyloLinejoin::Round => StrokeJoin::Round,
         StyloLinejoin::Bevel => StrokeJoin::Bevel,
     };
     // Carried as resolved, including a limit below 1 that no miter can satisfy:
     // the backend bevels it, which is what Chromium does with the same value.
-    let miter_limit = style.clone_stroke_miterlimit().0;
+    let miter_limit = destination_style.clone_stroke_miterlimit().0;
 
     // The cascade's non-negative types make a rejection here unreachable from a
     // document, so it would be this compiler's bug — named, never painted.

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs>
+    <radialGradient id="g"><stop offset="0" stop-color="#e11d48"/><stop offset="1" stop-color="#2563eb"/></radialGradient>
+    <g id="p">
+      <rect x="4" y="4" width="20" height="56" fill="context-stroke" stroke="none"/>
+      <rect x="40" y="4" width="20" height="56" fill="context-stroke" stroke="none"/>
+    </g>
+  </defs>
+  <use href="#p" fill="none" stroke="url(#g)"/>
+</svg>

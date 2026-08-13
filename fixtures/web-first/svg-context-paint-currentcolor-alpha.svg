@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs>
+    <rect id="current" x="6" y="16" width="22" height="32" fill="context-fill" stroke="none"/>
+    <rect id="alpha" x="38" y="16" width="18" height="32" fill="none" stroke="context-fill" stroke-width="6"/>
+  </defs>
+  <use href="#current" color="#7c3aed" fill="currentColor"/>
+  <use href="#alpha" fill="rgba(225,29,72,.5)" stroke="none"/>
+</svg>

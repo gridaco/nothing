@@ -84,6 +84,182 @@
       "height": 64
     },
     {
+      "id": "svg-context-paint-attr-fill-from-fill",
+      "source": "svg-context-paint-attr-fill-from-fill.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-attr-fill-from-fill.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-attr-fill-from-stroke",
+      "source": "svg-context-paint-attr-fill-from-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-attr-fill-from-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-attr-stroke-from-fill",
+      "source": "svg-context-paint-attr-stroke-from-fill.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-attr-stroke-from-fill.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-attr-stroke-from-stroke",
+      "source": "svg-context-paint-attr-stroke-from-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-attr-stroke-from-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-bbox-contributors",
+      "source": "svg-context-paint-bbox-contributors.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-bbox-contributors.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-css-fill-from-fill",
+      "source": "svg-context-paint-css-fill-from-fill.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-css-fill-from-fill.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-css-fill-from-stroke",
+      "source": "svg-context-paint-css-fill-from-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-css-fill-from-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-css-stroke-from-fill",
+      "source": "svg-context-paint-css-stroke-from-fill.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-css-stroke-from-fill.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-css-stroke-from-stroke",
+      "source": "svg-context-paint-css-stroke-from-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-css-stroke-from-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-currentcolor-alpha",
+      "source": "svg-context-paint-currentcolor-alpha.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-currentcolor-alpha.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-host-none",
+      "source": "svg-context-paint-host-none.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-host-none.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-inheritance-css-wide",
+      "source": "svg-context-paint-inheritance-css-wide.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-inheritance-css-wide.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-linear-obb-host-box",
+      "source": "svg-context-paint-linear-obb-host-box.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-linear-obb-host-box.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-linear-userspace-host",
+      "source": "svg-context-paint-linear-userspace-host.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-linear-userspace-host.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-missing-url-fallback",
+      "source": "svg-context-paint-missing-url-fallback.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-missing-url-fallback.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-multi-instance-light-tree",
+      "source": "svg-context-paint-multi-instance-light-tree.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-multi-instance-light-tree.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-nested",
+      "source": "svg-context-paint-nested.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-nested.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-nested-url-owner-box",
+      "source": "svg-context-paint-nested-url-owner-box.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-nested-url-owner-box.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-plain-no-context",
+      "source": "svg-context-paint-plain-no-context.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-plain-no-context.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-radial-obb-host-box",
+      "source": "svg-context-paint-radial-obb-host-box.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-radial-obb-host-box.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-radial-userspace-host",
+      "source": "svg-context-paint-radial-userspace-host.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-radial-userspace-host.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-stopless-fallback-inert",
+      "source": "svg-context-paint-stopless-fallback-inert.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-context-paint-stopless-fallback-inert.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-css-transform-beats-attribute",
       "source": "svg-css-transform-beats-attribute.svg",
       "entry": "standalone-svg",

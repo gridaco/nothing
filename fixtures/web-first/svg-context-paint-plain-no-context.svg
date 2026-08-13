@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <!-- Attribute spelling: all four consumer/selected-paint crossings paint nothing without a context. -->
+  <rect x="2" y="8" width="12" height="12" fill="context-fill" stroke="none"/>
+  <rect x="18" y="8" width="12" height="12" fill="context-stroke" stroke="none"/>
+  <rect x="34" y="8" width="12" height="12" fill="none" stroke="context-fill" stroke-width="4"/>
+  <rect x="50" y="8" width="12" height="12" fill="none" stroke="context-stroke" stroke-width="4"/>
+  <!-- CSS spelling. -->
+  <rect x="2" y="44" width="12" height="12" style="fill:context-fill;stroke:none"/>
+  <rect x="18" y="44" width="12" height="12" style="fill:context-stroke;stroke:none"/>
+  <rect x="34" y="44" width="12" height="12" style="fill:none;stroke:context-fill;stroke-width:4"/>
+  <rect x="50" y="44" width="12" height="12" style="fill:none;stroke:context-stroke;stroke-width:4"/>
+</svg>

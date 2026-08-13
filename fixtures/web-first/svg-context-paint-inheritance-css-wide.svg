@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs>
+    <g id="inherit" fill="context-fill" stroke="none">
+      <rect x="4" y="4" width="20" height="20"/>
+      <rect x="36" y="4" width="20" height="20" style="fill:inherit"/>
+    </g>
+    <g id="unset" stroke="context-stroke">
+      <rect x="4" y="36" width="20" height="20" fill="none" stroke-width="6" style="stroke:unset"/>
+    </g>
+    <g id="initial" fill="context-fill">
+      <rect x="36" y="36" width="20" height="20" style="fill:initial"/>
+    </g>
+  </defs>
+  <use href="#inherit" fill="#e11d48"/>
+  <use href="#unset" fill="none" stroke="#2563eb"/>
+  <use href="#initial" fill="#e11d48"/>
+</svg>

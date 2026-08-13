@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (255)
+## Chromium-baked cells (277)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells and three gradient ramps carry a declared, bounded
@@ -35,6 +35,28 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-circle-fill.svg" title="svg-circle-fill (standalone-svg)"><img src="./chromium/svg-circle-fill.png" width="56" alt="svg-circle-fill"></a>
 <a href="./svg-circle-viewbox-scaled.svg" title="svg-circle-viewbox-scaled (standalone-svg)"><img src="./chromium/svg-circle-viewbox-scaled.png" width="56" alt="svg-circle-viewbox-scaled"></a>
 <a href="./svg-circle-zero-r.svg" title="svg-circle-zero-r (standalone-svg)"><img src="./chromium/svg-circle-zero-r.png" width="56" alt="svg-circle-zero-r"></a>
+<a href="./svg-context-paint-attr-fill-from-fill.svg" title="svg-context-paint-attr-fill-from-fill (standalone-svg)"><img src="./chromium/svg-context-paint-attr-fill-from-fill.png" width="56" alt="svg-context-paint-attr-fill-from-fill"></a>
+<a href="./svg-context-paint-attr-fill-from-stroke.svg" title="svg-context-paint-attr-fill-from-stroke (standalone-svg)"><img src="./chromium/svg-context-paint-attr-fill-from-stroke.png" width="56" alt="svg-context-paint-attr-fill-from-stroke"></a>
+<a href="./svg-context-paint-attr-stroke-from-fill.svg" title="svg-context-paint-attr-stroke-from-fill (standalone-svg)"><img src="./chromium/svg-context-paint-attr-stroke-from-fill.png" width="56" alt="svg-context-paint-attr-stroke-from-fill"></a>
+<a href="./svg-context-paint-attr-stroke-from-stroke.svg" title="svg-context-paint-attr-stroke-from-stroke (standalone-svg)"><img src="./chromium/svg-context-paint-attr-stroke-from-stroke.png" width="56" alt="svg-context-paint-attr-stroke-from-stroke"></a>
+<a href="./svg-context-paint-bbox-contributors.svg" title="svg-context-paint-bbox-contributors (standalone-svg)"><img src="./chromium/svg-context-paint-bbox-contributors.png" width="56" alt="svg-context-paint-bbox-contributors"></a>
+<a href="./svg-context-paint-css-fill-from-fill.svg" title="svg-context-paint-css-fill-from-fill (standalone-svg)"><img src="./chromium/svg-context-paint-css-fill-from-fill.png" width="56" alt="svg-context-paint-css-fill-from-fill"></a>
+<a href="./svg-context-paint-css-fill-from-stroke.svg" title="svg-context-paint-css-fill-from-stroke (standalone-svg)"><img src="./chromium/svg-context-paint-css-fill-from-stroke.png" width="56" alt="svg-context-paint-css-fill-from-stroke"></a>
+<a href="./svg-context-paint-css-stroke-from-fill.svg" title="svg-context-paint-css-stroke-from-fill (standalone-svg)"><img src="./chromium/svg-context-paint-css-stroke-from-fill.png" width="56" alt="svg-context-paint-css-stroke-from-fill"></a>
+<a href="./svg-context-paint-css-stroke-from-stroke.svg" title="svg-context-paint-css-stroke-from-stroke (standalone-svg)"><img src="./chromium/svg-context-paint-css-stroke-from-stroke.png" width="56" alt="svg-context-paint-css-stroke-from-stroke"></a>
+<a href="./svg-context-paint-currentcolor-alpha.svg" title="svg-context-paint-currentcolor-alpha (standalone-svg)"><img src="./chromium/svg-context-paint-currentcolor-alpha.png" width="56" alt="svg-context-paint-currentcolor-alpha"></a>
+<a href="./svg-context-paint-host-none.svg" title="svg-context-paint-host-none (standalone-svg)"><img src="./chromium/svg-context-paint-host-none.png" width="56" alt="svg-context-paint-host-none"></a>
+<a href="./svg-context-paint-inheritance-css-wide.svg" title="svg-context-paint-inheritance-css-wide (standalone-svg)"><img src="./chromium/svg-context-paint-inheritance-css-wide.png" width="56" alt="svg-context-paint-inheritance-css-wide"></a>
+<a href="./svg-context-paint-linear-obb-host-box.svg" title="svg-context-paint-linear-obb-host-box (standalone-svg)"><img src="./chromium/svg-context-paint-linear-obb-host-box.png" width="56" alt="svg-context-paint-linear-obb-host-box"></a>
+<a href="./svg-context-paint-linear-userspace-host.svg" title="svg-context-paint-linear-userspace-host (standalone-svg)"><img src="./chromium/svg-context-paint-linear-userspace-host.png" width="56" alt="svg-context-paint-linear-userspace-host"></a>
+<a href="./svg-context-paint-missing-url-fallback.svg" title="svg-context-paint-missing-url-fallback (standalone-svg)"><img src="./chromium/svg-context-paint-missing-url-fallback.png" width="56" alt="svg-context-paint-missing-url-fallback"></a>
+<a href="./svg-context-paint-multi-instance-light-tree.svg" title="svg-context-paint-multi-instance-light-tree (standalone-svg)"><img src="./chromium/svg-context-paint-multi-instance-light-tree.png" width="56" alt="svg-context-paint-multi-instance-light-tree"></a>
+<a href="./svg-context-paint-nested.svg" title="svg-context-paint-nested (standalone-svg)"><img src="./chromium/svg-context-paint-nested.png" width="56" alt="svg-context-paint-nested"></a>
+<a href="./svg-context-paint-nested-url-owner-box.svg" title="svg-context-paint-nested-url-owner-box (standalone-svg)"><img src="./chromium/svg-context-paint-nested-url-owner-box.png" width="56" alt="svg-context-paint-nested-url-owner-box"></a>
+<a href="./svg-context-paint-plain-no-context.svg" title="svg-context-paint-plain-no-context (standalone-svg)"><img src="./chromium/svg-context-paint-plain-no-context.png" width="56" alt="svg-context-paint-plain-no-context"></a>
+<a href="./svg-context-paint-radial-obb-host-box.svg" title="svg-context-paint-radial-obb-host-box (standalone-svg)"><img src="./chromium/svg-context-paint-radial-obb-host-box.png" width="56" alt="svg-context-paint-radial-obb-host-box"></a>
+<a href="./svg-context-paint-radial-userspace-host.svg" title="svg-context-paint-radial-userspace-host (standalone-svg)"><img src="./chromium/svg-context-paint-radial-userspace-host.png" width="56" alt="svg-context-paint-radial-userspace-host"></a>
+<a href="./svg-context-paint-stopless-fallback-inert.svg" title="svg-context-paint-stopless-fallback-inert (standalone-svg)"><img src="./chromium/svg-context-paint-stopless-fallback-inert.png" width="56" alt="svg-context-paint-stopless-fallback-inert"></a>
 <a href="./svg-css-transform-beats-attribute.svg" title="svg-css-transform-beats-attribute (standalone-svg)"><img src="./chromium/svg-css-transform-beats-attribute.png" width="56" alt="svg-css-transform-beats-attribute"></a>
 <a href="./svg-css-transform-compound.svg" title="svg-css-transform-compound (standalone-svg)"><img src="./chromium/svg-css-transform-compound.png" width="56" alt="svg-css-transform-compound"></a>
 <a href="./svg-css-transform-group.svg" title="svg-css-transform-group (standalone-svg)"><img src="./chromium/svg-css-transform-group.png" width="56" alt="svg-css-transform-group"></a>
@@ -294,6 +316,7 @@ its row into the cells above.
 | Fixture | Admission | The compiler's departure |
 | --- | --- | --- |
 | `svg-clip-path` | declared | skipped svg/clipPath[1]: unsupported element <clipPath>; skipped svg/rect[2]: unsupported rendering attribute clip-path on <rect> (not yet consumed) |
+| `svg-context-paint-fallback-extension` | declared | skipped svg/rect[2]: unsupported fill value "a context paint carries Stylo's non-standard fallback extension; Chromium drops this declaration" |
 | `svg-css-individual-rotate` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares rotate, which this cascade does not represent |
 | `svg-css-transform-3d` | declared | skipped svg/rect[2]: unsupported computed style: transform on <rect> uses translate3d(), which is outside the 2D affine function set this slice consumes |
 | `svg-css-transform-box` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform-box, which this cascade does not represent |
@@ -316,7 +339,7 @@ its row into the cells above.
 | `svg-path-no-leading-moveto` | declared | skipped svg/path[1]: path data on <path> is invalid at byte 0 (near "L10 10 L54 54 Z") |
 | `svg-path-pathlength` | declared | skipped svg/path[1]: unsupported rendering attribute pathLength on <path> (not yet consumed) |
 | `svg-path-trailing-dot-number` | declared | skipped svg/path[1]: path data on <path> is invalid at byte 1 (near "10. 10 L54 10 L54 54 Z") |
-| `svg-pattern-paint-server` | declared | skipped svg/pattern[1]: unsupported element <pattern> |
+| `svg-pattern-paint-server` | declared | skipped svg/pattern[1]: unsupported element <pattern>; skipped svg/rect[2]: unsupported fill value "url(#p): url(#p) resolves to a <pattern> paint server, which the resolved frame cannot express" |
 | `svg-points-odd-coordinate` | declared | skipped svg/polygon[1]: points on <polygon> is invalid at byte 17 (near "") |
 | `svg-preserve-aspect-ratio-case-folded` | **both refuse** | preserveAspectRatio "xmidymid meet" is invalid |
 | `svg-preserve-aspect-ratio-defer` | **both refuse** | preserveAspectRatio "defer xMidYMid meet" is invalid |
@@ -325,7 +348,6 @@ its row into the cells above.
 | `svg-smil-animate-transform` | declared | skipped svg/g[1]: its authored state is overridden at document load by the unsupported animation at svg/g[1]/animateTransform[1]: animation element <animateTransform> is outside the rect-x proving slice |
 | `svg-smil-retarget-href` | **both refuse** | SVG animation at svg/rect[2]/set[1] is unsupported: animation element <set> is outside the rect-x proving slice; it carries href, so its target cannot be attributed to one element without id resolution; it is active at document load, so the authored state it overrides cannot render as the Base view |
 | `svg-smil-set-load-active` | declared | skipped svg/rect[2]: its authored state is overridden at document load by the unsupported animation at svg/rect[2]/set[1]: animation element <set> is outside the rect-x proving slice |
-| `svg-stroke-context-paint` | declared | skipped svg/use[1]/rect[1]: unsupported stroke value "context-fill" |
 | `svg-stroke-dasharray-cycle-overflow` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dasharray cycle has a finite authored grammar but its resolved total is not representable by this frame contract" |
 | `svg-stroke-dasharray-escape` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dasharray on <path> carries a CSS escape this patrol cannot read" |
 | `svg-stroke-dasharray-font-basis` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dasharray in em on <path> under an authored font-size carrying vw needs a basis this cascade does not have" |

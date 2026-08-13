@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs><rect id="r" x="16" y="16" width="32" height="32" fill="none" stroke="none" style="stroke:context-stroke;stroke-width:8"/></defs>
+  <use href="#r" fill="none" stroke="#f59e0b"/>
+</svg>
