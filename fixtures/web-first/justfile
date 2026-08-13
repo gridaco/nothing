@@ -1,0 +1,32 @@
+# The Web-first suite toolbox — the checklist loop's per-rung commands.
+# `just -l` lists recipes; see README.md § Tooling for the loop itself.
+
+set shell := ["bash", "-cu"]
+
+# Node env for the Playwright-side scripts (the pinned Chromium lives in
+# packages/grida-reftest's workspace; that package's scoring machinery is
+# legacy-engine estate the loop never touches). nvm is sourced only where it
+# exists — a machine with pnpm already on PATH needs nothing.
+node_env := 'export NVM_DIR="$HOME/.nvm"; { [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"; } || true;'
+cargo_env := 'export PATH="$HOME/.cargo/bin:$PATH";'
+
+# Bake/verify all committed oracles: creates missing, refuses drift.
+bake:
+    {{node_env}} pnpm -C {{justfile_directory()}}/../../packages/grida-reftest exec tsx {{justfile_directory()}}/bake_chromium.ts
+
+# Run a scratch probe script (author it against probe_harness.ts; never commit it).
+probe file:
+    {{node_env}} pnpm -C {{justfile_directory()}}/../../packages/grida-reftest exec tsx {{file}}
+
+# The engine gate over every cell (websem → rframe → n0) — byte-exact
+# except the rows whose declared tolerance blocks carry measured bounds.
+gate:
+    {{cargo_env}} cargo test -p websem --test reftest_oracle
+
+# Regenerate STATUS.md and its freshness gate.
+status:
+    {{cargo_env}} UPDATE_CAPABILITY_STATUS=1 cargo test -p websem --test capability_status
+
+# Register a new 64x64 standalone-svg cell (fixture + sorted manifest entry).
+add id svg:
+    python3 {{justfile_directory()}}/add_cell.py {{id}} --svg {{svg}}

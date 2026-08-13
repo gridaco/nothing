@@ -21,8 +21,14 @@ import { dirname, join } from "node:path";
 import { exit } from "node:process";
 import { fileURLToPath } from "node:url";
 
-import { chromium, type Page } from "@playwright/test";
+import { type Page } from "@playwright/test";
 import { PNG } from "pngjs";
+
+import {
+  captureFirstSvg,
+  deterministicContext,
+  launchDeterministicChromium,
+} from "./chromium_capture";
 
 type Entry = "standalone-svg" | "html-inline-svg";
 
@@ -73,29 +79,15 @@ function assertSamePixels(existing: Buffer, fresh: Buffer, id: string): void {
 }
 
 async function captureSvg(page: Page, fixture: Primitive, source: Buffer): Promise<Buffer> {
-  // standalone-svg: the window IS the initial viewport (SVG2 §8.2) the
-  // fixture's declared dims stand for — a missing root width/height is
-  // `auto` and resolves to 100% of it, so viewBox-only fixtures bake at
-  // exactly their declared size. html-inline-svg keeps the fixed 1280x720
-  // posture: that entry has no initial-viewport semantics yet.
-  if (fixture.entry === "standalone-svg") {
-    await page.setViewportSize({ width: fixture.width, height: fixture.height });
-  }
-  const media = fixture.entry === "standalone-svg" ? "image/svg+xml" : "text/html";
-  const dataUrl = `data:${media};base64,${source.toString("base64")}`;
-  await page.goto(dataUrl, { waitUntil: "load" });
-
-  const svg = page.locator("svg").first();
-  if ((await svg.count()) !== 1) {
-    throw new Error(`${fixture.id}: expected a first <svg> element`);
-  }
-  const box = await svg.boundingBox();
-  if (!box || box.width !== fixture.width || box.height !== fixture.height) {
-    throw new Error(
-      `${fixture.id}: unexpected SVG box ${JSON.stringify(box)}; expected ${fixture.width}x${fixture.height}`,
-    );
-  }
-  return svg.screenshot({ omitBackground: true, type: "png" });
+  // The posture lives in `chromium_capture.ts` — the one module probes share
+  // — and its hash is recorded in the manifest below.
+  return captureFirstSvg(page, {
+    media: fixture.entry === "standalone-svg" ? "image/svg+xml" : "text/html",
+    source,
+    width: fixture.width,
+    height: fixture.height,
+    label: fixture.id,
+  });
 }
 
 async function main(): Promise<void> {
@@ -106,19 +98,10 @@ async function main(): Promise<void> {
   }
 
   const scriptBytes = await readFile(SCRIPT_PATH);
-  const browser = await chromium.launch({
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
+  const captureBytes = await readFile(join(DIR, "chromium_capture.ts"));
+  const browser = await launchDeterministicChromium();
   const browserVersion = browser.version();
-  const context = await browser.newContext({
-    javaScriptEnabled: false,
-    viewport: { width: 1280, height: 720 },
-    deviceScaleFactor: 1,
-    colorScheme: "light",
-    locale: "en-US",
-    timezoneId: "UTC",
-  });
-  await context.route("**/*", (route) => route.abort());
+  const context = await deterministicContext(browser);
 
   const records: Array<Record<string, unknown>> = [];
   for (const fixture of suite.fixtures) {
@@ -164,6 +147,7 @@ async function main(): Promise<void> {
     kind: "chromium-primitive-suite",
     browser_version: browserVersion,
     bake_script_sha256: sha256(scriptBytes),
+    capture_module_sha256: sha256(captureBytes),
     suite: "primitives.json",
     suite_sha256: sha256(suiteBytes),
     capture: {

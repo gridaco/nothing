@@ -2,7 +2,8 @@
   "schema_version": 1,
   "kind": "chromium-primitive-suite",
   "browser_version": "149.0.7827.55",
-  "bake_script_sha256": "373cbea5476067163b6f8ebfc90eb49b7f49ae7758be0916d34db906399e1d5e",
+  "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
+  "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
   "suite_sha256": "e792f6de71eb311a8270f63d09d46dfdad3de0b0aef447a0514643c280f510b4",
   "capture": {
