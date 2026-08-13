@@ -187,10 +187,10 @@ fn a_root_display_none_splits_by_entry() {
     );
 }
 
-/// A hidden element's *other* unconsumed cascaded properties stay silent:
+/// A hidden element's other paint properties stay silent:
 /// Chromium paints nothing for it regardless, so a refusal there would
-/// turn a correct nothing into a false alarm. The same property on a
-/// *rendering* element still refuses.
+/// turn a correct nothing into a false alarm. On a rendering element without
+/// a context, context paint is itself the measured no-paint result.
 #[test]
 fn hidden_elements_do_not_false_alarm_on_unconsumed_properties() {
     let hidden = admit_both(&document(
@@ -202,13 +202,14 @@ fn hidden_elements_do_not_false_alarm_on_unconsumed_properties() {
         "hidden: the property reaches nothing"
     );
 
-    SvgFrameSource::from_standalone_svg(
+    let rendering = SvgFrameSource::from_standalone_svg(
         document(
             r##"  <rect x="8" y="8" width="24" height="24" fill="#16a34a" style="stroke: context-fill; stroke-width: 4"/>"##,
         ),
         viewport(),
     )
-    .expect_err("rendering: the same property still refuses");
+    .expect("rendering: context paint without a context is admitted no-paint");
+    assert!(rendering.base_frame().nodes()[0].stroke.is_none());
 }
 
 /// `display: contents` stays a refusal by name: Chromium paints the

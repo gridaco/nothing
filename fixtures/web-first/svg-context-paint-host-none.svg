@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs>
+    <rect id="ff" x="4" y="4" width="20" height="20" fill="context-fill" stroke="none"/>
+    <rect id="fs" x="36" y="4" width="20" height="20" fill="context-stroke" stroke="none"/>
+    <rect id="sf" x="4" y="36" width="20" height="20" fill="none" stroke="context-fill" stroke-width="6"/>
+    <rect id="ss" x="36" y="36" width="20" height="20" fill="none" stroke="context-stroke" stroke-width="6"/>
+  </defs>
+  <use href="#ff" fill="none"/>
+  <use href="#fs" fill="none" stroke="none"/>
+  <use href="#sf" fill="none"/>
+  <use href="#ss" stroke="none"/>
+</svg>

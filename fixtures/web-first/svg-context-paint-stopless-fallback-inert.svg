@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs>
+    <linearGradient id="empty"/>
+    <rect id="r" x="16" y="16" width="32" height="32" fill="context-fill" stroke="none"/>
+  </defs>
+  <use href="#r" fill="url(#empty) #e11d48"/>
+</svg>

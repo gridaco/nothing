@@ -42,6 +42,11 @@ use Departure::{BothRefuse, DeclaredByBestEffort};
 /// a bare "does it error" check and fail this one.
 const CORPUS: &[(&str, Departure, &str)] = &[
     ("svg-clip-path", DeclaredByBestEffort, "<clipPath>"),
+    (
+        "svg-context-paint-fallback-extension",
+        DeclaredByBestEffort,
+        "non-standard fallback",
+    ),
     // The CSS `transform` property graduated with the transform rung (its
     // fixture is now a baked cell); the family's still-refused members each
     // hold a row: the individual transform properties, the beyond-2D
@@ -168,11 +173,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "svg-smil-set-load-active",
         DeclaredByBestEffort,
         "animation element <set>",
-    ),
-    (
-        "svg-stroke-context-paint",
-        DeclaredByBestEffort,
-        "context-fill",
     ),
     (
         "svg-stroke-dasharray-cycle-overflow",

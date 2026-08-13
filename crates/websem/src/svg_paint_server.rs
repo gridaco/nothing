@@ -110,19 +110,27 @@ impl GradientBases {
     }
 }
 
-struct Server<'d> {
-    element: HtmlElement<'d>,
-    inside_compiled_svg: bool,
+enum Server<'d> {
+    Gradient {
+        element: HtmlElement<'d>,
+        inside_compiled_svg: bool,
+    },
+    /// A pattern is a valid SVG paint server, but it is deliberately outside
+    /// rframe's resolved paint vocabulary. Keeping it in the same first-id
+    /// table as gradients is load-bearing: otherwise a pattern in `<defs>`
+    /// looks exactly like a missing id and silently becomes fallback/no-paint.
+    Pattern,
+    /// An id on any other element makes the reference invalid as a paint
+    /// server. It still occupies the first-id slot, exactly as DOM id lookup
+    /// does, so a later gradient with the same id cannot incorrectly win.
+    Other,
 }
 
-/// The document's gradient id table: document-ordered, first-id-wins,
-/// shadow-content excluded.
+/// The document's paint-resource id table: document-ordered, first-id-wins,
+/// shadow-content excluded. Non-gradients are retained for exact URL
+/// classification, not lowered as paints.
 pub(crate) struct PaintServers<'d> {
     by_fragment: HashMap<String, Server<'d>>,
-}
-
-fn is_gradient_tag(tag: &str) -> bool {
-    tag == "linearGradient" || tag == "radialGradient"
 }
 
 fn has_use_ancestor(el: HtmlElement<'_>) -> bool {
@@ -148,8 +156,8 @@ fn is_inside(el: HtmlElement<'_>, ancestor: HtmlElement<'_>) -> bool {
 }
 
 impl<'d> PaintServers<'d> {
-    /// Walk the whole document in order and index every gradient element
-    /// with an `id`, first id wins. Elements inside `<use>` shadow content
+    /// Walk the whole document in order and classify every element with an
+    /// `id`, first id wins. Elements inside `<use>` shadow content
     /// are skipped: the expansion physically nests clones under the `<use>`,
     /// and Chromium resolves `url(#id)` against the document, never a clone
     /// (measured — a clone earlier in expanded order does not shadow the
@@ -169,14 +177,19 @@ impl<'d> PaintServers<'d> {
             for c in children.into_iter().rev() {
                 stack.push(c);
             }
-            if !is_gradient_tag(&el.local_name_string()) || has_use_ancestor(el) {
+            if has_use_ancestor(el) {
                 continue;
             }
             let Some(id) = element_id(el) else { continue };
-            by_fragment.entry(id).or_insert(Server {
-                element: el,
-                inside_compiled_svg: is_inside(el, compiled_svg),
-            });
+            let server = match el.local_name_string().as_str() {
+                "linearGradient" | "radialGradient" => Server::Gradient {
+                    element: el,
+                    inside_compiled_svg: is_inside(el, compiled_svg),
+                },
+                "pattern" => Server::Pattern,
+                _ => Server::Other,
+            };
+            by_fragment.entry(id).or_insert(server);
         }
         Self { by_fragment }
     }
@@ -204,6 +217,26 @@ pub(crate) enum ResolvedPaintServer {
     Gradient(cg::Paint),
 }
 
+/// Classification that must happen before context-box rebasing. It preserves
+/// each construct's own outcome when a context relation selects it: an
+/// external URL stays external, a pattern stays a pattern refusal, and a
+/// missing/non-server id remains invalid so the authored fallback can fire.
+pub(crate) fn classify(servers: &PaintServers<'_>, fragment: &str) -> Result<bool, String> {
+    match servers.by_fragment.get(fragment) {
+        None | Some(Server::Other) => Ok(false),
+        Some(Server::Pattern) => Err(format!(
+            "url(#{fragment}) resolves to a <pattern> paint server, which the resolved frame cannot express"
+        )),
+        Some(Server::Gradient {
+            inside_compiled_svg: false,
+            ..
+        }) => Err(format!(
+            "url(#{fragment}) resolves outside the compiled SVG subtree, which contributes nothing"
+        )),
+        Some(Server::Gradient { .. }) => Ok(true),
+    }
+}
+
 /// The `<stop>` list, resolved: offset clamped against the running maximum,
 /// color and `stop-opacity` folded and quantized once.
 struct ResolvedStop {
@@ -223,20 +256,33 @@ enum GradientKind {
 pub(crate) fn resolve(
     servers: &PaintServers<'_>,
     fragment: &str,
-    consumer_box: Rectangle,
+    destination_box: Rectangle,
+    reference_space: impl FnOnce() -> Result<Option<(Rectangle, AffineTransform)>, String>,
     bases: GradientBases,
     paint_opacity: f32,
 ) -> Result<ResolvedPaintServer, String> {
     let Some(server) = servers.by_fragment.get(fragment) else {
         return Ok(ResolvedPaintServer::Invalid);
     };
-    if !server.inside_compiled_svg {
+    let (element, inside_compiled_svg) = match server {
+        Server::Gradient {
+            element,
+            inside_compiled_svg,
+        } => (*element, *inside_compiled_svg),
+        Server::Pattern => {
+            return Err(format!(
+                "url(#{fragment}) resolves to a <pattern> paint server, which the resolved frame cannot express"
+            ));
+        }
+        Server::Other => return Ok(ResolvedPaintServer::Invalid),
+    };
+    if !inside_compiled_svg {
         return Err(format!(
             "url(#{fragment}) resolves outside the compiled SVG subtree, which contributes nothing"
         ));
     }
-    let chain = template_chain(servers, server.element);
-    let kind = match server.element.local_name_string().as_str() {
+    let chain = template_chain(servers, element);
+    let kind = match element.local_name_string().as_str() {
         "linearGradient" => GradientKind::Linear,
         _ => GradientKind::Radial,
     };
@@ -260,15 +306,10 @@ pub(crate) fn resolve(
         GradientTransform::Affine(affine) => affine,
     };
 
-    if matches!(units, GradientUnits::ObjectBoundingBox)
-        && (consumer_box.width <= 0.0 || consumer_box.height <= 0.0)
-    {
-        // Measured: an objectBoundingBox gradient on zero-area geometry
-        // paints nothing at all.
-        return Ok(ResolvedPaintServer::Nothing);
-    }
-
     if stops.len() == 1 {
+        // A one-stop ramp is a source-neutral solid. It still obeys the
+        // gradient element's own transform outcome above, but needs neither a
+        // context reference box nor an owner-to-destination mapping.
         return Ok(solid_paint(stops[0].color, paint_opacity));
     }
 
@@ -279,7 +320,8 @@ pub(crate) fn resolve(
             tile_mode,
             transform,
             stops,
-            consumer_box,
+            destination_box,
+            reference_space,
             bases,
             paint_opacity,
         ),
@@ -289,7 +331,8 @@ pub(crate) fn resolve(
             tile_mode,
             transform,
             stops,
-            consumer_box,
+            destination_box,
+            reference_space,
             bases,
             paint_opacity,
         ),
@@ -316,14 +359,18 @@ fn template_chain<'d>(servers: &PaintServers<'d>, first: HtmlElement<'d>) -> Vec
             // their initial values exactly as for any dead edge.
             break;
         };
-        let Some(server) = servers.by_fragment.get(fragment) else {
+        let Some(Server::Gradient {
+            element,
+            inside_compiled_svg: _,
+        }) = servers.by_fragment.get(fragment)
+        else {
             break;
         };
-        if !visited.insert(server.element.node_id()) {
+        if !visited.insert(element.node_id()) {
             break;
         }
-        chain.push(server.element);
-        current = server.element;
+        chain.push(*element);
+        current = *element;
     }
     chain
 }
@@ -789,6 +836,11 @@ fn box_inverse(rect: Rectangle) -> AffineTransform {
     )
 }
 
+/// The affine from the unit square into a non-degenerate geometry box.
+fn box_transform(rect: Rectangle) -> AffineTransform {
+    AffineTransform::from_acebdf(rect.width, 0.0, rect.x, 0.0, rect.height, rect.y)
+}
+
 /// `first × second` as one mapping: apply `second` to the point, then
 /// `first` (`compose` is the plain matrix product `self × other`).
 fn concat(first: &AffineTransform, second: &AffineTransform) -> AffineTransform {
@@ -802,7 +854,8 @@ fn resolve_linear(
     tile_mode: cg::TileMode,
     transform: AffineTransform,
     stops: Vec<ResolvedStop>,
-    consumer_box: Rectangle,
+    destination_box: Rectangle,
+    reference_space: impl FnOnce() -> Result<Option<(Rectangle, AffineTransform)>, String>,
     bases: GradientBases,
     paint_opacity: f32,
 ) -> Result<ResolvedPaintServer, String> {
@@ -833,11 +886,23 @@ fn resolve_linear(
         return Ok(solid_paint(color, paint_opacity));
     }
 
+    // Only an actual ramp needs owner geometry and a mapping into the leaf.
+    // A singular context consumer paints nothing; no gradient fact crosses
+    // the resolved contract.
+    let Some((reference_box, reference_to_destination)) = reference_space()? else {
+        return Ok(ResolvedPaintServer::Nothing);
+    };
+    if matches!(units, GradientUnits::ObjectBoundingBox)
+        && (reference_box.width <= 0.0 || reference_box.height <= 0.0)
+    {
+        return Ok(ResolvedPaintServer::Nothing);
+    }
+
+    let direct_reference =
+        destination_box == reference_box && reference_to_destination == AffineTransform::identity();
     let paint = match units {
-        GradientUnits::ObjectBoundingBox => cg::LinearGradientPaint {
+        GradientUnits::ObjectBoundingBox if direct_reference => cg::LinearGradientPaint {
             active: true,
-            // Endpoints are bbox fractions; the box maps them, and level
-            // lines skew with a non-square box exactly as measured.
             xy1: cg::Alignment(x1 * 2.0 - 1.0, y1 * 2.0 - 1.0),
             xy2: cg::Alignment(x2 * 2.0 - 1.0, y2 * 2.0 - 1.0),
             tile_mode,
@@ -846,13 +911,43 @@ fn resolve_linear(
             opacity: paint_opacity,
             blend_mode: cg::BlendMode::Normal,
         },
+        GradientUnits::ObjectBoundingBox => {
+            // Context paint makes the reference box and the destination
+            // paint box different. Build the ramp in the eventual owner's
+            // box, move it into the destination element's local space, then
+            // return it to that element's unit box. For an ordinary direct
+            // paint all three extra matrices cancel to identity, preserving
+            // the original objectBoundingBox lowering exactly.
+            let transform = concat(
+                &box_inverse(destination_box),
+                &concat(
+                    &reference_to_destination,
+                    &concat(&box_transform(reference_box), &transform),
+                ),
+            );
+            cg::LinearGradientPaint {
+                active: true,
+                // Endpoints are bbox fractions; the box maps them, and level
+                // lines skew with a non-square box exactly as measured.
+                xy1: cg::Alignment(x1 * 2.0 - 1.0, y1 * 2.0 - 1.0),
+                xy2: cg::Alignment(x2 * 2.0 - 1.0, y2 * 2.0 - 1.0),
+                tile_mode,
+                transform,
+                stops: cg_stops(&stops),
+                opacity: paint_opacity,
+                blend_mode: cg::BlendMode::Normal,
+            }
+        }
         GradientUnits::UserSpaceOnUse => {
             // User space: the ramp's level lines are perpendicular to the
             // gradient vector in *user* units, so the unit segment maps to
             // the user segment through a similarity, and the box inverse
             // returns the whole mapping to the contract's unit square.
             let similarity = AffineTransform::from_acebdf(dx, -dy, x1, dy, dx, y1);
-            let transform = concat(&box_inverse(consumer_box), &concat(&transform, &similarity));
+            let transform = concat(
+                &box_inverse(destination_box),
+                &concat(&reference_to_destination, &concat(&transform, &similarity)),
+            );
             cg::LinearGradientPaint {
                 active: true,
                 xy1: cg::Alignment(-1.0, -1.0),
@@ -877,7 +972,8 @@ fn resolve_radial(
     tile_mode: cg::TileMode,
     transform: AffineTransform,
     stops: Vec<ResolvedStop>,
-    consumer_box: Rectangle,
+    destination_box: Rectangle,
+    reference_space: impl FnOnce() -> Result<Option<(Rectangle, AffineTransform)>, String>,
     bases: GradientBases,
     paint_opacity: f32,
 ) -> Result<ResolvedPaintServer, String> {
@@ -910,16 +1006,40 @@ fn resolve_radial(
         return Ok(solid_paint(stops[stops.len() - 1].color, paint_opacity));
     }
 
+    // Like a degenerate linear ramp, a non-positive radius is already a
+    // source-neutral solid. Only a live radial needs the context box/space.
+    let Some((reference_box, reference_to_destination)) = reference_space()? else {
+        return Ok(ResolvedPaintServer::Nothing);
+    };
+    if matches!(units, GradientUnits::ObjectBoundingBox)
+        && (reference_box.width <= 0.0 || reference_box.height <= 0.0)
+    {
+        return Ok(ResolvedPaintServer::Nothing);
+    }
+
     // The unit circle (center ½,½, radius ½) maps to the resolved circle
     // through a similarity; objectBoundingBox composes in fraction space,
     // user space returns through the box inverse.
     let scale = 2.0 * r;
     let similarity = AffineTransform::from_acebdf(scale, 0.0, cx - r, 0.0, scale, cy - r);
+    let direct_reference =
+        destination_box == reference_box && reference_to_destination == AffineTransform::identity();
     let transform = match units {
-        GradientUnits::ObjectBoundingBox => concat(&transform, &similarity),
-        GradientUnits::UserSpaceOnUse => {
-            concat(&box_inverse(consumer_box), &concat(&transform, &similarity))
-        }
+        GradientUnits::ObjectBoundingBox if direct_reference => concat(&transform, &similarity),
+        GradientUnits::ObjectBoundingBox => concat(
+            &box_inverse(destination_box),
+            &concat(
+                &reference_to_destination,
+                &concat(
+                    &box_transform(reference_box),
+                    &concat(&transform, &similarity),
+                ),
+            ),
+        ),
+        GradientUnits::UserSpaceOnUse => concat(
+            &box_inverse(destination_box),
+            &concat(&reference_to_destination, &concat(&transform, &similarity)),
+        ),
     };
     Ok(ResolvedPaintServer::Gradient(cg::Paint::RadialGradient(
         cg::RadialGradientPaint {

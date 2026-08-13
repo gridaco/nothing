@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs>
+    <linearGradient id="g"><stop offset="0" stop-color="#e11d48"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <rect id="leaf" x="4" y="12" width="20" height="40" fill="context-fill"/>
+    <g id="outer-target">
+      <use href="#leaf" fill="context-fill"/>
+      <rect x="40" y="12" width="20" height="40" visibility="hidden"/>
+    </g>
+  </defs>
+  <use href="#outer-target" fill="url(#g)"/>
+</svg>

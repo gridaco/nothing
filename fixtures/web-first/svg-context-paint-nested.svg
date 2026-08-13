@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs>
+    <rect id="leaf-cross" x="4" y="16" width="24" height="32" fill="context-fill" stroke="none"/>
+    <use id="mid-cross" href="#leaf-cross" fill="context-stroke"/>
+    <rect id="leaf-nearest" x="36" y="16" width="24" height="32" fill="context-fill" stroke="none"/>
+    <use id="mid-nearest" href="#leaf-nearest" fill="#16a34a"/>
+  </defs>
+  <use href="#mid-cross" fill="none" stroke="#2563eb"/>
+  <use href="#mid-nearest" fill="#e11d48"/>
+</svg>

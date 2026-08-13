@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect id="r" x="4" y="4" width="20" height="20" fill="context-fill" stroke="none"/>
+  <use href="#r" y="32" fill="#e11d48"/>
+  <use href="#r" x="32" y="32" fill="#2563eb"/>
+</svg>

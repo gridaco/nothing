@@ -960,10 +960,10 @@ excluded.
 - [ ] `x`
 - [ ] `y`
 - [ ] `d`
-- [ ] `fill`
+- [x] `fill`
 - [x] `fill-opacity`
 - [x] `fill-rule`
-- [ ] `stroke`
+- [x] `stroke`
 - [x] `stroke-width`
 - [x] `stroke-opacity`
 - [ ] `stroke-dasharray`
@@ -1437,7 +1437,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `direction`
 - [ ] `display`
 - [ ] `dominant-baseline`
-- [ ] `fill`
+- [x] `fill`
 - [x] `fill-opacity`
 - [x] `fill-rule`
 - [ ] `filter`
@@ -1471,7 +1471,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `shape-rendering`
 - [ ] `stop-color`
 - [ ] `stop-opacity`
-- [ ] `stroke`
+- [x] `stroke`
 - [ ] `stroke-dasharray`
 - [ ] `stroke-dashoffset`
 - [x] `stroke-linecap`

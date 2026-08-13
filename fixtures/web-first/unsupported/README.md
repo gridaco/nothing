@@ -20,6 +20,7 @@ The scannable, generated view of this register (beside the baked cells) is
 
 | File | Required result |
 | --- | --- |
+| `svg-context-paint-fallback-extension.svg` | Refuse Stylo's non-standard context-paint fallback extension by name. SVG2 permits a fallback only after a URL, and Chromium drops `context-fill red` as an invalid paint (measured); the pinned parser accepts it. The standard-track grammar remains the bar under gridaco/nothing#77, so this registered over-refusal cannot hold the four `fill`/`stroke` rows open. Attribute, inline-style, and stylesheet ingresses are guarded. |
 | `svg-viewbox-invalid-token.svg` | Reject the malformed `viewBox`; do not discard the bad token. |
 | `svg-viewbox-repeated-comma.svg` | Reject a repeated comma in the `viewBox` number list; do not filter empty separators. |
 | `svg-viewbox-trailing-comma.svg` | Reject a trailing comma in the `viewBox` number list; do not filter empty separators. |
@@ -33,7 +34,6 @@ The scannable, generated view of this register (beside the baked cells) is
 | `svg-path-css-d-property.svg` | Declare a stylesheet's `d: path(…)`: Chromium honors it in place of the attribute, and the pinned Stylo build drops the declaration entirely. |
 | `svg-path-pathlength.svg` | Refuse by name — **load-bearing now**. Chromium scales dash intervals through `pathLength` on path, rect, circle, and ellipse, and scales dash offset on path (measured); the zero-calibration frame contract carries no such fact. The same patrol covers all seven admitted geometry elements so a dash cycle never paints in the wrong distance space. |
 | `svg-path-marker-end.svg` | Refuse by name — **load-bearing**. Nothing else reads a marker property: the property *is* the paint trigger, so this refusal is what keeps Chromium's arrowhead from becoming a silent hole. |
-| `svg-stroke-context-paint.svg` | Refuse by name — a **load-bearing** refusal, not an over-refusal. On a plain shape Chromium paints `context-fill`/`context-stroke` as nothing (measured), but a `<use>` clone resolves them against the use site's own paint (measured: byte-identical to the authored color) and markers do the same — so lowering the plain-document nothing would silently mispaint every instantiated shape this slice admits. The fixture is the use-clone form, declared at the clone's own path. |
 | `svg-stroke-dasharray-cycle-overflow.svg` | Refuse by name — each authored interval is finite, but the repeated cycle's f32 sum is not. Chromium honors the grammar (measured: `3.4e38 3.4e38` covers the finite path solid; `0 3.4e38 0 3.4e38` under round caps paints its initial dots), while the checked frame contract requires one finite positive cycle length. The valid-but-unrepresentable remainder is measured, not celled. |
 | `svg-stroke-dasharray-escape.svg` | Refuse by name — a CSS escape can hide a basis-less unit from the authored-text patrol (`1\76 w` tokenizes as `1vw`), so the presentation attribute, style attribute, and stylesheet spellings all refuse rather than silently use the pinned device basis. |
 | `svg-stroke-dasharray-font-basis.svg` | Refuse by name — `em`/`rem` are admitted only while their cascaded `font-size` basis is trustworthy. A basis-less unit, `var()`, or escape in that basis would resolve a different cycle from Chromium; the exact poison classes and all ancestor/sheet ingresses share the stroke-width rung's guarded patrol. |
@@ -74,4 +74,7 @@ The scannable, generated view of this register (beside the baked cells) is
 
 (The former `svg-viewbox-unequal-default.svg` and
 `svg-preserve-aspect-ratio-explicit.svg` graduated to root primitives when
-the viewport rung landed their mappings.)
+the viewport rung landed their mappings. The former
+`svg-stroke-context-paint.svg` graduated into the 22-cell context-paint matrix;
+the parser-extension row above replaces it without changing the register's
+56-row total.)

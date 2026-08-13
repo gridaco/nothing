@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs>
+    <rect id="fill" x="4" y="16" width="24" height="32" fill="context-fill" stroke="none"/>
+    <rect id="stroke" x="36" y="16" width="24" height="32" fill="context-stroke" stroke="none"/>
+  </defs>
+  <use href="#fill" fill="url(#missing-fill) #e11d48"/>
+  <use href="#stroke" fill="none" stroke="url(#missing-stroke) #2563eb"/>
+</svg>

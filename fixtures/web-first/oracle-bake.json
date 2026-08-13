@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "dcc131d8f4a1c692d8051bd8a6e1f02848d1bbe9d1b7a8f4c72629092aeeb323",
+  "suite_sha256": "8d179aba7340b9fb8f0a38c27754631ff03a8328f0f0aa7c7c0e228224c4d50c",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -79,6 +79,204 @@
       "source_sha256": "5062a03231e17c9ec3c5013f65a2dc8c5f277835f4632e9ef8501d5c4789b648",
       "oracle": "chromium/svg-circle-zero-r.png",
       "oracle_sha256": "4f852cfe622067e2872424c8add5d3977db6b7d6ad84a6329f288f6d7da566fa",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-attr-fill-from-fill",
+      "source": "svg-context-paint-attr-fill-from-fill.svg",
+      "source_sha256": "3ed9328458835bb955939418b0fada4b15607a36b928d8979e5fd141486767c7",
+      "oracle": "chromium/svg-context-paint-attr-fill-from-fill.png",
+      "oracle_sha256": "3f4f0a86b1ae45ef1efdd72d43c3ba07c2944e9d5e17157ef8929a69bd8e4d56",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-attr-fill-from-stroke",
+      "source": "svg-context-paint-attr-fill-from-stroke.svg",
+      "source_sha256": "b4e5600e14b2ed406841f82a471a1ab22e374b458ef4aec24612d59f354811d0",
+      "oracle": "chromium/svg-context-paint-attr-fill-from-stroke.png",
+      "oracle_sha256": "cbe89d11eb844da2670523cb609c41bd8900986a7af2f6207484c11b09c14ced",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-attr-stroke-from-fill",
+      "source": "svg-context-paint-attr-stroke-from-fill.svg",
+      "source_sha256": "7720b51b559061b754a627ffa099089be439d4f4d7047cf3f0c9b561e28e5d38",
+      "oracle": "chromium/svg-context-paint-attr-stroke-from-fill.png",
+      "oracle_sha256": "51fd615974ce97875a2d285d05f17d66d617cd2a825a0019b99a89039a9aa68f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-attr-stroke-from-stroke",
+      "source": "svg-context-paint-attr-stroke-from-stroke.svg",
+      "source_sha256": "22e600a8ccefddbaf2728c02a26fcfa1f76a3aa4801c8d7db1a3832ee7d5ae78",
+      "oracle": "chromium/svg-context-paint-attr-stroke-from-stroke.png",
+      "oracle_sha256": "6e372b860d3355c330c12be9989440251e5c98c9f5f70f78735ef79f8b2a2b11",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-bbox-contributors",
+      "source": "svg-context-paint-bbox-contributors.svg",
+      "source_sha256": "40345eba86d78930e8beb4fb73e79fa4bfaeb6f448b83ae5549e88d096365947",
+      "oracle": "chromium/svg-context-paint-bbox-contributors.png",
+      "oracle_sha256": "43d36dfde4b4b1451dfbe43c6de369e298ffdc062161851a8eabc88c060706ce",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-css-fill-from-fill",
+      "source": "svg-context-paint-css-fill-from-fill.svg",
+      "source_sha256": "c5bb44afe1020863d3c0669accf61107fbb31cf0e39133e58df7b51d5588d977",
+      "oracle": "chromium/svg-context-paint-css-fill-from-fill.png",
+      "oracle_sha256": "3f4f0a86b1ae45ef1efdd72d43c3ba07c2944e9d5e17157ef8929a69bd8e4d56",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-css-fill-from-stroke",
+      "source": "svg-context-paint-css-fill-from-stroke.svg",
+      "source_sha256": "8ef8b3b5654653f1f012e18e8af7c10d069f8801768acfe2965823e1c1a11516",
+      "oracle": "chromium/svg-context-paint-css-fill-from-stroke.png",
+      "oracle_sha256": "cbe89d11eb844da2670523cb609c41bd8900986a7af2f6207484c11b09c14ced",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-css-stroke-from-fill",
+      "source": "svg-context-paint-css-stroke-from-fill.svg",
+      "source_sha256": "9d61e9bb349d16298117b7b787b69c8ca904055d363fd3af34c60afa57402711",
+      "oracle": "chromium/svg-context-paint-css-stroke-from-fill.png",
+      "oracle_sha256": "51fd615974ce97875a2d285d05f17d66d617cd2a825a0019b99a89039a9aa68f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-css-stroke-from-stroke",
+      "source": "svg-context-paint-css-stroke-from-stroke.svg",
+      "source_sha256": "81078b04940aa801b5cca8e92ba3b1a5f9f0ecf750e373631f3c1831f7a7f9a1",
+      "oracle": "chromium/svg-context-paint-css-stroke-from-stroke.png",
+      "oracle_sha256": "6e372b860d3355c330c12be9989440251e5c98c9f5f70f78735ef79f8b2a2b11",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-currentcolor-alpha",
+      "source": "svg-context-paint-currentcolor-alpha.svg",
+      "source_sha256": "ff035f2b7fab056ab5e22cf64f79fc11986649a47170a241d362a9cfbb236a1e",
+      "oracle": "chromium/svg-context-paint-currentcolor-alpha.png",
+      "oracle_sha256": "65a086ded7044beb31429837a9daf2bdaec8b163a799e4f748bd8c5cdf8b5283",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-host-none",
+      "source": "svg-context-paint-host-none.svg",
+      "source_sha256": "c16bc9078f21c03e1c8688d63b69f981d0a961e28320fbbaa906b6a70ddb074a",
+      "oracle": "chromium/svg-context-paint-host-none.png",
+      "oracle_sha256": "1502272898b22a79c129dc16ab37a1280c353a18767753769bc82532dddd72a7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-inheritance-css-wide",
+      "source": "svg-context-paint-inheritance-css-wide.svg",
+      "source_sha256": "bff09bce5fa0a60c31336daf5769d84219c29baf0b4510ff85f0cf929763ad93",
+      "oracle": "chromium/svg-context-paint-inheritance-css-wide.png",
+      "oracle_sha256": "757347214c13817608ef1ccd644e41bd106576b69c97077a9c4eee23ff96ff4a",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-linear-obb-host-box",
+      "source": "svg-context-paint-linear-obb-host-box.svg",
+      "source_sha256": "01444e5b81e23dc8d28c7e237b6ad7fa0b423b7acab228e15ea985b82498dd68",
+      "oracle": "chromium/svg-context-paint-linear-obb-host-box.png",
+      "oracle_sha256": "4d36834311f747538bbf5cd4c59c98a358321535b2a866005c93b277b25dbb99",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-linear-userspace-host",
+      "source": "svg-context-paint-linear-userspace-host.svg",
+      "source_sha256": "f047fcb40f8ed7b92c9b2dea3a3bb24b5dcea0169890253ae6e0bc5532c8593c",
+      "oracle": "chromium/svg-context-paint-linear-userspace-host.png",
+      "oracle_sha256": "1d265d081716a8c0929698649e4c48add5bc323f5bca37c784001ec17691eec1",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-missing-url-fallback",
+      "source": "svg-context-paint-missing-url-fallback.svg",
+      "source_sha256": "7a8b54268dc28c0221421b04318f699829c5a97d2e67888dd39aa4d357ee92b6",
+      "oracle": "chromium/svg-context-paint-missing-url-fallback.png",
+      "oracle_sha256": "647b743d346f21f6b623d0616d0b7ab6d3d6b0206e880e80e564b821b00d0163",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-multi-instance-light-tree",
+      "source": "svg-context-paint-multi-instance-light-tree.svg",
+      "source_sha256": "76dbca342d8f7e9bda03c320fcaae187abf1d6b1eb8f1515c852944bbdd363fc",
+      "oracle": "chromium/svg-context-paint-multi-instance-light-tree.png",
+      "oracle_sha256": "b7f4c2f14c41e0c94cde1c9e895edd18de877abb9184f23acbd66683ce136589",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-nested",
+      "source": "svg-context-paint-nested.svg",
+      "source_sha256": "f7d5268eb5bc85ab1b20c12961cc93f76e9f8bb6b5430ebdf225fe83ec421667",
+      "oracle": "chromium/svg-context-paint-nested.png",
+      "oracle_sha256": "a47f489042e806610bd8245d0f5f79064db5aa8e3d82329c1fa190de9676e217",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-nested-url-owner-box",
+      "source": "svg-context-paint-nested-url-owner-box.svg",
+      "source_sha256": "40b85ff38683dba9642b0cb4a1b023b5b4bfc6ab29e305e8742dc4d649a571d6",
+      "oracle": "chromium/svg-context-paint-nested-url-owner-box.png",
+      "oracle_sha256": "cd3c63f9e2fad1667d6fd8976d0ed2cd499fc0d5b922d275f1293c4fdf817a0e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-plain-no-context",
+      "source": "svg-context-paint-plain-no-context.svg",
+      "source_sha256": "4ba743967538819322ae2ece58f8e24e7d9d92ec0b5a1b0cabb69d6566adb45a",
+      "oracle": "chromium/svg-context-paint-plain-no-context.png",
+      "oracle_sha256": "1502272898b22a79c129dc16ab37a1280c353a18767753769bc82532dddd72a7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-radial-obb-host-box",
+      "source": "svg-context-paint-radial-obb-host-box.svg",
+      "source_sha256": "0222edde06a4f3db412793c019adaf627a83908ba6cede80480651e6b4d1b917",
+      "oracle": "chromium/svg-context-paint-radial-obb-host-box.png",
+      "oracle_sha256": "d2b8e7ce3d9ad82aa4a027894d3020ce9c629df52981c843f911747a597f8f36",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-radial-userspace-host",
+      "source": "svg-context-paint-radial-userspace-host.svg",
+      "source_sha256": "ccb705b244bdc4ae24372e759aaad3f5c58d036001df6e7f62ccf01133fff11d",
+      "oracle": "chromium/svg-context-paint-radial-userspace-host.png",
+      "oracle_sha256": "082997e0425fbb3f040dd8a3e795c5dd7a0b7d13ae658996ecc5d5fd63a50f91",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-context-paint-stopless-fallback-inert",
+      "source": "svg-context-paint-stopless-fallback-inert.svg",
+      "source_sha256": "d6cc37c5f114f98a9b882ace6a37498b393d2b122047bb14ea6df80c0b5d5ef8",
+      "oracle": "chromium/svg-context-paint-stopless-fallback-inert.png",
+      "oracle_sha256": "1502272898b22a79c129dc16ab37a1280c353a18767753769bc82532dddd72a7",
       "width": 64,
       "height": 64
     },

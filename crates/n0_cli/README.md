@@ -140,10 +140,27 @@ cargo run -p n0_cli --bin n0 -- \
   spelling — one computed paint, the CSS cells byte-identical to their
   attribute twins. The remaining cross products (a named colour,
   `currentColor`, or a fallback in CSS spelling) are measured, not
-  celled. `context-fill`/`context-stroke` refuse by name — a
-  load-bearing refusal: Chromium paints them as nothing on a plain shape
-  but resolves them against the use site's paint under `<use>` (measured),
-  which this slice admits.
+  celled. `context-fill` and `context-stroke` complete that standard-track
+  surface for both `fill` and `stroke`, in both source spellings. With no
+  context element they select no paint. In an instantiated subtree they
+  select the immediate `<use>` element's computed fill or stroke; another
+  context keyword recurses outward until an ordinary no-paint, solid, or
+  gradient value is found. The eventual owner's `currentColor`, colour alpha,
+  URL fallback, coordinate space, and object bounding box stay attached to
+  that selected paint, while fill/stroke opacity remains an ordinary
+  independently inherited property. Linear and radial gradients are rebased
+  before the frame boundary and remain continuous across transformed clone
+  leaves; hidden and zero-opacity geometry contributes to the use box, while a
+  display-pruned subtree does not. Twenty-two Chromium-baked cells cover the
+  two keywords, two destination properties, two source spellings, cascade and
+  recursion edges, independent instances, URL fallback, both gradient kinds
+  and units, ultimate-owner anchoring, and box participation. Additional
+  Chromium measurements pin accumulated `<use>` `x`/`y` translations, transformed
+  local-AABB box construction, singular destinations painting nothing, and
+  paint-opacity separation. The standard-invalid context-plus-fallback parser
+  extension refuses by name; patterns, external paint resources, marker
+  context, and author stylesheets across a use-shadow boundary retain their
+  own named rows rather than entering through context paint.
   Paint is solid
   sRGB, opaque or translucent: `fill-opacity`, `stroke-opacity`, and a
   colour's own alpha multiply in float and quantize once (the translucency
