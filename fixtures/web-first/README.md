@@ -211,3 +211,23 @@ HTML ancestor — through the same Stylo cascade, not a second matcher.
 They are about the crossing, not about paint breadth: cascaded `fill` from a
 presentation hint and from an SVG-namespace stylesheet has its own cells
 elsewhere in this table.
+
+## Tooling
+
+The loop's per-rung commands live in this directory's `justfile` (`just -l`):
+`bake` (create missing oracles, verify every existing one pixel-for-pixel),
+`gate` (the engine reftest over every cell — byte-exact except the declared
+tolerance rows), `status` (regenerate
+[STATUS.md](./STATUS.md)), `add <id> <svg>` (register a fixture with a sorted
+manifest entry, refusing overwrites), and `probe <script>` (run a scratch
+probe).
+
+The Chromium capture posture lives in **one module**,
+[`chromium_capture.ts`](./chromium_capture.ts), imported by both the baker and
+[`probe_harness.ts`](./probe_harness.ts) — so a probe measures under exactly
+the conditions the cells bake under, and the posture cannot silently drift:
+`oracle-bake.json` records the module's sha256 and the Rust gate refuses a
+stale one. Probe *matrices* stay scratch and are never committed; a probe is a
+question asked once, and what it proves lands as cells and README rows, not as
+a shadow corpus. The pre-landing verification ritual is the saved
+`verify-rung` workflow (`.agents/workflows/verify-rung.js`).

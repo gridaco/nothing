@@ -109,6 +109,7 @@ impl Boundary {
 struct BakeManifest {
     schema_version: u32,
     bake_script_sha256: String,
+    capture_module_sha256: String,
     suite: String,
     suite_sha256: String,
     fixtures: Vec<BakeRecord>,
@@ -250,6 +251,11 @@ fn primitive_oracle_provenance_is_current() {
         manifest.bake_script_sha256,
         sha256_file(&root.join("bake_chromium.ts")),
         "Chromium baker changed without refreshing provenance"
+    );
+    assert_eq!(
+        manifest.capture_module_sha256,
+        sha256_file(&root.join("chromium_capture.ts")),
+        "Chromium capture posture changed without refreshing provenance"
     );
     assert_eq!(manifest.fixtures.len(), suite.fixtures.len());
 
