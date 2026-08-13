@@ -1357,3 +1357,49 @@ the CSS-property twins stay unchecked at the pin. With `rx`/`ry`
 landed, the row-1 scoreboard construct the register named after the
 gradient rung is in hand: the corpus-growth step toward FLIP
 eligibility no longer waits on capability.
+
+## Ratified amendment — resolved stroke dash intervals (2026-08-13)
+
+The resolved render contract may now carry an optional stroke-dash interval
+cycle. This is the fourth contract amendment of the Web-first ladder, ratified
+before producer or consumer code under the contract-first precedent of
+gridaco/nothing#75.
+
+The fact is deliberately narrower than the source grammar. It is an immutable,
+even-length sequence of local-space distances, alternating painted and
+unpainted intervals and beginning with paint. A present cycle is non-empty;
+each distance is finite and non-negative; and the finite sum of the cycle is
+strictly positive. The phase is exactly zero and the cycle restarts at the
+beginning of every contour. Nothing in the fact names a source unit,
+percentage, cascade rule, authored list length, or path calibration.
+
+The producer resolves the source language into that canonical form. An odd
+source list repeats once to become even. A source `none` or an all-zero list
+reaches the same solid-stroke dash absence. An invalid declaration contributes
+nothing, so the cascade's surviving winner — a lower declaration, an inherited
+cycle, or the solid initial value — is what resolves. A positive cycle with
+zero-length painted intervals remains meaningful under round or square caps,
+which paint at those interval endpoints; under a butt cap, a cycle whose every
+painted interval is zero paints nothing and the stroke itself resolves away.
+Dashes do not alter the stroke's conservative reach beyond its geometry.
+
+Two nearby facts remain expressly outside this amendment. A non-zero dash
+offset is phase and stays inexpressible. `pathLength` is authored calibration,
+not a resolved render fact, and also stays inexpressible. Both are
+load-bearing refusals once dashing exists: the probe matrix measured offset
+moving the pattern, and measured `pathLength` scaling dash distances on paths,
+rectangles, circles, and ellipses. The latter patrol therefore belongs on every
+admitted geometry element, not only path-like elements.
+
+The same matrix fixed the producer boundary before code: numbers and lengths,
+comma and whitespace separators, attribute and CSS spellings, inheritance,
+invalid-declaration fallback, and odd-list repetition all converge on the one
+cycle; percentages and mixed length-percentage arithmetic resolve against the
+normalized viewport diagonal. As earned in gridaco/nothing#80, unit classes
+with their own checklist rows may remain refused only when every silently
+divergent ingress is named, registered, and guarded. Viewport-, container-, and
+unavailable font-metric bases, variable indirection, poisoned font-relative
+bases, and escaped spellings retain that refusal burden here. The standard
+grammar remains the bar, following gridaco/nothing#77; a partial admission
+would be the unticked split established by gridaco/nothing#81, not grounds to
+widen this contract.
