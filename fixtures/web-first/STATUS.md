@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (277)
+## Chromium-baked cells (280)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells and three gradient ramps carry a declared, bounded
@@ -215,6 +215,8 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-stroke-dasharray-scaled-group.svg" title="svg-stroke-dasharray-scaled-group (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-scaled-group.png" width="56" alt="svg-stroke-dasharray-scaled-group"></a>
 <a href="./svg-stroke-dasharray-subpath-restart.svg" title="svg-stroke-dasharray-subpath-restart (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-subpath-restart.png" width="56" alt="svg-stroke-dasharray-subpath-restart"></a>
 <a href="./svg-stroke-dasharray-use-inherited.svg" title="svg-stroke-dasharray-use-inherited (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-use-inherited.png" width="56" alt="svg-stroke-dasharray-use-inherited"></a>
+<a href="./svg-stroke-dasharray-used-clamp-attr.svg" title="svg-stroke-dasharray-used-clamp-attr (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-used-clamp-attr.png" width="56" alt="svg-stroke-dasharray-used-clamp-attr"></a>
+<a href="./svg-stroke-dasharray-used-clamp-css.svg" title="svg-stroke-dasharray-used-clamp-css (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-used-clamp-css.png" width="56" alt="svg-stroke-dasharray-used-clamp-css"></a>
 <a href="./svg-stroke-dasharray-viewbox-percent.svg" title="svg-stroke-dasharray-viewbox-percent (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-viewbox-percent.png" width="56" alt="svg-stroke-dasharray-viewbox-percent"></a>
 <a href="./svg-stroke-dasharray-zero-round.svg" title="svg-stroke-dasharray-zero-round (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-zero-round.png" width="56" alt="svg-stroke-dasharray-zero-round"></a>
 <a href="./svg-stroke-default-width.svg" title="svg-stroke-default-width (standalone-svg)"><img src="./chromium/svg-stroke-default-width.png" width="56" alt="svg-stroke-default-width"></a>
@@ -269,6 +271,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-stroke-width-em-font-size.svg" title="svg-stroke-width-em-font-size (standalone-svg)"><img src="./chromium/svg-stroke-width-em-font-size.png" width="56" alt="svg-stroke-width-em-font-size"></a>
 <a href="./svg-stroke-width-px.svg" title="svg-stroke-width-px (standalone-svg)"><img src="./chromium/svg-stroke-width-px.png" width="56" alt="svg-stroke-width-px"></a>
 <a href="./svg-stroke-width-rem.svg" title="svg-stroke-width-rem (standalone-svg)"><img src="./chromium/svg-stroke-width-rem.png" width="56" alt="svg-stroke-width-rem"></a>
+<a href="./svg-stroke-width-used-range.svg" title="svg-stroke-width-used-range (standalone-svg)"><img src="./chromium/svg-stroke-width-used-range.png" width="56" alt="svg-stroke-width-used-range"></a>
 <a href="./svg-stroke-zero-extent-rect.svg" title="svg-stroke-zero-extent-rect (standalone-svg)"><img src="./chromium/svg-stroke-zero-extent-rect.png" width="56" alt="svg-stroke-zero-extent-rect"></a>
 <a href="./svg-stroke-zero-length-dot.svg" title="svg-stroke-zero-length-dot (standalone-svg)"><img src="./chromium/svg-stroke-zero-length-dot.png" width="56" alt="svg-stroke-zero-length-dot"></a>
 <a href="./svg-stroke-zero-width.svg" title="svg-stroke-zero-width (standalone-svg)"><img src="./chromium/svg-stroke-zero-width.png" width="56" alt="svg-stroke-zero-width"></a>
@@ -348,7 +351,6 @@ its row into the cells above.
 | `svg-smil-animate-transform` | declared | skipped svg/g[1]: its authored state is overridden at document load by the unsupported animation at svg/g[1]/animateTransform[1]: animation element <animateTransform> is outside the rect-x proving slice |
 | `svg-smil-retarget-href` | **both refuse** | SVG animation at svg/rect[2]/set[1] is unsupported: animation element <set> is outside the rect-x proving slice; it carries href, so its target cannot be attributed to one element without id resolution; it is active at document load, so the authored state it overrides cannot render as the Base view |
 | `svg-smil-set-load-active` | declared | skipped svg/rect[2]: its authored state is overridden at document load by the unsupported animation at svg/rect[2]/set[1]: animation element <set> is outside the rect-x proving slice |
-| `svg-stroke-dasharray-cycle-overflow` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dasharray cycle has a finite authored grammar but its resolved total is not representable by this frame contract" |
 | `svg-stroke-dasharray-escape` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dasharray on <path> carries a CSS escape this patrol cannot read" |
 | `svg-stroke-dasharray-font-basis` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dasharray in em on <path> under an authored font-size carrying vw needs a basis this cascade does not have" |
 | `svg-stroke-dasharray-sheet-unit` | declared | declaration ignored at svg/style[1]: a stylesheet declares a stroke-dasharray in ex, which needs a basis this cascade does not have; elements it matches render the wrong dash cycle |
@@ -359,6 +361,7 @@ its row into the cells above.
 | `svg-stroke-vector-effect` | declared | skipped svg/g[1]/rect[1]: unsupported rendering attribute vector-effect on <rect> (not yet consumed) |
 | `svg-stroke-width-calc-mixed` | declared | skipped svg/rect[1]: unsupported stroke value "a calc() stroke-width mixing lengths and percentages is not consumed" |
 | `svg-stroke-width-font-basis` | declared | skipped svg/rect[1]: unsupported stroke value "a stroke-width in em on <rect> under an authored font-size carrying vw needs a basis this cascade does not have" |
+| `svg-stroke-width-percentage-overflow` | declared | skipped svg/path[1]: unsupported stroke value "stroke-width percentage saturation has cap- and join-dependent paint semantics" |
 | `svg-stroke-width-var` | declared | declaration ignored at svg/style[1]: a stylesheet declares a stroke-width through var(), an indirection this patrol cannot follow; elements it matches may render at the wrong width |
 | `svg-switch` | declared | skipped svg/switch[1]: unsupported element <switch> |
 | `svg-text-tspan` | declared | skipped svg/text[1]: unsupported element <tspan> |

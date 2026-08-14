@@ -10,7 +10,7 @@
 //! resolved facts plus the refusals that keep the unconsumed half honest.
 //!
 //! Every pixel claim here was measured in Chromium 149 first; the corpus bakes
-//! them (`fixtures/web-first/svg-stroke-*.svg`, 69 of 70 byte-exact — only
+//! them (`fixtures/web-first/svg-stroke-*.svg`, 97 of 98 byte-exact — only
 //! `svg-stroke-path-closed` carries the declared conic tolerance).
 
 // This binary consumes only the n0 render half of the shared plumbing.
@@ -163,6 +163,124 @@ fn the_stroke_width_is_a_cascaded_length() {
   <rect x="16" y="16" width="32" height="32" fill="none"/>"##,
     ));
     assert_eq!(stroke_of(&ruled, 0).width(), 8.0);
+}
+
+/// Blink clamps pure resolved Web lengths to its fixed-point layout ceiling
+/// before stroke construction. The integer ceiling (33,554,429) rounds to
+/// 33,554,428 in the frame's f32 vocabulary; both authored spellings must
+/// produce that exact fact instead of reaching the stroke-reach refusal.
+#[test]
+fn a_huge_pure_stroke_width_clamps_to_the_web_used_length_ceiling() {
+    for extra in [
+        r##"stroke-width="3.4e38""##,
+        r##"style="stroke-width: 3.4e38px""##,
+    ] {
+        let frame = admit_both(&stroked_rect(extra));
+        assert_eq!(
+            stroke_of(&frame, 0).width(),
+            33_554_428.0,
+            "extra={extra:?}"
+        );
+    }
+}
+
+/// Percentages take a different used-value path from fixed lengths. Blink
+/// multiplies the authored percentage by the viewport basis before dividing by
+/// 100; overflow saturates to f32::MAX. On the discriminating line probe,
+/// Chromium then paints a butt-capped round/bevel stroke but drops the default
+/// miter and round/square caps. That cap/join-dependent renderer result is not
+/// an admitted percentage-width capability, so every cascade ingress refuses
+/// the typed saturation event instead of silently normalizing it to no stroke.
+#[test]
+fn an_overflowing_percentage_stroke_width_refuses_by_name() {
+    let mut sources = vec![
+        (
+            "presentation attribute",
+            stroked_rect(r##"stroke-width="3.4e38%""##),
+        ),
+        (
+            "style attribute",
+            stroked_rect(r##"style="stroke-width: 3.4e38%""##),
+        ),
+        (
+            "calc presentation attribute",
+            stroked_rect(r##"stroke-width="calc(3.4e38%)""##),
+        ),
+        (
+            "calc style attribute",
+            stroked_rect(r##"style="stroke-width: calc(3.4e38%)""##),
+        ),
+        (
+            "stylesheet",
+            document(
+                r##"  <style>rect { stroke-width: 3.4e38% }</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000"/>"##,
+            ),
+        ),
+        (
+            "inheritance",
+            document(
+                r##"  <g stroke-width="3.4e38%">
+    <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000"/>
+  </g>"##,
+            ),
+        ),
+    ];
+
+    for (name, extra) in [
+        ("default miter and butt cap", ""),
+        ("round join and butt cap", r##"stroke-linejoin="round""##),
+        ("bevel join and butt cap", r##"stroke-linejoin="bevel""##),
+        (
+            "miter-one and butt cap",
+            r##"stroke-linejoin="miter" stroke-miterlimit="1""##,
+        ),
+        (
+            "round join and round cap",
+            r##"stroke-linejoin="round" stroke-linecap="round""##,
+        ),
+        (
+            "round join and square cap",
+            r##"stroke-linejoin="round" stroke-linecap="square""##,
+        ),
+    ] {
+        sources.push((
+            name,
+            stroked_rect(&format!(r##"stroke-width="3.4e38%" {extra}"##)),
+        ));
+    }
+
+    for (name, source) in sources {
+        let error = refusal(&source);
+        assert!(
+            matches!(error, CompileError::UnsupportedStroke(ref reason)
+                if reason.contains("stroke-width percentage saturation")
+                    && reason.contains("cap- and join-dependent")),
+            "{name}: got {error}"
+        );
+    }
+
+    // A large percentage whose intermediate product is still finite remains a
+    // stroke. 1e9% of the normalized 64x64 diagonal is 640,000,000 — well
+    // beyond the fixed-length ceiling, proving the refusal is the percentage
+    // operation's saturation event rather than a coarse magnitude patrol.
+    let finite = admit_both(&stroked_rect(r##"stroke-width="1e9%""##));
+    assert_eq!(stroke_of(&finite, 0).width(), 640_000_000.0);
+
+    // The saturation flag belongs to percentage resolution, not to every
+    // construction failure involving a percentage. A finite 100% width under
+    // an enormous miter limit still refuses its unrepresentable reach.
+    let error = refusal(&stroked_rect(
+        r##"stroke-width="100%" stroke-miterlimit="3.4e38""##,
+    ));
+    assert!(
+        matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("representable")),
+        "got {error}"
+    );
+    assert!(
+        !error.to_string().contains("percentage saturation"),
+        "the miter reach is a distinct refusal: {error}"
+    );
 }
 
 /// A stroke that would paint nothing is `None`, not an empty stroke — so no
@@ -548,6 +666,40 @@ fn a_dash_array_resolves_to_one_even_local_space_cycle() {
     }
 }
 
+/// The same pure-length used-value ceiling applies member-by-member before an
+/// odd dash list is doubled. SVG unitless numbers, CSS lengths, and a calc()
+/// simplified to a pure length therefore cross the frame boundary as the same
+/// exact finite interval.
+#[test]
+fn huge_pure_dash_lengths_clamp_before_the_cycle_is_formed() {
+    for extra in [
+        r##"stroke-dasharray="3.4e38 3.4e38""##,
+        r##"style="stroke-dasharray: 3.4e38px 3.4e38px""##,
+        r##"style="stroke-dasharray: calc(3.4e38px) calc(3.4e38px)""##,
+    ] {
+        let frame = admit_both(&stroked_rect(&format!(r##"stroke-width="8" {extra}"##)));
+        assert_eq!(
+            stroke_of(&frame, 0)
+                .dash_intervals()
+                .expect("active finite cycle")
+                .as_slice(),
+            [33_554_428.0, 33_554_428.0],
+            "extra={extra:?}"
+        );
+    }
+
+    let odd = admit_both(&stroked_rect(
+        r##"stroke-width="8" stroke-dasharray="3.4e38 0 0""##,
+    ));
+    assert_eq!(
+        stroke_of(&odd, 0)
+            .dash_intervals()
+            .expect("active doubled cycle")
+            .as_slice(),
+        [33_554_428.0, 0.0, 0.0, 33_554_428.0, 0.0, 0.0]
+    );
+}
+
 /// The cascade owns precedence and inheritance for the property: a rule beats
 /// its presentation hint, an inline declaration beats the rule, an invalid CSS
 /// declaration exposes the valid hint, and a container passes the computed
@@ -656,21 +808,49 @@ fn neutral_and_zero_painted_dash_cycles_keep_their_measured_meaning() {
     );
 }
 
-/// Chromium accepts individually finite intervals whose repeated f32 cycle
-/// overflows, but this frame boundary cannot state their period. The gap is a
-/// named refusal rather than a backend-rejected path effect that erases paint.
+/// Percentages do not take the pure-length ceiling. When resolving them makes
+/// the repeated f32 cycle non-finite, Chromium drops the dash path effect: the
+/// result is a solid stroke, with the authored cap still intact. Attribute and
+/// CSS declarations produce the same normalized dash absence.
 #[test]
-fn an_unrepresentable_dash_cycle_refuses_before_the_frame_boundary() {
+fn a_nonfinite_percentage_dash_cycle_normalizes_to_solid() {
     for extra in [
-        r##"stroke-dasharray="3.4e38 3.4e38""##,
-        r##"style="stroke-dasharray: 3.4e38 3.4e38""##,
+        r##"stroke-dasharray="3.4e38% 3.4e38%""##,
+        r##"style="stroke-dasharray: 3.4e38% 3.4e38%""##,
     ] {
-        let error = refusal(&stroked_rect(&format!(r##"stroke-width="8" {extra}"##)));
+        let frame = admit_both(&stroked_rect(&format!(r##"stroke-width="8" {extra}"##)));
         assert!(
-            matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("resolved total is not representable")),
-            "{extra}: got {error}"
+            stroke_of(&frame, 0).dash_intervals().is_none(),
+            "extra={extra:?}"
         );
     }
+
+    for extra in [
+        r##"stroke-linecap="round" stroke-dasharray="0 3.4e38% 0 3.4e38%""##,
+        r##"style="stroke-linecap: round; stroke-dasharray: 0 3.4e38% 0 3.4e38%""##,
+    ] {
+        let frame = admit_both(&stroked_rect(&format!(r##"stroke-width="8" {extra}"##)));
+        let stroke = stroke_of(&frame, 0);
+        assert_eq!(stroke.cap(), StrokeCap::Round, "extra={extra:?}");
+        assert!(
+            stroke.dash_intervals().is_none(),
+            "zero-first overflow is solid, not an initial cap dot: extra={extra:?}"
+        );
+    }
+
+    // A negative CSS member remains invalid grammar. It drops at the cascade
+    // and exposes the valid presentation hint; overflow normalization must not
+    // turn invalid declarations into an accepted solid value.
+    let fallback = admit_both(&stroked_rect(
+        r##"stroke-width="8" stroke-dasharray="8 4" style="stroke-dasharray: -1 2""##,
+    ));
+    assert_eq!(
+        stroke_of(&fallback, 0)
+            .dash_intervals()
+            .expect("valid presentation fallback")
+            .as_slice(),
+        [8.0, 4.0]
+    );
 }
 
 /// A percentage `stroke-width` resolves against the viewport's normalized

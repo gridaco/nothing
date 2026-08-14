@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "8d179aba7340b9fb8f0a38c27754631ff03a8328f0f0aa7c7c0e228224c4d50c",
+  "suite_sha256": "9a03381e68df2cffe57901c1f88d965f4f7f6430ebb63bed2eaa4f1da4284c61",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -1703,6 +1703,24 @@
       "height": 64
     },
     {
+      "id": "svg-stroke-dasharray-used-clamp-attr",
+      "source": "svg-stroke-dasharray-used-clamp-attr.svg",
+      "source_sha256": "b04fbbbeac5f7f45930df9ae0a4b4064a9ad17761e1c1d3ae6349bbf10096634",
+      "oracle": "chromium/svg-stroke-dasharray-used-clamp-attr.png",
+      "oracle_sha256": "531a1e875dd5214228feb72a259cc76be924369de35e584bb5559103ebb3ca11",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-used-clamp-css",
+      "source": "svg-stroke-dasharray-used-clamp-css.svg",
+      "source_sha256": "ccee4cf26327cc6dd14bd5fe8e3b6b27c89663226ab89d7b7c012f74fc604942",
+      "oracle": "chromium/svg-stroke-dasharray-used-clamp-css.png",
+      "oracle_sha256": "531a1e875dd5214228feb72a259cc76be924369de35e584bb5559103ebb3ca11",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-stroke-dasharray-viewbox-percent",
       "source": "svg-stroke-dasharray-viewbox-percent.svg",
       "source_sha256": "7e113392b1f6ccf2e5968926473806de5bf4d5ef081034c05c6ada71f015a581",
@@ -2185,6 +2203,15 @@
       "source_sha256": "ef1313b17e0627830451641499273c5fb2b3ae224f532f126cc692b1e1a59edc",
       "oracle": "chromium/svg-stroke-width-rem.png",
       "oracle_sha256": "f7f711b3b1b543dcb2a6954753dd628c839f017b014b51f1b9bb1a53dfb03623",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-used-range",
+      "source": "svg-stroke-width-used-range.svg",
+      "source_sha256": "1e3df85af1207a60afa6a064dcd5981f26a60e6a469263391d232de7f84fabb8",
+      "oracle": "chromium/svg-stroke-width-used-range.png",
+      "oracle_sha256": "70bc59da3e8b8c2fc6bcc8a27a5e656db3122c488e635bf5dfe7a06677b0647a",
       "width": 64,
       "height": 64
     },

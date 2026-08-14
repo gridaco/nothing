@@ -1578,6 +1578,22 @@
       "height": 64
     },
     {
+      "id": "svg-stroke-dasharray-used-clamp-attr",
+      "source": "svg-stroke-dasharray-used-clamp-attr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-used-clamp-attr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dasharray-used-clamp-css",
+      "source": "svg-stroke-dasharray-used-clamp-css.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dasharray-used-clamp-css.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-stroke-dasharray-viewbox-percent",
       "source": "svg-stroke-dasharray-viewbox-percent.svg",
       "entry": "standalone-svg",
@@ -2019,6 +2035,14 @@
       "source": "svg-stroke-width-rem.svg",
       "entry": "standalone-svg",
       "oracle": "chromium/svg-stroke-width-rem.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-used-range",
+      "source": "svg-stroke-width-used-range.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-width-used-range.png",
       "width": 64,
       "height": 64
     },

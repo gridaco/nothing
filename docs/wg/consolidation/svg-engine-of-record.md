@@ -56,7 +56,7 @@ from the dated addenda below:
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 277 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 280 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
   confined tolerance (the weighted rational conic) and three gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
@@ -1410,6 +1410,11 @@ widen this contract.
 
 ### Dasharray rung verdict — cells landed, rows split
 
+This subsection records the gridaco/nothing#83 verdict as it landed. Its
+cycle-sum premise is superseded by the 2026-08-14 ratified correction below:
+the apparent authored-magnitude remainder was Chromium's fixed-length used
+clamp, not an unrepresentable resolved-frame fact.
+
 The amendment is exercised by 25 Chromium-149-baked cells. Together they cover
 the attribute and CSS spellings; number, length, percentage, exponent, comma
 and whitespace forms; CSS math and an authored font-size basis; odd-list
@@ -1532,7 +1537,9 @@ The standard-track boundary stays sharp. Chromium drops a fallback following
 after a URL; the pinned source parser accepts the extension, so one new named
 registered refusal and guards cover attribute, inline-style, and stylesheet
 ingresses. The former load-bearing context-paint refusal graduates, leaving the
-register at 56 rows. Context-selected patterns and external paint resources
+register at 56 rows at that rung (and still 56 at tip after the replacement
+below).
+Context-selected patterns and external paint resources
 were also measured to propagate in Chromium, but remain refused by their own
 resource names. Marker context and author stylesheets across a use-shadow
 boundary likewise retain their own rows. Under the own-row precedent of
@@ -1543,3 +1550,58 @@ is outside their grammar bar.
 The CSS SVG-presentation `fill` and `stroke` rows and their SVG
 presentation-attribute twins therefore tick together. This is a capability
 verdict only. It produces no conformance score and takes no FLIP action.
+
+## Ratified correction — stroke used-value range (2026-08-14)
+
+The browser's used-value range, not the resolved render contract, closes the
+dasharray remainder recorded by gridaco/nothing#83. Chromium clamps each pure
+fixed stroke length before using it. The authored ceiling is 33,554,429
+in its fixed-point CSS length range, represented in the resolved scalar
+vocabulary as 33,554,428. For a dash list, that clamp happens member by member
+before an odd list is repeated. The existing contract's finite, non-negative,
+positive-sum cycle therefore already states the browser's resolved fact; no
+contract or consumer amendment is warranted.
+
+Percentages follow a distinct used-value rule. A moderate resolved percentage
+may exceed the fixed-length ceiling and remains unclamped. At the extreme, an
+overflow during percentage resolution causes Chromium to drop the dash effect,
+so the stroke becomes solid while retaining its authored cap. The same extreme
+percentage used as stroke width is not governed by that dash-effect result:
+under a discriminating transform, Chromium paints a butt-capped round or bevel
+join but not the default miter or round/square-cap variants. It remains a named
+capability instead of being normalized to one universal no-stroke result.
+These are property-specific outcomes, not a shared normalization of every
+large length.
+
+The earlier short-path probe did not discriminate authored `3.4e38` from the
+browser's used clamp: either interval stayed longer than the entire path, so
+both painted the same apparent solid or initial cap dot. The corrected matrix
+put the transition inside large user-space geometry and located the fixed
+ceiling directly: 33,000,000 differs, while 34,000,000, 40,000,000, and
+`3.4e38` converge. It separately measured percentages above that ceiling and
+the extreme percentage outcomes for dasharray and width.
+
+Two byte-identical Chromium cells now cover the presentation-attribute and CSS
+dasharray spellings. Together they discriminate the fixed used clamp, odd-list
+repetition, restart at each subpath, and the cap-preserving solid result for an
+extreme percentage. A third cell repairs the fixed-length evidence of the
+previously closed width family by covering the clamp in both spellings. The
+extreme percentage width class is measured, not celled, and its
+presentation-attribute, CSS, and
+percentage-only arithmetic ingresses are guarded by one named refusal.
+The corpus moves from 277 to 280 cells; 97 of its 98 `svg-stroke-*` cells are
+byte-exact, with only the previously declared closed-path tolerance. The
+graduated cycle-overflow refusal leaves as the percentage-overflow width refusal
+enters, so the register remains at 56 rows. Dashoffset, `pathLength`, unit-basis,
+variable-indirection, escape, and font-basis patrols remain unchanged.
+
+The earned precedents apply without revision: gridaco/nothing#77 supplies the
+standard-track grammar bar, gridaco/nothing#80 assigns independent unit and
+spelling gaps to their own guarded rows, and gridaco/nothing#81 remains the rule
+for a genuine measured split. Here the corrected evidence removes that split's
+premise for dasharray, so both `stroke-dasharray` checklist rows tick. It also
+corrects gridaco/nothing#80's width evidence: the valid extreme-percentage
+class has no independent row and Chromium paints some of it, so both
+`stroke-width` rows reopen under gridaco/nothing#81 until that named capability
+lands. This is a capability verdict only; it produces no conformance score and
+takes no FLIP action.
