@@ -175,11 +175,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "animation element <set>",
     ),
     (
-        "svg-stroke-dasharray-cycle-overflow",
-        DeclaredByBestEffort,
-        "resolved total is not representable",
-    ),
-    (
         "svg-stroke-dasharray-escape",
         DeclaredByBestEffort,
         "CSS escape",
@@ -224,6 +219,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "svg-stroke-width-font-basis",
         DeclaredByBestEffort,
         "font-size",
+    ),
+    (
+        "svg-stroke-width-percentage-overflow",
+        DeclaredByBestEffort,
+        "stroke-width percentage saturation",
     ),
     ("svg-stroke-width-var", DeclaredByBestEffort, "var()"),
     ("svg-switch", DeclaredByBestEffort, "<switch>"),

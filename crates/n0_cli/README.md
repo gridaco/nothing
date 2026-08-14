@@ -105,7 +105,14 @@ cargo run -p n0_cli --bin n0 -- \
   `calc()`/`min()`, precedence, and fallback claims are Chromium-baked
   cells; the remaining absolute units are pinned by the strokes contract
   against the same cascade constants (`6pt ≡ 8px` measured). Its
-  cap, join and miter limit come from the one cascade.
+  cap, join and miter limit come from the one cascade. Pure fixed widths clamp
+  to Chromium's Web used-length ceiling (33,554,429 authored, 33,554,428 as
+  the resolved f32 fact). Both source spellings are Chromium-baked in one
+  large-user-space repair cell. An extreme pure percentage or percentage-only
+  `calc()` remains a named refusal: under a discriminating transform,
+  Chromium's accepted used value paints a butt-capped round or bevel join but
+  not the default miter or round/square-cap variants, so it cannot be normalized
+  to one universal no-stroke result.
   A width whose basis this cascade lacks (viewport-, container-, and
   font-metric-relative units, root-relative twins included), a `calc()`
   mixing lengths and percentages, a font-size that would poison the `em`
@@ -122,14 +129,18 @@ cargo run -p n0_cli --bin n0 -- \
   geometry. `none`, an all-zero list, and an invalid negative list retain
   Chromium's solid fallback; zero painted intervals remain meaningful under
   round/square caps, including on closed contours. These claims are covered by
-  25 Chromium-baked cells. The named remainder is exact: `stroke-dashoffset`
+  27 Chromium-baked cells. Pure fixed dash members clamp individually to the
+  same Web used-length ceiling before odd-list doubling. Extreme percentages
+  do not take that fixed ceiling: if their resolution makes the cycle
+  non-finite, Chromium drops the dash effect, leaving a solid stroke with the
+  authored cap. Byte-identical attribute/CSS cells pin the clamp, doubling,
+  per-contour restart, and percentage result on discriminating large geometry.
+  The named remainder is exact: `stroke-dashoffset`
   (both spellings) and `pathLength` calibration remain refused because the
   frame contract is zero-phase and uncalibrated; dash lengths with the same
-  untrustworthy basis/provenance classes as width refuse; and a list of finite
-  intervals whose f32 cycle sum overflows refuses before the frame boundary.
-  Chromium honors that last in-grammar magnitude class (measured, not celled),
-  so the checklist twins remain an explicit split even though the capability
-  slice renders the committed grammar cells.
+  untrustworthy basis/provenance classes as width refuse by their own registered
+  names. Those separate rows do not leave a standard-track dasharray grammar
+  remainder.
   The stroke's `<paint>` grammar is celled: hex and named colours,
   `currentColor` against the `color` hint, `none` (the initial — an
   invalid paint drops to it), and the full `url() [none | <color>]?`

@@ -964,9 +964,9 @@ excluded.
 - [x] `fill-opacity`
 - [x] `fill-rule`
 - [x] `stroke`
-- [x] `stroke-width`
+- [ ] `stroke-width`
 - [x] `stroke-opacity`
-- [ ] `stroke-dasharray`
+- [x] `stroke-dasharray`
 - [ ] `stroke-dashoffset`
 - [x] `stroke-linecap`
 - [x] `stroke-linejoin`
@@ -1472,13 +1472,13 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `stop-color`
 - [ ] `stop-opacity`
 - [x] `stroke`
-- [ ] `stroke-dasharray`
+- [x] `stroke-dasharray`
 - [ ] `stroke-dashoffset`
 - [x] `stroke-linecap`
 - [x] `stroke-linejoin`
 - [x] `stroke-miterlimit`
 - [x] `stroke-opacity`
-- [x] `stroke-width`
+- [ ] `stroke-width`
 - [ ] `text-anchor`
 - [ ] `text-decoration`
 - [ ] `text-overflow`

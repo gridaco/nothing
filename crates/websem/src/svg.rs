@@ -4407,6 +4407,43 @@ fn patrol_stroke_dasharray_units(
     patrol_stroke_length_units(el, element_name, "stroke-dasharray")
 }
 
+/// The upper used-value bound for a non-negative Web `<length>` consumed by
+/// SVG stroke properties.
+///
+/// Blink mixes CSS lengths with SVG user-unit lengths by clamping the former
+/// to its fixed-point layout range: `INT_MAX / 64 - 2`, or 33,554,429. That
+/// integer rounds to 33,554,428 when represented by the `f32` facts this
+/// compiler and frame contract carry.
+const WEB_USED_LENGTH_MAX: f32 = (i32::MAX / 64 - 2) as f32;
+
+fn clamp_web_used_length(length: Length) -> f32 {
+    let px = length.px();
+    if px > WEB_USED_LENGTH_MAX {
+        WEB_USED_LENGTH_MAX
+    } else {
+        px
+    }
+}
+
+/// Resolve a pure percentage stroke width with Blink's float operation order.
+///
+/// Stylo stores `N%` as the fraction `N / 100`. Blink's SVG length path keeps
+/// `N`, multiplies that by the viewport dimension, and only then divides by
+/// 100. The intermediate multiplication is observable at the top of the f32
+/// range: overflow saturates to `f32::MAX` rather than recovering the finite
+/// mathematical product. The boolean names that saturation so the caller can
+/// refuse the cap- and join-dependent renderer result without hiding an
+/// unrelated stroke construction error.
+fn resolve_web_percentage_length(percentage: f32, basis: f32) -> (f32, bool) {
+    let authored_percentage = percentage * 100.0;
+    let resolved = basis * authored_percentage / 100.0;
+    if resolved == f32::INFINITY {
+        (f32::MAX, true)
+    } else {
+        (resolved, false)
+    }
+}
+
 /// Resolve the SVG stroke from the one cascade, as typed values — the same
 /// ingress discipline as [`resolve_fill`], so presentation attributes,
 /// stylesheet rules, inheritance through containers, unit-bearing lengths
@@ -4506,7 +4543,7 @@ fn resolve_stroke(
     // the same basis chain the shape geometry percentages refuse on.
     let destination_data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     let destination_style: &ComputedValues = destination_data.styles.primary();
-    let width = match destination_style.clone_stroke_width() {
+    let (width, percentage_width_saturated) = match destination_style.clone_stroke_width() {
         SVGLength::ContextValue => {
             return Err(CompileError::UnsupportedStroke(
                 "stroke-width: context-value".to_string(),
@@ -4517,14 +4554,14 @@ fn resolve_stroke(
                 // The unit is gone from a computed length, so the authored text
                 // is what says whether its basis was one this build has.
                 patrol_stroke_width_units(el, element_name)?;
-                length.px()
+                (clamp_web_used_length(length), false)
             }
             // A pure percentage resolves against the viewport's normalized
             // diagonal (SVG2 §7.10; measured — `10%` of 64x64 paints 6.4
             // units). A calc() mixing lengths and percentages has neither a
             // computed length nor a pure percentage and stays refused.
             None => match width.0.to_percentage() {
-                Some(percentage) => percentage.0 * bases.diagonal(),
+                Some(percentage) => resolve_web_percentage_length(percentage.0, bases.diagonal()),
                 None => {
                     return Err(CompileError::UnsupportedStroke(
                         "a calc() stroke-width mixing lengths and percentages is not consumed"
@@ -4534,6 +4571,20 @@ fn resolve_stroke(
             },
         },
     };
+    if percentage_width_saturated {
+        // Chromium's result after this saturation is cap- and join-dependent:
+        // a butt-capped round/bevel stroke paints while the default miter and
+        // round/square caps paint nothing. This frame/consumer path does not
+        // admit that renderer-level branch across the full cap/join grammar
+        // (the default miter's conservative reach is not representable).
+        // Refuse the typed arithmetic event rather than normalizing it to an
+        // absence that silently erases the painted cases, and do not catch
+        // unrelated reach errors here.
+        return Err(CompileError::UnsupportedStroke(
+            "stroke-width percentage saturation has cap- and join-dependent paint semantics"
+                .to_string(),
+        ));
+    }
     if width == 0.0 {
         return Ok(None);
     }
@@ -4554,20 +4605,31 @@ fn resolve_stroke(
         SVGStrokeDashArray::Values(values) => {
             let mut intervals = Vec::with_capacity(values.len() * 2);
             for value in values.iter() {
-                intervals.push(value.0.resolve(Length::new(bases.diagonal())).px());
+                // Blink applies the Web used-length ceiling to a pure resolved
+                // `<length>` (including an SVG number and a calc() simplified
+                // to one length), but not to a percentage-bearing value. Keep
+                // that typed distinction through resolution: clamping the
+                // resolved result wholesale would change percentage cycles.
+                let interval = match value.0.to_length() {
+                    Some(length) => clamp_web_used_length(length),
+                    None => value.0.resolve(Length::new(bases.diagonal())).px(),
+                };
+                intervals.push(interval);
             }
             if !intervals.len().is_multiple_of(2) {
                 intervals.extend_from_within(..);
             }
             match StrokeDashIntervals::new(intervals) {
                 Ok(intervals) => intervals,
-                Err(StrokeDashIntervalsError::UnrepresentableCycleLength) => {
-                    return Err(CompileError::UnsupportedStroke(
-                        "a stroke-dasharray cycle has a finite authored grammar but its \
-                         resolved total is not representable by this frame contract"
-                            .to_string(),
-                    ));
-                }
+                // Chromium retains the declaration but drops the dash path
+                // effect when percentage resolution produces a non-finite
+                // member or repeated-cycle sum. Dash absence is therefore a
+                // solid stroke with the authored cap, not a refusal and not an
+                // invisible stroke.
+                Err(
+                    StrokeDashIntervalsError::NonFiniteInterval { .. }
+                    | StrokeDashIntervalsError::UnrepresentableCycleLength,
+                ) => None,
                 Err(error) => {
                     return Err(CompileError::UnsupportedStroke(format!(
                         "stroke-dasharray did not resolve to one checked cycle: {error}"
