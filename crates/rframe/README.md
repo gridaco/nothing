@@ -19,10 +19,10 @@ producer (e.g. websem, from SVG)
 
 ## What it holds
 
-| Module   | Ownership                                                                                       |
-| -------- | ----------------------------------------------------------------------------------------------- |
-| `frame`  | `Frame`, `FrameNode`, `Geometry`, the admitted paint stack, and product identity                |
-| `path`   | `PathData` — checked absolute commands, fill rule, tight bounds solved once                     |
+| Module   | Ownership                                                                                                    |
+| -------- | ------------------------------------------------------------------------------------------------------------ |
+| `frame`  | `Frame`, `FrameNode`, `Geometry`, the admitted paint stack, and product identity                             |
+| `path`   | `PathData` — checked absolute commands, fill rule, tight bounds solved once                                  |
 | `stroke` | `Stroke` — centred width, cap, join, miter limit, optional checked dash intervals, and finite `f64` `outset` |
 
 Two details are load-bearing enough to state here. A node's `bounds` is the
