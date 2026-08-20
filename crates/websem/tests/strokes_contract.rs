@@ -10,7 +10,7 @@
 //! resolved facts plus the refusals that keep the unconsumed half honest.
 //!
 //! Every pixel claim here was measured in Chromium 149 first; the corpus bakes
-//! them (`fixtures/web-first/svg-stroke-*.svg`, 97 of 98 byte-exact — only
+//! them (`fixtures/web-first/svg-stroke-*.svg`, 101 of 102 byte-exact — only
 //! `svg-stroke-path-closed` carries the declared conic tolerance).
 
 // This binary consumes only the n0 render half of the shared plumbing.
@@ -59,6 +59,16 @@ fn refusal(source: &str) -> CompileError {
     SvgFrameSource::from_standalone_svg(source, viewport(64.0, 64.0))
         .expect_err("must refuse")
         .clone()
+}
+
+fn assert_percentage_precision_alias(source: &str, label: &str) {
+    let error = refusal(source);
+    let rendered = error.to_string();
+    assert!(
+        rendered.contains("stroke-width percentage precision alias")
+            && rendered.contains("loses Chromium used-value provenance"),
+        "{label}: got {error}"
+    );
 }
 
 fn stroke_of(frame: &rframe::Frame, index: usize) -> &rframe::Stroke {
@@ -184,37 +194,210 @@ fn a_huge_pure_stroke_width_clamps_to_the_web_used_length_ceiling() {
     }
 }
 
+/// The cascade's percentage fact has one fewer observable rounding step than
+/// Blink's: Stylo stores `N / 100` as f32, while Blink first stores `N` as f32
+/// and then evaluates `basis * N / 100`. These two adjacent authored floats
+/// become the same Stylo fraction, but on the 64-unit diagonal only the latter
+/// overflows Blink's intermediate. No computed-value consumer can tell which
+/// used value won, so both spellings refuse under one stable capability name
+/// through every cascade ingress, including a pure calc wrapper.
+#[test]
+fn a_percentage_precision_alias_straddling_blink_overflow_refuses_by_name() {
+    for authored in ["5.3169116662270134e36%", "5.3169119831396635e36%"] {
+        for value in [authored.to_string(), format!("calc({authored})")] {
+            let sources = [
+                (
+                    "presentation attribute",
+                    stroked_rect(&format!(r##"stroke-width="{value}""##)),
+                ),
+                (
+                    "winning style attribute",
+                    stroked_rect(&format!(
+                        r##"stroke-width="6" style="stroke-width: {value}""##
+                    )),
+                ),
+                (
+                    "winning stylesheet",
+                    document(&format!(
+                        r##"  <style>rect {{ stroke-width: {value} }}</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000" stroke-width="6"/>"##
+                    )),
+                ),
+                (
+                    "inheritance",
+                    document(&format!(
+                        r##"  <g stroke="#000000" style="stroke-width: {value}">
+    <rect x="16" y="16" width="32" height="32" fill="none"/>
+  </g>"##
+                    )),
+                ),
+            ];
+
+            for (ingress, source) in sources {
+                assert_percentage_precision_alias(
+                    &source,
+                    &format!("{authored} via {value:?}, {ingress}"),
+                );
+            }
+        }
+    }
+}
+
+/// The typed preimage check cannot reconstruct every source that cssparser
+/// folded into the same percentage fraction. A raw f64 literal can normalize
+/// to Stylo's lower bucket even though Blink rounds the authored number to the
+/// higher f32 first; percentage arithmetic erases still more operation
+/// history. The authored-source patrol therefore guards all four cascade
+/// ingresses under the same stable refusal instead of adding a second CSS
+/// evaluator.
+#[test]
+fn authored_percentage_provenance_that_the_cascade_erases_refuses_by_name() {
+    for value in [
+        "57384.267578125007%",
+        "calc(57384.265625% + 0.001953125007%)",
+        "calc(28692.1337890625035% * 2)",
+        "calc(57384.267578125007% + 0px)",
+        "calc(57384.267578125007% + (1px - 1px))",
+        "calc(57384.267578125007% + 0 * 1px)",
+    ] {
+        let sources = [
+            (
+                "presentation attribute",
+                stroked_rect(&format!(r##"stroke-width="{value}""##)),
+            ),
+            (
+                "winning style attribute",
+                stroked_rect(&format!(
+                    r##"stroke-width="6" style="stroke-width: {value}""##
+                )),
+            ),
+            (
+                "winning stylesheet",
+                document(&format!(
+                    r##"  <style>rect {{ stroke-width: {value} }}</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000" stroke-width="6"/>"##
+                )),
+            ),
+            (
+                "inheritance",
+                document(&format!(
+                    r##"  <g stroke="#000000" style="stroke-width: {value}">
+    <rect x="16" y="16" width="32" height="32" fill="none"/>
+  </g>"##
+                )),
+            ),
+        ];
+
+        for (ingress, source) in sources {
+            assert_percentage_precision_alias(&source, &format!("{value}, {ingress}"));
+        }
+    }
+}
+
+/// CSS priority is declaration syntax, not part of the percentage. The
+/// authored-source patrol strips either spacing before it classifies the
+/// winning value; otherwise an unsafe literal could hide behind the suffix or
+/// a safe literal could be refused merely for being important.
+#[test]
+fn percentage_precision_patrol_reads_unsafe_values_before_css_priority() {
+    let hidden_high = "57384.267578125007%";
+    for (ingress, source) in [
+        (
+            "important style attribute",
+            stroked_rect(&format!(
+                r##"stroke-width="6" style="stroke-width: {hidden_high} ! important""##
+            )),
+        ),
+        (
+            "important stylesheet",
+            document(&format!(
+                r##"  <style>rect {{ stroke-width: {hidden_high} !important }}</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000" stroke-width="6"/>"##
+            )),
+        ),
+    ] {
+        assert_percentage_precision_alias(&source, ingress);
+    }
+}
+
+/// The provenance patrol is a refusal boundary, not a magnitude patrol. These
+/// direct percentages preserve their numeric source through cssparser's
+/// normalization and remain admitted; `calc(N%)` is the same identity source,
+/// with no arithmetic history to reconstruct.
+#[test]
+fn recoverable_direct_percentage_sources_remain_admitted() {
+    for value in ["3.4e38%", "5e36%", "10%", "1e9%", "calc(3.4e38%)"] {
+        for (ingress, source) in [
+            (
+                "presentation attribute",
+                stroked_rect(&format!(r##"stroke-width="{value}""##)),
+            ),
+            (
+                "important style attribute",
+                stroked_rect(&format!(r##"style="stroke-width: {value} !important""##)),
+            ),
+            (
+                "important stylesheet",
+                document(&format!(
+                    r##"  <style>rect {{ stroke-width: {value} ! important }}</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000"/>"##
+                )),
+            ),
+            (
+                "inheritance",
+                document(&format!(
+                    r##"  <g stroke="#000000" style="stroke-width: {value}">
+    <rect x="16" y="16" width="32" height="32" fill="none"/>
+  </g>"##
+                )),
+            ),
+        ] {
+            let frame = admit_both(&source);
+            assert!(
+                stroke_of(&frame, 0).width().is_finite(),
+                "{value}, {ingress}"
+            );
+        }
+    }
+}
+
 /// Percentages take a different used-value path from fixed lengths. Blink
 /// multiplies the authored percentage by the viewport basis before dividing by
-/// 100; overflow saturates to f32::MAX. On the discriminating line probe,
-/// Chromium then paints a butt-capped round/bevel stroke but drops the default
-/// miter and round/square caps. That cap/join-dependent renderer result is not
-/// an admitted percentage-width capability, so every cascade ingress refuses
-/// the typed saturation event instead of silently normalizing it to no stroke.
+/// 100; positive overflow saturates to `f32::MAX`. That is still one ordinary
+/// finite resolved stroke width. Its eventual ink depends on the complete
+/// geometry/transform/stroke fact, so the producer carries the exact fact
+/// rather than deriving a renderer-specific absence.
 #[test]
-fn an_overflowing_percentage_stroke_width_refuses_by_name() {
-    let mut sources = vec![
+fn a_percentage_product_saturation_is_one_finite_resolved_stroke() {
+    let sources = vec![
         (
             "presentation attribute",
             stroked_rect(r##"stroke-width="3.4e38%""##),
         ),
         (
-            "style attribute",
-            stroked_rect(r##"style="stroke-width: 3.4e38%""##),
+            "winning style attribute",
+            stroked_rect(r##"stroke-width="6" style="stroke-width: 3.4e38%""##),
         ),
         (
             "calc presentation attribute",
             stroked_rect(r##"stroke-width="calc(3.4e38%)""##),
         ),
         (
-            "calc style attribute",
-            stroked_rect(r##"style="stroke-width: calc(3.4e38%)""##),
+            "winning calc style attribute",
+            stroked_rect(r##"stroke-width="6" style="stroke-width: calc(3.4e38%)""##),
         ),
         (
-            "stylesheet",
+            "winning stylesheet",
             document(
                 r##"  <style>rect { stroke-width: 3.4e38% }</style>
-  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000"/>"##,
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000" stroke-width="6"/>"##,
+            ),
+        ),
+        (
+            "winning calc stylesheet",
+            document(
+                r##"  <style>rect { stroke-width: calc(3.4e38%) }</style>
+  <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000" stroke-width="6"/>"##,
             ),
         ),
         (
@@ -225,62 +408,63 @@ fn an_overflowing_percentage_stroke_width_refuses_by_name() {
   </g>"##,
             ),
         ),
+        (
+            "calc inheritance",
+            document(
+                r##"  <g style="stroke-width: calc(3.4e38%)">
+    <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000000"/>
+  </g>"##,
+            ),
+        ),
     ];
 
-    for (name, extra) in [
-        ("default miter and butt cap", ""),
-        ("round join and butt cap", r##"stroke-linejoin="round""##),
-        ("bevel join and butt cap", r##"stroke-linejoin="bevel""##),
-        (
-            "miter-one and butt cap",
-            r##"stroke-linejoin="miter" stroke-miterlimit="1""##,
-        ),
-        (
-            "round join and round cap",
-            r##"stroke-linejoin="round" stroke-linecap="round""##,
-        ),
-        (
-            "round join and square cap",
-            r##"stroke-linejoin="round" stroke-linecap="square""##,
-        ),
-    ] {
-        sources.push((
-            name,
-            stroked_rect(&format!(r##"stroke-width="3.4e38%" {extra}"##)),
-        ));
-    }
-
     for (name, source) in sources {
-        let error = refusal(&source);
-        assert!(
-            matches!(error, CompileError::UnsupportedStroke(ref reason)
-                if reason.contains("stroke-width percentage saturation")
-                    && reason.contains("cap- and join-dependent")),
-            "{name}: got {error}"
+        let frame = admit_both(&source);
+        assert_eq!(
+            stroke_of(&frame, 0).width().to_bits(),
+            f32::MAX.to_bits(),
+            "{name}"
         );
     }
 
-    // A large percentage whose intermediate product is still finite remains a
-    // stroke. 1e9% of the normalized 64x64 diagonal is 640,000,000 — well
-    // beyond the fixed-length ceiling, proving the refusal is the percentage
-    // operation's saturation event rather than a coarse magnitude patrol.
+    // A large percentage whose intermediate product is still finite remains
+    // distinct. 1e9% of the normalized 64x64 diagonal is 640,000,000 — well
+    // beyond the fixed-length ceiling but nowhere near the saturation fact.
     let finite = admit_both(&stroked_rect(r##"stroke-width="1e9%""##));
     assert_eq!(stroke_of(&finite, 0).width(), 640_000_000.0);
 
-    // The saturation flag belongs to percentage resolution, not to every
-    // construction failure involving a percentage. A finite 100% width under
-    // an enormous miter limit still refuses its unrepresentable reach.
-    let error = refusal(&stroked_rect(
-        r##"stroke-width="100%" stroke-miterlimit="3.4e38""##,
+    // The overflow event is operation-order and basis dependent. The same
+    // authored percentage remains finite against a small nonzero normalized
+    // diagonal and saturates against a larger one.
+    let small_basis = admit_both(
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 0.5 0.5">
+  <path d="M0 0.25 H0.5" fill="none" stroke="#000" stroke-width="3.4e38%" stroke-linejoin="round"/>
+</svg>"##,
+    );
+    let small_width = stroke_of(&small_basis, 0).width();
+    assert!(
+        small_width.is_finite() && small_width < f32::MAX,
+        "the 0.5 basis keeps the multiply finite: {small_width}"
+    );
+
+    // Cap, join, miter and dash facts stay independent of the width's numeric
+    // magnitude. The painter, not the producer, consumes their cross-product.
+    let crossed = admit_both(&stroked_rect(
+        r##"stroke-width="3.4e38%" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="3.4e38" stroke-dasharray="8 4""##,
     ));
-    assert!(
-        matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("representable")),
-        "got {error}"
+    let stroke = stroke_of(&crossed, 0);
+    assert_eq!(stroke.width(), f32::MAX);
+    assert_eq!(stroke.cap(), StrokeCap::Square);
+    assert_eq!(stroke.join(), StrokeJoin::Miter);
+    assert_eq!(stroke.miter_limit(), 3.4e38_f32);
+    assert_eq!(
+        stroke
+            .dash_intervals()
+            .expect("ordinary dash cycle")
+            .as_slice(),
+        [8.0, 4.0]
     );
-    assert!(
-        !error.to_string().contains("percentage saturation"),
-        "the miter reach is a distinct refusal: {error}"
-    );
+    assert!(stroke.outset().is_finite());
 }
 
 /// A stroke that would paint nothing is `None`, not an empty stroke — so no
@@ -1454,17 +1638,20 @@ fn an_em_stroke_width_resolves_against_the_authored_font_size() {
     assert_eq!(stroke_of(&plain, 0).width(), 8.0);
 }
 
-/// A width whose *reach* cannot be represented refuses at the contract, so no
-/// consumer receives an infinite coverage rectangle.
+/// A finite stroke stays one resolved fact even when its conservative reach
+/// exceeds `f32`. The contract widens only that derived arithmetic, while the
+/// Web fixed-length ceiling and the authored miter limit remain exact carried
+/// facts.
 #[test]
-fn a_stroke_whose_reach_overflows_refuses_by_name() {
-    let error = refusal(&stroked_rect(
+fn a_wide_derived_reach_does_not_change_the_resolved_stroke() {
+    let frame = admit_both(&stroked_rect(
         r##"stroke-width="3.4e38" stroke-miterlimit="3.4e38""##,
     ));
-    assert!(
-        matches!(error, CompileError::UnsupportedStroke(ref reason) if reason.contains("representable")),
-        "got {error}"
-    );
+    let stroke = stroke_of(&frame, 0);
+    assert_eq!(stroke.width(), 33_554_428.0);
+    assert_eq!(stroke.miter_limit(), 3.4e38_f32);
+    assert!(stroke.outset().is_finite());
+    assert!(stroke.outset() > f64::from(f32::MAX));
 }
 
 /// A negative `width`/`height` on a `<rect>` disables rendering of that element

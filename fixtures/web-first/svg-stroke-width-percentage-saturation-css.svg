@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="#ffffff"/>
+
+  <!-- An unambiguous large finite percentage paints under the default miter. -->
+  <path d="M2 0 H6" fill="none" stroke="#000000"
+    style="stroke-width:5e36%" stroke-linecap="butt"
+    transform="matrix(1 0 0 0.0000001 0 32)"/>
+
+  <!-- An unambiguous saturated width: the default miter drops. -->
+  <path d="M8 0 H12" fill="none" stroke="#000000"
+    style="stroke-width:3.4e38%" stroke-linecap="butt"
+    transform="matrix(1 0 0 0.0000001 0 32)"/>
+
+  <!-- Overflow paints at miter-limit 2 and drops at the next f32 above 2. -->
+  <path d="M14 0 H18" fill="none" stroke="#000000" style="stroke-width:3.4e38%"
+    stroke-linecap="butt" stroke-miterlimit="2"
+    transform="matrix(1 0 0 0.0000001 0 32)"/>
+  <path d="M20 0 H24" fill="none" stroke="#000000" style="stroke-width:3.4e38%"
+    stroke-linecap="butt" stroke-miterlimit="2.000000238418579"
+    transform="matrix(1 0 0 0.0000001 0 32)"/>
+
+  <!-- Round and bevel joins retain the representable reach. -->
+  <path d="M26 0 H30" fill="none" stroke="#000000"
+    style="stroke-width:3.4e38%" stroke-linecap="butt" stroke-linejoin="round"
+    transform="matrix(1 0 0 0.0000001 0 32)"/>
+  <path d="M32 0 H36" fill="none" stroke="#000000"
+    style="stroke-width:3.4e38%" stroke-linecap="butt" stroke-linejoin="bevel"
+    transform="matrix(1 0 0 0.0000001 0 32)"/>
+
+  <!-- An ordinary dash cycle survives in a painted overflow branch. -->
+  <path d="M38 0 H50" fill="none" stroke="#000000" style="stroke-width:3.4e38%"
+    stroke-linecap="butt" stroke-linejoin="round" stroke-dasharray="2 2"
+    transform="matrix(1 0 0 0.0000001 0 32)"/>
+
+  <!-- Closed/native and corner topologies drop under the same y-only transform. -->
+  <rect x="52" y="-8" width="2" height="16" fill="none" stroke="#000000"
+    style="stroke-width:3.4e38%" stroke-linecap="butt" stroke-linejoin="round"
+    transform="matrix(1 0 0 0.0000001 0 32)"/>
+  <ellipse cx="56" cy="0" rx="1" ry="8" fill="none" stroke="#000000"
+    style="stroke-width:3.4e38%" stroke-linecap="butt" stroke-linejoin="round"
+    transform="matrix(1 0 0 0.0000001 0 32)"/>
+  <path d="M58 0 H59 L60 8" fill="none" stroke="#000000"
+    style="stroke-width:3.4e38%" stroke-linecap="butt" stroke-linejoin="round"
+    transform="matrix(1 0 0 0.0000001 0 32)"/>
+  <path d="M61 -8 H63 V8 H61 Z" fill="none" stroke="#000000"
+    style="stroke-width:3.4e38%" stroke-linecap="butt" stroke-linejoin="round"
+    transform="matrix(1 0 0 0.0000001 0 32)"/>
+
+  <!-- A fixed positive control keeps the whole fixture from passing blank. -->
+  <rect y="60" width="64" height="4" fill="#2563eb"/>
+</svg>

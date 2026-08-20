@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (280)
+## Chromium-baked cells (284)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells and three gradient ramps carry a declared, bounded
@@ -269,6 +269,10 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-stroke-width-css-percent.svg" title="svg-stroke-width-css-percent (standalone-svg)"><img src="./chromium/svg-stroke-width-css-percent.png" width="56" alt="svg-stroke-width-css-percent"></a>
 <a href="./svg-stroke-width-css-unitless.svg" title="svg-stroke-width-css-unitless (standalone-svg)"><img src="./chromium/svg-stroke-width-css-unitless.png" width="56" alt="svg-stroke-width-css-unitless"></a>
 <a href="./svg-stroke-width-em-font-size.svg" title="svg-stroke-width-em-font-size (standalone-svg)"><img src="./chromium/svg-stroke-width-em-font-size.png" width="56" alt="svg-stroke-width-em-font-size"></a>
+<a href="./svg-stroke-width-percentage-saturation-attr.svg" title="svg-stroke-width-percentage-saturation-attr (standalone-svg)"><img src="./chromium/svg-stroke-width-percentage-saturation-attr.png" width="56" alt="svg-stroke-width-percentage-saturation-attr"></a>
+<a href="./svg-stroke-width-percentage-saturation-cap-attr.svg" title="svg-stroke-width-percentage-saturation-cap-attr (standalone-svg)"><img src="./chromium/svg-stroke-width-percentage-saturation-cap-attr.png" width="56" alt="svg-stroke-width-percentage-saturation-cap-attr"></a>
+<a href="./svg-stroke-width-percentage-saturation-cap-css.svg" title="svg-stroke-width-percentage-saturation-cap-css (standalone-svg)"><img src="./chromium/svg-stroke-width-percentage-saturation-cap-css.png" width="56" alt="svg-stroke-width-percentage-saturation-cap-css"></a>
+<a href="./svg-stroke-width-percentage-saturation-css.svg" title="svg-stroke-width-percentage-saturation-css (standalone-svg)"><img src="./chromium/svg-stroke-width-percentage-saturation-css.png" width="56" alt="svg-stroke-width-percentage-saturation-css"></a>
 <a href="./svg-stroke-width-px.svg" title="svg-stroke-width-px (standalone-svg)"><img src="./chromium/svg-stroke-width-px.png" width="56" alt="svg-stroke-width-px"></a>
 <a href="./svg-stroke-width-rem.svg" title="svg-stroke-width-rem (standalone-svg)"><img src="./chromium/svg-stroke-width-rem.png" width="56" alt="svg-stroke-width-rem"></a>
 <a href="./svg-stroke-width-used-range.svg" title="svg-stroke-width-used-range (standalone-svg)"><img src="./chromium/svg-stroke-width-used-range.png" width="56" alt="svg-stroke-width-used-range"></a>
@@ -361,7 +365,7 @@ its row into the cells above.
 | `svg-stroke-vector-effect` | declared | skipped svg/g[1]/rect[1]: unsupported rendering attribute vector-effect on <rect> (not yet consumed) |
 | `svg-stroke-width-calc-mixed` | declared | skipped svg/rect[1]: unsupported stroke value "a calc() stroke-width mixing lengths and percentages is not consumed" |
 | `svg-stroke-width-font-basis` | declared | skipped svg/rect[1]: unsupported stroke value "a stroke-width in em on <rect> under an authored font-size carrying vw needs a basis this cascade does not have" |
-| `svg-stroke-width-percentage-overflow` | declared | skipped svg/path[1]: unsupported stroke value "stroke-width percentage saturation has cap- and join-dependent paint semantics" |
+| `svg-stroke-width-percentage-precision-alias` | declared | skipped svg/path[1]: unsupported stroke value "stroke-width percentage precision alias loses Chromium used-value provenance" |
 | `svg-stroke-width-var` | declared | declaration ignored at svg/style[1]: a stylesheet declares a stroke-width through var(), an indirection this patrol cannot follow; elements it matches may render at the wrong width |
 | `svg-switch` | declared | skipped svg/switch[1]: unsupported element <switch> |
 | `svg-text-tspan` | declared | skipped svg/text[1]: unsupported element <tspan> |

@@ -21,10 +21,10 @@
 //! painting nothing is a perfectly good answer — so a node's `Option<Stroke>`
 //! is `None` whenever nothing would be drawn and no consumer re-derives that.
 //! It errors only for a value no stroke can have: a negative or non-finite
-//! width, a negative or non-finite miter limit, or a reach that cannot be
-//! represented. A butt-capped dash cycle whose painted intervals are all zero
-//! is invisible too; round and square caps can paint dots at those same
-//! zero-length intervals, so those strokes remain present.
+//! width or a negative or non-finite miter limit. A butt-capped dash cycle
+//! whose painted intervals are all zero is invisible too; round and square
+//! caps can paint dots at those same zero-length intervals, so those strokes
+//! remain present.
 
 use crate::frame::PaintStack;
 
@@ -173,10 +173,6 @@ pub enum StrokeError {
     InvalidWidth,
     /// The miter limit is not finite and non-negative.
     InvalidMiterLimit,
-    /// The width is finite but how far the stroke reaches
-    /// ([`Stroke::outset`]) is not, so no consumer could state the area it
-    /// covers.
-    UnrepresentableReach,
 }
 
 impl std::fmt::Display for StrokeError {
@@ -187,9 +183,6 @@ impl std::fmt::Display for StrokeError {
             }
             StrokeError::InvalidMiterLimit => {
                 f.write_str("resolved stroke miter limit must be finite and non-negative")
-            }
-            StrokeError::UnrepresentableReach => {
-                f.write_str("resolved stroke reaches beyond a representable distance")
             }
         }
     }
@@ -259,23 +252,14 @@ impl Stroke {
         {
             return Ok(None);
         }
-        let stroke = Self {
+        Ok(Some(Self {
             paints,
             width,
             cap,
             join,
             miter_limit,
             dash_intervals,
-        };
-        // A width can be finite while its *reach* is not: half of `f32::MAX`
-        // times a miter limit of 4 overflows. A consumer that cannot compute
-        // the covered area cannot honestly carry the stroke, and an
-        // unrepresentable coverage rectangle would reach the damage policy as
-        // an infinity rather than as a refusal.
-        if !stroke.outset().is_finite() {
-            return Err(StrokeError::UnrepresentableReach);
-        }
-        Ok(Some(stroke))
+        }))
     }
 
     #[must_use]
@@ -329,19 +313,28 @@ impl Stroke {
     ///   Butt and round caps reach the radius.
     ///
     /// This is a direction-free uniform inflation, so `radius · √2` is the
-    /// tight bound for the square cap rather than a safety margin.
+    /// mathematically tight bound for the square cap rather than a policy
+    /// margin.
+    ///
+    /// The returned representation is always finite. The carried `f32` width
+    /// and miter limit are converted exactly to `f64` before any arithmetic;
+    /// widening this derived value does not widen either carried fact. The
+    /// irrational square-cap product is advanced by one `f64` step so its
+    /// representation rounds outward rather than inside the mathematical
+    /// bound.
     #[must_use]
-    pub fn outset(&self) -> f32 {
-        let radius = self.width / 2.0;
-        let join = match self.join {
-            StrokeJoin::Miter => self.miter_limit.max(1.0),
-            StrokeJoin::Round | StrokeJoin::Bevel => 1.0,
+    pub fn outset(&self) -> f64 {
+        let radius = f64::from(self.width) / 2.0;
+        let join_reach = radius
+            * match self.join {
+                StrokeJoin::Miter => f64::from(self.miter_limit).max(1.0),
+                StrokeJoin::Round | StrokeJoin::Bevel => 1.0,
+            };
+        let cap_reach = match self.cap {
+            StrokeCap::Square => (radius * std::f64::consts::SQRT_2).next_up(),
+            StrokeCap::Butt | StrokeCap::Round => radius,
         };
-        let cap = match self.cap {
-            StrokeCap::Square => std::f32::consts::SQRT_2,
-            StrokeCap::Butt | StrokeCap::Round => 1.0,
-        };
-        radius * join.max(cap)
+        join_reach.max(cap_reach)
     }
 }
 
@@ -444,7 +437,7 @@ mod tests {
         let square = Stroke::new(black(), 8.0, StrokeCap::Square, StrokeJoin::Round, 4.0)
             .expect("valid")
             .expect("paints");
-        assert_eq!(square.outset(), 4.0 * std::f32::consts::SQRT_2);
+        assert_eq!(square.outset(), (4.0 * std::f64::consts::SQRT_2).next_up());
         assert!(
             square.outset() > 4.0,
             "the corner of a square cap is outside the radius"
@@ -454,28 +447,5 @@ mod tests {
             .expect("valid")
             .expect("paints");
         assert_eq!(both.outset(), 16.0);
-    }
-
-    /// A width can be finite while its reach is not. The contract refuses that
-    /// rather than handing a consumer an infinite coverage rectangle.
-    #[test]
-    fn a_width_whose_reach_cannot_be_represented_refuses() {
-        assert_eq!(
-            Stroke::new(
-                black(),
-                f32::MAX,
-                StrokeCap::Butt,
-                StrokeJoin::Miter,
-                f32::MAX
-            ),
-            Err(StrokeError::UnrepresentableReach)
-        );
-        // The same width with a reach that *is* representable is admitted, so
-        // the refusal is about the reach and not about the magnitude.
-        assert!(
-            Stroke::new(black(), f32::MAX, StrokeCap::Butt, StrokeJoin::Round, 4.0)
-                .expect("valid")
-                .is_some()
-        );
     }
 }
