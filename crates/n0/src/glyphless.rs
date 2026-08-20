@@ -33,11 +33,11 @@ use crate::paint::PaintCtx;
 #[derive(Debug, Clone)]
 struct ProvenanceProjection {
     owners: Vec<VisualRef>,
-    coverage: Vec<n0_model::math::RectF>,
+    coverage: Vec<Option<n0_model::math::RectF>>,
 }
 
 impl ProvenanceProjection {
-    fn get(&self, slot: GlyphlessOwnerSlot) -> Option<(VisualRef, n0_model::math::RectF)> {
+    fn get(&self, slot: GlyphlessOwnerSlot) -> Option<(VisualRef, Option<n0_model::math::RectF>)> {
         Some((
             *self.owners.get(slot.index())?,
             *self.coverage.get(slot.index())?,
@@ -160,7 +160,10 @@ impl FrameProduct {
     }
 }
 
-/// Pixel-affecting change between two source-neutral frame products.
+/// Exact material/order attribution between two source-neutral frame products,
+/// plus the optional frame-space envelope of pixels that can be affected.
+/// A fully clipped change remains attributable in `changed` while its envelope
+/// is `None`.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Damage {
     pub changed: Vec<VisualRef>,
@@ -198,7 +201,7 @@ fn damage_input(product: &FrameProduct) -> FrameDamageInput<'_, VisualRef, (), G
                 .expect("compiled item has complete provenance");
             owners
                 .entry(owner)
-                .or_insert_with(|| DamageOwner::new((), Some(coverage)));
+                .or_insert_with(|| DamageOwner::new((), coverage));
             owner
         })
         .collect::<Vec<_>>();
@@ -220,7 +223,7 @@ fn damage_input(product: &FrameProduct) -> FrameDamageInput<'_, VisualRef, (), G
 /// so this compile trusts them the way it trusts [`rframe::PathData`] —
 /// nothing is re-derived, and the scope walk uses plain `expect`s.
 pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
-    validate_rect(resolved.bounds).map_err(|_| BuildError::InvalidFrameBounds)?;
+    validate_frame_bounds(resolved.bounds).map_err(|_| BuildError::InvalidFrameBounds)?;
     let owner_count = resolved
         .items
         .iter()
@@ -239,7 +242,9 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         coverage: Vec::with_capacity(owner_count),
     };
     provenance.owners.push(resolved.owner);
-    provenance.coverage.push(to_rectf(resolved.bounds));
+    provenance
+        .coverage
+        .push(bounded_geometry_coverage(resolved.bounds, resolved.bounds));
 
     let frame_owner = GlyphlessOwnerSlot::new(0);
     let frame_world = Affine::translate(resolved.bounds.x, resolved.bounds.y);
@@ -273,7 +278,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                 );
                 provenance.owners.push(scope.owner);
                 // Placeholder until the scope closes and its union is known.
-                provenance.coverage.push(to_rectf(resolved.bounds));
+                provenance.coverage.push(None);
                 let ScopeEffect::Opacity(opacity) = scope.effect;
                 items.push(Item {
                     node: slot,
@@ -287,12 +292,11 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
             }
             FrameItem::ScopeEnd => {
                 let (slot, coverage) = open_scopes.pop().expect("checked stream is balanced");
-                let coverage = coverage.expect("checked stream has no empty scope");
                 provenance.coverage[slot.index()] = coverage;
-                if let Some((_, parent)) = open_scopes.last_mut() {
+                if let (Some(coverage), Some((_, parent))) = (coverage, open_scopes.last_mut()) {
                     *parent = Some(match parent {
                         None => coverage,
-                        Some(parent) => union_rectf(*parent, coverage),
+                        Some(parent) => bounded_union_rectf(*parent, coverage, resolved.bounds),
                     });
                 }
                 items.push(Item {
@@ -333,22 +337,6 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
             u32::try_from(provenance.owners.len()).expect("owner count checked above"),
         );
         provenance.owners.push(node.owner);
-        // A stroke paints outside the geometry, so the covered area — what the
-        // damage policy repaints — is the node's bounds inflated by the
-        // stroke's own reach, mapped through the same transform.
-        let coverage = to_rectf(match &node.stroke {
-            None => node.bounds,
-            Some(stroke) => {
-                math2::rect_transform(math2::rect_inset(rect, -stroke.outset()), &node.transform)
-            }
-        });
-        provenance.coverage.push(coverage);
-        if let Some((_, accumulated)) = open_scopes.last_mut() {
-            *accumulated = Some(match accumulated {
-                None => coverage,
-                Some(accumulated) => union_rectf(*accumulated, coverage),
-            });
-        }
 
         // A box primitive draws at its item's origin, so its own local offset
         // enters the world transform. A path carries absolute local
@@ -361,6 +349,35 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
             }
             Geometry::Path(_) => to_affine(node.transform),
         };
+        // A stroke paints outside the geometry, so the covered area — what the
+        // damage policy repaints — is the local geometry inflated by the
+        // stroke's own reach, mapped through the same transform. Reach is a
+        // wide derived fact: project it in f64, then intersect with the frame
+        // clip before encoding the finite bounded RectF used by damage. Paint
+        // reference boxes above deliberately remain the geometry's own box.
+        let coverage = match (&node.stroke, node.paints.is_empty()) {
+            (None, true) => None,
+            (None, false) => bounded_geometry_coverage(node.bounds, resolved.bounds),
+            (Some(stroke), _) => {
+                let box_world = matches!(&node.geometry, Geometry::Rect(_) | Geometry::Ellipse(_))
+                    .then_some(&world);
+                bounded_stroke_coverage(
+                    rect,
+                    &node.transform,
+                    box_world,
+                    stroke.outset(),
+                    resolved.bounds,
+                )
+            }
+        };
+        provenance.coverage.push(coverage);
+        if let (Some(coverage), Some((_, accumulated))) = (coverage, open_scopes.last_mut()) {
+            *accumulated = Some(match accumulated {
+                None => coverage,
+                Some(accumulated) => bounded_union_rectf(*accumulated, coverage, resolved.bounds),
+            });
+        }
+
         let (w, h) = (rect.width, rect.height);
         let path = match &node.geometry {
             Geometry::Path(path) => Some(compile_path(path)),
@@ -556,6 +573,19 @@ fn validate_rect(rect: math2::Rectangle) -> Result<(), ()> {
         .ok_or(())
 }
 
+/// The frame clip is also the finite coordinate envelope for glyphless damage.
+/// Its carried components are not enough: an individually finite origin and
+/// extent can still produce an infinite far edge in the `RectF` arithmetic
+/// used by the damage policy.
+fn validate_frame_bounds(rect: math2::Rectangle) -> Result<(), ()> {
+    validate_rect(rect)?;
+    [rect.x + rect.width, rect.y + rect.height]
+        .into_iter()
+        .all(f32::is_finite)
+        .then_some(())
+        .ok_or(())
+}
+
 fn validate_transform(transform: math2::transform::AffineTransform) -> Result<(), ()> {
     transform
         .matrix
@@ -662,15 +692,360 @@ fn to_rectf(rect: math2::Rectangle) -> n0_model::math::RectF {
     }
 }
 
-fn union_rectf(a: n0_model::math::RectF, b: n0_model::math::RectF) -> n0_model::math::RectF {
-    let x = a.x.min(b.x);
-    let y = a.y.min(b.y);
-    n0_model::math::RectF {
-        x,
-        y,
-        w: (a.x + a.w).max(b.x + b.w) - x,
-        h: (a.y + a.h).max(b.y + b.h) - y,
+/// An internal LTRB envelope wide enough for transforming the contract's
+/// finite `f32` geometry by its current `f32`-derived wide stroke reach.
+#[derive(Clone, Copy, Debug)]
+struct WideRect {
+    left: f64,
+    top: f64,
+    right: f64,
+    bottom: f64,
+}
+
+impl WideRect {
+    fn from_rectangle(rect: math2::Rectangle) -> Self {
+        Self {
+            left: f64::from(rect.x),
+            top: f64::from(rect.y),
+            right: f64::from(rect.x) + f64::from(rect.width),
+            bottom: f64::from(rect.y) + f64::from(rect.height),
+        }
     }
+
+    fn from_rectf(rect: n0_model::math::RectF) -> Self {
+        Self {
+            left: f64::from(rect.x),
+            top: f64::from(rect.y),
+            right: f64::from(rect.x) + f64::from(rect.w),
+            bottom: f64::from(rect.y) + f64::from(rect.h),
+        }
+    }
+
+    fn inflated(self, outset: f64) -> Self {
+        Self {
+            left: (self.left - outset).next_down(),
+            top: (self.top - outset).next_down(),
+            right: (self.right + outset).next_up(),
+            bottom: (self.bottom + outset).next_up(),
+        }
+    }
+
+    fn transformed(self, transform: &math2::transform::AffineTransform) -> Option<Self> {
+        let [[a_f32, c_f32, e_f32], [b_f32, d_f32, f_f32]] = transform.matrix;
+        let [[a, c, e], [b, d, f]] = transform.matrix.map(|row| row.map(f64::from));
+        let corners = [
+            (self.left, self.top),
+            (self.right, self.top),
+            (self.right, self.bottom),
+            (self.left, self.bottom),
+        ];
+        let mut left = f64::INFINITY;
+        let mut top = f64::INFINITY;
+        let mut right = f64::NEG_INFINITY;
+        let mut bottom = f64::NEG_INFINITY;
+        for (local_x, local_y) in corners {
+            let (x_low, x_high) = affine_component_bounds(a, local_x, c, local_y, e)?;
+            let (y_low, y_high) = affine_component_bounds(b, local_x, d, local_y, f)?;
+            left = left.min(x_low);
+            top = top.min(y_low);
+            right = right.max(x_high);
+            bottom = bottom.max(y_high);
+        }
+
+        // The contract's carried node bounds and the painter both use
+        // sequential-f32 affine arithmetic, while the wide stroke reach above
+        // deliberately uses f64. Cancellation can put an f32 result beyond the
+        // real-arithmetic interval by one or more f32 values. Map an outward
+        // f32 cover of the inflated local box through that same operation order
+        // and union both envelopes: one covers the derived wide reach, the
+        // other every finite SkScalar/local-f32 point the consumer can map.
+        let f32_corners = [
+            (
+                floor_f32_saturated(self.left)?,
+                floor_f32_saturated(self.top)?,
+            ),
+            (
+                ceil_f32_saturated(self.right)?,
+                floor_f32_saturated(self.top)?,
+            ),
+            (
+                ceil_f32_saturated(self.right)?,
+                ceil_f32_saturated(self.bottom)?,
+            ),
+            (
+                floor_f32_saturated(self.left)?,
+                ceil_f32_saturated(self.bottom)?,
+            ),
+        ];
+        for (local_x, local_y) in f32_corners {
+            let x = sequential_f32_affine_component(a_f32, local_x, c_f32, local_y, e_f32)?;
+            let y = sequential_f32_affine_component(b_f32, local_x, d_f32, local_y, f_f32)?;
+            left = left.min(x);
+            top = top.min(y);
+            right = right.max(x);
+            bottom = bottom.max(y);
+        }
+        Some(Self {
+            left,
+            top,
+            right,
+            bottom,
+        })
+    }
+
+    fn intersection(self, other: Self) -> Option<Self> {
+        let intersection = Self {
+            left: self.left.max(other.left),
+            top: self.top.max(other.top),
+            right: self.right.min(other.right),
+            bottom: self.bottom.min(other.bottom),
+        };
+        (intersection.left < intersection.right && intersection.top < intersection.bottom)
+            .then_some(intersection)
+    }
+
+    fn union(self, other: Self) -> Self {
+        Self {
+            left: self.left.min(other.left),
+            top: self.top.min(other.top),
+            right: self.right.max(other.right),
+            bottom: self.bottom.max(other.bottom),
+        }
+    }
+}
+
+/// Outward bounds for one affine component `p*x + q*y + translation`.
+/// Advancing each rounded operation in both directions makes the f64 stage a
+/// conservative envelope rather than assuming round-to-nearest chose the
+/// harmless side of an exact geometric boundary.
+fn affine_component_bounds(p: f64, x: f64, q: f64, y: f64, translation: f64) -> Option<(f64, f64)> {
+    let px = p * x;
+    let qy = q * y;
+    if !px.is_finite() || !qy.is_finite() {
+        return None;
+    }
+    let low = (px.next_down() + qy.next_down()).next_down();
+    let high = (px.next_up() + qy.next_up()).next_up();
+    if !low.is_finite() || !high.is_finite() {
+        return None;
+    }
+    let low = (low + translation).next_down();
+    let high = (high + translation).next_up();
+    (low.is_finite() && high.is_finite()).then_some((low, high))
+}
+
+/// The operation order used by `math2::vector2::transform` and by the carried
+/// node bounds. Named intermediates keep the two products and two additions as
+/// four f32 rounding steps; the wide real-arithmetic interval is unioned by the
+/// caller rather than substituted for these semantics.
+fn sequential_f32_affine_component(
+    p: f32,
+    x: f32,
+    q: f32,
+    y: f32,
+    translation: f32,
+) -> Option<f64> {
+    let px = p * x;
+    let qy = q * y;
+    let sum = px + qy;
+    let value = sum + translation;
+    value.is_finite().then(|| f64::from(value))
+}
+
+fn bounded_geometry_coverage(
+    geometry_bounds: math2::Rectangle,
+    frame_bounds: math2::Rectangle,
+) -> Option<n0_model::math::RectF> {
+    let clipped = WideRect::from_rectangle(geometry_bounds)
+        .intersection(WideRect::from_rectangle(frame_bounds))?;
+    Some(rectf_covering_bounded(clipped, frame_bounds))
+}
+
+fn bounded_stroke_coverage(
+    local_bounds: math2::Rectangle,
+    transform: &math2::transform::AffineTransform,
+    box_world: Option<&Affine>,
+    outset: f64,
+    frame_bounds: math2::Rectangle,
+) -> Option<n0_model::math::RectF> {
+    let clip = WideRect::from_rectangle(frame_bounds);
+    let direct = WideRect::from_rectangle(local_bounds)
+        .inflated(outset)
+        .transformed(transform);
+    let projected = direct.and_then(|direct| match box_world {
+        None => Some(direct),
+        Some(world) => {
+            // Rects and ellipses do not send their absolute local coordinates
+            // to the painter. Their origin is first folded into `world` in
+            // f32, then the painter maps a 0..w / 0..h box through that composed
+            // matrix. Those operations are mathematically equivalent to the
+            // direct projection above but not rounding-equivalent, so retain
+            // both. Paths keep the direct absolute-coordinate route only.
+            let box_transform = math2::transform::AffineTransform::from_acebdf(
+                world.a, world.c, world.e, world.b, world.d, world.f,
+            );
+            WideRect::from_rectangle(math2::Rectangle::from_xywh(
+                0.0,
+                0.0,
+                local_bounds.width,
+                local_bounds.height,
+            ))
+            .inflated(outset)
+            .transformed(&box_transform)
+            .map(|box_projection| direct.union(box_projection))
+        }
+    });
+    // The current contract derives `outset` only from finite f32 stroke facts,
+    // so this branch is unreachable today. Keeping it conservative makes a
+    // future widening fall back to full-frame damage rather than mint NaN/inf
+    // or silently under-report coverage.
+    let projected = match projected {
+        Some(projected) => projected,
+        None => return bounded_geometry_coverage(frame_bounds, frame_bounds),
+    };
+    let clipped = projected.intersection(clip)?;
+    Some(rectf_covering_bounded(clipped, frame_bounds))
+}
+
+fn bounded_union_rectf(
+    a: n0_model::math::RectF,
+    b: n0_model::math::RectF,
+    frame_bounds: math2::Rectangle,
+) -> n0_model::math::RectF {
+    let frame = WideRect::from_rectangle(frame_bounds);
+    let union = WideRect::from_rectf(a).union(WideRect::from_rectf(b));
+    let clipped = union
+        .intersection(frame)
+        .expect("non-empty bounded coverages have a non-empty bounded union");
+    rectf_covering_bounded(clipped, frame_bounds)
+}
+
+/// Encode a wide non-empty rectangle as an outward-covering `RectF`, without
+/// ever crossing the frame envelope. If one axis cannot be rounded outward and
+/// remain inside that envelope, the frame's full axis is the smallest stable
+/// fallback available in the target representation.
+fn rectf_covering_bounded(
+    bounds: WideRect,
+    frame_bounds: math2::Rectangle,
+) -> n0_model::math::RectF {
+    let (x, w) = covering_axis_bounded(
+        bounds.left,
+        bounds.right,
+        frame_bounds.x,
+        frame_bounds.width,
+    );
+    let (y, h) = covering_axis_bounded(
+        bounds.top,
+        bounds.bottom,
+        frame_bounds.y,
+        frame_bounds.height,
+    );
+    n0_model::math::RectF { x, y, w, h }
+}
+
+fn covering_axis_bounded(min: f64, max: f64, frame_start: f32, frame_extent: f32) -> (f32, f32) {
+    let frame_end = f64::from(frame_start) + f64::from(frame_extent);
+    if let Some((start, extent)) = covering_axis(min, max) {
+        let rounded_end = start + extent;
+        let exact_start = f64::from(start);
+        let exact_end = exact_start + f64::from(extent);
+        if exact_start >= f64::from(frame_start)
+            && rounded_end.is_finite()
+            && exact_end <= frame_end
+        {
+            return (start, extent);
+        }
+    }
+    (frame_start, frame_extent)
+}
+
+fn covering_axis(min: f64, max: f64) -> Option<(f32, f32)> {
+    let start = floor_f32(min)?;
+    let target_end = ceil_f32(max)?;
+    let mut extent = ceil_f32(f64::from(target_end) - f64::from(start))?;
+    loop {
+        let end = start + extent;
+        if end.is_finite() && end >= target_end {
+            return Some((start, extent));
+        }
+        extent = next_up_f32(extent);
+        if !extent.is_finite() {
+            return None;
+        }
+    }
+}
+
+fn floor_f32(value: f64) -> Option<f32> {
+    let rounded = finite_f32(value)?;
+    Some(if f64::from(rounded) > value {
+        next_down_f32(rounded)
+    } else {
+        rounded
+    })
+}
+
+fn ceil_f32(value: f64) -> Option<f32> {
+    let rounded = finite_f32(value)?;
+    Some(if f64::from(rounded) < value {
+        next_up_f32(rounded)
+    } else {
+        rounded
+    })
+}
+
+/// Outward f32 domain endpoints for the painter's finite scalar space. A wide
+/// stroke reach may exceed that space; saturating only this companion domain
+/// keeps the separate f64 projection intact instead of broadening every such
+/// stroke to the frame.
+fn floor_f32_saturated(value: f64) -> Option<f32> {
+    if value.is_nan() {
+        None
+    } else if value <= -f64::from(f32::MAX) {
+        Some(-f32::MAX)
+    } else if value >= f64::from(f32::MAX) {
+        Some(f32::MAX)
+    } else {
+        floor_f32(value)
+    }
+}
+
+fn ceil_f32_saturated(value: f64) -> Option<f32> {
+    if value.is_nan() {
+        None
+    } else if value <= -f64::from(f32::MAX) {
+        Some(-f32::MAX)
+    } else if value >= f64::from(f32::MAX) {
+        Some(f32::MAX)
+    } else {
+        ceil_f32(value)
+    }
+}
+
+fn finite_f32(value: f64) -> Option<f32> {
+    let rounded = value as f32;
+    rounded.is_finite().then_some(rounded)
+}
+
+fn next_up_f32(value: f32) -> f32 {
+    if value == f32::INFINITY {
+        return value;
+    }
+    if value == 0.0 {
+        return f32::from_bits(1);
+    }
+    let bits = value.to_bits();
+    f32::from_bits(if value > 0.0 { bits + 1 } else { bits - 1 })
+}
+
+fn next_down_f32(value: f32) -> f32 {
+    if value == f32::NEG_INFINITY {
+        return value;
+    }
+    if value == 0.0 {
+        return -f32::from_bits(1);
+    }
+    let bits = value.to_bits();
+    f32::from_bits(if value > 0.0 { bits - 1 } else { bits + 1 })
 }
 
 fn from_rectf(rect: n0_model::math::RectF) -> math2::Rectangle {
@@ -696,6 +1071,8 @@ mod tests {
     const RECT_OWNER: VisualRef = VisualRef::new(Identity::new(20), Provenance::new(200));
     const SCOPE_OWNER: VisualRef = VisualRef::new(Identity::new(30), Provenance::new(300));
     const OTHER_OWNER: VisualRef = VisualRef::new(Identity::new(40), Provenance::new(400));
+    const INNER_SCOPE_OWNER: VisualRef = VisualRef::new(Identity::new(50), Provenance::new(500));
+    const CLIPPED_OWNER: VisualRef = VisualRef::new(Identity::new(60), Provenance::new(600));
 
     fn cg_solid(argb: u32) -> CgPaint {
         CgPaint::Solid(CgSolidPaint::new_color(CGColor::from_u32_argb(argb)))
@@ -757,6 +1134,89 @@ mod tests {
             bounds: Rectangle::from_xywh(0.0, 0.0, 64.0, 48.0),
             items,
         }
+    }
+
+    fn checked_stroke(
+        width: f32,
+        cap: rframe::StrokeCap,
+        join: rframe::StrokeJoin,
+        miter_limit: f32,
+        dash: Option<Vec<f32>>,
+    ) -> rframe::Stroke {
+        let dash = dash.map(|intervals| {
+            rframe::StrokeDashIntervals::new(intervals)
+                .expect("test dash intervals are valid")
+                .expect("test dash cycle is present")
+        });
+        rframe::Stroke::new_with_dash_intervals(
+            PaintStack::solid(CGColor::BLACK),
+            width,
+            cap,
+            join,
+            miter_limit,
+            dash,
+        )
+        .expect("test stroke is valid")
+        .expect("test stroke paints")
+    }
+
+    fn stroked_node(
+        owner: VisualRef,
+        geometry: Geometry,
+        transform: AffineTransform,
+        stroke: rframe::Stroke,
+    ) -> FrameNode {
+        let bounds = math2::rect_transform(geometry.local_box(), &transform);
+        FrameNode {
+            owner,
+            transform,
+            geometry,
+            bounds,
+            paints: PaintStack::empty(),
+            stroke: Some(stroke),
+        }
+    }
+
+    fn coverage_for(product: &FrameProduct, owner: VisualRef) -> Option<n0_model::math::RectF> {
+        let slot = product
+            .provenance
+            .owners
+            .iter()
+            .position(|candidate| *candidate == owner)
+            .expect("test owner has provenance");
+        product.provenance.coverage[slot]
+    }
+
+    fn private_stroke(product: &FrameProduct) -> &Stroke {
+        product
+            .drawlist
+            .items
+            .iter()
+            .find_map(|item| match &item.kind {
+                ItemKind::RectStroke { stroke, .. }
+                | ItemKind::OvalStroke { stroke, .. }
+                | ItemKind::PathStroke { stroke, .. } => Some(stroke),
+                _ => None,
+            })
+            .expect("test product has one stroke item")
+    }
+
+    fn assert_finite_bounded_coverage(coverage: n0_model::math::RectF, frame: Rectangle) {
+        assert!(
+            [coverage.x, coverage.y, coverage.w, coverage.h]
+                .into_iter()
+                .all(f32::is_finite),
+            "coverage components stay finite: {coverage:?}"
+        );
+        assert!(coverage.w > 0.0 && coverage.h > 0.0);
+        assert!((coverage.x + coverage.w).is_finite());
+        assert!((coverage.y + coverage.h).is_finite());
+        let coverage = WideRect::from_rectf(coverage);
+        let frame = WideRect::from_rectangle(frame);
+        assert!(coverage.left >= frame.left);
+        assert!(coverage.top >= frame.top);
+        assert!(coverage.right <= frame.right);
+        assert!(coverage.bottom <= frame.bottom);
     }
 
     fn resolved_frame(paints: PaintStack) -> Frame {
@@ -927,6 +1387,468 @@ mod tests {
 
         assert_eq!(diff_frame(&before, &after).changed, vec![RECT_OWNER]);
         assert!(diff_frame(&before, &before).is_empty());
+    }
+
+    /// The widest carried stroke remains an exact painter fact. Only its
+    /// derived damage envelope widens, and every cap and box route projects
+    /// that envelope back into the finite frame clip.
+    #[test]
+    fn maximum_finite_width_projects_exactly_across_caps_and_box_routes() {
+        let frame_bounds = Rectangle::from_xywh(0.0, 0.0, 64.0, 48.0);
+        for geometry in [
+            Geometry::Rect(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0)),
+            Geometry::Ellipse(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0)),
+        ] {
+            let is_rect = matches!(&geometry, Geometry::Rect(_));
+            for (contract_cap, private_cap) in [
+                (rframe::StrokeCap::Butt, StrokeCap::Butt),
+                (rframe::StrokeCap::Round, StrokeCap::Round),
+                (rframe::StrokeCap::Square, StrokeCap::Square),
+            ] {
+                let stroke =
+                    checked_stroke(f32::MAX, contract_cap, rframe::StrokeJoin::Miter, 4.0, None);
+                let node = stroked_node(
+                    RECT_OWNER,
+                    geometry.clone(),
+                    AffineTransform::identity(),
+                    stroke,
+                );
+                let product = compile(frame_of(FrameItems::from_nodes(vec![node])))
+                    .expect("maximum finite stroke is admitted");
+                let projected = private_stroke(&product);
+
+                assert_eq!(projected.width, StrokeWidth::Uniform(f32::MAX));
+                assert_eq!(projected.cap, private_cap);
+                assert_eq!(projected.join, StrokeJoin::Miter);
+                assert_eq!(projected.miter_limit, 4.0);
+                assert_eq!(projected.dash_array, None);
+                assert!(if is_rect {
+                    matches!(product.drawlist.items[1].kind, ItemKind::RectStroke { .. })
+                } else {
+                    matches!(product.drawlist.items[1].kind, ItemKind::OvalStroke { .. })
+                });
+
+                let coverage = coverage_for(&product, RECT_OWNER)
+                    .expect("the extreme stroke crosses the frame clip");
+                assert_eq!(coverage, to_rectf(frame_bounds));
+                assert_finite_bounded_coverage(coverage, frame_bounds);
+            }
+        }
+    }
+
+    /// A multi-contour path exercises the path painter route, a checked dash
+    /// cycle, a non-axis-aligned transform, and the largest miter reach at the
+    /// same seam. Every carried field remains bit-exact.
+    #[test]
+    fn maximum_miter_dashed_multi_contour_path_stays_exact_and_bounded() {
+        let path = rframe::PathData::new(
+            vec![
+                rframe::PathCommand::MoveTo { x: 4.0, y: 4.0 },
+                rframe::PathCommand::LineTo { x: 24.0, y: 6.0 },
+                rframe::PathCommand::MoveTo { x: 10.0, y: 12.0 },
+                rframe::PathCommand::LineTo { x: 30.0, y: 16.0 },
+                rframe::PathCommand::LineTo { x: 18.0, y: 30.0 },
+                rframe::PathCommand::Close,
+            ],
+            rframe::FillRule::NonZero,
+        )
+        .expect("test multi-contour path is valid");
+        let transform = AffineTransform::from_acebdf(0.75, -0.25, 12.0, 0.5, 1.25, 3.0);
+        let node = stroked_node(
+            RECT_OWNER,
+            Geometry::Path(Arc::new(path)),
+            transform,
+            checked_stroke(
+                f32::MAX,
+                rframe::StrokeCap::Square,
+                rframe::StrokeJoin::Miter,
+                f32::MAX,
+                Some(vec![3.0, 5.0, 0.0, 2.0]),
+            ),
+        );
+        let product = compile(frame_of(FrameItems::from_nodes(vec![node])))
+            .expect("wide transformed path stroke is admitted");
+        let projected = private_stroke(&product);
+
+        assert!(matches!(
+            product.drawlist.items[1].kind,
+            ItemKind::PathStroke { .. }
+        ));
+        assert_eq!(projected.width, StrokeWidth::Uniform(f32::MAX));
+        assert_eq!(projected.cap, StrokeCap::Square);
+        assert_eq!(projected.join, StrokeJoin::Miter);
+        assert_eq!(projected.miter_limit, f32::MAX);
+        assert_eq!(
+            projected.dash_array.as_deref(),
+            Some(&[3.0, 5.0, 0.0, 2.0][..])
+        );
+        let coverage = coverage_for(&product, RECT_OWNER).expect("stroke crosses the frame");
+        assert_eq!(coverage, to_rectf(product.resolved.bounds));
+        assert_finite_bounded_coverage(coverage, product.resolved.bounds);
+    }
+
+    /// This affine has both cross terms, so using an already-transformed x to
+    /// compute y produces a different rectangle. Pin the independently worked
+    /// f64 projection, including the stroke's local-space reach.
+    #[test]
+    fn stroke_coverage_uses_each_original_coordinate_for_affine_projection() {
+        let transform = AffineTransform::from_acebdf(2.0, 0.5, 10.0, -0.25, 1.5, 20.0);
+        let node = stroked_node(
+            RECT_OWNER,
+            Geometry::Rect(Rectangle::from_xywh(2.0, 3.0, 4.0, 5.0)),
+            transform,
+            checked_stroke(
+                2.0,
+                rframe::StrokeCap::Butt,
+                rframe::StrokeJoin::Bevel,
+                1.0,
+                None,
+            ),
+        );
+        let product = compile(frame_of(FrameItems::from_nodes(vec![node])))
+            .expect("finite transformed stroke is admitted");
+
+        let coverage = coverage_for(&product, RECT_OWNER).expect("stroke has coverage");
+        let coverage = WideRect::from_rectf(coverage);
+        assert!(coverage.left <= 13.0 && coverage.left > 12.99);
+        assert!(coverage.top <= 21.25 && coverage.top > 21.0);
+        assert!(coverage.right >= 28.5 && coverage.right < 28.51);
+        assert!(coverage.bottom >= 33.25 && coverage.bottom < 33.5);
+    }
+
+    /// The wide stroke envelope is real-arithmetic, but both carried geometry
+    /// and SkScalar stroke points traverse the matrix through sequential f32
+    /// operations. With cancellation and a cross term, that result can land
+    /// beyond the f64 interval. This pins an actual nonzero-width outer stroke
+    /// point from the reviewer-found bit pattern, not merely the base geometry.
+    #[test]
+    fn inflated_stroke_projection_contains_sequential_f32_cancellation_cross_term() {
+        let p = f32::from_bits(0xb40d_dda9);
+        let local_x = f32::from_bits(0x4aad_0dd4);
+        let q = f32::from_bits(0x14d6_9197);
+        let local_y = f32::from_bits(0x6b1d_9171);
+        let translation = f32::from_bits(0xbdae_da06);
+        let outset = 0.5;
+        let local_width = next_up_f32(local_x) - local_x;
+        let local_height = next_up_f32(local_y) - local_y;
+        let local_bounds = Rectangle::from_xywh(local_x, local_y, local_width, local_height);
+        let inflated = WideRect::from_rectangle(local_bounds).inflated(outset);
+
+        // `p` is negative and `q` positive, so this is the outer corner that
+        // maximizes x after a nondegenerate rect's one-unit stroke is inflated
+        // in local f32 space.
+        let stroke_x = local_x - outset as f32;
+        let stroke_y = (local_y + local_height) + outset as f32;
+        assert_ne!(stroke_x, local_x, "the test must exercise stroke reach");
+        assert_ne!(stroke_y, local_y, "the rect must have a finite height");
+        let px = p * stroke_x;
+        let qy = q * stroke_y;
+        let sum = px + qy;
+        let sequential_f32 = sum + translation;
+        assert_eq!(sequential_f32.to_bits(), 0x4052_b85a);
+
+        // Prove the regression discriminates: even an operation-by-operation
+        // outward f64 interval around the wide corners stops below the actual
+        // sequential-f32 stroke endpoint.
+        let mut wide_only_right = f64::NEG_INFINITY;
+        for (x, y) in [
+            (inflated.left, inflated.top),
+            (inflated.right, inflated.top),
+            (inflated.right, inflated.bottom),
+            (inflated.left, inflated.bottom),
+        ] {
+            let (_, high) =
+                affine_component_bounds(f64::from(p), x, f64::from(q), y, f64::from(translation))
+                    .expect("the wide cancellation case stays finite");
+            wide_only_right = wide_only_right.max(high);
+        }
+        assert!(wide_only_right < f64::from(sequential_f32));
+
+        let transform = AffineTransform::from_acebdf(p, q, translation, 0.0, 0.0, 1.0);
+        let projected = inflated
+            .transformed(&transform)
+            .expect("both affine semantics stay finite");
+        assert!(projected.left <= f64::from(sequential_f32));
+        assert!(projected.right >= f64::from(sequential_f32));
+
+        let frame_bounds = Rectangle::from_xywh(0.0, 0.0, 8.0, 4.0);
+        let encoded = bounded_stroke_coverage(local_bounds, &transform, None, outset, frame_bounds)
+            .expect("the cancellation case intersects the frame");
+        let encoded = WideRect::from_rectf(encoded);
+        assert!(encoded.left <= f64::from(sequential_f32));
+        assert!(encoded.right >= f64::from(sequential_f32));
+    }
+
+    /// Rects and ellipses fold their local-box origin into the private world
+    /// matrix before the painter maps 0..w / 0..h. Under cancellation, that
+    /// f32 composition can put an ordinary stroke endpoint outside both the
+    /// wide real-arithmetic and direct-coordinate f32 envelopes. Pin the exact
+    /// reviewer witness through the compiled box world and final bounded RectF.
+    #[test]
+    fn box_stroke_coverage_contains_composed_f32_painter_endpoint() {
+        let a = f32::from_bits(0x9479_82c2);
+        let rect_x = f32::from_bits(0xee47_e90e);
+        let rect_width = f32::from_bits(0x6e12_45fa);
+        let translation = f32::from_bits(0x214a_fd2a);
+        let rect = Rectangle::from_xywh(rect_x, 0.0, rect_width, 1.0);
+        let transform = AffineTransform::from_acebdf(a, 0.0, translation, 0.0, 1.0, 0.0);
+        let frame_bounds = Rectangle::from_xywh(0.0, 0.0, 64.0, 64.0);
+
+        // Prove the case discriminates the old direct-coordinate projection
+        // after its final RectF encoding, not just an internal f64 interval.
+        let old_projected = WideRect::from_rectangle(rect)
+            .inflated(0.5)
+            .transformed(&transform)
+            .expect("direct projection stays finite")
+            .intersection(WideRect::from_rectangle(frame_bounds))
+            .expect("direct projection intersects the frame");
+        let old_encoded = rectf_covering_bounded(old_projected, frame_bounds);
+        assert_eq!(old_encoded.x.to_bits(), 0x4251_1c0f);
+
+        let node = stroked_node(
+            RECT_OWNER,
+            Geometry::Rect(rect),
+            transform,
+            checked_stroke(
+                1.0,
+                rframe::StrokeCap::Butt,
+                rframe::StrokeJoin::Bevel,
+                1.0,
+                None,
+            ),
+        );
+        let frame = Frame {
+            owner: FRAME_OWNER,
+            bounds: frame_bounds,
+            items: FrameItems::from_nodes(vec![node]),
+        };
+        let product = compile(frame).expect("finite transformed box stroke is admitted");
+        let (box_world, width) = product
+            .drawlist
+            .items
+            .iter()
+            .find_map(|item| match &item.kind {
+                ItemKind::RectStroke { w, .. } => Some((item.world, *w)),
+                _ => None,
+            })
+            .expect("compiled product has its private rect stroke");
+        let painter_end = box_world.apply((width, 0.0)).0;
+        assert_eq!(painter_end.to_bits(), 0x4251_1c0c);
+        assert!(painter_end < old_encoded.x);
+
+        let coverage = coverage_for(&product, RECT_OWNER).expect("box stroke crosses the frame");
+        assert!(coverage.x <= painter_end);
+        assert!(coverage.x + coverage.w >= painter_end);
+        assert_finite_bounded_coverage(coverage, frame_bounds);
+    }
+
+    /// A nonzero tiny scale makes the widest stroke only locally visible. The
+    /// wide projection must retain that finite reach instead of saturating the
+    /// intermediate rectangle or broadening every extreme stroke to the clip.
+    #[test]
+    fn tiny_nonzero_scale_keeps_maximum_width_coverage_tighter_than_the_frame() {
+        let scale = 1.0e-38;
+        let transform = AffineTransform::from_acebdf(scale, 0.0, 32.0, 0.0, scale, 24.0);
+        let node = stroked_node(
+            RECT_OWNER,
+            Geometry::Rect(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0)),
+            transform,
+            checked_stroke(
+                f32::MAX,
+                rframe::StrokeCap::Butt,
+                rframe::StrokeJoin::Miter,
+                4.0,
+                None,
+            ),
+        );
+        let product = compile(frame_of(FrameItems::from_nodes(vec![node])))
+            .expect("compressed maximum stroke is admitted");
+        let coverage = coverage_for(&product, RECT_OWNER).expect("compressed stroke remains ink");
+
+        assert_finite_bounded_coverage(coverage, product.resolved.bounds);
+        assert!(coverage.x > 0.0 && coverage.y > 0.0);
+        assert!(coverage.x + coverage.w < product.resolved.bounds.width);
+        assert!(coverage.y + coverage.h < product.resolved.bounds.height);
+        assert!(coverage.w > 13.0 && coverage.w < 14.0);
+        assert!(coverage.h > 13.0 && coverage.h < 14.0);
+    }
+
+    /// A contract scope is structurally non-empty even when its transformed
+    /// child is fully clipped. Such a material edit remains attributable, but
+    /// it has no pixel envelope and must never fabricate an invalid rectangle.
+    #[test]
+    fn all_clipped_extreme_stroke_and_scope_have_no_damage_envelope() {
+        let scene = |opacity| {
+            let collapsed_offscreen = AffineTransform::from_acebdf(
+                0.0, 0.0, 100.0, // x = 100
+                0.0, 0.0, 100.0, // y = 100
+            );
+            let node = stroked_node(
+                RECT_OWNER,
+                Geometry::Rect(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0)),
+                collapsed_offscreen,
+                checked_stroke(
+                    f32::MAX,
+                    rframe::StrokeCap::Square,
+                    rframe::StrokeJoin::Miter,
+                    f32::MAX,
+                    None,
+                ),
+            );
+            let items = FrameItems::try_new(vec![
+                scope_begin(SCOPE_OWNER, opacity),
+                FrameItem::Node(node),
+                FrameItem::ScopeEnd,
+            ])
+            .expect("scope stream is structurally non-empty");
+            compile(frame_of(items)).expect("fully clipped scope still compiles")
+        };
+        let before = scene(0.5);
+        let after = scene(0.25);
+
+        assert_eq!(coverage_for(&before, RECT_OWNER), None);
+        assert_eq!(coverage_for(&before, SCOPE_OWNER), None);
+        let damage = diff_frame(&before, &after);
+        assert_eq!(damage.changed, vec![SCOPE_OWNER]);
+        assert_eq!(damage.union_frame, None);
+        assert!(
+            !damage.is_empty(),
+            "changed reports exact material attribution even without covered pixels"
+        );
+    }
+
+    /// A nested all-clipped scope contributes nothing to its parent; the
+    /// parent's visible sibling alone determines the bounded opacity envelope.
+    #[test]
+    fn scope_union_ignores_clipped_children_and_stays_frame_bounded() {
+        let scene = |opacity| {
+            let collapsed_offscreen = AffineTransform::from_acebdf(
+                0.0, 0.0, 100.0, // x = 100
+                0.0, 0.0, 100.0, // y = 100
+            );
+            let clipped = stroked_node(
+                CLIPPED_OWNER,
+                Geometry::Ellipse(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0)),
+                collapsed_offscreen,
+                checked_stroke(
+                    f32::MAX,
+                    rframe::StrokeCap::Round,
+                    rframe::StrokeJoin::Round,
+                    4.0,
+                    Some(vec![2.0, 2.0]),
+                ),
+            );
+            let visible = rect_node(
+                RECT_OWNER,
+                Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0),
+                0xFF16_A34A,
+            );
+            let items = FrameItems::try_new(vec![
+                scope_begin(SCOPE_OWNER, opacity),
+                FrameItem::Node(visible),
+                scope_begin(INNER_SCOPE_OWNER, 0.5),
+                FrameItem::Node(clipped),
+                FrameItem::ScopeEnd,
+                FrameItem::ScopeEnd,
+            ])
+            .expect("nested scope stream is valid");
+            compile(frame_of(items)).expect("mixed clipped scope compiles")
+        };
+        let before = scene(0.5);
+        let after = scene(0.25);
+        let visible = n0_model::math::RectF {
+            x: 8.0,
+            y: 6.0,
+            w: 20.0,
+            h: 16.0,
+        };
+
+        assert_eq!(coverage_for(&before, CLIPPED_OWNER), None);
+        assert_eq!(coverage_for(&before, INNER_SCOPE_OWNER), None);
+        assert_eq!(coverage_for(&before, SCOPE_OWNER), Some(visible));
+        let damage = diff_frame(&before, &after);
+        assert_eq!(damage.changed, vec![SCOPE_OWNER]);
+        assert_eq!(damage.union_frame, Some(from_rectf(visible)));
+        assert_finite_bounded_coverage(visible, before.resolved.bounds);
+    }
+
+    #[test]
+    fn extreme_stroke_diff_union_is_finite_and_frame_bounded() {
+        let scene = |cap| {
+            let node = stroked_node(
+                RECT_OWNER,
+                Geometry::Rect(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0)),
+                AffineTransform::identity(),
+                checked_stroke(f32::MAX, cap, rframe::StrokeJoin::Miter, 4.0, None),
+            );
+            compile(frame_of(FrameItems::from_nodes(vec![node])))
+                .expect("maximum finite stroke compiles")
+        };
+        let before = scene(rframe::StrokeCap::Butt);
+        let after = scene(rframe::StrokeCap::Square);
+        let damage = diff_frame(&before, &after);
+
+        assert_eq!(damage.changed, vec![RECT_OWNER]);
+        let coverage = damage.union_frame.expect("changed stroke has damage");
+        assert_eq!(coverage, before.resolved.bounds);
+        assert_finite_bounded_coverage(to_rectf(coverage), before.resolved.bounds);
+    }
+
+    #[test]
+    fn frame_clip_with_unrepresentable_far_edge_refuses_before_damage_projection() {
+        let frame = Frame {
+            owner: FRAME_OWNER,
+            bounds: Rectangle::from_xywh(f32::MAX, 0.0, f32::MAX, 48.0),
+            items: FrameItems::default(),
+        };
+        assert!(matches!(
+            compile(frame),
+            Err(BuildError::InvalidFrameBounds)
+        ));
+    }
+
+    #[test]
+    fn unencodable_wide_projection_falls_back_to_finite_frame_coverage() {
+        let frame = Rectangle::from_xywh(0.0, 0.0, 64.0, 48.0);
+        let transform = AffineTransform::from_acebdf(f32::MAX, 0.0, 0.0, 0.0, f32::MAX, 0.0);
+        let coverage = bounded_stroke_coverage(
+            Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0),
+            &transform,
+            None,
+            f64::MAX,
+            frame,
+        )
+        .expect("non-empty frame is the conservative fallback");
+
+        assert_eq!(coverage, to_rectf(frame));
+        assert_finite_bounded_coverage(coverage, frame);
+    }
+
+    #[test]
+    fn outward_rounding_never_crosses_the_exact_frame_endpoint() {
+        let frame = Rectangle::from_xywh(
+            f32::from_bits(0xfcbc_6019),
+            0.0,
+            f32::from_bits(0x7d73_111a),
+            1.0,
+        );
+        let coverage = rectf_covering_bounded(WideRect::from_rectangle(frame), frame);
+
+        assert_eq!(coverage, to_rectf(frame));
+        assert_finite_bounded_coverage(coverage, frame);
+    }
+
+    #[test]
+    fn zero_area_frame_has_no_coverage_envelope() {
+        let frame = Frame {
+            owner: FRAME_OWNER,
+            bounds: Rectangle::from_xywh(0.0, 0.0, 0.0, 48.0),
+            items: FrameItems::default(),
+        };
+        let product = compile(frame).expect("finite zero-area clip is admitted");
+
+        assert_eq!(coverage_for(&product, FRAME_OWNER), None);
+        assert!(diff_frame(&product, &product).is_empty());
     }
 
     /// A closed ellipse has no ends only while its stroke is solid. The zero

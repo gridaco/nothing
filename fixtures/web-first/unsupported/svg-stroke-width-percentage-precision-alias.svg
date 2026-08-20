@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 3 3">
+  <!-- This valid non-f32 decimal reaches the same computed Stylo percentage
+       as 57384.265625%, but Chromium gives the two distinct used widths. -->
+  <path d="M0.25 0 H2.75" transform="matrix(1 0 0 8192 0 -7051377)"
+    fill="none" stroke="#000000" stroke-linecap="butt"
+    stroke-linejoin="round" stroke-width="57384.267578125007%"/>
+</svg>

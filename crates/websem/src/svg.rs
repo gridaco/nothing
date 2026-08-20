@@ -1286,6 +1286,21 @@ fn stylesheet_stroke_dasharray_var(css: &str) -> bool {
     stylesheet_stroke_length_var(css, "stroke-dasharray")
 }
 
+/// Whether a CSS fragment declares a `stroke-width` percentage whose authored
+/// numeric provenance the computed Stylo value cannot preserve.
+///
+/// This deliberately shares the existing declaration-block patrol rather than
+/// matching selectors or parsing CSS a second time. A stylesheet finding is
+/// document-level because the one cascade, not this scan, decides which
+/// elements the declaration matches.
+fn stylesheet_stroke_width_percentage_precision_alias(css: &str) -> bool {
+    let css = strip_css_comments(css);
+    css.split([';', '{', '}'])
+        .filter_map(|chunk| chunk.split_once(':'))
+        .filter(|(name, _)| trim_svg_whitespace(name).eq_ignore_ascii_case("stroke-width"))
+        .any(|(_, value)| stroke_width_percentage_source_loses_provenance(value))
+}
+
 /// Whether a sheet declares a `stroke-width` in `em`/`rem` — admitted units
 /// whose basis is the cascaded `font-size`, which must then be trustworthy
 /// everywhere (see [`poisons_font_basis`]).
@@ -4400,6 +4415,58 @@ fn patrol_stroke_width_units(el: HtmlElement<'_>, element_name: &str) -> Result<
     patrol_stroke_length_units(el, element_name, "stroke-width")
 }
 
+/// Patrol the attributable stroke-width ingresses whose authored percentage
+/// provenance cannot be recovered from Stylo's computed `f32`: the
+/// presentation attribute and `style` declaration on this element and every
+/// ancestor from which the property can inherit.
+///
+/// This runs only after the typed computed value proved that the winning value
+/// is a pure percentage. That invocation boundary is load-bearing: Stylo can
+/// fold authored length terms such as `+ 0px` out of a pure percentage, while
+/// a genuinely mixed length/percentage value reaches the established typed
+/// refusal without calling this patrol. Stylesheets cannot be attributed to
+/// the winning element without a second selector matcher, so once that typed
+/// boundary is crossed every sheet is scanned conservatively from the document
+/// root, matching the existing stylesheet patrol posture.
+fn patrol_stroke_width_percentage_provenance(el: HtmlElement<'_>) -> Result<(), CompileError> {
+    let mut ancestor = Some(el);
+    while let Some(element) = ancestor {
+        let attribute_loses_provenance = get_attr(element, "stroke-width")
+            .is_some_and(|value| stroke_width_percentage_source_loses_provenance(&value));
+        let style_loses_provenance = get_attr(element, "style")
+            .is_some_and(|style| stylesheet_stroke_width_percentage_precision_alias(&style));
+        if attribute_loses_provenance || style_loses_provenance {
+            return Err(CompileError::UnsupportedStroke(
+                STROKE_WIDTH_PERCENTAGE_PRECISION_ALIAS.to_string(),
+            ));
+        }
+        ancestor = element.traversal_parent();
+    }
+
+    let mut stack = vec![document_root(el)];
+    while let Some(element) = stack.pop() {
+        if element.local_name_string() == "style" {
+            let mut sheet = String::new();
+            for child_id in &element.dom_node().children {
+                if let DemoNodeData::Text(text) = &element.dom().node(*child_id).data {
+                    sheet.push_str(text);
+                }
+            }
+            if stylesheet_stroke_width_percentage_precision_alias(&sheet) {
+                return Err(CompileError::UnsupportedStroke(
+                    STROKE_WIDTH_PERCENTAGE_PRECISION_ALIAS.to_string(),
+                ));
+            }
+        }
+        let mut child = element.first_element_child();
+        while let Some(c) = child {
+            stack.push(c);
+            child = c.next_element_sibling();
+        }
+    }
+    Ok(())
+}
+
 fn patrol_stroke_dasharray_units(
     el: HtmlElement<'_>,
     element_name: &str,
@@ -4425,22 +4492,289 @@ fn clamp_web_used_length(length: Length) -> f32 {
     }
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum PercentageResolutionError {
+    PrecisionAlias,
+}
+
+const STROKE_WIDTH_PERCENTAGE_PRECISION_ALIAS: &str =
+    "stroke-width percentage precision alias loses Chromium used-value provenance";
+const MAX_FINITE_F32_BITS: u32 = f32::MAX.to_bits();
+const AFTER_MAX_FINITE_F32_BITS: u64 = MAX_FINITE_F32_BITS as u64 + 1;
+
+/// Remove the ordinary CSS priority annotation before classifying the value.
+/// Comments have already been stripped, so this handles both `!important` and
+/// `! important` without interpreting any other part of the declaration.
+fn trim_css_important(value: &str) -> &str {
+    let value = trim_svg_whitespace(value);
+    let Some(keyword_start) = value.len().checked_sub("important".len()) else {
+        return value;
+    };
+    let Some(keyword) = value.get(keyword_start..) else {
+        return value;
+    };
+    if !keyword.eq_ignore_ascii_case("important") {
+        return value;
+    }
+    let Some(before_keyword) = value.get(..keyword_start) else {
+        return value;
+    };
+    let before_keyword = trim_svg_whitespace(before_keyword);
+    before_keyword
+        .strip_suffix('!')
+        .map(trim_svg_whitespace)
+        .unwrap_or(value)
+}
+
+/// Whether authored percentage text has numeric or arithmetic provenance that
+/// the pinned cascade erases before [`resolve_web_percentage_length`] sees it.
+///
+/// cssparser accumulates a percentage's source number in `f64`, divides by
+/// 100, and only then stores the normalized `f32`. Blink retains the authored
+/// number through a different rounding boundary before applying the viewport
+/// basis. Usually those routes agree. A literal such as
+/// `57384.267578125007%` proves they do not always: normalizing the raw `f64`
+/// and normalizing its nearest `f32` land in adjacent buckets, and Chromium's
+/// raster differs from the other source represented by Stylo's bucket.
+///
+/// A bare percentage (or identity `calc(<percentage>)` wrapper) is admitted
+/// only when the two normalization orders agree. Any actual percentage-bearing
+/// math refuses conservatively: its operations have already been folded out of
+/// the computed value, and re-evaluating a CSS math expression here would be a
+/// second matcher. The patrol is intentionally one-way — uncertainty adds a
+/// named refusal and can never admit a guessed value.
+fn stroke_width_percentage_source_loses_provenance(value: &str) -> bool {
+    let without_comments = strip_css_comments(value);
+    let mut candidate = trim_css_important(&without_comments);
+
+    loop {
+        if let Some(number) = candidate.strip_suffix('%') {
+            let number = trim_svg_whitespace(number);
+            if dots_carry_digits(number)
+                && let Some(authored) = number.parse::<f64>().ok().filter(|n| n.is_finite())
+            {
+                let raw_normalized = (authored / 100.0) as f32;
+                let f32_normalized = (f64::from(authored as f32) / 100.0) as f32;
+                return raw_normalized.to_bits() != f32_normalized.to_bits();
+            }
+            // An expression can also end in `%`; classify it below rather
+            // than mistaking mixed `calc(2px + 10%)` for a direct number.
+        }
+
+        // `calc(N%)` has no arithmetic history beyond its direct percentage.
+        // Unwrap only that syntactic shell; an operator, another function, or
+        // extra parentheses remains in `candidate` and refuses below.
+        let Some(name) = candidate.get(..4) else {
+            return candidate.contains('%');
+        };
+        let Some(after_name) = candidate.get(4..) else {
+            return candidate.contains('%');
+        };
+        if !name.eq_ignore_ascii_case("calc")
+            || !after_name.starts_with('(')
+            || !after_name.ends_with(')')
+        {
+            return candidate.contains('%');
+        }
+        candidate = trim_svg_whitespace(&after_name[1..after_name.len() - 1]);
+    }
+}
+
+/// First non-negative finite `f32` percentage `N` whose normalized cssparser
+/// value, `(f64::from(N) / 100.0) as f32`, is greater than (or, when `strict`
+/// is false, equal to) `computed_fraction`.
+///
+/// Positive finite floats sort in their bit order, and division by a positive
+/// constant is monotone, so this is a fixed 31-step search rather than a
+/// second parse of authored CSS.
+fn percentage_preimage_lower_bound(computed_fraction: f32, strict: bool) -> u64 {
+    let mut low = 0_u64;
+    let mut high = AFTER_MAX_FINITE_F32_BITS;
+    while low < high {
+        let middle = low + (high - low) / 2;
+        let authored = f32::from_bits(middle as u32);
+        // cssparser's tokenizer accumulates the authored number and divides
+        // the percentage in f64, then stores only the normalized f32.
+        let normalized = (f64::from(authored) / 100.0_f64) as f32;
+        let move_right = if strict {
+            normalized <= computed_fraction
+        } else {
+            normalized < computed_fraction
+        };
+        if move_right {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    low
+}
+
 /// Resolve a pure percentage stroke width with Blink's float operation order.
 ///
-/// Stylo stores `N%` as the fraction `N / 100`. Blink's SVG length path keeps
-/// `N`, multiplies that by the viewport dimension, and only then divides by
-/// 100. The intermediate multiplication is observable at the top of the f32
-/// range: overflow saturates to `f32::MAX` rather than recovering the finite
-/// mathematical product. The boolean names that saturation so the caller can
-/// refuse the cap- and join-dependent renderer result without hiding an
-/// unrelated stroke construction error.
-fn resolve_web_percentage_length(percentage: f32, basis: f32) -> (f32, bool) {
-    let authored_percentage = percentage * 100.0;
-    let resolved = basis * authored_percentage / 100.0;
-    if resolved == f32::INFINITY {
-        (f32::MAX, true)
-    } else {
-        (resolved, false)
+/// The authored-source patrol above has already refused raw `f64`
+/// normalization mismatches and percentage-bearing arithmetic. For the
+/// remaining recoverable direct percentages, cssparser stores only the
+/// normalized `f32` while Blink retains the authored `f32` number until it
+/// evaluates `basis * N / 100`. Dividing before the computed-value boundary is
+/// still not invertible: adjacent authored percentages can arrive as the same
+/// Stylo fraction while producing distinct Blink used values (most sharply
+/// when only one intermediate overflows).
+///
+/// The complete f32-authored preimage is a contiguous range of float bit
+/// patterns, found by the two searches above. Blink's used-value operation is
+/// monotone for these non-negative facts, so equal endpoint results prove that
+/// every member has one result. Distinct endpoints cannot be reconstructed
+/// from the computed value and refuse rather than silently choosing one
+/// author's pixels. A computed fraction with no recoverable f32 preimage is
+/// outside this numeric-precision boundary and refuses too.
+fn resolve_web_percentage_length(
+    computed_fraction: f32,
+    basis: f32,
+) -> Result<f32, PercentageResolutionError> {
+    if !computed_fraction.is_finite()
+        || computed_fraction < 0.0
+        || !basis.is_finite()
+        || basis < 0.0
+    {
+        return Err(PercentageResolutionError::PrecisionAlias);
+    }
+
+    let first = percentage_preimage_lower_bound(computed_fraction, false);
+    let after = percentage_preimage_lower_bound(computed_fraction, true);
+    if first == after {
+        return Err(PercentageResolutionError::PrecisionAlias);
+    }
+
+    let blink_result = |authored: f32| {
+        let resolved = basis * authored / 100.0;
+        if resolved == f32::INFINITY {
+            f32::MAX
+        } else {
+            resolved
+        }
+    };
+    let lower = blink_result(f32::from_bits(first as u32));
+    let upper = blink_result(f32::from_bits((after - 1) as u32));
+    if lower.to_bits() != upper.to_bits() {
+        return Err(PercentageResolutionError::PrecisionAlias);
+    }
+    Ok(lower)
+}
+
+#[cfg(test)]
+mod percentage_resolution_tests {
+    use super::*;
+
+    #[test]
+    fn authored_percentage_patrol_keeps_only_recoverable_direct_values() {
+        for safe in [
+            "3.4e38%",
+            "5e36%",
+            "10%",
+            "1e9%",
+            "calc(3.4e38%)",
+            "CALC( 10% )",
+        ] {
+            assert!(
+                !stroke_width_percentage_source_loses_provenance(safe),
+                "recoverable direct percentage {safe:?}"
+            );
+        }
+
+        assert!(stroke_width_percentage_source_loses_provenance(
+            "57384.267578125007%"
+        ));
+        assert!(stroke_width_percentage_source_loses_provenance(
+            "calc(57384.265625% + 0.001953125007%)"
+        ));
+        assert!(stroke_width_percentage_source_loses_provenance(
+            "calc(28692.1337890625035% * 2)"
+        ));
+    }
+
+    #[test]
+    fn adjacent_authored_percentages_straddling_blink_overflow_refuse() {
+        let computed = f32::from_bits(0x7923_d70a);
+        for authored_bits in [0x7c7f_ffff, 0x7c80_0000] {
+            let authored = f32::from_bits(authored_bits);
+            assert_eq!(
+                (f64::from(authored) / 100.0_f64) as f32,
+                computed,
+                "both adjacent authored floats normalize to the same Stylo fact"
+            );
+        }
+        assert_eq!(
+            resolve_web_percentage_length(computed, 64.0),
+            Err(PercentageResolutionError::PrecisionAlias)
+        );
+
+        assert_eq!(
+            resolve_web_percentage_length(computed, 63.0),
+            Err(PercentageResolutionError::PrecisionAlias),
+            "finite endpoint results differ by one ULP"
+        );
+        let finite = resolve_web_percentage_length(computed, 1.0).expect("one finite result");
+        assert!(finite.is_finite() && finite < f32::MAX);
+        assert_eq!(
+            resolve_web_percentage_length(computed, 65.0),
+            Ok(f32::MAX),
+            "both endpoints overflow"
+        );
+    }
+
+    #[test]
+    fn percentage_preimage_edges_are_bounded() {
+        assert_eq!(resolve_web_percentage_length(0.0, 0.0), Ok(0.0));
+        assert_eq!(
+            resolve_web_percentage_length(0.0, 64.0),
+            Err(PercentageResolutionError::PrecisionAlias),
+            "the zero fraction has a subnormal authored preimage with distinct results"
+        );
+        assert_eq!(
+            resolve_web_percentage_length(f32::MAX, 0.5),
+            Err(PercentageResolutionError::PrecisionAlias),
+            "no finite authored percentage normalizes to f32::MAX"
+        );
+
+        let largest_normalized = f32::MAX / 100.0;
+        assert_eq!(
+            resolve_web_percentage_length(largest_normalized, 64.0),
+            Ok(f32::MAX)
+        );
+
+        for invalid in [f32::INFINITY, f32::NAN, -1.0] {
+            assert_eq!(
+                resolve_web_percentage_length(invalid, 64.0),
+                Err(PercentageResolutionError::PrecisionAlias)
+            );
+        }
+    }
+
+    #[test]
+    fn ordinary_and_aliased_finite_percentages_compare_the_full_preimage() {
+        assert_eq!(
+            resolve_web_percentage_length(10.0_f32 / 100.0, 64.0),
+            Ok(6.4),
+            "10% has one authored-f32 preimage"
+        );
+        assert_eq!(
+            resolve_web_percentage_length(100.0_f32 / 100.0, 64.0),
+            Ok(64.0),
+            "100% keeps its exact result"
+        );
+
+        let one_percent = 1.0_f32 / 100.0;
+        assert_eq!(
+            resolve_web_percentage_length(one_percent, 64.0),
+            Ok(0.64),
+            "the two authored endpoints round to one result at this basis"
+        );
+        assert_eq!(
+            resolve_web_percentage_length(one_percent, 3.0),
+            Err(PercentageResolutionError::PrecisionAlias),
+            "the same endpoints produce adjacent used values at this basis"
+        );
     }
 }
 
@@ -4543,7 +4877,7 @@ fn resolve_stroke(
     // the same basis chain the shape geometry percentages refuse on.
     let destination_data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     let destination_style: &ComputedValues = destination_data.styles.primary();
-    let (width, percentage_width_saturated) = match destination_style.clone_stroke_width() {
+    let width = match destination_style.clone_stroke_width() {
         SVGLength::ContextValue => {
             return Err(CompileError::UnsupportedStroke(
                 "stroke-width: context-value".to_string(),
@@ -4554,14 +4888,28 @@ fn resolve_stroke(
                 // The unit is gone from a computed length, so the authored text
                 // is what says whether its basis was one this build has.
                 patrol_stroke_width_units(el, element_name)?;
-                (clamp_web_used_length(length), false)
+                clamp_web_used_length(length)
             }
             // A pure percentage resolves against the viewport's normalized
             // diagonal (SVG2 §7.10; measured — `10%` of 64x64 paints 6.4
             // units). A calc() mixing lengths and percentages has neither a
             // computed length nor a pure percentage and stays refused.
             None => match width.0.to_percentage() {
-                Some(percentage) => resolve_web_percentage_length(percentage.0, bases.diagonal()),
+                Some(percentage) => {
+                    // Stylo's fraction no longer says whether the source was
+                    // one recoverable literal or arithmetic/raw precision
+                    // whose Chromium result differs. Refuse that provenance
+                    // loss before the typed preimage check below.
+                    patrol_stroke_width_percentage_provenance(el)?;
+                    match resolve_web_percentage_length(percentage.0, bases.diagonal()) {
+                        Ok(width) => width,
+                        Err(PercentageResolutionError::PrecisionAlias) => {
+                            return Err(CompileError::UnsupportedStroke(
+                                STROKE_WIDTH_PERCENTAGE_PRECISION_ALIAS.to_string(),
+                            ));
+                        }
+                    }
+                }
                 None => {
                     return Err(CompileError::UnsupportedStroke(
                         "a calc() stroke-width mixing lengths and percentages is not consumed"
@@ -4571,20 +4919,6 @@ fn resolve_stroke(
             },
         },
     };
-    if percentage_width_saturated {
-        // Chromium's result after this saturation is cap- and join-dependent:
-        // a butt-capped round/bevel stroke paints while the default miter and
-        // round/square caps paint nothing. This frame/consumer path does not
-        // admit that renderer-level branch across the full cap/join grammar
-        // (the default miter's conservative reach is not representable).
-        // Refuse the typed arithmetic event rather than normalizing it to an
-        // absence that silently erases the painted cases, and do not catch
-        // unrelated reach errors here.
-        return Err(CompileError::UnsupportedStroke(
-            "stroke-width percentage saturation has cap- and join-dependent paint semantics"
-                .to_string(),
-        ));
-    }
     if width == 0.0 {
         return Ok(None);
     }

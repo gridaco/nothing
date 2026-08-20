@@ -19,17 +19,23 @@ producer (e.g. websem, from SVG)
 
 ## What it holds
 
-| Module   | Ownership                                                                                       |
-| -------- | ----------------------------------------------------------------------------------------------- |
-| `frame`  | `Frame`, `FrameNode`, `Geometry`, the admitted paint stack, and product identity                |
-| `path`   | `PathData` — checked absolute commands, fill rule, tight bounds solved once                     |
-| `stroke` | `Stroke` — centred width, cap, join, miter limit, optional checked dash intervals, and `outset` |
+| Module   | Ownership                                                                                                    |
+| -------- | ------------------------------------------------------------------------------------------------------------ |
+| `frame`  | `Frame`, `FrameNode`, `Geometry`, the admitted paint stack, and product identity                             |
+| `path`   | `PathData` — checked absolute commands, fill rule, tight bounds solved once                                  |
+| `stroke` | `Stroke` — centred width, cap, join, miter limit, optional checked dash intervals, and finite `f64` `outset` |
 
 Two details are load-bearing enough to state here. A node's `bounds` is the
 **geometry's** box, never the ink's: a stroke paints outside it, so a consumer
 that needs covered area inflates by `Stroke::outset()`. And a resolved value is
 resolved — a stroke that would paint nothing is `None` rather than a stroke with
 zero width, so no consumer re-derives "is this visible".
+
+`Stroke::outset()` widens only the arithmetic for that derived,
+direction-free bound. The resolved width and miter limit remain exact `f32`
+facts, while every stroke admitted from finite members has a finite `f64`
+outset. The square-cap case is rounded outward by one representable step so the
+helper never understates the mathematical bound.
 
 ## Anti-goals
 

@@ -221,9 +221,9 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "font-size",
     ),
     (
-        "svg-stroke-width-percentage-overflow",
+        "svg-stroke-width-percentage-precision-alias",
         DeclaredByBestEffort,
-        "stroke-width percentage saturation",
+        "stroke-width percentage precision alias",
     ),
     ("svg-stroke-width-var", DeclaredByBestEffort, "var()"),
     ("svg-switch", DeclaredByBestEffort, "<switch>"),

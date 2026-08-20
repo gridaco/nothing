@@ -56,7 +56,7 @@ from the dated addenda below:
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 280 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 284 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
   confined tolerance (the weighted rational conic) and three gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
@@ -1553,6 +1553,11 @@ verdict only. It produces no conformance score and takes no FLIP action.
 
 ## Ratified correction — stroke used-value range (2026-08-14)
 
+The broad width-refusal conclusion recorded here is historical rung evidence.
+The 2026-08-20 amendment below supersedes it: general positive percentage
+saturation is now carried and Chromium-celled, while a narrower source-precision
+alias remains refused.
+
 The browser's used-value range, not the resolved render contract, closes the
 dasharray remainder recorded by gridaco/nothing#83. Chromium clamps each pure
 fixed stroke length before using it. The authored ceiling is 33,554,429
@@ -1568,8 +1573,9 @@ overflow during percentage resolution causes Chromium to drop the dash effect,
 so the stroke becomes solid while retaining its authored cap. The same extreme
 percentage used as stroke width is not governed by that dash-effect result:
 under a discriminating transform, Chromium paints a butt-capped round or bevel
-join but not the default miter or round/square-cap variants. It remains a named
-capability instead of being normalized to one universal no-stroke result.
+join but not the default miter or round/square-cap variants. It therefore
+entered as a named capability at this correction instead of being normalized
+to one universal no-stroke result.
 These are property-specific outcomes, not a shared normalization of every
 large length.
 
@@ -1585,15 +1591,15 @@ Two byte-identical Chromium cells now cover the presentation-attribute and CSS
 dasharray spellings. Together they discriminate the fixed used clamp, odd-list
 repetition, restart at each subpath, and the cap-preserving solid result for an
 extreme percentage. A third cell repairs the fixed-length evidence of the
-previously closed width family by covering the clamp in both spellings. The
-extreme percentage width class is measured, not celled, and its
+previously closed width family by covering the clamp in both spellings. At this
+correction, the extreme percentage width class was measured, not celled, and its
 presentation-attribute, CSS, and
-percentage-only arithmetic ingresses are guarded by one named refusal.
+percentage-only arithmetic ingresses were guarded by one named refusal.
 The corpus moves from 277 to 280 cells; 97 of its 98 `svg-stroke-*` cells are
-byte-exact, with only the previously declared closed-path tolerance. The
-graduated cycle-overflow refusal leaves as the percentage-overflow width refusal
-enters, so the register remains at 56 rows. Dashoffset, `pathLength`, unit-basis,
-variable-indirection, escape, and font-basis patrols remain unchanged.
+byte-exact, with only the previously declared closed-path tolerance. At this
+correction, the cycle-overflow refusal left as the percentage-overflow width
+refusal entered, so the register remained at 56 rows. Dashoffset, `pathLength`,
+unit-basis, variable-indirection, escape, and font-basis patrols were unchanged.
 
 The earned precedents apply without revision: gridaco/nothing#77 supplies the
 standard-track grammar bar, gridaco/nothing#80 assigns independent unit and
@@ -1602,6 +1608,81 @@ for a genuine measured split. Here the corrected evidence removes that split's
 premise for dasharray, so both `stroke-dasharray` checklist rows tick. It also
 corrects gridaco/nothing#80's width evidence: the valid extreme-percentage
 class has no independent row and Chromium paints some of it, so both
-`stroke-width` rows reopen under gridaco/nothing#81 until that named capability
-lands. This is a capability verdict only; it produces no conformance score and
-takes no FLIP action.
+`stroke-width` rows reopened under gridaco/nothing#81 pending that named
+capability. This is a capability verdict only; it produces no conformance score
+and takes no FLIP action.
+
+## Ratified amendment — finite wide stroke reach (2026-08-20)
+
+Every accepted resolved stroke now has a finite, conservative, direction-free
+reach outside its geometry. This is the sixth contract amendment of the
+Web-first ladder. The carried width, cap, join, miter limit, paint, and optional
+dash cycle do not change. Only the arithmetic domain of the reach derived from
+those facts widens before any operation, so independently valid finite members
+cannot become an unrepresentable stroke merely because their aggregate bound
+exceeds the carried scalar range.
+
+The bound still means exactly what it did. A round or bevel join and a butt or
+round cap reach one half-width. A miter is bounded by the larger of one and its
+miter limit, in half-widths. A square cap reaches a half-width along and across
+the endpoint, so its direction-free bound is the half-width times the square
+root of two; the represented irrational result rounds outward. The result is
+finite for every combination of finite carried members, including the largest
+width and miter limit the contract can state.
+
+A consumer that needs a finite damage envelope projects this wide reach through
+the node transform before narrowing it. It intersects the projection with the
+finite frame clip and only then encodes a frame-bounded envelope; a fully
+clipped node has no pixel envelope but retains its material attribution. Scope
+unions obey the same frame bound. None of this changes the exact stroke sent to
+the painter, the geometry's own bounds, or a gradient's geometry reference box.
+It widens conservative bookkeeping, not paint semantics.
+
+### Stroke-width saturation rung verdict — cells landed, rows split
+
+The Chromium 149 matrix fixed the percentage operation order and its renderer
+edges before the amendment. For a pure percentage, the authored percentage is
+multiplied by the normalized-diagonal basis before division by 100. Positive
+overflow in that intermediate resolves to the maximum finite width. It does not
+mean one universal no-stroke result: under discriminating transforms, round and
+bevel joins paint where the default miter does not; a miter limit of exactly 2
+paints while the next representable value does not; an ordinary dash cycle can
+survive; closed and cornered topologies can drop; and round and square caps that
+drop under normal-axis-only compression paint when both axes are compressed.
+
+Four Chromium-baked cells carry that evidence in presentation-attribute and CSS
+twins. Two cover an unambiguous direct finite `5e36%` control, direct positive
+saturation, miter/join, dash, and topology branches. Two cover
+the round- and square-cap split with independently discriminating alpha passes.
+All four are byte-exact. The primitive corpus moves from 280 to 284 cells; 101
+of its 102 `svg-stroke-*` cells are byte-exact, with only the already-declared
+closed-path tolerance.
+
+The same probe found a narrower remainder that is not saturation-specific. On a
+64×32 user space, the valid adjacent values `100.00000762939453%` and
+`100.00001525878906%` collapse to the same percentage bucket in the pinned
+cascade (`0x3f800001`), while Chromium retains distinct used widths: their
+amplified rasters differ by 16 pixels. The last-finite and first-overflow pairs
+at 64- and 32-unit normalized-diagonal bases expose the same loss at the
+saturation boundary. A non-f32 decimal pair around `57384.265625%` differs by
+864 pixels despite reaching the same computed bucket, while non-identity
+percentage math reaches further rasters after the cascade has erased its
+operation history — including authored length terms that cancel to zero before
+the pure computed percentage arrives. These cases are measured, not celled.
+Once distinct source values with different oracle results have become one
+computed fact, a producer cannot
+select any result without being silently wrong for another. Direct ambiguous
+values and folded percentage math therefore refuse by name across the
+attribute, inline-style, stylesheet, and inherited ingresses.
+
+The former broad percentage-overflow refusal graduates into the four cells and
+the percentage-precision-alias refusal enters in its place, so the refusal
+register remains at 56 rows. Unit-basis, mixed arithmetic, variable-indirection,
+escape, and font-basis patrols remain unchanged. The standard-track bar from
+gridaco/nothing#77 admits both aliased spellings; the own-row rule from
+gridaco/nothing#80 cannot move this gap elsewhere because it has no independent
+row. It is therefore the gridaco/nothing#81 split condition that
+gridaco/nothing#86 reopened the width family to resolve: cells land, but the CSS
+`stroke-width` row and its SVG presentation-attribute twin remain unchecked.
+This is a capability verdict only. It produces no conformance score and takes
+no FLIP action.

@@ -2023,6 +2023,38 @@
       "height": 64
     },
     {
+      "id": "svg-stroke-width-percentage-saturation-attr",
+      "source": "svg-stroke-width-percentage-saturation-attr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-width-percentage-saturation-attr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-percentage-saturation-cap-attr",
+      "source": "svg-stroke-width-percentage-saturation-cap-attr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-width-percentage-saturation-cap-attr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-percentage-saturation-cap-css",
+      "source": "svg-stroke-width-percentage-saturation-cap-css.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-width-percentage-saturation-cap-css.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-percentage-saturation-css",
+      "source": "svg-stroke-width-percentage-saturation-css.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-width-percentage-saturation-css.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-stroke-width-px",
       "source": "svg-stroke-width-px.svg",
       "entry": "standalone-svg",

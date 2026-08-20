@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="#ffffff"/>
+
+  <!-- Compressing only the stroke's normal axis leaves both cap routes empty. -->
+  <path d="M4 0 H12" fill="none" stroke="#000000" style="stroke-width:3.4e38%"
+    stroke-linecap="round" stroke-linejoin="round"
+    transform="matrix(1 0 0 0.0000001 0 32)"/>
+  <path d="M52 0 H60" fill="none" stroke="#000000" style="stroke-width:3.4e38%"
+    stroke-linecap="square" stroke-linejoin="round"
+    transform="matrix(1 0 0 0.0000001 0 32)"/>
+
+  <!-- Compressing both axes rescues the round and square cap paint routes.
+       Distinct alphas make each full-viewport pass independently observable. -->
+  <path d="M0 0 H1" fill="none" stroke="#000000" stroke-opacity="0.25"
+    style="stroke-width:3.4e38%" stroke-linecap="round" stroke-linejoin="round"
+    transform="matrix(0.0000001 0 0 0.0000001 16 32)"/>
+  <path d="M0 0 H1" fill="none" stroke="#000000" stroke-opacity="0.5"
+    style="stroke-width:3.4e38%" stroke-linecap="square" stroke-linejoin="round"
+    transform="matrix(0.0000001 0 0 0.0000001 48 32)"/>
+
+  <!-- Fixed positive control: the fixture cannot pass as a blank document. -->
+  <rect y="60" width="64" height="4" fill="#2563eb"/>
+</svg>

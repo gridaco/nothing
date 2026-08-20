@@ -108,11 +108,23 @@ cargo run -p n0_cli --bin n0 -- \
   cap, join and miter limit come from the one cascade. Pure fixed widths clamp
   to Chromium's Web used-length ceiling (33,554,429 authored, 33,554,428 as
   the resolved f32 fact). Both source spellings are Chromium-baked in one
-  large-user-space repair cell. An extreme pure percentage or percentage-only
-  `calc()` remains a named refusal: under a discriminating transform,
-  Chromium's accepted used value paints a butt-capped round or bevel join but
-  not the default miter or round/square-cap variants, so it cannot be normalized
-  to one universal no-stroke result.
+  large-user-space repair cell. An unambiguous extreme direct percentage
+  follows Chromium's separate percentage path: positive overflow in
+  the authored-percentage-times-basis intermediate resolves to the maximum
+  finite width. It stays one exact stroke fact for the painter — it is not
+  normalized to absence — and four attribute/CSS cells cover the resulting
+  join-, cap-, transform-, dash-, and topology-dependent ink.
+  One narrower percentage class refuses by name. The pinned cascade can map
+  distinct authored percentages to one retained computed bucket even when
+  Chromium gives those sources distinct used widths; measured on a 64×32 user
+  space, `100.00000762939453%` and `100.00001525878906%` share that bucket but
+  differ by 16 pixels after amplification. Once the distinction is erased, the
+  producer cannot choose either raster honestly. Presentation attributes,
+  inline style, stylesheets, and inheritance guard this precision alias.
+  Non-identity percentage math that this cascade folds to a pure percentage
+  refuses under the same name — including authored length terms that cancel to
+  zero. The final percentage survives, but not the operation history needed to
+  reproduce Chromium's used width.
   A width whose basis this cascade lacks (viewport-, container-, and
   font-metric-relative units, root-relative twins included), a `calc()`
   mixing lengths and percentages, a font-size that would poison the `em`

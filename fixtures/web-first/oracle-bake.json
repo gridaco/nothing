@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "9a03381e68df2cffe57901c1f88d965f4f7f6430ebb63bed2eaa4f1da4284c61",
+  "suite_sha256": "2f6ed3d9a1f16cef04d2c125bda63850ca9d9c062b6387e81971c21448fab4fe",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -2185,6 +2185,42 @@
       "source_sha256": "d92ddb577cc1576f38d48acdf0aad5c90de58844474a241a68394e912d54a307",
       "oracle": "chromium/svg-stroke-width-em-font-size.png",
       "oracle_sha256": "f7f711b3b1b543dcb2a6954753dd628c839f017b014b51f1b9bb1a53dfb03623",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-percentage-saturation-attr",
+      "source": "svg-stroke-width-percentage-saturation-attr.svg",
+      "source_sha256": "79c1c8884c23e5a165b56720e08d6caf5162a0cd9e1bcca0a09b4458aaf94834",
+      "oracle": "chromium/svg-stroke-width-percentage-saturation-attr.png",
+      "oracle_sha256": "af74705f19598f38b3e15973664fe4804d5c2e1ede5e72a3b34a982fdc40013f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-percentage-saturation-cap-attr",
+      "source": "svg-stroke-width-percentage-saturation-cap-attr.svg",
+      "source_sha256": "2e291614a72c0821aa876cfeeed6c8f530d9e4c5090e447185978a296f92eeab",
+      "oracle": "chromium/svg-stroke-width-percentage-saturation-cap-attr.png",
+      "oracle_sha256": "7537f89fca0d6941ab34a579186d626e5e9972c89efbf235593dfdb0d0222c2e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-percentage-saturation-cap-css",
+      "source": "svg-stroke-width-percentage-saturation-cap-css.svg",
+      "source_sha256": "a8e9a54f7c99434f52971fbcc3f5c526ff0c51108a7631e610dbe2412a0e1045",
+      "oracle": "chromium/svg-stroke-width-percentage-saturation-cap-css.png",
+      "oracle_sha256": "7537f89fca0d6941ab34a579186d626e5e9972c89efbf235593dfdb0d0222c2e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-width-percentage-saturation-css",
+      "source": "svg-stroke-width-percentage-saturation-css.svg",
+      "source_sha256": "da4cd86632be9af01e5c6ee19cf01dd5b97f4ec117a2c0bbf2aa3f2e23892804",
+      "oracle": "chromium/svg-stroke-width-percentage-saturation-css.png",
+      "oracle_sha256": "af74705f19598f38b3e15973664fe4804d5c2e1ede5e72a3b34a982fdc40013f",
       "width": 64,
       "height": 64
     },
