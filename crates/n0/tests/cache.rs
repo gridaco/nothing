@@ -468,11 +468,11 @@ fn failed_rebuild_preserves_destination_and_previous_cache_entry() {
         stops: vec![
             GradientStop {
                 offset: 0.0,
-                color: Color::BLACK,
+                color: Color::BLACK.into(),
             },
             GradientStop {
                 offset: 1.0,
-                color: Color(0xFFFF_FFFF),
+                color: Color(0xFFFF_FFFF).into(),
             },
         ],
         ..Default::default()

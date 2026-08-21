@@ -194,9 +194,9 @@ fn stops_from(stops: &[CssGradientStop]) -> Vec<GradientStop> {
         .map(|s| GradientStop {
             offset: if s.offset_is_px { 0.0 } else { s.offset },
             color: if s.color_is_currentcolor || s.color.a == 0 {
-                CGColor::from_rgba(0, 0, 0, 0)
+                CGColor::from_rgba(0, 0, 0, 0).into()
             } else {
-                s.color
+                s.color.into()
             },
         })
         .collect()

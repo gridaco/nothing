@@ -183,7 +183,8 @@ fn linear_gradient() -> Paint {
                     g: 0,
                     b: 0,
                     a: 255,
-                },
+                }
+                .into(),
             },
             GradientStop {
                 offset: 1.0,
@@ -192,7 +193,8 @@ fn linear_gradient() -> Paint {
                     g: 0,
                     b: 255,
                     a: 255,
-                },
+                }
+                .into(),
             },
         ],
         opacity: 1.0,
@@ -212,7 +214,8 @@ fn radial_gradient() -> Paint {
                     g: 255,
                     b: 0,
                     a: 255,
-                },
+                }
+                .into(),
             },
             GradientStop {
                 offset: 1.0,
@@ -221,7 +224,8 @@ fn radial_gradient() -> Paint {
                     g: 128,
                     b: 0,
                     a: 200,
-                },
+                }
+                .into(),
             },
         ],
         opacity: 0.8,
@@ -242,7 +246,8 @@ fn sweep_gradient() -> Paint {
                     g: 255,
                     b: 255,
                     a: 255,
-                },
+                }
+                .into(),
             },
             GradientStop {
                 offset: 0.5,
@@ -251,7 +256,8 @@ fn sweep_gradient() -> Paint {
                     g: 0,
                     b: 255,
                     a: 255,
-                },
+                }
+                .into(),
             },
             GradientStop {
                 offset: 1.0,
@@ -260,7 +266,8 @@ fn sweep_gradient() -> Paint {
                     g: 255,
                     b: 0,
                     a: 255,
-                },
+                }
+                .into(),
             },
         ],
         opacity: 0.9,

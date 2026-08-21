@@ -37,7 +37,8 @@ pub(crate) fn build() -> Scene {
                             g: 0,
                             b: 0,
                             a: 255,
-                        },
+                        }
+                        .into(),
                     },
                     GradientStop {
                         offset: 1.0,
@@ -46,7 +47,8 @@ pub(crate) fn build() -> Scene {
                             g: 0,
                             b: 0,
                             a: 0,
-                        },
+                        }
+                        .into(),
                     },
                 ],
                 opacity: 1.0,
@@ -64,7 +66,8 @@ pub(crate) fn build() -> Scene {
                             g: 255,
                             b: 0,
                             a: 255,
-                        },
+                        }
+                        .into(),
                     },
                     GradientStop {
                         offset: 1.0,
@@ -73,7 +76,8 @@ pub(crate) fn build() -> Scene {
                             g: 255,
                             b: 0,
                             a: 0,
-                        },
+                        }
+                        .into(),
                     },
                 ],
                 opacity: 1.0,

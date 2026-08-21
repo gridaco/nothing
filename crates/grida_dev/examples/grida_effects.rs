@@ -117,15 +117,15 @@ async fn demo_effects() -> Scene {
         stops: vec![
             GradientStop {
                 offset: 0.0,
-                color: CGColor::from_rgba(255, 0, 128, 255),
+                color: CGColor::from_rgba(255, 0, 128, 255).into(),
             }, // Pink
             GradientStop {
                 offset: 0.5,
-                color: CGColor::from_rgba(0, 255, 255, 255),
+                color: CGColor::from_rgba(0, 255, 255, 255).into(),
             }, // Cyan
             GradientStop {
                 offset: 1.0,
-                color: CGColor::from_rgba(255, 255, 0, 255),
+                color: CGColor::from_rgba(255, 255, 0, 255).into(),
             }, // Yellow
         ],
         ..Default::default()

@@ -4,7 +4,7 @@
 //! no rendering — the machine ([`super::mode`]) and the panel call
 //! these and own what the results mean.
 
-use grida::cg::prelude::{CGColor, GradientStop};
+use grida::cg::prelude::{CGColor, CGColor32F, GradientStop};
 use math2::vector2::Vector2;
 
 use super::frame::{Frame, GradientType};
@@ -16,13 +16,23 @@ pub const MIN_STOPS: usize = 2;
 /// by offset. Ties break **just after** any equal-offset stops (the
 /// insert lands before the first strictly-greater one), so equal offsets
 /// are ordered deterministically (`GRAD-7`). Returns the inserted index.
-pub fn insert_stop(stops: &mut Vec<GradientStop>, offset: f32, color: CGColor) -> usize {
+pub fn insert_stop(
+    stops: &mut Vec<GradientStop>,
+    offset: f32,
+    color: impl Into<CGColor32F>,
+) -> usize {
     let offset = offset.clamp(0.0, 1.0);
     let at = stops
         .iter()
         .position(|s| s.offset > offset)
         .unwrap_or(stops.len());
-    stops.insert(at, GradientStop { offset, color });
+    stops.insert(
+        at,
+        GradientStop {
+            offset,
+            color: color.into(),
+        },
+    );
     at
 }
 
@@ -52,11 +62,11 @@ pub fn move_stop(stops: &mut Vec<GradientStop>, index: usize, offset: f32) -> us
 pub fn color_at(stops: &[GradientStop], offset: f32) -> CGColor {
     match stops.first() {
         None => CGColor::TRANSPARENT,
-        Some(first) if offset <= first.offset => first.color,
+        Some(first) if offset <= first.offset => first.color.to_rgba8(),
         Some(_) => {
             let last = stops.last().unwrap();
             if offset >= last.offset {
-                return last.color;
+                return last.color.to_rgba8();
             }
             let hi = stops.iter().position(|s| s.offset >= offset).unwrap();
             let (a, b) = (&stops[hi - 1], &stops[hi]);
@@ -66,7 +76,7 @@ pub fn color_at(stops: &[GradientStop], offset: f32) -> CGColor {
             } else {
                 (offset - a.offset) / span
             };
-            lerp_color(a.color, b.color, t)
+            lerp_color(a.color.to_rgba8(), b.color.to_rgba8(), t)
         }
     }
 }
@@ -167,7 +177,7 @@ mod tests {
     fn stop(offset: f32, rgba: u32) -> GradientStop {
         GradientStop {
             offset,
-            color: CGColor::from_u32(rgba),
+            color: CGColor::from_u32(rgba).into(),
         }
     }
 

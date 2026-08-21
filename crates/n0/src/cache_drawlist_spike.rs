@@ -250,11 +250,11 @@ fn drawlist_gradient_failure_is_transactional() {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: ModelColor::BLACK,
+                    color: ModelColor::BLACK.into(),
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: ModelColor(0xFFFF_FFFF),
+                    color: ModelColor(0xFFFF_FFFF).into(),
                 },
             ],
             ..Default::default()

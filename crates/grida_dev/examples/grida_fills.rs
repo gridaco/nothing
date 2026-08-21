@@ -54,11 +54,11 @@ async fn demo_fills() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: CGColor::from_rgba(255, 0, 255, 255), // Magenta
+                    color: CGColor::from_rgba(255, 0, 255, 255).into(), // Magenta
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: CGColor::from_rgba(0, 255, 255, 255), // Cyan
+                    color: CGColor::from_rgba(0, 255, 255, 255).into(), // Cyan
                 },
             ],
             opacity: 0.6,
@@ -86,15 +86,15 @@ async fn demo_fills() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: CGColor::from_rgba(255, 255, 255, 255), // White center
+                    color: CGColor::from_rgba(255, 255, 255, 255).into(), // White center
                 },
                 GradientStop {
                     offset: 0.7,
-                    color: CGColor::from_rgba(255, 255, 255, 255), // White
+                    color: CGColor::from_rgba(255, 255, 255, 255).into(), // White
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: CGColor::from_rgba(255, 255, 255, 0), // Transparent edge
+                    color: CGColor::from_rgba(255, 255, 255, 0).into(), // Transparent edge
                 },
             ],
             opacity: 0.7,
@@ -123,11 +123,11 @@ async fn demo_fills() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: CGColor::from_rgba(255, 0, 0, 255), // Red
+                    color: CGColor::from_rgba(255, 0, 0, 255).into(), // Red
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: CGColor::from_rgba(0, 0, 255, 255), // Blue
+                    color: CGColor::from_rgba(0, 0, 255, 255).into(), // Blue
                 },
             ],
             ..Default::default()
@@ -139,11 +139,11 @@ async fn demo_fills() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: CGColor::from_rgba(255, 255, 0, 255), // Yellow center
+                    color: CGColor::from_rgba(255, 255, 0, 255).into(), // Yellow center
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: CGColor::from_rgba(255, 255, 0, 0), // Transparent edge
+                    color: CGColor::from_rgba(255, 255, 0, 0).into(), // Transparent edge
                 },
             ],
             opacity: 0.5,
@@ -171,11 +171,11 @@ async fn demo_fills() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: CGColor::from_rgba(255, 0, 0, 255), // Red center
+                    color: CGColor::from_rgba(255, 0, 0, 255).into(), // Red center
                 },
                 GradientStop {
                     offset: 0.33,
-                    color: CGColor::from_rgba(255, 0, 0, 0), // Transparent
+                    color: CGColor::from_rgba(255, 0, 0, 0).into(), // Transparent
                 },
             ],
             opacity: 1.0,
@@ -188,11 +188,11 @@ async fn demo_fills() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.33,
-                    color: CGColor::from_rgba(0, 255, 0, 255), // Green middle ring
+                    color: CGColor::from_rgba(0, 255, 0, 255).into(), // Green middle ring
                 },
                 GradientStop {
                     offset: 0.66,
-                    color: CGColor::from_rgba(0, 255, 0, 0), // Transparent
+                    color: CGColor::from_rgba(0, 255, 0, 0).into(), // Transparent
                 },
             ],
             opacity: 0.8,
@@ -205,11 +205,11 @@ async fn demo_fills() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.66,
-                    color: CGColor::from_rgba(0, 0, 255, 255), // Blue outer ring
+                    color: CGColor::from_rgba(0, 0, 255, 255).into(), // Blue outer ring
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: CGColor::from_rgba(0, 0, 255, 0), // Transparent
+                    color: CGColor::from_rgba(0, 0, 255, 0).into(), // Transparent
                 },
             ],
             opacity: 0.6,
@@ -245,11 +245,11 @@ async fn demo_fills() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: CGColor::from_rgba(255, 255, 255, 255), // White overlay
+                    color: CGColor::from_rgba(255, 255, 255, 255).into(), // White overlay
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: CGColor::from_rgba(255, 255, 255, 0), // Transparent
+                    color: CGColor::from_rgba(255, 255, 255, 0).into(), // Transparent
                 },
             ],
             opacity: 0.7,
@@ -262,11 +262,11 @@ async fn demo_fills() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: CGColor::from_rgba(255, 0, 255, 255), // Magenta highlight
+                    color: CGColor::from_rgba(255, 0, 255, 255).into(), // Magenta highlight
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: CGColor::from_rgba(255, 0, 255, 0), // Transparent
+                    color: CGColor::from_rgba(255, 0, 255, 0).into(), // Transparent
                 },
             ],
             opacity: 0.5,
@@ -296,11 +296,11 @@ async fn demo_fills() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: CGColor::from_rgba(255, 0, 0, 255), // Red
+                    color: CGColor::from_rgba(255, 0, 0, 255).into(), // Red
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: CGColor::from_rgba(255, 0, 0, 0), // Transparent
+                    color: CGColor::from_rgba(255, 0, 0, 0).into(), // Transparent
                 },
             ],
             ..Default::default()
@@ -310,11 +310,11 @@ async fn demo_fills() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: CGColor::from_rgba(0, 255, 0, 255), // Green
+                    color: CGColor::from_rgba(0, 255, 0, 255).into(), // Green
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: CGColor::from_rgba(0, 255, 0, 0), // Transparent
+                    color: CGColor::from_rgba(0, 255, 0, 0).into(), // Transparent
                 },
             ],
             opacity: 0.8,
@@ -325,11 +325,11 @@ async fn demo_fills() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: CGColor::from_rgba(0, 0, 255, 255), // Blue
+                    color: CGColor::from_rgba(0, 0, 255, 255).into(), // Blue
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: CGColor::from_rgba(0, 0, 255, 0), // Transparent
+                    color: CGColor::from_rgba(0, 0, 255, 0).into(), // Transparent
                 },
             ],
             opacity: 0.6,
@@ -354,15 +354,15 @@ async fn demo_fills() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: CGColor::from_rgba(255, 255, 255, 255), // White center
+                    color: CGColor::from_rgba(255, 255, 255, 255).into(), // White center
                 },
                 GradientStop {
                     offset: 0.5,
-                    color: CGColor::from_rgba(255, 255, 255, 255), // White
+                    color: CGColor::from_rgba(255, 255, 255, 255).into(), // White
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: CGColor::from_rgba(255, 255, 255, 0), // Transparent edge
+                    color: CGColor::from_rgba(255, 255, 255, 0).into(), // Transparent edge
                 },
             ],
             opacity: 0.6,

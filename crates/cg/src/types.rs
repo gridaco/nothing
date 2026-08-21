@@ -2079,10 +2079,7 @@ impl Paint {
                 gradient.blend_mode.hash(hasher);
                 for stop in &gradient.stops {
                     stop.offset.to_bits().hash(hasher);
-                    stop.color.r.hash(hasher);
-                    stop.color.g.hash(hasher);
-                    stop.color.b.hash(hasher);
-                    stop.color.a.hash(hasher);
+                    stop.color.to_bits().hash(hasher);
                 }
             }
             Paint::RadialGradient(gradient) => {
@@ -2090,10 +2087,7 @@ impl Paint {
                 gradient.blend_mode.hash(hasher);
                 for stop in &gradient.stops {
                     stop.offset.to_bits().hash(hasher);
-                    stop.color.r.hash(hasher);
-                    stop.color.g.hash(hasher);
-                    stop.color.b.hash(hasher);
-                    stop.color.a.hash(hasher);
+                    stop.color.to_bits().hash(hasher);
                 }
             }
             Paint::SweepGradient(gradient) => {
@@ -2101,10 +2095,7 @@ impl Paint {
                 gradient.blend_mode.hash(hasher);
                 for stop in &gradient.stops {
                     stop.offset.to_bits().hash(hasher);
-                    stop.color.r.hash(hasher);
-                    stop.color.g.hash(hasher);
-                    stop.color.b.hash(hasher);
-                    stop.color.a.hash(hasher);
+                    stop.color.to_bits().hash(hasher);
                 }
             }
             Paint::DiamondGradient(gradient) => {
@@ -2112,10 +2103,7 @@ impl Paint {
                 gradient.blend_mode.hash(hasher);
                 for stop in &gradient.stops {
                     stop.offset.to_bits().hash(hasher);
-                    stop.color.r.hash(hasher);
-                    stop.color.g.hash(hasher);
-                    stop.color.b.hash(hasher);
-                    stop.color.a.hash(hasher);
+                    stop.color.to_bits().hash(hasher);
                 }
             }
             Paint::Image(image) => {
@@ -2405,7 +2393,12 @@ impl From<CGColor> for Paint {
 pub struct GradientStop {
     /// 0.0 = start, 1.0 = end
     pub offset: f32,
-    pub color: CGColor,
+    /// The stop's resolved colour. Float components, because a stop's alpha
+    /// is resolved by multiplication (a colour's own alpha times a separate
+    /// opacity) and the rasterizer interpolates the ramp before it quantizes
+    /// — a byte here would substitute a neighbouring alpha for the one the
+    /// platform paints. A byte colour widens into it exactly.
+    pub color: CGColor32F,
 }
 
 fn evenly_spaced_stops(colors: Vec<CGColor>) -> Vec<GradientStop> {
@@ -2419,7 +2412,7 @@ fn evenly_spaced_stops(colors: Vec<CGColor>) -> Vec<GradientStop> {
             } else {
                 index as f32 / last as f32
             },
-            color,
+            color: color.into(),
         })
         .collect()
 }

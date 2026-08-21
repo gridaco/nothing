@@ -27,7 +27,7 @@ pub const SCHEMA_VERSION: &str = "0.91.0-beta+20260311";
 
 use crate::cg::{
     alignment::Alignment,
-    color::CGColor,
+    color::{CGColor, CGColor32F},
     fe::{
         FeBackdropBlur, FeBlur, FeGaussianBlur, FeLayerBlur, FeLiquidGlass, FeNoiseEffect,
         FeProgressiveBlur, FeShadow, FilterShadowEffect, NoiseEffectColors,
@@ -641,6 +641,19 @@ pub fn decode_single_node(bytes: &[u8]) -> Result<DecodedSingleNode, FbsDecodeEr
 // Color helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// A gradient stop's colour crosses the format at the width the schema
+/// declares. Every other colour in the schema is consumed by a byte-colour
+/// field, so [`decode_rgba32f_to_cg_color`] still narrows for those.
+fn decode_rgba32f_to_stop_color(rgba: &fbs::RGBA32F) -> CGColor32F {
+    CGColor32F::new(
+        rgba.r().clamp(0.0, 1.0),
+        rgba.g().clamp(0.0, 1.0),
+        rgba.b().clamp(0.0, 1.0),
+        rgba.a().clamp(0.0, 1.0),
+    )
+    .expect("clamped finite components are inside the checked unit domain")
+}
+
 fn decode_rgba32f_to_cg_color(rgba: &fbs::RGBA32F) -> CGColor {
     CGColor {
         r: (rgba.r().clamp(0.0, 1.0) * 255.0).round() as u8,
@@ -693,10 +706,9 @@ fn decode_gradient_stops(stops: flatbuffers::Vector<'_, fbs::GradientStop>) -> V
     (0..stops.len())
         .map(|i| {
             let s = stops.get(i);
-            let color = decode_rgba32f_to_cg_color(s.stop_color());
             GradientStop {
                 offset: s.stop_offset(),
-                color,
+                color: decode_rgba32f_to_stop_color(s.stop_color()),
             }
         })
         .collect()
@@ -3053,7 +3065,7 @@ fn encode_gradient_stops<'a, A: flatbuffers::Allocator + 'a>(
     let fbs_stops: Vec<_> = stops
         .iter()
         .map(|s| {
-            let color = encode_color_to_rgba32f(&s.color);
+            let color = fbs::RGBA32F::new(s.color.r(), s.color.g(), s.color.b(), s.color.a());
             fbs::GradientStop::new(s.offset, &color)
         })
         .collect();

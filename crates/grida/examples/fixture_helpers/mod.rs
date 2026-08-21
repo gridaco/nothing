@@ -225,7 +225,8 @@ pub(crate) fn linear_gradient() -> Paint {
                     g: 0,
                     b: 0,
                     a: 255,
-                },
+                }
+                .into(),
             },
             GradientStop {
                 offset: 1.0,
@@ -234,7 +235,8 @@ pub(crate) fn linear_gradient() -> Paint {
                     g: 0,
                     b: 255,
                     a: 255,
-                },
+                }
+                .into(),
             },
         ],
         opacity: 1.0,
@@ -254,7 +256,8 @@ pub(crate) fn radial_gradient() -> Paint {
                     g: 255,
                     b: 0,
                     a: 255,
-                },
+                }
+                .into(),
             },
             GradientStop {
                 offset: 1.0,
@@ -263,7 +266,8 @@ pub(crate) fn radial_gradient() -> Paint {
                     g: 128,
                     b: 0,
                     a: 200,
-                },
+                }
+                .into(),
             },
         ],
         opacity: 0.8,
@@ -284,7 +288,8 @@ pub(crate) fn sweep_gradient() -> Paint {
                     g: 255,
                     b: 255,
                     a: 255,
-                },
+                }
+                .into(),
             },
             GradientStop {
                 offset: 0.5,
@@ -293,7 +298,8 @@ pub(crate) fn sweep_gradient() -> Paint {
                     g: 0,
                     b: 255,
                     a: 255,
-                },
+                }
+                .into(),
             },
             GradientStop {
                 offset: 1.0,
@@ -302,7 +308,8 @@ pub(crate) fn sweep_gradient() -> Paint {
                     g: 255,
                     b: 0,
                     a: 255,
-                },
+                }
+                .into(),
             },
         ],
         opacity: 1.0,

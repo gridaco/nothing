@@ -142,7 +142,7 @@ impl IntoCg<GradientStop> for usvg::Stop {
         let value = self;
         GradientStop {
             offset: value.offset().get(),
-            color: value.color().into_cg(),
+            color: value.color().into_cg().into(),
             // [MODEL_MISMATCH]
             // opacity: value.opacity().get(),
         }

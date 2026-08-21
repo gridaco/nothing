@@ -83,11 +83,11 @@ fn main() {
                 stops: vec![
                     GradientStop {
                         offset: 0.0,
-                        color: CGColor::from_rgba(255, 0, 0, 255),
+                        color: CGColor::from_rgba(255, 0, 0, 255).into(),
                     },
                     GradientStop {
                         offset: 1.0,
-                        color: CGColor::from_rgba(0, 0, 255, 255),
+                        color: CGColor::from_rgba(0, 0, 255, 255).into(),
                     },
                 ],
                 opacity: 1.0,
@@ -126,11 +126,11 @@ fn main() {
                     stops: vec![
                         GradientStop {
                             offset: 0.0,
-                            color: CGColor::from_rgba(255, 0, 255, 255),
+                            color: CGColor::from_rgba(255, 0, 255, 255).into(),
                         },
                         GradientStop {
                             offset: 1.0,
-                            color: CGColor::from_rgba(0, 255, 255, 255),
+                            color: CGColor::from_rgba(0, 255, 255, 255).into(),
                         },
                     ],
                     opacity: 0.6,
@@ -149,11 +149,11 @@ fn main() {
                     stops: vec![
                         GradientStop {
                             offset: 0.0,
-                            color: CGColor::from_rgba(255, 0, 0, 255),
+                            color: CGColor::from_rgba(255, 0, 0, 255).into(),
                         },
                         GradientStop {
                             offset: 1.0,
-                            color: CGColor::from_rgba(255, 255, 0, 255),
+                            color: CGColor::from_rgba(255, 255, 0, 255).into(),
                         },
                     ],
                     opacity: 0.7,
@@ -166,11 +166,11 @@ fn main() {
                     stops: vec![
                         GradientStop {
                             offset: 0.0,
-                            color: CGColor::from_rgba(0, 255, 0, 255),
+                            color: CGColor::from_rgba(0, 255, 0, 255).into(),
                         },
                         GradientStop {
                             offset: 1.0,
-                            color: CGColor::from_rgba(0, 0, 255, 255),
+                            color: CGColor::from_rgba(0, 0, 255, 255).into(),
                         },
                     ],
                     opacity: 0.5,
@@ -188,11 +188,11 @@ fn main() {
                     stops: vec![
                         GradientStop {
                             offset: 0.0,
-                            color: CGColor::from_rgba(255, 165, 0, 255),
+                            color: CGColor::from_rgba(255, 165, 0, 255).into(),
                         },
                         GradientStop {
                             offset: 1.0,
-                            color: CGColor::from_rgba(0, 255, 0, 255),
+                            color: CGColor::from_rgba(0, 255, 0, 255).into(),
                         },
                     ],
                     opacity: 0.7,
@@ -202,11 +202,11 @@ fn main() {
                     stops: vec![
                         GradientStop {
                             offset: 0.0,
-                            color: CGColor::from_rgba(255, 255, 255, 255),
+                            color: CGColor::from_rgba(255, 255, 255, 255).into(),
                         },
                         GradientStop {
                             offset: 1.0,
-                            color: CGColor::from_rgba(0, 0, 0, 0),
+                            color: CGColor::from_rgba(0, 0, 0, 0).into(),
                         },
                     ],
                     opacity: 0.5,
@@ -254,11 +254,11 @@ fn main() {
                     stops: vec![
                         GradientStop {
                             offset: 0.0,
-                            color: CGColor::from_rgba(255, 255, 255, 255),
+                            color: CGColor::from_rgba(255, 255, 255, 255).into(),
                         },
                         GradientStop {
                             offset: 1.0,
-                            color: CGColor::from_rgba(0, 0, 0, 0),
+                            color: CGColor::from_rgba(0, 0, 0, 0).into(),
                         },
                     ],
                     opacity: 0.5,
@@ -281,11 +281,11 @@ fn main() {
                     stops: vec![
                         GradientStop {
                             offset: 0.0,
-                            color: CGColor::from_rgba(0, 255, 0, 255),
+                            color: CGColor::from_rgba(0, 255, 0, 255).into(),
                         },
                         GradientStop {
                             offset: 1.0,
-                            color: CGColor::from_rgba(0, 0, 255, 255),
+                            color: CGColor::from_rgba(0, 0, 255, 255).into(),
                         },
                     ],
                     opacity: 0.6,
@@ -297,11 +297,11 @@ fn main() {
                     stops: vec![
                         GradientStop {
                             offset: 0.0,
-                            color: CGColor::from_rgba(255, 255, 255, 255),
+                            color: CGColor::from_rgba(255, 255, 255, 255).into(),
                         },
                         GradientStop {
                             offset: 1.0,
-                            color: CGColor::from_rgba(255, 255, 0, 0),
+                            color: CGColor::from_rgba(255, 255, 0, 0).into(),
                         },
                     ],
                     opacity: 0.5,

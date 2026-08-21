@@ -674,9 +674,17 @@ fn compile_gradient_stops(stops: &[cg::GradientStop]) -> Vec<n0_model::model::Gr
         .iter()
         .map(|stop| n0_model::model::GradientStop {
             offset: stop.offset,
-            color: compile_color(stop.color),
+            // Component-for-component: both leaves are checked unit sRGB, so
+            // the resolved stop crosses into the model without a quantization
+            // step that would substitute a neighbouring alpha.
+            color: compile_stop_color(stop.color),
         })
         .collect()
+}
+
+fn compile_stop_color(color: cg::CGColor32F) -> n0_model::model::Color32F {
+    n0_model::model::Color32F::new(color.r(), color.g(), color.b(), color.a())
+        .expect("a checked cg stop colour is inside the model's checked unit domain")
 }
 
 fn compile_tile_mode(mode: cg::TileMode) -> n0_model::model::TileMode {

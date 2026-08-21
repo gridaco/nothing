@@ -60,11 +60,11 @@ async fn demo_paints() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: CGColor::from_rgba(255, 100, 100, 255),
+                    color: CGColor::from_rgba(255, 100, 100, 255).into(),
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: CGColor::from_rgba(100, 100, 255, 255),
+                    color: CGColor::from_rgba(100, 100, 255, 255).into(),
                 },
             ],
             ..Default::default()
@@ -95,11 +95,11 @@ async fn demo_paints() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: CGColor::from_rgba(255, 255, 100, 255),
+                    color: CGColor::from_rgba(255, 255, 100, 255).into(),
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: CGColor::from_rgba(100, 255, 100, 255),
+                    color: CGColor::from_rgba(100, 255, 100, 255).into(),
                 },
             ],
             opacity: 1.0,
@@ -163,11 +163,11 @@ async fn demo_paints() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: CGColor::from_rgba(255, 100, 100, 255),
+                    color: CGColor::from_rgba(255, 100, 100, 255).into(),
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: CGColor::from_rgba(100, 100, 255, 255),
+                    color: CGColor::from_rgba(100, 100, 255, 255).into(),
                 },
             ],
             ..Default::default()
@@ -203,11 +203,11 @@ async fn demo_paints() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: CGColor::from_rgba(255, 255, 100, 255),
+                    color: CGColor::from_rgba(255, 255, 100, 255).into(),
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: CGColor::from_rgba(100, 255, 100, 255),
+                    color: CGColor::from_rgba(100, 255, 100, 255).into(),
                 },
             ],
             opacity: 1.0,

@@ -162,7 +162,7 @@ fn href_beats_xlink_href() {
         gradient
             .stops
             .iter()
-            .all(|stop| stop.color == cg::CGColor::from_rgb(255, 0, 0))
+            .all(|stop| stop.color == cg::CGColor::from_rgb(255, 0, 0).into())
     );
 }
 
@@ -208,7 +208,7 @@ fn own_stops_suppress_the_whole_template_stop_list() {
         gradient
             .stops
             .iter()
-            .all(|stop| stop.color == cg::CGColor::from_rgb(0, 255, 0))
+            .all(|stop| stop.color == cg::CGColor::from_rgb(0, 255, 0).into())
     );
 }
 
@@ -229,7 +229,7 @@ fn one_stop_resolves_to_a_constant_gradient() {
         gradient
             .stops
             .iter()
-            .all(|stop| stop.color == cg::CGColor::from_rgb(0, 255, 0))
+            .all(|stop| stop.color == cg::CGColor::from_rgb(0, 255, 0).into())
     );
 }
 
@@ -300,8 +300,11 @@ fn exact_stop_opacity_and_fill_opacity_keep_separate_facts() {
   <rect x="8" y="8" width="48" height="48" fill="url(#g)" fill-opacity="0.25"/>"##,
     ));
     let gradient = linear_of(sole_fill(&frame));
-    assert_eq!(gradient.stops[0].color.a, 255);
-    assert_eq!(gradient.stops[1].color.a, 128);
+    assert_eq!(gradient.stops[0].color.a().to_bits(), 1.0f32.to_bits());
+    assert_eq!(
+        gradient.stops[1].color.a().to_bits(),
+        (128.0f32 / 255.0).to_bits()
+    );
     assert_eq!(gradient.opacity.to_bits(), 0.25f32.to_bits());
 }
 

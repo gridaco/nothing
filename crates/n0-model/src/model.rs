@@ -671,6 +671,137 @@ impl From<String> for Color {
     }
 }
 
+/// A gradient stop's colour, at 32-bit float components.
+///
+/// This is **not** the wide-gamut upgrade [`Color`] defers: there is no
+/// colour-space tag, and every component is sRGB in `[0, 1]`, exactly as
+/// [`Color`] is. It exists for one measured reason — a gradient ramp is
+/// interpolated before it is quantized, so a stop whose alpha was resolved by
+/// multiplication (a colour's own alpha times a separate opacity) cannot be
+/// stated in eight bits without substituting a neighbouring alpha for the one
+/// the platform paints. Solid paints keep [`Color`]; a raster target quantizes
+/// them once and the byte is the whole fact.
+///
+/// Components are checked on construction, so the drawlist and the painter may
+/// read them without re-validating.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Color32F {
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
+}
+
+/// A component that is not a finite number in `[0, 1]`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Color32FError {
+    pub component: f32,
+}
+
+impl std::fmt::Display for Color32FError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "colour component {} is not a finite value in [0, 1]",
+            self.component
+        )
+    }
+}
+
+impl std::error::Error for Color32FError {}
+
+/// The reciprocal the byte→float widening multiplies by — the operation
+/// Skia's own `SkColor4f::FromColor` reaches its components through, so a
+/// stop authored in bytes arrives at the rasterizer with the bits it always
+/// arrived with.
+const BYTE_TO_UNIT: f32 = 1.0 / 255.0;
+
+impl Color32F {
+    pub const TRANSPARENT: Self = Self {
+        r: 0.0,
+        g: 0.0,
+        b: 0.0,
+        a: 0.0,
+    };
+
+    /// Widen a packed `0xAARRGGBB`. Exact and infallible.
+    #[inline]
+    pub fn from_argb(color: Color) -> Self {
+        let argb = color.argb();
+        Self {
+            r: ((argb >> 16) & 0xff) as f32 * BYTE_TO_UNIT,
+            g: ((argb >> 8) & 0xff) as f32 * BYTE_TO_UNIT,
+            b: (argb & 0xff) as f32 * BYTE_TO_UNIT,
+            a: ((argb >> 24) & 0xff) as f32 * BYTE_TO_UNIT,
+        }
+    }
+
+    /// Build from unit components, refusing anything the painter could not
+    /// take at face value.
+    pub fn new(r: f32, g: f32, b: f32, a: f32) -> Result<Self, Color32FError> {
+        for component in [r, g, b, a] {
+            if !component.is_finite() || !(0.0..=1.0).contains(&component) {
+                return Err(Color32FError { component });
+            }
+        }
+        Ok(Self { r, g, b, a })
+    }
+
+    /// A packed colour's RGB with a separately resolved float alpha — the
+    /// shape a resolved gradient stop actually has.
+    pub fn from_argb_with_alpha(color: Color, alpha: f32) -> Result<Self, Color32FError> {
+        let widened = Self::from_argb(color);
+        Self::new(widened.r, widened.g, widened.b, alpha)
+    }
+
+    #[inline]
+    pub fn r(self) -> f32 {
+        self.r
+    }
+    #[inline]
+    pub fn g(self) -> f32 {
+        self.g
+    }
+    #[inline]
+    pub fn b(self) -> f32 {
+        self.b
+    }
+    #[inline]
+    pub fn a(self) -> f32 {
+        self.a
+    }
+
+    /// Narrow back to a packed `0xAARRGGBB`, rounding half away from zero —
+    /// the rounding a raster target applies storing this in eight bits.
+    pub fn to_argb(self) -> Color {
+        let byte = |component: f32| (component.clamp(0.0, 1.0) * 255.0).round() as u32;
+        Color((byte(self.a) << 24) | (byte(self.r) << 16) | (byte(self.g) << 8) | byte(self.b))
+    }
+
+    /// The four components as raw bits, for hashing and for observation.
+    /// Injective over the checked domain, which excludes NaN.
+    pub fn to_bits(self) -> [u32; 4] {
+        [
+            self.r.to_bits(),
+            self.g.to_bits(),
+            self.b.to_bits(),
+            self.a.to_bits(),
+        ]
+    }
+}
+
+impl From<Color> for Color32F {
+    fn from(color: Color) -> Self {
+        Self::from_argb(color)
+    }
+}
+
+impl Default for Color32F {
+    fn default() -> Self {
+        Self::TRANSPARENT
+    }
+}
+
 /// Blend functions available to individual paints. `PassThrough` is a layer
 /// mode and deliberately does not appear here.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -863,7 +994,10 @@ impl SolidPaint {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct GradientStop {
     pub offset: f32,
-    pub color: Color,
+    /// Float components: a ramp is interpolated before it is quantized, so a
+    /// stop's resolved alpha must reach the painter unrounded. See
+    /// [`Color32F`].
+    pub color: Color32F,
 }
 
 #[derive(Debug, Clone, PartialEq)]

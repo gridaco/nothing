@@ -224,7 +224,7 @@ fn fill_kind_converts_carrying_the_color() {
         Paint::LinearGradient(g) => {
             assert_eq!(
                 g.stops.first().map(|s| s.color),
-                Some(CGColor::from_rgba(30, 60, 90, 255)),
+                Some(CGColor::from_rgba(30, 60, 90, 255).into()),
                 "the solid color seeds the gradient's first stop"
             );
         }

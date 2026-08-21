@@ -104,7 +104,10 @@ struct GradientObservation {
     tile: Option<Tile>,
     transform_bits: [u32; 6],
     stop_count: usize,
-    first_stop: Option<(u32, u32)>,
+    /// Offset bits, and the stop colour's four component bits — the leaf
+    /// carries float components on both sides, so the observation compares
+    /// them at that width rather than at a packed byte both would round to.
+    first_stop: Option<(u32, [u32; 4])>,
     active: bool,
     opacity_bits: u32,
     blend: Blend,
@@ -224,7 +227,7 @@ trait PaintVocabulary {
     fn stack_is_empty(stack: &Self::Paints) -> bool;
     fn gradient_defaults() -> Vec<GradientObservation>;
     fn gradient_sentinels() -> Vec<GradientObservation>;
-    fn stop() -> (u32, u32);
+    fn stop() -> (u32, [u32; 4]);
     fn image_vocabulary() -> ImageVocabularyObservation;
     fn image_neutral_witness() -> ImageObservation;
     fn image_sentinel() -> ImageObservation;
@@ -325,15 +328,9 @@ impl Cg {
                 transform.matrix[1][2].to_bits(),
             ],
             stop_count: stops.len(),
-            first_stop: stops.first().map(|stop| {
-                (
-                    stop.offset.to_bits(),
-                    u32::from(stop.color.a) << 24
-                        | u32::from(stop.color.r) << 16
-                        | u32::from(stop.color.g) << 8
-                        | u32::from(stop.color.b),
-                )
-            }),
+            first_stop: stops
+                .first()
+                .map(|stop| (stop.offset.to_bits(), stop.color.to_bits())),
             active,
             opacity_bits: opacity.to_bits(),
             blend: Self::observe_blend(blend),
@@ -653,7 +650,7 @@ impl PaintVocabulary for Cg {
         let transform = AffineTransform::from_acebdf(2.0, 3.0, 5.0, 4.0, 6.0, 7.0);
         let stops = vec![cg::GradientStop {
             offset: 0.375,
-            color: cg::CGColor::from_u32_argb(0x8040_2010),
+            color: cg::CGColor::from_u32_argb(0x8040_2010).into(),
         }];
         let cg::LinearGradientPaint {
             active: linear_active,
@@ -760,18 +757,12 @@ impl PaintVocabulary for Cg {
         ]
     }
 
-    fn stop() -> (u32, u32) {
+    fn stop() -> (u32, [u32; 4]) {
         let stop = cg::GradientStop {
             offset: 0.25,
-            color: cg::CGColor::from_u32_argb(0x8040_2010),
+            color: cg::CGColor::from_u32_argb(0x8040_2010).into(),
         };
-        let (_, argb) = Self::color_from_argb(
-            u32::from(stop.color.a) << 24
-                | u32::from(stop.color.r) << 16
-                | u32::from(stop.color.g) << 8
-                | u32::from(stop.color.b),
-        );
-        (stop.offset.to_bits(), argb)
+        (stop.offset.to_bits(), stop.color.to_bits())
     }
 
     fn image_vocabulary() -> ImageVocabularyObservation {
@@ -1062,7 +1053,7 @@ impl N0 {
             stop_count: stops.len(),
             first_stop: stops
                 .first()
-                .map(|stop| (stop.offset.to_bits(), stop.color.argb())),
+                .map(|stop| (stop.offset.to_bits(), stop.color.to_bits())),
             active,
             opacity_bits: opacity.to_bits(),
             blend: Self::observe_blend(blend),
@@ -1387,7 +1378,7 @@ impl PaintVocabulary for N0 {
         };
         let stops = vec![n::GradientStop {
             offset: 0.375,
-            color: n::Color(0x8040_2010),
+            color: n::Color(0x8040_2010).into(),
         }];
         let n::LinearGradientPaint {
             active: linear_active,
@@ -1494,12 +1485,12 @@ impl PaintVocabulary for N0 {
         ]
     }
 
-    fn stop() -> (u32, u32) {
+    fn stop() -> (u32, [u32; 4]) {
         let stop = n0_model::model::GradientStop {
             offset: 0.25,
-            color: n0_model::model::Color(0x8040_2010),
+            color: n0_model::model::Color(0x8040_2010).into(),
         };
-        (stop.offset.to_bits(), stop.color.argb())
+        (stop.offset.to_bits(), stop.color.to_bits())
     }
 
     fn image_vocabulary() -> ImageVocabularyObservation {
@@ -1839,7 +1830,10 @@ fn expected_gradient_sentinels() -> Vec<GradientObservation> {
         tile,
         transform_bits,
         stop_count: 1,
-        first_stop: Some((0.375_f32.to_bits(), 0x8040_2010)),
+        first_stop: Some((
+            0.375_f32.to_bits(),
+            cg::CGColor32F::from(cg::CGColor::from_u32_argb(0x8040_2010)).to_bits(),
+        )),
         active: false,
         opacity_bits: 0.625_f32.to_bits(),
         blend: Blend::SoftLight,
@@ -2092,7 +2086,13 @@ fn assert_common_laws<V: PaintVocabulary>() {
 
     assert_eq!(V::gradient_defaults(), expected_gradient_defaults());
     assert_eq!(V::gradient_sentinels(), expected_gradient_sentinels());
-    assert_eq!(V::stop(), (0.25_f32.to_bits(), 0x8040_2010));
+    assert_eq!(
+        V::stop(),
+        (
+            0.25_f32.to_bits(),
+            cg::CGColor32F::from(cg::CGColor::from_u32_argb(0x8040_2010)).to_bits()
+        )
+    );
     assert_eq!(V::image_vocabulary(), expected_image_vocabulary());
     assert_eq!(V::image_neutral_witness(), expected_image_neutral_witness());
     assert_eq!(V::image_sentinel(), expected_image_sentinel());
@@ -2212,7 +2212,10 @@ fn cg_color_ramp_helpers_never_mint_a_non_finite_stop() {
                 .iter()
                 .map(|stop| (stop.offset, stop.color))
                 .collect::<Vec<_>>(),
-            vec![(0.0, cg::CGColor::RED), (1.0, cg::CGColor::GREEN)]
+            vec![
+                (0.0, cg::CGColor32F::from(cg::CGColor::RED)),
+                (1.0, cg::CGColor32F::from(cg::CGColor::GREEN))
+            ]
         );
     }
     for stops in [
@@ -2235,9 +2238,9 @@ fn cg_color_ramp_helpers_never_mint_a_non_finite_stop() {
                 .map(|stop| (stop.offset, stop.color))
                 .collect::<Vec<_>>(),
             vec![
-                (0.0, cg::CGColor::RED),
-                (0.5, cg::CGColor::GREEN),
-                (1.0, cg::CGColor::BLUE),
+                (0.0, cg::CGColor32F::from(cg::CGColor::RED)),
+                (0.5, cg::CGColor32F::from(cg::CGColor::GREEN)),
+                (1.0, cg::CGColor32F::from(cg::CGColor::BLUE)),
             ]
         );
     }

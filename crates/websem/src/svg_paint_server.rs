@@ -353,8 +353,14 @@ pub(crate) fn resolve(
 /// One spatially constant gradient that retains gradient rasterization.
 fn constant_gradient(kind: GradientKind, color: CGColor, opacity: f32) -> ResolvedPaintServer {
     let stops = vec![
-        cg::GradientStop { offset: 0.0, color },
-        cg::GradientStop { offset: 1.0, color },
+        cg::GradientStop {
+            offset: 0.0,
+            color: color.into(),
+        },
+        cg::GradientStop {
+            offset: 1.0,
+            color: color.into(),
+        },
     ];
     let paint = match kind {
         GradientKind::Linear => cg::Paint::LinearGradient(cg::LinearGradientPaint {
@@ -910,7 +916,7 @@ fn cg_stops(stops: &[ResolvedStop]) -> Vec<cg::GradientStop> {
         .iter()
         .map(|stop| cg::GradientStop {
             offset: stop.offset,
-            color: stop.color,
+            color: stop.color.into(),
         })
         .collect()
 }

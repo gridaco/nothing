@@ -92,7 +92,7 @@ fn l4_absolute_child_in_flex() {
 fn l5_text_rewraps_at_stretched_width() {
     let mut b = DocBuilder::new();
     let (h, p) = {
-        let (mut h, p) = frame_flex(
+        let (h, p) = frame_flex(
             SizeIntent::Fixed(100.0),
             SizeIntent::Auto,
             Direction::Column,

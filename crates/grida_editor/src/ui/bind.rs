@@ -968,7 +968,7 @@ fn set_paint_active(paint: &mut Paint, active: bool) {
 fn set_paint_color(paint: &mut Paint, color: CGColor) {
     let stop0 = |stops: &mut Vec<GradientStop>| {
         if let Some(s) = stops.first_mut() {
-            s.color = color;
+            s.color = color.into();
         }
     };
     match paint {
@@ -1010,22 +1010,22 @@ fn paint_stops(paint: &Paint) -> Vec<GradientStop> {
             vec![
                 GradientStop {
                     offset: 0.0,
-                    color: p.color,
+                    color: p.color.into(),
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: end,
+                    color: end.into(),
                 },
             ]
         }
         Paint::Image(_) => vec![
             GradientStop {
                 offset: 0.0,
-                color: CGColor::BLACK,
+                color: CGColor::BLACK.into(),
             },
             GradientStop {
                 offset: 1.0,
-                color: CGColor::WHITE,
+                color: CGColor::WHITE.into(),
             },
         ],
     }
@@ -1037,15 +1037,23 @@ fn paint_stops(paint: &Paint) -> Vec<GradientStop> {
 fn convert_paint(paint: &Paint, kind: usize) -> Paint {
     let opacity = paint.opacity();
     let stops = paint_stops(paint);
-    let first_color = stops.first().map(|s| s.color).unwrap_or(CGColor::BLACK);
+    let first_color = stops
+        .first()
+        .map(|s| s.color)
+        .unwrap_or(CGColor::BLACK.into());
     match kind {
         0 => {
             // Fold the source opacity into the solid's alpha — a solid
             // paint has no separate opacity channel, so dropping it would
-            // silently make a translucent gradient fully opaque.
-            let mut color = first_color;
-            color.a = (color.a as f32 * opacity).round().clamp(0.0, 255.0) as u8;
-            Paint::Solid(SolidPaint::new_color(color))
+            // silently make a translucent gradient fully opaque. The stop's
+            // float alpha folds in before the one narrowing a solid gets.
+            let color = first_color.to_rgba8();
+            let alpha = (first_color.a() * opacity * 255.0)
+                .round()
+                .clamp(0.0, 255.0) as u8;
+            Paint::Solid(SolidPaint::new_color(CGColor::from_rgba(
+                color.r, color.g, color.b, alpha,
+            )))
         }
         1 => Paint::LinearGradient(LinearGradientPaint {
             stops,

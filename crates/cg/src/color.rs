@@ -80,6 +80,147 @@ impl Default for CGColor {
     }
 }
 
+/// The same colour at 32-bit float components — the precision a gradient ramp
+/// is interpolated at, and the precision [`format/grida.fbs`]'s `RGBA32F`
+/// already stores. [`CGColor`] remains the byte colour every solid paint and
+/// every authored swatch is stated in; this type exists because one resolved
+/// fact genuinely needs the wider component: a gradient stop's alpha, which
+/// the platform multiplies in float and hands to the rasterizer unquantized.
+///
+/// Components are checked into `[0, 1]` on construction, so a consumer may
+/// hand them to a backend without re-validating. Conversion from [`CGColor`]
+/// is exact and infallible.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct CGColor32F {
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
+}
+
+/// A component that is not a finite number in `[0, 1]`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CGColor32FError {
+    pub component: f32,
+}
+
+impl std::fmt::Display for CGColor32FError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "colour component {} is not a finite value in [0, 1]",
+            self.component
+        )
+    }
+}
+
+impl std::error::Error for CGColor32FError {}
+
+/// The reciprocal the byte→float widening multiplies by. Skia's
+/// `SkColor4f::FromColor` reaches its float components through exactly this
+/// operation, so a stop that entered as a byte reaches the rasterizer with
+/// the bits it reached them with before this type existed.
+const BYTE_TO_UNIT: f32 = 1.0 / 255.0;
+
+impl CGColor32F {
+    pub const TRANSPARENT: Self = Self {
+        r: 0.0,
+        g: 0.0,
+        b: 0.0,
+        a: 0.0,
+    };
+
+    /// Widen a byte colour. Exact and infallible: every byte divided by 255
+    /// is a finite value in `[0, 1]`.
+    #[inline]
+    pub fn from_rgba8(color: CGColor) -> Self {
+        Self {
+            r: color.r as f32 * BYTE_TO_UNIT,
+            g: color.g as f32 * BYTE_TO_UNIT,
+            b: color.b as f32 * BYTE_TO_UNIT,
+            a: color.a as f32 * BYTE_TO_UNIT,
+        }
+    }
+
+    /// Build from unit components, refusing anything a backend could not
+    /// take at face value.
+    pub fn new(r: f32, g: f32, b: f32, a: f32) -> Result<Self, CGColor32FError> {
+        for component in [r, g, b, a] {
+            if !component.is_finite() || !(0.0..=1.0).contains(&component) {
+                return Err(CGColor32FError { component });
+            }
+        }
+        Ok(Self { r, g, b, a })
+    }
+
+    /// A byte colour's RGB with a separately resolved float alpha — the shape
+    /// a resolved gradient stop actually has.
+    pub fn from_rgb8_alpha(color: CGColor, alpha: f32) -> Result<Self, CGColor32FError> {
+        let widened = Self::from_rgba8(color);
+        Self::new(widened.r, widened.g, widened.b, alpha)
+    }
+
+    #[inline]
+    pub fn r(self) -> f32 {
+        self.r
+    }
+    #[inline]
+    pub fn g(self) -> f32 {
+        self.g
+    }
+    #[inline]
+    pub fn b(self) -> f32 {
+        self.b
+    }
+    #[inline]
+    pub fn a(self) -> f32 {
+        self.a
+    }
+
+    /// Narrow back to bytes, rounding half away from zero — the rounding a
+    /// raster target applies when it stores this colour in eight bits.
+    pub fn to_rgba8(self) -> CGColor {
+        CGColor::from_rgba(
+            unit_to_byte(self.r),
+            unit_to_byte(self.g),
+            unit_to_byte(self.b),
+            unit_to_byte(self.a),
+        )
+    }
+
+    /// Whether this colour survives [`Self::to_rgba8`] unchanged.
+    pub fn is_rgba8_exact(self) -> bool {
+        Self::from_rgba8(self.to_rgba8()) == self
+    }
+
+    /// The four components as raw bits, for hashing. Injective over the
+    /// checked domain, which excludes NaN.
+    pub fn to_bits(self) -> [u32; 4] {
+        [
+            self.r.to_bits(),
+            self.g.to_bits(),
+            self.b.to_bits(),
+            self.a.to_bits(),
+        ]
+    }
+}
+
+fn unit_to_byte(component: f32) -> u8 {
+    (component.clamp(0.0, 1.0) * 255.0).round() as u8
+}
+
+impl From<CGColor> for CGColor32F {
+    fn from(color: CGColor) -> Self {
+        Self::from_rgba8(color)
+    }
+}
+
+impl Default for CGColor32F {
+    fn default() -> Self {
+        Self::TRANSPARENT
+    }
+}
+
 // ---------- Serialize: always [r, g, b, a] ----------
 impl Serialize for CGColor {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
