@@ -723,6 +723,7 @@ fn admitted_svg_presentation_property(local: &str) -> Option<LonghandId> {
         "stroke-linecap" => Some(LonghandId::StrokeLinecap),
         "stroke-linejoin" => Some(LonghandId::StrokeLinejoin),
         "stroke-dasharray" => Some(LonghandId::StrokeDasharray),
+        "stroke-dashoffset" => Some(LonghandId::StrokeDashoffset),
         "stroke-miterlimit" => Some(LonghandId::StrokeMiterlimit),
         // Not painted by any consumer yet, and admitted anyway: `font-size` is
         // the basis for an `em`/`rem` length, and `stroke-width` is now a

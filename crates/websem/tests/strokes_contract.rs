@@ -10,7 +10,7 @@
 //! resolved facts plus the refusals that keep the unconsumed half honest.
 //!
 //! Every pixel claim here was measured in Chromium 149 first; the corpus bakes
-//! them (`fixtures/web-first/svg-stroke-*.svg`, 101 of 102 byte-exact — only
+//! them (`fixtures/web-first/svg-stroke-*.svg`, 114 of 115 byte-exact — only
 //! `svg-stroke-path-closed` carries the declared conic tolerance).
 
 // This binary consumes only the n0 render half of the shared plumbing.
@@ -37,9 +37,13 @@ fn document(body: &str) -> String {
 /// blocks the *sampling* inventory, which is a policy about Sample requests and
 /// not a hole in the Base frame these laws read.
 fn admit_both(source: &str) -> rframe::Frame {
-    let strict =
-        SvgFrameSource::from_standalone_svg(source, viewport(64.0, 64.0)).expect("strict admits");
-    let best = SvgFrameSource::from_standalone_svg_best_effort(source, viewport(64.0, 64.0))
+    admit_both_at(source, 64.0, 64.0)
+}
+
+fn admit_both_at(source: &str, width: f32, height: f32) -> rframe::Frame {
+    let strict = SvgFrameSource::from_standalone_svg(source, viewport(width, height))
+        .expect("strict admits");
+    let best = SvgFrameSource::from_standalone_svg_best_effort(source, viewport(width, height))
         .expect("best-effort admits");
     let declared: Vec<&websem::Degradation> = best
         .degradations()
@@ -71,11 +75,28 @@ fn assert_percentage_precision_alias(source: &str, label: &str) {
     );
 }
 
+fn assert_dashoffset_percentage_precision_alias(source: &str, label: &str) {
+    let error = refusal(source);
+    let rendered = error.to_string();
+    assert!(
+        rendered.contains("stroke-dashoffset percentage precision alias")
+            && rendered.contains("loses Chromium used-value provenance"),
+        "{label}: got {error}"
+    );
+}
+
 fn stroke_of(frame: &rframe::Frame, index: usize) -> &rframe::Stroke {
     frame.nodes()[index]
         .stroke
         .as_ref()
         .expect("node carries a resolved stroke")
+}
+
+fn dash_phase(frame: &rframe::Frame, index: usize) -> f32 {
+    stroke_of(frame, index)
+        .dash()
+        .expect("stroke carries an active dash pattern")
+        .phase()
 }
 
 /// A stroked 32x32 rect at (16,16) — the shape every alignment law reads.
@@ -734,12 +755,11 @@ fn a_lines_fill_never_paints_and_its_endpoints_default_to_zero() {
 // ─── what still refuses ──────────────────────────────────────────────────
 
 /// The stroke properties this slice does not consume refuse by name through
-/// both authored spellings. Dasharray left this list with the capability rung;
-/// dashoffset remains deliberately outside the zero-phase frame contract.
+/// both authored spellings. Dasharray and the guarded dashoffset capability
+/// have left this list; paint ordering and non-scaling geometry have not.
 #[test]
 fn the_unconsumed_stroke_properties_refuse_by_name() {
     for attr in [
-        r##"stroke-dashoffset="4""##,
         r##"paint-order="stroke""##,
         r##"vector-effect="non-scaling-stroke""##,
     ] {
@@ -751,11 +771,7 @@ fn the_unconsumed_stroke_properties_refuse_by_name() {
     }
     // The same values through a stylesheet, where only a computed-level read or
     // the CSS-name patrol can catch them.
-    for css in [
-        "stroke-dashoffset: 4",
-        "paint-order: stroke",
-        "vector-effect: non-scaling-stroke",
-    ] {
+    for css in ["paint-order: stroke", "vector-effect: non-scaling-stroke"] {
         let source = document(&format!(
             r##"  <style>rect {{ stroke: #000; stroke-width: 8; {css} }}</style>
   <rect x="16" y="16" width="32" height="32" fill="none"/>"##
@@ -767,25 +783,6 @@ fn the_unconsumed_stroke_properties_refuse_by_name() {
                 CompileError::UnsupportedStroke(_) | CompileError::UnsupportedStyle(_)
             ),
             "{css} must be declared, not silently dropped; got {error}"
-        );
-    }
-
-    // Offset inherits, and an authored zero is still patrolled: a value in a
-    // basis this cascade lacks can compute to zero here while moving the cycle
-    // in Chromium. Attribute, style-attribute, ancestor, and sheet routes all
-    // stay named until the phase contract exists.
-    for source in [
-        stroked_rect(r##"stroke-width="8" style="stroke-dashoffset: 0""##),
-        document(
-            r##"  <g stroke="#000" stroke-width="8" style="stroke-dashoffset: 4">
-    <rect x="16" y="16" width="32" height="32" fill="none" stroke-dasharray="8 4"/>
-  </g>"##,
-        ),
-    ] {
-        let error = refusal(&source);
-        assert!(
-            error.to_string().contains("stroke-dashoffset"),
-            "offset must refuse at every authored ingress; got {error}"
         );
     }
 }
@@ -807,7 +804,7 @@ fn pathlength_refuses_on_every_admitted_geometry_element() {
     ] {
         let shape = shape.replacen(
             "/>",
-            r##" fill="none" stroke="#000" stroke-dasharray="8 4" pathLength="24"/>"##,
+            r##" fill="none" stroke="#000" stroke-dasharray="8 4" stroke-dashoffset="2" pathLength="24"/>"##,
             1,
         );
         let error = refusal(&document(&format!("  {shape}")));
@@ -1035,6 +1032,234 @@ fn a_nonfinite_percentage_dash_cycle_normalizes_to_solid() {
             .as_slice(),
         [8.0, 4.0]
     );
+}
+
+/// Dashoffset is one signed local-space fact paired with the checked interval
+/// cycle. Numbers and lengths share the grammar, pure length math folds before
+/// the compiler reads it, and the contract owns sign and multi-cycle modulo.
+#[test]
+fn a_dashoffset_resolves_to_one_canonical_local_space_phase() {
+    for (extra, expected) in [
+        (r##"stroke-dashoffset="4""##, 4.0),
+        (r##"style="stroke-dashoffset: 4px""##, 4.0),
+        (r##"stroke-dashoffset="4e0""##, 4.0),
+        (r##"stroke-dashoffset="16""##, 4.0),
+        (r##"stroke-dashoffset="-8""##, 4.0),
+        (r##"stroke-dashoffset="-4""##, 8.0),
+        (r##"stroke-dashoffset="12""##, 0.0),
+        (r##"stroke-dashoffset="-12""##, 0.0),
+        (r##"stroke-dashoffset="-0""##, 0.0),
+        (r##"style="stroke-dashoffset: calc(2px + 2px)""##, 4.0),
+        (r##"style="stroke-dashoffset: min(6px, 4px)""##, 4.0),
+        (r##"style="stroke-dashoffset: max(2px, 4px)""##, 4.0),
+        (r##"style="stroke-dashoffset: clamp(2px, 4px, 6px)""##, 4.0),
+    ] {
+        let frame = admit_both(&stroked_rect(&format!(
+            r##"stroke-width="8" stroke-dasharray="8 4" {extra}"##
+        )));
+        assert_eq!(dash_phase(&frame, 0), expected, "extra={extra:?}");
+    }
+
+    let omitted = admit_both(&stroked_rect(
+        r##"stroke-width="8" stroke-dasharray="8 4""##,
+    ));
+    assert_eq!(dash_phase(&omitted, 0), 0.0, "the initial phase is zero");
+}
+
+/// Percentage phases use the current viewport's normalized diagonal, retain
+/// their sign, and keep an identity calc wrapper. A deliberately non-square
+/// viewBox distinguishes that basis from both axes: sqrt(70² + 10²)/sqrt(2)
+/// is exactly 50, so 20% is ten local-space units.
+#[test]
+fn a_percentage_dashoffset_uses_the_normalized_diagonal() {
+    for (extra, expected) in [
+        (r##"stroke-dashoffset="10%""##, 6.4),
+        (r##"style="stroke-dashoffset: 10%""##, 6.4),
+        (r##"style="stroke-dashoffset: calc(10%)""##, 6.4),
+        (r##"stroke-dashoffset="-10%""##, 5.6),
+    ] {
+        let frame = admit_both(&stroked_rect(&format!(
+            r##"stroke-width="8" stroke-dasharray="8 4" {extra}"##
+        )));
+        assert!(
+            (dash_phase(&frame, 0) - expected).abs() < 0.000_01,
+            "extra={extra:?}: got {}",
+            dash_phase(&frame, 0)
+        );
+    }
+
+    let non_square = r##"<svg xmlns="http://www.w3.org/2000/svg" width="70" height="10" viewBox="0 0 70 10">
+  <path d="M2 5 H68" fill="none" stroke="#000" stroke-width="2"
+        stroke-dasharray="8 4" stroke-dashoffset="20%"/>
+</svg>"##;
+    let frame = admit_both_at(non_square, 70.0, 10.0);
+    assert_eq!(dash_phase(&frame, 0), 10.0);
+}
+
+/// The one cascade owns dashoffset precedence, inheritance, and CSS-wide
+/// values. In particular, `revert` removes the presentation hint with the
+/// author origin while `revert-layer` exposes it; these are measured browser
+/// identities, not producer-side keyword handling.
+#[test]
+fn dashoffset_precedence_inheritance_and_css_wide_values_are_the_cascades() {
+    let frame = admit_both(&document(
+        r##"  <style>
+    #rule { stroke-dashoffset: 6 }
+    #inline { stroke-dashoffset: 6 }
+    #invalid { stroke-dashoffset: qqq }
+    #revert { stroke-dashoffset: revert }
+    @layer top { #revert-layer { stroke-dashoffset: revert-layer } }
+  </style>
+  <rect id="rule" x="2" y="2" width="6" height="6" fill="none" stroke="#000" stroke-dasharray="8 4" stroke-dashoffset="4"/>
+  <rect id="inline" x="10" y="2" width="6" height="6" fill="none" stroke="#000" stroke-dasharray="8 4" stroke-dashoffset="4" style="stroke-dashoffset: 10"/>
+  <rect id="invalid" x="18" y="2" width="6" height="6" fill="none" stroke="#000" stroke-dasharray="8 4" stroke-dashoffset="4"/>
+  <g stroke="#000" stroke-dasharray="8 4" stroke-dashoffset="8">
+    <rect x="26" y="2" width="6" height="6" fill="none"/>
+    <rect x="34" y="2" width="6" height="6" fill="none" style="stroke-dashoffset: inherit"/>
+    <rect x="42" y="2" width="6" height="6" fill="none" style="stroke-dashoffset: unset"/>
+    <rect x="50" y="2" width="6" height="6" fill="none" style="stroke-dashoffset: initial"/>
+  </g>
+  <rect id="revert" x="2" y="12" width="6" height="6" fill="none" stroke="#000" stroke-dasharray="8 4" stroke-dashoffset="4"/>
+  <rect id="revert-layer" x="10" y="12" width="6" height="6" fill="none" stroke="#000" stroke-dasharray="8 4" stroke-dashoffset="4"/>
+"##,
+    ));
+    let phases: Vec<f32> = frame
+        .nodes()
+        .iter()
+        .map(|node| {
+            node.stroke
+                .as_ref()
+                .expect("stroke")
+                .dash()
+                .expect("dash")
+                .phase()
+        })
+        .collect();
+    assert_eq!(phases, [6.0, 10.0, 4.0, 8.0, 8.0, 8.0, 0.0, 0.0, 4.0]);
+}
+
+/// `<use>` establishes the inherited style of its instance. The target path
+/// receives the use site's phase exactly like its dash intervals and paint.
+#[test]
+fn dashoffset_inherits_from_a_use_site() {
+    let frame = admit_both(&document(
+        r##"  <defs><path id="p" d="M8 32 H56" fill="none"/></defs>
+  <use href="#p" stroke="#000" stroke-width="8" stroke-dasharray="8 4" stroke-dashoffset="4"/>"##,
+    ));
+    assert_eq!(frame.nodes().len(), 1);
+    assert_eq!(dash_phase(&frame, 0), 4.0);
+}
+
+/// A phase cannot change a solid stroke. The producer therefore does not
+/// inspect even an otherwise unsupported offset when no positive dash cycle
+/// survives; one neutral dash spelling remains one resolved absence.
+#[test]
+fn dashoffset_is_inert_without_an_active_cycle() {
+    for extra in [
+        r##"stroke-dashoffset="57384.267578125007%""##,
+        r##"stroke-dasharray="none" stroke-dashoffset="1vw""##,
+        r##"stroke-dasharray="0 0" style="--p: 4px; stroke-dashoffset: var(--p)""##,
+        r##"stroke-dasharray="3.4e38% 3.4e38%" stroke-dashoffset="4""##,
+    ] {
+        let frame = admit_both(&stroked_rect(&format!(r##"stroke-width="8" {extra}"##)));
+        assert!(
+            stroke_of(&frame, 0).dash().is_none(),
+            "extra={extra:?} stays one solid stroke"
+        );
+    }
+}
+
+/// Blink clamps fixed lengths before phase modulo. The lower fixed-point bound
+/// is asymmetric: +3.4e38 becomes 33,554,428 (phase 4 on this cycle), while
+/// -3.4e38 becomes -33,554,430 (canonical phase 6). Percentage overflow uses
+/// the finite f32 ceiling instead and lands at the cycle boundary.
+#[test]
+fn huge_dashoffsets_keep_blinks_used_value_route() {
+    for (extra, expected) in [
+        (r##"stroke-dashoffset="3.4e38""##, 4.0),
+        (r##"style="stroke-dashoffset: 3.4e38px""##, 4.0),
+        (r##"stroke-dashoffset="-3.4e38""##, 6.0),
+        (r##"style="stroke-dashoffset: -3.4e38px""##, 6.0),
+        (r##"stroke-dashoffset="3.4e38%""##, 0.0),
+        (r##"style="stroke-dashoffset: -3.4e38%""##, 0.0),
+    ] {
+        let frame = admit_both(&stroked_rect(&format!(
+            r##"stroke-width="8" stroke-dasharray="8 4" {extra}"##
+        )));
+        assert_eq!(dash_phase(&frame, 0), expected, "extra={extra:?}");
+    }
+}
+
+/// Distinct valid authored percentages can collapse into one pinned-Stylo f32
+/// while Chromium retains distinct used phases. The unsafe member through
+/// every attributable ingress, its signed mirror, the overflow boundary, and
+/// percentage-bearing math therefore refuse under one stable capability name.
+/// This is the deliberate SPLIT that keeps both dashoffset checklist twins
+/// open; the recoverable member remains admitted rather than broad-refused.
+#[test]
+fn dashoffset_percentage_precision_aliases_refuse_by_name() {
+    for value in [
+        "57384.267578125007%",
+        "-57384.267578125007%",
+        "5.3169116662270134e36%",
+        "5.3169119831396635e36%",
+        "calc(57384.265625% + 0.001953125007%)",
+        "calc(57384.265625% + 0px)",
+        "min(57384.265625%, 57384.267578125007%)",
+        "max(10%, 20%)",
+        "clamp(10%, 20%, 30%)",
+    ] {
+        for (ingress, source) in [
+            (
+                "presentation attribute",
+                stroked_rect(&format!(
+                    r##"stroke-width="8" stroke-dasharray="8 4" stroke-dashoffset="{value}""##
+                )),
+            ),
+            (
+                "style attribute",
+                stroked_rect(&format!(
+                    r##"stroke-width="8" stroke-dasharray="8 4" style="stroke-dashoffset: {value}""##
+                )),
+            ),
+            (
+                "inherited attribute",
+                document(&format!(
+                    r##"  <g stroke="#000" stroke-width="8" stroke-dasharray="8 4" stroke-dashoffset="{value}">
+    <path d="M8 32 H56" fill="none"/>
+  </g>"##
+                )),
+            ),
+            (
+                "stylesheet",
+                document(&format!(
+                    r##"  <style>path {{ stroke-dashoffset: {value} }}</style>
+  <path d="M8 32 H56" fill="none" stroke="#000" stroke-width="8" stroke-dasharray="8 4"/>"##
+                )),
+            ),
+        ] {
+            assert_dashoffset_percentage_precision_alias(&source, &format!("{value}, {ingress}"));
+        }
+    }
+}
+
+#[test]
+fn recoverable_direct_dashoffset_percentages_remain_admitted() {
+    // Chromium 149 exact controls (measured, not celled): on this 64-unit
+    // percentage basis and 12-unit cycle, the positive source is phase
+    // 5.9296875 and its signed mirror is phase 6.0703125. Nearby phase controls
+    // discriminate the positive result; the separate alias matrix
+    // discriminates both signs at this source threshold.
+    for (value, expected_phase) in [("57384.265625%", 5.9296875), ("-57384.265625%", 6.0703125)] {
+        let attr = admit_both(&stroked_rect(&format!(
+            r##"stroke-width="8" stroke-dasharray="8 4" stroke-dashoffset="{value}""##
+        )));
+        let css = admit_both(&stroked_rect(&format!(
+            r##"stroke-width="8" stroke-dasharray="8 4" style="stroke-dashoffset: {value}""##
+        )));
+        assert_eq!(dash_phase(&attr, 0), expected_phase, "value={value}");
+        assert_eq!(dash_phase(&css, 0), expected_phase, "value={value}");
+    }
 }
 
 /// A percentage `stroke-width` resolves against the viewport's normalized
@@ -1270,6 +1495,135 @@ fn dasharray_admits_the_trustworthy_length_unit_family() {
                 .zip(expected)
                 .all(|(actual, expected)| (*actual - expected).abs() < 0.001),
             "value={value:?}: got {actual:?}"
+        );
+    }
+}
+
+/// Dashoffset shares the trustworthy resolved-length surface: absolute units
+/// and em/rem cross the frame boundary only after the cascade has reduced them
+/// to one local-space value.
+#[test]
+fn dashoffset_admits_the_trustworthy_length_unit_family() {
+    for value in [
+        "4px",
+        "3pt",
+        "0.25pc",
+        "0.041666667in",
+        "0.105833333cm",
+        "1.05833333mm",
+        "4.23333333Q",
+        "0.25em",
+        "0.25rem",
+    ] {
+        let frame = admit_both(&stroked_rect(&format!(
+            r##"stroke-width="8" stroke-dasharray="8 4" stroke-dashoffset="{value}""##
+        )));
+        assert!(
+            (dash_phase(&frame, 0) - 4.0).abs() < 0.001,
+            "value={value:?}: got {}",
+            dash_phase(&frame, 0)
+        );
+    }
+}
+
+/// The computed phase has forgotten whether its length used a viewport,
+/// container, or placeholder font-metric basis. The generic stroke-length
+/// patrol must therefore cover dashoffset through attribute, inline CSS,
+/// inheritance, and stylesheet routes, plus var(), escaped tokens, and a
+/// poisoned em/rem font basis.
+#[test]
+fn a_dashoffset_with_an_untrustworthy_basis_refuses_by_name() {
+    for unit in [
+        "1vw",
+        "1vh",
+        "1vi",
+        "1vb",
+        "10vmin",
+        "10vmax",
+        "1dvw",
+        "1lvh",
+        "1ex",
+        "1ch",
+        "1cap",
+        "1lh",
+        "1rex",
+        "1rch",
+        "1ric",
+        "1rcap",
+        "12.5cqw",
+        "12.5cqh",
+        "12.5cqi",
+        "12.5cqb",
+        "12.5cqmin",
+        "12.5cqmax",
+        "calc(1vw + 2px)",
+    ] {
+        for source in [
+            stroked_rect(&format!(
+                r##"stroke-width="8" stroke-dasharray="8 4" stroke-dashoffset="{unit}""##
+            )),
+            stroked_rect(&format!(
+                r##"stroke-width="8" stroke-dasharray="8 4" style="stroke-dashoffset: {unit}""##
+            )),
+            document(&format!(
+                r##"  <g stroke="#000" stroke-width="8" stroke-dasharray="8 4" stroke-dashoffset="{unit}">
+    <path d="M8 32 H56" fill="none"/>
+  </g>"##
+            )),
+            document(&format!(
+                r##"  <style>path {{ stroke-dashoffset: {unit} }}</style>
+  <path d="M8 32 H56" fill="none" stroke="#000" stroke-width="8" stroke-dasharray="8 4"/>"##
+            )),
+        ] {
+            let error = refusal(&source);
+            assert!(
+                error.to_string().contains("stroke-dashoffset")
+                    && error.to_string().contains("basis"),
+                "{unit} must refuse by name; got {error}"
+            );
+        }
+    }
+
+    for source in [
+        stroked_rect(
+            r##"stroke-width="8" stroke-dasharray="8 4" style="--p: 4px; stroke-dashoffset: var(--p)""##,
+        ),
+        stroked_rect(
+            r##"stroke-width="8" stroke-dasharray="8 4" style="--p: 4px" stroke-dashoffset="var(--p)""##,
+        ),
+        document(
+            r##"  <g stroke="#000" stroke-width="8" stroke-dasharray="8 4" style="--p: 4px; stroke-dashoffset: var(--p)">
+    <path d="M8 32 H56" fill="none"/>
+  </g>"##,
+        ),
+        stroked_rect(r##"stroke-width="8" stroke-dasharray="8 4" stroke-dashoffset="1\76 w""##),
+        stroked_rect(
+            r##"stroke-width="8" stroke-dasharray="8 4" font-size="2vw" stroke-dashoffset="1em""##,
+        ),
+        document(
+            r##"  <path d="M8 32 H56" fill="none" stroke="#000" stroke-width="8" stroke-dasharray="8 4" style="stroke-/**/dashoffset: 1vw"/>"##,
+        ),
+        document(
+            r##"  <style>path { stroke-/**/dashoffset: 1vw }</style>
+  <path d="M8 32 H56" fill="none" stroke="#000" stroke-width="8" stroke-dasharray="8 4"/>"##,
+        ),
+        document(
+            r##"  <style>path { font-size: 2vw; stroke-dashoffset: 1em }</style>
+  <path d="M8 32 H56" fill="none" stroke="#000" stroke-width="8" stroke-dasharray="8 4"/>"##,
+        ),
+        document(
+            r##"  <style>path { --p: 4px; stroke-dashoffset: var(--p) }</style>
+  <path d="M8 32 H56" fill="none" stroke="#000" stroke-width="8" stroke-dasharray="8 4"/>"##,
+        ),
+        document(
+            r##"  <style>path { stroke-\64 ashoffset: 4 }</style>
+  <path d="M8 32 H56" fill="none" stroke="#000" stroke-width="8" stroke-dasharray="8 4"/>"##,
+        ),
+    ] {
+        let error = refusal(&source);
+        assert!(
+            error.to_string().contains("stroke-dashoffset") || error.to_string().contains("escape"),
+            "every hidden dashoffset ingress must refuse by name; got {error}"
         );
     }
 }

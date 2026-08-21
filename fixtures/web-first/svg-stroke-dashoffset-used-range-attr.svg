@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <g fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="8 4">
+    <path d="M4 4 H60" stroke-dashoffset="3.4e38"/>
+    <path d="M4 12 H60" stroke-dashoffset="4"/>
+    <path d="M4 20 H60" stroke-dashoffset="-3.4e38"/>
+    <path d="M4 28 H60" stroke-dashoffset="6"/>
+    <path d="M4 36 H60" stroke-dashoffset="3.4e38%"/>
+    <path d="M4 44 H60" stroke-dashoffset="0"/>
+    <path d="M4 52 H60" stroke-dashoffset="-3.4e38%"/>
+    <path d="M4 60 H60" stroke-dashoffset="0"/>
+  </g>
+</svg>

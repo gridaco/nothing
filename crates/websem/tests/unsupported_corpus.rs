@@ -191,10 +191,26 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     ),
     ("svg-stroke-dasharray-var", DeclaredByBestEffort, "var()"),
     (
-        "svg-stroke-dashoffset",
+        "svg-stroke-dashoffset-escape",
         DeclaredByBestEffort,
-        "stroke-dashoffset",
+        "escape",
     ),
+    (
+        "svg-stroke-dashoffset-font-basis",
+        DeclaredByBestEffort,
+        "font-size",
+    ),
+    (
+        "svg-stroke-dashoffset-percentage-precision-alias",
+        DeclaredByBestEffort,
+        "stroke-dashoffset percentage precision alias",
+    ),
+    (
+        "svg-stroke-dashoffset-sheet-unit",
+        DeclaredByBestEffort,
+        "stroke-dashoffset in",
+    ),
+    ("svg-stroke-dashoffset-var", DeclaredByBestEffort, "var()"),
     (
         "svg-stroke-paint-order",
         DeclaredByBestEffort,

@@ -1,8 +1,9 @@
-//! Producer-only contract tests for resolved stroke dash intervals.
+//! Producer-only contract tests for resolved stroke dash patterns.
 
 use cg::CGColor;
 use rframe::{
-    PaintStack, Stroke, StrokeCap, StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin,
+    PaintStack, Stroke, StrokeCap, StrokeDash, StrokeDashError, StrokeDashIntervals,
+    StrokeDashIntervalsError, StrokeJoin,
 };
 
 fn black() -> PaintStack {
@@ -17,6 +18,12 @@ fn checked(intervals: Vec<f32>) -> StrokeDashIntervals {
 
 fn dashed(cap: StrokeCap, intervals: StrokeDashIntervals) -> Option<Stroke> {
     Stroke::new_with_dash_intervals(black(), 8.0, cap, StrokeJoin::Miter, 4.0, Some(intervals))
+        .expect("valid stroke")
+}
+
+fn phased(cap: StrokeCap, intervals: StrokeDashIntervals, phase: f32) -> Option<Stroke> {
+    let dash = StrokeDash::new(intervals, phase).expect("valid phase");
+    Stroke::new_with_dash(black(), 8.0, cap, StrokeJoin::Miter, 4.0, Some(dash))
         .expect("valid stroke")
 }
 
@@ -163,5 +170,110 @@ fn dash_intervals_change_neither_outset_nor_other_invisible_normalization() {
         ),
         Ok(None),
         "no paint still paints nothing"
+    );
+}
+
+/// Normalization belongs to this contract, not to each consumer. Equivalent
+/// signed and multi-cycle phases therefore have one equality spelling.
+#[test]
+fn phase_is_canonical_modulo_the_positive_cycle() {
+    let pattern = |phase| StrokeDash::new(checked(vec![8.0, 4.0]), phase).expect("finite phase");
+
+    for equivalent in [16.0, -8.0] {
+        assert_eq!(pattern(4.0), pattern(equivalent));
+    }
+    assert_eq!(pattern(-4.0), pattern(8.0));
+    for equivalent in [12.0, -12.0, -0.0] {
+        assert_eq!(pattern(0.0), pattern(equivalent));
+    }
+
+    let dash = pattern(4.0);
+    assert_eq!(dash.intervals().as_slice(), &[8.0, 4.0]);
+    assert_eq!(dash.phase(), 4.0);
+
+    let maximum = pattern(f32::MAX);
+    assert!(maximum.phase().is_finite());
+    assert!(maximum.phase() >= 0.0 && maximum.phase() < 12.0);
+}
+
+/// A non-finite value is not a usable local-space path distance and refuses
+/// before it can cross the contract.
+#[test]
+fn non_finite_phase_refuses_by_name() {
+    for phase in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+        assert_eq!(
+            StrokeDash::new(checked(vec![8.0, 4.0]), phase),
+            Err(StrokeDashError::NonFinitePhase)
+        );
+    }
+}
+
+/// The phase is structurally paired with a present positive cycle. An
+/// all-zero cycle normalizes to absence before a `StrokeDash` can be formed.
+#[test]
+fn phase_cannot_exist_without_a_present_positive_cycle() {
+    assert_eq!(StrokeDashIntervals::new(vec![0.0, -0.0]), Ok(None));
+
+    let solid = Stroke::new(black(), 8.0, StrokeCap::Round, StrokeJoin::Miter, 4.0)
+        .expect("valid stroke")
+        .expect("visible stroke");
+    assert_eq!(solid.dash(), None);
+}
+
+/// Phase changes along-path coverage only. It neither changes the conservative
+/// reach away from geometry nor aliases a different resolved stroke.
+#[test]
+fn phase_changes_stroke_equality_but_not_outset() {
+    let zero = phased(StrokeCap::Square, checked(vec![8.0, 4.0]), 0.0).expect("visible stroke");
+    let shifted = phased(StrokeCap::Square, checked(vec![8.0, 4.0]), 4.0).expect("visible stroke");
+
+    assert_ne!(zero, shifted);
+    assert_eq!(zero.outset(), shifted.outset());
+}
+
+/// Moving a cycle does not create positive painted distance. Butt caps remain
+/// invisible, while round and square caps still paint the zero-length slots.
+#[test]
+fn phase_preserves_zero_length_slot_visibility_by_cap() {
+    let intervals = checked(vec![0.0, 8.0, 0.0, 2.0]);
+    assert_eq!(phased(StrokeCap::Butt, intervals.clone(), 3.0), None);
+    assert!(phased(StrokeCap::Round, intervals.clone(), 3.0).is_some());
+    assert!(phased(StrokeCap::Square, intervals, 3.0).is_some());
+}
+
+/// The pre-phase constructor remains the exact zero-phase spelling, including
+/// its compatibility interval view.
+#[test]
+fn interval_constructor_is_the_zero_phase_compatibility_constructor() {
+    let intervals = checked(vec![8.0, 4.0]);
+    let compatibility = Stroke::new_with_dash_intervals(
+        black(),
+        8.0,
+        StrokeCap::Round,
+        StrokeJoin::Miter,
+        4.0,
+        Some(intervals.clone()),
+    )
+    .expect("valid stroke")
+    .expect("visible stroke");
+    let explicit = Stroke::new_with_dash(
+        black(),
+        8.0,
+        StrokeCap::Round,
+        StrokeJoin::Miter,
+        4.0,
+        Some(StrokeDash::new(intervals, 0.0).expect("finite phase")),
+    )
+    .expect("valid stroke")
+    .expect("visible stroke");
+
+    assert_eq!(compatibility, explicit);
+    assert_eq!(compatibility.dash().expect("dashed").phase(), 0.0);
+    assert_eq!(
+        compatibility
+            .dash_intervals()
+            .expect("compatibility interval view")
+            .as_slice(),
+        &[8.0, 4.0]
     );
 }

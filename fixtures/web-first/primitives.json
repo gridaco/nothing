@@ -1610,6 +1610,110 @@
       "height": 64
     },
     {
+      "id": "svg-stroke-dashoffset-attr",
+      "source": "svg-stroke-dashoffset-attr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dashoffset-attr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-contours",
+      "source": "svg-stroke-dashoffset-contours.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dashoffset-contours.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-css",
+      "source": "svg-stroke-dashoffset-css.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dashoffset-css.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-css-invalid-falls-back",
+      "source": "svg-stroke-dashoffset-css-invalid-falls-back.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dashoffset-css-invalid-falls-back.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-css-over-attr",
+      "source": "svg-stroke-dashoffset-css-over-attr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dashoffset-css-over-attr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-geometries",
+      "source": "svg-stroke-dashoffset-geometries.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dashoffset-geometries.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-inherited-use-css-wide",
+      "source": "svg-stroke-dashoffset-inherited-use-css-wide.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dashoffset-inherited-use-css-wide.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-odd-modulo",
+      "source": "svg-stroke-dashoffset-odd-modulo.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dashoffset-odd-modulo.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-percentage-attr",
+      "source": "svg-stroke-dashoffset-percentage-attr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dashoffset-percentage-attr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-percentage-css",
+      "source": "svg-stroke-dashoffset-percentage-css.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dashoffset-percentage-css.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-used-range-attr",
+      "source": "svg-stroke-dashoffset-used-range-attr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dashoffset-used-range-attr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-used-range-css",
+      "source": "svg-stroke-dashoffset-used-range-css.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dashoffset-used-range-css.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-zero-caps",
+      "source": "svg-stroke-dashoffset-zero-caps.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stroke-dashoffset-zero-caps.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-stroke-default-width",
       "source": "svg-stroke-default-width.svg",
       "entry": "standalone-svg",
