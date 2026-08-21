@@ -119,6 +119,56 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "attribute cx",
     ),
+    (
+        "svg-geometry-xywh-calc-values",
+        DeclaredByBestEffort,
+        "attribute x",
+    ),
+    (
+        "svg-geometry-xywh-css-comments",
+        DeclaredByBestEffort,
+        "attribute x",
+    ),
+    (
+        "svg-geometry-xywh-css-properties",
+        DeclaredByBestEffort,
+        "stylesheet declares x",
+    ),
+    (
+        "svg-geometry-xywh-css-wide-keywords",
+        DeclaredByBestEffort,
+        "attribute x",
+    ),
+    (
+        "svg-geometry-xywh-numeric-precision-alias",
+        DeclaredByBestEffort,
+        "x numeric precision alias",
+    ),
+    (
+        "svg-geometry-xywh-percentage-overflow",
+        DeclaredByBestEffort,
+        "x resolves outside the finite frame range",
+    ),
+    (
+        "svg-geometry-xywh-rect-auto",
+        DeclaredByBestEffort,
+        "attribute width",
+    ),
+    (
+        "svg-geometry-xywh-unit-values",
+        DeclaredByBestEffort,
+        "attribute x",
+    ),
+    (
+        "svg-geometry-xywh-used-range",
+        DeclaredByBestEffort,
+        "x exceeds the admitted Web used-value range",
+    ),
+    (
+        "svg-geometry-xywh-var-values",
+        DeclaredByBestEffort,
+        "attribute x",
+    ),
     ("svg-gradient-focal", DeclaredByBestEffort, "focal"),
     ("svg-gradient-linearrgb", DeclaredByBestEffort, "linearRGB"),
     // Sheet-level: the pinned cascade cannot represent stop-color, so the

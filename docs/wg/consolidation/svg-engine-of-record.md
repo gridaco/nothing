@@ -58,13 +58,13 @@ from the dated addenda below:
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 319 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 327 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
   confined tolerance (the weighted rational conic) and three gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
-  restore). The named refusal register has 62 rows.
+  restore). The named refusal register has 81 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -2200,4 +2200,112 @@ Neither the SVG presentation-attribute nor CSS presentation-property rows for
 have no independent row, while the CSS twins remain structurally unavailable
 at this Stylo pin. This is a measured SPLIT verdict under the
 gridaco/nothing#81/#89/#90 precedent, not a capability closure. It produces no
+conformance score and takes no FLIP action.
+
+## Rung: SVG geometry presentation attributes `x`/`y`/`width`/`height` (2026-08-22)
+
+This follow-on began with the same source-number question as the preceding
+circle rung. Rect coordinates and extents take the same raw finite
+number/percentage route, while Chromium reaches their presentation values
+through its CSS-number path. Root sizing, CSS property spellings, and the
+attributes' applications to resource-bearing elements remain separate
+contracts; the probe first asked only whether the shared raw route preserved
+Chromium's used geometry.
+
+It did not. Twice-deterministic Chromium-149 probes reproduce both known alias
+classes on every attribute (measured, not celled):
+
+- `57384.267578125007%` selects the lower normalized control in Chromium and
+  the higher neighbour on the former producer route. The higher controls
+  differ by 32 pixels for `x` and `y`, and 16 for `width` and `height`, all at
+  maximum channel delta 238.
+- A decimal just above the exact midpoint between f32 1 and its successor
+  selects the lower neighbour in Chromium and the higher neighbour on the
+  former producer route. The four differences have the same 32/32/16/16
+  pixel shape at maximum delta 218. For both classes, the producer source was
+  pixel-identical to Chromium's higher control while both explicit controls
+  were cross-engine exact.
+
+A second range matrix exposed a distinct silent boundary (measured, not
+celled). Chromium carries finite direct `2.176e38` values through its fixed Web
+used-length clamp:
+positive `x`/`y` equal the upper-bound control, negative `x`/`y` equal the
+lower-bound control, and positive `width`/`height` equal the upper-bound
+control. Each clamped position paints 144 pixels beyond empty (delta 218 for
+positive and 233 for negative); each clamped extent paints 544 pixels beyond
+empty at delta 217. The former producer positions exited cleanly and painted
+empty. Its huge extents painted 896 pixels from the origin instead of the
+clamped 544, leaving 368 wrong pixels. Negative extents are different: every
+magnitude is invalid element geometry, and both engines paint the same honest
+nothing. A finite `3.4e38%` source overflows only when the viewport basis is
+applied; Chromium leaves no visible rect for all four attributes — off-canvas
+coordinates and disabled extents — and the attributable overflow refusal is
+pixel-equivalent in best-effort.
+
+The cascade boundary had one further leak (measured, not celled). Chromium
+honors inline and stylesheet `x`/`y` declarations over the presentation
+attributes. The pinned Stylo build has neither longhand, so both declarations
+formerly painted the attribute position with no departure; each measured 512
+pixels from Chromium. They now refuse at their authored ingress. CSS
+`width`/`height` are represented at the pin but remain unconsumed for SVG
+geometry, so their existing computed-style refusal continues to guard both
+ingresses. No matcher was added around Stylo.
+
+The admitted rect semantics are otherwise unchanged and now explicit.
+Coordinates default to zero and accept signs, leading-dot and exponent number
+forms; negative `x`/`y` remain valid. Missing, zero, or negative extents disable
+the whole element, including its stroke. Percentages use the independent
+viewport axes in unmapped root units and in mapped `viewBox` units, and retain
+those values through same-document `<use>`, transforms, and centered stroke.
+The source-provenance classifier is one-way: a disagreement refuses by
+attribute and never substitutes its shadow value. Coordinates refuse outside
+both measured Web boundaries; positive extents refuse above the upper boundary;
+negative extents keep their invalid no-paint meaning.
+
+The broader presentation-value grammar remains quarantined, not silently
+defaulted (measured, not celled). Chromium makes `px`, `calc(16px + 16px)`, and
+`var(--v)` exact to a literal `32` for all four attributes; strips comments
+around ordinary values; resolves `initial`, `unset`, `revert`, `revert-layer`,
+and unoverridden `inherit` to coordinate zero or `auto`; and makes rect
+`width="auto"` and `height="auto"` exact no-paint geometry. This producer
+refuses every one by its exact attribute. Units, CSS math, custom properties,
+and CSS-wide values retain their own unchecked rows. Numeric provenance, the
+unimplemented used clamp, comments, and rect `auto` are valid no-own-row gaps
+and therefore hold the four attribute rows open.
+
+Three new Chromium cells carry only new evidence. The grammar cell pins
+defaults, number forms, negative coordinates, and the six disabled extent
+branches; its canonical control is exact and the wrong mutation changes 792
+pixels at delta 255. The percentages rung's existing
+`svg-percent-rect-root-units` and `svg-percent-rect-in-viewbox` cells already
+pin the two basis contexts and were reused rather than duplicated. A new use
+cell is exact to its expanded numeric light tree and differs from no instances
+by 512 pixels at delta 238. A new 64×32-user-space transform-and-stroke cell is
+exact to its numeric control and differs from the swapped-axis mutation by
+1,121 pixels at delta 238. All candidate sources and controls were also
+rendered through the actual CLI path; each admitted source was declaration-free
+and decoded-pixel exact to Chromium.
+
+The gate's sensitivity was proved by temporarily routing y-axis percentages
+through the width basis. `just gate` failed loudly, including the retained new
+transform-and-stroke cell at 1,094 differing pixels and maximum delta 238.
+Restoring the axis mapping returned the complete gate to green. Ten registered
+refusal rows cover numeric provenance, percentage overflow, fixed used range,
+CSS properties, units, CSS math, custom properties, CSS-wide values, comments,
+and rect `auto`; strict and best-effort name the same attributable reason for
+every skipped element.
+
+No cross-crate seam changed. Resolved rectangles, instance transforms, and
+stroke facts already cross the frame contract and lower through the one n0
+kernel; the correction stops at source admission. Root `auto` remains the
+admitted absent-dimension value, while root percentage sizing and cascaded CSS
+sizing remain document-level refusals. `<image>`, `<pattern>`, and `<mask>` keep
+their own element/resource refusals, so this rect evidence does not claim their
+geometry.
+
+The primitive corpus moves from 324 to 327 cells; the ten exact-time sampled
+frames are unchanged. The named refusal register moves from 71 to 81 rows.
+Neither `x`/`y` CSS presentation-property row nor any of the four SVG
+presentation-attribute rows ticks. This is a measured SPLIT verdict under the
+gridaco/nothing#81/#89/#90 precedent, not capability closure. It produces no
 conformance score and takes no FLIP action.

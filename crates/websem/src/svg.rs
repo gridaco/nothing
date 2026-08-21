@@ -1164,6 +1164,8 @@ const CASCADE_PROPERTIES_NOT_REPRESENTED: &[&str] = &[
     "r",
     "rx",
     "ry",
+    "x",
+    "y",
     "vector-effect",
     "marker",
     "marker-start",
@@ -2050,7 +2052,7 @@ fn patrol_computed_style(
     // value — refuse it by name rather than paint at the attribute-derived
     // size. (The bare SVG geometry longhands `x`/`y`/`rx`/`ry` — and the
     // `cx`/`cy`/`r` family — do not exist in this Stylo build, so they
-    // stay inside the named open boundary above.)
+    // stay inside the named open boundary above and the authored-text patrol.)
     if include_css_sizing {
         let width = style.clone_width();
         if !matches!(width, Size::Auto) {
@@ -5521,10 +5523,11 @@ fn effective_attr_f32(
 /// [`effective_attr_f32`] for shape geometry, where the SVG length grammar
 /// admits a percentage: `<number>%`, no space, resolved against the
 /// attribute's axis basis. A sampled override is already resolved user
-/// units and never a percentage. On `cx`/`cy`/`r`, authored values whose direct
-/// `f32` route disagrees with the measured Chromium-shaped `f64` parse route
-/// refuse by name; choosing either adjacent result would silently misrender
-/// another valid decimal. Anything else malformed stays the
+/// units and never a percentage. On `cx`/`cy`/`r`, every `x`/`y` consumer,
+/// and rect `width`/`height`, authored values whose direct `f32` route
+/// disagrees with the measured Chromium-shaped `f64` parse route refuse by
+/// name; choosing either adjacent result would silently misrender another
+/// valid decimal. Anything else malformed stays the
 /// [`CompileError::BadNumber`] refusal the plain read gives it.
 fn geometry_attr_f32(
     element: HtmlElement<'_>,
@@ -5559,7 +5562,8 @@ fn geometry_attr_f32(
     let resolved =
         percentage_basis.map_or(parsed, |basis| resolve_geometry_percentage(parsed, basis));
     let resolved = frame_safe_geometry_value(name, resolved)?;
-    if matches!(name, "cx" | "cy" | "r")
+    if matches!(name, "cx" | "cy" | "r" | "x" | "y" | "width" | "height")
+        && (!matches!(name, "width" | "height") || resolved > 0.0)
         && geometry_number_source_loses_provenance(number, percentage_basis.is_some())
     {
         return Err(CompileError::UnsupportedGeometry(format!(
@@ -5573,9 +5577,9 @@ fn geometry_attr_f32(
 /// backend without changing their meaning. The authored spelling remains
 /// attributable at the element, so both admissions can name and skip/refuse a
 /// non-finite resolution or an unimplemented Web used-range clamp before a
-/// silent backend drop. A negative `r` is exempt from the magnitude patrol:
-/// SVG makes every such radius invalid element geometry, so the caller admits
-/// its correct no-node result without constructing bounds.
+/// silent backend drop. Negative `r`, `width`, and `height` values are exempt
+/// from the magnitude patrol: SVG makes each invalid element geometry, so the
+/// callers admit the correct no-node result without constructing bounds.
 fn frame_safe_geometry_value(name: &str, value: f32) -> Result<f32, CompileError> {
     if !value.is_finite() {
         return Err(CompileError::UnsupportedGeometry(format!(
@@ -5583,8 +5587,8 @@ fn frame_safe_geometry_value(name: &str, value: f32) -> Result<f32, CompileError
         )));
     }
     let outside_used_range = match name {
-        "cx" | "cy" => !(WEB_USED_LENGTH_MIN..=WEB_USED_LENGTH_MAX).contains(&value),
-        "r" => value > WEB_USED_LENGTH_MAX,
+        "cx" | "cy" | "x" | "y" => !(WEB_USED_LENGTH_MIN..=WEB_USED_LENGTH_MAX).contains(&value),
+        "r" | "width" | "height" => value > WEB_USED_LENGTH_MAX,
         _ => false,
     };
     if outside_used_range {
@@ -5603,14 +5607,15 @@ fn resolve_geometry_percentage(authored: f32, basis: f32) -> f32 {
     authored * basis / 100.0
 }
 
-/// One-way patrol for the `cx`/`cy`/`r` decimals whose source provenance is
-/// lost by the raw `f32` parse.
+/// One-way patrol for geometry decimals whose source provenance is lost by the
+/// raw `f32` parse.
 ///
 /// Chromium parses these presentation values through Blink's CSS number
 /// path. Three amplified probes establish the boundary: the stroke-rung
-/// `57384.267578125007%` alias diverges for `cx`, `cy`, and `r`; a decimal
-/// just above an exact f32 midpoint double-rounds to the other neighbour for
-/// all three; and `.5%` confirms the ordinary multiply-before-divide order.
+/// `57384.267578125007%` alias diverges for `cx`, `cy`, `r`, `x`, `y`,
+/// `width`, and `height`; a decimal just above an exact f32 midpoint
+/// double-rounds to the other neighbour for all seven; and `.5%` confirms the
+/// ordinary multiply-before-divide order.
 /// The `f64` calculation here is only a classifier. Agreement admits the
 /// existing raw route; disagreement adds a named refusal and never substitutes
 /// the shadow value as a second parser.

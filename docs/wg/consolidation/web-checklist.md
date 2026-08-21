@@ -965,6 +965,13 @@ excluded.
 - [ ] `ry`
 - [ ] `x`
 - [ ] `y`
+
+> **2026-08-22 split:** the CSS `x`/`y` twins remain open at the pinned Stylo
+> cap. Chromium honors both authored CSS ingresses (measured, not celled),
+> while this build has no corresponding longhands; the ingresses now refuse by
+> name rather than painting the attribute position. The attribute-rung evidence
+> is recorded below.
+
 - [ ] `d`
 - [x] `fill`
 - [x] `fill-opacity`
@@ -1513,6 +1520,18 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `writing-mode`
 - [ ] `x`
 - [ ] `y`
+
+> **2026-08-22 split:** the existing two rect-percentage basis cells plus
+> three new grammar, `<use>`, and transform-plus-stroke cells cover the
+> admitted finite number/percentage route for rect `x`/`y`/`width`/`height`,
+> including defaults, negative coordinates, invalid non-positive extents,
+> root units, `viewBox`, instances, transforms, and stroke. All four rows stay
+> open: valid source decimals can lose Chromium rounding provenance, finite
+> drawable values cross an unimplemented used-range clamp, and CSS comments
+> plus rect `auto` sizes still refuse (measured, not celled); root
+> percentage/CSS sizing and applications to unadmitted
+> `<image>`/`<pattern>`/`<mask>` elements remain declared gaps. Units, CSS math,
+> `var()`, and CSS-wide values retain their own unchecked rows.
 
 
 ### SVG attributes
