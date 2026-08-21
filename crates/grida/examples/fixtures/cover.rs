@@ -136,7 +136,7 @@ pub(crate) fn build() -> Scene {
                 stops: vec![
                     GradientStop {
                         offset: 0.0,
-                        color: PURPLE_DEEP,
+                        color: PURPLE_DEEP.into(),
                     },
                     GradientStop {
                         offset: 0.5,
@@ -145,7 +145,8 @@ pub(crate) fn build() -> Scene {
                             g: 28,
                             b: 180,
                             a: 120,
-                        },
+                        }
+                        .into(),
                     },
                     GradientStop {
                         offset: 1.0,
@@ -154,7 +155,8 @@ pub(crate) fn build() -> Scene {
                             g: 28,
                             b: 180,
                             a: 0,
-                        },
+                        }
+                        .into(),
                     },
                 ],
                 opacity: 1.0,
@@ -193,7 +195,7 @@ pub(crate) fn build() -> Scene {
                 stops: vec![
                     GradientStop {
                         offset: 0.0,
-                        color: BLUE_ELECTRIC,
+                        color: BLUE_ELECTRIC.into(),
                     },
                     GradientStop {
                         offset: 0.55,
@@ -202,7 +204,8 @@ pub(crate) fn build() -> Scene {
                             g: 130,
                             b: 255,
                             a: 80,
-                        },
+                        }
+                        .into(),
                     },
                     GradientStop {
                         offset: 1.0,
@@ -211,7 +214,8 @@ pub(crate) fn build() -> Scene {
                             g: 130,
                             b: 255,
                             a: 0,
-                        },
+                        }
+                        .into(),
                     },
                 ],
                 opacity: 1.0,
@@ -256,15 +260,15 @@ pub(crate) fn build() -> Scene {
                 stops: vec![
                     GradientStop {
                         offset: 0.0,
-                        color: PURPLE_DEEP,
+                        color: PURPLE_DEEP.into(),
                     },
                     GradientStop {
                         offset: 0.45,
-                        color: BLUE_DEEP,
+                        color: BLUE_DEEP.into(),
                     },
                     GradientStop {
                         offset: 1.0,
-                        color: BLUE_ELECTRIC,
+                        color: BLUE_ELECTRIC.into(),
                     },
                 ],
                 opacity: 1.0,
@@ -342,15 +346,15 @@ pub(crate) fn build() -> Scene {
                 stops: vec![
                     GradientStop {
                         offset: 0.0,
-                        color: AMBER,
+                        color: AMBER.into(),
                     },
                     GradientStop {
                         offset: 0.6,
-                        color: ROSE,
+                        color: ROSE.into(),
                     },
                     GradientStop {
                         offset: 1.0,
-                        color: PURPLE_DEEP,
+                        color: PURPLE_DEEP.into(),
                     },
                 ],
                 opacity: 1.0,
@@ -428,15 +432,15 @@ pub(crate) fn build() -> Scene {
                 stops: vec![
                     GradientStop {
                         offset: 0.0,
-                        color: CYAN_GLOW,
+                        color: CYAN_GLOW.into(),
                     },
                     GradientStop {
                         offset: 0.5,
-                        color: BLUE_ELECTRIC,
+                        color: BLUE_ELECTRIC.into(),
                     },
                     GradientStop {
                         offset: 1.0,
-                        color: BLUE_DEEP,
+                        color: BLUE_DEEP.into(),
                     },
                 ],
                 opacity: 1.0,
@@ -494,23 +498,23 @@ pub(crate) fn build() -> Scene {
                 stops: vec![
                     GradientStop {
                         offset: 0.0,
-                        color: AMBER_WARM,
+                        color: AMBER_WARM.into(),
                     },
                     GradientStop {
                         offset: 0.25,
-                        color: ROSE,
+                        color: ROSE.into(),
                     },
                     GradientStop {
                         offset: 0.5,
-                        color: PURPLE_LIGHT,
+                        color: PURPLE_LIGHT.into(),
                     },
                     GradientStop {
                         offset: 0.75,
-                        color: BLUE_ELECTRIC,
+                        color: BLUE_ELECTRIC.into(),
                     },
                     GradientStop {
                         offset: 1.0,
-                        color: AMBER_WARM,
+                        color: AMBER_WARM.into(),
                     },
                 ],
                 opacity: 1.0,
@@ -569,11 +573,11 @@ pub(crate) fn build() -> Scene {
                 stops: vec![
                     GradientStop {
                         offset: 0.0,
-                        color: PURPLE_LIGHT,
+                        color: PURPLE_LIGHT.into(),
                     },
                     GradientStop {
                         offset: 1.0,
-                        color: BLUE_ELECTRIC,
+                        color: BLUE_ELECTRIC.into(),
                     },
                 ],
                 opacity: 1.0,
@@ -684,7 +688,8 @@ pub(crate) fn build() -> Scene {
                             g: 255,
                             b: 255,
                             a: 180,
-                        },
+                        }
+                        .into(),
                     },
                     GradientStop {
                         offset: 1.0,
@@ -693,7 +698,8 @@ pub(crate) fn build() -> Scene {
                             g: 255,
                             b: 255,
                             a: 60,
-                        },
+                        }
+                        .into(),
                     },
                 ],
                 opacity: 1.0,

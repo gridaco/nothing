@@ -69,15 +69,15 @@ async fn demo_scene() -> Scene {
         stops: vec![
             GradientStop {
                 offset: 0.0,
-                color: CGColor::from_rgba(255, 100, 100, 255),
+                color: CGColor::from_rgba(255, 100, 100, 255).into(),
             },
             GradientStop {
                 offset: 0.5,
-                color: CGColor::from_rgba(100, 100, 255, 255),
+                color: CGColor::from_rgba(100, 100, 255, 255).into(),
             },
             GradientStop {
                 offset: 1.0,
-                color: CGColor::from_rgba(100, 255, 100, 255),
+                color: CGColor::from_rgba(100, 255, 100, 255).into(),
             },
         ],
         ..Default::default()
@@ -105,15 +105,15 @@ async fn demo_scene() -> Scene {
         vec![
             GradientStop {
                 offset: 0.0,
-                color: CGColor::from_rgba(255, 255, 0, 255),
+                color: CGColor::from_rgba(255, 255, 0, 255).into(),
             },
             GradientStop {
                 offset: 0.7,
-                color: CGColor::from_rgba(255, 128, 0, 255),
+                color: CGColor::from_rgba(255, 128, 0, 255).into(),
             },
             GradientStop {
                 offset: 1.0,
-                color: CGColor::from_rgba(255, 0, 0, 255),
+                color: CGColor::from_rgba(255, 0, 0, 255).into(),
             },
         ],
     ))]);

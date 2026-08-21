@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <defs>
+    <!-- The template owns the stops; the float alpha travels the href chain. -->
+    <linearGradient id="src"><stop stop-color="#16a34a" stop-opacity="0.5"/><stop offset="1" stop-color="#2563eb" stop-opacity="0.25"/></linearGradient>
+    <linearGradient id="heir" href="#src" x1="0" y1="0" x2="0" y2="1"/>
+    <radialGradient id="cross" href="#src"/>
+    <!-- One stop stays a constant gradient, carrying its float alpha. -->
+    <linearGradient id="one"><stop stop-color="#16a34a" stop-opacity="0.3"/></linearGradient>
+    <!-- Offsets clamp against the running maximum; the alphas ride along. -->
+    <linearGradient id="nonmono"><stop offset="0.75" stop-color="#16a34a" stop-opacity="0.5"/><stop offset="0.25" stop-color="#b45309" stop-opacity="0.75"/><stop offset="1" stop-color="#2563eb" stop-opacity="0.25"/></linearGradient>
+    <!-- currentColor resolves against the gradient's own chain, alpha included. -->
+    <linearGradient id="cc" color="rgb(22 163 74 / 0.5)"><stop stop-color="currentColor" stop-opacity="0.5"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+  </defs>
+  <rect x="2"  y="2"  width="28" height="18" fill="url(#heir)"/>
+  <rect x="34" y="2"  width="28" height="18" fill="url(#cross)"/>
+  <rect x="2"  y="23" width="28" height="18" fill="url(#one)"/>
+  <rect x="34" y="23" width="28" height="18" fill="url(#nonmono)"/>
+  <rect x="2"  y="44" width="28" height="18" fill="url(#cc)"/>
+  <rect x="34" y="44" width="28" height="18" fill="url(#src)" fill-opacity="0.4" opacity="0.8"/>
+</svg>

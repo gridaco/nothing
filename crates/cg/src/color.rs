@@ -80,6 +80,167 @@ impl Default for CGColor {
     }
 }
 
+/// The same colour at 32-bit float components — the precision a gradient ramp
+/// is interpolated at, and the precision the `.grida` schema's `RGBA32F`
+/// already stores. [`CGColor`] remains the byte colour every solid paint and
+/// every authored swatch is stated in; this type exists because one resolved
+/// fact genuinely needs the wider component: a gradient stop's alpha, which
+/// the platform multiplies in float and hands to the rasterizer unquantized.
+///
+/// Components are checked into `[0, 1]` on construction, so a consumer may
+/// hand them to a backend without re-validating. Conversion from [`CGColor`]
+/// is exact and infallible.
+///
+/// Serde crosses through `[r, g, b, a]` — the same shape [`CGColor`]
+/// serializes to — and back through [`CGColor32F::new`], because a derived
+/// `Deserialize` would populate the private fields directly and hand a
+/// consumer an unchecked colour under a checked type.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(try_from = "[f32; 4]", into = "[f32; 4]")]
+pub struct CGColor32F {
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
+}
+
+impl TryFrom<[f32; 4]> for CGColor32F {
+    type Error = CGColor32FError;
+
+    fn try_from([r, g, b, a]: [f32; 4]) -> Result<Self, Self::Error> {
+        Self::new(r, g, b, a)
+    }
+}
+
+impl From<CGColor32F> for [f32; 4] {
+    fn from(color: CGColor32F) -> Self {
+        [color.r, color.g, color.b, color.a]
+    }
+}
+
+/// A component that is not a finite number in `[0, 1]`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CGColor32FError {
+    pub component: f32,
+}
+
+impl std::fmt::Display for CGColor32FError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "colour component {} is not a finite value in [0, 1]",
+            self.component
+        )
+    }
+}
+
+impl std::error::Error for CGColor32FError {}
+
+/// The reciprocal the byte→float widening multiplies by. Skia's
+/// `SkColor4f::FromColor` reaches its float components through exactly this
+/// operation, so a stop that entered as a byte reaches the rasterizer with
+/// the bits it reached them with before this type existed.
+const BYTE_TO_UNIT: f32 = 1.0 / 255.0;
+
+impl CGColor32F {
+    pub const TRANSPARENT: Self = Self {
+        r: 0.0,
+        g: 0.0,
+        b: 0.0,
+        a: 0.0,
+    };
+
+    /// Widen a byte colour. Exact and infallible: every byte divided by 255
+    /// is a finite value in `[0, 1]`.
+    #[inline]
+    pub fn from_rgba8(color: CGColor) -> Self {
+        Self {
+            r: color.r as f32 * BYTE_TO_UNIT,
+            g: color.g as f32 * BYTE_TO_UNIT,
+            b: color.b as f32 * BYTE_TO_UNIT,
+            a: color.a as f32 * BYTE_TO_UNIT,
+        }
+    }
+
+    /// Build from unit components, refusing anything a backend could not
+    /// take at face value.
+    pub fn new(r: f32, g: f32, b: f32, a: f32) -> Result<Self, CGColor32FError> {
+        for component in [r, g, b, a] {
+            if !component.is_finite() || !(0.0..=1.0).contains(&component) {
+                return Err(CGColor32FError { component });
+            }
+        }
+        Ok(Self { r, g, b, a })
+    }
+
+    /// A byte colour's RGB with a separately resolved float alpha — the shape
+    /// a resolved gradient stop actually has.
+    pub fn from_rgb8_alpha(color: CGColor, alpha: f32) -> Result<Self, CGColor32FError> {
+        let widened = Self::from_rgba8(color);
+        Self::new(widened.r, widened.g, widened.b, alpha)
+    }
+
+    #[inline]
+    pub fn r(self) -> f32 {
+        self.r
+    }
+    #[inline]
+    pub fn g(self) -> f32 {
+        self.g
+    }
+    #[inline]
+    pub fn b(self) -> f32 {
+        self.b
+    }
+    #[inline]
+    pub fn a(self) -> f32 {
+        self.a
+    }
+
+    /// Narrow back to bytes, rounding half away from zero — the rounding a
+    /// raster target applies when it stores this colour in eight bits.
+    pub fn to_rgba8(self) -> CGColor {
+        CGColor::from_rgba(
+            unit_to_byte(self.r),
+            unit_to_byte(self.g),
+            unit_to_byte(self.b),
+            unit_to_byte(self.a),
+        )
+    }
+
+    /// Whether this colour survives [`Self::to_rgba8`] unchanged.
+    pub fn is_rgba8_exact(self) -> bool {
+        Self::from_rgba8(self.to_rgba8()) == self
+    }
+
+    /// The four components as raw bits, for hashing. Injective over the
+    /// checked domain, which excludes NaN.
+    pub fn to_bits(self) -> [u32; 4] {
+        [
+            self.r.to_bits(),
+            self.g.to_bits(),
+            self.b.to_bits(),
+            self.a.to_bits(),
+        ]
+    }
+}
+
+fn unit_to_byte(component: f32) -> u8 {
+    (component.clamp(0.0, 1.0) * 255.0).round() as u8
+}
+
+impl From<CGColor> for CGColor32F {
+    fn from(color: CGColor) -> Self {
+        Self::from_rgba8(color)
+    }
+}
+
+impl Default for CGColor32F {
+    fn default() -> Self {
+        Self::TRANSPARENT
+    }
+}
+
 // ---------- Serialize: always [r, g, b, a] ----------
 impl Serialize for CGColor {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -739,5 +900,57 @@ mod tests {
         let json = r#"{"color": {"r": 1.0, "g": 1.0, "b": 1.0, "a": 0.5}}"#;
         let obj: TestStruct = serde_json::from_str(json).unwrap();
         assert_eq!(obj.color.a(), 128);
+    }
+
+    /// A checked type must stay checked across serde: a derived `Deserialize`
+    /// would populate the private fields directly and produce a colour the
+    /// painter and preflight would then trust.
+    #[test]
+    fn cgcolor32f_deserialization_enforces_the_checked_domain() {
+        assert!(serde_json::from_str::<CGColor32F>("[0.0, 0.5, 1.0, 0.25]").is_ok());
+        for hostile in [
+            "[1.5, 0.0, 0.0, 1.0]",
+            "[-0.1, 0.0, 0.0, 1.0]",
+            "[0.0, 0.0, 0.0, 2.0]",
+        ] {
+            assert!(
+                serde_json::from_str::<CGColor32F>(hostile).is_err(),
+                "{hostile} must not deserialize"
+            );
+        }
+        // Non-finite components have no JSON literal, so they arrive as the
+        // out-of-range values above; the guard is the same one.
+        assert!(CGColor32F::new(f32::NAN, 0.0, 0.0, 1.0).is_err());
+        assert!(CGColor32F::new(0.0, f32::INFINITY, 0.0, 1.0).is_err());
+    }
+
+    #[test]
+    fn cgcolor32f_round_trips_through_serde() {
+        let color = CGColor32F::new(0.25, 0.5, 0.75, 0.125).expect("in domain");
+        let json = serde_json::to_string(&color).expect("serialize");
+        assert_eq!(json, "[0.25,0.5,0.75,0.125]");
+        assert_eq!(
+            serde_json::from_str::<CGColor32F>(&json).expect("deserialize"),
+            color
+        );
+    }
+
+    /// The byte widening must reproduce the bits Skia's own `FromColor`
+    /// reaches, or every gradient authored in bytes moves.
+    #[test]
+    fn cgcolor32f_widening_is_the_byte_times_one_over_255() {
+        for byte in [0u8, 1, 77, 128, 129, 254, 255] {
+            let widened = CGColor32F::from_rgba8(CGColor::from_rgba(byte, byte, byte, byte));
+            assert_eq!(
+                widened.a().to_bits(),
+                (byte as f32 * (1.0 / 255.0)).to_bits()
+            );
+            assert!(widened.is_rgba8_exact());
+            assert_eq!(widened.to_rgba8().a(), byte);
+        }
+        // A value off a byte must be reported as such.
+        assert!(!CGColor32F::new(0.0, 0.0, 0.0, 0.5)
+            .expect("in domain")
+            .is_rgba8_exact());
     }
 }

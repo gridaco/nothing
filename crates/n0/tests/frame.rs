@@ -37,11 +37,11 @@ fn gradient(scale: f32) -> Paint {
         stops: vec![
             GradientStop {
                 offset: 0.0,
-                color: n0_model::model::Color::BLACK,
+                color: n0_model::model::Color::BLACK.into(),
             },
             GradientStop {
                 offset: 1.0,
-                color: n0_model::model::Color(0xFFFF_FFFF),
+                color: n0_model::model::Color(0xFFFF_FFFF).into(),
             },
         ],
         ..Default::default()

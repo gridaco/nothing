@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "2738a099b17893dc581cdd27367acbd5f2e68d62f044cd948c1d1b5e80dcbb18",
+  "suite_sha256": "9980bf0f90122fa603afc76620766be234538c03721955307d493407eeabb295",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -731,11 +731,56 @@
       "height": 64
     },
     {
+      "id": "svg-gradient-stop-color-grammar",
+      "source": "svg-gradient-stop-color-grammar.svg",
+      "source_sha256": "3f197291f18a7fb03c629e890728209412e6308c7567157a244bf73ab466ae28",
+      "oracle": "chromium/svg-gradient-stop-color-grammar.png",
+      "oracle_sha256": "18416d6a4f03274a81b179b329bbf94f50f969dd15fd778588a8a6befcdac11e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-stop-degenerate-float",
+      "source": "svg-gradient-stop-degenerate-float.svg",
+      "source_sha256": "ae122bbef8c28ff7fd4659711df38cd9340dff06a9764b9bdfe609de941f9159",
+      "oracle": "chromium/svg-gradient-stop-degenerate-float.png",
+      "oracle_sha256": "145706cb3f1e51702aba25627a5979ae13b10cdea096e4e50c85d33c37dc3572",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-gradient-stop-nonmonotonic",
       "source": "svg-gradient-stop-nonmonotonic.svg",
       "source_sha256": "a0310073a92cfdf7072af5a3b39960fc17a90d5f7f178c0a7af4cdf1045b3e60",
       "oracle": "chromium/svg-gradient-stop-nonmonotonic.png",
       "oracle_sha256": "bbc3086befc3d6a324908a058b746d959656b2574584324955c1e7603618e73a",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-stop-opacity-float",
+      "source": "svg-gradient-stop-opacity-float.svg",
+      "source_sha256": "b2a70ad2a111acb027a4a0497a28bb1626b51e268b128245c05811d82a878e77",
+      "oracle": "chromium/svg-gradient-stop-opacity-float.png",
+      "oracle_sha256": "f955e31a9a8c61c2c65f0f8a1d606ed562fce73784e1d89b9b05afbee9e49afa",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-stop-opacity-grammar",
+      "source": "svg-gradient-stop-opacity-grammar.svg",
+      "source_sha256": "1aecaa828aeb3324f5693635ab146305d5d017be56af0054441f8bd22316f9ac",
+      "oracle": "chromium/svg-gradient-stop-opacity-grammar.png",
+      "oracle_sha256": "0f66069d5224b96d00102168594fc254b8668e34b7ea5bebef6a68b7cf101630",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-stop-template-float",
+      "source": "svg-gradient-stop-template-float.svg",
+      "source_sha256": "62ef05f30610abc73a39d69a5b3ef3333718971255a008aad0b68243669167fa",
+      "oracle": "chromium/svg-gradient-stop-template-float.png",
+      "oracle_sha256": "6077dee6a8b6b577e23a31a0fb2b593b29258f204ac7123689af5f1c98086acc",
       "width": 64,
       "height": 64
     },

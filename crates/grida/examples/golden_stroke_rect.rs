@@ -85,11 +85,11 @@ impl DemoConfig {
                 stops: vec![
                     GradientStop {
                         offset: 0.0,
-                        color: CGColor::from_rgba(50, 100, 200, 255), // Blue
+                        color: CGColor::from_rgba(50, 100, 200, 255).into(), // Blue
                     },
                     GradientStop {
                         offset: 1.0,
-                        color: CGColor::from_rgba(150, 50, 200, 255), // Purple
+                        color: CGColor::from_rgba(150, 50, 200, 255).into(), // Purple
                     },
                 ],
                 ..Default::default()

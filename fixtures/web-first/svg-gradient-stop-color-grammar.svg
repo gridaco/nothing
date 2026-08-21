@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" color="#b45309">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <defs>
+    <linearGradient id="g0"><stop offset="0" stop-color="#0a3"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="g1"><stop offset="0" stop-color="#0a38"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="g2"><stop offset="0" stop-color="#16a34a"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="g3"><stop offset="0" stop-color="#16a34a80"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="g4"><stop offset="0" stop-color="rebeccapurple"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="g5"><stop offset="0" stop-color="transparent"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="g6"><stop offset="0" stop-color="rgb(22 163 74)"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="g7"><stop offset="0" stop-color="rgb(22 163 74 / 0.5)"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="g8"><stop offset="0" stop-color="rgb(22 163 74 / 50%)"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="g9"><stop offset="0" stop-color="rgba(22, 163, 74, 0.5)"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="g10"><stop offset="0" stop-color="currentColor"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="g11"><stop offset="0" stop-color="not-a-color"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="g12"><stop offset="0"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="g13"><stop offset="0" stop-color="initial"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="g14"><stop offset="0" stop-color="unset"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="g15"><stop offset="0" stop-color="revert"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+  </defs>
+  <rect x="4" y="4" width="11" height="11" fill="url(#g0)"/>
+  <rect x="19" y="4" width="11" height="11" fill="url(#g1)"/>
+  <rect x="34" y="4" width="11" height="11" fill="url(#g2)"/>
+  <rect x="49" y="4" width="11" height="11" fill="url(#g3)"/>
+  <rect x="4" y="19" width="11" height="11" fill="url(#g4)"/>
+  <rect x="19" y="19" width="11" height="11" fill="url(#g5)"/>
+  <rect x="34" y="19" width="11" height="11" fill="url(#g6)"/>
+  <rect x="49" y="19" width="11" height="11" fill="url(#g7)"/>
+  <rect x="4" y="34" width="11" height="11" fill="url(#g8)"/>
+  <rect x="19" y="34" width="11" height="11" fill="url(#g9)"/>
+  <rect x="34" y="34" width="11" height="11" fill="url(#g10)"/>
+  <rect x="49" y="34" width="11" height="11" fill="url(#g11)"/>
+  <rect x="4" y="49" width="11" height="11" fill="url(#g12)"/>
+  <rect x="19" y="49" width="11" height="11" fill="url(#g13)"/>
+  <rect x="34" y="49" width="11" height="11" fill="url(#g14)"/>
+  <rect x="49" y="49" width="11" height="11" fill="url(#g15)"/>
+</svg>

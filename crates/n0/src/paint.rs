@@ -364,11 +364,11 @@ mod paint_ctx_tests {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: ModelColor::BLACK,
+                    color: ModelColor::BLACK.into(),
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: ModelColor(0xFFFF_FFFF),
+                    color: ModelColor(0xFFFF_FFFF).into(),
                 },
             ],
             ..Default::default()
@@ -396,11 +396,11 @@ mod paint_ctx_tests {
         let stops = vec![
             GradientStop {
                 offset: 0.0,
-                color: ModelColor::BLACK,
+                color: ModelColor::BLACK.into(),
             },
             GradientStop {
                 offset: 1.0,
-                color: ModelColor(0xFFFF_FFFF),
+                color: ModelColor(0xFFFF_FFFF).into(),
             },
         ];
         let models = [
@@ -445,11 +445,11 @@ mod paint_ctx_tests {
                 stops: vec![
                     GradientStop {
                         offset: 0.0,
-                        color: ModelColor::BLACK,
+                        color: ModelColor::BLACK.into(),
                     },
                     GradientStop {
                         offset: 1.0,
-                        color: ModelColor(0xFFFF_FFFF),
+                        color: ModelColor(0xFFFF_FFFF).into(),
                     },
                 ],
                 ..Default::default()
@@ -520,9 +520,21 @@ fn sk_tile_mode(mode: TileMode) -> skia_safe::TileMode {
 }
 
 fn gradient_stops(stops: &[GradientStop]) -> (Vec<skia_safe::Color4f>, Vec<f32>) {
+    // The stop's checked unit components are already what `Color4f` holds:
+    // a byte-authored stop reaches these exact bits through the widening
+    // multiply `SkColor4f::FromColor` itself performs, and a stop whose alpha
+    // was resolved by multiplication keeps the value the ramp interpolates,
+    // instead of the neighbouring byte a narrowing would substitute.
     let colors = stops
         .iter()
-        .map(|stop| skia_safe::Color4f::from(Color::new(stop.color.argb())))
+        .map(|stop| {
+            skia_safe::Color4f::new(
+                stop.color.r(),
+                stop.color.g(),
+                stop.color.b(),
+                stop.color.a(),
+            )
+        })
         .collect();
     let positions = stops.iter().map(|stop| stop.offset).collect();
     (colors, positions)

@@ -13,11 +13,11 @@ fn ramp() -> Vec<GradientStop> {
     vec![
         GradientStop {
             offset: 0.0,
-            color: CGColor::RED,
+            color: CGColor::RED.into(),
         },
         GradientStop {
             offset: 1.0,
-            color: CGColor::BLUE,
+            color: CGColor::BLUE.into(),
         },
     ]
 }

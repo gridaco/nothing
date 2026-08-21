@@ -41,7 +41,7 @@ fn per_side_stroke(payload: &Payload) -> Stroke {
 fn stop(offset: f32) -> GradientStop {
     GradientStop {
         offset,
-        color: Color::BLACK,
+        color: Color::BLACK.into(),
     }
 }
 

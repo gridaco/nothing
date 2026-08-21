@@ -46,19 +46,19 @@ fn main() {
         stops: vec![
             GradientStop {
                 offset: 0.0,
-                color: CGColor::from_rgba(200, 200, 200, 255), // Light gray center
+                color: CGColor::from_rgba(200, 200, 200, 255).into(), // Light gray center
             },
             GradientStop {
                 offset: 0.9,
-                color: CGColor::from_rgba(100, 100, 100, 255), // Medium gray
+                color: CGColor::from_rgba(100, 100, 100, 255).into(), // Medium gray
             },
             GradientStop {
                 offset: 0.95,
-                color: CGColor::WHITE, // White
+                color: CGColor::WHITE.into(), // White
             },
             GradientStop {
                 offset: 1.0,
-                color: CGColor::BLACK, // Black
+                color: CGColor::BLACK.into(), // Black
             },
         ],
         ..Default::default()

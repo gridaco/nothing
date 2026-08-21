@@ -1934,7 +1934,8 @@ fn usvg_linear_gradient_to_linear_gradient_paint(
                 stop.color().green,
                 stop.color().blue,
                 (stop.opacity().get() * 255.0) as u8,
-            ),
+            )
+            .into(),
         })
         .collect();
 

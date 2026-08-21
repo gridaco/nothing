@@ -12,7 +12,10 @@ fn build_gradient_stops(
     let mut positions = Vec::with_capacity(stops.len());
 
     for stop in stops {
-        let CGColor { r, g, b, a } = stop.color;
+        // The legacy engine's gradients are authored in bytes; narrowing here
+        // keeps this painter's byte staging (and its pixels) exactly as it
+        // was before the stop leaf widened.
+        let CGColor { r, g, b, a } = stop.color.to_rgba8();
         let alpha = (a as f32 * opacity).round().clamp(0.0, 255.0) as u8;
         colors.push(skia_safe::Color4f::from(skia_safe::Color::from_argb(
             alpha, r, g, b,

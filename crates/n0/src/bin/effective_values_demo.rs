@@ -50,11 +50,11 @@ fn linear(from: &str, to: &str) -> Paints {
         stops: vec![
             GradientStop {
                 offset: 0.0,
-                color: color(from),
+                color: color(from).into(),
             },
             GradientStop {
                 offset: 1.0,
-                color: color(to),
+                color: color(to).into(),
             },
         ],
         ..Default::default()
@@ -66,11 +66,11 @@ fn radial(inner: &str, outer: &str) -> Paints {
         stops: vec![
             GradientStop {
                 offset: 0.0,
-                color: color(inner),
+                color: color(inner).into(),
             },
             GradientStop {
                 offset: 1.0,
-                color: color(outer),
+                color: color(outer).into(),
             },
         ],
         ..Default::default()

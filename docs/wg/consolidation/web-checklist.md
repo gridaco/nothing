@@ -1470,8 +1470,8 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [x] `rx`
 - [x] `ry`
 - [ ] `shape-rendering`
-- [ ] `stop-color`
-- [ ] `stop-opacity`
+- [x] `stop-color`
+- [x] `stop-opacity`
 - [x] `stroke`
 - [x] `stroke-dasharray`
 - [ ] `stroke-dashoffset`

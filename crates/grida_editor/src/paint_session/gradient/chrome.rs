@@ -187,7 +187,10 @@ pub fn build(input: GradientChrome) -> HudDraw {
     // sweep).
     for (i, stop) in input.stops.iter().enumerate() {
         let selected = input.selected.contains(&i) || input.hover == Some(Control::Stop(i));
-        let color = [stop.color.r, stop.color.g, stop.color.b, stop.color.a];
+        // A HUD chip is an eight-bit swatch; the stop's float components
+        // narrow into it the same way the raster target narrows them.
+        let swatch = stop.color.to_rgba8();
+        let color = [swatch.r, swatch.g, swatch.b, swatch.a];
         draw.prims
             .push(input.chip_prim(stop.offset, color, selected, false));
     }
@@ -234,11 +237,11 @@ mod tests {
         vec![
             GradientStop {
                 offset: 0.0,
-                color: CGColor::BLACK,
+                color: CGColor::BLACK.into(),
             },
             GradientStop {
                 offset: 1.0,
-                color: CGColor::WHITE,
+                color: CGColor::WHITE.into(),
             },
         ]
     }
@@ -369,11 +372,11 @@ mod tests {
         let s = vec![
             GradientStop {
                 offset: 0.25,
-                color: CGColor::BLACK,
+                color: CGColor::BLACK.into(),
             },
             GradientStop {
                 offset: 0.75,
-                color: CGColor::WHITE,
+                color: CGColor::WHITE.into(),
             },
         ];
         let sel = BTreeSet::new();

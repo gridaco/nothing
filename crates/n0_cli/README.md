@@ -259,9 +259,7 @@ cargo run -p n0_cli --bin n0 -- \
   a whole-document, first-id-wins gradient table (shadow-content clones
   excluded — the document's element wins, measured), with both
   `gradientUnits`, `spreadMethod`, stops from attributes (`offset` clamps
-  to the running maximum and is never sorted; `stop-color` — `currentColor`
-  against the gradient's own ancestor chain — resolves its base alpha byte,
-  which `stop-opacity` then multiplies in float; equal-offset hard stops render
+  to the running maximum and is never sorted; equal-offset hard stops render
   crisp), `href`/`xlink:href`
   template chains (stops all-or-nothing from the first owner; geometry
   never crosses gradient types; a cycle kills only the edge), and
@@ -277,12 +275,31 @@ cargo run -p n0_cli --bin n0 -- \
   zero or negative radial radius and linear endpoints inside the backend's
   degenerate threshold resolve to the tile-specific measured solid: the last
   stop under `pad`, or the ramp's integral average under `reflect`/`repeat`.
+  The `<stop>` presentation attributes are consumed at their listed
+  grammars (the stop rung). `stop-color` carries the `color` property's
+  `<color>`: hex in all four lengths, named colours, `transparent`,
+  `rgb()`/`rgba()` with a number or percentage alpha, and `currentColor`
+  resolved against the gradient's own ancestor chain — an unparseable value
+  is the initial black. `stop-opacity` carries the `opacity` property's
+  `<number> | <percentage>`, clamped exactly as Chromium clamps. A stop
+  colour's own alpha resolves to its byte (measured: `rgb(… / 0.5)` is
+  byte-identical to `#…80`); `stop-opacity` then multiplies in float, and
+  the resolved contract carries that product **unquantized**, because the
+  rasterizer interpolates the ramp before it quantizes. `initial`, `unset`
+  and `revert` coincide with each attribute's initial and are admitted.
   What refuses by name: a focal radial (`fx`/`fy` off
   the center or `fr > 0` — the shared radial leaf is concentric),
-  `color-interpolation: linearRGB`, effective stop components or alpha stages
-  that the current RGBA8 stop contract cannot preserve (including post-paint
-  and degenerate ramp-average branches, guarded as
-  `svg-gradient-stop-precision`),
+  `color-interpolation: linearRGB`, a degenerate paint server whose
+  substituted colour does not land on a byte (Chromium keeps a dithering
+  shader for those and no flat colour reproduces one — guarded as
+  `svg-gradient-degenerate-precision`, and a gradient-geometry gap rather
+  than a stop-grammar one: it fires on ramp averages carrying no
+  `stop-opacity` at all — [gridaco/nothing#93](https://github.com/gridaco/nothing/issues/93)), a stop attribute that needs a resolver this build
+  does not run — `inherit`, `var()`, or a CSS math function, each measured
+  painting a silently wrong pixel before the patrol and each naming a
+  construct with its own checklist row — a non-legacy sRGB stop colour
+  (which changes how Chromium interpolates the whole ramp, unlike the same
+  value as a solid),
   author CSS on stops (`stop-color` /
   `stop-opacity` — the pinned cascade has no such longhands, so a sheet
   declaring one is a document-level declaration and a stop's style

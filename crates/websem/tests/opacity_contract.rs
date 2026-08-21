@@ -393,7 +393,12 @@ fn paint_server_outcomes_keep_their_alpha_stage() {
         cg::Paint::LinearGradient(gradient) => {
             assert_eq!(gradient.opacity.to_bits(), 0.7f32.to_bits());
             assert_eq!(gradient.stops.len(), 2);
-            assert!(gradient.stops.iter().all(|stop| stop.color.a() == 77));
+            assert!(
+                gradient
+                    .stops
+                    .iter()
+                    .all(|stop| stop.color.a().to_bits() == (77.0f32 / 255.0).to_bits())
+            );
         }
         other => panic!("one stop: expected a constant gradient, got {other:?}"),
     }

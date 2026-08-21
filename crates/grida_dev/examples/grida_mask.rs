@@ -97,11 +97,11 @@ fn build_alpha_mask(
         stops: vec![
             GradientStop {
                 offset: 0.0,
-                color: CGColor::from_rgba(128, 128, 128, 255),
+                color: CGColor::from_rgba(128, 128, 128, 255).into(),
             },
             GradientStop {
                 offset: 1.0,
-                color: CGColor::from_rgba(128, 128, 128, 0),
+                color: CGColor::from_rgba(128, 128, 128, 0).into(),
             },
         ],
         opacity: 1.0,
@@ -134,11 +134,11 @@ fn build_luminance_mask(
         stops: vec![
             GradientStop {
                 offset: 0.0,
-                color: CGColor::from_rgba(220, 220, 220, 255),
+                color: CGColor::from_rgba(220, 220, 220, 255).into(),
             },
             GradientStop {
                 offset: 1.0,
-                color: CGColor::from_rgba(40, 40, 40, 255),
+                color: CGColor::from_rgba(40, 40, 40, 255).into(),
             },
         ],
         opacity: 1.0,

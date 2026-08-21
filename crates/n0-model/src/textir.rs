@@ -470,7 +470,10 @@ fn parse_stop(mut attributes: BTreeMap<String, String>) -> Result<GradientStop, 
     reject_unknown_attribute(&attributes, "stop")?;
     Ok(GradientStop {
         offset,
-        color: color.with_opacity(opacity),
+        // The stop's opacity is the alpha, carried at the width the ramp is
+        // interpolated at rather than rounded into the colour's alpha byte.
+        color: Color32F::from_argb_with_alpha(color, opacity)
+            .map_err(|error| ParseError(error.to_string()))?,
     })
 }
 
@@ -2581,9 +2584,9 @@ fn write_gradient_stops(
     for stop in stops {
         let _ = write!(out, "{indent}<stop");
         push_attr(out, "offset", &fmt_num(stop.offset));
-        push_attr(out, "color", &stop.color.to_hex());
-        if stop.color.alpha() != 255 {
-            push_attr(out, "opacity", &fmt_num(stop.color.opacity()));
+        push_attr(out, "color", &stop.color.to_argb().to_hex());
+        if stop.color.a() != 1.0 {
+            push_attr(out, "opacity", &fmt_num(stop.color.a()));
         }
         let _ = writeln!(out, "/>");
     }

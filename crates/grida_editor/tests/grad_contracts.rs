@@ -82,7 +82,7 @@ fn linear_at(offsets: &[f32]) -> Paint {
             .iter()
             .map(|&offset| GradientStop {
                 offset,
-                color: CGColor::BLACK,
+                color: CGColor::BLACK.into(),
             })
             .collect(),
     ))
@@ -307,15 +307,15 @@ fn dragging_a_stop_across_a_neighbor_keeps_its_identity() {
     let paint = Paint::LinearGradient(LinearGradientPaint::from_stops(vec![
         GradientStop {
             offset: 0.0,
-            color: CGColor::from_u32(A),
+            color: CGColor::from_u32(A).into(),
         },
         GradientStop {
             offset: 0.3,
-            color: CGColor::from_u32(B),
+            color: CGColor::from_u32(B).into(),
         },
         GradientStop {
             offset: 1.0,
-            color: CGColor::from_u32(C),
+            color: CGColor::from_u32(C).into(),
         },
     ]));
     let mut editor = editor_with_fills(vec![paint]);
@@ -332,17 +332,17 @@ fn dragging_a_stop_across_a_neighbor_keeps_its_identity() {
     // middle — not C. Before the fix, the drag would have grabbed C after
     // the cross and left B at 0.3.
     let stops = gradient_stops(&editor);
-    assert_eq!(stops[0].color, CGColor::from_u32(A));
+    assert_eq!(stops[0].color, CGColor::from_u32(A).into());
     assert!(
         (stops[1].offset - 0.5).abs() < 1e-3,
         "the grabbed stop is at 0.5"
     );
     assert_eq!(
         stops[1].color,
-        CGColor::from_u32(B),
+        CGColor::from_u32(B).into(),
         "the grabbed (gray) stop is the one that moved, keeping its identity"
     );
-    assert_eq!(stops[2].color, CGColor::from_u32(C));
+    assert_eq!(stops[2].color, CGColor::from_u32(C).into());
     // The selection follows the grabbed stop to its live position.
     assert_eq!(
         session.selected().iter().copied().collect::<Vec<_>>(),

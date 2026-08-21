@@ -58,13 +58,13 @@ from the dated addenda below:
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 314 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 319 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
   confined tolerance (the weighted rational conic) and three gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
-  restore). The named refusal register has 58 rows.
+  restore). The named refusal register has 62 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -2023,3 +2023,64 @@ register moves from 59 to 58. The CSS `opacity` property and its SVG
 presentation-attribute twin tick; `stop-color` and `stop-opacity` do not. This
 is a capability verdict only. It produces no conformance score and takes no
 FLIP action.
+
+## Rung: the SVG `<stop>` presentation attributes (2026-08-22)
+
+`stop-color` and `stop-opacity` are read directly off the `<stop>` element,
+because the pinned Stylo build has no such longhand. That is what made the
+previous rung's account of them incomplete: nothing cascades over these two
+values, so nothing resolves them either, and four spellings that need a
+resolver were falling back to the initial instead of refusing. All four were
+measured painting a wrong pixel silently. `stop-color="inherit"` under an
+ancestor gradient carrying `stop-color="red"` paints red in Chromium and
+painted the initial black here — 4,096 pixels at Δ253; the `stop-opacity`
+twin is Δ190. `var()` is substituted inside a presentation attribute
+(Δ190). A CSS math function is valid in `stop-opacity`, whose SVG 2 value is
+the `opacity` property's own, and Chromium evaluates it: `calc(1 / 3)` is
+byte-identical to the literal third, against Δ169 here. A non-legacy sRGB
+stop colour — `color(srgb …)` — parses into the same colour space as hex and
+was admitted, but it changes how Chromium interpolates the *whole* ramp
+rather than only its endpoint: 4,080 pixels at Δ26, where the identical
+value as a solid is byte-identical to `#010000`. Each now refuses by name,
+and each names a construct carrying its own checklist row.
+
+The previous rung's `svg-gradient-stop-precision` refusal split in two, and
+the split is the substance of this rung. Its live-ramp half was a contract
+limit, not a browser fact: Chromium hands the ramp the float product of a
+stop colour's alpha byte and `stop-opacity`, and `stop-opacity="0.5"` is
+distinguishable from *both* 127/255 (992 pixels) and 128/255 (2,424). The
+resolved leaf now carries that product unquantized — `cg::GradientStop` and
+the model tier's `GradientStop` hold checked unit-sRGB float components,
+which is the width `format/grida.fbs` already declared and the decoder was
+narrowing. Byte RGB is enough: every path that could have carried sub-byte
+RGB is either quantized by Chromium itself (measured — a solid, a degenerate
+substitution, `rgb()`, and a colour's own alpha all land on bytes) or is a
+colour function with its own row.
+
+Its degenerate half survives, renamed to what it actually is. Chromium does
+not paint a degenerate paint server as a flat colour; it keeps a shader, and
+that shader dithers. Where every stage lands on a byte there is nothing to
+dither and the flat solid is byte-identical, and those cases are now celled:
+a `repeat` average of 77/255 and 129/255 landing exactly on 103/255, a
+`reflect` colour average of 0 and 3 rounding up to 2, `pad` with a byte-exact
+translucent last stop, and the zero-radius radial route. Where a stage does
+not, Chromium's output matched no flat solid and no constant ramp the probe
+could construct — a degenerate `pad` at stop alpha `0.5` under
+`fill-opacity=".7"` sat 2,560–4,096 pixels from every candidate at Δ1, the
+signature of a dither tied to the degenerate shader's own geometry. Guessing
+that rule would be a silent wrong pixel, so `svg-gradient-degenerate-precision`
+refuses it. **The refusal fires on the collapsed value, not on how it arose**:
+two byte-exact `stop-color`s whose ramp average lands between codes trip it
+with no `stop-opacity` present at all. It is therefore a gradient-geometry
+gap belonging to the already-ticked `<linearGradient>`/`<radialGradient>`
+rows, not a stop-grammar gap, and it does not hold the two attribute rows
+open. It is filed as gridaco/nothing#93.
+
+The primitive corpus moves from 314 to 319 cells; the named register moves
+from 58 to 62. The SVG presentation-**attribute** rows for `stop-color` and
+`stop-opacity` tick. Their CSS presentation-**property** twins stay open and
+unchanged: the pinned cascade has no longhand for either, so a sheet or a
+stop's style attribute remains a document-level refusal, and closing those
+rows needs the longhands, never a second matcher around Stylo. This is a
+capability verdict only. It produces no conformance score and takes no FLIP
+action.

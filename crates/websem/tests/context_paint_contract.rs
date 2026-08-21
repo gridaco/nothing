@@ -453,7 +453,7 @@ fn one_stop_context_gradient_does_not_demand_an_unknown_box() {
         gradient
             .stops
             .iter()
-            .all(|stop| stop.color == cg::CGColor::from_rgb(225, 29, 72))
+            .all(|stop| stop.color == cg::CGColor::from_rgb(225, 29, 72).into())
     );
     assert_eq!(best.degradations().len(), 1, "{:?}", best.degradations());
     assert!(

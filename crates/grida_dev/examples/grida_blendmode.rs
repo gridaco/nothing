@@ -83,35 +83,35 @@ async fn demo_blendmode() -> Scene {
             stops: vec![
                 GradientStop {
                     offset: 0.0,
-                    color: CGColor::from_rgba(255, 0, 255, 255), // Magenta
+                    color: CGColor::from_rgba(255, 0, 255, 255).into(), // Magenta
                 },
                 GradientStop {
                     offset: 0.14,
-                    color: CGColor::from_rgba(255, 0, 0, 255), // Red
+                    color: CGColor::from_rgba(255, 0, 0, 255).into(), // Red
                 },
                 GradientStop {
                     offset: 0.28,
-                    color: CGColor::from_rgba(255, 255, 0, 255), // Yellow
+                    color: CGColor::from_rgba(255, 255, 0, 255).into(), // Yellow
                 },
                 GradientStop {
                     offset: 0.42,
-                    color: CGColor::from_rgba(0, 255, 0, 255), // Green
+                    color: CGColor::from_rgba(0, 255, 0, 255).into(), // Green
                 },
                 GradientStop {
                     offset: 0.57,
-                    color: CGColor::from_rgba(0, 255, 255, 255), // Cyan
+                    color: CGColor::from_rgba(0, 255, 255, 255).into(), // Cyan
                 },
                 GradientStop {
                     offset: 0.71,
-                    color: CGColor::from_rgba(0, 0, 255, 255), // Blue
+                    color: CGColor::from_rgba(0, 0, 255, 255).into(), // Blue
                 },
                 GradientStop {
                     offset: 0.85,
-                    color: CGColor::from_rgba(255, 0, 255, 255), // Magenta
+                    color: CGColor::from_rgba(255, 0, 255, 255).into(), // Magenta
                 },
                 GradientStop {
                     offset: 1.0,
-                    color: CGColor::from_rgba(255, 0, 255, 255), // Magenta
+                    color: CGColor::from_rgba(255, 0, 255, 255).into(), // Magenta
                 },
             ],
             opacity: 0.3, // Make it subtle

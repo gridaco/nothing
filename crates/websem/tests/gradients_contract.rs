@@ -162,7 +162,7 @@ fn href_beats_xlink_href() {
         gradient
             .stops
             .iter()
-            .all(|stop| stop.color == cg::CGColor::from_rgb(255, 0, 0))
+            .all(|stop| stop.color == cg::CGColor::from_rgb(255, 0, 0).into())
     );
 }
 
@@ -208,7 +208,7 @@ fn own_stops_suppress_the_whole_template_stop_list() {
         gradient
             .stops
             .iter()
-            .all(|stop| stop.color == cg::CGColor::from_rgb(0, 255, 0))
+            .all(|stop| stop.color == cg::CGColor::from_rgb(0, 255, 0).into())
     );
 }
 
@@ -229,7 +229,7 @@ fn one_stop_resolves_to_a_constant_gradient() {
         gradient
             .stops
             .iter()
-            .all(|stop| stop.color == cg::CGColor::from_rgb(0, 255, 0))
+            .all(|stop| stop.color == cg::CGColor::from_rgb(0, 255, 0).into())
     );
 }
 
@@ -300,83 +300,160 @@ fn exact_stop_opacity_and_fill_opacity_keep_separate_facts() {
   <rect x="8" y="8" width="48" height="48" fill="url(#g)" fill-opacity="0.25"/>"##,
     ));
     let gradient = linear_of(sole_fill(&frame));
-    assert_eq!(gradient.stops[0].color.a, 255);
-    assert_eq!(gradient.stops[1].color.a, 128);
+    assert_eq!(gradient.stops[0].color.a().to_bits(), 1.0f32.to_bits());
+    assert_eq!(
+        gradient.stops[1].color.a().to_bits(),
+        (128.0f32 / 255.0).to_bits()
+    );
     assert_eq!(gradient.opacity.to_bits(), 0.25f32.to_bits());
 }
 
-/// Chromium retains `stop-opacity` as a float through gradient shading, while
-/// the current resolved paint leaf stores stop colors as RGBA8. A fractional
-/// component that does not round-trip through that leaf is an own-row named
-/// refusal, never a neighboring-alpha pixel.
+/// Chromium multiplies `stop-opacity` into the stop colour's own alpha byte
+/// in float and hands the product to the ramp unquantized (measured:
+/// `stop-opacity="0.5"` differs from both 127/255 and 128/255). The resolved
+/// stop carries exactly that product, so no live ramp substitutes a
+/// neighbouring alpha.
 #[test]
-fn non_rgba8_gradient_stop_precision_refuses_by_name() {
-    for stop in [
-        r##"<stop offset="0" stop-color="#16a34a" stop-opacity=".3"/>"##,
-        r##"<stop offset="0" stop-color="rgb(22 163 74 / .3)" stop-opacity=".7"/>"##,
+fn a_live_ramp_carries_the_float_stop_alpha() {
+    for (stop, expected) in [
+        (
+            r##"<stop offset="0" stop-color="#16a34a" stop-opacity=".3"/>"##,
+            0.3f32,
+        ),
+        (
+            r##"<stop offset="0" stop-color="rgb(22 163 74 / .3)" stop-opacity=".7"/>"##,
+            // The colour's own alpha resolves to its byte first (measured),
+            // and only then does stop-opacity multiply in float.
+            (0.3f32 * 255.0).round() / 255.0 * 0.7,
+        ),
+        (
+            r##"<stop offset="0" stop-color="#16a34a" stop-opacity="50%"/>"##,
+            0.5f32,
+        ),
     ] {
-        let error = refusal(&document(&format!(
+        let frame = admit_both(&document(&format!(
             r##"  <defs><linearGradient id="g">{stop}<stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
+  {RECT}"##
+        )));
+        let gradient = linear_of(sole_fill(&frame));
+        assert_eq!(
+            gradient.stops[0].color.a().to_bits(),
+            expected.to_bits(),
+            "{stop}"
+        );
+    }
+}
+
+/// A **degenerate** paint server is the remaining gap, and it is a gradient
+/// geometry gap rather than a stop-grammar one: Chromium substitutes the
+/// colour through a shader that dithers, so the collapse is reproducible only
+/// while every stage lands on a byte. The refusal fires on the collapsed
+/// value however it arose — the last case carries no `stop-opacity` at all.
+#[test]
+fn a_degenerate_collapse_off_a_byte_refuses_by_name() {
+    let cases = [
+        // a non-byte stop alpha reaches the substitution directly
+        (
+            r##"  <defs><linearGradient id="g" x1="0" x2="0"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#16a34a" stop-opacity="0.5"/></linearGradient></defs>
+  {RECT}"##,
+            "substitutes a colour this build cannot reproduce",
+        ),
+        // an exact-byte stop alpha times a non-endpoint fill-opacity
+        (
+            r##"  <defs><linearGradient id="g" x1="0" x2="0"><stop stop-color="#16a34a"/><stop offset="1" stop-color="#2563eb" stop-opacity="0.30196078431372547"/></linearGradient></defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#g)" fill-opacity=".7"/>"##,
+            "collapses two alpha stages",
+        ),
+        // the same, staged before a post-paint element factor
+        (
+            r##"  <defs><linearGradient id="g" x1="0" x2="0"><stop stop-color="#16a34a"/><stop offset="1" stop-color="#2563eb" stop-opacity="0.30196078431372547"/></linearGradient></defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#g)" opacity=".6"/>"##,
+            "collapses before post-paint opacity",
+        ),
+        // a ramp average that synthesizes a non-byte alpha
+        (
+            // one colour, so only the averaged alpha is off a byte
+            r##"  <defs><linearGradient id="g" x1="0" x2="0" spreadMethod="repeat"><stop stop-color="#16a34a" stop-opacity="0.30196078431372547"/><stop offset="1" stop-color="#16a34a" stop-opacity="0.5019607843137255"/></linearGradient></defs>
+  {RECT}"##,
+            "substitutes a colour this build cannot reproduce",
+        ),
+        // a ramp average whose colour channel sits between codes, made
+        // visible by the stops' own exact-byte translucency — no
+        // `stop-opacity` present
+        (
+            r##"  <defs><linearGradient id="g" x1="0" x2="0" spreadMethod="repeat"><stop stop-color="#00000080"/><stop offset="1" stop-color="#01000080"/></linearGradient></defs>
+  {RECT}"##,
+            "colour channel between codes",
+        ),
+        // the same average made visible by a later opacity stage instead
+        (
+            r##"  <defs><linearGradient id="g" x1="0" x2="0" spreadMethod="repeat"><stop stop-color="#000000"/><stop offset="1" stop-color="#010000"/></linearGradient></defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#g)" opacity=".6"/>"##,
+            "colour channel between codes",
+        ),
+    ];
+    for (body, expected) in cases {
+        let error = refusal(&document(&body.replace("{RECT}", RECT)));
+        let CompileError::UnsupportedFill(reason) = error else {
+            panic!("expected a fill refusal, got {error:?}");
+        };
+        assert!(reason.contains(expected), "{reason}");
+    }
+}
+
+/// The three spellings a `<stop>` attribute can hide behind, each measured
+/// painting a silently wrong pixel before the patrol existed. Each names a
+/// construct with its own checklist row.
+#[test]
+fn stop_attributes_that_need_a_resolver_refuse_by_name() {
+    let cases = [
+        (
+            r##"<linearGradient id="g" stop-color="red"><stop stop-color="inherit"/><stop offset="1" stop-color="#2563eb"/></linearGradient>"##,
+            "is inherit, which needs a cascaded longhand",
+        ),
+        (
+            r##"<linearGradient id="g" stop-opacity="0.25"><stop stop-color="#16a34a" stop-opacity="inherit"/><stop offset="1" stop-color="#2563eb"/></linearGradient>"##,
+            "is inherit, which needs a cascaded longhand",
+        ),
+        (
+            r##"<linearGradient id="g" style="--o: 0.25"><stop stop-color="#16a34a" stop-opacity="var(--o)"/><stop offset="1" stop-color="#2563eb"/></linearGradient>"##,
+            "resolves through var()",
+        ),
+        (
+            r##"<linearGradient id="g"><stop stop-color="#16a34a" stop-opacity="calc(1 / 3)"/><stop offset="1" stop-color="#2563eb"/></linearGradient>"##,
+            "cannot evaluate without a computation context",
+        ),
+        (
+            r##"<linearGradient id="g"><stop stop-color="color(srgb 0.00196078431372549 0 0)"/><stop offset="1" stop-color="#2563eb"/></linearGradient>"##,
+            "non-legacy sRGB colour",
+        ),
+    ];
+    for (defs, expected) in cases {
+        let error = refusal(&document(&format!(
+            r##"  <defs>{defs}</defs>
   {RECT}"##
         )));
         let CompileError::UnsupportedFill(reason) = error else {
             panic!("expected a fill refusal, got {error:?}");
         };
-        assert!(
-            reason.contains("stop alpha loses float precision"),
-            "{reason}"
-        );
+        assert!(reason.contains(expected), "{reason}");
     }
+}
 
-    let staged = refusal(&document(
-        r##"  <defs><linearGradient id="g" x1="0" x2="0"><stop stop-color="#16a34a"/><stop offset="1" stop-color="#2563eb" stop-opacity="0.30196078431372547"/></linearGradient></defs>
-  <rect x="8" y="8" width="48" height="48" fill="url(#g)" fill-opacity=".7"/>"##,
-    ));
-    let CompileError::UnsupportedFill(reason) = staged else {
-        panic!("expected a fill refusal, got {staged:?}");
-    };
-    assert!(
-        reason.contains("stop alpha loses staged precision"),
-        "{reason}"
-    );
-
-    for spread in ["repeat", "reflect"] {
-        let averaged = refusal(&document(&format!(
-            r##"  <defs><linearGradient id="g" x1="0" x2="0" spreadMethod="{spread}"><stop stop-color="#16a34a" stop-opacity="0.30196078431372547"/><stop offset="1" stop-color="#2563eb" stop-opacity="0.5019607843137255"/></linearGradient></defs>
+/// `initial`, `unset` and `revert` all coincide with each attribute's own
+/// initial value, so they are admitted rather than refused (measured
+/// byte-identical to the initial in every spelling).
+#[test]
+fn css_wide_keywords_that_coincide_with_the_initial_are_admitted() {
+    for keyword in ["initial", "unset", "revert", "revert-layer"] {
+        let frame = admit_both(&document(&format!(
+            r##"  <defs><linearGradient id="g"><stop stop-color="{keyword}" stop-opacity="{keyword}"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
   {RECT}"##
         )));
-        let CompileError::UnsupportedFill(reason) = averaged else {
-            panic!("expected a fill refusal, got {averaged:?}");
-        };
-        assert!(
-            reason.contains("stop alpha loses float precision"),
-            "{reason}"
-        );
+        let gradient = linear_of(sole_fill(&frame));
+        assert_eq!(gradient.stops[0].color.a().to_bits(), 1.0f32.to_bits());
+        assert_eq!(gradient.stops[0].color.r().to_bits(), 0.0f32.to_bits());
     }
-
-    let averaged_rgb = refusal(&document(
-        r##"  <defs><linearGradient id="g" x1="0" x2="0" spreadMethod="repeat"><stop stop-color="#000000"/><stop offset="1" stop-color="#010000"/></linearGradient></defs>
-  <rect x="8" y="8" width="48" height="48" fill="url(#g)" opacity=".6"/>"##,
-    ));
-    let CompileError::UnsupportedFill(reason) = averaged_rgb else {
-        panic!("expected a fill refusal, got {averaged_rgb:?}");
-    };
-    assert!(
-        reason.contains("stop color loses float precision"),
-        "{reason}"
-    );
-
-    let averaged_translucent_rgb = refusal(&document(
-        r##"  <defs><linearGradient id="g" x1="0" x2="0" spreadMethod="repeat"><stop stop-color="#00000080"/><stop offset="1" stop-color="#01000080"/></linearGradient></defs>
-  <rect x="8" y="8" width="48" height="48" fill="url(#g)"/>"##,
-    ));
-    let CompileError::UnsupportedFill(reason) = averaged_translucent_rgb else {
-        panic!("expected a fill refusal, got {averaged_translucent_rgb:?}");
-    };
-    assert!(
-        reason.contains("stop color loses float precision"),
-        "{reason}"
-    );
 }
 
 /// An invalid `offset` is 0, and offsets clamp against the running maximum

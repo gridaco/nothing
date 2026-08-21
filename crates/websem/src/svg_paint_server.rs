@@ -49,7 +49,7 @@ use std::collections::HashSet;
 
 use csscascade::adapter::HtmlElement;
 use csscascade::dom::{DemoNodeData, NodeId};
-use style::color::AbsoluteColor;
+use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::context::QuirksMode as StyleQuirksMode;
 use style::dom::TElement;
 use style::properties::{
@@ -61,7 +61,7 @@ use style::values::specified::color::Color as SpecifiedColor;
 use style_traits::ParsingMode;
 use url::Url;
 
-use cg::CGColor;
+use cg::{CGColor, CGColor32F};
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 
@@ -238,12 +238,12 @@ pub(crate) fn classify(servers: &PaintServers<'_>, fragment: &str) -> Result<boo
     }
 }
 
-/// The `<stop>` list, resolved: offset clamped against the running maximum;
-/// color and effective alpha are admitted only when the RGBA8 leaf preserves
-/// them exactly.
+/// The `<stop>` list, resolved: offset clamped against the running maximum,
+/// and one colour whose RGB is the admitted sRGB byte triple and whose alpha
+/// is the float product Chromium hands the ramp.
 struct ResolvedStop {
     offset: f32,
-    color: CGColor,
+    color: CGColor32F,
 }
 
 enum GradientKind {
@@ -351,7 +351,7 @@ pub(crate) fn resolve(
 }
 
 /// One spatially constant gradient that retains gradient rasterization.
-fn constant_gradient(kind: GradientKind, color: CGColor, opacity: f32) -> ResolvedPaintServer {
+fn constant_gradient(kind: GradientKind, color: CGColor32F, opacity: f32) -> ResolvedPaintServer {
     let stops = vec![
         cg::GradientStop { offset: 0.0, color },
         cg::GradientStop { offset: 1.0, color },
@@ -642,9 +642,14 @@ fn gradient_length(
     Ok(Some(resolved))
 }
 
-/// Resolve the `<stop>` children: offset against the running maximum, with
-/// only stop alpha whose effective value survives the resolved RGBA8 contract
-/// exactly.
+/// Resolve the `<stop>` children: offset against the running maximum, and one
+/// colour per stop.
+///
+/// Chromium resolves a stop colour's own alpha to its byte equivalent
+/// (measured: `rgb(22 163 74 / 0.5)` is byte-identical to `#16a34a80`), then
+/// multiplies `stop-opacity` in float and hands the product to the ramp
+/// unquantized (measured: `stop-opacity="0.5"` differs from both 127/255 and
+/// 128/255). The resolved stop carries exactly that: byte RGB, float alpha.
 fn resolve_stops(owner: HtmlElement<'_>) -> Result<Vec<ResolvedStop>, String> {
     let mut stops = Vec::new();
     let mut running_max = 0.0f32;
@@ -658,33 +663,57 @@ fn resolve_stops(owner: HtmlElement<'_>) -> Result<Vec<ResolvedStop>, String> {
         let offset = stop_offset(stop);
         let offset = offset.clamp(0.0, 1.0).max(running_max);
         running_max = offset;
-        let opacity = stop_opacity(stop);
+        let opacity = stop_opacity(stop)?;
         let color = stop_color(stop)?;
-        // Chromium resolves a stop color's own alpha to its byte-equivalent,
-        // then multiplies `stop-opacity` in float. The present cg/rframe stop
-        // leaf can carry the result only when it lands exactly on a byte.
         let base_alpha = (color.alpha.clamp(0.0, 1.0) * 255.0).round() / 255.0;
-        let effective_alpha = base_alpha * opacity;
-        if !rgba8_exact(effective_alpha) {
-            return Err(
-                "resolved gradient stop alpha loses float precision at the RGBA8 paint contract"
-                    .to_string(),
-            );
-        }
-        let color = admitted_srgb(color, opacity)
+        let rgb = admitted_srgb(color, 1.0)
             .map_err(|reason| format!("a gradient <stop> is outside the slice: {reason}"))?;
+        let color = CGColor32F::from_rgb8_alpha(rgb, (base_alpha * opacity).clamp(0.0, 1.0))
+            .map_err(|error| format!("a gradient <stop> colour is unusable: {error}"))?;
         stops.push(ResolvedStop { offset, color });
     }
     Ok(stops)
 }
 
-/// Whether one clamped alpha round-trips through the frame's RGBA8 color leaf
-/// without changing its value. Chromium preserves `stop-opacity` as a float
-/// into the gradient shader; accepting a value that fails this check would
-/// silently substitute a neighboring alpha byte.
-fn rgba8_exact(component: f32) -> bool {
-    let component = component.clamp(0.0, 1.0);
-    ((component * 255.0).round() / 255.0) == component
+/// The spellings a `<stop>` presentation attribute can hide behind, each
+/// measured painting a silently wrong pixel before this patrol existed.
+///
+/// The pinned cascade has no `stop-color`/`stop-opacity` longhand, so these
+/// two attributes are read directly rather than cascaded — which means no
+/// resolver runs over them, and any value that needs one has to refuse
+/// instead of falling back to the initial. Each refusal names a construct
+/// that carries its own checklist row, so the two attribute rows tick over
+/// them (the gridaco/nothing#75/#80 own-row precedent):
+///
+/// - **`inherit`**: measured to take the ancestor gradient's own computed
+///   value (`<linearGradient stop-color="red"><stop stop-color="inherit">`
+///   paints red; the engine painted the initial black, 4096 px at Δ253).
+///   `initial`, `unset` and `revert` all coincide with the initial here and
+///   are admitted (measured identical).
+/// - **`var()`**: measured substituted in a presentation attribute
+///   (`--o: 0.25` reached the stop; the engine painted 1, 4096 px at Δ190).
+///   Which declaration feeds the substitution is a resolver question.
+/// - **CSS escapes**: a spelling this scan cannot read at all.
+fn patrol_stop_attribute(text: &str, attribute: &str) -> Result<(), String> {
+    if text.contains('\\') {
+        return Err(format!(
+            "a <stop> {attribute} carries a CSS escape this patrol cannot read"
+        ));
+    }
+    let lowered = text.to_ascii_lowercase();
+    if lowered.contains("var(") {
+        return Err(format!(
+            "a <stop> {attribute} resolves through var(), an indirection this patrol cannot \
+             follow"
+        ));
+    }
+    if trim_svg_whitespace(&lowered) == "inherit" {
+        return Err(format!(
+            "a <stop> {attribute} is inherit, which needs a cascaded longhand this build does \
+             not have"
+        ));
+    }
+    Ok(())
 }
 
 /// `offset`: a number or percentage; an invalid value is 0 (measured).
@@ -709,28 +738,44 @@ fn stop_offset(stop: HtmlElement<'_>) -> f32 {
     if percent { value / 100.0 } else { value }
 }
 
-/// `stop-opacity`: an alpha value (number or percentage), clamped; an
-/// invalid or absent value is the initial 1.
-fn stop_opacity(stop: HtmlElement<'_>) -> f32 {
+/// `stop-opacity`: SVG 2 gives it the `opacity` property's own grammar
+/// (`<number> | <percentage>`), clamped to `[0, 1]`; an invalid or absent
+/// value is the initial 1 (measured: `initial`, `unset` and `revert` are all
+/// byte-identical to `1`).
+///
+/// A CSS math function is valid there and Chromium evaluates it (measured:
+/// `calc(1 / 3)` is byte-identical to the literal third, while the engine
+/// painted 1 — 4096 px at Δ169). Evaluating one here would need a computation
+/// context this build does not construct, and re-implementing the fold would
+/// be a second matcher, so any function spelling refuses by name on the
+/// `calc()` family's own checklist rows. The patrol is one-way: it reads the
+/// plain grammar and refuses everything else it cannot prove invalid.
+fn stop_opacity(stop: HtmlElement<'_>) -> Result<f32, String> {
     let Some(text) = get_attr(stop, "stop-opacity") else {
-        return 1.0;
+        return Ok(1.0);
     };
+    patrol_stop_attribute(&text, "stop-opacity")?;
     let trimmed = trim_svg_whitespace(&text);
     let (number_text, percent) = match trimmed.strip_suffix('%') {
         Some(number) => (number, true),
         None => (trimmed, false),
     };
-    if !dots_carry_digits(number_text) {
-        return 1.0;
-    }
-    let Ok(value) = number_text.parse::<f32>() else {
-        return 1.0;
+    let plain = dots_carry_digits(number_text)
+        .then(|| number_text.parse::<f32>().ok())
+        .flatten()
+        .filter(|value| value.is_finite());
+    let Some(value) = plain else {
+        if trimmed.contains('(') {
+            return Err(
+                "a <stop> stop-opacity is a function this build cannot evaluate without a \
+                 computation context"
+                    .to_string(),
+            );
+        }
+        return Ok(1.0);
     };
-    if !value.is_finite() {
-        return 1.0;
-    }
     let value = if percent { value / 100.0 } else { value };
-    value.clamp(0.0, 1.0)
+    Ok(value.clamp(0.0, 1.0))
 }
 
 /// `stop-color`: the attribute's CSS `<color>` value. `currentColor`
@@ -743,20 +788,45 @@ fn stop_color(stop: HtmlElement<'_>) -> Result<AbsoluteColor, String> {
     let Some(text) = get_attr(stop, "stop-color") else {
         return Ok(AbsoluteColor::BLACK);
     };
+    patrol_stop_attribute(&text, "stop-color")?;
     match parse_color_attribute(&text) {
-        Some(ParsedStopColor::Absolute(color)) => Ok(color),
+        Some(ParsedStopColor::Absolute(color)) => admitted_legacy_srgb(color),
         Some(ParsedStopColor::CurrentColor) => {
             let Some(data) = stop.borrow_data() else {
                 return Ok(AbsoluteColor::BLACK);
             };
             let style: &ComputedValues = data.styles.primary();
-            Ok(style.clone_color())
+            admitted_legacy_srgb(style.clone_color())
         }
         Some(ParsedStopColor::BeyondSlice(reason)) => Err(format!(
             "a gradient <stop> color is outside the slice: {reason}"
         )),
         None => Ok(AbsoluteColor::BLACK),
     }
+}
+
+/// A stop colour must be a *legacy* sRGB colour — the kind hex, a named
+/// colour, `transparent` and `rgb()`/`rgba()` produce.
+///
+/// A non-legacy sRGB colour parses to the same colour space and would look
+/// admissible, but it changes what Chromium does with the whole ramp, not
+/// just this endpoint: a ramp from `color(srgb 0.00196078431372549 0 0)`
+/// measured 4080 px away from the same ramp started at either neighbouring
+/// byte, at Δ26 — far more than an endpoint's rounding. The same value as a
+/// *solid* is byte-identical to `#010000`, so this is a stop-only rule and
+/// the ordinary paint path keeps its own admission.
+///
+/// `color()` and the other non-legacy colour functions carry their own
+/// checklist rows, so this refusal does not block the `stop-color` row.
+fn admitted_legacy_srgb(color: AbsoluteColor) -> Result<AbsoluteColor, String> {
+    if color.color_space == ColorSpace::Srgb && !color.flags.contains(ColorFlags::IS_LEGACY_SRGB) {
+        return Err(
+            "a gradient <stop> colour is a non-legacy sRGB colour, which changes how Chromium \
+             interpolates the whole ramp"
+                .to_string(),
+        );
+    }
+    Ok(color)
 }
 
 /// What a parsed `stop-color` attribute value can be.
@@ -808,19 +878,56 @@ fn parse_color_attribute(text: &str) -> Option<ParsedStopColor> {
     })
 }
 
+/// The colour a degenerate paint server substitutes, folded with the
+/// consumer's opacity stages into one solid.
+///
+/// **This is the rung's open gap, and it is a gradient-geometry gap rather
+/// than a stop-grammar one.** Chromium does not paint a degenerate paint
+/// server as a flat colour: it keeps a shader, and that shader dithers. When
+/// every stage lands on a byte there is nothing to dither and the flat solid
+/// is byte-identical (measured: a ramp average of 0.5/255 is exactly
+/// `#010000`; one of 1.5/255 is exactly `#020000`; an averaged alpha of
+/// 102.5/255 is exactly the 103/255 constant, and under `fill-opacity=".5"`
+/// it is exactly the float product). When a stage does *not*, Chromium's
+/// output matched **no** flat solid and **no** constant ramp this probe could
+/// construct — a degenerate `pad` at stop alpha `0.5` under
+/// `fill-opacity=".7"` sat 2560–4096 px away from every candidate at Δ1, the
+/// signature of a dither pattern tied to the degenerate shader's own
+/// geometry. Rather than guess that rule, this refuses by name.
+///
+/// The refusal fires on the collapsed value, not on how it arose: two
+/// byte-exact `stop-color`s whose ramp average lands between codes trip it
+/// with no `stop-opacity` present at all. It therefore belongs to
+/// `<linearGradient>`/`<radialGradient>`, whose rows already carry it, and
+/// not to either `stop-*` row.
 fn solid_paint(
-    color: CGColor,
+    color: CGColor32F,
     paint_opacity: f32,
     post_paint_opacity: f32,
 ) -> Result<ResolvedPaintServer, String> {
-    // A live gradient keeps stop alpha in its shader and the consumer's
-    // fill/stroke opacity in the paint. Collapsing a degenerate gradient to
-    // one RGBA8 solid is lossless only when at least one alpha stage is an
-    // endpoint; otherwise the frame would silently flatten two raster stages.
+    // Only the *alpha* has to land on a byte here. A substituted colour whose
+    // RGB sits between codes is reproducible while it is fully opaque at
+    // identity (measured: a red→blue average is exactly `#800080`, and a
+    // 1.5/255 average exactly `#020000`); [`ramp_average`] owns the rule for
+    // when translucency makes that rounding visible.
+    if !CGColor32F::new(0.0, 0.0, 0.0, color.a())
+        .is_ok_and(|alpha_only| alpha_only.is_rgba8_exact())
+    {
+        return Err(
+            "a degenerate paint server substitutes a colour this build cannot reproduce: the \
+             collapsed alpha is not exactly representable in eight bits, and Chromium dithers it"
+                .to_string(),
+        );
+    }
+    let color = color.to_rgba8();
+    // Beyond the substituted colour itself, each further alpha stage must be
+    // an endpoint, for the same reason: two multiplied stages would land off
+    // a byte again.
     let paint_alpha = (paint_opacity.clamp(0.0, 1.0) * 255.0).round() as u8;
     if post_paint_opacity != 1.0 && !matches!(color.a, 0 | 255) {
         return Err(
-            "resolved gradient stop alpha loses staged precision when a degenerate paint server collapses before post-paint opacity"
+            "a degenerate paint server collapses before post-paint opacity, and the staged \
+             product is not exactly representable in eight bits"
                 .to_string(),
         );
     }
@@ -830,7 +937,8 @@ fn solid_paint(
         (stop, 255) => stop,
         _ => {
             return Err(
-                "resolved gradient stop alpha loses staged precision when a degenerate paint server collapses to RGBA8"
+                "a degenerate paint server collapses two alpha stages, and their product is \
+                 not exactly representable in eight bits"
                     .to_string(),
             );
         }
@@ -845,19 +953,42 @@ fn solid_paint(
 /// The integral average of the ramp — the backend's degenerate color for
 /// `reflect`/`repeat` (measured through Chromium, which shares the
 /// backend's rule): the piecewise-linear ramp integrated over `[0, 1]`
-/// with edge plateaus, per channel in unpremultiplied float, quantized
-/// once.
+/// with edge plateaus, per channel in unpremultiplied float.
+///
+/// The averaged **RGB** is quantized here, because the solid the backend
+/// substitutes stores it in eight bits and rounds half away from zero
+/// (measured: an average of 0.5/255 is byte-identical to `#010000`, and one
+/// of 1.5/255 to `#020000`). The averaged **alpha** is not: it still has the
+/// consumer's opacity stages to meet, and those fold in float — see
+/// [`solid_paint`].
 fn ramp_average(
     stops: &[ResolvedStop],
     paint_opacity: f32,
     post_paint_opacity: f32,
-) -> Result<CGColor, String> {
+) -> Result<CGColor32F, String> {
+    // The average is taken over byte channels, which is what it means when
+    // every stop already lands on one. A stop that does not cannot produce a
+    // reproducible average — two float alphas can average onto a byte, but
+    // whether the backend averages the float or the quantized stop is exactly
+    // the rule this build refuses to guess — so it refuses here first. This
+    // also keeps the integral out of a unit-space round trip, where
+    // `77/255 * 255` is not `77`.
+    for stop in stops {
+        if !stop.color.is_rgba8_exact() {
+            return Err(
+                "a degenerate paint server averages a ramp whose stop is not exactly \
+                 representable in eight bits, and Chromium dithers the result"
+                    .to_string(),
+            );
+        }
+    }
     let channels = |stop: &ResolvedStop| {
+        let byte = stop.color.to_rgba8();
         [
-            f32::from(stop.color.r),
-            f32::from(stop.color.g),
-            f32::from(stop.color.b),
-            f32::from(stop.color.a),
+            f32::from(byte.r),
+            f32::from(byte.g),
+            f32::from(byte.b),
+            f32::from(byte.a),
         ]
     };
     let first = &stops[0];
@@ -879,12 +1010,11 @@ fn ramp_average(
     for (index, value) in last_channels.iter().enumerate() {
         sum[index] += value * (1.0 - last.offset);
     }
-    if sum[3].round() != sum[3] {
-        return Err(
-            "resolved gradient stop alpha loses float precision when a degenerate ramp average collapses to RGBA8"
-                .to_string(),
-        );
-    }
+    // An averaged colour channel between two codes is reproducible only while
+    // the substituted colour is fully opaque at identity — measured: an
+    // average of 0.5/255 is exactly `#010000` opaque, while the same average
+    // at an exact-byte `0x80` alpha, or under any later opacity stage, moves
+    // 2,304 Chromium pixels by one code value.
     let average_visible = sum[3] > 0.0 && paint_opacity > 0.0 && post_paint_opacity > 0.0;
     if average_visible
         && (sum[3] != 255.0 || paint_opacity != 1.0 || post_paint_opacity != 1.0)
@@ -893,16 +1023,19 @@ fn ramp_average(
             .any(|component| component.round() != *component)
     {
         return Err(
-            "resolved gradient stop color loses float precision when a degenerate ramp average collapses to RGBA8"
+            "a degenerate paint server's ramp average has a colour channel between codes, \
+             which its translucency makes visible"
                 .to_string(),
         );
     }
-    Ok(CGColor {
-        r: sum[0].round() as u8,
-        g: sum[1].round() as u8,
-        b: sum[2].round() as u8,
-        a: sum[3].round() as u8,
-    })
+    // Narrow by the same multiply the byte→unit widening uses, so an integral
+    // average lands on exactly the bits a byte colour would have produced —
+    // `103.0 / 255.0` and `103.0 * (1.0 / 255.0)` are one ulp apart, and the
+    // byte-exactness test downstream can tell them apart.
+    const BYTE_TO_UNIT: f32 = 1.0 / 255.0;
+    let unit = |value: f32| (value * BYTE_TO_UNIT).clamp(0.0, 1.0);
+    CGColor32F::new(unit(sum[0]), unit(sum[1]), unit(sum[2]), unit(sum[3]))
+        .map_err(|error| format!("a degenerate ramp average is unusable: {error}"))
 }
 
 fn cg_stops(stops: &[ResolvedStop]) -> Vec<cg::GradientStop> {
