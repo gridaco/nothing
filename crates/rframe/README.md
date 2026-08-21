@@ -19,11 +19,11 @@ producer (e.g. websem, from SVG)
 
 ## What it holds
 
-| Module   | Ownership                                                                                                  |
-| -------- | ---------------------------------------------------------------------------------------------------------- |
+| Module   | Ownership                                                                                                        |
+| -------- | ---------------------------------------------------------------------------------------------------------------- |
 | `frame`  | `Frame`, `FrameNode`, `Geometry`, the admitted paint stack and its post-paint alpha factor, and product identity |
-| `path`   | `PathData` — checked absolute commands, fill rule, tight bounds solved once                                |
-| `stroke` | `Stroke` — centred width, cap, join, miter limit, optional checked dash pattern, and finite `f64` `outset` |
+| `path`   | `PathData` — checked absolute commands, fill rule, tight bounds solved once                                      |
+| `stroke` | `Stroke` — centred width, cap, join, miter limit, optional checked dash pattern, and finite `f64` `outset`       |
 
 Two details are load-bearing enough to state here. A node's `bounds` is the
 **geometry's** box, never the ink's: a stroke paints outside it, so a consumer
