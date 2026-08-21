@@ -645,13 +645,24 @@ pub fn decode_single_node(bytes: &[u8]) -> Result<DecodedSingleNode, FbsDecodeEr
 /// declares. Every other colour in the schema is consumed by a byte-colour
 /// field, so [`decode_rgba32f_to_cg_color`] still narrows for those.
 fn decode_rgba32f_to_stop_color(rgba: &fbs::RGBA32F) -> CGColor32F {
+    // `f32::clamp` propagates NaN, so a non-finite component in the file has
+    // to be handled before the checked constructor — a decoder must not panic
+    // on a malformed input. Zero matches what the sibling byte decoder
+    // produces for one (`NaN as u8` saturates to 0).
+    let unit = |component: f32| {
+        if component.is_finite() {
+            component.clamp(0.0, 1.0)
+        } else {
+            0.0
+        }
+    };
     CGColor32F::new(
-        rgba.r().clamp(0.0, 1.0),
-        rgba.g().clamp(0.0, 1.0),
-        rgba.b().clamp(0.0, 1.0),
-        rgba.a().clamp(0.0, 1.0),
+        unit(rgba.r()),
+        unit(rgba.g()),
+        unit(rgba.b()),
+        unit(rgba.a()),
     )
-    .expect("clamped finite components are inside the checked unit domain")
+    .expect("sanitized components are inside the checked unit domain")
 }
 
 fn decode_rgba32f_to_cg_color(rgba: &fbs::RGBA32F) -> CGColor {
