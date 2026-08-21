@@ -38,10 +38,17 @@ fn corpus_root() -> PathBuf {
 }
 
 /// A departure message rendered into one table cell: the register is a
-/// GitHub-flavored table, so a pipe or newline in the compiler's words
-/// must not break the row it reports.
+/// GitHub-flavored table, so a pipe, newline, or emphasis marker in the
+/// compiler's words must not change the row it reports.
 fn cell(text: &str) -> String {
-    text.replace('|', "\\|").replace('\n', " ")
+    text.replace('|', "\\|")
+        .replace('*', "\\*")
+        .replace('\n', " ")
+}
+
+#[test]
+fn refusal_text_is_literal_inside_the_generated_table() {
+    assert_eq!(cell("a | b\nc * d"), r"a \| b c \* d");
 }
 
 fn viewport() -> InitialViewport {
