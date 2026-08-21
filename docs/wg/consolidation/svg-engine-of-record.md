@@ -45,8 +45,8 @@ from the dated addenda below:
   gradient paint (`<linearGradient>`/`<radialGradient>` paint servers, the
   gradient rung), including `context-fill`/`context-stroke` selected through
   same-document use instances and fully resolved before the frame; with
-  centred stroke geometry, the closed cap/join family, opacity, and the
-  zero-phase resolved dash cycles this amendment admits;
+  centred stroke geometry, the closed cap/join family, opacity, and resolved
+  dash patterns with a checked cycle and signed local-space phase;
   `<g>` and `<a>` containers, visibility, isolated element/group opacity, and
   the whole `transform` grammar in both spellings (the attribute is a
   presentation hint of the CSS `transform` property, and `gradientTransform`
@@ -56,7 +56,7 @@ from the dated addenda below:
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 284 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 297 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
   confined tolerance (the weighted rational conic) and three gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
@@ -1537,8 +1537,8 @@ The standard-track boundary stays sharp. Chromium drops a fallback following
 after a URL; the pinned source parser accepts the extension, so one new named
 registered refusal and guards cover attribute, inline-style, and stylesheet
 ingresses. The former load-bearing context-paint refusal graduates, leaving the
-register at 56 rows at that rung (and still 56 at tip after the replacement
-below).
+register at 56 rows at that rung (and still 56 through the stroke-width
+replacement below).
 Context-selected patterns and external paint resources
 were also measured to propagate in Chromium, but remain refused by their own
 resource names. Marker context and author stylesheets across a use-shadow
@@ -1686,3 +1686,90 @@ gridaco/nothing#86 reopened the width family to resolve: cells land, but the CSS
 `stroke-width` row and its SVG presentation-attribute twin remain unchecked.
 This is a capability verdict only. It produces no conformance score and takes
 no FLIP action.
+
+## Ratified amendment — signed stroke dash phase (2026-08-21)
+
+A resolved dash pattern now pairs its checked interval cycle with one finite
+phase in the same local path-distance space. The phase is not source syntax:
+units, percentages, cascade, authored signs, and odd-list repetition have
+already resolved before the boundary. Construction canonicalizes the signed
+value modulo the positive repeated cycle. Positive phase advances into that
+cycle, equivalent signed and multi-cycle values have one representation, and
+the same canonical phase restarts at the beginning of every contour.
+
+Phase cannot exist without a positive cycle. An absent cycle, `none`, an
+all-zero cycle, or a cycle dropped by the browser's extreme-percentage rule
+remains the single solid-stroke state, and dash offset is inert there. Moving a
+live cycle changes along-path paint placement but cannot change the stroke's
+direction-free reach outside its geometry. The phase, intervals, width, and
+geometry remain local under the node transform. Path-length calibration is not
+part of this amendment: a source whose path-distance scale differs from user
+space still refuses under its separate name.
+
+The fixed used-value range is signed and asymmetric before phase
+canonicalization. Blink's positive fixed ceiling is authored 33,554,429 and is
+carried as f32 33,554,428; its negative floor is -33,554,430 exactly. On an
+`8 4` cycle, extreme positive and negative fixed offsets therefore canonicalize
+to phases 4 and 6. Percentage offsets follow the percentage used-value route,
+including finite saturation at the extreme, rather than either fixed bound.
+
+### Dashoffset rung verdict — cells landed, rows split
+
+Chromium 149 fixed the ordinary phase semantics in a 91-source matrix captured
+twice. Its 69 exact pair verdicts covered the attribute and CSS spellings;
+positive, negative, zero, unitless, px, exponent, and percentage values;
+normalized-diagonal basis in a non-square viewBox; signed and multi-cycle
+modulo after odd-list doubling; zero painted slots under all caps; open,
+closed, and multi-contour restart; every admitted geometry; uniform and
+non-uniform transforms; inheritance, use-site inheritance, and CSS-wide
+values; precedence and invalid-declaration fallback; solid-stroke inertness;
+and path-length calibration. A separate numeric matrix established both fixed
+bounds, direct percentage saturation, and the source-precision boundary. A
+focused residual matrix then established the guarded viewport-unit, variable,
+escape, and poisoned-font-basis ingresses with exact numeric controls.
+
+Thirteen of those cases are committed Chromium cells; the complete cell ledger
+and its measured-not-celled mutation controls live in the
+[Web-first evidence table](../../../fixtures/web-first/README.md). Two cells
+cover the base attribute/CSS grammar, two cover signed percentages and their
+viewBox basis, two cover odd-cycle modulo and zero-length cap slots, two cover
+contours and every geometry/transform route, three cover inheritance,
+`<use>`, CSS-wide values, precedence, and invalid fallback, and two cover the
+fixed and percentage used ranges. Every cell is byte-exact; the three
+attribute/CSS twin matrices and the two phase-four cascade outcomes are
+byte-identical.
+Scratch zero-phase mutation controls *(measured, not celled)* change every
+oracle by the exact counts recorded in the Web-first evidence table.
+
+Measured facts deliberately not assigned their own cells include omitted,
+explicit zero, and negative-zero identity; further equivalent signed modulo
+pairs; duplicated transform/topology/cap cross-products; phase inertness when
+no live cycle exists; and path-length calibration, which remains a named
+separate refusal. The residual unit, variable, escaped spelling, and poisoned
+font-basis probes likewise remain registered guards rather than capability
+cells. The unit and variable families retain their independent checklist rows
+under the gridaco/nothing#80 precedent; the Chromium-invalid comment-split
+property spelling may be conservatively over-refused under gridaco/nothing#77.
+
+The source-precision blocker is decisive. The valid authored percentages
+`57384.265625%` and `57384.267578125007%` collapse into one pinned-cascade f32
+bucket while Chromium retains distinct phases: their rasters differ by 120
+pixels in both source spellings. Their negative mirrors differ by 142 pixels.
+The last-finite and first-overflow percentage sources likewise collapse while
+Chromium differs by 688 pixels. An adjacent pair around 100% was identical on
+the same sensitive geometry, so this is a narrower provenance gap rather than
+a rejection of percentage precision in general. Tested non-identity percentage
+math happened to agree with its direct high control on that matrix, but the
+cascade erases its operation history; one bank cannot establish every such
+expression, and re-evaluating CSS math after the cascade would be a second
+matcher.
+
+The broad dashoffset refusal therefore graduates, while a stable
+percentage-precision-alias refusal and four source/basis guards replace it.
+The primitive corpus moves from 284 to 297 cells. Its stroke inventory moves
+from 102 to 115 cells, 114 byte-exact, with only the existing closed-path
+tolerance. The refusal register moves from 56 to 60 rows. The valid
+Chromium-honored precision class has no independent checklist row, so this is
+gridaco/nothing#81's SPLIT condition: the CSS `stroke-dashoffset` row and its
+SVG presentation-attribute twin both remain unchecked. This is a capability
+verdict only. It produces no conformance score and takes no FLIP action.

@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (284)
+## Chromium-baked cells (297)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells and three gradient ramps carry a declared, bounded
@@ -219,6 +219,19 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-stroke-dasharray-used-clamp-css.svg" title="svg-stroke-dasharray-used-clamp-css (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-used-clamp-css.png" width="56" alt="svg-stroke-dasharray-used-clamp-css"></a>
 <a href="./svg-stroke-dasharray-viewbox-percent.svg" title="svg-stroke-dasharray-viewbox-percent (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-viewbox-percent.png" width="56" alt="svg-stroke-dasharray-viewbox-percent"></a>
 <a href="./svg-stroke-dasharray-zero-round.svg" title="svg-stroke-dasharray-zero-round (standalone-svg)"><img src="./chromium/svg-stroke-dasharray-zero-round.png" width="56" alt="svg-stroke-dasharray-zero-round"></a>
+<a href="./svg-stroke-dashoffset-attr.svg" title="svg-stroke-dashoffset-attr (standalone-svg)"><img src="./chromium/svg-stroke-dashoffset-attr.png" width="56" alt="svg-stroke-dashoffset-attr"></a>
+<a href="./svg-stroke-dashoffset-contours.svg" title="svg-stroke-dashoffset-contours (standalone-svg)"><img src="./chromium/svg-stroke-dashoffset-contours.png" width="56" alt="svg-stroke-dashoffset-contours"></a>
+<a href="./svg-stroke-dashoffset-css.svg" title="svg-stroke-dashoffset-css (standalone-svg)"><img src="./chromium/svg-stroke-dashoffset-css.png" width="56" alt="svg-stroke-dashoffset-css"></a>
+<a href="./svg-stroke-dashoffset-css-invalid-falls-back.svg" title="svg-stroke-dashoffset-css-invalid-falls-back (standalone-svg)"><img src="./chromium/svg-stroke-dashoffset-css-invalid-falls-back.png" width="56" alt="svg-stroke-dashoffset-css-invalid-falls-back"></a>
+<a href="./svg-stroke-dashoffset-css-over-attr.svg" title="svg-stroke-dashoffset-css-over-attr (standalone-svg)"><img src="./chromium/svg-stroke-dashoffset-css-over-attr.png" width="56" alt="svg-stroke-dashoffset-css-over-attr"></a>
+<a href="./svg-stroke-dashoffset-geometries.svg" title="svg-stroke-dashoffset-geometries (standalone-svg)"><img src="./chromium/svg-stroke-dashoffset-geometries.png" width="56" alt="svg-stroke-dashoffset-geometries"></a>
+<a href="./svg-stroke-dashoffset-inherited-use-css-wide.svg" title="svg-stroke-dashoffset-inherited-use-css-wide (standalone-svg)"><img src="./chromium/svg-stroke-dashoffset-inherited-use-css-wide.png" width="56" alt="svg-stroke-dashoffset-inherited-use-css-wide"></a>
+<a href="./svg-stroke-dashoffset-odd-modulo.svg" title="svg-stroke-dashoffset-odd-modulo (standalone-svg)"><img src="./chromium/svg-stroke-dashoffset-odd-modulo.png" width="56" alt="svg-stroke-dashoffset-odd-modulo"></a>
+<a href="./svg-stroke-dashoffset-percentage-attr.svg" title="svg-stroke-dashoffset-percentage-attr (standalone-svg)"><img src="./chromium/svg-stroke-dashoffset-percentage-attr.png" width="56" alt="svg-stroke-dashoffset-percentage-attr"></a>
+<a href="./svg-stroke-dashoffset-percentage-css.svg" title="svg-stroke-dashoffset-percentage-css (standalone-svg)"><img src="./chromium/svg-stroke-dashoffset-percentage-css.png" width="56" alt="svg-stroke-dashoffset-percentage-css"></a>
+<a href="./svg-stroke-dashoffset-used-range-attr.svg" title="svg-stroke-dashoffset-used-range-attr (standalone-svg)"><img src="./chromium/svg-stroke-dashoffset-used-range-attr.png" width="56" alt="svg-stroke-dashoffset-used-range-attr"></a>
+<a href="./svg-stroke-dashoffset-used-range-css.svg" title="svg-stroke-dashoffset-used-range-css (standalone-svg)"><img src="./chromium/svg-stroke-dashoffset-used-range-css.png" width="56" alt="svg-stroke-dashoffset-used-range-css"></a>
+<a href="./svg-stroke-dashoffset-zero-caps.svg" title="svg-stroke-dashoffset-zero-caps (standalone-svg)"><img src="./chromium/svg-stroke-dashoffset-zero-caps.png" width="56" alt="svg-stroke-dashoffset-zero-caps"></a>
 <a href="./svg-stroke-default-width.svg" title="svg-stroke-default-width (standalone-svg)"><img src="./chromium/svg-stroke-default-width.png" width="56" alt="svg-stroke-default-width"></a>
 <a href="./svg-stroke-ellipse.svg" title="svg-stroke-ellipse (standalone-svg)"><img src="./chromium/svg-stroke-ellipse.png" width="56" alt="svg-stroke-ellipse"></a>
 <a href="./svg-stroke-inherited.svg" title="svg-stroke-inherited (standalone-svg)"><img src="./chromium/svg-stroke-inherited.png" width="56" alt="svg-stroke-inherited"></a>
@@ -313,7 +326,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (56)
+## The refusal register (60)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -359,7 +372,11 @@ its row into the cells above.
 | `svg-stroke-dasharray-font-basis` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dasharray in em on <path> under an authored font-size carrying vw needs a basis this cascade does not have" |
 | `svg-stroke-dasharray-sheet-unit` | declared | declaration ignored at svg/style[1]: a stylesheet declares a stroke-dasharray in ex, which needs a basis this cascade does not have; elements it matches render the wrong dash cycle |
 | `svg-stroke-dasharray-var` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dasharray on <path> resolves through var(), an indirection this patrol cannot follow" |
-| `svg-stroke-dashoffset` | declared | skipped svg/path[1]: unsupported computed style: style attribute on <path> declares stroke-dashoffset, which this cascade does not represent |
+| `svg-stroke-dashoffset-escape` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dashoffset on <path> carries a CSS escape this patrol cannot read" |
+| `svg-stroke-dashoffset-font-basis` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dashoffset in em on <path> under an authored font-size carrying vw needs a basis this cascade does not have" |
+| `svg-stroke-dashoffset-percentage-precision-alias` | declared | skipped svg/path[1]: unsupported stroke value "stroke-dashoffset percentage precision alias loses Chromium used-value provenance" |
+| `svg-stroke-dashoffset-sheet-unit` | declared | declaration ignored at svg/style[1]: a stylesheet declares a stroke-dashoffset in ex, which needs a basis this cascade does not have; elements it matches render the wrong dash phase |
+| `svg-stroke-dashoffset-var` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dashoffset on <path> resolves through var(), an indirection this patrol cannot follow" |
 | `svg-stroke-paint-order` | declared | skipped svg/rect[1]: unsupported rendering attribute paint-order on <rect> (not yet consumed) |
 | `svg-stroke-sheet-unit-width` | declared | declaration ignored at svg/style[1]: a stylesheet declares a stroke-width in ex, which needs a basis this cascade does not have; elements it matches render at the wrong width |
 | `svg-stroke-vector-effect` | declared | skipped svg/g[1]/rect[1]: unsupported rendering attribute vector-effect on <rect> (not yet consumed) |

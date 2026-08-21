@@ -48,10 +48,10 @@
 //! the slice does not consume refuse or skip by name
 //! (`RENDERING_ATTRIBUTES_NOT_CONSUMED`), while attributes outside the
 //! SVG rendering vocabulary stay ignored exactly as Chromium ignores them;
-//! the cascaded surface is patrolled for the enumerated properties
-//! `display: contents` and `stroke-dashoffset`, beside the consumed reads —
-//! typed `fill`/`fill-opacity`, the stroke family (including resolved dash
-//! intervals and their authored-unit patrol), the visibility
+//! the cascaded surface is patrolled for enumerated unconsumed values such as
+//! `display: contents`, beside the consumed reads — typed
+//! `fill`/`fill-opacity`, the stroke family (including resolved dash patterns
+//! and their authored-unit/provenance patrols), the visibility
 //! rung's `display: none`/`visibility` disposition, and the group-scope
 //! rung's `opacity`. Cascaded properties beyond that
 //! enumeration remain a **named open boundary** of the slice — not a
@@ -132,8 +132,8 @@ use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
     FillRule, Frame, FrameItem, FrameItems, FrameNode, Geometry, Identity, PaintStack, PathData,
-    Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeDashIntervals,
-    StrokeDashIntervalsError, StrokeJoin, VisualRef,
+    Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeDash,
+    StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, VisualRef,
 };
 use std::sync::Arc;
 
@@ -998,7 +998,6 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     // presentation hint (csscascade), the currentColor basis the paint
     // resolvers already read from the cascade.
     "paint-order",
-    "stroke-dashoffset",
     // Markers apply to `<path>`, `<line>`, `<polyline>` and `<polygon>`, and
     // this slice admits the first two. Nothing else "reads" a marker
     // property — the property *is* the paint trigger — so unlike `pathLength`
@@ -1091,7 +1090,7 @@ const ROOT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["transform"];
 ///   engine-gated names are.
 /// - **Represented but unconsumed.** `translate`, `rotate`, `scale`,
 ///   `transform-origin`, `clip-path`, `filter`, `mix-blend-mode` and
-///   `isolation` and `stroke-dashoffset` *do* compute in this build; this
+///   `isolation` *do* compute in this build; this
 ///   compiler simply does not read them, and reading them would mean
 ///   implementing them. (`transform` was the
 ///   first name to leave this list: the transform rung reads its computed
@@ -1148,11 +1147,6 @@ const CASCADE_PROPERTIES_NOT_REPRESENTED: &[&str] = &[
     "mix-blend-mode",
     "isolation",
     "paint-order",
-    // Represented by the pinned cascade but deliberately not consumed by the
-    // zero-phase dash contract. Scanning authored CSS is load-bearing: a unit
-    // whose basis this build lacks can compute to zero while Chromium moves
-    // the pattern, so checking only the computed nonzero case would leak.
-    "stroke-dashoffset",
     // The gradient rung's sheet-level patrol: Chromium consumes these from
     // the cascade (measured: `stop { stop-color: red }` beats the
     // attribute), but the pinned servo cascade has no such longhands — a
@@ -1267,6 +1261,10 @@ fn stylesheet_stroke_dasharray_unit(css: &str) -> Option<&'static str> {
     stylesheet_stroke_length_unit(css, "stroke-dasharray")
 }
 
+fn stylesheet_stroke_dashoffset_unit(css: &str) -> Option<&'static str> {
+    stylesheet_stroke_length_unit(css, "stroke-dashoffset")
+}
+
 /// Whether a sheet declares a `stroke-width` through `var()` — an indirection
 /// the unit scan above cannot follow (measured: `--w: 1vw` substituted to a
 /// silent 12.8 where Chromium paints 0.64).
@@ -1286,19 +1284,23 @@ fn stylesheet_stroke_dasharray_var(css: &str) -> bool {
     stylesheet_stroke_length_var(css, "stroke-dasharray")
 }
 
-/// Whether a CSS fragment declares a `stroke-width` percentage whose authored
-/// numeric provenance the computed Stylo value cannot preserve.
+fn stylesheet_stroke_dashoffset_var(css: &str) -> bool {
+    stylesheet_stroke_length_var(css, "stroke-dashoffset")
+}
+
+/// Whether a CSS fragment declares one stroke property's percentage whose
+/// authored numeric provenance the computed Stylo value cannot preserve.
 ///
 /// This deliberately shares the existing declaration-block patrol rather than
 /// matching selectors or parsing CSS a second time. A stylesheet finding is
 /// document-level because the one cascade, not this scan, decides which
 /// elements the declaration matches.
-fn stylesheet_stroke_width_percentage_precision_alias(css: &str) -> bool {
+fn stylesheet_stroke_percentage_precision_alias(css: &str, property: &str) -> bool {
     let css = strip_css_comments(css);
     css.split([';', '{', '}'])
         .filter_map(|chunk| chunk.split_once(':'))
-        .filter(|(name, _)| trim_svg_whitespace(name).eq_ignore_ascii_case("stroke-width"))
-        .any(|(_, value)| stroke_width_percentage_source_loses_provenance(value))
+        .filter(|(name, _)| trim_svg_whitespace(name).eq_ignore_ascii_case(property))
+        .any(|(_, value)| stroke_percentage_source_loses_provenance(value))
 }
 
 /// Whether a sheet declares a `stroke-width` in `em`/`rem` — admitted units
@@ -1318,6 +1320,10 @@ fn stylesheet_stroke_width_font_relative(css: &str) -> Option<&'static str> {
 
 fn stylesheet_stroke_dasharray_font_relative(css: &str) -> Option<&'static str> {
     stylesheet_stroke_length_font_relative(css, "stroke-dasharray")
+}
+
+fn stylesheet_stroke_dashoffset_font_relative(css: &str) -> Option<&'static str> {
+    stylesheet_stroke_length_font_relative(css, "stroke-dashoffset")
 }
 
 /// Whether a sheet's `font-size` (or `font` shorthand) declaration would set
@@ -1414,6 +1420,7 @@ fn stylesheet_findings(root: HtmlElement<'_>) -> Vec<(String, String)> {
     // both halves are collected and judged after it.
     let mut sheet_width_font_relative: Option<(&'static str, String)> = None;
     let mut sheet_dasharray_font_relative: Option<(&'static str, String)> = None;
+    let mut sheet_dashoffset_font_relative: Option<(&'static str, String)> = None;
     let mut font_poison: Option<&'static str> = None;
     let mut stack = vec![(root, root.local_name_string())];
     while let Some((element, path)) = stack.pop() {
@@ -1481,6 +1488,25 @@ fn stylesheet_findings(root: HtmlElement<'_>) -> Vec<(String, String)> {
                     path.clone(),
                 ));
             }
+            if let Some(unit) = stylesheet_stroke_dashoffset_unit(&sheet) {
+                found.push((
+                    format!(
+                        "a stylesheet declares a stroke-dashoffset in {unit}, which needs a \
+                         basis this cascade does not have; elements it matches render the \
+                         wrong dash phase"
+                    ),
+                    path.clone(),
+                ));
+            }
+            if stylesheet_stroke_dashoffset_var(&sheet) {
+                found.push((
+                    "a stylesheet declares a stroke-dashoffset through var(), an indirection \
+                     this patrol cannot follow; elements it matches may render the wrong dash \
+                     phase"
+                        .to_string(),
+                    path.clone(),
+                ));
+            }
             if sheet_width_font_relative.is_none()
                 && let Some(unit) = stylesheet_stroke_width_font_relative(&sheet)
             {
@@ -1490,6 +1516,11 @@ fn stylesheet_findings(root: HtmlElement<'_>) -> Vec<(String, String)> {
                 && let Some(unit) = stylesheet_stroke_dasharray_font_relative(&sheet)
             {
                 sheet_dasharray_font_relative = Some((unit, path.clone()));
+            }
+            if sheet_dashoffset_font_relative.is_none()
+                && let Some(unit) = stylesheet_stroke_dashoffset_font_relative(&sheet)
+            {
+                sheet_dashoffset_font_relative = Some((unit, path.clone()));
             }
             if font_poison.is_none() {
                 font_poison = stylesheet_font_size_poison(&sheet);
@@ -1539,6 +1570,16 @@ fn stylesheet_findings(root: HtmlElement<'_>) -> Vec<(String, String)> {
                 "a stylesheet declares a stroke-dasharray in {unit} while an authored \
                  font-size carries {poison}; the em basis cannot be trusted and elements it \
                  matches may render the wrong dash cycle"
+            ),
+            path,
+        ));
+    }
+    if let (Some((unit, path)), Some(poison)) = (sheet_dashoffset_font_relative, font_poison) {
+        found.push((
+            format!(
+                "a stylesheet declares a stroke-dashoffset in {unit} while an authored \
+                 font-size carries {poison}; the em basis cannot be trusted and elements it \
+                 matches may render the wrong dash phase"
             ),
             path,
         ));
@@ -4415,30 +4456,38 @@ fn patrol_stroke_width_units(el: HtmlElement<'_>, element_name: &str) -> Result<
     patrol_stroke_length_units(el, element_name, "stroke-width")
 }
 
-/// Patrol the attributable stroke-width ingresses whose authored percentage
+fn patrol_stroke_dashoffset_units(
+    el: HtmlElement<'_>,
+    element_name: &str,
+) -> Result<(), CompileError> {
+    patrol_stroke_length_units(el, element_name, "stroke-dashoffset")
+}
+
+/// Patrol the attributable ingresses of one stroke length property whose percentage
 /// provenance cannot be recovered from Stylo's computed `f32`: the
 /// presentation attribute and `style` declaration on this element and every
 /// ancestor from which the property can inherit.
 ///
 /// This runs only after the typed computed value proved that the winning value
-/// is a pure percentage. That invocation boundary is load-bearing: Stylo can
-/// fold authored length terms such as `+ 0px` out of a pure percentage, while
-/// a genuinely mixed length/percentage value reaches the established typed
-/// refusal without calling this patrol. Stylesheets cannot be attributed to
-/// the winning element without a second selector matcher, so once that typed
-/// boundary is crossed every sheet is scanned conservatively from the document
-/// root, matching the existing stylesheet patrol posture.
-fn patrol_stroke_width_percentage_provenance(el: HtmlElement<'_>) -> Result<(), CompileError> {
+/// still bears a percentage. That invocation boundary is load-bearing: Stylo
+/// can fold authored length terms such as `+ 0px` out of a pure percentage.
+/// Stylesheets cannot be attributed to the winning element without a second
+/// selector matcher, so once that typed boundary is crossed every sheet is
+/// scanned conservatively from the document root, matching the existing
+/// stylesheet patrol posture.
+fn patrol_stroke_percentage_provenance(
+    el: HtmlElement<'_>,
+    property: &str,
+    reason: &str,
+) -> Result<(), CompileError> {
     let mut ancestor = Some(el);
     while let Some(element) = ancestor {
-        let attribute_loses_provenance = get_attr(element, "stroke-width")
-            .is_some_and(|value| stroke_width_percentage_source_loses_provenance(&value));
+        let attribute_loses_provenance = get_attr(element, property)
+            .is_some_and(|value| stroke_percentage_source_loses_provenance(&value));
         let style_loses_provenance = get_attr(element, "style")
-            .is_some_and(|style| stylesheet_stroke_width_percentage_precision_alias(&style));
+            .is_some_and(|style| stylesheet_stroke_percentage_precision_alias(&style, property));
         if attribute_loses_provenance || style_loses_provenance {
-            return Err(CompileError::UnsupportedStroke(
-                STROKE_WIDTH_PERCENTAGE_PRECISION_ALIAS.to_string(),
-            ));
+            return Err(CompileError::UnsupportedStroke(reason.to_string()));
         }
         ancestor = element.traversal_parent();
     }
@@ -4452,10 +4501,8 @@ fn patrol_stroke_width_percentage_provenance(el: HtmlElement<'_>) -> Result<(), 
                     sheet.push_str(text);
                 }
             }
-            if stylesheet_stroke_width_percentage_precision_alias(&sheet) {
-                return Err(CompileError::UnsupportedStroke(
-                    STROKE_WIDTH_PERCENTAGE_PRECISION_ALIAS.to_string(),
-                ));
+            if stylesheet_stroke_percentage_precision_alias(&sheet, property) {
+                return Err(CompileError::UnsupportedStroke(reason.to_string()));
             }
         }
         let mut child = element.first_element_child();
@@ -4467,6 +4514,18 @@ fn patrol_stroke_width_percentage_provenance(el: HtmlElement<'_>) -> Result<(), 
     Ok(())
 }
 
+fn patrol_stroke_width_percentage_provenance(el: HtmlElement<'_>) -> Result<(), CompileError> {
+    patrol_stroke_percentage_provenance(el, "stroke-width", STROKE_WIDTH_PERCENTAGE_PRECISION_ALIAS)
+}
+
+fn patrol_stroke_dashoffset_percentage_provenance(el: HtmlElement<'_>) -> Result<(), CompileError> {
+    patrol_stroke_percentage_provenance(
+        el,
+        "stroke-dashoffset",
+        STROKE_DASHOFFSET_PERCENTAGE_PRECISION_ALIAS,
+    )
+}
+
 fn patrol_stroke_dasharray_units(
     el: HtmlElement<'_>,
     element_name: &str,
@@ -4474,22 +4533,20 @@ fn patrol_stroke_dasharray_units(
     patrol_stroke_length_units(el, element_name, "stroke-dasharray")
 }
 
-/// The upper used-value bound for a non-negative Web `<length>` consumed by
-/// SVG stroke properties.
+/// The used-value bounds for a fixed Web `<length>` consumed by SVG stroke
+/// properties.
 ///
 /// Blink mixes CSS lengths with SVG user-unit lengths by clamping the former
-/// to its fixed-point layout range: `INT_MAX / 64 - 2`, or 33,554,429. That
-/// integer rounds to 33,554,428 when represented by the `f32` facts this
-/// compiler and frame contract carry.
+/// to its asymmetric fixed-point layout range. The positive integer ceiling,
+/// `INT_MAX / 64 - 2` = 33,554,429, rounds to 33,554,428 as `f32`; the negative
+/// floor, `INT_MIN / 64 + 2` = -33,554,430, is exactly representable. The
+/// distinction is visible after dash-phase modulo (measured: on a 12-unit
+/// cycle an extreme negative fixed offset starts at phase 6, not phase 4).
+const WEB_USED_LENGTH_MIN: f32 = (i32::MIN / 64 + 2) as f32;
 const WEB_USED_LENGTH_MAX: f32 = (i32::MAX / 64 - 2) as f32;
 
 fn clamp_web_used_length(length: Length) -> f32 {
-    let px = length.px();
-    if px > WEB_USED_LENGTH_MAX {
-        WEB_USED_LENGTH_MAX
-    } else {
-        px
-    }
+    length.px().clamp(WEB_USED_LENGTH_MIN, WEB_USED_LENGTH_MAX)
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -4499,6 +4556,8 @@ enum PercentageResolutionError {
 
 const STROKE_WIDTH_PERCENTAGE_PRECISION_ALIAS: &str =
     "stroke-width percentage precision alias loses Chromium used-value provenance";
+const STROKE_DASHOFFSET_PERCENTAGE_PRECISION_ALIAS: &str =
+    "stroke-dashoffset percentage precision alias loses Chromium used-value provenance";
 const MAX_FINITE_F32_BITS: u32 = f32::MAX.to_bits();
 const AFTER_MAX_FINITE_F32_BITS: u64 = MAX_FINITE_F32_BITS as u64 + 1;
 
@@ -4543,7 +4602,7 @@ fn trim_css_important(value: &str) -> &str {
 /// the computed value, and re-evaluating a CSS math expression here would be a
 /// second matcher. The patrol is intentionally one-way — uncertainty adds a
 /// named refusal and can never admit a guessed value.
-fn stroke_width_percentage_source_loses_provenance(value: &str) -> bool {
+fn stroke_percentage_source_loses_provenance(value: &str) -> bool {
     let without_comments = strip_css_comments(value);
     let mut candidate = trim_css_important(&without_comments);
 
@@ -4610,7 +4669,8 @@ fn percentage_preimage_lower_bound(computed_fraction: f32, strict: bool) -> u64 
     low
 }
 
-/// Resolve a pure percentage stroke width with Blink's float operation order.
+/// Resolve a pure percentage stroke distance with Blink's float operation
+/// order.
 ///
 /// The authored-source patrol above has already refused raw `f64`
 /// normalization mismatches and percentage-bearing arithmetic. For the
@@ -4662,6 +4722,20 @@ fn resolve_web_percentage_length(
     Ok(lower)
 }
 
+/// Signed companion to [`resolve_web_percentage_length`]. Percentage
+/// normalization is sign-symmetric; the non-negative preimage proof therefore
+/// resolves the magnitude once and restores the computed sign exactly.
+fn resolve_web_signed_percentage_length(
+    computed_fraction: f32,
+    basis: f32,
+) -> Result<f32, PercentageResolutionError> {
+    if !computed_fraction.is_finite() {
+        return Err(PercentageResolutionError::PrecisionAlias);
+    }
+    let magnitude = resolve_web_percentage_length(computed_fraction.abs(), basis)?;
+    Ok(magnitude.copysign(computed_fraction))
+}
+
 #[cfg(test)]
 mod percentage_resolution_tests {
     use super::*;
@@ -4677,18 +4751,18 @@ mod percentage_resolution_tests {
             "CALC( 10% )",
         ] {
             assert!(
-                !stroke_width_percentage_source_loses_provenance(safe),
+                !stroke_percentage_source_loses_provenance(safe),
                 "recoverable direct percentage {safe:?}"
             );
         }
 
-        assert!(stroke_width_percentage_source_loses_provenance(
+        assert!(stroke_percentage_source_loses_provenance(
             "57384.267578125007%"
         ));
-        assert!(stroke_width_percentage_source_loses_provenance(
+        assert!(stroke_percentage_source_loses_provenance(
             "calc(57384.265625% + 0.001953125007%)"
         ));
-        assert!(stroke_width_percentage_source_loses_provenance(
+        assert!(stroke_percentage_source_loses_provenance(
             "calc(28692.1337890625035% * 2)"
         ));
     }
@@ -4774,6 +4848,36 @@ mod percentage_resolution_tests {
             resolve_web_percentage_length(one_percent, 3.0),
             Err(PercentageResolutionError::PrecisionAlias),
             "the same endpoints produce adjacent used values at this basis"
+        );
+    }
+
+    #[test]
+    fn signed_percentage_resolution_reuses_the_magnitude_proof() {
+        assert_eq!(
+            resolve_web_signed_percentage_length(-10.0_f32 / 100.0, 64.0),
+            Ok(-6.4)
+        );
+        assert_eq!(
+            resolve_web_signed_percentage_length(-1.0_f32 / 100.0, 3.0),
+            Err(PercentageResolutionError::PrecisionAlias)
+        );
+        assert_eq!(
+            resolve_web_signed_percentage_length(f32::NEG_INFINITY, 64.0),
+            Err(PercentageResolutionError::PrecisionAlias)
+        );
+    }
+
+    #[test]
+    fn fixed_used_length_range_is_asymmetric() {
+        assert_eq!(WEB_USED_LENGTH_MIN, -33_554_430.0);
+        assert_eq!(WEB_USED_LENGTH_MAX, 33_554_428.0);
+        assert_eq!(
+            clamp_web_used_length(Length::new(-3.4e38)),
+            WEB_USED_LENGTH_MIN
+        );
+        assert_eq!(
+            clamp_web_used_length(Length::new(3.4e38)),
+            WEB_USED_LENGTH_MAX
         );
     }
 }
@@ -4973,6 +5077,53 @@ fn resolve_stroke(
         }
     };
 
+    // Dashoffset is inert unless a positive cycle survived normalization. A
+    // present cycle receives one signed local-space phase from the same typed
+    // cascade. The resolved contract is the sole modulo owner; this producer
+    // supplies Blink-shaped used lengths and percentage results only.
+    let dash = match dash_intervals {
+        None => None,
+        Some(intervals) => {
+            patrol_stroke_dashoffset_units(el, element_name)?;
+            let phase = match destination_style.clone_stroke_dashoffset() {
+                SVGLength::ContextValue => {
+                    return Err(CompileError::UnsupportedStroke(
+                        "stroke-dashoffset: context-value".to_string(),
+                    ));
+                }
+                SVGLength::LengthPercentage(offset) => match offset.to_length() {
+                    Some(length) => clamp_web_used_length(length),
+                    None => {
+                        // Any percentage-bearing arithmetic has lost its
+                        // operation history here. The source patrol refuses it
+                        // conservatively; a direct percentage then still has
+                        // to prove that its complete authored-f32 preimage
+                        // produces one Chromium used value.
+                        patrol_stroke_dashoffset_percentage_provenance(el)?;
+                        let Some(percentage) = offset.to_percentage() else {
+                            return Err(CompileError::UnsupportedStroke(
+                                STROKE_DASHOFFSET_PERCENTAGE_PRECISION_ALIAS.to_string(),
+                            ));
+                        };
+                        match resolve_web_signed_percentage_length(percentage.0, bases.diagonal()) {
+                            Ok(phase) => phase,
+                            Err(PercentageResolutionError::PrecisionAlias) => {
+                                return Err(CompileError::UnsupportedStroke(
+                                    STROKE_DASHOFFSET_PERCENTAGE_PRECISION_ALIAS.to_string(),
+                                ));
+                            }
+                        }
+                    }
+                },
+            };
+            Some(StrokeDash::new(intervals, phase).map_err(|error| {
+                CompileError::UnsupportedStroke(format!(
+                    "stroke-dashoffset did not resolve to one checked phase: {error}"
+                ))
+            })?)
+        }
+    };
+
     let cap = match destination_style.clone_stroke_linecap() {
         StyloLinecap::Butt => StrokeCap::Butt,
         StyloLinecap::Round => StrokeCap::Round,
@@ -4994,7 +5145,7 @@ fn resolve_stroke(
 
     // The cascade's non-negative types make a rejection here unreachable from a
     // document, so it would be this compiler's bug — named, never painted.
-    Stroke::new_with_dash_intervals(paints, width, cap, join, miter_limit, dash_intervals)
+    Stroke::new_with_dash(paints, width, cap, join, miter_limit, dash)
         .map_err(|error| CompileError::UnsupportedStroke(error.to_string()))
 }
 

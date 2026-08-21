@@ -31,7 +31,7 @@ use skia_safe::{
     Rect, SamplingOptions, Shader, StrokeRec,
 };
 
-use crate::drawlist::{DrawList, ItemKind};
+use crate::drawlist::{DrawList, ItemKind, StrokeDashPhase};
 
 /// The gradient family whose local matrix could not be represented by the
 /// raster backend for one resolved paint box.
@@ -571,7 +571,7 @@ pub(crate) fn preflight_gradients<K: Copy>(
                 }
             }
             ItemKind::RectStroke { w, h, stroke, .. }
-            | ItemKind::OvalStroke { w, h, stroke }
+            | ItemKind::OvalStroke { w, h, stroke, .. }
             | ItemKind::PathStroke { w, h, stroke, .. } => preflight_paints(
                 item.node,
                 draw_item,
@@ -733,7 +733,7 @@ pub(crate) fn preflight_images(
                 }
             }
             ItemKind::RectStroke { w, h, stroke, .. }
-            | ItemKind::OvalStroke { w, h, stroke }
+            | ItemKind::OvalStroke { w, h, stroke, .. }
             | ItemKind::PathStroke { w, h, stroke, .. } => preflight_image_paints(
                 item,
                 draw_item,
@@ -1001,7 +1001,7 @@ fn uniform_stroke_width(stroke: &Stroke) -> Option<f32> {
 /// variant (including images and gradients) follows the same ordered painter
 /// path. Open contours are necessarily centered; inside/outside are defined
 /// only for closed outlines.
-fn stroke_geometry(source: &Path, stroke: &Stroke) -> Path {
+fn stroke_geometry(source: &Path, stroke: &Stroke, dash_phase: StrokeDashPhase) -> Path {
     let Some(width) = uniform_stroke_width(stroke) else {
         return Path::new();
     };
@@ -1021,7 +1021,7 @@ fn stroke_geometry(source: &Path, stroke: &Stroke) -> Path {
             let Some(intervals) = normalized_dash_array(values) else {
                 return Path::new();
             };
-            let Some(effect) = PathEffect::dash(&intervals, 0.0) else {
+            let Some(effect) = PathEffect::dash(&intervals, dash_phase.value()) else {
                 return Path::new();
             };
             let filter_rec = StrokeRec::new(InitStyle::Hairline);
@@ -1298,6 +1298,7 @@ fn rectangular_stroke_geometry(
     radius: &RectangularCornerRadius,
     widths: RectangularStrokeWidth,
     stroke: &Stroke,
+    dash_phase: StrokeDashPhase,
 ) -> Path {
     if widths.is_none() {
         return Path::new();
@@ -1315,7 +1316,7 @@ fn rectangular_stroke_geometry(
     };
     let centerline =
         rectangular_stroke_centerline(w, h, widths, radius, stroke.align).unwrap_or(outer);
-    let Some(effect) = PathEffect::dash(&intervals, 0.0) else {
+    let Some(effect) = PathEffect::dash(&intervals, dash_phase.value()) else {
         return Path::new();
     };
     let filter_rec = StrokeRec::new(InitStyle::Hairline);
@@ -1434,6 +1435,146 @@ mod closed_contour_cap_tests {
             StrokeCap::Round,
             "an active dash cycle has cap-bearing segment ends"
         );
+    }
+}
+
+#[cfg(test)]
+mod dash_phase_route_tests {
+    use super::*;
+    use n0_model::model::{
+        Color as ModelColor, Paints, Stroke, StrokeAlign, StrokeCap, StrokeJoin, StrokeWidth,
+    };
+
+    const W: i32 = 64;
+    const H: i32 = 48;
+
+    fn phase(value: f32) -> StrokeDashPhase {
+        StrokeDashPhase::from_canonical(value)
+    }
+
+    fn dashed(width: StrokeWidth, align: StrokeAlign, cap: StrokeCap) -> Stroke {
+        Stroke {
+            paints: Paints::solid(ModelColor::BLACK),
+            width,
+            align,
+            cap,
+            join: StrokeJoin::Miter,
+            miter_limit: 4.0,
+            dash_array: Some(vec![8.0, 4.0]),
+        }
+    }
+
+    fn raster(draw: impl FnOnce(&Canvas)) -> Vec<u8> {
+        let mut surface = skia_safe::surfaces::raster_n32_premul((W, H)).unwrap();
+        {
+            let canvas = surface.canvas();
+            canvas.clear(Color::WHITE);
+            draw(canvas);
+        }
+        read_pixels(&mut surface, W, H)
+    }
+
+    fn draw_black_path(canvas: &Canvas, path: &Path) {
+        let mut paint = Paint::default();
+        paint.set_anti_alias(true);
+        paint.set_color(Color::BLACK);
+        canvas.draw_path(path, &paint);
+    }
+
+    fn outline_raster(cap: StrokeCap, dash_phase: StrokeDashPhase) -> Vec<u8> {
+        let mut builder = PathBuilder::new();
+        builder.add_rect(
+            Rect::from_xywh(8.0, 8.0, 48.0, 32.0),
+            Some(PathDirection::CW),
+            Some(0),
+        );
+        let source = builder.snapshot();
+        let stroke = dashed(StrokeWidth::Uniform(6.0), StrokeAlign::Outside, cap);
+        let geometry = stroke_geometry(&source, &stroke, dash_phase);
+        raster(|canvas| draw_black_path(canvas, &geometry))
+    }
+
+    fn rectangular_raster(dash_phase: StrokeDashPhase) -> Vec<u8> {
+        let widths = RectangularStrokeWidth {
+            stroke_top_width: 8.0,
+            stroke_right_width: 4.0,
+            stroke_bottom_width: 6.0,
+            stroke_left_width: 2.0,
+        };
+        let stroke = dashed(
+            StrokeWidth::Rectangular(widths),
+            StrokeAlign::Center,
+            StrokeCap::Butt,
+        );
+        let geometry = rectangular_stroke_geometry(
+            48.0,
+            32.0,
+            &RectangularCornerRadius::default(),
+            widths,
+            &stroke,
+            dash_phase,
+        );
+        raster(|canvas| {
+            canvas.save();
+            canvas.translate((8.0, 8.0));
+            draw_black_path(canvas, &geometry);
+            canvas.restore();
+        })
+    }
+
+    fn native_multi_contour_raster(cap: StrokeCap, dash_phase: StrokeDashPhase) -> Vec<u8> {
+        let mut builder = PathBuilder::new();
+        builder.move_to((8.0, 14.0));
+        builder.line_to((56.0, 14.0));
+        builder.move_to((8.0, 34.0));
+        builder.line_to((56.0, 34.0));
+        let path = builder.snapshot();
+        let stroke = dashed(StrokeWidth::Uniform(6.0), StrokeAlign::Center, cap);
+        raster(|canvas| {
+            let model = stroke.paints.iter().next().expect("one solid paint");
+            let paint = native_stroke_paint(
+                model,
+                &stroke,
+                dash_phase,
+                PaintBox::from_size(W as f32, H as f32),
+                &PaintCtx::new(None),
+            )
+            .expect("finite checked dash material");
+            canvas.draw_path(&path, &paint);
+        })
+    }
+
+    fn row_band(pixels: &[u8], y0: usize, y1: usize) -> &[u8] {
+        let row_bytes = W as usize * 4;
+        &pixels[y0 * row_bytes..y1 * row_bytes]
+    }
+
+    #[test]
+    fn canonical_phase_reaches_outline_and_rectangular_geometry_routes() {
+        for cap in [StrokeCap::Butt, StrokeCap::Round, StrokeCap::Square] {
+            assert_ne!(
+                outline_raster(cap, phase(0.0)),
+                outline_raster(cap, phase(3.0))
+            );
+        }
+        assert_ne!(
+            rectangular_raster(phase(0.0)),
+            rectangular_raster(phase(3.0))
+        );
+    }
+
+    #[test]
+    fn canonical_phase_reaches_native_caps_and_restarts_for_each_contour() {
+        for cap in [StrokeCap::Butt, StrokeCap::Round, StrokeCap::Square] {
+            let zero = native_multi_contour_raster(cap, phase(0.0));
+            let shifted = native_multi_contour_raster(cap, phase(3.0));
+            assert_ne!(zero, shifted, "phase must affect the {cap:?} native route");
+            assert_eq!(
+                row_band(&shifted, 8, 21),
+                row_band(&shifted, 28, 41),
+                "each equal contour must restart at the same {cap:?} phase"
+            );
+        }
     }
 }
 
@@ -1615,10 +1756,11 @@ fn draw_stroke(
     canvas: &Canvas,
     source: &Path,
     stroke: &Stroke,
+    dash_phase: StrokeDashPhase,
     paint_box: PaintBox,
     ctx: &PaintCtx,
 ) {
-    let geometry = stroke_geometry(source, stroke);
+    let geometry = stroke_geometry(source, stroke, dash_phase);
     draw_painted_geometry(canvas, &geometry, &stroke.paints, paint_box, ctx);
 }
 
@@ -1646,10 +1788,11 @@ fn draw_rectangular_stroke(
     radius: &RectangularCornerRadius,
     widths: RectangularStrokeWidth,
     stroke: &Stroke,
+    dash_phase: StrokeDashPhase,
     paint_box: PaintBox,
     ctx: &PaintCtx,
 ) {
-    let geometry = rectangular_stroke_geometry(w, h, radius, widths, stroke);
+    let geometry = rectangular_stroke_geometry(w, h, radius, widths, stroke, dash_phase);
     draw_painted_geometry(canvas, &geometry, &stroke.paints, paint_box, ctx);
 }
 
@@ -1659,6 +1802,7 @@ fn draw_rectangular_stroke(
 fn native_stroke_paint(
     model: &ModelPaint,
     stroke: &Stroke,
+    dash_phase: StrokeDashPhase,
     paint_box: PaintBox,
     ctx: &PaintCtx,
 ) -> Option<Paint> {
@@ -1672,7 +1816,7 @@ fn native_stroke_paint(
     if let Some(values) = stroke.dash_array.as_deref() {
         if !values.is_empty() {
             let intervals = normalized_dash_array(values)?;
-            paint.set_path_effect(PathEffect::dash(&intervals, 0.0)?);
+            paint.set_path_effect(PathEffect::dash(&intervals, dash_phase.value())?);
         }
     }
     Some(paint)
@@ -1680,12 +1824,13 @@ fn native_stroke_paint(
 
 fn draw_native_centered_stroke(
     stroke: &Stroke,
+    dash_phase: StrokeDashPhase,
     paint_box: PaintBox,
     ctx: &PaintCtx,
     mut draw: impl FnMut(&Paint),
 ) {
     for model in stroke.paints.iter() {
-        if let Some(paint) = native_stroke_paint(model, stroke, paint_box, ctx) {
+        if let Some(paint) = native_stroke_paint(model, stroke, dash_phase, paint_box, ctx) {
             draw(&paint);
         }
     }
@@ -1891,6 +2036,7 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 corner_radius,
                 corner_smoothing,
                 stroke,
+                dash_phase,
             } => {
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*w, *h);
@@ -1903,14 +2049,21 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                             corner_radius,
                             widths,
                             stroke,
+                            *dash_phase,
                             paint_box,
                             ctx,
                         ),
                         StrokeWidth::Uniform(_) => {
                             if corner_radius.is_zero() && stroke.align == StrokeAlign::Center {
-                                draw_native_centered_stroke(stroke, paint_box, ctx, |paint| {
-                                    canvas.draw_rect(Rect::from_wh(*w, *h), paint);
-                                });
+                                draw_native_centered_stroke(
+                                    stroke,
+                                    *dash_phase,
+                                    paint_box,
+                                    ctx,
+                                    |paint| {
+                                        canvas.draw_rect(Rect::from_wh(*w, *h), paint);
+                                    },
+                                );
                             } else {
                                 let path = rounded_rect_path(
                                     *w,
@@ -1919,18 +2072,29 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                                     corner_smoothing.value(),
                                 );
                                 if stroke.align == StrokeAlign::Center {
-                                    draw_native_centered_stroke(stroke, paint_box, ctx, |paint| {
-                                        canvas.draw_path(&path, paint);
-                                    });
+                                    draw_native_centered_stroke(
+                                        stroke,
+                                        *dash_phase,
+                                        paint_box,
+                                        ctx,
+                                        |paint| {
+                                            canvas.draw_path(&path, paint);
+                                        },
+                                    );
                                 } else {
-                                    draw_stroke(canvas, &path, stroke, paint_box, ctx);
+                                    draw_stroke(canvas, &path, stroke, *dash_phase, paint_box, ctx);
                                 }
                             }
                         }
                     }
                 });
             }
-            ItemKind::OvalStroke { w, h, stroke } => {
+            ItemKind::OvalStroke {
+                w,
+                h,
+                stroke,
+                dash_phase,
+            } => {
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*w, *h);
                     // A solid oval is one closed contour, so its cap is inert;
@@ -1946,11 +2110,18 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                         stroke
                     };
                     if stroke.align == StrokeAlign::Center {
-                        draw_native_centered_stroke(stroke, paint_box, ctx, |paint| {
+                        draw_native_centered_stroke(stroke, *dash_phase, paint_box, ctx, |paint| {
                             canvas.draw_oval(Rect::from_wh(*w, *h), paint);
                         });
                     } else {
-                        draw_stroke(canvas, &oval_path(*w, *h), stroke, paint_box, ctx);
+                        draw_stroke(
+                            canvas,
+                            &oval_path(*w, *h),
+                            stroke,
+                            *dash_phase,
+                            paint_box,
+                            ctx,
+                        );
                     }
                 });
             }
@@ -1962,11 +2133,12 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 paint_w,
                 paint_h,
                 stroke,
+                dash_phase,
             } => {
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*paint_w, *paint_h);
                     if stroke.align == StrokeAlign::Center {
-                        draw_native_centered_stroke(stroke, paint_box, ctx, |paint| {
+                        draw_native_centered_stroke(stroke, *dash_phase, paint_box, ctx, |paint| {
                             canvas.draw_line((*x1, *y1), (*x2, *y2), paint);
                         });
                     } else {
@@ -1974,18 +2146,25 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                             canvas,
                             &line_path(*x1, *y1, *x2, *y2),
                             stroke,
+                            *dash_phase,
                             paint_box,
                             ctx,
                         );
                     }
                 });
             }
-            ItemKind::PathStroke { w, h, path, stroke } => {
+            ItemKind::PathStroke {
+                w,
+                h,
+                path,
+                stroke,
+                dash_phase,
+            } => {
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*w, *h);
                     let geometry = backend_path(path);
                     if stroke.align != StrokeAlign::Center {
-                        draw_stroke(canvas, &geometry, stroke, paint_box, ctx);
+                        draw_stroke(canvas, &geometry, stroke, *dash_phase, paint_box, ctx);
                         return;
                     }
                     // One draw, so one composite pass. The cap a solid closed
@@ -2002,7 +2181,7 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                     } else {
                         stroke
                     };
-                    draw_native_centered_stroke(stroke, paint_box, ctx, |paint| {
+                    draw_native_centered_stroke(stroke, *dash_phase, paint_box, ctx, |paint| {
                         canvas.draw_path(&geometry, paint);
                     });
                 });
@@ -2012,6 +2191,7 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 paint_w,
                 paint_h,
                 stroke,
+                dash_phase,
             } => {
                 if layout.glyph_runs.is_empty() {
                     continue;
@@ -2019,7 +2199,7 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*paint_w, *paint_h);
                     if stroke.align == StrokeAlign::Center {
-                        draw_native_centered_stroke(stroke, paint_box, ctx, |paint| {
+                        draw_native_centered_stroke(stroke, *dash_phase, paint_box, ctx, |paint| {
                             for run in &layout.glyph_runs {
                                 glyph_scratch.with_run(run, list, |font, glyphs, positions| {
                                     canvas.draw_glyphs_at(
@@ -2034,7 +2214,7 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                         });
                     } else {
                         let source = text_path(layout, list, &mut glyph_scratch);
-                        draw_stroke(canvas, &source, stroke, paint_box, ctx);
+                        draw_stroke(canvas, &source, stroke, *dash_phase, paint_box, ctx);
                     }
                 });
             }

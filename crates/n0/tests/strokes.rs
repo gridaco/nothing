@@ -30,7 +30,12 @@ fn drawlist_keeps_repeated_strokes_and_each_ordered_paint_stack() {
         .items
         .iter()
         .filter_map(|item| match &item.kind {
-            ItemKind::RectStroke { stroke, .. } => Some(stroke),
+            ItemKind::RectStroke {
+                stroke, dash_phase, ..
+            } => {
+                assert_eq!(dash_phase.value(), 0.0);
+                Some(stroke)
+            }
             _ => None,
         })
         .collect::<Vec<_>>();

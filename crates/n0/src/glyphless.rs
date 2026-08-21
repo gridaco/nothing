@@ -24,7 +24,7 @@ use n0_model::path::ResolvedPathArtifact;
 use rframe::{Frame, FrameItem, Geometry, PaintStack, ScopeEffect, VisualRef};
 
 use crate::damage::{diff_inputs, DamageOwner, FrameDamageInput};
-use crate::drawlist::{DrawList, GlyphlessOwnerSlot, Item, ItemKind};
+use crate::drawlist::{DrawList, GlyphlessOwnerSlot, Item, ItemKind, StrokeDashPhase};
 use crate::frame::FrameExecutionError;
 use crate::paint::PaintCtx;
 
@@ -410,7 +410,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         // other in the same private drawlist, which is why a stroke needs no
         // group scope.
         if let Some(stroke) = &node.stroke {
-            let stroke = compile_stroke(stroke, unit_offset);
+            let (stroke, dash_phase) = compile_stroke(stroke, unit_offset);
             let kind = match &node.geometry {
                 Geometry::Rect(_) => ItemKind::RectStroke {
                     w,
@@ -418,13 +418,20 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                     corner_radius: RectangularCornerRadius::default(),
                     corner_smoothing: CornerSmoothing::default(),
                     stroke,
+                    dash_phase,
                 },
-                Geometry::Ellipse(_) => ItemKind::OvalStroke { w, h, stroke },
+                Geometry::Ellipse(_) => ItemKind::OvalStroke {
+                    w,
+                    h,
+                    stroke,
+                    dash_phase,
+                },
                 Geometry::Path(_) => ItemKind::PathStroke {
                     w,
                     h,
                     path: Arc::clone(path.as_ref().expect("path geometry compiled its stream")),
                     stroke,
+                    dash_phase,
                 },
             };
             items.push(Item {
@@ -541,9 +548,14 @@ fn compile_path(data: &rframe::PathData) -> Arc<ResolvedPathArtifact> {
 /// Width is uniform because a Web stroke has one width. A checked dash cycle
 /// crosses unchanged: its intervals are already even, finite, non-negative,
 /// positive-sum local-space distances, so the private painter has nothing to
-/// parse or resolve again.
-fn compile_stroke(stroke: &rframe::Stroke, unit_offset: Option<(f32, f32)>) -> Stroke {
-    Stroke {
+/// parse or resolve again. Its paired canonical phase crosses as the same
+/// scalar; normalization remains the contract producer's responsibility.
+fn compile_stroke(
+    stroke: &rframe::Stroke,
+    unit_offset: Option<(f32, f32)>,
+) -> (Stroke, StrokeDashPhase) {
+    let dash = stroke.dash();
+    let material = Stroke {
         paints: compile_paints(stroke.paints(), unit_offset),
         width: StrokeWidth::Uniform(stroke.width()),
         align: StrokeAlign::Center,
@@ -558,10 +570,12 @@ fn compile_stroke(stroke: &rframe::Stroke, unit_offset: Option<(f32, f32)>) -> S
             rframe::StrokeJoin::Bevel => StrokeJoin::Bevel,
         },
         miter_limit: stroke.miter_limit(),
-        dash_array: stroke
-            .dash_intervals()
-            .map(|intervals| intervals.as_slice().to_vec()),
-    }
+        dash_array: dash.map(|dash| dash.intervals().as_slice().to_vec()),
+    };
+    let phase = dash.map_or(StrokeDashPhase::ZERO, |dash| {
+        StrokeDashPhase::from_canonical(dash.phase())
+    });
+    (material, phase)
 }
 
 fn validate_rect(rect: math2::Rectangle) -> Result<(), ()> {
@@ -1084,16 +1098,21 @@ mod tests {
     }
 
     fn dashed_stroke(intervals: Vec<f32>, cap: rframe::StrokeCap) -> rframe::Stroke {
+        phased_stroke(intervals, cap, 0.0)
+    }
+
+    fn phased_stroke(intervals: Vec<f32>, cap: rframe::StrokeCap, phase: f32) -> rframe::Stroke {
         let intervals = rframe::StrokeDashIntervals::new(intervals)
             .expect("test dash intervals are valid")
             .expect("test dash cycle is present");
-        rframe::Stroke::new_with_dash_intervals(
+        let dash = rframe::StrokeDash::new(intervals, phase).expect("test dash phase is finite");
+        rframe::Stroke::new_with_dash(
             PaintStack::solid(CGColor::BLACK),
             8.0,
             cap,
             rframe::StrokeJoin::Miter,
             4.0,
-            Some(intervals),
+            Some(dash),
         )
         .expect("test stroke is valid")
         .expect("test stroke paints")
@@ -1196,6 +1215,20 @@ mod tests {
                 ItemKind::RectStroke { stroke, .. }
                 | ItemKind::OvalStroke { stroke, .. }
                 | ItemKind::PathStroke { stroke, .. } => Some(stroke),
+                _ => None,
+            })
+            .expect("test product has one stroke item")
+    }
+
+    fn private_dash_phase(product: &FrameProduct) -> StrokeDashPhase {
+        product
+            .drawlist
+            .items
+            .iter()
+            .find_map(|item| match &item.kind {
+                ItemKind::RectStroke { dash_phase, .. }
+                | ItemKind::OvalStroke { dash_phase, .. }
+                | ItemKind::PathStroke { dash_phase, .. } => Some(*dash_phase),
                 _ => None,
             })
             .expect("test product has one stroke item")
@@ -1347,14 +1380,16 @@ mod tests {
         assert_eq!(error.actual, other.environment_key());
     }
 
-    /// The source-neutral seam copies a checked local-space cycle exactly; it
-    /// does not drop, repeat, scale, or otherwise reinterpret producer facts.
+    /// The source-neutral seam copies one checked local-space pattern exactly;
+    /// it does not drop, repeat, scale, renormalize, or otherwise reinterpret
+    /// producer facts.
     #[test]
-    fn resolved_dash_intervals_project_exactly_into_private_stroke_material() {
+    fn resolved_dash_pattern_projects_exactly_into_private_stroke_material() {
         let mut node = base_node(PaintStack::empty());
-        node.stroke = Some(dashed_stroke(
+        node.stroke = Some(phased_stroke(
             vec![0.0, 8.0, 3.0, 0.0],
             rframe::StrokeCap::Round,
+            9.25,
         ));
         let product =
             compile(frame_of(FrameItems::from_nodes(vec![node]))).expect("admitted dashed frame");
@@ -1368,6 +1403,10 @@ mod tests {
         );
         assert_eq!(stroke.cap, StrokeCap::Round);
         assert_eq!(stroke.width, StrokeWidth::Uniform(8.0));
+        assert_eq!(
+            private_dash_phase(&product).value().to_bits(),
+            9.25f32.to_bits()
+        );
     }
 
     /// Changing only the resolved dash cycle changes the private draw item and
@@ -1387,6 +1426,45 @@ mod tests {
 
         assert_eq!(diff_frame(&before, &after).changed, vec![RECT_OWNER]);
         assert!(diff_frame(&before, &before).is_empty());
+    }
+
+    /// Phase is paint-consumed private material: changing only the canonical
+    /// phase damages the owner and changes pixels, while phases that the
+    /// contract has already reduced to the same cycle position remain one
+    /// structural and raster identity.
+    #[test]
+    fn resolved_dash_phase_participates_in_damage_and_raster_identity() {
+        let scene = |phase| {
+            let rect = Rectangle::from_xywh(8.0, 6.0, 40.0, 28.0);
+            let node = stroked_node(
+                RECT_OWNER,
+                Geometry::Rect(rect),
+                AffineTransform::identity(),
+                phased_stroke(vec![8.0, 4.0], rframe::StrokeCap::Round, phase),
+            );
+            compile(frame_of(FrameItems::from_nodes(vec![node]))).expect("admitted phased frame")
+        };
+        let zero = scene(0.0);
+        let shifted = scene(3.0);
+        let shifted_by_a_cycle = scene(15.0);
+
+        assert_ne!(zero.drawlist, shifted.drawlist);
+        assert!(!zero.drawlist.raster_eq(&shifted.drawlist));
+        assert_eq!(shifted.drawlist, shifted_by_a_cycle.drawlist);
+        assert!(shifted.drawlist.raster_eq(&shifted_by_a_cycle.drawlist));
+        assert_eq!(diff_frame(&zero, &shifted).changed, vec![RECT_OWNER]);
+        assert!(diff_frame(&shifted, &shifted_by_a_cycle).is_empty());
+        assert_eq!(private_dash_phase(&shifted).value(), 3.0);
+        assert_eq!(private_dash_phase(&shifted_by_a_cycle).value(), 3.0);
+
+        let context = PaintCtx::new(None);
+        let raster = |product: &FrameProduct| {
+            product
+                .raster_to_bytes(&AffineTransform::identity(), 64, 48, &context)
+                .expect("resource-free dash raster")
+        };
+        assert_ne!(raster(&zero), raster(&shifted));
+        assert_eq!(raster(&shifted), raster(&shifted_by_a_cycle));
     }
 
     /// The widest carried stroke remains an exact painter fact. Only its

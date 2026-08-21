@@ -31,6 +31,33 @@ impl GlyphlessOwnerSlot {
     }
 }
 
+/// One canonical, source-neutral dash phase carried by private stroke
+/// material.
+///
+/// The producer that resolves a nonzero phase owns normalization into its
+/// positive interval cycle. The painter consumes this scalar verbatim: it
+/// neither parses source syntax nor applies a second modulo. Ordinary
+/// [`n0_model`] strokes have no phase vocabulary and therefore project as
+/// [`StrokeDashPhase::ZERO`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct StrokeDashPhase(f32);
+
+impl StrokeDashPhase {
+    pub const ZERO: Self = Self(0.0);
+
+    /// Wrap one already-canonical phase without reinterpreting it.
+    pub(crate) fn from_canonical(value: f32) -> Self {
+        debug_assert!(value.is_finite());
+        debug_assert!(value >= 0.0);
+        Self(value)
+    }
+
+    /// The local-space offset into the paired dash interval cycle.
+    pub const fn value(self) -> f32 {
+        self.0
+    }
+}
+
 /// One paint primitive, carrying the world transform copied verbatim from its
 /// resolved producer (never recomputed — pixel identity depends on it) and the
 /// geometry in the visual's own local space.
@@ -142,11 +169,13 @@ pub enum ItemKind {
         corner_radius: RectangularCornerRadius,
         corner_smoothing: CornerSmoothing,
         stroke: Stroke,
+        dash_phase: StrokeDashPhase,
     },
     OvalStroke {
         w: f32,
         h: f32,
         stroke: Stroke,
+        dash_phase: StrokeDashPhase,
     },
     LineStroke {
         x1: f32,
@@ -156,18 +185,21 @@ pub enum ItemKind {
         paint_w: f32,
         paint_h: f32,
         stroke: Stroke,
+        dash_phase: StrokeDashPhase,
     },
     PathStroke {
         w: f32,
         h: f32,
         path: Arc<ResolvedPathArtifact>,
         stroke: Stroke,
+        dash_phase: StrokeDashPhase,
     },
     TextStroke {
         layout: Arc<TextLayout>,
         paint_w: f32,
         paint_h: f32,
         stroke: Stroke,
+        dash_phase: StrokeDashPhase,
     },
 }
 
@@ -610,6 +642,7 @@ fn emit<V: DrawValues + ?Sized>(
                     corner_radius: values.corner_radius(id),
                     corner_smoothing,
                     stroke,
+                    dash_phase: StrokeDashPhase::ZERO,
                 },
                 Payload::Shape {
                     desc: ShapeDesc::Ellipse,
@@ -617,6 +650,7 @@ fn emit<V: DrawValues + ?Sized>(
                     w: b.w,
                     h: b.h,
                     stroke,
+                    dash_phase: StrokeDashPhase::ZERO,
                 },
                 Payload::Shape {
                     desc: ShapeDesc::Line,
@@ -628,6 +662,7 @@ fn emit<V: DrawValues + ?Sized>(
                     paint_w: b.w,
                     paint_h: b.h,
                     stroke,
+                    dash_phase: StrokeDashPhase::ZERO,
                 },
                 Payload::Shape {
                     desc: ShapeDesc::Path(_),
@@ -636,6 +671,7 @@ fn emit<V: DrawValues + ?Sized>(
                     h: b.h,
                     path: Arc::clone(resolved.resolved_path_of(id)),
                     stroke,
+                    dash_phase: StrokeDashPhase::ZERO,
                 },
                 Payload::Text { .. } | Payload::AttributedText { .. } => ItemKind::TextStroke {
                     layout: text_layout
@@ -645,6 +681,7 @@ fn emit<V: DrawValues + ?Sized>(
                     paint_w: b.w,
                     paint_h: b.h,
                     stroke,
+                    dash_phase: StrokeDashPhase::ZERO,
                 },
                 Payload::Group | Payload::Lens { .. } => unreachable!(),
             };

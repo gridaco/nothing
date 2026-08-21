@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs>
+    <path id="dashoffset-use-source" d="M4 20 H60"/>
+  </defs>
+  <g fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="8 4">
+    <g stroke-dashoffset="4">
+      <path d="M4 4 H60"/>
+    </g>
+    <g style="stroke-dashoffset:4">
+      <path d="M4 12 H60"/>
+    </g>
+    <use href="#dashoffset-use-source" stroke-dashoffset="4"/>
+    <g stroke-dashoffset="4">
+      <path d="M4 28 H60" style="stroke-dashoffset:initial"/>
+      <path d="M4 36 H60" style="stroke-dashoffset:inherit"/>
+      <path d="M4 44 H60" style="stroke-dashoffset:unset"/>
+    </g>
+    <path d="M4 52 H60" stroke-dashoffset="4" style="stroke-dashoffset:revert"/>
+    <path d="M4 60 H60" stroke-dashoffset="4" style="stroke-dashoffset:revert-layer"/>
+  </g>
+</svg>

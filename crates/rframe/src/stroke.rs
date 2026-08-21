@@ -2,7 +2,7 @@
 //!
 //! A stroke is carried, not derived: the producer resolves the paint, the width
 //! in the node's local space, the three shapes a corner or an end can take, and
-//! an optional dash-interval cycle, and the consumer paints exactly that.
+//! an optional dash pattern, and the consumer paints exactly that.
 //!
 //! **Centred, with no alignment field.** A Web stroke straddles its geometry:
 //! half the width falls inside the outline and half outside. That is the only
@@ -98,7 +98,7 @@ impl std::fmt::Display for StrokeDashIntervalsError {
 
 impl std::error::Error for StrokeDashIntervalsError {}
 
-/// One checked, zero-phase stroke dash cycle.
+/// One checked stroke dash interval cycle.
 ///
 /// The immutable intervals are local-space path distances before the node
 /// transform. They alternate painted, unpainted, painted, unpainted, beginning
@@ -107,8 +107,9 @@ impl std::error::Error for StrokeDashIntervalsError {}
 /// non-negative; and their `f32` sum is finite and positive.
 ///
 /// Source syntax does not cross this type. A producer has already resolved
-/// units, percentages, and odd-list repetition. The phase is exactly zero;
-/// this type deliberately owns neither an offset nor a path-calibration fact.
+/// units, percentages, and odd-list repetition. This type deliberately owns
+/// neither a phase nor a path-calibration fact; [`StrokeDash`] pairs it with a
+/// resolved phase when one is present.
 #[derive(Clone, Debug, PartialEq)]
 pub struct StrokeDashIntervals {
     intervals: Box<[f32]>,
@@ -163,6 +164,90 @@ impl StrokeDashIntervals {
             .chunks_exact(2)
             .any(|paint_and_gap| paint_and_gap[0] > 0.0)
     }
+
+    fn cycle_length(&self) -> f32 {
+        self.intervals.iter().copied().sum()
+    }
+}
+
+/// Why a checked dash cycle cannot be paired with one resolved phase.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StrokeDashError {
+    /// A resolved local-space phase must be finite before it can be reduced
+    /// into the finite cycle.
+    NonFinitePhase,
+}
+
+impl std::fmt::Display for StrokeDashError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StrokeDashError::NonFinitePhase => {
+                f.write_str("resolved stroke dash phase must be finite")
+            }
+        }
+    }
+}
+
+impl std::error::Error for StrokeDashError {}
+
+/// One checked, source-neutral stroke dash pattern.
+///
+/// The intervals and phase are local-space path distances before the node
+/// transform. At contour distance `s`, the alternating cycle is observed at
+/// `s + phase`: a positive phase advances into the cycle. The same phase
+/// restarts at the beginning of every contour.
+///
+/// Construction is the sole normalization owner. It reduces every finite
+/// phase modulo the positive cycle length into the canonical half-open range
+/// `[0, cycle_length)`, so periodically equivalent patterns compare equal and
+/// no consumer needs to reinterpret a signed or multi-cycle phase. The
+/// contract carries no source syntax, percentage bases, transforms, or
+/// path-length calibration.
+#[derive(Clone, Debug, PartialEq)]
+pub struct StrokeDash {
+    intervals: StrokeDashIntervals,
+    phase: f32,
+}
+
+impl StrokeDash {
+    /// Pair a checked positive cycle with one finite local-space phase.
+    pub fn new(intervals: StrokeDashIntervals, phase: f32) -> Result<Self, StrokeDashError> {
+        if !phase.is_finite() {
+            return Err(StrokeDashError::NonFinitePhase);
+        }
+
+        let cycle_length = intervals.cycle_length();
+        let phase = phase.rem_euclid(cycle_length);
+        // Floating-point `rem_euclid` may round a result at the upper edge to
+        // the divisor. Keep the public invariant strictly half-open, and erase
+        // negative zero as the second spelling of zero phase.
+        let phase = if phase == 0.0 || phase >= cycle_length {
+            0.0
+        } else {
+            phase
+        };
+
+        Ok(Self { intervals, phase })
+    }
+
+    const fn zero_phase(intervals: StrokeDashIntervals) -> Self {
+        Self {
+            intervals,
+            phase: 0.0,
+        }
+    }
+
+    /// The checked alternating interval cycle.
+    #[must_use]
+    pub const fn intervals(&self) -> &StrokeDashIntervals {
+        &self.intervals
+    }
+
+    /// The canonical local-space phase in `[0, cycle_length)`.
+    #[must_use]
+    pub const fn phase(&self) -> f32 {
+        self.phase
+    }
 }
 
 /// Why a resolved stroke is not one.
@@ -199,14 +284,16 @@ pub struct Stroke {
     cap: StrokeCap,
     join: StrokeJoin,
     miter_limit: f32,
-    dash_intervals: Option<StrokeDashIntervals>,
+    dash: Option<StrokeDash>,
 }
 
 impl Stroke {
     /// Resolve one stroke, or `None` when nothing would be painted.
     ///
     /// This compatibility constructor always creates a solid stroke. Use
-    /// [`Stroke::new_with_dash_intervals`] for a checked dash cycle.
+    /// [`Stroke::new_with_dash`] for a checked dash pattern;
+    /// [`Stroke::new_with_dash_intervals`] remains the zero-phase compatibility
+    /// spelling.
     ///
     /// The miter limit is carried as resolved, including a value below 1, which
     /// no miter can satisfy — a backend turns that into a bevel, and choosing
@@ -227,7 +314,9 @@ impl Stroke {
     ///
     /// Dash absence states a solid stroke. A present cycle has already been
     /// checked by [`StrokeDashIntervals::new`]; this constructor never accepts
-    /// raw intervals and therefore cannot bypass that validation.
+    /// raw intervals and therefore cannot bypass that validation. It is the
+    /// zero-phase compatibility spelling; use [`Stroke::new_with_dash`] to
+    /// carry a nonzero phase.
     pub fn new_with_dash_intervals(
         paints: PaintStack,
         width: f32,
@@ -235,6 +324,24 @@ impl Stroke {
         join: StrokeJoin,
         miter_limit: f32,
         dash_intervals: Option<StrokeDashIntervals>,
+    ) -> Result<Option<Self>, StrokeError> {
+        let dash = dash_intervals.map(StrokeDash::zero_phase);
+        Self::new_with_dash(paints, width, cap, join, miter_limit, dash)
+    }
+
+    /// Resolve one stroke with an optional checked dash pattern, or `None`
+    /// when nothing would be painted.
+    ///
+    /// Dash absence states a solid stroke. A present value pairs a checked
+    /// positive interval cycle with its canonical local-space phase, so phase
+    /// cannot exist without a cycle.
+    pub fn new_with_dash(
+        paints: PaintStack,
+        width: f32,
+        cap: StrokeCap,
+        join: StrokeJoin,
+        miter_limit: f32,
+        dash: Option<StrokeDash>,
     ) -> Result<Option<Self>, StrokeError> {
         if !miter_limit.is_finite() || miter_limit < 0.0 {
             return Err(StrokeError::InvalidMiterLimit);
@@ -246,9 +353,9 @@ impl Stroke {
             return Ok(None);
         }
         if cap == StrokeCap::Butt
-            && dash_intervals
+            && dash
                 .as_ref()
-                .is_some_and(|intervals| !intervals.has_positive_painted_interval())
+                .is_some_and(|dash| !dash.intervals.has_positive_painted_interval())
         {
             return Ok(None);
         }
@@ -258,7 +365,7 @@ impl Stroke {
             cap,
             join,
             miter_limit,
-            dash_intervals,
+            dash,
         }))
     }
 
@@ -288,10 +395,22 @@ impl Stroke {
         self.miter_limit
     }
 
-    /// The checked dash cycle, or `None` for a solid stroke.
+    /// The checked dash pattern, or `None` for a solid stroke.
+    #[must_use]
+    pub const fn dash(&self) -> Option<&StrokeDash> {
+        self.dash.as_ref()
+    }
+
+    /// The checked dash interval cycle, or `None` for a solid stroke.
+    ///
+    /// This compatibility view omits the phase. New consumers that paint a
+    /// dash pattern should read [`Stroke::dash`] as one indivisible fact.
     #[must_use]
     pub const fn dash_intervals(&self) -> Option<&StrokeDashIntervals> {
-        self.dash_intervals.as_ref()
+        match &self.dash {
+            Some(dash) => Some(&dash.intervals),
+            None => None,
+        }
     }
 
     /// How far the stroke can reach outside the geometry it follows, in local

@@ -137,8 +137,8 @@ cargo run -p n0_cli --bin n0 -- \
   odd-list repetition, inheritance through containers and `<use>`, and
   author-over-hint precedence resolve to one checked even cycle in local
   user-space distance. Every admitted geometry receives it, every contour
-  restarts at phase zero, and transforms scale the resolved cycle with the
-  geometry. `none`, an all-zero list, and an invalid negative list retain
+  restarts at phase zero, and transforms scale the resolved cycle
+  with the geometry. `none`, an all-zero list, and an invalid negative list retain
   Chromium's solid fallback; zero painted intervals remain meaningful under
   round/square caps, including on closed contours. These claims are covered by
   27 Chromium-baked cells. Pure fixed dash members clamp individually to the
@@ -147,11 +147,25 @@ cargo run -p n0_cli --bin n0 -- \
   non-finite, Chromium drops the dash effect, leaving a solid stroke with the
   authored cap. Byte-identical attribute/CSS cells pin the clamp, doubling,
   per-contour restart, and percentage result on discriminating large geometry.
-  The named remainder is exact: `stroke-dashoffset`
-  (both spellings) and `pathLength` calibration remain refused because the
-  frame contract is zero-phase and uncalibrated; dash lengths with the same
-  untrustworthy basis/provenance classes as width refuse by their own registered
-  names. Those separate rows do not leave a standard-track dasharray grammar
+  `stroke-dashoffset` is consumed in both spellings as the cycle's signed
+  local-space phase: positive/negative numbers and lengths, pure-length math,
+  normalized-diagonal percentages, inheritance through containers and
+  `<use>`, CSS-wide values, and author-over-hint precedence. The phase is
+  canonical modulo the positive cycle only after odd-list doubling, restarts
+  on every contour, moves zero-length cap slots, remains local under transforms,
+  and reaches every admitted geometry route. Thirteen Chromium-baked cells are
+  byte-exact, including the asymmetric fixed used-value floor (-33,554,430)
+  and the positive carried ceiling (33,554,428) before phase normalization.
+  The named remainder is exact. Distinct valid authored percentages around
+  57,384% and at the finite/overflow boundary can collapse into one pinned
+  Stylo f32 while Chromium retains different used phases; percentage-bearing
+  math loses the same source history. The stable percentage-precision-alias
+  refusal guards that class, so both dashoffset checklist twins remain open
+  under the gridaco/nothing#81 split precedent. Viewport/container/font-metric
+  units, `var()` indirection, CSS escapes, and a poisoned em basis retain their
+  narrower registered guards. `pathLength` calibration remains separately
+  refused because the resolved frame carries no path-distance calibration.
+  Those separate rows do not leave a standard-track dasharray grammar
   remainder.
   The stroke's `<paint>` grammar is celled: hex and named colours,
   `currentColor` against the `color` hint, `none` (the initial — an

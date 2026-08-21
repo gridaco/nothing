@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "2f6ed3d9a1f16cef04d2c125bda63850ca9d9c062b6387e81971c21448fab4fe",
+  "suite_sha256": "2a4f3dae329a6ac6bfeee552e22e2584b547da58db359257ec9f14ae4dfe66ae",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -1735,6 +1735,123 @@
       "source_sha256": "f7be2d6b043f4d85427ffb15161f2cba9a699563dd92f4df1ea46f52a9fff1dd",
       "oracle": "chromium/svg-stroke-dasharray-zero-round.png",
       "oracle_sha256": "fdc47f83fbc142811032ce05e21591b558d14f414ad72c7884bbc753ff0e5a23",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-attr",
+      "source": "svg-stroke-dashoffset-attr.svg",
+      "source_sha256": "177c92bdc37445835417442ae803e1a86fde68f2b124da6bb500cbad8414c2bd",
+      "oracle": "chromium/svg-stroke-dashoffset-attr.png",
+      "oracle_sha256": "38aee50495d3ae9c15258cbde33626a17c8c45e7a81aedc4578acceed4edfaf9",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-contours",
+      "source": "svg-stroke-dashoffset-contours.svg",
+      "source_sha256": "59d277309ba9aab30a46aa80bd093bf19242f03b777663907bd3ee995c591acf",
+      "oracle": "chromium/svg-stroke-dashoffset-contours.png",
+      "oracle_sha256": "40aa5c561be721ff89462bdba64d0b1a79e616ee9b97106e7e7e8f65323b1357",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-css",
+      "source": "svg-stroke-dashoffset-css.svg",
+      "source_sha256": "3d3c750683949c3f1fe2b6b19db506b1f3f6aca6a650b67a847524b41bf6f960",
+      "oracle": "chromium/svg-stroke-dashoffset-css.png",
+      "oracle_sha256": "38aee50495d3ae9c15258cbde33626a17c8c45e7a81aedc4578acceed4edfaf9",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-css-invalid-falls-back",
+      "source": "svg-stroke-dashoffset-css-invalid-falls-back.svg",
+      "source_sha256": "768b27db8bab8c9d05bd49a488afc0e1f2ce57c7a3681bcca87a35e57eecf3c7",
+      "oracle": "chromium/svg-stroke-dashoffset-css-invalid-falls-back.png",
+      "oracle_sha256": "43aeba12fcc34d972771235e61937df575bb47e222ae8c40ab3f0ebfceb43965",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-css-over-attr",
+      "source": "svg-stroke-dashoffset-css-over-attr.svg",
+      "source_sha256": "97dd8fe587181cdc92f62222904b6106ab04e86238ca15dcab3348cdb94e3bc7",
+      "oracle": "chromium/svg-stroke-dashoffset-css-over-attr.png",
+      "oracle_sha256": "43aeba12fcc34d972771235e61937df575bb47e222ae8c40ab3f0ebfceb43965",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-geometries",
+      "source": "svg-stroke-dashoffset-geometries.svg",
+      "source_sha256": "238d1dc7e3151203dcc020e3889520ca40544080f663b53e406ee6ceb1fb4bd0",
+      "oracle": "chromium/svg-stroke-dashoffset-geometries.png",
+      "oracle_sha256": "33f7ff7595569a8723868785bd31567eb2cbbe1bb28966301d704c33c65da7dc",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-inherited-use-css-wide",
+      "source": "svg-stroke-dashoffset-inherited-use-css-wide.svg",
+      "source_sha256": "246d96f73923d36b85f199b5fd370eea1783b7709fd4d052aac82c580d75d05b",
+      "oracle": "chromium/svg-stroke-dashoffset-inherited-use-css-wide.png",
+      "oracle_sha256": "a3e2233abb3ad5701684e70f4f311677bf44152dc35e9432a7781d0139b2cef2",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-odd-modulo",
+      "source": "svg-stroke-dashoffset-odd-modulo.svg",
+      "source_sha256": "a13f759d6faa7a9763c8dda57e3fca41b817a718705105ba632c725fa8f1a374",
+      "oracle": "chromium/svg-stroke-dashoffset-odd-modulo.png",
+      "oracle_sha256": "893ec8a3300ca64e00a4c1042651e4c0febe93c25463d4490c6b63fe414d3825",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-percentage-attr",
+      "source": "svg-stroke-dashoffset-percentage-attr.svg",
+      "source_sha256": "cc3a9b5f70dc60e031e037d93ea0aabec67d0326c0f5254e7ec2d241d42d1dea",
+      "oracle": "chromium/svg-stroke-dashoffset-percentage-attr.png",
+      "oracle_sha256": "799fe2b33042f376f9ba1705a1cdcf5b19b2258c6552daba1db385ebf6026699",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-percentage-css",
+      "source": "svg-stroke-dashoffset-percentage-css.svg",
+      "source_sha256": "6ffe6c751786512217d51c4a0b010b6603eb3d4da6f9fd9dee87676730905454",
+      "oracle": "chromium/svg-stroke-dashoffset-percentage-css.png",
+      "oracle_sha256": "799fe2b33042f376f9ba1705a1cdcf5b19b2258c6552daba1db385ebf6026699",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-used-range-attr",
+      "source": "svg-stroke-dashoffset-used-range-attr.svg",
+      "source_sha256": "e2b25d6f549d66cc472700bb72ff0748768953e37746834d0a372d6d96345787",
+      "oracle": "chromium/svg-stroke-dashoffset-used-range-attr.png",
+      "oracle_sha256": "046566674c575ffbad290469685523caec94fad1292e1fa2f23e3f48e16c9ffd",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-used-range-css",
+      "source": "svg-stroke-dashoffset-used-range-css.svg",
+      "source_sha256": "22215b2e497121b6d60378740e970eaf584407728f87ec8b9ade7d11afadd514",
+      "oracle": "chromium/svg-stroke-dashoffset-used-range-css.png",
+      "oracle_sha256": "046566674c575ffbad290469685523caec94fad1292e1fa2f23e3f48e16c9ffd",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stroke-dashoffset-zero-caps",
+      "source": "svg-stroke-dashoffset-zero-caps.svg",
+      "source_sha256": "68375ee425c81089fb5e777a5714c95a8ec4bd14fc9a8691a978d26a6c37bb8d",
+      "oracle": "chromium/svg-stroke-dashoffset-zero-caps.png",
+      "oracle_sha256": "ce604d433b1e2d783be9db64e283392fc7a3a195e3d912625627239a72edcf17",
       "width": 64,
       "height": 64
     },

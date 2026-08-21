@@ -22,6 +22,8 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
     #stroke-rule-beats-hint { stroke: #2563eb; }
     #dash-rule-beats-hint { stroke-dasharray: 6px 2px; }
     #dash-style-attr-beats-rule { stroke-dasharray: 6px 2px; }
+    #dashoffset-rule-beats-hint { stroke-dashoffset: 6px; }
+    #dashoffset-style-attr-beats-rule { stroke-dashoffset: 6px; }
     #visibility-rule-beats-hint { visibility: visible; }
     #transform-rule-beats-hint { transform: translate(30px, 0px); }
     #transform-none-beats-hint { transform: none; }
@@ -45,6 +47,14 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
         style="stroke-dasharray: 8px -4px" width="8" height="8"/>
   <rect id="dash-invalid-hint" stroke-dasharray="8 -4" width="8" height="8"/>
   <g stroke-dasharray="8 4"><rect id="dash-inherited" width="8" height="8"/></g>
+  <rect id="dashoffset-hint" stroke-dashoffset="4" width="8" height="8"/>
+  <rect id="dashoffset-rule-beats-hint" stroke-dashoffset="4" width="8" height="8"/>
+  <rect id="dashoffset-style-attr-beats-rule" stroke-dashoffset="4"
+        style="stroke-dashoffset: 10px" width="8" height="8"/>
+  <rect id="dashoffset-invalid-css-falls-back" stroke-dashoffset="4"
+        style="stroke-dashoffset: not-a-length" width="8" height="8"/>
+  <rect id="dashoffset-invalid-hint" stroke-dashoffset="not-a-length" width="8" height="8"/>
+  <g stroke-dashoffset="-4"><rect id="dashoffset-inherited" width="8" height="8"/></g>
   <rect id="unadmitted" pathLength="100" width="8" height="8"/>
   <g id="sized" font-size="32"><rect id="em-basis" stroke-width="0.5em" width="8" height="8"/></g>
   <rect id="hidden-hint" visibility="hidden" width="8" height="8"/>
@@ -146,6 +156,48 @@ fn standalone_svg_presentation_hints_enter_below_author_rules() {
     assert_eq!(
         property(root, "dash-inherited", LonghandId::StrokeDasharray),
         "8px, 4px"
+    );
+    // Dashoffset is the signed companion hint. It uses the same author-origin
+    // precedence and inheritance laws while retaining negative lengths.
+    assert_eq!(
+        property(root, "dashoffset-hint", LonghandId::StrokeDashoffset),
+        "4px"
+    );
+    assert_eq!(
+        property(
+            root,
+            "dashoffset-rule-beats-hint",
+            LonghandId::StrokeDashoffset
+        ),
+        "6px"
+    );
+    assert_eq!(
+        property(
+            root,
+            "dashoffset-style-attr-beats-rule",
+            LonghandId::StrokeDashoffset
+        ),
+        "10px"
+    );
+    assert_eq!(
+        property(
+            root,
+            "dashoffset-invalid-css-falls-back",
+            LonghandId::StrokeDashoffset
+        ),
+        "4px"
+    );
+    assert_eq!(
+        property(
+            root,
+            "dashoffset-invalid-hint",
+            LonghandId::StrokeDashoffset
+        ),
+        "0px"
+    );
+    assert_eq!(
+        property(root, "dashoffset-inherited", LonghandId::StrokeDashoffset),
+        "-4px"
     );
     // And they lose to an author rule exactly as `fill` does.
     assert_eq!(

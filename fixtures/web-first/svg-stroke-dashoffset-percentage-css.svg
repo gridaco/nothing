@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 70 10" preserveAspectRatio="none">
+  <g fill="none" stroke="#000000" stroke-width=".625" stroke-dasharray="8 4">
+    <path d="M4.375 1.25 H65.625" style="stroke-dashoffset:20%"/>
+    <path d="M4.375 3.75 H65.625" style="stroke-dashoffset:10"/>
+    <path d="M4.375 6.25 H65.625" style="stroke-dashoffset:-20%"/>
+    <path d="M4.375 8.75 H65.625" style="stroke-dashoffset:-10"/>
+  </g>
+</svg>

@@ -1190,11 +1190,13 @@ fn compile_vectors(
                             corner_radius: corners.model(),
                             corner_smoothing: CornerSmoothing::default(),
                             stroke,
+                            dash_phase: crate::drawlist::StrokeDashPhase::ZERO,
                         },
                         EvidenceGeometry::Ellipse { w, h } => ItemKind::OvalStroke {
                             w: *w,
                             h: *h,
                             stroke,
+                            dash_phase: crate::drawlist::StrokeDashPhase::ZERO,
                         },
                         EvidenceGeometry::Path { w, h, .. } => ItemKind::PathStroke {
                             w: *w,
@@ -1205,6 +1207,7 @@ fn compile_vectors(
                                     .expect("every candidate path was lowered once"),
                             ),
                             stroke,
+                            dash_phase: crate::drawlist::StrokeDashPhase::ZERO,
                         },
                         EvidenceGeometry::Line {
                             x1,
@@ -1221,6 +1224,7 @@ fn compile_vectors(
                             paint_w: *paint_w,
                             paint_h: *paint_h,
                             stroke,
+                            dash_phase: crate::drawlist::StrokeDashPhase::ZERO,
                         },
                     };
                     push_evidence_item(

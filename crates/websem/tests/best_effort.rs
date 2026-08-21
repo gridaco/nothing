@@ -346,13 +346,6 @@ fn unconsumed_rendering_attributes_never_paint_wrong_pixels() {
             "transform-origin",
         ),
         (
-            // Dasharray is consumed; its phase remains the named zero-phase
-            // contract boundary.
-            "stroke dash offset",
-            r##"stroke="#0000ff" stroke-width="8" stroke-dasharray="4 4" stroke-dashoffset="2""##,
-            "stroke-dashoffset",
-        ),
-        (
             "conditional processing",
             r#"systemLanguage="fr""#,
             "systemLanguage",
@@ -395,6 +388,51 @@ fn unconsumed_rendering_attributes_never_paint_wrong_pixels() {
     assert!(best.degradations().is_empty());
     assert_eq!(strict.base_frame(), best.base_frame());
     assert_eq!(strict.base_frame().nodes().len(), 1, "the rect paints");
+}
+
+/// The broad dashoffset refusal graduated, but its measured source-provenance
+/// and basis gaps remain node-local named departures. Strict refuses; best
+/// effort skips the affected shape and reports the same stable reason.
+#[test]
+fn guarded_dashoffset_gaps_never_paint_wrong_pixels() {
+    for (label, attrs, named) in [
+        (
+            "percentage precision alias",
+            r##"stroke="#0000ff" stroke-width="8" stroke-dasharray="8 4" stroke-dashoffset="57384.267578125007%""##,
+            "stroke-dashoffset percentage precision alias",
+        ),
+        (
+            "unsupported viewport basis",
+            r##"stroke="#0000ff" stroke-width="8" stroke-dasharray="8 4" stroke-dashoffset="1vw""##,
+            "stroke-dashoffset in vw",
+        ),
+        (
+            "var indirection",
+            r##"stroke="#0000ff" stroke-width="8" stroke-dasharray="8 4" style="--p: 2px; stroke-dashoffset: var(--p)""##,
+            "var()",
+        ),
+    ] {
+        let source = format!(
+            r##"<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="24" height="24" fill="none" {attrs}/></svg>"##
+        );
+        let strict =
+            SvgFrameSource::from_standalone_svg(source.as_str(), host_viewport()).unwrap_err();
+        assert!(
+            strict.to_string().contains(named),
+            "{label}: strict names the guarded gap; got {strict}"
+        );
+        let best =
+            SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), host_viewport())
+                .unwrap_or_else(|error| panic!("{label}: best-effort compiles: {error}"));
+        assert_eq!(best.base_frame().nodes().len(), 0, "{label}");
+        assert!(
+            best.degradations().iter().any(|degradation| {
+                degradation.path() == "svg/rect[1]" && degradation.reason().contains(named)
+            }),
+            "{label}: best effort names the same node-local gap; got {:?}",
+            best.degradations()
+        );
+    }
 }
 
 /// Values a stylesheet or `style` attribute could smuggle past the
