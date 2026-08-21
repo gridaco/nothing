@@ -403,6 +403,7 @@ fn union_rect(acc: Option<RectF>, r: RectF) -> RectF {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::drawlist::PostPaintOpacity;
     use crate::frame;
     use crate::paint::PaintCtx;
     use n0_model::model::{
@@ -450,6 +451,7 @@ mod tests {
                 corner_radius: RectangularCornerRadius::default(),
                 corner_smoothing: CornerSmoothing::default(),
                 paints: Paints::solid(color),
+                post_paint_opacity: PostPaintOpacity::IDENTITY,
             },
         });
         list

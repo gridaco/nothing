@@ -1,5 +1,5 @@
 use super::*;
-use crate::drawlist::{Item, ItemKind};
+use crate::drawlist::{Item, ItemKind, PostPaintOpacity};
 use n0_model::model::{
     AxisBinding, Color as ModelColor, CornerSmoothing, DocBuilder, GradientStop, Header,
     ImagePaint, LinearGradientPaint, Paint as ModelPaint, Paints, Payload, RectangularCornerRadius,
@@ -28,6 +28,7 @@ fn rect_list(node: n0_model::model::NodeId, paints: Paints) -> DrawList {
             corner_radius: RectangularCornerRadius::default(),
             corner_smoothing: CornerSmoothing::default(),
             paints,
+            post_paint_opacity: PostPaintOpacity::IDENTITY,
         },
     });
     list

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <style>
+    .number { opacity: 0.5; }
+    .percentage { opacity: 50%; }
+    .calc { opacity: calc(20% + 30%); }
+    .min { opacity: min(0.5, 0.8); }
+    .max { opacity: max(20%, 50%); }
+    .clamp { opacity: clamp(0.1, 0.5, 0.9); }
+    .negative { opacity: -50%; }
+    .high { opacity: 150%; }
+    .initial { opacity: initial; }
+    .unset { opacity: unset; }
+    .revert { opacity: revert; }
+    @layer base { .revert-layer { opacity: 0.25; } }
+    @layer top { .revert-layer { opacity: 0.5; opacity: revert-layer; } }
+    .inherit { opacity: inherit; }
+    .invalid { opacity: not-a-value; }
+    .important { opacity: 0.5 !important; }
+    .normal { opacity: 0.25; }
+    .nan { opacity: calc(0 / 0); }
+    .infinity { opacity: calc(1 / 0); }
+  </style>
+  <g fill="#16a34a">
+    <rect class="number"     x="2"  y="3"  width="8" height="10" opacity="0.75"/>
+    <rect class="percentage" x="15" y="3"  width="8" height="10"/>
+    <rect class="calc"       x="28" y="3"  width="8" height="10"/>
+    <rect class="min"        x="41" y="3"  width="8" height="10"/>
+    <rect class="max"        x="54" y="3"  width="8" height="10"/>
+
+    <rect class="clamp" x="2"  y="19" width="8" height="10"/>
+    <rect x="15" y="19" width="8" height="10" style="opacity:5e-1"/>
+    <rect x="28" y="19" width="8" height="10" style="--o:50%;opacity:var(--o)"/>
+    <rect class="negative" x="41" y="19" width="8" height="10"/>
+    <rect class="high"     x="54" y="19" width="8" height="10"/>
+
+    <g opacity="0.5"><rect class="initial" x="2"  y="35" width="8" height="10"/></g>
+    <g opacity="0.5"><rect class="unset"   x="15" y="35" width="8" height="10"/></g>
+    <rect class="revert" x="28" y="35" width="8" height="10" opacity="0.25"/>
+    <rect class="revert-layer" x="41" y="35" width="8" height="10"/>
+    <g opacity="0.5"><rect class="inherit" x="54" y="35" width="8" height="10"/></g>
+
+    <rect class="invalid" x="2"  y="51" width="8" height="10" opacity="0.5"/>
+    <rect class="important" x="15" y="51" width="8" height="10"
+          opacity="0.75" style="opacity:0.75"/>
+    <rect class="normal" x="28" y="51" width="8" height="10" style="opacity:0.5"/>
+    <rect class="nan" x="41" y="51" width="8" height="10"/>
+    <rect class="infinity" x="54" y="51" width="8" height="10"/>
+  </g>
+</svg>

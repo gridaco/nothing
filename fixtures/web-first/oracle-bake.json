@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "5e82952b7bbc1f80737d2d8d9c254023cd610acdd58c027aa605de1e277b93bb",
+  "suite_sha256": "2738a099b17893dc581cdd27367acbd5f2e68d62f044cd948c1d1b5e80dcbb18",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -19,6 +19,15 @@
     }
   },
   "fixtures": [
+    {
+      "id": "html-inline-svg-ancestor-opacity",
+      "source": "html-inline-svg-ancestor-opacity.html",
+      "source_sha256": "c052262efb5a16f11d58936408803bae75a539798eca53515fb9fdbe8774b706",
+      "oracle": "chromium/html-inline-svg-ancestor-opacity.png",
+      "oracle_sha256": "4cfc712f775ab64e3edefb9c617cb0198ea9a1e3acf029c418e0b8b3e08dfc04",
+      "width": 64,
+      "height": 64
+    },
     {
       "id": "html-inline-svg-currentcolor-rect",
       "source": "html-inline-svg-currentcolor-rect.html",
@@ -412,6 +421,33 @@
       "source_sha256": "d96423f12fc6cfefd37f14d2084de1ea8affcea28e2435f791c458c1a1b64a74",
       "oracle": "chromium/svg-element-opacity.png",
       "oracle_sha256": "61cfaf8092af32870a0f0faff6c3614c7b9e4dac75eb6209b864599d9f84de7d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-element-opacity-gradient",
+      "source": "svg-element-opacity-gradient.svg",
+      "source_sha256": "98184f7061ab8d04ff0249ec473487135e334cc88d712820de15e7baba53aa91",
+      "oracle": "chromium/svg-element-opacity-gradient.png",
+      "oracle_sha256": "dd369225eb10ed80cbad7a190bbf07646708ffc131c2c4f03e81a064816c3674",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-element-opacity-gradient-css",
+      "source": "svg-element-opacity-gradient-css.svg",
+      "source_sha256": "380274b8ca0fa47a35388a9d3ebeb8ad7066f9414bed9e1c1eb518e9e5ccbd95",
+      "oracle": "chromium/svg-element-opacity-gradient-css.png",
+      "oracle_sha256": "622f9d18b66d0f81da94e9cd24812b8414eed640029e4568b6b4559b638c444e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-element-opacity-gradient-stroke",
+      "source": "svg-element-opacity-gradient-stroke.svg",
+      "source_sha256": "3d4ae6066393e616df6f70e8a19e6d51052374d2e1e8e13b87f86985b11af6b2",
+      "oracle": "chromium/svg-element-opacity-gradient-stroke.png",
+      "oracle_sha256": "7b9bc3416f2e74c76f7a4ec0bcd2df861c6b01f13c592f5c632c4f7fdeff9d27",
       "width": 64,
       "height": 64
     },
@@ -844,6 +880,24 @@
       "source_sha256": "3fbbff3705a1ff0ba3b5467673ac9b989fa5461cefb24e8c45c44bbaf2ba482a",
       "oracle": "chromium/svg-opacity-gradient-in-group.png",
       "oracle_sha256": "c78e1e5ae58e4c9ef222562d75a67e6e464a909966de1a5ccb6f43a4351a8599",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-opacity-grammar-attr",
+      "source": "svg-opacity-grammar-attr.svg",
+      "source_sha256": "00b3d99d205c9828dd257e1b152c517a39de6139dee35eae4f61a1f36d135bd0",
+      "oracle": "chromium/svg-opacity-grammar-attr.png",
+      "oracle_sha256": "5091484aa4cc628c9b8f13ee9d4567c91624907c64d0523f400ff82452945baa",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-opacity-grammar-css",
+      "source": "svg-opacity-grammar-css.svg",
+      "source_sha256": "644a7c4c4b7e39148783ccbc8fef0e16555848434ac6bd9e0f0b866165feb7bd",
+      "oracle": "chromium/svg-opacity-grammar-css.png",
+      "oracle_sha256": "cc0cfd9c5eb240c3572c6d680772693715696483fbe9414efc1b64e29ca372f0",
       "width": 64,
       "height": 64
     },
@@ -1420,6 +1474,24 @@
       "source_sha256": "d37ada88a4db10bf6fefca409ee0c5cf419aad3d2cdc1bb188ab105e2071a9b6",
       "oracle": "chromium/svg-rect-rounded-stroked.png",
       "oracle_sha256": "e3d09d0f2ca24c9151ab011d396f726cd3278bae8b177a8da6f59af78eed377e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-root-opacity",
+      "source": "svg-root-opacity.svg",
+      "source_sha256": "4a0277a705b8707caed8127f578f0d3682493ed6a2c9b5989108cbf4c9b10be3",
+      "oracle": "chromium/svg-root-opacity.png",
+      "oracle_sha256": "6afa73ee8940564f5947034de2af0eebcf423e913312585bc3193b459727f9a6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-root-opacity-zero",
+      "source": "svg-root-opacity-zero.svg",
+      "source_sha256": "f4cadedf34e51da76a58545d01bc304383d881072f28439b02542a7e213d5800",
+      "oracle": "chromium/svg-root-opacity-zero.png",
+      "oracle_sha256": "1502272898b22a79c129dc16ab37a1280c353a18767753769bc82532dddd72a7",
       "width": 64,
       "height": 64
     },

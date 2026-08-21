@@ -4,7 +4,7 @@
 
 mod support;
 
-use n0::drawlist::{build_glyphless_unchecked, Item, ItemKind};
+use n0::drawlist::{build_glyphless_unchecked, Item, ItemKind, PostPaintOpacity};
 use n0::paint::PaintCtx;
 use n0_model::math::Affine;
 use n0_model::model::{Color as ModelColor, CornerSmoothing, Paints, RectangularCornerRadius};
@@ -32,6 +32,7 @@ fn assert_rect_fill(item: &Item, world: Affine, width: f32, height: f32, argb: u
             corner_radius: RectangularCornerRadius::default(),
             corner_smoothing: CornerSmoothing::default(),
             paints: Paints::solid(ModelColor(argb)),
+            post_paint_opacity: PostPaintOpacity::IDENTITY,
         }
     );
 }

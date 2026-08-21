@@ -576,7 +576,7 @@ excluded.
 - [ ] `color-scheme`
 - [ ] `dynamic-range-limit`
 - [ ] `forced-color-adjust`
-- [ ] `opacity`
+- [x] `opacity`
 - [ ] `print-color-adjust`
 
 
@@ -1462,7 +1462,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `marker-start`
 - [ ] `mask`
 - [ ] `mask-type`
-- [ ] `opacity`
+- [x] `opacity`
 - [ ] `overflow`
 - [ ] `paint-order`
 - [ ] `pointer-events`

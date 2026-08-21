@@ -35,7 +35,7 @@ use n0_model::properties::{PropertyKey, PropertyTarget, PropertyValue, PropertyV
 use n0_model::resolve::{resolve, ResolveOptions, Resolved};
 use skia_safe::{surfaces, Color as SkColor, FontMgr};
 
-use super::{DrawList, DrawValues, Item, ItemKind};
+use super::{DrawList, DrawValues, Item, ItemKind, PostPaintOpacity};
 use crate::cache::SceneCache;
 use crate::damage::{diff_inputs, DamageOwner, FrameDamage, FrameDamageInput};
 use crate::frame;
@@ -1111,11 +1111,13 @@ fn compile_vectors(
                         corner_radius: corners.model(),
                         corner_smoothing: CornerSmoothing::default(),
                         paints,
+                        post_paint_opacity: PostPaintOpacity::IDENTITY,
                     },
                     EvidenceGeometry::Ellipse { w, h } => ItemKind::OvalFill {
                         w: *w,
                         h: *h,
                         paints,
+                        post_paint_opacity: PostPaintOpacity::IDENTITY,
                     },
                     EvidenceGeometry::Path { w, h, .. } => ItemKind::PathFill {
                         w: *w,
@@ -1126,6 +1128,7 @@ fn compile_vectors(
                                 .expect("every candidate path was lowered once"),
                         ),
                         paints,
+                        post_paint_opacity: PostPaintOpacity::IDENTITY,
                     },
                     EvidenceGeometry::Line { .. } => unreachable!("handled above"),
                 };
@@ -1191,12 +1194,14 @@ fn compile_vectors(
                             corner_smoothing: CornerSmoothing::default(),
                             stroke,
                             dash_phase: crate::drawlist::StrokeDashPhase::ZERO,
+                            post_paint_opacity: PostPaintOpacity::IDENTITY,
                         },
                         EvidenceGeometry::Ellipse { w, h } => ItemKind::OvalStroke {
                             w: *w,
                             h: *h,
                             stroke,
                             dash_phase: crate::drawlist::StrokeDashPhase::ZERO,
+                            post_paint_opacity: PostPaintOpacity::IDENTITY,
                         },
                         EvidenceGeometry::Path { w, h, .. } => ItemKind::PathStroke {
                             w: *w,
@@ -1208,6 +1213,7 @@ fn compile_vectors(
                             ),
                             stroke,
                             dash_phase: crate::drawlist::StrokeDashPhase::ZERO,
+                            post_paint_opacity: PostPaintOpacity::IDENTITY,
                         },
                         EvidenceGeometry::Line {
                             x1,
@@ -1225,6 +1231,7 @@ fn compile_vectors(
                             paint_h: *paint_h,
                             stroke,
                             dash_phase: crate::drawlist::StrokeDashPhase::ZERO,
+                            post_paint_opacity: PostPaintOpacity::IDENTITY,
                         },
                     };
                     push_evidence_item(

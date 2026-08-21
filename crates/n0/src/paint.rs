@@ -31,7 +31,7 @@ use skia_safe::{
     Rect, SamplingOptions, Shader, StrokeRec,
 };
 
-use crate::drawlist::{DrawList, ItemKind, StrokeDashPhase};
+use crate::drawlist::{DrawList, ItemKind, PostPaintOpacity, StrokeDashPhase};
 
 /// The gradient family whose local matrix could not be represented by the
 /// raster backend for one resolved paint box.
@@ -292,9 +292,11 @@ impl Default for PaintCtx {
 #[cfg(test)]
 mod paint_ctx_tests {
     use super::{paint_box_matrix, sk_paint, PaintBox, PaintCtx};
+    use crate::drawlist::PostPaintOpacity;
     use n0_model::math::Affine;
     use n0_model::model::{
         Color as ModelColor, GradientStop, LinearGradientPaint, Paint as ModelPaint,
+        RadialGradientPaint, SolidPaint,
     };
     use std::panic::{catch_unwind, AssertUnwindSafe};
 
@@ -376,6 +378,7 @@ mod paint_ctx_tests {
             &model,
             PaintBox::from_size(10.0, 10.0),
             &PaintCtx::new(None),
+            PostPaintOpacity::IDENTITY,
         )
         .expect("valid gradient paint");
         // The paint alpha carries the opacity at the backend's own 8-bit
@@ -383,6 +386,92 @@ mod paint_ctx_tests {
         // then the backend's float fold into the stops).
         let expected = (opacity * 255.0f32).round() / 255.0;
         assert_eq!(paint.alpha_f().to_bits(), expected.to_bits());
+    }
+
+    #[test]
+    fn post_paint_opacity_folds_after_solid_and_gradient_intrinsic_alpha() {
+        let intrinsic = 0.7_f32;
+        let factor = 0.6_f32;
+        let post_paint_opacity = PostPaintOpacity::from_resolved(factor);
+        let stops = vec![
+            GradientStop {
+                offset: 0.0,
+                color: ModelColor::BLACK,
+            },
+            GradientStop {
+                offset: 1.0,
+                color: ModelColor(0xFFFF_FFFF),
+            },
+        ];
+        let models = [
+            (
+                ModelPaint::Solid(SolidPaint::new(ModelColor(0x4D12_3456))),
+                77.0_f32 / 255.0,
+            ),
+            (
+                ModelPaint::LinearGradient(LinearGradientPaint {
+                    opacity: intrinsic,
+                    stops: stops.clone(),
+                    ..Default::default()
+                }),
+                (intrinsic * 255.0).round() / 255.0,
+            ),
+            (
+                ModelPaint::RadialGradient(RadialGradientPaint {
+                    opacity: intrinsic,
+                    stops,
+                    ..Default::default()
+                }),
+                (intrinsic * 255.0).round() / 255.0,
+            ),
+        ];
+
+        for (model, intrinsic_alpha) in models {
+            let paint = sk_paint(
+                &model,
+                PaintBox::from_size(10.0, 10.0),
+                &PaintCtx::new(None),
+                post_paint_opacity,
+            )
+            .expect("valid paint");
+            let expected = intrinsic_alpha * factor;
+            assert_eq!(paint.alpha_f().to_bits(), expected.to_bits());
+            assert!(paint.color_filter().is_none());
+        }
+
+        let identity = sk_paint(
+            &ModelPaint::LinearGradient(LinearGradientPaint {
+                opacity: intrinsic,
+                stops: vec![
+                    GradientStop {
+                        offset: 0.0,
+                        color: ModelColor::BLACK,
+                    },
+                    GradientStop {
+                        offset: 1.0,
+                        color: ModelColor(0xFFFF_FFFF),
+                    },
+                ],
+                ..Default::default()
+            }),
+            PaintBox::from_size(10.0, 10.0),
+            &PaintCtx::new(None),
+            PostPaintOpacity::IDENTITY,
+        )
+        .expect("valid gradient paint");
+        assert_eq!(
+            identity.alpha_f().to_bits(),
+            ((intrinsic * 255.0).round() / 255.0).to_bits()
+        );
+        assert!(identity.color_filter().is_none());
+
+        let folded = ((intrinsic * 255.0).round() / 255.0) * factor;
+        let requantized = (folded * 255.0).round() / 255.0;
+        assert_ne!(
+            folded.to_bits(),
+            requantized.to_bits(),
+            "the probe values distinguish float folding from a second 8-bit alpha step"
+        );
     }
 }
 
@@ -564,7 +653,7 @@ pub(crate) fn preflight_gradients<K: Copy>(
     for (draw_item, item) in list.items.iter().enumerate() {
         match &item.kind {
             ItemKind::RectFill { w, h, paints, .. }
-            | ItemKind::OvalFill { w, h, paints }
+            | ItemKind::OvalFill { w, h, paints, .. }
             | ItemKind::PathFill { w, h, paints, .. } => preflight_paints(
                 item.node,
                 draw_item,
@@ -577,6 +666,7 @@ pub(crate) fn preflight_gradients<K: Copy>(
                 paints,
                 paint_w,
                 paint_h,
+                ..
             } => {
                 let paint_box = PaintBox::from_size(*paint_w, *paint_h);
                 for run in &layout.glyph_runs {
@@ -732,7 +822,7 @@ pub(crate) fn preflight_images(
     for (draw_item, item) in list.items.iter().enumerate() {
         match &item.kind {
             ItemKind::RectFill { w, h, paints, .. }
-            | ItemKind::OvalFill { w, h, paints }
+            | ItemKind::OvalFill { w, h, paints, .. }
             | ItemKind::PathFill { w, h, paints, .. } => preflight_image_paints(
                 item,
                 draw_item,
@@ -747,6 +837,7 @@ pub(crate) fn preflight_images(
                 paints,
                 paint_w,
                 paint_h,
+                ..
             } => {
                 let paint_box = PaintBox::from_size(*paint_w, *paint_h);
                 for run in &layout.glyph_runs {
@@ -930,7 +1021,12 @@ fn image_shader(paint: &ImagePaint, paint_box: PaintBox, ctx: &PaintCtx) -> Opti
 /// Materialize one model paint. The caller draws these in list order instead
 /// of precomposing a stack: each entry's blend mode must see the actual canvas
 /// result of the paints below it, including the scene backdrop.
-fn sk_paint(model: &ModelPaint, paint_box: PaintBox, ctx: &PaintCtx) -> Option<Paint> {
+fn sk_paint(
+    model: &ModelPaint,
+    paint_box: PaintBox,
+    ctx: &PaintCtx,
+    post_paint_opacity: PostPaintOpacity,
+) -> Option<Paint> {
     let mut paint = Paint::default();
     paint.set_anti_alias(true);
     paint.set_blend_mode(sk_blend_mode(model.blend_mode()));
@@ -995,6 +1091,16 @@ fn sk_paint(model: &ModelPaint, paint_box: PaintBox, ctx: &PaintCtx) -> Option<P
             let opacity = model.opacity().clamp(0.0, 1.0);
             paint.set_alpha_f((opacity * 255.0).round() / 255.0);
         }
+    }
+    // Chromium represents element opacity as a SaveLayerAlpha effect, then
+    // folds a one-draw SrcOver effect into that draw by multiplying its float
+    // paint alpha (PaintOpBuffer::PlaybackFoldingIterator and
+    // ScopedRasterFlags). Preserve that exact order: intrinsic paint alpha
+    // materializes first, then this factor multiplies it without another
+    // 8-bit quantization. Identity performs no write at all.
+    let factor = post_paint_opacity.value();
+    if factor != 1.0 {
+        paint.set_alpha_f(paint.alpha_f() * factor);
     }
     Some(paint)
 }
@@ -1580,6 +1686,7 @@ mod dash_phase_route_tests {
                 model,
                 &stroke,
                 dash_phase,
+                PostPaintOpacity::IDENTITY,
                 PaintBox::from_size(W as f32, H as f32),
                 &PaintCtx::new(None),
             )
@@ -1801,17 +1908,26 @@ fn draw_stroke(
     source: &Path,
     stroke: &Stroke,
     dash_phase: StrokeDashPhase,
+    post_paint_opacity: PostPaintOpacity,
     paint_box: PaintBox,
     ctx: &PaintCtx,
 ) {
     let geometry = stroke_geometry(source, stroke, dash_phase);
-    draw_painted_geometry(canvas, &geometry, &stroke.paints, paint_box, ctx);
+    draw_painted_geometry(
+        canvas,
+        &geometry,
+        &stroke.paints,
+        post_paint_opacity,
+        paint_box,
+        ctx,
+    );
 }
 
 fn draw_painted_geometry(
     canvas: &Canvas,
     geometry: &Path,
     paints: &Paints,
+    post_paint_opacity: PostPaintOpacity,
     paint_box: PaintBox,
     ctx: &PaintCtx,
 ) {
@@ -1819,7 +1935,7 @@ fn draw_painted_geometry(
         return;
     }
     for model in paints.iter() {
-        if let Some(paint) = sk_paint(model, paint_box, ctx) {
+        if let Some(paint) = sk_paint(model, paint_box, ctx, post_paint_opacity) {
             canvas.draw_path(geometry, &paint);
         }
     }
@@ -1833,11 +1949,19 @@ fn draw_rectangular_stroke(
     widths: RectangularStrokeWidth,
     stroke: &Stroke,
     dash_phase: StrokeDashPhase,
+    post_paint_opacity: PostPaintOpacity,
     paint_box: PaintBox,
     ctx: &PaintCtx,
 ) {
     let geometry = rectangular_stroke_geometry(w, h, radius, widths, stroke, dash_phase);
-    draw_painted_geometry(canvas, &geometry, &stroke.paints, paint_box, ctx);
+    draw_painted_geometry(
+        canvas,
+        &geometry,
+        &stroke.paints,
+        post_paint_opacity,
+        paint_box,
+        ctx,
+    );
 }
 
 /// Use Skia's native stroke rasterization for centered strokes. Converting a
@@ -1847,11 +1971,12 @@ fn native_stroke_paint(
     model: &ModelPaint,
     stroke: &Stroke,
     dash_phase: StrokeDashPhase,
+    post_paint_opacity: PostPaintOpacity,
     paint_box: PaintBox,
     ctx: &PaintCtx,
 ) -> Option<Paint> {
     let width = uniform_stroke_width(stroke)?;
-    let mut paint = sk_paint(model, paint_box, ctx)?;
+    let mut paint = sk_paint(model, paint_box, ctx, post_paint_opacity)?;
     paint.set_style(PaintStyle::Stroke);
     paint.set_stroke_width(width);
     paint.set_stroke_cap(sk_stroke_cap(stroke.cap));
@@ -1869,12 +1994,20 @@ fn native_stroke_paint(
 fn draw_native_centered_stroke(
     stroke: &Stroke,
     dash_phase: StrokeDashPhase,
+    post_paint_opacity: PostPaintOpacity,
     paint_box: PaintBox,
     ctx: &PaintCtx,
     mut draw: impl FnMut(&Paint),
 ) {
     for model in stroke.paints.iter() {
-        if let Some(paint) = native_stroke_paint(model, stroke, dash_phase, paint_box, ctx) {
+        if let Some(paint) = native_stroke_paint(
+            model,
+            stroke,
+            dash_phase,
+            post_paint_opacity,
+            paint_box,
+            ctx,
+        ) {
             draw(&paint);
         }
     }
@@ -2010,12 +2143,15 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 corner_radius,
                 corner_smoothing,
                 paints,
+                post_paint_opacity,
             } => {
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*w, *h);
                     if corner_radius.is_zero() {
                         for model in paints.iter() {
-                            if let Some(paint) = sk_paint(model, paint_box, ctx) {
+                            if let Some(paint) =
+                                sk_paint(model, paint_box, ctx, *post_paint_opacity)
+                            {
                                 canvas.draw_rect(Rect::from_wh(*w, *h), &paint);
                             }
                         }
@@ -2023,28 +2159,48 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                         let path =
                             rounded_rect_path(*w, *h, corner_radius, corner_smoothing.value());
                         for model in paints.iter() {
-                            if let Some(paint) = sk_paint(model, paint_box, ctx) {
+                            if let Some(paint) =
+                                sk_paint(model, paint_box, ctx, *post_paint_opacity)
+                            {
                                 canvas.draw_path(&path, &paint);
                             }
                         }
                     }
                 });
             }
-            ItemKind::OvalFill { w, h, paints } => {
+            ItemKind::OvalFill {
+                w,
+                h,
+                paints,
+                post_paint_opacity,
+            } => {
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*w, *h);
                     for model in paints.iter() {
-                        if let Some(paint) = sk_paint(model, paint_box, ctx) {
+                        if let Some(paint) = sk_paint(model, paint_box, ctx, *post_paint_opacity) {
                             canvas.draw_oval(Rect::from_wh(*w, *h), &paint);
                         }
                     }
                 });
             }
-            ItemKind::PathFill { w, h, path, paints } => {
+            ItemKind::PathFill {
+                w,
+                h,
+                path,
+                paints,
+                post_paint_opacity,
+            } => {
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*w, *h);
                     let geometry = backend_path(path);
-                    draw_painted_geometry(canvas, &geometry, paints, paint_box, ctx);
+                    draw_painted_geometry(
+                        canvas,
+                        &geometry,
+                        paints,
+                        *post_paint_opacity,
+                        paint_box,
+                        ctx,
+                    );
                 });
             }
             ItemKind::TextFill {
@@ -2052,6 +2208,7 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 paints,
                 paint_w,
                 paint_h,
+                post_paint_opacity,
             } => {
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*paint_w, *paint_h);
@@ -2059,7 +2216,9 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                         glyph_scratch.with_run(run, list, |font, glyphs, positions| {
                             if let Some(run_paints) = paints.for_source_run(run.source_run) {
                                 for model in run_paints.iter() {
-                                    if let Some(paint) = sk_paint(model, paint_box, ctx) {
+                                    if let Some(paint) =
+                                        sk_paint(model, paint_box, ctx, *post_paint_opacity)
+                                    {
                                         canvas.draw_glyphs_at(
                                             glyphs,
                                             positions,
@@ -2081,6 +2240,7 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 corner_smoothing,
                 stroke,
                 dash_phase,
+                post_paint_opacity,
             } => {
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*w, *h);
@@ -2094,6 +2254,7 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                             widths,
                             stroke,
                             *dash_phase,
+                            *post_paint_opacity,
                             paint_box,
                             ctx,
                         ),
@@ -2102,6 +2263,7 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                                 draw_native_centered_stroke(
                                     stroke,
                                     *dash_phase,
+                                    *post_paint_opacity,
                                     paint_box,
                                     ctx,
                                     |paint| {
@@ -2119,6 +2281,7 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                                     draw_native_centered_stroke(
                                         stroke,
                                         *dash_phase,
+                                        *post_paint_opacity,
                                         paint_box,
                                         ctx,
                                         |paint| {
@@ -2126,7 +2289,15 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                                         },
                                     );
                                 } else {
-                                    draw_stroke(canvas, &path, stroke, *dash_phase, paint_box, ctx);
+                                    draw_stroke(
+                                        canvas,
+                                        &path,
+                                        stroke,
+                                        *dash_phase,
+                                        *post_paint_opacity,
+                                        paint_box,
+                                        ctx,
+                                    );
                                 }
                             }
                         }
@@ -2138,6 +2309,7 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 h,
                 stroke,
                 dash_phase,
+                post_paint_opacity,
             } => {
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*w, *h);
@@ -2154,15 +2326,23 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                         stroke
                     };
                     if stroke.align == StrokeAlign::Center {
-                        draw_native_centered_stroke(stroke, *dash_phase, paint_box, ctx, |paint| {
-                            canvas.draw_oval(Rect::from_wh(*w, *h), paint);
-                        });
+                        draw_native_centered_stroke(
+                            stroke,
+                            *dash_phase,
+                            *post_paint_opacity,
+                            paint_box,
+                            ctx,
+                            |paint| {
+                                canvas.draw_oval(Rect::from_wh(*w, *h), paint);
+                            },
+                        );
                     } else {
                         draw_stroke(
                             canvas,
                             &oval_path(*w, *h),
                             stroke,
                             *dash_phase,
+                            *post_paint_opacity,
                             paint_box,
                             ctx,
                         );
@@ -2176,6 +2356,7 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 h,
                 stroke,
                 dash_phase,
+                post_paint_opacity,
             } => {
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_xywh(*x, *y, *w, *h);
@@ -2185,9 +2366,16 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                         stroke
                     };
                     debug_assert_eq!(stroke.align, StrokeAlign::Center);
-                    draw_native_centered_stroke(stroke, *dash_phase, paint_box, ctx, |paint| {
-                        canvas.draw_oval(Rect::from_xywh(*x, *y, *w, *h), paint);
-                    });
+                    draw_native_centered_stroke(
+                        stroke,
+                        *dash_phase,
+                        *post_paint_opacity,
+                        paint_box,
+                        ctx,
+                        |paint| {
+                            canvas.draw_oval(Rect::from_xywh(*x, *y, *w, *h), paint);
+                        },
+                    );
                 });
             }
             ItemKind::LineStroke {
@@ -2199,19 +2387,28 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 paint_h,
                 stroke,
                 dash_phase,
+                post_paint_opacity,
             } => {
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*paint_w, *paint_h);
                     if stroke.align == StrokeAlign::Center {
-                        draw_native_centered_stroke(stroke, *dash_phase, paint_box, ctx, |paint| {
-                            canvas.draw_line((*x1, *y1), (*x2, *y2), paint);
-                        });
+                        draw_native_centered_stroke(
+                            stroke,
+                            *dash_phase,
+                            *post_paint_opacity,
+                            paint_box,
+                            ctx,
+                            |paint| {
+                                canvas.draw_line((*x1, *y1), (*x2, *y2), paint);
+                            },
+                        );
                     } else {
                         draw_stroke(
                             canvas,
                             &line_path(*x1, *y1, *x2, *y2),
                             stroke,
                             *dash_phase,
+                            *post_paint_opacity,
                             paint_box,
                             ctx,
                         );
@@ -2224,12 +2421,21 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 path,
                 stroke,
                 dash_phase,
+                post_paint_opacity,
             } => {
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*w, *h);
                     let geometry = backend_path(path);
                     if stroke.align != StrokeAlign::Center {
-                        draw_stroke(canvas, &geometry, stroke, *dash_phase, paint_box, ctx);
+                        draw_stroke(
+                            canvas,
+                            &geometry,
+                            stroke,
+                            *dash_phase,
+                            *post_paint_opacity,
+                            paint_box,
+                            ctx,
+                        );
                         return;
                     }
                     // One draw, so one composite pass. The cap a solid closed
@@ -2246,9 +2452,16 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                     } else {
                         stroke
                     };
-                    draw_native_centered_stroke(stroke, *dash_phase, paint_box, ctx, |paint| {
-                        canvas.draw_path(&geometry, paint);
-                    });
+                    draw_native_centered_stroke(
+                        stroke,
+                        *dash_phase,
+                        *post_paint_opacity,
+                        paint_box,
+                        ctx,
+                        |paint| {
+                            canvas.draw_path(&geometry, paint);
+                        },
+                    );
                 });
             }
             ItemKind::TextStroke {
@@ -2257,6 +2470,7 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 paint_h,
                 stroke,
                 dash_phase,
+                post_paint_opacity,
             } => {
                 if layout.glyph_runs.is_empty() {
                     continue;
@@ -2264,22 +2478,37 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*paint_w, *paint_h);
                     if stroke.align == StrokeAlign::Center {
-                        draw_native_centered_stroke(stroke, *dash_phase, paint_box, ctx, |paint| {
-                            for run in &layout.glyph_runs {
-                                glyph_scratch.with_run(run, list, |font, glyphs, positions| {
-                                    canvas.draw_glyphs_at(
-                                        glyphs,
-                                        positions,
-                                        Point::new(0.0, 0.0),
-                                        font,
-                                        paint,
-                                    );
-                                });
-                            }
-                        });
+                        draw_native_centered_stroke(
+                            stroke,
+                            *dash_phase,
+                            *post_paint_opacity,
+                            paint_box,
+                            ctx,
+                            |paint| {
+                                for run in &layout.glyph_runs {
+                                    glyph_scratch.with_run(run, list, |font, glyphs, positions| {
+                                        canvas.draw_glyphs_at(
+                                            glyphs,
+                                            positions,
+                                            Point::new(0.0, 0.0),
+                                            font,
+                                            paint,
+                                        );
+                                    });
+                                }
+                            },
+                        );
                     } else {
                         let source = text_path(layout, list, &mut glyph_scratch);
-                        draw_stroke(canvas, &source, stroke, *dash_phase, paint_box, ctx);
+                        draw_stroke(
+                            canvas,
+                            &source,
+                            stroke,
+                            *dash_phase,
+                            *post_paint_opacity,
+                            paint_box,
+                            ctx,
+                        );
                     }
                 });
             }

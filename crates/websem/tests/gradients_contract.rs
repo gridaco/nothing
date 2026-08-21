@@ -157,9 +157,12 @@ fn href_beats_xlink_href() {
 </svg>"##,
         RECT = RECT
     ));
-    assert_eq!(
-        solid_of(sole_fill(&frame)),
-        cg::CGColor::from_rgb(255, 0, 0)
+    let gradient = linear_of(sole_fill(&frame));
+    assert!(
+        gradient
+            .stops
+            .iter()
+            .all(|stop| stop.color == cg::CGColor::from_rgb(255, 0, 0))
     );
 }
 
@@ -200,25 +203,33 @@ fn own_stops_suppress_the_whole_template_stop_list() {
   </defs>
   {RECT}"##
     )));
-    assert_eq!(
-        solid_of(sole_fill(&frame)),
-        cg::CGColor::from_rgb(0, 255, 0)
+    let gradient = linear_of(sole_fill(&frame));
+    assert!(
+        gradient
+            .stops
+            .iter()
+            .all(|stop| stop.color == cg::CGColor::from_rgb(0, 255, 0))
     );
 }
 
 // ─── stops ───────────────────────────────────────────────────────────────
 
-/// One stop resolves to a solid of that stop (measured; the backend's rule,
-/// resolved by the producer so no degenerate ramp reaches it).
+/// One stop is spatially constant but retains gradient rasterization. The
+/// duplicated resolved stops preserve that backend route without carrying
+/// source syntax across the render contract.
 #[test]
-fn one_stop_resolves_solid() {
+fn one_stop_resolves_to_a_constant_gradient() {
     let frame = admit_both(&document(&format!(
         r##"  <defs><linearGradient id="g"><stop offset="0.3" stop-color="lime"/></linearGradient></defs>
   {RECT}"##
     )));
-    assert_eq!(
-        solid_of(sole_fill(&frame)),
-        cg::CGColor::from_rgb(0, 255, 0)
+    let gradient = linear_of(sole_fill(&frame));
+    assert_eq!(gradient.stops.len(), 2);
+    assert!(
+        gradient
+            .stops
+            .iter()
+            .all(|stop| stop.color == cg::CGColor::from_rgb(0, 255, 0))
     );
 }
 
@@ -238,29 +249,134 @@ fn a_degenerate_linear_resolves_to_the_measured_solid() {
     );
 
     let repeat = admit_both(&document(&format!(
-        r##"  <defs><linearGradient id="g" x1="0.5" y1="0" x2="0.5" y2="0" spreadMethod="repeat">{RAMP}</linearGradient></defs>
-  {RECT}"##
+        r##"  <defs><linearGradient id="g" x1="0.5" y1="0" x2="0.5" y2="0" spreadMethod="repeat"><stop offset="0" stop-color="#000000"/><stop offset="1" stop-color="#020000"/></linearGradient></defs>
+  {RECT}"##,
+        RECT = RECT,
     )));
     assert_eq!(
         solid_of(sole_fill(&repeat)),
-        cg::CGColor::from_rgba(128, 0, 128, 255),
+        cg::CGColor::from_rgba(1, 0, 0, 255),
         "repeat: the ramp's integral average"
     );
 }
 
-/// `stop-opacity` folds into the stop's alpha with one quantize, and the
-/// consumer's `fill-opacity` rides the gradient paint's float opacity
-/// (measured through the `svg-gradient-fill-opacity` cell).
+/// A zero or negative-radius radial takes the same tile-specific backend
+/// degeneracy as a collapsed linear ramp: the last stop for pad, the integral
+/// ramp average for repeat and reflect.
 #[test]
-fn stop_opacity_folds_and_fill_opacity_rides_the_paint() {
-    let frame = admit_both(&document(&format!(
-        r##"  <defs><linearGradient id="g"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="red" stop-opacity="0.5"/></linearGradient></defs>
-  <rect x="8" y="8" width="48" height="48" fill="url(#g)" fill-opacity="0.25"/>"##
-    )));
+fn a_nonpositive_radius_radial_uses_the_tile_specific_degenerate_color() {
+    let radial = |radius: &str, spread: &str| {
+        admit_both(&document(&format!(
+            r##"  <defs><radialGradient id="g" r="{radius}" spreadMethod="{spread}"><stop offset="0" stop-color="#000000"/><stop offset="1" stop-color="#020000"/></radialGradient></defs>
+  {RECT}"##,
+            RECT = RECT,
+        )))
+    };
+
+    for radius in ["0", "-1"] {
+        assert_eq!(
+            solid_of(sole_fill(&radial(radius, "pad"))),
+            cg::CGColor::from_rgb(2, 0, 0),
+            "radius {radius}, pad: the last stop"
+        );
+        for spread in ["repeat", "reflect"] {
+            assert_eq!(
+                solid_of(sole_fill(&radial(radius, spread))),
+                cg::CGColor::from_rgb(1, 0, 0),
+                "radius {radius}, {spread}: the ramp's integral average"
+            );
+        }
+    }
+}
+
+/// An RGBA8-exact `stop-opacity` survives in the stop color, while the
+/// consumer's `fill-opacity` rides the gradient paint's float opacity
+/// (measured through the `svg-gradient-fill-opacity` cell). Fractional stop
+/// alpha that the frame cannot preserve refuses separately below.
+#[test]
+fn exact_stop_opacity_and_fill_opacity_keep_separate_facts() {
+    let frame = admit_both(&document(
+        r##"  <defs><linearGradient id="g"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="red" stop-opacity="0.5019607843137255"/></linearGradient></defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#g)" fill-opacity="0.25"/>"##,
+    ));
     let gradient = linear_of(sole_fill(&frame));
     assert_eq!(gradient.stops[0].color.a, 255);
-    assert_eq!(gradient.stops[1].color.a, 128, "0.5 quantizes once to 128");
+    assert_eq!(gradient.stops[1].color.a, 128);
     assert_eq!(gradient.opacity.to_bits(), 0.25f32.to_bits());
+}
+
+/// Chromium retains `stop-opacity` as a float through gradient shading, while
+/// the current resolved paint leaf stores stop colors as RGBA8. A fractional
+/// component that does not round-trip through that leaf is an own-row named
+/// refusal, never a neighboring-alpha pixel.
+#[test]
+fn non_rgba8_gradient_stop_precision_refuses_by_name() {
+    for stop in [
+        r##"<stop offset="0" stop-color="#16a34a" stop-opacity=".3"/>"##,
+        r##"<stop offset="0" stop-color="rgb(22 163 74 / .3)" stop-opacity=".7"/>"##,
+    ] {
+        let error = refusal(&document(&format!(
+            r##"  <defs><linearGradient id="g">{stop}<stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
+  {RECT}"##
+        )));
+        let CompileError::UnsupportedFill(reason) = error else {
+            panic!("expected a fill refusal, got {error:?}");
+        };
+        assert!(
+            reason.contains("stop alpha loses float precision"),
+            "{reason}"
+        );
+    }
+
+    let staged = refusal(&document(
+        r##"  <defs><linearGradient id="g" x1="0" x2="0"><stop stop-color="#16a34a"/><stop offset="1" stop-color="#2563eb" stop-opacity="0.30196078431372547"/></linearGradient></defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#g)" fill-opacity=".7"/>"##,
+    ));
+    let CompileError::UnsupportedFill(reason) = staged else {
+        panic!("expected a fill refusal, got {staged:?}");
+    };
+    assert!(
+        reason.contains("stop alpha loses staged precision"),
+        "{reason}"
+    );
+
+    for spread in ["repeat", "reflect"] {
+        let averaged = refusal(&document(&format!(
+            r##"  <defs><linearGradient id="g" x1="0" x2="0" spreadMethod="{spread}"><stop stop-color="#16a34a" stop-opacity="0.30196078431372547"/><stop offset="1" stop-color="#2563eb" stop-opacity="0.5019607843137255"/></linearGradient></defs>
+  {RECT}"##
+        )));
+        let CompileError::UnsupportedFill(reason) = averaged else {
+            panic!("expected a fill refusal, got {averaged:?}");
+        };
+        assert!(
+            reason.contains("stop alpha loses float precision"),
+            "{reason}"
+        );
+    }
+
+    let averaged_rgb = refusal(&document(
+        r##"  <defs><linearGradient id="g" x1="0" x2="0" spreadMethod="repeat"><stop stop-color="#000000"/><stop offset="1" stop-color="#010000"/></linearGradient></defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#g)" opacity=".6"/>"##,
+    ));
+    let CompileError::UnsupportedFill(reason) = averaged_rgb else {
+        panic!("expected a fill refusal, got {averaged_rgb:?}");
+    };
+    assert!(
+        reason.contains("stop color loses float precision"),
+        "{reason}"
+    );
+
+    let averaged_translucent_rgb = refusal(&document(
+        r##"  <defs><linearGradient id="g" x1="0" x2="0" spreadMethod="repeat"><stop stop-color="#00000080"/><stop offset="1" stop-color="#01000080"/></linearGradient></defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#g)"/>"##,
+    ));
+    let CompileError::UnsupportedFill(reason) = averaged_translucent_rgb else {
+        panic!("expected a fill refusal, got {averaged_translucent_rgb:?}");
+    };
+    assert!(
+        reason.contains("stop color loses float precision"),
+        "{reason}"
+    );
 }
 
 /// An invalid `offset` is 0, and offsets clamp against the running maximum

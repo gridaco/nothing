@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <g fill="#16a34a">
+    <rect x="4"  y="4"  width="11" height="11" opacity="0.5"/>
+    <rect x="19" y="4"  width="11" height="11" opacity="50%"/>
+    <rect x="34" y="4"  width="11" height="11" opacity="calc(20% + 30%)"/>
+    <rect x="49" y="4"  width="11" height="11" opacity="min(0.5, 0.8)"/>
+
+    <rect x="4"  y="19" width="11" height="11" opacity="max(20%, 50%)"/>
+    <rect x="19" y="19" width="11" height="11" opacity="clamp(0.1, 0.5, 0.9)"/>
+    <rect x="34" y="19" width="11" height="11" opacity="5e-1"/>
+    <rect x="49" y="19" width="11" height="11" opacity="+0.5"/>
+
+    <rect x="4"  y="34" width="11" height="11" opacity="-50%"/>
+    <rect x="19" y="34" width="11" height="11" opacity="150%"/>
+    <rect x="34" y="34" width="11" height="11" opacity="initial"/>
+    <rect x="49" y="34" width="11" height="11" opacity="unset"/>
+
+    <rect x="4"  y="49" width="11" height="11" opacity="revert"/>
+    <rect x="19" y="49" width="11" height="11" opacity="revert-layer"/>
+    <g opacity="0.5">
+      <rect x="34" y="49" width="11" height="11" opacity="inherit"/>
+    </g>
+    <rect x="49" y="49" width="11" height="11" opacity="not-a-value"/>
+  </g>
+</svg>
