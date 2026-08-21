@@ -177,6 +177,17 @@ pub enum ItemKind {
         stroke: Stroke,
         dash_phase: StrokeDashPhase,
     },
+    /// A dashed resolved-frame ellipse whose absolute local coordinates must
+    /// survive until Skia constructs the oval path effect. Folding `(x, y)`
+    /// into `world` first is algebraically equal but not f32-equivalent.
+    AbsoluteDashedOvalStroke {
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        stroke: Stroke,
+        dash_phase: StrokeDashPhase,
+    },
     LineStroke {
         x1: f32,
         y1: f32,

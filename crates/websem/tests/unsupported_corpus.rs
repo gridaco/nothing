@@ -131,7 +131,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "invalid at byte 0",
     ),
-    ("svg-path-pathlength", DeclaredByBestEffort, "pathLength"),
     (
         "svg-path-trailing-dot-number",
         DeclaredByBestEffort,

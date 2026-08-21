@@ -291,11 +291,31 @@ impl Default for PaintCtx {
 
 #[cfg(test)]
 mod paint_ctx_tests {
-    use super::{sk_paint, PaintBox, PaintCtx};
+    use super::{paint_box_matrix, sk_paint, PaintBox, PaintCtx};
+    use n0_model::math::Affine;
     use n0_model::model::{
         Color as ModelColor, GradientStop, LinearGradientPaint, Paint as ModelPaint,
     };
     use std::panic::{catch_unwind, AssertUnwindSafe};
+
+    #[test]
+    fn positioned_paint_box_preserves_its_origin_without_unit_space_round_trip() {
+        let x = 13.25_f32;
+        let y = -7.75_f32;
+        let w = 201.5_f32;
+        let h = 89.125_f32;
+
+        // The old compensation divided the origin by the extent in the
+        // producer and multiplied it back here. That algebra changes this
+        // ordinary finite coordinate by one binary32 step.
+        assert_ne!((w * (x / w)).to_bits(), x.to_bits());
+
+        let matrix = paint_box_matrix(PaintBox::from_xywh(x, y, w, h), &Affine::IDENTITY);
+        assert_eq!(matrix[0].to_bits(), w.to_bits());
+        assert_eq!(matrix[2].to_bits(), x.to_bits());
+        assert_eq!(matrix[4].to_bits(), h.to_bits());
+        assert_eq!(matrix[5].to_bits(), y.to_bits());
+    }
 
     #[test]
     fn encoded_resources_are_eager_raster_images() {
@@ -443,8 +463,12 @@ struct PaintBox {
 
 impl PaintBox {
     fn from_size(w: f32, h: f32) -> Self {
-        let (x, w) = if w == 0.0 { (-0.5, 1.0) } else { (0.0, w) };
-        let (y, h) = if h == 0.0 { (-0.5, 1.0) } else { (0.0, h) };
+        Self::from_xywh(0.0, 0.0, w, h)
+    }
+
+    fn from_xywh(x: f32, y: f32, w: f32, h: f32) -> Self {
+        let (x, w) = if w == 0.0 { (x - 0.5, 1.0) } else { (x, w) };
+        let (y, h) = if h == 0.0 { (y - 0.5, 1.0) } else { (y, h) };
         PaintBox { x, y, w, h }
     }
 }
@@ -578,6 +602,15 @@ pub(crate) fn preflight_gradients<K: Copy>(
                 PaintUseContext::Stroke,
                 &stroke.paints,
                 PaintBox::from_size(*w, *h),
+            )?,
+            ItemKind::AbsoluteDashedOvalStroke {
+                x, y, w, h, stroke, ..
+            } => preflight_paints(
+                item.node,
+                draw_item,
+                PaintUseContext::Stroke,
+                &stroke.paints,
+                PaintBox::from_xywh(*x, *y, *w, *h),
             )?,
             ItemKind::LineStroke {
                 paint_w,
@@ -740,6 +773,17 @@ pub(crate) fn preflight_images(
                 PaintUseContext::Stroke,
                 &stroke.paints,
                 PaintBox::from_size(*w, *h),
+                view,
+                ctx,
+            )?,
+            ItemKind::AbsoluteDashedOvalStroke {
+                x, y, w, h, stroke, ..
+            } => preflight_image_paints(
+                item,
+                draw_item,
+                PaintUseContext::Stroke,
+                &stroke.paints,
+                PaintBox::from_xywh(*x, *y, *w, *h),
                 view,
                 ctx,
             )?,
@@ -2123,6 +2167,27 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                             ctx,
                         );
                     }
+                });
+            }
+            ItemKind::AbsoluteDashedOvalStroke {
+                x,
+                y,
+                w,
+                h,
+                stroke,
+                dash_phase,
+            } => {
+                with_local_transform(canvas, view, &item.world, || {
+                    let paint_box = PaintBox::from_xywh(*x, *y, *w, *h);
+                    let stroke = if *w > 0.0 && *h > 0.0 {
+                        &stroke_cap_for_closed_contours(stroke)
+                    } else {
+                        stroke
+                    };
+                    debug_assert_eq!(stroke.align, StrokeAlign::Center);
+                    draw_native_centered_stroke(stroke, *dash_phase, paint_box, ctx, |paint| {
+                        canvas.draw_oval(Rect::from_xywh(*x, *y, *w, *h), paint);
+                    });
                 });
             }
             ItemKind::LineStroke {

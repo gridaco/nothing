@@ -46,7 +46,8 @@ from the dated addenda below:
   gradient rung), including `context-fill`/`context-stroke` selected through
   same-document use instances and fully resolved before the frame; with
   centred stroke geometry, the closed cap/join family, opacity, and resolved
-  dash patterns with a checked cycle and signed local-space phase;
+  dash patterns with a checked cycle, signed local-space phase, and
+  `pathLength` source calibration;
   `<g>` and `<a>` containers, visibility, isolated element/group opacity, and
   the whole `transform` grammar in both spellings (the attribute is a
   presentation hint of the CSS `transform` property, and `gradientTransform`
@@ -56,13 +57,13 @@ from the dated addenda below:
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 297 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 306 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
   confined tolerance (the weighted rational conic) and three gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
-  restore).
+  restore). The named refusal register has 59 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -529,7 +530,8 @@ number grammar on a spec-versus-browser disagreement it could not verify from
 this machine (the code now states only what was measured), and both a law and a
 fixtures README called the `marker-*` patrol "provably inert" when nothing else
 reads a marker property — the property *is* the paint trigger, so that patrol is
-the load-bearing one and `pathLength` is the over-refusal.
+the load-bearing one. `pathLength` was the over-refusal at this rung; the
+source path-distance amendment below later graduates it.
 
 One finding is recorded rather than fixed, because it is systemic and predates
 this rung: a SMIL `<animate>`/`<set>` targeting a *consumed* attribute is active
@@ -596,7 +598,8 @@ the count of record.)
 - **Two patrols stopped being over-refusals.** `vector-effect` and `paint-order`
   were provably inert while strokes refused; consuming strokes made both
   load-bearing. That is exactly the trap the earlier rungs kept them for, and
-  the reason `pathLength` is patrolled today even though nothing reads it yet.
+  the reason `pathLength` entered the patrol at this rung even though nothing
+  read it yet. The source path-distance amendment below later graduates it.
 - **Strokes land inside the declared conic class, mostly below it.** 23 of 24
   cells bake byte-exact — including every cap, every join, the miter-limit
   bevel, the elliptical pen from `scale(2,1)`, and the stroked circle and
@@ -913,9 +916,9 @@ weighted rational conic alone.
 refusal rows graduated (the enumeration gate forces the move), the L0
 `basic-shapes` host pin lost its three points-shape holes, and the
 `polygon-fill-probe` strict pin flipped from the capability edge to an
-admitted probe. The points shapes inherit the path patrols — `pathLength`
-and the marker properties stay refusals — and `points_contract.rs` is the
-rung's law file.
+admitted probe. At this rung the points shapes inherited the path patrols, so
+`pathLength` and the marker properties remained refusals. The later
+path-distance amendment graduates `pathLength`; the marker boundary remains.
 
 ## Addendum — the visibility rung (2026-07-31)
 
@@ -1387,13 +1390,15 @@ which paint at those interval endpoints; under a butt cap, a cycle whose every
 painted interval is zero paints nothing and the stroke itself resolves away.
 Dashes do not alter the stroke's conservative reach beyond its geometry.
 
-Two nearby facts remain expressly outside this amendment. A non-zero dash
-offset is phase and stays inexpressible. `pathLength` is authored calibration,
-not a resolved render fact, and also stays inexpressible. Both are
-load-bearing refusals once dashing exists: the probe matrix measured offset
-moving the pattern, and measured `pathLength` scaling dash distances on paths,
-rectangles, circles, and ellipses. The latter patrol therefore belongs on every
-admitted geometry element, not only path-like elements.
+Two nearby facts remained expressly outside this amendment when it landed. A
+non-zero dash offset is phase, and `pathLength` is authored calibration rather
+than a resolved render fact. Both were load-bearing refusals once dashing
+existed: the probe matrix measured offset moving the pattern, and measured
+`pathLength` scaling dash distances on paths, rectangles, circles, and
+ellipses. The latter patrol therefore belonged on every admitted geometry
+element, not only path-like elements. The later signed-phase and source
+path-distance amendments resolve those ordinary cases without changing the
+cycle contract stated here.
 
 The same matrix fixed the producer boundary before code: numbers and lengths,
 comma and whitespace separators, attribute and CSS spellings, inheritance,
@@ -1433,19 +1438,22 @@ not a source normalization or a resolved-contract limit.
 The probe also turned two prepared over-refusals into load-bearing patrols.
 Dash offset changes phase for positive, negative, and percentage values.
 `pathLength` calibrates dashes on paths and the basic geometry shapes, and
-calibrates dash offset on paths; its patrol now states one law across all seven
-admitted geometry elements. Neither fact was smuggled into the zero-phase,
-uncalibrated contract.
+calibrates dash offset on paths; at this rung its patrol stated one law across
+all seven admitted geometry elements. Neither fact was smuggled into the
+zero-phase, uncalibrated contract. Both ordinary cases graduate in the later
+signed-phase and source path-distance amendments.
 The solid-stroke mixed-contour cap refusal narrows in the other direction:
 dashed segments have ends on closed contours, so one authored cap is correct
 for every contour and the dashed case is admitted.
 
-Six new residual classes hold named refusal rows: dash offset; untrustworthy unit
-bases; variable indirection; a poisoned font-relative basis; escaped spelling;
-and a cycle whose individually finite intervals sum beyond the representable
-contract range. The existing `pathLength` patrol is the seventh load-bearing
-class. The first five new classes and `pathLength` carry their gaps in their
-own checklist rows or the unit rows, under the gridaco/nothing#80 precedent.
+At this rung six new residual classes held named refusal rows: dash offset;
+untrustworthy unit bases; variable indirection; a poisoned font-relative basis;
+escaped spelling; and a cycle whose individually finite intervals summed
+beyond the representable contract range. The existing `pathLength` patrol was
+the seventh load-bearing class. The first five new classes and `pathLength`
+carried their gaps in their own checklist rows or the unit rows, under the
+gridaco/nothing#80 precedent. The later path-distance amendment graduates that
+seventh refusal without replacement.
 The cycle-sum class does not:
 Chromium honors the standard-track dasharray grammar for that magnitude class,
 and a zero-painted round-cap probe proves it cannot be normalized wholesale to
@@ -1702,9 +1710,10 @@ all-zero cycle, or a cycle dropped by the browser's extreme-percentage rule
 remains the single solid-stroke state, and dash offset is inert there. Moving a
 live cycle changes along-path paint placement but cannot change the stroke's
 direction-free reach outside its geometry. The phase, intervals, width, and
-geometry remain local under the node transform. Path-length calibration is not
-part of this amendment: a source whose path-distance scale differs from user
-space still refuses under its separate name.
+geometry remain local under the node transform. Path-length calibration was
+not part of this amendment when it landed; the following source path-distance
+amendment resolves it into these same interval and phase facts and graduates
+the separate refusal.
 
 The fixed used-value range is signed and asymmetric before phase
 canonicalization. Blink's positive fixed ceiling is authored 33,554,429 and is
@@ -1744,12 +1753,14 @@ oracle by the exact counts recorded in the Web-first evidence table.
 Measured facts deliberately not assigned their own cells include omitted,
 explicit zero, and negative-zero identity; further equivalent signed modulo
 pairs; duplicated transform/topology/cap cross-products; phase inertness when
-no live cycle exists; and path-length calibration, which remains a named
-separate refusal. The residual unit, variable, escaped spelling, and poisoned
-font-basis probes likewise remain registered guards rather than capability
-cells. The unit and variable families retain their independent checklist rows
-under the gridaco/nothing#80 precedent; the Chromium-invalid comment-split
-property spelling may be conservatively over-refused under gridaco/nothing#77.
+no live cycle exists; and path-length calibration, which was measured here but
+not celled by this rung. The following path-distance amendment gives it its own
+exact cells and removes that refusal. The residual unit, variable, escaped
+spelling, and poisoned-font-basis probes remain registered guards rather than
+capability cells. The unit and variable families retain their independent
+checklist rows under the gridaco/nothing#80 precedent; the Chromium-invalid
+comment-split property spelling may be conservatively over-refused under
+gridaco/nothing#77.
 
 The source-precision blocker is decisive. The valid authored percentages
 `57384.265625%` and `57384.267578125007%` collapse into one pinned-cascade f32
@@ -1773,3 +1784,119 @@ Chromium-honored precision class has no independent checklist row, so this is
 gridaco/nothing#81's SPLIT condition: the CSS `stroke-dashoffset` row and its
 SVG presentation-attribute twin both remain unchecked. This is a capability
 verdict only. It produces no conformance score and takes no FLIP action.
+
+## Ratified amendment — source path-distance calibration (2026-08-21)
+
+An SVG geometry may now calibrate its dashed stroke from one authored
+`pathLength` number without adding source syntax to the resolved render
+contract. Let _A_ be the browser-compatible total of the geometry's non-empty
+local contours and _L_ a positive authored length. Every already-resolved dash
+member and the signed raw phase receive the common factor _A / L_. An odd list
+still repeats into one even cycle, and phase canonicalization still happens
+against the resulting positive cycle. The frame boundary remains unchanged:
+it carries only those final local-space intervals and the canonical phase, not
+the authored number or a second calibration fact.
+
+Calibration is a geometry-local operation. It precedes a node transform and
+the root viewBox mapping, and every contour restarts with the same calibrated
+phase. The attribute is non-inherited and applies only to path, line, rect,
+circle, ellipse, polyline, and polygon. On an instance, the referenced
+geometry's value participates; a spelling on the use site or a container does
+not. With no live dash cycle the attribute is inert. Chromium's legacy value
+branches are preserved: absence and a negative number leave distances
+uncalibrated, while zero, negative zero, and a malformed present value select
+the authored-zero branch. On geometry with a non-zero local metric, the
+resulting scale saturates rather than becoming zero; a zero local metric instead
+yields a zero calibration factor. At the tested numeric edges this makes the
+resulting effect solid or densely cap-painted according to the ordinary dash
+and cap rules; it is not a new stroke state. A saturated scale can also leave a
+tiny interval cycle finite while overflowing a large finite authored phase.
+Chromium then rejects the dash effect and retains the solid stroke.
+Malformed-present values reach the same outcome through the authored-zero
+branch, and both admissions carry it without a refusal.
+
+The metric and the eventual dash traversal must observe one consistent set of
+local coordinates. Chromium's native oval is four rational conics measured and
+traversed in f32, and that arithmetic is observably translation-sensitive.
+Moving an oval's box origin into a transform is equivalent over real numbers
+but can move antialiased dash endpoints. A calibrated dashed oval therefore
+retains its absolute local bounds through painting. This is a precision
+invariant, not a new geometry kind or a change to solid-oval semantics.
+
+The current standard also defines the CSS property
+`path-length: none | <length [0,∞]>`, non-inherited on the same seven geometry
+elements, and maps the attribute as a pixel-length presentation hint. The
+pinned Chromium 149 build has that experimental property disabled. Valid
+inline and stylesheet declarations therefore drop wholesale and do not
+override the active legacy attribute. Matching that drop requires no parallel
+matcher and follows the gridaco/nothing#77 precedent: a valid listed member the
+browser itself drops does not keep a row open once the drop is celled.
+
+### Path-length rung verdict — nine cells landed, both rows tick
+
+A twice-deterministic 96-pair attribute matrix established a broad source
+branch before admission: standard number spellings; negative, zero, malformed,
+underflow, overflow, and the probed large-finite behavior; positive and
+negative phase; modulo after odd-list repetition; zero-length painted slots
+under every cap; solid-cycle inertness; all seven geometry routes; straight,
+quadratic, cubic, conic, rounded, open, closed, mixed, and move-only contour
+metrics; transforms, viewBox, instances, group inapplicability, and XML case
+sensitivity. Chromium also scales fixed and percentage members alike after
+percentage resolution on the normalized diagonal, including a mixed list.
+That measured behavior disagrees with the current SVG2 statement that
+`pathLength` does not affect percentage distance-along-path calculations; the
+Chromium-gated cells record the disagreement rather than silently substituting
+the standard's operation order.
+
+A supplemental numeric black-box bank then exercised 269 authored cases in
+five composites, each captured twice in Chromium for determinism and rendered
+once through the engine for comparison.
+After correcting a raster-layout confound, the invalid, rounding, range, and
+deterministic composites were exact, and 45 of the 48 grammar cases were exact.
+The three remaining spellings — `5.`, `5.e0`, and `125.e-3` — are
+invalid-present in Chromium rather than valid trailing-dot numbers. Their
+interaction with a saturated scale, a tiny finite cycle, and a large phase
+exposed the solid-fallback edge now carried by the ninth cell and the corrected
+admission. The post-correction rerender makes all five composites exact, with
+zero differing pixels, zero maximum channel delta, and no degradation.
+
+Three DOM metric pins close the native-oval precision question at the exact
+tested positions: a radius-12 circle centered at (40, 30) is
+74.91236114501953 (`0x4295d321`); radii 16×10 centered at (80, 30) are
+82.2452621459961 (`0x42a47d93`); and radii 24×12 centered at (140, 30) are
+115.52963256835938 (`0x42e70f2c`). Adjacent raw dash values discriminate every
+pin. Source-number measurements separately pin the long-decimal results
+`123456789.123456789 → 0x4ceb79a2` and
+`1.654435761 → 0x3fd3c48e`, the smallest-subnormal and underflow boundary,
+exact overflow rejection, and negative-zero bits.
+
+Nine committed Chromium cells carry the admission. They separate attribute
+grammar; phase/list/cap algebra; fixed and percentage scaling; every geometry;
+curves and summed contours; transforms, viewBox, and instance ownership;
+numeric extremes; the finite-cycle/non-finite-phase fallback; and the disabled
+CSS property in inline and stylesheet spellings. All nine engine renders have
+zero differing pixels and zero maximum channel delta; representative strict
+renders are declaration-free and byte-identical to best effort. Their 50
+scratch mutation controls comprise 44
+pixel-discriminating differences and six exact equivalence controls. The
+per-cell mutation counts and the measured-not-celled remainder are enumerated
+in the [Web-first evidence table](../../../fixtures/web-first/README.md).
+
+Facts measured but deliberately not assigned further cells include the
+remaining equivalent number spellings and invalid-present forms, duplicated
+transform and topology cross-products, further modulo identities, zero-length
+geometry, inapplicable group and wrong-case spellings, and the exact numeric
+and oval metric pins above. The CSS cell carries representative `none` and
+non-negative pixel-length members through both source ingresses; the disabled
+property registration makes the remainder a full-grammar audit rather than a
+second collection of identical drop cells.
+
+The primitive corpus moves from 297 to 306 cells. The path-length refusal
+graduates without replacement, so the named register moves from 60 to 59. The
+stroke-prefixed inventory remains 115 cells, 114 byte-exact, with only the
+existing closed-path tolerance. The previously missing CSS `path-length` row
+is added and ticked, and the SVG `pathLength` attribute row ticks. Path
+consumers not admitted here — including markers and text-on-path — retain their
+own checklist rows and named capability boundaries; they do not reopen this
+attribute's carried grammar. This is a capability verdict only. It produces no
+conformance score and takes no FLIP action.

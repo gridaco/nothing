@@ -319,8 +319,8 @@ pub enum CompileError {
     /// A `fill` value the slice cannot resolve.
     UnsupportedFill(String),
     /// A stroke value the slice cannot resolve: an untrustworthy length basis
-    /// or spelling, dash phase/path calibration, an unsupported paint
-    /// resource, or a resolved magnitude the frame contract cannot represent.
+    /// or spelling, an unsupported paint resource, or a resolved magnitude the
+    /// frame contract cannot represent.
     UnsupportedStroke(String),
     /// A numeric attribute failed to parse.
     BadNumber { attr: String, value: String },
@@ -1000,9 +1000,8 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "paint-order",
     // Markers apply to `<path>`, `<line>`, `<polyline>` and `<polygon>`, and
     // this slice admits the first two. Nothing else "reads" a marker
-    // property — the property *is* the paint trigger — so unlike `pathLength`
-    // this patrol is load-bearing today: it is what keeps Chromium's arrowhead
-    // from becoming a silent hole.
+    // property — the property *is* the paint trigger — so this patrol is what
+    // keeps Chromium's arrowhead from becoming a silent hole.
     "marker-start",
     "marker-mid",
     "marker-end",
@@ -1046,19 +1045,6 @@ const TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "font-variant",
     "font",
 ];
-
-/// Rendering attributes additionally rejected on every admitted geometry
-/// element (`rect`, `circle`, `ellipse`, `path`, `line`, `polygon`, and
-/// `polyline`).
-///
-/// `pathLength` scales user-space distance for dashing. That interaction was
-/// measured in Chromium on `path`, `rect`, `circle`, and `ellipse`; the patrol
-/// covers all seven admitted SVG geometry elements because `pathLength` is an
-/// SVGGeometryElement attribute. It also affects dash offset, markers, and text
-/// on a path. Dashing is consumed now, so this patrol is load-bearing: dropping
-/// it would feed uncalibrated intervals to the resolved contract and paint a
-/// silently different cycle.
-const GEOMETRY_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["pathLength"];
 
 /// Rendering attributes additionally rejected on the root `<svg>`.
 ///
@@ -3025,6 +3011,7 @@ fn compile_text(
     if resolve_stroke(
         el,
         "text",
+        None,
         servers,
         paint_contexts,
         Rectangle::from_xywh(0.0, 0.0, 1.0, 1.0),
@@ -3132,7 +3119,7 @@ fn compile_rect(
     bases: PercentBases,
     fold_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
-    patrol_rendering_attributes(el, "rect", GEOMETRY_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+    patrol_rendering_attributes(el, "rect", &[])?;
     patrol_style_attribute(el, "rect")?;
     let patrol = patrol_computed_style(el, true)?;
     match patrol.disposition {
@@ -3183,7 +3170,7 @@ fn compile_circle(
     bases: PercentBases,
     fold_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
-    patrol_rendering_attributes(el, "circle", GEOMETRY_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+    patrol_rendering_attributes(el, "circle", &[])?;
     patrol_style_attribute(el, "circle")?;
     let patrol = patrol_computed_style(el, false)?;
     match patrol.disposition {
@@ -3236,7 +3223,7 @@ fn compile_ellipse(
     bases: PercentBases,
     fold_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
-    patrol_rendering_attributes(el, "ellipse", GEOMETRY_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+    patrol_rendering_attributes(el, "ellipse", &[])?;
     patrol_style_attribute(el, "ellipse")?;
     let patrol = patrol_computed_style(el, false)?;
     match patrol.disposition {
@@ -3305,7 +3292,7 @@ fn compile_path(
     bases: PercentBases,
     fold_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
-    patrol_rendering_attributes(el, "path", GEOMETRY_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+    patrol_rendering_attributes(el, "path", &[])?;
     patrol_style_attribute(el, "path")?;
     let patrol = patrol_computed_style(el, false)?;
     match patrol.disposition {
@@ -3383,7 +3370,7 @@ fn compile_line(
     bases: PercentBases,
     fold_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
-    patrol_rendering_attributes(el, "line", GEOMETRY_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+    patrol_rendering_attributes(el, "line", &[])?;
     patrol_style_attribute(el, "line")?;
     let patrol = patrol_computed_style(el, false)?;
     match patrol.disposition {
@@ -3467,7 +3454,7 @@ fn compile_points_shape(
         PointsClosure::Closed => "polygon",
         PointsClosure::Open => "polyline",
     };
-    patrol_rendering_attributes(el, element, GEOMETRY_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+    patrol_rendering_attributes(el, element, &[])?;
     patrol_style_attribute(el, element)?;
     let patrol = patrol_computed_style(el, false)?;
     match patrol.disposition {
@@ -3677,6 +3664,7 @@ fn shape_node(
         Strokable::Yes => resolve_stroke(
             el,
             &el.local_name_string(),
+            Some(&geometry),
             servers,
             paint_contexts,
             rect,
@@ -3737,6 +3725,7 @@ fn shape_node(
                 stroke = resolve_stroke(
                     el,
                     &el.local_name_string(),
+                    Some(&geometry),
                     servers,
                     paint_contexts,
                     rect,
@@ -4898,6 +4887,7 @@ mod percentage_resolution_tests {
 fn resolve_stroke(
     el: HtmlElement<'_>,
     element_name: &str,
+    path_length_geometry: Option<&Geometry>,
     servers: &PaintServers<'_>,
     paint_contexts: &[PaintContext<'_>],
     consumer_box: Rectangle,
@@ -5033,14 +5023,26 @@ fn resolve_stroke(
     // build while Chromium still paints a dash cycle, so `Values([])` is not
     // permission to skip the authored-text guard.
     patrol_stroke_dasharray_units(el, element_name)?;
-    let dash_intervals = match destination_style.clone_stroke_dasharray() {
+    let (dash_intervals, path_length_scale) = match destination_style.clone_stroke_dasharray() {
         SVGStrokeDashArray::ContextValue => {
             return Err(CompileError::UnsupportedStroke(
                 "stroke-dasharray: context-value".to_string(),
             ));
         }
-        SVGStrokeDashArray::Values(values) if values.is_empty() => None,
+        SVGStrokeDashArray::Values(values) if values.is_empty() => (None, 1.0),
         SVGStrokeDashArray::Values(values) => {
+            // Chromium computes one local geometry metric, divides it by the
+            // authored pathLength, and multiplies every already-resolved dash
+            // distance by that same f32 scale. The scale belongs to this Web
+            // producer: rframe still receives final local-space intervals and
+            // phase, with no source calibration relation crossing the seam.
+            let path_length_scale = match path_length_geometry {
+                Some(geometry) => {
+                    let authored_path_length = get_attr(el, "pathLength");
+                    crate::svg_path_length::dash_scale(geometry, authored_path_length.as_deref())
+                }
+                None => 1.0,
+            };
             let mut intervals = Vec::with_capacity(values.len() * 2);
             for value in values.iter() {
                 // Blink applies the Web used-length ceiling to a pure resolved
@@ -5052,12 +5054,12 @@ fn resolve_stroke(
                     Some(length) => clamp_web_used_length(length),
                     None => value.0.resolve(Length::new(bases.diagonal())).px(),
                 };
-                intervals.push(interval);
+                intervals.push(interval * path_length_scale);
             }
             if !intervals.len().is_multiple_of(2) {
                 intervals.extend_from_within(..);
             }
-            match StrokeDashIntervals::new(intervals) {
+            let intervals = match StrokeDashIntervals::new(intervals) {
                 Ok(intervals) => intervals,
                 // Chromium retains the declaration but drops the dash path
                 // effect when percentage resolution produces a non-finite
@@ -5073,7 +5075,8 @@ fn resolve_stroke(
                         "stroke-dasharray did not resolve to one checked cycle: {error}"
                     )));
                 }
-            }
+            };
+            (intervals, path_length_scale)
         }
     };
 
@@ -5116,11 +5119,20 @@ fn resolve_stroke(
                     }
                 },
             };
-            Some(StrokeDash::new(intervals, phase).map_err(|error| {
-                CompileError::UnsupportedStroke(format!(
-                    "stroke-dashoffset did not resolve to one checked phase: {error}"
-                ))
-            })?)
+            let phase = phase * path_length_scale;
+            if phase.is_finite() {
+                Some(StrokeDash::new(intervals, phase).map_err(|error| {
+                    CompileError::UnsupportedStroke(format!(
+                        "stroke-dashoffset did not resolve to one checked phase: {error}"
+                    ))
+                })?)
+            } else {
+                // A zero or sufficiently small authored pathLength can leave
+                // the scaled cycle finite while overflowing the scaled phase.
+                // Chromium's Skia path-effect construction rejects that phase,
+                // so the dash effect disappears and the stroke stays solid.
+                None
+            }
         }
     };
 

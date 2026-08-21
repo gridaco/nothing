@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="104" viewBox="0 0 128 104">
+  <rect width="128" height="104" fill="#ffffff"/>
+  <g fill="none" stroke-linecap="butt" stroke-dasharray="1.5 1" stroke-dashoffset="0.5">
+    <path d="M6 28Q26 2 46 28" stroke="#e879f9" stroke-width="5"/><path id="metric-quadratic" d="M6 28Q26 2 46 28" pathLength="20" stroke="#111827" stroke-width="3"/>
+    <path d="M54 28C62 0 100 0 108 28" stroke="#e879f9" stroke-width="5"/><path id="metric-cubic" d="M54 28C62 0 100 0 108 28" pathLength="20" stroke="#111827" stroke-width="3"/>
+    <rect x="6" y="42" width="42" height="24" rx="9" ry="7" stroke="#e879f9" stroke-width="5"/><rect id="metric-rounded" x="6" y="42" width="42" height="24" rx="9" ry="7" pathLength="32" stroke="#111827" stroke-width="3"/>
+    <ellipse cx="82" cy="54" rx="24" ry="12" stroke="#e879f9" stroke-width="5"/><ellipse id="metric-ellipse" cx="82" cy="54" rx="24" ry="12" pathLength="32" stroke="#111827" stroke-width="3"/>
+  </g>
+  <g fill="none" stroke-linecap="butt" stroke-width="4">
+    <path d="M6 84H46M58 78h22v18H58z" stroke="#e879f9" stroke-dasharray="3 2" stroke-dashoffset="1"/>
+    <path id="metric-contours" d="M6 84H46M58 78h22v18H58z" pathLength="60" stroke="#111827" stroke-dasharray="1.5 1" stroke-dashoffset="0.5"/>
+  </g>
+</svg>

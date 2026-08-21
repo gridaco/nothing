@@ -2,8 +2,10 @@
 
 `websem` is the Web semantic compiler: it turns an SVG or HTML source into the
 resolved render contract, and it decides what this engine will and will not
-render. Everything upstream of it is parsing and cascading; everything
-downstream is painting. The judgement about meaning happens here.
+render. HTML/XML tokenization and namespace-aware tree construction happen
+upstream, together with cascading; decoding admitted SVG attribute-value
+grammars happens here because it is part of deciding their render meaning.
+Everything downstream is painting.
 
 ```text
 source bytes
@@ -21,14 +23,16 @@ contributes nothing, which is a pinned contract rather than an accident. A
 retained session is compiled once and can then be read at Base or at an exact
 signed-nanosecond sample without re-parsing.
 
-| Module             | Ownership                                                                                                                                |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `svg`              | the two entries, the element walk, the patrols, viewport mapping, shapes, paint                                                          |
-| `svg_path`         | the `d` grammar, normalised to absolute commands                                                                                         |
-| `svg_transform`    | the computed `transform` operation list, converted to one affine (the _attribute_ grammar lives in csscascade)                           |
-| `svg_paint_server` | the gradient id table, href template chains, stops, and the fold of every gradient coordinate system into the contract's unit-box paints |
-| `svg_animation`    | the closed exact-time sampling inventory                                                                                                 |
-| `effective_values` | the Base-or-Sample view the compiler reads through                                                                                       |
+| Module                   | Ownership                                                                                                                                |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `svg`                    | the two entries, the element walk, the patrols, viewport mapping, shapes, paint                                                          |
+| `svg_path`               | the `d` attribute-value grammar, normalised to absolute commands                                                                         |
+| `svg_path_length`        | the `pathLength` attribute-value grammar, invalid-value behavior, and dash-calibration scale dispatch                                    |
+| `svg_path_length_metric` | the pinned-Skia local geometry metric ([BSD-3-Clause-derived](./NOTICE.md))                                                              |
+| `svg_transform`          | the computed `transform` operation list, converted to one affine (the _attribute_ grammar lives in csscascade)                           |
+| `svg_paint_server`       | the gradient id table, href template chains, stops, and the fold of every gradient coordinate system into the contract's unit-box paints |
+| `svg_animation`          | the closed exact-time sampling inventory                                                                                                 |
+| `effective_values`       | the Base-or-Sample view the compiler reads through                                                                                       |
 
 ## The admitted slice
 
@@ -70,6 +74,9 @@ patrol that over-refuses is preferred to one that lets a wrong pixel through.
 
 - **Not a layout engine.** No box model, no flow, no intrinsic sizing. The HTML
   entry compiles an inline SVG subtree; it does not lay out the page.
+- **Not a document parser.** HTML/XML tokenization, namespace resolution, and
+  tree construction belong to `csscascade`. This compiler reads that document
+  and decodes the SVG attribute-value grammars needed to lower admitted facts.
 - **Not a text shaper.** Text refuses; shaping, fonts and resources are the
   kernel's and are not admitted through here.
 - **Not a painter.** It emits `rframe::Frame` and never touches a canvas.

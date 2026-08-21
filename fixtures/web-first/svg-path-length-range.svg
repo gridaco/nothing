@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="108" viewBox="0 0 128 108">
+  <rect width="128" height="108" fill="#ffffff"/>
+  <g fill="none" stroke-width="6">
+    <path d="M16 12H112" stroke="#d1d5db" stroke-width="1"/>
+    <path id="range-max-butt" d="M16 12H112" pathLength="3.4e38" stroke="#111827" stroke-dasharray="4 2" stroke-dashoffset="0"/>
+    <path d="M16 32H112" stroke="#e879f9" stroke-linecap="round"/>
+    <path id="range-max-round" d="M16 32H112" pathLength="3.4e38" stroke="#111827" stroke-linecap="round" stroke-dasharray="4 2" stroke-dashoffset="0"/>
+    <path d="M16 52H112" stroke="#e879f9"/>
+    <path id="range-small" d="M16 52H112" pathLength="1e-38" stroke="#111827" stroke-dasharray="4 2" stroke-dashoffset="0"/>
+    <path d="M16 72H112" stroke="#e879f9"/>
+    <path id="range-underflow" d="M16 72H112" pathLength="1e-100" stroke="#111827" stroke-dasharray="4 2" stroke-dashoffset="0"/>
+    <path d="M16 92H112" stroke="#e879f9"/>
+    <path id="range-overflow" d="M16 92H112" pathLength="1e39" stroke="#111827" stroke-dasharray="4 2" stroke-dashoffset="0"/>
+  </g>
+</svg>

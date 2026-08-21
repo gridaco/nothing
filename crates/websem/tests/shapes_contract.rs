@@ -469,28 +469,16 @@ fn cascade_properties_the_build_cannot_represent_refuse_by_name() {
     );
 }
 
-/// The rendering-attribute patrol covers the new elements: an authored
-/// attribute that would change Chromium's pixels refuses/skips by name.
+/// An unconsumed rendering attribute on the new shape refuses/skips by name.
 #[test]
-fn unconsumed_rendering_attributes_refuse_on_the_new_shapes() {
-    for (label, shape) in [
-        (
-            // pathLength calibrates distance on basic shapes too; dashing
-            // makes this old over-refusal load-bearing.
-            "pathLength on circle",
-            r##"<circle cx="32" cy="32" r="12" fill="#16a34a" stroke="#000000" stroke-dasharray="4 4" pathLength="24"/>"##,
-        ),
-        (
-            "transform-origin on ellipse",
-            r##"<ellipse cx="32" cy="32" rx="12" ry="8" fill="#16a34a" transform-origin="center"/>"##,
-        ),
-    ] {
-        let (error, _) = shape_failure(&on_canvas(shape));
-        assert!(
-            matches!(error, CompileError::UnsupportedAttribute { .. }),
-            "{label}: {error:?}"
-        );
-    }
+fn transform_origin_refuses_on_ellipse() {
+    let shape =
+        r##"<ellipse cx="32" cy="32" rx="12" ry="8" fill="#16a34a" transform-origin="center"/>"##;
+    let (error, _) = shape_failure(&on_canvas(shape));
+    assert!(
+        matches!(error, CompileError::UnsupportedAttribute { .. }),
+        "transform-origin on ellipse: {error:?}"
+    );
 }
 
 /// A stylesheet-set `stroke-dasharray` resolves on both basic shapes exactly as

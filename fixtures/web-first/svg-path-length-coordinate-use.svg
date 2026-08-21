@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="80" viewBox="0 0 80 80" preserveAspectRatio="none">
+  <rect width="80" height="80" fill="#ffffff"/>
+  <defs>
+    <path id="target-calibrated" d="M4 48H44" pathLength="20"/>
+    <path id="target-raw" d="M4 66H44"/>
+  </defs>
+  <g fill="none" stroke-width="3">
+    <g transform="translate(2 0) scale(1.5 1)">
+      <path d="M4 12H44" stroke="#e879f9" stroke-dasharray="4 2" stroke-dashoffset="2"/>
+      <path id="coordinate-transform" d="M4 12H44" pathLength="20" stroke="#111827" stroke-dasharray="2 1" stroke-dashoffset="1"/>
+    </g>
+    <path d="M4 30H44" stroke="#e879f9" stroke-dasharray="4 2" stroke-dashoffset="2"/>
+    <path id="coordinate-viewbox" d="M4 30H44" pathLength="20" stroke="#111827" stroke-dasharray="2 1" stroke-dashoffset="1"/>
+    <path d="M4 48H44" stroke="#e879f9" stroke-dasharray="4 2" stroke-dashoffset="2"/>
+    <use id="coordinate-target-use" href="#target-calibrated" stroke="#111827" stroke-dasharray="2 1" stroke-dashoffset="1"/>
+    <path d="M4 66H44" stroke="#e879f9" stroke-dasharray="2 1" stroke-dashoffset="1"/>
+    <use id="coordinate-use-site" href="#target-raw" pathLength="20" stroke="#111827" stroke-dasharray="2 1" stroke-dashoffset="1"/>
+  </g>
+</svg>

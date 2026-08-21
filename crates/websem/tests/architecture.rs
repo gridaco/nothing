@@ -65,8 +65,8 @@ fn websem_normal_edge_keeps_rframe_backend_free() {
     ] {
         assert!(
             !manifest.contains(forbidden),
-            "websem must not own a parser; both grammar entries into the one document shape \
-             belong to csscascade: {forbidden}"
+            "websem must not own a document parser; both HTML/XML grammar entries into the \
+             one document shape belong to csscascade: {forbidden}"
         );
     }
 }
