@@ -193,5 +193,7 @@ Chromium's rendering architecture. Start at
 [the consolidation program](./docs/wg/consolidation/index.md) for how the two
 engines become one.
 
-Rust-first Cargo workspace. Licensed under [MIT](./LICENSE-MIT) or
-[Apache-2.0](./LICENSE-APACHE), at your option.
+Rust-first Cargo workspace. Project-authored code is licensed under
+[MIT](./LICENSE-MIT) or [Apache-2.0](./LICENSE-APACHE), at your option.
+Third-party material remains under its identified notice or license terms,
+including the [Skia-derived Web geometry metric](./crates/websem/NOTICE.md).

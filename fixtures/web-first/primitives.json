@@ -1018,6 +1018,78 @@
       "height": 64
     },
     {
+      "id": "svg-path-length-attr-algebra",
+      "source": "svg-path-length-attr-algebra.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-path-length-attr-algebra.png",
+      "width": 128,
+      "height": 108
+    },
+    {
+      "id": "svg-path-length-attr-grammar",
+      "source": "svg-path-length-attr-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-path-length-attr-grammar.png",
+      "width": 128,
+      "height": 88
+    },
+    {
+      "id": "svg-path-length-attr-percent",
+      "source": "svg-path-length-attr-percent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-path-length-attr-percent.png",
+      "width": 70,
+      "height": 24
+    },
+    {
+      "id": "svg-path-length-coordinate-use",
+      "source": "svg-path-length-coordinate-use.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-path-length-coordinate-use.png",
+      "width": 160,
+      "height": 80
+    },
+    {
+      "id": "svg-path-length-css-drop",
+      "source": "svg-path-length-css-drop.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-path-length-css-drop.png",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": "svg-path-length-geometry-routes",
+      "source": "svg-path-length-geometry-routes.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-path-length-geometry-routes.png",
+      "width": 160,
+      "height": 80
+    },
+    {
+      "id": "svg-path-length-metrics-contours",
+      "source": "svg-path-length-metrics-contours.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-path-length-metrics-contours.png",
+      "width": 128,
+      "height": 104
+    },
+    {
+      "id": "svg-path-length-nonfinite-phase",
+      "source": "svg-path-length-nonfinite-phase.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-path-length-nonfinite-phase.png",
+      "width": 128,
+      "height": 56
+    },
+    {
+      "id": "svg-path-length-range",
+      "source": "svg-path-length-range.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-path-length-range.png",
+      "width": 128,
+      "height": 108
+    },
+    {
       "id": "svg-path-polygon-fill",
       "source": "svg-path-polygon-fill.svg",
       "entry": "standalone-svg",

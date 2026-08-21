@@ -55,7 +55,8 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
         style="stroke-dashoffset: not-a-length" width="8" height="8"/>
   <rect id="dashoffset-invalid-hint" stroke-dashoffset="not-a-length" width="8" height="8"/>
   <g stroke-dashoffset="-4"><rect id="dashoffset-inherited" width="8" height="8"/></g>
-  <rect id="unadmitted" pathLength="100" width="8" height="8"/>
+  <rect id="pathlength-not-cascaded" pathLength="100" width="8" height="8"/>
+  <rect id="pathlength-control" width="8" height="8"/>
   <g id="sized" font-size="32"><rect id="em-basis" stroke-width="0.5em" width="8" height="8"/></g>
   <rect id="hidden-hint" visibility="hidden" width="8" height="8"/>
   <rect id="display-none-hint" display="none" width="8" height="8"/>
@@ -204,16 +205,36 @@ fn standalone_svg_presentation_hints_enter_below_author_rules() {
         property(root, "stroke-rule-beats-hint", LonghandId::Stroke),
         "rgb(37, 99, 235)"
     );
-    // An unadmitted presentation attribute still contributes nothing —
-    // `pathLength` has no CSS longhand at all, and the block synthesizer
-    // must skip it rather than invent one. (The websem compiler refuses
-    // rendering-relevant unadmitted attributes by name, so a document
-    // carrying one is a declared hole, not a silent one.)
-    assert_eq!(
-        property(root, "unadmitted", LonghandId::StrokeOpacity),
-        "1",
-        "unadmitted presentation attributes must not leak into the cascade"
-    );
+    // Pinned Stylo has no `path-length` longhand, so the presentation-hint
+    // block cannot synthesize one for `pathLength`. The Web compiler consumes
+    // that geometry attribute directly; the cascade must keep skipping it
+    // rather than inventing a second matcher or aliasing it to another fact.
+    for (name, longhand) in [
+        ("fill", LonghandId::Fill),
+        ("fill-rule", LonghandId::FillRule),
+        ("stroke", LonghandId::Stroke),
+        ("stroke-width", LonghandId::StrokeWidth),
+        ("stroke-linecap", LonghandId::StrokeLinecap),
+        ("stroke-linejoin", LonghandId::StrokeLinejoin),
+        ("stroke-dasharray", LonghandId::StrokeDasharray),
+        ("stroke-dashoffset", LonghandId::StrokeDashoffset),
+        ("stroke-miterlimit", LonghandId::StrokeMiterlimit),
+        ("font-size", LonghandId::FontSize),
+        ("font-family", LonghandId::FontFamily),
+        ("display", LonghandId::Display),
+        ("visibility", LonghandId::Visibility),
+        ("fill-opacity", LonghandId::FillOpacity),
+        ("stroke-opacity", LonghandId::StrokeOpacity),
+        ("opacity", LonghandId::Opacity),
+        ("color", LonghandId::Color),
+        ("transform", LonghandId::Transform),
+    ] {
+        assert_eq!(
+            property(root, "pathlength-not-cascaded", longhand),
+            property(root, "pathlength-control", longhand),
+            "pathLength must not leak into the `{name}` computed longhand"
+        );
+    }
     // The text rung's hint: `font-family` is what a run resolves against.
     // Measured in Chromium: the attribute alone selects the face, an author
     // rule beats it, `font-family=""` drops to the default family, and the

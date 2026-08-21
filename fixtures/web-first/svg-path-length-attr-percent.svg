@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="70" height="24" viewBox="0 0 70 24">
+  <rect width="70" height="24" fill="#ffffff"/>
+  <g fill="none" stroke-width="3">
+    <path id="pure-ref" d="M5 7H65" stroke="#e879f9" stroke-dasharray="10 10" stroke-dashoffset="10"/>
+    <path id="pure" d="M5 7H65" pathLength="30" stroke="#111827" stroke-dasharray="10% 10%" stroke-dashoffset="10%"/>
+    <path id="mixed-ref" d="M5 17H65" stroke="#e879f9" stroke-dasharray="4 10" stroke-dashoffset="4"/>
+    <path id="mixed" d="M5 17H65" pathLength="30" stroke="#111827" stroke-dasharray="2 10%" stroke-dashoffset="2"/>
+  </g>
+</svg>

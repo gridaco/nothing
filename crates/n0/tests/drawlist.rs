@@ -24,6 +24,7 @@ fn tag(k: &ItemKind) -> &'static str {
         ItemKind::RectStroke { .. } => "rectstroke",
         ItemKind::OvalFill { .. } => "ovalfill",
         ItemKind::OvalStroke { .. } => "ovalstroke",
+        ItemKind::AbsoluteDashedOvalStroke { .. } => "absolute-dashed-ovalstroke",
         ItemKind::LineStroke { .. } => "linestroke",
         ItemKind::PathFill { .. } => "pathfill",
         ItemKind::PathStroke { .. } => "pathstroke",

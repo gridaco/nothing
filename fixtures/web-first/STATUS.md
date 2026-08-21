@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (297)
+## Chromium-baked cells (306)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells and three gradient ramps carry a declared, bounded
@@ -145,6 +145,15 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-path-fill-rule-nonzero.svg" title="svg-path-fill-rule-nonzero (standalone-svg)"><img src="./chromium/svg-path-fill-rule-nonzero.png" width="56" alt="svg-path-fill-rule-nonzero"></a>
 <a href="./svg-path-hv-shorthand.svg" title="svg-path-hv-shorthand (standalone-svg)"><img src="./chromium/svg-path-hv-shorthand.png" width="56" alt="svg-path-hv-shorthand"></a>
 <a href="./svg-path-in-scaled-group.svg" title="svg-path-in-scaled-group (standalone-svg)"><img src="./chromium/svg-path-in-scaled-group.png" width="56" alt="svg-path-in-scaled-group"></a>
+<a href="./svg-path-length-attr-algebra.svg" title="svg-path-length-attr-algebra (standalone-svg)"><img src="./chromium/svg-path-length-attr-algebra.png" width="56" alt="svg-path-length-attr-algebra"></a>
+<a href="./svg-path-length-attr-grammar.svg" title="svg-path-length-attr-grammar (standalone-svg)"><img src="./chromium/svg-path-length-attr-grammar.png" width="56" alt="svg-path-length-attr-grammar"></a>
+<a href="./svg-path-length-attr-percent.svg" title="svg-path-length-attr-percent (standalone-svg)"><img src="./chromium/svg-path-length-attr-percent.png" width="56" alt="svg-path-length-attr-percent"></a>
+<a href="./svg-path-length-coordinate-use.svg" title="svg-path-length-coordinate-use (standalone-svg)"><img src="./chromium/svg-path-length-coordinate-use.png" width="56" alt="svg-path-length-coordinate-use"></a>
+<a href="./svg-path-length-css-drop.svg" title="svg-path-length-css-drop (standalone-svg)"><img src="./chromium/svg-path-length-css-drop.png" width="56" alt="svg-path-length-css-drop"></a>
+<a href="./svg-path-length-geometry-routes.svg" title="svg-path-length-geometry-routes (standalone-svg)"><img src="./chromium/svg-path-length-geometry-routes.png" width="56" alt="svg-path-length-geometry-routes"></a>
+<a href="./svg-path-length-metrics-contours.svg" title="svg-path-length-metrics-contours (standalone-svg)"><img src="./chromium/svg-path-length-metrics-contours.png" width="56" alt="svg-path-length-metrics-contours"></a>
+<a href="./svg-path-length-nonfinite-phase.svg" title="svg-path-length-nonfinite-phase (standalone-svg)"><img src="./chromium/svg-path-length-nonfinite-phase.png" width="56" alt="svg-path-length-nonfinite-phase"></a>
+<a href="./svg-path-length-range.svg" title="svg-path-length-range (standalone-svg)"><img src="./chromium/svg-path-length-range.png" width="56" alt="svg-path-length-range"></a>
 <a href="./svg-path-polygon-fill.svg" title="svg-path-polygon-fill (standalone-svg)"><img src="./chromium/svg-path-polygon-fill.png" width="56" alt="svg-path-polygon-fill"></a>
 <a href="./svg-path-quadratic.svg" title="svg-path-quadratic (standalone-svg)"><img src="./chromium/svg-path-quadratic.png" width="56" alt="svg-path-quadratic"></a>
 <a href="./svg-path-relative-commands.svg" title="svg-path-relative-commands (standalone-svg)"><img src="./chromium/svg-path-relative-commands.png" width="56" alt="svg-path-relative-commands"></a>
@@ -326,7 +335,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (60)
+## The refusal register (59)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -357,7 +366,6 @@ its row into the cells above.
 | `svg-path-malformed-d` | declared | skipped svg/path[1]: path data on <path> is invalid at byte 29 (near "qqq") |
 | `svg-path-marker-end` | declared | skipped svg/path[1]: unsupported rendering attribute marker-end on <path> (not yet consumed) |
 | `svg-path-no-leading-moveto` | declared | skipped svg/path[1]: path data on <path> is invalid at byte 0 (near "L10 10 L54 54 Z") |
-| `svg-path-pathlength` | declared | skipped svg/path[1]: unsupported rendering attribute pathLength on <path> (not yet consumed) |
 | `svg-path-trailing-dot-number` | declared | skipped svg/path[1]: path data on <path> is invalid at byte 1 (near "10. 10 L54 10 L54 54 Z") |
 | `svg-pattern-paint-server` | declared | skipped svg/pattern[1]: unsupported element <pattern>; skipped svg/rect[2]: unsupported fill value "url(#p): url(#p) resolves to a <pattern> paint server, which the resolved frame cannot express" |
 | `svg-points-odd-coordinate` | declared | skipped svg/polygon[1]: points on <polygon> is invalid at byte 17 (near "") |

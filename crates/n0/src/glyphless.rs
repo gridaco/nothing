@@ -317,15 +317,17 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         if node.bounds != math2::rect_transform(rect, &node.transform) {
             return Err(BuildError::VisualBoundsMismatch(node.owner));
         }
-        // The paint reference box is the geometry's own extent. A box primitive
-        // draws at its item's origin, so its paint box already starts there. A
-        // path's stream carries absolute local coordinates, so its box starts
-        // at the tight-bounds origin instead — the painter's unit box does not,
-        // and the difference is observable only by a non-solid paint. The
-        // origin travels as a unit-space pre-translate on each gradient's
+        // The paint reference box is the geometry's own extent. Ordinary box
+        // routes draw at their item origin, so their paint box already starts
+        // there. A path's stream carries absolute local coordinates, so its box
+        // starts at the tight-bounds origin instead — the painter's unit box
+        // does not, and the difference is observable only by a non-solid paint.
+        // The origin travels as a unit-space pre-translate on each gradient's
         // transform: box(x,y,w,h) × T = box(0,0,w,h) × translate(x/w, y/h) × T.
         // A degenerate axis skips the fold; the producer resolves or refuses
-        // gradients on degenerate geometry before they reach this compile.
+        // gradients on degenerate geometry before they reach this compile. The
+        // dashed-ellipse exception below instead gives the painter its exact
+        // positioned paint box and therefore needs no compensating arithmetic.
         let unit_offset = match &node.geometry {
             Geometry::Path(_) if rect.width > 0.0 && rect.height > 0.0 => {
                 Some((rect.x / rect.width, rect.y / rect.height))
@@ -338,12 +340,14 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         );
         provenance.owners.push(node.owner);
 
-        // A box primitive draws at its item's origin, so its own local offset
-        // enters the world transform. A path carries absolute local
+        // An ordinary box route draws at its item's origin, so its own local
+        // offset enters the world transform. A path carries absolute local
         // coordinates instead: its stream is the geometry, and translating it
         // would be a second coordinate mapping over values the contract has
-        // already resolved.
-        let world = match &node.geometry {
+        // already resolved. The dashed-ellipse stroke below bypasses this box
+        // transform for the same exact-coordinate reason; its independent fill
+        // still uses this ordinary route.
+        let box_world = match &node.geometry {
             Geometry::Rect(_) | Geometry::Ellipse(_) => {
                 to_affine(node.transform).then(&Affine::translate(rect.x, rect.y))
             }
@@ -360,7 +364,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
             (None, false) => bounded_geometry_coverage(node.bounds, resolved.bounds),
             (Some(stroke), _) => {
                 let box_world = matches!(&node.geometry, Geometry::Rect(_) | Geometry::Ellipse(_))
-                    .then_some(&world);
+                    .then_some(&box_world);
                 bounded_stroke_coverage(
                     rect,
                     &node.transform,
@@ -402,7 +406,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
             };
             items.push(Item {
                 node: owner,
-                world,
+                world: box_world,
                 kind,
             });
         }
@@ -410,6 +414,19 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         // other in the same private drawlist, which is why a stroke needs no
         // group scope.
         if let Some(stroke) = &node.stroke {
+            // A resolved dashed oval must preserve the exact local conic
+            // stream over which its producer resolved the dash facts. Skia's
+            // path measurement and dash traversal are f32
+            // translation-sensitive, so moving the ellipse's box origin into
+            // `world` first is not equivalent: the interval and phase facts
+            // are unchanged, but their antialiased endpoints drift. Preserve
+            // the contract's absolute local coordinates for every live dashed
+            // ellipse. Solid ellipses remain the private oval primitive, and
+            // fills keep their existing independent box route.
+            let dashed_ellipse = matches!(&node.geometry, Geometry::Ellipse(_))
+                && rect.width > 0.0
+                && rect.height > 0.0
+                && stroke.dash().is_some();
             let (stroke, dash_phase) = compile_stroke(stroke, unit_offset);
             let kind = match &node.geometry {
                 Geometry::Rect(_) => ItemKind::RectStroke {
@@ -417,6 +434,14 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                     h,
                     corner_radius: RectangularCornerRadius::default(),
                     corner_smoothing: CornerSmoothing::default(),
+                    stroke,
+                    dash_phase,
+                },
+                Geometry::Ellipse(_) if dashed_ellipse => ItemKind::AbsoluteDashedOvalStroke {
+                    x: rect.x,
+                    y: rect.y,
+                    w,
+                    h,
                     stroke,
                     dash_phase,
                 },
@@ -436,7 +461,11 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
             };
             items.push(Item {
                 node: owner,
-                world,
+                world: if dashed_ellipse {
+                    to_affine(node.transform)
+                } else {
+                    box_world
+                },
                 kind,
             });
         }
@@ -889,12 +918,14 @@ fn bounded_stroke_coverage(
     let projected = direct.and_then(|direct| match box_world {
         None => Some(direct),
         Some(world) => {
-            // Rects and ellipses do not send their absolute local coordinates
-            // to the painter. Their origin is first folded into `world` in
-            // f32, then the painter maps a 0..w / 0..h box through that composed
-            // matrix. Those operations are mathematically equivalent to the
-            // direct projection above but not rounding-equivalent, so retain
-            // both. Paths keep the direct absolute-coordinate route only.
+            // Rects and ordinary origin-relative ellipses fold their local
+            // origin into `world` before painting. A live dashed ellipse takes
+            // the absolute-coordinate route instead; retaining this box
+            // projection for it is a deliberate conservative union, not a
+            // second claim about the pixels it paints. The two projections are
+            // mathematically equivalent but not rounding-equivalent, so damage
+            // keeps both until generic envelope work can treat every route
+            // uniformly. Paths keep the direct absolute-coordinate route only.
             let box_transform = math2::transform::AffineTransform::from_acebdf(
                 world.a, world.c, world.e, world.b, world.d, world.f,
             );
@@ -1214,6 +1245,7 @@ mod tests {
             .find_map(|item| match &item.kind {
                 ItemKind::RectStroke { stroke, .. }
                 | ItemKind::OvalStroke { stroke, .. }
+                | ItemKind::AbsoluteDashedOvalStroke { stroke, .. }
                 | ItemKind::PathStroke { stroke, .. } => Some(stroke),
                 _ => None,
             })
@@ -1228,6 +1260,7 @@ mod tests {
             .find_map(|item| match &item.kind {
                 ItemKind::RectStroke { dash_phase, .. }
                 | ItemKind::OvalStroke { dash_phase, .. }
+                | ItemKind::AbsoluteDashedOvalStroke { dash_phase, .. }
                 | ItemKind::PathStroke { dash_phase, .. } => Some(*dash_phase),
                 _ => None,
             })
@@ -1963,6 +1996,105 @@ mod tests {
                 .raster_to_bytes(&neutral_view, 64, 48, &context)
                 .expect("deterministic repeat")
         );
+    }
+
+    /// A live dashed ellipse is the one box route whose local origin must not
+    /// be folded into the private world: Skia measures and slices conics in
+    /// f32, so translating first changes dash endpoints. The private item
+    /// retains the absolute local oval while a solid ellipse remains the
+    /// ordinary origin-relative primitive.
+    #[test]
+    fn dashed_ellipse_preserves_absolute_local_coordinates_until_paint() {
+        let rect = Rectangle::from_xywh(16.0, 8.0, 32.0, 24.0);
+        let intervals = rframe::StrokeDashIntervals::new(vec![6.0, 3.0])
+            .expect("test dash intervals are valid")
+            .expect("test dash cycle is present");
+        let dash = rframe::StrokeDash::new(intervals, 0.0).expect("test dash phase is finite");
+        let gradient = CgPaint::LinearGradient(cg::LinearGradientPaint::from_colors(vec![
+            CGColor::BLACK,
+            CGColor::WHITE,
+        ]));
+        let paints = PaintStack::try_from_paints(CgPaints::new([gradient]))
+            .expect("test gradient is admitted");
+        let stroke = rframe::Stroke::new_with_dash(
+            paints,
+            8.0,
+            rframe::StrokeCap::Round,
+            rframe::StrokeJoin::Miter,
+            4.0,
+            Some(dash),
+        )
+        .expect("test stroke is valid")
+        .expect("test stroke paints");
+        let dashed = compile(frame_of(FrameItems::from_nodes(vec![stroked_node(
+            RECT_OWNER,
+            Geometry::Ellipse(rect),
+            AffineTransform::identity(),
+            stroke,
+        )])))
+        .expect("admitted dashed ellipse frame");
+        let item = &dashed.drawlist.items[1];
+        assert_eq!(item.world, to_affine(AffineTransform::identity()));
+        match &item.kind {
+            ItemKind::AbsoluteDashedOvalStroke {
+                x,
+                y,
+                w,
+                h,
+                stroke,
+                dash_phase,
+            } => {
+                assert_eq!((*x, *y, *w, *h), (16.0, 8.0, 32.0, 24.0));
+                assert_eq!(stroke.dash_array.as_deref(), Some(&[6.0, 3.0][..]));
+                assert_eq!(*dash_phase, StrokeDashPhase::ZERO);
+                match stroke.paints.as_slice() {
+                    [Paint::LinearGradient(gradient)] => {
+                        assert_eq!(gradient.transform, Affine::IDENTITY)
+                    }
+                    other => panic!("dashed ellipse lost its gradient material: {other:?}"),
+                }
+            }
+            other => panic!("dashed ellipse lost its absolute oval route: {other:?}"),
+        }
+
+        let solid = checked_stroke(
+            8.0,
+            rframe::StrokeCap::Round,
+            rframe::StrokeJoin::Miter,
+            4.0,
+            None,
+        );
+        let solid = compile(frame_of(FrameItems::from_nodes(vec![stroked_node(
+            RECT_OWNER,
+            Geometry::Ellipse(rect),
+            AffineTransform::identity(),
+            solid,
+        )])))
+        .expect("admitted solid ellipse frame");
+        assert!(matches!(
+            solid.drawlist.items[1].kind,
+            ItemKind::OvalStroke { .. }
+        ));
+    }
+
+    #[test]
+    fn absolute_dashed_ellipse_coordinates_participate_in_damage_and_raster_identity() {
+        let scene = |x| {
+            let node = dashed_node(
+                RECT_OWNER,
+                Geometry::Ellipse(Rectangle::from_xywh(x, 8.0, 32.0, 24.0)),
+                vec![6.0, 3.0],
+            );
+            compile(frame_of(FrameItems::from_nodes(vec![node])))
+                .expect("admitted dashed ellipse frame")
+        };
+        let before = scene(16.0);
+        let after = scene(17.0);
+
+        assert_ne!(before.drawlist, after.drawlist);
+        assert!(!before.drawlist.raster_eq(&after.drawlist));
+        assert_eq!(diff_frame(&before, &after).changed, vec![RECT_OWNER]);
+        assert!(diff_frame(&before, &before).is_empty());
     }
 
     /// The path arm shares the same solid-only normalization but is a distinct

@@ -27,6 +27,8 @@ pub mod svg;
 mod svg_animation;
 mod svg_paint_server;
 mod svg_path;
+mod svg_path_length;
+mod svg_path_length_metric;
 mod svg_text;
 mod svg_transform;
 

@@ -255,6 +255,65 @@ fn use_width_height_are_inert_for_admitted_targets() {
     assert_eq!(sized, bare);
 }
 
+/// `pathLength` belongs to the referenced geometry, not the `<use>` instance.
+/// The target-side attribute calibrates both the live dash cycle and phase;
+/// an inapplicable use-site spelling neither overrides that value nor becomes
+/// an inherited calibration when the target has none.
+#[test]
+fn pathlength_is_read_from_the_use_target_not_the_use_site() {
+    let target = admit_both(&document(
+        r##"  <defs><path id="p" d="M8 32 H56" fill="none" stroke="#000" stroke-dasharray="4 2" stroke-dashoffset="2" pathLength="24"/></defs>
+  <use href="#p"/>"##,
+    ));
+    let target_and_use_site = admit_both(&document(
+        r##"  <defs><path id="p" d="M8 32 H56" fill="none" stroke="#000" stroke-dasharray="4 2" stroke-dashoffset="2" pathLength="24"/></defs>
+  <use href="#p" pathLength="12"/>"##,
+    ));
+    let raw_equivalent = admit_both(&document(
+        r##"  <defs><path id="p" d="M8 32 H56" fill="none" stroke="#000" stroke-dasharray="8 4" stroke-dashoffset="4"/></defs>
+  <use href="#p"/>"##,
+    ));
+    assert_eq!(
+        target, raw_equivalent,
+        "target calibration reaches the clone"
+    );
+    assert_eq!(
+        target_and_use_site, target,
+        "the use-site spelling cannot override the target"
+    );
+
+    let use_site_only = admit_both(&document(
+        r##"  <defs><path id="p" d="M8 32 H56" fill="none" stroke="#000" stroke-dasharray="4 2" stroke-dashoffset="2"/></defs>
+  <use href="#p" pathLength="24"/>"##,
+    ));
+    let bare = admit_both(&document(
+        r##"  <defs><path id="p" d="M8 32 H56" fill="none" stroke="#000" stroke-dasharray="4 2" stroke-dashoffset="2"/></defs>
+  <use href="#p"/>"##,
+    ));
+    assert_eq!(
+        use_site_only, bare,
+        "the use-site spelling is inapplicable and does not inherit"
+    );
+
+    let dash = target.nodes()[0]
+        .stroke
+        .as_ref()
+        .expect("target clone carries a stroke")
+        .dash()
+        .expect("target clone carries a live cycle");
+    assert_eq!(dash.intervals().as_slice(), [8.0, 4.0]);
+    assert_eq!(dash.phase(), 4.0);
+
+    let dash = use_site_only.nodes()[0]
+        .stroke
+        .as_ref()
+        .expect("use-site-only clone carries a stroke")
+        .dash()
+        .expect("use-site-only clone carries a live cycle");
+    assert_eq!(dash.intervals().as_slice(), [4.0, 2.0]);
+    assert_eq!(dash.phase(), 2.0);
+}
+
 /// A beyond-slice construct inside the instance is a declared hole at the
 /// clone's real path — the instance is walked like any subtree, not
 /// refused wholesale.

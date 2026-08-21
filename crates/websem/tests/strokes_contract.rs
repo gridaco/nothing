@@ -787,32 +787,179 @@ fn the_unconsumed_stroke_properties_refuse_by_name() {
     }
 }
 
-/// `pathLength` calibrates every SVGGeometryElement's distance space in
-/// Chromium, including rect, circle, and ellipse. The zero-calibration dash
-/// contract cannot carry that fact, so all seven admitted geometry elements
-/// keep the same named patrol rather than silently scaling only some cycles.
+/// A positive `pathLength` calibrates both members of the live dash cycle and
+/// its phase on every admitted SVG geometry element. Five contours below are
+/// exactly 48 units long, so `pathLength="24"` doubles `4 2 / 2` into the
+/// resolved `8 4 / 4` facts. The circle and non-circular ellipse assert the
+/// same one-scale relation while leaving the pinned Skia metric's exact bits
+/// to `svg_path_length_bits.rs`.
 #[test]
-fn pathlength_refuses_on_every_admitted_geometry_element() {
-    for shape in [
-        r##"<rect x="8" y="8" width="48" height="48"/>"##,
-        r##"<circle cx="32" cy="32" r="24"/>"##,
-        r##"<ellipse cx="32" cy="32" rx="24" ry="16"/>"##,
-        r##"<path d="M8 32 H56"/>"##,
-        r##"<line x1="8" y1="32" x2="56" y2="32"/>"##,
-        r##"<polygon points="8,8 56,8 32,56"/>"##,
-        r##"<polyline points="8,8 32,56 56,8"/>"##,
+fn pathlength_calibrates_dash_and_phase_on_every_admitted_geometry_element() {
+    for (label, shape, expected_gap) in [
+        (
+            "rect",
+            r##"<rect x="8" y="8" width="16" height="8"/>"##,
+            Some(4.0),
+        ),
+        ("circle", r##"<circle cx="32" cy="32" r="8"/>"##, None),
+        (
+            "ellipse",
+            r##"<ellipse cx="32" cy="32" rx="8" ry="4"/>"##,
+            None,
+        ),
+        ("path", r##"<path d="M8 32 H56"/>"##, Some(4.0)),
+        (
+            "line",
+            r##"<line x1="8" y1="32" x2="56" y2="32"/>"##,
+            Some(4.0),
+        ),
+        (
+            "polygon",
+            r##"<polygon points="8,8 20,8 20,24"/>"##,
+            Some(4.0),
+        ),
+        (
+            "polyline",
+            r##"<polyline points="8,8 32,8 32,32"/>"##,
+            Some(4.0),
+        ),
     ] {
         let shape = shape.replacen(
             "/>",
-            r##" fill="none" stroke="#000" stroke-dasharray="8 4" stroke-dashoffset="2" pathLength="24"/>"##,
+            r##" fill="none" stroke="#000" stroke-dasharray="4 2" stroke-dashoffset="2" pathLength="24"/>"##,
             1,
         );
-        let error = refusal(&document(&format!("  {shape}")));
+        let frame = admit_both(&document(&format!("  {shape}")));
+        let dash = stroke_of(&frame, 0).dash().expect("live calibrated cycle");
+        let [paint, gap] = dash.intervals().as_slice() else {
+            panic!("{label}: one authored pair remains one resolved pair");
+        };
+        assert_eq!(*paint, *gap * 2.0, "{label}: one shared scale");
+        assert_eq!(dash.phase(), *gap, "{label}: phase receives that scale");
+        assert_ne!(*gap, 2.0, "{label}: calibration is not the identity");
+        if let Some(expected_gap) = expected_gap {
+            assert_eq!(*gap, expected_gap, "{label}: exact 48-unit contour");
+        } else if label == "circle" {
+            assert!(
+                (4.0..4.3).contains(gap),
+                "circle: the local metric is circumference-shaped; got {gap}"
+            );
+        } else {
+            assert!(
+                (3.0..4.0).contains(gap),
+                "ellipse: the local metric reflects both radii; got {gap}"
+            );
+        }
+    }
+}
+
+/// Presence is semantic, not just parsing. A negative value disables
+/// calibration, while zero (including negative zero) and a malformed present
+/// value all select Chromium's authored-zero fallback. With a live cycle,
+/// its saturated scale overflows the intervals and therefore resolves to a
+/// solid stroke rather than silently retaining the uncalibrated dash.
+#[test]
+fn pathlength_negative_zero_and_invalid_present_have_distinct_dash_semantics() {
+    let path = |path_length: Option<&str>| {
+        let path_length = path_length
+            .map(|value| format!(r##" pathLength="{value}""##))
+            .unwrap_or_default();
+        document(&format!(
+            r##"  <path d="M8 32 H56" fill="none" stroke="#000" stroke-dasharray="4 2" stroke-dashoffset="2"{path_length}/>"##
+        ))
+    };
+
+    let absent = admit_both(&path(None));
+    for value in ["-24", "-3.4e38"] {
+        let negative = admit_both(&path(Some(value)));
+        assert_eq!(negative, absent, "{value}: a negative value is identity");
+        assert_eq!(
+            stroke_of(&negative, 0)
+                .dash()
+                .expect("the authored cycle stays live")
+                .intervals()
+                .as_slice(),
+            [4.0, 2.0]
+        );
+        assert_eq!(dash_phase(&negative, 0), 2.0);
+    }
+
+    let zero = admit_both(&path(Some("0")));
+    for value in ["-0", "", "   ", ".", "5.", "5.e0", "125.e-3"] {
+        let fallback = admit_both(&path(Some(value)));
+        assert_eq!(fallback, zero, "{value:?}: present zero calibration");
+    }
+    assert!(
+        stroke_of(&zero, 0).dash().is_none(),
+        "overflow drops the path effect and retains a solid stroke"
+    );
+}
+
+/// A saturated pathLength scale can preserve a tiny finite interval cycle but
+/// overflow a large finite authored phase. Chromium then drops the whole dash
+/// path effect and paints a solid stroke; it does not reject or skip the
+/// geometry. Malformed-present values share the authored-zero branch.
+#[test]
+fn pathlength_nonfinite_scaled_phase_normalizes_to_solid() {
+    let source = |path_length: &str, dash: &str, phase: &str| {
+        document(&format!(
+            r##"  <path d="M8 32 H56" fill="none" stroke="#000" stroke-dasharray="{dash}" stroke-dashoffset="{phase}" pathLength="{path_length}"/>"##
+        ))
+    };
+
+    for (path_length, dash, phase) in [
+        (
+            "0",
+            "0.2213541716337204 0.1432291716337204",
+            "52083.50390625",
+        ),
+        (
+            "5.",
+            "0.2213541716337204 0.1432291716337204",
+            "52083.50390625",
+        ),
+        (
+            "5.e0",
+            "0.2213541716337204 0.1432291716337204",
+            "52083.50390625",
+        ),
+        (
+            "125.e-3",
+            "0.0055338540114462376 0.0035807292442768812",
+            "1302.0875244140625",
+        ),
+    ] {
+        let frame = admit_both(&source(path_length, dash, phase));
         assert!(
-            matches!(error, CompileError::UnsupportedAttribute { ref attr, .. } if attr == "pathLength"),
-            "{shape}: got {error}"
+            stroke_of(&frame, 0).dash().is_none(),
+            "pathLength={path_length:?}: non-finite calibrated phase is solid"
         );
     }
+}
+
+/// `pathLength` is not inherited. An inapplicable spelling on a group must
+/// therefore leave a descendant's live dash and phase in ordinary local-space
+/// units; only an attribute on the geometry itself can calibrate them.
+#[test]
+fn pathlength_on_a_group_is_inapplicable_and_not_inherited() {
+    let grouped = admit_both(&document(
+        r##"  <g pathLength="24">
+    <path d="M8 32 H56" fill="none" stroke="#000" stroke-dasharray="4 2" stroke-dashoffset="2"/>
+  </g>"##,
+    ));
+    let bare = admit_both(&document(
+        r##"  <path d="M8 32 H56" fill="none" stroke="#000" stroke-dasharray="4 2" stroke-dashoffset="2"/>"##,
+    ));
+    assert_eq!(grouped, bare, "the group spelling contributes no fact");
+    assert_eq!(
+        stroke_of(&grouped, 0)
+            .dash()
+            .expect("live uncalibrated cycle")
+            .intervals()
+            .as_slice(),
+        [4.0, 2.0]
+    );
+    assert_eq!(dash_phase(&grouped, 0), 2.0);
 }
 
 /// Dasharray is one cascaded, resolved cycle: both source spellings enter the

@@ -2,7 +2,7 @@
 name = "websem"
 version = "0.0.0"
 edition = "2024"
-description = "PROVISIONAL, INTERNAL, BREAKABLE. The Web semantic compiler: an SVG or HTML source through one namespace-aware document and one Stylo cascade into rframe::Frame, at Base or one exact-time sample. Owns no parser and no painter. No I/O, no network."
+description = "PROVISIONAL, INTERNAL, BREAKABLE. The Web semantic compiler: an SVG or HTML source through one namespace-aware document and one Stylo cascade into rframe::Frame, at Base or one exact-time sample. Owns no document parser and no painter. No I/O, no network."
 license.workspace = true
 repository.workspace = true
 publish = false

@@ -32,7 +32,6 @@ The scannable, generated view of this register (beside the baked cells) is
 | `svg-path-no-leading-moveto.svg` | Refuse path data that does not begin with a moveto. Chromium's valid prefix is empty here, so the refusal costs no pixels. |
 | `svg-path-trailing-dot-number.svg` | Refuse `10.` in path data. SVG's BNF allows a trailing dot; Blink requires a digit after it and renders nothing — the browser is the authority. |
 | `svg-path-css-d-property.svg` | Declare a stylesheet's `d: path(…)`: Chromium honors it in place of the attribute, and the pinned Stylo build drops the declaration entirely. |
-| `svg-path-pathlength.svg` | Refuse by name — **load-bearing now**. Chromium scales dash intervals through `pathLength` on path, rect, circle, and ellipse, and scales dash offset on path (measured); the zero-calibration frame contract carries no such fact. The same patrol covers all seven admitted geometry elements so a dash cycle never paints in the wrong distance space. |
 | `svg-path-marker-end.svg` | Refuse by name — **load-bearing**. Nothing else reads a marker property: the property *is* the paint trigger, so this refusal is what keeps Chromium's arrowhead from becoming a silent hole. |
 | `svg-stroke-dasharray-escape.svg` | Refuse by name — a CSS escape can hide a basis-less unit from the authored-text patrol (`1\76 w` tokenizes as `1vw`), so the presentation attribute, style attribute, and stylesheet spellings all refuse rather than silently use the pinned device basis. |
 | `svg-stroke-dasharray-font-basis.svg` | Refuse by name — `em`/`rem` are admitted only while their cascaded `font-size` basis is trustworthy. A basis-less unit, `var()`, or escape in that basis would resolve a different cycle from Chromium; the exact poison classes and all ancestor/sheet ingresses share the stroke-width rung's guarded patrol. |
@@ -88,4 +87,6 @@ replacement has now graduated into four saturation cells; the narrower
 percentage-precision-alias row replaces that one numerically, so the register
 remains at 56 rows. The former broad `svg-stroke-dashoffset.svg` has now
 graduated into exact phase cells; five narrower guarded rows replace it, taking
-the register to 60.
+the register to 60. The former `svg-path-pathlength.svg` has now graduated into
+nine exact path-distance cells without a replacement refusal, taking the
+register to 59.

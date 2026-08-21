@@ -304,36 +304,26 @@ fn empty_and_missing_points_render_nothing() {
     }
 }
 
-/// The points shapes inherit the path patrols: `pathLength` and the marker
-/// properties refuse or skip by name, never silently.
+/// The points shapes inherit the path marker patrol: the unsupported paint
+/// trigger refuses or skips by name, never silently.
 #[test]
-fn points_shapes_are_patrolled_like_paths() {
-    for (label, attrs, named) in [
-        ("pathLength", r#"pathLength="100""#, "pathLength"),
-        ("marker-end", r#"marker-end="url(#m)""#, "marker-end"),
-    ] {
-        let source = document(&format!(
-            r##"  <polygon points="8,8 56,8 32,56" fill="#16a34a" {attrs}/>"##
-        ));
-        let strict = SvgFrameSource::from_standalone_svg(source.as_str(), viewport())
-            .expect_err(&format!("{label}: strict refuses"));
-        assert!(
-            strict.to_string().contains(named),
-            "{label}: named; got {strict}"
-        );
-        let best = SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport())
-            .unwrap_or_else(|error| panic!("{label}: best-effort compiles: {error}"));
-        assert_eq!(
-            best.base_frame().nodes().len(),
-            0,
-            "{label}: a declared hole"
-        );
-        assert!(
-            best.degradations()[0].reason().contains(named),
-            "{label}: named; got {}",
-            best.degradations()[0].reason()
-        );
-    }
+fn points_shapes_keep_the_marker_patrol() {
+    let source =
+        document(r##"  <polygon points="8,8 56,8 32,56" fill="#16a34a" marker-end="url(#m)"/>"##);
+    let strict = SvgFrameSource::from_standalone_svg(source.as_str(), viewport())
+        .expect_err("marker-end: strict refuses");
+    assert!(
+        strict.to_string().contains("marker-end"),
+        "marker-end is named; got {strict}"
+    );
+    let best = SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport())
+        .unwrap_or_else(|error| panic!("marker-end: best-effort compiles: {error}"));
+    assert_eq!(best.base_frame().nodes().len(), 0, "a declared hole");
+    assert!(
+        best.degradations()[0].reason().contains("marker-end"),
+        "marker-end is named; got {}",
+        best.degradations()[0].reason()
+    );
 }
 
 /// Both grammar entries reach the points shapes through the one compiler

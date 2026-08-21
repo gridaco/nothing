@@ -163,10 +163,41 @@ cargo run -p n0_cli --bin n0 -- \
   refusal guards that class, so both dashoffset checklist twins remain open
   under the gridaco/nothing#81 split precedent. Viewport/container/font-metric
   units, `var()` indirection, CSS escapes, and a poisoned em basis retain their
-  narrower registered guards. `pathLength` calibration remains separately
-  refused because the resolved frame carries no path-distance calibration.
-  Those separate rows do not leave a standard-track dasharray grammar
-  remainder.
+  narrower registered guards.
+  `pathLength` is consumed on all seven admitted geometry elements. Its SVG
+  `<number>` attribute is non-inherited: absence and a negative value leave
+  dash distances uncalibrated, while zero/negative zero and a malformed
+  present value follow Chromium's authored-zero fallback. On geometry with a
+  non-zero local metric, the resulting scale saturates rather than becoming
+  zero; a zero local metric instead yields a zero calibration factor. A
+  positive value applies one actual-local-length/authored-length scale to every
+  already resolved dash member and to the signed raw phase before cycle
+  canonicalization. When a saturated scale leaves the tiny interval cycle
+  finite but overflows a large finite phase, Chromium drops the dash effect and
+  retains a solid stroke; strict and best-effort admit that same result. Fixed
+  lengths and normalized-diagonal percentages receive
+  that same scale in Chromium, including in one mixed list; this deliberately
+  follows the browser even though the current SVG2 text says percentage
+  distance-along-path calculations are not affected by `pathLength`.
+  Open, closed, and mixed contours contribute to the actual local metric;
+  quadratic, cubic, conic/arc, rounded-rect, rect, and native oval routes are
+  measured, and each contour still restarts at the one calibrated phase.
+  Calibration precedes transforms and viewBox mapping. On `<use>`, the
+  attribute belongs to the referenced geometry; a use-site or group spelling
+  is inapplicable and does not inherit. A calibrated dashed ellipse retains
+  its absolute local bounds until paint because Chromium's f32 oval metric and
+  dash traversal are translation-sensitive. None of this adds source syntax
+  to the resolved frame: it still carries only the final local-space interval
+  cycle and canonical phase.
+  Current SVG2 also defines the non-inherited CSS twin
+  `path-length: none | <length [0,∞]>` and maps the attribute as a pixel-length
+  presentation hint. Chromium 149 ships that experimental property disabled,
+  so valid inline and stylesheet declarations drop wholesale and do not
+  override the active legacy attribute. The engine matches that drop without
+  a second CSS matcher. Nine byte-exact Chromium cells cover the attribute,
+  the CSS drop, every geometry, algebra, percentage basis, coordinate/instance
+  routes, metrics, contours, and numeric extremes; the former broad
+  `pathLength` refusal has graduated.
   The stroke's `<paint>` grammar is celled: hex and named colours,
   `currentColor` against the `color` hint, `none` (the initial — an
   invalid paint drops to it), and the full `url() [none | <color>]?`

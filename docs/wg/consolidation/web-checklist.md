@@ -976,6 +976,7 @@ excluded.
 - [ ] `marker-mid`
 - [ ] `marker-end`
 - [ ] `paint-order`
+- [x] `path-length`
 - [ ] `color-interpolation`
 - [ ] `shape-rendering`
 - [ ] `text-rendering`
@@ -1675,7 +1676,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `order`
 - [ ] `orient`
 - [ ] `path`
-- [ ] `pathLength`
+- [x] `pathLength`
 - [ ] `patternContentUnits`
 - [ ] `patternTransform`
 - [ ] `patternUnits`

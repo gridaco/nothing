@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "2a4f3dae329a6ac6bfeee552e22e2584b547da58db359257ec9f14ae4dfe66ae",
+  "suite_sha256": "5e82952b7bbc1f80737d2d8d9c254023cd610acdd58c027aa605de1e277b93bb",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -1071,6 +1071,87 @@
       "oracle_sha256": "7b20e52ebce165b1c0ab147b3ebc558258ef4d9975f4502afeb527f062e91d79",
       "width": 64,
       "height": 64
+    },
+    {
+      "id": "svg-path-length-attr-algebra",
+      "source": "svg-path-length-attr-algebra.svg",
+      "source_sha256": "65913082e7e53fdd8e774bc5e4d6b5f241b3c8816c9838eb140de2495d5eee25",
+      "oracle": "chromium/svg-path-length-attr-algebra.png",
+      "oracle_sha256": "e166d7955c0f3ee6125d1235b6b667ce696b38bcc6b99078789e67824e647b0e",
+      "width": 128,
+      "height": 108
+    },
+    {
+      "id": "svg-path-length-attr-grammar",
+      "source": "svg-path-length-attr-grammar.svg",
+      "source_sha256": "f51e0bcd7d3d9048d3adf9cc7ae57742dbfd874965531d138f594698411a61d3",
+      "oracle": "chromium/svg-path-length-attr-grammar.png",
+      "oracle_sha256": "d14e3d74bf282e737f38f8011c9db0b3b754a494ab2376aaf6c295652cff0b82",
+      "width": 128,
+      "height": 88
+    },
+    {
+      "id": "svg-path-length-attr-percent",
+      "source": "svg-path-length-attr-percent.svg",
+      "source_sha256": "584ecf0a67d0411ab43d175e73b2549bd36785f89e90c3c5f24bb19a637e51c7",
+      "oracle": "chromium/svg-path-length-attr-percent.png",
+      "oracle_sha256": "3b78f7fb96fccf5d3647e8dc3306a83d63d1f05ba19cdbaf956ee37ceaf87df8",
+      "width": 70,
+      "height": 24
+    },
+    {
+      "id": "svg-path-length-coordinate-use",
+      "source": "svg-path-length-coordinate-use.svg",
+      "source_sha256": "9a6e2a7e997cd28723d3b658d178b98f5c77329bb3ffdfa6b824f0af63b7b1e1",
+      "oracle": "chromium/svg-path-length-coordinate-use.png",
+      "oracle_sha256": "91e8f96af54b43967af9b828e75fb495aa9415d28e9ff3c869b5261b0f64cbe4",
+      "width": 160,
+      "height": 80
+    },
+    {
+      "id": "svg-path-length-css-drop",
+      "source": "svg-path-length-css-drop.svg",
+      "source_sha256": "e447a278f86c41b67a05bd87b50cfffc3d92ace54c1aa87184049cfbb79e4bf1",
+      "oracle": "chromium/svg-path-length-css-drop.png",
+      "oracle_sha256": "2abb7e88e9d4f38f763d8e2e7e1c705422afeed0b7e30aa946c134d9b3ac61d5",
+      "width": 128,
+      "height": 128
+    },
+    {
+      "id": "svg-path-length-geometry-routes",
+      "source": "svg-path-length-geometry-routes.svg",
+      "source_sha256": "e934cfab8db64423326b046e35d0ea842090f55ff4bbf3839b4b7f0c1f6c0fc8",
+      "oracle": "chromium/svg-path-length-geometry-routes.png",
+      "oracle_sha256": "0e68786c09e0b9f9e248c0de68a6f0759818ef87841b991b2f65c4b05f122c4d",
+      "width": 160,
+      "height": 80
+    },
+    {
+      "id": "svg-path-length-metrics-contours",
+      "source": "svg-path-length-metrics-contours.svg",
+      "source_sha256": "0ec17021c5581f4588105de73f94eebb80c3fe5a6e2a60668b0e48a993481994",
+      "oracle": "chromium/svg-path-length-metrics-contours.png",
+      "oracle_sha256": "12a04ebe0263c42e79d0082188f035cf78e79f91cb526dc364bd3087707b4410",
+      "width": 128,
+      "height": 104
+    },
+    {
+      "id": "svg-path-length-nonfinite-phase",
+      "source": "svg-path-length-nonfinite-phase.svg",
+      "source_sha256": "8761d4d43c3adede7802b10ee4a81c63d0eea16b99c727c84d14f896ac4f81de",
+      "oracle": "chromium/svg-path-length-nonfinite-phase.png",
+      "oracle_sha256": "18014fd1cdaec587aef73135968a1fb6d12500856571406f92c0938779409a12",
+      "width": 128,
+      "height": 56
+    },
+    {
+      "id": "svg-path-length-range",
+      "source": "svg-path-length-range.svg",
+      "source_sha256": "6ad83eba9e6a04675e65ad043c43eff30d39ac8e245039ca1471286cb16d32a9",
+      "oracle": "chromium/svg-path-length-range.png",
+      "oracle_sha256": "60b652a49591eb72ac9577fabd60aaed8f1f5d397c111e30d9bd9eef49340d63",
+      "width": 128,
+      "height": 108
     },
     {
       "id": "svg-path-polygon-fill",
