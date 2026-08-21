@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (314)
+## Chromium-baked cells (319)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells and three gradient ramps carry a declared, bounded
@@ -107,7 +107,12 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-gradient-radial-r0.svg" title="svg-gradient-radial-r0 (standalone-svg)"><img src="./chromium/svg-gradient-radial-r0.png" width="56" alt="svg-gradient-radial-r0"></a>
 <a href="./svg-gradient-spread-reflect.svg" title="svg-gradient-spread-reflect (standalone-svg)"><img src="./chromium/svg-gradient-spread-reflect.png" width="56" alt="svg-gradient-spread-reflect"></a>
 <a href="./svg-gradient-spread-repeat.svg" title="svg-gradient-spread-repeat (standalone-svg)"><img src="./chromium/svg-gradient-spread-repeat.png" width="56" alt="svg-gradient-spread-repeat"></a>
+<a href="./svg-gradient-stop-color-grammar.svg" title="svg-gradient-stop-color-grammar (standalone-svg)"><img src="./chromium/svg-gradient-stop-color-grammar.png" width="56" alt="svg-gradient-stop-color-grammar"></a>
+<a href="./svg-gradient-stop-degenerate-float.svg" title="svg-gradient-stop-degenerate-float (standalone-svg)"><img src="./chromium/svg-gradient-stop-degenerate-float.png" width="56" alt="svg-gradient-stop-degenerate-float"></a>
 <a href="./svg-gradient-stop-nonmonotonic.svg" title="svg-gradient-stop-nonmonotonic (standalone-svg)"><img src="./chromium/svg-gradient-stop-nonmonotonic.png" width="56" alt="svg-gradient-stop-nonmonotonic"></a>
+<a href="./svg-gradient-stop-opacity-float.svg" title="svg-gradient-stop-opacity-float (standalone-svg)"><img src="./chromium/svg-gradient-stop-opacity-float.png" width="56" alt="svg-gradient-stop-opacity-float"></a>
+<a href="./svg-gradient-stop-opacity-grammar.svg" title="svg-gradient-stop-opacity-grammar (standalone-svg)"><img src="./chromium/svg-gradient-stop-opacity-grammar.png" width="56" alt="svg-gradient-stop-opacity-grammar"></a>
+<a href="./svg-gradient-stop-template-float.svg" title="svg-gradient-stop-template-float (standalone-svg)"><img src="./chromium/svg-gradient-stop-template-float.png" width="56" alt="svg-gradient-stop-template-float"></a>
 <a href="./svg-gradient-stroke.svg" title="svg-gradient-stroke (standalone-svg)"><img src="./chromium/svg-gradient-stroke.png" width="56" alt="svg-gradient-stroke"></a>
 <a href="./svg-gradient-stroke-css.svg" title="svg-gradient-stroke-css (standalone-svg)"><img src="./chromium/svg-gradient-stroke-css.png" width="56" alt="svg-gradient-stroke-css"></a>
 <a href="./svg-gradient-stylesheet-fill.svg" title="svg-gradient-stylesheet-fill (standalone-svg)"><img src="./chromium/svg-gradient-stylesheet-fill.png" width="56" alt="svg-gradient-stylesheet-fill"></a>
@@ -343,7 +348,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (58)
+## The refusal register (62)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -361,11 +366,15 @@ its row into the cells above.
 | `svg-display-contents` | declared | skipped svg/g[1]: unsupported computed style: display: contents is not yet consumed |
 | `svg-filter` | declared | skipped svg/filter[1]: unsupported element <filter>; skipped svg/rect[2]: unsupported rendering attribute filter on <rect> (not yet consumed) |
 | `svg-foreign-object` | declared | skipped svg/foreignObject[1]: unsupported element <foreignObject> |
+| `svg-gradient-degenerate-precision` | declared | skipped svg/rect[1]: unsupported fill value "url(#a): a degenerate paint server substitutes a colour this build cannot reproduce: the collapsed alpha is not exactly representable in eight bits, and Chromium dithers it"; skipped svg/rect[2]: unsupported fill value "url(#b): a degenerate paint server collapses two alpha stages, and their product is not exactly representable in eight bits"; skipped svg/rect[3]: unsupported fill value "url(#c): a degenerate paint server collapses before post-paint opacity, and the staged product is not exactly representable in eight bits"; skipped svg/rect[4]: unsupported fill value "url(#d): a degenerate paint server substitutes a colour this build cannot reproduce: the collapsed alpha is not exactly representable in eight bits, and Chromium dithers it"; skipped svg/rect[5]: unsupported fill value "url(#e): a degenerate paint server averages a ramp whose stop is not exactly representable in eight bits, and Chromium dithers the result" |
 | `svg-gradient-focal` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): the radial gradient has a focal point or focal radius, which the shared radial paint leaf cannot state (concentric radials only)" |
 | `svg-gradient-linearrgb` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): color-interpolation: linearRGB interpolates stops in linear-light sRGB, which this slice does not execute (sRGB interpolation only)" |
 | `svg-gradient-stop-css` | declared | declaration ignored at svg/style[1]: a stylesheet declares stop-color, which this cascade does not represent; elements it matches render without it |
-| `svg-gradient-stop-precision` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): resolved gradient stop alpha loses float precision at the RGBA8 paint contract"; skipped svg/rect[2]: unsupported fill value "url(#d): resolved gradient stop alpha loses staged precision when a degenerate paint server collapses to RGBA8"; skipped svg/rect[3]: unsupported fill value "url(#a): resolved gradient stop alpha loses float precision when a degenerate ramp average collapses to RGBA8"; skipped svg/rect[4]: unsupported fill value "url(#p): resolved gradient stop alpha loses staged precision when a degenerate paint server collapses before post-paint opacity"; skipped svg/rect[5]: unsupported fill value "url(#c): resolved gradient stop color loses float precision when a degenerate ramp average collapses to RGBA8"; skipped svg/rect[6]: unsupported fill value "url(#t): resolved gradient stop color loses float precision when a degenerate ramp average collapses to RGBA8" |
+| `svg-gradient-stop-function` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): a <stop> stop-opacity is a function this build cannot evaluate without a computation context" |
+| `svg-gradient-stop-inherit` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): a <stop> stop-color is inherit, which needs a cascaded longhand this build does not have" |
+| `svg-gradient-stop-nonlegacy-color` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): a gradient <stop> colour is a non-legacy sRGB colour, which changes how Chromium interpolates the whole ramp" |
 | `svg-gradient-stop-style-attr` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): a gradient <stop> declares stop-color in a style attribute, which this cascade does not represent" |
+| `svg-gradient-stop-var` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): a <stop> stop-opacity resolves through var(), an indirection this patrol cannot follow" |
 | `svg-gradient-unit-basis` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): gradient geometry x2=\"4em\" uses a unit whose basis this slice does not consume (numbers, px, and percentages only)" |
 | `svg-image` | declared | skipped svg/image[1]: unsupported element <image> |
 | `svg-mask` | declared | skipped svg/mask[1]: unsupported element <mask>; skipped svg/rect[2]: unsupported rendering attribute mask on <rect> (not yet consumed) |

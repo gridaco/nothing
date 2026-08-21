@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <defs>
+    <!-- Two distinct non-byte stop alphas: no single factor carries both. -->
+    <linearGradient id="ramp"><stop stop-color="#16a34a" stop-opacity="0.5"/><stop offset="1" stop-color="#2563eb" stop-opacity="0.25"/></linearGradient>
+    <!-- The colour's own alpha byte times a non-byte stop-opacity. -->
+    <linearGradient id="both"><stop stop-color="#16a34a80" stop-opacity="0.3"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <radialGradient id="rad"><stop stop-color="#16a34a" stop-opacity="0.5"/><stop offset="1" stop-color="#2563eb" stop-opacity="0.1"/></radialGradient>
+  </defs>
+  <rect x="2"  y="2"  width="28" height="18" fill="url(#ramp)"/>
+  <rect x="34" y="2"  width="28" height="18" fill="url(#ramp)" fill-opacity="0.7"/>
+  <rect x="2"  y="23" width="28" height="18" fill="url(#ramp)" opacity="0.6"/>
+  <rect x="34" y="23" width="28" height="18" fill="url(#both)"/>
+  <rect x="8"  y="47" width="22" height="12" fill="none" stroke="url(#ramp)" stroke-width="6"/>
+  <rect x="36" y="44" width="24" height="18" fill="url(#rad)"/>
+</svg>

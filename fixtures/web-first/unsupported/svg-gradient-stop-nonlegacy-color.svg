@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- A non-legacy sRGB stop colour parses to the same colour space as hex,
+       but changes what Chromium does with the whole ramp — far more than this
+       endpoint's own rounding. The same value as a solid is unaffected. -->
+  <defs>
+    <linearGradient id="g">
+      <stop stop-color="color(srgb 0.00196078431372549 0 0)"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#g)"/>
+</svg>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <defs>
+    <!-- pad substitutes the last stop; its alpha byte survives fill-opacity 1. -->
+    <linearGradient id="pad" x1="0" x2="0"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#16a34a" stop-opacity="0.30196078431372547"/></linearGradient>
+    <!-- an opaque last stop leaves fill-opacity as the only alpha stage. -->
+    <linearGradient id="padop" x1="0" x2="0"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#16a34a"/></linearGradient>
+    <!-- repeat averages the ramp; 77/255 and 129/255 average to 103/255. -->
+    <linearGradient id="rep" x1="0" x2="0" spreadMethod="repeat"><stop stop-color="#16a34a" stop-opacity="0.30196078431372547"/><stop offset="1" stop-color="#16a34a" stop-opacity="0.5058823529411764"/></linearGradient>
+    <!-- reflect averages colour: 0 and 3 average to 1.5, which rounds up. -->
+    <linearGradient id="ref" x1="0" x2="0" spreadMethod="reflect"><stop stop-color="#000000"/><stop offset="1" stop-color="#030000"/></linearGradient>
+    <!-- a zero radius reaches the same rule through the radial route. -->
+    <radialGradient id="r0" r="0"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#16a34a"/></radialGradient>
+  </defs>
+  <rect x="2"  y="2"  width="28" height="18" fill="url(#pad)"/>
+  <rect x="34" y="2"  width="28" height="18" fill="url(#padop)" fill-opacity="0.7"/>
+  <rect x="2"  y="23" width="28" height="18" fill="url(#rep)"/>
+  <rect x="34" y="23" width="28" height="18" fill="url(#padop)" opacity="0.6"/>
+  <rect x="2"  y="44" width="28" height="18" fill="url(#ref)"/>
+  <rect x="34" y="44" width="28" height="18" fill="url(#r0)"/>
+</svg>

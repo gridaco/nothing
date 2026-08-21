@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- `inherit` on a stop attribute takes the ancestor gradient's own
+       computed value. Without a cascaded longhand there is nothing to
+       inherit from, and falling back to the initial paints the wrong pixel. -->
+  <defs>
+    <linearGradient id="g" stop-color="red" stop-opacity="0.25">
+      <stop stop-color="inherit"/>
+      <stop offset="1" stop-color="#2563eb" stop-opacity="inherit"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#g)"/>
+</svg>

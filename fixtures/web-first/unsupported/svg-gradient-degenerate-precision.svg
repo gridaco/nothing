@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- A degenerate paint server whose substituted colour does not land on a
+       byte. Chromium keeps a dithering shader for these; no flat solid and no
+       constant ramp reproduces one. Each rect is a distinct staging route. -->
+  <defs>
+    <!-- pad: a non-byte stop alpha reaches the substitution directly. -->
+    <linearGradient id="a" x1="0" x2="0"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#16a34a" stop-opacity="0.5"/></linearGradient>
+    <!-- pad: byte-exact stop alpha, but a second non-endpoint alpha stage. -->
+    <linearGradient id="b" x1="0" x2="0"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#16a34a" stop-opacity="0.30196078431372547"/></linearGradient>
+    <!-- pad: byte-exact stop alpha under a non-identity post-paint factor. -->
+    <linearGradient id="c" x1="0" x2="0"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#16a34a" stop-opacity="0.30196078431372547"/></linearGradient>
+    <!-- repeat: the ramp average synthesizes a non-byte alpha (102.5/255). -->
+    <linearGradient id="d" x1="0" x2="0" spreadMethod="repeat"><stop stop-color="#16a34a" stop-opacity="0.30196078431372547"/><stop offset="1" stop-color="#16a34a" stop-opacity="0.5019607843137255"/></linearGradient>
+    <!-- reflect: the ramp average synthesizes a non-byte colour channel. -->
+    <linearGradient id="e" x1="0" x2="0" spreadMethod="reflect"><stop stop-color="#000000" stop-opacity="0.5"/><stop offset="1" stop-color="#010000" stop-opacity="0.5"/></linearGradient>
+  </defs>
+  <rect x="2"  y="2"  width="28" height="18" fill="url(#a)"/>
+  <rect x="34" y="2"  width="28" height="18" fill="url(#b)" fill-opacity="0.7"/>
+  <rect x="2"  y="23" width="28" height="18" fill="url(#c)" opacity="0.6"/>
+  <rect x="34" y="23" width="28" height="18" fill="url(#d)"/>
+  <rect x="2"  y="44" width="28" height="18" fill="url(#e)"/>
+</svg>

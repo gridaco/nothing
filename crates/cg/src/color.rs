@@ -81,7 +81,7 @@ impl Default for CGColor {
 }
 
 /// The same colour at 32-bit float components — the precision a gradient ramp
-/// is interpolated at, and the precision [`format/grida.fbs`]'s `RGBA32F`
+/// is interpolated at, and the precision the `.grida` schema's `RGBA32F`
 /// already stores. [`CGColor`] remains the byte colour every solid paint and
 /// every authored swatch is stated in; this type exists because one resolved
 /// fact genuinely needs the wider component: a gradient stop's alpha, which

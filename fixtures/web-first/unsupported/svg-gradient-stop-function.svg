@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- `stop-opacity` carries the `opacity` property's grammar, so a CSS math
+       function is valid there and Chromium evaluates it. Evaluating one here
+       needs a computation context this build does not construct. -->
+  <defs>
+    <linearGradient id="g">
+      <stop stop-color="#16a34a" stop-opacity="calc(1 / 3)"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#g)"/>
+</svg>

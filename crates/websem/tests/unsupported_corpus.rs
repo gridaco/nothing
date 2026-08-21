@@ -81,19 +81,39 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     // its attribute colors — a declared divergence (Chromium honors the
     // sheet).
     (
+        "svg-gradient-degenerate-precision",
+        DeclaredByBestEffort,
+        "a degenerate paint server",
+    ),
+    (
         "svg-gradient-stop-css",
         DeclaredByBestEffort,
         "declares stop-color",
     ),
     (
-        "svg-gradient-stop-precision",
+        "svg-gradient-stop-function",
         DeclaredByBestEffort,
-        "resolved gradient stop",
+        "cannot evaluate without a computation context",
+    ),
+    (
+        "svg-gradient-stop-inherit",
+        DeclaredByBestEffort,
+        "is inherit, which needs a cascaded longhand",
+    ),
+    (
+        "svg-gradient-stop-nonlegacy-color",
+        DeclaredByBestEffort,
+        "non-legacy sRGB colour",
     ),
     (
         "svg-gradient-stop-style-attr",
         DeclaredByBestEffort,
         "stop-color",
+    ),
+    (
+        "svg-gradient-stop-var",
+        DeclaredByBestEffort,
+        "resolves through var()",
     ),
     (
         "svg-gradient-unit-basis",

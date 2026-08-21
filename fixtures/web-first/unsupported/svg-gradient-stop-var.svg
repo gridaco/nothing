@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- Chromium substitutes `var()` inside a presentation attribute. Which
+       declaration feeds a substitution is a resolver question this patrol
+       cannot answer, so every var() in a stop attribute refuses. -->
+  <defs>
+    <linearGradient id="g" style="--o: 0.25">
+      <stop stop-color="#16a34a" stop-opacity="var(--o)"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#g)"/>
+</svg>
