@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- Chromium's used-value clamp keeps all three transformed controls visible. -->
+  <circle cx="2.176e38" cy="32000000" r="8000000" transform="scale(.000001)" fill="#16a34a"/>
+  <circle cx="32000000" cy="2.176e38" r="8000000" transform="scale(.000001)" fill="#2563eb"/>
+  <circle cx="32000000" cy="32000000" r="2.176e38" transform="scale(.000001)" fill="#dc2626"/>
+</svg>

@@ -100,9 +100,19 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "cx numeric precision alias",
     ),
     (
+        "svg-geometry-percentage-overflow",
+        DeclaredByBestEffort,
+        "cx resolves outside the finite frame range",
+    ),
+    (
         "svg-geometry-unit-values",
         DeclaredByBestEffort,
         "attribute cx",
+    ),
+    (
+        "svg-geometry-used-range",
+        DeclaredByBestEffort,
+        "cx exceeds the admitted Web used-value range",
     ),
     (
         "svg-geometry-var-values",

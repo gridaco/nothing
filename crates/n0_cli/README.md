@@ -80,6 +80,12 @@ cargo run -p n0_cli --bin n0 -- \
   checklist rows remain open: valid source decimals whose raw f32 parse loses
   Chromium's used-value provenance refuse as `unsupported SVG geometry`, and
   CSS comments in numeric presentation values still refuse as bad numbers.
+  Finite percentage tokens whose basis operation overflows and resolved
+  centers and positive radii outside the admitted Web used-value range also
+  refuse by attribute (a negative radius remains invalid no-node geometry);
+  every derived circle corner and extent is checked before a frame fact is
+  built. Chromium's percentage-drop and fixed-value clamp split is measured,
+  but that clamp is not implemented here.
   Unit-bearing values, CSS math, `var()`, and CSS-wide keywords also refuse by
   their exact attribute; each belongs to its own open value-type row. The CSS
   property spellings stay separate named refusals because the pinned Stylo

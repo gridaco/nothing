@@ -1446,8 +1446,10 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > defaults, negative centers, invalid/zero radius, axis and normalized-diagonal
 > bases, `viewBox`, `<use>`, transforms, and stroke. The three rows remain open:
 > valid authored decimals can lose Chromium rounding provenance in the raw f32
-> route, CSS comments in otherwise numeric values still refuse, and the
-> registered guards name both gaps. Unit values, CSS math, `var()`, and
+> route, finite sources can cross the unimplemented Chromium used-range split,
+> CSS comments in otherwise numeric values still refuse, and the registered
+> guards name all of those gaps before a non-finite frame or silent backend
+> drop. Unit values, CSS math, `var()`, and
 > CSS-wide keywords retain their own unchecked value-type rows.
 
 - [ ] `d`

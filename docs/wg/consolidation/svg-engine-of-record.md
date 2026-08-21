@@ -2095,7 +2095,7 @@ matcher around Stylo would create a second cascade. The unresolved question
 was narrower and numeric: whether Rust's direct f32 parse and arithmetic retain
 the same used value as Blink's CSS-number path.
 
-They do not. Three amplified, twice-deterministic Chromium-149 probe families
+They do not. Four amplified, twice-deterministic Chromium-149 probe families
 establish the boundary:
 
 - For the stroke-rung source alias `57384.267578125007%`, Chromium selects the
@@ -2119,18 +2119,28 @@ establish the boundary:
   a separate 144-pixel Blink/Skia raster difference even when both receive the
   same numeric control; that arithmetic fact is therefore measured and
   bit-lawed, not promoted into an inexact corpus cell.
+- A clamp-sensitive range matrix exposed a separate silent boundary. On a
+  64-unit basis Chromium drops `3.4e38%` for each attribute exactly to empty,
+  while finite direct `2.176e38` controls survive its used-value clamp and,
+  under `scale(.000001)`, paint 230 pixels for `cx`, 227 for `cy`, and 3,520
+  for `r`, all at delta 255. The old percentage route leaked infinity and made
+  n0 fail later with generic invalid frame bounds. The direct-center controls
+  returned success with no declaration but painted empty, by those same exact
+  differences; direct `r` also produced invalid bounds.
 
 The first two valid classes now trip one stable
 `unsupported SVG geometry: <attribute> numeric precision alias loses Chromium
 used-value provenance` guard for `cx`, `cy`, and `r`. Its f64 route is a
 one-way classifier only: agreement leaves the raw parser in charge;
 disagreement refuses, and the shadow value is never substituted as a second
-parser. A seven-row refusal addition records this precision class, the absent
-CSS longhands, unit-bearing values, CSS math, `var()`, CSS-wide keywords, and
-CSS comments. The first four value families each retain their own unchecked
-checklist row. Comments are the second no-own-row valid gap: Chromium strips
-them and renders the ordinary number exactly, while the raw reader still
-refuses them as `BadNumber`.
+parser. A nine-row refusal addition records this precision class, the
+percentage-overflow and fixed-used-range classes, the absent CSS longhands,
+unit-bearing values, CSS math, `var()`, CSS-wide keywords, and CSS comments.
+The first four value families each retain their own unchecked checklist row.
+Comments and the range classes are no-own-row valid gaps: Chromium strips the
+comments and renders the ordinary number exactly, drops the overflowing
+percentage, and clamps the direct extreme; this producer refuses all three
+boundaries rather than guessing or leaking a backend-only drop.
 
 The semantic repair is otherwise local. Negative `cx` and `cy` remain valid
 coordinates. Missing and explicit-zero centers coincide at zero. A missing,
@@ -2140,7 +2150,13 @@ the same honest nothing. Percentages keep the existing `PercentBases` contract:
 the x and y axes for `cx`/`cy`, and `sqrt(width² + height²) / sqrt(2)` for `r`,
 using the mapped `viewBox` extent when present and initial-viewport user units
 otherwise. `<use>`, transforms, and strokes consume those resolved facts
-without changing their meaning.
+without changing their meaning. A resolved non-finite value now refuses at its
+attribute, and `cx`/`cy` plus positive `r` values outside the established Web
+fixed-length range refuse until the geometry used-value clamp is represented;
+negative `r` keeps its invalid no-node meaning. Circle box
+construction checks the radius, origin, diameter, and both expanded corners
+for finiteness before any rectangle fact crosses the resolved-frame seam; the
+shadow checks never supply a replacement geometry.
 
 No cross-crate seam changed. `rframe` already states circles and ellipses as
 an ellipse over a local rectangle; n0 already lowers that fact to its native
@@ -2167,11 +2183,21 @@ the axis table returned the complete gate to green. All candidate sources were
 also rendered through the actual `n0` CLI path; the five admitted cells were
 declaration-free and decoded-pixel exact to their Chromium probes.
 
+The review-time range probes were also run through the actual CLI before and
+after the patrol. Before it, the overflowing-percentage composite failed only
+downstream as an invalid frame and the finite direct-center controls exited
+cleanly with wrong empty pixels. Afterwards best-effort succeeds while naming
+all three skipped attributes, and strict refuses on the first stable
+`unsupported SVG geometry` reason; no non-finite frame reaches rframe or n0.
+Temporarily lowering the new used-range ceiling to one made `just gate` fail
+immediately on `svg-circle-defaults-clip`; restoring the measured ceiling
+returned the full gate to green.
+
 The primitive corpus moves from 319 to 324 cells; the ten exact-time sampled
-frames are unchanged. The named refusal register moves from 62 to 69 rows.
+frames are unchanged. The named refusal register moves from 62 to 71 rows.
 Neither the SVG presentation-attribute nor CSS presentation-property rows for
-`cx`, `cy`, or `r` tick: the valid numeric-precision and comment classes have no
-independent row, while the CSS twins remain structurally unavailable at this
-Stylo pin. This is a measured SPLIT verdict under the
+`cx`, `cy`, or `r` tick: the valid numeric-precision, range, and comment classes
+have no independent row, while the CSS twins remain structurally unavailable
+at this Stylo pin. This is a measured SPLIT verdict under the
 gridaco/nothing#81/#89/#90 precedent, not a capability closure. It produces no
 conformance score and takes no FLIP action.

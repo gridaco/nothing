@@ -158,6 +158,10 @@ fn degenerate_circle_radius_is_an_admitted_nothing() {
             "negative r",
             r##"<circle cx="32" cy="32" r="-12" fill="#16a34a"/>"##,
         ),
+        (
+            "extreme negative r",
+            r##"<circle cx="32" cy="32" r="-2.176e38" fill="#16a34a"/>"##,
+        ),
     ] {
         let frame = admit_both(&on_canvas(shape));
         assert_eq!(
@@ -353,6 +357,67 @@ fn geometry_numeric_precision_aliases_refuse_for_cx_cy_and_r() {
             reason.contains("loses Chromium used-value provenance"),
             "{kind} {attr}: {reason}"
         );
+    }
+}
+
+/// A finite percentage token can still overflow this producer's f32
+/// basis-resolution operation. Chromium drops each amplified source exactly
+/// to empty, while finite direct controls reach its used-value clamp and
+/// paint. The producer cannot represent that range contract yet, so it must
+/// refuse at the attribute instead of leaking infinity into the frame.
+#[test]
+fn geometry_percentage_resolution_overflow_refuses_for_cx_cy_and_r() {
+    for (attr, shape) in [
+        (
+            "cx",
+            r##"<circle cx="3.4e38%" cy="32" r="8" fill="#16a34a"/>"##,
+        ),
+        (
+            "cy",
+            r##"<circle cx="32" cy="3.4e38%" r="8" fill="#16a34a"/>"##,
+        ),
+        (
+            "r",
+            r##"<circle cx="32" cy="32" r="3.4e38%" fill="#16a34a"/>"##,
+        ),
+    ] {
+        let (error, reason) = shape_failure(&on_canvas(shape));
+        assert!(
+            matches!(&error, CompileError::UnsupportedGeometry(named)
+                if named.contains(attr) && named.contains("finite frame range")),
+            "{attr}: {error:?}"
+        );
+        assert!(reason.contains("resolves outside"), "{attr}: {reason}");
+    }
+}
+
+/// Chromium carries extreme finite geometry through its Web used-value clamp;
+/// this producer does not yet reproduce that clamp for shapes. All three
+/// consumed attributes therefore refuse at the established Web range instead
+/// of reaching a backend path that silently drops their transformed pixels.
+#[test]
+fn geometry_used_value_range_refuses_for_cx_cy_and_r() {
+    for (attr, shape) in [
+        (
+            "cx",
+            r##"<circle cx="2.176e38" cy="32" r="8" fill="#16a34a"/>"##,
+        ),
+        (
+            "cy",
+            r##"<circle cx="32" cy="2.176e38" r="8" fill="#16a34a"/>"##,
+        ),
+        (
+            "r",
+            r##"<circle cx="32" cy="32" r="2.176e38" fill="#16a34a"/>"##,
+        ),
+    ] {
+        let (error, reason) = shape_failure(&on_canvas(shape));
+        assert!(
+            matches!(&error, CompileError::UnsupportedGeometry(named)
+                if named.contains(attr) && named.contains("Web used-value range")),
+            "{attr}: {error:?}"
+        );
+        assert!(reason.contains("exceeds the admitted"), "{attr}: {reason}");
     }
 }
 

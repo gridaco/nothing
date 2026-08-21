@@ -1899,7 +1899,7 @@ fn measure_leaf_geometry(
             };
             let cx = geometry_attr_f32(el, "cx", values, bases)?.unwrap_or(0.0);
             let cy = geometry_attr_f32(el, "cy", values, bases)?.unwrap_or(0.0);
-            Rectangle::from_xywh(cx - r, cy - r, r * 2.0, r * 2.0)
+            circle_geometry_rect(cx, cy, r)?
         }
         "ellipse" => {
             let cx = geometry_attr_f32(el, "cx", values, bases)?.unwrap_or(0.0);
@@ -3226,6 +3226,28 @@ fn compile_rect(
     .map(Some)
 }
 
+/// Build the circle's local ellipse box only when every scalar the frame and
+/// its corner expansion will observe remains finite. Checking the authored
+/// radius alone is insufficient: doubling a finite radius, or adding that
+/// diameter back to the finite origin, can overflow.
+fn circle_geometry_rect(cx: f32, cy: f32, r: f32) -> Result<Rectangle, CompileError> {
+    let x = cx - r;
+    let y = cy - r;
+    let diameter = r * 2.0;
+    let right = x + diameter;
+    let bottom = y + diameter;
+    if [cx, cy, r, x, y, diameter, right, bottom]
+        .into_iter()
+        .all(f32::is_finite)
+    {
+        Ok(Rectangle::from_xywh(x, y, diameter, diameter))
+    } else {
+        Err(CompileError::UnsupportedGeometry(
+            "circle bounds exceed the finite frame range".to_string(),
+        ))
+    }
+}
+
 fn compile_circle(
     el: HtmlElement<'_>,
     viewport: AffineTransform,
@@ -3261,7 +3283,7 @@ fn compile_circle(
     };
     let cx = geometry_attr_f32(el, "cx", values, bases)?.unwrap_or(0.0);
     let cy = geometry_attr_f32(el, "cy", values, bases)?.unwrap_or(0.0);
-    let rect = Rectangle::from_xywh(cx - r, cy - r, r * 2.0, r * 2.0);
+    let rect = circle_geometry_rect(cx, cy, r)?;
     shape_node(
         el,
         Geometry::Ellipse(rect),
@@ -4574,8 +4596,8 @@ fn patrol_stroke_dasharray_units(
     patrol_stroke_length_units(el, element_name, "stroke-dasharray")
 }
 
-/// The used-value bounds for a fixed Web `<length>` consumed by SVG stroke
-/// properties.
+/// The used-value bounds for a fixed Web `<length>` consumed by SVG
+/// presentation properties.
 ///
 /// Blink mixes CSS lengths with SVG user-unit lengths by clamping the former
 /// to its asymmetric fixed-point layout range. The positive integer ceiling,
@@ -4583,6 +4605,9 @@ fn patrol_stroke_dasharray_units(
 /// floor, `INT_MIN / 64 + 2` = -33,554,430, is exactly representable. The
 /// distinction is visible after dash-phase modulo (measured: on a 12-unit
 /// cycle an extreme negative fixed offset starts at phase 6, not phase 4).
+/// Geometry currently refuses outside this range instead of silently feeding
+/// backend coordinates it cannot preserve; only the stroke resolver has an
+/// exact Chromium-baked clamp and may substitute the boundary value.
 const WEB_USED_LENGTH_MIN: f32 = (i32::MIN / 64 + 2) as f32;
 const WEB_USED_LENGTH_MAX: f32 = (i32::MAX / 64 - 2) as f32;
 
@@ -5508,7 +5533,7 @@ fn geometry_attr_f32(
     bases: PercentBases,
 ) -> Result<Option<f32>, CompileError> {
     if let Some(value) = values.scalar(element.node_id(), name) {
-        return Ok(Some(value));
+        return frame_safe_geometry_value(name, value).map(Some);
     }
     let Some(v) = get_attr(element, name) else {
         return Ok(None);
@@ -5533,6 +5558,7 @@ fn geometry_attr_f32(
     };
     let resolved =
         percentage_basis.map_or(parsed, |basis| resolve_geometry_percentage(parsed, basis));
+    let resolved = frame_safe_geometry_value(name, resolved)?;
     if matches!(name, "cx" | "cy" | "r")
         && geometry_number_source_loses_provenance(number, percentage_basis.is_some())
     {
@@ -5541,6 +5567,32 @@ fn geometry_attr_f32(
         )));
     }
     Ok(Some(resolved))
+}
+
+/// Admit only geometry values this producer can carry through the frame and
+/// backend without changing their meaning. The authored spelling remains
+/// attributable at the element, so both admissions can name and skip/refuse a
+/// non-finite resolution or an unimplemented Web used-range clamp before a
+/// silent backend drop. A negative `r` is exempt from the magnitude patrol:
+/// SVG makes every such radius invalid element geometry, so the caller admits
+/// its correct no-node result without constructing bounds.
+fn frame_safe_geometry_value(name: &str, value: f32) -> Result<f32, CompileError> {
+    if !value.is_finite() {
+        return Err(CompileError::UnsupportedGeometry(format!(
+            "{name} resolves outside the finite frame range"
+        )));
+    }
+    let outside_used_range = match name {
+        "cx" | "cy" => !(WEB_USED_LENGTH_MIN..=WEB_USED_LENGTH_MAX).contains(&value),
+        "r" => value > WEB_USED_LENGTH_MAX,
+        _ => false,
+    };
+    if outside_used_range {
+        return Err(CompileError::UnsupportedGeometry(format!(
+            "{name} exceeds the admitted Web used-value range"
+        )));
+    }
+    Ok(value)
 }
 
 /// Blink applies a geometry percentage's viewport basis before dividing by
@@ -5611,6 +5663,21 @@ mod geometry_number_resolution_tests {
             assert!(
                 !geometry_number_source_loses_provenance(safe, false),
                 "ordinary source {safe:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn circle_bounds_refuse_every_non_finite_derived_branch() {
+        for (branch, result) in [
+            ("diameter", circle_geometry_rect(0.0, 0.0, 2.176e38)),
+            ("right corner", circle_geometry_rect(3.4e38, 0.0, 1.0e38)),
+            ("bottom corner", circle_geometry_rect(0.0, 3.4e38, 1.0e38)),
+        ] {
+            assert!(
+                matches!(result, Err(CompileError::UnsupportedGeometry(reason))
+                    if reason.contains("circle bounds") && reason.contains("finite frame range")),
+                "{branch} must refuse before Rectangle construction"
             );
         }
     }
