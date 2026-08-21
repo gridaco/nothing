@@ -233,30 +233,36 @@ cargo run -p n0_cli --bin n0 -- \
   sRGB, opaque or translucent: `fill-opacity`, `stroke-opacity`, and a
   colour's own alpha multiply in float and quantize once (the translucency
   rung), Chromium-baked.
-  Element `opacity` is consumed (the group-scope rung), in every spelling
-  (presentation attribute, style attribute, stylesheet — one <alpha-value>
-  grammar, clamped exactly as Chromium clamps), by the measured fold rule:
-  over a single un-transformed, un-folded draw it folds into that draw's
-  paint — joining the translucency rung's one float product, quantized once
-  (byte-identical in Chromium) — and everything else composites through a
-  real isolated layer: a shape's fill and stroke together, a group of
-  several draws, nested opacities (which quantize per layer and never
-  flatten to a product — measured one code value apart), and any opacity
-  whose content carries a transform strictly below it. `opacity: 0` renders
-  the correct nothing. `<use>` and `<a>` scope exactly as `<g>`. What
-  refuses by name: element opacity folding over a gradient or `url()`
-  paint (the paint carries one quantized alpha, and Chromium composites
-  the element factor after that quantization), and the root `<svg>`'s own
-  opacity (it composites the whole canvas, which the opaque raster surface
-  cannot express — like the root's transform).
+  Element `opacity` is consumed in every spelling (presentation attribute,
+  style attribute, stylesheet — one <alpha-value> grammar, clamped exactly
+  as Chromium clamps). A single un-transformed, un-folded solid draw uses the
+  group-scope rung's measured fold: the element factor joins the colour and
+  fill/stroke opacity product before its one quantization. A valid gradient
+  instead keeps its intrinsic paint opacity and carries the element factor
+  separately across the resolved contract; the painter materializes the
+  paint's own alpha first, then multiplies the factor in float without a
+  second 8-bit quantization. A one-stop server remains a two-identical-stop
+  constant gradient so it retains that raster route. An invalid URL fallback
+  remains an ordinary solid and takes the solid fold.
+  Everything that is genuinely a group composites through a real isolated
+  layer: a shape's fill and stroke together, a group of several draws, nested
+  opacities (which quantize per layer and never flatten to a product — measured
+  one code value apart), and any opacity whose content carries a transform
+  strictly below it. `opacity: 0` renders the correct nothing. `<use>` and `<a>`
+  scope exactly as `<g>`. Root opacity encloses the complete SVG-local frame
+  and preserves its transparent outer surface in both standalone and inline
+  entries. Every non-identity HTML ancestor opacity is a distinct outer scope
+  around the selected inline SVG; explicit `inherit` on the SVG compounds with
+  those host scopes rather than flattening them.
   `<linearGradient>` and `<radialGradient>` paint servers are consumed
   (the gradient rung): `fill`/`stroke` `url(#…)` references resolve through
   a whole-document, first-id-wins gradient table (shadow-content clones
   excluded — the document's element wins, measured), with both
   `gradientUnits`, `spreadMethod`, stops from attributes (`offset` clamps
   to the running maximum and is never sorted; `stop-color` — `currentColor`
-  against the gradient's own ancestor chain — and `stop-opacity` fold and
-  quantize once; equal-offset hard stops render crisp), `href`/`xlink:href`
+  against the gradient's own ancestor chain — resolves its base alpha byte,
+  which `stop-opacity` then multiplies in float; equal-offset hard stops render
+  crisp), `href`/`xlink:href`
   template chains (stops all-or-nothing from the first owner; geometry
   never crosses gradient types; a cycle kills only the edge), and
   `gradientTransform` as the transform property's presentation attribute on
@@ -268,12 +274,16 @@ cargo run -p n0_cli --bin n0 -- \
   or a non-gradient target); the measured correct nothings — zero stops
   (fallback unfired), a self-cycle, a non-invertible gradient transform, an
   object-bounding-box gradient on zero-area geometry — paint nothing. A
-  zero or negative radial radius is a solid of the last stop, and linear
-  endpoints inside the backend's degenerate threshold resolve to the
-  measured solid (last stop under `pad`, the ramp's integral average under
-  `reflect`/`repeat`). What refuses by name: a focal radial (`fx`/`fy` off
+  zero or negative radial radius and linear endpoints inside the backend's
+  degenerate threshold resolve to the tile-specific measured solid: the last
+  stop under `pad`, or the ramp's integral average under `reflect`/`repeat`.
+  What refuses by name: a focal radial (`fx`/`fy` off
   the center or `fr > 0` — the shared radial leaf is concentric),
-  `color-interpolation: linearRGB`, author CSS on stops (`stop-color` /
+  `color-interpolation: linearRGB`, effective stop components or alpha stages
+  that the current RGBA8 stop contract cannot preserve (including post-paint
+  and degenerate ramp-average branches, guarded as
+  `svg-gradient-stop-precision`),
+  author CSS on stops (`stop-color` /
   `stop-opacity` — the pinned cascade has no such longhands, so a sheet
   declaring one is a document-level declaration and a stop's style
   attribute refuses the paint), font-relative units in gradient geometry,

@@ -27,6 +27,7 @@ gate:
 status:
     {{cargo_env}} UPDATE_CAPABILITY_STATUS=1 cargo test -p websem --test capability_status
 
-# Register a new 64x64 standalone-svg cell (fixture + sorted manifest entry).
-add id svg:
-    python3 {{justfile_directory()}}/add_cell.py {{id}} --svg {{svg}}
+# Register a new 64x64 cell (fixture + sorted manifest entry). The optional
+# entry is `standalone-svg` or `html-inline-svg`.
+add id source entry="standalone-svg":
+    python3 {{justfile_directory()}}/add_cell.py {{id}} --source {{source}} --entry {{entry}}

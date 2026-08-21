@@ -21,7 +21,7 @@ producer (e.g. websem, from SVG)
 
 | Module   | Ownership                                                                                                  |
 | -------- | ---------------------------------------------------------------------------------------------------------- |
-| `frame`  | `Frame`, `FrameNode`, `Geometry`, the admitted paint stack, and product identity                           |
+| `frame`  | `Frame`, `FrameNode`, `Geometry`, the admitted paint stack and its post-paint alpha factor, and product identity |
 | `path`   | `PathData` — checked absolute commands, fill rule, tight bounds solved once                                |
 | `stroke` | `Stroke` — centred width, cap, join, miter limit, optional checked dash pattern, and finite `f64` `outset` |
 
@@ -30,6 +30,15 @@ Two details are load-bearing enough to state here. A node's `bounds` is the
 that needs covered area inflates by `Stroke::outset()`. And a resolved value is
 resolved — a stroke that would paint nothing is `None` rather than a stroke with
 zero width, so no consumer re-derives "is this visible".
+
+A `PaintStack` has one source-neutral `PaintAlphaFactor`. Each paint's own
+alpha materializes first; the factor then modulates that entry before coverage
+and source-over. On a multi-paint stack it applies independently to every entry
+without changing their order. It is deliberately not opacity over the stack's
+composite and creates no layer — that byte-distinct group meaning is a
+`Scope`. Identity is the default, and zero resolves the complete stack to no
+paint. Because a `Stroke` owns the same `PaintStack`, fill and stroke cross the
+contract with one meaning and no source-specific duplicate field.
 
 `Stroke::outset()` widens only the arithmetic for that derived,
 direction-free bound. The resolved width and miter limit remain exact `f32`

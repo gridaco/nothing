@@ -24,11 +24,12 @@
 //!   `currentColor` resolves against the stop's own computed `color`, and
 //!   an unparseable `stop-color` (including the `inherit` keyword) is the
 //!   initial black.
-//! - The degenerate rules are the backend's own, applied here so the
-//!   downstream preflight never meets them: one stop or a zero/negative
-//!   radial radius is a solid of the (last) stop; linear endpoints closer
-//!   than the backend threshold are a solid — the last stop under `pad`,
-//!   the ramp's integral average under `reflect`/`repeat`.
+//! - The degenerate rules are the backend's own. A one-stop ramp is spatially
+//!   constant but retains gradient rasterization; zero/negative radial radius
+//!   and linear endpoints closer than the backend threshold resolve to a
+//!   solid — the last stop under `pad`, the ramp's integral average under
+//!   `reflect`/`repeat`. Resolving those cases here keeps downstream preflight
+//!   inside its checked gradient domain.
 //! - `gradientTransform` and an author `transform` declaration are one
 //!   computed value (csscascade hints the attribute), applied about the raw
 //!   origin of the gradient's own space; percentages in it are refused by
@@ -39,8 +40,9 @@
 //! or `fr > 0` — the shared radial leaf is concentric), font-relative or
 //! viewport-relative units in gradient geometry, `color-interpolation:
 //! linearRGB`, author CSS on stops (`stop-color`/`stop-opacity` in a style
-//! attribute), an external reference, and a user-space gradient on
-//! zero-area geometry.
+//! attribute), resolved stop alpha or degenerate alpha staging that the RGBA8
+//! paint contract cannot preserve, an external reference, and a user-space
+//! gradient on zero-area geometry.
 
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -210,8 +212,7 @@ pub(crate) enum ResolvedPaintServer {
     Invalid,
     /// A valid reference that paints nothing (measured correct nothings).
     Nothing,
-    /// A valid reference that resolves to one solid color, with the paint's
-    /// own opacity already folded (one quantize).
+    /// A valid reference that losslessly resolves to one RGBA8 solid color.
     Solid(CGColor),
     /// A valid gradient paint in the contract's unit-box facts.
     Gradient(cg::Paint),
@@ -237,8 +238,9 @@ pub(crate) fn classify(servers: &PaintServers<'_>, fragment: &str) -> Result<boo
     }
 }
 
-/// The `<stop>` list, resolved: offset clamped against the running maximum,
-/// color and `stop-opacity` folded and quantized once.
+/// The `<stop>` list, resolved: offset clamped against the running maximum;
+/// color and effective alpha are admitted only when the RGBA8 leaf preserves
+/// them exactly.
 struct ResolvedStop {
     offset: f32,
     color: CGColor,
@@ -252,7 +254,10 @@ enum GradientKind {
 /// Resolve one same-document fragment against the table for one consuming
 /// geometry. `paint_opacity` is the consumer's `fill-opacity` /
 /// `stroke-opacity`; it folds into the gradient's float opacity, or into a
-/// solid's alpha with one quantize.
+/// solid's alpha with one quantize. `post_paint_opacity` is the later
+/// one-draw element factor. A live gradient can carry it separately, while a
+/// degenerate gradient may have to refuse before collapsing those stages to
+/// one RGBA8 solid.
 pub(crate) fn resolve(
     servers: &PaintServers<'_>,
     fragment: &str,
@@ -260,6 +265,7 @@ pub(crate) fn resolve(
     reference_space: impl FnOnce() -> Result<Option<(Rectangle, AffineTransform)>, String>,
     bases: GradientBases,
     paint_opacity: f32,
+    post_paint_opacity: f32,
 ) -> Result<ResolvedPaintServer, String> {
     let Some(server) = servers.by_fragment.get(fragment) else {
         return Ok(ResolvedPaintServer::Invalid);
@@ -307,10 +313,13 @@ pub(crate) fn resolve(
     };
 
     if stops.len() == 1 {
-        // A one-stop ramp is a source-neutral solid. It still obeys the
-        // gradient element's own transform outcome above, but needs neither a
-        // context reference box nor an owner-to-destination mapping.
-        return Ok(solid_paint(stops[0].color, paint_opacity));
+        // A one-stop ramp is spatially constant but retains the backend's
+        // gradient material route (including dithering and paint-alpha
+        // staging). Duplicate the sole resolved stop in a source-neutral
+        // constant gradient. Geometry and reference-box mappings are inert for
+        // a constant shader; the transform outcome above still decides the
+        // measured non-invertible nothing before this branch.
+        return Ok(constant_gradient(kind, stops[0].color, paint_opacity));
     }
 
     match kind {
@@ -324,6 +333,7 @@ pub(crate) fn resolve(
             reference_space,
             bases,
             paint_opacity,
+            post_paint_opacity,
         ),
         GradientKind::Radial => resolve_radial(
             &chain,
@@ -335,8 +345,30 @@ pub(crate) fn resolve(
             reference_space,
             bases,
             paint_opacity,
+            post_paint_opacity,
         ),
     }
+}
+
+/// One spatially constant gradient that retains gradient rasterization.
+fn constant_gradient(kind: GradientKind, color: CGColor, opacity: f32) -> ResolvedPaintServer {
+    let stops = vec![
+        cg::GradientStop { offset: 0.0, color },
+        cg::GradientStop { offset: 1.0, color },
+    ];
+    let paint = match kind {
+        GradientKind::Linear => cg::Paint::LinearGradient(cg::LinearGradientPaint {
+            stops,
+            opacity,
+            ..cg::LinearGradientPaint::default()
+        }),
+        GradientKind::Radial => cg::Paint::RadialGradient(cg::RadialGradientPaint {
+            stops,
+            opacity,
+            ..cg::RadialGradientPaint::default()
+        }),
+    };
+    ResolvedPaintServer::Gradient(paint)
 }
 
 /// The href template chain: the referenced gradient first, then each
@@ -610,8 +642,9 @@ fn gradient_length(
     Ok(Some(resolved))
 }
 
-/// Resolve the `<stop>` children: offset against the running maximum,
-/// color and opacity folded with one quantize.
+/// Resolve the `<stop>` children: offset against the running maximum, with
+/// only stop alpha whose effective value survives the resolved RGBA8 contract
+/// exactly.
 fn resolve_stops(owner: HtmlElement<'_>) -> Result<Vec<ResolvedStop>, String> {
     let mut stops = Vec::new();
     let mut running_max = 0.0f32;
@@ -627,11 +660,31 @@ fn resolve_stops(owner: HtmlElement<'_>) -> Result<Vec<ResolvedStop>, String> {
         running_max = offset;
         let opacity = stop_opacity(stop);
         let color = stop_color(stop)?;
+        // Chromium resolves a stop color's own alpha to its byte-equivalent,
+        // then multiplies `stop-opacity` in float. The present cg/rframe stop
+        // leaf can carry the result only when it lands exactly on a byte.
+        let base_alpha = (color.alpha.clamp(0.0, 1.0) * 255.0).round() / 255.0;
+        let effective_alpha = base_alpha * opacity;
+        if !rgba8_exact(effective_alpha) {
+            return Err(
+                "resolved gradient stop alpha loses float precision at the RGBA8 paint contract"
+                    .to_string(),
+            );
+        }
         let color = admitted_srgb(color, opacity)
             .map_err(|reason| format!("a gradient <stop> is outside the slice: {reason}"))?;
         stops.push(ResolvedStop { offset, color });
     }
     Ok(stops)
+}
+
+/// Whether one clamped alpha round-trips through the frame's RGBA8 color leaf
+/// without changing its value. Chromium preserves `stop-opacity` as a float
+/// into the gradient shader; accepting a value that fails this check would
+/// silently substitute a neighboring alpha byte.
+fn rgba8_exact(component: f32) -> bool {
+    let component = component.clamp(0.0, 1.0);
+    ((component * 255.0).round() / 255.0) == component
 }
 
 /// `offset`: a number or percentage; an invalid value is 0 (measured).
@@ -755,20 +808,38 @@ fn parse_color_attribute(text: &str) -> Option<ParsedStopColor> {
     })
 }
 
-fn solid_paint(color: CGColor, paint_opacity: f32) -> ResolvedPaintServer {
-    // Fold the consumer's paint opacity the way the painter folds a
-    // gradient's: the quantized stop color re-enters float, multiplies,
-    // and quantizes once more (this is the backend's own float path, so
-    // the solid short-circuit and a real one-color ramp agree).
-    let alpha = (f32::from(color.a) / 255.0 * paint_opacity.clamp(0.0, 1.0) * 255.0).round();
-    let color = CGColor {
-        a: alpha as u8,
-        ..color
-    };
-    if color.a == 0 {
-        return ResolvedPaintServer::Nothing;
+fn solid_paint(
+    color: CGColor,
+    paint_opacity: f32,
+    post_paint_opacity: f32,
+) -> Result<ResolvedPaintServer, String> {
+    // A live gradient keeps stop alpha in its shader and the consumer's
+    // fill/stroke opacity in the paint. Collapsing a degenerate gradient to
+    // one RGBA8 solid is lossless only when at least one alpha stage is an
+    // endpoint; otherwise the frame would silently flatten two raster stages.
+    let paint_alpha = (paint_opacity.clamp(0.0, 1.0) * 255.0).round() as u8;
+    if post_paint_opacity != 1.0 && !matches!(color.a, 0 | 255) {
+        return Err(
+            "resolved gradient stop alpha loses staged precision when a degenerate paint server collapses before post-paint opacity"
+                .to_string(),
+        );
     }
-    ResolvedPaintServer::Solid(color)
+    let alpha = match (color.a, paint_alpha) {
+        (0, _) | (_, 0) => 0,
+        (255, paint) => paint,
+        (stop, 255) => stop,
+        _ => {
+            return Err(
+                "resolved gradient stop alpha loses staged precision when a degenerate paint server collapses to RGBA8"
+                    .to_string(),
+            );
+        }
+    };
+    let color = CGColor { a: alpha, ..color };
+    if color.a == 0 {
+        return Ok(ResolvedPaintServer::Nothing);
+    }
+    Ok(ResolvedPaintServer::Solid(color))
 }
 
 /// The integral average of the ramp — the backend's degenerate color for
@@ -776,7 +847,11 @@ fn solid_paint(color: CGColor, paint_opacity: f32) -> ResolvedPaintServer {
 /// backend's rule): the piecewise-linear ramp integrated over `[0, 1]`
 /// with edge plateaus, per channel in unpremultiplied float, quantized
 /// once.
-fn ramp_average(stops: &[ResolvedStop]) -> CGColor {
+fn ramp_average(
+    stops: &[ResolvedStop],
+    paint_opacity: f32,
+    post_paint_opacity: f32,
+) -> Result<CGColor, String> {
     let channels = |stop: &ResolvedStop| {
         [
             f32::from(stop.color.r),
@@ -804,12 +879,30 @@ fn ramp_average(stops: &[ResolvedStop]) -> CGColor {
     for (index, value) in last_channels.iter().enumerate() {
         sum[index] += value * (1.0 - last.offset);
     }
-    CGColor {
+    if sum[3].round() != sum[3] {
+        return Err(
+            "resolved gradient stop alpha loses float precision when a degenerate ramp average collapses to RGBA8"
+                .to_string(),
+        );
+    }
+    let average_visible = sum[3] > 0.0 && paint_opacity > 0.0 && post_paint_opacity > 0.0;
+    if average_visible
+        && (sum[3] != 255.0 || paint_opacity != 1.0 || post_paint_opacity != 1.0)
+        && sum[..3]
+            .iter()
+            .any(|component| component.round() != *component)
+    {
+        return Err(
+            "resolved gradient stop color loses float precision when a degenerate ramp average collapses to RGBA8"
+                .to_string(),
+        );
+    }
+    Ok(CGColor {
         r: sum[0].round() as u8,
         g: sum[1].round() as u8,
         b: sum[2].round() as u8,
         a: sum[3].round() as u8,
-    }
+    })
 }
 
 fn cg_stops(stops: &[ResolvedStop]) -> Vec<cg::GradientStop> {
@@ -858,6 +951,7 @@ fn resolve_linear(
     reference_space: impl FnOnce() -> Result<Option<(Rectangle, AffineTransform)>, String>,
     bases: GradientBases,
     paint_opacity: f32,
+    post_paint_opacity: f32,
 ) -> Result<ResolvedPaintServer, String> {
     let read = |name: &str| gradient_length(chain, "linearGradient", name, units, bases);
     let default_fraction = |value: f32| match units {
@@ -881,9 +975,9 @@ fn resolve_linear(
     if !distance.is_finite() || distance <= DEGENERATE_LINEAR_THRESHOLD {
         let color = match tile_mode {
             cg::TileMode::Clamp => stops[stops.len() - 1].color,
-            _ => ramp_average(&stops),
+            _ => ramp_average(&stops, paint_opacity, post_paint_opacity)?,
         };
-        return Ok(solid_paint(color, paint_opacity));
+        return solid_paint(color, paint_opacity, post_paint_opacity);
     }
 
     // Only an actual ramp needs owner geometry and a mapping into the leaf.
@@ -976,6 +1070,7 @@ fn resolve_radial(
     reference_space: impl FnOnce() -> Result<Option<(Rectangle, AffineTransform)>, String>,
     bases: GradientBases,
     paint_opacity: f32,
+    post_paint_opacity: f32,
 ) -> Result<ResolvedPaintServer, String> {
     let read = |name: &str| gradient_length(chain, "radialGradient", name, units, bases);
     let half = |basis: f32| match units {
@@ -1001,13 +1096,20 @@ fn resolve_radial(
     }
 
     if r <= 0.0 {
-        // Measured: a zero or negative radius is a solid of the last stop
-        // (the SVG 1.1 rule; negative does not fall back to the default).
-        return Ok(solid_paint(stops[stops.len() - 1].color, paint_opacity));
+        // A non-positive radius reaches the same tile-specific backend
+        // degeneracy as a collapsed linear ramp. Measured at zero: clamp is
+        // the last stop, while repeat/reflect are the ramp's integral average.
+        // A negative authored radius likewise does not fall back to the
+        // default positive radius.
+        let color = match tile_mode {
+            cg::TileMode::Clamp => stops[stops.len() - 1].color,
+            _ => ramp_average(&stops, paint_opacity, post_paint_opacity)?,
+        };
+        return solid_paint(color, paint_opacity, post_paint_opacity);
     }
 
-    // Like a degenerate linear ramp, a non-positive radius is already a
-    // source-neutral solid. Only a live radial needs the context box/space.
+    // A non-positive radius is already a source-neutral solid. Only a live
+    // radial needs the context box/space.
     let Some((reference_box, reference_to_destination)) = reference_space()? else {
         return Ok(ResolvedPaintServer::Nothing);
     };

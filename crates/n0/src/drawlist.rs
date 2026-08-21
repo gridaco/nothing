@@ -58,6 +58,34 @@ impl StrokeDashPhase {
     }
 }
 
+/// One checked alpha stage applied after each paint's intrinsic alpha has
+/// materialized.
+///
+/// This is leaf-paint material, not a compositing scope: every paint in the
+/// item receives the factor independently after its shader and intrinsic paint
+/// alpha materialize, but before coverage and compositing. Ordinary
+/// [`n0_model`] producers have no such fact and therefore project as
+/// [`PostPaintOpacity::IDENTITY`], which is a true no-op rather than an extra
+/// quantization stage.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PostPaintOpacity(f32);
+
+impl PostPaintOpacity {
+    pub const IDENTITY: Self = Self(1.0);
+
+    /// Copy one producer-checked factor without re-resolving or quantizing it.
+    pub(crate) fn from_resolved(value: f32) -> Self {
+        debug_assert!(value.is_finite());
+        debug_assert!((0.0..=1.0).contains(&value));
+        Self(value)
+    }
+
+    /// The post-materialization alpha factor.
+    pub const fn value(self) -> f32 {
+        self.0
+    }
+}
+
 /// One paint primitive, carrying the world transform copied verbatim from its
 /// resolved producer (never recomputed — pixel identity depends on it) and the
 /// geometry in the visual's own local space.
@@ -145,23 +173,27 @@ pub enum ItemKind {
         corner_radius: RectangularCornerRadius,
         corner_smoothing: CornerSmoothing,
         paints: Paints,
+        post_paint_opacity: PostPaintOpacity,
     },
     OvalFill {
         w: f32,
         h: f32,
         paints: Paints,
+        post_paint_opacity: PostPaintOpacity,
     },
     PathFill {
         w: f32,
         h: f32,
         path: Arc<ResolvedPathArtifact>,
         paints: Paints,
+        post_paint_opacity: PostPaintOpacity,
     },
     TextFill {
         layout: Arc<TextLayout>,
         paints: TextPaints,
         paint_w: f32,
         paint_h: f32,
+        post_paint_opacity: PostPaintOpacity,
     },
     RectStroke {
         w: f32,
@@ -170,12 +202,14 @@ pub enum ItemKind {
         corner_smoothing: CornerSmoothing,
         stroke: Stroke,
         dash_phase: StrokeDashPhase,
+        post_paint_opacity: PostPaintOpacity,
     },
     OvalStroke {
         w: f32,
         h: f32,
         stroke: Stroke,
         dash_phase: StrokeDashPhase,
+        post_paint_opacity: PostPaintOpacity,
     },
     /// A dashed resolved-frame ellipse whose absolute local coordinates must
     /// survive until Skia constructs the oval path effect. Folding `(x, y)`
@@ -187,6 +221,7 @@ pub enum ItemKind {
         h: f32,
         stroke: Stroke,
         dash_phase: StrokeDashPhase,
+        post_paint_opacity: PostPaintOpacity,
     },
     LineStroke {
         x1: f32,
@@ -197,6 +232,7 @@ pub enum ItemKind {
         paint_h: f32,
         stroke: Stroke,
         dash_phase: StrokeDashPhase,
+        post_paint_opacity: PostPaintOpacity,
     },
     PathStroke {
         w: f32,
@@ -204,6 +240,7 @@ pub enum ItemKind {
         path: Arc<ResolvedPathArtifact>,
         stroke: Stroke,
         dash_phase: StrokeDashPhase,
+        post_paint_opacity: PostPaintOpacity,
     },
     TextStroke {
         layout: Arc<TextLayout>,
@@ -211,6 +248,7 @@ pub enum ItemKind {
         paint_h: f32,
         stroke: Stroke,
         dash_phase: StrokeDashPhase,
+        post_paint_opacity: PostPaintOpacity,
     },
 }
 
@@ -527,6 +565,7 @@ fn emit<V: DrawValues + ?Sized>(
                             corner_radius,
                             corner_smoothing,
                             paints,
+                            post_paint_opacity: PostPaintOpacity::IDENTITY,
                         },
                     );
                 }
@@ -547,11 +586,13 @@ fn emit<V: DrawValues + ?Sized>(
                             corner_radius: values.corner_radius(id),
                             corner_smoothing: values.corner_smoothing(id),
                             paints,
+                            post_paint_opacity: PostPaintOpacity::IDENTITY,
                         }),
                         ShapeDesc::Ellipse => Some(ItemKind::OvalFill {
                             w: b.w,
                             h: b.h,
                             paints,
+                            post_paint_opacity: PostPaintOpacity::IDENTITY,
                         }),
                         ShapeDesc::Path(_) => {
                             resolved
@@ -561,6 +602,7 @@ fn emit<V: DrawValues + ?Sized>(
                                     h: b.h,
                                     path: Arc::clone(path),
                                     paints,
+                                    post_paint_opacity: PostPaintOpacity::IDENTITY,
                                 })
                         }
                         ShapeDesc::Line => unreachable!("line matched before fill lookup"),
@@ -587,6 +629,7 @@ fn emit<V: DrawValues + ?Sized>(
                             paints: paints.clone(),
                             paint_w: b.w,
                             paint_h: b.h,
+                            post_paint_opacity: PostPaintOpacity::IDENTITY,
                         },
                     );
                 }
@@ -654,6 +697,7 @@ fn emit<V: DrawValues + ?Sized>(
                     corner_smoothing,
                     stroke,
                     dash_phase: StrokeDashPhase::ZERO,
+                    post_paint_opacity: PostPaintOpacity::IDENTITY,
                 },
                 Payload::Shape {
                     desc: ShapeDesc::Ellipse,
@@ -662,6 +706,7 @@ fn emit<V: DrawValues + ?Sized>(
                     h: b.h,
                     stroke,
                     dash_phase: StrokeDashPhase::ZERO,
+                    post_paint_opacity: PostPaintOpacity::IDENTITY,
                 },
                 Payload::Shape {
                     desc: ShapeDesc::Line,
@@ -674,6 +719,7 @@ fn emit<V: DrawValues + ?Sized>(
                     paint_h: b.h,
                     stroke,
                     dash_phase: StrokeDashPhase::ZERO,
+                    post_paint_opacity: PostPaintOpacity::IDENTITY,
                 },
                 Payload::Shape {
                     desc: ShapeDesc::Path(_),
@@ -683,6 +729,7 @@ fn emit<V: DrawValues + ?Sized>(
                     path: Arc::clone(resolved.resolved_path_of(id)),
                     stroke,
                     dash_phase: StrokeDashPhase::ZERO,
+                    post_paint_opacity: PostPaintOpacity::IDENTITY,
                 },
                 Payload::Text { .. } | Payload::AttributedText { .. } => ItemKind::TextStroke {
                     layout: text_layout
@@ -693,6 +740,7 @@ fn emit<V: DrawValues + ?Sized>(
                     paint_h: b.h,
                     stroke,
                     dash_phase: StrokeDashPhase::ZERO,
+                    post_paint_opacity: PostPaintOpacity::IDENTITY,
                 },
                 Payload::Group | Payload::Lens { .. } => unreachable!(),
             };

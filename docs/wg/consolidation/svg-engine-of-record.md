@@ -48,8 +48,9 @@ from the dated addenda below:
   centred stroke geometry, the closed cap/join family, opacity, and resolved
   dash patterns with a checked cycle, signed local-space phase, and
   `pathLength` source calibration;
-  `<g>` and `<a>` containers, visibility, isolated element/group opacity, and
-  the whole `transform` grammar in both spellings (the attribute is a
+  `<g>` and `<a>` containers, visibility, isolated element/group/root opacity,
+  and HTML-ancestor opacity around the selected inline SVG; the whole
+  `transform` grammar in both spellings (the attribute is a
   presentation hint of the CSS `transform` property, and `gradientTransform`
   is that attribute on gradient elements);
   `<use>`/`<defs>` same-document references (the id-resolution table);
@@ -57,13 +58,13 @@ from the dated addenda below:
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 306 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 314 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
   confined tolerance (the weighted rational conic) and three gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
-  restore). The named refusal register has 59 rows.
+  restore). The named refusal register has 58 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -1149,11 +1150,14 @@ load-bearing verdicts:
   with zero stops — including a self-cycle that composes to zero — paints
   nothing and leaves the authored fallback unfired; a missing id or a
   non-gradient target is invalid and the fallback paints. Baked as cells.
-- **The degenerate rules are the backend's own**, resolved by the producer
-  so the engine's preflight never meets them: one stop or `r ≤ 0` is a
-  solid of the (last) stop; coincident linear endpoints are the last stop
-  under `pad` and the ramp's *integral average* under `reflect`/`repeat`
-  (measured 128,0,128 — Chromium shares the backend's rule).
+- **At this rung the backend's degenerate rules were resolved by the
+  producer** so the engine's preflight never met them: one stop and the baked
+  `r = 0` `pad` case became the last-stop solid; coincident linear endpoints
+  became the last stop under `pad` and the ramp's *integral average* under
+  `reflect`/`repeat` (measured 128,0,128 — Chromium shares the backend's rule).
+  That evidence did not establish non-`pad` radial degeneracy. The opacity
+  closure addendum below records the later measurement and correction, and
+  also preserves one-stop gradient rasterization.
 - **Ramps dither.** Chromium's rasterizer dithers gradient ramps with the
   backend's ordered matrix; the painter now sets the same flag and 26 of 27
   gradient cells bake byte-exact — including the dither pattern itself.
@@ -1264,19 +1268,13 @@ the layer restore halves every ramp value, and the two Skia builds round
 one code value apart across the ramp — the radial knife-edge's physics,
 multiplied by the layer.
 
-The refusal register moved one row out and two in. `svg-element-opacity`
-graduated (the lone-fill fold, byte-exact). Element opacity over a
-gradient or `url()` paint refuses by name: the gradient paint carries one
-8-bit-quantized alpha (this corpus's own fill-opacity pin), and Chromium
-composites the element factor *after* that quantization — measured one
-code value apart across 64% of the ramp — so one slot cannot express
-both, and silence would be a wrong pixel; it graduates with a paint-alpha
-amendment carrying the second factor. And the root `<svg>`'s own opacity
-refuses in both admissions: the captured raster carries the multiplied
-alpha across the whole canvas, identically in the standalone and
-inline-HTML entries (no entry split, unlike `display: none`), which an
-opaque raster surface cannot express — the root transform's posture,
-until a translucent-surface entry exists.
+At that rung the refusal register moved one row out and two in.
+`svg-element-opacity` graduated (the lone-fill fold, byte-exact), while
+`svg-element-opacity-gradient` and `svg-root-opacity` became load-bearing
+patrols. The gradient patrol named the missing post-materialization alpha
+factor; the root patrol named the then-missing transparent whole-frame scope.
+Those are historical rung facts, not the current boundary: the opacity-closure
+addendum below graduates both after supplying exactly those two facts.
 
 `opacity` joined csscascade's admitted presentation hints (one
 <alpha-value> grammar; percentage spelling, clamping, hint precedence,
@@ -1900,3 +1898,128 @@ consumers not admitted here — including markers and text-on-path — retain th
 own checklist rows and named capability boundaries; they do not reopen this
 attribute's carried grammar. This is a capability verdict only. It produces no
 conformance score and takes no FLIP action.
+
+## Addendum — opacity closure (2026-08-21)
+
+The two opacity remainders left by the group-scope rung are now resolved. A
+valid gradient paint can carry element opacity without flattening it into the
+gradient's intrinsic opacity, and opacity on the root `<svg>` can enclose the
+complete transparent SVG-local frame. The same outer-scope meaning extends to
+each non-identity HTML ancestor of the selected inline SVG. These are three
+source spellings of two source-neutral render facts: a factor on one paint
+pass, or an isolated scope around a composite.
+
+`rframe::PaintStack` now carries one checked `PaintAlphaFactor` in the closed
+unit interval. It is neither intrinsic paint opacity nor group opacity. Each
+paint entry materializes its own alpha first; the factor then multiplies that
+float alpha before coverage and source-over compositing, without a second
+8-bit quantization. On a multi-paint stack it applies independently to each
+entry and changes no paint order. Identity is the ordinary producer default,
+and zero normalizes the whole stack to no paint. The factor is part of the
+resolved stack's equality, so a factor-only change is also a raster-identity
+and damage change rather than an invisible producer annotation.
+
+The n0 boundary copies that bit-exact value into its private drawlist as a
+post-paint opacity. Every fill and stroke route applies the same float fold
+after its existing solid/gradient alpha materialization. Native n0 producers
+state identity, so no n0-model public API grew. Preflight sees the same drawlist
+fact as rasterization, and the factor participates in item equality and damage.
+This is the measured one-draw fold of Chromium's alpha-layer effect; it is not
+a replacement for a group scope. Fill plus stroke, overlapping descendants,
+nested opacity, and the existing structural fold boundaries continue to use
+the isolated `Scope` fact and retain their per-layer quantization.
+
+The producer keeps the alpha routes distinct:
+
+- A direct solid combines colour alpha, fill/stroke opacity, and the eligible
+  element factor in its existing one-product fold.
+- A valid paint server keeps fill/stroke opacity intrinsic to its paint and
+  attaches element opacity as `PaintAlphaFactor`. A one-stop server becomes a
+  two-identical-stop constant gradient, retaining Chromium's gradient and
+  dither route. An exact geometric degeneracy may resolve to a solid only when
+  the staged alpha remains representable, and it still retains the later
+  element factor.
+- An invalid URL's authored fallback is an ordinary direct solid. Its factors
+  fold as solid alpha; it does not acquire paint-server staging merely because
+  its source mentioned `url()`.
+- Root opacity is an isolated scope around the complete item stream in both
+  standalone and inline entries. Each HTML ancestor contributes its own outer
+  scope in tree order. Opacity remains non-inherited by default; an explicit
+  `inherit` on the SVG adds the root scope beneath the ancestor scopes. A zero
+  root or host scope resolves to the transparent empty frame before an
+  unsupported descendant can leak a false refusal. Every scope consumes the
+  same checked nesting budget and retains ordinary scope identity, provenance,
+  and damage semantics.
+
+### Evidence and the retained stop-precision boundary
+
+Eight committed Chromium-149 cells carry the closure, all byte-exact:
+`svg-element-opacity-gradient`, `svg-element-opacity-gradient-css`, and
+`svg-element-opacity-gradient-stroke` cover gradient fill/stroke, both source
+spellings, intrinsic paint opacity, and a non-half element factor;
+`svg-opacity-grammar-attr` and `svg-opacity-grammar-css` cover the twin grammar
+and cascade surface; `svg-root-opacity` and `svg-root-opacity-zero` cover the
+transparent whole-frame scope and its zero; and
+`html-inline-svg-ancestor-opacity` covers three distinct non-half host/root
+layers, precedence, and explicit inheritance.
+
+The scratch evidence remains explicitly outside the committed corpus. A
+twice-repeated 15-pair standalone bank produced six identities and nine
+differences; a twice-repeated eight-pair HTML bank produced two identities and
+six differences. The discriminating mutations include flattened gradient
+factors, all-identity grammar controls, per-child substitution for root/group
+scopes, visible substitution for zero, identity substitution for each host
+layer, and flattening two or three host scopes. Every source was captured twice
+per run and every output was byte-identical across runs. The exact pair names,
+pixel counts, and maximum channel deltas are enumerated in the
+[Web-first evidence table](../../../fixtures/web-first/README.md), not promoted
+to additional cells.
+
+A separate 32-case grammar composite is exact against Chromium. Focused
+transparent-root probes measured attribute/CSS, root/whole-content-group,
+zero/empty, above-one/ordinary, and direct/math identities. Twelve adjacent
+number, percentage, presentation-attribute, and `calc()` decimal pairs around
+the tested 127.5/255 and 64.5/255 alpha thresholds were also identical. Those
+precision aliases are harmless at the final element-opacity raster step, so
+opacity has no stroke-width-style authored-provenance blocker on the measured
+surface.
+
+The same investigation found a different, own-row gap in gradient stops.
+Chromium resolves a stop colour's base alpha byte, multiplies `stop-opacity` in
+float, and carries the effective alpha into the shader. A non-byte product
+cannot cross the current RGBA8 gradient-stop contract honestly. A valid
+degenerate server also cannot collapse an exact-byte translucent stop with a
+non-endpoint fill/stroke opacity, or with a later non-identity post-paint
+factor, into one RGBA8 solid. The exact stop-77, paint-identity,
+element-`.6` witness for the latter differs by 2,304 pixels at one code value.
+Finally, the integral average of a degenerate `reflect`/`repeat` ramp can
+synthesize either a nonintegral alpha or a nonintegral colour channel: opaque
+`#000000`→`#010000` produces the decisive later-opacity red-half witness, while
+exact-byte-alpha `#00000080`→`#01000080` exposes the same rounding at identity.
+Twice-captured zero- and negative-radius radial banks additionally fix the
+tile-specific degenerate result: `pad` selects the last stop, while `repeat`
+and `reflect` select the integral ramp average. This is therefore a
+component-precision boundary, not alpha provenance alone.
+
+One stable `svg-gradient-stop-precision` refusal guards those five semantic
+loss classes. Live and constant exact-byte gradients and endpoint-safe `pad`
+degenerates remain admitted. The alpha-average guard conservatively
+over-refuses both the measured 77→128 ramp and an endpoint 0→1 ramp when the
+derived alpha is non-byte. A fractional RGB average remains admitted only when
+its own alpha is opaque and both later opacity stages are identity, where
+measured bytes agree; a non-endpoint average alpha or later paint/post-paint
+opacity exposes its rounding and refuses. That deliberate over-refusal belongs
+to the independent `stop-color`/`stop-opacity` capability family. Flattening
+the refused witnesses changes up to 2,304 pixels by one code value. Those two
+presentation-property rows and both presentation-attribute rows remain open;
+their author-CSS ingresses remain unimplemented.
+Under the gridaco/nothing#75/#80 own-row precedent, this discovered and
+quarantined gap does not hold the CSS `opacity` property or SVG
+presentation-attribute `opacity` row open.
+
+The primitive corpus moves from 306 to 314 cells. The two broad opacity
+refusals graduate and the narrower stop-precision refusal enters, so the named
+register moves from 59 to 58. The CSS `opacity` property and its SVG
+presentation-attribute twin tick; `stop-color` and `stop-opacity` do not. This
+is a capability verdict only. It produces no conformance score and takes no
+FLIP action.

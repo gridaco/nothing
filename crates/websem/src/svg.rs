@@ -18,8 +18,9 @@
 //! on a path). Containers: `<g>`, `<a>`, `<use>`/`<defs>` and the whole
 //! `transform` grammar, flattened into a per-node affine rather than
 //! represented — except element `opacity` (the group-scope rung), which
-//! folds into a lone draw's paint or emits a real [`rframe::Scope`] by the
-//! measured fold rule. Root sizing follows SVG2 §8.2: explicit
+//! resolves on a lone draw as either a solid-paint fold or a post-paint alpha
+//! factor, and otherwise emits a real [`rframe::Scope`] by the measured rule.
+//! Root sizing follows SVG2 §8.2: explicit
 //! `width`/`height` win; a missing dimension is `auto` and resolves to 100%
 //! of the host-established [`InitialViewport`] (standalone entry only — the
 //! inline HTML entry refuses until CSS replaced-element sizing is
@@ -87,8 +88,9 @@
 //! authored values fall back exactly as invalid CSS declarations. The
 //! admitted value surface is sRGB solid colors, opaque or translucent —
 //! the colour's alpha, the paint-level opacity (`fill-opacity`,
-//! `stroke-opacity`), and a folded element `opacity` multiply in float and
-//! quantize once, exactly what the Chromium-baked primitive suite gates
+//! `stroke-opacity`), and a direct-solid element `opacity` multiply in float
+//! and quantize once. A valid paint server instead keeps element opacity as a
+//! post-paint factor. The Chromium-baked primitive suite gates both routes
 //! pixel-exactly — plus same-document linear and radial gradient paint
 //! servers (the gradient rung), plus standard `context-fill` / `context-stroke`
 //! relationships under expanded `<use>` instances. Context relationships
@@ -131,9 +133,9 @@ use cg::CGColor;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
-    FillRule, Frame, FrameItem, FrameItems, FrameNode, Geometry, Identity, PaintStack, PathData,
-    Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeDash,
-    StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, VisualRef,
+    FillRule, Frame, FrameItem, FrameItems, FrameNode, Geometry, Identity, PaintAlphaFactor,
+    PaintStack, PathData, Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap,
+    StrokeDash, StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, VisualRef,
 };
 use std::sync::Arc;
 
@@ -644,6 +646,10 @@ impl SvgFrameSource {
             if entry == SourceEntry::InlineHtml && subtree_contains_script(svg) {
                 return Err(CompileError::ScriptInCompiledSvg);
             }
+            let host_opacities = match entry {
+                SourceEntry::InlineHtml => host_ancestor_opacities(svg)?,
+                SourceEntry::StandaloneSvg => Vec::new(),
+            };
             let mut walk_degradations = Vec::new();
             let compilation = compile_svg_element(
                 svg,
@@ -651,6 +657,7 @@ impl SvgFrameSource {
                 mode,
                 &mut walk_degradations,
                 initial_viewport,
+                &host_opacities,
                 &HashMap::new(),
                 &fonts,
             )?;
@@ -701,6 +708,7 @@ impl SvgFrameSource {
                         mode,
                         &mut declared,
                         initial_viewport,
+                        &host_opacities,
                         &override_skips,
                         &fonts,
                     )
@@ -808,12 +816,19 @@ impl SvgFrameSource {
         // once at construction; the sample recompile reproduces the same
         // skips — the walk's and the authored-state overrides' alike —
         // deterministically, and its sink is discarded.
+        let host_opacities = if self.initial_viewport.is_none() {
+            host_ancestor_opacities(svg)
+                .expect("retained static cascade keeps host opacity representable")
+        } else {
+            Vec::new()
+        };
         let compilation = compile_svg_element(
             svg,
             &values,
             self.mode,
             &mut Vec::new(),
             self.initial_viewport,
+            &host_opacities,
             &self.override_skips,
             &self.fonts,
         )
@@ -958,6 +973,31 @@ fn document_root(el: HtmlElement<'_>) -> HtmlElement<'_> {
     top
 }
 
+/// Non-identity computed opacity on the HTML ancestors of the compiled inline
+/// SVG, ordered outermost first.
+///
+/// The inline entry deliberately contributes only the first SVG's local
+/// raster, but every ancestor opacity still composites that raster in
+/// Chromium. Each ancestor remains a distinct layer: multiplying the factors
+/// would erase the per-layer alpha quantization that nested opacity preserves.
+fn host_ancestor_opacities(svg: HtmlElement<'_>) -> Result<Vec<f32>, CompileError> {
+    let mut inner_to_outer = Vec::new();
+    let mut ancestor = svg.traversal_parent();
+    while let Some(element) = ancestor {
+        let data = element
+            .borrow_data()
+            .ok_or(CompileError::MissingComputedStyle)?;
+        let opacity = data.styles.primary().clone_opacity().clamp(0.0, 1.0);
+        if opacity < 1.0 {
+            inner_to_outer.push(opacity);
+        }
+        drop(data);
+        ancestor = element.traversal_parent();
+    }
+    inner_to_outer.reverse();
+    Ok(inner_to_outer)
+}
+
 fn document_has_author_css(el: HtmlElement<'_>) -> bool {
     let top = document_root(el);
     let mut stack = vec![top];
@@ -986,8 +1026,9 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "transform-origin",
     // `opacity` is absent here since the group-scope rung: it is an
     // admitted presentation hint (csscascade), read as a computed value
-    // and consumed as a fold or a compositing scope. `display` and
-    // `visibility` are absent for the same reason (the visibility rung).
+    // and consumed as a solid fold, post-paint factor, or compositing scope.
+    // `display` and `visibility` are absent for the same reason (the
+    // visibility rung).
     "overflow",
     "clip",
     "clip-path",
@@ -1633,7 +1674,7 @@ enum RenderDisposition {
 /// exactly as Chromium uses it (measured: `1.5` paints opaque, `-0.5`
 /// paints nothing). The caller decides what the opacity means at its
 /// level: a shape or container folds or scopes it (the group-scope rung),
-/// the root refuses a non-1 value by name.
+/// while the root scopes the complete SVG-local item stream.
 struct ComputedPatrol {
     disposition: RenderDisposition,
     opacity: f32,
@@ -2089,6 +2130,7 @@ fn compile_svg_element(
     mode: CompileMode,
     degradations: &mut Vec<Degradation>,
     initial_viewport: Option<InitialViewport>,
+    host_opacities: &[f32],
     override_skips: &HashMap<NodeId, String>,
     fonts: &textlayout::Environment,
 ) -> Result<FrameCompilation, CompileError> {
@@ -2107,21 +2149,11 @@ fn compile_svg_element(
     // own computed (inherited) visibility decides its node.
     let root_patrol = patrol_computed_style(svg, true)?;
     let root_disposition = root_patrol.disposition;
-    // The root's opacity composites the *whole canvas* — measured: the
-    // captured SVG-local raster carries the multiplied alpha, identically
-    // in the standalone and inline-HTML entries. This engine's raster
-    // entry composites over an opaque surface, which cannot carry a
-    // translucent frame, so the root's opacity refuses by name in both
-    // admissions until a translucent-surface entry exists. (Element and
-    // container opacity are consumed — this is the root alone, like its
-    // transform.)
-    if root_patrol.opacity != 1.0 {
-        return Err(CompileError::UnsupportedStyle(format!(
-            "opacity {} on the root <svg> is not yet consumed (it composites the whole \
-             canvas, which needs a translucent surface entry)",
-            root_patrol.opacity
-        )));
-    }
+    // The root's opacity composites the complete SVG-local raster,
+    // identically in the standalone and inline-HTML entries. The same
+    // source-neutral isolated scope used by a group can enclose the complete
+    // root item stream below, independent of the host's eventual backdrop. A
+    // zero root states the correct empty frame without constructing a scope.
     // The root's transform applies to its CSS box *outside* the viewBox
     // mapping (the reason its attribute spelling is a root refusal), and
     // since the transform rung both spellings meet in the computed value —
@@ -2206,6 +2238,16 @@ fn compile_svg_element(
         },
         None => PercentBases { width, height },
     };
+    if root_patrol.opacity == 0.0 || host_opacities.contains(&0.0) {
+        return Ok(FrameCompilation {
+            frame: Frame {
+                owner: VisualRef::new(Identity::new(0), Provenance::new(0)),
+                bounds: frame_bounds,
+                items: FrameItems::default(),
+            },
+            top_level_shapes: Vec::new(),
+        });
+    }
     // The paint-resource id table: whole-document, document-ordered,
     // first-id-wins, shadow-content excluded. It classifies every id so a
     // pattern can never masquerade as a missing gradient; `url(#id)` resolves
@@ -2230,13 +2272,28 @@ fn compile_svg_element(
         next_id: 0,
     };
     if root_disposition != RenderDisposition::PrunedSubtree || initial_viewport.is_some() {
-        walk.compile_children(svg, viewport, "svg", 0, 1.0)?;
+        let depth = host_opacities.len() + usize::from(root_patrol.opacity < 1.0);
+        if depth > MAX_CONTAINER_DEPTH {
+            return Err(CompileError::ContainerTooDeep(MAX_CONTAINER_DEPTH));
+        }
+        walk.compile_children(svg, viewport, "svg", depth, 1.0)?;
     }
     let ChildWalk {
-        items,
+        mut items,
         top_level_shapes,
+        mut next_id,
         ..
     } = walk;
+    if root_patrol.opacity < 1.0 && !items.is_empty() {
+        items.insert(0, scope_item(&mut next_id, root_patrol.opacity));
+        items.push(FrameItem::ScopeEnd);
+    }
+    for opacity in host_opacities.iter().rev() {
+        if !items.is_empty() {
+            items.insert(0, scope_item(&mut next_id, *opacity));
+            items.push(FrameItem::ScopeEnd);
+        }
+    }
 
     Ok(FrameCompilation {
         frame: Frame {
@@ -2264,7 +2321,7 @@ fn compile_svg_element(
 pub(crate) const MAX_CONTAINER_DEPTH: usize = 64;
 
 /// What one compiled span (a child, or a whole subtree) contributes to its
-/// enclosing container's opacity decision — the facts the measured fold
+/// enclosing container's opacity decision — the facts the measured one-draw
 /// rule reads. A "draw" is one paint pass (a fill or a stroke) not
 /// enclosed in a nested scope.
 #[derive(Debug, Clone, Copy, Default)]
@@ -2273,10 +2330,10 @@ struct SpanFacts {
     draws: usize,
     /// The span contains a compositing scope.
     has_scope: bool,
-    /// An element-opacity fold already landed on a draw in the span.
-    folded: bool,
+    /// A one-draw element-opacity route already landed in the span.
+    one_draw_opacity: bool,
     /// A non-`none` computed transform sits on an element in the span —
-    /// which breaks an enclosing scope's fold (measured: an intermediate
+    /// which breaks an enclosing one-draw route (measured: an intermediate
     /// transformed container, or a transformed draw, forces the layer; the
     /// scope element's own transform does not).
     transformed: bool,
@@ -2286,7 +2343,7 @@ impl SpanFacts {
     fn absorb(&mut self, other: SpanFacts) {
         self.draws += other.draws;
         self.has_scope |= other.has_scope;
-        self.folded |= other.folded;
+        self.one_draw_opacity |= other.one_draw_opacity;
         self.transformed |= other.transformed;
     }
 }
@@ -2297,12 +2354,12 @@ impl SpanFacts {
 /// contributes its transform and its place in paint order, both of which
 /// compose into the per-node affine and the ordered item stream. The
 /// group-scope rung added the one construct that breaks flattening —
-/// element `opacity` — consumed by the measured fold rule: an opacity
-/// whose content is a single un-transformed, un-folded draw **folds** into
-/// that draw's paint (one float product, quantized once — byte-identical
-/// in Chromium), and every other opacity emits a real [`rframe::Scope`]
-/// (an isolated layer). Chromium's fold and layer routes differ by one
-/// code value, so the split is measured meaning, not an optimization.
+/// element `opacity` — consumed by the measured one-draw rule: a single
+/// un-transformed draw either folds into a direct solid's alpha product or
+/// keeps a separate post-paint factor for a valid paint server. Every other
+/// opacity emits a real [`rframe::Scope`] (an isolated layer). Chromium's
+/// routes differ by code values, so the split is measured meaning, not an
+/// optimization.
 /// `clip-path`, `mask`, `filter`, `mix-blend-mode`, and `isolation` are
 /// still refused by the patrols; each grows the scope's effect vocabulary
 /// with its own rung.
@@ -2366,8 +2423,8 @@ struct PaintContext<'d> {
 
 impl<'a> ChildWalk<'a> {
     /// Compile a parent's children in painter order, accumulating the span
-    /// facts the parent's own opacity decision reads. `fold_opacity` is an
-    /// enclosing scope's fold factor mid-replay (see
+    /// facts the parent's own opacity decision reads. `replay_opacity` is an
+    /// enclosing container's one-draw factor mid-replay (see
     /// [`ChildWalk::compile_container`]); it is `1.0` on the first pass.
     fn compile_children(
         &mut self,
@@ -2375,7 +2432,7 @@ impl<'a> ChildWalk<'a> {
         transform: AffineTransform,
         parent_path: &str,
         depth: usize,
-        fold_opacity: f32,
+        replay_opacity: f32,
     ) -> Result<SpanFacts, CompileError> {
         let mut facts = SpanFacts::default();
         let mut ordinals = HashMap::<String, usize>::new();
@@ -2443,11 +2500,11 @@ impl<'a> ChildWalk<'a> {
             // one container compiler and its patrols. `<use>` is a
             // container whose children are its expanded shadow content.
             let result = if tag == "g" || tag == "a" {
-                self.compile_container(c, transform, &path, depth, &tag, fold_opacity)
+                self.compile_container(c, transform, &path, depth, &tag, replay_opacity)
             } else if tag == "use" {
-                self.compile_use(c, transform, &path, depth, fold_opacity)
+                self.compile_use(c, transform, &path, depth, replay_opacity)
             } else {
-                self.compile_leaf(c, transform, depth == 0, fold_opacity)
+                self.compile_leaf(c, transform, depth == 0, replay_opacity)
             };
             match result {
                 Ok(child_facts) => facts.absorb(child_facts),
@@ -2483,7 +2540,7 @@ impl<'a> ChildWalk<'a> {
         path: &str,
         depth: usize,
         element: &str,
-        fold_opacity: f32,
+        replay_opacity: f32,
     ) -> Result<SpanFacts, CompileError> {
         if depth >= MAX_CONTAINER_DEPTH {
             return Err(CompileError::ContainerTooDeep(MAX_CONTAINER_DEPTH));
@@ -2518,7 +2575,7 @@ impl<'a> ChildWalk<'a> {
             path,
             depth,
             patrol.opacity,
-            fold_opacity,
+            replay_opacity,
         );
         self.context_paint_transform = previous_context_paint_transform;
         let facts = facts?;
@@ -2529,13 +2586,14 @@ impl<'a> ChildWalk<'a> {
     }
 
     /// Compile a container's subtree and apply its element opacity by the
-    /// measured fold rule: **fold** — rewind the span and replay it with
-    /// the factor threaded to its one draw's paint resolve, so the alpha
-    /// product still quantizes once — when the span is exactly one draw,
-    /// un-folded, un-scoped, and un-transformed below this element;
-    /// otherwise wrap the span in a real scope (an isolated layer).
-    /// Chromium's two routes differ by one code value, so both branches
-    /// are oracle-pinned meaning.
+    /// measured one-draw rule: rewind the span and replay it with the factor
+    /// threaded to its sole draw. A solid paint folds the factor into its
+    /// alpha product; a gradient retains the factor separately after its
+    /// intrinsic alpha. This replay is eligible only when the span is exactly
+    /// one draw, without prior one-draw opacity, un-scoped, and un-transformed
+    /// below this element;
+    /// otherwise the span gets a real scope (an isolated layer). Chromium's
+    /// routes differ by code values, so each branch is oracle-pinned meaning.
     fn compile_span_with_opacity(
         &mut self,
         el: HtmlElement<'a>,
@@ -2543,16 +2601,15 @@ impl<'a> ChildWalk<'a> {
         path: &str,
         depth: usize,
         own_opacity: f32,
-        fold_opacity: f32,
+        replay_opacity: f32,
     ) -> Result<SpanFacts, CompileError> {
         let checkpoint = (self.items.len(), self.next_id, self.degradations.len());
-        let mut facts = self.compile_children(el, transform, path, depth + 1, fold_opacity)?;
+        let mut facts = self.compile_children(el, transform, path, depth + 1, replay_opacity)?;
         if own_opacity < 1.0 {
-            if facts.draws == 1 && !facts.has_scope && !facts.folded && !facts.transformed {
-                // Replay the span with the accumulated factor. The one draw
-                // may still refuse the fold by name (a gradient paint), in
-                // which case the replay records that refusal exactly where
-                // the draw was.
+            if facts.draws == 1 && !facts.has_scope && !facts.one_draw_opacity && !facts.transformed
+            {
+                // Replay the span with the accumulated factor so the sole
+                // draw can choose its solid-fold or post-paint-alpha route.
                 self.items.truncate(checkpoint.0);
                 self.next_id = checkpoint.1;
                 self.degradations.truncate(checkpoint.2);
@@ -2561,9 +2618,9 @@ impl<'a> ChildWalk<'a> {
                     transform,
                     path,
                     depth + 1,
-                    fold_opacity * own_opacity,
+                    replay_opacity * own_opacity,
                 )?;
-                facts.folded = true;
+                facts.one_draw_opacity = true;
             } else if facts.draws > 0 || facts.has_scope {
                 let scope = scope_item(&mut self.next_id, own_opacity);
                 self.items.insert(checkpoint.0, scope);
@@ -2571,7 +2628,7 @@ impl<'a> ChildWalk<'a> {
                 facts = SpanFacts {
                     draws: 0,
                     has_scope: true,
-                    folded: false,
+                    one_draw_opacity: false,
                     transformed: facts.transformed,
                 };
             }
@@ -2608,7 +2665,7 @@ impl<'a> ChildWalk<'a> {
         transform: AffineTransform,
         path: &str,
         depth: usize,
-        fold_opacity: f32,
+        replay_opacity: f32,
     ) -> Result<SpanFacts, CompileError> {
         if depth >= MAX_CONTAINER_DEPTH {
             return Err(CompileError::ContainerTooDeep(MAX_CONTAINER_DEPTH));
@@ -2683,14 +2740,14 @@ impl<'a> ChildWalk<'a> {
             path,
             depth,
             patrol.opacity,
-            fold_opacity,
+            replay_opacity,
         );
         self.context_paint_transform = previous_context_paint_transform;
         self.paint_contexts.pop();
         let facts = facts?;
         // The `x`/`y` translate is part of the use's own transform (SVG2
         // §5.6.2), so like the transform property it stays *on* this
-        // element — an enclosing scope's fold is broken only by a transform
+        // element — an enclosing one-draw route is broken only by a transform
         // strictly below it, and this one is not below.
         Ok(SpanFacts {
             transformed: facts.transformed || own_transformed || x != 0.0 || y != 0.0,
@@ -2703,7 +2760,7 @@ impl<'a> ChildWalk<'a> {
         el: HtmlElement<'a>,
         transform: AffineTransform,
         top_level: bool,
-        fold_opacity: f32,
+        replay_opacity: f32,
     ) -> Result<SpanFacts, CompileError> {
         // An admitted shape may resolve to no visual fact at all — a `<path>`
         // whose `d` draws nothing. That is not a hole: the element is
@@ -2718,10 +2775,10 @@ impl<'a> ChildWalk<'a> {
             self.servers,
             &self.paint_contexts,
             self.bases,
-            fold_opacity,
+            replay_opacity,
             self.fonts,
         )? {
-            facts.folded = outcome.folded;
+            facts.one_draw_opacity = outcome.one_draw_opacity;
             facts.transformed = outcome.transformed;
             match outcome.scope_opacity {
                 Some(opacity) => {
@@ -2761,8 +2818,8 @@ fn scope_item(next_id: &mut u64, opacity: f32) -> FrameItem {
 }
 
 /// Whether the element's computed `transform` is anything but `none` — the
-/// fact that breaks an enclosing scope's fold (Blink's paint-property
-/// boundary, measured one code value apart from the fold).
+/// fact that breaks an enclosing one-draw route (Blink's paint-property
+/// boundary, measured one code value apart from that route).
 fn element_has_computed_transform(el: HtmlElement<'_>) -> Result<bool, CompileError> {
     let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     Ok(!data.styles.primary().clone_transform().0.is_empty())
@@ -2861,7 +2918,7 @@ fn compile_shape(
     servers: &PaintServers<'_>,
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
-    fold_opacity: f32,
+    replay_opacity: f32,
     fonts: &textlayout::Environment,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
     let tag = el.local_name_string();
@@ -2882,7 +2939,7 @@ fn compile_shape(
             servers,
             paint_contexts,
             bases,
-            fold_opacity,
+            replay_opacity,
         ),
         "circle" => compile_circle(
             el,
@@ -2893,7 +2950,7 @@ fn compile_shape(
             servers,
             paint_contexts,
             bases,
-            fold_opacity,
+            replay_opacity,
         ),
         "ellipse" => compile_ellipse(
             el,
@@ -2904,7 +2961,7 @@ fn compile_shape(
             servers,
             paint_contexts,
             bases,
-            fold_opacity,
+            replay_opacity,
         ),
         "path" => compile_path(
             el,
@@ -2914,7 +2971,7 @@ fn compile_shape(
             servers,
             paint_contexts,
             bases,
-            fold_opacity,
+            replay_opacity,
         ),
         "text" => compile_text(
             el,
@@ -2925,7 +2982,7 @@ fn compile_shape(
             servers,
             paint_contexts,
             bases,
-            fold_opacity,
+            replay_opacity,
             fonts,
         ),
         "line" => compile_line(
@@ -2937,7 +2994,7 @@ fn compile_shape(
             servers,
             paint_contexts,
             bases,
-            fold_opacity,
+            replay_opacity,
         ),
         "polygon" => compile_points_shape(
             el,
@@ -2948,7 +3005,7 @@ fn compile_shape(
             servers,
             paint_contexts,
             bases,
-            fold_opacity,
+            replay_opacity,
         ),
         "polyline" => compile_points_shape(
             el,
@@ -2959,7 +3016,7 @@ fn compile_shape(
             servers,
             paint_contexts,
             bases,
-            fold_opacity,
+            replay_opacity,
         ),
         other => Err(CompileError::UnsupportedElement(other.to_string())),
     }?;
@@ -2991,7 +3048,7 @@ fn compile_text(
     servers: &PaintServers<'_>,
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
-    fold_opacity: f32,
+    replay_opacity: f32,
     fonts: &textlayout::Environment,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
     patrol_rendering_attributes(el, "text", TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
@@ -3102,7 +3159,7 @@ fn compile_text(
         paint_contexts,
         bases,
         patrol.opacity,
-        fold_opacity,
+        replay_opacity,
         false,
     )
     .map(Some)
@@ -3117,7 +3174,7 @@ fn compile_rect(
     servers: &PaintServers<'_>,
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
-    fold_opacity: f32,
+    replay_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
     patrol_rendering_attributes(el, "rect", &[])?;
     patrol_style_attribute(el, "rect")?;
@@ -3153,7 +3210,7 @@ fn compile_rect(
         paint_contexts,
         bases,
         patrol.opacity,
-        fold_opacity,
+        replay_opacity,
         false,
     )
     .map(Some)
@@ -3168,7 +3225,7 @@ fn compile_circle(
     servers: &PaintServers<'_>,
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
-    fold_opacity: f32,
+    replay_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
     patrol_rendering_attributes(el, "circle", &[])?;
     patrol_style_attribute(el, "circle")?;
@@ -3206,7 +3263,7 @@ fn compile_circle(
         paint_contexts,
         bases,
         patrol.opacity,
-        fold_opacity,
+        replay_opacity,
         false,
     )
     .map(Some)
@@ -3221,7 +3278,7 @@ fn compile_ellipse(
     servers: &PaintServers<'_>,
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
-    fold_opacity: f32,
+    replay_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
     patrol_rendering_attributes(el, "ellipse", &[])?;
     patrol_style_attribute(el, "ellipse")?;
@@ -3265,7 +3322,7 @@ fn compile_ellipse(
         paint_contexts,
         bases,
         patrol.opacity,
-        fold_opacity,
+        replay_opacity,
         false,
     )
     .map(Some)
@@ -3290,7 +3347,7 @@ fn compile_path(
     servers: &PaintServers<'_>,
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
-    fold_opacity: f32,
+    replay_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
     patrol_rendering_attributes(el, "path", &[])?;
     patrol_style_attribute(el, "path")?;
@@ -3340,7 +3397,7 @@ fn compile_path(
         paint_contexts,
         bases,
         patrol.opacity,
-        fold_opacity,
+        replay_opacity,
         false,
     )
     .map(Some)
@@ -3368,7 +3425,7 @@ fn compile_line(
     servers: &PaintServers<'_>,
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
-    fold_opacity: f32,
+    replay_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
     patrol_rendering_attributes(el, "line", &[])?;
     patrol_style_attribute(el, "line")?;
@@ -3407,7 +3464,7 @@ fn compile_line(
         paint_contexts,
         bases,
         patrol.opacity,
-        fold_opacity,
+        replay_opacity,
         true,
     )
     .map(Some)
@@ -3448,7 +3505,7 @@ fn compile_points_shape(
     servers: &PaintServers<'_>,
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
-    fold_opacity: f32,
+    replay_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
     let element = match closure {
         PointsClosure::Closed => "polygon",
@@ -3528,7 +3585,7 @@ fn compile_points_shape(
         paint_contexts,
         bases,
         patrol.opacity,
-        fold_opacity,
+        replay_opacity,
         false,
     )
     .map(Some)
@@ -3604,7 +3661,7 @@ enum Strokable {
 
 /// One compiled shape plus the facts the group-scope rung's walk decides
 /// with: how many paint passes it draws, whether its own opacity needs an
-/// isolated layer, and whether a fold or a transform already sits on it.
+/// isolated layer, and whether one-draw opacity or a transform sits on it.
 struct ShapeOutcome {
     node: FrameNode,
     /// Paint passes the node draws (fill + stroke).
@@ -3612,29 +3669,29 @@ struct ShapeOutcome {
     /// The shape's own opacity composites fill and stroke through one
     /// isolated layer — the walk wraps the node in a scope.
     scope_opacity: Option<f32>,
-    /// An element-opacity fold landed on this node's paint.
-    folded: bool,
+    /// A solid fold or post-paint factor landed on this node's one draw.
+    one_draw_opacity: bool,
     /// The element's computed `transform` is not `none` (breaks an
-    /// enclosing scope's fold). Set by [`compile_shape`].
+    /// enclosing one-draw route). Set by [`compile_shape`].
     transformed: bool,
 }
 
 /// The shared tail of every shape compile: resolve the typed fill and
-/// stroke, apply the element opacity by the measured fold rule, and emit
+/// stroke, apply element opacity by the measured one-draw/scope rule, and emit
 /// the resolved node. The node's `bounds` is the frame-space transform of
 /// its local geometry box — the exact-bounds law the n0 downstream
 /// re-checks on admission.
 ///
 /// `own_opacity` is the element's own computed opacity (already known
-/// non-zero); `fold_opacity` is an enclosing container's fold factor
-/// mid-replay. At most one differs from 1 — a container fold is only
-/// eligible over an un-folded draw. A single-pass shape **folds** the
-/// factor into that pass's alpha product by re-resolving the pass, so the
-/// product still quantizes once (measured byte-identical in Chromium to
-/// the paint-level fold); a two-pass shape asks the walk for an isolated
-/// layer instead; a gradient pass refuses the fold by name — the paint
-/// carries one quantized alpha, and Chromium composites the element
-/// opacity *after* that quantization, which one slot cannot express.
+/// non-zero); `replay_opacity` is an enclosing container's one-draw factor
+/// mid-replay. At most one differs from 1 — container replay is only eligible
+/// over a draw without prior one-draw opacity. A single solid pass **folds**
+/// the factor into that pass's alpha product by re-resolving the pass, so the
+/// product still quantizes once (measured byte-identical in Chromium to the
+/// paint-level fold). A single valid paint-server pass carries a separate
+/// post-paint alpha factor because its intrinsic paint alpha materializes
+/// first, including when geometric degeneracy resolves the paint to a solid.
+/// A two-pass shape asks the walk for an isolated layer instead.
 #[allow(clippy::too_many_arguments)]
 fn shape_node(
     el: HtmlElement<'_>,
@@ -3647,7 +3704,7 @@ fn shape_node(
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     own_opacity: f32,
-    fold_opacity: f32,
+    replay_opacity: f32,
     fill_never_paints: bool,
 ) -> Result<ShapeOutcome, CompileError> {
     let rect = geometry.local_box();
@@ -3677,40 +3734,21 @@ fn shape_node(
     patrol_mixed_contour_cap(&geometry, stroke.as_ref())?;
 
     debug_assert!(
-        own_opacity == 1.0 || fold_opacity == 1.0,
-        "a container fold is never eligible over a shape with its own opacity"
+        own_opacity == 1.0 || replay_opacity == 1.0,
+        "container replay is never eligible over a shape with its own opacity"
     );
-    let opacity = own_opacity * fold_opacity;
+    let opacity = own_opacity * replay_opacity;
     // A `<line>`'s fill can never paint — SVG gives it no interior — so it
     // is not a pass an opacity composites (the paints stay on the node,
     // where their zero area paints the same nothing Chromium paints).
     let fill_passes = usize::from(!paints.is_empty() && !fill_never_paints);
     let draws = fill_passes + usize::from(stroke.is_some());
-    let mut folded = false;
+    let mut one_draw_opacity = false;
     let mut scope_opacity = None;
     if opacity < 1.0 && draws > 0 {
         if draws > 1 {
             scope_opacity = Some(opacity);
         } else {
-            let pass_paints = if fill_passes == 1 {
-                &paints
-            } else {
-                stroke
-                    .as_ref()
-                    .expect("the one draw is the stroke")
-                    .paints()
-            };
-            if !pass_paints
-                .iter()
-                .all(|paint| matches!(paint, cg::Paint::Solid(_)))
-            {
-                return Err(CompileError::UnsupportedStyle(format!(
-                    "opacity {opacity} over a gradient paint is not yet consumed (the paint \
-                     carries one quantized alpha, and Chromium composites the element opacity \
-                     after that quantization — expressing both needs a second paint-alpha \
-                     factor)"
-                )));
-            }
             if fill_passes == 1 {
                 paints = resolve_fill(
                     el,
@@ -3734,7 +3772,7 @@ fn shape_node(
                     opacity,
                 )?;
             }
-            folded = true;
+            one_draw_opacity = true;
         }
     }
 
@@ -3752,7 +3790,7 @@ fn shape_node(
         node,
         draws,
         scope_opacity,
-        folded,
+        one_draw_opacity,
         transformed: false,
     })
 }
@@ -4065,18 +4103,21 @@ fn resolve_fill(
 ) -> Result<PaintStack, CompileError> {
     let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     let style: &ComputedValues = data.styles.primary();
-    // `extra_opacity` is the group-scope rung's fold factor: it joins the
-    // colour's own alpha and `fill-opacity` in the one float product that
-    // quantizes once (the translucency rung's law, extended by measurement
-    // to the element-opacity factor).
-    let opacity = match style.clone_fill_opacity() {
-        SVGOpacity::Opacity(value) => value * extra_opacity,
+    // A direct colour combines element opacity with `fill-opacity` in one
+    // float product. A valid paint server resolves its own paint opacity
+    // first and carries element opacity as a separate post-paint factor —
+    // even when a degenerate gradient resolves to a solid. Invalid-reference
+    // fallback colours remain direct colours. Chromium distinguishes these
+    // alpha orders by one code value away from half-value coincidences.
+    let paint_opacity = match style.clone_fill_opacity() {
+        SVGOpacity::Opacity(value) => value,
         other => {
             return Err(CompileError::UnsupportedFill(format!(
                 "fill-opacity {other:?} is a context value this slice does not consume"
             )));
         }
     };
+    let solid_opacity = paint_opacity * extra_opacity;
     drop(data);
     let Some(selected) = select_paint(el, PaintProperty::Fill, paint_contexts)
         .map_err(CompileError::UnsupportedFill)?
@@ -4091,7 +4132,7 @@ fn resolve_fill(
     let fill = selected.value;
     let fallback = || match &fill.fallback {
         style::values::generics::svg::SVGPaintFallback::Color(color) => {
-            admitted_srgb(owner_style.resolve_color(color), opacity)
+            admitted_srgb(owner_style.resolve_color(color), solid_opacity)
                 .map(PaintStack::solid)
                 .map_err(CompileError::UnsupportedFill)
         }
@@ -4099,27 +4140,26 @@ fn resolve_fill(
     };
     match &fill.kind {
         SVGPaintKind::None => Ok(PaintStack::empty()),
-        SVGPaintKind::Color(color) => admitted_srgb(owner_style.resolve_color(color), opacity)
-            .map(PaintStack::solid)
-            .map_err(CompileError::UnsupportedFill),
+        SVGPaintKind::Color(color) => {
+            admitted_srgb(owner_style.resolve_color(color), solid_opacity)
+                .map(PaintStack::solid)
+                .map_err(CompileError::UnsupportedFill)
+        }
         SVGPaintKind::PaintServer(url) => {
-            if extra_opacity != 1.0 {
-                return Err(CompileError::UnsupportedFill(
-                    "element opacity over a url() paint is not yet consumed (the fold cannot \
-                     reach through a paint-server reference)"
-                        .to_string(),
-                ));
-            }
             match resolve_paint_server_stack(
                 servers,
                 url,
                 || context_reference_space(selected.context, consumer_box, destination_to_frame),
                 consumer_box,
                 bases,
-                opacity,
+                paint_opacity,
+                extra_opacity,
                 "fill",
             )? {
-                Some(stack) => Ok(stack),
+                Some(stack) => Ok(stack.with_alpha_factor(
+                    PaintAlphaFactor::new(extra_opacity)
+                        .expect("computed opacity is finite and clamped to [0, 1]"),
+                )),
                 None => fallback(),
             }
         }
@@ -4140,6 +4180,7 @@ fn resolve_paint_server_stack(
     destination_box: Rectangle,
     bases: PercentBases,
     paint_opacity: f32,
+    post_paint_opacity: f32,
     property: &str,
 ) -> Result<Option<PaintStack>, CompileError> {
     let refusal = |reason: String| match property {
@@ -4171,6 +4212,7 @@ fn resolve_paint_server_stack(
         reference_space,
         gradient_bases,
         paint_opacity,
+        post_paint_opacity,
     )
     .map_err(|reason| refusal(format!("url(#{fragment}): {reason}")))?;
     Ok(match resolved {
@@ -4898,16 +4940,17 @@ fn resolve_stroke(
     let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     let style: &ComputedValues = data.styles.primary();
 
-    // The group-scope rung's fold factor joins the one float product —
-    // see [`resolve_fill`].
-    let opacity = match style.clone_stroke_opacity() {
-        SVGOpacity::Opacity(value) => value * extra_opacity,
+    // Direct colours, valid paint servers, and invalid-reference fallbacks
+    // stage element opacity exactly as [`resolve_fill`] describes.
+    let paint_opacity = match style.clone_stroke_opacity() {
+        SVGOpacity::Opacity(value) => value,
         other => {
             return Err(CompileError::UnsupportedStroke(format!(
                 "stroke-opacity {other:?} is a context value this slice does not consume"
             )));
         }
     };
+    let solid_opacity = paint_opacity * extra_opacity;
     drop(data);
     let Some(selected) = select_paint(el, PaintProperty::Stroke, paint_contexts)
         .map_err(CompileError::UnsupportedStroke)?
@@ -4922,7 +4965,7 @@ fn resolve_stroke(
     let paint = selected.value;
     let stroke_fallback = || match &paint.fallback {
         style::values::generics::svg::SVGPaintFallback::Color(color) => {
-            admitted_srgb(owner_style.resolve_color(color), opacity)
+            admitted_srgb(owner_style.resolve_color(color), solid_opacity)
                 .map(PaintStack::solid)
                 .map_err(CompileError::UnsupportedStroke)
         }
@@ -4930,17 +4973,12 @@ fn resolve_stroke(
     };
     let paints = match paint.kind {
         SVGPaintKind::None => return Ok(None),
-        SVGPaintKind::Color(ref color) => admitted_srgb(owner_style.resolve_color(color), opacity)
-            .map(PaintStack::solid)
-            .map_err(CompileError::UnsupportedStroke)?,
+        SVGPaintKind::Color(ref color) => {
+            admitted_srgb(owner_style.resolve_color(color), solid_opacity)
+                .map(PaintStack::solid)
+                .map_err(CompileError::UnsupportedStroke)?
+        }
         SVGPaintKind::PaintServer(ref url) => {
-            if extra_opacity != 1.0 {
-                return Err(CompileError::UnsupportedStroke(
-                    "element opacity over a url() paint is not yet consumed (the fold cannot \
-                     reach through a paint-server reference)"
-                        .to_string(),
-                ));
-            }
             // The stroke's paint box is the geometry's own box — the stroke's
             // inked reach beyond it pads (measured).
             match resolve_paint_server_stack(
@@ -4949,10 +4987,14 @@ fn resolve_stroke(
                 || context_reference_space(selected.context, consumer_box, destination_to_frame),
                 consumer_box,
                 bases,
-                opacity,
+                paint_opacity,
+                extra_opacity,
                 "stroke",
             )? {
-                Some(stack) => stack,
+                Some(stack) => stack.with_alpha_factor(
+                    PaintAlphaFactor::new(extra_opacity)
+                        .expect("computed opacity is finite and clamped to [0, 1]"),
+                ),
                 None => stroke_fallback()?,
             }
         }

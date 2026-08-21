@@ -24,7 +24,9 @@ use n0_model::path::ResolvedPathArtifact;
 use rframe::{Frame, FrameItem, Geometry, PaintStack, ScopeEffect, VisualRef};
 
 use crate::damage::{diff_inputs, DamageOwner, FrameDamageInput};
-use crate::drawlist::{DrawList, GlyphlessOwnerSlot, Item, ItemKind, StrokeDashPhase};
+use crate::drawlist::{
+    DrawList, GlyphlessOwnerSlot, Item, ItemKind, PostPaintOpacity, StrokeDashPhase,
+};
 use crate::frame::FrameExecutionError;
 use crate::paint::PaintCtx;
 
@@ -335,6 +337,8 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
             _ => None,
         };
         let paints = compile_paints(&node.paints, unit_offset);
+        let fill_post_paint_opacity =
+            PostPaintOpacity::from_resolved(node.paints.alpha_factor().get());
         let owner = GlyphlessOwnerSlot::new(
             u32::try_from(provenance.owners.len()).expect("owner count checked above"),
         );
@@ -395,13 +399,20 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                     corner_radius: RectangularCornerRadius::default(),
                     corner_smoothing: CornerSmoothing::default(),
                     paints,
+                    post_paint_opacity: fill_post_paint_opacity,
                 },
-                Geometry::Ellipse(_) => ItemKind::OvalFill { w, h, paints },
+                Geometry::Ellipse(_) => ItemKind::OvalFill {
+                    w,
+                    h,
+                    paints,
+                    post_paint_opacity: fill_post_paint_opacity,
+                },
                 Geometry::Path(_) => ItemKind::PathFill {
                     w,
                     h,
                     path: Arc::clone(path.as_ref().expect("path geometry compiled its stream")),
                     paints,
+                    post_paint_opacity: fill_post_paint_opacity,
                 },
             };
             items.push(Item {
@@ -427,7 +438,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                 && rect.width > 0.0
                 && rect.height > 0.0
                 && stroke.dash().is_some();
-            let (stroke, dash_phase) = compile_stroke(stroke, unit_offset);
+            let (stroke, dash_phase, post_paint_opacity) = compile_stroke(stroke, unit_offset);
             let kind = match &node.geometry {
                 Geometry::Rect(_) => ItemKind::RectStroke {
                     w,
@@ -436,6 +447,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                     corner_smoothing: CornerSmoothing::default(),
                     stroke,
                     dash_phase,
+                    post_paint_opacity,
                 },
                 Geometry::Ellipse(_) if dashed_ellipse => ItemKind::AbsoluteDashedOvalStroke {
                     x: rect.x,
@@ -444,12 +456,14 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                     h,
                     stroke,
                     dash_phase,
+                    post_paint_opacity,
                 },
                 Geometry::Ellipse(_) => ItemKind::OvalStroke {
                     w,
                     h,
                     stroke,
                     dash_phase,
+                    post_paint_opacity,
                 },
                 Geometry::Path(_) => ItemKind::PathStroke {
                     w,
@@ -457,6 +471,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                     path: Arc::clone(path.as_ref().expect("path geometry compiled its stream")),
                     stroke,
                     dash_phase,
+                    post_paint_opacity,
                 },
             };
             items.push(Item {
@@ -582,7 +597,7 @@ fn compile_path(data: &rframe::PathData) -> Arc<ResolvedPathArtifact> {
 fn compile_stroke(
     stroke: &rframe::Stroke,
     unit_offset: Option<(f32, f32)>,
-) -> (Stroke, StrokeDashPhase) {
+) -> (Stroke, StrokeDashPhase, PostPaintOpacity) {
     let dash = stroke.dash();
     let material = Stroke {
         paints: compile_paints(stroke.paints(), unit_offset),
@@ -604,7 +619,8 @@ fn compile_stroke(
     let phase = dash.map_or(StrokeDashPhase::ZERO, |dash| {
         StrokeDashPhase::from_canonical(dash.phase())
     });
-    (material, phase)
+    let post_paint_opacity = PostPaintOpacity::from_resolved(stroke.paints().alpha_factor().get());
+    (material, phase, post_paint_opacity)
 }
 
 fn validate_rect(rect: math2::Rectangle) -> Result<(), ()> {
@@ -1107,7 +1123,9 @@ mod tests {
         SizeIntent,
     };
     use n0_model::resolve::ResolveOptions;
-    use rframe::{FrameItems, FrameNode, Identity, Provenance, Scope, ScopeOpacity};
+    use rframe::{
+        FrameItems, FrameNode, Identity, PaintAlphaFactor, Provenance, Scope, ScopeOpacity,
+    };
     use skia_safe::surfaces;
 
     use super::*;
@@ -1126,6 +1144,50 @@ mod tests {
     fn solid_stack<const N: usize>(paints: [CgPaint; N]) -> PaintStack {
         PaintStack::try_from_paints(CgPaints::new(paints))
             .expect("test paints are visible ordinary solids")
+    }
+
+    fn alpha_factor(value: f32) -> PaintAlphaFactor {
+        PaintAlphaFactor::new(value).expect("test factor is in the closed unit interval")
+    }
+
+    fn post_paint_opacity(kind: &ItemKind) -> Option<PostPaintOpacity> {
+        match kind {
+            ItemKind::RectFill {
+                post_paint_opacity, ..
+            }
+            | ItemKind::OvalFill {
+                post_paint_opacity, ..
+            }
+            | ItemKind::PathFill {
+                post_paint_opacity, ..
+            }
+            | ItemKind::TextFill {
+                post_paint_opacity, ..
+            }
+            | ItemKind::RectStroke {
+                post_paint_opacity, ..
+            }
+            | ItemKind::OvalStroke {
+                post_paint_opacity, ..
+            }
+            | ItemKind::AbsoluteDashedOvalStroke {
+                post_paint_opacity, ..
+            }
+            | ItemKind::LineStroke {
+                post_paint_opacity, ..
+            }
+            | ItemKind::PathStroke {
+                post_paint_opacity, ..
+            }
+            | ItemKind::TextStroke {
+                post_paint_opacity, ..
+            } => Some(*post_paint_opacity),
+            ItemKind::BeginOpacity { .. }
+            | ItemKind::BeginIsolatedOpacity { .. }
+            | ItemKind::EndOpacity
+            | ItemKind::BeginClipRect { .. }
+            | ItemKind::EndClip => None,
+        }
     }
 
     fn dashed_stroke(intervals: Vec<f32>, cap: rframe::StrokeCap) -> rframe::Stroke {
@@ -1359,9 +1421,24 @@ mod tests {
             product.drawlist.raster_eq(ordinary.drawlist()),
             "owner domains differ, but every paint-consumed drawlist field is exact"
         );
-        let ItemKind::RectFill { paints, .. } = &product.drawlist.items[1].kind else {
+        let ItemKind::RectFill {
+            paints,
+            post_paint_opacity: resolved_factor,
+            ..
+        } = &product.drawlist.items[1].kind
+        else {
             panic!("second item is the rectangle fill");
         };
+        assert_eq!(*resolved_factor, PostPaintOpacity::IDENTITY);
+        assert_eq!(
+            ordinary
+                .drawlist()
+                .items
+                .iter()
+                .find_map(|item| post_paint_opacity(&item.kind)),
+            Some(PostPaintOpacity::IDENTITY),
+            "an ordinary native producer projects the identity factor"
+        );
         assert_eq!(
             paints
                 .iter()
@@ -1411,6 +1488,177 @@ mod tests {
         };
         assert_eq!(error.expected, ordinary.environment());
         assert_eq!(error.actual, other.environment_key());
+    }
+
+    #[test]
+    fn paint_alpha_factor_crosses_every_glyphless_geometry_route_bit_exactly() {
+        let fill_value = f32::from_bits(0x3eaa_aaab);
+        let stroke_value = f32::from_bits(0x3f20_0001);
+        let fill_factor = alpha_factor(fill_value);
+        let stroke_factor = alpha_factor(stroke_value);
+        let path = rframe::PathData::new(
+            vec![
+                rframe::PathCommand::MoveTo { x: 8.0, y: 6.0 },
+                rframe::PathCommand::LineTo { x: 28.0, y: 6.0 },
+                rframe::PathCommand::LineTo { x: 28.0, y: 22.0 },
+                rframe::PathCommand::LineTo { x: 8.0, y: 22.0 },
+                rframe::PathCommand::Close,
+            ],
+            rframe::FillRule::NonZero,
+        )
+        .expect("test path is valid");
+        let routes = [
+            (
+                "rect",
+                Geometry::Rect(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0)),
+                false,
+            ),
+            (
+                "ellipse",
+                Geometry::Ellipse(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0)),
+                false,
+            ),
+            (
+                "dashed ellipse",
+                Geometry::Ellipse(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0)),
+                true,
+            ),
+            ("path", Geometry::Path(Arc::new(path)), false),
+        ];
+
+        for (route, geometry, dashed) in routes {
+            let stroke = if dashed {
+                dashed_stroke(vec![4.0, 2.0], rframe::StrokeCap::Round)
+            } else {
+                checked_stroke(
+                    4.0,
+                    rframe::StrokeCap::Butt,
+                    rframe::StrokeJoin::Miter,
+                    4.0,
+                    None,
+                )
+            }
+            .with_paint_alpha_factor(stroke_factor)
+            .expect("nonzero factor keeps the stroke");
+            let bounds = geometry.local_box();
+            let node = FrameNode {
+                owner: RECT_OWNER,
+                transform: AffineTransform::identity(),
+                geometry,
+                bounds,
+                paints: PaintStack::solid(CGColor::RED).with_alpha_factor(fill_factor),
+                stroke: Some(stroke),
+            };
+            let product = compile(frame_of(FrameItems::from_nodes(vec![node])))
+                .unwrap_or_else(|error| panic!("{route} factor frame failed: {error}"));
+            let factors = product
+                .drawlist
+                .items
+                .iter()
+                .filter_map(|item| post_paint_opacity(&item.kind))
+                .map(PostPaintOpacity::value)
+                .collect::<Vec<_>>();
+            assert_eq!(factors.len(), 2, "{route} has one fill and one stroke");
+            assert_eq!(factors[0].to_bits(), fill_value.to_bits(), "{route} fill");
+            assert_eq!(
+                factors[1].to_bits(),
+                stroke_value.to_bits(),
+                "{route} stroke"
+            );
+            assert!(
+                matches!(
+                    (
+                        route,
+                        &product.drawlist.items[1].kind,
+                        &product.drawlist.items[2].kind
+                    ),
+                    (
+                        "rect",
+                        ItemKind::RectFill { .. },
+                        ItemKind::RectStroke { .. }
+                    ) | (
+                        "ellipse",
+                        ItemKind::OvalFill { .. },
+                        ItemKind::OvalStroke { .. }
+                    ) | (
+                        "dashed ellipse",
+                        ItemKind::OvalFill { .. },
+                        ItemKind::AbsoluteDashedOvalStroke { .. },
+                    ) | (
+                        "path",
+                        ItemKind::PathFill { .. },
+                        ItemKind::PathStroke { .. }
+                    )
+                ),
+                "{route} retained its geometry-specific fill and stroke routes"
+            );
+        }
+    }
+
+    #[test]
+    fn factor_only_change_affects_raster_identity_and_bounded_damage() {
+        let scene = |factor: f32| {
+            let paints = PaintStack::solid(CGColor::BLACK).with_alpha_factor(alpha_factor(factor));
+            compile(resolved_frame(paints)).expect("factored solid frame")
+        };
+        let identity = scene(1.0);
+        let half = scene(0.5);
+
+        assert_ne!(identity.drawlist, half.drawlist);
+        assert!(!identity.drawlist.raster_eq(&half.drawlist));
+        assert_eq!(
+            diff_frame(&identity, &half),
+            Damage {
+                changed: vec![RECT_OWNER],
+                union_frame: Some(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0)),
+            }
+        );
+
+        let context = PaintCtx::new(None);
+        let view = AffineTransform::identity();
+        let identity_pixels = identity
+            .raster_to_bytes(&view, 64, 48, &context)
+            .expect("identity raster");
+        let half_pixels = half
+            .raster_to_bytes(&view, 64, 48, &context)
+            .expect("factored raster");
+        assert_eq!(rgba_at(&identity_pixels, 64, 16, 12), [0, 0, 0, 255]);
+        assert_eq!(rgba_at(&half_pixels, 64, 16, 12), [127, 127, 127, 255]);
+        assert_eq!(
+            half_pixels,
+            half.raster_to_bytes(&view, 64, 48, &context)
+                .expect("repeat factored raster"),
+            "the factor is retained raster material"
+        );
+    }
+
+    #[test]
+    fn factor_does_not_bypass_or_change_gradient_preflight() {
+        let factor = alpha_factor(0.37);
+        let colors = vec![CGColor::BLACK, CGColor::WHITE];
+        let valid = [
+            CgPaint::LinearGradient(cg::LinearGradientPaint::from_colors(colors.clone())),
+            CgPaint::RadialGradient(cg::RadialGradientPaint::from_colors(colors.clone())),
+        ];
+        for paint in valid {
+            let paints = PaintStack::try_from_paints(CgPaints::new([paint]))
+                .expect("test gradient stack")
+                .with_alpha_factor(factor);
+            compile(resolved_frame(paints)).expect("factored valid gradient passes preflight");
+        }
+
+        let mut singular = cg::LinearGradientPaint::from_colors(colors);
+        singular.transform = AffineTransform::from_acebdf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        let paints =
+            PaintStack::try_from_paints(CgPaints::new([CgPaint::LinearGradient(singular)]))
+                .expect("finite singular gradient remains a preflight concern")
+                .with_alpha_factor(factor);
+        let error = compile(resolved_frame(paints)).expect_err("factor cannot bypass preflight");
+        let BuildError::Paint { owner, reason } = error else {
+            panic!("singular gradient returned the wrong error: {error:?}");
+        };
+        assert_eq!(owner, RECT_OWNER);
+        assert!(reason.contains("invertible"), "unexpected reason: {reason}");
     }
 
     /// The source-neutral seam copies one checked local-space pattern exactly;
@@ -2043,6 +2291,7 @@ mod tests {
                 h,
                 stroke,
                 dash_phase,
+                ..
             } => {
                 assert_eq!((*x, *y, *w, *h), (16.0, 8.0, 32.0, 24.0));
                 assert_eq!(stroke.dash_array.as_deref(), Some(&[6.0, 3.0][..]));
@@ -2278,6 +2527,7 @@ mod tests {
                     corner_radius: RectangularCornerRadius::default(),
                     corner_smoothing: CornerSmoothing::default(),
                     paints: Paints::default(),
+                    post_paint_opacity: PostPaintOpacity::IDENTITY,
                 }),
                 std::mem::discriminant(&ItemKind::EndOpacity),
                 std::mem::discriminant(&ItemKind::EndClip),

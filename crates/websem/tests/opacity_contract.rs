@@ -1,18 +1,17 @@
 //! The group-scope rung's contract: element `opacity`, consumed by the
 //! measured fold rule.
 //!
-//! Chromium's element opacity has two byte-distinct routes, one code value
-//! apart, and both are meaning: content that is a single un-transformed,
-//! un-folded draw **folds** the opacity into that draw's paint — one float
-//! product with the colour's alpha and `fill-opacity`/`stroke-opacity`,
-//! quantized once (byte-identical to the paint-level fold, measured) —
-//! and everything else composites through a real **scope**: an isolated
-//! layer in the resolved contract, restored at the group alpha. Nesting
-//! never flattens to a product (each layer quantizes — measured one code
-//! value apart from the flat fold), a transform strictly *below* the
-//! scope element breaks the fold, and the fold fires at most once per
-//! draw. The probe matrix behind each law lives with the rung's register
-//! addendum.
+//! Chromium's element opacity has distinct routes and each is meaning. A
+//! single un-transformed, un-folded solid draw **folds** opacity into that
+//! draw's colour product, quantized once (byte-identical to paint opacity,
+//! measured). A single gradient draw applies one separate alpha factor after
+//! the gradient's intrinsic opacity materializes. Everything else composites
+//! through a real **scope**: an isolated layer in the resolved contract,
+//! restored at the group alpha. Nesting never flattens to a product (each
+//! layer quantizes — measured one code value apart from the flat fold), a
+//! transform strictly *below* the scope element breaks the fold, and a factor
+//! lands at most once per draw. The probe matrix behind each law lives with
+//! the rung's register addendum.
 
 // This binary consumes only the compiler half of the shared plumbing.
 #[allow(dead_code)]
@@ -44,6 +43,44 @@ fn admit_both(source: &str) -> rframe::Frame {
     );
     let frame = strict.base_frame();
     assert_eq!(frame, best.base_frame(), "admissions are frame-identical");
+    frame
+}
+
+fn admit_inline_both(source: &str) -> rframe::Frame {
+    let strict = SvgFrameSource::from_html_inline_svg(source).expect("strict admits");
+    let best =
+        SvgFrameSource::from_html_inline_svg_best_effort(source).expect("best-effort admits");
+    assert!(
+        best.degradations().iter().all(|degradation| matches!(
+            degradation.action(),
+            websem::DegradationAction::SamplesAsBase
+        )),
+        "inline Base only declares the still-closed sampled view: {:?}",
+        best.degradations()
+    );
+    let frame = strict.base_frame();
+    assert_eq!(frame, best.base_frame(), "admissions are frame-identical");
+    frame
+}
+
+fn admit_static_css_both(source: &str) -> rframe::Frame {
+    let strict = SvgFrameSource::from_standalone_svg(source, viewport()).expect("strict admits");
+    let best = SvgFrameSource::from_standalone_svg_best_effort(source, viewport())
+        .expect("best-effort admits Base");
+    assert!(
+        best.degradations().iter().all(|degradation| matches!(
+            degradation.action(),
+            websem::DegradationAction::SamplesAsBase
+        )),
+        "static CSS only declares the still-closed sampled view: {:?}",
+        best.degradations()
+    );
+    let frame = strict.base_frame();
+    assert_eq!(
+        frame,
+        best.base_frame(),
+        "Base admissions are frame-identical"
+    );
     frame
 }
 
@@ -280,24 +317,45 @@ fn use_and_anchor_scope_like_a_group() {
     assert_eq!(scope_opacities(&via_anchor), [0.5]);
 }
 
-/// What still refuses, by name: element opacity folding over a gradient
-/// paint (one quantized alpha slot cannot carry Chromium's
-/// fold-after-quantization — measured one code value apart), and the
-/// root's opacity (it composites the whole canvas, which an opaque raster
-/// surface cannot express). A gradient under a *real* scope is admitted —
-/// the layer modulates the composite, not the paint.
+/// A lone gradient keeps its intrinsic paint opacity and carries element
+/// opacity as a separate post-paint factor. A gradient under a *real* group
+/// scope is also admitted, but that remains a distinct raster operation.
 #[test]
-fn the_remaining_refusals_name_their_constructs() {
-    let gradient = document(
+fn a_lone_gradient_carries_post_paint_opacity_for_fill_and_stroke() {
+    let fill = admit_both(&document(
         r##"  <defs><linearGradient id="lg"><stop offset="0" stop-color="#16a34a"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
-  <rect x="8" y="8" width="48" height="48" fill="url(#lg)" opacity="0.5"/>"##,
+  <rect x="8" y="8" width="48" height="48" fill="url(#lg)" fill-opacity="0.25" opacity="0.5"/>"##,
+    ));
+    assert!(scope_opacities(&fill).is_empty());
+    let fill_stack = &fill.nodes()[0].paints;
+    assert_eq!(fill_stack.alpha_factor().get().to_bits(), 0.5f32.to_bits());
+    match fill_stack.iter().next().expect("one fill paint") {
+        cg::Paint::LinearGradient(gradient) => {
+            assert_eq!(gradient.opacity.to_bits(), 0.25f32.to_bits())
+        }
+        other => panic!("expected a linear gradient, got {other:?}"),
+    }
+
+    let stroke = admit_both(&document(
+        r##"  <defs><linearGradient id="lg"><stop offset="0" stop-color="#16a34a"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
+  <rect x="12" y="12" width="40" height="40" fill="none" stroke="url(#lg)" stroke-width="8" stroke-opacity="0.25" opacity="0.5"/>"##,
+    ));
+    assert!(scope_opacities(&stroke).is_empty());
+    let stroke_stack = stroke.nodes()[0]
+        .stroke
+        .as_ref()
+        .expect("one stroke")
+        .paints();
+    assert_eq!(
+        stroke_stack.alpha_factor().get().to_bits(),
+        0.5f32.to_bits()
     );
-    let strict = SvgFrameSource::from_standalone_svg(gradient.as_str(), viewport())
-        .expect_err("strict refuses the gradient fold");
-    assert!(
-        strict.to_string().contains("gradient"),
-        "named; got {strict}"
-    );
+    match stroke_stack.iter().next().expect("one stroke paint") {
+        cg::Paint::LinearGradient(gradient) => {
+            assert_eq!(gradient.opacity.to_bits(), 0.25f32.to_bits())
+        }
+        other => panic!("expected a linear gradient, got {other:?}"),
+    }
 
     let under_scope = admit_both(&document(
         r##"  <defs><linearGradient id="lg"><stop offset="0" stop-color="#16a34a"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
@@ -308,14 +366,176 @@ fn the_remaining_refusals_name_their_constructs() {
         [0.5],
         "a gradient inside a real layer is admitted"
     );
-
-    let root = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" opacity="0.5"><rect x="8" y="8" width="48" height="48" fill="#16a34a"/></svg>"##;
-    let strict = SvgFrameSource::from_standalone_svg(root, viewport())
-        .expect_err("strict refuses the root's opacity");
-    assert!(
-        strict.to_string().contains("root <svg>"),
-        "named; got {strict}"
+    assert_eq!(
+        under_scope.nodes()[0].paints.alpha_factor().get(),
+        1.0,
+        "a real scope does not leak into the paint factor"
     );
-    SvgFrameSource::from_standalone_svg_best_effort(root, viewport())
-        .expect_err("the root contract refuses in both admissions");
+}
+
+/// A valid paint server keeps the post-paint stage. A one-stop ramp remains a
+/// constant gradient for rasterization; a geometric degeneracy whose selected
+/// stop alpha is an endpoint can resolve to a solid and still keep the later
+/// element factor. A non-endpoint stop alpha refuses instead of flattening the
+/// shader-alpha and element-alpha stages. An invalid URL's authored solid
+/// fallback is an ordinary direct colour and folds all opacity factors into
+/// that colour. The distinction is visible away from half-value rounding
+/// coincidences.
+#[test]
+fn paint_server_outcomes_keep_their_alpha_stage() {
+    let one_stop = admit_both(&document(
+        r##"  <defs><linearGradient id="g"><stop stop-color="#16a34a" stop-opacity="0.30196078431372547"/></linearGradient></defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#g)" fill-opacity=".7" opacity=".6"/>"##,
+    ));
+    let stack = &one_stop.nodes()[0].paints;
+    assert_eq!(stack.alpha_factor().get().to_bits(), 0.6f32.to_bits());
+    match stack.iter().next().expect("one resolved paint") {
+        cg::Paint::LinearGradient(gradient) => {
+            assert_eq!(gradient.opacity.to_bits(), 0.7f32.to_bits());
+            assert_eq!(gradient.stops.len(), 2);
+            assert!(gradient.stops.iter().all(|stop| stop.color.a() == 77));
+        }
+        other => panic!("one stop: expected a constant gradient, got {other:?}"),
+    }
+
+    let degenerate = admit_both(&document(
+        r##"  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="0"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#16a34a"/></linearGradient></defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#g)" opacity=".6"/>"##,
+    ));
+    let stack = &degenerate.nodes()[0].paints;
+    assert_eq!(stack.alpha_factor().get().to_bits(), 0.6f32.to_bits());
+    match stack.iter().next().expect("one resolved paint") {
+        cg::Paint::Solid(solid) => assert_eq!(solid.color.a(), 255),
+        other => panic!("degenerate geometry: expected a solid, got {other:?}"),
+    }
+
+    let staged_source = document(
+        r##"  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="0"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#16a34a" stop-opacity="0.30196078431372547"/></linearGradient></defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#g)" opacity=".6"/>"##,
+    );
+    let staged = SvgFrameSource::from_standalone_svg(staged_source, viewport())
+        .expect_err("a collapsed non-endpoint shader alpha cannot carry later opacity");
+    let websem::CompileError::UnsupportedFill(reason) = staged else {
+        panic!("expected a fill refusal, got {staged:?}");
+    };
+    assert!(
+        reason.contains("collapses before post-paint opacity"),
+        "{reason}"
+    );
+
+    let fallback = admit_both(&document(
+        r##"  <rect x="8" y="8" width="48" height="48" fill="url(#missing) #16a34a4d" fill-opacity=".7" opacity=".6"/>"##,
+    ));
+    let stack = &fallback.nodes()[0].paints;
+    assert_eq!(stack.alpha_factor().get(), 1.0);
+    match stack.iter().next().expect("one fallback paint") {
+        cg::Paint::Solid(solid) => assert_eq!(solid.color.a(), 32),
+        other => panic!("expected a solid fallback, got {other:?}"),
+    }
+}
+
+/// Root opacity is the same source-neutral isolated composite as a group,
+/// enclosing the complete item stream. Attribute and CSS spellings meet in
+/// one computed value, and standalone/inline entries state the same frame.
+#[test]
+fn root_opacity_wraps_the_complete_frame_in_both_entries() {
+    let attribute = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" opacity="0.5"><rect x="8" y="8" width="48" height="48" fill="#16a34a"/></svg>"##;
+    let css = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" style="opacity: 50%"><rect x="8" y="8" width="48" height="48" fill="#16a34a"/></svg>"##;
+    let attribute_frame = admit_both(attribute);
+    let css_frame = admit_static_css_both(css);
+    assert_eq!(attribute_frame, css_frame);
+    assert_eq!(scope_opacities(&attribute_frame), [0.5]);
+    assert_eq!(fill_alpha(&attribute_frame, 0), 255);
+
+    let inline = format!("<!doctype html><html><body>{attribute}</body></html>");
+    assert_eq!(attribute_frame, admit_inline_both(&inline));
+}
+
+/// The inline entry keeps each HTML ancestor's computed opacity as a distinct
+/// outer scope around the selected SVG-local raster. `opacity` is not
+/// inherited by default, while an explicit `inherit` on the SVG compounds
+/// with the ancestor layer rather than replacing it.
+#[test]
+fn html_ancestor_opacity_wraps_and_compounds_the_inline_svg() {
+    let body_half = r##"<!doctype html><html><body style="opacity:.5"><svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect x="8" y="8" width="48" height="48" fill="#16a34a"/></svg></body></html>"##;
+    let root_half = r##"<!doctype html><html><body><svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" style="opacity:.5"><rect x="8" y="8" width="48" height="48" fill="#16a34a"/></svg></body></html>"##;
+    assert_eq!(admit_inline_both(body_half), admit_inline_both(root_half));
+
+    let inherited = r##"<!doctype html><html><body style="opacity:.5"><svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" style="opacity:inherit"><rect x="8" y="8" width="48" height="48" fill="#16a34a"/></svg></body></html>"##;
+    assert_eq!(scope_opacities(&admit_inline_both(inherited)), [0.5, 0.5]);
+}
+
+/// A zero-opacity HTML ancestor composites the selected SVG to nothing, so
+/// the compiler does not inspect a rendering construct in that invisible
+/// subtree. This is the host analogue of the admitted zero group/root law.
+#[test]
+fn zero_html_ancestor_is_empty_without_inspecting_the_svg_subtree() {
+    let source = r##"<!doctype html><html><body style="opacity:0"><svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><g marker-start="url(#m)"><rect width="64" height="64" fill="#16a34a"/></g></svg></body></html>"##;
+    let frame = admit_inline_both(source);
+    assert!(frame.items.is_empty());
+    assert!(frame.nodes().is_empty());
+}
+
+/// A zero root is the correct empty frame. Like a zero-opacity group, it does
+/// not descend into a child whose rendering construct would otherwise refuse.
+#[test]
+fn zero_root_is_empty_without_inspecting_its_rendering_subtree() {
+    let source = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" opacity="0"><g marker-start="url(#m)"><rect width="64" height="64" fill="#16a34a"/></g></svg>"##;
+    let frame = admit_both(source);
+    assert!(frame.items.is_empty());
+    assert!(frame.nodes().is_empty());
+}
+
+/// Root opacity consumes one slot of the checked scope budget: 63 nested
+/// translucent containers plus the root are admitted; the next container
+/// refuses before `FrameItems` construction instead of panicking at 65 scopes.
+#[test]
+fn root_opacity_counts_toward_the_scope_depth_budget() {
+    let source = |depth: usize| {
+        let mut body = String::new();
+        for _ in 0..depth {
+            body.push_str(r##"<g opacity="0.5"><rect width="1" height="1" fill="#16a34a"/>"##);
+        }
+        body.push_str(r##"<rect x="2" width="1" height="1" fill="#2563eb"/>"##);
+        body.push_str(&"</g>".repeat(depth));
+        format!(
+            r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" opacity="0.5">{body}</svg>"##
+        )
+    };
+
+    let admitted = admit_both(&source(63));
+    assert_eq!(scope_opacities(&admitted).len(), 64);
+
+    let error = SvgFrameSource::from_standalone_svg(source(64), viewport())
+        .expect_err("the 65th possible scope refuses before construction");
+    assert!(
+        error.to_string().contains("nesting deeper than 64"),
+        "{error}"
+    );
+}
+
+/// Host ancestors consume the same checked scope budget as SVG-local layers.
+#[test]
+fn html_ancestor_opacity_counts_toward_the_scope_depth_budget() {
+    let source = |depth: usize| {
+        let mut body = String::new();
+        for _ in 0..depth {
+            body.push_str(r##"<div style="opacity:.5">"##);
+        }
+        body.push_str(
+            r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="1" height="1" fill="#16a34a"/></svg>"##,
+        );
+        body.push_str(&"</div>".repeat(depth));
+        format!("<!doctype html><html><body>{body}</body></html>")
+    };
+
+    let admitted = admit_inline_both(&source(64));
+    assert_eq!(scope_opacities(&admitted).len(), 64);
+
+    let error = SvgFrameSource::from_html_inline_svg(source(65))
+        .expect_err("the 65th host scope refuses before construction");
+    assert!(
+        error.to_string().contains("nesting deeper than 64"),
+        "{error}"
+    );
 }

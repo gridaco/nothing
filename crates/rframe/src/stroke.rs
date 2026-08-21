@@ -26,7 +26,7 @@
 //! caps can paint dots at those same zero-length intervals, so those strokes
 //! remain present.
 
-use crate::frame::PaintStack;
+use crate::frame::{PaintAlphaFactor, PaintStack};
 
 /// The shape of a stroked contour's open ends.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -374,6 +374,18 @@ impl Stroke {
         &self.paints
     }
 
+    /// Attach the factor applied after every stroke-paint entry's own alpha.
+    ///
+    /// This changes only the stroke's [`PaintStack`]; width, cap, join, miter
+    /// limit, and dash remain exactly as resolved. A zero factor normalizes
+    /// the paint stack away, so the complete stroke becomes `None` rather than
+    /// retain an invisible stroke that violates this type's invariant.
+    #[must_use]
+    pub fn with_paint_alpha_factor(mut self, alpha_factor: PaintAlphaFactor) -> Option<Self> {
+        self.paints = self.paints.with_alpha_factor(alpha_factor);
+        (!self.paints.is_empty()).then_some(self)
+    }
+
     /// The stroke width, in the node's local space.
     #[must_use]
     pub const fn width(&self) -> f32 {
@@ -496,6 +508,39 @@ mod tests {
             Ok(None),
             "a fully transparent paint normalizes away before it reaches here"
         );
+    }
+
+    #[test]
+    fn paint_alpha_factor_changes_only_the_stack_and_zero_removes_the_stroke() {
+        let intervals = StrokeDashIntervals::new(vec![3.0, 2.0])
+            .expect("valid intervals")
+            .expect("positive cycle");
+        let dash = StrokeDash::new(intervals, -7.0).expect("finite phase");
+        let original = Stroke::new_with_dash(
+            black(),
+            8.0,
+            StrokeCap::Square,
+            StrokeJoin::Bevel,
+            2.5,
+            Some(dash),
+        )
+        .expect("valid stroke")
+        .expect("visible stroke");
+
+        let half = PaintAlphaFactor::new(0.5).expect("half alpha");
+        let mut expected = original.clone();
+        expected.paints = expected.paints.with_alpha_factor(half);
+        assert_eq!(
+            original
+                .clone()
+                .with_paint_alpha_factor(half)
+                .expect("a nonzero factor keeps the stroke"),
+            expected,
+            "every non-paint stroke fact stays bit-for-bit unchanged"
+        );
+
+        let zero = PaintAlphaFactor::new(0.0).expect("checked zero");
+        assert_eq!(original.with_paint_alpha_factor(zero), None);
     }
 
     #[test]

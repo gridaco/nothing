@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (306)
+## Chromium-baked cells (314)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells and three gradient ramps carry a declared, bounded
@@ -28,6 +28,7 @@ tolerance — see [README.md](./README.md)). Every thumbnail below
 engine's own render too; hover for the cell's name, click through
 to its fixture source. No new image is committed for this view.
 
+<a href="./html-inline-svg-ancestor-opacity.html" title="html-inline-svg-ancestor-opacity (html-inline-svg)"><img src="./chromium/html-inline-svg-ancestor-opacity.png" width="56" alt="html-inline-svg-ancestor-opacity"></a>
 <a href="./html-inline-svg-currentcolor-rect.html" title="html-inline-svg-currentcolor-rect (html-inline-svg)"><img src="./chromium/html-inline-svg-currentcolor-rect.png" width="56" alt="html-inline-svg-currentcolor-rect"></a>
 <a href="./html-webpage-mockup.html" title="html-webpage-mockup (html-inline-svg)"><img src="./chromium/html-webpage-mockup.png" width="56" alt="html-webpage-mockup"></a>
 <a href="./svg-anchor-container.svg" title="svg-anchor-container (standalone-svg)"><img src="./chromium/svg-anchor-container.png" width="56" alt="svg-anchor-container"></a>
@@ -72,6 +73,9 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-display-none-root.svg" title="svg-display-none-root (standalone-svg)"><img src="./chromium/svg-display-none-root.png" width="56" alt="svg-display-none-root"></a>
 <a href="./svg-display-none-shape.svg" title="svg-display-none-shape (standalone-svg)"><img src="./chromium/svg-display-none-shape.png" width="56" alt="svg-display-none-shape"></a>
 <a href="./svg-element-opacity.svg" title="svg-element-opacity (standalone-svg)"><img src="./chromium/svg-element-opacity.png" width="56" alt="svg-element-opacity"></a>
+<a href="./svg-element-opacity-gradient.svg" title="svg-element-opacity-gradient (standalone-svg)"><img src="./chromium/svg-element-opacity-gradient.png" width="56" alt="svg-element-opacity-gradient"></a>
+<a href="./svg-element-opacity-gradient-css.svg" title="svg-element-opacity-gradient-css (standalone-svg)"><img src="./chromium/svg-element-opacity-gradient-css.png" width="56" alt="svg-element-opacity-gradient-css"></a>
+<a href="./svg-element-opacity-gradient-stroke.svg" title="svg-element-opacity-gradient-stroke (standalone-svg)"><img src="./chromium/svg-element-opacity-gradient-stroke.png" width="56" alt="svg-element-opacity-gradient-stroke"></a>
 <a href="./svg-ellipse-auto-rx.svg" title="svg-ellipse-auto-rx (standalone-svg)"><img src="./chromium/svg-ellipse-auto-rx.png" width="56" alt="svg-ellipse-auto-rx"></a>
 <a href="./svg-ellipse-fill.svg" title="svg-ellipse-fill (standalone-svg)"><img src="./chromium/svg-ellipse-fill.png" width="56" alt="svg-ellipse-fill"></a>
 <a href="./svg-ellipse-negative-rx-auto.svg" title="svg-ellipse-negative-rx-auto (standalone-svg)"><img src="./chromium/svg-ellipse-negative-rx-auto.png" width="56" alt="svg-ellipse-negative-rx-auto"></a>
@@ -120,6 +124,8 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-non-rendering-elements.svg" title="svg-non-rendering-elements (standalone-svg)"><img src="./chromium/svg-non-rendering-elements.png" width="56" alt="svg-non-rendering-elements"></a>
 <a href="./svg-opacity-fill-stroke.svg" title="svg-opacity-fill-stroke (standalone-svg)"><img src="./chromium/svg-opacity-fill-stroke.png" width="56" alt="svg-opacity-fill-stroke"></a>
 <a href="./svg-opacity-gradient-in-group.svg" title="svg-opacity-gradient-in-group (standalone-svg)"><img src="./chromium/svg-opacity-gradient-in-group.png" width="56" alt="svg-opacity-gradient-in-group"></a>
+<a href="./svg-opacity-grammar-attr.svg" title="svg-opacity-grammar-attr (standalone-svg)"><img src="./chromium/svg-opacity-grammar-attr.png" width="56" alt="svg-opacity-grammar-attr"></a>
+<a href="./svg-opacity-grammar-css.svg" title="svg-opacity-grammar-css (standalone-svg)"><img src="./chromium/svg-opacity-grammar-css.png" width="56" alt="svg-opacity-grammar-css"></a>
 <a href="./svg-opacity-group-nonhalf.svg" title="svg-opacity-group-nonhalf (standalone-svg)"><img src="./chromium/svg-opacity-group-nonhalf.png" width="56" alt="svg-opacity-group-nonhalf"></a>
 <a href="./svg-opacity-group-overlap.svg" title="svg-opacity-group-overlap (standalone-svg)"><img src="./chromium/svg-opacity-group-overlap.png" width="56" alt="svg-opacity-group-overlap"></a>
 <a href="./svg-opacity-hidden-in-group.svg" title="svg-opacity-hidden-in-group (standalone-svg)"><img src="./chromium/svg-opacity-hidden-in-group.png" width="56" alt="svg-opacity-hidden-in-group"></a>
@@ -184,6 +190,8 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-rect-rounded-mirror-auto.svg" title="svg-rect-rounded-mirror-auto (standalone-svg)"><img src="./chromium/svg-rect-rounded-mirror-auto.png" width="56" alt="svg-rect-rounded-mirror-auto"></a>
 <a href="./svg-rect-rounded-negative-rx-auto.svg" title="svg-rect-rounded-negative-rx-auto (standalone-svg)"><img src="./chromium/svg-rect-rounded-negative-rx-auto.png" width="56" alt="svg-rect-rounded-negative-rx-auto"></a>
 <a href="./svg-rect-rounded-stroked.svg" title="svg-rect-rounded-stroked (standalone-svg)"><img src="./chromium/svg-rect-rounded-stroked.png" width="56" alt="svg-rect-rounded-stroked"></a>
+<a href="./svg-root-opacity.svg" title="svg-root-opacity (standalone-svg)"><img src="./chromium/svg-root-opacity.png" width="56" alt="svg-root-opacity"></a>
+<a href="./svg-root-opacity-zero.svg" title="svg-root-opacity-zero (standalone-svg)"><img src="./chromium/svg-root-opacity-zero.png" width="56" alt="svg-root-opacity-zero"></a>
 <a href="./svg-shape-transform-matrix.svg" title="svg-shape-transform-matrix (standalone-svg)"><img src="./chromium/svg-shape-transform-matrix.png" width="56" alt="svg-shape-transform-matrix"></a>
 <a href="./svg-sizing-auto-rect.svg" title="svg-sizing-auto-rect (standalone-svg)"><img src="./chromium/svg-sizing-auto-rect.png" width="56" alt="svg-sizing-auto-rect"></a>
 <a href="./svg-stroke-cap-butt.svg" title="svg-stroke-cap-butt (standalone-svg)"><img src="./chromium/svg-stroke-cap-butt.png" width="56" alt="svg-stroke-cap-butt"></a>
@@ -335,7 +343,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (59)
+## The refusal register (58)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -351,12 +359,12 @@ its row into the cells above.
 | `svg-css-transform-box` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform-box, which this cascade does not represent |
 | `svg-css-transform-origin` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform-origin, which this cascade does not represent |
 | `svg-display-contents` | declared | skipped svg/g[1]: unsupported computed style: display: contents is not yet consumed |
-| `svg-element-opacity-gradient` | declared | skipped svg/rect[2]: unsupported computed style: opacity 0.5 over a gradient paint is not yet consumed (the paint carries one quantized alpha, and Chromium composites the element opacity after that quantization — expressing both needs a second paint-alpha factor) |
 | `svg-filter` | declared | skipped svg/filter[1]: unsupported element <filter>; skipped svg/rect[2]: unsupported rendering attribute filter on <rect> (not yet consumed) |
 | `svg-foreign-object` | declared | skipped svg/foreignObject[1]: unsupported element <foreignObject> |
 | `svg-gradient-focal` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): the radial gradient has a focal point or focal radius, which the shared radial paint leaf cannot state (concentric radials only)" |
 | `svg-gradient-linearrgb` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): color-interpolation: linearRGB interpolates stops in linear-light sRGB, which this slice does not execute (sRGB interpolation only)" |
 | `svg-gradient-stop-css` | declared | declaration ignored at svg/style[1]: a stylesheet declares stop-color, which this cascade does not represent; elements it matches render without it |
+| `svg-gradient-stop-precision` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): resolved gradient stop alpha loses float precision at the RGBA8 paint contract"; skipped svg/rect[2]: unsupported fill value "url(#d): resolved gradient stop alpha loses staged precision when a degenerate paint server collapses to RGBA8"; skipped svg/rect[3]: unsupported fill value "url(#a): resolved gradient stop alpha loses float precision when a degenerate ramp average collapses to RGBA8"; skipped svg/rect[4]: unsupported fill value "url(#p): resolved gradient stop alpha loses staged precision when a degenerate paint server collapses before post-paint opacity"; skipped svg/rect[5]: unsupported fill value "url(#c): resolved gradient stop color loses float precision when a degenerate ramp average collapses to RGBA8"; skipped svg/rect[6]: unsupported fill value "url(#t): resolved gradient stop color loses float precision when a degenerate ramp average collapses to RGBA8" |
 | `svg-gradient-stop-style-attr` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): a gradient <stop> declares stop-color in a style attribute, which this cascade does not represent" |
 | `svg-gradient-unit-basis` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): gradient geometry x2=\"4em\" uses a unit whose basis this slice does not consume (numbers, px, and percentages only)" |
 | `svg-image` | declared | skipped svg/image[1]: unsupported element <image> |
@@ -372,7 +380,6 @@ its row into the cells above.
 | `svg-preserve-aspect-ratio-case-folded` | **both refuse** | preserveAspectRatio "xmidymid meet" is invalid |
 | `svg-preserve-aspect-ratio-defer` | **both refuse** | preserveAspectRatio "defer xMidYMid meet" is invalid |
 | `svg-preserve-aspect-ratio-invalid-align` | **both refuse** | preserveAspectRatio "xMidYMiddle meet" is invalid |
-| `svg-root-opacity` | **both refuse** | unsupported computed style: opacity 0.5 on the root <svg> is not yet consumed (it composites the whole canvas, which needs a translucent surface entry) |
 | `svg-smil-animate-transform` | declared | skipped svg/g[1]: its authored state is overridden at document load by the unsupported animation at svg/g[1]/animateTransform[1]: animation element <animateTransform> is outside the rect-x proving slice |
 | `svg-smil-retarget-href` | **both refuse** | SVG animation at svg/rect[2]/set[1] is unsupported: animation element <set> is outside the rect-x proving slice; it carries href, so its target cannot be attributed to one element without id resolution; it is active at document load, so the authored state it overrides cannot render as the Base view |
 | `svg-smil-set-load-active` | declared | skipped svg/rect[2]: its authored state is overridden at document load by the unsupported animation at svg/rect[2]/set[1]: animation element <set> is outside the rect-x proving slice |

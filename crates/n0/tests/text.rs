@@ -232,6 +232,7 @@ fn attributed_drawlist_preserves_run_metrics_style_and_fill_fallback() {
                 paints,
                 paint_w,
                 paint_h,
+                ..
             } => Some((layout, paints, *paint_w, *paint_h)),
             _ => None,
         })

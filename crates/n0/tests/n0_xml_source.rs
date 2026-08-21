@@ -7,7 +7,7 @@
 #[allow(dead_code)]
 mod support;
 
-use n0::drawlist::{build_glyphless_unchecked, Item, ItemKind};
+use n0::drawlist::{build_glyphless_unchecked, Item, ItemKind, PostPaintOpacity};
 use n0::frame;
 use n0::paint::PaintCtx;
 use n0_model::math::Affine;
@@ -77,6 +77,7 @@ fn assert_rect_fill(item: &Item, node: u32, world: Affine, width: f32, color: u3
             corner_radius: RectangularCornerRadius::default(),
             corner_smoothing: CornerSmoothing::default(),
             paints: Paints::solid(ModelColor(color)),
+            post_paint_opacity: PostPaintOpacity::IDENTITY,
         }
     );
 }

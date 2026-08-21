@@ -2,11 +2,12 @@
 //!
 //! A scope states that the items it encloses composite as **one isolated
 //! group** — its effect applies to the group's composite, never per item.
-//! That is the only thing a scope is for: a fact a producer *could* state
-//! per item is stated per item instead (an opacity over a single paint
-//! resolves into that paint's alpha), and a scope is the fact that no
-//! per-item statement can express — a translucent group whose contents
-//! overlap, a fill and its stroke composited together.
+//! That is the only thing a scope is for: a fact a producer *could* state on
+//! one paint pass is stated there instead. [`crate::PaintAlphaFactor`], for
+//! example, modulates each paint entry without isolation after its own alpha
+//! materializes. A scope is the byte-distinct fact that no such per-paint
+//! statement can express — a translucent group whose contents overlap, or a
+//! fill and its stroke composited together.
 //!
 //! What a scope refuses is what this crate refuses: an effect that
 //! references a resource (a mask image, a filter graph, a pattern) has no

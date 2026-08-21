@@ -7,7 +7,7 @@ use cg::{
     BlendMode, CGColor, DiamondGradientPaint, GradientStop, ImagePaint, LinearGradientPaint, Paint,
     Paints, RadialGradientPaint, SolidPaint, SweepGradientPaint,
 };
-use rframe::{PaintStack, PaintStackError};
+use rframe::{PaintAlphaFactor, PaintStack, PaintStackError, Stroke, StrokeCap, StrokeJoin};
 
 fn ramp() -> Vec<GradientStop> {
     vec![
@@ -117,4 +117,86 @@ fn a_visible_nonnormal_blend_is_rejected_even_on_an_admitted_variant() {
         PaintStack::try_from_paints(Paints::new([Paint::LinearGradient(blended)])),
         Err(PaintStackError { index: 0 })
     );
+}
+
+#[test]
+fn alpha_factor_admits_exactly_the_closed_unit_interval() {
+    for admitted in [0.0, -0.0, f32::MIN_POSITIVE, 0.5, 1.0] {
+        let factor = PaintAlphaFactor::new(admitted).expect("a finite unit factor");
+        assert_eq!(factor.get(), if admitted == 0.0 { 0.0 } else { admitted });
+    }
+    for refused in [-0.25, 1.25, f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+        assert!(
+            PaintAlphaFactor::new(refused).is_err(),
+            "{refused} is not a finite unit factor"
+        );
+    }
+}
+
+#[test]
+fn alpha_factor_is_independent_of_intrinsic_alpha_and_paint_order() {
+    let linear = LinearGradientPaint {
+        stops: ramp(),
+        opacity: 0.25,
+        ..Default::default()
+    };
+    let radial = RadialGradientPaint {
+        stops: ramp(),
+        opacity: 0.75,
+        ..Default::default()
+    };
+    let ordinary = PaintStack::try_from_paints(Paints::new([
+        Paint::LinearGradient(linear.clone()),
+        Paint::RadialGradient(radial.clone()),
+    ]))
+    .expect("admitted gradients");
+    let factored = ordinary
+        .clone()
+        .with_alpha_factor(PaintAlphaFactor::new(0.5).expect("half alpha"));
+
+    assert_eq!(ordinary.alpha_factor(), PaintAlphaFactor::IDENTITY);
+    assert_eq!(factored.alpha_factor().get(), 0.5);
+    assert_ne!(factored, ordinary, "the second alpha operation is material");
+    assert_eq!(
+        factored.iter().cloned().collect::<Vec<_>>(),
+        [Paint::LinearGradient(linear), Paint::RadialGradient(radial)],
+        "the factor neither folds into intrinsic opacity nor changes paint order"
+    );
+}
+
+#[test]
+fn zero_and_empty_stacks_canonicalize_to_empty_identity() {
+    let half = PaintAlphaFactor::new(0.5).expect("half alpha");
+    let zero = PaintAlphaFactor::new(0.0).expect("zero is checked before normalization");
+
+    let empty = PaintStack::empty().with_alpha_factor(half);
+    assert!(empty.is_empty());
+    assert_eq!(empty.alpha_factor(), PaintAlphaFactor::IDENTITY);
+
+    let zeroed = PaintStack::solid(CGColor::RED).with_alpha_factor(zero);
+    assert!(zeroed.is_empty());
+    assert_eq!(zeroed.alpha_factor(), PaintAlphaFactor::IDENTITY);
+}
+
+#[test]
+fn stroke_carries_the_same_factored_stack_without_a_second_field() {
+    let factored =
+        PaintStack::try_from_paints(Paints::new([Paint::LinearGradient(LinearGradientPaint {
+            stops: ramp(),
+            opacity: 0.25,
+            ..Default::default()
+        })]))
+        .expect("admitted gradient")
+        .with_alpha_factor(PaintAlphaFactor::new(0.5).expect("half alpha"));
+    let stroke = Stroke::new(
+        factored.clone(),
+        8.0,
+        StrokeCap::Round,
+        StrokeJoin::Round,
+        4.0,
+    )
+    .expect("valid stroke")
+    .expect("visible stroke");
+
+    assert_eq!(stroke.paints(), &factored);
 }

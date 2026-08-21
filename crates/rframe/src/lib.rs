@@ -19,7 +19,7 @@ mod stroke;
 
 pub use frame::{
     Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry, Identity, MAX_SCOPE_DEPTH,
-    PaintStack, PaintStackError, Provenance, VisualRef,
+    PaintAlphaFactor, PaintAlphaFactorError, PaintStack, PaintStackError, Provenance, VisualRef,
 };
 pub use path::{FillRule, PathCommand, PathData, PathDataError};
 pub use scope::{Scope, ScopeEffect, ScopeOpacity, ScopeOpacityError};

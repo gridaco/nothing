@@ -53,8 +53,70 @@ impl std::fmt::Display for PaintStackError {
 
 impl std::error::Error for PaintStackError {}
 
+/// Why a value cannot be carried as a post-paint alpha factor.
+///
+/// The factor is a normalized multiplier, so its complete domain is the
+/// closed unit interval. A producer resolves a zero factor to no paint when it
+/// attaches the factor to a [`PaintStack`]; keeping zero valid here lets that
+/// normalization remain explicit and checked rather than relying on a raw
+/// scalar at the call site.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PaintAlphaFactorError {
+    pub value: f32,
+}
+
+impl std::fmt::Display for PaintAlphaFactorError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "paint alpha factor {} is outside the closed unit interval",
+            self.value
+        )
+    }
+}
+
+impl std::error::Error for PaintAlphaFactorError {}
+
+/// A checked factor applied after a paint entry's own alpha materializes.
+///
+/// This is not the paint's intrinsic opacity and not group opacity. A
+/// consumer first materializes each [`cg::Paint`]'s own alpha, then multiplies
+/// that result by this factor before coverage and source-over compositing. In
+/// particular, it must not multiply the factor back into a gradient's own
+/// opacity, because that changes the order of the two alpha operations.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PaintAlphaFactor(f32);
+
+impl PaintAlphaFactor {
+    /// The identity factor carried by every ordinary paint stack.
+    pub const IDENTITY: Self = Self(1.0);
+
+    /// Check one finite factor in `[0, 1]`.
+    pub fn new(value: f32) -> Result<Self, PaintAlphaFactorError> {
+        if value.is_finite() && (0.0..=1.0).contains(&value) {
+            // Erase negative zero as a second spelling of the factor that
+            // normalizes a stack to no paint.
+            Ok(Self(if value == 0.0 { 0.0 } else { value }))
+        } else {
+            Err(PaintAlphaFactorError { value })
+        }
+    }
+
+    #[must_use]
+    pub const fn get(self) -> f32 {
+        self.0
+    }
+}
+
+impl Default for PaintAlphaFactor {
+    fn default() -> Self {
+        Self::IDENTITY
+    }
+}
+
 /// A validated ordered stack of visible normal-blend `cg` paints: solids,
-/// linear gradients, and radial gradients.
+/// linear gradients, and radial gradients, plus one uniform post-paint alpha
+/// factor.
 ///
 /// This is an admitted subset of the shared leaf vocabulary, not a competing
 /// paint vocabulary. Construction removes paints with no visual effect and
@@ -69,8 +131,27 @@ impl std::error::Error for PaintStackError {}
 /// gradient's transform composes in that unit space. A producer resolves its
 /// source's coordinate systems into these unit-box facts; no source vocabulary
 /// (units, references, spread keywords) crosses the contract.
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PaintStack(cg::Paints);
+///
+/// The alpha factor applies independently to every entry, after that entry's
+/// own alpha materializes and before it composites over the entries below it.
+/// It is therefore not opacity over the already-composited stack and creates
+/// no isolated group. A producer that needs to modulate the stack's composite
+/// states a [`Scope`] instead. This order is equally defined for a one-paint
+/// and a multi-paint stack; the factor never changes paint order.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PaintStack {
+    paints: cg::Paints,
+    alpha_factor: PaintAlphaFactor,
+}
+
+impl Default for PaintStack {
+    fn default() -> Self {
+        Self {
+            paints: cg::Paints::default(),
+            alpha_factor: PaintAlphaFactor::IDENTITY,
+        }
+    }
+}
 
 impl PaintStack {
     pub fn empty() -> Self {
@@ -81,9 +162,10 @@ impl PaintStack {
         if color.a == 0 {
             return Self::empty();
         }
-        Self(cg::Paints::new([cg::Paint::Solid(
-            cg::SolidPaint::new_color(color),
-        )]))
+        Self {
+            paints: cg::Paints::new([cg::Paint::Solid(cg::SolidPaint::new_color(color))]),
+            alpha_factor: PaintAlphaFactor::IDENTITY,
+        }
     }
 
     pub fn try_from_paints(paints: cg::Paints) -> Result<Self, PaintStackError> {
@@ -104,19 +186,45 @@ impl PaintStack {
                 _ => return Err(PaintStackError { index }),
             }
         }
-        Ok(Self(cg::Paints::new(admitted)))
+        Ok(Self {
+            paints: cg::Paints::new(admitted),
+            alpha_factor: PaintAlphaFactor::IDENTITY,
+        })
+    }
+
+    /// Attach the factor applied after every entry's intrinsic paint alpha.
+    ///
+    /// A zero factor, or a factor attached to an already-empty stack,
+    /// canonicalizes to [`PaintStack::empty`]: a resolved stack that paints
+    /// nothing carries neither dormant paints nor a meaningless factor.
+    #[must_use]
+    pub fn with_alpha_factor(self, alpha_factor: PaintAlphaFactor) -> Self {
+        if self.is_empty() || alpha_factor.get() == 0.0 {
+            Self::empty()
+        } else {
+            Self {
+                alpha_factor,
+                ..self
+            }
+        }
+    }
+
+    /// The factor applied after each entry's own paint alpha materializes.
+    #[must_use]
+    pub const fn alpha_factor(&self) -> PaintAlphaFactor {
+        self.alpha_factor
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &cg::Paint> {
-        self.0.iter()
+        self.paints.iter()
     }
 
     pub fn len(&self) -> usize {
-        self.0.len()
+        self.paints.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
+        self.paints.is_empty()
     }
 }
 

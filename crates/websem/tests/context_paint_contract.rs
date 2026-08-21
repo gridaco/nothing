@@ -445,10 +445,15 @@ fn one_stop_context_gradient_does_not_demand_an_unknown_box() {
         "{strict}"
     );
     let best = SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport())
-        .expect("the solid and unsupported sibling are independent");
-    assert_eq!(
-        fill_color(&best.base_frame()),
-        cg::CGColor::from_rgb(225, 29, 72)
+        .expect("the constant gradient and unsupported sibling are independent");
+    let frame = best.base_frame();
+    let gradient = linear_fill(&frame, 0);
+    assert_eq!(gradient.stops.len(), 2);
+    assert!(
+        gradient
+            .stops
+            .iter()
+            .all(|stop| stop.color == cg::CGColor::from_rgb(225, 29, 72))
     );
     assert_eq!(best.degradations().len(), 1, "{:?}", best.degradations());
     assert!(
