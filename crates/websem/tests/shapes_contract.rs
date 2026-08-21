@@ -311,7 +311,7 @@ fn rust_float_superset_radii_refuse_as_bad_numbers() {
 /// direct decimal just above an exact f32 midpoint. Every affected attribute
 /// refuses by the same stable geometry reason instead of choosing a neighbour.
 #[test]
-fn geometry_numeric_precision_aliases_refuse_for_cx_cy_and_r() {
+fn geometry_numeric_precision_aliases_refuse_for_every_raw_geometry_attribute() {
     const PERCENTAGE_ALIAS: &str = "57384.267578125007%";
     const DIRECT_ALIAS: &str = "1.000000059604644775390625000000000000000000000001";
 
@@ -332,6 +332,34 @@ fn geometry_numeric_precision_aliases_refuse_for_cx_cy_and_r() {
             format!(r##"<circle cx="32" cy="32" r="{PERCENTAGE_ALIAS}" fill="#16a34a"/>"##),
         ),
         (
+            "percentage",
+            "x",
+            format!(
+                r##"<rect x="{PERCENTAGE_ALIAS}" y="8" width="8" height="8" fill="#16a34a"/>"##
+            ),
+        ),
+        (
+            "percentage",
+            "y",
+            format!(
+                r##"<rect x="8" y="{PERCENTAGE_ALIAS}" width="8" height="8" fill="#16a34a"/>"##
+            ),
+        ),
+        (
+            "percentage",
+            "width",
+            format!(
+                r##"<rect x="8" y="8" width="{PERCENTAGE_ALIAS}" height="8" fill="#16a34a"/>"##
+            ),
+        ),
+        (
+            "percentage",
+            "height",
+            format!(
+                r##"<rect x="8" y="8" width="8" height="{PERCENTAGE_ALIAS}" fill="#16a34a"/>"##
+            ),
+        ),
+        (
             "direct",
             "cx",
             format!(r##"<circle cx="{DIRECT_ALIAS}" cy="32" r="8" fill="#16a34a"/>"##),
@@ -345,6 +373,26 @@ fn geometry_numeric_precision_aliases_refuse_for_cx_cy_and_r() {
             "direct",
             "r",
             format!(r##"<circle cx="32" cy="32" r="{DIRECT_ALIAS}" fill="#16a34a"/>"##),
+        ),
+        (
+            "direct",
+            "x",
+            format!(r##"<rect x="{DIRECT_ALIAS}" y="8" width="8" height="8" fill="#16a34a"/>"##),
+        ),
+        (
+            "direct",
+            "y",
+            format!(r##"<rect x="8" y="{DIRECT_ALIAS}" width="8" height="8" fill="#16a34a"/>"##),
+        ),
+        (
+            "direct",
+            "width",
+            format!(r##"<rect x="8" y="8" width="{DIRECT_ALIAS}" height="8" fill="#16a34a"/>"##),
+        ),
+        (
+            "direct",
+            "height",
+            format!(r##"<rect x="8" y="8" width="8" height="{DIRECT_ALIAS}" fill="#16a34a"/>"##),
         ),
     ] {
         let (error, reason) = shape_failure(&on_canvas(&shape));
@@ -366,7 +414,7 @@ fn geometry_numeric_precision_aliases_refuse_for_cx_cy_and_r() {
 /// paint. The producer cannot represent that range contract yet, so it must
 /// refuse at the attribute instead of leaking infinity into the frame.
 #[test]
-fn geometry_percentage_resolution_overflow_refuses_for_cx_cy_and_r() {
+fn geometry_percentage_resolution_overflow_refuses_for_every_raw_geometry_attribute() {
     for (attr, shape) in [
         (
             "cx",
@@ -379,6 +427,22 @@ fn geometry_percentage_resolution_overflow_refuses_for_cx_cy_and_r() {
         (
             "r",
             r##"<circle cx="32" cy="32" r="3.4e38%" fill="#16a34a"/>"##,
+        ),
+        (
+            "x",
+            r##"<rect x="3.4e38%" y="8" width="8" height="8" fill="#16a34a"/>"##,
+        ),
+        (
+            "y",
+            r##"<rect x="8" y="3.4e38%" width="8" height="8" fill="#16a34a"/>"##,
+        ),
+        (
+            "width",
+            r##"<rect x="8" y="8" width="3.4e38%" height="8" fill="#16a34a"/>"##,
+        ),
+        (
+            "height",
+            r##"<rect x="8" y="8" width="8" height="3.4e38%" fill="#16a34a"/>"##,
         ),
     ] {
         let (error, reason) = shape_failure(&on_canvas(shape));
@@ -396,7 +460,7 @@ fn geometry_percentage_resolution_overflow_refuses_for_cx_cy_and_r() {
 /// consumed attributes therefore refuse at the established Web range instead
 /// of reaching a backend path that silently drops their transformed pixels.
 #[test]
-fn geometry_used_value_range_refuses_for_cx_cy_and_r() {
+fn geometry_used_value_range_refuses_for_every_drawable_raw_geometry_attribute() {
     for (attr, shape) in [
         (
             "cx",
@@ -410,6 +474,30 @@ fn geometry_used_value_range_refuses_for_cx_cy_and_r() {
             "r",
             r##"<circle cx="32" cy="32" r="2.176e38" fill="#16a34a"/>"##,
         ),
+        (
+            "x",
+            r##"<rect x="2.176e38" y="8" width="8" height="8" fill="#16a34a"/>"##,
+        ),
+        (
+            "x",
+            r##"<rect x="-2.176e38" y="8" width="8" height="8" fill="#16a34a"/>"##,
+        ),
+        (
+            "y",
+            r##"<rect x="8" y="2.176e38" width="8" height="8" fill="#16a34a"/>"##,
+        ),
+        (
+            "y",
+            r##"<rect x="8" y="-2.176e38" width="8" height="8" fill="#16a34a"/>"##,
+        ),
+        (
+            "width",
+            r##"<rect x="8" y="8" width="2.176e38" height="8" fill="#16a34a"/>"##,
+        ),
+        (
+            "height",
+            r##"<rect x="8" y="8" width="8" height="2.176e38" fill="#16a34a"/>"##,
+        ),
     ] {
         let (error, reason) = shape_failure(&on_canvas(shape));
         assert!(
@@ -418,6 +506,32 @@ fn geometry_used_value_range_refuses_for_cx_cy_and_r() {
             "{attr}: {error:?}"
         );
         assert!(reason.contains("exceeds the admitted"), "{attr}: {reason}");
+    }
+}
+
+/// A negative box extent is invalid element geometry at every magnitude. It
+/// must keep the admitted no-paint meaning rather than trip the positive
+/// used-range patrol that protects drawable extents.
+#[test]
+fn extreme_negative_box_extents_remain_admitted_nothings() {
+    for (attr, shape) in [
+        (
+            "width",
+            r##"<rect x="8" y="8" width="-2.176e38" height="16" fill="#16a34a" stroke="#111827" stroke-width="4"/>"##,
+        ),
+        (
+            "height",
+            r##"<rect x="8" y="8" width="16" height="-2.176e38" fill="#16a34a" stroke="#111827" stroke-width="4"/>"##,
+        ),
+    ] {
+        let frame = admit_both(&on_canvas(shape));
+        let pixels = render_through_n0(&frame, 64, 64);
+        assert!(
+            pixels
+                .chunks_exact(4)
+                .all(|pixel| pixel == [255, 255, 255, 255]),
+            "negative {attr} paints no fill or stroke"
+        );
     }
 }
 
@@ -480,6 +594,55 @@ fn geometry_css_value_families_refuse_by_attribute_name() {
             reason.contains(&format!("attribute {attr}=")),
             "{family} {attr} names its ingress: {reason}"
         );
+    }
+}
+
+/// The rect-side consumers share the same raw parser as circle geometry. Every
+/// value family the parser intentionally over-refuses must keep the exact
+/// attribute name in both admission paths; otherwise one rect could silently
+/// fall back while a sibling still made the document look successful.
+#[test]
+fn rect_geometry_css_value_families_refuse_by_attribute_name() {
+    let shape = |attr: &str, value: &str, style: &str| {
+        let (x, y, width, height) = match attr {
+            "x" => (value, "8", "16", "16"),
+            "y" => ("8", value, "16", "16"),
+            "width" => ("8", "8", value, "16"),
+            "height" => ("8", "8", "16", value),
+            _ => unreachable!("the matrix names only rect geometry attributes"),
+        };
+        format!(
+            r##"<rect x="{x}" y="{y}" width="{width}" height="{height}" {style} fill="#16a34a"/>"##
+        )
+    };
+    let assert_named = |family: &str, attr: &str, source: String| {
+        let (error, reason) = shape_failure(&on_canvas(&source));
+        assert!(
+            matches!(&error, CompileError::BadNumber { attr: named, .. } if named == attr),
+            "{family} {attr}: {error:?}"
+        );
+        assert!(
+            reason.contains(&format!("attribute {attr}=")),
+            "{family} {attr} names its ingress: {reason}"
+        );
+    };
+
+    for attr in ["x", "y", "width", "height"] {
+        for (family, value, style) in [
+            ("unit", "32px", ""),
+            ("calc", "calc(16px + 16px)", ""),
+            ("var", "var(--v)", r##"style="--v: 32px""##),
+            ("CSS comment", "/**/32/**/", ""),
+        ] {
+            assert_named(family, attr, shape(attr, value, style));
+        }
+        for keyword in ["initial", "unset", "revert", "revert-layer", "inherit"] {
+            assert_named(keyword, attr, shape(attr, keyword, ""));
+        }
+    }
+
+    for attr in ["width", "height"] {
+        assert_named("auto", attr, shape(attr, "auto", ""));
     }
 }
 
@@ -613,6 +776,16 @@ fn cascade_properties_the_build_cannot_represent_refuse_by_name() {
             "r",
         ),
         (
+            "x",
+            r##"<rect x="8" y="8" width="16" height="16" style="x: 32px" fill="#16a34a"/>"##,
+            "x",
+        ),
+        (
+            "y",
+            r##"<rect x="8" y="8" width="16" height="16" style="y: 32px" fill="#16a34a"/>"##,
+            "y",
+        ),
+        (
             "transform-origin",
             r##"<circle cx="20" cy="32" r="10" style="transform: rotate(90deg); transform-origin: 20px 32px" fill="#16a34a"/>"##,
             "transform-origin",
@@ -680,12 +853,43 @@ fn cascade_properties_the_build_cannot_represent_refuse_by_name() {
 
 #[test]
 fn geometry_stylesheet_properties_refuse_at_the_sheet() {
-    for (property, value) in [("cx", "32px"), ("cy", "32px"), ("r", "12px")] {
+    for (property, value, selector, shape) in [
+        (
+            "cx",
+            "32px",
+            "circle",
+            r##"<circle cx="8" cy="8" r="3" fill="#16a34a"/>"##,
+        ),
+        (
+            "cy",
+            "32px",
+            "circle",
+            r##"<circle cx="8" cy="8" r="3" fill="#16a34a"/>"##,
+        ),
+        (
+            "r",
+            "12px",
+            "circle",
+            r##"<circle cx="8" cy="8" r="3" fill="#16a34a"/>"##,
+        ),
+        (
+            "x",
+            "32px",
+            "rect.target",
+            r##"<rect class="target" x="8" y="8" width="16" height="16" fill="#16a34a"/>"##,
+        ),
+        (
+            "y",
+            "32px",
+            "rect.target",
+            r##"<rect class="target" x="8" y="8" width="16" height="16" fill="#16a34a"/>"##,
+        ),
+    ] {
         let source = format!(
             r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
-  <style>circle {{ {property}: {value}; }}</style>
+  <style>{selector} {{ {property}: {value}; }}</style>
   <rect width="64" height="64" fill="#ffffff"/>
-  <circle cx="8" cy="8" r="3" fill="#16a34a"/>
+  {shape}
 </svg>"##
         );
         let strict = SvgFrameSource::from_standalone_svg(source.as_str(), viewport(64.0, 64.0))

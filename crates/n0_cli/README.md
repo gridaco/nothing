@@ -90,6 +90,27 @@ cargo run -p n0_cli --bin n0 -- \
   their exact attribute; each belongs to its own open value-type row. The CSS
   property spellings stay separate named refusals because the pinned Stylo
   build has no `cx`/`cy`/`r` longhands; no matcher is layered around it.
+  On `<rect>`, `x`/`y` default to zero and accept the same admitted finite
+  number/percentage route; negative coordinates remain valid. Missing, zero,
+  or negative `width`/`height` disables the element's fill and stroke, while
+  percentages use their own x/y axis bases in unmapped root units and through
+  a `viewBox`. The existing two rect-percentage basis cells plus three new
+  grammar, `<use>`, and transform-plus-stroke cells carry that admitted subset.
+  The four attribute rows remain open. Both source-number alias classes refuse
+  before choosing the wrong adjacent value; overflowing percentages and
+  drawable values outside Chromium's fixed used-length clamp refuse by exact
+  attribute (negative extents keep their invalid no-paint meaning). Unit
+  values, CSS math, `var()`, all CSS-wide keywords, comments, and rect `auto`
+  size keywords likewise refuse by exact attribute. Chromium-honored CSS
+  `x`/`y` declarations are quarantined at their authored
+  stylesheet/style-attribute ingress because those longhands are absent at the
+  Stylo pin; represented CSS `width`/`height` continue to refuse from computed
+  style. Those Chromium-side alias, range, value-family, and CSS-ingress facts
+  are measured, not celled; their corresponding refusals are registered. Root
+  `auto` remains admitted as the absent dimension, while root percentage
+  sizing and CSS sizing remain the document-level contracts above. `<image>`,
+  `<pattern>`, and `<mask>` retain their own element/resource refusals; this
+  rect slice does not imply their geometry is consumed.
   `transform` is consumed in both spellings: the attribute is a presentation
   attribute of the one CSS `transform` property (CSS Transforms L1 §7),
   entering the cascade at hint level, so author CSS beats it —

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <style>rect.sheet { x: 32px; }</style>
+  <rect x="60" y="60" width="4" height="4" fill="#ef4444"/>
+  <rect class="sheet" x="8" y="8" width="8" height="8" fill="#111827"/>
+  <rect x="24" y="8" width="8" height="8" style="y: 32px" fill="#2563eb"/>
+  <rect x="8" y="24" width="8" height="8" style="width: 32px" fill="#16a34a"/>
+  <rect x="24" y="24" width="8" height="8" style="height: 32px" fill="#7c3aed"/>
+</svg>
