@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (319)
+## Chromium-baked cells (324)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells and three gradient ramps carry a declared, bounded
@@ -87,6 +87,11 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-fill-opacity-overlap.svg" title="svg-fill-opacity-overlap (standalone-svg)"><img src="./chromium/svg-fill-opacity-overlap.png" width="56" alt="svg-fill-opacity-overlap"></a>
 <a href="./svg-fill-opacity-percentage.svg" title="svg-fill-opacity-percentage (standalone-svg)"><img src="./chromium/svg-fill-opacity-percentage.png" width="56" alt="svg-fill-opacity-percentage"></a>
 <a href="./svg-fill-opacity-times-alpha.svg" title="svg-fill-opacity-times-alpha (standalone-svg)"><img src="./chromium/svg-fill-opacity-times-alpha.png" width="56" alt="svg-fill-opacity-times-alpha"></a>
+<a href="./svg-geometry-cx-cy-r-grammar.svg" title="svg-geometry-cx-cy-r-grammar (standalone-svg)"><img src="./chromium/svg-geometry-cx-cy-r-grammar.png" width="56" alt="svg-geometry-cx-cy-r-grammar"></a>
+<a href="./svg-geometry-cx-cy-r-transform-stroke.svg" title="svg-geometry-cx-cy-r-transform-stroke (standalone-svg)"><img src="./chromium/svg-geometry-cx-cy-r-transform-stroke.png" width="56" alt="svg-geometry-cx-cy-r-transform-stroke"></a>
+<a href="./svg-geometry-cx-cy-r-unmapped.svg" title="svg-geometry-cx-cy-r-unmapped (standalone-svg)"><img src="./chromium/svg-geometry-cx-cy-r-unmapped.png" width="56" alt="svg-geometry-cx-cy-r-unmapped"></a>
+<a href="./svg-geometry-cx-cy-r-use.svg" title="svg-geometry-cx-cy-r-use (standalone-svg)"><img src="./chromium/svg-geometry-cx-cy-r-use.png" width="56" alt="svg-geometry-cx-cy-r-use"></a>
+<a href="./svg-geometry-cx-cy-r-viewbox.svg" title="svg-geometry-cx-cy-r-viewbox (standalone-svg)"><img src="./chromium/svg-geometry-cx-cy-r-viewbox.png" width="56" alt="svg-geometry-cx-cy-r-viewbox"></a>
 <a href="./svg-gradient-css-transform.svg" title="svg-gradient-css-transform (standalone-svg)"><img src="./chromium/svg-gradient-css-transform.png" width="56" alt="svg-gradient-css-transform"></a>
 <a href="./svg-gradient-currentcolor.svg" title="svg-gradient-currentcolor (standalone-svg)"><img src="./chromium/svg-gradient-currentcolor.png" width="56" alt="svg-gradient-currentcolor"></a>
 <a href="./svg-gradient-degenerate-pad.svg" title="svg-gradient-degenerate-pad (standalone-svg)"><img src="./chromium/svg-gradient-degenerate-pad.png" width="56" alt="svg-gradient-degenerate-pad"></a>
@@ -348,7 +353,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (62)
+## The refusal register (71)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -366,6 +371,15 @@ its row into the cells above.
 | `svg-display-contents` | declared | skipped svg/g[1]: unsupported computed style: display: contents is not yet consumed |
 | `svg-filter` | declared | skipped svg/filter[1]: unsupported element <filter>; skipped svg/rect[2]: unsupported rendering attribute filter on <rect> (not yet consumed) |
 | `svg-foreign-object` | declared | skipped svg/foreignObject[1]: unsupported element <foreignObject> |
+| `svg-geometry-calc-values` | declared | skipped svg/circle[1]: attribute cx="calc(8px + 8px)" is not a number; skipped svg/circle[2]: attribute cy="calc(8px * 4)" is not a number; skipped svg/circle[3]: attribute r="calc(4px + 4px)" is not a number |
+| `svg-geometry-css-comments` | declared | skipped svg/circle[1]: attribute cx="/**/16" is not a number; skipped svg/circle[2]: attribute cy="/**/32/**/" is not a number; skipped svg/circle[3]: attribute r="/**/8/**/" is not a number |
+| `svg-geometry-css-properties` | declared | declaration ignored at svg/style[1]: a stylesheet declares cx, which this cascade does not represent; elements it matches render without it; skipped svg/circle[2]: unsupported computed style: style attribute on <circle> declares cy, which this cascade does not represent; skipped svg/circle[3]: unsupported computed style: style attribute on <circle> declares r, which this cascade does not represent |
+| `svg-geometry-css-wide-keywords` | declared | skipped svg/circle[1]: attribute cx="initial" is not a number; skipped svg/circle[2]: attribute cy="unset" is not a number; skipped svg/circle[3]: attribute r="revert" is not a number; skipped svg/circle[4]: attribute cx="inherit" is not a number |
+| `svg-geometry-numeric-precision-alias` | declared | skipped svg/circle[1]: unsupported SVG geometry: cx numeric precision alias loses Chromium used-value provenance; skipped svg/circle[2]: unsupported SVG geometry: cy numeric precision alias loses Chromium used-value provenance; skipped svg/circle[3]: unsupported SVG geometry: r numeric precision alias loses Chromium used-value provenance; skipped svg/circle[4]: unsupported SVG geometry: cx numeric precision alias loses Chromium used-value provenance; skipped svg/circle[5]: unsupported SVG geometry: cy numeric precision alias loses Chromium used-value provenance; skipped svg/circle[6]: unsupported SVG geometry: r numeric precision alias loses Chromium used-value provenance |
+| `svg-geometry-percentage-overflow` | declared | skipped svg/circle[1]: unsupported SVG geometry: cx resolves outside the finite frame range; skipped svg/circle[2]: unsupported SVG geometry: cy resolves outside the finite frame range; skipped svg/circle[3]: unsupported SVG geometry: r resolves outside the finite frame range |
+| `svg-geometry-unit-values` | declared | skipped svg/circle[1]: attribute cx="12pt" is not a number; skipped svg/circle[2]: attribute cy="16px" is not a number; skipped svg/circle[3]: attribute r="8px" is not a number |
+| `svg-geometry-used-range` | declared | skipped svg/circle[1]: unsupported SVG geometry: cx exceeds the admitted Web used-value range; skipped svg/circle[2]: unsupported SVG geometry: cy exceeds the admitted Web used-value range; skipped svg/circle[3]: unsupported SVG geometry: r exceeds the admitted Web used-value range |
+| `svg-geometry-var-values` | declared | skipped svg/g[1]/circle[1]: attribute cx="var(--cx)" is not a number; skipped svg/g[1]/circle[2]: attribute cy="var(--cy)" is not a number; skipped svg/g[1]/circle[3]: attribute r="var(--r)" is not a number |
 | `svg-gradient-degenerate-precision` | declared | skipped svg/rect[1]: unsupported fill value "url(#a): a degenerate paint server substitutes a colour this build cannot reproduce: the collapsed alpha is not exactly representable in eight bits, and Chromium dithers it"; skipped svg/rect[2]: unsupported fill value "url(#b): a degenerate paint server collapses two alpha stages, and their product is not exactly representable in eight bits"; skipped svg/rect[3]: unsupported fill value "url(#c): a degenerate paint server collapses before post-paint opacity, and the staged product is not exactly representable in eight bits"; skipped svg/rect[4]: unsupported fill value "url(#d): a degenerate paint server substitutes a colour this build cannot reproduce: the collapsed alpha is not exactly representable in eight bits, and Chromium dithers it"; skipped svg/rect[5]: unsupported fill value "url(#e): a degenerate paint server averages a ramp whose stop is not exactly representable in eight bits, and Chromium dithers the result" |
 | `svg-gradient-focal` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): the radial gradient has a focal point or focal radius, which the shared radial paint leaf cannot state (concentric radials only)" |
 | `svg-gradient-linearrgb` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): color-interpolation: linearRGB interpolates stops in linear-light sRGB, which this slice does not execute (sRGB interpolation only)" |

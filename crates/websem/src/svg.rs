@@ -324,6 +324,10 @@ pub enum CompileError {
     /// or spelling, an unsupported paint resource, or a resolved magnitude the
     /// frame contract cannot represent.
     UnsupportedStroke(String),
+    /// A shape-geometry value whose Chromium used value cannot be recovered
+    /// from this compiler's raw `f32` parse without guessing which authored
+    /// decimal was present.
+    UnsupportedGeometry(String),
     /// A numeric attribute failed to parse.
     BadNumber { attr: String, value: String },
     /// Viewport sizing needs a default/CSS sizing path this slice lacks.
@@ -851,6 +855,9 @@ impl std::fmt::Display for CompileError {
             CompileError::UnsupportedElement(t) => write!(f, "unsupported element <{t}>"),
             CompileError::UnsupportedFill(v) => write!(f, "unsupported fill value {v:?}"),
             CompileError::UnsupportedStroke(v) => write!(f, "unsupported stroke value {v:?}"),
+            CompileError::UnsupportedGeometry(reason) => {
+                write!(f, "unsupported SVG geometry: {reason}")
+            }
             CompileError::BadNumber { attr, value } => {
                 write!(f, "attribute {attr}={value:?} is not a number")
             }
@@ -1148,10 +1155,13 @@ const CASCADE_PROPERTIES_NOT_REPRESENTED: &[&str] = &[
     // where this compiler would still paint attribute geometry.
     "all",
     "d",
-    // Consumed as attributes by the conic rung, and Chromium honors the CSS
-    // spelling over the attribute (measured) — but the pinned cascade cannot
-    // represent these longhands, so a stylesheet declaring one would paint
-    // attribute geometry here and property geometry there.
+    // Consumed as attributes by the basic-shapes/conic rungs, and Chromium
+    // honors the CSS spelling over the attribute (measured) — but the pinned
+    // cascade cannot represent these longhands, so a stylesheet declaring one
+    // would paint attribute geometry here and property geometry there.
+    "cx",
+    "cy",
+    "r",
     "rx",
     "ry",
     "vector-effect",
@@ -1884,12 +1894,12 @@ fn measure_leaf_geometry(
             Rectangle::from_xywh(x, y, w, h)
         }
         "circle" => {
+            let Some(r) = geometry_attr_f32(el, "r", values, bases)?.filter(|r| *r > 0.0) else {
+                return Ok(MeasuredGeometry::Empty);
+            };
             let cx = geometry_attr_f32(el, "cx", values, bases)?.unwrap_or(0.0);
             let cy = geometry_attr_f32(el, "cy", values, bases)?.unwrap_or(0.0);
-            let r = geometry_attr_f32(el, "r", values, bases)?
-                .unwrap_or(0.0)
-                .max(0.0);
-            Rectangle::from_xywh(cx - r, cy - r, r * 2.0, r * 2.0)
+            circle_geometry_rect(cx, cy, r)?
         }
         "ellipse" => {
             let cx = geometry_attr_f32(el, "cx", values, bases)?.unwrap_or(0.0);
@@ -3216,6 +3226,28 @@ fn compile_rect(
     .map(Some)
 }
 
+/// Build the circle's local ellipse box only when every scalar the frame and
+/// its corner expansion will observe remains finite. Checking the authored
+/// radius alone is insufficient: doubling a finite radius, or adding that
+/// diameter back to the finite origin, can overflow.
+fn circle_geometry_rect(cx: f32, cy: f32, r: f32) -> Result<Rectangle, CompileError> {
+    let x = cx - r;
+    let y = cy - r;
+    let diameter = r * 2.0;
+    let right = x + diameter;
+    let bottom = y + diameter;
+    if [cx, cy, r, x, y, diameter, right, bottom]
+        .into_iter()
+        .all(f32::is_finite)
+    {
+        Ok(Rectangle::from_xywh(x, y, diameter, diameter))
+    } else {
+        Err(CompileError::UnsupportedGeometry(
+            "circle bounds exceed the finite frame range".to_string(),
+        ))
+    }
+}
+
 fn compile_circle(
     el: HtmlElement<'_>,
     viewport: AffineTransform,
@@ -3241,17 +3273,17 @@ fn compile_circle(
     if patrol.opacity == 0.0 {
         return Ok(None);
     }
+    // SVG2 §10.3: a negative `r` is invalid and must be ignored, and a
+    // computed value of zero disables rendering. Negative, zero, and missing
+    // radii therefore remove the element from the rendered tree — they are
+    // admitted honest nothings, never clamped into a drawable radius and
+    // never materialized as zero-extent frame nodes.
+    let Some(r) = geometry_attr_f32(el, "r", values, bases)?.filter(|r| *r > 0.0) else {
+        return Ok(None);
+    };
     let cx = geometry_attr_f32(el, "cx", values, bases)?.unwrap_or(0.0);
     let cy = geometry_attr_f32(el, "cy", values, bases)?.unwrap_or(0.0);
-    // SVG2 §10.3: a negative `r` is invalid and must be ignored, and a
-    // computed value of zero disables rendering. Chromium clamps the used
-    // value at layout (`LayoutSVGEllipse`: `std::max(radius, 0.f)`), so
-    // negative and missing both resolve exactly as `r="0"`: the element is
-    // admitted and paints nothing — an honest nothing, not a refusal.
-    let r = geometry_attr_f32(el, "r", values, bases)?
-        .unwrap_or(0.0)
-        .max(0.0);
-    let rect = Rectangle::from_xywh(cx - r, cy - r, r * 2.0, r * 2.0);
+    let rect = circle_geometry_rect(cx, cy, r)?;
     shape_node(
         el,
         Geometry::Ellipse(rect),
@@ -4564,8 +4596,8 @@ fn patrol_stroke_dasharray_units(
     patrol_stroke_length_units(el, element_name, "stroke-dasharray")
 }
 
-/// The used-value bounds for a fixed Web `<length>` consumed by SVG stroke
-/// properties.
+/// The used-value bounds for a fixed Web `<length>` consumed by SVG
+/// presentation properties.
 ///
 /// Blink mixes CSS lengths with SVG user-unit lengths by clamping the former
 /// to its asymmetric fixed-point layout range. The positive integer ceiling,
@@ -4573,6 +4605,9 @@ fn patrol_stroke_dasharray_units(
 /// floor, `INT_MIN / 64 + 2` = -33,554,430, is exactly representable. The
 /// distinction is visible after dash-phase modulo (measured: on a 12-unit
 /// cycle an extreme negative fixed offset starts at phase 6, not phase 4).
+/// Geometry currently refuses outside this range instead of silently feeding
+/// backend coordinates it cannot preserve; only the stroke resolver has an
+/// exact Chromium-baked clamp and may substitute the boundary value.
 const WEB_USED_LENGTH_MIN: f32 = (i32::MIN / 64 + 2) as f32;
 const WEB_USED_LENGTH_MAX: f32 = (i32::MAX / 64 - 2) as f32;
 
@@ -5486,7 +5521,10 @@ fn effective_attr_f32(
 /// [`effective_attr_f32`] for shape geometry, where the SVG length grammar
 /// admits a percentage: `<number>%`, no space, resolved against the
 /// attribute's axis basis. A sampled override is already resolved user
-/// units and never a percentage. Anything else malformed stays the
+/// units and never a percentage. On `cx`/`cy`/`r`, authored values whose direct
+/// `f32` route disagrees with the measured Chromium-shaped `f64` parse route
+/// refuse by name; choosing either adjacent result would silently misrender
+/// another valid decimal. Anything else malformed stays the
 /// [`CompileError::BadNumber`] refusal the plain read gives it.
 fn geometry_attr_f32(
     element: HtmlElement<'_>,
@@ -5495,29 +5533,154 @@ fn geometry_attr_f32(
     bases: PercentBases,
 ) -> Result<Option<f32>, CompileError> {
     if let Some(value) = values.scalar(element.node_id(), name) {
-        return Ok(Some(value));
+        return frame_safe_geometry_value(name, value).map(Some);
     }
     let Some(v) = get_attr(element, name) else {
         return Ok(None);
     };
     let trimmed = trim_svg_whitespace(&v);
-    if let Some(number) = trimmed.strip_suffix('%') {
-        if !dots_carry_digits(number) {
-            return Err(CompileError::BadNumber {
-                attr: name.to_string(),
-                value: v.clone(),
-            });
-        }
-        let parsed = number.parse::<f32>().ok().filter(|value| value.is_finite());
-        let Some(parsed) = parsed else {
-            return Err(CompileError::BadNumber {
-                attr: name.to_string(),
-                value: v,
-            });
-        };
-        return Ok(Some(parsed / 100.0 * bases.axis(name)));
+    let (number, percentage_basis) = match trimmed.strip_suffix('%') {
+        Some(number) => (number, Some(bases.axis(name))),
+        None => (trimmed, None),
+    };
+    if !dots_carry_digits(number) {
+        return Err(CompileError::BadNumber {
+            attr: name.to_string(),
+            value: v,
+        });
     }
-    attr_f32(element, name)
+    let parsed = number.parse::<f32>().ok().filter(|value| value.is_finite());
+    let Some(parsed) = parsed else {
+        return Err(CompileError::BadNumber {
+            attr: name.to_string(),
+            value: v,
+        });
+    };
+    let resolved =
+        percentage_basis.map_or(parsed, |basis| resolve_geometry_percentage(parsed, basis));
+    let resolved = frame_safe_geometry_value(name, resolved)?;
+    if matches!(name, "cx" | "cy" | "r")
+        && geometry_number_source_loses_provenance(number, percentage_basis.is_some())
+    {
+        return Err(CompileError::UnsupportedGeometry(format!(
+            "{name} numeric precision alias loses Chromium used-value provenance"
+        )));
+    }
+    Ok(Some(resolved))
+}
+
+/// Admit only geometry values this producer can carry through the frame and
+/// backend without changing their meaning. The authored spelling remains
+/// attributable at the element, so both admissions can name and skip/refuse a
+/// non-finite resolution or an unimplemented Web used-range clamp before a
+/// silent backend drop. A negative `r` is exempt from the magnitude patrol:
+/// SVG makes every such radius invalid element geometry, so the caller admits
+/// its correct no-node result without constructing bounds.
+fn frame_safe_geometry_value(name: &str, value: f32) -> Result<f32, CompileError> {
+    if !value.is_finite() {
+        return Err(CompileError::UnsupportedGeometry(format!(
+            "{name} resolves outside the finite frame range"
+        )));
+    }
+    let outside_used_range = match name {
+        "cx" | "cy" => !(WEB_USED_LENGTH_MIN..=WEB_USED_LENGTH_MAX).contains(&value),
+        "r" => value > WEB_USED_LENGTH_MAX,
+        _ => false,
+    };
+    if outside_used_range {
+        return Err(CompileError::UnsupportedGeometry(format!(
+            "{name} exceeds the admitted Web used-value range"
+        )));
+    }
+    Ok(value)
+}
+
+/// Blink applies a geometry percentage's viewport basis before dividing by
+/// 100. The order is observable in `f32`: measured on a ten-unit basis,
+/// `.5%` reaches `0.05000000074505806`, while division first reaches the
+/// adjacent `0.04999999701976776` value.
+fn resolve_geometry_percentage(authored: f32, basis: f32) -> f32 {
+    authored * basis / 100.0
+}
+
+/// One-way patrol for the `cx`/`cy`/`r` decimals whose source provenance is
+/// lost by the raw `f32` parse.
+///
+/// Chromium parses these presentation values through Blink's CSS number
+/// path. Three amplified probes establish the boundary: the stroke-rung
+/// `57384.267578125007%` alias diverges for `cx`, `cy`, and `r`; a decimal
+/// just above an exact f32 midpoint double-rounds to the other neighbour for
+/// all three; and `.5%` confirms the ordinary multiply-before-divide order.
+/// The `f64` calculation here is only a classifier. Agreement admits the
+/// existing raw route; disagreement adds a named refusal and never substitutes
+/// the shadow value as a second parser.
+fn geometry_number_source_loses_provenance(source: &str, percentage: bool) -> bool {
+    let Some(authored_f64) = source.parse::<f64>().ok().filter(|value| value.is_finite()) else {
+        return false;
+    };
+    let Some(authored_f32) = source.parse::<f32>().ok().filter(|value| value.is_finite()) else {
+        return false;
+    };
+    if percentage {
+        // The percentage parser first normalizes the source number. Compare
+        // that raw-decimal route with the route after the source number has
+        // already collapsed to f32; the viewport basis is deliberately not
+        // part of this classifier. Including it would over-refuse ordinary
+        // values on an irrational diagonal even when their source provenance
+        // is intact (`25%` on the 64×32 percentage cell is the patrol case).
+        let raw_normalized = (authored_f64 / 100.0) as f32;
+        let f32_normalized = (f64::from(authored_f32) / 100.0) as f32;
+        raw_normalized.to_bits() != f32_normalized.to_bits()
+    } else {
+        authored_f32.to_bits() != (authored_f64 as f32).to_bits()
+    }
+}
+
+#[cfg(test)]
+mod geometry_number_resolution_tests {
+    use super::*;
+
+    #[test]
+    fn geometry_percentage_uses_blink_operation_order() {
+        let resolved = resolve_geometry_percentage(0.5, 10.0);
+        assert_eq!(resolved, 0.05000000074505806_f32);
+        assert_ne!(resolved, 0.04999999701976776_f32);
+        assert!(
+            !geometry_number_source_loses_provenance("0.5", true),
+            "the ordinary measured route retains enough provenance"
+        );
+    }
+
+    #[test]
+    fn geometry_numeric_aliases_refuse_instead_of_choosing_a_neighbour() {
+        let percentage = "57384.267578125007";
+        assert!(geometry_number_source_loses_provenance(percentage, true));
+
+        let direct = "1.000000059604644775390625000000000000000000000001";
+        assert!(geometry_number_source_loses_provenance(direct, false));
+
+        for safe in ["0", "-4", "+8", ".8e1", "32", "52.5"] {
+            assert!(
+                !geometry_number_source_loses_provenance(safe, false),
+                "ordinary source {safe:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn circle_bounds_refuse_every_non_finite_derived_branch() {
+        for (branch, result) in [
+            ("diameter", circle_geometry_rect(0.0, 0.0, 2.176e38)),
+            ("right corner", circle_geometry_rect(3.4e38, 0.0, 1.0e38)),
+            ("bottom corner", circle_geometry_rect(0.0, 3.4e38, 1.0e38)),
+        ] {
+            assert!(
+                matches!(result, Err(CompileError::UnsupportedGeometry(reason))
+                    if reason.contains("circle bounds") && reason.contains("finite frame range")),
+                "{branch} must refuse before Rectangle construction"
+            );
+        }
+    }
 }
 
 /// Whether every `.` in the token is followed by an ASCII digit. Rust's

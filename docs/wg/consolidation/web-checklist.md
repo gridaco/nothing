@@ -955,6 +955,12 @@ excluded.
 - [ ] `cx`
 - [ ] `cy`
 - [ ] `r`
+
+> **2026-08-22 split:** the CSS twins remain open at the pinned Stylo cap:
+> this build has no `cx`/`cy`/`r` longhands, and both authored CSS ingresses
+> are quarantined rather than matched outside the cascade. The attribute-rung
+> evidence is recorded with the presentation-attribute rows below.
+
 - [ ] `rx`
 - [ ] `ry`
 - [ ] `x`
@@ -1434,6 +1440,18 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `cursor`
 - [ ] `cx`
 - [ ] `cy`
+
+> **2026-08-22 split:** five Chromium-baked cells now cover the admitted
+> `cx`/`cy`/`r` number/percentage route on `<circle>` and `<ellipse>`, including
+> defaults, negative centers, invalid/zero radius, axis and normalized-diagonal
+> bases, `viewBox`, `<use>`, transforms, and stroke. The three rows remain open:
+> valid authored decimals can lose Chromium rounding provenance in the raw f32
+> route, finite sources can cross the unimplemented Chromium used-range split,
+> CSS comments in otherwise numeric values still refuse, and the registered
+> guards name all of those gaps before a non-finite frame or silent backend
+> drop. Unit values, CSS math, `var()`, and
+> CSS-wide keywords retain their own unchecked value-type rows.
+
 - [ ] `d`
 - [ ] `direction`
 - [ ] `display`

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <style>circle.sheet { cx: 32px; }</style>
+  <rect x="60" y="60" width="4" height="4" fill="#ef4444"/>
+  <circle class="sheet" cx="8" cy="8" r="3" fill="#111827"/>
+  <circle cx="32" cy="8" r="3" style="cy: 32px" fill="#2563eb"/>
+  <circle cx="48" cy="8" r="3" style="r: 8px" fill="#16a34a"/>
+</svg>
