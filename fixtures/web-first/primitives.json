@@ -539,6 +539,46 @@
       "height": 64
     },
     {
+      "id": "svg-geometry-cx-cy-r-grammar",
+      "source": "svg-geometry-cx-cy-r-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-geometry-cx-cy-r-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-geometry-cx-cy-r-transform-stroke",
+      "source": "svg-geometry-cx-cy-r-transform-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-geometry-cx-cy-r-transform-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-geometry-cx-cy-r-unmapped",
+      "source": "svg-geometry-cx-cy-r-unmapped.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-geometry-cx-cy-r-unmapped.png",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-geometry-cx-cy-r-use",
+      "source": "svg-geometry-cx-cy-r-use.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-geometry-cx-cy-r-use.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-geometry-cx-cy-r-viewbox",
+      "source": "svg-geometry-cx-cy-r-viewbox.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-geometry-cx-cy-r-viewbox.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-gradient-css-transform",
       "source": "svg-gradient-css-transform.svg",
       "entry": "standalone-svg",

@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "9980bf0f90122fa603afc76620766be234538c03721955307d493407eeabb295",
+  "suite_sha256": "3eb54bcef351d39631dacfc64a12d1692a50730fc62473f1b3f8fadb6efb7f7f",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -547,6 +547,51 @@
       "source_sha256": "f89cf78f5d932957086fb79b7196a476d6d8e6cf3311167e5340e0f674622806",
       "oracle": "chromium/svg-fill-opacity-times-alpha.png",
       "oracle_sha256": "b126b8e68a1d4938c1bf93fbcd52cc858de6a9ec94a848fe472b47c8407ef18c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-geometry-cx-cy-r-grammar",
+      "source": "svg-geometry-cx-cy-r-grammar.svg",
+      "source_sha256": "8743a0da1c901bb47bbed99b6eddf65db06c275ffac1bb6fbbf04502123b9ca0",
+      "oracle": "chromium/svg-geometry-cx-cy-r-grammar.png",
+      "oracle_sha256": "6a88d373eabe2f2809d3932b97ac4b73a11e8e9b55f9e525ecc39a2df089d000",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-geometry-cx-cy-r-transform-stroke",
+      "source": "svg-geometry-cx-cy-r-transform-stroke.svg",
+      "source_sha256": "31dd971fa8dfc76c969a97545dba009e374e838e07a25548f71f908616cd446f",
+      "oracle": "chromium/svg-geometry-cx-cy-r-transform-stroke.png",
+      "oracle_sha256": "3c52815cc3d4bbb2f25018b07a98a5ad5930ee97ced5de99b92003008fa687b1",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-geometry-cx-cy-r-unmapped",
+      "source": "svg-geometry-cx-cy-r-unmapped.svg",
+      "source_sha256": "eb5f8a427370cbbc58c63dd5264576211610f614a2aec27a61374767f21f3c09",
+      "oracle": "chromium/svg-geometry-cx-cy-r-unmapped.png",
+      "oracle_sha256": "ac29b1435b38ba187da6d8c97e5fa3ada89c9c56dfd16655c59c3ecdf91d6149",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-geometry-cx-cy-r-use",
+      "source": "svg-geometry-cx-cy-r-use.svg",
+      "source_sha256": "a66e4fec65d060f50dad13edb685717935ee1fc40e0c3bc61b6baa1271170468",
+      "oracle": "chromium/svg-geometry-cx-cy-r-use.png",
+      "oracle_sha256": "0628790470d8f6614767b0c4cb13b524e8eed84bd00df5e47a76b5a2f8e3ba11",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-geometry-cx-cy-r-viewbox",
+      "source": "svg-geometry-cx-cy-r-viewbox.svg",
+      "source_sha256": "b95753cb65e80eb07986de3c9f41ad00cf4a1707f05615c7c6532a45e4556ce2",
+      "oracle": "chromium/svg-geometry-cx-cy-r-viewbox.png",
+      "oracle_sha256": "36f9c67d1a552c9cd9a67c07fcd64b87dedbfe548e35e2b56405946ade9aa27b",
       "width": 64,
       "height": 64
     },

@@ -641,15 +641,32 @@ fn a_cap_cannot_change_a_closed_contour() {
 /// the stroke must not survive the geometry.
 #[test]
 fn a_zero_extent_box_primitive_disables_its_stroke_too() {
-    for body in [
-        r##"  <rect x="32" y="16" width="0" height="32" fill="none" stroke="#000000" stroke-width="8"/>"##,
-        r##"  <rect x="16" y="32" width="32" height="0" fill="none" stroke="#000000" stroke-width="8"/>"##,
-        r##"  <circle cx="32" cy="32" r="0" fill="none" stroke="#000000" stroke-width="8"/>"##,
-        r##"  <ellipse cx="32" cy="32" rx="0" ry="12" fill="none" stroke="#000000" stroke-width="8"/>"##,
+    for (body, materialized_nodes) in [
+        (
+            r##"  <rect x="32" y="16" width="0" height="32" fill="none" stroke="#000000" stroke-width="8"/>"##,
+            1,
+        ),
+        (
+            r##"  <rect x="16" y="32" width="32" height="0" fill="none" stroke="#000000" stroke-width="8"/>"##,
+            1,
+        ),
+        (
+            r##"  <circle cx="32" cy="32" r="0" fill="none" stroke="#000000" stroke-width="8"/>"##,
+            0,
+        ),
+        (
+            r##"  <ellipse cx="32" cy="32" rx="0" ry="12" fill="none" stroke="#000000" stroke-width="8"/>"##,
+            1,
+        ),
     ] {
         let frame = admit_both(&document(body));
+        assert_eq!(
+            frame.nodes().len(),
+            materialized_nodes,
+            "a zero-radius circle is absent; the other zero boxes retain their established frame shape: {body}"
+        );
         assert!(
-            frame.nodes()[0].stroke.is_none(),
+            frame.nodes().iter().all(|node| node.stroke.is_none()),
             "rendering is disabled, stroke included: {body}"
         );
         assert!(

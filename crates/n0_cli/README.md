@@ -70,6 +70,20 @@ cargo run -p n0_cli --bin n0 -- \
   Chromium renders its valid pair prefix — a declared divergence), nested in
   `<g>` (and `<a>`, the same container semantics) with the whole `transform`
   grammar, under the outer `<svg>`.
+  On `<circle>` and `<ellipse>`, the `cx`/`cy` presentation attributes default
+  to zero and accept the admitted finite number/percentage route; negative
+  centers remain valid. A circle with missing, zero, or negative `r` does not
+  materialize a frame node. Percentages use the x/y axis bases for `cx`/`cy`
+  and the normalized diagonal for `r`, in unmapped root units and through a
+  `viewBox`, and retain those meanings through `<use>`, transforms, and
+  strokes. Five Chromium-baked cells carry that subset. The three attribute
+  checklist rows remain open: valid source decimals whose raw f32 parse loses
+  Chromium's used-value provenance refuse as `unsupported SVG geometry`, and
+  CSS comments in numeric presentation values still refuse as bad numbers.
+  Unit-bearing values, CSS math, `var()`, and CSS-wide keywords also refuse by
+  their exact attribute; each belongs to its own open value-type row. The CSS
+  property spellings stay separate named refusals because the pinned Stylo
+  build has no `cx`/`cy`/`r` longhands; no matcher is layered around it.
   `transform` is consumed in both spellings: the attribute is a presentation
   attribute of the one CSS `transform` property (CSS Transforms L1 §7),
   entering the cascade at hint level, so author CSS beats it —

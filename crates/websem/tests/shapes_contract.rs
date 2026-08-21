@@ -110,6 +110,18 @@ fn circle_center_defaults_to_the_origin() {
 }
 
 #[test]
+fn negative_circle_centers_remain_authored_geometry() {
+    let frame = admit_both(&on_canvas(
+        r##"<circle cx="-4" cy="-6" r="8" fill="#16a34a"/>"##,
+    ));
+    assert_eq!(
+        ellipse_box(&frame, 1),
+        Rectangle::from_xywh(-12.0, -14.0, 16.0, 16.0),
+        "negative cx/cy are valid coordinates, never clamped"
+    );
+}
+
+#[test]
 fn circle_geometry_stays_local_under_a_scaling_viewport() {
     let source = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 32 32">
   <circle cx="16" cy="16" r="8" fill="#16a34a"/>
@@ -131,9 +143,9 @@ fn circle_geometry_stays_local_under_a_scaling_viewport() {
     );
 }
 
-/// SVG2 §10.3: a negative `r` is invalid and must be ignored; a computed
-/// value of zero disables rendering. All three resolve to an admitted
-/// zero-extent geometry at the center — nothing paints, nothing degrades.
+/// SVG2 §10.3: a negative `r` is invalid and the element is not rendered; a
+/// computed value of zero likewise disables rendering. Missing, zero, and
+/// negative radii therefore produce no frame node and no degradation.
 #[test]
 fn degenerate_circle_radius_is_an_admitted_nothing() {
     for (label, shape) in [
@@ -149,9 +161,9 @@ fn degenerate_circle_radius_is_an_admitted_nothing() {
     ] {
         let frame = admit_both(&on_canvas(shape));
         assert_eq!(
-            ellipse_box(&frame, 1),
-            Rectangle::from_xywh(32.0, 32.0, 0.0, 0.0),
-            "{label}: zero-extent at the center"
+            frame.nodes().len(),
+            1,
+            "{label}: only the white backdrop materializes"
         );
         let pixels = render_through_n0(&frame, 64, 64);
         assert!(
@@ -289,6 +301,123 @@ fn rust_float_superset_radii_refuse_as_bad_numbers() {
     }
 }
 
+/// Chromium reaches geometry presentation values through its CSS number
+/// parser while this compiler owns a raw `f32` route. Amplified browser probes
+/// established two distinct rounding classes: percentage normalization and a
+/// direct decimal just above an exact f32 midpoint. Every affected attribute
+/// refuses by the same stable geometry reason instead of choosing a neighbour.
+#[test]
+fn geometry_numeric_precision_aliases_refuse_for_cx_cy_and_r() {
+    const PERCENTAGE_ALIAS: &str = "57384.267578125007%";
+    const DIRECT_ALIAS: &str = "1.000000059604644775390625000000000000000000000001";
+
+    for (kind, attr, shape) in [
+        (
+            "percentage",
+            "cx",
+            format!(r##"<circle cx="{PERCENTAGE_ALIAS}" cy="32" r="8" fill="#16a34a"/>"##),
+        ),
+        (
+            "percentage",
+            "cy",
+            format!(r##"<circle cx="32" cy="{PERCENTAGE_ALIAS}" r="8" fill="#16a34a"/>"##),
+        ),
+        (
+            "percentage",
+            "r",
+            format!(r##"<circle cx="32" cy="32" r="{PERCENTAGE_ALIAS}" fill="#16a34a"/>"##),
+        ),
+        (
+            "direct",
+            "cx",
+            format!(r##"<circle cx="{DIRECT_ALIAS}" cy="32" r="8" fill="#16a34a"/>"##),
+        ),
+        (
+            "direct",
+            "cy",
+            format!(r##"<circle cx="32" cy="{DIRECT_ALIAS}" r="8" fill="#16a34a"/>"##),
+        ),
+        (
+            "direct",
+            "r",
+            format!(r##"<circle cx="32" cy="32" r="{DIRECT_ALIAS}" fill="#16a34a"/>"##),
+        ),
+    ] {
+        let (error, reason) = shape_failure(&on_canvas(&shape));
+        assert!(
+            matches!(&error, CompileError::UnsupportedGeometry(named)
+                if named.contains(attr) && named.contains("numeric precision alias")),
+            "{kind} {attr}: {error:?}"
+        );
+        assert!(
+            reason.contains("loses Chromium used-value provenance"),
+            "{kind} {attr}: {reason}"
+        );
+    }
+}
+
+/// Unit-bearing values, CSS math, custom-property substitution, CSS-wide
+/// keywords, and comments are valid CSS presentation-value forms Chromium
+/// consumes. The first four families retain independent open checklist rows;
+/// comments are a registered no-own-row gap. This raw parser over-refuses each
+/// shape by its exact attribute rather than falling back to an authored/default
+/// geometry and painting silently.
+#[test]
+fn geometry_css_value_families_refuse_by_attribute_name() {
+    for (family, attr, shape) in [
+        (
+            "unit",
+            "cx",
+            r##"<circle cx="12pt" cy="32" r="8" fill="#16a34a"/>"##,
+        ),
+        (
+            "calc",
+            "cy",
+            r##"<circle cx="32" cy="calc(16px + 16px)" r="8" fill="#16a34a"/>"##,
+        ),
+        (
+            "var",
+            "r",
+            r##"<circle cx="32" cy="32" r="var(--r)" style="--r: 8px" fill="#16a34a"/>"##,
+        ),
+        (
+            "initial",
+            "cx",
+            r##"<circle cx="initial" cy="32" r="8" fill="#16a34a"/>"##,
+        ),
+        (
+            "inherit",
+            "cy",
+            r##"<circle cx="32" cy="inherit" r="8" fill="#16a34a"/>"##,
+        ),
+        (
+            "unset",
+            "r",
+            r##"<circle cx="32" cy="32" r="unset" fill="#16a34a"/>"##,
+        ),
+        (
+            "revert",
+            "r",
+            r##"<circle cx="32" cy="32" r="revert" fill="#16a34a"/>"##,
+        ),
+        (
+            "CSS comment",
+            "cx",
+            r##"<circle cx="/**/32" cy="32" r="8" fill="#16a34a"/>"##,
+        ),
+    ] {
+        let (error, reason) = shape_failure(&on_canvas(shape));
+        assert!(
+            matches!(&error, CompileError::BadNumber { attr: named, .. } if named == attr),
+            "{family} {attr}: {error:?}"
+        );
+        assert!(
+            reason.contains(&format!("attribute {attr}=")),
+            "{family} {attr} names its ingress: {reason}"
+        );
+    }
+}
+
 /// Percentage geometry resolves against the one viewport's user-unit
 /// extent (SVG2 §7.10): x-axis lengths against its width, y-axis against
 /// its height, and a radius against the normalized diagonal — on a square
@@ -343,9 +472,9 @@ fn foreign_namespaced_geometry_attributes_are_not_consumed() {
 </svg>"##;
     let frame = admit_both(source);
     assert_eq!(
-        ellipse_box(&frame, 1),
-        Rectangle::from_xywh(32.0, 32.0, 0.0, 0.0),
-        "the prefixed attribute is not `r`; the absent radius disables rendering"
+        frame.nodes().len(),
+        1,
+        "the prefixed attribute is not `r`; only the backdrop materializes"
     );
     let pixels = render_through_n0(&frame, 64, 64);
     assert!(
@@ -403,6 +532,21 @@ fn cascade_properties_the_build_cannot_represent_refuse_by_name() {
         // `transform` sat first in this table until its rung consumed it;
         // `transform-origin` holds the family's place — it changes where
         // every transform pivots (measured), and stays unread.
+        (
+            "cx",
+            r##"<circle cx="8" cy="8" r="3" style="cx: 32px" fill="#16a34a"/>"##,
+            "cx",
+        ),
+        (
+            "cy",
+            r##"<circle cx="8" cy="8" r="3" style="cy: 32px" fill="#16a34a"/>"##,
+            "cy",
+        ),
+        (
+            "r",
+            r##"<circle cx="8" cy="8" r="3" style="r: 12px" fill="#16a34a"/>"##,
+            "r",
+        ),
         (
             "transform-origin",
             r##"<circle cx="20" cy="32" r="10" style="transform: rotate(90deg); transform-origin: 20px 32px" fill="#16a34a"/>"##,
@@ -467,6 +611,48 @@ fn cascade_properties_the_build_cannot_represent_refuse_by_name() {
         2,
         "the admitted shapes still render"
     );
+}
+
+#[test]
+fn geometry_stylesheet_properties_refuse_at_the_sheet() {
+    for (property, value) in [("cx", "32px"), ("cy", "32px"), ("r", "12px")] {
+        let source = format!(
+            r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <style>circle {{ {property}: {value}; }}</style>
+  <rect width="64" height="64" fill="#ffffff"/>
+  <circle cx="8" cy="8" r="3" fill="#16a34a"/>
+</svg>"##
+        );
+        let strict = SvgFrameSource::from_standalone_svg(source.as_str(), viewport(64.0, 64.0))
+            .expect_err("strict refuses an unrepresented geometry property");
+        assert!(
+            strict
+                .to_string()
+                .contains(&format!("stylesheet declares {property}")),
+            "{strict}"
+        );
+
+        let best =
+            SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
+                .expect("best-effort renders with a sheet declaration");
+        let declared: Vec<_> = best
+            .degradations()
+            .iter()
+            .filter(|d| d.reason().contains("stylesheet declares"))
+            .collect();
+        assert_eq!(declared.len(), 1, "{property} is declared exactly once");
+        assert!(
+            declared[0]
+                .reason()
+                .contains(&format!("declares {property}")),
+            "the sheet names {property}: {declared:?}"
+        );
+        assert_eq!(
+            declared[0].path(),
+            "svg/style[1]",
+            "sheet-level declarations keep one structural path"
+        );
+    }
 }
 
 /// An unconsumed rendering attribute on the new shape refuses/skips by name.

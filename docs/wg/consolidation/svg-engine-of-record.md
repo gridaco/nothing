@@ -2084,3 +2084,94 @@ stop's style attribute remains a document-level refusal, and closing those
 rows needs the longhands, never a second matcher around Stylo. This is a
 capability verdict only. It produces no conformance score and takes no FLIP
 action.
+
+## Rung: SVG geometry presentation attributes `cx`/`cy`/`r` (2026-08-22)
+
+The rung began at the raw-number boundary, before any admission work. These
+three attributes never meet the cascade: the pinned Stylo build has no
+`cx`/`cy`/`r` longhands, so the compiler reads the presentation-attribute text
+directly. That ownership remains correct. Routing the values through a new
+matcher around Stylo would create a second cascade. The unresolved question
+was narrower and numeric: whether Rust's direct f32 parse and arithmetic retain
+the same used value as Blink's CSS-number path.
+
+They do not. Three amplified, twice-deterministic Chromium-149 probe families
+establish the boundary:
+
+- For the stroke-rung source alias `57384.267578125007%`, Chromium selects the
+  lower normalized control for each of `cx`, `cy`, and `r`. The higher control
+  differs by 88 pixels at maximum channel delta 240, 89 pixels at delta 236,
+  and 80 pixels at delta 255 respectively. The previous geometry route selected
+  that higher neighbour;
+  direct Chromium-versus-engine source renders differed by 88, 89, and 144
+  pixels.
+- A decimal just above the exact midpoint between f32 1 and its successor is a
+  second divergence class. Chromium's decimal-to-f64-to-f32 path selects the
+  lower neighbour, while the direct decimal-to-f32 route selected the higher.
+  The three higher controls differ from Chromium by 88 pixels at delta 242,
+  88 pixels at delta 236, and 80 pixels at delta 255.
+- Ordinary percentage arithmetic has an independently observable order. On a
+  ten-unit basis, `r=".5%"` is byte-identical to
+  `0.05000000074505806` in Chromium and differs from the
+  division-before-multiplication neighbour `0.04999999701976776` by 2,176
+  pixels at delta 255. The producer now multiplies by the basis before dividing
+  by 100. The extreme oval amplification needed to reveal one ULP also exposes
+  a separate 144-pixel Blink/Skia raster difference even when both receive the
+  same numeric control; that arithmetic fact is therefore measured and
+  bit-lawed, not promoted into an inexact corpus cell.
+
+The first two valid classes now trip one stable
+`unsupported SVG geometry: <attribute> numeric precision alias loses Chromium
+used-value provenance` guard for `cx`, `cy`, and `r`. Its f64 route is a
+one-way classifier only: agreement leaves the raw parser in charge;
+disagreement refuses, and the shadow value is never substituted as a second
+parser. A seven-row refusal addition records this precision class, the absent
+CSS longhands, unit-bearing values, CSS math, `var()`, CSS-wide keywords, and
+CSS comments. The first four value families each retain their own unchecked
+checklist row. Comments are the second no-own-row valid gap: Chromium strips
+them and renders the ordinary number exactly, while the raw reader still
+refuses them as `BadNumber`.
+
+The semantic repair is otherwise local. Negative `cx` and `cy` remain valid
+coordinates. Missing and explicit-zero centers coincide at zero. A missing,
+zero, or negative circle radius now produces no frame node: negative `r` is an
+invalid element geometry, not a magnitude to clamp, and all three cases render
+the same honest nothing. Percentages keep the existing `PercentBases` contract:
+the x and y axes for `cx`/`cy`, and `sqrt(width² + height²) / sqrt(2)` for `r`,
+using the mapped `viewBox` extent when present and initial-viewport user units
+otherwise. `<use>`, transforms, and strokes consume those resolved facts
+without changing their meaning.
+
+No cross-crate seam changed. `rframe` already states circles and ellipses as
+an ellipse over a local rectangle; n0 already lowers that fact to its native
+oval fill/stroke routes. The compiler's correction stops before that boundary.
+CSS declarations are quarantined at their authored ingresses: a stylesheet is
+named at the sheet and a style declaration at its element. The CSS
+presentation-property twins remain open at the pinned-cascade cap, with no
+matcher layered around Stylo.
+
+Five committed Chromium cells carry the admitted subset. The grammar cell
+pins absent/explicit-zero centers, negative centers, number spellings, and the
+three non-rendering radius cases. A 64×32 unmapped initial viewport and a
+70×10 `viewBox` separately pin axis and normalized-diagonal bases. The final
+two cells carry `<use>` instances and transform-plus-stroke composition. Their
+exact controls reproduce each oracle. The wrong-center and positive-radius
+mutations differ by 132 and 672 pixels; the unmapped and `viewBox` wrong-basis
+mutations differ by 778 and 1,492; deleting the instances differs by 97; and
+the composed wrong-basis mutation differs by 480. Every maximum delta is 255.
+
+The gate's sensitivity was tested, not assumed. Temporarily routing `cx`
+percentages to the y axis made `just gate` fail on four cells, including the
+new unmapped and `viewBox` witnesses at 796 and 2,378 differing pixels. Restoring
+the axis table returned the complete gate to green. All candidate sources were
+also rendered through the actual `n0` CLI path; the five admitted cells were
+declaration-free and decoded-pixel exact to their Chromium probes.
+
+The primitive corpus moves from 319 to 324 cells; the ten exact-time sampled
+frames are unchanged. The named refusal register moves from 62 to 69 rows.
+Neither the SVG presentation-attribute nor CSS presentation-property rows for
+`cx`, `cy`, or `r` tick: the valid numeric-precision and comment classes have no
+independent row, while the CSS twins remain structurally unavailable at this
+Stylo pin. This is a measured SPLIT verdict under the
+gridaco/nothing#81/#89/#90 precedent, not a capability closure. It produces no
+conformance score and takes no FLIP action.
