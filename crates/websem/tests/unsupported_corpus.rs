@@ -227,24 +227,9 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "declares d",
     ),
-    (
-        "svg-path-malformed-d",
-        DeclaredByBestEffort,
-        "invalid at byte 29",
-    ),
     // The <defs> half of this fixture stopped declaring when the use/defs
     // rung consumed defs; the marker attribute itself is the named hole.
     ("svg-path-marker-end", DeclaredByBestEffort, "marker-end"),
-    (
-        "svg-path-no-leading-moveto",
-        DeclaredByBestEffort,
-        "invalid at byte 0",
-    ),
-    (
-        "svg-path-trailing-dot-number",
-        DeclaredByBestEffort,
-        "invalid at byte 1",
-    ),
     (
         "svg-pattern-paint-server",
         DeclaredByBestEffort,

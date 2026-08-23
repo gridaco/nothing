@@ -55,10 +55,25 @@ namespace svg_path_parser {
 Sources: `SVGPathStringSource` (ASCII `d=`), `SVGPathByteStreamSource` (compact
 binary).
 
+At Chromium 149.0.7827.55, the string source delegates numbers to Blink's
+shared SVG parser utility. That utility does not parse an ideal decimal and
+round once: integer digits accumulate from right to left in `float`, fraction
+digits from left to right in `float`, and the exponent is then applied. The
+operation order is observable because some valid decimal tokens select the
+opposite neighbouring float from a one-shot decimal conversion. See
+[`svg_parser_utilities.cc`](https://github.com/chromium/chromium/blob/149.0.7827.55/third_party/blink/renderer/core/svg/svg_parser_utilities.cc).
+
+The producer/consumer loop also explains erroneous-path finalization. Each
+complete segment reaches the consumer before the next segment is parsed. A
+later parse failure stops the loop but does not retract completed segments; a
+failure before a complete leading moveto therefore leaves an empty stream.
+Incomplete repeated commands contribute no partial segment.
+
 Consumers:
 
 - `SVGPathByteStreamBuilder` — writes into a new byte stream.
-- `SVGPathNormalizer` — converts relative commands to absolute; keeps arcs.
+- `SVGPathNormalizer` — converts relative commands to absolute for consumers
+  that request normalized data.
 - `SVGPathStringBuilder` — serializes back to ASCII.
 - `SVGPathBuilder` — **the renderer consumer**: builds a `Path` (SkPath
   wrapper) by emitting `moveTo`, `lineTo`, `cubicTo`, etc.
@@ -66,9 +81,17 @@ Consumers:
   [resources-and-effects.md](./resources-and-effects.md)).
 - `SVGPathAbsolutizer` — variant of normalizer.
 
-Arcs (`A`/`a` command) are typically converted to cubic Béziers at build
-time via the standard endpoint-to-center-parameterization + arc-to-cubic
-decomposition.
+The renderer does **not** route an `A`/`a` segment through the cubic
+normalizer. `SVGPathBuilder` forwards the authored endpoint arc to the graphics
+path builder. In Chromium 149's pinned Skia revision, `SkPathBuilder::arcTo`
+constructs at most three rational conics, each spanning at most 120 degrees,
+using float arithmetic. The authored rotation reaches that construction
+without angle reduction. Numeric extremes can make the arc return without
+appending a verb; this is distinct from appending an ordinary non-finite verb,
+which leaves an invalid path. See
+[`svg_path_builder.cc`](https://github.com/chromium/chromium/blob/149.0.7827.55/third_party/blink/renderer/core/svg/svg_path_builder.cc)
+and the pinned
+[`SkPathBuilder.cpp`](https://github.com/google/skia/blob/53348aa333da02b77c4b5797e2de722f5abde7d0/src/core/SkPathBuilder.cpp).
 
 ## `Path` — the Skia wrapper
 
@@ -244,8 +267,10 @@ or both.
 | `core/svg/svg_path_byte_stream.h`      | Compact binary representation                 |
 | `core/svg/svg_path_builder.h`          | Byte stream → `Path` (SkPath) construction    |
 | `core/svg/svg_path_string_source.h`    | ASCII `d=` tokenizer                          |
-| `core/svg/svg_path_normalizer.h`       | Relative → absolute, arc-to-cubic             |
+| `core/svg/svg_parser_utilities.cc`     | Ordered-float SVG number evaluation           |
+| `core/svg/svg_path_normalizer.h`       | Relative → absolute normalization consumers   |
 | `core/layout/svg/layout_svg_shape.h`   | Shape base; owns `Path`, `stroke_path_cache_` |
 | `core/layout/svg/svg_layout_support.h` | `ApplyStrokeStyleToStrokeData()`              |
 | `platform/graphics/path.h`             | Blink `Path` wrapper around `SkPath`          |
 | `platform/graphics/stroke_data.h`      | Stroke properties value object                |
+| Skia `src/core/SkPathBuilder.cpp`      | Endpoint arc → float rational conics           |

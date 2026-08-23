@@ -62,9 +62,16 @@ cargo run -p n0_cli --bin n0 -- \
 - Capability: the admitted slice is deliberately narrow — solid- or
   gradient-filled and -stroked `<rect>` (rounded corners included: `rx`/`ry`
   resolve by the measured auto/clamp matrix and lower to the conics Chromium
-  draws them through), `<circle>`, `<ellipse>`, `<path>` (the whole path-data
-  grammar — the elliptical arc resolves to conic segments — with
-  `fill-rule`), `<line>`, `<polygon>`
+  draws them through), `<circle>`, `<ellipse>`, `<path>` (the complete
+  `none | <path-data>` presentation-attribute grammar with `fill-rule`): source
+  numbers follow Blink's ordered float evaluation; every complete segment
+  before a syntax error survives; an empty prefix paints nothing; ordinary
+  non-finite derived verbs invalidate the path while an extreme arc may append
+  no segment and preserve prior ink; and elliptical arcs resolve through the
+  pinned Skia conic construction. Six new `d` cells plus one companion cell
+  for the shared `points` scanner carry those boundaries. The CSS `d` property
+  remains a named refusal because the pinned
+  cascade has no corresponding longhand. Also admitted are `<line>`, `<polygon>`
   and `<polyline>` (the `points` grammar through the same number scanner as
   path data; an erroneous list refuses the whole element by name where
   Chromium renders its valid pair prefix — a declared divergence), nested in

@@ -2,7 +2,8 @@
 //!
 //! The frozen donor (`crates/htmlcss/src/svg/dom/path_d.rs`) supplied the
 //! question list — which commands exist, what the shorthands reflect, how an
-//! arc becomes cubics. Every *answer* here was measured against Chromium 149,
+//! arc reaches a resolved curve. Every *answer* here was measured against
+//! Chromium 149,
 //! because the donor's tokenizer is lenient in exactly the places a browser is
 //! not. Nothing below is a claim about what a specification says; each rule is
 //! the behaviour a browser was observed to have.
@@ -17,35 +18,32 @@
 //!
 //! ## The number rule
 //! Sign, digits, an optional fraction whose dot **must** carry a digit, and an
-//! optional exponent that must carry a digit — then a finite `f32`. The
-//! digit-after-the-dot requirement is the one worth naming: `M10. 10 …` renders
-//! nothing in Chromium, so a trailing dot is invalid here too. (SVG 1.1's
-//! grammar admitted `digit-sequence "."`; whatever any grammar says, the
-//! browser is what this compiler matches.) `1e40` overflows to non-finite and
-//! is an error; `1e30` is fine.
+//! optional exponent that must carry a digit — then Blink's ordered `f32`
+//! evaluation: integer digits right-to-left, fraction digits left-to-right,
+//! then the exponent. A one-shot ideal-decimal conversion selects the wrong
+//! neighbouring float for valid tokens in both rounding directions. The
+//! digit-after-the-dot requirement is separately visible: `M10. 10 …` stops
+//! before a complete segment in Chromium, so a trailing dot is invalid here
+//! too. (SVG 1.1's grammar admitted `digit-sequence "."`; whatever any grammar
+//! says, the browser is what this compiler matches.) `1e40` is an error;
+//! `1e30` is finite.
 //!
-//! ## Arcs refuse, and the measurement says why
-//! `A`/`a` parses and then refuses by name. Blink's path *normalizer*
-//! (`core/svg/svg_path_normalizer.cc`) decomposes an arc into cubics, and
-//! following it produces a curve that is not what Chromium paints: the same
-//! cubics, authored explicitly and rendered *by Chromium itself*, differ from
-//! Chromium's `A` by 77 pixels at up to a 170-per-channel delta. What Chromium
-//! paints instead is measurable — the half-ellipse arc
-//! `M8 28 A24 20 0 0 1 56 28 Z` is **byte-identical** to
-//! `<ellipse cx="32" cy="28" rx="24" ry="20">` over every row they share — so
-//! an arc reaches the rasterizer as the ellipse's rational **conics**, which
-//! no cubic can equal. Emitting conics is the arc rung's job (the contract has
-//! no conic command yet, and the engine's oval tolerance is the class such a
-//! curve would land in); until then the arc is a declared hole, never a
-//! visibly different curve.
+//! ## Arcs follow the pinned path builder
+//! Blink forwards `A`/`a` to Chromium's pinned Skia path builder, not through
+//! its cubic normalizer. That builder uses `f32` arithmetic and emits at most
+//! three rational conics of at most 120 degrees. The authored angle is not
+//! reduced. At numeric extremes the builder can return before appending a
+//! segment; prior ink then survives and the logical SVG current point still
+//! advances. That is distinct from an ordinary derived non-finite verb, which
+//! invalidates the whole path. Both outcomes are committed pixel laws.
 //!
-//! ## Errors: the one deliberate divergence
+//! ## Errors finalize the valid prefix
 //! Chromium renders an erroneous path's **valid prefix** (SVG2 §9.3.9) and
-//! drops the rest. This slice refuses the whole path by name instead, so the
-//! shape becomes one declared hole rather than an unbaked partial geometry.
-//! Where the prefix is empty — no leading `moveto`, an error in the first
-//! segment — the two agree exactly, because both paint nothing. Admitting the
-//! prefix rule is a rung of its own, with its own fixtures.
+//! drops the rest. Every fully defined segment is emitted immediately; a
+//! partial repeated command contributes nothing. Where the prefix is empty —
+//! no leading `moveto`, an error in the first segment — the resolved geometry
+//! is the correct nothing. A trailing move-only contour is neutral and is
+//! removed during finalization.
 //!
 //! ## Canonical form
 //! The contract requires every contour to open with an explicit move and to
@@ -63,26 +61,28 @@
 //! *closed* contour, it is **not** neutral, and it is resolved rather than
 //! dropped. See [`Parser::emit_close`].
 
+use crate::svg_number::{self, ExponentParts, NumberParts};
 use rframe::PathCommand;
 
-/// Why a `d` value did not resolve to a command stream. Every command letter
-/// of the grammar now emits — the elliptical arc was the last, resolved to
-/// conics by the conic rung — so the one refusal left is a value that stops
-/// being path data.
+/// Why one SVG numeric grammar stopped parsing.
+///
+/// Path data itself consumes its valid prefix when this occurs. `points`
+/// retains the error because its valid-pair-prefix rule is a separate rung.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum PathDataError {
-    /// The value stopped being valid SVG path data at this byte offset.
+pub(crate) enum SourceSyntaxError {
+    /// The source value stopped being valid at this byte offset.
     /// Sufficient to excerpt the offending text without carrying a kilobyte of
     /// `d` in an error.
     Syntax { offset: usize },
 }
 
-/// Parse one `d` value into the canonical absolute command stream.
+/// Parse one `d` value into its canonical absolute valid-prefix stream.
 ///
 /// An empty (or whitespace-only) value is valid and resolves to no commands —
-/// SVG's `d` initial value is `none`, which renders nothing.
-pub(crate) fn parse_path_data(d: &str) -> Result<Vec<PathCommand>, PathDataError> {
-    Parser::new(d).parse()
+/// SVG's `d` initial value is `none`, which also has an empty valid prefix.
+/// Any syntax error ends parsing after the last fully defined segment.
+pub(crate) fn parse_path_data(d: &str) -> Vec<PathCommand> {
+    Parser::new(d).parse_path_prefix()
 }
 
 /// Parse one `points` list (SVG2 §10.4) into coordinate pairs, through the
@@ -99,7 +99,7 @@ pub(crate) fn parse_path_data(d: &str) -> Result<Vec<PathCommand>, PathDataError
 ///
 /// An empty (or whitespace-only) value is valid and resolves to no points,
 /// which renders nothing.
-pub(crate) fn parse_points(value: &str) -> Result<Vec<(f32, f32)>, PathDataError> {
+pub(crate) fn parse_points(value: &str) -> Result<Vec<(f32, f32)>, SourceSyntaxError> {
     let mut parser = Parser::new(value);
     parser.skip_wsp();
     let mut points = Vec::new();
@@ -129,6 +129,10 @@ struct Parser<'a> {
     last_cubic: Option<(f32, f32)>,
     /// The same for a smooth quadratic (`T`/`t`).
     last_quad: Option<(f32, f32)>,
+    /// Skia discards a path containing a non-finite ordinary verb. The source
+    /// parser must still advance its semantic current point, but no resolved
+    /// frame command may carry that value.
+    poisoned: bool,
 }
 
 impl<'a> Parser<'a> {
@@ -142,45 +146,55 @@ impl<'a> Parser<'a> {
             open: None,
             last_cubic: None,
             last_quad: None,
+            poisoned: false,
         }
     }
 
-    fn error<T>(&self) -> Result<T, PathDataError> {
-        Err(PathDataError::Syntax { offset: self.at })
+    fn error<T>(&self) -> Result<T, SourceSyntaxError> {
+        Err(SourceSyntaxError::Syntax { offset: self.at })
     }
 
-    fn parse(mut self) -> Result<Vec<PathCommand>, PathDataError> {
+    fn parse_path_prefix(mut self) -> Vec<PathCommand> {
         self.skip_wsp();
         if self.at >= self.bytes.len() {
-            return Ok(Vec::new());
+            return Vec::new();
         }
         let mut first = true;
         while self.at < self.bytes.len() {
             let command = self.bytes[self.at];
             if !command.is_ascii_alphabetic() {
-                return self.error();
+                break;
             }
             // SVG2 §9.3.4: path data must begin with a moveto. Chromium
             // renders nothing at all otherwise (an empty valid prefix).
             if first && !matches!(command, b'M' | b'm') {
-                return self.error();
+                break;
             }
             first = false;
             self.at += 1;
-            self.command(command)?;
+            if self.command(command).is_err() {
+                break;
+            }
             self.skip_wsp();
+        }
+        self.finish()
+    }
+
+    fn finish(mut self) -> Vec<PathCommand> {
+        if self.poisoned {
+            return Vec::new();
         }
         // A trailing contour that only moved contributes nothing.
         if let Some((index, false)) = self.open {
             debug_assert_eq!(index + 1, self.commands.len());
             self.commands.truncate(index);
         }
-        Ok(self.commands)
+        self.commands
     }
 
     /// One command letter and its complete argument list, including every
     /// implicit repeat of it.
-    fn command(&mut self, command: u8) -> Result<(), PathDataError> {
+    fn command(&mut self, command: u8) -> Result<(), SourceSyntaxError> {
         let relative = command.is_ascii_lowercase();
         let mut repeat = 0usize;
         loop {
@@ -293,7 +307,10 @@ impl<'a> Parser<'a> {
     /// when the previous command was not the matching curve kind.
     fn reflect(&self, previous: Option<(f32, f32)>) -> (f32, f32) {
         match previous {
-            Some((x, y)) => (2.0 * self.current.0 - x, 2.0 * self.current.1 - y),
+            Some((x, y)) => (
+                self.current.0 + (self.current.0 - x),
+                self.current.1 + (self.current.1 - y),
+            ),
             None => self.current,
         }
     }
@@ -306,6 +323,14 @@ impl<'a> Parser<'a> {
     // ─── emission (canonical form) ────────────────────────────────────────
 
     fn emit_move(&mut self, point: (f32, f32)) {
+        if self.poisoned || !finite_point(point) {
+            self.poisoned |= !finite_point(point);
+            self.commands.clear();
+            self.open = None;
+            self.current = point;
+            self.subpath_start = point;
+            return;
+        }
         // The contour this move replaces drew nothing, so it is not a visual
         // fact; its move is the last command emitted.
         if let Some((index, false)) = self.open {
@@ -324,6 +349,9 @@ impl<'a> Parser<'a> {
     /// Reopen the contour SVG leaves implicit after a `Z`: the current point is
     /// the closed contour's start, and the canonical stream says so.
     fn open_contour(&mut self) {
+        if self.poisoned {
+            return;
+        }
         if self.open.is_none() {
             self.commands.push(PathCommand::MoveTo {
                 x: self.subpath_start.0,
@@ -341,6 +369,13 @@ impl<'a> Parser<'a> {
     }
 
     fn emit_line(&mut self, point: (f32, f32)) {
+        if self.poisoned || !finite_point(point) {
+            self.poisoned |= !finite_point(point);
+            self.commands.clear();
+            self.open = None;
+            self.current = point;
+            return;
+        }
         self.open_contour();
         self.commands.push(PathCommand::LineTo {
             x: point.0,
@@ -351,6 +386,15 @@ impl<'a> Parser<'a> {
     }
 
     fn emit_quad(&mut self, one: (f32, f32), end: (f32, f32)) {
+        if self.poisoned || !finite_point(one) || !finite_point(end) {
+            self.poisoned |= !finite_point(one) || !finite_point(end);
+            self.commands.clear();
+            self.open = None;
+            self.current = end;
+            self.last_quad = Some(one);
+            self.last_cubic = None;
+            return;
+        }
         self.open_contour();
         self.commands.push(PathCommand::QuadTo {
             x1: one.0,
@@ -365,6 +409,15 @@ impl<'a> Parser<'a> {
     }
 
     fn emit_cubic(&mut self, one: (f32, f32), two: (f32, f32), end: (f32, f32)) {
+        if self.poisoned || !finite_point(one) || !finite_point(two) || !finite_point(end) {
+            self.poisoned |= !finite_point(one) || !finite_point(two) || !finite_point(end);
+            self.commands.clear();
+            self.open = None;
+            self.current = end;
+            self.last_cubic = Some(two);
+            self.last_quad = None;
+            return;
+        }
         self.open_contour();
         self.commands.push(PathCommand::CubicTo {
             x1: one.0,
@@ -396,6 +449,11 @@ impl<'a> Parser<'a> {
     /// A `Z` with no open contour at all — a second `Z` — really is inert
     /// (measured), so it emits nothing.
     fn emit_close(&mut self) {
+        if self.poisoned {
+            self.open = None;
+            self.current = self.subpath_start;
+            return;
+        }
         match self.open {
             Some((_, true)) => {
                 self.commands.push(PathCommand::Close);
@@ -415,6 +473,19 @@ impl<'a> Parser<'a> {
     }
 
     fn emit_conic(&mut self, one: (f32, f32), end: (f32, f32), weight: f32) {
+        if self.poisoned
+            || !finite_point(one)
+            || !finite_point(end)
+            || !weight.is_finite()
+            || weight <= 0.0
+        {
+            self.poisoned |=
+                !finite_point(one) || !finite_point(end) || !weight.is_finite() || weight <= 0.0;
+            self.commands.clear();
+            self.open = None;
+            self.current = end;
+            return;
+        }
         self.open_contour();
         self.commands.push(PathCommand::ConicTo {
             x1: one.0,
@@ -437,15 +508,11 @@ impl<'a> Parser<'a> {
     ///   positive spelling;
     /// - too-small radii scale up uniformly until the endpoints fit,
     ///   byte-identical to authoring the scaled radii;
-    /// - the rotation angle feeds `sin`/`cos` **as authored** — `390` is not
-    ///   `30` (51 boundary pixels apart), and a rotated circle is not the
-    ///   unrotated one (2 pixels apart), so nothing here canonicalizes;
-    /// - the sweep splits into at most four segments of at most a quarter
-    ///   turn, each an exact conic of weight `cos(step / 2)`, and the last
-    ///   segment reuses the authored endpoint so the current-point chain
-    ///   stays exact.
-    ///
-    /// The center parameterization is SVG2 §B.2.4-5 arithmetic in f64.
+    /// - the rotation angle feeds Skia's snapped `f32` trigonometry as authored;
+    /// - Skia's finite arithmetic may produce either no conic or a poisoned
+    ///   path at numeric extremes, and those are distinct outcomes;
+    /// - the sweep splits into at most three conics of at most 120 degrees,
+    ///   and the last segment reuses the authored endpoint exactly.
     fn emit_arc(
         &mut self,
         radii: (f32, f32),
@@ -464,81 +531,14 @@ impl<'a> Parser<'a> {
         if start == end {
             return;
         }
-        let rx = radii.0.abs();
-        let ry = radii.1.abs();
-        if rx == 0.0 || ry == 0.0 {
-            self.emit_line(end);
-            return;
-        }
-
-        let (x1, y1) = (f64::from(start.0), f64::from(start.1));
-        let (x2, y2) = (f64::from(end.0), f64::from(end.1));
-        let mut rx = f64::from(rx);
-        let mut ry = f64::from(ry);
-        let phi = f64::from(angle).to_radians();
-        let (sin_phi, cos_phi) = phi.sin_cos();
-
-        // §B.2.4 step 1: the midpoint frame.
-        let dx = (x1 - x2) / 2.0;
-        let dy = (y1 - y2) / 2.0;
-        let x1p = cos_phi * dx + sin_phi * dy;
-        let y1p = -sin_phi * dx + cos_phi * dy;
-
-        // §B.2.5: radii too small to span the endpoints scale up uniformly.
-        let lambda = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry);
-        if lambda > 1.0 {
-            let scale = lambda.sqrt();
-            rx *= scale;
-            ry *= scale;
-        }
-
-        // §B.2.4 step 2: the center in the midpoint frame. The radicand is
-        // non-negative by construction after the scale-up; float noise below
-        // zero clamps.
-        let rxsq = rx * rx;
-        let rysq = ry * ry;
-        let numerator = rxsq * rysq - rxsq * y1p * y1p - rysq * x1p * x1p;
-        let denominator = rxsq * y1p * y1p + rysq * x1p * x1p;
-        let radicand = (numerator / denominator).max(0.0);
-        let coefficient = if large != sweep { 1.0 } else { -1.0 } * radicand.sqrt();
-        let cxp = coefficient * rx * y1p / ry;
-        let cyp = -coefficient * ry * x1p / rx;
-
-        // §B.2.4 step 3: back to user space.
-        let cx = cos_phi * cxp - sin_phi * cyp + (x1 + x2) / 2.0;
-        let cy = sin_phi * cxp + cos_phi * cyp + (y1 + y2) / 2.0;
-
-        // §B.2.4 step 4: start angle and sweep extent on the unit circle.
-        let theta1 = ((y1p - cyp) / ry).atan2((x1p - cxp) / rx);
-        let theta2 = ((-y1p - cyp) / ry).atan2((-x1p - cxp) / rx);
-        let mut delta = theta2 - theta1;
-        if sweep && delta < 0.0 {
-            delta += std::f64::consts::TAU;
-        } else if !sweep && delta > 0.0 {
-            delta -= std::f64::consts::TAU;
-        }
-
-        let segments = ((delta.abs() / std::f64::consts::FRAC_PI_2).ceil() as usize).clamp(1, 4);
-        let step = delta / segments as f64;
-        let weight = (step / 2.0).cos();
-        // A point of the resolved ellipse from its unit-circle frame.
-        let ellipse_point = |u: f64, v: f64| -> (f32, f32) {
-            (
-                (cx + rx * u * cos_phi - ry * v * sin_phi) as f32,
-                (cy + rx * u * sin_phi + ry * v * cos_phi) as f32,
-            )
-        };
-        for segment in 0..segments {
-            let from = theta1 + step * segment as f64;
-            let mid = from + step / 2.0;
-            let to = from + step;
-            let control = ellipse_point(mid.cos() / weight, mid.sin() / weight);
-            let endpoint = if segment + 1 == segments {
-                end
-            } else {
-                ellipse_point(to.cos(), to.sin())
-            };
-            self.emit_conic(control, endpoint, weight as f32);
+        match resolve_arc_like_skia(start, radii, angle, large, sweep, end) {
+            ArcResolution::Line => self.emit_line(end),
+            ArcResolution::NoOp => self.current = end,
+            ArcResolution::Conics(conics) => {
+                for (control, endpoint, weight) in conics {
+                    self.emit_conic(control, endpoint, weight);
+                }
+            }
         }
     }
 
@@ -568,50 +568,82 @@ impl<'a> Parser<'a> {
             && matches!(self.bytes[self.at], b'+' | b'-' | b'.' | b'0'..=b'9')
     }
 
-    fn coordinate_pair(&mut self) -> Result<(f32, f32), PathDataError> {
+    fn coordinate_pair(&mut self) -> Result<(f32, f32), SourceSyntaxError> {
         let x = self.number()?;
         let y = self.number()?;
         Ok((x, y))
     }
 
-    fn number(&mut self) -> Result<f32, PathDataError> {
+    fn number(&mut self) -> Result<f32, SourceSyntaxError> {
         self.skip_wsp();
         let start = self.at;
-        if self.at < self.bytes.len() && matches!(self.bytes[self.at], b'+' | b'-') {
-            self.at += 1;
-        }
-        let integer_digits = self.digits();
-        let mut fraction_digits = 0;
+        let negative = match self.bytes.get(self.at) {
+            Some(b'+') => {
+                self.at += 1;
+                false
+            }
+            Some(b'-') => {
+                self.at += 1;
+                true
+            }
+            _ => false,
+        };
+        let integer_start = self.at;
+        self.digits();
+        let integer_digits = integer_start..self.at;
+        let mut fraction_digits = None;
         if self.at < self.bytes.len() && self.bytes[self.at] == b'.' {
             self.at += 1;
-            fraction_digits = self.digits();
+            let fraction_start = self.at;
+            self.digits();
             // Blink requires a digit after the dot even though SVG's BNF
             // permits `10.`; a trailing dot renders nothing.
-            if fraction_digits == 0 {
+            if self.at == fraction_start {
                 self.at = start;
                 return self.error();
             }
+            fraction_digits = Some(fraction_start..self.at);
         }
-        if integer_digits == 0 && fraction_digits == 0 {
+        if integer_digits.is_empty() && fraction_digits.is_none() {
             self.at = start;
             return self.error();
         }
-        if self.at < self.bytes.len() && matches!(self.bytes[self.at], b'e' | b'E') {
+        let exponent = if self.at < self.bytes.len() && matches!(self.bytes[self.at], b'e' | b'E') {
             let exponent_at = self.at;
             self.at += 1;
-            if self.at < self.bytes.len() && matches!(self.bytes[self.at], b'+' | b'-') {
-                self.at += 1;
-            }
-            if self.digits() == 0 {
+            let exponent_negative = match self.bytes.get(self.at) {
+                Some(b'+') => {
+                    self.at += 1;
+                    false
+                }
+                Some(b'-') => {
+                    self.at += 1;
+                    true
+                }
+                _ => false,
+            };
+            let exponent_start = self.at;
+            self.digits();
+            if self.at == exponent_start {
                 self.at = exponent_at;
                 return self.error();
             }
-        }
-        let token = &self.bytes[start..self.at];
-        let parsed = std::str::from_utf8(token)
-            .ok()
-            .and_then(|token| token.parse::<f32>().ok())
-            .filter(|value: &f32| value.is_finite());
+            Some(ExponentParts {
+                negative: exponent_negative,
+                digits: exponent_start..self.at,
+            })
+        } else {
+            None
+        };
+        let parsed = svg_number::evaluate(
+            self.bytes,
+            &NumberParts {
+                negative,
+                integer_digits,
+                fraction_digits,
+                exponent,
+            },
+        );
         let Some(value) = parsed else {
             self.at = start;
             return self.error();
@@ -630,7 +662,7 @@ impl<'a> Parser<'a> {
 
     /// An arc's large/sweep flag: exactly one `0` or `1`, with no sign and no
     /// fraction, so `A22 22 0 0154 32` packs both flags and the endpoint.
-    fn flag(&mut self) -> Result<bool, PathDataError> {
+    fn flag(&mut self) -> Result<bool, SourceSyntaxError> {
         self.skip_wsp();
         let flag = match self.bytes.get(self.at) {
             Some(b'0') => false,
@@ -641,4 +673,206 @@ impl<'a> Parser<'a> {
         self.skip_trailing_separator();
         Ok(flag)
     }
+}
+
+type ResolvedConic = ((f32, f32), (f32, f32), f32);
+
+enum ArcResolution {
+    Line,
+    NoOp,
+    Conics(Vec<ResolvedConic>),
+}
+
+#[derive(Clone, Copy)]
+struct SkiaAffine2 {
+    scale_x: f32,
+    skew_x: f32,
+    skew_y: f32,
+    scale_y: f32,
+}
+
+impl SkiaAffine2 {
+    /// `Scale(sx, sy) * Rotate(degrees)`, matching `setScale().preRotate()`.
+    fn scale_pre_rotate(scale_x: f32, scale_y: f32, degrees: f32) -> Self {
+        let (sin, cos) = skia_sin_cos(degrees);
+        Self {
+            scale_x: scale_x * cos,
+            skew_x: scale_x * -sin,
+            skew_y: scale_y * sin,
+            scale_y: scale_y * cos,
+        }
+    }
+
+    /// `Rotate(degrees) * Scale(sx, sy)`, matching `setRotate().preScale()`.
+    fn rotate_pre_scale(degrees: f32, scale_x: f32, scale_y: f32) -> Self {
+        let (sin, cos) = skia_sin_cos(degrees);
+        Self {
+            scale_x: cos * scale_x,
+            skew_x: -sin * scale_y,
+            skew_y: sin * scale_x,
+            scale_y: cos * scale_y,
+        }
+    }
+
+    fn map(self, point: (f32, f32)) -> (f32, f32) {
+        (
+            point.0 * self.scale_x + point.1 * self.skew_x,
+            point.0 * self.skew_y + point.1 * self.scale_y,
+        )
+    }
+}
+
+/// Chromium 149 forwards an SVG arc to pinned Skia's `SkPathBuilder::arcTo`.
+/// This is that builder's `f32` construction, projected into the producer's
+/// source-neutral conic vocabulary. A `NoOp` is distinct from a poisoned
+/// ordinary path command: Skia can abandon an arc before appending a verb and
+/// leave every preceding segment intact.
+fn resolve_arc_like_skia(
+    start: (f32, f32),
+    radii: (f32, f32),
+    angle: f32,
+    large: bool,
+    sweep: bool,
+    end: (f32, f32),
+) -> ArcResolution {
+    if radii.0 == 0.0 || radii.1 == 0.0 {
+        return ArcResolution::Line;
+    }
+
+    let mut rx = radii.0.abs();
+    let mut ry = radii.1.abs();
+    let midpoint_distance = ((start.0 - end.0) * 0.5, (start.1 - end.1) * 0.5);
+    let transformed_midpoint =
+        SkiaAffine2::scale_pre_rotate(1.0, 1.0, -angle).map(midpoint_distance);
+
+    let square_rx = rx * rx;
+    let square_ry = ry * ry;
+    let square_x = transformed_midpoint.0 * transformed_midpoint.0;
+    let square_y = transformed_midpoint.1 * transformed_midpoint.1;
+    let radii_scale = square_x / square_rx + square_y / square_ry;
+    if radii_scale > 1.0 {
+        let scale = radii_scale.sqrt();
+        rx *= scale;
+        ry *= scale;
+    }
+
+    let to_unit = SkiaAffine2::scale_pre_rotate(1.0 / rx, 1.0 / ry, -angle);
+    let mut unit_start = to_unit.map(start);
+    let mut unit_end = to_unit.map(end);
+    let mut delta = (unit_end.0 - unit_start.0, unit_end.1 - unit_start.1);
+    let distance = delta.0 * delta.0 + delta.1 * delta.1;
+    let raw_scale_factor_squared = 1.0 / distance - 0.25;
+    // `std::max(NaN, 0)` retains its first NaN argument; `f32::max` does not.
+    let scale_factor_squared = if raw_scale_factor_squared < 0.0 {
+        0.0
+    } else {
+        raw_scale_factor_squared
+    };
+    let mut scale_factor = scale_factor_squared.sqrt();
+    if sweep == large {
+        scale_factor = -scale_factor;
+    }
+    delta.0 *= scale_factor;
+    delta.1 *= scale_factor;
+
+    let mut center = (
+        (unit_start.0 + unit_end.0) * 0.5,
+        (unit_start.1 + unit_end.1) * 0.5,
+    );
+    center.0 += -delta.1;
+    center.1 += delta.0;
+    unit_start.0 -= center.0;
+    unit_start.1 -= center.1;
+    unit_end.0 -= center.0;
+    unit_end.1 -= center.1;
+
+    let theta1 = unit_start.1.atan2(unit_start.0);
+    let theta2 = unit_end.1.atan2(unit_end.0);
+    let mut theta_arc = theta2 - theta1;
+    let tau = std::f32::consts::PI * 2.0;
+    if theta_arc < 0.0 && sweep {
+        theta_arc += tau;
+    } else if theta_arc > 0.0 && !sweep {
+        theta_arc -= tau;
+    }
+
+    if theta_arc.abs() < std::f32::consts::PI / 1_000_000.0 {
+        return ArcResolution::Line;
+    }
+    // A non-finite angle reaches Skia's saturated segment count, then a
+    // non-finite tangent, and returns before appending a conic.
+    if !theta_arc.is_finite() {
+        return ArcResolution::NoOp;
+    }
+
+    let segment_span = (2.0 * std::f32::consts::PI) / 3.0;
+    let segments = (theta_arc.abs() / segment_span).ceil() as usize;
+    debug_assert!((1..=3).contains(&segments));
+    let theta_width = theta_arc / segments as f32;
+    let tangent = (0.5 * theta_width).tan();
+    if !tangent.is_finite() {
+        return ArcResolution::NoOp;
+    }
+
+    let weight = (0.5 + theta_width.cos() * 0.5).sqrt();
+    let expect_integers = (std::f32::consts::FRAC_PI_2 - theta_width.abs()).abs() <= 1.0 / 4096.0
+        && rx == rx.floor()
+        && ry == ry.floor()
+        && end.0 == end.0.floor()
+        && end.1 == end.1.floor();
+    let from_unit = SkiaAffine2::rotate_pre_scale(angle, rx, ry);
+    let mut start_theta = theta1;
+    let mut conics = Vec::with_capacity(segments);
+    for index in 0..segments {
+        let end_theta = start_theta + theta_width;
+        let (sin_end, cos_end) = skia_sin_cos_radians(end_theta);
+        let mut unit_endpoint = (cos_end, sin_end);
+        unit_endpoint.0 += center.0;
+        unit_endpoint.1 += center.1;
+        let mut unit_control = unit_endpoint;
+        unit_control.0 += tangent * sin_end;
+        unit_control.1 += -tangent * cos_end;
+
+        let mut control = from_unit.map(unit_control);
+        let mut endpoint = from_unit.map(unit_endpoint);
+        if expect_integers {
+            control = (skia_round(control.0), skia_round(control.1));
+            endpoint = (skia_round(endpoint.0), skia_round(endpoint.1));
+        }
+        if index + 1 == segments {
+            endpoint = end;
+        }
+        conics.push((control, endpoint, weight));
+        start_theta = end_theta;
+    }
+    ArcResolution::Conics(conics)
+}
+
+fn skia_sin_cos(degrees: f32) -> (f32, f32) {
+    skia_sin_cos_radians(degrees * (std::f32::consts::PI / 180.0))
+}
+
+fn skia_sin_cos_radians(radians: f32) -> (f32, f32) {
+    let sin = radians.sin();
+    let cos = radians.cos();
+    (
+        if sin.abs() <= 1.0 / 65_536.0 {
+            0.0
+        } else {
+            sin
+        },
+        if cos.abs() <= 1.0 / 65_536.0 {
+            0.0
+        } else {
+            cos
+        },
+    )
+}
+
+fn skia_round(value: f32) -> f32 {
+    (f64::from(value) + 0.5).floor() as f32
+}
+
+fn finite_point(point: (f32, f32)) -> bool {
+    point.0.is_finite() && point.1.is_finite()
 }

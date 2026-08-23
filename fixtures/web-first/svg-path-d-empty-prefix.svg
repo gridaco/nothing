@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <rect x="4" y="4" width="24" height="24" fill="#dbeafe"/>
+  <rect x="36" y="4" width="24" height="24" fill="#dcfce7"/>
+  <rect x="4" y="36" width="24" height="24" fill="#fef3c7"/>
+  <rect x="36" y="36" width="24" height="24" fill="#fae8ff"/>
+  <g fill="#111827">
+    <path d="none"/>
+    <path d="L36 4 H60 V28 H36 Z"/>
+    <path d="M4. 36 H28 V60 H4 Z"/>
+    <path d="M36 BOGUS H60 V60 H36 Z"/>
+  </g>
+</svg>

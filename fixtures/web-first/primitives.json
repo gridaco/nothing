@@ -1122,6 +1122,54 @@
       "height": 64
     },
     {
+      "id": "svg-path-d-arc-noop-current",
+      "source": "svg-path-d-arc-noop-current.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-path-d-arc-noop-current.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-path-d-arc-range",
+      "source": "svg-path-d-arc-range.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-path-d-arc-range.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-path-d-construction-overflow",
+      "source": "svg-path-d-construction-overflow.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-path-d-construction-overflow.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-path-d-empty-prefix",
+      "source": "svg-path-d-empty-prefix.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-path-d-empty-prefix.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-path-d-error-prefix",
+      "source": "svg-path-d-error-prefix.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-path-d-error-prefix.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-path-d-number-accumulation",
+      "source": "svg-path-d-number-accumulation.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-path-d-number-accumulation.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-path-draws-nothing",
       "source": "svg-path-draws-nothing.svg",
       "entry": "standalone-svg",
@@ -1334,6 +1382,14 @@
       "source": "svg-percent-stroke-width.svg",
       "entry": "standalone-svg",
       "oracle": "chromium/svg-percent-stroke-width.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-number-accumulation",
+      "source": "svg-points-number-accumulation.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-points-number-accumulation.png",
       "width": 64,
       "height": 64
     },

@@ -973,6 +973,12 @@ excluded.
 > is recorded below.
 
 - [ ] `d`
+
+> **2026-08-23 split:** the CSS property remains open at the pinned Stylo cap:
+> this build has no `d` longhand, and the stylesheet and inline-style ingresses
+> remain quarantined by name rather than matched outside the cascade. The
+> presentation attribute closes independently below.
+
 - [x] `fill`
 - [x] `fill-opacity`
 - [x] `fill-rule`
@@ -1459,7 +1465,19 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > drop. Unit values, CSS math, `var()`, and
 > CSS-wide keywords retain their own unchecked value-type rows.
 
-- [ ] `d`
+- [x] `d`
+
+> **2026-08-23 close:** the complete `none | <path-data>` attribute grammar is
+> Chromium-baked. Erroneous data now retains every complete segment before the
+> error, including completed implicit repeats, while an error before a complete
+> leading moveto is the correct empty geometry. Two source-number witnesses pin
+> Blink's ordered float evaluation in both rounding directions; the same repair
+> is independently celled for the shared polygon/polyline scanner. Extreme
+> finite construction follows the browser's split between an invalid whole
+> path and an arc that appends no segment while preserving the prior prefix.
+> Seven new exact cells carry those branches; the three former path-data refusal
+> rows graduate. The CSS `d` property twin stays open under the split above.
+
 - [ ] `direction`
 - [ ] `display`
 - [ ] `dominant-baseline`

@@ -28,9 +28,6 @@ The scannable, generated view of this register (beside the baked cells) is
 | `svg-preserve-aspect-ratio-case-folded.svg` | Reject the case-folded alignment keyword — the SVG grammar is case-sensitive. |
 | `svg-preserve-aspect-ratio-defer.svg` | Reject the SVG 1.1 `defer` prefix as malformed grammar: SVG2 dropped it and Chromium treats the whole value as unparseable. |
 | `svg-width-percentage.svg` | Reject percentage root sizing by name — its basis is the host window itself, a cell the element-capture baker cannot express, so it graduates only with a host-level oracle. (Shape-geometry and stroke-width percentages graduated with the percentages rung.) |
-| `svg-path-malformed-d.svg` | Refuse the whole path, naming the byte offset. Chromium renders the valid prefix (SVG2 §9.3.9); this slice does not ship an unbaked partial geometry — a deliberate, declared divergence. |
-| `svg-path-no-leading-moveto.svg` | Refuse path data that does not begin with a moveto. Chromium's valid prefix is empty here, so the refusal costs no pixels. |
-| `svg-path-trailing-dot-number.svg` | Refuse `10.` in path data. SVG's BNF allows a trailing dot; Blink requires a digit after it and renders nothing — the browser is the authority. |
 | `svg-path-css-d-property.svg` | Declare a stylesheet's `d: path(…)`: Chromium honors it in place of the attribute, and the pinned Stylo build drops the declaration entirely. |
 | `svg-path-marker-end.svg` | Refuse by name — **load-bearing**. Nothing else reads a marker property: the property *is* the paint trigger, so this refusal is what keeps Chromium's arrowhead from becoming a silent hole. |
 | `svg-stroke-dasharray-escape.svg` | Refuse by name — a CSS escape can hide a basis-less unit from the authored-text patrol (`1\76 w` tokenizes as `1vw`), so the presentation attribute, style attribute, and stylesheet spellings all refuse rather than silently use the pinned device basis. |
