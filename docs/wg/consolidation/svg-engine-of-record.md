@@ -58,13 +58,13 @@ from the dated addenda below:
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 327 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 334 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except six curved cells carrying a declared, geometrically
   confined tolerance (the weighted rational conic) and three gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
-  restore). The named refusal register has 81 rows.
+  restore). The named refusal register has 78 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -2309,3 +2309,69 @@ Neither `x`/`y` CSS presentation-property row nor any of the four SVG
 presentation-attribute rows ticks. This is a measured SPLIT verdict under the
 gridaco/nothing#81/#89/#90 precedent, not capability closure. It produces no
 conformance score and takes no FLIP action.
+
+## Rung: SVG path-data presentation attribute `d` (2026-08-23)
+
+The `d` attribute closes. Its complete standard-track grammar is
+`none | <path-data>`: every path command was already admitted, including arcs;
+this rung repays the remaining valid-prefix divergence and the numeric faults
+that became visible while measuring that boundary. The CSS property twin does
+not close. Chromium honors `d: path(…)`, while the pinned cascade has no `d`
+longhand; both authored CSS ingresses remain named by the existing patrol, with
+no second matcher around the cascade.
+
+The first defect was the known prefix rule. Chromium retains every complete
+segment before a path-data error, including complete implicit repeats, and
+never emits part of an incomplete compound command. A trailing move-only
+contour contributes no visual segment; a failure before a complete leading
+moveto is empty geometry. Unknown commands, incomplete line/cubic/arc repeats,
+bad arc flags, errors after close, overflowing exponents, and the decimal at
+the exact finite range boundary were all measured against explicit prefix
+controls. The three refusal rows that formerly turned those cases into skipped
+elements therefore graduate.
+
+The prefix probe exposed a separate silent pixel class in valid input. Blink's
+SVG number parser accumulates decimal digits in ordered float operations;
+parsing the same token as an ideal decimal and rounding once can select the
+other neighbouring float. Both directions reproduce: `1188.679260273` selects
+the lower neighbour in Chromium, while `5186.454833937` selects the upper. The
+former producer selected the opposite result for each. Amplified path probes
+move 96 pixels at maximum delta 255 per full-height witness. Polygon points use
+the same source-number grammar and reproduced the fault at 48 pixels per
+witness. The repair is consequently shared by path data, polygon/polyline
+points, and the already-established path-distance number route; feature-local
+rounding rules would have left one shipped consumer silently wrong.
+
+A second range class belongs to path construction rather than source parsing.
+Finite authored numbers can produce a non-finite derived coordinate. An
+ordinary line or reflected curve then invalidates the whole browser path,
+erasing earlier ink. An endpoint arc can instead abandon construction before
+appending a path segment: the earlier prefix survives, the logical current
+point still advances, and following relative commands use that point. Huge
+equal radii and subnormal non-zero radii take this no-segment branch; a huge
+finite rotation remains a live authored angle. These outcomes follow the
+float conic construction of Chromium's pinned path builder, including its
+maximum of three conics, rather than the earlier four-quarter, double-precision
+model. The resolved contract already carries rational conics, so no contract
+or painter seam changes.
+
+Six new `d` cells and one companion `points` cell carry the evidence. The
+empty-prefix and retained-prefix controls differ by 2,304 pixels at delta 237
+and 1,178 at delta 233. Substituting the two wrong numeric neighbours changes
+96 path pixels at delta 233 and 48 polygon pixels at delta 225. Swapping the
+ordinary-poison and arc-no-segment outcomes changes 768 pixels in either
+direction at delta 232. Replacing the huge/subnormal arcs with lines changes
+192 pixels at delta 232; reducing the huge angle changes 150 at delta 86. The
+dedicated no-segment/current-point witness differs by 446 pixels at delta 218
+from either wrong model: keeping the stale point or appending an implicit move.
+Every candidate was rendered through the actual CLI path with no declaration,
+and every decoded raster was exact to its Chromium probe.
+
+The byte gate's sensitivity was proved by temporarily restoring the former
+one-shot float parse. `just gate` failed on the new path-number cell by 96
+pixels and on the shared-points cell by 48, both at maximum delta 233. Restoring
+the ordered SVG evaluator returned all cells to green. The primitive corpus
+moves from 327 to 334 cells; the ten exact-time sampled frames are unchanged.
+The refusal register moves from 81 to 78 rows. The SVG presentation-attribute
+`d` row ticks; the CSS presentation-property row stays open at the pinned
+cascade boundary. This records no conformance score and takes no FLIP action.

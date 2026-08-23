@@ -195,6 +195,25 @@ fn the_points_number_grammar_is_the_path_scanners() {
     );
 }
 
+/// The scanner is shared in more than name: points tokens use Blink's ordered
+/// `f32` digit accumulation, including both decimal classes for which Rust's
+/// former one-shot parser selected the opposite neighbouring float.
+#[test]
+fn points_share_blinks_ordered_f32_source_numbers() {
+    for (source, expected_bits) in [
+        ("1188.679260273", 0x4494_95bc),
+        ("5186.454833937", 0x45a2_13a4),
+    ] {
+        let frame = admit_both(&document(&format!(
+            r##"  <polygon points="{source},8 5200,8 5200,56" fill="#16a34a"/>"##
+        )));
+        let PathCommand::MoveTo { x, .. } = commands(&frame, 0)[0] else {
+            panic!("a polygon begins with its first point");
+        };
+        assert_eq!(x.to_bits(), expected_bits, "source={source}");
+    }
+}
+
 /// A trailing separator after the last complete pair is admitted — Blink
 /// accepts it (measured; its cell is Chromium-baked), unlike the `viewBox`
 /// grammar, whose trailing comma stays a refusal.

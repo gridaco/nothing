@@ -5,9 +5,9 @@
 //! facts. Document parsing remains in `csscascade`; the Skia-derived geometry
 //! metric is isolated in the private `svg_path_length_metric` sibling.
 
+use crate::svg_number::{self, ExponentParts, NumberParts};
 use crate::svg_path_length_metric;
 use rframe::Geometry;
-use std::ops::Range;
 
 /// Blink's f32 scale applied to resolved dash members and phase when a
 /// `pathLength` attribute participates. Absence and valid negative values do
@@ -53,20 +53,6 @@ fn authored_path_length(authored: Option<&str>) -> Option<f32> {
 fn parse_svg_number(raw: &str) -> Option<f32> {
     let parts = lex_number(raw)?;
     evaluate_number(raw.as_bytes(), &parts)
-}
-
-#[derive(Debug)]
-struct NumberParts {
-    negative: bool,
-    integer_digits: Range<usize>,
-    fraction_digits: Option<Range<usize>>,
-    exponent: Option<ExponentParts>,
-}
-
-#[derive(Debug)]
-struct ExponentParts {
-    negative: bool,
-    digits: Range<usize>,
 }
 
 fn lex_number(raw: &str) -> Option<NumberParts> {
@@ -176,73 +162,7 @@ fn is_svg_whitespace(byte: u8) -> bool {
 }
 
 fn evaluate_number(bytes: &[u8], parts: &NumberParts) -> Option<f32> {
-    let integer = evaluate_integer(bytes, &parts.integer_digits)?;
-    let fraction = parts
-        .fraction_digits
-        .as_ref()
-        .map_or(0.0_f32, |digits| evaluate_fraction(bytes, digits));
-
-    let unsigned = integer + fraction;
-    let sign = if parts.negative { -1.0_f32 } else { 1.0_f32 };
-    let mut number = unsigned * sign;
-
-    if let Some(exponent_parts) = &parts.exponent {
-        let magnitude = evaluate_exponent(bytes, &exponent_parts.digits);
-        if !exponent_parts.negative && magnitude > 38.0_f32 {
-            return None;
-        }
-
-        let exponent = if exponent_parts.negative {
-            -magnitude
-        } else {
-            magnitude
-        };
-        if exponent != 0.0_f32 {
-            let scale = (10.0_f64).powf(exponent as f64) as f32;
-            number *= scale;
-        }
-    }
-
-    number.is_finite().then_some(number)
-}
-
-fn evaluate_integer(bytes: &[u8], digits: &Range<usize>) -> Option<f32> {
-    let mut accumulator = 0.0_f32;
-    let mut place = 1.0_f32;
-
-    for index in (digits.start..digits.end).rev() {
-        let digit = f32::from(bytes[index] - b'0');
-        let term = place * digit;
-        accumulator += term;
-        place *= 10.0_f32;
-    }
-
-    accumulator.is_finite().then_some(accumulator)
-}
-
-fn evaluate_fraction(bytes: &[u8], digits: &Range<usize>) -> f32 {
-    let mut accumulator = 0.0_f32;
-    let mut place = 1.0_f32;
-
-    for &byte in &bytes[digits.start..digits.end] {
-        place *= 0.1_f32;
-        let digit = f32::from(byte - b'0');
-        let term = digit * place;
-        accumulator += term;
-    }
-
-    accumulator
-}
-
-fn evaluate_exponent(bytes: &[u8], digits: &Range<usize>) -> f32 {
-    let mut accumulator = 0.0_f32;
-
-    for &byte in &bytes[digits.start..digits.end] {
-        accumulator *= 10.0_f32;
-        accumulator += f32::from(byte - b'0');
-    }
-
-    accumulator
+    svg_number::evaluate(bytes, parts)
 }
 
 #[cfg(test)]

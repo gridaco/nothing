@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (327)
+## Chromium-baked cells (334)
 
 Each renders byte-exact against its committed Chromium oracle
 (six curved cells and three gradient ramps carry a declared, bounded
@@ -158,6 +158,12 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-path-arc-stroked.svg" title="svg-path-arc-stroked (standalone-svg)"><img src="./chromium/svg-path-arc-stroked.png" width="56" alt="svg-path-arc-stroked"></a>
 <a href="./svg-path-closed-move-only-contour.svg" title="svg-path-closed-move-only-contour (standalone-svg)"><img src="./chromium/svg-path-closed-move-only-contour.png" width="56" alt="svg-path-closed-move-only-contour"></a>
 <a href="./svg-path-cubic-fill.svg" title="svg-path-cubic-fill (standalone-svg)"><img src="./chromium/svg-path-cubic-fill.png" width="56" alt="svg-path-cubic-fill"></a>
+<a href="./svg-path-d-arc-noop-current.svg" title="svg-path-d-arc-noop-current (standalone-svg)"><img src="./chromium/svg-path-d-arc-noop-current.png" width="56" alt="svg-path-d-arc-noop-current"></a>
+<a href="./svg-path-d-arc-range.svg" title="svg-path-d-arc-range (standalone-svg)"><img src="./chromium/svg-path-d-arc-range.png" width="56" alt="svg-path-d-arc-range"></a>
+<a href="./svg-path-d-construction-overflow.svg" title="svg-path-d-construction-overflow (standalone-svg)"><img src="./chromium/svg-path-d-construction-overflow.png" width="56" alt="svg-path-d-construction-overflow"></a>
+<a href="./svg-path-d-empty-prefix.svg" title="svg-path-d-empty-prefix (standalone-svg)"><img src="./chromium/svg-path-d-empty-prefix.png" width="56" alt="svg-path-d-empty-prefix"></a>
+<a href="./svg-path-d-error-prefix.svg" title="svg-path-d-error-prefix (standalone-svg)"><img src="./chromium/svg-path-d-error-prefix.png" width="56" alt="svg-path-d-error-prefix"></a>
+<a href="./svg-path-d-number-accumulation.svg" title="svg-path-d-number-accumulation (standalone-svg)"><img src="./chromium/svg-path-d-number-accumulation.png" width="56" alt="svg-path-d-number-accumulation"></a>
 <a href="./svg-path-draws-nothing.svg" title="svg-path-draws-nothing (standalone-svg)"><img src="./chromium/svg-path-draws-nothing.png" width="56" alt="svg-path-draws-nothing"></a>
 <a href="./svg-path-fill-rule-evenodd.svg" title="svg-path-fill-rule-evenodd (standalone-svg)"><img src="./chromium/svg-path-fill-rule-evenodd.png" width="56" alt="svg-path-fill-rule-evenodd"></a>
 <a href="./svg-path-fill-rule-inherited.svg" title="svg-path-fill-rule-inherited (standalone-svg)"><img src="./chromium/svg-path-fill-rule-inherited.png" width="56" alt="svg-path-fill-rule-inherited"></a>
@@ -185,6 +191,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-percent-rect-in-viewbox.svg" title="svg-percent-rect-in-viewbox (standalone-svg)"><img src="./chromium/svg-percent-rect-in-viewbox.png" width="56" alt="svg-percent-rect-in-viewbox"></a>
 <a href="./svg-percent-rect-root-units.svg" title="svg-percent-rect-root-units (standalone-svg)"><img src="./chromium/svg-percent-rect-root-units.png" width="56" alt="svg-percent-rect-root-units"></a>
 <a href="./svg-percent-stroke-width.svg" title="svg-percent-stroke-width (standalone-svg)"><img src="./chromium/svg-percent-stroke-width.png" width="56" alt="svg-percent-stroke-width"></a>
+<a href="./svg-points-number-accumulation.svg" title="svg-points-number-accumulation (standalone-svg)"><img src="./chromium/svg-points-number-accumulation.png" width="56" alt="svg-points-number-accumulation"></a>
 <a href="./svg-points-trailing-comma.svg" title="svg-points-trailing-comma (standalone-svg)"><img src="./chromium/svg-points-trailing-comma.png" width="56" alt="svg-points-trailing-comma"></a>
 <a href="./svg-polygon-fill.svg" title="svg-polygon-fill (standalone-svg)"><img src="./chromium/svg-polygon-fill.png" width="56" alt="svg-polygon-fill"></a>
 <a href="./svg-polygon-fill-rule-evenodd.svg" title="svg-polygon-fill-rule-evenodd (standalone-svg)"><img src="./chromium/svg-polygon-fill-rule-evenodd.png" width="56" alt="svg-polygon-fill-rule-evenodd"></a>
@@ -356,7 +363,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (81)
+## The refusal register (78)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -407,10 +414,7 @@ its row into the cells above.
 | `svg-mask` | declared | skipped svg/mask[1]: unsupported element <mask>; skipped svg/rect[2]: unsupported rendering attribute mask on <rect> (not yet consumed) |
 | `svg-nested-svg` | declared | skipped svg/svg[1]: unsupported element <svg> |
 | `svg-path-css-d-property` | declared | declaration ignored at svg/style[1]: a stylesheet declares d, which this cascade does not represent; elements it matches render without it |
-| `svg-path-malformed-d` | declared | skipped svg/path[1]: path data on <path> is invalid at byte 29 (near "qqq") |
 | `svg-path-marker-end` | declared | skipped svg/path[1]: unsupported rendering attribute marker-end on <path> (not yet consumed) |
-| `svg-path-no-leading-moveto` | declared | skipped svg/path[1]: path data on <path> is invalid at byte 0 (near "L10 10 L54 54 Z") |
-| `svg-path-trailing-dot-number` | declared | skipped svg/path[1]: path data on <path> is invalid at byte 1 (near "10. 10 L54 10 L54 54 Z") |
 | `svg-pattern-paint-server` | declared | skipped svg/pattern[1]: unsupported element <pattern>; skipped svg/rect[2]: unsupported fill value "url(#p): url(#p) resolves to a <pattern> paint server, which the resolved frame cannot express" |
 | `svg-points-odd-coordinate` | declared | skipped svg/polygon[1]: points on <polygon> is invalid at byte 17 (near "") |
 | `svg-preserve-aspect-ratio-case-folded` | **both refuse** | preserveAspectRatio "xmidymid meet" is invalid |

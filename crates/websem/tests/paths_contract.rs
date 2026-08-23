@@ -6,10 +6,9 @@
 //! SVG's BNF — the two disagree in places (a trailing dot is valid path-data
 //! grammar and Chromium rejects it), and where they disagree the browser wins.
 //! The pixel claims are Chromium-baked in `reftest_oracle.rs`; these laws pin
-//! the structure that produces them, plus the two deliberate divergences:
-//! a malformed `d` refuses the whole path instead of rendering its valid
-//! prefix, and an elliptical arc refuses instead of painting a cubic
-//! approximation of a curve Chromium draws with conics.
+//! the structure that produces them: Blink's ordered `f32` source-number
+//! evaluation, complete-segment prefix finalization after an error, and the
+//! pinned Skia conics used for elliptical arcs.
 
 // This binary consumes only the n0 render half of the shared plumbing.
 #[allow(dead_code)]
@@ -323,10 +322,23 @@ fn a_path_that_draws_nothing_resolves_to_no_node() {
         r##"  <path fill="#16a34a" d=""/>"##,
         r##"  <path fill="#16a34a" d="   "/>"##,
         r##"  <path fill="#16a34a"/>"##,
+        r##"  <path fill="#16a34a" d="none"/>"##,
+        r##"  <path fill="#16a34a" d="  NoNe  "/>"##,
+        r##"  <path fill="#16a34a" d="initial"/>"##,
+        r##"  <path fill="#16a34a" d="unset"/>"##,
+        r##"  <path fill="#16a34a" d="revert"/>"##,
+        r##"  <path fill="#16a34a" d="revert-layer"/>"##,
+        r##"  <path fill="#16a34a" d="path('M8 8 H56 V56 H8 Z')"/>"##,
+        r##"  <path fill="#16a34a" style="--p: M8 8 H56 V56 H8 Z" d="var(--p)"/>"##,
         r##"  <path fill="#16a34a" d="M20 20"/>"##,
         r##"  <path fill="#16a34a" d="M20 20 M30 30"/>"##,
     ] {
-        let frame = admit_both(&document(body));
+        let source = document(body);
+        let frame = if body.contains("style=") {
+            admit_both_with_stylesheet(&source)
+        } else {
+            admit_both(&source)
+        };
         assert!(frame.nodes().is_empty(), "body={body:?}");
     }
 }
@@ -410,12 +422,13 @@ fn the_fill_rule_decides_the_interior() {
     );
 }
 
-// ─── the grammar's refusals ──────────────────────────────────────────────
+// ─── source grammar and error finalization ───────────────────────────────
 
 /// The path-data number grammar, measured. SVG's BNF allows a trailing dot
 /// (`digit-sequence "."`); Chromium's parser requires a digit after the dot
-/// and renders nothing for `M10. 10 …`, so this slice refuses it rather than
-/// parse a number the browser never sees.
+/// and stops at `M10. 10 …`. An error retains only fully emitted segments, so
+/// one before the first complete moveto is clean empty geometry while one
+/// after a visible contour retains that contour.
 #[test]
 fn the_number_grammar_is_chromiums_not_the_bnfs() {
     for d in [
@@ -423,22 +436,53 @@ fn the_number_grammar_is_chromiums_not_the_bnfs() {
         "M10 10 L54. 10 L54 54 Z",
         "M. 10 L54 10 L54 54 Z",
         "M1e 10 L54 10 L54 54 Z",
-        "M10 10 L1e40 10 L54 54 Z",
     ] {
+        let frame = admit_both(&path_document(d));
         assert!(
-            matches!(refusal(&path_document(d)), CompileError::BadPathData { .. }),
-            "d={d:?} must refuse as malformed path data"
+            frame.nodes().is_empty(),
+            "d={d:?} has an empty valid prefix"
+        );
+    }
+
+    let prefix = "M8 8 H56 V56 H8 Z";
+    for d in [
+        format!("{prefix} M10 10 L54. 10"),
+        format!("{prefix} M10 10 L1e40 10"),
+        format!("{prefix} M10 10 L340282346638528859811704183484516925440 10"),
+    ] {
+        assert_eq!(
+            commands(&d),
+            commands(prefix),
+            "d={d:?} retains the last complete segment"
         );
     }
     // A finite huge number is not an overflow.
     admit_both(&path_document("M10 10 L1e30 10 L54 54 Z"));
 }
 
+/// Blink does not parse a source token through an ideal decimal and round
+/// once. It accumulates integer and fraction digits in ordered `f32`
+/// operations. These two valid tokens exercise both directions in which
+/// Rust's former `parse::<f32>()` route selected the other neighbour.
+#[test]
+fn source_numbers_use_blinks_ordered_f32_accumulation() {
+    for (source, expected_bits) in [
+        ("1188.679260273", 0x4494_95bc),
+        ("5186.454833937", 0x45a2_13a4),
+    ] {
+        let stream = commands(&format!("M{source} 8 h1 v1 Z"));
+        let PathCommand::MoveTo { x, .. } = stream[0] else {
+            panic!("a path begins with the resolved moveto");
+        };
+        assert_eq!(x.to_bits(), expected_bits, "source={source}");
+    }
+}
+
 /// A number consumes trailing whitespace and **at most one** comma. That one
 /// rule reproduces every measured case, and the asymmetry is real: a comma
 /// before a command letter parses (the preceding number ate it), while a comma
 /// right after a command letter, a doubled comma, and a leading comma are all
-/// errors Chromium reports by painting nothing.
+/// errors Chromium reports by finalizing the valid prefix.
 #[test]
 fn the_separator_grammar_admits_exactly_one_comma() {
     admit_both(&path_document("M10 10 L54 10, 54 54 Z"));
@@ -448,68 +492,73 @@ fn the_separator_grammar_admits_exactly_one_comma() {
         "M10,,10 L54 10 L54 54 Z",
         ",M10 10 L54 10 L54 54 Z",
     ] {
-        assert!(
-            matches!(refusal(&path_document(d)), CompileError::BadPathData { .. }),
-            "d={d:?}"
-        );
+        assert!(admit_both(&path_document(d)).nodes().is_empty(), "d={d:?}");
     }
+
+    let prefix = "M8 8 H56 V56 H8 Z";
+    assert_eq!(
+        commands(&format!("{prefix} M10,,10")),
+        commands(prefix),
+        "a separator error after a completed contour retains it"
+    );
 }
 
 /// Only the five ASCII whitespace characters separate path-data tokens. A
 /// value padded with U+00A0 is invalid to Chromium, which paints nothing.
 #[test]
 fn non_ascii_whitespace_is_not_a_separator() {
-    assert!(matches!(
-        refusal(&path_document("M10\u{00a0}10 L54 10 L54 54 Z")),
-        CompileError::BadPathData { .. }
-    ));
+    assert!(
+        admit_both(&path_document("M10\u{00a0}10 L54 10 L54 54 Z"))
+            .nodes()
+            .is_empty()
+    );
 }
 
-/// **The deliberate divergence.** Chromium renders an erroneous path's valid
-/// prefix and drops the rest (SVG2 §9.3.9). This slice refuses the whole path,
-/// naming the byte offset and quoting the text there — one declared hole
-/// instead of an unbaked partial geometry. Where the prefix is empty the two
-/// agree exactly, because both paint nothing.
+/// SVG2 and Chromium finalize an erroneous path after its last fully defined
+/// segment. This matrix crosses every argument arity, an unknown command, an
+/// error after close, and a trailing move-only contour. No half-defined curve
+/// or arc may leak into the resolved command stream.
 #[test]
-fn a_malformed_d_refuses_the_whole_path_at_its_offset() {
-    let source = path_document("M10 10 L54 10 L54 54 Z M2 2 Lqqq");
-    let CompileError::BadPathData {
-        element,
-        offset,
-        excerpt,
-    } = refusal(&source)
-    else {
-        panic!("expected malformed path data");
-    };
-    assert_eq!(element, "path");
-    assert_eq!(offset, 29, "the offset is where the value stopped parsing");
-    assert_eq!(excerpt, "qqq", "the excerpt quotes the authored text there");
+fn malformed_path_data_finalizes_its_complete_segment_prefix() {
+    let prefix = "M8 8 H56 V56 H8 Z";
+    let expected = commands(prefix);
+    for suffix in [
+        "BOGUS L60 60",
+        "0",
+        "M2 2 L",
+        "M2 2 H",
+        "M2 2 V",
+        "M2 2 C1 2 3 4 5",
+        "M2 2 S1 2 3",
+        "M2 2 Q1 2 3",
+        "M2 2 T1",
+        "M2 2 A8 8 0 0 1 20",
+        "M2 2 A8 8 0 2 1 20 20",
+    ] {
+        let d = format!("{prefix} {suffix}");
+        assert_eq!(commands(&d), expected, "suffix={suffix:?}");
+    }
 
-    // Best-effort declares that one hole and renders the rest of the document.
-    let best =
-        SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
-            .expect("best-effort");
-    assert_eq!(best.degradations().len(), 1);
-    assert_eq!(best.degradations()[0].path(), "svg/path[1]");
-    assert_eq!(best.degradations()[0].action(), DegradationAction::Skipped);
-    assert!(
-        best.degradations()[0]
-            .reason()
-            .starts_with("path data on <path> is invalid at byte 29"),
-        "the reason names the offset: {}",
-        best.degradations()[0].reason()
+    assert_eq!(
+        commands("M8 8 L56 8 56 56 8"),
+        [move_to(8.0, 8.0), line_to(56.0, 8.0), line_to(56.0, 56.0)],
+        "complete implicit repeats survive an incomplete final pair"
     );
-    assert!(best.base_frame().nodes().is_empty());
+    assert_eq!(
+        commands("M8 32 C16 8 48 8 56 32 48"),
+        commands("M8 32 C16 8 48 8 56 32"),
+        "a repeated cubic is emitted only after all six arguments"
+    );
 }
 
 /// Path data must begin with a moveto. Chromium's valid prefix is empty in
-/// that case, so it paints nothing — the refusal here costs no pixels.
+/// that case, so it paints nothing without a declaration.
 #[test]
 fn path_data_must_begin_with_a_moveto() {
-    assert!(matches!(
-        refusal(&path_document("L10 10 L54 54 Z")),
-        CompileError::BadPathData { offset: 0, .. }
-    ));
+    for d in ["L10 10 L54 54 Z", "M8 BOGUS L56 56"] {
+        let frame = admit_both(&path_document(d));
+        assert!(frame.nodes().is_empty(), "d={d:?}");
+    }
 }
 
 /// **The second deliberate divergence is repaid.** The conic rung resolved
@@ -553,13 +602,12 @@ fn an_elliptical_arc_resolves_to_conics_in_both_admissions() {
         assert_eq!(end, (56.0, 28.0), "the authored endpoint, exactly");
         assert_eq!(stream[3], PathCommand::Close);
     }
-    // A *malformed* arc is malformed, exactly as before the admission: the
-    // whole argument list still parses first, so a bad flag never becomes a
-    // half-emitted curve.
-    assert!(matches!(
-        refusal(&path_document("M8 28 A24 20 0 2 1 56 28 Z")),
-        CompileError::BadPathData { .. }
-    ));
+    // A malformed repeated arc emits none of that arc, but keeps the complete
+    // conics before it.
+    assert_eq!(
+        commands("M8 28 A24 20 0 0 1 56 28 A24 20 0 2 1 8 28"),
+        commands("M8 28 A24 20 0 0 1 56 28")
+    );
 }
 
 /// The arc's degenerate and out-of-range rules, each the measured Chromium
@@ -572,16 +620,9 @@ fn an_elliptical_arc_resolves_to_conics_in_both_admissions() {
 /// - radii too small to span the endpoints scale up uniformly;
 /// - a smooth cubic after an arc reflects about the current point
 ///   (the arc resets both reflections);
-/// - the rotation is fed through as authored, and nothing canonicalizes:
-///   on a *circle* the rotation cancels arithmetically (rotate ∘ scale
-///   commutes for equal radii, so the split points coincide bit for bit),
-///   and `390` collapses to `30` only because their `sin`/`cos` residue
-///   sits below f32. Chromium paints each of those pairs measurably apart
-///   (2 and 51 pixels) — its own internal float noise, which no external
-///   construction can or should chase; every cell gates against its own
-///   oracle instead. The case where rotation genuinely changes geometry —
-///   the rotated *elliptical* arc — is pinned byte-exact by its corpus
-///   cell.
+/// - the rotation is fed through as authored. An ellipse makes that rotation
+///   structurally observable without relying on platform-libm residue from a
+///   rotationally invariant circle, and `390` is not reduced to `30`.
 #[test]
 fn arc_degenerates_and_corrections_resolve_as_chromium_paints_them() {
     assert_eq!(
@@ -609,15 +650,64 @@ fn arc_degenerates_and_corrections_resolve_as_chromium_paints_them() {
         commands("M8 32 A12 12 0 0 1 32 32 C32 32 44 44 56 32"),
         "a smooth cubic after an arc reflects about the current point"
     );
-    assert_eq!(
-        commands("M12 32 A20 20 45 0 1 52 32 Z"),
-        commands("M12 32 A20 20 0 0 1 52 32 Z"),
-        "a circle's rotation cancels arithmetically, not by canonicalization"
+    assert_ne!(
+        commands("M12 32 A20 12 45 0 1 52 32 Z"),
+        commands("M12 32 A20 12 0 0 1 52 32 Z"),
+        "the authored angle reaches pinned Skia's f32 construction"
     );
-    assert_eq!(
+    assert_ne!(
         commands("M12 40 A24 12 390 0 1 52 40 Z"),
         commands("M12 40 A24 12 30 0 1 52 40 Z"),
-        "the unreduced angle's residue sits below f32"
+        "the angle is not reduced before f32 trigonometry"
+    );
+}
+
+/// Finite source numbers can produce non-finite derived coordinates. Ordinary
+/// path verbs poison Skia's path and therefore erase prior ink; an extreme arc
+/// can instead return before appending a verb, preserving the prior prefix.
+/// Those outcomes are visually opposite and must not share one blanket rule.
+#[test]
+fn numeric_extremes_preserve_skias_poison_and_arc_noop_split() {
+    for d in [
+        "M8 8 H56 V56 H8 Z M3.4e38 32 h3.4e38",
+        "M8 8 H56 V56 H8 Z M3.4e38 3.4e38 C3.4e38 3.4e38 3.4e38 -3.4e38 3.4e38 3.4e38 S3.4e38 3.4e38 3.4e38 3.4e38",
+    ] {
+        let frame = admit_both(&path_document(d));
+        assert!(
+            frame.nodes().is_empty(),
+            "ordinary non-finite verb poisons d={d:?}"
+        );
+    }
+
+    let prefix = "M8 8 H56 V56 H8 Z";
+    assert_eq!(
+        commands(&format!("{prefix} M3.4e38 32 a8 8 0 0 1 3.4e38 0")),
+        commands(prefix),
+        "a non-finite arc construction appends no verb and retains prior ink"
+    );
+
+    for d in [
+        "M8 32 A3.4e38 3.4e38 0 0 1 56 32",
+        "M8 32 A1e-45 1e-45 0 0 1 56 32",
+    ] {
+        assert!(
+            admit_both(&path_document(d)).nodes().is_empty(),
+            "an isolated extreme no-op arc leaves only a neutral move: d={d:?}"
+        );
+    }
+    assert_eq!(
+        commands("M8 32 A3.4e38 3.4e38 0 0 1 56 32 l0 16"),
+        [move_to(8.0, 32.0), line_to(56.0, 48.0)],
+        "the arc advances the logical point without appending a path verb"
+    );
+    assert_eq!(
+        commands("M8 8 L8 56 A3.4e38 3.4e38 0 0 1 56 56 Z"),
+        [move_to(8.0, 8.0), line_to(8.0, 56.0), PathCommand::Close],
+        "close still targets the authored contour start after an arc no-op"
+    );
+    assert!(
+        commands("M8 32 A24 12 3.4e38 0 1 56 32").len() > 1,
+        "a huge finite rotation still constructs a stable path"
     );
 }
 

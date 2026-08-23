@@ -344,26 +344,23 @@ pub enum CompileError {
     BadPreserveAspectRatio(String),
     /// A `points` list outside the SVG2 §10.4 grammar. Chromium renders the
     /// valid coordinate-pair prefix and drops the rest; this slice refuses
-    /// the whole element by name instead — the same declared divergence as
-    /// [`Self::BadPathData`], so an odd trailing coordinate is one named
-    /// hole, never a silently different shape.
+    /// the whole element by name instead, so an odd trailing coordinate is
+    /// one named hole, never a silently different shape.
     BadPoints {
         element: String,
         /// Byte offset where the value stopped being a valid points list.
         offset: usize,
         excerpt: String,
     },
-    /// A `d` value outside the SVG2 §9.3 path-data grammar. Chromium renders
-    /// the value's valid prefix and drops the rest; this slice refuses the
-    /// whole path by name instead of shipping an unbaked partial geometry, so
-    /// the shape becomes one declared hole. Where the prefix is empty the two
-    /// agree exactly — both paint nothing.
+    /// A producer-normalized path stream the resolved contract rejected.
+    /// Source `d` syntax errors are finalized at the last complete segment;
+    /// this variant therefore names a compiler arithmetic/contract failure,
+    /// not authored malformed path data.
     BadPathData {
         element: String,
-        /// Byte offset where the value stopped being valid path data.
+        /// Reserved source offset; normalized-stream failures use zero.
         offset: usize,
-        /// The authored text from that offset, clipped — a `d` value can be
-        /// kilobytes long and an error is not a place to reprint one.
+        /// The contract rejection, clipped for a stable diagnostic.
         excerpt: String,
     },
     /// A composed transform that overflowed to a non-finite matrix. Every
@@ -1920,13 +1917,7 @@ fn measure_leaf_geometry(
             let Some(value) = get_attr(el, "d") else {
                 return Ok(MeasuredGeometry::Empty);
             };
-            let commands = crate::svg_path::parse_path_data(&value).map_err(
-                |crate::svg_path::PathDataError::Syntax { offset }| CompileError::BadPathData {
-                    element: "path".to_string(),
-                    offset,
-                    excerpt: excerpt_at(&value, offset),
-                },
-            )?;
+            let commands = crate::svg_path::parse_path_data(&value);
             if commands.is_empty() {
                 return Ok(MeasuredGeometry::Empty);
             }
@@ -1950,7 +1941,7 @@ fn measure_leaf_geometry(
                 return Ok(MeasuredGeometry::Empty);
             };
             let points = crate::svg_path::parse_points(&value).map_err(
-                |crate::svg_path::PathDataError::Syntax { offset }| CompileError::BadPoints {
+                |crate::svg_path::SourceSyntaxError::Syntax { offset }| CompileError::BadPoints {
                     element: el.local_name_string(),
                     offset,
                     excerpt: excerpt_at(&value, offset),
@@ -3399,13 +3390,7 @@ fn compile_path(
     }
     let commands = match get_attr(el, "d") {
         None => Vec::new(),
-        Some(value) => crate::svg_path::parse_path_data(&value).map_err(
-            |crate::svg_path::PathDataError::Syntax { offset }| CompileError::BadPathData {
-                element: "path".to_string(),
-                offset,
-                excerpt: excerpt_at(&value, offset),
-            },
-        )?,
+        Some(value) => crate::svg_path::parse_path_data(&value),
     };
     if commands.is_empty() {
         return Ok(None);
@@ -3562,7 +3547,7 @@ fn compile_points_shape(
     let points = match get_attr(el, "points") {
         None => Vec::new(),
         Some(value) => crate::svg_path::parse_points(&value).map_err(
-            |crate::svg_path::PathDataError::Syntax { offset }| CompileError::BadPoints {
+            |crate::svg_path::SourceSyntaxError::Syntax { offset }| CompileError::BadPoints {
                 element: element.to_string(),
                 offset,
                 excerpt: excerpt_at(&value, offset),
