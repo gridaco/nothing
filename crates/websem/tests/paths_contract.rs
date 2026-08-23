@@ -620,9 +620,9 @@ fn an_elliptical_arc_resolves_to_conics_in_both_admissions() {
 /// - radii too small to span the endpoints scale up uniformly;
 /// - a smooth cubic after an arc reflects about the current point
 ///   (the arc resets both reflections);
-/// - the rotation is fed through as authored. Pinned Skia's f32 trigonometry
-///   retains even a circle's authored-angle residue and does not reduce `390`
-///   to `30`; their small raster differences are byte-gated independently.
+/// - the rotation is fed through as authored. An ellipse makes that rotation
+///   structurally observable without relying on platform-libm residue from a
+///   rotationally invariant circle, and `390` is not reduced to `30`.
 #[test]
 fn arc_degenerates_and_corrections_resolve_as_chromium_paints_them() {
     assert_eq!(
@@ -651,8 +651,8 @@ fn arc_degenerates_and_corrections_resolve_as_chromium_paints_them() {
         "a smooth cubic after an arc reflects about the current point"
     );
     assert_ne!(
-        commands("M12 32 A20 20 45 0 1 52 32 Z"),
-        commands("M12 32 A20 20 0 0 1 52 32 Z"),
+        commands("M12 32 A20 12 45 0 1 52 32 Z"),
+        commands("M12 32 A20 12 0 0 1 52 32 Z"),
         "the authored angle reaches pinned Skia's f32 construction"
     );
     assert_ne!(
