@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <defs>
+    <clipPath id="text"><text x="2" y="18">clip</text></clipPath>
+    <clipPath id="inner"><rect x="22" y="2" width="18" height="18"/></clipPath>
+    <clipPath id="child-clip"><rect x="22" y="2" width="18" height="18" clip-path="url(#inner)"/></clipPath>
+    <clipPath id="many">
+      <rect x="2" width="1" height="20"/><rect x="3" width="1" height="20"/><rect x="4" width="1" height="20"/><rect x="5" width="1" height="20"/><rect x="6" width="1" height="20"/><rect x="7" width="1" height="20"/><rect x="8" width="1" height="20"/><rect x="9" width="1" height="20"/><rect x="10" width="1" height="20"/><rect x="11" width="1" height="20"/><rect x="12" width="1" height="20"/><rect x="13" width="1" height="20"/><rect x="14" width="1" height="20"/><rect x="15" width="1" height="20"/><rect x="16" width="1" height="20"/><rect x="17" width="1" height="20"/><rect x="18" width="1" height="20"/><rect x="19" width="1" height="20"/><rect x="20" width="1" height="20"/><rect x="21" width="1" height="20"/><rect x="22" width="1" height="20"/><rect x="23" width="1" height="20"/><rect x="24" width="1" height="20"/><rect x="25" width="1" height="20"/><rect x="26" width="1" height="20"/><rect x="27" width="1" height="20"/><rect x="28" width="1" height="20"/><rect x="29" width="1" height="20"/><rect x="30" width="1" height="20"/><rect x="31" width="1" height="20"/><rect x="32" width="1" height="20"/><rect x="33" width="1" height="20"/><rect x="34" width="1" height="20"/><rect x="35" width="1" height="20"/><rect x="36" width="1" height="20"/><rect x="37" width="1" height="20"/><rect x="38" width="1" height="20"/><rect x="39" width="1" height="20"/><rect x="40" width="1" height="20"/><rect x="41" width="1" height="20"/><rect x="42" width="1" height="20"/><rect x="43" width="1" height="20"/><rect x="44" width="1" height="20"/>
+    </clipPath>
+  </defs>
+  <rect x="2" y="2" width="18" height="18" fill="#16a34a" clip-path="url(#text)"/>
+  <rect x="22" y="2" width="18" height="18" fill="#2563eb" clip-path="url(#child-clip)"/>
+  <rect x="42" y="2" width="18" height="18" fill="#ef4444" clip-path="url(#many)"/>
+</svg>

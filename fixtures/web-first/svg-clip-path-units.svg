@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <defs>
+    <clipPath id="default"><rect x="2" y="2" width="12" height="28"/></clipPath>
+    <clipPath id="explicit" clipPathUnits="userSpaceOnUse"><rect x="34" y="2" width="12" height="28"/></clipPath>
+    <clipPath id="invalid" clipPathUnits="objectboundingbox"><rect x="2" y="34" width="12" height="28"/></clipPath>
+    <clipPath id="bbox" clipPathUnits="objectBoundingBox"><rect x=".25" y=".125" width=".5" height=".75"/></clipPath>
+    <clipPath id="bbox-percent" clipPathUnits="objectBoundingBox"><rect width="1%" height="1"/></clipPath>
+    <clipPath id="bbox-line" clipPathUnits="objectBoundingBox"><rect width="1" height="1"/></clipPath>
+  </defs>
+  <rect x="2" y="2" width="28" height="28" fill="#16a34a" clip-path="url(#default)"/>
+  <rect x="34" y="2" width="28" height="28" fill="#2563eb" clip-path="url(#explicit)"/>
+  <rect x="2" y="34" width="28" height="28" fill="#f59e0b" clip-path="url(#invalid)"/>
+  <rect x="34" y="34" width="12" height="28" fill="#7c3aed" clip-path="url(#bbox)"/>
+  <rect x="48" y="34" width="12" height="12" fill="#db2777" clip-path="url(#bbox-percent)"/>
+  <line x1="62" y1="36" x2="62" y2="60" stroke="#0f766e" stroke-width="4" clip-path="url(#bbox-line)"/>
+</svg>

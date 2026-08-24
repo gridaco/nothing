@@ -29,6 +29,10 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
     #transform-none-beats-hint { transform: none; }
     #transform-style-attr-beats-rule { transform: translate(30px, 0px); }
     #transform-webkit-alias { -webkit-transform: translate(30px, 0px); }
+    #clip-rule-beats-hint { clip-path: url(#rule-clip); }
+    #clip-none-beats-hint { clip-path: none; }
+    #clip-style-attr-beats-rule { clip-path: url(#rule-clip); }
+    #clip-webkit-alias { -webkit-clip-path: url(#vendor-clip); }
     #family-rule-beats-hint { font-family: monospace; }
   </style>
   <rect id="hint-only" fill="#16a34a" width="8" height="8"/>
@@ -74,6 +78,17 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
   <rect id="transform-three-arg" transform="rotate(45 32 16)" width="8" height="8"/>
   <rect id="transform-run-together" transform="translate(10-10)" width="8" height="8"/>
   <rect id="transform-webkit-alias" width="8" height="8"/>
+  <rect id="clip-hint" clip-path="url(#hint-clip)" width="8" height="8"/>
+  <rect id="clip-rule-beats-hint" clip-path="url(#hint-clip)" width="8" height="8"/>
+  <rect id="clip-none-beats-hint" clip-path="url(#hint-clip)" width="8" height="8"/>
+  <rect id="clip-style-attr-beats-rule" clip-path="url(#hint-clip)"
+        style="clip-path: url(#style-clip)" width="8" height="8"/>
+  <rect id="clip-invalid-css-falls-back" clip-path="url(#hint-clip)"
+        style="clip-path: not-a-clip" width="8" height="8"/>
+  <rect id="clip-invalid-hint" clip-path="not-a-clip" width="8" height="8"/>
+  <rect id="clip-var-hint" clip-path="var(--clip)" style="--clip:url(#var-clip)"
+        width="8" height="8"/>
+  <rect id="clip-webkit-alias" width="8" height="8"/>
   <g color="#d0342c"><rect id="color-basis" fill="currentColor" width="8" height="8"/></g>
   <text id="family-hint" font-family="Ahem">X</text>
   <text id="family-rule-beats-hint" font-family="Ahem">X</text>
@@ -356,6 +371,38 @@ fn standalone_svg_presentation_hints_enter_below_author_rules() {
         property(root, "transform-webkit-alias", LonghandId::Transform),
         "translate(30px)"
     );
+    // `clip-path` is a represented Stylo longhand. Its presentation
+    // attribute therefore enters the same typed cascade as the property:
+    // author rules (including `none`) beat the hint, inline style beats the
+    // rule, invalid declarations fall back, var() substitutes before the
+    // computed value is read, and the pinned vendor alias reaches the same
+    // longhand. The Web compiler consumes only this computed fact.
+    assert_eq!(
+        clip_fragment(root, "clip-hint").as_deref(),
+        Some("hint-clip")
+    );
+    assert_eq!(
+        clip_fragment(root, "clip-rule-beats-hint").as_deref(),
+        Some("rule-clip")
+    );
+    assert_eq!(clip_fragment(root, "clip-none-beats-hint"), None);
+    assert_eq!(
+        clip_fragment(root, "clip-style-attr-beats-rule").as_deref(),
+        Some("style-clip")
+    );
+    assert_eq!(
+        clip_fragment(root, "clip-invalid-css-falls-back").as_deref(),
+        Some("hint-clip")
+    );
+    assert_eq!(clip_fragment(root, "clip-invalid-hint"), None);
+    assert_eq!(
+        clip_fragment(root, "clip-var-hint").as_deref(),
+        Some("var-clip")
+    );
+    assert_eq!(
+        clip_fragment(root, "clip-webkit-alias").as_deref(),
+        Some("vendor-clip")
+    );
     // The use/defs rung's addition: `color` is an admitted hint — the
     // inherited currentColor basis, measured through a `<use>` instance.
     assert_eq!(
@@ -465,6 +512,21 @@ fn wholly_unstyled_documents_cascade_from_initial_values_alone() {
 
 fn fill(root: HtmlElement<'_>, id: &str) -> String {
     property(root, id, LonghandId::Fill)
+}
+
+fn clip_fragment(root: HtmlElement<'_>, id: &str) -> Option<String> {
+    use style::values::generics::basic_shape::GenericClipPath;
+
+    let element = find_by_id(root, id);
+    let data = element.borrow_data().expect("computed style");
+    match data.styles.primary().clone_clip_path() {
+        GenericClipPath::None => None,
+        GenericClipPath::Url(url) => url
+            .url()
+            .and_then(|url| url.fragment())
+            .map(ToOwned::to_owned),
+        other => panic!("expected none or URL clip-path, got {other:?}"),
+    }
 }
 
 fn property(root: HtmlElement<'_>, id: &str, longhand: LonghandId) -> String {

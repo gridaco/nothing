@@ -599,6 +599,17 @@ excluded.
 
 - [ ] `clip-path`
 - [ ] `clip-rule`
+
+> **2026-08-24 split:** the URL/`none` part of `clip-path` now enters through
+> the pinned cascade on non-root SVG targets, including presentation hints,
+> inline style, stylesheets, the `-webkit-` alias, `var()`, and normal cascade
+> precedence. The row stays open for basic shapes, geometry boxes, the root
+> CSS-layer route, external and cyclic resources, and Chromium's raster-mask
+> strategies. The `clip-rule` property stays open because this Servo-mode
+> Stylo pin has no such longhand; its CSS ingresses are quarantined rather
+> than matched outside the cascade. The presentation-attribute evidence is
+> recorded below.
+
 - [ ] `mask`
 - [ ] `mask-image`
 - [ ] `mask-mode`
@@ -1381,6 +1392,13 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `<animateTransform>`
 - [x] `<circle>`
 - [ ] `<clipPath>`
+
+> **2026-08-24 split:** direct admitted geometry and `<use>` contributors now
+> form Chromium-gated path unions, and chained resources form intersections.
+> The element stays open because visible text, a child carrying its own clip,
+> animation, and the 43-or-more-contributor route switch Chromium to a raster
+> mask that the resolved contract deliberately cannot express.
+
 - [x] `<defs>`
 - [x] `<desc>`
 - [x] `<ellipse>`
@@ -1447,6 +1465,19 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `clip`
 - [ ] `clip-path`
 - [ ] `clip-rule`
+
+> **2026-08-24 split:** the `clip-path` presentation hint carries computed
+> `none` and same-document `url(#…)` through the one cascade on admitted
+> non-root SVG targets. Eight Chromium cells cover CSS ingress and precedence,
+> first-id lookup, invalid references, geometric unions, inherited fill rules,
+> both clip coordinate systems, transforms, `viewBox`, groups, `<use>`, stroke
+> boxes, resource chains, and opacity ordering. Its basic-shape, geometry-box,
+> root, external/cyclic, animation, and raster-mask branches remain registered
+> refusals, so the row stays open. The direct inherited `clip-rule` route
+> admits `nonzero`/`evenodd` and CSS-wide behavior, but valid comments, escapes,
+> and `var()` still need the unavailable cascade longhand and refuse by name;
+> that row also stays open.
+
 - [ ] `color`
 - [ ] `color-interpolation`
 - [ ] `color-interpolation-filters`
@@ -1608,7 +1639,14 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `baseFrequency`
 - [ ] `bias`
 - [ ] `class`
-- [ ] `clipPathUnits`
+- [x] `clipPathUnits`
+
+> **2026-08-24 close:** the complete `userSpaceOnUse | objectBoundingBox`
+> grammar is Chromium-baked, including the missing-value default, explicit
+> user space, the exact object-box map, and invalid-value fallback. Percentages
+> inside object-box content retain their viewport basis before that map;
+> zero-area target boxes produce an empty clip.
+
 - [ ] `crossorigin`
 - [ ] `data-*`
 - [ ] `decoding`

@@ -21,11 +21,12 @@ use n0_model::model::{
     StrokeAlign, StrokeCap, StrokeJoin, StrokeWidth,
 };
 use n0_model::path::ResolvedPathArtifact;
-use rframe::{Frame, FrameItem, Geometry, PaintStack, ScopeEffect, VisualRef};
+use rframe::{ClipPath, Frame, FrameItem, Geometry, PaintStack, ScopeEffect, VisualRef};
 
 use crate::damage::{diff_inputs, DamageOwner, FrameDamageInput};
 use crate::drawlist::{
-    DrawList, GlyphlessOwnerSlot, Item, ItemKind, PostPaintOpacity, StrokeDashPhase,
+    DrawList, GlyphlessOwnerSlot, Item, ItemKind, PostPaintOpacity, ResolvedClipGeometry,
+    ResolvedClipGeometryKind, ResolvedClipLayer, ResolvedClipPath, StrokeDashPhase,
 };
 use crate::frame::FrameExecutionError;
 use crate::paint::PaintCtx;
@@ -64,6 +65,12 @@ pub enum BuildError {
         owner: VisualRef,
         reason: String,
     },
+    /// A resolved geometric clip failed the backend's deterministic path-op
+    /// preflight. Replaying it could not be trusted to preserve the contract.
+    Clip {
+        owner: VisualRef,
+        reason: String,
+    },
 }
 
 impl std::fmt::Display for BuildError {
@@ -96,6 +103,12 @@ impl std::fmt::Display for BuildError {
                 write!(
                     f,
                     "glyphless visual {owner:?} paint preflight failed: {reason}"
+                )
+            }
+            BuildError::Clip { owner, reason } => {
+                write!(
+                    f,
+                    "glyphless visual {owner:?} clip preflight failed: {reason}"
                 )
             }
         }
@@ -172,6 +185,21 @@ pub struct Damage {
     pub union_frame: Option<math2::Rectangle>,
 }
 
+#[derive(Debug, Clone, Copy)]
+enum OpenScopeKind {
+    Opacity,
+    Clip {
+        bounds: Option<n0_model::math::RectF>,
+    },
+}
+
+#[derive(Debug, Clone, Copy)]
+struct OpenScope {
+    slot: GlyphlessOwnerSlot,
+    coverage: Option<n0_model::math::RectF>,
+    kind: OpenScopeKind,
+}
+
 impl Damage {
     pub fn is_empty(&self) -> bool {
         self.changed.is_empty()
@@ -218,7 +246,8 @@ fn damage_input(product: &FrameProduct) -> FrameDamageInput<'_, VisualRef, (), G
 /// rectangle) and paths, the contract's admitted `cg` paints (solids, linear
 /// and radial gradients — every gradient preflighted against its resolved
 /// paint box before the product exists), a centred stroke over the fill,
-/// isolated opacity scopes, and the frame-bounds clip.
+/// isolated opacity scopes, resolved geometric clip scopes, and the
+/// frame-bounds clip.
 ///
 /// The contract's item stream is a checked type ([`rframe::FrameItems`]):
 /// balance, non-emptiness, and bounded nesting were proven at construction,
@@ -266,7 +295,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
     // coverage is that union — an opacity edit repaints everything the
     // scope composites — and a child scope's union folds into its parent's
     // when it closes.
-    let mut open_scopes: Vec<(GlyphlessOwnerSlot, Option<n0_model::math::RectF>)> = Vec::new();
+    let mut open_scopes: Vec<OpenScope> = Vec::new();
 
     for frame_item in resolved.items.iter() {
         let node = match frame_item {
@@ -281,30 +310,72 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                 provenance.owners.push(scope.owner);
                 // Placeholder until the scope closes and its union is known.
                 provenance.coverage.push(None);
-                let ScopeEffect::Opacity(opacity) = scope.effect;
-                items.push(Item {
-                    node: slot,
-                    world: frame_world,
-                    kind: ItemKind::BeginIsolatedOpacity {
-                        opacity: opacity.get(),
-                    },
+                let kind = match &scope.effect {
+                    ScopeEffect::Opacity(opacity) => {
+                        items.push(Item {
+                            node: slot,
+                            world: frame_world,
+                            kind: ItemKind::BeginIsolatedOpacity {
+                                opacity: opacity.get(),
+                            },
+                        });
+                        OpenScopeKind::Opacity
+                    }
+                    ScopeEffect::Clip(clip) => {
+                        let compiled = Arc::new(compile_clip_path(clip));
+                        if !crate::paint::preflight_clip_path(&compiled) {
+                            return Err(BuildError::Clip {
+                                owner: scope.owner,
+                                reason: "geometric union/intersection operation failed".to_string(),
+                            });
+                        }
+                        let bounds = clip
+                            .bounds()
+                            .and_then(|bounds| bounded_geometry_coverage(bounds, resolved.bounds));
+                        items.push(Item {
+                            node: slot,
+                            world: Affine::IDENTITY,
+                            kind: ItemKind::BeginClipPath { clip: compiled },
+                        });
+                        OpenScopeKind::Clip { bounds }
+                    }
+                };
+                open_scopes.push(OpenScope {
+                    slot,
+                    coverage: None,
+                    kind,
                 });
-                open_scopes.push((slot, None));
                 continue;
             }
             FrameItem::ScopeEnd => {
-                let (slot, coverage) = open_scopes.pop().expect("checked stream is balanced");
+                let scope = open_scopes.pop().expect("checked stream is balanced");
+                let coverage = match scope.kind {
+                    OpenScopeKind::Opacity => scope.coverage,
+                    OpenScopeKind::Clip { bounds } => match (scope.coverage, bounds) {
+                        (Some(coverage), Some(bounds)) => {
+                            bounded_intersection_rectf(coverage, bounds, resolved.bounds)
+                        }
+                        _ => None,
+                    },
+                };
+                let slot = scope.slot;
                 provenance.coverage[slot.index()] = coverage;
-                if let (Some(coverage), Some((_, parent))) = (coverage, open_scopes.last_mut()) {
-                    *parent = Some(match parent {
+                if let (Some(coverage), Some(parent)) = (coverage, open_scopes.last_mut()) {
+                    parent.coverage = Some(match parent.coverage {
                         None => coverage,
-                        Some(parent) => bounded_union_rectf(*parent, coverage, resolved.bounds),
+                        Some(parent) => bounded_union_rectf(parent, coverage, resolved.bounds),
                     });
                 }
                 items.push(Item {
                     node: slot,
-                    world: frame_world,
-                    kind: ItemKind::EndOpacity,
+                    world: match scope.kind {
+                        OpenScopeKind::Opacity => frame_world,
+                        OpenScopeKind::Clip { .. } => Affine::IDENTITY,
+                    },
+                    kind: match scope.kind {
+                        OpenScopeKind::Opacity => ItemKind::EndOpacity,
+                        OpenScopeKind::Clip { .. } => ItemKind::EndClip,
+                    },
                 });
                 continue;
             }
@@ -379,10 +450,10 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
             }
         };
         provenance.coverage.push(coverage);
-        if let (Some(coverage), Some((_, accumulated))) = (coverage, open_scopes.last_mut()) {
-            *accumulated = Some(match accumulated {
+        if let (Some(coverage), Some(accumulated)) = (coverage, open_scopes.last_mut()) {
+            accumulated.coverage = Some(match accumulated.coverage {
                 None => coverage,
-                Some(accumulated) => bounded_union_rectf(*accumulated, coverage, resolved.bounds),
+                Some(accumulated) => bounded_union_rectf(accumulated, coverage, resolved.bounds),
             });
         }
 
@@ -582,6 +653,44 @@ fn compile_path(data: &rframe::PathData) -> Arc<ResolvedPathArtifact> {
         local_bounds: to_rectf(data.local_bounds()),
         all_contours_closed: data.all_contours_closed(),
     })
+}
+
+fn compile_clip_path(clip: &ClipPath) -> ResolvedClipPath {
+    let layers = clip
+        .layers()
+        .iter()
+        .map(|layer| ResolvedClipLayer {
+            geometries: layer
+                .geometries()
+                .iter()
+                .map(|geometry| {
+                    let local = geometry.geometry().local_box();
+                    let kind = match geometry.geometry() {
+                        Geometry::Rect(_) => ResolvedClipGeometryKind::Rect {
+                            x: local.x,
+                            y: local.y,
+                            w: local.width,
+                            h: local.height,
+                        },
+                        Geometry::Ellipse(_) => ResolvedClipGeometryKind::Oval {
+                            x: local.x,
+                            y: local.y,
+                            w: local.width,
+                            h: local.height,
+                        },
+                        Geometry::Path(path) => ResolvedClipGeometryKind::Path(compile_path(path)),
+                    };
+                    ResolvedClipGeometry {
+                        world: to_affine(geometry.transform()),
+                        kind,
+                    }
+                })
+                .collect::<Vec<_>>()
+                .into(),
+        })
+        .collect::<Vec<_>>()
+        .into();
+    ResolvedClipPath { layers }
 }
 
 /// Project the contract's resolved stroke into the engine's private stroke.
@@ -989,6 +1098,18 @@ fn bounded_union_rectf(
     rectf_covering_bounded(clipped, frame_bounds)
 }
 
+fn bounded_intersection_rectf(
+    a: n0_model::math::RectF,
+    b: n0_model::math::RectF,
+    frame_bounds: math2::Rectangle,
+) -> Option<n0_model::math::RectF> {
+    let frame = WideRect::from_rectangle(frame_bounds);
+    let intersection = WideRect::from_rectf(a)
+        .intersection(WideRect::from_rectf(b))?
+        .intersection(frame)?;
+    Some(rectf_covering_bounded(intersection, frame_bounds))
+}
+
 /// Encode a wide non-empty rectangle as an outward-covering `RectF`, without
 /// ever crossing the frame envelope. If one axis cannot be rounded outward and
 /// remain inside that envelope, the frame's full axis is the smallest stable
@@ -1194,6 +1315,7 @@ mod tests {
             | ItemKind::BeginIsolatedOpacity { .. }
             | ItemKind::EndOpacity
             | ItemKind::BeginClipRect { .. }
+            | ItemKind::BeginClipPath { .. }
             | ItemKind::EndClip => None,
         }
     }
@@ -1364,6 +1486,28 @@ mod tests {
             owner,
             effect: ScopeEffect::Opacity(
                 ScopeOpacity::new(opacity).expect("test opacity is a scope fact"),
+            ),
+        })
+    }
+
+    fn clip_begin(owner: VisualRef, layers: Vec<Vec<(Rectangle, AffineTransform)>>) -> FrameItem {
+        let layers = layers
+            .into_iter()
+            .map(|geometries| {
+                let geometries = geometries
+                    .into_iter()
+                    .map(|(rect, transform)| {
+                        rframe::ClipGeometry::new(transform, Geometry::Rect(rect))
+                            .expect("test clip geometry is resolved")
+                    })
+                    .collect::<Vec<_>>();
+                rframe::ClipLayer::new(geometries).expect("test clip layer is bounded")
+            })
+            .collect::<Vec<_>>();
+        FrameItem::ScopeBegin(Scope {
+            owner,
+            effect: ScopeEffect::Clip(
+                rframe::ClipPath::new(layers).expect("test clip has at least one layer"),
             ),
         })
     }
@@ -2549,6 +2693,109 @@ mod tests {
         assert_eq!(
             product.drawlist.items[1].node, product.drawlist.items[3].node,
             "begin and end are owned by the one scope"
+        );
+    }
+
+    /// The contract's union/intersection normal form lowers to one private
+    /// clip item and clips the enclosed paint without inventing a resource or
+    /// an isolated layer.
+    #[test]
+    fn geometric_clip_lowers_and_rasters_its_union_intersection() {
+        let items = FrameItems::try_new(vec![
+            clip_begin(
+                SCOPE_OWNER,
+                vec![
+                    vec![
+                        (
+                            Rectangle::from_xywh(8.0, 6.0, 16.0, 20.0),
+                            AffineTransform::identity(),
+                        ),
+                        (
+                            Rectangle::from_xywh(36.0, 6.0, 16.0, 20.0),
+                            AffineTransform::identity(),
+                        ),
+                    ],
+                    vec![(
+                        Rectangle::from_xywh(0.0, 10.0, 64.0, 10.0),
+                        AffineTransform::identity(),
+                    )],
+                ],
+            ),
+            FrameItem::Node(rect_node(
+                RECT_OWNER,
+                Rectangle::from_xywh(0.0, 0.0, 64.0, 48.0),
+                0xFF16_A34A,
+            )),
+            FrameItem::ScopeEnd,
+        ])
+        .expect("balanced clip scope");
+        let product = compile(frame_of(items)).expect("admitted geometric clip");
+        assert!(matches!(
+            product.drawlist.items[1].kind,
+            ItemKind::BeginClipPath { .. }
+        ));
+        assert!(matches!(product.drawlist.items[3].kind, ItemKind::EndClip));
+
+        let pixels = product
+            .raster_to_bytes(&AffineTransform::identity(), 64, 48, &PaintCtx::new(None))
+            .expect("resource-free clip raster");
+        assert_eq!(rgba_at(&pixels, 64, 12, 14), [0x16, 0xa3, 0x4a, 0xff]);
+        assert_eq!(rgba_at(&pixels, 64, 40, 14), [0x16, 0xa3, 0x4a, 0xff]);
+        assert_eq!(rgba_at(&pixels, 64, 30, 14), [0xff, 0xff, 0xff, 0xff]);
+        assert_eq!(rgba_at(&pixels, 64, 12, 24), [0xff, 0xff, 0xff, 0xff]);
+    }
+
+    #[test]
+    fn an_empty_clip_layer_is_the_checked_clip_all_fact() {
+        let items = FrameItems::try_new(vec![
+            clip_begin(SCOPE_OWNER, vec![Vec::new()]),
+            FrameItem::Node(rect_node(
+                RECT_OWNER,
+                Rectangle::from_xywh(0.0, 0.0, 64.0, 48.0),
+                0xFF16_A34A,
+            )),
+            FrameItem::ScopeEnd,
+        ])
+        .expect("balanced empty clip scope");
+        let product = compile(frame_of(items)).expect("empty clip is admitted");
+        assert_eq!(coverage_for(&product, SCOPE_OWNER), None);
+        let pixels = product
+            .raster_to_bytes(&AffineTransform::identity(), 64, 48, &PaintCtx::new(None))
+            .expect("empty clip raster");
+        assert!(
+            pixels
+                .chunks_exact(4)
+                .all(|pixel| pixel == [255, 255, 255, 255]),
+            "a valid empty clip admits no target pixel"
+        );
+    }
+
+    #[test]
+    fn a_clip_edit_damages_the_old_and_new_conservative_coverage() {
+        let scene = |x| {
+            let items = FrameItems::try_new(vec![
+                clip_begin(
+                    SCOPE_OWNER,
+                    vec![vec![(
+                        Rectangle::from_xywh(x, 6.0, 20.0, 16.0),
+                        AffineTransform::identity(),
+                    )]],
+                ),
+                FrameItem::Node(rect_node(
+                    RECT_OWNER,
+                    Rectangle::from_xywh(0.0, 0.0, 64.0, 48.0),
+                    0xFF16_A34A,
+                )),
+                FrameItem::ScopeEnd,
+            ])
+            .expect("balanced clip scope");
+            compile(frame_of(items)).expect("admitted clip scene")
+        };
+        let damage = diff_frame(&scene(8.0), &scene(12.0));
+        assert_eq!(damage.changed, vec![SCOPE_OWNER]);
+        assert_eq!(
+            damage.union_frame,
+            Some(Rectangle::from_xywh(8.0, 6.0, 24.0, 16.0))
         );
     }
 

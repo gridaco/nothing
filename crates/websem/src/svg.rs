@@ -133,9 +133,10 @@ use cg::CGColor;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
-    FillRule, Frame, FrameItem, FrameItems, FrameNode, Geometry, Identity, PaintAlphaFactor,
-    PaintStack, PathData, Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap,
-    StrokeDash, StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, VisualRef,
+    ClipGeometry, ClipLayer, ClipPath, FillRule, Frame, FrameItem, FrameItems, FrameItemsError,
+    FrameNode, Geometry, Identity, PaintAlphaFactor, PaintStack, PathData, Provenance, Scope,
+    ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeDash, StrokeDashIntervals,
+    StrokeDashIntervalsError, StrokeJoin, VisualRef,
 };
 use std::sync::Arc;
 
@@ -328,6 +329,9 @@ pub enum CompileError {
     /// from this compiler's raw `f32` parse without guessing which authored
     /// decimal was present.
     UnsupportedGeometry(String),
+    /// A clip-path value or resource that requires a semantic route outside
+    /// the admitted resolved geometric path strategy.
+    UnsupportedClipPath(String),
     /// A numeric attribute failed to parse.
     BadNumber { attr: String, value: String },
     /// Viewport sizing needs a default/CSS sizing path this slice lacks.
@@ -383,6 +387,10 @@ pub enum CompileError {
     /// walk cannot honor unbounded depth, so the limit is explicit rather
     /// than a stack overflow.
     ContainerTooDeep(usize),
+    /// Resolved opacity and clip effects nest deeper than the frame contract.
+    /// Container depth alone does not bound this once one element can own
+    /// more than one effect, so the checked stream refusal is source-facing.
+    EffectScopeTooDeep(usize),
     /// An element carried no computed style (cascade did not reach it).
     MissingComputedStyle,
     /// A known rendering-relevant SVG attribute the slice does not consume.
@@ -855,6 +863,9 @@ impl std::fmt::Display for CompileError {
             CompileError::UnsupportedGeometry(reason) => {
                 write!(f, "unsupported SVG geometry: {reason}")
             }
+            CompileError::UnsupportedClipPath(reason) => {
+                write!(f, "unsupported SVG clip-path: {reason}")
+            }
             CompileError::BadNumber { attr, value } => {
                 write!(f, "attribute {attr}={value:?} is not a number")
             }
@@ -893,6 +904,10 @@ impl std::fmt::Display for CompileError {
             CompileError::ContainerTooDeep(limit) => {
                 write!(f, "container nesting deeper than {limit} is not compiled")
             }
+            CompileError::EffectScopeTooDeep(limit) => write!(
+                f,
+                "resolved opacity/clip effect nesting deeper than {limit} is not compiled"
+            ),
             CompileError::MissingComputedStyle => write!(f, "element has no computed style"),
             CompileError::UnsupportedAttribute { element, attr } => write!(
                 f,
@@ -1035,8 +1050,6 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     // visibility rung).
     "overflow",
     "clip",
-    "clip-path",
-    "clip-rule",
     "mask",
     "filter",
     // `color` is absent here since the use/defs rung: it is an admitted
@@ -1174,7 +1187,6 @@ const CASCADE_PROPERTIES_NOT_REPRESENTED: &[&str] = &[
     "translate",
     "rotate",
     "scale",
-    "clip-path",
     "clip-rule",
     "filter",
     "backdrop-filter",
@@ -1735,27 +1747,61 @@ fn measured_geometry_box(geometry: Rectangle, transform: AffineTransform) -> Rec
     math2::rect_transform(geometry, &transform)
 }
 
-/// Paint-independent geometry inventory for context paint. Each `<use>` box
-/// is the union of its expanded descendants in that use's own user space.
-/// Visibility and opacity do not remove geometry; `display:none` prunes it.
-/// Measuring all use boxes before emitting a node prevents paint order from
-/// choosing a partial objectBoundingBox.
-fn measure_use_boxes(
+/// Paint-independent geometry inventory shared by context paint and geometric
+/// clipping. Each entry is in the element's own user space, before that
+/// element's computed transform (and, for `<use>`, before its `x`/`y`
+/// translation). Visibility and opacity do not remove geometry;
+/// `display:none` does.
+///
+/// Keeping one inventory is load-bearing: an object-bounding-box gradient and
+/// an object-bounding-box clip on the same target must not learn two different
+/// boxes from two walks.
+#[derive(Default)]
+struct GeometryMeasurements {
+    /// Expanded `<use>` boxes consumed by context paint.
+    use_boxes: HashMap<NodeId, Option<Rectangle>>,
+    /// The fill-geometry box of every renderable element in its own user space.
+    effect_boxes: HashMap<NodeId, Option<Rectangle>>,
+}
+
+fn measure_geometry(
     svg: HtmlElement<'_>,
     values: &EffectiveValues,
     bases: PercentBases,
     fonts: &textlayout::Environment,
-) -> Result<HashMap<NodeId, Option<Rectangle>>, CompileError> {
-    let mut boxes = HashMap::new();
-    measure_use_boxes_in_subtree(svg, values, bases, fonts, &mut boxes, 0)?;
-    Ok(boxes)
+    override_skips: &HashMap<NodeId, String>,
+) -> Result<GeometryMeasurements, CompileError> {
+    let mut measurements = GeometryMeasurements::default();
+    measure_use_boxes_in_subtree(
+        svg,
+        values,
+        bases,
+        fonts,
+        override_skips,
+        &mut measurements.use_boxes,
+        0,
+    )?;
+    measure_effect_boxes_in_subtree(
+        svg,
+        values,
+        bases,
+        fonts,
+        override_skips,
+        &mut measurements.effect_boxes,
+        0,
+    )?;
+    Ok(measurements)
 }
 
+/// Preserve the context-paint rung's indexing law: each `<use>` is measured
+/// independently, and an error inside one expansion prevents later nested
+/// uses in that expansion from acquiring a misleading partial box.
 fn measure_use_boxes_in_subtree(
     parent: HtmlElement<'_>,
     values: &EffectiveValues,
     bases: PercentBases,
     fonts: &textlayout::Environment,
+    override_skips: &HashMap<NodeId, String>,
     boxes: &mut HashMap<NodeId, Option<Rectangle>>,
     depth: usize,
 ) -> Result<(), CompileError> {
@@ -1765,9 +1811,14 @@ fn measure_use_boxes_in_subtree(
     let mut child = parent.first_element_child();
     while let Some(el) = child {
         let tag = el.local_name_string();
+        if override_skips.contains_key(&el.node_id()) {
+            child = el.next_element_sibling();
+            continue;
+        }
         if is_non_rendering_element(&tag)
             || is_animation_element(&tag)
             || tag == "defs"
+            || tag == "clipPath"
             || tag == "linearGradient"
             || tag == "radialGradient"
             || tag == "pattern"
@@ -1790,6 +1841,7 @@ fn measure_use_boxes_in_subtree(
                 values,
                 bases,
                 fonts,
+                override_skips,
                 boxes,
                 AffineTransform::identity(),
                 depth + 1,
@@ -1800,9 +1852,98 @@ fn measure_use_boxes_in_subtree(
             boxes.insert(el.node_id(), measured);
         } else {
             // A nested use is indexed independently. An unrelated malformed
-            // or unsupported subtree cannot make a context-free document
-            // fail merely because the prepass saw it.
-            let _ = measure_use_boxes_in_subtree(el, values, bases, fonts, boxes, depth + 1);
+            // or unsupported subtree cannot make a context-free document fail
+            // merely because the prepass saw it.
+            let _ = measure_use_boxes_in_subtree(
+                el,
+                values,
+                bases,
+                fonts,
+                override_skips,
+                boxes,
+                depth + 1,
+            );
+        }
+        child = el.next_element_sibling();
+    }
+    Ok(())
+}
+
+/// Index the local fill-geometry box of every possible clip target without
+/// mutating the context-paint use table above. A malformed target becomes an
+/// unknown box; its ordinary compiler position still owns the actual refusal.
+fn measure_effect_boxes_in_subtree(
+    parent: HtmlElement<'_>,
+    values: &EffectiveValues,
+    bases: PercentBases,
+    fonts: &textlayout::Environment,
+    override_skips: &HashMap<NodeId, String>,
+    effect_boxes: &mut HashMap<NodeId, Option<Rectangle>>,
+    depth: usize,
+) -> Result<(), CompileError> {
+    if depth >= MAX_CONTAINER_DEPTH {
+        return Err(CompileError::ContainerTooDeep(MAX_CONTAINER_DEPTH));
+    }
+    let mut child = parent.first_element_child();
+    while let Some(el) = child {
+        let tag = el.local_name_string();
+        if override_skips.contains_key(&el.node_id()) {
+            effect_boxes.insert(el.node_id(), Some(Rectangle::empty()));
+            child = el.next_element_sibling();
+            continue;
+        }
+        if is_non_rendering_element(&tag)
+            || is_animation_element(&tag)
+            || tag == "defs"
+            || tag == "clipPath"
+            || tag == "linearGradient"
+            || tag == "radialGradient"
+            || tag == "pattern"
+        {
+            child = el.next_element_sibling();
+            continue;
+        }
+        let Some(data) = el.borrow_data() else {
+            return Err(CompileError::MissingComputedStyle);
+        };
+        let display_none = data.styles.primary().clone_display().is_none();
+        drop(data);
+        if display_none {
+            effect_boxes.insert(el.node_id(), Some(Rectangle::empty()));
+            child = el.next_element_sibling();
+            continue;
+        }
+
+        let measured = if matches!(tag.as_str(), "g" | "a" | "use") {
+            let mut scratch_use_boxes = HashMap::new();
+            measure_subtree_geometry(
+                el,
+                values,
+                bases,
+                fonts,
+                override_skips,
+                &mut scratch_use_boxes,
+                AffineTransform::identity(),
+                depth + 1,
+            )
+        } else {
+            measure_leaf_geometry(el, values, bases, fonts)
+        };
+        effect_boxes.insert(
+            el.node_id(),
+            measured.ok().and_then(MeasuredGeometry::reference_box),
+        );
+
+        if matches!(tag.as_str(), "g" | "a" | "use") {
+            let _ = measure_effect_boxes_in_subtree(
+                el,
+                values,
+                bases,
+                fonts,
+                override_skips,
+                effect_boxes,
+                depth + 1,
+            );
         }
         child = el.next_element_sibling();
     }
@@ -1814,6 +1955,7 @@ fn measure_subtree_geometry(
     values: &EffectiveValues,
     bases: PercentBases,
     fonts: &textlayout::Environment,
+    override_skips: &HashMap<NodeId, String>,
     boxes: &mut HashMap<NodeId, Option<Rectangle>>,
     transform: AffineTransform,
     depth: usize,
@@ -1825,9 +1967,14 @@ fn measure_subtree_geometry(
     let mut child = parent.first_element_child();
     while let Some(el) = child {
         let tag = el.local_name_string();
+        if override_skips.contains_key(&el.node_id()) {
+            child = el.next_element_sibling();
+            continue;
+        }
         if is_non_rendering_element(&tag)
             || is_animation_element(&tag)
             || tag == "defs"
+            || tag == "clipPath"
             || tag == "linearGradient"
             || tag == "radialGradient"
             || tag == "pattern"
@@ -1846,22 +1993,27 @@ fn measure_subtree_geometry(
         drop(data);
         let next = if tag == "g" || tag == "a" {
             let own = compose_element_transform(el, transform, &tag, bases)?;
-            measure_subtree_geometry(el, values, bases, fonts, boxes, own, depth + 1)?
+            measure_subtree_geometry(
+                el,
+                values,
+                bases,
+                fonts,
+                override_skips,
+                boxes,
+                own,
+                depth + 1,
+            )?
         } else if tag == "use" {
             let use_space = compose_element_transform(el, transform, "use", bases)?;
             let x = geometry_attr_f32(el, "x", values, bases)?.unwrap_or(0.0);
             let y = geometry_attr_f32(el, "y", values, bases)?.unwrap_or(0.0);
             let child_space = AffineTransform::from_acebdf(1.0, 0.0, x, 0.0, 1.0, y);
-            // A use owns its descendants' box *before its own x/y*. The x/y
-            // belongs to the consumption chain and is applied when this use
-            // contributes to an outer owner's union. Keeping that convention
-            // prevents an immediate inner URL owner from counting its x/y in
-            // both its stored box and the clone's paint translation.
             let local = measure_subtree_geometry(
                 el,
                 values,
                 bases,
                 fonts,
+                override_skips,
                 boxes,
                 AffineTransform::identity(),
                 depth + 1,
@@ -2152,6 +2304,7 @@ fn compile_svg_element(
     // own computed (inherited) visibility decides its node.
     let root_patrol = patrol_computed_style(svg, true)?;
     let root_disposition = root_patrol.disposition;
+    reject_host_or_root_clip_path(svg)?;
     // The root's opacity composites the complete SVG-local raster,
     // identically in the standalone and inline-HTML entries. The same
     // source-neutral isolated scope used by a group can enclose the complete
@@ -2257,7 +2410,11 @@ fn compile_svg_element(
     // against the document, and a gradient outside this compiled subtree
     // refuses rather than paints.
     let servers = PaintServers::collect(document_root(svg), svg);
-    let use_boxes = measure_use_boxes(svg, values, bases, fonts)?;
+    let clips = clip_path::Resources::collect(document_root(svg), svg);
+    let GeometryMeasurements {
+        use_boxes,
+        effect_boxes,
+    } = measure_geometry(svg, values, bases, fonts, override_skips)?;
     let mut walk = ChildWalk {
         values,
         bases,
@@ -2266,7 +2423,9 @@ fn compile_svg_element(
         override_skips,
         has_author_css: document_has_author_css(svg),
         servers: &servers,
+        clips: &clips,
         use_boxes,
+        effect_boxes,
         paint_contexts: Vec::new(),
         context_paint_transform: viewport,
         fonts,
@@ -2298,14 +2457,22 @@ fn compile_svg_element(
         }
     }
 
+    let items = match FrameItems::try_new(items) {
+        Ok(items) => items,
+        Err(FrameItemsError::ScopeTooDeep { .. }) => {
+            return Err(CompileError::EffectScopeTooDeep(rframe::MAX_SCOPE_DEPTH));
+        }
+        Err(error) => panic!("the walk emitted an invalid scope stream: {error}"),
+    };
+
     Ok(FrameCompilation {
         frame: Frame {
             owner: VisualRef::new(Identity::new(0), Provenance::new(0)),
             bounds: frame_bounds,
-            // The recursive walk opens and closes scopes structurally and
-            // never emits an empty one, so a construction failure here is
-            // this compiler's own defect, not the document's.
-            items: FrameItems::try_new(items).expect("the walk emits balanced non-empty scopes"),
+            // Balance and non-emptiness are compiler laws. Depth is also a
+            // source bound now that one element can add opacity and clip
+            // scopes, so that checked rejection was mapped above.
+            items,
         },
         top_level_shapes,
     })
@@ -2363,9 +2530,9 @@ impl SpanFacts {
 /// opacity emits a real [`rframe::Scope`] (an isolated layer). Chromium's
 /// routes differ by code values, so the split is measured meaning, not an
 /// optimization.
-/// `clip-path`, `mask`, `filter`, `mix-blend-mode`, and `isolation` are
-/// still refused by the patrols; each grows the scope's effect vocabulary
-/// with its own rung.
+/// Geometric `clip-path` now wraps a completed span in resolved path coverage.
+/// `mask`, `filter`, `mix-blend-mode`, and `isolation` remain patrol refusals;
+/// each would grow the effect vocabulary with a distinct semantic fact.
 struct ChildWalk<'a> {
     values: &'a EffectiveValues,
     /// The one viewport's percentage bases (SVG2 §7.10), fixed at the
@@ -2384,11 +2551,18 @@ struct ChildWalk<'a> {
     /// The document's paint-resource id table: built once before the walk,
     /// first-id-wins, shadow-content excluded.
     servers: &'a PaintServers<'a>,
+    /// The corresponding geometric-clip resource table. Resources resolve to
+    /// source-neutral geometry before they cross into `rframe`.
+    clips: &'a clip_path::Resources<'a>,
     /// Complete geometry boxes of expanded `<use>` instances, in each use
     /// element's own user space. They are measured before paint resolution so
     /// a context URL never learns its reference box from whichever leaf
     /// happened to compile first.
     use_boxes: HashMap<NodeId, Option<Rectangle>>,
+    /// Fill-geometry boxes in each target's own user space, shared with the
+    /// context-paint prepass. Containers need these for objectBoundingBox
+    /// clips; leaf nodes carry the same box on their resolved geometry.
+    effect_boxes: HashMap<NodeId, Option<Rectangle>>,
     /// Nearest use last. A context keyword selects from this stack and a
     /// selected context keyword continues at the next outer entry.
     paint_contexts: Vec<PaintContext<'a>>,
@@ -2425,6 +2599,49 @@ struct PaintContext<'d> {
 }
 
 impl<'a> ChildWalk<'a> {
+    fn resolve_clip(
+        &self,
+        element: HtmlElement<'a>,
+        target_to_frame: AffineTransform,
+        target_box: Option<Rectangle>,
+    ) -> Result<Option<ClipPath>, CompileError> {
+        clip_path::resolve(
+            self.clips,
+            element,
+            target_to_frame,
+            target_box,
+            self.values,
+            self.bases,
+            self.has_author_css,
+            self.override_skips,
+        )
+    }
+
+    /// Wrap a completed target span in its geometric clip. The insertion point
+    /// precedes the target's own opacity work, making clip outer and opacity
+    /// inner — the exact same-element order Chromium's byte probe selects.
+    fn wrap_span_with_clip(
+        &mut self,
+        checkpoint: usize,
+        mut facts: SpanFacts,
+        clip: Option<ClipPath>,
+    ) -> SpanFacts {
+        if let Some(clip) = clip
+            && (facts.draws > 0 || facts.has_scope)
+        {
+            self.items
+                .insert(checkpoint, clip_scope_item(&mut self.next_id, clip));
+            self.items.push(FrameItem::ScopeEnd);
+            facts = SpanFacts {
+                draws: 0,
+                has_scope: true,
+                one_draw_opacity: false,
+                transformed: facts.transformed,
+            };
+        }
+        facts
+    }
+
     /// Compile a parent's children in painter order, accumulating the span
     /// facts the parent's own opacity decision reads. `replay_opacity` is an
     /// enclosing container's one-draw factor mid-replay (see
@@ -2484,6 +2701,14 @@ impl<'a> ChildWalk<'a> {
             // own computed display is deliberately not consulted: the
             // pinned cascade's UA sheet carries no defs rule.
             if tag == "defs" {
+                child = c.next_element_sibling();
+                continue;
+            }
+            // `<clipPath>` is a never-rendered resource. Its referenced
+            // geometric effect is resolved lazily through the document id
+            // table; in-place traversal would both paint it wrongly and emit
+            // its children as ordinary visuals.
+            if tag == "clipPath" {
                 child = c.next_element_sibling();
                 continue;
             }
@@ -2569,6 +2794,13 @@ impl<'a> ChildWalk<'a> {
         }
         let own_transformed = element_has_computed_transform(el)?;
         let transform = compose_element_transform(el, transform, element, self.bases)?;
+        let target_box = self
+            .effect_boxes
+            .get(&el.node_id())
+            .copied()
+            .unwrap_or(None);
+        let clip = self.resolve_clip(el, transform, target_box)?;
+        let checkpoint = self.items.len();
         let previous_context_paint_transform = self.context_paint_transform;
         self.context_paint_transform =
             compose_element_transform(el, previous_context_paint_transform, element, self.bases)?;
@@ -2581,7 +2813,7 @@ impl<'a> ChildWalk<'a> {
             replay_opacity,
         );
         self.context_paint_transform = previous_context_paint_transform;
-        let facts = facts?;
+        let facts = self.wrap_span_with_clip(checkpoint, facts?, clip);
         Ok(SpanFacts {
             transformed: facts.transformed || own_transformed,
             ..facts
@@ -2731,6 +2963,8 @@ impl<'a> ChildWalk<'a> {
             // from being indexed; treating that as empty would silently turn
             // its context gradient into no paint.
             .unwrap_or(None);
+        let clip = self.resolve_clip(el, transform, reference_box)?;
+        let checkpoint = self.items.len();
         self.paint_contexts.push(PaintContext {
             element: el,
             reference_box,
@@ -2747,7 +2981,7 @@ impl<'a> ChildWalk<'a> {
         );
         self.context_paint_transform = previous_context_paint_transform;
         self.paint_contexts.pop();
-        let facts = facts?;
+        let facts = self.wrap_span_with_clip(checkpoint, facts?, clip);
         // The `x`/`y` translate is part of the use's own transform (SVG2
         // §5.6.2), so like the transform property it stays *on* this
         // element — an enclosing one-draw route is broken only by a transform
@@ -2768,6 +3002,7 @@ impl<'a> ChildWalk<'a> {
         // An admitted shape may resolve to no visual fact at all — a `<path>`
         // whose `d` draws nothing. That is not a hole: the element is
         // admitted, it is simply not a node.
+        let checkpoint = self.items.len();
         let mut facts = SpanFacts::default();
         if let Some(outcome) = compile_shape(
             el,
@@ -2781,6 +3016,11 @@ impl<'a> ChildWalk<'a> {
             replay_opacity,
             self.fonts,
         )? {
+            let clip = self.resolve_clip(
+                el,
+                outcome.node.transform,
+                Some(outcome.node.geometry.local_box()),
+            )?;
             facts.one_draw_opacity = outcome.one_draw_opacity;
             facts.transformed = outcome.transformed;
             match outcome.scope_opacity {
@@ -2799,6 +3039,7 @@ impl<'a> ChildWalk<'a> {
                     self.items.push(FrameItem::Node(outcome.node));
                 }
             }
+            facts = self.wrap_span_with_clip(checkpoint, facts, clip);
         }
         if top_level {
             self.top_level_shapes.push(el.node_id());
@@ -2820,6 +3061,15 @@ fn scope_item(next_id: &mut u64, opacity: f32) -> FrameItem {
     })
 }
 
+fn clip_scope_item(next_id: &mut u64, clip: ClipPath) -> FrameItem {
+    let scope_id = *next_id + 1;
+    *next_id += 1;
+    FrameItem::ScopeBegin(Scope {
+        owner: VisualRef::new(Identity::new(scope_id), Provenance::new(scope_id)),
+        effect: ScopeEffect::Clip(clip),
+    })
+}
+
 /// Whether the element's computed `transform` is anything but `none` — the
 /// fact that breaks an enclosing one-draw route (Blink's paint-property
 /// boundary, measured one code value apart from that route).
@@ -2828,16 +3078,738 @@ fn element_has_computed_transform(el: HtmlElement<'_>) -> Result<bool, CompileEr
     Ok(!data.styles.primary().clone_transform().0.is_empty())
 }
 
+fn element_has_computed_clip_path(el: HtmlElement<'_>) -> Result<bool, CompileError> {
+    let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
+    Ok(!matches!(
+        data.styles.primary().clone_clip_path(),
+        style::values::generics::basic_shape::ClipPath::None
+    ))
+}
+
+/// Root and HTML-ancestor clips live outside the SVG-local frame coordinate
+/// system. Chromium installs the root clip at the CSS paint-layer boundary
+/// (measured: neither SVG-user-space control matched), while an HTML ancestor
+/// necessarily needs its own CSS box. This path-strategy rung refuses both
+/// instead of applying a descendant clip in the wrong space.
+fn reject_host_or_root_clip_path(svg: HtmlElement<'_>) -> Result<(), CompileError> {
+    if element_has_computed_clip_path(svg)? {
+        return Err(CompileError::UnsupportedClipPath(
+            "clip-path on the root <svg> uses the host CSS-layer coordinate route".to_string(),
+        ));
+    }
+    let mut ancestor = svg.traversal_parent();
+    while let Some(element) = ancestor {
+        if element_has_computed_clip_path(element)? {
+            return Err(CompileError::UnsupportedClipPath(
+                "clip-path on an HTML ancestor of the compiled <svg> needs that ancestor's CSS box"
+                    .to_string(),
+            ));
+        }
+        ancestor = element.traversal_parent();
+    }
+    Ok(())
+}
+
+/// Resolution of the admitted `<clipPath>` path strategy.
+///
+/// This is nested in the compiler because it deliberately reuses the exact
+/// geometry, transform, authored-attribute and patrol functions that ordinary
+/// SVG shapes use. A second geometry parser here would be a second engine.
+mod clip_path {
+    use std::collections::{HashMap, HashSet};
+
+    use super::*;
+
+    enum Resource<'d> {
+        ClipPath {
+            element: HtmlElement<'d>,
+            inside_compiled_svg: bool,
+        },
+        Other,
+    }
+
+    /// Whole-document, document-ordered, first-id-wins resource lookup.
+    pub(super) struct Resources<'d> {
+        by_fragment: HashMap<String, Resource<'d>>,
+    }
+
+    impl<'d> Resources<'d> {
+        pub(super) fn collect(
+            document_root: HtmlElement<'d>,
+            compiled_svg: HtmlElement<'d>,
+        ) -> Self {
+            let mut by_fragment = HashMap::new();
+            let mut stack = vec![document_root];
+            while let Some(element) = stack.pop() {
+                let mut children = Vec::new();
+                let mut child = element.first_element_child();
+                while let Some(next) = child {
+                    children.push(next);
+                    child = next.next_element_sibling();
+                }
+                stack.extend(children.into_iter().rev());
+
+                // Expanded `<use>` descendants are shadow content. DOM id
+                // lookup never lets an earlier clone shadow the authored id.
+                if has_use_ancestor(element) {
+                    continue;
+                }
+                let Some(id) = element_id(element) else {
+                    continue;
+                };
+                let resource = if element.local_name_string() == "clipPath" {
+                    Resource::ClipPath {
+                        element,
+                        inside_compiled_svg: is_inside(element, compiled_svg),
+                    }
+                } else {
+                    Resource::Other
+                };
+                by_fragment.entry(id).or_insert(resource);
+            }
+            Self { by_fragment }
+        }
+    }
+
+    fn has_use_ancestor(element: HtmlElement<'_>) -> bool {
+        let mut current = element.traversal_parent();
+        while let Some(parent) = current {
+            if parent.local_name_string() == "use" {
+                return true;
+            }
+            current = parent.traversal_parent();
+        }
+        false
+    }
+
+    fn is_inside(element: HtmlElement<'_>, ancestor: HtmlElement<'_>) -> bool {
+        let mut current = Some(element);
+        while let Some(node) = current {
+            if node.node_id() == ancestor.node_id() {
+                return true;
+            }
+            current = node.traversal_parent();
+        }
+        false
+    }
+
+    fn element_id(element: HtmlElement<'_>) -> Option<String> {
+        if let DemoNodeData::Element(data) = &element.dom_node().data {
+            data.id_attr.as_ref().map(ToString::to_string)
+        } else {
+            None
+        }
+    }
+
+    /// Resolve one target's typed computed `clip-path`. `Ok(None)` means
+    /// computed `none` or an invalid reference, both of which install no clip.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn resolve(
+        resources: &Resources<'_>,
+        target: HtmlElement<'_>,
+        target_to_frame: AffineTransform,
+        target_box: Option<Rectangle>,
+        values: &EffectiveValues,
+        bases: PercentBases,
+        has_author_css: bool,
+        override_skips: &HashMap<NodeId, String>,
+    ) -> Result<Option<ClipPath>, CompileError> {
+        let computed = computed_clip_path(target)?;
+        let mut active = HashSet::new();
+        let Some(layers) = resolve_computed(
+            resources,
+            computed,
+            target_to_frame,
+            target_box,
+            values,
+            bases,
+            has_author_css,
+            override_skips,
+            &mut active,
+        )?
+        else {
+            return Ok(None);
+        };
+        ClipPath::new(Arc::<[ClipLayer]>::from(layers))
+            .map(Some)
+            .map_err(|error| CompileError::UnsupportedClipPath(error.to_string()))
+    }
+
+    fn computed_clip_path(
+        element: HtmlElement<'_>,
+    ) -> Result<style::values::computed::basic_shape::ClipPath, CompileError> {
+        let data = element
+            .borrow_data()
+            .ok_or(CompileError::MissingComputedStyle)?;
+        Ok(data.styles.primary().clone_clip_path())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn resolve_computed(
+        resources: &Resources<'_>,
+        computed: style::values::computed::basic_shape::ClipPath,
+        target_to_frame: AffineTransform,
+        target_box: Option<Rectangle>,
+        values: &EffectiveValues,
+        bases: PercentBases,
+        has_author_css: bool,
+        override_skips: &HashMap<NodeId, String>,
+        active: &mut HashSet<NodeId>,
+    ) -> Result<Option<Vec<ClipLayer>>, CompileError> {
+        use style::values::generics::basic_shape::GenericClipPath;
+
+        let url = match computed {
+            GenericClipPath::None => return Ok(None),
+            GenericClipPath::Url(url) => url,
+            GenericClipPath::Shape(_, _) => {
+                return Err(CompileError::UnsupportedClipPath(
+                    "a CSS basic-shape clip-path uses the independently listed basic-shape route"
+                        .to_string(),
+                ));
+            }
+            GenericClipPath::Box(_) => {
+                return Err(CompileError::UnsupportedClipPath(
+                    "a CSS geometry-box clip-path needs the target's CSS/SVG box-world route"
+                        .to_string(),
+                ));
+            }
+        };
+        let Some(resolved_url) = url.url() else {
+            // A syntactically invalid URL computes to an invalid reference,
+            // which CSS Masking defines as no clipping.
+            return Ok(None);
+        };
+        let Some(fragment) = crate::svg_paint_server::same_document_fragment(resolved_url) else {
+            return Err(CompileError::UnsupportedClipPath(format!(
+                "url({resolved_url}) is external; this compiler owns no resource I/O"
+            )));
+        };
+        resolve_reference(
+            resources,
+            fragment,
+            target_to_frame,
+            target_box,
+            values,
+            bases,
+            has_author_css,
+            override_skips,
+            active,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn resolve_reference(
+        resources: &Resources<'_>,
+        fragment: &str,
+        target_to_frame: AffineTransform,
+        target_box: Option<Rectangle>,
+        values: &EffectiveValues,
+        bases: PercentBases,
+        has_author_css: bool,
+        override_skips: &HashMap<NodeId, String>,
+        active: &mut HashSet<NodeId>,
+    ) -> Result<Option<Vec<ClipLayer>>, CompileError> {
+        let Some(resource) = resources.by_fragment.get(fragment) else {
+            return Ok(None);
+        };
+        let (element, inside_compiled_svg) = match resource {
+            Resource::Other => return Ok(None),
+            Resource::ClipPath {
+                element,
+                inside_compiled_svg,
+            } => (*element, *inside_compiled_svg),
+        };
+        if !inside_compiled_svg {
+            return Err(CompileError::UnsupportedClipPath(format!(
+                "url(#{fragment}) resolves outside the compiled SVG subtree"
+            )));
+        }
+
+        // Chromium treats a display-pruned resource as an invalid target:
+        // no clip is installed. Other properties are inert once it is pruned,
+        // so decide this before the resource patrols.
+        let data = element
+            .borrow_data()
+            .ok_or(CompileError::MissingComputedStyle)?;
+        let display_none = data.styles.primary().clone_display().is_none();
+        drop(data);
+        if display_none {
+            return Ok(None);
+        }
+
+        if active.len() >= rframe::MAX_CLIP_LAYERS {
+            return Err(CompileError::UnsupportedClipPath(format!(
+                "a clip-path reference chain exceeds the resolved {}-layer limit",
+                rframe::MAX_CLIP_LAYERS
+            )));
+        }
+        if !active.insert(element.node_id()) {
+            return Err(CompileError::UnsupportedClipPath(format!(
+                "url(#{fragment}) forms a cyclic clip-path chain, whose raster/path strategy is not admitted"
+            )));
+        }
+        let result = resolve_resource(
+            resources,
+            element,
+            target_to_frame,
+            target_box,
+            values,
+            bases,
+            has_author_css,
+            override_skips,
+            active,
+        )
+        .map(Some);
+        active.remove(&element.node_id());
+        result
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum Units {
+        UserSpaceOnUse,
+        ObjectBoundingBox,
+    }
+
+    fn clip_path_units(element: HtmlElement<'_>) -> Units {
+        match get_attr(element, "clipPathUnits")
+            .as_deref()
+            .map(trim_svg_whitespace)
+        {
+            Some("objectBoundingBox") => Units::ObjectBoundingBox,
+            // Missing and invalid values both use the initial value in Blink.
+            _ => Units::UserSpaceOnUse,
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn resolve_resource(
+        resources: &Resources<'_>,
+        element: HtmlElement<'_>,
+        target_to_frame: AffineTransform,
+        target_box: Option<Rectangle>,
+        values: &EffectiveValues,
+        bases: PercentBases,
+        has_author_css: bool,
+        override_skips: &HashMap<NodeId, String>,
+        active: &mut HashSet<NodeId>,
+    ) -> Result<Vec<ClipLayer>, CompileError> {
+        if let Some(reason) = override_skips.get(&element.node_id()) {
+            return Err(CompileError::UnsupportedClipPath(format!(
+                "the <clipPath> authored state is overridden at document load: {reason}"
+            )));
+        }
+        patrol_rendering_attributes(element, "clipPath", &[])?;
+        patrol_style_attribute(element, "clipPath")?;
+        let patrol = patrol_computed_style(element, false)?;
+        debug_assert_ne!(patrol.disposition, RenderDisposition::PrunedSubtree);
+
+        let units = clip_path_units(element);
+        let object_map = match units {
+            Units::UserSpaceOnUse => AffineTransform::identity(),
+            Units::ObjectBoundingBox => {
+                let Some(reference) = target_box else {
+                    return Err(CompileError::UnsupportedClipPath(
+                        "clipPathUnits=objectBoundingBox needs a complete target geometry box"
+                            .to_string(),
+                    ));
+                };
+                // A zero-area target has a valid but degenerate object map;
+                // Chromium clips everything, not nothing.
+                if reference.width == 0.0 || reference.height == 0.0 {
+                    return ClipLayer::new(Arc::<[ClipGeometry]>::from([]))
+                        .map(|layer| vec![layer])
+                        .map_err(|error| CompileError::UnsupportedClipPath(error.to_string()));
+                }
+                AffineTransform::from_acebdf(
+                    reference.width,
+                    0.0,
+                    reference.x,
+                    0.0,
+                    reference.height,
+                    reference.y,
+                )
+            }
+        };
+
+        // Exact measured order: map the unit square into the target bbox,
+        // then apply the clipPath's own transform in target user space.
+        let resource_transform =
+            compose_element_transform(element, AffineTransform::identity(), "clipPath", bases)?;
+        let resource_to_target = resource_transform.compose(&object_map);
+        let resource_to_frame = target_to_frame.compose(&resource_to_target);
+        let layer = resolve_layer(
+            element,
+            resource_to_frame,
+            values,
+            bases,
+            has_author_css,
+            override_skips,
+        )?;
+        let mut layers = vec![layer];
+
+        // A clip-path on the resource itself intersects another independently
+        // resolved resource. Invalid references mean no additional clip.
+        if let Some(mut chained) = resolve_computed(
+            resources,
+            computed_clip_path(element)?,
+            target_to_frame,
+            target_box,
+            values,
+            bases,
+            has_author_css,
+            override_skips,
+            active,
+        )? {
+            layers.append(&mut chained);
+        }
+        Ok(layers)
+    }
+
+    enum Contribution {
+        None,
+        Path(ClipGeometry),
+        Mask(String),
+    }
+
+    fn resolve_layer(
+        clip_path: HtmlElement<'_>,
+        resource_to_frame: AffineTransform,
+        values: &EffectiveValues,
+        bases: PercentBases,
+        has_author_css: bool,
+        override_skips: &HashMap<NodeId, String>,
+    ) -> Result<ClipLayer, CompileError> {
+        let mut geometries = Vec::new();
+        let mut child = clip_path.first_element_child();
+        while let Some(element) = child {
+            let tag = element.local_name_string();
+            let contribution = match tag.as_str() {
+                "rect" | "circle" | "ellipse" | "path" | "line" | "polygon" | "polyline" => {
+                    shape_contribution(element, resource_to_frame, values, bases, override_skips)?
+                }
+                "use" => use_contribution(
+                    element,
+                    resource_to_frame,
+                    values,
+                    bases,
+                    has_author_css,
+                    override_skips,
+                )?,
+                "text" => text_contribution(element)?,
+                tag if is_animation_element(tag) => Contribution::Mask(
+                    "animation inside <clipPath> needs a sampled resource-geometry route"
+                        .to_string(),
+                ),
+                // Blink examines only direct graphics/text/use children. A
+                // direct <g> and every other element contribute nothing.
+                _ => Contribution::None,
+            };
+            match contribution {
+                Contribution::None => {}
+                Contribution::Mask(reason) => {
+                    return Err(CompileError::UnsupportedClipPath(reason));
+                }
+                Contribution::Path(geometry) => {
+                    geometries.push(geometry);
+                    if geometries.len() > rframe::MAX_CLIP_GEOMETRIES_PER_LAYER {
+                        return Err(CompileError::UnsupportedClipPath(format!(
+                            "a <clipPath> has {} visible path contributors; Chromium switches to its raster-mask strategy above {}",
+                            geometries.len(),
+                            rframe::MAX_CLIP_GEOMETRIES_PER_LAYER
+                        )));
+                    }
+                }
+            }
+            child = element.next_element_sibling();
+        }
+        ClipLayer::new(Arc::<[ClipGeometry]>::from(geometries))
+            .map_err(|error| CompileError::UnsupportedClipPath(error.to_string()))
+    }
+
+    fn text_contribution(element: HtmlElement<'_>) -> Result<Contribution, CompileError> {
+        patrol_rendering_attributes(element, "text", TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+        patrol_style_attribute(element, "text")?;
+        let patrol = patrol_computed_style(element, false)?;
+        if patrol.disposition != RenderDisposition::Renders {
+            return Ok(Contribution::None);
+        }
+        Ok(Contribution::Mask(
+            "visible <text> inside <clipPath> uses Chromium's raster-mask strategy".to_string(),
+        ))
+    }
+
+    fn shape_contribution(
+        element: HtmlElement<'_>,
+        inherited: AffineTransform,
+        values: &EffectiveValues,
+        bases: PercentBases,
+        override_skips: &HashMap<NodeId, String>,
+    ) -> Result<Contribution, CompileError> {
+        let tag = element.local_name_string();
+        if let Some(reason) = override_skips.get(&element.node_id()) {
+            return Err(CompileError::UnsupportedClipPath(format!(
+                "a <{tag}> contributor's authored geometry is overridden at document load: {reason}"
+            )));
+        }
+        patrol_rendering_attributes(element, &tag, &[])?;
+        patrol_style_attribute(element, &tag)?;
+        let patrol = patrol_computed_style(element, tag == "rect")?;
+        if patrol.disposition != RenderDisposition::Renders {
+            return Ok(Contribution::None);
+        }
+        if element_has_computed_clip_path(element)? {
+            return Ok(Contribution::Mask(format!(
+                "a <{tag}> contributor with its own clip-path uses Chromium's raster-mask strategy"
+            )));
+        }
+        let transform = compose_element_transform(element, inherited, &tag, bases)?;
+        let fill_rule = inherited_clip_rule(element)?;
+        let geometry = clip_geometry(element, values, bases, fill_rule)?;
+        ClipGeometry::new(transform, geometry)
+            .map(Contribution::Path)
+            .map_err(|error| CompileError::UnsupportedClipPath(error.to_string()))
+    }
+
+    fn use_contribution(
+        element: HtmlElement<'_>,
+        inherited: AffineTransform,
+        values: &EffectiveValues,
+        bases: PercentBases,
+        has_author_css: bool,
+        override_skips: &HashMap<NodeId, String>,
+    ) -> Result<Contribution, CompileError> {
+        if let Some(reason) = override_skips.get(&element.node_id()) {
+            return Err(CompileError::UnsupportedClipPath(format!(
+                "a <use> contributor's authored state is overridden at document load: {reason}"
+            )));
+        }
+        patrol_rendering_attributes(element, "use", &[])?;
+        patrol_style_attribute(element, "use")?;
+        let patrol = patrol_computed_style(element, false)?;
+        if patrol.disposition != RenderDisposition::Renders {
+            return Ok(Contribution::None);
+        }
+        if element_has_computed_clip_path(element)? {
+            return Ok(Contribution::Mask(
+                "a <use> contributor with its own clip-path uses Chromium's raster-mask strategy"
+                    .to_string(),
+            ));
+        }
+        if let DemoNodeData::Element(data) = &element.dom_node().data
+            && let Some(refusal) = data.svg_use_refusal
+        {
+            return Err(CompileError::UnsupportedClipPath(format!(
+                "a <use> contributor cannot be expanded: {refusal:?}"
+            )));
+        }
+        if has_author_css {
+            return Err(CompileError::UnsupportedClipPath(
+                "a <use> contributor in a document with author CSS needs shadow-scoped selector matching"
+                    .to_string(),
+            ));
+        }
+
+        let use_transform = compose_element_transform(element, inherited, "use", bases)?;
+        let x = geometry_attr_f32(element, "x", values, bases)?.unwrap_or(0.0);
+        let y = geometry_attr_f32(element, "y", values, bases)?.unwrap_or(0.0);
+        let clone_space =
+            use_transform.compose(&AffineTransform::from_acebdf(1.0, 0.0, x, 0.0, 1.0, y));
+
+        // Expansion creates the referenced element as the use's element
+        // child. Blink only accepts a visible target graphics element for
+        // clipping; a referenced group is therefore inert, not descended.
+        if let Some(target) = element.first_element_child() {
+            let tag = target.local_name_string();
+            return match tag.as_str() {
+                "rect" | "circle" | "ellipse" | "path" | "line" | "polygon" | "polyline" => {
+                    shape_contribution(target, clone_space, values, bases, override_skips)
+                }
+                "text" => text_contribution(target),
+                _ => Ok(Contribution::None),
+            };
+        }
+        Ok(Contribution::None)
+    }
+
+    fn clip_geometry(
+        element: HtmlElement<'_>,
+        values: &EffectiveValues,
+        bases: PercentBases,
+        fill_rule: FillRule,
+    ) -> Result<Geometry, CompileError> {
+        let tag = element.local_name_string();
+        Ok(match tag.as_str() {
+            "rect" => {
+                let x = geometry_attr_f32(element, "x", values, bases)?.unwrap_or(0.0);
+                let y = geometry_attr_f32(element, "y", values, bases)?.unwrap_or(0.0);
+                let width =
+                    box_extent(geometry_attr_f32(element, "width", values, bases)?.unwrap_or(0.0));
+                let height =
+                    box_extent(geometry_attr_f32(element, "height", values, bases)?.unwrap_or(0.0));
+                let rect = Rectangle::from_xywh(x, y, width, height);
+                match rect_corner_radii(element, values, bases, width, height)? {
+                    Some((rx, ry)) => {
+                        let rounded = rounded_rect_path(rect, rx, ry)?;
+                        let path = PathData::new(rounded.commands().to_vec(), fill_rule).map_err(
+                            |error| CompileError::UnsupportedClipPath(error.to_string()),
+                        )?;
+                        Geometry::Path(Arc::new(path))
+                    }
+                    None => Geometry::Rect(rect),
+                }
+            }
+            "circle" => {
+                let radius = geometry_attr_f32(element, "r", values, bases)?
+                    .filter(|radius| *radius > 0.0)
+                    .unwrap_or(0.0);
+                let cx = geometry_attr_f32(element, "cx", values, bases)?.unwrap_or(0.0);
+                let cy = geometry_attr_f32(element, "cy", values, bases)?.unwrap_or(0.0);
+                Geometry::Ellipse(Rectangle::from_xywh(
+                    cx - radius,
+                    cy - radius,
+                    radius * 2.0,
+                    radius * 2.0,
+                ))
+            }
+            "ellipse" => {
+                let cx = geometry_attr_f32(element, "cx", values, bases)?.unwrap_or(0.0);
+                let cy = geometry_attr_f32(element, "cy", values, bases)?.unwrap_or(0.0);
+                let rx = ellipse_radius(element, "rx", values, bases)?;
+                let ry = ellipse_radius(element, "ry", values, bases)?;
+                let (rx, ry) = match (rx, ry) {
+                    (Some(rx), Some(ry)) => (rx, ry),
+                    (Some(rx), None) => (rx, rx),
+                    (None, Some(ry)) => (ry, ry),
+                    (None, None) => (0.0, 0.0),
+                };
+                Geometry::Ellipse(Rectangle::from_xywh(cx - rx, cy - ry, rx * 2.0, ry * 2.0))
+            }
+            "path" => {
+                let commands = get_attr(element, "d")
+                    .map(|value| crate::svg_path::parse_path_data(&value))
+                    .unwrap_or_default();
+                if commands.is_empty() {
+                    Geometry::Rect(Rectangle::empty())
+                } else {
+                    Geometry::Path(Arc::new(PathData::new(commands, fill_rule).map_err(
+                        |error| CompileError::BadPathData {
+                            element: "path".to_string(),
+                            offset: 0,
+                            excerpt: error.to_string(),
+                        },
+                    )?))
+                }
+            }
+            "line" => {
+                let x1 = geometry_attr_f32(element, "x1", values, bases)?.unwrap_or(0.0);
+                let y1 = geometry_attr_f32(element, "y1", values, bases)?.unwrap_or(0.0);
+                let x2 = geometry_attr_f32(element, "x2", values, bases)?.unwrap_or(0.0);
+                let y2 = geometry_attr_f32(element, "y2", values, bases)?.unwrap_or(0.0);
+                Geometry::Path(Arc::new(
+                    PathData::new(
+                        vec![
+                            rframe::PathCommand::MoveTo { x: x1, y: y1 },
+                            rframe::PathCommand::LineTo { x: x2, y: y2 },
+                        ],
+                        fill_rule,
+                    )
+                    .map_err(|error| CompileError::UnsupportedClipPath(error.to_string()))?,
+                ))
+            }
+            "polygon" | "polyline" => {
+                let points = get_attr(element, "points")
+                    .map(|value| {
+                        crate::svg_path::parse_points(&value).map_err(
+                            |crate::svg_path::SourceSyntaxError::Syntax { offset }| {
+                                CompileError::BadPoints {
+                                    element: tag.clone(),
+                                    offset,
+                                    excerpt: excerpt_at(&value, offset),
+                                }
+                            },
+                        )
+                    })
+                    .transpose()?
+                    .unwrap_or_default();
+                let Some(((first_x, first_y), rest)) = points.split_first() else {
+                    return Ok(Geometry::Rect(Rectangle::empty()));
+                };
+                let mut commands = Vec::with_capacity(points.len() + 1);
+                commands.push(rframe::PathCommand::MoveTo {
+                    x: *first_x,
+                    y: *first_y,
+                });
+                for (x, y) in rest {
+                    commands.push(rframe::PathCommand::LineTo { x: *x, y: *y });
+                }
+                if tag == "polygon" {
+                    commands.push(rframe::PathCommand::Close);
+                }
+                Geometry::Path(Arc::new(PathData::new(commands, fill_rule).map_err(
+                    |error| CompileError::BadPoints {
+                        element: tag,
+                        offset: 0,
+                        excerpt: error.to_string(),
+                    },
+                )?))
+            }
+            _ => unreachable!("clip geometry dispatch is closed"),
+        })
+    }
+
+    /// The pinned Servo build has no `clip-rule` longhand. Attribute values
+    /// therefore take the same direct, inherited route as the admitted
+    /// `text-anchor` attribute; any CSS declaration is quarantined by the
+    /// authored-CSS patrol before this function can silently lose precedence.
+    fn inherited_clip_rule(element: HtmlElement<'_>) -> Result<FillRule, CompileError> {
+        let mut current = Some(element);
+        while let Some(candidate) = current {
+            if let Some(raw) = get_attr(candidate, "clip-rule") {
+                if raw.contains("/*") {
+                    return Err(CompileError::UnsupportedClipPath(
+                        "clip-rule presentation attribute contains a CSS comment; the direct attribute decoder does not tokenize comments"
+                            .to_string(),
+                    ));
+                }
+                if raw.contains('\\') {
+                    return Err(CompileError::UnsupportedClipPath(
+                        "clip-rule presentation attribute contains a CSS escape; the direct attribute decoder does not tokenize escapes"
+                            .to_string(),
+                    ));
+                }
+                let value = trim_svg_whitespace(&raw).to_ascii_lowercase();
+                match value.as_str() {
+                    "nonzero" => return Ok(FillRule::NonZero),
+                    "evenodd" => return Ok(FillRule::EvenOdd),
+                    "initial" => return Ok(FillRule::NonZero),
+                    // `clip-rule` is inherited. These keywords remove the
+                    // candidate's own value and continue at its parent here.
+                    "inherit" | "unset" | "revert" | "revert-layer" => {}
+                    value if value.contains("var(") => {
+                        return Err(CompileError::UnsupportedClipPath(
+                            "clip-rule presentation attribute uses var(), whose substitution is not represented at this Stylo pin"
+                                .to_string(),
+                        ));
+                    }
+                    // Invalid presentation hints are absent from the cascade.
+                    _ => {}
+                }
+            }
+            current = candidate.traversal_parent();
+        }
+        Ok(FillRule::NonZero)
+    }
+}
+
 /// Whether the element paints nothing *and* affects no other element's
 /// painting, so it is neither compiled nor declared.
 ///
-/// Both halves matter. `<symbol>`, `<clipPath>`, `<mask>`, `<marker>` and
-/// the gradient elements also paint nothing directly, but they change what
-/// referencing elements paint — skipping one silently would change pixels —
-/// so they stay ordinary unsupported elements, declared by name until the
-/// rung that consumes them. (`<defs>` graduated with the use/defs rung: the
-/// use expansion consumes its reference effect, so the walk skips it in its
-/// own branch above.)
+/// Both halves matter. Resource elements do not enter this generic predicate:
+/// consumed `<clipPath>` and gradient resources have dedicated resolver/skip
+/// branches, while unsupported `<mask>` and `<marker>` elements stay ordinary
+/// walk entries so their effects are declared by name. (`<defs>` graduated
+/// with the use/defs rung: the use expansion consumes its reference effect,
+/// so the walk skips it in its own branch above.)
 pub(crate) fn is_non_rendering_element(tag: &str) -> bool {
     matches!(tag, "style" | "title" | "desc" | "metadata")
 }

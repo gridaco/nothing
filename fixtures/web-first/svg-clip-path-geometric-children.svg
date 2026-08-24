@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <defs>
+    <clipPath id="union">
+      <rect x="2" y="4" width="7" height="24"/>
+      <polygon points="11,4 28,4 28,13 11,13"/>
+      <polyline points="11,17 28,17 28,28 11,28"/>
+    </clipPath>
+    <clipPath id="points">
+      <path d="M34 15C34 2 62 2 62 15C62 28 34 28 34 15Z"/>
+    </clipPath>
+    <clipPath id="paint-inert">
+      <rect x="4" y="36" width="24" height="24" rx="6" ry="6"
+            fill="none" stroke="#ef4444" stroke-width="20" opacity=".1"/>
+      <rect x="0" y="32" width="32" height="32" visibility="hidden"/>
+      <g><rect x="0" y="32" width="32" height="32"/></g>
+    </clipPath>
+    <clipPath id="empty" visibility="hidden"><rect x="32" y="32" width="32" height="32"/></clipPath>
+  </defs>
+  <rect x="2" y="2" width="28" height="28" fill="#16a34a" clip-path="url(#union)"/>
+  <rect x="34" y="2" width="28" height="28" fill="#2563eb" clip-path="url(#points)"/>
+  <rect x="2" y="34" width="28" height="28" fill="#f59e0b" clip-path="url(#paint-inert)"/>
+  <rect x="34" y="34" width="28" height="28" fill="#ef4444" clip-path="url(#empty)"/>
+</svg>

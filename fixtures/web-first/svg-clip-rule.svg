@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <defs>
+    <clipPath id="nonzero">
+      <path d="M2 2H30V30H2Z M10 10H22V22H10Z"/>
+    </clipPath>
+    <clipPath id="evenodd">
+      <path clip-rule="evenodd" d="M34 2H62V30H34Z M42 10H54V22H42Z"/>
+    </clipPath>
+    <clipPath id="inherited" clip-rule="evenodd">
+      <path clip-rule="inherit" d="M2 34H30V62H2Z M10 42H22V54H10Z"/>
+    </clipPath>
+    <clipPath id="initial" clip-rule="evenodd">
+      <path clip-rule="initial" d="M34 34H62V62H34Z M42 42H54V54H42Z"/>
+    </clipPath>
+  </defs>
+  <rect x="2" y="2" width="28" height="28" fill="#16a34a" clip-path="url(#nonzero)"/>
+  <rect x="34" y="2" width="28" height="28" fill="#2563eb" clip-path="url(#evenodd)"/>
+  <rect x="2" y="34" width="28" height="28" fill="#f59e0b" clip-path="url(#inherited)"/>
+  <rect x="34" y="34" width="28" height="28" fill="#ef4444" clip-path="url(#initial)"/>
+</svg>

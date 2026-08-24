@@ -92,6 +92,83 @@
       "height": 64
     },
     {
+      "id": "svg-clip-path",
+      "source": "svg-clip-path.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-clip-path.png",
+      "width": 64,
+      "height": 64,
+      "tolerance": {
+        "kind": "aa-boundary-ring",
+        "max_differing_pixels": 6,
+        "max_channel_delta": 3,
+        "boundaries": [
+          {
+            "cx": 32,
+            "cy": 32,
+            "rx": 16,
+            "ry": 16
+          }
+        ]
+      }
+    },
+    {
+      "id": "svg-clip-path-chain-opacity",
+      "source": "svg-clip-path-chain-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-clip-path-chain-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-clip-path-css-ingress",
+      "source": "svg-clip-path-css-ingress.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-clip-path-css-ingress.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-clip-path-geometric-children",
+      "source": "svg-clip-path-geometric-children.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-clip-path-geometric-children.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-clip-path-targets",
+      "source": "svg-clip-path-targets.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-clip-path-targets.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-clip-path-transforms-viewbox",
+      "source": "svg-clip-path-transforms-viewbox.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-clip-path-transforms-viewbox.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-clip-path-units",
+      "source": "svg-clip-path-units.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-clip-path-units.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-clip-rule",
+      "source": "svg-clip-rule.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-clip-rule.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-context-paint-attr-fill-from-fill",
       "source": "svg-context-paint-attr-fill-from-fill.svg",
       "entry": "standalone-svg",

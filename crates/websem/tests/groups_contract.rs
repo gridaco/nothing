@@ -352,10 +352,9 @@ fn scope_bearing_containers_still_refuse() {
     for (label, attrs, named) in [
         // `opacity` left this table with the group-scope rung — the
         // contract grew the scope it was waiting for, and its laws live in
-        // `opacity_contract.rs`. The three below still refuse: each
-        // references a resource, which the scope's effect vocabulary
-        // cannot express until its own rung.
-        ("group clip-path", r#"clip-path="url(#c)""#, "clip-path"),
+        // `opacity_contract.rs`. Geometric `clip-path` likewise graduated to
+        // its own contract tests. The two below still refuse: each needs a
+        // resource effect the scope vocabulary does not represent.
         ("group mask", r#"mask="url(#m)""#, "mask"),
         ("group filter", r#"filter="url(#f)""#, "filter"),
     ] {

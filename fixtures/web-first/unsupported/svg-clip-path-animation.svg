@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <clipPath id="c">
+    <rect x="8" y="8" width="24" height="48">
+      <animate attributeName="x" from="8" to="32" dur="1s"/>
+    </rect>
+  </clipPath>
+  <rect x="8" y="8" width="48" height="48" fill="#16a34a" clip-path="url(#c)"/>
+</svg>

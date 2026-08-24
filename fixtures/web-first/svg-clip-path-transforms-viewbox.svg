@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 128 128">
+  <rect width="128" height="128" fill="#ffffff"/>
+  <defs>
+    <clipPath id="child"><rect x="4" y="8" width="44" height="40" transform="translate(8 4)"/></clipPath>
+    <clipPath id="resource" transform="translate(10 4) scale(.8 1.1)"><path d="M68 8H120V52H68Z"/></clipPath>
+    <clipPath id="target"><rect x="8" y="70" width="48" height="46"/></clipPath>
+    <clipPath id="ordered" clipPathUnits="objectBoundingBox" transform="translate(8 3) scale(.75 1.1)">
+      <rect x=".1" y=".15" width=".7" height=".65"/>
+    </clipPath>
+  </defs>
+  <rect x="4" y="4" width="52" height="52" fill="#16a34a" clip-path="url(#child)"/>
+  <rect x="68" y="4" width="52" height="52" fill="#2563eb" clip-path="url(#resource)"/>
+  <rect x="4" y="68" width="52" height="52" fill="#f59e0b" clip-path="url(#target)"
+        transform="translate(4 5) rotate(8 30 94)"/>
+  <rect x="70" y="70" width="48" height="44" fill="#7c3aed" clip-path="url(#ordered)"/>
+</svg>

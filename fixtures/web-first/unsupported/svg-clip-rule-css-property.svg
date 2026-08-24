@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <style>clipPath path { clip-rule: evenodd; }</style>
+  <rect width="64" height="64" fill="#ffffff"/>
+  <clipPath id="c"><path d="M8 8H56V56H8Z M20 20H44V44H20Z"/></clipPath>
+  <rect x="8" y="8" width="48" height="48" fill="#16a34a" clip-path="url(#c)"/>
+</svg>

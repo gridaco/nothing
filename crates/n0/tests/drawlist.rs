@@ -19,6 +19,7 @@ fn tag(k: &ItemKind) -> &'static str {
         ItemKind::BeginIsolatedOpacity { .. } => "isolated-opacity-begin",
         ItemKind::EndOpacity => "opacity-end",
         ItemKind::BeginClipRect { .. } => "clip-begin",
+        ItemKind::BeginClipPath { .. } => "path-clip-begin",
         ItemKind::EndClip => "clip-end",
         ItemKind::RectFill { .. } => "rectfill",
         ItemKind::RectStroke { .. } => "rectstroke",

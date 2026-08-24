@@ -72,6 +72,7 @@ fn container_clip_applies_to_children_but_not_parent_strokes() {
         .iter()
         .map(|item| match &item.kind {
             ItemKind::BeginClipRect { .. } => "clip-begin",
+            ItemKind::BeginClipPath { .. } => "path-clip-begin",
             ItemKind::EndClip => "clip-end",
             ItemKind::RectStroke { .. } => "stroke",
             ItemKind::RectFill { .. } => "fill",

@@ -12,11 +12,16 @@
 //!
 //! The whole crate is backend-free (locked by `tests/architecture.rs`).
 
+mod clip;
 mod frame;
 mod path;
 mod scope;
 mod stroke;
 
+pub use clip::{
+    ClipGeometry, ClipGeometryError, ClipLayer, ClipLayerError, ClipPath, ClipPathError,
+    MAX_CLIP_GEOMETRIES_PER_LAYER, MAX_CLIP_LAYERS,
+};
 pub use frame::{
     Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry, Identity, MAX_SCOPE_DEPTH,
     PaintAlphaFactor, PaintAlphaFactorError, PaintStack, PaintStackError, Provenance, VisualRef,

@@ -145,6 +145,41 @@ cargo run -p n0_cli --bin n0 -- \
   subtree, which the flattened tree cannot express), an external
   reference, authored element children, a `<symbol>`/nested-`<svg>`
   target, and reference chains beyond the expansion budget.
+  Geometric `clip-path` is consumed on admitted non-root SVG targets. The
+  presentation attribute is a hint for the pinned cascade's typed property,
+  so inline style and stylesheet declarations beat it, an invalid declaration
+  exposes it, `none` removes it, and the `-webkit-clip-path` alias and `var()`
+  substitution take the same computed route. Same-document `url(#…)`
+  references use the whole-document, first-id-wins table; a missing id, a
+  non-`<clipPath>` target, or an invalid URL installs no clip, as Chromium
+  does. A resource contributes the union of its visible direct admitted
+  geometry children and direct shape-valued `<use>` children. Fill, stroke,
+  opacity, and nested containers on those children do not turn clipping into
+  painting; an empty union clips everything. `clip-rule` is inherited across
+  the resource and its children, with `nonzero`, `evenodd`, and the CSS-wide
+  behavior Chromium gives the presentation attribute. Its CSS property twin
+  is unavailable at this Stylo pin and remains a named authored-CSS refusal.
+  `clipPathUnits` is complete: missing and `userSpaceOnUse` use target user
+  space, while `objectBoundingBox` maps the unit square through the target's
+  fill-geometry box before the resource's own transform. The box excludes
+  stroke; a zero-area box produces the valid empty clip. Child, resource, and
+  target transforms, outer `viewBox` mapping, groups, `<use>` targets and
+  contributors, centered stroke, resource-to-resource chains, nested target
+  clips, and target opacity all retain their measured ordering. The resolved
+  frame carries only path geometry: one union per resource and an intersection
+  of chained resources, with no URL, DOM node, mask, or backend object.
+  Eight Chromium-baked cells carry this path-strategy slice. Seven are
+  byte-exact; the direct oval clip differs at six boundary pixels by at most
+  three channel values, the existing measured native-oval Skia boundary.
+  What refuses by name: CSS basic shapes and geometry boxes, root or HTML-host
+  clipping, external and cyclic references, animation inside a resource,
+  visible text, a contributor with its own clip, and 43 or more visible
+  contributors — the cases where Chromium takes a CSS-layer or raster-mask
+  strategy that this geometric contract intentionally cannot express.
+  Comments, escapes, and `var()` in the direct `clip-rule` attribute also
+  refuse rather than bypassing the absent longhand. Those guarded branches
+  keep `<clipPath>`, both `clip-path` rows, and both `clip-rule` rows open;
+  only the independently listed `clipPathUnits` row closes.
   A stroke is centred, its width is a cascaded length in either spelling —
   numbers, absolute units, `em`/`rem` against an authored or default
   font-size, percentages against the normalized diagonal, and pure-length

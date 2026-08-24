@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <defs>
+    <clipPath id="horizontal"><rect x="2" y="9" width="28" height="14"/></clipPath>
+    <clipPath id="chain" clip-path="url(#horizontal)"><rect x="9" y="2" width="14" height="28"/></clipPath>
+    <clipPath id="rotated"><rect x="34" y="3" width="27" height="27" transform="rotate(9 47.5 16.5)"/></clipPath>
+    <clipPath id="resource-opacity" opacity=".1"><path d="M2 34H30V62H2Z"/></clipPath>
+    <clipPath id="nested-a"><rect x="34" y="41" width="28" height="14"/></clipPath>
+    <clipPath id="nested-b"><rect x="41" y="34" width="14" height="28"/></clipPath>
+  </defs>
+  <rect x="2" y="2" width="28" height="28" fill="#16a34a" clip-path="url(#chain)"/>
+  <rect x="34" y="2" width="28" height="28" fill="#2563eb" opacity=".43" clip-path="url(#rotated)"/>
+  <rect x="2" y="34" width="28" height="28" fill="#f59e0b" clip-path="url(#resource-opacity)"/>
+  <g clip-path="url(#nested-a)" opacity=".62">
+    <rect x="34" y="34" width="28" height="28" fill="#7c3aed" clip-path="url(#nested-b)"/>
+    <path d="M34 62L62 34" stroke="#db2777" stroke-width="5"/>
+  </g>
+</svg>

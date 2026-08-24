@@ -26,12 +26,15 @@ use skia_safe::canvas::{SaveLayerFlags, SaveLayerRec};
 use skia_safe::gradient::{Colors as GradientColors, Gradient, Interpolation};
 use skia_safe::{
     image::CachingHint, path_effect::PathEffect, shaders, stroke_rec::InitStyle, Blender, Canvas,
-    ClipOp, Color, CubicResampler, Data, Font, Image, ImageInfo, Matrix, Paint, PaintCap,
-    PaintJoin, PaintStyle, Path, PathBuilder, PathDirection, PathFillType, PathOp, Point, RRect,
-    Rect, SamplingOptions, Shader, StrokeRec,
+    ClipOp, Color, CubicResampler, Data, Font, Image, ImageInfo, Matrix, OpBuilder, Paint,
+    PaintCap, PaintJoin, PaintStyle, Path, PathBuilder, PathDirection, PathFillType, PathOp, Point,
+    RRect, Rect, SamplingOptions, Shader, StrokeRec,
 };
 
-use crate::drawlist::{DrawList, ItemKind, PostPaintOpacity, StrokeDashPhase};
+use crate::drawlist::{
+    DrawList, ItemKind, PostPaintOpacity, ResolvedClipGeometry, ResolvedClipGeometryKind,
+    ResolvedClipLayer, ResolvedClipPath, StrokeDashPhase,
+};
 
 /// The gradient family whose local matrix could not be represented by the
 /// raster backend for one resolved paint box.
@@ -747,6 +750,7 @@ pub(crate) fn preflight_gradients<K: Copy>(
             | ItemKind::BeginIsolatedOpacity { .. }
             | ItemKind::EndOpacity
             | ItemKind::BeginClipRect { .. }
+            | ItemKind::BeginClipPath { .. }
             | ItemKind::EndClip => {}
         }
     }
@@ -927,6 +931,7 @@ pub(crate) fn preflight_images(
             | ItemKind::BeginIsolatedOpacity { .. }
             | ItemKind::EndOpacity
             | ItemKind::BeginClipRect { .. }
+            | ItemKind::BeginClipPath { .. }
             | ItemKind::EndClip => {}
         }
     }
@@ -1797,6 +1802,83 @@ fn backend_path(path: &ResolvedPathArtifact) -> Path {
     builder.snapshot()
 }
 
+/// Build one pre-resolved path-strategy clip with the same operation shape as
+/// Chromium: each layer is an `SkOpBuilder` union, then chained layers use
+/// pairwise intersection. `None` is a backend path-operation failure, never an
+/// authored empty clip (an empty layer returns an empty `Path`).
+fn backend_clip_path(clip: &ResolvedClipPath) -> Option<Path> {
+    let mut layers = clip.layers.iter();
+    let mut result = backend_clip_layer(layers.next().expect("resolved clip has a layer"))?;
+    for layer in layers {
+        let next = backend_clip_layer(layer)?;
+        result = skia_safe::op(&result, &next, PathOp::Intersect)?;
+    }
+    Some(result)
+}
+
+fn backend_clip_layer(layer: &ResolvedClipLayer) -> Option<Path> {
+    // Match Blink's operation shape, including empty contributors. The first
+    // non-empty path is retained directly; only a later contributor promotes
+    // the layer to `SkOpBuilder`. This is raster-observable at anti-aliased
+    // edges, so `geometries.len() > 1` is not an equivalent shortcut.
+    let mut resolved = Path::new();
+    let mut builder: Option<OpBuilder> = None;
+    for geometry in layer.geometries.iter() {
+        let path = backend_clip_geometry(geometry);
+        if let Some(builder) = &mut builder {
+            builder.add(&path, PathOp::Union);
+        } else if resolved.is_empty() {
+            resolved = path;
+        } else {
+            let mut promoted = OpBuilder::default();
+            promoted.add(&resolved, PathOp::Union);
+            promoted.add(&path, PathOp::Union);
+            builder = Some(promoted);
+        }
+    }
+    match builder {
+        Some(mut builder) => builder.resolve(),
+        None => Some(resolved),
+    }
+}
+
+fn backend_clip_geometry(geometry: &ResolvedClipGeometry) -> Path {
+    let path = match &geometry.kind {
+        ResolvedClipGeometryKind::Rect { x, y, w, h } => {
+            let mut builder = PathBuilder::new();
+            // Blink's PathBuilder starts rectangles at the upper-left and
+            // walks clockwise. Keep those contour details explicit because
+            // path operations and edge AA can observe them.
+            builder.add_rect(
+                Rect::from_xywh(*x, *y, *w, *h),
+                Some(PathDirection::CW),
+                Some(0),
+            );
+            builder.snapshot()
+        }
+        ResolvedClipGeometryKind::Oval { x, y, w, h } => {
+            let mut builder = PathBuilder::new();
+            // Blink's PathBuilder starts ellipses at 3 o'clock and walks
+            // clockwise (`addOval(..., kCW, 1)`). Skia's implicit start index
+            // is not that contract and differs at a few anti-aliased pixels.
+            builder.add_oval(
+                Rect::from_xywh(*x, *y, *w, *h),
+                Some(PathDirection::CW),
+                Some(1),
+            );
+            builder.snapshot()
+        }
+        ResolvedClipGeometryKind::Path(path) => backend_path(path),
+    };
+    path.make_transform(&skia_matrix(&geometry.world))
+}
+
+/// Product-build preflight for a geometric clip. Replay repeats the same pure
+/// path operations and may therefore treat success as proven.
+pub(crate) fn preflight_clip_path(clip: &ResolvedClipPath) -> bool {
+    backend_clip_path(clip).is_some()
+}
+
 /// Push a command run into a Skia builder verbatim — the one place the
 /// backend-independent vocabulary becomes Skia calls.
 fn emit_commands(builder: &mut PathBuilder, commands: &[PathCommand]) {
@@ -2140,6 +2222,15 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                     let path = rounded_rect_path(*w, *h, corner_radius, corner_smoothing.value());
                     canvas.clip_path(&path, ClipOp::Intersect, true);
                 }
+                scopes.push(Scope::Clip);
+            }
+            ItemKind::BeginClipPath { clip } => {
+                let total = view.then(&item.world);
+                let path = backend_clip_path(clip)
+                    .expect("geometric clip path operations were preflighted at product build");
+                canvas.save();
+                canvas.set_matrix(&skia_matrix(&total).into());
+                canvas.clip_path(&path, ClipOp::Intersect, true);
                 scopes.push(Scope::Clip);
             }
             ItemKind::EndClip => {

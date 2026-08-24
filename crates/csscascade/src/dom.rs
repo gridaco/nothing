@@ -761,6 +761,11 @@ fn admitted_svg_presentation_property(local: &str) -> Option<LonghandId> {
         // (measured: `color` on a `<use>` colors a `currentColor` fill
         // inside the instance).
         "color" => Some(LonghandId::Color),
+        // The geometric clip rung's ingress. `clip-path` is represented in
+        // this Servo build, so the presentation attribute and CSS property
+        // must meet in this one typed longhand before websem resolves any URL.
+        // The resource id itself never crosses the resolved frame.
+        "clip-path" => Some(LonghandId::ClipPath),
         _ => None,
     }
 }
