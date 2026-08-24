@@ -2064,6 +2064,15 @@ fn build_filter(filter: &ResolvedFilter) -> Result<Option<ImageFilter>, String> 
         }
         let crop = Rect::from_xywh(node.region.x, node.region.y, node.region.w, node.region.h);
         let source_dependent = inputs.iter().any(|input| input.source_dependent);
+        let single_merge_input_has_same_region =
+            matches!(node.primitive, ResolvedFilterPrimitive::Merge)
+                && node.inputs.len() == 1
+                && match node.inputs[0] {
+                    ResolvedFilterInput::Source | ResolvedFilterInput::SourceAlpha => {
+                        filter.region == node.region
+                    }
+                    ResolvedFilterInput::Node(index) => filter.nodes[index].region == node.region,
+                };
         let (image_filter, output_space, source_dependent) = match node.primitive {
             ResolvedFilterPrimitive::GaussianBlur { sigma_x, sigma_y } => {
                 let input = inputs.pop().expect("Gaussian blur has one checked input");
@@ -2147,33 +2156,51 @@ fn build_filter(filter: &ResolvedFilter) -> Result<Option<ImageFilter>, String> 
                 (Some(filter), node.color_space, source_dependent)
             }
             ResolvedFilterPrimitive::Merge => {
-                let mut inputs = inputs.into_iter();
-                let image_filter = if let Some(first) = inputs.next() {
-                    let mut merged = first.image_filter;
-                    for foreground in inputs {
-                        merged = skia_safe::image_filters::blend(
-                            deterministic_porter_duff_blender(
-                                ResolvedFilterComposite::Over,
-                                source_dependent,
-                            )?,
-                            merged,
-                            foreground.image_filter,
-                            crop,
-                        );
-                        if merged.is_none() {
-                            return Err(
-                                "the backend could not construct a merge operation".to_string()
-                            );
-                        }
-                    }
-                    skia_safe::image_filters::crop(crop, Some(skia_safe::TileMode::Decal), merged)
-                        .ok_or_else(|| "the backend could not crop a merge operation".to_string())?
+                let image_filter = if single_merge_input_has_same_region {
+                    // One direct input with the same hard region is the
+                    // complete merge result. A redundant crop changes the
+                    // backend graph and exposes CPU-specific restore rounding.
+                    inputs
+                        .pop()
+                        .expect("the identity merge has one checked input")
+                        .image_filter
                 } else {
-                    transparent_filter(node.region).ok_or_else(|| {
-                        "the backend could not construct an empty merge result".to_string()
-                    })?
+                    let mut inputs = inputs.into_iter();
+                    if let Some(first) = inputs.next() {
+                        let mut merged = first.image_filter;
+                        for foreground in inputs {
+                            merged = skia_safe::image_filters::blend(
+                                deterministic_porter_duff_blender(
+                                    ResolvedFilterComposite::Over,
+                                    source_dependent,
+                                )?,
+                                merged,
+                                foreground.image_filter,
+                                crop,
+                            );
+                            if merged.is_none() {
+                                return Err(
+                                    "the backend could not construct a merge operation".to_string()
+                                );
+                            }
+                        }
+                        Some(
+                            skia_safe::image_filters::crop(
+                                crop,
+                                Some(skia_safe::TileMode::Decal),
+                                merged,
+                            )
+                            .ok_or_else(|| {
+                                "the backend could not crop a merge operation".to_string()
+                            })?,
+                        )
+                    } else {
+                        Some(transparent_filter(node.region).ok_or_else(|| {
+                            "the backend could not construct an empty merge result".to_string()
+                        })?)
+                    }
                 };
-                (Some(image_filter), node.color_space, source_dependent)
+                (image_filter, node.color_space, source_dependent)
             }
         };
         results.push(BuiltFilterResult {
@@ -2631,14 +2658,9 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                     .expect("resolved image-filter builders were preflighted at product build");
                 let mut restore_paint = Paint::default();
                 restore_paint.set_image_filter(image_filter);
-                // Keep the final filtered-image SrcOver off Skia's x86-only
-                // approximate lowp divide-by-255 path. An F16 layer preserves
-                // Chromium's combined color/alpha rounding; a runtime `half4`
-                // blender would first lose the admitted flood-opacity precision.
                 let layer = SaveLayerRec::default()
                     .bounds(&region)
-                    .paint(&restore_paint)
-                    .flags(SaveLayerFlags::F16_COLOR_TYPE);
+                    .paint(&restore_paint);
                 canvas.save_layer(&layer);
                 scopes.push(Scope::Filter);
             }

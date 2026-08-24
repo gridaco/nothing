@@ -298,9 +298,9 @@ cargo run -p n0_cli --bin n0 -- \
   raw-f32 neighbour alias is an exact regression cell. A zero-sigma blur still
   applies its explicit primitive region; a dedicated cell guards that crop.
   Internal Porter-Duff composition distinguishes exact byte-domain generated
-  sources from floating source-image coverage, and the filtered scope restores
-  through an F16 layer so x86 cannot select its approximate low-precision
-  SrcOver path. ARM and x86 are exact without a tolerance. Eighty-six
+  sources from floating source-image coverage. A one-input merge whose hard
+  region already equals its input remains an identity instead of adding a
+  raster-observable crop. ARM and x86 are exact without a tolerance. Eighty-six
   Chromium-baked filter cells are exact: twenty-six from the chassis/blur slice
   and sixty from the shadow-graph rung. The complete corpus is 447 Chromium-baked
   cells plus 10 sampled frames, with 124 named refusal

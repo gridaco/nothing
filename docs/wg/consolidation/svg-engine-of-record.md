@@ -2818,10 +2818,11 @@ departures. The cause was a CPU-family split in low-precision Porter-Duff
 division: generated filter sources require the exact byte-domain divide-by-255
 rounding Chromium exhibits, while graphs sampling the source image retain
 floating source coverage. Six cells returned to exactness after separating
-those graph domains; the remaining one-input merge isolated the same split at
-the final filtered-image composite. That outer operation must stay in
-high-precision coverage as well. Keeping both boundaries explicit returns both
-processor families to the same exact oracles without tolerance.
+those graph domains. The remaining case was a one-input merge whose input
+already had exactly the merge's hard region. It is a semantic identity; adding
+another crop changed only the backend graph and selected the divergent restore
+path. Preserving that identity returns both processor families to the same
+exact oracles without tolerance.
 
 Eight focused offset/flood rows join the refusal register. The former graph-
 depth row is corrected to the small-kernel row without changing the count, and

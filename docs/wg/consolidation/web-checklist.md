@@ -1489,10 +1489,11 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > still applies its explicit primitive region; bypassing that crop changes
 > 1,160 pixels at maximum delta 218. Hosted x86 verification also exposed seven
 > composite/merge departures of one code value. Keeping generated-source byte
-> rounding distinct from source-image floating coverage fixes the private
-> graph, while the final filtered-image composite must also remain off the
-> processor-specific low-precision path. Together those boundaries restore
-> exact output on both processor families without tolerance.
+> rounding distinct from source-image floating coverage fixes six. The seventh
+> is a one-input merge whose input already has the merge's hard region; keeping
+> that semantic identity free of a redundant crop avoids the processor-specific
+> restore path. Together those boundaries restore exact output on both
+> processor families without tolerance.
 
 - [ ] `<foreignObject>`
 - [x] `<g>`
