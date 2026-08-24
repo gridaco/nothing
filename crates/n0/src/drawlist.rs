@@ -52,6 +52,42 @@ pub enum ResolvedMaskMode {
     Luminance,
 }
 
+/// Pixel interpolation space for one private resolved filter operation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ResolvedFilterColorSpace {
+    Srgb,
+    LinearRgb,
+}
+
+/// One source-neutral input in a private resolved filter program.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ResolvedFilterInput {
+    Source,
+    SourceAlpha,
+    Node(usize),
+}
+
+/// The private filter-operation vocabulary admitted by the painter.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) enum ResolvedFilterPrimitive {
+    GaussianBlur { sigma_x: f32, sigma_y: f32 },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct ResolvedFilterNode {
+    pub input: ResolvedFilterInput,
+    pub region: n0_model::math::RectF,
+    pub color_space: ResolvedFilterColorSpace,
+    pub primitive: ResolvedFilterPrimitive,
+}
+
+/// One checked filter program and its hard local effect region.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ResolvedFilter {
+    pub(crate) region: n0_model::math::RectF,
+    pub(crate) nodes: Arc<[ResolvedFilterNode]>,
+}
+
 /// Product-local owner slot for a source-neutral glyphless frame.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct GlyphlessOwnerSlot(u32);
@@ -218,6 +254,13 @@ pub enum ItemKind {
     },
     EndMaskSource,
     EndMaskContent,
+    /// Open an isolated group whose composite is evaluated by one checked
+    /// image-filter program. `world` maps the program's local operation space
+    /// into world space.
+    BeginFilter {
+        filter: Arc<ResolvedFilter>,
+    },
+    EndFilter,
     RectFill {
         w: f32,
         h: f32,

@@ -46,7 +46,7 @@ fn clips(frame: &Frame) -> Vec<&rframe::ClipPath> {
         .filter_map(|item| match item {
             FrameItem::ScopeBegin(scope) => match &scope.effect {
                 ScopeEffect::Clip(clip) => Some(clip),
-                ScopeEffect::Opacity(_) => None,
+                ScopeEffect::Opacity(_) | ScopeEffect::Filter(_) => None,
             },
             FrameItem::Node(_)
             | FrameItem::ScopeEnd

@@ -133,10 +133,11 @@ use cg::CGColor;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
-    ClipGeometry, ClipLayer, ClipPath, FillRule, Frame, FrameItem, FrameItems, FrameItemsError,
-    FrameNode, Geometry, Identity, Mask, MaskMode, PaintAlphaFactor, PaintStack, PathData,
-    Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeDash,
-    StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, VisualRef,
+    ClipGeometry, ClipLayer, ClipPath, FillRule, Filter, FilterColorSpace, FilterInput, FilterNode,
+    FilterPrimitive, FilterProgram, Frame, FrameItem, FrameItems, FrameItemsError, FrameNode,
+    Geometry, Identity, Mask, MaskMode, PaintAlphaFactor, PaintStack, PathData, Provenance, Scope,
+    ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeDash, StrokeDashIntervals,
+    StrokeDashIntervalsError, StrokeJoin, VisualRef,
 };
 use std::sync::Arc;
 
@@ -335,6 +336,9 @@ pub enum CompileError {
     /// A mask value, resource, or source subtree that cannot be resolved into
     /// the admitted two-phase source-neutral image-mask contract.
     UnsupportedMask(String),
+    /// A filter value, graph, or operation that cannot be resolved into the
+    /// admitted source-neutral image-filter program.
+    UnsupportedFilter(String),
     /// A numeric attribute failed to parse.
     BadNumber { attr: String, value: String },
     /// Viewport sizing needs a default/CSS sizing path this slice lacks.
@@ -872,6 +876,9 @@ impl std::fmt::Display for CompileError {
             CompileError::UnsupportedMask(reason) => {
                 write!(f, "unsupported SVG mask: {reason}")
             }
+            CompileError::UnsupportedFilter(reason) => {
+                write!(f, "unsupported SVG filter: {reason}")
+            }
             CompileError::BadNumber { attr, value } => {
                 write!(f, "attribute {attr}={value:?} is not a number")
             }
@@ -1009,6 +1016,14 @@ fn host_ancestor_opacities(svg: HtmlElement<'_>) -> Result<Vec<f32>, CompileErro
     let mut inner_to_outer = Vec::new();
     let mut ancestor = svg.traversal_parent();
     while let Some(element) = ancestor {
+        if let Some(style) = get_attr(element, "style")
+            && (style.contains('\\') || css_declares_property(&style, "filter"))
+        {
+            return Err(CompileError::UnsupportedFilter(
+                "CSS filter on an HTML ancestor of the compiled <svg> needs that ancestor's CSS box and host-layer graph"
+                    .to_string(),
+            ));
+        }
         let data = element
             .borrow_data()
             .ok_or(CompileError::MissingComputedStyle)?;
@@ -1056,7 +1071,6 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     // visibility rung).
     "overflow",
     "clip",
-    "filter",
     // `color` is absent here since the use/defs rung: it is an admitted
     // presentation hint (csscascade), the currentColor basis the paint
     // resolvers already read from the cascade.
@@ -1138,10 +1152,11 @@ const ROOT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["transform"];
 ///   which this build pins off, so they are dropped exactly as the
 ///   engine-gated names are.
 /// - **Represented but unconsumed.** `translate`, `rotate`, `scale`,
-///   `transform-origin`, `clip-path`, `filter`, `mix-blend-mode` and
-///   `isolation` *do* compute in this build; this
-///   compiler simply does not read them, and reading them would mean
-///   implementing them. (`transform` was the
+///   `transform-origin`, the function variants of `filter`, `mix-blend-mode`
+///   and `isolation` *do* compute in this build; this compiler simply does
+///   not read them. The URL variant of `filter` is Gecko-only at this pin,
+///   which is why the admitted SVG resource route decodes only the direct
+///   presentation attribute and keeps authored CSS here. (`transform` was the
 ///   first name to leave this list: the transform rung reads its computed
 ///   value in [`compose_element_transform`], so a cascaded declaration is
 ///   consumed, not smuggled. The individual `translate`/`rotate`/`scale`
@@ -1160,10 +1175,12 @@ const ROOT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &["transform"];
 /// same property under another spelling — those are handled by prefix
 /// stripping in [`unrepresented_property`] rather than by listing each one.
 ///
-/// The attribute spellings are refused separately by
-/// [`RENDERING_ATTRIBUTES_NOT_CONSUMED`]. This is a closed list of
-/// known-dangerous names, not a claim about every property: the remainder
-/// stays the named open boundary the module doc declares.
+/// Attribute spellings that remain wholly unconsumed are refused separately
+/// by [`RENDERING_ATTRIBUTES_NOT_CONSUMED`]. Graduated direct-resource routes
+/// such as `filter` own narrower value and resource patrols beside their
+/// decoder. This is a closed list of known-dangerous names, not a claim about
+/// every property: the remainder stays the named open boundary the module doc
+/// declares.
 const CASCADE_PROPERTIES_NOT_REPRESENTED: &[&str] = &[
     // The shorthand that resets everything, including every name below it.
     // Measured: `all: initial` and `all: unset` make Chromium paint nothing
@@ -1222,6 +1239,13 @@ const CASCADE_PROPERTIES_NOT_REPRESENTED: &[&str] = &[
     "stop-color",
     "stop-opacity",
     "color-interpolation",
+    // Filter-resource presentation properties are absent from this Servo
+    // Stylo pin. Their direct attribute route is decoded with the resource;
+    // CSS ingress must remain quarantined until a computed route exists.
+    "color-interpolation-filters",
+    "flood-color",
+    "flood-opacity",
+    "lighting-color",
     // The text rung's row, the same shape one rung later: Chromium consumes
     // `text-anchor` from the cascade (measured: a rule anchors an
     // attribute-free `<text>`, and `text-anchor: end` beats
@@ -1874,6 +1898,10 @@ fn measure_use_boxes_in_subtree(
             child = el.next_element_sibling();
             continue;
         }
+        if tag == "filter" {
+            child = el.next_element_sibling();
+            continue;
+        }
         if is_non_rendering_element(&tag)
             || is_animation_element(&tag)
             || tag == "clipPath"
@@ -1978,6 +2006,10 @@ fn measure_effect_boxes_in_subtree(
             child = el.next_element_sibling();
             continue;
         }
+        if tag == "filter" {
+            child = el.next_element_sibling();
+            continue;
+        }
         if is_non_rendering_element(&tag)
             || is_animation_element(&tag)
             || tag == "clipPath"
@@ -2061,6 +2093,7 @@ fn measure_subtree_geometry(
             || tag == "defs"
             || tag == "clipPath"
             || tag == "mask"
+            || tag == "filter"
             || tag == "linearGradient"
             || tag == "radialGradient"
             || tag == "pattern"
@@ -2388,6 +2421,14 @@ fn compile_svg_element(
             "mask on the root <svg> uses the host CSS-layer coordinate route".to_string(),
         ));
     }
+    if matches!(
+        filter_resource::authored_filter(svg)?,
+        filter_resource::AuthoredFilter::Fragment(_)
+    ) {
+        return Err(CompileError::UnsupportedFilter(
+            "filter on the root <svg> uses the host CSS-layer coordinate route".to_string(),
+        ));
+    }
     // A root `display: none` splits by entry, and the split is measured:
     // a *standalone* document's outermost `<svg>` ignores it — the baked
     // `svg-display-none-root` oracle paints normally — while an *embedded*
@@ -2506,6 +2547,7 @@ fn compile_svg_element(
     let servers = PaintServers::collect(document_root(svg), svg);
     let clips = clip_path::Resources::collect(document_root(svg), svg);
     let masks = mask_resource::Resources::collect(document_root(svg), svg);
+    let filters = filter_resource::Resources::collect(document_root(svg), svg);
     let GeometryMeasurements {
         use_boxes,
         effect_boxes,
@@ -2520,6 +2562,7 @@ fn compile_svg_element(
         servers: &servers,
         clips: &clips,
         masks: &masks,
+        filters: &filters,
         use_boxes,
         effect_boxes,
         paint_contexts: Vec::new(),
@@ -2628,8 +2671,9 @@ impl SpanFacts {
 /// routes differ by code values, so the split is measured meaning, not an
 /// optimization.
 /// Geometric `clip-path` wraps a completed span in resolved path coverage;
-/// same-document image masks wrap it in a checked target/source composite.
-/// `filter`, `mix-blend-mode`, and `isolation` remain patrol refusals.
+/// same-document image masks wrap it in a checked target/source composite,
+/// and resolved filter programs wrap it in an isolated image operation.
+/// `mix-blend-mode` and `isolation` remain patrol refusals.
 struct ChildWalk<'a> {
     values: &'a EffectiveValues,
     /// The one viewport's percentage bases (SVG2 §7.10), fixed at the
@@ -2654,6 +2698,9 @@ struct ChildWalk<'a> {
     /// Same-document SVG mask resources. Their source children compile lazily
     /// only when a visible target references them.
     masks: &'a mask_resource::Resources<'a>,
+    /// Same-document filter graphs. Authored lookup and named results resolve
+    /// here; only checked numeric operation nodes cross into `rframe`.
+    filters: &'a filter_resource::Resources<'a>,
     /// Complete geometry boxes of expanded `<use>` instances, in each use
     /// element's own user space. They are measured before paint resolution so
     /// a context URL never learns its reference box from whichever leaf
@@ -2735,6 +2782,46 @@ impl<'a> ChildWalk<'a> {
             self.override_skips,
             &self.active_masks,
         )
+    }
+
+    fn resolve_filter(
+        &self,
+        element: HtmlElement<'a>,
+        target_to_frame: AffineTransform,
+        target_box: Option<Rectangle>,
+    ) -> Result<filter_resource::Resolution, CompileError> {
+        filter_resource::resolve(
+            self.filters,
+            element,
+            target_to_frame,
+            target_box,
+            self.bases,
+            self.override_skips,
+        )
+    }
+
+    /// Wrap a completed target span in one source-neutral resolved filter
+    /// program. Lookup, named results, units, and source grammar have already
+    /// disappeared; the scope carries only the checked graph facts.
+    fn wrap_span_with_filter(
+        &mut self,
+        checkpoint: usize,
+        mut facts: SpanFacts,
+        filter: Filter,
+    ) -> SpanFacts {
+        if facts.draws == 0 && !facts.has_scope {
+            return facts;
+        }
+        self.items
+            .insert(checkpoint, filter_scope_item(&mut self.next_id, filter));
+        self.items.push(FrameItem::ScopeEnd);
+        facts = SpanFacts {
+            draws: 0,
+            has_scope: true,
+            one_draw_opacity: false,
+            transformed: facts.transformed,
+        };
+        facts
     }
 
     /// Wrap a completed target span in a resolved image mask, then compile the
@@ -2944,6 +3031,12 @@ impl<'a> ChildWalk<'a> {
                 child = c.next_element_sibling();
                 continue;
             }
+            // `<filter>` is a never-rendered graph resource. Its primitive
+            // children execute only when a visible target references it.
+            if tag == "filter" {
+                child = c.next_element_sibling();
+                continue;
+            }
             // A gradient element is reference-only wherever it appears —
             // in `<defs>` or in the open (measured: it paints nothing in
             // place either way). Its effect — what a referencing `url(#…)`
@@ -3032,34 +3125,39 @@ impl<'a> ChildWalk<'a> {
             .copied()
             .unwrap_or(None);
         let clip = self.resolve_clip(el, transform, target_box)?;
+        let filter = match self.resolve_filter(el, transform, target_box)? {
+            filter_resource::Resolution::None => None,
+            filter_resource::Resolution::Hide => return Ok(SpanFacts::default()),
+            filter_resource::Resolution::Apply(filter) => Some(filter),
+        };
         let mask = self.resolve_mask(el, transform, target_box)?;
         let checkpoint = self.items.len();
         let previous_context_paint_transform = self.context_paint_transform;
         self.context_paint_transform =
             compose_element_transform(el, previous_context_paint_transform, element, self.bases)?;
-        let facts = match mask {
-            Some(mask) => {
-                let facts = self.compile_children(el, transform, path, depth + 1, replay_opacity);
-                facts
-                    .and_then(|facts| {
-                        self.wrap_span_with_mask(checkpoint, facts, Some(mask), path, depth)
-                    })
-                    .map(|facts| {
-                        self.wrap_masked_span_with_opacity(checkpoint, facts, patrol.opacity)
-                    })
-            }
-            None => self.compile_span_with_opacity(
+        let facts = if filter.is_some() || mask.is_some() {
+            let facts = self.compile_children(el, transform, path, depth + 1, replay_opacity);
+            facts.and_then(|mut facts| {
+                if let Some(filter) = filter {
+                    facts = self.wrap_span_with_filter(checkpoint, facts, filter);
+                }
+                facts = self.wrap_span_with_mask(checkpoint, facts, mask, path, depth)?;
+                Ok(self.wrap_masked_span_with_opacity(checkpoint, facts, patrol.opacity))
+            })
+        } else {
+            self.compile_span_with_opacity(
                 el,
                 transform,
                 path,
                 depth,
                 patrol.opacity,
                 replay_opacity,
-            ),
+            )
         };
         self.context_paint_transform = previous_context_paint_transform;
         // Chromium's same-element effect order is byte-discriminating here:
-        // the mask is inside the geometric clip (the nested controls differ).
+        // filter is inside mask, mask is inside opacity, and all three are
+        // inside the geometric clip.
         let facts = self.wrap_span_with_clip(checkpoint, facts?, clip);
         Ok(SpanFacts {
             transformed: facts.transformed || own_transformed,
@@ -3211,6 +3309,11 @@ impl<'a> ChildWalk<'a> {
             // its context gradient into no paint.
             .unwrap_or(None);
         let clip = self.resolve_clip(el, transform, reference_box)?;
+        let filter = match self.resolve_filter(el, transform, reference_box)? {
+            filter_resource::Resolution::None => None,
+            filter_resource::Resolution::Hide => return Ok(SpanFacts::default()),
+            filter_resource::Resolution::Apply(filter) => Some(filter),
+        };
         let mask = self.resolve_mask(el, transform, reference_box)?;
         let checkpoint = self.items.len();
         self.paint_contexts.push(PaintContext {
@@ -3219,25 +3322,24 @@ impl<'a> ChildWalk<'a> {
             to_frame: context_paint_transform,
         });
         self.context_paint_transform = context_paint_transform;
-        let facts = match mask {
-            Some(mask) => {
-                let facts = self.compile_children(el, transform, path, depth + 1, replay_opacity);
-                facts
-                    .and_then(|facts| {
-                        self.wrap_span_with_mask(checkpoint, facts, Some(mask), path, depth)
-                    })
-                    .map(|facts| {
-                        self.wrap_masked_span_with_opacity(checkpoint, facts, patrol.opacity)
-                    })
-            }
-            None => self.compile_span_with_opacity(
+        let facts = if filter.is_some() || mask.is_some() {
+            let facts = self.compile_children(el, transform, path, depth + 1, replay_opacity);
+            facts.and_then(|mut facts| {
+                if let Some(filter) = filter {
+                    facts = self.wrap_span_with_filter(checkpoint, facts, filter);
+                }
+                facts = self.wrap_span_with_mask(checkpoint, facts, mask, path, depth)?;
+                Ok(self.wrap_masked_span_with_opacity(checkpoint, facts, patrol.opacity))
+            })
+        } else {
+            self.compile_span_with_opacity(
                 el,
                 transform,
                 path,
                 depth,
                 patrol.opacity,
                 replay_opacity,
-            ),
+            )
         };
         self.context_paint_transform = previous_context_paint_transform;
         self.paint_contexts.pop();
@@ -3273,8 +3375,18 @@ impl<'a> ChildWalk<'a> {
             .get(&el.node_id())
             .copied()
             .unwrap_or(None);
+        let filter = match self.resolve_filter(el, target_to_frame, target_box)? {
+            filter_resource::Resolution::None => None,
+            filter_resource::Resolution::Hide => {
+                if top_level {
+                    self.top_level_shapes.push(el.node_id());
+                }
+                return Ok(SpanFacts::default());
+            }
+            filter_resource::Resolution::Apply(filter) => Some(filter),
+        };
         let mask = self.resolve_mask(el, target_to_frame, target_box)?;
-        let deferred_opacity = if mask.is_some() {
+        let deferred_opacity = if mask.is_some() || filter.is_some() {
             patrol_computed_style(el, tag == "rect")?.opacity
         } else {
             1.0
@@ -3288,7 +3400,7 @@ impl<'a> ChildWalk<'a> {
             self.servers,
             &self.paint_contexts,
             self.bases,
-            mask.is_some(),
+            mask.is_some() || filter.is_some(),
             replay_opacity,
             self.fonts,
         )? {
@@ -3314,6 +3426,9 @@ impl<'a> ChildWalk<'a> {
                     facts.draws = outcome.draws;
                     self.items.push(FrameItem::Node(outcome.node));
                 }
+            }
+            if let Some(filter) = filter {
+                facts = self.wrap_span_with_filter(checkpoint, facts, filter);
             }
             facts = self.wrap_span_with_mask(checkpoint, facts, mask, path, depth)?;
             facts = self.wrap_masked_span_with_opacity(checkpoint, facts, deferred_opacity);
@@ -3345,6 +3460,15 @@ fn clip_scope_item(next_id: &mut u64, clip: ClipPath) -> FrameItem {
     FrameItem::ScopeBegin(Scope {
         owner: VisualRef::new(Identity::new(scope_id), Provenance::new(scope_id)),
         effect: ScopeEffect::Clip(clip),
+    })
+}
+
+fn filter_scope_item(next_id: &mut u64, filter: Filter) -> FrameItem {
+    let scope_id = *next_id + 1;
+    *next_id += 1;
+    FrameItem::ScopeBegin(Scope {
+        owner: VisualRef::new(Identity::new(scope_id), Provenance::new(scope_id)),
+        effect: ScopeEffect::Filter(filter),
     })
 }
 
@@ -4076,6 +4200,777 @@ mod clip_path {
             current = candidate.traversal_parent();
         }
         Ok(FillRule::NonZero)
+    }
+}
+
+/// Resolution of one same-document SVG `<filter>` into a source-neutral,
+/// bounded image-operation program. URL lookup, units, authored result names,
+/// fallback inputs, and presentation attributes stop here.
+mod filter_resource {
+    use std::collections::HashMap;
+
+    use cssparser::{Parser, ParserInput, Token};
+
+    use super::*;
+
+    enum Resource<'d> {
+        Filter {
+            element: HtmlElement<'d>,
+            inside_compiled_svg: bool,
+        },
+        Other,
+    }
+
+    /// Whole-document, document-ordered, first-id-wins filter lookup.
+    pub(super) struct Resources<'d> {
+        by_fragment: HashMap<String, Resource<'d>>,
+    }
+
+    impl<'d> Resources<'d> {
+        pub(super) fn collect(
+            document_root: HtmlElement<'d>,
+            compiled_svg: HtmlElement<'d>,
+        ) -> Self {
+            let mut by_fragment = HashMap::new();
+            let mut stack = vec![document_root];
+            while let Some(element) = stack.pop() {
+                let mut children = Vec::new();
+                let mut child = element.first_element_child();
+                while let Some(next) = child {
+                    children.push(next);
+                    child = next.next_element_sibling();
+                }
+                stack.extend(children.into_iter().rev());
+
+                // Expanded `<use>` descendants are shadow content. Their ids
+                // never participate in authored DOM fragment lookup.
+                if has_use_ancestor(element) {
+                    continue;
+                }
+                let Some(id) = element_id(element) else {
+                    continue;
+                };
+                let resource = if element.local_name_string() == "filter" {
+                    Resource::Filter {
+                        element,
+                        inside_compiled_svg: is_inside(element, compiled_svg),
+                    }
+                } else {
+                    Resource::Other
+                };
+                by_fragment.entry(id).or_insert(resource);
+            }
+            Self { by_fragment }
+        }
+    }
+
+    fn has_use_ancestor(element: HtmlElement<'_>) -> bool {
+        let mut current = element.traversal_parent();
+        while let Some(parent) = current {
+            if parent.local_name_string() == "use" {
+                return true;
+            }
+            current = parent.traversal_parent();
+        }
+        false
+    }
+
+    fn is_inside(element: HtmlElement<'_>, ancestor: HtmlElement<'_>) -> bool {
+        let mut current = Some(element);
+        while let Some(node) = current {
+            if node.node_id() == ancestor.node_id() {
+                return true;
+            }
+            current = node.traversal_parent();
+        }
+        false
+    }
+
+    fn element_id(element: HtmlElement<'_>) -> Option<String> {
+        if let DemoNodeData::Element(data) = &element.dom_node().data {
+            data.id_attr.as_ref().map(ToString::to_string)
+        } else {
+            None
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub(super) enum AuthoredFilter {
+        None,
+        Fragment(String),
+    }
+
+    fn entire_url(raw: &str) -> Option<String> {
+        let mut input = ParserInput::new(raw);
+        let mut parser = Parser::new(&mut input);
+        let parsed: Result<_, cssparser::ParseError<'_, ()>> =
+            parser.parse_entirely(|input| input.expect_url().map_err(Into::into));
+        parsed.ok().map(|url| url.to_string())
+    }
+
+    fn entire_ident(raw: &str) -> Option<String> {
+        let mut input = ParserInput::new(raw);
+        let mut parser = Parser::new(&mut input);
+        let parsed: Result<_, cssparser::ParseError<'_, ()>> =
+            parser.parse_entirely(|input| input.expect_ident_cloned().map_err(Into::into));
+        parsed.ok().map(|ident| ident.to_string())
+    }
+
+    fn filter_function(name: &str) -> bool {
+        matches!(
+            name.to_ascii_lowercase().as_str(),
+            "blur"
+                | "brightness"
+                | "contrast"
+                | "drop-shadow"
+                | "grayscale"
+                | "hue-rotate"
+                | "invert"
+                | "opacity"
+                | "saturate"
+                | "sepia"
+        )
+    }
+
+    /// Decode only the direct presentation-attribute spelling. The pinned
+    /// Servo cascade cannot parse URL filters, so CSS declarations are
+    /// quarantined by the separate authored-CSS patrol.
+    pub(super) fn authored_filter(
+        element: HtmlElement<'_>,
+    ) -> Result<AuthoredFilter, CompileError> {
+        let Some(raw) = get_attr(element, "filter") else {
+            return Ok(AuthoredFilter::None);
+        };
+        if let Some(url) = entire_url(&raw) {
+            // cssparser preserves comments that occurred *inside* url() in
+            // the returned string. Chromium treats those spellings as a bad
+            // URL token and drops the presentation hint; comments around the
+            // complete token are skipped and therefore do not appear here.
+            if url.contains("/*") {
+                return Ok(AuthoredFilter::None);
+            }
+            let base = ::url::Url::parse("about:blank").expect("fixed URL base");
+            let url = base.join(&url).map_err(|_| {
+                CompileError::UnsupportedFilter(format!(
+                    "url({url}) is a relative external reference; this compiler owns no resource base or I/O"
+                ))
+            })?;
+            let Some(fragment) = crate::svg_paint_server::same_document_fragment(&url) else {
+                return Err(CompileError::UnsupportedFilter(format!(
+                    "url({url}) is external; this compiler owns no resource I/O"
+                )));
+            };
+            return Ok(AuthoredFilter::Fragment(fragment.to_string()));
+        }
+        if let Some(ident) = entire_ident(&raw) {
+            return Ok(match ident.to_ascii_lowercase().as_str() {
+                "none" | "initial" | "unset" | "revert" | "revert-layer" => AuthoredFilter::None,
+                "inherit" => {
+                    return Err(CompileError::UnsupportedFilter(
+                        "filter presentation attribute uses inherit, whose parent computed filter is not represented at this Stylo pin"
+                            .to_string(),
+                    ));
+                }
+                // An invalid presentation hint contributes no declaration.
+                _ => AuthoredFilter::None,
+            });
+        }
+
+        let mut input = ParserInput::new(&raw);
+        let mut parser = Parser::new(&mut input);
+        // `expect_url` owns both URL token spellings: url(#f) and
+        // url("#f"). `entire_url` already accepted a lone URL above, so a
+        // successful parse here means there is residual syntax to classify.
+        // Parsing the first token with `next` would expose quoted url() as a
+        // generic Function token and could silently turn a valid filter list
+        // into `none`.
+        if parser.try_parse(|input| input.expect_url()).is_ok() {
+            let second = parser.next().ok().cloned();
+            return match second {
+                Some(Token::UnquotedUrl(_)) | Some(Token::Function(_)) | Some(Token::Comma) => {
+                    Err(CompileError::UnsupportedFilter(
+                        "filter presentation attribute uses multiple filter operations".to_string(),
+                    ))
+                }
+                // An ident or bad token after the URL invalidates the whole
+                // presentation hint. Chromium drops it rather than applying
+                // the URL prefix.
+                _ => Ok(AuthoredFilter::None),
+            };
+        }
+        let first = parser.next().ok().cloned();
+        match first {
+            Some(Token::Function(name)) if name.eq_ignore_ascii_case("var") => {
+                Err(CompileError::UnsupportedFilter(
+                    "filter presentation attribute uses var(), whose substitution is not represented at this Stylo pin"
+                        .to_string(),
+                ))
+            }
+            Some(Token::Function(name)) if filter_function(&name) => {
+                Err(CompileError::UnsupportedFilter(
+                    "filter presentation attribute uses CSS filter functions, which are a separate unresolved operation grammar"
+                        .to_string(),
+                ))
+            }
+            // Bad URLs and every other malformed value contribute no hint.
+            _ => Ok(AuthoredFilter::None),
+        }
+    }
+
+    #[derive(Debug)]
+    pub(super) enum Resolution {
+        None,
+        /// A valid empty graph or non-positive effect region produces no
+        /// target pixels.
+        Hide,
+        Apply(Filter),
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum Units {
+        UserSpaceOnUse,
+        ObjectBoundingBox,
+    }
+
+    fn filter_units(element: HtmlElement<'_>) -> Units {
+        match get_attr(element, "filterUnits")
+            .as_deref()
+            .map(trim_svg_whitespace)
+        {
+            Some("userSpaceOnUse") => Units::UserSpaceOnUse,
+            _ => Units::ObjectBoundingBox,
+        }
+    }
+
+    fn primitive_units(element: HtmlElement<'_>) -> Units {
+        match get_attr(element, "primitiveUnits")
+            .as_deref()
+            .map(trim_svg_whitespace)
+        {
+            Some("objectBoundingBox") => Units::ObjectBoundingBox,
+            _ => Units::UserSpaceOnUse,
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    enum RegionLength {
+        Number(f32),
+        /// Authored percentage number: `100` means 100%. Blink resolves
+        /// `basis * percentage / 100`, and that operation order is pixel
+        /// observable at large finite values.
+        Percentage(f32),
+    }
+
+    fn region_length(
+        element: HtmlElement<'_>,
+        name: &str,
+        owner: &str,
+    ) -> Result<Option<RegionLength>, CompileError> {
+        let Some(raw) = get_attr(element, name) else {
+            return Ok(None);
+        };
+        let mut input = ParserInput::new(&raw);
+        let mut parser = Parser::new(&mut input);
+        let token = parser.next().ok().cloned();
+        if parser.expect_exhausted().is_err() {
+            return Err(CompileError::UnsupportedFilter(format!(
+                "{owner} {name} uses a value list this direct length parser cannot carry"
+            )));
+        }
+        match token {
+            Some(Token::Number { value, .. }) if value.is_finite() => {
+                Ok(Some(RegionLength::Number(value)))
+            }
+            Some(Token::Number { .. }) => Err(CompileError::UnsupportedFilter(format!(
+                "{owner} {name} crosses the unimplemented Web used-length range"
+            ))),
+            Some(Token::Percentage { unit_value, .. }) if unit_value.is_finite() => {
+                let authored = trim_svg_whitespace(&raw)
+                    .strip_suffix('%')
+                    .and_then(|number| number.parse::<f32>().ok())
+                    .unwrap_or(unit_value * 100.0);
+                if !authored.is_finite() {
+                    return Err(CompileError::UnsupportedFilter(format!(
+                        "{owner} {name} percentage resolves outside the finite frame range"
+                    )));
+                }
+                Ok(Some(RegionLength::Percentage(authored)))
+            }
+            Some(Token::Percentage { .. }) => Err(CompileError::UnsupportedFilter(format!(
+                "{owner} {name} crosses the unimplemented Web used-length range"
+            ))),
+            Some(Token::Dimension { value, unit, .. })
+                if value.is_finite() && unit.eq_ignore_ascii_case("px") =>
+            {
+                Ok(Some(RegionLength::Number(value)))
+            }
+            Some(Token::Dimension { unit, .. }) if unit.eq_ignore_ascii_case("px") => {
+                Err(CompileError::UnsupportedFilter(format!(
+                    "{owner} {name} crosses the unimplemented Web used-length range"
+                )))
+            }
+            Some(Token::Dimension { unit, .. }) => Err(CompileError::UnsupportedFilter(format!(
+                "{owner} {name} uses the {unit} unit, whose basis is not admitted"
+            ))),
+            Some(Token::Function(function)) => Err(CompileError::UnsupportedFilter(format!(
+                "{owner} {name} uses {function}(), whose computed length is not represented at this Stylo pin"
+            ))),
+            // Invalid values use the field's default.
+            _ => Ok(None),
+        }
+    }
+
+    fn resolve_region_length(value: RegionLength, units: Units, basis: f32) -> f32 {
+        match (units, value) {
+            (Units::UserSpaceOnUse, RegionLength::Number(value)) => value,
+            (Units::ObjectBoundingBox, RegionLength::Number(value)) => value * basis,
+            (_, RegionLength::Percentage(percentage)) => basis * percentage / 100.0,
+        }
+    }
+
+    fn default_region_length(percentage: f32) -> RegionLength {
+        RegionLength::Percentage(percentage)
+    }
+
+    fn patrol_used_range(owner: &str, name: &str, value: f32) -> Result<(), CompileError> {
+        let outside = match name {
+            "x" | "y" => !(WEB_USED_LENGTH_MIN..=WEB_USED_LENGTH_MAX).contains(&value),
+            "width" | "height" => value > WEB_USED_LENGTH_MAX,
+            _ => false,
+        };
+        if outside {
+            return Err(CompileError::UnsupportedFilter(format!(
+                "{owner} {name} crosses the unimplemented Web used-length range"
+            )));
+        }
+        Ok(())
+    }
+
+    fn filter_region(
+        element: HtmlElement<'_>,
+        units: Units,
+        target_box: Rectangle,
+        bases: PercentBases,
+    ) -> Result<Rectangle, CompileError> {
+        let x_basis = match units {
+            Units::UserSpaceOnUse => bases.width,
+            Units::ObjectBoundingBox => target_box.width,
+        };
+        let y_basis = match units {
+            Units::UserSpaceOnUse => bases.height,
+            Units::ObjectBoundingBox => target_box.height,
+        };
+        let mut x = resolve_region_length(
+            region_length(element, "x", "filter region")?.unwrap_or(default_region_length(-10.0)),
+            units,
+            x_basis,
+        );
+        let mut y = resolve_region_length(
+            region_length(element, "y", "filter region")?.unwrap_or(default_region_length(-10.0)),
+            units,
+            y_basis,
+        );
+        let width = resolve_region_length(
+            region_length(element, "width", "filter region")?
+                .unwrap_or(default_region_length(120.0)),
+            units,
+            x_basis,
+        );
+        let height = resolve_region_length(
+            region_length(element, "height", "filter region")?
+                .unwrap_or(default_region_length(120.0)),
+            units,
+            y_basis,
+        );
+        if units == Units::ObjectBoundingBox {
+            x += target_box.x;
+            y += target_box.y;
+        }
+        if ![x, y, width, height].into_iter().all(f32::is_finite) {
+            return Err(CompileError::UnsupportedFilter(
+                "filter region resolves outside the finite frame range".to_string(),
+            ));
+        }
+        patrol_used_range("filter region", "x", x)?;
+        patrol_used_range("filter region", "y", y)?;
+        patrol_used_range("filter region", "width", width)?;
+        patrol_used_range("filter region", "height", height)?;
+        Ok(Rectangle::from_xywh(x, y, width, height))
+    }
+
+    fn intersect_rect(a: Rectangle, b: Rectangle) -> Option<Rectangle> {
+        let x0 = a.x.max(b.x);
+        let y0 = a.y.max(b.y);
+        let x1 = (a.x + a.width).min(b.x + b.width);
+        let y1 = (a.y + a.height).min(b.y + b.height);
+        (x1 > x0 && y1 > y0).then(|| Rectangle::from_xywh(x0, y0, x1 - x0, y1 - y0))
+    }
+
+    fn primitive_region(
+        primitive: HtmlElement<'_>,
+        units: Units,
+        target_box: Rectangle,
+        bases: PercentBases,
+        filter_region: Rectangle,
+    ) -> Result<Rectangle, CompileError> {
+        let x_basis = match units {
+            Units::UserSpaceOnUse => bases.width,
+            Units::ObjectBoundingBox => target_box.width,
+        };
+        let y_basis = match units {
+            Units::UserSpaceOnUse => bases.height,
+            Units::ObjectBoundingBox => target_box.height,
+        };
+        let parsed_x = region_length(primitive, "x", "filter primitive region")?;
+        let parsed_y = region_length(primitive, "y", "filter primitive region")?;
+        let parsed_width = region_length(primitive, "width", "filter primitive region")?;
+        let parsed_height = region_length(primitive, "height", "filter primitive region")?;
+        if parsed_x.is_none()
+            && parsed_y.is_none()
+            && parsed_width.is_none()
+            && parsed_height.is_none()
+        {
+            return Ok(filter_region);
+        }
+        let mut x = parsed_x
+            .map(|value| resolve_region_length(value, units, x_basis))
+            .unwrap_or(filter_region.x);
+        let mut y = parsed_y
+            .map(|value| resolve_region_length(value, units, y_basis))
+            .unwrap_or(filter_region.y);
+        let width = parsed_width
+            .map(|value| resolve_region_length(value, units, x_basis))
+            .unwrap_or(filter_region.width);
+        let height = parsed_height
+            .map(|value| resolve_region_length(value, units, y_basis))
+            .unwrap_or(filter_region.height);
+        if units == Units::ObjectBoundingBox {
+            if parsed_x.is_some() {
+                x += target_box.x;
+            }
+            if parsed_y.is_some() {
+                y += target_box.y;
+            }
+        }
+        if ![x, y, width, height].into_iter().all(f32::is_finite) {
+            return Err(CompileError::UnsupportedFilter(
+                "filter primitive region resolves outside the finite frame range".to_string(),
+            ));
+        }
+        for (name, value) in [("x", x), ("y", y), ("width", width), ("height", height)] {
+            patrol_used_range("filter primitive region", name, value)?;
+        }
+        if width <= 0.0 || height <= 0.0 {
+            return Err(CompileError::UnsupportedFilter(
+                "a non-positive filter primitive region is not yet represented as a transparent graph result"
+                    .to_string(),
+            ));
+        }
+        intersect_rect(
+            Rectangle::from_xywh(x, y, width, height),
+            filter_region,
+        )
+        .ok_or_else(|| {
+            CompileError::UnsupportedFilter(
+                "a filter primitive region outside the effect region is not yet represented as a transparent graph result"
+                    .to_string(),
+            )
+        })
+    }
+
+    fn filter_has_href(element: HtmlElement<'_>) -> bool {
+        if get_attr(element, "href").is_some() {
+            return true;
+        }
+        if let DemoNodeData::Element(data) = &element.dom_node().data {
+            data.attrs.iter().any(|attr| {
+                attr.name.ns.as_ref() == "http://www.w3.org/1999/xlink"
+                    && attr.name.local.as_ref() == "href"
+            })
+        } else {
+            false
+        }
+    }
+
+    fn patrol_color_style(element: HtmlElement<'_>) -> Result<(), CompileError> {
+        if let Some(style) = get_attr(element, "style") {
+            if style.contains('\\') {
+                return Err(CompileError::UnsupportedFilter(
+                    "inline style in a filter resource contains a CSS escape; property identity cannot be proven by the direct decoder"
+                        .to_string(),
+                ));
+            }
+            if css_declares_property(&style, "color-interpolation-filters") {
+                return Err(CompileError::UnsupportedFilter(
+                    "CSS color-interpolation-filters in a filter resource is not represented by the pinned cascade; use of it is quarantined from the direct attribute decoder"
+                        .to_string(),
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    /// Direct inherited presentation-attribute route. Chromium 149 measures
+    /// missing/invalid/`initial` as linearRGB, while explicit `auto` is
+    /// byte-identical to sRGB; those are distinct branches here.
+    fn inherited_color_space(primitive: HtmlElement<'_>) -> Result<FilterColorSpace, CompileError> {
+        let mut current = Some(primitive);
+        while let Some(candidate) = current {
+            patrol_color_style(candidate)?;
+            if let Some(raw) = get_attr(candidate, "color-interpolation-filters") {
+                if raw.contains("/*") {
+                    return Err(CompileError::UnsupportedFilter(
+                        "color-interpolation-filters presentation attribute contains a CSS comment; the direct attribute decoder does not tokenize comments"
+                            .to_string(),
+                    ));
+                }
+                if raw.contains('\\') {
+                    return Err(CompileError::UnsupportedFilter(
+                        "color-interpolation-filters presentation attribute contains a CSS escape; the direct attribute decoder does not tokenize escapes"
+                            .to_string(),
+                    ));
+                }
+                let value = trim_svg_whitespace(&raw).to_ascii_lowercase();
+                match value.as_str() {
+                    "linearrgb" | "initial" => return Ok(FilterColorSpace::LinearRgb),
+                    "srgb" | "auto" => return Ok(FilterColorSpace::Srgb),
+                    "inherit" | "unset" | "revert" | "revert-layer" => {}
+                    value if value.contains("var(") => {
+                        return Err(CompileError::UnsupportedFilter(
+                            "color-interpolation-filters presentation attribute uses var(), whose substitution is not represented at this Stylo pin"
+                                .to_string(),
+                        ));
+                    }
+                    // Invalid presentation hints are absent.
+                    _ => {}
+                }
+            }
+            current = candidate.traversal_parent();
+        }
+        Ok(FilterColorSpace::LinearRgb)
+    }
+
+    fn parse_std_deviation(element: HtmlElement<'_>) -> Result<(f32, f32), CompileError> {
+        let Some(raw) = get_attr(element, "stdDeviation") else {
+            return Ok((0.0, 0.0));
+        };
+        if raw.contains("/*") {
+            return Err(CompileError::UnsupportedFilter(
+                "feGaussianBlur stdDeviation contains a CSS comment outside the SVG number grammar"
+                    .to_string(),
+            ));
+        }
+        let mut input = ParserInput::new(&raw);
+        let mut parser = Parser::new(&mut input);
+        let Ok(first) = parser.expect_number() else {
+            return Ok((0.0, 0.0));
+        };
+        let second = if parser.is_exhausted() {
+            first
+        } else {
+            let _ = parser.try_parse(|input| input.expect_comma());
+            let Ok(second) = parser.expect_number() else {
+                return Ok((0.0, 0.0));
+            };
+            if parser.expect_exhausted().is_err() {
+                return Ok((0.0, 0.0));
+            }
+            second
+        };
+        if !first.is_finite() || !second.is_finite() {
+            return Err(CompileError::UnsupportedFilter(
+                "feGaussianBlur stdDeviation crosses the finite resolved-filter range".to_string(),
+            ));
+        }
+        Ok((first.max(0.0), second.max(0.0)))
+    }
+
+    fn builtin_input(name: &str) -> bool {
+        matches!(
+            name,
+            "SourceGraphic"
+                | "SourceAlpha"
+                | "BackgroundImage"
+                | "BackgroundAlpha"
+                | "FillPaint"
+                | "StrokePaint"
+        )
+    }
+
+    fn resolve_input(
+        element: HtmlElement<'_>,
+        previous: Option<usize>,
+        names: &HashMap<String, usize>,
+    ) -> FilterInput {
+        let fallback = || {
+            previous
+                .map(FilterInput::Node)
+                .unwrap_or(FilterInput::Source)
+        };
+        let Some(raw) = get_attr(element, "in") else {
+            return fallback();
+        };
+        let value = trim_svg_whitespace(&raw);
+        match value {
+            "SourceGraphic" => FilterInput::Source,
+            "SourceAlpha" => FilterInput::SourceAlpha,
+            // Chromium's SVG paint path does not supply these optional
+            // builtins; unknown inputs fall back to the previous result (or
+            // SourceGraphic for the first primitive).
+            "BackgroundImage" | "BackgroundAlpha" | "FillPaint" | "StrokePaint" => fallback(),
+            name => names
+                .get(name)
+                .copied()
+                .map(FilterInput::Node)
+                .unwrap_or_else(fallback),
+        }
+    }
+
+    fn record_result(element: HtmlElement<'_>, index: usize, names: &mut HashMap<String, usize>) {
+        let Some(raw) = get_attr(element, "result") else {
+            return;
+        };
+        let name = trim_svg_whitespace(&raw);
+        // Builtin names are reserved and never enter Blink's named-result
+        // table. Empty names likewise name no result.
+        if !name.is_empty() && !builtin_input(name) {
+            names.insert(name.to_string(), index);
+        }
+    }
+
+    fn compile_graph(
+        filter: HtmlElement<'_>,
+        primitive_units: Units,
+        target_box: Rectangle,
+        bases: PercentBases,
+        region: Rectangle,
+        override_skips: &HashMap<NodeId, String>,
+    ) -> Result<Option<FilterProgram>, CompileError> {
+        let mut nodes = Vec::new();
+        let mut names = HashMap::new();
+        let mut previous = None;
+        let mut child = filter.first_element_child();
+        while let Some(element) = child {
+            let tag = element.local_name_string();
+            if let Some(reason) = override_skips.get(&element.node_id()) {
+                return Err(CompileError::UnsupportedFilter(format!(
+                    "the <{tag}> authored state is overridden at document load: {reason}"
+                )));
+            }
+            if tag == "feGaussianBlur" {
+                if nodes.len() >= 2 {
+                    return Err(CompileError::UnsupportedFilter(
+                        "a filter graph deeper than two operations crosses the pinned-backend precision boundary (three chained blurs differ from Chromium)"
+                            .to_string(),
+                    ));
+                }
+                patrol_color_style(element)?;
+                let input = resolve_input(element, previous, &names);
+                let (mut sigma_x, mut sigma_y) = parse_std_deviation(element)?;
+                if primitive_units == Units::ObjectBoundingBox {
+                    sigma_x *= target_box.width;
+                    sigma_y *= target_box.height;
+                }
+                if !sigma_x.is_finite() || !sigma_y.is_finite() {
+                    return Err(CompileError::UnsupportedFilter(
+                        "feGaussianBlur stdDeviation resolves outside the finite filter range"
+                            .to_string(),
+                    ));
+                }
+                let node = FilterNode::new(
+                    input,
+                    primitive_region(element, primitive_units, target_box, bases, region)?,
+                    inherited_color_space(element)?,
+                    FilterPrimitive::GaussianBlur { sigma_x, sigma_y },
+                );
+                let index = nodes.len();
+                nodes.push(node);
+                record_result(element, index, &mut names);
+                previous = Some(index);
+            } else if tag.starts_with("fe") {
+                return Err(CompileError::UnsupportedFilter(format!(
+                    "filter graph contains unsupported primitive <{tag}>"
+                )));
+            }
+            // Non-primitive children do not participate in Blink's graph.
+            child = element.next_element_sibling();
+        }
+        if nodes.is_empty() {
+            return Ok(None);
+        }
+        FilterProgram::new(nodes.into())
+            .map(Some)
+            .map_err(|error| CompileError::UnsupportedFilter(error.to_string()))
+    }
+
+    /// Resolve one target's direct filter attribute. Missing, invalid, and
+    /// wrong-kind references install no effect; every valid unsupported graph
+    /// branch refuses by a stable filter diagnostic.
+    pub(super) fn resolve<'d>(
+        resources: &Resources<'d>,
+        target: HtmlElement<'d>,
+        target_to_frame: AffineTransform,
+        target_box: Option<Rectangle>,
+        bases: PercentBases,
+        override_skips: &HashMap<NodeId, String>,
+    ) -> Result<Resolution, CompileError> {
+        let AuthoredFilter::Fragment(fragment) = authored_filter(target)? else {
+            return Ok(Resolution::None);
+        };
+        let Some(resource) = resources.by_fragment.get(&fragment) else {
+            return Ok(Resolution::None);
+        };
+        let (element, inside_compiled_svg) = match resource {
+            Resource::Other => return Ok(Resolution::None),
+            Resource::Filter {
+                element,
+                inside_compiled_svg,
+            } => (*element, *inside_compiled_svg),
+        };
+        if !inside_compiled_svg {
+            return Err(CompileError::UnsupportedFilter(format!(
+                "url(#{fragment}) resolves outside the compiled SVG subtree"
+            )));
+        }
+        if let Some(reason) = override_skips.get(&element.node_id()) {
+            return Err(CompileError::UnsupportedFilter(format!(
+                "the <filter> authored state is overridden at document load: {reason}"
+            )));
+        }
+        if filter_has_href(element) {
+            return Err(CompileError::UnsupportedFilter(
+                "<filter> href inheritance is not yet resolved".to_string(),
+            ));
+        }
+        patrol_color_style(element)?;
+
+        let target_box = target_box.ok_or_else(|| {
+            CompileError::UnsupportedFilter(
+                "filter resolution needs the target's complete fill-geometry box".to_string(),
+            )
+        })?;
+        if target_box.width <= 0.0 || target_box.height <= 0.0 {
+            return Ok(Resolution::Hide);
+        }
+        let units = filter_units(element);
+        let region = filter_region(element, units, target_box, bases)?;
+        if region.width <= 0.0 || region.height <= 0.0 {
+            return Ok(Resolution::Hide);
+        }
+        let Some(program) = compile_graph(
+            element,
+            primitive_units(element),
+            target_box,
+            bases,
+            region,
+            override_skips,
+        )?
+        else {
+            return Ok(Resolution::Hide);
+        };
+        let filter = Filter::new(target_to_frame, region, program)
+            .map_err(|error| CompileError::UnsupportedFilter(error.to_string()))?;
+        Ok(Resolution::Apply(filter))
     }
 }
 

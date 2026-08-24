@@ -10,8 +10,8 @@
 //! objects, and no serialization.
 //!
 //! It is deliberately minimal (solid- and gradient-filled rectangles,
-//! ellipses, and paths, composited flat or through isolated opacity
-//! scopes) and
+//! ellipses, and paths, composited flat or through checked opacity, clip,
+//! mask, and image-filter effects) and
 //! **breakable**: the enums grow as real producers force new visual facts, and
 //! the sharing boundary moves *down* (toward the engine's private drawlist)
 //! rather than admit a source-specific field. One such move is decided, not

@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (361)
+## Chromium-baked cells (386)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -95,6 +95,31 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-fill-opacity-overlap.svg" title="svg-fill-opacity-overlap (standalone-svg)"><img src="./chromium/svg-fill-opacity-overlap.png" width="56" alt="svg-fill-opacity-overlap"></a>
 <a href="./svg-fill-opacity-percentage.svg" title="svg-fill-opacity-percentage (standalone-svg)"><img src="./chromium/svg-fill-opacity-percentage.png" width="56" alt="svg-fill-opacity-percentage"></a>
 <a href="./svg-fill-opacity-times-alpha.svg" title="svg-fill-opacity-times-alpha (standalone-svg)"><img src="./chromium/svg-fill-opacity-times-alpha.png" width="56" alt="svg-fill-opacity-times-alpha"></a>
+<a href="./svg-filter-color-linear.svg" title="svg-filter-color-linear (standalone-svg)"><img src="./chromium/svg-filter-color-linear.png" width="56" alt="svg-filter-color-linear"></a>
+<a href="./svg-filter-color-srgb.svg" title="svg-filter-color-srgb (standalone-svg)"><img src="./chromium/svg-filter-color-srgb.png" width="56" alt="svg-filter-color-srgb"></a>
+<a href="./svg-filter-empty-graph.svg" title="svg-filter-empty-graph (standalone-svg)"><img src="./chromium/svg-filter-empty-graph.png" width="56" alt="svg-filter-empty-graph"></a>
+<a href="./svg-filter-first-id.svg" title="svg-filter-first-id (standalone-svg)"><img src="./chromium/svg-filter-first-id.png" width="56" alt="svg-filter-first-id"></a>
+<a href="./svg-filter-gaussian-blur-axis-clamp.svg" title="svg-filter-gaussian-blur-axis-clamp (standalone-svg)"><img src="./chromium/svg-filter-gaussian-blur-axis-clamp.png" width="56" alt="svg-filter-gaussian-blur-axis-clamp"></a>
+<a href="./svg-filter-gaussian-blur-basic.svg" title="svg-filter-gaussian-blur-basic (standalone-svg)"><img src="./chromium/svg-filter-gaussian-blur-basic.png" width="56" alt="svg-filter-gaussian-blur-basic"></a>
+<a href="./svg-filter-gaussian-blur-invalid-list.svg" title="svg-filter-gaussian-blur-invalid-list (standalone-svg)"><img src="./chromium/svg-filter-gaussian-blur-invalid-list.png" width="56" alt="svg-filter-gaussian-blur-invalid-list"></a>
+<a href="./svg-filter-gaussian-blur-number-list.svg" title="svg-filter-gaussian-blur-number-list (standalone-svg)"><img src="./chromium/svg-filter-gaussian-blur-number-list.png" width="56" alt="svg-filter-gaussian-blur-number-list"></a>
+<a href="./svg-filter-gaussian-blur-zero.svg" title="svg-filter-gaussian-blur-zero (standalone-svg)"><img src="./chromium/svg-filter-gaussian-blur-zero.png" width="56" alt="svg-filter-gaussian-blur-zero"></a>
+<a href="./svg-filter-nested.svg" title="svg-filter-nested (standalone-svg)"><img src="./chromium/svg-filter-nested.png" width="56" alt="svg-filter-nested"></a>
+<a href="./svg-filter-opacity-order.svg" title="svg-filter-opacity-order (standalone-svg)"><img src="./chromium/svg-filter-opacity-order.png" width="56" alt="svg-filter-opacity-order"></a>
+<a href="./svg-filter-primitive-region.svg" title="svg-filter-primitive-region (standalone-svg)"><img src="./chromium/svg-filter-primitive-region.png" width="56" alt="svg-filter-primitive-region"></a>
+<a href="./svg-filter-primitive-units-object.svg" title="svg-filter-primitive-units-object (standalone-svg)"><img src="./chromium/svg-filter-primitive-units-object.png" width="56" alt="svg-filter-primitive-units-object"></a>
+<a href="./svg-filter-region-default.svg" title="svg-filter-region-default (standalone-svg)"><img src="./chromium/svg-filter-region-default.png" width="56" alt="svg-filter-region-default"></a>
+<a href="./svg-filter-region-userspace.svg" title="svg-filter-region-userspace (standalone-svg)"><img src="./chromium/svg-filter-region-userspace.png" width="56" alt="svg-filter-region-userspace"></a>
+<a href="./svg-filter-result-chain.svg" title="svg-filter-result-chain (standalone-svg)"><img src="./chromium/svg-filter-result-chain.png" width="56" alt="svg-filter-result-chain"></a>
+<a href="./svg-filter-scope-order.svg" title="svg-filter-scope-order (standalone-svg)"><img src="./chromium/svg-filter-scope-order.png" width="56" alt="svg-filter-scope-order"></a>
+<a href="./svg-filter-source-alpha.svg" title="svg-filter-source-alpha (standalone-svg)"><img src="./chromium/svg-filter-source-alpha.png" width="56" alt="svg-filter-source-alpha"></a>
+<a href="./svg-filter-stroke.svg" title="svg-filter-stroke (standalone-svg)"><img src="./chromium/svg-filter-stroke.png" width="56" alt="svg-filter-stroke"></a>
+<a href="./svg-filter-target-rotate.svg" title="svg-filter-target-rotate (standalone-svg)"><img src="./chromium/svg-filter-target-rotate.png" width="56" alt="svg-filter-target-rotate"></a>
+<a href="./svg-filter-units-grammar.svg" title="svg-filter-units-grammar (standalone-svg)"><img src="./chromium/svg-filter-units-grammar.png" width="56" alt="svg-filter-units-grammar"></a>
+<a href="./svg-filter-url-comments.svg" title="svg-filter-url-comments (standalone-svg)"><img src="./chromium/svg-filter-url-comments.png" width="56" alt="svg-filter-url-comments"></a>
+<a href="./svg-filter-url-quoted.svg" title="svg-filter-url-quoted (standalone-svg)"><img src="./chromium/svg-filter-url-quoted.png" width="56" alt="svg-filter-url-quoted"></a>
+<a href="./svg-filter-use-instance.svg" title="svg-filter-use-instance (standalone-svg)"><img src="./chromium/svg-filter-use-instance.png" width="56" alt="svg-filter-use-instance"></a>
+<a href="./svg-filter-viewbox-nonuniform.svg" title="svg-filter-viewbox-nonuniform (standalone-svg)"><img src="./chromium/svg-filter-viewbox-nonuniform.png" width="56" alt="svg-filter-viewbox-nonuniform"></a>
 <a href="./svg-geometry-cx-cy-r-grammar.svg" title="svg-geometry-cx-cy-r-grammar (standalone-svg)"><img src="./chromium/svg-geometry-cx-cy-r-grammar.png" width="56" alt="svg-geometry-cx-cy-r-grammar"></a>
 <a href="./svg-geometry-cx-cy-r-transform-stroke.svg" title="svg-geometry-cx-cy-r-transform-stroke (standalone-svg)"><img src="./chromium/svg-geometry-cx-cy-r-transform-stroke.png" width="56" alt="svg-geometry-cx-cy-r-transform-stroke"></a>
 <a href="./svg-geometry-cx-cy-r-unmapped.svg" title="svg-geometry-cx-cy-r-unmapped (standalone-svg)"><img src="./chromium/svg-geometry-cx-cy-r-unmapped.png" width="56" alt="svg-geometry-cx-cy-r-unmapped"></a>
@@ -390,7 +415,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (101)
+## The refusal register (116)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -414,7 +439,22 @@ its row into the cells above.
 | `svg-css-transform-box` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform-box, which this cascade does not represent |
 | `svg-css-transform-origin` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform-origin, which this cascade does not represent |
 | `svg-display-contents` | declared | skipped svg/g[1]: unsupported computed style: display: contents is not yet consumed |
-| `svg-filter` | declared | skipped svg/filter[1]: unsupported element <filter>; skipped svg/rect[2]: unsupported rendering attribute filter on <rect> (not yet consumed) |
+| `svg-filter-color-css` | declared | skipped svg/rect[2]: unsupported SVG filter: CSS color-interpolation-filters in a filter resource is not represented by the pinned cascade; use of it is quarantined from the direct attribute decoder |
+| `svg-filter-color-raw-syntax` | declared | skipped svg/rect[2]: unsupported SVG filter: color-interpolation-filters presentation attribute contains a CSS comment; the direct attribute decoder does not tokenize comments |
+| `svg-filter-css-functions` | declared | skipped svg/rect[2]: unsupported SVG filter: filter presentation attribute uses CSS filter functions, which are a separate unresolved operation grammar |
+| `svg-filter-css-property` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares filter, which this cascade does not represent |
+| `svg-filter-external` | declared | skipped svg/rect[2]: unsupported SVG filter: url(https://example.test/filter.svg#f) is external; this compiler owns no resource I/O |
+| `svg-filter-graph-depth-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: a filter graph deeper than two operations crosses the pinned-backend precision boundary (three chained blurs differ from Chromium) |
+| `svg-filter-href` | declared | skipped svg/rect[2]: unsupported SVG filter: <filter> href inheritance is not yet resolved |
+| `svg-filter-list` | declared | skipped svg/rect[2]: unsupported SVG filter: filter presentation attribute uses multiple filter operations |
+| `svg-filter-list-quoted` | declared | skipped svg/rect[2]: unsupported SVG filter: filter presentation attribute uses multiple filter operations |
+| `svg-filter-primitive` | declared | skipped svg/rect[2]: unsupported SVG filter: filter graph contains unsupported primitive <feOffset> |
+| `svg-filter-primitive-empty-region` | declared | skipped svg/rect[2]: unsupported SVG filter: a non-positive filter primitive region is not yet represented as a transparent graph result |
+| `svg-filter-region-calc` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region x uses calc(), whose computed length is not represented at this Stylo pin |
+| `svg-filter-region-range` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region width crosses the unimplemented Web used-length range |
+| `svg-filter-region-unit` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region x uses the em unit, whose basis is not admitted |
+| `svg-filter-region-var` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region x uses var(), whose computed length is not represented at this Stylo pin |
+| `svg-filter-root` | **both refuse** | unsupported SVG filter: filter on the root <svg> uses the host CSS-layer coordinate route |
 | `svg-foreign-object` | declared | skipped svg/foreignObject[1]: unsupported element <foreignObject> |
 | `svg-geometry-calc-values` | declared | skipped svg/circle[1]: attribute cx="calc(8px + 8px)" is not a number; skipped svg/circle[2]: attribute cy="calc(8px \* 4)" is not a number; skipped svg/circle[3]: attribute r="calc(4px + 4px)" is not a number |
 | `svg-geometry-css-comments` | declared | skipped svg/circle[1]: attribute cx="/\*\*/16" is not a number; skipped svg/circle[2]: attribute cy="/\*\*/32/\*\*/" is not a number; skipped svg/circle[3]: attribute r="/\*\*/8/\*\*/" is not a number |

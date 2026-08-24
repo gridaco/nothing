@@ -61,18 +61,23 @@ from the dated addenda below:
   alpha/luminance source image, both `maskUnits` and `maskContentUnits`, hard
   object-box/user-space regions, admitted graphics/gradient/`<use>` sources,
   clips, nesting, transforms, and effect ordering);
+  same-document SVG filters on non-root admitted targets through a checked
+  resolved graph of at most two `feGaussianBlur` operations, with
+  `SourceGraphic`/`SourceAlpha`/prior and named inputs, both filter coordinate
+  systems and color spaces, hard regions, nesting, transforms, `<use>`, and
+  the established effect order;
   one declared-font, single-run `<text>` profile; viewBox-only root sizing with
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 361 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 386 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 101 rows.
+  register has 116 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -2593,3 +2598,115 @@ cells; the ten exact-time sampled frames are unchanged. Only `mask-type`,
 `maskUnits`, and `maskContentUnits` tick. `<mask>`, both `mask` rows, and every
 other CSS mask-family row remain open with their work named above. This records
 no conformance score and takes no FLIP action.
+
+## Rung: SVG filter chassis and `feGaussianBlur` (2026-08-25)
+
+The verdict is SPLIT. A resolved image-filter graph now crosses the shared
+frame boundary and the first static primitive paints, but neither the
+`<filter>` nor `<feGaussianBlur>` element row closes. The independently listed
+`filterUnits` and `primitiveUnits` attributes do close at their complete
+case-sensitive enum grammars. The `filter` presentation attribute, its CSS
+property twin, `color-interpolation-filters`, `in`, `result`, `stdDeviation`,
+and `edgeMode` all stay open for their wider applicability or named remainder.
+
+The resolved contract carries one checked operation space, a positive hard
+effect region, and a bounded acyclic list whose inputs are the source image,
+source alpha, or an earlier node. Authored URLs, DOM identity, result strings,
+unit spellings, parser state, and painter objects do not cross it. The consumer
+preflights construction before painting and applies the result to one isolated
+target image. A construction failure therefore cannot restore the target
+unfiltered. This is the chassis later primitives extend; it is not an SVG-shaped
+second renderer.
+
+The source route is deliberately split from CSS. One direct presentation
+attribute accepts `none`, the reset keywords, or one same-document URL token,
+with either quoted or unquoted `url()` content, on admitted non-root SVG
+targets. CSS comments around the URL are accepted;
+comments inside it make an invalid hint. Whole-document, first-id-wins lookup
+resolves the resource. A missing id, wrong-kind id, malformed hint, or explicit
+`none` installs no filter; a valid empty graph instead produces an empty image
+and hides the target. External resources, root-host filtering, filter lists and
+functions, `var()`, inheritance, and `<filter href>` remain named boundaries.
+Author CSS is quarantined separately because the pinned Servo-mode cascade has
+filter functions but not the URL computed variant needed by SVG resources. No
+matcher was added around it.
+
+The first graph operation is `feGaussianBlur`. Missing input means
+`SourceGraphic`; later missing or unknown inputs select the previous result.
+`SourceAlpha` is carried distinctly. The optional Background, FillPaint, and
+StrokePaint inputs are unavailable in Chromium's current SVG paint route and
+take the same previous-or-source fallback. Result names resolve before the
+frame, later duplicate names replace earlier bindings, and reserved built-in
+names never enter that table. Unsupported primitives invalidate construction
+transactionally, so best effort skips the whole affected target rather than
+painting a believable prefix.
+
+The measured `stdDeviation` grammar accepts one or two numbers, whitespace or
+a comma, signs, leading dots, and exponents. One value expands to both axes.
+Missing, malformed, extra-member, and zero values pass the input through;
+negative axes independently become zero in current Chromium, so `3 -1` equals
+`3 0` rather than disabling the x blur. Object-box primitive units scale each
+axis through the target's fill-geometry box. A sampled decimal immediately
+above an f32 midpoint remained exact to Chromium's `3` control; the geometry
+raw-reader alias did not reproduce at that witness (measured, not celled).
+
+The region measurement pins the default `-10% -10% 120% 120%` filter region,
+explicit user space, object-box mapping, `viewBox` bases, and hard primitive
+subregions. Numbers, percentages, and `px` are carried, retaining Blink's
+observable basis-times-percentage-before-division order. Non-`px` units, CSS
+math, `var()`, and the unimplemented Web used-length range refuse by stable
+field name. A non-positive outer filter region is the correct empty image; a
+non-positive or disjoint primitive subregion still needs a transparent graph
+result and remains a named over-refusal. The complete missing/explicit/invalid
+enum matrices for `filterUnits` and `primitiveUnits` are committed and close
+those two rows.
+
+The used-range patrol is independently measured. With `x=-33554396`, Chromium
+clamps widths `33554432` and `33554436` to `33554428`; both match the ceiling
+control exactly and differ from an unclamped crop by 96 pixels at maximum
+channel delta 233. The overflowing values now have their own registered
+refusal row.
+
+Missing `color-interpolation-filters` is linearRGB in current Chromium.
+Explicit `linearRGB` is identical, while explicit `sRGB` differs by 636 pixels
+at maximum channel delta 73; explicit `auto` is byte-identical to sRGB, and an
+invalid value or `initial` returns to linearRGB (measured, not all separately
+celled). The admitted direct inherited attribute preserves conversions at each
+operation. CSS ingress, comments, escapes, and `var()` remain named gaps at the
+Stylo boundary. All three valid `edgeMode` values and the missing value were
+byte-identical even on a boundary-sensitive source; current Blink has no blur
+edge-mode field and uses transparent decal. That browser-dropped behavior is
+measured, not celled, and cannot close the global attribute row because
+`edgeMode` also belongs to `feConvolveMatrix`.
+
+Composition stays one meaning across effects. Filter isolation encloses fill,
+stroke, descendants, and overlaps; target transforms carry its operation
+space; filters nest; `<use>` applies the effect at the instance; and non-uniform
+`viewBox` mapping preserves independent x/y sigma. On one target the measured
+operation order is filter, then mask, then opacity, then clip. Dedicated cells
+make the clip and mask boundaries hard after the blur, while the group-opacity
+cell prevents per-child filtering or alpha folding.
+
+The backend precision audit found one silent class before admission. One and
+two blur operations were exact, but a third chained blur differed from
+Chromium at 680 pixels with maximum channel delta 3; replacing the chain by a
+single variance-combined sigma was also not equivalent. Graphs deeper than two
+operations now refuse under a focused precision row before painting. This is a
+pinned-backend boundary, not a general graph limit in the resolved contract.
+
+Twenty-five new Chromium cells carry the admitted slice, all exact. They cover
+blur grammar and axis behavior, source alpha, named and previous results,
+empty graphs, reference lookup and both URL-token spellings, both regions and
+unit systems, both color spaces, transforms, `viewBox`, stroke, groups,
+opacity, clip, mask, nesting, and `<use>`. Every candidate also rendered
+through the product command. Gate
+sensitivity was proved by adding one unit to both resolved sigmas: `just gate`
+failed 19 filter cells, with maximum channel deltas up to 75. Restoring the
+resolved sigmas returned the complete gate to green.
+
+The former broad filter refusal graduates. Sixteen narrower source, cascade,
+resource, primitive, value-family, and precision rows replace it, moving the
+named register from 101 to 116. The primitive corpus moves from 361 to 386
+cells; the ten exact-time sampled frames are unchanged. Only `filterUnits` and
+`primitiveUnits` tick. This records no conformance score and takes no FLIP
+action.

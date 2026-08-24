@@ -3,8 +3,9 @@
 //! [`rframe::Frame`] is the backend-free resolved contract. It carries no
 //! authored n0 document, HTML/CSS/SVG syntax, parser binding, backend object,
 //! I/O handle, or clock. This module admits its current solid- and
-//! gradient-filled rectangle, ellipse, and path slice, compiles it into n0's
-//! one private drawlist, and executes it through n0's one private painter.
+//! gradient-filled rectangle, ellipse, and path slice plus checked opacity,
+//! clip, mask, and image-filter effects, compiles them into n0's one private
+//! drawlist, and executes them through n0's one private painter.
 //!
 //! The resulting [`FrameProduct`] is intentionally separate from
 //! [`crate::frame::FrameProduct`]. The latter owns an n0-model
@@ -21,13 +22,17 @@ use n0_model::model::{
     StrokeAlign, StrokeCap, StrokeJoin, StrokeWidth,
 };
 use n0_model::path::ResolvedPathArtifact;
-use rframe::{ClipPath, Frame, FrameItem, Geometry, MaskMode, PaintStack, ScopeEffect, VisualRef};
+use rframe::{
+    ClipPath, FilterColorSpace, FilterInput, FilterPrimitive, FilterProgram, Frame, FrameItem,
+    Geometry, MaskMode, PaintStack, ScopeEffect, VisualRef,
+};
 
 use crate::damage::{diff_inputs, DamageOwner, FrameDamageInput};
 use crate::drawlist::{
     DrawList, GlyphlessOwnerSlot, Item, ItemKind, PostPaintOpacity, ResolvedClipGeometry,
-    ResolvedClipGeometryKind, ResolvedClipLayer, ResolvedClipPath, ResolvedMaskMode,
-    StrokeDashPhase,
+    ResolvedClipGeometryKind, ResolvedClipLayer, ResolvedClipPath, ResolvedFilter,
+    ResolvedFilterColorSpace, ResolvedFilterInput, ResolvedFilterNode, ResolvedFilterPrimitive,
+    ResolvedMaskMode, StrokeDashPhase,
 };
 use crate::frame::FrameExecutionError;
 use crate::paint::PaintCtx;
@@ -78,6 +83,12 @@ pub enum BuildError {
         owner: VisualRef,
         reason: String,
     },
+    /// A resolved image-filter program failed deterministic backend preflight.
+    /// Executing it could otherwise silently restore the group unfiltered.
+    Filter {
+        owner: VisualRef,
+        reason: String,
+    },
 }
 
 impl std::fmt::Display for BuildError {
@@ -122,6 +133,12 @@ impl std::fmt::Display for BuildError {
                 write!(
                     f,
                     "glyphless visual {owner:?} mask preflight failed: {reason}"
+                )
+            }
+            BuildError::Filter { owner, reason } => {
+                write!(
+                    f,
+                    "glyphless visual {owner:?} filter preflight failed: {reason}"
                 )
             }
         }
@@ -209,6 +226,9 @@ enum OpenScopeKind {
         region: Arc<ResolvedClipPath>,
         bounds: Option<n0_model::math::RectF>,
         target_coverage: Option<n0_model::math::RectF>,
+    },
+    Filter {
+        bounds: Option<n0_model::math::RectF>,
     },
 }
 
@@ -363,6 +383,25 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                         });
                         OpenScopeKind::Clip { bounds }
                     }
+                    ScopeEffect::Filter(filter) => {
+                        let compiled = Arc::new(compile_filter(filter.program(), filter.region()));
+                        if let Err(reason) = crate::paint::preflight_filter(&compiled) {
+                            return Err(BuildError::Filter {
+                                owner: scope.owner,
+                                reason,
+                            });
+                        }
+                        let bounds = bounded_geometry_coverage(
+                            math2::rect_transform(filter.region(), &filter.transform()),
+                            resolved.bounds,
+                        );
+                        items.push(Item {
+                            node: slot,
+                            world: to_affine(filter.transform()),
+                            kind: ItemKind::BeginFilter { filter: compiled },
+                        });
+                        OpenScopeKind::Filter { bounds }
+                    }
                 };
                 open_scopes.push(OpenScope {
                     slot,
@@ -386,6 +425,11 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                     OpenScopeKind::Mask { .. } => {
                         unreachable!("checked mask scopes close with MaskEnd")
                     }
+                    OpenScopeKind::Filter { bounds } => (
+                        scope.coverage.and(bounds),
+                        Affine::IDENTITY,
+                        ItemKind::EndFilter,
+                    ),
                 };
                 let slot = scope.slot;
                 provenance.coverage[slot.index()] = coverage;
@@ -820,6 +864,37 @@ fn compile_clip_path(clip: &ClipPath) -> ResolvedClipPath {
         .collect::<Vec<_>>()
         .into();
     ResolvedClipPath { layers }
+}
+
+/// Project one checked, source-neutral filter program into private painter
+/// material. Every index and scalar has already been validated by `rframe`;
+/// this is a vocabulary translation, not a second resolver.
+fn compile_filter(program: &FilterProgram, region: math2::Rectangle) -> ResolvedFilter {
+    let nodes = program
+        .iter()
+        .map(|node| ResolvedFilterNode {
+            input: match node.input() {
+                FilterInput::Source => ResolvedFilterInput::Source,
+                FilterInput::SourceAlpha => ResolvedFilterInput::SourceAlpha,
+                FilterInput::Node(index) => ResolvedFilterInput::Node(index),
+            },
+            region: to_rectf(node.region()),
+            color_space: match node.color_space() {
+                FilterColorSpace::Srgb => ResolvedFilterColorSpace::Srgb,
+                FilterColorSpace::LinearRgb => ResolvedFilterColorSpace::LinearRgb,
+            },
+            primitive: match node.primitive() {
+                FilterPrimitive::GaussianBlur { sigma_x, sigma_y } => {
+                    ResolvedFilterPrimitive::GaussianBlur { sigma_x, sigma_y }
+                }
+            },
+        })
+        .collect::<Vec<_>>()
+        .into();
+    ResolvedFilter {
+        region: to_rectf(region),
+        nodes,
+    }
 }
 
 /// Project the contract's resolved stroke into the engine's private stroke.
@@ -1382,7 +1457,8 @@ mod tests {
     };
     use n0_model::resolve::ResolveOptions;
     use rframe::{
-        FrameItems, FrameNode, Identity, PaintAlphaFactor, Provenance, Scope, ScopeOpacity,
+        Filter, FilterNode, FrameItems, FrameNode, Identity, PaintAlphaFactor, Provenance, Scope,
+        ScopeOpacity,
     };
     use skia_safe::surfaces;
 
@@ -1449,7 +1525,9 @@ mod tests {
             | ItemKind::BeginMaskContent
             | ItemKind::BeginMaskSource { .. }
             | ItemKind::EndMaskSource
-            | ItemKind::EndMaskContent => None,
+            | ItemKind::EndMaskContent
+            | ItemKind::BeginFilter { .. }
+            | ItemKind::EndFilter => None,
         }
     }
 
@@ -1619,6 +1697,27 @@ mod tests {
             owner,
             effect: ScopeEffect::Opacity(
                 ScopeOpacity::new(opacity).expect("test opacity is a scope fact"),
+            ),
+        })
+    }
+
+    fn blur_scope_begin(owner: VisualRef, input: FilterInput) -> FrameItem {
+        let region = Rectangle::from_xywh(0.0, 0.0, 64.0, 48.0);
+        let program = FilterProgram::new(Arc::from([FilterNode::new(
+            input,
+            region,
+            FilterColorSpace::LinearRgb,
+            FilterPrimitive::GaussianBlur {
+                sigma_x: 3.0,
+                sigma_y: 3.0,
+            },
+        )]))
+        .expect("test blur is a checked program");
+        FrameItem::ScopeBegin(Scope {
+            owner,
+            effect: ScopeEffect::Filter(
+                Filter::new(AffineTransform::identity(), region, program)
+                    .expect("test filter is a checked effect"),
             ),
         })
     }
@@ -2826,6 +2925,52 @@ mod tests {
         assert_eq!(
             product.drawlist.items[1].node, product.drawlist.items[3].node,
             "begin and end are owned by the one scope"
+        );
+    }
+
+    /// A checked filter scope lowers to one private graph layer. The painter
+    /// evaluates Source and SourceAlpha distinctly and never treats a valid
+    /// graph as an unfiltered fallback.
+    #[test]
+    fn gaussian_filter_scope_lowers_and_rasters_both_source_inputs() {
+        let make = |input| {
+            let items = FrameItems::try_new(vec![
+                blur_scope_begin(SCOPE_OWNER, input),
+                FrameItem::Node(base_node(PaintStack::solid(CGColor::RED))),
+                FrameItem::ScopeEnd,
+            ])
+            .expect("balanced filter scope");
+            compile(frame_of(items)).expect("admitted filtered frame")
+        };
+        let source = make(FilterInput::Source);
+        assert!(matches!(
+            source.drawlist.items[1].kind,
+            ItemKind::BeginFilter { .. }
+        ));
+        assert!(matches!(source.drawlist.items[3].kind, ItemKind::EndFilter));
+        assert_eq!(
+            source.drawlist.items[1].node, source.drawlist.items[3].node,
+            "begin and end retain the filter scope owner"
+        );
+
+        let context = PaintCtx::new(None);
+        let neutral_view = AffineTransform::identity();
+        let source_pixels = source
+            .raster_to_bytes(&neutral_view, 64, 48, &context)
+            .expect("source blur raster");
+        assert_ne!(
+            rgba_at(&source_pixels, 64, 6, 14),
+            [0xff, 0xff, 0xff, 0xff],
+            "blur spreads source pixels beyond the unfiltered rectangle"
+        );
+
+        let alpha_pixels = make(FilterInput::SourceAlpha)
+            .raster_to_bytes(&neutral_view, 64, 48, &context)
+            .expect("source-alpha blur raster");
+        assert_ne!(
+            rgba_at(&source_pixels, 64, 18, 14),
+            rgba_at(&alpha_pixels, 64, 18, 14),
+            "SourceAlpha clears RGB before the same blur"
         );
     }
 

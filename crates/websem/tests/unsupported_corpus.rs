@@ -100,7 +100,66 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "display: contents",
     ),
-    ("svg-filter", DeclaredByBestEffort, "<filter>"),
+    (
+        "svg-filter-color-css",
+        DeclaredByBestEffort,
+        "CSS color-interpolation-filters",
+    ),
+    (
+        "svg-filter-color-raw-syntax",
+        DeclaredByBestEffort,
+        "contains a CSS comment",
+    ),
+    (
+        "svg-filter-css-functions",
+        DeclaredByBestEffort,
+        "CSS filter functions",
+    ),
+    (
+        "svg-filter-css-property",
+        DeclaredByBestEffort,
+        "declares filter",
+    ),
+    ("svg-filter-external", DeclaredByBestEffort, "external"),
+    (
+        "svg-filter-graph-depth-precision",
+        DeclaredByBestEffort,
+        "deeper than two operations",
+    ),
+    ("svg-filter-href", DeclaredByBestEffort, "href inheritance"),
+    (
+        "svg-filter-list",
+        DeclaredByBestEffort,
+        "multiple filter operations",
+    ),
+    (
+        "svg-filter-list-quoted",
+        DeclaredByBestEffort,
+        "multiple filter operations",
+    ),
+    (
+        "svg-filter-primitive",
+        DeclaredByBestEffort,
+        "unsupported primitive",
+    ),
+    (
+        "svg-filter-primitive-empty-region",
+        DeclaredByBestEffort,
+        "transparent graph result",
+    ),
+    (
+        "svg-filter-region-calc",
+        DeclaredByBestEffort,
+        "uses calc()",
+    ),
+    (
+        "svg-filter-region-range",
+        DeclaredByBestEffort,
+        "crosses the unimplemented Web used-length range",
+    ),
+    ("svg-filter-region-unit", DeclaredByBestEffort, "em unit"),
+    ("svg-filter-region-var", DeclaredByBestEffort, "uses var()"),
+    ("svg-filter-root", BothRefuse, "root <svg>"),
     (
         "svg-foreign-object",
         DeclaredByBestEffort,

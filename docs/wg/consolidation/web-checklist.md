@@ -647,6 +647,15 @@ excluded.
 - [ ] `flood-opacity`
 - [ ] `lighting-color`
 
+> **2026-08-25 split:** same-document SVG resource filters now enter through
+> the direct presentation-attribute route recorded below. The CSS `filter`
+> row stays open: the pinned Servo-mode cascade represents filter functions
+> but not the URL variant needed by an SVG resource, and function lists are a
+> separate unresolved operation grammar. Authored declarations are therefore
+> quarantined by name rather than matched by a second cascade. The other four
+> filter-effect properties are Gecko-only at this Stylo pin and also remain
+> open.
+
 
 ### Compositing and blending
 
@@ -1438,6 +1447,21 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `<feTile>`
 - [ ] `<feTurbulence>`
 - [ ] `<filter>`
+
+> **2026-08-25 split:** the first static filter graph rung carries one or two
+> `feGaussianBlur` operations over `SourceGraphic`, `SourceAlpha`, a prior
+> result, or a resolved result name. It includes same-document first-id lookup,
+> quoted and unquoted forms of a single URL token,
+> both coordinate systems, hard effect and primitive regions, both filter
+> color spaces, transforms, `<use>`, stroke, nesting, and the established
+> filter-before-mask-before-opacity-before-clip order. Both element rows stay
+> open: `<filter>` still has the rest of the primitive family, inheritance,
+> multi-operation lists, host, and dynamics surface; `<feGaussianBlur>` still
+> has valid empty primitive results, inherited raw-syntax gaps, animation, and
+> a measured three-operation backend precision boundary. Current Chromium
+> drops every `edgeMode` spelling on this primitive (measured, not celled), but
+> that attribute also applies to `<feConvolveMatrix>` and stays open.
+
 - [ ] `<foreignObject>`
 - [x] `<g>`
 - [ ] `<image>`
@@ -1536,6 +1560,20 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [x] `fill-opacity`
 - [x] `fill-rule`
 - [ ] `filter`
+
+> **2026-08-25 split:** the direct presentation attribute carries `none`,
+> CSS-wide reset values, and one same-document URL token with quoted or
+> unquoted content on admitted non-root SVG targets. Committed cells cover
+> comments around the URL, first-id lookup,
+> missing/wrong/malformed-reference fallback, groups, `<use>`, transforms,
+> stroke, clip/mask/opacity ordering, and nesting. The row stays open for
+> filter functions and lists, `var()`, inheritance, CSS precedence, root and
+> external host routes, resource `href`, deeper graphs, and the remaining
+> primitives. The direct inherited `color-interpolation-filters` reader
+> carries `linearRGB`, `sRGB`, `auto`, reset behavior, and inheritance for the
+> admitted blur graph; CSS ingress, comments, escapes, and `var()` remain
+> named gaps, and that row stays open too.
+
 - [ ] `flood-color`
 - [ ] `flood-opacity`
 - [ ] `font-family`
@@ -1693,7 +1731,13 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `elevation`
 - [ ] `exponent`
 - [ ] `fetchpriority`
-- [ ] `filterUnits`
+- [x] `filterUnits`
+
+> **2026-08-25 close:** the complete case-sensitive
+> `userSpaceOnUse | objectBoundingBox` grammar is Chromium-baked. Missing and
+> invalid values take `objectBoundingBox`; the explicit opposite changes the
+> filter region against a discriminating blur.
+
 - [ ] `fr`
 - [ ] `fx`
 - [ ] `fy`
@@ -1823,7 +1867,13 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `pointsAtZ`
 - [ ] `preserveAlpha`
 - [x] `preserveAspectRatio`
-- [ ] `primitiveUnits`
+- [x] `primitiveUnits`
+
+> **2026-08-25 close:** the complete case-sensitive
+> `userSpaceOnUse | objectBoundingBox` grammar is Chromium-baked. Missing and
+> invalid values take user space; the object-box branch scales each blur axis
+> through the target fill-geometry box.
+
 - [ ] `radius`
 - [ ] `referrerpolicy`
 - [ ] `refX`

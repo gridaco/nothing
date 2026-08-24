@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="white"/>
+  <defs>
+    <filter id="fu-missing"><feGaussianBlur stdDeviation="4"/></filter>
+    <filter id="fu-object" filterUnits="objectBoundingBox"><feGaussianBlur stdDeviation="4"/></filter>
+    <filter id="fu-user" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="4"/></filter>
+    <filter id="fu-invalid" filterUnits="ObjectBoundingBox"><feGaussianBlur stdDeviation="4"/></filter>
+
+    <filter id="pu-missing" filterUnits="userSpaceOnUse" x="0" y="28" width="64" height="32"><feGaussianBlur stdDeviation=".25 0"/></filter>
+    <filter id="pu-user" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="28" width="64" height="32"><feGaussianBlur stdDeviation=".25 0"/></filter>
+    <filter id="pu-object" filterUnits="userSpaceOnUse" primitiveUnits="objectBoundingBox" x="0" y="28" width="64" height="32"><feGaussianBlur stdDeviation=".25 0"/></filter>
+    <filter id="pu-invalid" filterUnits="userSpaceOnUse" primitiveUnits="ObjectBoundingBox" x="0" y="28" width="64" height="32"><feGaussianBlur stdDeviation=".25 0"/></filter>
+  </defs>
+
+  <rect x="4" y="8" width="8" height="12" fill="#16a34a" filter="url(#fu-missing)"/>
+  <rect x="20" y="8" width="8" height="12" fill="#16a34a" filter="url(#fu-object)"/>
+  <rect x="36" y="8" width="8" height="12" fill="#16a34a" filter="url(#fu-user)"/>
+  <rect x="52" y="8" width="8" height="12" fill="#16a34a" filter="url(#fu-invalid)"/>
+
+  <rect x="4" y="40" width="8" height="12" fill="#2563eb" filter="url(#pu-missing)"/>
+  <rect x="20" y="40" width="8" height="12" fill="#2563eb" filter="url(#pu-user)"/>
+  <rect x="36" y="40" width="8" height="12" fill="#2563eb" filter="url(#pu-object)"/>
+  <rect x="52" y="40" width="8" height="12" fill="#2563eb" filter="url(#pu-invalid)"/>
+</svg>

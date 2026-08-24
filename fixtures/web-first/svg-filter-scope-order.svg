@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="white"/>
+  <defs>
+    <filter id="blur" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+    <clipPath id="clip"><rect x="8" y="8" width="10" height="20"/></clipPath>
+    <mask id="mask" maskUnits="userSpaceOnUse" x="32" y="32" width="32" height="32" mask-type="alpha">
+      <rect x="36" y="36" width="10" height="20" fill="white"/>
+    </mask>
+  </defs>
+  <rect x="8" y="8" width="20" height="20" fill="#16a34a"
+        filter="url(#blur)" clip-path="url(#clip)"/>
+  <rect x="36" y="36" width="20" height="20" fill="#2563eb"
+        filter="url(#blur)" mask="url(#mask)"/>
+</svg>

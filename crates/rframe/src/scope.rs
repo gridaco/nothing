@@ -9,15 +9,15 @@
 //! statement can express — a translucent group whose contents overlap, or a
 //! fill and its stroke composited together.
 //!
-//! What a scope refuses is what this crate refuses: an effect that
-//! references a resource (a mask image, a filter graph, a pattern) has no
-//! representation here and stays a producer refusal by name. Geometric
-//! clipping is the source-neutral exception carried as resolved path coverage.
-//! Image masking uses its own checked two-phase [`crate::Mask`] contract rather
-//! than becoming a resource-bearing [`ScopeEffect`]; filter graphs remain
-//! outside this crate.
+//! What a scope refuses is what this crate refuses: an effect that retains an
+//! unresolved lookup or external handle stays a producer refusal by name.
+//! Geometric clipping is carried as resolved path coverage. Image masking uses
+//! its own checked two-phase [`crate::Mask`] contract. Image filtering enters
+//! only as a fully resolved, bounded [`crate::FilterProgram`]; authored lookup
+//! and names never cross the contract.
 
 use crate::clip::ClipPath;
+use crate::filter::Filter;
 use crate::frame::VisualRef;
 
 /// Why an opacity cannot be a scope fact.
@@ -69,6 +69,9 @@ pub enum ScopeEffect {
     /// Unlike opacity this creates no isolated layer: the clip is paint state,
     /// and its path facts reference no source or external resource.
     Clip(ClipPath),
+    /// Apply one resolved image-filter program to the isolated group, hard
+    /// clipped to its resolved effect region.
+    Filter(Filter),
 }
 
 /// One compositing scope: its owner and its effect.
