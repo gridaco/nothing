@@ -25,7 +25,7 @@ producer (e.g. websem, from SVG)
 | `path`   | `PathData` — checked absolute commands, fill rule, tight bounds solved once                                      |
 | `stroke` | `Stroke` — centred width, cap, join, miter limit, optional checked dash pattern, and finite `f64` `outset`       |
 | `scope`  | A checked painter-order scope stream: isolated opacity or source-neutral geometric clipping                      |
-| `clip`   | `ClipPath` — bounded path unions intersected in layers, with resolved transforms and conservative bounds        |
+| `clip`   | `ClipPath` — bounded path unions intersected in layers, with resolved transforms and conservative bounds         |
 
 Two details are load-bearing enough to state here. A node's `bounds` is the
 **geometry's** box, never the ink's: a stroke paints outside it, so a consumer
