@@ -19,10 +19,10 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (342)
+## Chromium-baked cells (361)
 
 Each renders byte-exact against its committed Chromium oracle
-(seven curved cells and three gradient ramps carry a declared, bounded
+(seven curved cells and four gradient ramps carry a declared, bounded
 tolerance — see [README.md](./README.md)). Every thumbnail below
 *is* that committed oracle, which byte-exactness makes this
 engine's own render too; hover for the cell's name, click through
@@ -142,6 +142,25 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-group-rotate-diagonal.svg" title="svg-group-rotate-diagonal (standalone-svg)"><img src="./chromium/svg-group-rotate-diagonal.png" width="56" alt="svg-group-rotate-diagonal"></a>
 <a href="./svg-group-rotate-quarter.svg" title="svg-group-rotate-quarter (standalone-svg)"><img src="./chromium/svg-group-rotate-quarter.png" width="56" alt="svg-group-rotate-quarter"></a>
 <a href="./svg-group-transform-translate.svg" title="svg-group-transform-translate (standalone-svg)"><img src="./chromium/svg-group-transform-translate.png" width="56" alt="svg-group-transform-translate"></a>
+<a href="./svg-mask-attribute-grammar.svg" title="svg-mask-attribute-grammar (standalone-svg)"><img src="./chromium/svg-mask-attribute-grammar.png" width="56" alt="svg-mask-attribute-grammar"></a>
+<a href="./svg-mask-clip-intersection.svg" title="svg-mask-clip-intersection (standalone-svg)"><img src="./chromium/svg-mask-clip-intersection.png" width="56" alt="svg-mask-clip-intersection"></a>
+<a href="./svg-mask-content-object.svg" title="svg-mask-content-object (standalone-svg)"><img src="./chromium/svg-mask-content-object.png" width="56" alt="svg-mask-content-object"></a>
+<a href="./svg-mask-default-luminance.svg" title="svg-mask-default-luminance (standalone-svg)"><img src="./chromium/svg-mask-default-luminance.png" width="56" alt="svg-mask-default-luminance"></a>
+<a href="./svg-mask-first-id.svg" title="svg-mask-first-id (standalone-svg)"><img src="./chromium/svg-mask-first-id.png" width="56" alt="svg-mask-first-id"></a>
+<a href="./svg-mask-gradient-ramp.svg" title="svg-mask-gradient-ramp (standalone-svg)"><img src="./chromium/svg-mask-gradient-ramp.png" width="56" alt="svg-mask-gradient-ramp"></a>
+<a href="./svg-mask-nested.svg" title="svg-mask-nested (standalone-svg)"><img src="./chromium/svg-mask-nested.png" width="56" alt="svg-mask-nested"></a>
+<a href="./svg-mask-opacity-order.svg" title="svg-mask-opacity-order (standalone-svg)"><img src="./chromium/svg-mask-opacity-order.png" width="56" alt="svg-mask-opacity-order"></a>
+<a href="./svg-mask-region-default-stroke.svg" title="svg-mask-region-default-stroke (standalone-svg)"><img src="./chromium/svg-mask-region-default-stroke.png" width="56" alt="svg-mask-region-default-stroke"></a>
+<a href="./svg-mask-region-object-percentage.svg" title="svg-mask-region-object-percentage (standalone-svg)"><img src="./chromium/svg-mask-region-object-percentage.png" width="56" alt="svg-mask-region-object-percentage"></a>
+<a href="./svg-mask-region-viewbox-percentage.svg" title="svg-mask-region-viewbox-percentage (standalone-svg)"><img src="./chromium/svg-mask-region-viewbox-percentage.png" width="56" alt="svg-mask-region-viewbox-percentage"></a>
+<a href="./svg-mask-source-overlap.svg" title="svg-mask-source-overlap (standalone-svg)"><img src="./chromium/svg-mask-source-overlap.png" width="56" alt="svg-mask-source-overlap"></a>
+<a href="./svg-mask-source-path.svg" title="svg-mask-source-path (standalone-svg)"><img src="./chromium/svg-mask-source-path.png" width="56" alt="svg-mask-source-path"></a>
+<a href="./svg-mask-source-stroke.svg" title="svg-mask-source-stroke (standalone-svg)"><img src="./chromium/svg-mask-source-stroke.png" width="56" alt="svg-mask-source-stroke"></a>
+<a href="./svg-mask-source-transform.svg" title="svg-mask-source-transform (standalone-svg)"><img src="./chromium/svg-mask-source-transform.png" width="56" alt="svg-mask-source-transform"></a>
+<a href="./svg-mask-target-transform.svg" title="svg-mask-target-transform (standalone-svg)"><img src="./chromium/svg-mask-target-transform.png" width="56" alt="svg-mask-target-transform"></a>
+<a href="./svg-mask-type-alpha.svg" title="svg-mask-type-alpha (standalone-svg)"><img src="./chromium/svg-mask-type-alpha.png" width="56" alt="svg-mask-type-alpha"></a>
+<a href="./svg-mask-url-comments.svg" title="svg-mask-url-comments (standalone-svg)"><img src="./chromium/svg-mask-url-comments.png" width="56" alt="svg-mask-url-comments"></a>
+<a href="./svg-mask-use-instance.svg" title="svg-mask-use-instance (standalone-svg)"><img src="./chromium/svg-mask-use-instance.png" width="56" alt="svg-mask-use-instance"></a>
 <a href="./svg-non-rendering-elements.svg" title="svg-non-rendering-elements (standalone-svg)"><img src="./chromium/svg-non-rendering-elements.png" width="56" alt="svg-non-rendering-elements"></a>
 <a href="./svg-opacity-fill-stroke.svg" title="svg-opacity-fill-stroke (standalone-svg)"><img src="./chromium/svg-opacity-fill-stroke.png" width="56" alt="svg-opacity-fill-stroke"></a>
 <a href="./svg-opacity-gradient-in-group.svg" title="svg-opacity-gradient-in-group (standalone-svg)"><img src="./chromium/svg-opacity-gradient-in-group.png" width="56" alt="svg-opacity-gradient-in-group"></a>
@@ -371,7 +390,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (86)
+## The refusal register (101)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -427,7 +446,22 @@ its row into the cells above.
 | `svg-gradient-stop-var` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): a <stop> stop-opacity resolves through var(), an indirection this patrol cannot follow" |
 | `svg-gradient-unit-basis` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): gradient geometry x2=\"4em\" uses a unit whose basis this slice does not consume (numbers, px, and percentages only)" |
 | `svg-image` | declared | skipped svg/image[1]: unsupported element <image> |
-| `svg-mask` | declared | skipped svg/mask[1]: unsupported element <mask>; skipped svg/rect[2]: unsupported rendering attribute mask on <rect> (not yet consumed) |
+| `svg-mask-css-properties` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares mask-image, which this cascade does not represent |
+| `svg-mask-cycle` | declared | skipped svg/rect[2]: unsupported SVG mask: mask source cannot be compiled completely: unsupported SVG mask: mask source cannot be compiled completely: unsupported SVG mask: url(#a) forms a cyclic nested mask chain |
+| `svg-mask-external` | declared | skipped svg/rect[2]: unsupported SVG mask: url(https://example.test/mask.svg#m) is external; this compiler owns no resource I/O; skipped svg/rect[3]: unsupported SVG mask: url(../mask.svg#m) is a relative external reference; this compiler owns no resource base or I/O |
+| `svg-mask-full-shorthand` | declared | skipped svg/rect[2]: unsupported SVG mask: mask presentation attribute uses an unrepresented full shorthand or multiple mask layers |
+| `svg-mask-region-calc` | declared | skipped svg/rect[2]: unsupported SVG mask: mask region x uses calc(), whose computed length is not represented at this Stylo pin |
+| `svg-mask-region-unit` | declared | skipped svg/rect[2]: unsupported SVG mask: mask region x uses the em unit, whose basis is not admitted |
+| `svg-mask-region-used-range` | declared | skipped svg/rect[2]: unsupported SVG mask: mask region x crosses the unimplemented Web used-length range; skipped svg/rect[3]: unsupported SVG mask: mask region x crosses the unimplemented Web used-length range |
+| `svg-mask-region-var` | declared | skipped svg/rect[2]: unsupported SVG mask: mask region x uses var(), whose computed length is not represented at this Stylo pin |
+| `svg-mask-resource-style-inheritance` | declared | skipped svg/rect[2]: unsupported SVG mask: inline style on <mask> declares shape-rendering, whose source-side cascade effect is not represented; skipped svg/rect[3]: unsupported SVG mask: inline style on <mask> declares color-interpolation, whose source-side cascade effect is not represented |
+| `svg-mask-root` | **both refuse** | unsupported SVG mask: mask on the root <svg> uses the host CSS-layer coordinate route |
+| `svg-mask-source-pattern` | declared | skipped svg/rect[2]: unsupported SVG mask: mask source cannot be compiled completely: unsupported element <pattern> |
+| `svg-mask-transform-precision` | declared | skipped svg/rect[2]: unsupported SVG mask: mask region target transform leaves the measured translation/positive-downscale precision envelope |
+| `svg-mask-type-css` | declared | skipped svg/rect[2]: unsupported SVG mask: CSS mask-type on <mask> is not represented by the pinned cascade; use of it is quarantined from the direct attribute decoder |
+| `svg-mask-type-inherit` | declared | skipped svg/rect[2]: unsupported SVG mask: mask-type presentation attribute uses inherit, whose parent computed value is not represented at this Stylo pin |
+| `svg-mask-type-var` | declared | skipped svg/rect[2]: unsupported SVG mask: mask-type presentation attribute uses var(), whose substitution is not represented at this Stylo pin |
+| `svg-mask-var` | declared | skipped svg/rect[2]: unsupported SVG mask: mask presentation attribute uses var(), whose substitution is not represented at this Stylo pin |
 | `svg-nested-svg` | declared | skipped svg/svg[1]: unsupported element <svg> |
 | `svg-path-css-d-property` | declared | declaration ignored at svg/style[1]: a stylesheet declares d, which this cascade does not represent; elements it matches render without it |
 | `svg-path-marker-end` | declared | skipped svg/path[1]: unsupported rendering attribute marker-end on <path> (not yet consumed) |

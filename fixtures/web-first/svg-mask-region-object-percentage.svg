@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" >
+    <rect width="64" height="64" fill="white"/>
+    <mask id="m" x="0" y="0" width="50%" height="100%"><rect x="-128" y="-128" width="512" height="512" fill="white"/></mask>
+    <rect x="16" y="16" width="32" height="32" fill="black" mask="url(#m)"/>
+  </svg>

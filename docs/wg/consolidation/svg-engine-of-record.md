@@ -57,17 +57,22 @@ from the dated addenda below:
   geometric same-document `clip-path` resources in the bounded path strategy
   (direct geometry/`<use>` unions, chained intersections, both
   `clipPathUnits`, inherited `clip-rule`, and resolved effect scopes);
+  same-document SVG image masks on non-root admitted targets (one isolated
+  alpha/luminance source image, both `maskUnits` and `maskContentUnits`, hard
+  object-box/user-space regions, admitted graphics/gradient/`<use>` sources,
+  clips, nesting, transforms, and effect ordering);
   one declared-font, single-run `<text>` profile; viewBox-only root sizing with
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 342 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 361 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
-  confined tolerance (the native-oval/conic boundary) and three gradient cells
+  confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
-  restore). The named refusal register has 86 rows.
+  restore; 576 after a masked ramp becomes luminance alpha). The named refusal
+  register has 101 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -2473,3 +2478,118 @@ register from 78 to 86 rows. Only `clipPathUnits` ticks. The `<clipPath>`
 element, both `clip-path` rows, and both `clip-rule` rows stay open with their
 remaining work named above. This records no conformance score and takes no
 FLIP action.
+
+## Rung: SVG image masks (2026-08-24)
+
+The verdict is SPLIT. Same-document image masks now carry a substantial
+rendering slice on admitted non-root SVG targets. The independently listed
+`maskUnits`, `maskContentUnits`, and `mask-type` presentation-attribute rows
+close. The `<mask>` element and `mask` presentation-attribute row stay open for
+valid source, cycle, layer, host, and precision branches named below. Every CSS
+mask-family row also stays open: this Servo-mode Stylo pin furnishes no
+computed mask route this producer can consume, so authored CSS is quarantined
+at ingress rather than matched by a second cascade. The audit also restores
+the missing unchecked `mask-border-mode` row to the checklist.
+
+The reference semantics are document ordered and source local. One direct
+`url(#…)` resolves through whole-document, first-id-wins lookup; CSS comments
+around it are accepted. A missing id, a wrong-kind id, malformed syntax, or
+explicit `none` installs no mask. A valid empty source is different: it always
+hides the target. An opaque black source hides it in luminance mode but reveals
+it under `mask-type="alpha"`. External resources stay
+outside this self-contained command, and an active mask on the root `<svg>`
+stays outside the SVG-local frame because Chromium applies it through the host
+CSS layer. Full mask layers, multiple layers, and custom-property substitution
+likewise remain with their independently listed property/value routes.
+
+One source image composites all of its admitted children before interpretation.
+Missing `mask-type` and explicit `luminance` use Chromium's luminance weights;
+explicit `alpha` uses source alpha. Two overlapping half-alpha source shapes
+therefore produce three-quarter coverage, not a per-child mask operation.
+Paths, stroke ink, groups, transforms, gradients, clips, `<use>`, opacity, and
+nested masks all participate in that source image. The mask element's own
+display, opacity, transform, mask, and `clip-path` are inert; the last is
+measured in both attribute and CSS spellings. A resource-own CSS `filter` is
+also inert, while its attribute twin remains an over-refusal under the filter
+row (measured, not celled). The resource's inline style is not generally
+inert: Chromium inherits `shape-rendering: crispEdges` into the source exactly
+like the same child declaration, 96 pixels at maximum delta 63 from the
+default, while the former n0 route emitted that default byte-identically.
+Resource-own `color-interpolation: linearRGB` also moved 30 pixels at delta 1
+from the default. Unrepresented source-side cascade effects now refuse by one
+focused row (measured, not celled). Any unsupported source child
+invalidates source construction transactionally: strict admission refuses and
+best-effort skips the whole referencing target. Partial source paint can never
+escape as a plausible but wrong mask.
+
+The coordinate measurement fixes both spaces and the region. Missing
+`maskUnits` means `objectBoundingBox`; missing `maskContentUnits` means
+`userSpaceOnUse`. Their explicit opposite and same-as-default spellings are all
+carried, as are invalid-value fallbacks. The default region is
+`-10% -10% 120% 120%` in the target's fill-geometry box, excluding stroke.
+User-space percentages use the current viewport or mapped `viewBox`.
+Object-box numbers and percentages resolve through the target box, while
+object-box content maps its unit square through that box. The region is a hard
+boundary with no antialias fringe; zero or negative extents make an empty mask.
+CSS-wide and invalid region spellings take the per-field default; `inherit`
+does so even under a parent carrying an explicit width (measured, not celled).
+Inline and stylesheet CSS `x`/`width` declarations on `<mask>` are inert; only
+the corresponding SVG attributes moved the measured region (measured, not
+celled).
+Target transforms carry the region, source transforms remain in source space,
+a target clip encloses the mask, and target opacity encloses the masked result.
+The measured same-element order is therefore clip outside opacity outside the
+mask image.
+
+The proposed source-parsing precision crux did not reproduce on the new
+CSS-token route (measured, not celled). Direct-number and `px` midpoint sources
+selected the lower adjacent control in Chromium and n0 under an admitted pure
+translation. With the independent upscale patrol temporarily bypassed, the
+percentage source selected the upper control in both. Each opposite control
+differed by 96 pixels. There is therefore no source-provenance refusal in this
+rung. Ordinary percentages still retain Blink's observable multiply-then-
+divide order, `basis × percentage ÷ 100`, rather than normalizing the
+percentage first.
+
+The raw route also exposed the established fixed Web used-length boundary
+(measured, not celled). Chromium made `x="1000000000"`,
+`x="100000000000000000000"`, the valid beyond-f32 exponent `x="1e100"`, and
+the adjacent 33,554,430/33,554,432 controls identical to 33,554,428. Before the
+patrol, each huge source lost 1,728 pixels and the adjacent controls lost
+96/192, all at maximum delta 255. Region fields now refuse outside that
+unimplemented clamp; the x witness is exact and the sibling fields
+conservatively share its named range boundary.
+
+A separate precision class did reproduce after source parsing. Translation and
+sampled positive axis-aligned downscales through identity were exact. At
+x-scale 1.01 the threshold-aligned lower and upper controls differed from
+Chromium by 96 and 48 pixels respectively, both at maximum delta 255 (measured,
+not celled). The mask route refuses upscales and conservatively over-refuses
+rotations, reflections, and shears through the same named boundary. This
+boundary is deliberately local to mask-region hard-edge rasterization; it does
+not reopen the already landed general transform grammar or claim a generic
+damage-envelope result.
+
+Nineteen new Chromium cells carry the admitted slice. Eighteen are byte-exact.
+The luminance-gradient cell differs at 576 pixels by one code value and carries
+that exact cell-local `ramp-quantization` bound; every solid, region, transform,
+clip, nesting, and source-geometry cell is exact. The final six-panel grammar
+cell explicitly distinguishes both coordinate-system enums and
+`luminance`/`alpha`: replacing the two object-box branches changes 639 pixels
+at maximum delta 255, and replacing luminance with alpha changes 768 at delta
+201. Every scratch candidate was captured through the shared hash-pinned
+Chromium posture and rendered through the actual product command.
+
+The byte gate's sensitivity was proved by temporarily disabling luminance
+conversion in the mask painter. It rejected the default-luminance and
+first-id cells at 2,304 differing pixels (maximum deltas 201 and 233) and the
+gradient cell at 2,304 pixels / delta 253, far outside its 576/1 bound.
+Restoring luminance conversion returned the complete gate to green.
+
+The former broad mask refusal graduates. Sixteen narrower CSS-ingress,
+resource, source, value-family, cycle, and precision rows replace it, moving
+the named register from 86 to 101. The primitive corpus moves from 342 to 361
+cells; the ten exact-time sampled frames are unchanged. Only `mask-type`,
+`maskUnits`, and `maskContentUnits` tick. `<mask>`, both `mask` rows, and every
+other CSS mask-family row remain open with their work named above. This records
+no conformance score and takes no FLIP action.

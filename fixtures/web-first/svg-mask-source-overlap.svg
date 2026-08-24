@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+    <rect width="64" height="64" fill="white"/>
+    <defs><mask id="m" ><rect width="64" height="64" fill="white" opacity="0.5"/><rect x="24" width="40" height="64" fill="white" opacity="0.5"/></mask></defs>
+    <rect id="t" x="8" y="8" width="48" height="48" fill="black" mask="url(#m)"/>
+  </svg>

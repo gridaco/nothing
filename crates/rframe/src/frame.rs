@@ -31,6 +31,7 @@ use std::sync::Arc;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 
+use crate::mask::Mask;
 use crate::path::PathData;
 use crate::scope::Scope;
 use crate::stroke::Stroke;
@@ -351,6 +352,15 @@ pub enum FrameItem {
     ScopeBegin(Scope),
     /// Closes the innermost open scope.
     ScopeEnd,
+    /// Opens an isolated target composite for one resolved mask.
+    MaskBegin(Mask),
+    /// Ends the target phase and begins painting the mask source. This marker
+    /// is valid only at the direct item depth of its matching
+    /// [`FrameItem::MaskBegin`]. The source phase may be empty: a valid empty
+    /// mask is transparent black and masks every target pixel.
+    MaskSource,
+    /// Closes the mask-source phase and composites the masked target.
+    MaskEnd,
 }
 
 /// The deepest scope nesting a checked stream admits. Mirrors the
@@ -372,6 +382,17 @@ pub enum FrameItemsError {
     /// The [`FrameItem::ScopeBegin`] at this index nests deeper than
     /// [`MAX_SCOPE_DEPTH`].
     ScopeTooDeep { index: usize },
+    /// A mask begins after the checked nesting limit is already reached.
+    MaskTooDeep { index: usize },
+    /// A mask-source marker has no directly open target phase to switch.
+    UnexpectedMaskSource { index: usize },
+    /// A mask-source marker follows an empty target phase. There is no visual
+    /// target fact for such a mask to affect.
+    EmptyMaskTarget { index: usize },
+    /// A mask end has no directly open source phase to close.
+    UnexpectedMaskEnd { index: usize },
+    /// A [`FrameItem::MaskBegin`] at this index never reaches a matching end.
+    UnclosedMask { index: usize },
 }
 
 impl std::fmt::Display for FrameItemsError {
@@ -390,6 +411,28 @@ impl std::fmt::Display for FrameItemsError {
                 f,
                 "the scope begun at item {index} nests deeper than {MAX_SCOPE_DEPTH}"
             ),
+            FrameItemsError::MaskTooDeep { index } => write!(
+                f,
+                "the mask begun at item {index} nests deeper than {MAX_SCOPE_DEPTH}"
+            ),
+            FrameItemsError::UnexpectedMaskSource { index } => {
+                write!(
+                    f,
+                    "item {index} begins a mask source without a directly open target"
+                )
+            }
+            FrameItemsError::EmptyMaskTarget { index } => {
+                write!(
+                    f,
+                    "the mask begun at item {index} encloses no target content"
+                )
+            }
+            FrameItemsError::UnexpectedMaskEnd { index } => {
+                write!(f, "item {index} ends no directly open mask source")
+            }
+            FrameItemsError::UnclosedMask { index } => {
+                write!(f, "the mask begun at item {index} is never closed")
+            }
         }
     }
 }
@@ -407,28 +450,101 @@ pub struct FrameItems(Vec<FrameItem>);
 
 impl FrameItems {
     pub fn try_new(items: Vec<FrameItem>) -> Result<Self, FrameItemsError> {
-        let mut open = Vec::new();
+        #[derive(Clone, Copy)]
+        enum OpenKind {
+            Scope,
+            MaskTarget,
+            MaskSource,
+        }
+
+        #[derive(Clone, Copy)]
+        struct Open {
+            index: usize,
+            kind: OpenKind,
+            has_content: bool,
+        }
+
+        fn complete_item(open: &mut [Open]) {
+            if let Some(parent) = open.last_mut() {
+                parent.has_content = true;
+            }
+        }
+
+        let mut open: Vec<Open> = Vec::new();
         for (index, item) in items.iter().enumerate() {
             match item {
-                FrameItem::Node(_) => {}
+                FrameItem::Node(_) => complete_item(&mut open),
                 FrameItem::ScopeBegin(_) => {
                     if open.len() >= MAX_SCOPE_DEPTH {
                         return Err(FrameItemsError::ScopeTooDeep { index });
                     }
-                    open.push(index);
+                    open.push(Open {
+                        index,
+                        kind: OpenKind::Scope,
+                        has_content: false,
+                    });
                 }
                 FrameItem::ScopeEnd => {
-                    let Some(begin) = open.pop() else {
+                    let Some(current) = open.last().copied() else {
                         return Err(FrameItemsError::UnopenedScopeEnd { index });
                     };
-                    if begin + 1 == index {
-                        return Err(FrameItemsError::EmptyScope { index: begin });
+                    if !matches!(current.kind, OpenKind::Scope) {
+                        return Err(FrameItemsError::UnopenedScopeEnd { index });
                     }
+                    if !current.has_content {
+                        return Err(FrameItemsError::EmptyScope {
+                            index: current.index,
+                        });
+                    }
+                    open.pop();
+                    complete_item(&mut open);
+                }
+                FrameItem::MaskBegin(_) => {
+                    if open.len() >= MAX_SCOPE_DEPTH {
+                        return Err(FrameItemsError::MaskTooDeep { index });
+                    }
+                    open.push(Open {
+                        index,
+                        kind: OpenKind::MaskTarget,
+                        has_content: false,
+                    });
+                }
+                FrameItem::MaskSource => {
+                    let Some(current) = open.last_mut() else {
+                        return Err(FrameItemsError::UnexpectedMaskSource { index });
+                    };
+                    if !matches!(current.kind, OpenKind::MaskTarget) {
+                        return Err(FrameItemsError::UnexpectedMaskSource { index });
+                    }
+                    if !current.has_content {
+                        return Err(FrameItemsError::EmptyMaskTarget {
+                            index: current.index,
+                        });
+                    }
+                    current.kind = OpenKind::MaskSource;
+                    current.has_content = false;
+                }
+                FrameItem::MaskEnd => {
+                    let Some(current) = open.last().copied() else {
+                        return Err(FrameItemsError::UnexpectedMaskEnd { index });
+                    };
+                    if !matches!(current.kind, OpenKind::MaskSource) {
+                        return Err(FrameItemsError::UnexpectedMaskEnd { index });
+                    }
+                    open.pop();
+                    complete_item(&mut open);
                 }
             }
         }
-        if let Some(&begin) = open.first() {
-            return Err(FrameItemsError::UnclosedScope { index: begin });
+        if let Some(current) = open.first() {
+            return Err(match current.kind {
+                OpenKind::Scope => FrameItemsError::UnclosedScope {
+                    index: current.index,
+                },
+                OpenKind::MaskTarget | OpenKind::MaskSource => FrameItemsError::UnclosedMask {
+                    index: current.index,
+                },
+            });
         }
         Ok(Self(items))
     }
@@ -454,7 +570,11 @@ impl FrameItems {
     pub fn nodes(&self) -> impl Iterator<Item = &FrameNode> {
         self.0.iter().filter_map(|item| match item {
             FrameItem::Node(node) => Some(node),
-            FrameItem::ScopeBegin(_) | FrameItem::ScopeEnd => None,
+            FrameItem::ScopeBegin(_)
+            | FrameItem::ScopeEnd
+            | FrameItem::MaskBegin(_)
+            | FrameItem::MaskSource
+            | FrameItem::MaskEnd => None,
         })
     }
 }

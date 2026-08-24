@@ -14,6 +14,7 @@
 
 mod clip;
 mod frame;
+mod mask;
 mod path;
 mod scope;
 mod stroke;
@@ -26,6 +27,7 @@ pub use frame::{
     Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry, Identity, MAX_SCOPE_DEPTH,
     PaintAlphaFactor, PaintAlphaFactorError, PaintStack, PaintStackError, Provenance, VisualRef,
 };
+pub use mask::{Mask, MaskMode};
 pub use path::{FillRule, PathCommand, PathData, PathDataError};
 pub use scope::{Scope, ScopeEffect, ScopeOpacity, ScopeOpacityError};
 pub use stroke::{

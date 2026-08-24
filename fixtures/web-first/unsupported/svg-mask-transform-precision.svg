@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <mask id="m" maskUnits="userSpaceOnUse" x="0.6399999856948853" y="0"
+        width="33.663366336633665" height="64" mask-type="alpha">
+    <rect x="-512" y="-2" width="1024" height="68" fill="white"/>
+  </mask>
+  <rect x="-256" y="8" width="512" height="48"
+        transform="matrix(1.01 0 0 1 14.853599548339844 0)"
+        fill="black" mask="url(#m)"/>
+</svg>

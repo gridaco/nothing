@@ -48,7 +48,11 @@ fn clips(frame: &Frame) -> Vec<&rframe::ClipPath> {
                 ScopeEffect::Clip(clip) => Some(clip),
                 ScopeEffect::Opacity(_) => None,
             },
-            FrameItem::Node(_) | FrameItem::ScopeEnd => None,
+            FrameItem::Node(_)
+            | FrameItem::ScopeEnd
+            | FrameItem::MaskBegin(_)
+            | FrameItem::MaskSource
+            | FrameItem::MaskEnd => None,
         })
         .collect()
 }

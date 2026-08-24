@@ -115,9 +115,10 @@ cargo run -p n0_cli --bin n0 -- \
   style. Those Chromium-side alias, range, value-family, and CSS-ingress facts
   are measured, not celled; their corresponding refusals are registered. Root
   `auto` remains admitted as the absent dimension, while root percentage
-  sizing and CSS sizing remain the document-level contracts above. `<image>`,
-  `<pattern>`, and `<mask>` retain their own element/resource refusals; this
-  rect slice does not imply their geometry is consumed.
+  sizing and CSS sizing remain the document-level contracts above. `<image>`
+  and `<pattern>` retain their own element/resource refusals; mask-region
+  geometry is admitted only by the separately bounded mask slice below, so
+  this rect evidence does not close the generic `x`/`y`/`width`/`height` rows.
   `transform` is consumed in both spellings: the attribute is a presentation
   attribute of the one CSS `transform` property (CSS Transforms L1 §7),
   entering the cascade at hint level, so author CSS beats it —
@@ -180,6 +181,72 @@ cargo run -p n0_cli --bin n0 -- \
   refuse rather than bypassing the absent longhand. Those guarded branches
   keep `<clipPath>`, both `clip-path` rows, and both `clip-rule` rows open;
   only the independently listed `clipPathUnits` row closes.
+  Same-document SVG image masks are consumed on admitted non-root SVG targets.
+  The direct `mask` presentation attribute carries `none` and one
+  same-document `url(#…)`, including CSS comments around the URL. References
+  use the whole-document, document-order, first-id-wins table; a missing id,
+  a wrong-kind id, malformed syntax, or `none` installs no mask. A valid empty
+  source always hides the target; opaque black hides in luminance mode and
+  reveals under `mask-type="alpha"`. External URLs refuse because this
+  command owns no resource I/O, and an active root mask refuses in both
+  admissions because Chromium applies it through the host CSS-layer route.
+  The CSS mask shorthand and every mask-family longhand stay named authored
+  refusals: this Servo-mode Stylo pin furnishes no computed mask route the
+  compiler can consume, and no matcher is layered around the cascade.
+  A mask source is one isolated image. Its admitted shape, path, stroke,
+  gradient, group/transform, `<use>`, clip, opacity, and nested-mask children
+  composite with each other before the source becomes alpha. The missing
+  `mask-type` and explicit `luminance` presentation values use Chromium's
+  luminance weights; explicit `alpha` uses source alpha. CSS-authored
+  `mask-type`, `inherit`, and `var()` refuse by name through their own open
+  rows. Any unsupported source child makes source construction transactional:
+  strict mode refuses and best-effort skips the whole affected target, never
+  a partially masked pixel. The mask element's own opacity, transform, mask,
+  display, and `clip-path` (attribute or CSS) are inert as Chromium measured.
+  A CSS `filter` on the resource is also inert; its attribute twin remains an
+  over-refusal under the independently listed filter row.
+  Other unrepresented inline declarations on the resource refuse before they
+  can change a source descendant silently. Chromium inherits resource-own
+  `shape-rendering: crispEdges` exactly like the child spelling (96 pixels at
+  maximum delta 63 from the default), while the former route emitted the
+  default byte-identically; resource-own `color-interpolation: linearRGB`
+  likewise changes 30 pixels at delta 1 (measured, not celled).
+  `maskUnits` and `maskContentUnits` carry their complete case-sensitive
+  `userSpaceOnUse | objectBoundingBox` grammars and specified defaults.
+  Region `x`/`y`/`width`/`height` accept finite numbers, percentages, and `px`;
+  the default object-box region is `-10% -10% 120% 120%`, based on the target's
+  fill-geometry box rather than its stroke. User-space percentages use the
+  current viewport or mapped `viewBox`. CSS-wide and invalid region spellings
+  take the per-field default. The region is a hard clip; zero or negative
+  extents yield an empty mask. Target transforms carry the region,
+  source transforms stay in source space, a target clip encloses the mask,
+  and target opacity encloses the masked result.
+  Scratch probes disproved the proposed region source-number alias (measured,
+  not celled): direct-number and `px` midpoint sources selected the lower
+  adjacent control in Chromium and n0 under an admitted pure translation;
+  with the independent upscale patrol temporarily bypassed, a percentage
+  source selected the upper control in both. Each opposite control differed by
+  96 pixels.
+  Percentage resolution keeps Blink's observable
+  `basis × percentage ÷ 100` operation order. Finite region coordinates beyond
+  the unimplemented Web used-length clamp refuse by field; Chromium clamps the
+  measured x witness to 33,554,428, while the former route lost 1,728 pixels
+  for huge sources and 96/192 for its adjacent-high controls (measured, not
+  celled). One separate hard-region precision boundary refuses before
+  rasterization. Translation and sampled
+  positive axis-aligned downscales through identity are exact; at x-scale 1.01
+  the threshold-aligned lower and upper controls differ from Chromium by 96
+  and 48 pixels respectively, both at maximum delta 255 (measured, not
+  celled). The route refuses upscales and conservatively over-refuses
+  rotations, reflections, and shears. Non-`px` units, CSS math, and `var()`
+  retain their own value-type rows. Nineteen Chromium-baked mask cells
+  carry the admitted slice; eighteen are byte-exact, and the luminance-gradient
+  cell has the measured one-code-value ramp bound (576 pixels). The former
+  broad refusal is replaced by sixteen focused rows. The `<mask>` element and
+  `mask` presentation-attribute rows stay open for the named resource/layer
+  remainder; the `mask-type`, `maskUnits`, and `maskContentUnits` attribute
+  rows close. The complete corpus is 361 Chromium-baked cells plus 10 sampled
+  frames, with 101 named refusal rows.
   A stroke is centred, its width is a cascaded length in either spelling —
   numbers, absolute units, `em`/`rem` against an authored or default
   font-size, percentages against the normalized diagonal, and pure-length

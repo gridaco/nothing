@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <mask id="m" mask-type="alpha">
+    <pattern id="p" width="8" height="8" patternUnits="userSpaceOnUse">
+      <rect width="4" height="8" fill="white"/>
+    </pattern>
+    <rect width="64" height="64" fill="url(#p)"/>
+  </mask>
+  <rect x="8" y="8" width="48" height="48" fill="black" mask="url(#m)"/>
+</svg>
