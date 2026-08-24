@@ -654,7 +654,9 @@ excluded.
 > separate unresolved operation grammar. Authored declarations are therefore
 > quarantined by name rather than matched by a second cascade. The other four
 > filter-effect properties are Gecko-only at this Stylo pin and also remain
-> open.
+> open. The direct `feFlood` attribute route now carries an admitted subset,
+> but it does not create a CSS computed-value route and does not change these
+> property rows.
 
 
 ### Compositing and blending
@@ -1424,21 +1426,21 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `<feBlend>`
 - [ ] `<feColorMatrix>`
 - [ ] `<feComponentTransfer>`
-- [ ] `<feComposite>`
+- [x] `<feComposite>`
 - [ ] `<feConvolveMatrix>`
 - [ ] `<feDiffuseLighting>`
 - [ ] `<feDisplacementMap>`
 - [ ] `<feDistantLight>`
 - [ ] `<feDropShadow>`
-- [ ] `<feFlood>`
+- [x] `<feFlood>`
 - [ ] `<feFuncA>`
 - [ ] `<feFuncB>`
 - [ ] `<feFuncG>`
 - [ ] `<feFuncR>`
 - [ ] `<feGaussianBlur>`
 - [ ] `<feImage>`
-- [ ] `<feMerge>`
-- [ ] `<feMergeNode>`
+- [x] `<feMerge>`
+- [x] `<feMergeNode>`
 - [ ] `<feMorphology>`
 - [ ] `<feOffset>`
 - [ ] `<fePointLight>`
@@ -1448,7 +1450,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `<feTurbulence>`
 - [ ] `<filter>`
 
-> **2026-08-25 split:** the first static filter graph rung carries one or two
+> **2026-08-25 split:** the static filter graph carries safe-kernel
 > `feGaussianBlur` operations over `SourceGraphic`, `SourceAlpha`, a prior
 > result, or a resolved result name. It includes same-document first-id lookup,
 > quoted and unquoted forms of a single URL token,
@@ -1458,9 +1460,33 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > open: `<filter>` still has the rest of the primitive family, inheritance,
 > multi-operation lists, host, and dynamics surface; `<feGaussianBlur>` still
 > has valid empty primitive results, inherited raw-syntax gaps, animation, and
-> a measured three-operation backend precision boundary. Current Chromium
+> a measured small-kernel backend precision boundary. Current Chromium
 > drops every `edgeMode` spelling on this primitive (measured, not celled), but
 > that attribute also applies to `<feConvolveMatrix>` and stays open.
+
+> **2026-08-25 close/split:** `feFlood`, `feComposite`, `feMerge`, and
+> `feMergeNode` now carry the complete static primitive behavior for their
+> rows: zero-, two-, and ordered N-input graph nodes; all seven composite
+> operators; arithmetic coefficients; input/result routing; hard primitive
+> regions; color-space placement; and the crisp compositional shadow graph.
+> `feOffset` carries integer displacement, both unit systems, signed values,
+> regions, and graph routing, but stays open. Valid fractional displacements
+> differ at 48 pixels / maximum delta 128, and every sampled graph combining
+> blur with offset differs at a second backend boundary; all such graphs
+> conservatively refuse by stable name. Integer source offsets that target
+> mapping turns fractional differ by 12–97 pixels, up to maximum delta 122;
+> that mapped class has its own stable refusal too (measured, not celled). The
+> earlier depth diagnosis is withdrawn: three safe-sigma blurs are
+> exact, directly and through identity merges. Sampled effective sigmas from
+> `.5` through `1.875` differ while `.25` and `2` are exact; the patrol
+> conservatively refuses the open interval between those exact endpoints
+> after target mapping (measured, not celled). It keeps `<feGaussianBlur>`
+> open. A final opacity-normalization audit found one more silent class before
+> close: raw `f32` parse-then-divide selected the lower neighbour for
+> `57.384267578125007%`, changing all 4,096 amplified pixels at maximum delta
+> 16. The direct decoder now keeps the CSS token's divide-then-narrow order,
+> and one exact cell distinguishes the route. Sixty new exact cells carry this
+> rung.
 
 - [ ] `<foreignObject>`
 - [x] `<g>`
@@ -1568,14 +1594,24 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > missing/wrong/malformed-reference fallback, groups, `<use>`, transforms,
 > stroke, clip/mask/opacity ordering, and nesting. The row stays open for
 > filter functions and lists, `var()`, inheritance, CSS precedence, root and
-> external host routes, resource `href`, deeper graphs, and the remaining
-> primitives. The direct inherited `color-interpolation-filters` reader
+> external host routes, resource `href`, the measured small-kernel boundary,
+> and the remaining primitives. The direct inherited
+> `color-interpolation-filters` reader
 > carries `linearRGB`, `sRGB`, `auto`, reset behavior, and inheritance for the
 > admitted blur graph; CSS ingress, comments, escapes, and `var()` remain
 > named gaps, and that row stays open too.
 
 - [ ] `flood-color`
 - [ ] `flood-opacity`
+
+> **2026-08-25 split:** direct attributes on `feFlood` now carry initial
+> black/one, admitted sRGB colors and `currentColor`, number/percentage
+> opacity with clamping, reset and invalid fallbacks, separate color-alpha ×
+> opacity multiplication, non-inheritance, and hard primitive regions. Both
+> rows stay open for `feDropShadow`, explicit inheritance, unavailable CSS
+> ingress, and the independently listed wider color/math/custom-property
+> value families.
+
 - [ ] `font-family`
 - [ ] `font-size`
 - [ ] `font-size-adjust`
@@ -1749,10 +1785,16 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `in`
 - [ ] `in2`
 - [ ] `intercept`
-- [ ] `k1`
-- [ ] `k2`
-- [ ] `k3`
-- [ ] `k4`
+- [x] `k1`
+- [x] `k2`
+- [x] `k3`
+- [x] `k4`
+
+> **2026-08-25 close:** all four arithmetic coefficients carry the complete
+> SVG number grammar and initial zero. Individual interaction, foreground,
+> background, and constant terms are Chromium-baked; signs, decimals, and
+> exponents are carried, and output channels clamp to the unit interval.
+
 - [ ] `kernelMatrix`
 - [ ] `kernelUnitLength`
 - [ ] `lang`

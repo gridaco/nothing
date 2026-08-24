@@ -790,15 +790,15 @@ fn stop_color(stop: HtmlElement<'_>) -> Result<AbsoluteColor, String> {
     };
     patrol_stop_attribute(&text, "stop-color")?;
     match parse_color_attribute(&text) {
-        Some(ParsedStopColor::Absolute(color)) => admitted_legacy_srgb(color),
-        Some(ParsedStopColor::CurrentColor) => {
+        Some(ParsedColorAttribute::Absolute(color)) => admitted_legacy_srgb(color),
+        Some(ParsedColorAttribute::CurrentColor) => {
             let Some(data) = stop.borrow_data() else {
                 return Ok(AbsoluteColor::BLACK);
             };
             let style: &ComputedValues = data.styles.primary();
             admitted_legacy_srgb(style.clone_color())
         }
-        Some(ParsedStopColor::BeyondSlice(reason)) => Err(format!(
+        Some(ParsedColorAttribute::BeyondSlice(reason)) => Err(format!(
             "a gradient <stop> color is outside the slice: {reason}"
         )),
         None => Ok(AbsoluteColor::BLACK),
@@ -830,7 +830,7 @@ fn admitted_legacy_srgb(color: AbsoluteColor) -> Result<AbsoluteColor, String> {
 }
 
 /// What a parsed `stop-color` attribute value can be.
-enum ParsedStopColor {
+pub(crate) enum ParsedColorAttribute {
     Absolute(AbsoluteColor),
     CurrentColor,
     /// Parses as CSS but needs resolution machinery outside the slice
@@ -843,7 +843,7 @@ enum ParsedStopColor {
 /// unparseable value — including the CSS-wide keywords, whose wide-keyword
 /// declaration this attribute read deliberately does not honor (the
 /// measured `inherit` meaning coincides with the initial black).
-fn parse_color_attribute(text: &str) -> Option<ParsedStopColor> {
+pub(crate) fn parse_color_attribute(text: &str) -> Option<ParsedColorAttribute> {
     let mut source = SourcePropertyDeclaration::default();
     let url_data = UrlExtraData::from(Url::parse("about:blank").unwrap());
     parse_one_declaration_into(
@@ -865,16 +865,18 @@ fn parse_color_attribute(text: &str) -> Option<ParsedStopColor> {
         return None;
     };
     Some(match &value.0 {
-        SpecifiedColor::CurrentColor => ParsedStopColor::CurrentColor,
-        SpecifiedColor::Absolute(absolute) => ParsedStopColor::Absolute(absolute.color),
+        SpecifiedColor::CurrentColor => ParsedColorAttribute::CurrentColor,
+        SpecifiedColor::Absolute(absolute) => ParsedColorAttribute::Absolute(absolute.color),
         SpecifiedColor::ColorFunction(_) => {
-            ParsedStopColor::BeyondSlice("an unresolved color function")
+            ParsedColorAttribute::BeyondSlice("an unresolved color function")
         }
-        SpecifiedColor::ColorMix(_) => ParsedStopColor::BeyondSlice("color-mix()"),
-        SpecifiedColor::LightDark(_) => ParsedStopColor::BeyondSlice("light-dark()"),
-        SpecifiedColor::ContrastColor(_) => ParsedStopColor::BeyondSlice("contrast-color()"),
-        SpecifiedColor::System(_) => ParsedStopColor::BeyondSlice("a system color"),
-        SpecifiedColor::InheritFromBodyQuirk => ParsedStopColor::BeyondSlice("a quirks-mode color"),
+        SpecifiedColor::ColorMix(_) => ParsedColorAttribute::BeyondSlice("color-mix()"),
+        SpecifiedColor::LightDark(_) => ParsedColorAttribute::BeyondSlice("light-dark()"),
+        SpecifiedColor::ContrastColor(_) => ParsedColorAttribute::BeyondSlice("contrast-color()"),
+        SpecifiedColor::System(_) => ParsedColorAttribute::BeyondSlice("a system color"),
+        SpecifiedColor::InheritFromBodyQuirk => {
+            ParsedColorAttribute::BeyondSlice("a quirks-mode color")
+        }
     })
 }
 

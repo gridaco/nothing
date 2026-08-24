@@ -10,7 +10,9 @@ mod support;
 
 use math2::Rectangle;
 use math2::transform::AffineTransform;
-use rframe::{FilterColorSpace, FilterInput, FilterPrimitive, Frame, FrameItem, ScopeEffect};
+use rframe::{
+    FilterColorSpace, FilterComposite, FilterInput, FilterPrimitive, Frame, FrameItem, ScopeEffect,
+};
 use support::render_through_n0;
 use websem::{DegradationAction, InitialViewport, SvgFrameSource};
 
@@ -118,7 +120,7 @@ fn gaussian_blur_resolves_to_one_source_neutral_checked_graph() {
         Rectangle::from_xywh(17.6, 17.6, 28.8, 28.8)
     );
     let node = filter.program().iter().next().expect("one blur node");
-    assert_eq!(node.input(), FilterInput::Source);
+    assert_eq!(node.inputs(), [FilterInput::Source]);
     assert_eq!(node.color_space(), FilterColorSpace::LinearRgb);
     assert_eq!(
         node.primitive(),
@@ -131,6 +133,150 @@ fn gaussian_blur_resolves_to_one_source_neutral_checked_graph() {
     let pixels = render_through_n0(&frame, 64, 64);
     assert_ne!(at(&pixels, 17, 32), [255, 255, 255, 255]);
     assert_eq!(at(&pixels, 16, 32), [255, 255, 255, 255]);
+}
+
+#[test]
+fn hard_shadow_graph_resolves_zero_one_two_and_n_input_operations() {
+    let frame = admit_both(&document(
+        r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+          x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+    <feOffset in="SourceAlpha" dx="5" dy="4" result="o"/>
+    <feFlood flood-color="#7c3aed" flood-opacity=".65" result="f"/>
+    <feComposite in="f" in2="o" operator="in" result="s"/>
+    <feMerge><feMergeNode in="s"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <rect x="20" y="20" width="24" height="24" fill="#0ea5e9" filter="url(#f)"/>"##,
+    ));
+    let filter = frame
+        .items
+        .iter()
+        .find_map(|item| match item {
+            FrameItem::ScopeBegin(scope) => match &scope.effect {
+                ScopeEffect::Filter(filter) => Some(filter),
+                ScopeEffect::Opacity(_) | ScopeEffect::Clip(_) => None,
+            },
+            _ => None,
+        })
+        .expect("one resolved filter");
+    let nodes: Vec<_> = filter.program().iter().collect();
+    assert_eq!(nodes.len(), 4);
+    assert_eq!(nodes[0].inputs(), [FilterInput::SourceAlpha]);
+    assert_eq!(
+        nodes[0].primitive(),
+        FilterPrimitive::Offset { dx: 5.0, dy: 4.0 }
+    );
+    assert!(nodes[1].inputs().is_empty());
+    let FilterPrimitive::SolidColor { color } = nodes[1].primitive() else {
+        panic!("second node is the resolved solid source")
+    };
+    assert_eq!(color.to_rgba8(), cg::CGColor::from_rgba(124, 58, 237, 166));
+    assert_eq!(
+        nodes[2].inputs(),
+        [FilterInput::Node(1), FilterInput::Node(0)]
+    );
+    assert_eq!(
+        nodes[2].primitive(),
+        FilterPrimitive::Composite {
+            operator: FilterComposite::In
+        }
+    );
+    assert_eq!(
+        nodes[3].inputs(),
+        [FilterInput::Node(2), FilterInput::Source]
+    );
+    assert_eq!(nodes[3].primitive(), FilterPrimitive::Merge);
+    assert!(
+        nodes
+            .iter()
+            .all(|node| node.color_space() == FilterColorSpace::Srgb)
+    );
+
+    let pixels = render_through_n0(&frame, 64, 64);
+    assert_eq!(at(&pixels, 24, 24), [14, 165, 233, 255]);
+    assert_ne!(at(&pixels, 47, 32), [255, 255, 255, 255]);
+}
+
+#[test]
+fn flood_opacity_percentage_keeps_css_parser_normalization_order() {
+    let source = |opacity: &str| {
+        document(&format!(
+            r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"
+          color-interpolation-filters="sRGB">
+    <feFlood flood-color="red" flood-opacity="{opacity}"/>
+  </filter>
+  <rect width="64" height="64" filter="url(#f)"/>"##
+        ))
+    };
+
+    let percentage = admit_both(&source("57.384267578125007%"));
+    let equivalent_number = admit_both(&source(".57384267578125007"));
+    let lower_f32_neighbor = admit_both(&source(".5738426446914673"));
+    assert_eq!(
+        percentage, equivalent_number,
+        "CSS percentage normalization must divide before narrowing to f32"
+    );
+    assert_ne!(
+        percentage, lower_f32_neighbor,
+        "the authored percentage must not collapse onto the lower f32 neighbor"
+    );
+}
+
+#[test]
+fn offset_only_graphs_can_exceed_the_old_two_operation_boundary() {
+    let source = |body: &str| {
+        document(&format!(
+            r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"
+          color-interpolation-filters="sRGB">{body}</filter>
+  <rect x="20" y="20" width="24" height="24" fill="#0ea5e9" filter="url(#f)"/>"##
+        ))
+    };
+    let chained = render_through_n0(
+        &admit_both(&source(
+            r##"<feOffset dx="1" result="a"/><feOffset in="a" dx="1" result="b"/><feOffset in="b" dx="1"/>"##,
+        )),
+        64,
+        64,
+    );
+    let direct = render_through_n0(&admit_both(&source(r##"<feOffset dx="3"/>"##)), 64, 64);
+    assert_eq!(chained, direct);
+}
+
+#[test]
+fn safe_sigma_blur_graphs_can_exceed_the_retired_depth_boundary() {
+    let source = |body: &str| {
+        document(&format!(
+            r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"
+          color-interpolation-filters="sRGB">{body}</filter>
+  <rect x="20" y="20" width="24" height="24" fill="#16a34a" filter="url(#f)"/>"##
+        ))
+    };
+    let direct = render_through_n0(
+        &admit_both(&source(
+            r##"<feGaussianBlur stdDeviation="2" result="a"/><feGaussianBlur in="a" stdDeviation="2" result="b"/><feGaussianBlur in="b" stdDeviation="2"/>"##,
+        )),
+        64,
+        64,
+    );
+    let through_merges = render_through_n0(
+        &admit_both(&source(
+            r##"<feGaussianBlur stdDeviation="2" result="a"/><feMerge result="m1"><feMergeNode in="a"/></feMerge><feGaussianBlur in="m1" stdDeviation="2" result="b"/><feMerge result="m2"><feMergeNode in="b"/></feMerge><feGaussianBlur in="m2" stdDeviation="2"/>"##,
+        )),
+        64,
+        64,
+    );
+    assert_eq!(direct, through_merges);
+
+    admit_both(&document(
+        r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+    <feGaussianBlur stdDeviation="1"/>
+  </filter>
+  <rect x="10" y="10" width="12" height="12" transform="scale(2)" fill="#16a34a" filter="url(#f)"/>"##,
+    ));
 }
 
 #[test]
@@ -333,10 +479,85 @@ fn unsupported_filter_routes_skip_the_whole_target_by_stable_name() {
     for (source, reason) in [
         (
             target(
-                r##"<filter id="f"><feOffset dx="2"/></filter>"##,
+                r##"<filter id="f"><feOffset dx="2.5"/></filter>"##,
                 r##"filter="url(#f)""##,
             ),
-            "unsupported primitive <feOffset>",
+            "fractional displacement",
+        ),
+        (
+            document(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="128" height="128">
+    <feOffset dx="1"/>
+  </filter>
+  <g transform="scale(.5)">
+    <rect x="40" y="40" width="48" height="48" fill="#16a34a" filter="url(#f)"/>
+  </g>"##,
+            ),
+            "fractional device-space displacement",
+        ),
+        (
+            target(
+                r##"<filter id="f"><feGaussianBlur stdDeviation="2"/><feOffset dx="2"/></filter>"##,
+                r##"filter="url(#f)""##,
+            ),
+            "combines feOffset with Gaussian blur",
+        ),
+        (
+            target(
+                r##"<filter id="f"><feFlood style="flood-color:red"/></filter>"##,
+                r##"filter="url(#f)""##,
+            ),
+            "CSS flood-color on <feFlood>",
+        ),
+        (
+            target(
+                r##"<filter id="f"><feFlood flood-opacity="calc(1 / 2)"/></filter>"##,
+                r##"filter="url(#f)""##,
+            ),
+            "CSS function",
+        ),
+        (
+            target(
+                r##"<filter id="f"><feFlood flood-opacity="var(--o)"/></filter>"##,
+                r##"filter="url(#f)""##,
+            ),
+            "flood-opacity resolves through var()",
+        ),
+        (
+            target(
+                r##"<filter id="f"><feFlood flood-opacity="inherit"/></filter>"##,
+                r##"filter="url(#f)""##,
+            ),
+            "flood-opacity uses inherit",
+        ),
+        (
+            target(
+                r##"<filter id="f"><feFlood flood-color="var(--c)"/></filter>"##,
+                r##"filter="url(#f)""##,
+            ),
+            "flood-color resolves through var()",
+        ),
+        (
+            target(
+                r##"<filter id="f"><feFlood flood-color="inherit"/></filter>"##,
+                r##"filter="url(#f)""##,
+            ),
+            "flood-color uses inherit",
+        ),
+        (
+            target(
+                r##"<filter id="f"><feFlood flood-color="hsl(0 100% 50%)"/></filter>"##,
+                r##"filter="url(#f)""##,
+            ),
+            "outside the admitted color slice",
+        ),
+        (
+            target(
+                r##"<filter id="f"><feDropShadow dx="2" dy="2"/></filter>"##,
+                r##"filter="url(#f)""##,
+            ),
+            "unsupported primitive <feDropShadow>",
         ),
         (
             target(
@@ -421,10 +642,20 @@ fn unsupported_filter_routes_skip_the_whole_target_by_stable_name() {
         ),
         (
             target(
-                r##"<filter id="f"><feGaussianBlur stdDeviation="1"/><feGaussianBlur stdDeviation="2"/><feGaussianBlur stdDeviation="1"/></filter>"##,
+                r##"<filter id="f"><feGaussianBlur stdDeviation="1"/></filter>"##,
                 r##"filter="url(#f)""##,
             ),
-            "deeper than two operations",
+            "small-kernel precision boundary",
+        ),
+        (
+            document(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f"><feGaussianBlur stdDeviation="3"/></filter>
+  <g transform="scale(.5)">
+    <rect x="40" y="40" width="24" height="24" fill="#16a34a" filter="url(#f)"/>
+  </g>"##,
+            ),
+            "small-kernel precision boundary",
         ),
         (
             target(

@@ -62,22 +62,23 @@ from the dated addenda below:
   object-box/user-space regions, admitted graphics/gradient/`<use>` sources,
   clips, nesting, transforms, and effect ordering);
   same-document SVG filters on non-root admitted targets through a checked
-  resolved graph of at most two `feGaussianBlur` operations, with
-  `SourceGraphic`/`SourceAlpha`/prior and named inputs, both filter coordinate
-  systems and color spaces, hard regions, nesting, transforms, `<use>`, and
-  the established effect order;
+  resolved graph of safe-kernel `feGaussianBlur`, integer `feOffset`,
+  zero-input `feFlood`, all `feComposite` operators, and ordered
+  `feMerge`/`feMergeNode`, with `SourceGraphic`/`SourceAlpha`/prior and named
+  inputs, both filter coordinate systems and color spaces, hard regions,
+  nesting, transforms, `<use>`, and the established effect order;
   one declared-font, single-run `<text>` profile; viewBox-only root sizing with
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 386 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 446 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 116 rows.
+  register has 124 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -2687,12 +2688,12 @@ operation order is filter, then mask, then opacity, then clip. Dedicated cells
 make the clip and mask boundaries hard after the blur, while the group-opacity
 cell prevents per-child filtering or alpha folding.
 
-The backend precision audit found one silent class before admission. One and
-two blur operations were exact, but a third chained blur differed from
-Chromium at 680 pixels with maximum channel delta 3; replacing the chain by a
-single variance-combined sigma was also not equivalent. Graphs deeper than two
-operations now refuse under a focused precision row before painting. This is a
-pinned-backend boundary, not a general graph limit in the resolved contract.
+The first backend precision audit found a 680-pixel / maximum-delta-3
+difference in a `1 → 2 → 1` blur chain and initially attributed it to graph
+depth. The later shadow-graph audit below corrected that diagnosis: a single
+effective sigma of `1` already differs, while three chained safe-sigma kernels
+are exact (measured, not celled). The focused refusal now names the measured
+small-kernel boundary; the resolved contract has no two-operation graph limit.
 
 Twenty-five new Chromium cells carry the admitted slice, all exact. They cover
 blur grammar and axis behavior, source alpha, named and previous results,
@@ -2710,3 +2711,108 @@ named register from 101 to 116. The primitive corpus moves from 361 to 386
 cells; the ten exact-time sampled frames are unchanged. Only `filterUnits` and
 `primitiveUnits` tick. This records no conformance score and takes no FLIP
 action.
+
+## Rung: SVG shadow graph primitives (2026-08-25)
+
+The verdict is SPLIT. `feFlood`, `feComposite`, `feMerge`, and `feMergeNode`
+close for their complete static primitive behavior, and the four arithmetic
+coefficient rows `k1`–`k4` close at their complete number grammar. `feOffset`
+does not close: its identity-mapped integer subset is exact, but three valid
+backend-precision classes remain named refusals. The wider `filter`, `<filter>`,
+`feGaussianBlur`, `in`, `in2`, `operator`, `result`, `dx`, `dy`,
+`flood-color`, and `flood-opacity` rows remain open for their independently
+named applicability, cascade, value, resource, or precision remainder.
+
+The resolved graph now states zero-, one-, two-, and ordered N-input image
+operations. A node may offset one input, supply one bounded solid source,
+composite two inputs by one resolved rule, or merge an ordered input list.
+Inputs refer only to the original source, its alpha, or an earlier node; source
+names and resource identity still stop before the frame. The checked arity and
+backward-reference rules keep the graph acyclic, while an empty merge remains
+a real transparent output rather than an absent operation.
+
+Offset uses the measured SVG number behavior. Missing and invalid fields use
+zero; signs, leading plus, exponents, and a lone trailing comma prefix are
+accepted; unit, percentage, CSS-math, custom-property, and extra-member forms
+fall back to zero in current Chromium. User-space and object-box primitive
+units, source alpha, previous and named inputs, hard primitive crops, and the
+input's unshifted default subregion are carried. Three integer offsets compose
+exactly, so the earlier two-operation bound was never a graph law.
+
+Flood is a zero-input sRGB source. Its direct attributes carry initial
+black/one, admitted sRGB color spellings, transparent and `currentColor`,
+number or percentage opacity with both clamps, invalid and reset fallback,
+non-inheritance, and a hard primitive region. A color's alpha is first resolved
+to its byte value and then multiplied by flood opacity in float; the result is
+not flattened into a second byte before composition. Percentage opacity keeps
+the CSS token's parse, divide, then binary32 narrowing order. Parsing to
+binary32 before dividing selected the lower neighbour for
+`57.384267578125007%`; an arithmetic amplifier changed all 4,096 pixels at
+maximum delta 16 until the operation order was corrected. Authored CSS, explicit
+inheritance, custom-property substitution, the wider color-function grammar,
+and CSS math remain focused refusals under their own checklist rows. The
+pinned cascade has no flood longhands, and no second matcher was added around
+it.
+
+Composite carries `over`, `in`, `out`, `atop`, `xor`, `lighter`, and
+`arithmetic`. `in` is the foreground and `in2` the background. Missing and
+unknown inputs follow the measured first-or-previous fallback; an invalid or
+wrong-case operator takes `over`. Arithmetic carries four independent signed
+number coefficients, initial zero, leading-plus/decimal/exponent forms, and
+unit-interval channel clamping. Its default primitive region is the union of
+its input regions. These facts close `k1`–`k4`; `operator`, `in`, and `in2`
+remain open because the names apply to later primitives too.
+
+Merge reads only direct `feMergeNode` children, in document order. Empty,
+singleton, two-input, and longer lists; omitted, unknown, source, previous, and
+named inputs; ignored non-node and nested-node children; result reuse; and the
+input-union default region are all carried. The crisp compositional shadow —
+offset source alpha, flood a color, composite the color into that alpha, then
+merge it below source graphic — therefore exercises every admitted arity in
+one exact graph.
+
+The precision patrol found five silent classes before these rows closed. Four
+remain quarantined; the flood-opacity normalization class above was corrected
+and celled. A fractional offset differs from Chromium at 48 pixels with
+maximum channel delta 128. Sampled graphs combining blur and offset differ at
+540–643 pixels, up to delta 11. An eleven-candidate transform follow-up found
+that an integer local offset also differs when scale, rotation, or `viewBox`
+mapping makes its device displacement fractional: sampled cases changed 12–97
+pixels, up to delta 122, while integer-effective controls were pixel-exact.
+All three offset classes now refuse before a partial graph can paint. The blur
+audit then contradicted the previous depth premise. Across a
+91-candidate follow-up, identity-mapped effective sigmas `0`, `.125`, `.25`,
+and every sampled value from `2` through `6` were exact; sampled `.5` through
+`1.875` differed. Sigma `1` changes 556 pixels at maximum delta 12. The class
+is conservatively patrolled across the open interval between the exact `.25`
+and `2` endpoints and follows the target mapping: local sigma `1` scaled to effective `2` is exact,
+local `3` scaled to `1.5` changes 312 pixels at delta 4, and local `4` scaled
+to `2` is exact. The old depth refusal is replaced by this effective-sigma
+boundary. Three safe-sigma chains, the same chains through identity merges,
+and parallel safe branches are exact (measured, not celled).
+
+The fully blurred five-node hand shadow is byte-identical to native
+`feDropShadow` in Chromium at the sampled sRGB parameters (measured, not
+celled). It is not admitted through the hand graph because blur plus offset is
+one of the named boundaries; native `feDropShadow` remains the next primitive
+rung. Under the default linear interpolation route the hand graph and native
+primitive differ by 135 pixels at maximum delta 2 (measured, not celled), so
+that later rung must retain its own color-placement evidence.
+
+Sixty new Chromium cells carry this rung, all exact. Eleven cover offset,
+fifteen flood, twenty-two composite, and twelve merge plus the crisp shadow.
+The extra composite cell pins the admitted default-linear conversion path;
+the precision flood cell pins CSS percentage normalization. The other graph
+cells use explicit sRGB. Every scratch candidate rendered through the product
+command. Gate sensitivity was proved by swapping composite foreground and background:
+thirteen cells failed, with as many as 1,776 differing pixels and maximum
+channel delta 157. Temporarily restoring parse-before-divide opacity made only
+the precision cell fail, at 4,096 pixels and delta 16. Restoring both routes
+returned the complete gate to green.
+
+Eight focused offset/flood rows join the refusal register. The former graph-
+depth row is corrected to the small-kernel row without changing the count, and
+the broad unsupported-primitive witness moves from the now-admitted offset to
+`feBlend`. The primitive corpus moves from 386 to 446 cells; the ten exact-time
+sampled frames are unchanged. The named register moves from 116 to 124. This
+records no conformance score and takes no FLIP action.

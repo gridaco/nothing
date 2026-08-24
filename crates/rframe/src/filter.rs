@@ -8,6 +8,7 @@
 
 use std::sync::Arc;
 
+use cg::CGColor32F;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 
@@ -36,6 +37,18 @@ pub enum FilterInput {
     Node(usize),
 }
 
+/// One resolved two-input compositing rule.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum FilterComposite {
+    Over,
+    In,
+    Out,
+    Atop,
+    Xor,
+    Lighter,
+    Arithmetic { k1: f32, k2: f32, k3: f32, k4: f32 },
+}
+
 /// The admitted operation vocabulary of a resolved filter node.
 ///
 /// This enum grows only when a producer proves a new operation through the
@@ -43,13 +56,30 @@ pub enum FilterInput {
 /// operation instead of predicting the eventual family.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FilterPrimitive {
-    GaussianBlur { sigma_x: f32, sigma_y: f32 },
+    GaussianBlur {
+        sigma_x: f32,
+        sigma_y: f32,
+    },
+    Offset {
+        dx: f32,
+        dy: f32,
+    },
+    /// A bounded solid source. Its components are resolved sRGB values; the
+    /// float alpha preserves a separately multiplied source alpha and
+    /// opacity until the raster target quantizes once.
+    SolidColor {
+        color: CGColor32F,
+    },
+    Composite {
+        operator: FilterComposite,
+    },
+    Merge,
 }
 
 /// One operation in a checked filter program.
 #[derive(Clone, Debug, PartialEq)]
 pub struct FilterNode {
-    input: FilterInput,
+    inputs: Arc<[FilterInput]>,
     region: Rectangle,
     color_space: FilterColorSpace,
     primitive: FilterPrimitive,
@@ -57,14 +87,14 @@ pub struct FilterNode {
 
 impl FilterNode {
     #[must_use]
-    pub const fn new(
-        input: FilterInput,
+    pub fn new(
+        inputs: Arc<[FilterInput]>,
         region: Rectangle,
         color_space: FilterColorSpace,
         primitive: FilterPrimitive,
     ) -> Self {
         Self {
-            input,
+            inputs,
             region,
             color_space,
             primitive,
@@ -72,8 +102,8 @@ impl FilterNode {
     }
 
     #[must_use]
-    pub const fn input(&self) -> FilterInput {
-        self.input
+    pub fn inputs(&self) -> &[FilterInput] {
+        &self.inputs
     }
 
     #[must_use]
@@ -97,9 +127,27 @@ impl FilterNode {
 pub enum FilterProgramError {
     Empty,
     TooManyNodes,
-    InputIsNotEarlier { node: usize, input: usize },
-    InvalidRegion { node: usize },
-    InvalidGaussianBlur { node: usize },
+    InputIsNotEarlier {
+        node: usize,
+        input: usize,
+    },
+    InvalidInputCount {
+        node: usize,
+        expected: usize,
+        actual: usize,
+    },
+    InvalidRegion {
+        node: usize,
+    },
+    InvalidGaussianBlur {
+        node: usize,
+    },
+    InvalidOffset {
+        node: usize,
+    },
+    InvalidComposite {
+        node: usize,
+    },
 }
 
 impl std::fmt::Display for FilterProgramError {
@@ -114,6 +162,14 @@ impl std::fmt::Display for FilterProgramError {
                 f,
                 "filter node {node} reads node {input}, which is not earlier in the program"
             ),
+            Self::InvalidInputCount {
+                node,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "filter node {node} has {actual} inputs; its operation requires {expected}"
+            ),
             Self::InvalidRegion { node } => {
                 write!(f, "filter node {node} has a non-finite or empty region")
             }
@@ -121,6 +177,15 @@ impl std::fmt::Display for FilterProgramError {
                 f,
                 "filter node {node} has a non-finite or negative Gaussian sigma"
             ),
+            Self::InvalidOffset { node } => {
+                write!(f, "filter node {node} has a non-finite offset")
+            }
+            Self::InvalidComposite { node } => {
+                write!(
+                    f,
+                    "filter node {node} has a non-finite arithmetic coefficient"
+                )
+            }
         }
     }
 }
@@ -140,10 +205,27 @@ impl FilterProgram {
             return Err(FilterProgramError::TooManyNodes);
         }
         for (index, node) in nodes.iter().enumerate() {
-            if let FilterInput::Node(input) = node.input
-                && input >= index
+            let expected_inputs = match node.primitive {
+                FilterPrimitive::GaussianBlur { .. } | FilterPrimitive::Offset { .. } => Some(1),
+                FilterPrimitive::SolidColor { .. } => Some(0),
+                FilterPrimitive::Composite { .. } => Some(2),
+                FilterPrimitive::Merge => None,
+            };
+            if let Some(expected) = expected_inputs
+                && node.inputs.len() != expected
             {
-                return Err(FilterProgramError::InputIsNotEarlier { node: index, input });
+                return Err(FilterProgramError::InvalidInputCount {
+                    node: index,
+                    expected,
+                    actual: node.inputs.len(),
+                });
+            }
+            for input in node.inputs.iter() {
+                if let FilterInput::Node(input) = *input
+                    && input >= index
+                {
+                    return Err(FilterProgramError::InputIsNotEarlier { node: index, input });
+                }
             }
             if !valid_rect(node.region) || node.region.width <= 0.0 || node.region.height <= 0.0 {
                 return Err(FilterProgramError::InvalidRegion { node: index });
@@ -158,6 +240,18 @@ impl FilterProgram {
                     return Err(FilterProgramError::InvalidGaussianBlur { node: index });
                 }
                 FilterPrimitive::GaussianBlur { .. } => {}
+                FilterPrimitive::Offset { dx, dy } if !dx.is_finite() || !dy.is_finite() => {
+                    return Err(FilterProgramError::InvalidOffset { node: index });
+                }
+                FilterPrimitive::Composite {
+                    operator: FilterComposite::Arithmetic { k1, k2, k3, k4 },
+                } if ![k1, k2, k3, k4].into_iter().all(f32::is_finite) => {
+                    return Err(FilterProgramError::InvalidComposite { node: index });
+                }
+                FilterPrimitive::Offset { .. }
+                | FilterPrimitive::SolidColor { .. }
+                | FilterPrimitive::Composite { .. }
+                | FilterPrimitive::Merge => {}
             }
         }
         Ok(Self(nodes))

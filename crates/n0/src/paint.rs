@@ -26,15 +26,17 @@ use skia_safe::canvas::{SaveLayerFlags, SaveLayerRec};
 use skia_safe::gradient::{Colors as GradientColors, Gradient, Interpolation};
 use skia_safe::{
     image::CachingHint, path_effect::PathEffect, shaders, stroke_rec::InitStyle, Blender, Canvas,
-    ClipOp, Color, ColorMatrix, CubicResampler, Data, Font, Image, ImageFilter, ImageInfo, Matrix,
-    OpBuilder, Paint, PaintCap, PaintJoin, PaintStyle, Path, PathBuilder, PathDirection,
-    PathFillType, PathOp, Point, RRect, Rect, SamplingOptions, Shader, StrokeRec,
+    ClipOp, Color, Color4f, ColorMatrix, ColorSpace, CubicResampler, Data, Font, Image,
+    ImageFilter, ImageInfo, Matrix, OpBuilder, Paint, PaintCap, PaintJoin, PaintStyle, Path,
+    PathBuilder, PathDirection, PathFillType, PathOp, Point, RRect, Rect, SamplingOptions, Shader,
+    StrokeRec,
 };
 
 use crate::drawlist::{
     DrawList, ItemKind, PostPaintOpacity, ResolvedClipGeometry, ResolvedClipGeometryKind,
     ResolvedClipLayer, ResolvedClipPath, ResolvedFilter, ResolvedFilterColorSpace,
-    ResolvedFilterInput, ResolvedFilterPrimitive, ResolvedMaskMode, StrokeDashPhase,
+    ResolvedFilterComposite, ResolvedFilterInput, ResolvedFilterPrimitive, ResolvedMaskMode,
+    StrokeDashPhase,
 };
 
 /// The gradient family whose local matrix could not be represented by the
@@ -1939,6 +1941,13 @@ fn convert_filter_space(
     })
 }
 
+fn transparent_filter(region: n0_model::math::RectF) -> Option<ImageFilter> {
+    skia_safe::image_filters::shader(
+        shaders::color(Color::TRANSPARENT),
+        Rect::from_xywh(region.x, region.y, region.w, region.h),
+    )
+}
+
 /// Build one checked private filter graph. The return's outer `Result` names
 /// backend construction failure; the inner `Option` preserves the valid
 /// input-image sentinel for an identity program.
@@ -1956,36 +1965,124 @@ fn build_filter(filter: &ResolvedFilter) -> Result<Option<ImageFilter>, String> 
         };
     let mut results: Vec<BuiltFilterResult> = Vec::with_capacity(filter.nodes.len());
     for node in filter.nodes.iter() {
-        let input = match node.input {
-            ResolvedFilterInput::Source => source.clone(),
-            ResolvedFilterInput::SourceAlpha => source_alpha.clone(),
-            ResolvedFilterInput::Node(index) => results
-                .get(index)
-                .cloned()
-                .expect("the resolved filter contract checked every node index"),
-        };
-        let input = convert_filter_space(input, node.color_space)?;
-        let image_filter = match node.primitive {
+        let mut inputs = Vec::with_capacity(node.inputs.len());
+        for input in node.inputs.iter() {
+            let input = match *input {
+                ResolvedFilterInput::Source => source.clone(),
+                ResolvedFilterInput::SourceAlpha => source_alpha.clone(),
+                ResolvedFilterInput::Node(index) => results
+                    .get(index)
+                    .cloned()
+                    .expect("the resolved filter contract checked every node index"),
+            };
+            inputs.push(convert_filter_space(input, node.color_space)?);
+        }
+        let crop = Rect::from_xywh(node.region.x, node.region.y, node.region.w, node.region.h);
+        let (image_filter, output_space) = match node.primitive {
             ResolvedFilterPrimitive::GaussianBlur { sigma_x, sigma_y } => {
+                let input = inputs.pop().expect("Gaussian blur has one checked input");
                 if sigma_x == 0.0 && sigma_y == 0.0 {
-                    input.image_filter
+                    (input.image_filter, node.color_space)
                 } else {
-                    skia_safe::image_filters::blur(
+                    let filter = skia_safe::image_filters::blur(
                         (sigma_x, sigma_y),
                         Some(skia_safe::TileMode::Decal),
                         input.image_filter,
-                        Rect::from_xywh(node.region.x, node.region.y, node.region.w, node.region.h),
+                        crop,
                     )
                     .ok_or_else(|| {
                         "the backend could not construct a Gaussian blur operation".to_string()
-                    })?
-                    .into()
+                    })?;
+                    (Some(filter), node.color_space)
                 }
+            }
+            ResolvedFilterPrimitive::Offset { dx, dy } => {
+                let input = inputs.pop().expect("offset has one checked input");
+                let filter = skia_safe::image_filters::offset((dx, dy), input.image_filter, crop)
+                    .ok_or_else(|| {
+                    "the backend could not construct an offset operation".to_string()
+                })?;
+                (Some(filter), node.color_space)
+            }
+            ResolvedFilterPrimitive::SolidColor { color } => {
+                let color = Color4f::new(color.r(), color.g(), color.b(), color.a());
+                // Blink's FEFlood is a constant Src color filter over a null
+                // input, not a shader image filter. Those graph shapes differ
+                // under arithmetic and gamma conversion even when a lone
+                // flood stores the same pixels.
+                let color_filter = skia_safe::color_filters::blend_with_color_space(
+                    color,
+                    Option::<ColorSpace>::None,
+                    skia_safe::BlendMode::Src,
+                )
+                .ok_or_else(|| {
+                    "the backend could not construct a solid-source color filter".to_string()
+                })?;
+                let filter = skia_safe::image_filters::color_filter(color_filter, None, crop)
+                    .ok_or_else(|| {
+                        "the backend could not construct a solid filter source".to_string()
+                    })?;
+                (Some(filter), ResolvedFilterColorSpace::Srgb)
+            }
+            ResolvedFilterPrimitive::Composite { operator } => {
+                let background = inputs.pop().expect("composite has two checked inputs");
+                let foreground = inputs.pop().expect("composite has two checked inputs");
+                let filter = match operator {
+                    ResolvedFilterComposite::Arithmetic { k1, k2, k3, k4 } => {
+                        skia_safe::image_filters::arithmetic(
+                            k1,
+                            k2,
+                            k3,
+                            k4,
+                            true,
+                            background.image_filter,
+                            foreground.image_filter,
+                            crop,
+                        )
+                    }
+                    operator => {
+                        let mode = match operator {
+                            ResolvedFilterComposite::Over => skia_safe::BlendMode::SrcOver,
+                            ResolvedFilterComposite::In => skia_safe::BlendMode::SrcIn,
+                            ResolvedFilterComposite::Out => skia_safe::BlendMode::SrcOut,
+                            ResolvedFilterComposite::Atop => skia_safe::BlendMode::SrcATop,
+                            ResolvedFilterComposite::Xor => skia_safe::BlendMode::Xor,
+                            ResolvedFilterComposite::Lighter => skia_safe::BlendMode::Plus,
+                            ResolvedFilterComposite::Arithmetic { .. } => unreachable!(),
+                        };
+                        skia_safe::image_filters::blend(
+                            mode,
+                            background.image_filter,
+                            foreground.image_filter,
+                            crop,
+                        )
+                    }
+                }
+                .ok_or_else(|| {
+                    "the backend could not construct a composite operation".to_string()
+                })?;
+                (Some(filter), node.color_space)
+            }
+            ResolvedFilterPrimitive::Merge => {
+                let image_filter = if inputs.is_empty() {
+                    transparent_filter(node.region).ok_or_else(|| {
+                        "the backend could not construct an empty merge result".to_string()
+                    })?
+                } else {
+                    skia_safe::image_filters::merge(
+                        inputs.into_iter().map(|input| input.image_filter),
+                        crop,
+                    )
+                    .ok_or_else(|| {
+                        "the backend could not construct a merge operation".to_string()
+                    })?
+                };
+                (Some(image_filter), node.color_space)
             }
         };
         results.push(BuiltFilterResult {
             image_filter,
-            color_space: node.color_space,
+            color_space: output_space,
         });
     }
     let output = results

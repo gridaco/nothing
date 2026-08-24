@@ -249,38 +249,61 @@ cargo run -p n0_cli --bin n0 -- \
   Same-document SVG filters are consumed on admitted non-root SVG targets.
   The direct `filter` presentation attribute carries `none`, CSS-wide reset
   values, and one same-document URL token with quoted or unquoted content;
-  whole-document lookup is first-id-wins, comments
-  around the URL are accepted, and missing/wrong/malformed references install
-  no filter. A valid empty graph instead hides the target. The CSS property
-  stays a separate named boundary: this pinned Servo-mode cascade represents
-  filter functions but not the URL computed variant, so authored CSS is
-  quarantined rather than matched by another parser.
+  whole-document lookup is first-id-wins, comments around the URL are
+  accepted, and missing/wrong/malformed references install no filter. A valid
+  empty graph instead hides the target. The CSS property stays a separate
+  named boundary: this pinned Servo-mode cascade represents filter functions
+  but not the URL computed variant, so authored CSS is quarantined rather
+  than matched by another parser.
   The resolved frame carries a checked backend-neutral graph, never the URL or
-  authored result names. The admitted graph has one or two
-  `feGaussianBlur` operations over `SourceGraphic`, `SourceAlpha`, a previous
-  result, or a resolved result name. Missing, malformed, extra-member, zero,
-  and independently negative `stdDeviation` axes follow the measured Chromium
-  pass-through/clamp behavior; one value expands to both axes. Missing
-  `color-interpolation-filters` and explicit `linearRGB` use linear light;
-  explicit `sRGB` and `auto` use sRGB. Target/group isolation, fill and stroke,
-  transforms, non-uniform `viewBox`, `<use>`, nesting, and the filter, then
-  mask, then opacity, then clip order are carried.
-  `filterUnits` and `primitiveUnits` now carry their complete case-sensitive
+  authored result names. Its current operations are `feGaussianBlur`, integer
+  `feOffset`, zero-input `feFlood`, all seven `feComposite` operators, and
+  ordered `feMerge`/`feMergeNode`. Inputs resolve to `SourceGraphic`,
+  `SourceAlpha`, the previous result, or an earlier named result before the
+  frame; unknown values follow Chromium's measured first/previous fallback.
+  Flood carries initial black/one, admitted sRGB colors and `currentColor`,
+  number/percentage opacity with clamping, float alpha multiplication, and a
+  hard primitive region. Composite carries `over`, `in`, `out`, `atop`, `xor`,
+  `lighter`, and `arithmetic`; its four coefficients carry signed decimal and
+  exponent number forms, initial zero, and channel clamping. Merge is empty-
+  transparent through ordered N-input and reads only direct `feMergeNode`
+  children. The complete crisp shadow graph — offset source alpha, flood,
+  composite-in, then merge under source graphic — is exact.
+  Offset carries absent/zero, signed integer displacement, both primitive unit
+  systems, input/result routing, and hard/default subregions. Valid source
+  fractions, integer offsets mapped to fractional device displacement, and
+  every blur-plus-offset graph remain named backend-precision boundaries.
+  Direct flood CSS, `var()`, explicit inheritance, wider color functions, and
+  CSS math likewise refuse under their independently listed rows; the pinned
+  cascade has no flood longhands and no second matcher is added around it.
+  Gaussian blur keeps its measured number-list and axis behavior, source and
+  color-space routing, and safe multi-node graphs. The older graph-depth
+  diagnosis is withdrawn: three chained safe-sigma kernels, identity-merge
+  chains, and parallel branches are exact. The actual pinned-backend boundary
+  is sampled from effective `.5` through `1.875`, while `.25` and `2` are
+  exact (measured, not celled). The patrol conservatively refuses the open
+  interval between those endpoints after target mapping. Current Chromium
+  ignores `edgeMode` on blur (measured, not celled); its global row remains open
+  because the attribute also applies to `<feConvolveMatrix>`.
+  `filterUnits` and `primitiveUnits` carry their complete case-sensitive
   `userSpaceOnUse | objectBoundingBox` grammars, defaults, and invalid-value
   fallbacks. Filter and primitive regions accept admitted finite numbers,
   percentages, and `px`, with hard clipping and object-box/viewport bases.
-  Non-`px` units, CSS math, `var()`, used-range gaps, a non-positive primitive
-  region, unsupported primitives, `href`, external/root/list routes, CSS and
-  raw-syntax color ingress, and graphs deeper than two operations refuse by
-  stable name. The depth patrol is measured: a third chained blur differs
-  from Chromium by 680 pixels at maximum channel delta 3, while one and two
-  operations are exact. Current Chromium ignores `edgeMode` on blur
-  (measured, not celled); its global row remains open because the attribute
-  also applies to `<feConvolveMatrix>`. Likewise `stdDeviation` also belongs
-  to `<feDropShadow>`, so that row and both filter element rows stay open.
-  Twenty-five Chromium-baked filter cells are byte-exact, and the former broad
-  refusal is replaced by sixteen focused rows. The complete corpus is 386
-  Chromium-baked cells plus 10 sampled frames, with 116 named refusal rows.
+  Target/group isolation, fill and stroke, transforms, non-uniform `viewBox`,
+  `<use>`, nesting, and the filter, then mask, then opacity, then clip order
+  remain one composition route. Non-`px` units, CSS math, `var()`, used-range
+  gaps, non-positive primitive regions, unsupported primitives, `href`, and
+  external/root/list routes still refuse by stable name.
+  Flood percentages retain the CSS parser's parse/divide/narrow order; the
+  raw-f32 neighbour alias is an exact regression cell. Eighty-five
+  Chromium-baked filter cells are exact: twenty-five from the chassis rung and
+  sixty from the shadow-graph rung. The complete corpus is 446 Chromium-baked
+  cells plus 10 sampled frames, with 124 named refusal
+  rows. `feFlood`, `feComposite`, `feMerge`, `feMergeNode`, and `k1`–`k4`
+  close; `feOffset`, `feGaussianBlur`, `<filter>`, `filter`, `in`, `in2`,
+  `operator`, `result`, `dx`, `dy`, `flood-color`, and `flood-opacity` remain
+  open for the named precision, applicability, resource, cascade, or value
+  remainder.
   A stroke is centred, its width is a cascaded length in either spelling —
   numbers, absolute units, `em`/`rem` against an authored or default
   font-size, percentages against the normalized diagonal, and pure-length

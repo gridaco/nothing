@@ -67,15 +67,30 @@ pub(crate) enum ResolvedFilterInput {
     Node(usize),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) enum ResolvedFilterComposite {
+    Over,
+    In,
+    Out,
+    Atop,
+    Xor,
+    Lighter,
+    Arithmetic { k1: f32, k2: f32, k3: f32, k4: f32 },
+}
+
 /// The private filter-operation vocabulary admitted by the painter.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum ResolvedFilterPrimitive {
     GaussianBlur { sigma_x: f32, sigma_y: f32 },
+    Offset { dx: f32, dy: f32 },
+    SolidColor { color: n0_model::model::Color32F },
+    Composite { operator: ResolvedFilterComposite },
+    Merge,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ResolvedFilterNode {
-    pub input: ResolvedFilterInput,
+    pub inputs: Arc<[ResolvedFilterInput]>,
     pub region: n0_model::math::RectF,
     pub color_space: ResolvedFilterColorSpace,
     pub primitive: ResolvedFilterPrimitive,

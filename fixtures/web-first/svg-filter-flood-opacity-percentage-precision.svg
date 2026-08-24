@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="white"/>
+  <defs>
+    <filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+            x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+      <feFlood flood-color="red" flood-opacity="57.384267578125007%" result="f"/>
+      <feComposite in="f" in2="f" operator="arithmetic"
+                   k2="1048576" k4="-601717.1875"/>
+    </filter>
+  </defs>
+  <rect width="64" height="64" filter="url(#f)"/>
+</svg>
