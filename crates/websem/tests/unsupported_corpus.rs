@@ -248,7 +248,74 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "unit whose basis",
     ),
     ("svg-image", DeclaredByBestEffort, "<image>"),
-    ("svg-mask", DeclaredByBestEffort, "<mask>"),
+    (
+        "svg-mask-css-properties",
+        DeclaredByBestEffort,
+        "declares mask-image",
+    ),
+    (
+        "svg-mask-cycle",
+        DeclaredByBestEffort,
+        "cyclic nested mask chain",
+    ),
+    ("svg-mask-external", DeclaredByBestEffort, "external"),
+    (
+        "svg-mask-full-shorthand",
+        DeclaredByBestEffort,
+        "full shorthand",
+    ),
+    (
+        "svg-mask-region-calc",
+        DeclaredByBestEffort,
+        "mask region x uses calc()",
+    ),
+    (
+        "svg-mask-region-unit",
+        DeclaredByBestEffort,
+        "mask region x uses the em unit",
+    ),
+    (
+        "svg-mask-region-used-range",
+        DeclaredByBestEffort,
+        "mask region x crosses the unimplemented Web used-length range",
+    ),
+    (
+        "svg-mask-region-var",
+        DeclaredByBestEffort,
+        "mask region x uses var()",
+    ),
+    (
+        "svg-mask-resource-style-inheritance",
+        DeclaredByBestEffort,
+        "source-side cascade effect is not represented",
+    ),
+    ("svg-mask-root", BothRefuse, "root <svg>"),
+    (
+        "svg-mask-source-pattern",
+        DeclaredByBestEffort,
+        "mask source cannot be compiled completely",
+    ),
+    (
+        "svg-mask-transform-precision",
+        DeclaredByBestEffort,
+        "translation/positive-downscale precision envelope",
+    ),
+    ("svg-mask-type-css", DeclaredByBestEffort, "CSS mask-type"),
+    (
+        "svg-mask-type-inherit",
+        DeclaredByBestEffort,
+        "mask-type presentation attribute uses inherit",
+    ),
+    (
+        "svg-mask-type-var",
+        DeclaredByBestEffort,
+        "mask-type presentation attribute uses var()",
+    ),
+    (
+        "svg-mask-var",
+        DeclaredByBestEffort,
+        "mask presentation attribute uses var()",
+    ),
     (
         "svg-nested-svg",
         DeclaredByBestEffort,

@@ -33,7 +33,7 @@ use skia_safe::{
 
 use crate::drawlist::{
     DrawList, ItemKind, PostPaintOpacity, ResolvedClipGeometry, ResolvedClipGeometryKind,
-    ResolvedClipLayer, ResolvedClipPath, StrokeDashPhase,
+    ResolvedClipLayer, ResolvedClipPath, ResolvedMaskMode, StrokeDashPhase,
 };
 
 /// The gradient family whose local matrix could not be represented by the
@@ -751,7 +751,11 @@ pub(crate) fn preflight_gradients<K: Copy>(
             | ItemKind::EndOpacity
             | ItemKind::BeginClipRect { .. }
             | ItemKind::BeginClipPath { .. }
-            | ItemKind::EndClip => {}
+            | ItemKind::EndClip
+            | ItemKind::BeginMaskContent
+            | ItemKind::BeginMaskSource { .. }
+            | ItemKind::EndMaskSource
+            | ItemKind::EndMaskContent => {}
         }
     }
     Ok(())
@@ -932,7 +936,11 @@ pub(crate) fn preflight_images(
             | ItemKind::EndOpacity
             | ItemKind::BeginClipRect { .. }
             | ItemKind::BeginClipPath { .. }
-            | ItemKind::EndClip => {}
+            | ItemKind::EndClip
+            | ItemKind::BeginMaskContent
+            | ItemKind::BeginMaskSource { .. }
+            | ItemKind::EndMaskSource
+            | ItemKind::EndMaskContent => {}
         }
     }
     Ok(())
@@ -2161,6 +2169,8 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
     enum Scope {
         Opacity,
         Clip,
+        MaskContent,
+        MaskSource,
     }
 
     let initial_save_count = canvas.save_count();
@@ -2236,6 +2246,44 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
             ItemKind::EndClip => {
                 let scope = scopes.pop();
                 debug_assert_eq!(scope, Some(Scope::Clip));
+                if scope.is_some() {
+                    canvas.restore();
+                }
+            }
+            ItemKind::BeginMaskContent => {
+                canvas.save_layer(&SaveLayerRec::default());
+                scopes.push(Scope::MaskContent);
+            }
+            ItemKind::BeginMaskSource { mode, region } => {
+                let mut restore_paint = Paint::default();
+                restore_paint.set_blend_mode(skia_safe::BlendMode::DstIn);
+                if *mode == ResolvedMaskMode::Luminance {
+                    restore_paint.set_color_filter(skia_safe::ColorFilter::luma());
+                }
+                let layer = SaveLayerRec::default().paint(&restore_paint);
+                canvas.save_layer(&layer);
+                let total = view.then(&item.world);
+                canvas.set_matrix(&skia_matrix(&total).into());
+                let path = backend_clip_path(region)
+                    .expect("geometric mask region was preflighted at product build");
+                // Chromium realizes the mask region as the backing image's
+                // hard bounds. It does not contribute another coverage ramp:
+                // a fractional default region cuts a stroked target at pixel
+                // centers, while the mask source's own geometry remains
+                // antialiased inside those bounds.
+                canvas.clip_path(&path, ClipOp::Intersect, false);
+                scopes.push(Scope::MaskSource);
+            }
+            ItemKind::EndMaskSource => {
+                let scope = scopes.pop();
+                debug_assert_eq!(scope, Some(Scope::MaskSource));
+                if scope.is_some() {
+                    canvas.restore();
+                }
+            }
+            ItemKind::EndMaskContent => {
+                let scope = scopes.pop();
+                debug_assert_eq!(scope, Some(Scope::MaskContent));
                 if scope.is_some() {
                     canvas.restore();
                 }

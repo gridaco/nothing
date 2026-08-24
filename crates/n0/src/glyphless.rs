@@ -21,12 +21,13 @@ use n0_model::model::{
     StrokeAlign, StrokeCap, StrokeJoin, StrokeWidth,
 };
 use n0_model::path::ResolvedPathArtifact;
-use rframe::{ClipPath, Frame, FrameItem, Geometry, PaintStack, ScopeEffect, VisualRef};
+use rframe::{ClipPath, Frame, FrameItem, Geometry, MaskMode, PaintStack, ScopeEffect, VisualRef};
 
 use crate::damage::{diff_inputs, DamageOwner, FrameDamageInput};
 use crate::drawlist::{
     DrawList, GlyphlessOwnerSlot, Item, ItemKind, PostPaintOpacity, ResolvedClipGeometry,
-    ResolvedClipGeometryKind, ResolvedClipLayer, ResolvedClipPath, StrokeDashPhase,
+    ResolvedClipGeometryKind, ResolvedClipLayer, ResolvedClipPath, ResolvedMaskMode,
+    StrokeDashPhase,
 };
 use crate::frame::FrameExecutionError;
 use crate::paint::PaintCtx;
@@ -71,6 +72,12 @@ pub enum BuildError {
         owner: VisualRef,
         reason: String,
     },
+    /// A resolved image mask's geometric region failed deterministic backend
+    /// preflight. Executing it could otherwise turn a mask into no mask.
+    Mask {
+        owner: VisualRef,
+        reason: String,
+    },
 }
 
 impl std::fmt::Display for BuildError {
@@ -109,6 +116,12 @@ impl std::fmt::Display for BuildError {
                 write!(
                     f,
                     "glyphless visual {owner:?} clip preflight failed: {reason}"
+                )
+            }
+            BuildError::Mask { owner, reason } => {
+                write!(
+                    f,
+                    "glyphless visual {owner:?} mask preflight failed: {reason}"
                 )
             }
         }
@@ -185,15 +198,21 @@ pub struct Damage {
     pub union_frame: Option<math2::Rectangle>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum OpenScopeKind {
     Opacity,
     Clip {
         bounds: Option<n0_model::math::RectF>,
     },
+    Mask {
+        mode: ResolvedMaskMode,
+        region: Arc<ResolvedClipPath>,
+        bounds: Option<n0_model::math::RectF>,
+        target_coverage: Option<n0_model::math::RectF>,
+    },
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct OpenScope {
     slot: GlyphlessOwnerSlot,
     coverage: Option<n0_model::math::RectF>,
@@ -258,7 +277,12 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
     let owner_count = resolved
         .items
         .iter()
-        .filter(|item| !matches!(item, FrameItem::ScopeEnd))
+        .filter(|item| {
+            matches!(
+                item,
+                FrameItem::Node(_) | FrameItem::ScopeBegin(_) | FrameItem::MaskBegin(_)
+            )
+        })
         .count()
         .checked_add(1)
         .ok_or(BuildError::TooManyVisuals)?;
@@ -349,14 +373,19 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
             }
             FrameItem::ScopeEnd => {
                 let scope = open_scopes.pop().expect("checked stream is balanced");
-                let coverage = match scope.kind {
-                    OpenScopeKind::Opacity => scope.coverage,
+                let (coverage, world, end) = match scope.kind {
+                    OpenScopeKind::Opacity => (scope.coverage, frame_world, ItemKind::EndOpacity),
                     OpenScopeKind::Clip { bounds } => match (scope.coverage, bounds) {
-                        (Some(coverage), Some(bounds)) => {
-                            bounded_intersection_rectf(coverage, bounds, resolved.bounds)
-                        }
-                        _ => None,
+                        (Some(coverage), Some(bounds)) => (
+                            bounded_intersection_rectf(coverage, bounds, resolved.bounds),
+                            Affine::IDENTITY,
+                            ItemKind::EndClip,
+                        ),
+                        _ => (None, Affine::IDENTITY, ItemKind::EndClip),
                     },
+                    OpenScopeKind::Mask { .. } => {
+                        unreachable!("checked mask scopes close with MaskEnd")
+                    }
                 };
                 let slot = scope.slot;
                 provenance.coverage[slot.index()] = coverage;
@@ -368,14 +397,114 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                 }
                 items.push(Item {
                     node: slot,
-                    world: match scope.kind {
-                        OpenScopeKind::Opacity => frame_world,
-                        OpenScopeKind::Clip { .. } => Affine::IDENTITY,
+                    world,
+                    kind: end,
+                });
+                continue;
+            }
+            FrameItem::MaskBegin(mask) => {
+                if !unique.insert(mask.owner) {
+                    return Err(BuildError::DuplicateOwner(mask.owner));
+                }
+                let slot = GlyphlessOwnerSlot::new(
+                    u32::try_from(provenance.owners.len()).expect("owner count checked above"),
+                );
+                provenance.owners.push(mask.owner);
+                provenance.coverage.push(None);
+                let region = Arc::new(compile_clip_path(mask.region()));
+                if !crate::paint::preflight_clip_path(&region) {
+                    return Err(BuildError::Mask {
+                        owner: mask.owner,
+                        reason: "geometric mask-region operation failed".to_string(),
+                    });
+                }
+                let bounds = mask
+                    .region()
+                    .bounds()
+                    .and_then(|bounds| bounded_geometry_coverage(bounds, resolved.bounds));
+                let mode = match mask.mode() {
+                    MaskMode::Alpha => ResolvedMaskMode::Alpha,
+                    MaskMode::Luminance => ResolvedMaskMode::Luminance,
+                };
+                items.push(Item {
+                    node: slot,
+                    world: frame_world,
+                    kind: ItemKind::BeginMaskContent,
+                });
+                open_scopes.push(OpenScope {
+                    slot,
+                    coverage: None,
+                    kind: OpenScopeKind::Mask {
+                        mode,
+                        region,
+                        bounds,
+                        target_coverage: None,
                     },
-                    kind: match scope.kind {
-                        OpenScopeKind::Opacity => ItemKind::EndOpacity,
-                        OpenScopeKind::Clip { .. } => ItemKind::EndClip,
+                });
+                continue;
+            }
+            FrameItem::MaskSource => {
+                let scope = open_scopes
+                    .last_mut()
+                    .expect("checked mask source has an open target");
+                let OpenScopeKind::Mask {
+                    mode,
+                    region,
+                    target_coverage,
+                    ..
+                } = &mut scope.kind
+                else {
+                    unreachable!("checked mask source directly follows its target")
+                };
+                *target_coverage = scope.coverage.take();
+                items.push(Item {
+                    node: scope.slot,
+                    world: Affine::IDENTITY,
+                    kind: ItemKind::BeginMaskSource {
+                        mode: *mode,
+                        region: Arc::clone(region),
                     },
+                });
+                continue;
+            }
+            FrameItem::MaskEnd => {
+                let scope = open_scopes
+                    .pop()
+                    .expect("checked mask end has an open source");
+                let OpenScopeKind::Mask {
+                    bounds,
+                    target_coverage,
+                    ..
+                } = scope.kind
+                else {
+                    unreachable!("checked mask end closes a mask source")
+                };
+                let coverage = match (target_coverage, scope.coverage, bounds) {
+                    (Some(target), Some(source), Some(bounds)) => {
+                        bounded_intersection_rectf(target, source, resolved.bounds).and_then(
+                            |intersection| {
+                                bounded_intersection_rectf(intersection, bounds, resolved.bounds)
+                            },
+                        )
+                    }
+                    _ => None,
+                };
+                provenance.coverage[scope.slot.index()] = coverage;
+                if let (Some(coverage), Some(parent)) = (coverage, open_scopes.last_mut()) {
+                    parent.coverage = Some(match parent.coverage {
+                        None => coverage,
+                        Some(parent) => bounded_union_rectf(parent, coverage, resolved.bounds),
+                    });
+                }
+                items.push(Item {
+                    node: scope.slot,
+                    world: Affine::IDENTITY,
+                    kind: ItemKind::EndMaskSource,
+                });
+                items.push(Item {
+                    node: scope.slot,
+                    world: frame_world,
+                    kind: ItemKind::EndMaskContent,
                 });
                 continue;
             }
@@ -1316,7 +1445,11 @@ mod tests {
             | ItemKind::EndOpacity
             | ItemKind::BeginClipRect { .. }
             | ItemKind::BeginClipPath { .. }
-            | ItemKind::EndClip => None,
+            | ItemKind::EndClip
+            | ItemKind::BeginMaskContent
+            | ItemKind::BeginMaskSource { .. }
+            | ItemKind::EndMaskSource
+            | ItemKind::EndMaskContent => None,
         }
     }
 

@@ -45,6 +45,13 @@ pub struct ResolvedClipPath {
     pub(crate) layers: Arc<[ResolvedClipLayer]>,
 }
 
+/// Drawlist projection of a resolved mask-source interpretation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResolvedMaskMode {
+    Alpha,
+    Luminance,
+}
+
 /// Product-local owner slot for a source-neutral glyphless frame.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct GlyphlessOwnerSlot(u32);
@@ -200,6 +207,17 @@ pub enum ItemKind {
         clip: Arc<ResolvedClipPath>,
     },
     EndClip,
+    /// Open the isolated target composite of a resolved image mask.
+    BeginMaskContent,
+    /// Switch from target painting to the isolated mask-source image. The
+    /// source is clipped to `region`, then restored through DstIn; luminance
+    /// mode first converts source color to alpha.
+    BeginMaskSource {
+        mode: ResolvedMaskMode,
+        region: Arc<ResolvedClipPath>,
+    },
+    EndMaskSource,
+    EndMaskContent,
     RectFill {
         w: f32,
         h: f32,

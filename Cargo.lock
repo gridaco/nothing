@@ -6536,6 +6536,7 @@ dependencies = [
  "animation-sampling",
  "cg",
  "csscascade",
+ "cssparser",
  "math2",
  "n0",
  "rframe",

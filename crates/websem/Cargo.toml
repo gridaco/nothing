@@ -24,6 +24,10 @@ textlayout = { path = "../textlayout" }
 math2 = { path = "../math2" }
 # The one namespace-aware document + the one (Stylo) browser-grade cascade.
 csscascade = { path = "../csscascade" }
+# Decode direct SVG presentation-attribute values whose longhands are absent
+# from the pinned Servo-mode Stylo build. This is an attribute grammar parser,
+# never a second selector matcher or cascade.
+cssparser = "0.37.0"
 # Read computed values (e.g. `color`) out of the shared cascade. Imported as `style`.
 stylo.workspace = true
 # Parse the `stop-color` attribute with the same CSS parser the cascade uses

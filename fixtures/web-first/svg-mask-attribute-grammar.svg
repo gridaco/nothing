@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <defs>
+    <mask id="units-object" maskUnits="objectBoundingBox" x="0" y="0" width=".5" height="1" mask-type="alpha">
+      <rect x="-128" y="-128" width="512" height="512" fill="white"/>
+    </mask>
+    <mask id="units-user" maskUnits="userSpaceOnUse" x="20" y="0" width="10" height="32" mask-type="alpha">
+      <rect x="-128" y="-128" width="512" height="512" fill="white"/>
+    </mask>
+    <mask id="content-object" maskUnits="userSpaceOnUse" x="0" y="32" width="20" height="32"
+          maskContentUnits="objectBoundingBox" mask-type="alpha">
+      <rect x="0" y="0" width=".5" height="1" fill="white"/>
+    </mask>
+    <mask id="content-user" maskUnits="userSpaceOnUse" x="20" y="32" width="20" height="32"
+          maskContentUnits="userSpaceOnUse" mask-type="alpha">
+      <rect x="20" y="32" width="10" height="32" fill="white"/>
+    </mask>
+    <mask id="mode-luma" maskUnits="userSpaceOnUse" x="40" y="0" width="24" height="32" mask-type="luminance">
+      <rect x="40" y="0" width="24" height="32" fill="red"/>
+    </mask>
+    <mask id="mode-alpha" maskUnits="userSpaceOnUse" x="40" y="32" width="24" height="32" mask-type="alpha">
+      <rect x="40" y="32" width="24" height="32" fill="red"/>
+    </mask>
+  </defs>
+  <rect x="0" y="0" width="20" height="32" fill="black" mask="url(#units-object)"/>
+  <rect x="20" y="0" width="20" height="32" fill="black" mask="url(#units-user)"/>
+  <rect x="0" y="32" width="20" height="32" fill="black" mask="url(#content-object)"/>
+  <rect x="20" y="32" width="20" height="32" fill="black" mask="url(#content-user)"/>
+  <rect x="40" y="0" width="24" height="32" fill="black" mask="url(#mode-luma)"/>
+  <rect x="40" y="32" width="24" height="32" fill="black" mask="url(#mode-alpha)"/>
+</svg>

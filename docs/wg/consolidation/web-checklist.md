@@ -622,10 +622,20 @@ excluded.
 - [ ] `mask-type`
 - [ ] `mask-border`
 - [ ] `mask-border-source`
+- [ ] `mask-border-mode`
 - [ ] `mask-border-slice`
 - [ ] `mask-border-width`
 - [ ] `mask-border-outset`
 - [ ] `mask-border-repeat`
+
+> **2026-08-24 split:** same-document SVG image masks now render through the
+> direct presentation-attribute route described below. Every CSS mask-family
+> row remains open: this Servo-mode Stylo pin furnishes no computed mask route
+> the compiler can consume, so authored declarations are quarantined by name
+> across style attributes, stylesheets, shorthands, longhands, border
+> longhands, and the `-webkit-mask-image` alias. No matcher was added around
+> the cascade. `mask-border-mode`, present in CSS Masking Level 1, is added to
+> the checklist here; it was missing from the earlier enumeration.
 
 
 ### Filter effects
@@ -1435,6 +1445,16 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [x] `<linearGradient>`
 - [ ] `<marker>`
 - [ ] `<mask>`
+
+> **2026-08-24 split:** one isolated alpha/luminance source image, both
+> coordinate systems, hard regions, admitted graphics children, transforms,
+> gradients, clips, `<use>`, nesting, and target opacity now render. The
+> element stays open because valid nested cycles and source children whose own
+> element rows remain open still refuse transactionally; the root host-layer
+> and external-resource routes remain separate boundaries. An unrepresented
+> inline declaration on the resource also refuses before its inherited effect
+> can change a source descendant silently.
+
 - [ ] `<metadata>`
 - [ ] `<mpath>`
 - [x] `<path>`
@@ -1535,7 +1555,19 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `marker-mid`
 - [ ] `marker-start`
 - [ ] `mask`
-- [ ] `mask-type`
+- [x] `mask-type`
+
+> **2026-08-24 split:** the `mask` presentation attribute admits `none` and
+> one same-document `url(#…)`, including CSS comments, first-id lookup,
+> invalid-reference fallback, `<use>`, and nested-mask use. It stays open for
+> the full shorthand/multiple-layer grammar, `var()`, root and external
+> resource routes, cycles, unsupported source children, and the measured
+> target-transform region-precision boundary. `mask-type` closes at its
+> complete `luminance | alpha` grammar, including the missing/default value, invalid
+> fallback, and reset keywords. Explicit inheritance and `var()` remain named
+> refusals under their independently listed CSS-wide/custom-property rows;
+> the CSS property twin stays open at the pinned-cascade boundary.
+
 - [x] `opacity`
 - [ ] `overflow`
 - [ ] `paint-order`
@@ -1683,8 +1715,16 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `markerHeight`
 - [ ] `markerUnits`
 - [ ] `markerWidth`
-- [ ] `maskContentUnits`
-- [ ] `maskUnits`
+- [x] `maskContentUnits`
+- [x] `maskUnits`
+
+> **2026-08-24 close:** both attributes carry their complete case-sensitive
+> `userSpaceOnUse | objectBoundingBox` grammar, missing-value defaults, and
+> invalid-value fallback. Committed Chromium evidence discriminates both
+> coordinate systems for the source image and the hard mask region, including
+> target fill-box mapping, stroke exclusion, viewport/`viewBox` percentages,
+> and explicit spellings of every enum member.
+
 - [ ] `media`
 - [ ] `method`
 - [ ] `mode`

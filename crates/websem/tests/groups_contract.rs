@@ -344,45 +344,36 @@ fn an_empty_transform_list_is_the_identity() {
     }
 }
 
-/// Flattening is only honest while every construct needing a real group
-/// scope refuses: a container carrying one is a declared hole, not a
-/// silently un-scoped paint.
+/// Flattening is only honest while every unrepresented construct needing a
+/// real group scope refuses: a container carrying one is a declared hole,
+/// not a silently un-scoped paint.
 #[test]
-fn scope_bearing_containers_still_refuse() {
-    for (label, attrs, named) in [
-        // `opacity` left this table with the group-scope rung — the
-        // contract grew the scope it was waiting for, and its laws live in
-        // `opacity_contract.rs`. Geometric `clip-path` likewise graduated to
-        // its own contract tests. The two below still refuse: each needs a
-        // resource effect the scope vocabulary does not represent.
-        ("group mask", r#"mask="url(#m)""#, "mask"),
-        ("group filter", r#"filter="url(#f)""#, "filter"),
-    ] {
-        let source = document(&format!(
-            r##"  <g {attrs}><rect width="8" height="8" fill="#16a34a"/></g>"##
-        ));
-        let error = SvgFrameSource::from_standalone_svg(source.as_str(), viewport(64.0, 64.0))
-            .err()
-            .unwrap_or_else(|| panic!("{label}: strict must refuse"));
-        assert!(error.to_string().contains(named), "{label}: {error}");
+fn a_scope_bearing_filter_container_still_refuses() {
+    // `opacity`, geometric `clip-path`, and same-document SVG `mask` each
+    // graduated to their own contract tests. Filter remains a resource effect
+    // the scope vocabulary does not represent.
+    let source =
+        document(r##"  <g filter="url(#f)"><rect width="8" height="8" fill="#16a34a"/></g>"##);
+    let error = SvgFrameSource::from_standalone_svg(source.as_str(), viewport(64.0, 64.0))
+        .expect_err("group filter: strict must refuse");
+    assert!(error.to_string().contains("filter"), "{error}");
 
-        let best =
-            SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
-                .unwrap_or_else(|e| panic!("{label}: best-effort compiles: {e}"));
-        let skipped: Vec<_> = best
-            .degradations()
-            .iter()
-            .filter(|d| d.action() == DegradationAction::Skipped)
-            .collect();
-        assert_eq!(skipped.len(), 1, "{label}");
-        assert_eq!(skipped[0].path(), "svg/g[1]", "{label}");
-        assert_eq!(
-            best.base_frame().nodes().len(),
-            0,
-            "{label}: the whole subtree is one hole — nothing inside it can be \
-             placed or composited without the construct"
-        );
-    }
+    let best =
+        SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
+            .unwrap_or_else(|e| panic!("group filter: best-effort compiles: {e}"));
+    let skipped: Vec<_> = best
+        .degradations()
+        .iter()
+        .filter(|d| d.action() == DegradationAction::Skipped)
+        .collect();
+    assert_eq!(skipped.len(), 1);
+    assert_eq!(skipped[0].path(), "svg/g[1]");
+    assert_eq!(
+        best.base_frame().nodes().len(),
+        0,
+        "the whole subtree is one hole — nothing inside it can be placed or \
+         composited without the construct"
+    );
 }
 
 /// The CSS-spelled transform is the same property as the attribute (CSS

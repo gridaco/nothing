@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <mask id="shape" style="shape-rendering: crispEdges" mask-type="alpha">
+    <rect x="8.25" y="8" width="23.5" height="48" fill="white"/>
+  </mask>
+  <mask id="color" style="color-interpolation: linearRGB">
+    <rect x="8" y="8" width="48" height="48" fill="red"/>
+  </mask>
+  <rect x="8" y="8" width="24" height="48" fill="black" mask="url(#shape)"/>
+  <rect x="32" y="8" width="24" height="48" fill="black" mask="url(#color)"/>
+</svg>

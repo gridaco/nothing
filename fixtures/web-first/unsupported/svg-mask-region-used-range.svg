@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <mask id="m" maskUnits="userSpaceOnUse" x="1000000000" y="0"
+        width="64" height="64" mask-type="alpha">
+    <rect x="33554300" y="-2" width="400" height="68" fill="white"/>
+  </mask>
+  <rect x="33554400" y="8" width="128" height="48"
+        transform="translate(-33554400)" fill="black" mask="url(#m)"/>
+  <mask id="m2" maskUnits="userSpaceOnUse" x="1e100" y="0"
+        width="64" height="64" mask-type="alpha">
+    <rect x="33554300" y="-2" width="400" height="68" fill="white"/>
+  </mask>
+  <rect x="33554400" y="8" width="128" height="48"
+        transform="translate(-33554400)" fill="black" mask="url(#m2)"/>
+</svg>

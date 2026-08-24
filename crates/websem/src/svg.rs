@@ -134,9 +134,9 @@ use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
     ClipGeometry, ClipLayer, ClipPath, FillRule, Frame, FrameItem, FrameItems, FrameItemsError,
-    FrameNode, Geometry, Identity, PaintAlphaFactor, PaintStack, PathData, Provenance, Scope,
-    ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeDash, StrokeDashIntervals,
-    StrokeDashIntervalsError, StrokeJoin, VisualRef,
+    FrameNode, Geometry, Identity, Mask, MaskMode, PaintAlphaFactor, PaintStack, PathData,
+    Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeDash,
+    StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, VisualRef,
 };
 use std::sync::Arc;
 
@@ -332,6 +332,9 @@ pub enum CompileError {
     /// A clip-path value or resource that requires a semantic route outside
     /// the admitted resolved geometric path strategy.
     UnsupportedClipPath(String),
+    /// A mask value, resource, or source subtree that cannot be resolved into
+    /// the admitted two-phase source-neutral image-mask contract.
+    UnsupportedMask(String),
     /// A numeric attribute failed to parse.
     BadNumber { attr: String, value: String },
     /// Viewport sizing needs a default/CSS sizing path this slice lacks.
@@ -866,6 +869,9 @@ impl std::fmt::Display for CompileError {
             CompileError::UnsupportedClipPath(reason) => {
                 write!(f, "unsupported SVG clip-path: {reason}")
             }
+            CompileError::UnsupportedMask(reason) => {
+                write!(f, "unsupported SVG mask: {reason}")
+            }
             CompileError::BadNumber { attr, value } => {
                 write!(f, "attribute {attr}={value:?} is not a number")
             }
@@ -1050,7 +1056,6 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     // visibility rung).
     "overflow",
     "clip",
-    "mask",
     "filter",
     // `color` is absent here since the use/defs rung: it is an admitted
     // presentation hint (csscascade), the currentColor basis the paint
@@ -1192,6 +1197,21 @@ const CASCADE_PROPERTIES_NOT_REPRESENTED: &[&str] = &[
     "backdrop-filter",
     "mask",
     "mask-image",
+    "mask-mode",
+    "mask-repeat",
+    "mask-position",
+    "mask-clip",
+    "mask-origin",
+    "mask-size",
+    "mask-composite",
+    "mask-type",
+    "mask-border",
+    "mask-border-source",
+    "mask-border-mode",
+    "mask-border-slice",
+    "mask-border-width",
+    "mask-border-outset",
+    "mask-border-repeat",
     "mix-blend-mode",
     "isolation",
     "paint-order",
@@ -1260,7 +1280,11 @@ const VENDOR_PREFIXES: &[&str] = &["-webkit-", "-moz-", "-ms-", "-o-"];
 /// The honest fix is to tokenize with the CSS parser the document already
 /// carries; until then the direction of every rule here is the same — it can
 /// only ever *add* a refusal, never admit one.
-fn unrepresented_property(css: &str) -> Option<String> {
+///
+/// `admitted` is an element-local exception list for declarations measured
+/// inert at that exact resource seat. It never changes the global cascade
+/// inventory.
+fn unrepresented_property_except(css: &str, admitted: &[&str]) -> Option<String> {
     let css = strip_css_comments(css);
     for chunk in css.split([';', '{', '}']) {
         let Some((name, _)) = chunk.split_once(':') else {
@@ -1274,11 +1298,17 @@ fn unrepresented_property(css: &str) -> Option<String> {
             .iter()
             .find_map(|prefix| name.strip_prefix(prefix))
             .unwrap_or(name.as_str());
-        if CASCADE_PROPERTIES_NOT_REPRESENTED.contains(&unprefixed) {
+        if CASCADE_PROPERTIES_NOT_REPRESENTED.contains(&unprefixed)
+            && !admitted.contains(&unprefixed)
+        {
             return Some(name);
         }
     }
     None
+}
+
+fn unrepresented_property(css: &str) -> Option<String> {
+    unrepresented_property_except(css, &[])
 }
 
 /// The first basis-less length unit declared for `stroke-width` in a CSS
@@ -1815,9 +1845,37 @@ fn measure_use_boxes_in_subtree(
             child = el.next_element_sibling();
             continue;
         }
+        if tag == "defs" {
+            let _ = measure_use_boxes_in_subtree(
+                el,
+                values,
+                bases,
+                fonts,
+                override_skips,
+                boxes,
+                depth + 1,
+            );
+            child = el.next_element_sibling();
+            continue;
+        }
+        if tag == "mask" {
+            // The resource contributes no box where it is authored, but its
+            // descendants may contain `<use>` targets needed when the mask is
+            // compiled lazily for a referencing element.
+            let _ = measure_use_boxes_in_subtree(
+                el,
+                values,
+                bases,
+                fonts,
+                override_skips,
+                boxes,
+                depth + 1,
+            );
+            child = el.next_element_sibling();
+            continue;
+        }
         if is_non_rendering_element(&tag)
             || is_animation_element(&tag)
-            || tag == "defs"
             || tag == "clipPath"
             || tag == "linearGradient"
             || tag == "radialGradient"
@@ -1892,9 +1950,36 @@ fn measure_effect_boxes_in_subtree(
             child = el.next_element_sibling();
             continue;
         }
+        if tag == "defs" {
+            let _ = measure_effect_boxes_in_subtree(
+                el,
+                values,
+                bases,
+                fonts,
+                override_skips,
+                effect_boxes,
+                depth + 1,
+            );
+            child = el.next_element_sibling();
+            continue;
+        }
+        if tag == "mask" {
+            // Index potential mask-source targets without letting the
+            // never-rendered resource contribute to any authored parent box.
+            let _ = measure_effect_boxes_in_subtree(
+                el,
+                values,
+                bases,
+                fonts,
+                override_skips,
+                effect_boxes,
+                depth + 1,
+            );
+            child = el.next_element_sibling();
+            continue;
+        }
         if is_non_rendering_element(&tag)
             || is_animation_element(&tag)
-            || tag == "defs"
             || tag == "clipPath"
             || tag == "linearGradient"
             || tag == "radialGradient"
@@ -1975,6 +2060,7 @@ fn measure_subtree_geometry(
             || is_animation_element(&tag)
             || tag == "defs"
             || tag == "clipPath"
+            || tag == "mask"
             || tag == "linearGradient"
             || tag == "radialGradient"
             || tag == "pattern"
@@ -2294,6 +2380,14 @@ fn compile_svg_element(
     // so the root patrols are document-level in both modes.
     patrol_rendering_attributes(svg, "svg", ROOT_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
     patrol_style_attribute(svg, "svg")?;
+    if matches!(
+        mask_resource::authored_mask(svg)?,
+        mask_resource::AuthoredMask::Fragment(_)
+    ) {
+        return Err(CompileError::UnsupportedMask(
+            "mask on the root <svg> uses the host CSS-layer coordinate route".to_string(),
+        ));
+    }
     // A root `display: none` splits by entry, and the split is measured:
     // a *standalone* document's outermost `<svg>` ignores it — the baked
     // `svg-display-none-root` oracle paints normally — while an *embedded*
@@ -2411,6 +2505,7 @@ fn compile_svg_element(
     // refuses rather than paints.
     let servers = PaintServers::collect(document_root(svg), svg);
     let clips = clip_path::Resources::collect(document_root(svg), svg);
+    let masks = mask_resource::Resources::collect(document_root(svg), svg);
     let GeometryMeasurements {
         use_boxes,
         effect_boxes,
@@ -2424,6 +2519,7 @@ fn compile_svg_element(
         has_author_css: document_has_author_css(svg),
         servers: &servers,
         clips: &clips,
+        masks: &masks,
         use_boxes,
         effect_boxes,
         paint_contexts: Vec::new(),
@@ -2431,6 +2527,7 @@ fn compile_svg_element(
         fonts,
         items: Vec::new(),
         top_level_shapes: Vec::new(),
+        active_masks: Vec::new(),
         next_id: 0,
     };
     if root_disposition != RenderDisposition::PrunedSubtree || initial_viewport.is_some() {
@@ -2459,7 +2556,7 @@ fn compile_svg_element(
 
     let items = match FrameItems::try_new(items) {
         Ok(items) => items,
-        Err(FrameItemsError::ScopeTooDeep { .. }) => {
+        Err(FrameItemsError::ScopeTooDeep { .. } | FrameItemsError::MaskTooDeep { .. }) => {
             return Err(CompileError::EffectScopeTooDeep(rframe::MAX_SCOPE_DEPTH));
         }
         Err(error) => panic!("the walk emitted an invalid scope stream: {error}"),
@@ -2530,9 +2627,9 @@ impl SpanFacts {
 /// opacity emits a real [`rframe::Scope`] (an isolated layer). Chromium's
 /// routes differ by code values, so the split is measured meaning, not an
 /// optimization.
-/// Geometric `clip-path` now wraps a completed span in resolved path coverage.
-/// `mask`, `filter`, `mix-blend-mode`, and `isolation` remain patrol refusals;
-/// each would grow the effect vocabulary with a distinct semantic fact.
+/// Geometric `clip-path` wraps a completed span in resolved path coverage;
+/// same-document image masks wrap it in a checked target/source composite.
+/// `filter`, `mix-blend-mode`, and `isolation` remain patrol refusals.
 struct ChildWalk<'a> {
     values: &'a EffectiveValues,
     /// The one viewport's percentage bases (SVG2 §7.10), fixed at the
@@ -2554,6 +2651,9 @@ struct ChildWalk<'a> {
     /// The corresponding geometric-clip resource table. Resources resolve to
     /// source-neutral geometry before they cross into `rframe`.
     clips: &'a clip_path::Resources<'a>,
+    /// Same-document SVG mask resources. Their source children compile lazily
+    /// only when a visible target references them.
+    masks: &'a mask_resource::Resources<'a>,
     /// Complete geometry boxes of expanded `<use>` instances, in each use
     /// element's own user space. They are measured before paint resolution so
     /// a context URL never learns its reference box from whichever leaf
@@ -2582,6 +2682,9 @@ struct ChildWalk<'a> {
     /// — the animation inventory's candidate targets, which it narrows
     /// further to `<rect>`.
     top_level_shapes: Vec<NodeId>,
+    /// Mask resources currently compiling as source images. The stack makes
+    /// descendant cycles and pathological nesting explicit refusals.
+    active_masks: Vec<NodeId>,
     next_id: u64,
 }
 
@@ -2615,6 +2718,129 @@ impl<'a> ChildWalk<'a> {
             self.has_author_css,
             self.override_skips,
         )
+    }
+
+    fn resolve_mask(
+        &self,
+        element: HtmlElement<'a>,
+        target_to_frame: AffineTransform,
+        target_box: Option<Rectangle>,
+    ) -> Result<Option<mask_resource::Invocation<'a>>, CompileError> {
+        mask_resource::resolve(
+            self.masks,
+            element,
+            target_to_frame,
+            target_box,
+            self.bases,
+            self.override_skips,
+            &self.active_masks,
+        )
+    }
+
+    /// Wrap a completed target span in a resolved image mask, then compile the
+    /// mask source under strict transactional semantics. A source-side gap
+    /// removes the whole affected target in best effort; partial mask paint
+    /// can therefore never escape as a wrong pixel.
+    fn wrap_span_with_mask(
+        &mut self,
+        checkpoint: usize,
+        mut facts: SpanFacts,
+        invocation: Option<mask_resource::Invocation<'a>>,
+        target_path: &str,
+        depth: usize,
+    ) -> Result<SpanFacts, CompileError> {
+        let Some(invocation) = invocation else {
+            return Ok(facts);
+        };
+        if facts.draws == 0 && !facts.has_scope {
+            return Ok(facts);
+        }
+
+        let source_next_id = self.next_id;
+        let degradation_checkpoint = self.degradations.len();
+        let mask_id = self.next_id + 1;
+        self.next_id += 1;
+        let owner = VisualRef::new(Identity::new(mask_id), Provenance::new(mask_id));
+        self.items.insert(
+            checkpoint,
+            FrameItem::MaskBegin(Mask::new(owner, invocation.mode, invocation.region)),
+        );
+        self.items.push(FrameItem::MaskSource);
+
+        let previous_mode = self.mode;
+        let previous_context_transform = self.context_paint_transform;
+        let previous_paint_contexts = std::mem::take(&mut self.paint_contexts);
+        self.mode = CompileMode::Strict;
+        self.context_paint_transform = invocation.content_to_frame;
+        self.active_masks.push(invocation.element.node_id());
+        let source_path = format!("{target_path}/mask-source(#{})", invocation.fragment);
+        let source_result = self.compile_children(
+            invocation.element,
+            invocation.content_to_frame,
+            &source_path,
+            depth + 1,
+            1.0,
+        );
+        self.active_masks.pop();
+        self.mode = previous_mode;
+        self.context_paint_transform = previous_context_transform;
+        self.paint_contexts = previous_paint_contexts;
+
+        let source_result = match source_result {
+            Ok(result) if self.degradations.len() == degradation_checkpoint => Ok(result),
+            Ok(_) => {
+                let reason = self
+                    .degradations
+                    .get(degradation_checkpoint)
+                    .map(|degradation| degradation.reason().to_string())
+                    .unwrap_or_else(|| "mask source was partially degraded".to_string());
+                Err(CompileError::UnsupportedMask(format!(
+                    "mask source cannot be compiled completely: {reason}"
+                )))
+            }
+            Err(error) => Err(CompileError::UnsupportedMask(format!(
+                "mask source cannot be compiled completely: {error}"
+            ))),
+        };
+        self.degradations.truncate(degradation_checkpoint);
+        if let Err(error) = source_result {
+            self.items.truncate(checkpoint);
+            self.next_id = source_next_id;
+            return Err(error);
+        }
+
+        self.items.push(FrameItem::MaskEnd);
+        facts = SpanFacts {
+            draws: 0,
+            has_scope: true,
+            one_draw_opacity: false,
+            transformed: facts.transformed,
+        };
+        Ok(facts)
+    }
+
+    /// Apply an already-resolved element opacity outside a completed masked
+    /// span. A mask is itself a compositing scope, so Chromium never takes the
+    /// unmasked one-draw fold for this branch; its opaque-luminance ordering
+    /// probe differs by one code value when opacity is placed inside instead.
+    fn wrap_masked_span_with_opacity(
+        &mut self,
+        checkpoint: usize,
+        mut facts: SpanFacts,
+        opacity: f32,
+    ) -> SpanFacts {
+        if opacity < 1.0 && (facts.draws > 0 || facts.has_scope) {
+            self.items
+                .insert(checkpoint, scope_item(&mut self.next_id, opacity));
+            self.items.push(FrameItem::ScopeEnd);
+            facts = SpanFacts {
+                draws: 0,
+                has_scope: true,
+                one_draw_opacity: false,
+                transformed: facts.transformed,
+            };
+        }
+        facts
     }
 
     /// Wrap a completed target span in its geometric clip. The insertion point
@@ -2712,6 +2938,12 @@ impl<'a> ChildWalk<'a> {
                 child = c.next_element_sibling();
                 continue;
             }
+            // `<mask>` is likewise a never-rendered resource. Its children
+            // paint only in the source phase of an actual target reference.
+            if tag == "mask" {
+                child = c.next_element_sibling();
+                continue;
+            }
             // A gradient element is reference-only wherever it appears —
             // in `<defs>` or in the open (measured: it paints nothing in
             // place either way). Its effect — what a referencing `url(#…)`
@@ -2732,7 +2964,7 @@ impl<'a> ChildWalk<'a> {
             } else if tag == "use" {
                 self.compile_use(c, transform, &path, depth, replay_opacity)
             } else {
-                self.compile_leaf(c, transform, depth == 0, replay_opacity)
+                self.compile_leaf(c, transform, &path, depth, depth == 0, replay_opacity)
             };
             match result {
                 Ok(child_facts) => facts.absorb(child_facts),
@@ -2800,19 +3032,34 @@ impl<'a> ChildWalk<'a> {
             .copied()
             .unwrap_or(None);
         let clip = self.resolve_clip(el, transform, target_box)?;
+        let mask = self.resolve_mask(el, transform, target_box)?;
         let checkpoint = self.items.len();
         let previous_context_paint_transform = self.context_paint_transform;
         self.context_paint_transform =
             compose_element_transform(el, previous_context_paint_transform, element, self.bases)?;
-        let facts = self.compile_span_with_opacity(
-            el,
-            transform,
-            path,
-            depth,
-            patrol.opacity,
-            replay_opacity,
-        );
+        let facts = match mask {
+            Some(mask) => {
+                let facts = self.compile_children(el, transform, path, depth + 1, replay_opacity);
+                facts
+                    .and_then(|facts| {
+                        self.wrap_span_with_mask(checkpoint, facts, Some(mask), path, depth)
+                    })
+                    .map(|facts| {
+                        self.wrap_masked_span_with_opacity(checkpoint, facts, patrol.opacity)
+                    })
+            }
+            None => self.compile_span_with_opacity(
+                el,
+                transform,
+                path,
+                depth,
+                patrol.opacity,
+                replay_opacity,
+            ),
+        };
         self.context_paint_transform = previous_context_paint_transform;
+        // Chromium's same-element effect order is byte-discriminating here:
+        // the mask is inside the geometric clip (the nested controls differ).
         let facts = self.wrap_span_with_clip(checkpoint, facts?, clip);
         Ok(SpanFacts {
             transformed: facts.transformed || own_transformed,
@@ -2964,6 +3211,7 @@ impl<'a> ChildWalk<'a> {
             // its context gradient into no paint.
             .unwrap_or(None);
         let clip = self.resolve_clip(el, transform, reference_box)?;
+        let mask = self.resolve_mask(el, transform, reference_box)?;
         let checkpoint = self.items.len();
         self.paint_contexts.push(PaintContext {
             element: el,
@@ -2971,14 +3219,26 @@ impl<'a> ChildWalk<'a> {
             to_frame: context_paint_transform,
         });
         self.context_paint_transform = context_paint_transform;
-        let facts = self.compile_span_with_opacity(
-            el,
-            transform,
-            path,
-            depth,
-            patrol.opacity,
-            replay_opacity,
-        );
+        let facts = match mask {
+            Some(mask) => {
+                let facts = self.compile_children(el, transform, path, depth + 1, replay_opacity);
+                facts
+                    .and_then(|facts| {
+                        self.wrap_span_with_mask(checkpoint, facts, Some(mask), path, depth)
+                    })
+                    .map(|facts| {
+                        self.wrap_masked_span_with_opacity(checkpoint, facts, patrol.opacity)
+                    })
+            }
+            None => self.compile_span_with_opacity(
+                el,
+                transform,
+                path,
+                depth,
+                patrol.opacity,
+                replay_opacity,
+            ),
+        };
         self.context_paint_transform = previous_context_paint_transform;
         self.paint_contexts.pop();
         let facts = self.wrap_span_with_clip(checkpoint, facts?, clip);
@@ -2996,6 +3256,8 @@ impl<'a> ChildWalk<'a> {
         &mut self,
         el: HtmlElement<'a>,
         transform: AffineTransform,
+        path: &str,
+        depth: usize,
         top_level: bool,
         replay_opacity: f32,
     ) -> Result<SpanFacts, CompileError> {
@@ -3004,6 +3266,19 @@ impl<'a> ChildWalk<'a> {
         // admitted, it is simply not a node.
         let checkpoint = self.items.len();
         let mut facts = SpanFacts::default();
+        let tag = el.local_name_string();
+        let target_to_frame = compose_element_transform(el, transform, &tag, self.bases)?;
+        let target_box = self
+            .effect_boxes
+            .get(&el.node_id())
+            .copied()
+            .unwrap_or(None);
+        let mask = self.resolve_mask(el, target_to_frame, target_box)?;
+        let deferred_opacity = if mask.is_some() {
+            patrol_computed_style(el, tag == "rect")?.opacity
+        } else {
+            1.0
+        };
         if let Some(outcome) = compile_shape(
             el,
             transform,
@@ -3013,6 +3288,7 @@ impl<'a> ChildWalk<'a> {
             self.servers,
             &self.paint_contexts,
             self.bases,
+            mask.is_some(),
             replay_opacity,
             self.fonts,
         )? {
@@ -3039,6 +3315,8 @@ impl<'a> ChildWalk<'a> {
                     self.items.push(FrameItem::Node(outcome.node));
                 }
             }
+            facts = self.wrap_span_with_mask(checkpoint, facts, mask, path, depth)?;
+            facts = self.wrap_masked_span_with_opacity(checkpoint, facts, deferred_opacity);
             facts = self.wrap_span_with_clip(checkpoint, facts, clip);
         }
         if top_level {
@@ -3801,6 +4079,602 @@ mod clip_path {
     }
 }
 
+/// Resolution of one same-document SVG `<mask>` into the source-neutral
+/// two-phase mask contract. URL lookup and authored coordinate grammars stop
+/// here; only resolved paint items, one alpha/luminance choice, and a geometric
+/// region reach `rframe`.
+mod mask_resource {
+    use std::collections::HashMap;
+
+    use cssparser::{Parser, ParserInput, Token};
+
+    use super::*;
+
+    enum Resource<'d> {
+        Mask {
+            element: HtmlElement<'d>,
+            inside_compiled_svg: bool,
+        },
+        Other,
+    }
+
+    /// Whole-document, document-ordered, first-id-wins mask lookup.
+    pub(super) struct Resources<'d> {
+        by_fragment: HashMap<String, Resource<'d>>,
+    }
+
+    impl<'d> Resources<'d> {
+        pub(super) fn collect(
+            document_root: HtmlElement<'d>,
+            compiled_svg: HtmlElement<'d>,
+        ) -> Self {
+            let mut by_fragment = HashMap::new();
+            let mut stack = vec![document_root];
+            while let Some(element) = stack.pop() {
+                let mut children = Vec::new();
+                let mut child = element.first_element_child();
+                while let Some(next) = child {
+                    children.push(next);
+                    child = next.next_element_sibling();
+                }
+                stack.extend(children.into_iter().rev());
+
+                // Expanded `<use>` descendants are shadow content. Their ids
+                // never participate in authored DOM fragment lookup.
+                if has_use_ancestor(element) {
+                    continue;
+                }
+                let Some(id) = element_id(element) else {
+                    continue;
+                };
+                let resource = if element.local_name_string() == "mask" {
+                    Resource::Mask {
+                        element,
+                        inside_compiled_svg: is_inside(element, compiled_svg),
+                    }
+                } else {
+                    Resource::Other
+                };
+                by_fragment.entry(id).or_insert(resource);
+            }
+            Self { by_fragment }
+        }
+    }
+
+    fn has_use_ancestor(element: HtmlElement<'_>) -> bool {
+        let mut current = element.traversal_parent();
+        while let Some(parent) = current {
+            if parent.local_name_string() == "use" {
+                return true;
+            }
+            current = parent.traversal_parent();
+        }
+        false
+    }
+
+    fn is_inside(element: HtmlElement<'_>, ancestor: HtmlElement<'_>) -> bool {
+        let mut current = Some(element);
+        while let Some(node) = current {
+            if node.node_id() == ancestor.node_id() {
+                return true;
+            }
+            current = node.traversal_parent();
+        }
+        false
+    }
+
+    fn element_id(element: HtmlElement<'_>) -> Option<String> {
+        if let DemoNodeData::Element(data) = &element.dom_node().data {
+            data.id_attr.as_ref().map(ToString::to_string)
+        } else {
+            None
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub(super) enum AuthoredMask {
+        None,
+        Fragment(String),
+    }
+
+    fn entire_url(raw: &str) -> Option<String> {
+        let mut input = ParserInput::new(raw);
+        let mut parser = Parser::new(&mut input);
+        let parsed: Result<_, cssparser::ParseError<'_, ()>> =
+            parser.parse_entirely(|input| input.expect_url().map_err(Into::into));
+        parsed.ok().map(|url| url.to_string())
+    }
+
+    fn entire_ident(raw: &str) -> Option<String> {
+        let mut input = ParserInput::new(raw);
+        let mut parser = Parser::new(&mut input);
+        let parsed: Result<_, cssparser::ParseError<'_, ()>> =
+            parser.parse_entirely(|input| input.expect_ident_cloned().map_err(Into::into));
+        parsed.ok().map(|ident| ident.to_string())
+    }
+
+    /// Decode the direct presentation-attribute spelling. The pinned cascade
+    /// has no mask longhand, so authored CSS is quarantined separately and
+    /// this parser owns only the attribute grammar.
+    pub(super) fn authored_mask(element: HtmlElement<'_>) -> Result<AuthoredMask, CompileError> {
+        let Some(raw) = get_attr(element, "mask") else {
+            return Ok(AuthoredMask::None);
+        };
+        if let Some(url) = entire_url(&raw) {
+            let base = ::url::Url::parse("about:blank").expect("fixed URL base");
+            let Ok(url) = base.join(&url) else {
+                return Ok(AuthoredMask::None);
+            };
+            let Some(fragment) = crate::svg_paint_server::same_document_fragment(&url) else {
+                return Err(CompileError::UnsupportedMask(format!(
+                    "url({url}) is external; this compiler owns no resource I/O"
+                )));
+            };
+            return Ok(AuthoredMask::Fragment(fragment.to_string()));
+        }
+        if let Some(ident) = entire_ident(&raw) {
+            return Ok(match ident.to_ascii_lowercase().as_str() {
+                "none" | "initial" | "unset" | "revert" | "revert-layer" => AuthoredMask::None,
+                "inherit" => {
+                    return Err(CompileError::UnsupportedMask(
+                        "mask presentation attribute uses inherit, whose parent computed mask is not represented at this Stylo pin"
+                            .to_string(),
+                    ));
+                }
+                // An invalid presentation hint contributes no declaration.
+                _ => AuthoredMask::None,
+            });
+        }
+
+        // Distinguish a valid-but-unrepresented indirection or layer grammar
+        // from malformed syntax, which contributes no presentation hint.
+        let mut input = ParserInput::new(&raw);
+        let mut parser = Parser::new(&mut input);
+        let first = parser.next().ok().cloned();
+        match first {
+            Some(Token::Function(name)) if name.eq_ignore_ascii_case("var") => {
+                Err(CompileError::UnsupportedMask(
+                    "mask presentation attribute uses var(), whose substitution is not represented at this Stylo pin"
+                        .to_string(),
+                ))
+            }
+            Some(Token::UnquotedUrl(_))
+            | Some(Token::Function(_))
+            | Some(Token::Comma)
+            | Some(Token::Dimension { .. })
+            | Some(Token::Percentage { .. })
+            | Some(Token::Number { .. }) => Err(CompileError::UnsupportedMask(
+                "mask presentation attribute uses an unrepresented full shorthand or multiple mask layers"
+                    .to_string(),
+            )),
+            _ => Ok(AuthoredMask::None),
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum Units {
+        UserSpaceOnUse,
+        ObjectBoundingBox,
+    }
+
+    fn mask_units(element: HtmlElement<'_>) -> Units {
+        match get_attr(element, "maskUnits")
+            .as_deref()
+            .map(trim_svg_whitespace)
+        {
+            Some("userSpaceOnUse") => Units::UserSpaceOnUse,
+            // Missing and invalid values use the initial object-box value.
+            _ => Units::ObjectBoundingBox,
+        }
+    }
+
+    fn content_units(element: HtmlElement<'_>) -> Units {
+        match get_attr(element, "maskContentUnits")
+            .as_deref()
+            .map(trim_svg_whitespace)
+        {
+            Some("objectBoundingBox") => Units::ObjectBoundingBox,
+            // Missing and invalid values use the initial user-space value.
+            _ => Units::UserSpaceOnUse,
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    enum RegionLength {
+        Number(f32),
+        /// The authored percentage number, where `100` means 100%. Keeping
+        /// this un-normalized is observable: Blink resolves
+        /// `basis * percentage / 100`, not `(percentage / 100) * basis`.
+        Percentage(f32),
+    }
+
+    fn region_length(
+        element: HtmlElement<'_>,
+        name: &str,
+    ) -> Result<Option<RegionLength>, CompileError> {
+        let Some(raw) = get_attr(element, name) else {
+            return Ok(None);
+        };
+        let mut input = ParserInput::new(&raw);
+        let mut parser = Parser::new(&mut input);
+        let token = parser.next().ok().cloned();
+        if parser.expect_exhausted().is_err() {
+            return Err(CompileError::UnsupportedMask(format!(
+                "mask region {name} uses a value list this direct length parser cannot carry"
+            )));
+        }
+        match token {
+            Some(Token::Number { value, .. }) if value.is_finite() => {
+                Ok(Some(RegionLength::Number(value)))
+            }
+            Some(Token::Number { .. }) => Err(CompileError::UnsupportedMask(format!(
+                "mask region {name} crosses the unimplemented Web used-length range"
+            ))),
+            Some(Token::Percentage { unit_value, .. }) if unit_value.is_finite() => {
+                let simple_source = trim_svg_whitespace(&raw).strip_suffix('%');
+                let authored = simple_source
+                    .and_then(|number| number.parse::<f32>().ok())
+                    // Leading/trailing CSS comments can still form one token;
+                    // the raw source is no longer a plain number in that case,
+                    // so recover the token's authored percentage.
+                    .unwrap_or(unit_value * 100.0);
+                if !authored.is_finite() {
+                    return Err(CompileError::UnsupportedMask(format!(
+                        "mask region {name} percentage resolves outside the finite frame range"
+                    )));
+                }
+                Ok(Some(RegionLength::Percentage(authored)))
+            }
+            Some(Token::Percentage { .. }) => Err(CompileError::UnsupportedMask(format!(
+                "mask region {name} crosses the unimplemented Web used-length range"
+            ))),
+            Some(Token::Dimension { value, unit, .. })
+                if value.is_finite() && unit.eq_ignore_ascii_case("px") =>
+            {
+                Ok(Some(RegionLength::Number(value)))
+            }
+            Some(Token::Dimension { unit, .. }) if unit.eq_ignore_ascii_case("px") => {
+                Err(CompileError::UnsupportedMask(format!(
+                    "mask region {name} crosses the unimplemented Web used-length range"
+                )))
+            }
+            Some(Token::Dimension { unit, .. }) => Err(CompileError::UnsupportedMask(format!(
+                "mask region {name} uses the {unit} unit, whose basis is not admitted"
+            ))),
+            Some(Token::Function(function)) => Err(CompileError::UnsupportedMask(format!(
+                "mask region {name} uses {function}(), whose computed length is not represented at this Stylo pin"
+            ))),
+            // CSS-wide reset keywords and invalid presentation hints both
+            // leave this attribute at its per-field initial value.
+            _ => Ok(None),
+        }
+    }
+
+    fn resolve_region_length(value: RegionLength, units: Units, basis: f32) -> f32 {
+        match (units, value) {
+            (Units::UserSpaceOnUse, RegionLength::Number(value)) => value,
+            (Units::ObjectBoundingBox, RegionLength::Number(value)) => value * basis,
+            (_, RegionLength::Percentage(percentage)) => basis * percentage / 100.0,
+        }
+    }
+
+    /// Refuse region coordinates whose Chromium used-value clamp is not yet
+    /// represented here. The x witness is measured against the same fixed Web
+    /// range as ordinary SVG geometry; the sibling fields over-refuse through
+    /// this one named route until their clamp details are independently
+    /// carried. Negative extents retain their invalid empty-region meaning.
+    fn patrol_region_used_range(name: &str, value: f32) -> Result<(), CompileError> {
+        let outside = match name {
+            "x" | "y" => !(WEB_USED_LENGTH_MIN..=WEB_USED_LENGTH_MAX).contains(&value),
+            "width" | "height" => value > WEB_USED_LENGTH_MAX,
+            _ => false,
+        };
+        if outside {
+            return Err(CompileError::UnsupportedMask(format!(
+                "mask region {name} crosses the unimplemented Web used-length range"
+            )));
+        }
+        Ok(())
+    }
+
+    fn default_region_length(fraction: f32) -> RegionLength {
+        RegionLength::Percentage(fraction * 100.0)
+    }
+
+    fn object_map(reference: Rectangle) -> AffineTransform {
+        AffineTransform::from_acebdf(
+            reference.width,
+            0.0,
+            reference.x,
+            0.0,
+            reference.height,
+            reference.y,
+        )
+    }
+
+    /// Admit only the measured target-transform envelope for a hard mask
+    /// region: translation plus positive axis-aligned scales no larger than
+    /// one. Threshold-aligned controls are exact throughout the sampled
+    /// downscale range and at identity; at a 1.01 x-scale the lower and upper
+    /// controls already differ from Chromium by 96 and 48 pixels. Rotations,
+    /// reflections, shears, and upscales therefore over-refuse through the
+    /// same named boundary rather than inventing unmeasured hard-edge pixels.
+    fn patrol_region_transform(transform: AffineTransform) -> Result<(), CompileError> {
+        let [[a, c, _], [b, d, _]] = transform.matrix;
+        if b != 0.0 || c != 0.0 || a <= 0.0 || d <= 0.0 || a > 1.0 || d > 1.0 {
+            return Err(CompileError::UnsupportedMask(
+                "mask region target transform leaves the measured translation/positive-downscale precision envelope"
+                    .to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    fn region_clip(
+        to_frame: AffineTransform,
+        rect: Rectangle,
+        empty: bool,
+    ) -> Result<ClipPath, CompileError> {
+        let geometries: Arc<[ClipGeometry]> = if empty {
+            Arc::from([])
+        } else {
+            Arc::from([ClipGeometry::new(to_frame, Geometry::Rect(rect))
+                .map_err(|error| CompileError::UnsupportedMask(error.to_string()))?])
+        };
+        let layer = ClipLayer::new(geometries)
+            .map_err(|error| CompileError::UnsupportedMask(error.to_string()))?;
+        ClipPath::new(Arc::from([layer]))
+            .map_err(|error| CompileError::UnsupportedMask(error.to_string()))
+    }
+
+    fn mask_mode(element: HtmlElement<'_>) -> Result<MaskMode, CompileError> {
+        if let Some(style) = get_attr(element, "style")
+            && (style.contains('\\') || css_declares_property(&style, "mask-type"))
+        {
+            return Err(CompileError::UnsupportedMask(
+                "CSS mask-type on <mask> is not represented by the pinned cascade; use of it is quarantined from the direct attribute decoder"
+                    .to_string(),
+            ));
+        }
+        let Some(raw) = get_attr(element, "mask-type") else {
+            return Ok(MaskMode::Luminance);
+        };
+        let Some(ident) = entire_ident(&raw) else {
+            let mut input = ParserInput::new(&raw);
+            let mut parser = Parser::new(&mut input);
+            if matches!(parser.next(), Ok(Token::Function(name)) if name.eq_ignore_ascii_case("var"))
+            {
+                return Err(CompileError::UnsupportedMask(
+                    "mask-type presentation attribute uses var(), whose substitution is not represented at this Stylo pin"
+                        .to_string(),
+                ));
+            }
+            return Ok(MaskMode::Luminance);
+        };
+        match ident.to_ascii_lowercase().as_str() {
+            "alpha" => Ok(MaskMode::Alpha),
+            "luminance" | "initial" | "unset" | "revert" | "revert-layer" => {
+                Ok(MaskMode::Luminance)
+            }
+            "inherit" => Err(CompileError::UnsupportedMask(
+                "mask-type presentation attribute uses inherit, whose parent computed value is not represented at this Stylo pin"
+                    .to_string(),
+            )),
+            // Invalid presentation hints are absent; the initial value wins.
+            _ => Ok(MaskMode::Luminance),
+        }
+    }
+
+    /// A resource element does not paint itself, but its inline declarations
+    /// still cascade into source descendants. Chromium inherits
+    /// `shape-rendering: crispEdges` here exactly like the same declaration on
+    /// the child; dropping it changed 96 pixels. Resource-own `filter`, `mask`,
+    /// and `clip-path` are independently measured inert, while `mask-type` has
+    /// its dedicated decoder below. Everything else the pinned cascade drops
+    /// must refuse before source paint can escape.
+    fn patrol_resource_style(element: HtmlElement<'_>) -> Result<(), CompileError> {
+        if let Some(style) = get_attr(element, "style")
+            && let Some(property) =
+                unrepresented_property_except(&style, &["filter", "mask", "mask-type"])
+        {
+            return Err(CompileError::UnsupportedMask(format!(
+                "inline style on <mask> declares {property}, whose source-side cascade effect is not represented"
+            )));
+        }
+        Ok(())
+    }
+
+    pub(super) struct Invocation<'d> {
+        pub(super) element: HtmlElement<'d>,
+        pub(super) fragment: String,
+        pub(super) mode: MaskMode,
+        pub(super) region: ClipPath,
+        pub(super) content_to_frame: AffineTransform,
+    }
+
+    /// Resolve one target attribute. Missing, invalid, and wrong-kind
+    /// references install no mask; valid unsupported branches refuse by name.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn resolve<'d>(
+        resources: &Resources<'d>,
+        target: HtmlElement<'d>,
+        target_to_frame: AffineTransform,
+        target_box: Option<Rectangle>,
+        bases: PercentBases,
+        override_skips: &HashMap<NodeId, String>,
+        active: &[NodeId],
+    ) -> Result<Option<Invocation<'d>>, CompileError> {
+        let AuthoredMask::Fragment(fragment) = authored_mask(target)? else {
+            return Ok(None);
+        };
+        let Some(resource) = resources.by_fragment.get(&fragment) else {
+            return Ok(None);
+        };
+        let (element, inside_compiled_svg) = match resource {
+            Resource::Other => return Ok(None),
+            Resource::Mask {
+                element,
+                inside_compiled_svg,
+            } => (*element, *inside_compiled_svg),
+        };
+        if !inside_compiled_svg {
+            return Err(CompileError::UnsupportedMask(format!(
+                "url(#{fragment}) resolves outside the compiled SVG subtree"
+            )));
+        }
+        if let Some(reason) = override_skips.get(&element.node_id()) {
+            return Err(CompileError::UnsupportedMask(format!(
+                "the <mask> authored state is overridden at document load: {reason}"
+            )));
+        }
+        if active.len() >= rframe::MAX_SCOPE_DEPTH {
+            return Err(CompileError::UnsupportedMask(format!(
+                "a nested mask chain exceeds the resolved {}-scope limit",
+                rframe::MAX_SCOPE_DEPTH
+            )));
+        }
+        if active.contains(&element.node_id()) {
+            return Err(CompileError::UnsupportedMask(format!(
+                "url(#{fragment}) forms a cyclic nested mask chain"
+            )));
+        }
+
+        // The mask element itself never paints, and Chromium ignores its own
+        // display, opacity, transform, mask, and clip-path (both attribute and
+        // CSS spellings measured). Other unconsumed rendering attributes could
+        // alter the source image, so they remain patrols.
+        patrol_rendering_attributes(element, "mask", &[])?;
+        patrol_resource_style(element)?;
+
+        let target_box = target_box.ok_or_else(|| {
+            CompileError::UnsupportedMask(
+                "mask resolution needs the target's complete fill-geometry box".to_string(),
+            )
+        })?;
+        patrol_region_transform(target_to_frame)?;
+        let units = mask_units(element);
+        let content_units = content_units(element);
+        let x_basis = match units {
+            Units::UserSpaceOnUse => bases.width,
+            Units::ObjectBoundingBox => target_box.width,
+        };
+        let y_basis = match units {
+            Units::UserSpaceOnUse => bases.height,
+            Units::ObjectBoundingBox => target_box.height,
+        };
+        let mut x = resolve_region_length(
+            region_length(element, "x")?.unwrap_or(default_region_length(-0.1)),
+            units,
+            x_basis,
+        );
+        let mut y = resolve_region_length(
+            region_length(element, "y")?.unwrap_or(default_region_length(-0.1)),
+            units,
+            y_basis,
+        );
+        let width = resolve_region_length(
+            region_length(element, "width")?.unwrap_or(default_region_length(1.2)),
+            units,
+            x_basis,
+        );
+        let height = resolve_region_length(
+            region_length(element, "height")?.unwrap_or(default_region_length(1.2)),
+            units,
+            y_basis,
+        );
+        if units == Units::ObjectBoundingBox {
+            x += target_box.x;
+            y += target_box.y;
+        }
+        if ![x, y, width, height].into_iter().all(f32::is_finite) {
+            return Err(CompileError::UnsupportedMask(
+                "mask region resolves outside the finite frame range".to_string(),
+            ));
+        }
+        patrol_region_used_range("x", x)?;
+        patrol_region_used_range("y", y)?;
+        patrol_region_used_range("width", width)?;
+        patrol_region_used_range("height", height)?;
+
+        // Blink's ResourceBoundingBox resolves object-box lengths into the
+        // target's user space first. Carry that same used rectangle through
+        // the target mapping; retaining a normalized rect plus an extra
+        // object-map matrix changes f32 operation order at amplified edges.
+        let region_to_frame = target_to_frame;
+        let content_to_frame = match content_units {
+            Units::UserSpaceOnUse => target_to_frame,
+            Units::ObjectBoundingBox => target_to_frame.compose(&object_map(target_box)),
+        };
+        let region = region_clip(
+            region_to_frame,
+            Rectangle::from_xywh(x, y, width.max(0.0), height.max(0.0)),
+            width <= 0.0 || height <= 0.0,
+        )?;
+        Ok(Some(Invocation {
+            element,
+            fragment,
+            mode: mask_mode(element)?,
+            region,
+            content_to_frame,
+        }))
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn mask_percentage_keeps_blink_multiply_then_divide_order() {
+            let source = ".5%";
+            let mut input = ParserInput::new(source);
+            let mut parser = Parser::new(&mut input);
+            let Token::Percentage { unit_value, .. } = parser.next().unwrap() else {
+                panic!("percentage token")
+            };
+            let blink =
+                resolve_region_length(RegionLength::Percentage(0.5), Units::UserSpaceOnUse, 10.0);
+            assert_eq!(blink, 0.05000000074505806_f32);
+            assert_ne!(blink, *unit_value * 10.0);
+        }
+
+        #[test]
+        fn mask_region_transform_patrol_keeps_only_the_measured_envelope() {
+            assert!(
+                patrol_region_transform(AffineTransform::from_acebdf(
+                    1.0, 0.0, 19.0, 0.0, 0.75, -3.0,
+                ))
+                .is_ok()
+            );
+            assert!(
+                patrol_region_transform(AffineTransform::from_acebdf(
+                    1.01, 0.0, 0.0, 0.0, 1.0, 0.0,
+                ))
+                .is_err()
+            );
+            assert!(
+                patrol_region_transform(
+                    AffineTransform::from_acebdf(0.0, 0.0, 0.0, 0.0, 1.0, 0.0,)
+                )
+                .is_err()
+            );
+            assert!(
+                patrol_region_transform(
+                    AffineTransform::from_acebdf(1.0, 0.1, 0.0, 0.0, 1.0, 0.0,)
+                )
+                .is_err()
+            );
+        }
+
+        #[test]
+        fn mask_region_used_range_patrol_keeps_invalid_negative_extents() {
+            assert!(patrol_region_used_range("x", WEB_USED_LENGTH_MAX).is_ok());
+            assert!(patrol_region_used_range("x", WEB_USED_LENGTH_MAX + 4.0).is_err());
+            assert!(patrol_region_used_range("width", -1.0e20).is_ok());
+            assert!(patrol_region_used_range("width", WEB_USED_LENGTH_MAX + 4.0).is_err());
+        }
+    }
+}
+
 /// Whether the element paints nothing *and* affects no other element's
 /// painting, so it is neither compiled nor declared.
 ///
@@ -3893,6 +4767,7 @@ fn compile_shape(
     servers: &PaintServers<'_>,
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
+    defer_own_opacity: bool,
     replay_opacity: f32,
     fonts: &textlayout::Environment,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
@@ -3914,6 +4789,7 @@ fn compile_shape(
             servers,
             paint_contexts,
             bases,
+            defer_own_opacity,
             replay_opacity,
         ),
         "circle" => compile_circle(
@@ -3925,6 +4801,7 @@ fn compile_shape(
             servers,
             paint_contexts,
             bases,
+            defer_own_opacity,
             replay_opacity,
         ),
         "ellipse" => compile_ellipse(
@@ -3936,6 +4813,7 @@ fn compile_shape(
             servers,
             paint_contexts,
             bases,
+            defer_own_opacity,
             replay_opacity,
         ),
         "path" => compile_path(
@@ -3946,6 +4824,7 @@ fn compile_shape(
             servers,
             paint_contexts,
             bases,
+            defer_own_opacity,
             replay_opacity,
         ),
         "text" => compile_text(
@@ -3957,6 +4836,7 @@ fn compile_shape(
             servers,
             paint_contexts,
             bases,
+            defer_own_opacity,
             replay_opacity,
             fonts,
         ),
@@ -3969,6 +4849,7 @@ fn compile_shape(
             servers,
             paint_contexts,
             bases,
+            defer_own_opacity,
             replay_opacity,
         ),
         "polygon" => compile_points_shape(
@@ -3980,6 +4861,7 @@ fn compile_shape(
             servers,
             paint_contexts,
             bases,
+            defer_own_opacity,
             replay_opacity,
         ),
         "polyline" => compile_points_shape(
@@ -3991,6 +4873,7 @@ fn compile_shape(
             servers,
             paint_contexts,
             bases,
+            defer_own_opacity,
             replay_opacity,
         ),
         other => Err(CompileError::UnsupportedElement(other.to_string())),
@@ -4023,6 +4906,7 @@ fn compile_text(
     servers: &PaintServers<'_>,
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
+    defer_own_opacity: bool,
     replay_opacity: f32,
     fonts: &textlayout::Environment,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
@@ -4133,7 +5017,11 @@ fn compile_text(
         servers,
         paint_contexts,
         bases,
-        patrol.opacity,
+        if defer_own_opacity {
+            1.0
+        } else {
+            patrol.opacity
+        },
         replay_opacity,
         false,
     )
@@ -4149,6 +5037,7 @@ fn compile_rect(
     servers: &PaintServers<'_>,
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
+    defer_own_opacity: bool,
     replay_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
     patrol_rendering_attributes(el, "rect", &[])?;
@@ -4184,7 +5073,11 @@ fn compile_rect(
         servers,
         paint_contexts,
         bases,
-        patrol.opacity,
+        if defer_own_opacity {
+            1.0
+        } else {
+            patrol.opacity
+        },
         replay_opacity,
         false,
     )
@@ -4222,6 +5115,7 @@ fn compile_circle(
     servers: &PaintServers<'_>,
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
+    defer_own_opacity: bool,
     replay_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
     patrol_rendering_attributes(el, "circle", &[])?;
@@ -4259,7 +5153,11 @@ fn compile_circle(
         servers,
         paint_contexts,
         bases,
-        patrol.opacity,
+        if defer_own_opacity {
+            1.0
+        } else {
+            patrol.opacity
+        },
         replay_opacity,
         false,
     )
@@ -4275,6 +5173,7 @@ fn compile_ellipse(
     servers: &PaintServers<'_>,
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
+    defer_own_opacity: bool,
     replay_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
     patrol_rendering_attributes(el, "ellipse", &[])?;
@@ -4318,7 +5217,11 @@ fn compile_ellipse(
         servers,
         paint_contexts,
         bases,
-        patrol.opacity,
+        if defer_own_opacity {
+            1.0
+        } else {
+            patrol.opacity
+        },
         replay_opacity,
         false,
     )
@@ -4344,6 +5247,7 @@ fn compile_path(
     servers: &PaintServers<'_>,
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
+    defer_own_opacity: bool,
     replay_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
     patrol_rendering_attributes(el, "path", &[])?;
@@ -4387,7 +5291,11 @@ fn compile_path(
         servers,
         paint_contexts,
         bases,
-        patrol.opacity,
+        if defer_own_opacity {
+            1.0
+        } else {
+            patrol.opacity
+        },
         replay_opacity,
         false,
     )
@@ -4416,6 +5324,7 @@ fn compile_line(
     servers: &PaintServers<'_>,
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
+    defer_own_opacity: bool,
     replay_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
     patrol_rendering_attributes(el, "line", &[])?;
@@ -4454,7 +5363,11 @@ fn compile_line(
         servers,
         paint_contexts,
         bases,
-        patrol.opacity,
+        if defer_own_opacity {
+            1.0
+        } else {
+            patrol.opacity
+        },
         replay_opacity,
         true,
     )
@@ -4496,6 +5409,7 @@ fn compile_points_shape(
     servers: &PaintServers<'_>,
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
+    defer_own_opacity: bool,
     replay_opacity: f32,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
     let element = match closure {
@@ -4575,7 +5489,11 @@ fn compile_points_shape(
         servers,
         paint_contexts,
         bases,
-        patrol.opacity,
+        if defer_own_opacity {
+            1.0
+        } else {
+            patrol.opacity
+        },
         replay_opacity,
         false,
     )
