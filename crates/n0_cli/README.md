@@ -295,9 +295,12 @@ cargo run -p n0_cli --bin n0 -- \
   gaps, non-positive primitive regions, unsupported primitives, `href`, and
   external/root/list routes still refuse by stable name.
   Flood percentages retain the CSS parser's parse/divide/narrow order; the
-  raw-f32 neighbour alias is an exact regression cell. Eighty-five
-  Chromium-baked filter cells are exact: twenty-five from the chassis rung and
-  sixty from the shadow-graph rung. The complete corpus is 446 Chromium-baked
+  raw-f32 neighbour alias is an exact regression cell. A zero-sigma blur still
+  applies its explicit primitive region; a dedicated cell guards that crop.
+  Porter-Duff composition is exact on both ARM and x86 for generated filter
+  sources and source-image graphs without a tolerance. Eighty-six
+  Chromium-baked filter cells are exact: twenty-six from the chassis/blur slice
+  and sixty from the shadow-graph rung. The complete corpus is 447 Chromium-baked
   cells plus 10 sampled frames, with 124 named refusal
   rows. `feFlood`, `feComposite`, `feMerge`, `feMergeNode`, and `k1`–`k4`
   close; `feOffset`, `feGaussianBlur`, `<filter>`, `filter`, `in`, `in2`,

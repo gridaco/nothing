@@ -616,6 +616,14 @@
       "height": 64
     },
     {
+      "id": "svg-filter-blur-zero-primitive-region",
+      "source": "svg-filter-blur-zero-primitive-region.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-blur-zero-primitive-region.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-filter-color-linear",
       "source": "svg-filter-color-linear.svg",
       "entry": "standalone-svg",

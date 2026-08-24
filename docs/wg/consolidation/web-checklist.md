@@ -1463,7 +1463,6 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > a measured small-kernel backend precision boundary. Current Chromium
 > drops every `edgeMode` spelling on this primitive (measured, not celled), but
 > that attribute also applies to `<feConvolveMatrix>` and stays open.
-
 > **2026-08-25 close/split:** `feFlood`, `feComposite`, `feMerge`, and
 > `feMergeNode` now carry the complete static primitive behavior for their
 > rows: zero-, two-, and ordered N-input graph nodes; all seven composite
@@ -1485,8 +1484,13 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > close: raw `f32` parse-then-divide selected the lower neighbour for
 > `57.384267578125007%`, changing all 4,096 amplified pixels at maximum delta
 > 16. The direct decoder now keeps the CSS token's divide-then-narrow order,
-> and one exact cell distinguishes the route. Sixty new exact cells carry this
-> rung.
+> and one exact cell distinguishes the route. Sixty exact cells carry the
+> shadow-graph rung. One additional review cell proves that a zero-sigma blur
+> still applies its explicit primitive region; bypassing that crop changes
+> 1,160 pixels at maximum delta 218. Hosted x86 verification also exposed seven
+> composite/merge departures of one code value. Keeping generated-source byte
+> rounding distinct from source-image floating coverage restores exact output
+> on both processor families without tolerance.
 
 - [ ] `<foreignObject>`
 - [x] `<g>`

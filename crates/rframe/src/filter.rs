@@ -52,8 +52,8 @@ pub enum FilterComposite {
 /// The admitted operation vocabulary of a resolved filter node.
 ///
 /// This enum grows only when a producer proves a new operation through the
-/// same resolved seam. It deliberately starts with the first implemented
-/// operation instead of predicting the eventual family.
+/// same resolved seam. It states only operations a producer has proved, not
+/// the eventual family.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FilterPrimitive {
     GaussianBlur {

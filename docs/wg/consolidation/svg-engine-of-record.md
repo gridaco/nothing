@@ -71,7 +71,7 @@ from the dated addenda below:
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 446 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 447 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
@@ -2799,7 +2799,7 @@ rung. Under the default linear interpolation route the hand graph and native
 primitive differ by 135 pixels at maximum delta 2 (measured, not celled), so
 that later rung must retain its own color-placement evidence.
 
-Sixty new Chromium cells carry this rung, all exact. Eleven cover offset,
+Sixty shadow-graph Chromium cells carry this rung, all exact. Eleven cover offset,
 fifteen flood, twenty-two composite, and twelve merge plus the crisp shadow.
 The extra composite cell pins the admitted default-linear conversion path;
 the precision flood cell pins CSS percentage normalization. The other graph
@@ -2810,9 +2810,19 @@ channel delta 157. Temporarily restoring parse-before-divide opacity made only
 the precision cell fail, at 4,096 pixels and delta 16. Restoring both routes
 returned the complete gate to green.
 
+Review added one further blur cell: a zero-sigma primitive remains an operation,
+so its explicit primitive region still crops the input. Bypassing that operation
+changes 1,160 pixels at maximum delta 218. Hosted x86 verification also exposed
+seven otherwise exact composite and merge cells with 2–384 one-code-value
+departures. The cause was a CPU-family split in low-precision Porter-Duff
+division: generated filter sources require the exact byte-domain divide-by-255
+rounding Chromium exhibits, while graphs sampling the source image retain
+floating source coverage. Keeping those two domains distinct returns both
+processor families to the same exact oracles without tolerance.
+
 Eight focused offset/flood rows join the refusal register. The former graph-
 depth row is corrected to the small-kernel row without changing the count, and
 the broad unsupported-primitive witness moves from the now-admitted offset to
-`feBlend`. The primitive corpus moves from 386 to 446 cells; the ten exact-time
+`feBlend`. The primitive corpus moves from 386 to 447 cells; the ten exact-time
 sampled frames are unchanged. The named register moves from 116 to 124. This
 records no conformance score and takes no FLIP action.

@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (446)
+## Chromium-baked cells (447)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -95,6 +95,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-fill-opacity-overlap.svg" title="svg-fill-opacity-overlap (standalone-svg)"><img src="./chromium/svg-fill-opacity-overlap.png" width="56" alt="svg-fill-opacity-overlap"></a>
 <a href="./svg-fill-opacity-percentage.svg" title="svg-fill-opacity-percentage (standalone-svg)"><img src="./chromium/svg-fill-opacity-percentage.png" width="56" alt="svg-fill-opacity-percentage"></a>
 <a href="./svg-fill-opacity-times-alpha.svg" title="svg-fill-opacity-times-alpha (standalone-svg)"><img src="./chromium/svg-fill-opacity-times-alpha.png" width="56" alt="svg-fill-opacity-times-alpha"></a>
+<a href="./svg-filter-blur-zero-primitive-region.svg" title="svg-filter-blur-zero-primitive-region (standalone-svg)"><img src="./chromium/svg-filter-blur-zero-primitive-region.png" width="56" alt="svg-filter-blur-zero-primitive-region"></a>
 <a href="./svg-filter-color-linear.svg" title="svg-filter-color-linear (standalone-svg)"><img src="./chromium/svg-filter-color-linear.png" width="56" alt="svg-filter-color-linear"></a>
 <a href="./svg-filter-color-srgb.svg" title="svg-filter-color-srgb (standalone-svg)"><img src="./chromium/svg-filter-color-srgb.png" width="56" alt="svg-filter-color-srgb"></a>
 <a href="./svg-filter-composite-arithmetic-default.svg" title="svg-filter-composite-arithmetic-default (standalone-svg)"><img src="./chromium/svg-filter-composite-arithmetic-default.png" width="56" alt="svg-filter-composite-arithmetic-default"></a>
