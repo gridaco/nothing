@@ -11,10 +11,11 @@
 //!
 //! What a scope refuses is what this crate refuses: an effect that
 //! references a resource (a mask image, a filter graph, a pattern) has no
-//! representation here and stays a producer refusal by name. The effect
-//! enum grows as real producers force new compositing facts — a clip is
-//! the named next candidate.
+//! representation here and stays a producer refusal by name. Geometric
+//! clipping is the source-neutral exception now carried as resolved path
+//! coverage; image masks and filter graphs remain outside this contract.
 
+use crate::clip::ClipPath;
 use crate::frame::VisualRef;
 
 /// Why an opacity cannot be a scope fact.
@@ -58,10 +59,14 @@ impl ScopeOpacity {
 }
 
 /// The compositing effect a scope applies to its group's composite.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ScopeEffect {
     /// The group composites at this opacity through one isolated layer.
     Opacity(ScopeOpacity),
+    /// Intersect every enclosed paint with resolved geometric coverage.
+    /// Unlike opacity this creates no isolated layer: the clip is paint state,
+    /// and its path facts reference no source or external resource.
+    Clip(ClipPath),
 }
 
 /// One compositing scope: its owner and its effect.
@@ -70,7 +75,7 @@ pub enum ScopeEffect {
 /// (a group element, a shape whose fill and stroke composite together) —
 /// the same opaque identity/provenance a node carries, because damage and
 /// diagnostics need to name a scope exactly as they name a node.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Scope {
     pub owner: VisualRef,
     pub effect: ScopeEffect,

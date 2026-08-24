@@ -169,6 +169,15 @@ is exactly what the engine renders pixel-for-pixel.
 | `svg-use-cycle-nothing.svg` · `svg-use-missing-nothing.svg` · `svg-use-ancestor-circle.svg` | The correct nothings, each baked: a mutual reference cycle renders nothing while the document renders, an unresolved reference renders nothing, and a reference to a shadow-including ancestor is an invalid circle whose content paints exactly once. |
 | `svg-use-inherit-fill.svg` · `svg-use-own-fill-wins.svg` · `svg-use-context-differs.svg` · `svg-use-currentcolor.svg` | The styling model, measured: inheritance flows from the **use site** — a hint on the use colors a clone that authors no fill, the clone's own attribute beats it, a definition-site ancestor's paint does *not* carry (the instance inherits black, not the defs wrapper's blue), and `currentColor` resolves against the use site's `color` (the hint this rung admitted). |
 | `svg-use-display-none-target.svg` · `svg-use-wh-inert.svg` | `display: none` clones onto the instance and prunes it, and `width`/`height` on a use are inert for every admitted target (they size only `<svg>`/`<symbol>` targets, which refuse). |
+| `svg-clip-path.svg` | The graduated broad refusal: a same-document circle resource clips one larger target rect. Removing the clip changes 1,572 pixels at Δ233. The native oval contour carries the existing `aa-boundary-ring` policy at its measured six pixels / maximum channel delta 3; moving or resizing the circle still escapes that ring and fails. |
+| `svg-clip-path-css-ingress.svg` | One typed computed `clip-path` through every admitted ingress: presentation hint, inline style, stylesheet, the `-webkit-` alias, and `var()` substitution. Removing those branches changes 162/162/162/162/171 pixels; defeating `none` precedence changes 324 and bypassing the first duplicate id changes 162. Missing references and invalid attribute syntax are byte-identical to explicit `none`. The cell is byte-exact. |
+| `svg-clip-path-geometric-children.svg` | The direct-child path strategy: rect, rounded rect, path, polygon, and polyline contours form unions; removing the union tail changes 340 pixels at Δ233. Child fill/stroke/opacity and hidden geometry plus a direct `<g>` are independently byte-identical when removed. Making the empty resource visible changes 784 pixels. The cell is byte-exact. |
+| `svg-clip-rule.svg` | The inherited presentation attribute: default `nonzero`, direct `evenodd`, an explicit inherited value, and `initial` restoring nonzero. Replacing every even-odd branch with nonzero changes 784 pixels at Δ244. Byte-exact. |
+| `svg-clip-path-units.svg` | The complete `clipPathUnits` grammar: missing and explicit `userSpaceOnUse`, case-sensitive invalid-value fallback, and `objectBoundingBox`. The object-box panels pin fractional mapping, viewport-based percentages before that map, the target fill box rather than stroke, and a zero-area target producing an empty clip. Replacing object-box with user space changes 228 pixels, making the invalid token valid changes 336, and resolving its percentage after the map changes 96. Byte-exact. |
+| `svg-clip-path-transforms-viewbox.svg` | Coordinate composition through a non-identity `viewBox`: child, resource, and target transforms remain distinct, and object-box mapping happens before the resource transform. Removing the viewBox changes 2,238 pixels, reversing the resource order changes 28, and removing the child transform changes 232. Byte-exact. |
+| `svg-clip-path-targets.svg` | Target and contributor breadth: a clipped group, a clipped `<use>`, a direct `<use>` contributor with its own `x`/`y` and transform, and an object-box clip on stroked geometry. Removing those four distinctions changes 364, 576, 104, and 200 pixels respectively. Byte-exact. |
+| `svg-clip-path-chain-opacity.svg` | Scope composition: a clip on a resource becomes a second intersection layer; removing it changes 196 pixels. Resource opacity is inert (removing it is byte-identical); removing target opacity changes 733 pixels, and removing a nested target clip changes 190. Byte-exact. |
+| *(measured, not celled — clipping strategy split)* | Chromium's geometric path strategy carries at most 42 visible path contributors. At 43 it switches to a raster mask; visible text and a contributor with its own `clip-path` take that mask route at any count. A root `<svg>` instead clips in the host CSS layer. Cyclic and external resources, animation inside a resource, CSS basic shapes, and standalone geometry boxes also remain outside this admitted path normal form. Nine refusal fixtures name those branches in strict and best-effort rendering. Additional probes established that a display-pruned clip resource is an invalid reference (no clip), object-box group bounds are the union of descendant fill geometry, and an object-box clip on a `<use>` target applies the instance's `x`/`y` exactly once; these are measured, not celled. |
 | `svg-gradient-linear.svg` · `svg-gradient-linear-userspace.svg` · `svg-gradient-linear-bbox-offset.svg` | The gradient rung's base cells: the default objectBoundingBox ramp, the byte-identical userSpaceOnUse equivalent (the canary for the box-inverse fold), and a bbox-relative ramp on offset geometry. |
 | `svg-gradient-transform.svg` · `svg-gradient-css-transform.svg` | `gradientTransform` and an author `transform` declaration are one computed value — the attribute cell and the non-quarter CSS rotation cell (the discriminating measurement: the value applies about the raw origin of gradient space, both spellings). |
 | `svg-gradient-spread-reflect.svg` · `svg-gradient-spread-repeat.svg` · `svg-gradient-hard-stop.svg` · `svg-gradient-stop-nonmonotonic.svg` | The ramp grammar: both non-pad spread methods with their measured seams, equal-offset hard stops rendering crisp, and non-monotonic offsets clamping to the running maximum (never sorted). |
@@ -201,23 +210,22 @@ oracle with zero differing pixels. The gate also validates enumeration and
 provenance and double-runs both raw raster and PNG encoding (see
 `crates/websem/tests/reftest_oracle.rs`).
 
-One class departs from that, and only by declaration: **rational conics**.
-A filled ellipse reaches the same `SkCanvas::drawOval` entry point in both
-engines, but through different builds of Skia, whose conic scan-converters
-disagree on fractional coverage along the curve — measured identical
-across every available construction (`draw_oval`, `draw_circle`,
-`PathBuilder::add_oval`/`add_circle`, an oval `RRect`), so no choice of
-call closes it.
+One class departs from that, and only by declaration: **native oval
+construction**. A filled ellipse reaches `SkCanvas::drawOval`; the clip cell
+reaches the equivalent clockwise oval contour through a path operation. Both
+ultimately use different builds of Skia whose conic scan-converters disagree
+on fractional coverage along the curve. The construction sweep (`draw_oval`,
+`draw_circle`, `PathBuilder::add_oval`/`add_circle`, and an oval `RRect`) found
+no backend call that closes the difference.
 
 Nothing else in the corpus departs, and the boundary has been narrowed twice
 by measurement. Straight edges agree even when a transform puts them off the
 pixel grid: the rotated cells above — including a 45° turn — bake byte-exact.
 And *curves* as such are not the boundary either: the cubic, smooth-cubic and
-quadratic path cells above bake byte-exact too. Only the weighted conic
-diverges — and only through the `drawOval` entry point. The conic rung's
-measurement narrowed the boundary a third time: an SVG elliptical arc *is*
-this corpus now, emitted as explicit `ConicTo` segments, and all eleven
-arc and rounded-rect cells — rotated elliptical sweep and strokes included
+quadratic path cells above bake byte-exact too. Only the native oval contour
+diverges. The conic rung's measurement narrowed the boundary a third time: an
+SVG elliptical arc *is* this corpus now, emitted as explicit `ConicTo`
+segments, and all eleven arc and rounded-rect cells — rotated elliptical sweep and strokes included
 — bake **byte-exact** with no tolerance at all. The departure class is the
 oval construction's, not the curve class's.
 
@@ -225,10 +233,11 @@ The curved fixtures carry a `tolerance` block naming the ideal boundary and
 bounding the departure: at most N differing pixels, at most a D-per-channel
 delta, every one of them within a pixel of that boundary.
 The numbers are the measured values, not headroom. No single cell is worst on
-both axes: the largest differing-pixel count is 6 (`svg-circle-viewbox-scaled`,
-at delta 3) and the largest per-channel delta is 8 (`svg-ellipse-fill`, in 1
-pixel), so the corpus admits at most 6 pixels and at most delta 8, never both at
-once. Strokes land in the same class and mostly below it: 101 of the 102
+both axes: the largest differing-pixel count is 6 (`svg-circle-viewbox-scaled`
+and `svg-clip-path`, both at delta 3) and the largest per-channel delta is 8
+(`svg-ellipse-fill`, in 1 pixel), so the corpus admits at most 6 pixels and at
+most delta 8, never both at once. Strokes land in the same class and mostly
+below it: 101 of the 102
 `svg-stroke-*` cells are byte-exact, and the one that is not
 (`svg-stroke-path-closed`) differs
 in 4 pixels at delta 3 along the round join

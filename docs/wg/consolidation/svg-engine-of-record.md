@@ -54,17 +54,20 @@ from the dated addenda below:
   presentation hint of the CSS `transform` property, and `gradientTransform`
   is that attribute on gradient elements);
   `<use>`/`<defs>` same-document references (the id-resolution table);
+  geometric same-document `clip-path` resources in the bounded path strategy
+  (direct geometry/`<use>` unions, chained intersections, both
+  `clipPathUnits`, inherited `clip-rule`, and resolved effect scopes);
   one declared-font, single-run `<text>` profile; viewBox-only root sizing with
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 334 Chromium-baked primitive cells plus 10 sampled frames.
-  All byte-exact except six curved cells carrying a declared, geometrically
-  confined tolerance (the weighted rational conic) and three gradient cells
+- **The corpus** is 342 Chromium-baked primitive cells plus 10 sampled frames.
+  All byte-exact except seven curved cells carrying a declared, geometrically
+  confined tolerance (the native-oval/conic boundary) and three gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
-  restore). The named refusal register has 78 rows.
+  restore). The named refusal register has 86 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -2375,3 +2378,98 @@ moves from 327 to 334 cells; the ten exact-time sampled frames are unchanged.
 The refusal register moves from 81 to 78 rows. The SVG presentation-attribute
 `d` row ticks; the CSS presentation-property row stays open at the pinned
 cascade boundary. This records no conformance score and takes no FLIP action.
+
+## Rung: SVG geometric `clip-path` path strategy (2026-08-24)
+
+The verdict is SPLIT. Same-document geometric clip resources now carry a large
+and useful rendering slice, but `clip-path` as a whole does not close. The
+standard property also contains CSS basic shapes, geometry boxes, a root
+CSS-layer route, and raster-mask strategies. Those branches remain explicit
+work. The independently listed `clipPathUnits` attribute does close: its
+complete `userSpaceOnUse | objectBoundingBox` grammar is carried by committed
+Chromium evidence.
+
+`clip-path` enters through the pinned cascade rather than a parallel matcher.
+The presentation attribute is a hint; inline style and stylesheet declarations
+beat it, `none` removes it, and the shipped `-webkit-` alias and custom-property
+substitution reach the same typed computed value. A malformed reference value
+computes to no clip. Same-document fragments use document-order, first-id
+lookup: a missing id or a non-`<clipPath>` target is likewise no clip, while an
+external resource refuses because this product has no resource environment.
+The CSS basic-shape and geometry-box variants are represented by the cascade
+but refuse at the source boundary instead of being mistaken for `none`.
+
+One resource layer is the union of its visible direct geometry contributors.
+All seven admitted geometry kinds contribute, as does a direct `<use>` whose
+expanded target is one of those shapes. Their authored fill, stroke, and
+opacity do not paint into the clip; a direct container is not descended; hidden
+or pruned contributors add no path. A valid resource with no contributing path
+is meaningful and clips every pixel. Missing or wrong-kind resources are
+different: they install no clip. The cells distinguish those outcomes.
+
+The admitted fill rule is the inherited `clip-rule` presentation attribute.
+Default and explicit `nonzero`, `evenodd`, inheritance, and the CSS-wide
+behavior were measured, with the discriminating compound contours committed.
+Its CSS property twin is absent from this Servo-mode Stylo pin, so author CSS
+is quarantined and no second matcher is grown around the cascade. Valid
+presentation spellings containing CSS comments, an escape, or `var()` also
+remain named over-refusals: the direct inherited reader cannot tokenize them
+without becoming that second matcher. These lexical gaps keep the attribute
+row open too.
+
+The coordinate-system measurement fixes the order. Missing
+`clipPathUnits` and explicit `userSpaceOnUse` use target user space;
+`objectBoundingBox` first maps the unit square through the target's fill
+geometry box, then applies the resource's own transform. Percentages inside
+that resource retain the current viewport basis before the object-box map.
+The box excludes stroke, and a zero-area target produces the valid empty clip.
+An invalid case-sensitive units token falls back to user space. Object-box
+group bounds as the union of descendant fill geometry and an object-box clip
+on a `<use>` target applying instance `x`/`y` exactly once were also confirmed
+(measured, not celled).
+
+Child, resource, and target transforms stay distinct through outer `viewBox`
+mapping. A clip on a clip resource becomes another intersection layer; a clip
+on already clipped target content is another nested effect scope. Resource
+opacity is inert, while target opacity encloses the clipped result. The
+resolved normal form therefore needs only unions of geometry and intersections
+of layers. It carries no URL, DOM identity, paint, image, or backend mask, and
+cannot silently widen into one.
+
+The line between path and mask was established by measurement. Chromium keeps
+the path-union strategy through 42 visible contributors and switches at 43.
+Visible text and a contributor carrying its own clip use the mask strategy at
+any count. Those three branches refuse under one registered raster-strategy
+row. A root `<svg>` takes a different host CSS-layer route and refuses in both
+admissions. Cyclic chains, resource animation, external URLs, basic shapes,
+and geometry boxes have their own stable rows. A load-active animation inside
+clip geometry skips the referencing target in best-effort and refuses in
+strict mode; stale authored resource geometry is never rendered as though it
+were the browser's Base value.
+
+Eight new Chromium cells carry the admitted slice. Seven are byte-exact. The
+graduated circle resource differs at six native-oval boundary pixels with
+maximum channel delta 3, exactly the existing bounded oval class; every
+straight-edge, transformed, chained, rule, units, target, and opacity control
+is exact. The cells cover all source ingresses, first-id and invalid-reference
+semantics, geometric unions and inert paint, both fill rules, both unit modes,
+percentage/object-box order, `viewBox` and all three transform seats, groups,
+target and contributor `<use>`, stroke-box separation, chain intersection, and
+effect ordering. Every candidate was also rendered through the actual product
+command, not merely captured in Chromium.
+
+The gate's sensitivity was proved by temporarily changing clip intersection
+to subtraction. `just gate` rejected the graduated circle cell as a geometry
+defect, with the mismatch 17.23402 pixels outside its declared boundary ring.
+Restoring intersection returned the complete gate to green. The contract also
+bounds each union at 42 contributors and each chain at 64 layers, checks all
+geometry and transforms before they cross the frame boundary, and preflights
+backend path operations so failure cannot become a silent unclip.
+
+The primitive corpus moves from 334 to 342 cells; the ten exact-time sampled
+frames are unchanged. The former broad clip-path refusal graduates, and nine
+narrower strategy, source, and cascade rows replace it, moving the named
+register from 78 to 86 rows. Only `clipPathUnits` ticks. The `<clipPath>`
+element, both `clip-path` rows, and both `clip-rule` rows stay open with their
+remaining work named above. This records no conformance score and takes no
+FLIP action.

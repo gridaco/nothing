@@ -19,10 +19,10 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (334)
+## Chromium-baked cells (342)
 
 Each renders byte-exact against its committed Chromium oracle
-(six curved cells and three gradient ramps carry a declared, bounded
+(seven curved cells and three gradient ramps carry a declared, bounded
 tolerance — see [README.md](./README.md)). Every thumbnail below
 *is* that committed oracle, which byte-exactness makes this
 engine's own render too; hover for the cell's name, click through
@@ -36,6 +36,14 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-circle-fill.svg" title="svg-circle-fill (standalone-svg)"><img src="./chromium/svg-circle-fill.png" width="56" alt="svg-circle-fill"></a>
 <a href="./svg-circle-viewbox-scaled.svg" title="svg-circle-viewbox-scaled (standalone-svg)"><img src="./chromium/svg-circle-viewbox-scaled.png" width="56" alt="svg-circle-viewbox-scaled"></a>
 <a href="./svg-circle-zero-r.svg" title="svg-circle-zero-r (standalone-svg)"><img src="./chromium/svg-circle-zero-r.png" width="56" alt="svg-circle-zero-r"></a>
+<a href="./svg-clip-path.svg" title="svg-clip-path (standalone-svg)"><img src="./chromium/svg-clip-path.png" width="56" alt="svg-clip-path"></a>
+<a href="./svg-clip-path-chain-opacity.svg" title="svg-clip-path-chain-opacity (standalone-svg)"><img src="./chromium/svg-clip-path-chain-opacity.png" width="56" alt="svg-clip-path-chain-opacity"></a>
+<a href="./svg-clip-path-css-ingress.svg" title="svg-clip-path-css-ingress (standalone-svg)"><img src="./chromium/svg-clip-path-css-ingress.png" width="56" alt="svg-clip-path-css-ingress"></a>
+<a href="./svg-clip-path-geometric-children.svg" title="svg-clip-path-geometric-children (standalone-svg)"><img src="./chromium/svg-clip-path-geometric-children.png" width="56" alt="svg-clip-path-geometric-children"></a>
+<a href="./svg-clip-path-targets.svg" title="svg-clip-path-targets (standalone-svg)"><img src="./chromium/svg-clip-path-targets.png" width="56" alt="svg-clip-path-targets"></a>
+<a href="./svg-clip-path-transforms-viewbox.svg" title="svg-clip-path-transforms-viewbox (standalone-svg)"><img src="./chromium/svg-clip-path-transforms-viewbox.png" width="56" alt="svg-clip-path-transforms-viewbox"></a>
+<a href="./svg-clip-path-units.svg" title="svg-clip-path-units (standalone-svg)"><img src="./chromium/svg-clip-path-units.png" width="56" alt="svg-clip-path-units"></a>
+<a href="./svg-clip-rule.svg" title="svg-clip-rule (standalone-svg)"><img src="./chromium/svg-clip-rule.png" width="56" alt="svg-clip-rule"></a>
 <a href="./svg-context-paint-attr-fill-from-fill.svg" title="svg-context-paint-attr-fill-from-fill (standalone-svg)"><img src="./chromium/svg-context-paint-attr-fill-from-fill.png" width="56" alt="svg-context-paint-attr-fill-from-fill"></a>
 <a href="./svg-context-paint-attr-fill-from-stroke.svg" title="svg-context-paint-attr-fill-from-stroke (standalone-svg)"><img src="./chromium/svg-context-paint-attr-fill-from-stroke.png" width="56" alt="svg-context-paint-attr-fill-from-stroke"></a>
 <a href="./svg-context-paint-attr-stroke-from-fill.svg" title="svg-context-paint-attr-stroke-from-fill (standalone-svg)"><img src="./chromium/svg-context-paint-attr-stroke-from-fill.png" width="56" alt="svg-context-paint-attr-stroke-from-fill"></a>
@@ -363,7 +371,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (78)
+## The refusal register (86)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -372,7 +380,15 @@ its row into the cells above.
 
 | Fixture | Admission | The compiler's departure |
 | --- | --- | --- |
-| `svg-clip-path` | declared | skipped svg/clipPath[1]: unsupported element <clipPath>; skipped svg/rect[2]: unsupported rendering attribute clip-path on <rect> (not yet consumed) |
+| `svg-clip-path-animation` | declared | skipped svg/rect[2]: unsupported SVG clip-path: a <rect> contributor's authored geometry is overridden at document load: its authored state is overridden at document load by the unsupported animation at svg/clipPath[1]/rect[1]/animate[1]: <animate> must be a direct child of a materialized top-level <rect> |
+| `svg-clip-path-basic-shape` | declared | skipped svg/rect[2]: unsupported SVG clip-path: a CSS basic-shape clip-path uses the independently listed basic-shape route |
+| `svg-clip-path-cycle` | declared | skipped svg/rect[2]: unsupported SVG clip-path: url(#a) forms a cyclic clip-path chain, whose raster/path strategy is not admitted |
+| `svg-clip-path-external` | declared | skipped svg/rect[2]: unsupported SVG clip-path: url(https://example.test/clip.svg#shape) is external; this compiler owns no resource I/O |
+| `svg-clip-path-geometry-box` | declared | skipped svg/rect[2]: unsupported SVG clip-path: a CSS geometry-box clip-path needs the target's CSS/SVG box-world route |
+| `svg-clip-path-raster-strategy` | declared | skipped svg/rect[2]: unsupported SVG clip-path: visible <text> inside <clipPath> uses Chromium's raster-mask strategy; skipped svg/rect[3]: unsupported SVG clip-path: a <rect> contributor with its own clip-path uses Chromium's raster-mask strategy; skipped svg/rect[4]: unsupported SVG clip-path: a <clipPath> has 43 visible path contributors; Chromium switches to its raster-mask strategy above 42 |
+| `svg-clip-path-root` | **both refuse** | unsupported SVG clip-path: clip-path on the root <svg> uses the host CSS-layer coordinate route |
+| `svg-clip-rule-css-property` | declared | declaration ignored at svg/style[1]: a stylesheet declares clip-rule, which this cascade does not represent; elements it matches render without it |
+| `svg-clip-rule-raw-syntax` | declared | skipped svg/rect[2]: unsupported SVG clip-path: clip-rule presentation attribute contains a CSS comment; the direct attribute decoder does not tokenize comments; skipped svg/rect[3]: unsupported SVG clip-path: clip-rule presentation attribute contains a CSS escape; the direct attribute decoder does not tokenize escapes; skipped svg/rect[4]: unsupported SVG clip-path: clip-rule presentation attribute uses var(), whose substitution is not represented at this Stylo pin |
 | `svg-context-paint-fallback-extension` | declared | skipped svg/rect[2]: unsupported fill value "a context paint carries Stylo's non-standard fallback extension; Chromium drops this declaration" |
 | `svg-css-individual-rotate` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares rotate, which this cascade does not represent |
 | `svg-css-transform-3d` | declared | skipped svg/rect[2]: unsupported computed style: transform on <rect> uses translate3d(), which is outside the 2D affine function set this slice consumes |

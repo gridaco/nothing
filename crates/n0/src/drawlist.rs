@@ -17,6 +17,34 @@ use std::sync::Arc;
 
 use crate::text_layout::TextFontRegistry;
 
+/// One backend-neutral geometric contributor in a private clip program.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct ResolvedClipGeometry {
+    /// Geometry-local coordinates to frame space.
+    pub world: Affine,
+    pub kind: ResolvedClipGeometryKind,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum ResolvedClipGeometryKind {
+    Rect { x: f32, y: f32, w: f32, h: f32 },
+    Oval { x: f32, y: f32, w: f32, h: f32 },
+    Path(Arc<ResolvedPathArtifact>),
+}
+
+/// One path-operation union. Empty means a valid clip that admits no pixels.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct ResolvedClipLayer {
+    pub geometries: Arc<[ResolvedClipGeometry]>,
+}
+
+/// The private projection of a resolved geometric clip. Layers intersect in
+/// order; every layer first unions its contributors.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ResolvedClipPath {
+    pub(crate) layers: Arc<[ResolvedClipLayer]>,
+}
+
 /// Product-local owner slot for a source-neutral glyphless frame.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct GlyphlessOwnerSlot(u32);
@@ -165,6 +193,11 @@ pub enum ItemKind {
         h: f32,
         corner_radius: RectangularCornerRadius,
         corner_smoothing: CornerSmoothing,
+    },
+    /// A source-neutral path-strategy clip, already resolved into frame-space
+    /// geometry and bounded union/intersection layers.
+    BeginClipPath {
+        clip: Arc<ResolvedClipPath>,
     },
     EndClip,
     RectFill {

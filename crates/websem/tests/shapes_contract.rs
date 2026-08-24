@@ -807,19 +807,24 @@ fn cascade_properties_the_build_cannot_represent_refuse_by_name() {
         ),
     ] {
         let (error, reason) = shape_failure(&on_canvas(shape));
-        assert!(
-            matches!(error, CompileError::UnsupportedStyle(_)),
-            "{label}: {error:?}"
-        );
+        if label == "clip-path" {
+            assert!(
+                matches!(error, CompileError::UnsupportedClipPath(_)),
+                "{label}: {error:?}"
+            );
+        } else {
+            assert!(
+                matches!(error, CompileError::UnsupportedStyle(_)),
+                "{label}: {error:?}"
+            );
+        }
         assert!(reason.contains(property), "{label} names it: {reason}");
     }
 
     // The stylesheet leg is document-level, because a sheet is not
-    // attributable to one element without selector matching: strict
-    // refuses, best-effort declares it once against the sheet and renders
-    // the document rather than dropping the canvas. (`transform` was this
-    // leg's canonical until its rung consumed it; `clip-path` — computed
-    // but unread — succeeds it.)
+    // attributable to one element without selector matching. `clip-path`
+    // has now left that scanner: Stylo computes it and the compiler can name
+    // the unsupported basic-shape route on the affected element itself.
     let styled = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
   <style>circle { clip-path: inset(0 50% 0 0); }</style>
   <rect width="64" height="64" fill="#ffffff"/>
@@ -827,7 +832,7 @@ fn cascade_properties_the_build_cannot_represent_refuse_by_name() {
 </svg>"##;
     let strict = SvgFrameSource::from_standalone_svg(styled, viewport(64.0, 64.0))
         .err()
-        .expect("strict refuses the stylesheet declaration");
+        .expect("strict refuses the basic-shape route");
     assert!(strict.to_string().contains("clip-path"), "{strict}");
 
     let best = SvgFrameSource::from_standalone_svg_best_effort(styled, viewport(64.0, 64.0))
@@ -835,19 +840,14 @@ fn cascade_properties_the_build_cannot_represent_refuse_by_name() {
     let declared: Vec<_> = best
         .degradations()
         .iter()
-        .filter(|d| d.reason().contains("stylesheet declares clip-path"))
+        .filter(|d| d.reason().contains("basic-shape clip-path"))
         .collect();
     assert_eq!(declared.len(), 1, "declared exactly once");
-    assert_eq!(declared[0].path(), "svg/style[1]", "named at the sheet");
-    assert!(
-        declared[0].reason().contains("render without it"),
-        "the declaration states the consequence: {}",
-        declared[0].reason()
-    );
+    assert_eq!(declared[0].path(), "svg/circle[1]", "named at the target");
     assert_eq!(
         best.base_frame().nodes().len(),
-        2,
-        "the admitted shapes still render"
+        1,
+        "the admitted background still renders while the affected target is skipped"
     );
 }
 

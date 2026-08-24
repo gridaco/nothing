@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <defs>
+    <rect id="use-shape" width="24" height="24" fill="#2563eb"/>
+    <path id="clip-shape" d="M0 0H20V24H0Z"/>
+    <clipPath id="group-clip"><path d="M2 2H30V30H2Z M12 12H30V30H12Z" clip-rule="evenodd"/></clipPath>
+    <clipPath id="use-target-clip"><rect x="38" y="4" width="20" height="24"/></clipPath>
+    <clipPath id="use-child-clip"><use href="#clip-shape" x="5" y="37" transform="rotate(7 15 49)"/></clipPath>
+    <clipPath id="stroke-clip" clipPathUnits="objectBoundingBox"><rect width=".5" height="1"/></clipPath>
+  </defs>
+  <g clip-path="url(#group-clip)">
+    <rect x="2" y="2" width="28" height="28" fill="#16a34a"/>
+    <path d="M2 30L30 2" stroke="#14532d" stroke-width="5"/>
+  </g>
+  <use href="#use-shape" x="34" y="4" clip-path="url(#use-target-clip)"/>
+  <rect x="3" y="35" width="28" height="27" fill="#f59e0b" clip-path="url(#use-child-clip)"/>
+  <rect x="38" y="38" width="20" height="20" fill="#7c3aed" stroke="#ef4444" stroke-width="7"
+        clip-path="url(#stroke-clip)"/>
+</svg>

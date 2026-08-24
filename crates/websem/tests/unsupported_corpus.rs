@@ -41,7 +41,39 @@ use Departure::{BothRefuse, DeclaredByBestEffort};
 /// construct itself — a refusal that stopped naming what it refused would pass
 /// a bare "does it error" check and fail this one.
 const CORPUS: &[(&str, Departure, &str)] = &[
-    ("svg-clip-path", DeclaredByBestEffort, "<clipPath>"),
+    ("svg-clip-path-animation", DeclaredByBestEffort, "animation"),
+    (
+        "svg-clip-path-basic-shape",
+        DeclaredByBestEffort,
+        "basic-shape",
+    ),
+    (
+        "svg-clip-path-cycle",
+        DeclaredByBestEffort,
+        "cyclic clip-path chain",
+    ),
+    ("svg-clip-path-external", DeclaredByBestEffort, "external"),
+    (
+        "svg-clip-path-geometry-box",
+        DeclaredByBestEffort,
+        "geometry-box",
+    ),
+    (
+        "svg-clip-path-raster-strategy",
+        DeclaredByBestEffort,
+        "raster-mask strategy",
+    ),
+    ("svg-clip-path-root", BothRefuse, "root <svg>"),
+    (
+        "svg-clip-rule-css-property",
+        DeclaredByBestEffort,
+        "clip-rule",
+    ),
+    (
+        "svg-clip-rule-raw-syntax",
+        DeclaredByBestEffort,
+        "clip-rule presentation attribute",
+    ),
     (
         "svg-context-paint-fallback-extension",
         DeclaredByBestEffort,

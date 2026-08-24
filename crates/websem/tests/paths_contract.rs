@@ -827,14 +827,10 @@ fn every_measured_css_ingress_is_declared() {
         // and paints nothing at all.
         ("all: initial", "the all shorthand"),
         ("all: unset", "the all shorthand, unset"),
-        // Vendor aliases of names already on the list — a one-character bypass.
-        // (`-webkit-transform` sat here until the transform rung: the
-        // scan now passes it and the pinned Stylo implements the alias,
-        // so that spelling *composes* — the law below pins it.)
-        (
-            "-webkit-clip-path: circle(10px at 20px 20px)",
-            "a -webkit- clip",
-        ),
+        // Vendor aliases of names already on the list — a one-character
+        // bypass. (`-webkit-transform` and `-webkit-clip-path` both left this
+        // table when their represented Stylo longhands became compiler
+        // ingresses; their feature contracts pin those aliases now.)
         ("-webkit-filter: blur(3px)", "a -webkit- filter"),
         // CSS motion path moves the shape off its authored position.
         (

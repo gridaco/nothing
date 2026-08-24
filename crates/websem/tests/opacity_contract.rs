@@ -90,7 +90,9 @@ fn scope_opacities(frame: &rframe::Frame) -> Vec<f32> {
         .iter()
         .filter_map(|item| match item {
             FrameItem::ScopeBegin(scope) => {
-                let ScopeEffect::Opacity(opacity) = scope.effect;
+                let ScopeEffect::Opacity(opacity) = scope.effect else {
+                    panic!("opacity fixture emitted a non-opacity scope");
+                };
                 Some(opacity.get())
             }
             _ => None,

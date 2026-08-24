@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "57f1d62818ce888d89a51ac76cc541907a8b0a4ae8ba1b139a883a630d289f0c",
+  "suite_sha256": "dfe68bf34646c6628502d1d9a10cdd6deb5230f630c2776da64a4567a81155f9",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -88,6 +88,78 @@
       "source_sha256": "5062a03231e17c9ec3c5013f65a2dc8c5f277835f4632e9ef8501d5c4789b648",
       "oracle": "chromium/svg-circle-zero-r.png",
       "oracle_sha256": "4f852cfe622067e2872424c8add5d3977db6b7d6ad84a6329f288f6d7da566fa",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-clip-path",
+      "source": "svg-clip-path.svg",
+      "source_sha256": "063764f9753fa4ba99fb771a60c758fc98b1cc738a736428ff438b6811f857d6",
+      "oracle": "chromium/svg-clip-path.png",
+      "oracle_sha256": "6e1d7eacb16f35dd611e9a2cd92a8d10444f029491ffea8b392efcb163a99b65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-clip-path-chain-opacity",
+      "source": "svg-clip-path-chain-opacity.svg",
+      "source_sha256": "26466bd7dbfd30e8329dd3f0c857f9d502678ce51e00f64af76b908731857879",
+      "oracle": "chromium/svg-clip-path-chain-opacity.png",
+      "oracle_sha256": "daeb463658c0c1cfcbe400f70a915378a028d6e8b4c2276cb3ad75ce6114e757",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-clip-path-css-ingress",
+      "source": "svg-clip-path-css-ingress.svg",
+      "source_sha256": "90066954a2799c9c444347e3f1c279fc435c16f466cba827dc0047b6106a249d",
+      "oracle": "chromium/svg-clip-path-css-ingress.png",
+      "oracle_sha256": "e8f75a6efc7b92ad312ff9072477a9420194bd41ad29506957dda226c1a8abba",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-clip-path-geometric-children",
+      "source": "svg-clip-path-geometric-children.svg",
+      "source_sha256": "cf434fa284bbc1ec3d8d69efe74c4223f1ab7eebb6127860e458a555afef4968",
+      "oracle": "chromium/svg-clip-path-geometric-children.png",
+      "oracle_sha256": "f76b894514b39d687927476610d4f27701fb1da413366eee6f9e052c86f2d8d4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-clip-path-targets",
+      "source": "svg-clip-path-targets.svg",
+      "source_sha256": "826f3bd459960d3a78c9ed67474729d420f34b12bc7e70fb399e813717c44ba1",
+      "oracle": "chromium/svg-clip-path-targets.png",
+      "oracle_sha256": "6738b7bfb173bd07f35211acb5f4ffe9e7f6faa3f8f17414729a2b6561b826be",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-clip-path-transforms-viewbox",
+      "source": "svg-clip-path-transforms-viewbox.svg",
+      "source_sha256": "3e41b45b755d0500e644e087b6fe8ffe7e6bd7d1db49e832e6354e280a2c8f5d",
+      "oracle": "chromium/svg-clip-path-transforms-viewbox.png",
+      "oracle_sha256": "7721af2476d5b651a9ddb8e85d1ac449b7c255a059af53cbfb77185b7e7f53fe",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-clip-path-units",
+      "source": "svg-clip-path-units.svg",
+      "source_sha256": "047c890aa593755e0eae0df4cc756763b06da46913f5d6e5d95dde4b46f2e143",
+      "oracle": "chromium/svg-clip-path-units.png",
+      "oracle_sha256": "254b623096b204748974ed436747071091f70328f30b7f706f43456631b41290",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-clip-rule",
+      "source": "svg-clip-rule.svg",
+      "source_sha256": "efae46a6b9c223b9be665d61721fff3124d3f3f827cbc132aad7612cb510b290",
+      "oracle": "chromium/svg-clip-rule.png",
+      "oracle_sha256": "c771475ea40fc212f649e86aab95abe42ba711704f5989dc46186bc310a9f231",
       "width": 64,
       "height": 64
     },
