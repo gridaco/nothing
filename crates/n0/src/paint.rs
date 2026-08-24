@@ -2631,9 +2631,14 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                     .expect("resolved image-filter builders were preflighted at product build");
                 let mut restore_paint = Paint::default();
                 restore_paint.set_image_filter(image_filter);
+                // Keep the final filtered-image SrcOver off Skia's x86-only
+                // approximate lowp divide-by-255 path. An F16 layer preserves
+                // Chromium's combined color/alpha rounding; a runtime `half4`
+                // blender would first lose the admitted flood-opacity precision.
                 let layer = SaveLayerRec::default()
                     .bounds(&region)
-                    .paint(&restore_paint);
+                    .paint(&restore_paint)
+                    .flags(SaveLayerFlags::F16_COLOR_TYPE);
                 canvas.save_layer(&layer);
                 scopes.push(Scope::Filter);
             }

@@ -2817,7 +2817,10 @@ seven otherwise exact composite and merge cells with 2–384 one-code-value
 departures. The cause was a CPU-family split in low-precision Porter-Duff
 division: generated filter sources require the exact byte-domain divide-by-255
 rounding Chromium exhibits, while graphs sampling the source image retain
-floating source coverage. Keeping those two domains distinct returns both
+floating source coverage. Six cells returned to exactness after separating
+those graph domains; the remaining one-input merge isolated the same split at
+the final filtered-image composite. That outer operation must stay in
+high-precision coverage as well. Keeping both boundaries explicit returns both
 processor families to the same exact oracles without tolerance.
 
 Eight focused offset/flood rows join the refusal register. The former graph-
