@@ -616,6 +616,206 @@
       "height": 64
     },
     {
+      "id": "svg-filter-color-linear",
+      "source": "svg-filter-color-linear.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-linear.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-srgb",
+      "source": "svg-filter-color-srgb.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-srgb.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-empty-graph",
+      "source": "svg-filter-empty-graph.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-empty-graph.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-first-id",
+      "source": "svg-filter-first-id.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-first-id.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-gaussian-blur-axis-clamp",
+      "source": "svg-filter-gaussian-blur-axis-clamp.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-gaussian-blur-axis-clamp.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-gaussian-blur-basic",
+      "source": "svg-filter-gaussian-blur-basic.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-gaussian-blur-basic.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-gaussian-blur-invalid-list",
+      "source": "svg-filter-gaussian-blur-invalid-list.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-gaussian-blur-invalid-list.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-gaussian-blur-number-list",
+      "source": "svg-filter-gaussian-blur-number-list.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-gaussian-blur-number-list.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-gaussian-blur-zero",
+      "source": "svg-filter-gaussian-blur-zero.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-gaussian-blur-zero.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-nested",
+      "source": "svg-filter-nested.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-nested.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-opacity-order",
+      "source": "svg-filter-opacity-order.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-opacity-order.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-primitive-region",
+      "source": "svg-filter-primitive-region.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-primitive-region.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-primitive-units-object",
+      "source": "svg-filter-primitive-units-object.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-primitive-units-object.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-region-default",
+      "source": "svg-filter-region-default.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-region-default.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-region-userspace",
+      "source": "svg-filter-region-userspace.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-region-userspace.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-result-chain",
+      "source": "svg-filter-result-chain.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-result-chain.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-scope-order",
+      "source": "svg-filter-scope-order.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-scope-order.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-source-alpha",
+      "source": "svg-filter-source-alpha.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-source-alpha.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-stroke",
+      "source": "svg-filter-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-target-rotate",
+      "source": "svg-filter-target-rotate.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-target-rotate.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-units-grammar",
+      "source": "svg-filter-units-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-units-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-url-comments",
+      "source": "svg-filter-url-comments.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-url-comments.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-url-quoted",
+      "source": "svg-filter-url-quoted.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-url-quoted.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-use-instance",
+      "source": "svg-filter-use-instance.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-use-instance.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-viewbox-nonuniform",
+      "source": "svg-filter-viewbox-nonuniform.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-viewbox-nonuniform.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-geometry-cx-cy-r-grammar",
       "source": "svg-geometry-cx-cy-r-grammar.svg",
       "entry": "standalone-svg",

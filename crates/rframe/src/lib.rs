@@ -13,6 +13,7 @@
 //! The whole crate is backend-free (locked by `tests/architecture.rs`).
 
 mod clip;
+mod filter;
 mod frame;
 mod mask;
 mod path;
@@ -22,6 +23,10 @@ mod stroke;
 pub use clip::{
     ClipGeometry, ClipGeometryError, ClipLayer, ClipLayerError, ClipPath, ClipPathError,
     MAX_CLIP_GEOMETRIES_PER_LAYER, MAX_CLIP_LAYERS,
+};
+pub use filter::{
+    Filter, FilterColorSpace, FilterError, FilterInput, FilterNode, FilterPrimitive, FilterProgram,
+    FilterProgramError, MAX_FILTER_NODES,
 };
 pub use frame::{
     Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry, Identity, MAX_SCOPE_DEPTH,

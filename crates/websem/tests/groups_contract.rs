@@ -3,11 +3,11 @@
 //!
 //! A container is **flattened**, not represented — it contributes a
 //! transform and a place in paint order, both of which the resolved
-//! contract already carries per node. These laws pin that flattening
-//! (composition order, paint order, nested paths, inherited paint), the
-//! transform grammar's admitted set and its refusals, and the boundary
-//! that keeps the flattening honest: any construct needing a real group
-//! scope still refuses.
+//! contract already carries per node. A resolved effect can instead
+//! materialize a real scope around the group's children. These laws pin the
+//! ordinary flattening (composition order, paint order, nested paths,
+//! inherited paint), the transform grammar's admitted set and its refusals,
+//! and the boundary that keeps both routes honest.
 
 // This binary consumes only the n0 render half of the shared plumbing.
 #[allow(dead_code)]
@@ -15,6 +15,7 @@ mod support;
 
 use math2::Rectangle;
 use math2::transform::AffineTransform;
+use rframe::{FrameItem, ScopeEffect};
 use support::render_through_n0;
 use websem::{CompileError, DegradationAction, InitialViewport, SvgFrameSource};
 
@@ -344,35 +345,27 @@ fn an_empty_transform_list_is_the_identity() {
     }
 }
 
-/// Flattening is only honest while every unrepresented construct needing a
-/// real group scope refuses: a container carrying one is a declared hole,
-/// not a silently un-scoped paint.
+/// A resolved filter makes the normally flattened container into one real
+/// scope. Lookup and graph parsing have already disappeared at this seam.
 #[test]
-fn a_scope_bearing_filter_container_still_refuses() {
-    // `opacity`, geometric `clip-path`, and same-document SVG `mask` each
-    // graduated to their own contract tests. Filter remains a resource effect
-    // the scope vocabulary does not represent.
-    let source =
-        document(r##"  <g filter="url(#f)"><rect width="8" height="8" fill="#16a34a"/></g>"##);
-    let error = SvgFrameSource::from_standalone_svg(source.as_str(), viewport(64.0, 64.0))
-        .expect_err("group filter: strict must refuse");
-    assert!(error.to_string().contains("filter"), "{error}");
-
-    let best =
-        SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
-            .unwrap_or_else(|e| panic!("group filter: best-effort compiles: {e}"));
-    let skipped: Vec<_> = best
-        .degradations()
-        .iter()
-        .filter(|d| d.action() == DegradationAction::Skipped)
-        .collect();
-    assert_eq!(skipped.len(), 1);
-    assert_eq!(skipped[0].path(), "svg/g[1]");
+fn a_filter_container_materializes_one_resolved_scope() {
+    let frame = admit_both(&document(
+        r##"  <defs><filter id="f"><feGaussianBlur stdDeviation="2"/></filter></defs>
+  <g filter="url(#f)"><rect width="8" height="8" fill="#16a34a"/></g>"##,
+    ));
+    let mut items = frame.items.iter();
+    assert!(matches!(
+        items.next(),
+        Some(FrameItem::ScopeBegin(scope))
+            if matches!(scope.effect, ScopeEffect::Filter(_))
+    ));
+    assert!(matches!(items.next(), Some(FrameItem::Node(_))));
+    assert!(matches!(items.next(), Some(FrameItem::ScopeEnd)));
+    assert!(items.next().is_none());
     assert_eq!(
-        best.base_frame().nodes().len(),
-        0,
-        "the whole subtree is one hole — nothing inside it can be placed or \
-         composited without the construct"
+        frame.nodes().len(),
+        1,
+        "the group owns a scope while its child remains the paint node"
     );
 }
 

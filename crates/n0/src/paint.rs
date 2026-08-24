@@ -26,14 +26,15 @@ use skia_safe::canvas::{SaveLayerFlags, SaveLayerRec};
 use skia_safe::gradient::{Colors as GradientColors, Gradient, Interpolation};
 use skia_safe::{
     image::CachingHint, path_effect::PathEffect, shaders, stroke_rec::InitStyle, Blender, Canvas,
-    ClipOp, Color, CubicResampler, Data, Font, Image, ImageInfo, Matrix, OpBuilder, Paint,
-    PaintCap, PaintJoin, PaintStyle, Path, PathBuilder, PathDirection, PathFillType, PathOp, Point,
-    RRect, Rect, SamplingOptions, Shader, StrokeRec,
+    ClipOp, Color, ColorMatrix, CubicResampler, Data, Font, Image, ImageFilter, ImageInfo, Matrix,
+    OpBuilder, Paint, PaintCap, PaintJoin, PaintStyle, Path, PathBuilder, PathDirection,
+    PathFillType, PathOp, Point, RRect, Rect, SamplingOptions, Shader, StrokeRec,
 };
 
 use crate::drawlist::{
     DrawList, ItemKind, PostPaintOpacity, ResolvedClipGeometry, ResolvedClipGeometryKind,
-    ResolvedClipLayer, ResolvedClipPath, ResolvedMaskMode, StrokeDashPhase,
+    ResolvedClipLayer, ResolvedClipPath, ResolvedFilter, ResolvedFilterColorSpace,
+    ResolvedFilterInput, ResolvedFilterPrimitive, ResolvedMaskMode, StrokeDashPhase,
 };
 
 /// The gradient family whose local matrix could not be represented by the
@@ -755,7 +756,9 @@ pub(crate) fn preflight_gradients<K: Copy>(
             | ItemKind::BeginMaskContent
             | ItemKind::BeginMaskSource { .. }
             | ItemKind::EndMaskSource
-            | ItemKind::EndMaskContent => {}
+            | ItemKind::EndMaskContent
+            | ItemKind::BeginFilter { .. }
+            | ItemKind::EndFilter => {}
         }
     }
     Ok(())
@@ -940,7 +943,9 @@ pub(crate) fn preflight_images(
             | ItemKind::BeginMaskContent
             | ItemKind::BeginMaskSource { .. }
             | ItemKind::EndMaskSource
-            | ItemKind::EndMaskContent => {}
+            | ItemKind::EndMaskContent
+            | ItemKind::BeginFilter { .. }
+            | ItemKind::EndFilter => {}
         }
     }
     Ok(())
@@ -1887,6 +1892,135 @@ pub(crate) fn preflight_clip_path(clip: &ResolvedClipPath) -> bool {
     backend_clip_path(clip).is_some()
 }
 
+#[derive(Clone)]
+struct BuiltFilterResult {
+    /// `None` is the backend's input-image sentinel: the isolated scope's
+    /// original composite, not a construction failure.
+    image_filter: Option<ImageFilter>,
+    color_space: ResolvedFilterColorSpace,
+}
+
+fn source_alpha_filter() -> Option<ImageFilter> {
+    let mut matrix = ColorMatrix::default();
+    matrix.set_scale(0.0, 0.0, 0.0, 1.0);
+    let color_filter = skia_safe::color_filters::matrix(&matrix, None);
+    skia_safe::image_filters::color_filter(
+        color_filter,
+        None,
+        skia_safe::image_filters::CropRect::default(),
+    )
+}
+
+fn convert_filter_space(
+    result: BuiltFilterResult,
+    target: ResolvedFilterColorSpace,
+) -> Result<BuiltFilterResult, String> {
+    if result.color_space == target {
+        return Ok(result);
+    }
+    let color_filter = match (result.color_space, target) {
+        (ResolvedFilterColorSpace::Srgb, ResolvedFilterColorSpace::LinearRgb) => {
+            skia_safe::color_filters::srgb_to_linear_gamma()
+        }
+        (ResolvedFilterColorSpace::LinearRgb, ResolvedFilterColorSpace::Srgb) => {
+            skia_safe::color_filters::linear_to_srgb_gamma()
+        }
+        _ => unreachable!("equal spaces returned above"),
+    };
+    let image_filter = skia_safe::image_filters::color_filter(
+        color_filter,
+        result.image_filter,
+        skia_safe::image_filters::CropRect::default(),
+    )
+    .ok_or_else(|| "the backend could not construct a color-space conversion".to_string())?;
+    Ok(BuiltFilterResult {
+        image_filter: Some(image_filter),
+        color_space: target,
+    })
+}
+
+/// Build one checked private filter graph. The return's outer `Result` names
+/// backend construction failure; the inner `Option` preserves the valid
+/// input-image sentinel for an identity program.
+fn build_filter(filter: &ResolvedFilter) -> Result<Option<ImageFilter>, String> {
+    let source = BuiltFilterResult {
+        image_filter: None,
+        color_space: ResolvedFilterColorSpace::Srgb,
+    };
+    let source_alpha =
+        BuiltFilterResult {
+            image_filter: Some(source_alpha_filter().ok_or_else(|| {
+                "the backend could not construct the SourceAlpha input".to_string()
+            })?),
+            color_space: ResolvedFilterColorSpace::Srgb,
+        };
+    let mut results: Vec<BuiltFilterResult> = Vec::with_capacity(filter.nodes.len());
+    for node in filter.nodes.iter() {
+        let input = match node.input {
+            ResolvedFilterInput::Source => source.clone(),
+            ResolvedFilterInput::SourceAlpha => source_alpha.clone(),
+            ResolvedFilterInput::Node(index) => results
+                .get(index)
+                .cloned()
+                .expect("the resolved filter contract checked every node index"),
+        };
+        let input = convert_filter_space(input, node.color_space)?;
+        let image_filter = match node.primitive {
+            ResolvedFilterPrimitive::GaussianBlur { sigma_x, sigma_y } => {
+                if sigma_x == 0.0 && sigma_y == 0.0 {
+                    input.image_filter
+                } else {
+                    skia_safe::image_filters::blur(
+                        (sigma_x, sigma_y),
+                        Some(skia_safe::TileMode::Decal),
+                        input.image_filter,
+                        Rect::from_xywh(node.region.x, node.region.y, node.region.w, node.region.h),
+                    )
+                    .ok_or_else(|| {
+                        "the backend could not construct a Gaussian blur operation".to_string()
+                    })?
+                    .into()
+                }
+            }
+        };
+        results.push(BuiltFilterResult {
+            image_filter,
+            color_space: node.color_space,
+        });
+    }
+    let output = results
+        .pop()
+        .expect("the resolved filter contract requires a non-empty program");
+    let output = convert_filter_space(output, ResolvedFilterColorSpace::Srgb)?.image_filter;
+    if output.is_some() {
+        // A materialized terminal operation already carries its checked crop.
+        // Avoid wrapping it in a redundant graph node: backend graph shape is
+        // raster-observable after several operations.
+        return Ok(output);
+    }
+    // The backend's `None` sentinel is a valid pass-through graph, but it has
+    // no operation on which to carry the outer hard region. Materialize only
+    // this identity case as a crop.
+    skia_safe::image_filters::crop(
+        Rect::from_xywh(
+            filter.region.x,
+            filter.region.y,
+            filter.region.w,
+            filter.region.h,
+        ),
+        Some(skia_safe::TileMode::Decal),
+        output,
+    )
+    .map(Some)
+    .ok_or_else(|| "the backend could not construct the hard filter-region crop".to_string())
+}
+
+/// Product-build preflight for a resolved image-filter graph. Replay repeats
+/// the same pure builders and may therefore treat success as proven.
+pub(crate) fn preflight_filter(filter: &ResolvedFilter) -> Result<(), String> {
+    build_filter(filter).map(|_| ())
+}
+
 /// Push a command run into a Skia builder verbatim — the one place the
 /// backend-independent vocabulary becomes Skia calls.
 fn emit_commands(builder: &mut PathBuilder, commands: &[PathCommand]) {
@@ -2171,6 +2305,7 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
         Clip,
         MaskContent,
         MaskSource,
+        Filter,
     }
 
     let initial_save_count = canvas.save_count();
@@ -2285,6 +2420,36 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 let scope = scopes.pop();
                 debug_assert_eq!(scope, Some(Scope::MaskContent));
                 if scope.is_some() {
+                    canvas.restore();
+                }
+            }
+            ItemKind::BeginFilter { filter } => {
+                let total = view.then(&item.world);
+                canvas.save();
+                canvas.set_matrix(&skia_matrix(&total).into());
+                let region = Rect::from_xywh(
+                    filter.region.x,
+                    filter.region.y,
+                    filter.region.w,
+                    filter.region.h,
+                );
+                let image_filter = build_filter(filter)
+                    .expect("resolved image-filter builders were preflighted at product build");
+                let mut restore_paint = Paint::default();
+                restore_paint.set_image_filter(image_filter);
+                let layer = SaveLayerRec::default()
+                    .bounds(&region)
+                    .paint(&restore_paint);
+                canvas.save_layer(&layer);
+                scopes.push(Scope::Filter);
+            }
+            ItemKind::EndFilter => {
+                let scope = scopes.pop();
+                debug_assert_eq!(scope, Some(Scope::Filter));
+                if scope.is_some() {
+                    // Restore the filtered layer, then the local-space hard
+                    // region and transform saved immediately outside it.
+                    canvas.restore();
                     canvas.restore();
                 }
             }

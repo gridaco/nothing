@@ -245,8 +245,42 @@ cargo run -p n0_cli --bin n0 -- \
   broad refusal is replaced by sixteen focused rows. The `<mask>` element and
   `mask` presentation-attribute rows stay open for the named resource/layer
   remainder; the `mask-type`, `maskUnits`, and `maskContentUnits` attribute
-  rows close. The complete corpus is 361 Chromium-baked cells plus 10 sampled
-  frames, with 101 named refusal rows.
+  rows close.
+  Same-document SVG filters are consumed on admitted non-root SVG targets.
+  The direct `filter` presentation attribute carries `none`, CSS-wide reset
+  values, and one same-document URL token with quoted or unquoted content;
+  whole-document lookup is first-id-wins, comments
+  around the URL are accepted, and missing/wrong/malformed references install
+  no filter. A valid empty graph instead hides the target. The CSS property
+  stays a separate named boundary: this pinned Servo-mode cascade represents
+  filter functions but not the URL computed variant, so authored CSS is
+  quarantined rather than matched by another parser.
+  The resolved frame carries a checked backend-neutral graph, never the URL or
+  authored result names. The admitted graph has one or two
+  `feGaussianBlur` operations over `SourceGraphic`, `SourceAlpha`, a previous
+  result, or a resolved result name. Missing, malformed, extra-member, zero,
+  and independently negative `stdDeviation` axes follow the measured Chromium
+  pass-through/clamp behavior; one value expands to both axes. Missing
+  `color-interpolation-filters` and explicit `linearRGB` use linear light;
+  explicit `sRGB` and `auto` use sRGB. Target/group isolation, fill and stroke,
+  transforms, non-uniform `viewBox`, `<use>`, nesting, and the filter, then
+  mask, then opacity, then clip order are carried.
+  `filterUnits` and `primitiveUnits` now carry their complete case-sensitive
+  `userSpaceOnUse | objectBoundingBox` grammars, defaults, and invalid-value
+  fallbacks. Filter and primitive regions accept admitted finite numbers,
+  percentages, and `px`, with hard clipping and object-box/viewport bases.
+  Non-`px` units, CSS math, `var()`, used-range gaps, a non-positive primitive
+  region, unsupported primitives, `href`, external/root/list routes, CSS and
+  raw-syntax color ingress, and graphs deeper than two operations refuse by
+  stable name. The depth patrol is measured: a third chained blur differs
+  from Chromium by 680 pixels at maximum channel delta 3, while one and two
+  operations are exact. Current Chromium ignores `edgeMode` on blur
+  (measured, not celled); its global row remains open because the attribute
+  also applies to `<feConvolveMatrix>`. Likewise `stdDeviation` also belongs
+  to `<feDropShadow>`, so that row and both filter element rows stay open.
+  Twenty-five Chromium-baked filter cells are byte-exact, and the former broad
+  refusal is replaced by sixteen focused rows. The complete corpus is 386
+  Chromium-baked cells plus 10 sampled frames, with 116 named refusal rows.
   A stroke is centred, its width is a cascaded length in either spelling —
   numbers, absolute units, `em`/`rem` against an authored or default
   font-size, percentages against the normalized diagonal, and pure-length
