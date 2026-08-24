@@ -448,7 +448,7 @@ its row into the cells above.
 | `svg-image` | declared | skipped svg/image[1]: unsupported element <image> |
 | `svg-mask-css-properties` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares mask-image, which this cascade does not represent |
 | `svg-mask-cycle` | declared | skipped svg/rect[2]: unsupported SVG mask: mask source cannot be compiled completely: unsupported SVG mask: mask source cannot be compiled completely: unsupported SVG mask: url(#a) forms a cyclic nested mask chain |
-| `svg-mask-external` | declared | skipped svg/rect[2]: unsupported SVG mask: url(https://example.test/mask.svg#m) is external; this compiler owns no resource I/O |
+| `svg-mask-external` | declared | skipped svg/rect[2]: unsupported SVG mask: url(https://example.test/mask.svg#m) is external; this compiler owns no resource I/O; skipped svg/rect[3]: unsupported SVG mask: url(../mask.svg#m) is a relative external reference; this compiler owns no resource base or I/O |
 | `svg-mask-full-shorthand` | declared | skipped svg/rect[2]: unsupported SVG mask: mask presentation attribute uses an unrepresented full shorthand or multiple mask layers |
 | `svg-mask-region-calc` | declared | skipped svg/rect[2]: unsupported SVG mask: mask region x uses calc(), whose computed length is not represented at this Stylo pin |
 | `svg-mask-region-unit` | declared | skipped svg/rect[2]: unsupported SVG mask: mask region x uses the em unit, whose basis is not admitted |

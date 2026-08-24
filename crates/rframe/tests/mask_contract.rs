@@ -5,7 +5,7 @@ use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
     ClipGeometry, ClipLayer, ClipPath, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry,
-    Identity, Mask, MaskMode, PaintStack, Provenance, VisualRef,
+    Identity, Mask, MaskMode, PaintStack, Provenance, Scope, ScopeEffect, ScopeOpacity, VisualRef,
 };
 
 fn owner(id: u64) -> VisualRef {
@@ -31,6 +31,13 @@ fn mask(id: u64, mode: MaskMode) -> FrameItem {
     let layer = ClipLayer::new(vec![geometry]).expect("one region geometry");
     let region = ClipPath::new(vec![layer]).expect("one region layer");
     FrameItem::MaskBegin(Mask::new(owner(id), mode, region))
+}
+
+fn scope(id: u64) -> FrameItem {
+    FrameItem::ScopeBegin(Scope {
+        owner: owner(id),
+        effect: ScopeEffect::Opacity(ScopeOpacity::new(0.5).expect("0.5 is a scope fact")),
+    })
 }
 
 #[test]
@@ -80,6 +87,35 @@ fn mask_phase_markers_cannot_escape_or_cross_other_scopes() {
     assert_eq!(
         FrameItems::try_new(vec![mask(1, MaskMode::Alpha), node(2)]),
         Err(FrameItemsError::UnclosedMask { index: 0 })
+    );
+    assert_eq!(
+        FrameItems::try_new(vec![
+            mask(1, MaskMode::Alpha),
+            scope(9),
+            node(2),
+            FrameItem::MaskSource,
+        ]),
+        Err(FrameItemsError::UnexpectedMaskSource { index: 3 })
+    );
+    assert_eq!(
+        FrameItems::try_new(vec![
+            mask(1, MaskMode::Alpha),
+            node(2),
+            FrameItem::MaskSource,
+            scope(9),
+            node(3),
+            FrameItem::MaskEnd,
+        ]),
+        Err(FrameItemsError::UnexpectedMaskEnd { index: 5 })
+    );
+    assert_eq!(
+        FrameItems::try_new(vec![
+            scope(9),
+            mask(1, MaskMode::Alpha),
+            node(2),
+            FrameItem::ScopeEnd,
+        ]),
+        Err(FrameItemsError::UnopenedScopeEnd { index: 3 })
     );
 }
 

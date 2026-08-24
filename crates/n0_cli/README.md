@@ -185,8 +185,9 @@ cargo run -p n0_cli --bin n0 -- \
   The direct `mask` presentation attribute carries `none` and one
   same-document `url(#…)`, including CSS comments around the URL. References
   use the whole-document, document-order, first-id-wins table; a missing id,
-  a wrong-kind id, malformed syntax, or `none` installs no mask, while a valid
-  empty or black source hides the target. External URLs refuse because this
+  a wrong-kind id, malformed syntax, or `none` installs no mask. A valid empty
+  source always hides the target; opaque black hides in luminance mode and
+  reveals under `mask-type="alpha"`. External URLs refuse because this
   command owns no resource I/O, and an active root mask refuses in both
   admissions because Chromium applies it through the host CSS-layer route.
   The CSS mask shorthand and every mask-family longhand stay named authored

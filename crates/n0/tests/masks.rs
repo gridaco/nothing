@@ -33,6 +33,12 @@ fn mask(id: u64, mode: MaskMode, region: Rectangle) -> FrameItem {
     FrameItem::MaskBegin(Mask::new(owner(id), mode, region))
 }
 
+fn empty_region_mask(id: u64, mode: MaskMode) -> FrameItem {
+    let layer = ClipLayer::new(Vec::<ClipGeometry>::new()).expect("empty clip-all region layer");
+    let region = ClipPath::new(vec![layer]).expect("one empty region layer");
+    FrameItem::MaskBegin(Mask::new(owner(id), mode, region))
+}
+
 fn raster(items: Vec<FrameItem>) -> Vec<u8> {
     let bounds = Rectangle::from_xywh(0.0, 0.0, 32.0, 32.0);
     let frame = Frame {
@@ -88,6 +94,22 @@ fn empty_mask_source_is_transparent_black() {
         mask(1, MaskMode::Alpha, full),
         rect_node(2, full, CGColor::BLACK),
         FrameItem::MaskSource,
+        FrameItem::MaskEnd,
+    ]);
+
+    assert!(pixels
+        .chunks_exact(4)
+        .all(|pixel| pixel == [255, 255, 255, 255]));
+}
+
+#[test]
+fn empty_mask_region_erases_even_a_nonempty_source() {
+    let full = Rectangle::from_xywh(0.0, 0.0, 32.0, 32.0);
+    let pixels = raster(vec![
+        empty_region_mask(1, MaskMode::Alpha),
+        rect_node(2, full, CGColor::BLACK),
+        FrameItem::MaskSource,
+        rect_node(3, full, CGColor::WHITE),
         FrameItem::MaskEnd,
     ]);
 

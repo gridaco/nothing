@@ -12,8 +12,10 @@
 //! What a scope refuses is what this crate refuses: an effect that
 //! references a resource (a mask image, a filter graph, a pattern) has no
 //! representation here and stays a producer refusal by name. Geometric
-//! clipping is the source-neutral exception now carried as resolved path
-//! coverage; image masks and filter graphs remain outside this contract.
+//! clipping is the source-neutral exception carried as resolved path coverage.
+//! Image masking uses its own checked two-phase [`crate::Mask`] contract rather
+//! than becoming a resource-bearing [`ScopeEffect`]; filter graphs remain
+//! outside this crate.
 
 use crate::clip::ClipPath;
 use crate::frame::VisualRef;

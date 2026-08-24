@@ -166,7 +166,7 @@ fn same_element_order_is_clip_then_opacity_then_mask() {
         .iter()
         .skip(1)
         .map(|item| match item {
-            FrameItem::ScopeBegin(scope) => match scope.effect {
+            FrameItem::ScopeBegin(scope) => match &scope.effect {
                 ScopeEffect::Clip(_) => "clip-begin",
                 ScopeEffect::Opacity(_) => "opacity-begin",
             },
@@ -304,6 +304,14 @@ fn unsupported_mask_routes_skip_the_whole_target_by_stable_name() {
         mask="url(https://example.test/mask.svg#m)"/>"##,
             ),
             "external",
+        ),
+        (
+            document(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <rect x="8" y="8" width="48" height="48" fill="black"
+        mask="url(../mask.svg#m)"/>"##,
+            ),
+            "relative external reference",
         ),
     ] {
         assert_target_skip(&source, reason);

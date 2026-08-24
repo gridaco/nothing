@@ -1567,6 +1567,8 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > fallback, and reset keywords. Explicit inheritance and `var()` remain named
 > refusals under their independently listed CSS-wide/custom-property rows;
 > the CSS property twin stays open at the pinned-cascade boundary.
+> A valid empty source always hides its target; opaque black hides in luminance
+> mode and reveals under `mask-type="alpha"`.
 
 - [x] `opacity`
 - [ ] `overflow`

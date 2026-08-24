@@ -4202,9 +4202,11 @@ mod mask_resource {
         };
         if let Some(url) = entire_url(&raw) {
             let base = ::url::Url::parse("about:blank").expect("fixed URL base");
-            let Ok(url) = base.join(&url) else {
-                return Ok(AuthoredMask::None);
-            };
+            let url = base.join(&url).map_err(|_| {
+                CompileError::UnsupportedMask(format!(
+                    "url({url}) is a relative external reference; this compiler owns no resource base or I/O"
+                ))
+            })?;
             let Some(fragment) = crate::svg_paint_server::same_document_fragment(&url) else {
                 return Err(CompileError::UnsupportedMask(format!(
                     "url({url}) is external; this compiler owns no resource I/O"

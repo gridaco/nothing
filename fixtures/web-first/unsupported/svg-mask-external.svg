@@ -2,4 +2,6 @@
   <rect width="64" height="64" fill="white"/>
   <rect x="8" y="8" width="48" height="48" fill="black"
         mask="url(https://example.test/mask.svg#m)"/>
+  <rect x="8" y="8" width="48" height="48" fill="black"
+        mask="url(../mask.svg#m)"/>
 </svg>

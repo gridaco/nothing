@@ -2494,8 +2494,9 @@ the missing unchecked `mask-border-mode` row to the checklist.
 The reference semantics are document ordered and source local. One direct
 `url(#…)` resolves through whole-document, first-id-wins lookup; CSS comments
 around it are accepted. A missing id, a wrong-kind id, malformed syntax, or
-explicit `none` installs no mask. A valid empty or black source is different:
-it installs a transparent image and hides the target. External resources stay
+explicit `none` installs no mask. A valid empty source is different: it always
+hides the target. An opaque black source hides it in luminance mode but reveals
+it under `mask-type="alpha"`. External resources stay
 outside this self-contained command, and an active mask on the root `<svg>`
 stays outside the SVG-local frame because Chromium applies it through the host
 CSS layer. Full mask layers, multiple layers, and custom-property substitution
