@@ -268,16 +268,15 @@ fn color_matrix_types_lower_to_one_finite_checked_matrix() {
     };
     let matrix = |primitive: &str| {
         let frame = admit_both(&source(primitive));
-        let node = resolved_filter(&frame)
-            .program()
-            .iter()
-            .next()
-            .expect("one matrix node");
+        let filter = resolved_filter(&frame);
+        assert_eq!(filter.program().iter().count(), 1, "one matrix node");
+        let node = filter.program().iter().next().expect("one matrix node");
         assert_eq!(node.inputs(), [FilterInput::Source]);
         assert_eq!(node.color_space(), FilterColorSpace::Srgb);
         let FilterPrimitive::ColorMatrix { matrix } = node.primitive() else {
             panic!("the source syntax resolves away before the frame")
         };
+        assert!(matrix.iter().all(|coefficient| coefficient.is_finite()));
         matrix
     };
 
