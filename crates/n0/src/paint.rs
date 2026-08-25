@@ -1972,52 +1972,6 @@ thread_local! {
     // thread instead of rebuilding SkSL for every graph replay.
     static FILTER_PORTER_DUFF_BLENDERS: RefCell<Vec<Option<Blender>>> =
         const { RefCell::new(Vec::new()) };
-    static DROP_SHADOW_COLORIZER: RefCell<Option<skia_safe::RuntimeEffect>> =
-        const { RefCell::new(None) };
-}
-
-fn deterministic_drop_shadow_colorizer(shadow: Color4f) -> Result<skia_safe::ColorFilter, String> {
-    let effect =
-        DROP_SHADOW_COLORIZER.with(|cache| -> Result<skia_safe::RuntimeEffect, String> {
-            if let Some(effect) = cache.borrow().as_ref().cloned() {
-                return Ok(effect);
-            }
-            let options = skia_safe::runtime_effect::Options {
-                force_unoptimized: true,
-                name: "n0_svg_filter_drop_shadow_colorizer",
-            };
-            let effect = skia_safe::RuntimeEffect::make_for_color_filter(
-                r#"
-uniform float4 shadow;
-
-float4 div255(float4 value) {
-    return floor((value + 127.0) / 255.0);
-}
-
-half4 main(half4 color) {
-    float4 s = floor(shadow * 255.0 + 0.5);
-    s.rgb = div255(float4(s.rgb * s.a, 0.0)).rgb;
-    float da = floor(float(color.a) * 255.0 + 0.5);
-    return half4(div255(s * da) / 255.0);
-}
-"#,
-                Some(&options),
-            )
-            .map_err(|error| {
-                format!("the backend could not compile a drop-shadow colorizer: {error}")
-            })?;
-            *cache.borrow_mut() = Some(effect.clone());
-            Ok(effect)
-        })?;
-
-    let components = [shadow.r, shadow.g, shadow.b, shadow.a];
-    let mut uniforms = [0_u8; 16];
-    for (slot, value) in uniforms.chunks_exact_mut(4).zip(components) {
-        slot.copy_from_slice(&value.to_ne_bytes());
-    }
-    effect
-        .make_color_filter(Data::new_copy(&uniforms), None)
-        .ok_or_else(|| "the backend could not construct a drop-shadow colorizer".to_string())
 }
 
 fn compile_filter_blender(source: String) -> Result<Blender, String> {
@@ -2309,11 +2263,31 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 .ok_or_else(|| {
                     "the backend could not construct a native drop-shadow blur".to_string()
                 })?;
-                let colorize = deterministic_drop_shadow_colorizer(shadow)?;
-                let colored = skia_safe::image_filters::color_filter(
-                    colorize,
+                let colorize = skia_safe::color_filters::blend_with_color_space(
+                    shadow,
+                    Option::<ColorSpace>::None,
+                    skia_safe::BlendMode::Src,
+                )
+                .ok_or_else(|| {
+                    "the backend could not construct a native drop-shadow colorizer".to_string()
+                })?;
+                let pre_offset_region = Rect::from_xywh(
+                    node.region.x - dx,
+                    node.region.y - dy,
+                    node.region.w,
+                    node.region.h,
+                );
+                let solid =
+                    skia_safe::image_filters::color_filter(colorize, None, pre_offset_region)
+                        .ok_or_else(|| {
+                            "the backend could not construct a native drop-shadow color source"
+                                .to_string()
+                        })?;
+                let colored = skia_safe::image_filters::blend(
+                    exact_unorm8_blender(ResolvedFilterComposite::In)?,
                     Some(blurred),
-                    skia_safe::image_filters::CropRect::default(),
+                    Some(solid),
+                    pre_offset_region,
                 )
                 .ok_or_else(|| {
                     "the backend could not colorize a native drop-shadow raster".to_string()
@@ -2326,11 +2300,8 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 .ok_or_else(|| {
                     "the backend could not offset a native drop-shadow raster".to_string()
                 })?;
-                let foreground_blender: Blender = if input.source_color_dependent {
-                    skia_safe::BlendMode::SrcOver.into()
-                } else {
-                    exact_unorm8_blender(ResolvedFilterComposite::Over)?
-                };
+                let foreground_blender: Blender =
+                    exact_unorm8_blender(ResolvedFilterComposite::Over)?;
                 let filter = skia_safe::image_filters::blend(
                     foreground_blender,
                     Some(shadow_filter),
