@@ -1502,16 +1502,17 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > independent negative-axis clamp, source and result routing, both primitive
 > unit systems, hard regions, direct flood values, admitted sRGB placement,
 > transforms, `viewBox`, `<use>`, stroke, groups, target opacity, clips, and
-> neighboring admitted graph operations are covered by twenty-seven exact
-> Chromium cells. The native operation includes its source foreground and is
-> not rewritten into the separately guarded blur-plus-offset graph. Four new
-> refusal rows name native-shadow range, transform, source-layer, and
-> linearRGB color-conversion precision boundaries; the shared small-kernel and
-> flood cascade/value patrols also apply. Those independently registered
+> neighboring admitted graph operations are covered by twenty-eight exact
+> Chromium cells. A default-linear endpoint-color cell also consumes an earlier
+> blur. The native operation includes its source foreground and is not rewritten
+> into the separately guarded blur-plus-offset graph. Four new refusal rows name
+> native-shadow range, transform, source-layer, and linearRGB color-conversion
+> precision boundaries; the shared small-kernel and flood cascade/value patrols
+> also apply. Those independently registered
 > boundaries leave `dx`, `dy`, `stdDeviation`, `flood-color`, `flood-opacity`,
 > `color-interpolation-filters`, `filter`, and `<filter>` open for their wider
 > applicability or value surface. Only the element row closes. The corpus is
-> 474 Chromium-baked cells plus 10 sampled frames; the refusal register has 128
+> 475 Chromium-baked cells plus 10 sampled frames; the refusal register has 128
 > rows.
 
 - [ ] `<foreignObject>`

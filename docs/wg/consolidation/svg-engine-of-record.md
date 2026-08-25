@@ -72,7 +72,7 @@ from the dated addenda below:
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 474 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 475 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
@@ -2867,11 +2867,12 @@ Both primitive coordinate systems, hard primitive regions, anisotropic blur,
 safe prior and following operations, and direct flood color/opacity values are
 carried. The opacity percentage cell reuses the CSS parse/divide/narrow witness
 that caught the earlier flood alias. Direct sRGB, `currentColor`, embedded color
-alpha times float opacity are carried. Endpoint-channel linearRGB controls
-also remain exact (measured, not celled). Authored flood CSS, explicit inheritance,
-wider color functions, CSS math, and `var()` continue through their existing
-stable refusal rows; the pinned cascade has no flood longhands and no matcher
-was added around it.
+alpha times float opacity are carried. A committed endpoint-channel control
+proves the default linearRGB route exact while consuming an earlier blur;
+missing and explicit linearRGB are byte-identical on that source. Authored flood
+CSS, explicit inheritance, wider color functions, CSS math, and `var()` continue
+through their existing stable refusal rows; the pinned cascade has no flood
+longhands and no matcher was added around it.
 
 Composition stays in the one effect route. Exact cells cover an exact quarter
 turn, integer axis scaling, integer `viewBox` mapping, `<use>`, centered stroke,
@@ -2898,16 +2899,17 @@ differ from Chromium, while the endpoints and safe anisotropic controls are
 exact (measured, not celled). The patrol remains one operation-independent
 kernel boundary rather than a second drop-shadow approximation.
 
-Twenty-seven Chromium cells carry the admitted slice, all byte-exact. They
+Twenty-eight Chromium cells carry the admitted slice, all byte-exact. They
 cover defaults, number spellings, independent axes, zero blur, fractional
 offset, input and result routing, regions and units, direct color and opacity,
-the safe transform envelope, source composition, and neighboring graph nodes.
-Every scratch and committed source also rendered through the product command.
-Gate sensitivity was proved by temporarily adding one unit to the native
-operation's horizontal offset: `just gate` rejected twenty-five drop-shadow
-cells. Restoring the resolved offset returned all 474 cells to green.
+the default-linear endpoint route, the safe transform envelope, source
+composition, and neighboring graph nodes. Every scratch and committed source
+also rendered through the product command. Gate sensitivity was proved by
+temporarily adding one unit to the native operation's horizontal offset: `just
+gate` rejected twenty-six drop-shadow cells. Restoring the resolved offset
+returned all 475 cells to green.
 
 Four focused rows join the refusal register, moving it from 124 to 128. The
-primitive corpus moves from 447 to 474 cells; the ten exact-time sampled frames
+primitive corpus moves from 447 to 475 cells; the ten exact-time sampled frames
 are unchanged. Only `<feDropShadow>` ticks. This records no conformance score
 and takes no FLIP action.

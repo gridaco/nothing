@@ -848,6 +848,14 @@
       "height": 64
     },
     {
+      "id": "svg-filter-drop-shadow-color-linear-endpoint",
+      "source": "svg-filter-drop-shadow-color-linear-endpoint.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-color-linear-endpoint.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-filter-drop-shadow-color-srgb",
       "source": "svg-filter-drop-shadow-color-srgb.svg",
       "entry": "standalone-svg",

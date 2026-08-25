@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (474)
+## Chromium-baked cells (475)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -124,6 +124,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-filter-drop-shadow-blur-input.svg" title="svg-filter-drop-shadow-blur-input (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-blur-input.png" width="56" alt="svg-filter-drop-shadow-blur-input"></a>
 <a href="./svg-filter-drop-shadow-chain.svg" title="svg-filter-drop-shadow-chain (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-chain.png" width="56" alt="svg-filter-drop-shadow-chain"></a>
 <a href="./svg-filter-drop-shadow-clip-order.svg" title="svg-filter-drop-shadow-clip-order (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-clip-order.png" width="56" alt="svg-filter-drop-shadow-clip-order"></a>
+<a href="./svg-filter-drop-shadow-color-linear-endpoint.svg" title="svg-filter-drop-shadow-color-linear-endpoint (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-color-linear-endpoint.png" width="56" alt="svg-filter-drop-shadow-color-linear-endpoint"></a>
 <a href="./svg-filter-drop-shadow-color-srgb.svg" title="svg-filter-drop-shadow-color-srgb (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-color-srgb.png" width="56" alt="svg-filter-drop-shadow-color-srgb"></a>
 <a href="./svg-filter-drop-shadow-currentcolor.svg" title="svg-filter-drop-shadow-currentcolor (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-currentcolor.png" width="56" alt="svg-filter-drop-shadow-currentcolor"></a>
 <a href="./svg-filter-drop-shadow-default.svg" title="svg-filter-drop-shadow-default (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-default.png" width="56" alt="svg-filter-drop-shadow-default"></a>

@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "79815666d5525ccee527d4daccc7f913700940335381099f314ee8af0fcc690c",
+  "suite_sha256": "454dd70f0eef512b53cdc57d884cde721c1a04fd1db1821abe247d029c34e8b6",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -880,6 +880,15 @@
       "source_sha256": "32d2f05c4c72a61a713032915d9262c7bf5a902e87b3ef09e7bd42ec740fc993",
       "oracle": "chromium/svg-filter-drop-shadow-clip-order.png",
       "oracle_sha256": "fd7292c17c53d0b8f5c2d34d0207a2425752f5f679817f5452345a651a5909e3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-color-linear-endpoint",
+      "source": "svg-filter-drop-shadow-color-linear-endpoint.svg",
+      "source_sha256": "b533478f717f1529ce33cf92df37b4b3a69fb35bb528faf81f1dc4ae9728418d",
+      "oracle": "chromium/svg-filter-drop-shadow-color-linear-endpoint.png",
+      "oracle_sha256": "fb538f3bec8f848540a3c51fbb8f7ffb6f36e3eed25f50989b7c4aadda7c8027",
       "width": 64,
       "height": 64
     },

@@ -294,10 +294,11 @@ cargo run -p n0_cli --bin n0 -- \
   patrol applies. Four focused native-shadow patrols also refuse out-of-range
   parameters, non-quarter/fractional target mappings, paint-server or
   descendant-opacity source layers, and interior-channel linearRGB shadow
-  colors. The direct sRGB route, exact quarter turns, integer axis mappings,
-  solid source layers, `<use>`, stroke, groups, target opacity, and clip order
-  are Chromium-baked exact. CSS flood ingress, inheritance, wider color/math
-  values, and custom-property substitution retain their existing named rows.
+  colors. The direct sRGB route, a default-linear endpoint-color route that
+  consumes an earlier blur, exact quarter turns, integer axis mappings, solid
+  source layers, `<use>`, stroke, groups, target opacity, and clip order are
+  Chromium-baked exact. CSS flood ingress, inheritance, wider color/math values,
+  and custom-property substitution retain their existing named rows.
   `filterUnits` and `primitiveUnits` carry their complete case-sensitive
   `userSpaceOnUse | objectBoundingBox` grammars, defaults, and invalid-value
   fallbacks. Filter and primitive regions accept admitted finite numbers,
@@ -314,10 +315,10 @@ cargo run -p n0_cli --bin n0 -- \
   exact byte-domain generated sources from floating source-image coverage. A
   one-input merge has no internal composition stage, so the final restore is
   where its generated-only rounding is enforced. ARM and x86 are exact without
-  a tolerance. One hundred thirteen
+  a tolerance. One hundred fourteen
   Chromium-baked filter cells are exact: twenty-six from the chassis/blur slice,
-  sixty from the shadow-graph rung, and twenty-seven from native drop shadow.
-  The complete corpus is 474 Chromium-baked cells plus 10 sampled frames, with
+  sixty from the shadow-graph rung, and twenty-eight from native drop shadow.
+  The complete corpus is 475 Chromium-baked cells plus 10 sampled frames, with
   128 named refusal rows. `feFlood`, `feComposite`, `feMerge`, `feMergeNode`,
   `feDropShadow`, and `k1`–`k4` close; `feOffset`, `feGaussianBlur`, `<filter>`,
   `filter`, `color-interpolation-filters`, `in`, `in2`, `operator`, `result`,
