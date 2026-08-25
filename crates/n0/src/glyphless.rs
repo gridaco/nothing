@@ -922,6 +922,9 @@ fn compile_filter(program: &FilterProgram, region: math2::Rectangle) -> Resolved
                     sigma_y,
                     color: compile_color32f(color),
                 },
+                FilterPrimitive::ColorMatrix { matrix } => {
+                    ResolvedFilterPrimitive::ColorMatrix { matrix }
+                }
                 FilterPrimitive::Merge => ResolvedFilterPrimitive::Merge,
             },
         })

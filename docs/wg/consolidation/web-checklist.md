@@ -1424,7 +1424,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [x] `<desc>`
 - [x] `<ellipse>`
 - [ ] `<feBlend>`
-- [ ] `<feColorMatrix>`
+- [x] `<feColorMatrix>`
 - [ ] `<feComponentTransfer>`
 - [x] `<feComposite>`
 - [ ] `<feConvolveMatrix>`
@@ -1525,6 +1525,28 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > `color-interpolation-filters`, `filter`, and `<filter>` open for their wider
 > applicability or value surface. Only the element row closes. The corpus is
 > 475 Chromium-baked cells plus 10 sampled frames; the refusal register has 128
+> rows.
+>
+> **2026-08-25 close/split:** `<feColorMatrix>` now carries its complete static
+> primitive behavior as one checked one-input, non-premultiplied RGBA matrix.
+> Missing and invalid `type` use `matrix`; all four case-sensitive members
+> (`matrix`, `saturate`, `hueRotate`, `luminanceToAlpha`) are covered. The
+> complete measured SVG number-list grammar, exact value counts and
+> pass-through fallbacks, unclamped saturation, Blink-ordered large-angle hue
+> arithmetic, ignored luminance `values`, channel crossing, alpha scaling and
+> creation, output clamping, source/result routing, generated input, both color
+> spaces, safe transforms, target opacity and clips are carried by twenty-seven
+> exact Chromium cells. A fresh direct-shape probe corrected the earlier enum
+> reading before close: wrong-case and surrounding-whitespace spellings are
+> invalid and therefore select the default `matrix` behavior; surrounding
+> whitespace does not make `hueRotate` valid. Three new refusal rows quarantine
+> the measured source-layer, non-quarter-transform, and blur/shadow-composition
+> precision boundaries. Their conservative safe envelope over-refuses some
+> exact sources rather than releasing wrong edge pixels. The generic `type`,
+> `values`, `in`, `result`, region, `color-interpolation-filters`, `filter`, and
+> `<filter>` rows remain open for their wider applicability, cascade, resource,
+> or dynamics surface. Only the element row closes. The corpus is 502
+> Chromium-baked cells plus 10 sampled frames; the refusal register has 131
 > rows.
 
 - [ ] `<foreignObject>`

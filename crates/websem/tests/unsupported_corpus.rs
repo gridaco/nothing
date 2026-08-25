@@ -106,6 +106,21 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "CSS color-interpolation-filters",
     ),
     (
+        "svg-filter-color-matrix-source-layer-precision",
+        DeclaredByBestEffort,
+        "color-matrix source-layer precision boundary",
+    ),
+    (
+        "svg-filter-color-matrix-spatial-precision",
+        DeclaredByBestEffort,
+        "composed-operation precision boundary",
+    ),
+    (
+        "svg-filter-color-matrix-transform-precision",
+        DeclaredByBestEffort,
+        "color-matrix transform precision boundary",
+    ),
+    (
         "svg-filter-color-raw-syntax",
         DeclaredByBestEffort,
         "contains a CSS comment",

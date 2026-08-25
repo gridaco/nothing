@@ -84,6 +84,10 @@ pub enum FilterPrimitive {
         /// channels into its declared interpolation space at paint time.
         color: CGColor32F,
     },
+    /// One row-major 4x5 matrix over non-premultiplied RGBA.
+    ColorMatrix {
+        matrix: [f32; 20],
+    },
     Merge,
 }
 
@@ -162,6 +166,9 @@ pub enum FilterProgramError {
     InvalidDropShadow {
         node: usize,
     },
+    InvalidColorMatrix {
+        node: usize,
+    },
 }
 
 impl std::fmt::Display for FilterProgramError {
@@ -204,6 +211,12 @@ impl std::fmt::Display for FilterProgramError {
                 f,
                 "filter node {node} has a non-finite offset or non-finite/negative shadow sigma"
             ),
+            Self::InvalidColorMatrix { node } => {
+                write!(
+                    f,
+                    "filter node {node} has a non-finite color-matrix coefficient"
+                )
+            }
         }
     }
 }
@@ -226,7 +239,8 @@ impl FilterProgram {
             let expected_inputs = match node.primitive {
                 FilterPrimitive::GaussianBlur { .. }
                 | FilterPrimitive::Offset { .. }
-                | FilterPrimitive::DropShadow { .. } => Some(1),
+                | FilterPrimitive::DropShadow { .. }
+                | FilterPrimitive::ColorMatrix { .. } => Some(1),
                 FilterPrimitive::SolidColor { .. } => Some(0),
                 FilterPrimitive::Composite { .. } => Some(2),
                 FilterPrimitive::Merge => None,
@@ -280,10 +294,16 @@ impl FilterProgram {
                 {
                     return Err(FilterProgramError::InvalidDropShadow { node: index });
                 }
+                FilterPrimitive::ColorMatrix { matrix }
+                    if !matrix.into_iter().all(f32::is_finite) =>
+                {
+                    return Err(FilterProgramError::InvalidColorMatrix { node: index });
+                }
                 FilterPrimitive::Offset { .. }
                 | FilterPrimitive::SolidColor { .. }
                 | FilterPrimitive::Composite { .. }
                 | FilterPrimitive::DropShadow { .. }
+                | FilterPrimitive::ColorMatrix { .. }
                 | FilterPrimitive::Merge => {}
             }
         }
@@ -292,6 +312,28 @@ impl FilterProgram {
 
     pub fn iter(&self) -> impl Iterator<Item = &FilterNode> {
         self.0.iter()
+    }
+
+    /// Whether this graph may paint when its isolated source is fully
+    /// transparent.
+    ///
+    /// This is deliberately conservative. It lets a consumer retain an
+    /// otherwise empty compositing scope whenever a generated source or an
+    /// additive coefficient could create visible output.
+    #[must_use]
+    pub fn may_paint_transparent_input(&self) -> bool {
+        self.0.iter().any(|node| match node.primitive {
+            FilterPrimitive::SolidColor { color } => color.a() > 0.0,
+            FilterPrimitive::Composite {
+                operator: FilterComposite::Arithmetic { k4, .. },
+            } => k4 > 0.0,
+            FilterPrimitive::ColorMatrix { matrix } => matrix[19] > 0.0,
+            FilterPrimitive::GaussianBlur { .. }
+            | FilterPrimitive::Offset { .. }
+            | FilterPrimitive::Composite { .. }
+            | FilterPrimitive::DropShadow { .. }
+            | FilterPrimitive::Merge => false,
+        })
     }
 }
 

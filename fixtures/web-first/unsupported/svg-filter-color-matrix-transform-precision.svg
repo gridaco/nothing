@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+    <feColorMatrix values=".5 0 0 0 0 0 .5 0 0 0 0 0 .5 0 0 0 0 0 1 0"/>
+  </filter>
+  <circle cx="32" cy="32" r="16" fill="#0ea5e9" transform="rotate(17 32 32)" filter="url(#f)"/>
+</svg>

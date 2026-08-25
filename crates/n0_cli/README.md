@@ -258,7 +258,8 @@ cargo run -p n0_cli --bin n0 -- \
   The resolved frame carries a checked backend-neutral graph, never the URL or
   authored result names. Its current operations are `feGaussianBlur`, integer
   `feOffset`, zero-input `feFlood`, all seven `feComposite` operators,
-  ordered `feMerge`/`feMergeNode`, and native one-input `feDropShadow`. Inputs
+  ordered `feMerge`/`feMergeNode`, native one-input `feDropShadow`, and
+  one-input `feColorMatrix`. Inputs
   resolve to `SourceGraphic`, `SourceAlpha`, the previous result, or an earlier
   named result before the frame; unknown values follow Chromium's measured
   first/previous fallback.
@@ -308,6 +309,21 @@ cargo run -p n0_cli --bin n0 -- \
   color-space conversion; applying it globally would change three unrelated
   floating-path cells. ARM and x86 now match every committed shadow oracle
   without tolerance while the resolved frame still carries one native operation.
+  Color matrix carries one finite row-major 4×5 operation over
+  non-premultiplied RGBA. Missing and invalid `type` use `matrix`; the complete
+  `matrix | saturate | hueRotate | luminanceToAlpha` behavior, exact value
+  counts, pass-through fallbacks, SVG number-list grammar, unclamped
+  saturation, Blink-ordered hue arithmetic, ignored luminance values, channel
+  crossing, alpha scaling/creation, clamping, generated input, SourceAlpha,
+  and both filter color spaces are admitted. The source-neutral frame never
+  carries the authored type or list. Source-dependent matrix output is limited
+  to one direct admitted geometry with an opaque solid fill, no stroke, and no
+  children; generated-only input bypasses that source profile. Non-quarter
+  target mappings, broader source layers, and source-dependent graphs that
+  also contain blur or native shadow refuse by three stable precision names.
+  Fractional axis maps, reflections, exact quarter turns, target opacity,
+  target clips, circles, and paths are Chromium-baked exact inside the admitted
+  envelope.
   `filterUnits` and `primitiveUnits` carry their complete case-sensitive
   `userSpaceOnUse | objectBoundingBox` grammars, defaults, and invalid-value
   fallbacks. Filter and primitive regions accept admitted finite numbers,
@@ -325,12 +341,13 @@ cargo run -p n0_cli --bin n0 -- \
   one-input merge has no internal composition stage, so the final restore is
   where its generated-only rounding is enforced. Native sRGB shadow descendants
   add the independently measured exact-restore case described above. ARM and
-  x86 are exact without a tolerance. One hundred fourteen
+  x86 are exact without a tolerance. One hundred forty-one
   Chromium-baked filter cells are exact: twenty-six from the chassis/blur slice,
-  sixty from the shadow-graph rung, and twenty-eight from native drop shadow.
-  The complete corpus is 475 Chromium-baked cells plus 10 sampled frames, with
-  128 named refusal rows. `feFlood`, `feComposite`, `feMerge`, `feMergeNode`,
-  `feDropShadow`, and `k1`–`k4` close; `feOffset`, `feGaussianBlur`, `<filter>`,
+  sixty from the shadow-graph rung, twenty-eight from native drop shadow, and
+  twenty-seven from color matrix. The complete corpus is 502 Chromium-baked
+  cells plus 10 sampled frames, with 131 named refusal rows. `feFlood`,
+  `feComposite`, `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`, and
+  `k1`–`k4` close; `feOffset`, `feGaussianBlur`, `<filter>`,
   `filter`, `color-interpolation-filters`, `in`, `in2`, `operator`, `result`,
   `dx`, `dy`, `stdDeviation`, `flood-color`, and `flood-opacity` remain open for
   the named precision, applicability, resource, cascade, or value remainder.

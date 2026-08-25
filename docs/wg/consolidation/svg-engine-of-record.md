@@ -64,7 +64,8 @@ from the dated addenda below:
   same-document SVG filters on non-root admitted targets through a checked
   resolved graph of safe-kernel `feGaussianBlur`, integer `feOffset`,
   zero-input `feFlood`, all `feComposite` operators, ordered
-  `feMerge`/`feMergeNode`, and native one-input `feDropShadow`, with
+  `feMerge`/`feMergeNode`, native one-input `feDropShadow`, and one-input
+  `feColorMatrix`, with
   `SourceGraphic`/`SourceAlpha`/prior and named inputs, both filter coordinate
   systems and color spaces, hard regions, nesting, transforms, `<use>`, and the
   established effect order;
@@ -72,14 +73,14 @@ from the dated addenda below:
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 475 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 502 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 128 rows.
+  register has 131 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -2932,4 +2933,96 @@ tolerance was introduced.
 Four focused rows join the refusal register, moving it from 124 to 128. The
 primitive corpus moves from 447 to 475 cells; the ten exact-time sampled frames
 are unchanged. Only `<feDropShadow>` ticks. This records no conformance score
+and takes no FLIP action.
+
+## Rung: `feColorMatrix` (2026-08-25)
+
+The verdict is CLOSE/SPLIT. The `<feColorMatrix>` element closes for its
+complete static primitive behavior through the existing checked filter graph.
+The shared `type`, `values`, `in`, `result`, primitive-region,
+`color-interpolation-filters`, `filter`, and `<filter>` rows remain open for
+their wider element applicability, cascade, resource, host, or dynamics
+surface. No CSS property row closes.
+
+The resolved graph carries one row-major 4×5 matrix over non-premultiplied
+RGBA. The source conveniences are resolved before that boundary: no authored
+type, value list, result name, document node, or backend object crosses it.
+The checked fact accepts exactly one input and twenty finite coefficients. The
+same graph rules continue to resolve SourceGraphic, SourceAlpha, the previous
+result, and an earlier named result, and the ordinary primitive region remains
+a hard output crop.
+
+Chromium 149.0.7827.55 establishes the source grammar. Missing or invalid
+`type` selects `matrix`; the four valid case-sensitive members are `matrix`,
+`saturate`, `hueRotate`, and `luminanceToAlpha`. A matrix is active only with
+twenty numbers. Saturation and hue rotation are active only with one number;
+their missing or empty list uses one and zero respectively, while a wrong
+count passes through. Luminance-to-alpha ignores `values`, including malformed
+text. Saturation is not clamped. Hue rotation keeps Blink's float
+degree-to-radian and trigonometric operation order rather than reducing the
+source angle modulo 360: `360000090` differs from `90` across all 2,304 source
+pixels at maximum channel delta 17 (measured, not separately celled).
+
+The number-list audit carries leading signs and dots, exponents, SVG
+whitespace, comma-only and mixed separators, one trailing comma, adjacent
+signed numbers, and a second dot beginning the next number. A leading or
+doubled comma, CSS comment, unit, percentage, CSS function, custom property,
+CSS-wide keyword, trailing dot, malformed or overflowing exponent, or
+non-ASCII whitespace clears the complete list and takes the measured
+pass-through branch. A large negative exponent underflows to zero. The direct
+committed grammar probe corrected a stale note from the earlier group probe:
+wrong-case and surrounding-whitespace enum spellings are invalid. They select
+the default matrix type; surrounding whitespace around `hueRotate` therefore
+produces matrix-count pass-through rather than a hue operation.
+
+The arithmetic audit proves straight-channel matrix semantics rather than a
+premultiplied approximation. RGB and alpha feed each other; additive terms can
+create visible alpha throughout the hard primitive region; outputs clamp to
+the unit interval. A positive alpha offset and a visually similar authored
+half-opacity source differ by one byte in the sampled control, proving that
+the two constructions cannot be folded together (measured, not celled).
+Default/missing interpolation is linearRGB. Explicit sRGB differs on the
+sampled source in 2,304 pixels at maximum delta 55, and both routes have exact
+cells. Generated filter input, SourceAlpha, target opacity, a target clip,
+fractional axis mapping, reflection, exact quarter turns, circles, and paths
+remain in the one graph and effect-order route.
+
+The pixel patrol found two distinct restore classes and three source-side
+precision boundaries before close. Source-derived sRGB matrix output requires
+the floating final composition that matches Chromium, while generated-only
+matrix output retains the backend's ordinary final composition. A
+source-derived matrix also crosses one extra isolated-source boundary unless
+it creates alpha from transparent input. Keeping those policies private to
+paint preserves the source-neutral resolved matrix.
+
+Even with that realization, curved strokes, translucent anti-aliased fills,
+paint-server fills, descendant opacity, and an overlapping source group still
+produce wrong edge pixels. The admitted source profile is therefore
+conservatively one direct admitted geometry with one opaque solid fill, no
+stroke, and no children; generated-only graph input is independent of that
+profile. Fractional axis maps, reflections, and exact quarter turns are exact,
+while sampled non-quarter rotations differ at 8–303 pixels by one channel
+value. A source-dependent matrix combined with blur changes 23 circle pixels
+at maximum delta 1; combined with native shadow it changes 15–16 pixels at
+maximum delta 3. Three stable source-layer, transform, and spatial-composition
+refusals guard these classes in both admissions. The patrol deliberately
+over-refuses additional exact controls until a broader stable boundary is
+known (measured, not celled).
+
+Twenty-seven Chromium cells carry the admitted slice, all byte-exact. Eight
+multi-panel cells cover enum, count, separator, invalid-list, saturation, hue,
+luminance, and underflow grammar. The remaining cells cover identity and
+non-identity matrices, RGB and alpha scaling, alpha creation, SourceAlpha,
+negative and above-one saturation, ordinary and large hue angles,
+luminance-to-alpha, both color spaces, generated and composite input, the safe
+transform envelope, opacity, clip, and path geometry. Every committed source
+also rendered through the product command. Gate sensitivity was proved by
+temporarily adding `0.25` to the first matrix coefficient: `just gate` rejected
+twenty-five of the twenty-seven cells, with as many as 2,304 differing pixels
+and maximum channel delta 61. Restoring the coefficient returned all 502 cells
+to green.
+
+Three focused rows join the refusal register, moving it from 128 to 131. The
+primitive corpus moves from 475 to 502 cells; the ten exact-time sampled frames
+are unchanged. Only `<feColorMatrix>` ticks. This records no conformance score
 and takes no FLIP action.

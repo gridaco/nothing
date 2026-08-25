@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "454dd70f0eef512b53cdc57d884cde721c1a04fd1db1821abe247d029c34e8b6",
+  "suite_sha256": "b3072862c92a3fb20e1ee1c295c135188223136f19745f7d72ff5b4cc3f6aa77",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -637,6 +637,249 @@
       "source_sha256": "3cf5237496c660a2c80d49d41c6ac5d209f4553056ea21f1b1ae9a61edb0b1f4",
       "oracle": "chromium/svg-filter-color-linear.png",
       "oracle_sha256": "7c33f4c2b4f30bbdfbf6e52eed1b0eee41c97dbee402c101bb6a66592343e08d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-alpha-create",
+      "source": "svg-filter-color-matrix-alpha-create.svg",
+      "source_sha256": "7c966be96510dc3ad9560ada8f44654d1b4a5cb37a88681f07adde0526036a6a",
+      "oracle": "chromium/svg-filter-color-matrix-alpha-create.png",
+      "oracle_sha256": "d4f69ac43e19ee7440bd75cd3f7b32ecb0cc51072b83b82997ec18e98a2d8d78",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-alpha-scale",
+      "source": "svg-filter-color-matrix-alpha-scale.svg",
+      "source_sha256": "52bd632dd046ff59f653628963d6c2407b484661066bdf12a513a9f714182124",
+      "oracle": "chromium/svg-filter-color-matrix-alpha-scale.png",
+      "oracle_sha256": "33e2b3b22beb28b6664ee4a68953aea7cd8c1143e6c353709d95b52cbb18b05b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-axis-fractional",
+      "source": "svg-filter-color-matrix-axis-fractional.svg",
+      "source_sha256": "d2a13fa6748da260587792b97ea4c3a8c169ac45905ae7dd241a863f9450d142",
+      "oracle": "chromium/svg-filter-color-matrix-axis-fractional.png",
+      "oracle_sha256": "16a4eb88b1c7565abe728d349840589dc35ee8b5ec608a14d8e6bfe2948c2646",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-color-linear",
+      "source": "svg-filter-color-matrix-color-linear.svg",
+      "source_sha256": "b4c87fda3530dc482cd83f43890ce1413359592614e5aa2b16b033eb11f26811",
+      "oracle": "chromium/svg-filter-color-matrix-color-linear.png",
+      "oracle_sha256": "edcd0378544ed5370830a4d37531ba0d960db058ba518c333dbf70afc51fbfd7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-flood-composite-input",
+      "source": "svg-filter-color-matrix-flood-composite-input.svg",
+      "source_sha256": "8f1a257a1cd4cfd25403ba48e11c59e6ef3332663b075977d2a18ea716856579",
+      "oracle": "chromium/svg-filter-color-matrix-flood-composite-input.png",
+      "oracle_sha256": "3f73d4f2b84762032c8607f8e78f76ff4ddafc6f2236136f79254551ef7a1b48",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-generated-flood",
+      "source": "svg-filter-color-matrix-generated-flood.svg",
+      "source_sha256": "44cd7012992bcb96b1920473d4f3e21998425fd0b38a3ec8ac63a5cfb6962a0b",
+      "oracle": "chromium/svg-filter-color-matrix-generated-flood.png",
+      "oracle_sha256": "fd282b33e6003d6b6b4b589e1bb83dea979be49deeae3c028829c5a4aaebd053",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-hue-grammar",
+      "source": "svg-filter-color-matrix-hue-grammar.svg",
+      "source_sha256": "5102da6e150f0004a838e58059f984c1f927935cfb9e11293924e3d18b6135c6",
+      "oracle": "chromium/svg-filter-color-matrix-hue-grammar.png",
+      "oracle_sha256": "1768161e23d5f5f473122caea85ebe76f804ee29a9478e0675c359e03181fe37",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-hue-large",
+      "source": "svg-filter-color-matrix-hue-large.svg",
+      "source_sha256": "4e456166131f3a33572a9d4a77bcac6b4b983cdbefeda022b5b9667af404f720",
+      "oracle": "chromium/svg-filter-color-matrix-hue-large.png",
+      "oracle_sha256": "da8c9a3bf8566c4ad91f096fb267f978a93bdc416f3ddb5e5fa8aca21acf11f9",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-hue-quarter",
+      "source": "svg-filter-color-matrix-hue-quarter.svg",
+      "source_sha256": "f1190c6ec74fca33f36c007938dad3ede085925e780fa465c468d66ca5c6f7a2",
+      "oracle": "chromium/svg-filter-color-matrix-hue-quarter.png",
+      "oracle_sha256": "19d7657af2d421e8d162b5214c59160981f5052aa1b48e10e86707d3f23c8f59",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-identity",
+      "source": "svg-filter-color-matrix-identity.svg",
+      "source_sha256": "452f86dc026abc9e6830caac949c36ac2e6d5bd92697792ed4f67fec0d76964d",
+      "oracle": "chromium/svg-filter-color-matrix-identity.png",
+      "oracle_sha256": "6eb8238a90f28e7a32fa18fa727b9897455b948cd41f20d9cf0e2c8bdeb2a297",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-invalid-number-list",
+      "source": "svg-filter-color-matrix-invalid-number-list.svg",
+      "source_sha256": "95d0ce872e72c60fb22aaa7dba87a8f1db5d9b5da0e9ee759ce88ff46cabf373",
+      "oracle": "chromium/svg-filter-color-matrix-invalid-number-list.png",
+      "oracle_sha256": "f1bbf6138e6e4c826a257eb3ecd3c83250c2a8504f38a17032e9ef14a5b33ac5",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-luminance",
+      "source": "svg-filter-color-matrix-luminance.svg",
+      "source_sha256": "b8c63bcc800eb99d672d04be1bcf8d4a620227b4ed39b60a492aecb2a951436e",
+      "oracle": "chromium/svg-filter-color-matrix-luminance.png",
+      "oracle_sha256": "c57757de52532bf5cda14e051ad1c4021171ba194ba65561f526b6f2524f9602",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-luminance-values",
+      "source": "svg-filter-color-matrix-luminance-values.svg",
+      "source_sha256": "024d4b2a879c866d7c14ff82feec3c612238fe2a65e8f88d62367db2b6e082a1",
+      "oracle": "chromium/svg-filter-color-matrix-luminance-values.png",
+      "oracle_sha256": "6f84450177e9d76f485cbe4908d27d4eeb9e81bc48b5c10e36c852d6cdd2f399",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-matrix-count",
+      "source": "svg-filter-color-matrix-matrix-count.svg",
+      "source_sha256": "5c9b2daca67fa5f5b4c21120a85b0893bc6ec0d55c7987a2bad505280735f04c",
+      "oracle": "chromium/svg-filter-color-matrix-matrix-count.png",
+      "oracle_sha256": "88657cdb655ec1cfdff09c3bba3d511ab7348d079b9be7448527dec532ede92d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-number-list",
+      "source": "svg-filter-color-matrix-number-list.svg",
+      "source_sha256": "bf793b6447ab3f130c96477e83e9312f6113c686f235b3a1977fff532af51998",
+      "oracle": "chromium/svg-filter-color-matrix-number-list.png",
+      "oracle_sha256": "fe19392342dce44804dd55928a45dd17ec96025589cd2348c42079e14bb6d0a3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-number-underflow",
+      "source": "svg-filter-color-matrix-number-underflow.svg",
+      "source_sha256": "f2af1e4b06529a6faf3a52d43b6127c11e55bc462c675fb76eb8970d1aaa3b39",
+      "oracle": "chromium/svg-filter-color-matrix-number-underflow.png",
+      "oracle_sha256": "0e522f809e0f42d74b2e2fbc24a1b632a825265fea35364e58d305c138cddec9",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-path",
+      "source": "svg-filter-color-matrix-path.svg",
+      "source_sha256": "b5e644e702decc3630441e6907c392cc6fee35801b5c3addf6148b5e22dec826",
+      "oracle": "chromium/svg-filter-color-matrix-path.png",
+      "oracle_sha256": "0f858840d9e92362d0f582f9ad023a61d02aaea977ac0a255812ad4c43db9e88",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-quarter-turn",
+      "source": "svg-filter-color-matrix-quarter-turn.svg",
+      "source_sha256": "b6549344d58f539ebce5bd09afdf0ee0bae03c999c17f03904bcec70a36fe5a5",
+      "oracle": "chromium/svg-filter-color-matrix-quarter-turn.png",
+      "oracle_sha256": "f26bb240c45443443e19197c2fb7f0849919740e5b159337e7018807c2ddf72d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-reflection",
+      "source": "svg-filter-color-matrix-reflection.svg",
+      "source_sha256": "a43b9f9296a0eb959a7c80b37875f0cad5158370bc317951b71232e252106263",
+      "oracle": "chromium/svg-filter-color-matrix-reflection.png",
+      "oracle_sha256": "33af40f4be6721fd5b8576cdddb24aad727bcc6676bf63be514f5daccf61c65a",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-rgb-scale",
+      "source": "svg-filter-color-matrix-rgb-scale.svg",
+      "source_sha256": "66a4e256d5ad253905206f06f2816e781aa19abbaff7ca68a0fa2a70d24ff1e5",
+      "oracle": "chromium/svg-filter-color-matrix-rgb-scale.png",
+      "oracle_sha256": "0ccc7aba33317a76ae3cde258b2fa811ee8f86ee7c10cc6e98164fa472e9e777",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-saturate-grammar",
+      "source": "svg-filter-color-matrix-saturate-grammar.svg",
+      "source_sha256": "783c2280e6239daf567d5398f62a8f1af20d59d48ceca3c030ef5d70a40861f7",
+      "oracle": "chromium/svg-filter-color-matrix-saturate-grammar.png",
+      "oracle_sha256": "02203c87f320e49026b64cde9af6320266a034171470221bf06e0ad86dfb1454",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-saturate-negative",
+      "source": "svg-filter-color-matrix-saturate-negative.svg",
+      "source_sha256": "7dff4239d5b3f78d4f38f78b89d422ff577eea2661def7ad5924182c136957b9",
+      "oracle": "chromium/svg-filter-color-matrix-saturate-negative.png",
+      "oracle_sha256": "f5e11513ae73f7565df60f6b880f3edebcf0243f5fcf056f41e4d8260298fcf7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-saturate-over",
+      "source": "svg-filter-color-matrix-saturate-over.svg",
+      "source_sha256": "0386568890a5b3bacc6080e0972821efbc4fbd171e1b15be11ffddbc4f4929a3",
+      "oracle": "chromium/svg-filter-color-matrix-saturate-over.png",
+      "oracle_sha256": "84b14e16bb143170e1660994e7afdc9f7cd190a883dc14fc95e75819b42a042c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-source-alpha",
+      "source": "svg-filter-color-matrix-source-alpha.svg",
+      "source_sha256": "798b14b588fbd2996c415ce0998fb45ac26b11aeb54cb9a1e9c6af1dc9c6a5a7",
+      "oracle": "chromium/svg-filter-color-matrix-source-alpha.png",
+      "oracle_sha256": "596f8851eedf482106532a09dfe3a0fe85f9451efd95e31613afd94a0a3f645f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-target-clip",
+      "source": "svg-filter-color-matrix-target-clip.svg",
+      "source_sha256": "f782c085c1cf42b7c1d1b35876c1be274c771aa39ce671420e10032b43c2af37",
+      "oracle": "chromium/svg-filter-color-matrix-target-clip.png",
+      "oracle_sha256": "497670363fa48ea092d45bcd542c1e8c933f948a9a58257f73c641211e4849d0",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-target-opacity",
+      "source": "svg-filter-color-matrix-target-opacity.svg",
+      "source_sha256": "0e6d8459a6b8dbba26b929c37a64c23ad9b287e9cac5260b458928da743f59d6",
+      "oracle": "chromium/svg-filter-color-matrix-target-opacity.png",
+      "oracle_sha256": "7f2e23fcd56b9d58d1181f65337affb832f40cd676ac3e3f32febe682c5a668d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-type-grammar",
+      "source": "svg-filter-color-matrix-type-grammar.svg",
+      "source_sha256": "5aedb9053ff28de70471fd5b609cb781f039b093b729fb45dbd53b6bdbc04417",
+      "oracle": "chromium/svg-filter-color-matrix-type-grammar.png",
+      "oracle_sha256": "a15523af528999101ab3c3fcc0d13c5228d128759fc8fd1704576e638029d8f1",
       "width": 64,
       "height": 64
     },

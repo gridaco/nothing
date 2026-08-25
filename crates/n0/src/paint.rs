@@ -1909,6 +1909,20 @@ struct BuiltFilterResult {
     /// exact byte-domain SrcOver. Native sRGB shadows reach Skia's lowp 8888
     /// restore, whose default division rounds differently on NEON and x86.
     requires_exact_restore: bool,
+    /// A matrix node exposes a second measured final-layer boundary in the
+    /// pinned backend. Source-derived matrix output needs an explicit floating
+    /// SrcOver; generated-only matrix output needs the backend default.
+    matrix_restore: Option<MatrixRestore>,
+    /// Chromium snapshots source-derived matrix input through one additional
+    /// source-image boundary unless the matrix creates alpha from transparent
+    /// input. Preserve that measured boundary through later graph nodes.
+    matrix_source_preflatten: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum MatrixRestore {
+    Default,
+    Floating,
 }
 
 struct BuiltFilter {
@@ -1917,6 +1931,7 @@ struct BuiltFilter {
     /// between their internal nodes. Source-derived coverage stays on Skia's
     /// floating restore path.
     restore_blender: Option<Blender>,
+    matrix_source_preflatten: bool,
 }
 
 fn source_alpha_filter() -> Option<ImageFilter> {
@@ -1959,6 +1974,10 @@ fn convert_filter_space(
         // A color-space conversion resumes the floating filter path; its
         // eventual restore must not be forced through the N32 shadow rule.
         requires_exact_restore: false,
+        // Gamma conversion materializes a new floating result and ends the
+        // matrix-specific sRGB restore boundary.
+        matrix_restore: None,
+        matrix_source_preflatten: result.matrix_source_preflatten,
     })
 }
 
@@ -2093,6 +2112,8 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
         color_space: ResolvedFilterColorSpace::Srgb,
         source_dependent: true,
         requires_exact_restore: false,
+        matrix_restore: None,
+        matrix_source_preflatten: false,
     };
     let source_alpha =
         BuiltFilterResult {
@@ -2102,6 +2123,8 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
             color_space: ResolvedFilterColorSpace::Srgb,
             source_dependent: true,
             requires_exact_restore: false,
+            matrix_restore: None,
+            matrix_source_preflatten: false,
         };
     let mut results: Vec<BuiltFilterResult> = Vec::with_capacity(filter.nodes.len());
     for node in filter.nodes.iter() {
@@ -2120,6 +2143,36 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
         let crop = Rect::from_xywh(node.region.x, node.region.y, node.region.w, node.region.h);
         let source_dependent = inputs.iter().any(|input| input.source_dependent);
         let requires_exact_restore = inputs.iter().any(|input| input.requires_exact_restore);
+        let inherited_matrix_restore = if inputs
+            .iter()
+            .any(|input| input.matrix_restore == Some(MatrixRestore::Floating))
+        {
+            Some(MatrixRestore::Floating)
+        } else if inputs
+            .iter()
+            .any(|input| input.matrix_restore == Some(MatrixRestore::Default))
+        {
+            Some(MatrixRestore::Default)
+        } else {
+            None
+        };
+        let matrix_restore = match node.primitive {
+            ResolvedFilterPrimitive::ColorMatrix { matrix } => {
+                Some(if matrix[19] > 0.0 || !source_dependent {
+                    MatrixRestore::Default
+                } else {
+                    MatrixRestore::Floating
+                })
+            }
+            ResolvedFilterPrimitive::SolidColor { .. } => None,
+            _ => inherited_matrix_restore,
+        };
+        let matrix_source_preflatten = inputs.iter().any(|input| input.matrix_source_preflatten)
+            || matches!(
+                &node.primitive,
+                ResolvedFilterPrimitive::ColorMatrix { matrix }
+                    if source_dependent && matrix[19] <= 0.0
+            );
         let (image_filter, output_space, source_dependent, requires_exact_restore) = match node
             .primitive
         {
@@ -2321,6 +2374,24 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                     node.color_space == ResolvedFilterColorSpace::Srgb,
                 )
             }
+            ResolvedFilterPrimitive::ColorMatrix { matrix } => {
+                let input = inputs.pop().expect("color matrix has one checked input");
+                let color_filter = skia_safe::color_filters::matrix_row_major(&matrix, None);
+                let filter =
+                    skia_safe::image_filters::color_filter(color_filter, input.image_filter, crop)
+                        .ok_or_else(|| {
+                            "the backend could not construct a color-matrix operation".to_string()
+                        })?;
+                // Matrix arithmetic supersedes any final-restore policy on
+                // its input. Chromium's source-derived and generated-only
+                // matrix results take two distinct measured sRGB restores.
+                (
+                    Some(filter),
+                    node.color_space,
+                    input.source_dependent,
+                    false,
+                )
+            }
             ResolvedFilterPrimitive::Merge => {
                 let mut inputs = inputs.into_iter();
                 let image_filter = if let Some(first) = inputs.next() {
@@ -2368,6 +2439,8 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
             color_space: output_space,
             source_dependent,
             requires_exact_restore,
+            matrix_restore,
+            matrix_source_preflatten,
         });
     }
     let output = results
@@ -2393,7 +2466,11 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
             })?,
         );
     }
-    let restore_blender = if output.source_dependent && !output.requires_exact_restore {
+    let restore_blender = if output.requires_exact_restore {
+        Some(exact_unorm8_blender(ResolvedFilterComposite::Over)?)
+    } else if output.matrix_restore == Some(MatrixRestore::Floating) {
+        Some(floating_porter_duff_blender(ResolvedFilterComposite::Over)?)
+    } else if output.matrix_restore == Some(MatrixRestore::Default) || output.source_dependent {
         None
     } else {
         Some(exact_unorm8_blender(ResolvedFilterComposite::Over)?)
@@ -2401,7 +2478,106 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
     Ok(BuiltFilter {
         image_filter: output.image_filter,
         restore_blender,
+        matrix_source_preflatten: output.matrix_source_preflatten,
     })
+}
+
+#[cfg(test)]
+mod color_matrix_filter_policy_tests {
+    use std::sync::Arc;
+
+    use n0_model::math::RectF;
+    use n0_model::model::Color32F;
+
+    use crate::drawlist::ResolvedFilterNode;
+
+    use super::{
+        build_filter, ResolvedFilter, ResolvedFilterColorSpace, ResolvedFilterInput,
+        ResolvedFilterPrimitive,
+    };
+
+    const REGION: RectF = RectF {
+        x: 0.0,
+        y: 0.0,
+        w: 16.0,
+        h: 16.0,
+    };
+
+    fn identity(alpha_offset: f32) -> [f32; 20] {
+        let mut matrix = [0.0; 20];
+        matrix[0] = 1.0;
+        matrix[6] = 1.0;
+        matrix[12] = 1.0;
+        matrix[18] = 1.0;
+        matrix[19] = alpha_offset;
+        matrix
+    }
+
+    fn source_matrix(alpha_offset: f32, color_space: ResolvedFilterColorSpace) -> ResolvedFilter {
+        ResolvedFilter {
+            region: REGION,
+            nodes: Arc::from([ResolvedFilterNode {
+                inputs: Arc::from([ResolvedFilterInput::Source]),
+                region: REGION,
+                color_space,
+                primitive: ResolvedFilterPrimitive::ColorMatrix {
+                    matrix: identity(alpha_offset),
+                },
+            }]),
+        }
+    }
+
+    #[test]
+    fn source_generated_and_alpha_creating_matrices_keep_distinct_layer_policies() {
+        let source = build_filter(&source_matrix(0.0, ResolvedFilterColorSpace::Srgb))
+            .expect("source matrix builds");
+        assert!(source.matrix_source_preflatten);
+        assert!(
+            source.restore_blender.is_some(),
+            "source-derived sRGB output uses the measured floating restore"
+        );
+
+        let alpha_creating = build_filter(&source_matrix(0.25, ResolvedFilterColorSpace::Srgb))
+            .expect("alpha-creating matrix builds");
+        assert!(!alpha_creating.matrix_source_preflatten);
+        assert!(alpha_creating.restore_blender.is_none());
+
+        let generated = ResolvedFilter {
+            region: REGION,
+            nodes: Arc::from([
+                ResolvedFilterNode {
+                    inputs: Arc::from([]),
+                    region: REGION,
+                    color_space: ResolvedFilterColorSpace::Srgb,
+                    primitive: ResolvedFilterPrimitive::SolidColor {
+                        color: Color32F::new(0.2, 0.4, 0.8, 0.5).expect("unit color"),
+                    },
+                },
+                ResolvedFilterNode {
+                    inputs: Arc::from([ResolvedFilterInput::Node(0)]),
+                    region: REGION,
+                    color_space: ResolvedFilterColorSpace::Srgb,
+                    primitive: ResolvedFilterPrimitive::ColorMatrix {
+                        matrix: identity(0.0),
+                    },
+                },
+            ]),
+        };
+        let generated = build_filter(&generated).expect("generated matrix builds");
+        assert!(!generated.matrix_source_preflatten);
+        assert!(
+            generated.restore_blender.is_none(),
+            "generated matrix output keeps the backend-default measured restore"
+        );
+
+        let converted = build_filter(&source_matrix(0.0, ResolvedFilterColorSpace::LinearRgb))
+            .expect("linear matrix builds");
+        assert!(converted.matrix_source_preflatten);
+        assert!(
+            converted.restore_blender.is_none(),
+            "the output gamma conversion ends the matrix-specific sRGB restore"
+        );
+    }
 }
 
 /// Product-build preflight for a resolved image-filter graph. Replay repeats
@@ -2694,7 +2870,7 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
         Clip,
         MaskContent,
         MaskSource,
-        Filter,
+        Filter { matrix_source_preflatten: bool },
     }
 
     let initial_save_count = canvas.save_count();
@@ -2833,12 +3009,23 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                     .bounds(&region)
                     .paint(&restore_paint);
                 canvas.save_layer(&layer);
-                scopes.push(Scope::Filter);
+                if built_filter.matrix_source_preflatten {
+                    canvas.save_layer(&SaveLayerRec::default());
+                }
+                scopes.push(Scope::Filter {
+                    matrix_source_preflatten: built_filter.matrix_source_preflatten,
+                });
             }
             ItemKind::EndFilter => {
                 let scope = scopes.pop();
-                debug_assert_eq!(scope, Some(Scope::Filter));
-                if scope.is_some() {
+                debug_assert!(matches!(scope, Some(Scope::Filter { .. })));
+                if let Some(Scope::Filter {
+                    matrix_source_preflatten,
+                }) = scope
+                {
+                    if matrix_source_preflatten {
+                        canvas.restore();
+                    }
                     // Restore the filtered layer, then the local-space hard
                     // region and transform saved immediately outside it.
                     canvas.restore();
