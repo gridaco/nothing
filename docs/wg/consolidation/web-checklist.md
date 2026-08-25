@@ -1505,7 +1505,19 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > neighboring admitted graph operations are covered by twenty-eight exact
 > Chromium cells. A default-linear endpoint-color cell also consumes an earlier
 > blur. The native operation includes its source foreground and is not rewritten
-> into the separately guarded blur-plus-offset graph. Four new refusal rows name
+> into the separately guarded blur-plus-offset graph. Hosted processor-family
+> verification first found all twenty-eight cells departing through the
+> backend's direct helper, by as much as eight code values. Making the shadow's
+> internal byte-domain compositions exact narrowed that to twenty-five
+> source-derived sRGB cells, all at one code value; replacing the internal
+> colorization and changing offset sampling left that exact set unchanged, and
+> a zero-blur member was still in it. The remaining operation was the filtered
+> layer's restore onto its backdrop. Exact byte-domain restore for sRGB native-
+> shadow descendants makes both processor families exact without tolerance;
+> applying that rule to every source-derived filter instead changes three
+> unrelated floating-path cells, so color-space conversion clears it and the
+> default-linear endpoint stays on the floating route. This is painter policy:
+> the resolved contract remains one native operation. Four new refusal rows name
 > native-shadow range, transform, source-layer, and linearRGB color-conversion
 > precision boundaries; the shared small-kernel and flood cascade/value patrols
 > also apply. Those independently registered

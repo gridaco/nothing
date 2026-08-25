@@ -2853,6 +2853,21 @@ the hand graph at 579 pixels with maximum channel delta 13 (measured, not
 celled). Authored element identity, input and result names, parser state, and a
 backend object still stop before the frame.
 
+Hosted processor-family verification exposed a second backend boundary after
+the semantic operation was already exact locally. The direct shadow helper
+departed in all twenty-eight cells, by as much as eight code values. Making the
+shadow's byte-domain internal compositions exact narrowed the set to twenty-five
+source-derived sRGB cells at one code value. Replacing colorization and changing
+offset sampling left that same set unchanged, and the zero-blur cell still
+departed, ruling out the kernel and offset as the shared cause. The remaining
+boundary was the filtered result's restore onto the backdrop. Exact byte-domain
+restore for sRGB native-shadow descendants makes both processor families exact
+without tolerance. A blanket source-derived rule is incorrect: it changes three
+unrelated floating-path cells, so a color-space conversion clears the rule and
+the default-linear endpoint remains floating. None of this changes the resolved
+vocabulary: the frame still states one drop-shadow operation, and its backend
+realization remains painter-owned.
+
 Missing `dx`, `dy`, and `stdDeviation` use Chromium's measured initial `2`.
 Signs, fractions, leading plus, exponents, comma-separated axes, and a lone
 trailing comma prefix are accepted. One sigma expands to both axes; each
@@ -2908,6 +2923,11 @@ also rendered through the product command. Gate sensitivity was proved by
 temporarily adding one unit to the native operation's horizontal offset: `just
 gate` rejected twenty-six drop-shadow cells. Restoring the resolved offset
 returned all 475 cells to green.
+
+The same complete 475-cell gate passes on hosted x86 after the scoped restore
+rule. The earlier all-cell, internal-composition, colorization, sampling, and
+blanket-restore classifiers are retained as measured negative evidence; no
+tolerance was introduced.
 
 Four focused rows join the refusal register, moving it from 124 to 128. The
 primitive corpus moves from 447 to 475 cells; the ten exact-time sampled frames

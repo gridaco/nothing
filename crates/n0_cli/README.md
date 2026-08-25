@@ -299,6 +299,15 @@ cargo run -p n0_cli --bin n0 -- \
   source layers, `<use>`, stroke, groups, target opacity, and clip order are
   Chromium-baked exact. CSS flood ingress, inheritance, wider color/math values,
   and custom-property substitution retain their existing named rows.
+  Hosted x86 initially exposed all twenty-eight native-shadow cells through the
+  backend helper, then twenty-five source-derived sRGB cells at delta one after
+  the internal color and foreground stages were made byte-exact. A zero-blur
+  control and unchanged colorization/sampling classifiers located the remaining
+  fault at the outer filtered-layer restore. The painter now gives sRGB native-
+  shadow descendants an exact byte-domain restore and clears that policy across
+  color-space conversion; applying it globally would change three unrelated
+  floating-path cells. ARM and x86 now match every committed shadow oracle
+  without tolerance while the resolved frame still carries one native operation.
   `filterUnits` and `primitiveUnits` carry their complete case-sensitive
   `userSpaceOnUse | objectBoundingBox` grammars, defaults, and invalid-value
   fallbacks. Filter and primitive regions accept admitted finite numbers,
@@ -314,8 +323,9 @@ cargo run -p n0_cli --bin n0 -- \
   Internal Porter-Duff composition and the final layer restore distinguish
   exact byte-domain generated sources from floating source-image coverage. A
   one-input merge has no internal composition stage, so the final restore is
-  where its generated-only rounding is enforced. ARM and x86 are exact without
-  a tolerance. One hundred fourteen
+  where its generated-only rounding is enforced. Native sRGB shadow descendants
+  add the independently measured exact-restore case described above. ARM and
+  x86 are exact without a tolerance. One hundred fourteen
   Chromium-baked filter cells are exact: twenty-six from the chassis/blur slice,
   sixty from the shadow-graph rung, and twenty-eight from native drop shadow.
   The complete corpus is 475 Chromium-baked cells plus 10 sampled frames, with

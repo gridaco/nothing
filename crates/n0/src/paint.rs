@@ -1906,9 +1906,8 @@ struct BuiltFilterResult {
     /// only from generated filter sources follow Chromium's unorm8 rounding.
     source_dependent: bool,
     /// Whether the result must cross the outer layer boundary with Chromium's
-    /// exact byte-domain SrcOver. Native sRGB shadows materialize an N32
-    /// intermediate before that boundary; Skia's default lowp restore rounds
-    /// it differently on NEON and x86.
+    /// exact byte-domain SrcOver. Native sRGB shadows reach Skia's lowp 8888
+    /// restore, whose default division rounds differently on NEON and x86.
     requires_exact_restore: bool,
 }
 
