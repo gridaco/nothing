@@ -9,6 +9,7 @@
 //! checked execution method; the raw function here is for glyphless structural
 //! probes and internal retained-list replay only.
 
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -1961,18 +1962,53 @@ fn transparent_filter(region: n0_model::math::RectF) -> Option<ImageFilter> {
     )
 }
 
+thread_local! {
+    // Runtime-effect handles are cheap to clone after compilation. Keep the
+    // six Porter-Duff programs in each precision mode local to the painting
+    // thread instead of rebuilding SkSL for every graph replay.
+    static FILTER_PORTER_DUFF_BLENDERS: RefCell<Vec<Option<Blender>>> =
+        const { RefCell::new(Vec::new()) };
+}
+
 fn compile_filter_blender(source: String) -> Result<Blender, String> {
     let options = skia_safe::runtime_effect::Options {
         force_unoptimized: true,
         name: "n0_svg_filter_porter_duff",
     };
-    let effect =
-        skia_safe::RuntimeEffect::make_for_blender(source, Some(&options)).map_err(|error| {
-            format!("the backend could not compile an exact filter blender: {error}")
-        })?;
+    let effect = skia_safe::RuntimeEffect::make_for_blender(source, Some(&options))
+        .map_err(|error| format!("the backend could not compile a filter blender: {error}"))?;
     effect
         .make_blender(Data::new_empty(), None)
-        .ok_or_else(|| "the backend could not construct an exact filter blender".to_string())
+        .ok_or_else(|| "the backend could not construct a filter blender".to_string())
+}
+
+fn cached_filter_blender(slot: usize, source: impl FnOnce() -> String) -> Result<Blender, String> {
+    FILTER_PORTER_DUFF_BLENDERS.with(|cache| {
+        if let Some(blender) = cache.borrow().get(slot).and_then(Option::as_ref).cloned() {
+            return Ok(blender);
+        }
+        let blender = compile_filter_blender(source())?;
+        let mut cache = cache.borrow_mut();
+        if cache.len() <= slot {
+            cache.resize_with(slot + 1, || None);
+        }
+        cache[slot] = Some(blender.clone());
+        Ok(blender)
+    })
+}
+
+fn porter_duff_slot(operator: ResolvedFilterComposite) -> Result<usize, String> {
+    match operator {
+        ResolvedFilterComposite::Over => Ok(0),
+        ResolvedFilterComposite::In => Ok(1),
+        ResolvedFilterComposite::Out => Ok(2),
+        ResolvedFilterComposite::Atop => Ok(3),
+        ResolvedFilterComposite::Xor => Ok(4),
+        ResolvedFilterComposite::Lighter => Ok(5),
+        ResolvedFilterComposite::Arithmetic { .. } => {
+            Err("arithmetic composition does not use a Porter-Duff blender".to_string())
+        }
+    }
 }
 
 fn porter_duff_expression(operator: ResolvedFilterComposite) -> Result<&'static str, String> {
@@ -1991,16 +2027,18 @@ fn porter_duff_expression(operator: ResolvedFilterComposite) -> Result<&'static 
 }
 
 fn floating_porter_duff_blender(operator: ResolvedFilterComposite) -> Result<Blender, String> {
+    let slot = porter_duff_slot(operator)?;
     let expression = porter_duff_expression(operator)?;
-    compile_filter_blender(format!(
-        r#"half4 main(half4 src, half4 dst) {{ return {expression}; }}"#
-    ))
+    cached_filter_blender(slot, || {
+        format!(r#"half4 main(half4 src, half4 dst) {{ return {expression}; }}"#)
+    })
 }
 
 fn exact_unorm8_blender(operator: ResolvedFilterComposite) -> Result<Blender, String> {
     // Skia's low-precision blend stages deliberately use an approximate
     // divide-by-255 on x86 while NEON uses the accurate operation. Spell the
     // rounding for generated-source graphs so both CPU families agree.
+    let slot = 6 + porter_duff_slot(operator)?;
     let expression = match operator {
         ResolvedFilterComposite::Over => "s + div255(d * (255.0 - s.a))",
         ResolvedFilterComposite::In => "div255(s * d.a)",
@@ -2012,8 +2050,9 @@ fn exact_unorm8_blender(operator: ResolvedFilterComposite) -> Result<Blender, St
             return Err("arithmetic composition does not use a Porter-Duff blender".to_string());
         }
     };
-    compile_filter_blender(format!(
-        r#"
+    cached_filter_blender(slot, || {
+        format!(
+            r#"
 float4 div255(float4 value) {{
     return floor((value + 127.0) / 255.0);
 }}
@@ -2025,7 +2064,8 @@ half4 main(half4 src, half4 dst) {{
     return half4(clamp(result, 0.0, 255.0) / 255.0);
 }}
 "#
-    ))
+        )
+    })
 }
 
 fn deterministic_porter_duff_blender(
@@ -2156,12 +2196,19 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 let mut inputs = inputs.into_iter();
                 let image_filter = if let Some(first) = inputs.next() {
                     let mut merged = first.image_filter;
+                    let blender = if inputs.len() > 0 {
+                        Some(deterministic_porter_duff_blender(
+                            ResolvedFilterComposite::Over,
+                            source_dependent,
+                        )?)
+                    } else {
+                        None
+                    };
                     for foreground in inputs {
                         merged = skia_safe::image_filters::blend(
-                            deterministic_porter_duff_blender(
-                                ResolvedFilterComposite::Over,
-                                source_dependent,
-                            )?,
+                            blender
+                                .clone()
+                                .expect("a non-empty merge tail compiled its blender"),
                             merged,
                             foreground.image_filter,
                             crop,
