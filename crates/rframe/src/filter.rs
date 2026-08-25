@@ -49,12 +49,48 @@ pub enum FilterComposite {
     Arithmetic { k1: f32, k2: f32, k3: f32, k4: f32 },
 }
 
+/// Four exact byte lookup tables for one non-premultiplied RGBA operation.
+///
+/// Channel order is named at construction and access, so a producer cannot
+/// leak its source grammar or make the painter infer an ordering convention.
+/// The fixed array shape is the contract's length check: every admitted
+/// channel maps all 256 possible input bytes.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FilterChannelTables(Arc<[[u8; 256]; 4]>);
+
+impl FilterChannelTables {
+    #[must_use]
+    pub fn new(red: [u8; 256], green: [u8; 256], blue: [u8; 256], alpha: [u8; 256]) -> Self {
+        Self(Arc::new([red, green, blue, alpha]))
+    }
+
+    #[must_use]
+    pub fn red(&self) -> &[u8; 256] {
+        &self.0[0]
+    }
+
+    #[must_use]
+    pub fn green(&self) -> &[u8; 256] {
+        &self.0[1]
+    }
+
+    #[must_use]
+    pub fn blue(&self) -> &[u8; 256] {
+        &self.0[2]
+    }
+
+    #[must_use]
+    pub fn alpha(&self) -> &[u8; 256] {
+        &self.0[3]
+    }
+}
+
 /// The admitted operation vocabulary of a resolved filter node.
 ///
 /// This enum grows only when a producer proves a new operation through the
 /// same resolved seam. It states only operations a producer has proved, not
 /// the eventual family.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum FilterPrimitive {
     GaussianBlur {
         sigma_x: f32,
@@ -87,6 +123,10 @@ pub enum FilterPrimitive {
     /// One row-major 4x5 matrix over non-premultiplied RGBA.
     ColorMatrix {
         matrix: [f32; 20],
+    },
+    /// Four exact byte lookups over non-premultiplied RGBA.
+    ComponentTransfer {
+        tables: FilterChannelTables,
     },
     Merge,
 }
@@ -132,8 +172,8 @@ impl FilterNode {
     }
 
     #[must_use]
-    pub const fn primitive(&self) -> FilterPrimitive {
-        self.primitive
+    pub fn primitive(&self) -> FilterPrimitive {
+        self.primitive.clone()
     }
 }
 
@@ -240,7 +280,8 @@ impl FilterProgram {
                 FilterPrimitive::GaussianBlur { .. }
                 | FilterPrimitive::Offset { .. }
                 | FilterPrimitive::DropShadow { .. }
-                | FilterPrimitive::ColorMatrix { .. } => Some(1),
+                | FilterPrimitive::ColorMatrix { .. }
+                | FilterPrimitive::ComponentTransfer { .. } => Some(1),
                 FilterPrimitive::SolidColor { .. } => Some(0),
                 FilterPrimitive::Composite { .. } => Some(2),
                 FilterPrimitive::Merge => None,
@@ -304,6 +345,7 @@ impl FilterProgram {
                 | FilterPrimitive::Composite { .. }
                 | FilterPrimitive::DropShadow { .. }
                 | FilterPrimitive::ColorMatrix { .. }
+                | FilterPrimitive::ComponentTransfer { .. }
                 | FilterPrimitive::Merge => {}
             }
         }
@@ -322,12 +364,13 @@ impl FilterProgram {
     /// additive coefficient could create visible output.
     #[must_use]
     pub fn may_paint_transparent_input(&self) -> bool {
-        self.0.iter().any(|node| match node.primitive {
+        self.0.iter().any(|node| match node.primitive() {
             FilterPrimitive::SolidColor { color } => color.a() > 0.0,
             FilterPrimitive::Composite {
                 operator: FilterComposite::Arithmetic { k4, .. },
             } => k4 > 0.0,
             FilterPrimitive::ColorMatrix { matrix } => matrix[19] > 0.0,
+            FilterPrimitive::ComponentTransfer { tables } => tables.alpha()[0] > 0,
             FilterPrimitive::GaussianBlur { .. }
             | FilterPrimitive::Offset { .. }
             | FilterPrimitive::Composite { .. }

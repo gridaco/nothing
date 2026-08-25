@@ -856,6 +856,262 @@
       "height": 64
     },
     {
+      "id": "svg-filter-component-transfer-alpha",
+      "source": "svg-filter-component-transfer-alpha.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-alpha.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-alpha-region",
+      "source": "svg-filter-component-transfer-alpha-region.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-alpha-region.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-blur-order",
+      "source": "svg-filter-component-transfer-blur-order.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-blur-order.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-channel-types",
+      "source": "svg-filter-component-transfer-channel-types.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-channel-types.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-child-dispatch",
+      "source": "svg-filter-component-transfer-child-dispatch.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-child-dispatch.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-circle",
+      "source": "svg-filter-component-transfer-circle.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-circle.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-clamp",
+      "source": "svg-filter-component-transfer-clamp.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-clamp.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-color-linear",
+      "source": "svg-filter-component-transfer-color-linear.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-color-linear.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-color-srgb",
+      "source": "svg-filter-component-transfer-color-srgb.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-color-srgb.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-composite-merge",
+      "source": "svg-filter-component-transfer-composite-merge.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-composite-merge.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-discrete",
+      "source": "svg-filter-component-transfer-discrete.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-discrete.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-gamma",
+      "source": "svg-filter-component-transfer-gamma.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-gamma.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-generated",
+      "source": "svg-filter-component-transfer-generated.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-generated.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-inputs",
+      "source": "svg-filter-component-transfer-inputs.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-inputs.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-invalid-values",
+      "source": "svg-filter-component-transfer-invalid-values.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-invalid-values.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-linear",
+      "source": "svg-filter-component-transfer-linear.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-linear.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-matrix-order",
+      "source": "svg-filter-component-transfer-matrix-order.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-matrix-order.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-number-order",
+      "source": "svg-filter-component-transfer-number-order.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-number-order.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-offset-order",
+      "source": "svg-filter-component-transfer-offset-order.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-offset-order.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-opacity-clip",
+      "source": "svg-filter-component-transfer-opacity-clip.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-opacity-clip.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-path",
+      "source": "svg-filter-component-transfer-path.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-path.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-primitive-units",
+      "source": "svg-filter-component-transfer-primitive-units.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-primitive-units.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-scalar-grammar",
+      "source": "svg-filter-component-transfer-scalar-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-scalar-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-shadow-order",
+      "source": "svg-filter-component-transfer-shadow-order.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-shadow-order.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-stroke",
+      "source": "svg-filter-component-transfer-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-table-interpolation",
+      "source": "svg-filter-component-transfer-table-interpolation.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-table-interpolation.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-table-list",
+      "source": "svg-filter-component-transfer-table-list.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-table-list.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-table-truncation",
+      "source": "svg-filter-component-transfer-table-truncation.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-table-truncation.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-transform",
+      "source": "svg-filter-component-transfer-transform.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-transform.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-type-grammar",
+      "source": "svg-filter-component-transfer-type-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-type-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-use",
+      "source": "svg-filter-component-transfer-use.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-use.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-viewbox",
+      "source": "svg-filter-component-transfer-viewbox.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-viewbox.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-filter-composite-arithmetic-default",
       "source": "svg-filter-composite-arithmetic-default.svg",
       "entry": "standalone-svg",

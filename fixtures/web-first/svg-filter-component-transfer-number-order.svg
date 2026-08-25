@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#f8fafc"/>
+  <defs>
+    <filter id="a" x="0" y="0" width="64" height="64" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope="1.654435761" intercept=".18682"/></feComponentTransfer></filter>
+    <filter id="b" x="0" y="0" width="64" height="64" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope="1.6544358" intercept=".18682"/></feComponentTransfer></filter>
+    <filter id="c" x="0" y="0" width="64" height="64" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope="1.6544357" intercept=".18682"/></feComponentTransfer></filter>
+    <filter id="d" x="0" y="0" width="64" height="64" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="table" tableValues="-.2 .1 .9 1.2"/></feComponentTransfer></filter>
+  </defs>
+  <rect x="3" y="3" width="27" height="27" fill="rgb(25 0 0)" filter="url(#a)"/>
+  <rect x="34" y="3" width="27" height="27" fill="rgb(25 0 0)" filter="url(#b)"/>
+  <rect x="3" y="34" width="27" height="27" fill="rgb(25 0 0)" filter="url(#c)"/>
+  <rect x="34" y="34" width="27" height="27" fill="rgb(175 0 0)" filter="url(#d)"/>
+</svg>

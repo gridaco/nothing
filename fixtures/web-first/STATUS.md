@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (502)
+## Chromium-baked cells (534)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -125,6 +125,38 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-filter-color-matrix-target-opacity.svg" title="svg-filter-color-matrix-target-opacity (standalone-svg)"><img src="./chromium/svg-filter-color-matrix-target-opacity.png" width="56" alt="svg-filter-color-matrix-target-opacity"></a>
 <a href="./svg-filter-color-matrix-type-grammar.svg" title="svg-filter-color-matrix-type-grammar (standalone-svg)"><img src="./chromium/svg-filter-color-matrix-type-grammar.png" width="56" alt="svg-filter-color-matrix-type-grammar"></a>
 <a href="./svg-filter-color-srgb.svg" title="svg-filter-color-srgb (standalone-svg)"><img src="./chromium/svg-filter-color-srgb.png" width="56" alt="svg-filter-color-srgb"></a>
+<a href="./svg-filter-component-transfer-alpha.svg" title="svg-filter-component-transfer-alpha (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-alpha.png" width="56" alt="svg-filter-component-transfer-alpha"></a>
+<a href="./svg-filter-component-transfer-alpha-region.svg" title="svg-filter-component-transfer-alpha-region (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-alpha-region.png" width="56" alt="svg-filter-component-transfer-alpha-region"></a>
+<a href="./svg-filter-component-transfer-blur-order.svg" title="svg-filter-component-transfer-blur-order (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-blur-order.png" width="56" alt="svg-filter-component-transfer-blur-order"></a>
+<a href="./svg-filter-component-transfer-channel-types.svg" title="svg-filter-component-transfer-channel-types (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-channel-types.png" width="56" alt="svg-filter-component-transfer-channel-types"></a>
+<a href="./svg-filter-component-transfer-child-dispatch.svg" title="svg-filter-component-transfer-child-dispatch (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-child-dispatch.png" width="56" alt="svg-filter-component-transfer-child-dispatch"></a>
+<a href="./svg-filter-component-transfer-circle.svg" title="svg-filter-component-transfer-circle (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-circle.png" width="56" alt="svg-filter-component-transfer-circle"></a>
+<a href="./svg-filter-component-transfer-clamp.svg" title="svg-filter-component-transfer-clamp (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-clamp.png" width="56" alt="svg-filter-component-transfer-clamp"></a>
+<a href="./svg-filter-component-transfer-color-linear.svg" title="svg-filter-component-transfer-color-linear (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-color-linear.png" width="56" alt="svg-filter-component-transfer-color-linear"></a>
+<a href="./svg-filter-component-transfer-color-srgb.svg" title="svg-filter-component-transfer-color-srgb (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-color-srgb.png" width="56" alt="svg-filter-component-transfer-color-srgb"></a>
+<a href="./svg-filter-component-transfer-composite-merge.svg" title="svg-filter-component-transfer-composite-merge (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-composite-merge.png" width="56" alt="svg-filter-component-transfer-composite-merge"></a>
+<a href="./svg-filter-component-transfer-discrete.svg" title="svg-filter-component-transfer-discrete (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-discrete.png" width="56" alt="svg-filter-component-transfer-discrete"></a>
+<a href="./svg-filter-component-transfer-gamma.svg" title="svg-filter-component-transfer-gamma (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-gamma.png" width="56" alt="svg-filter-component-transfer-gamma"></a>
+<a href="./svg-filter-component-transfer-generated.svg" title="svg-filter-component-transfer-generated (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-generated.png" width="56" alt="svg-filter-component-transfer-generated"></a>
+<a href="./svg-filter-component-transfer-inputs.svg" title="svg-filter-component-transfer-inputs (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-inputs.png" width="56" alt="svg-filter-component-transfer-inputs"></a>
+<a href="./svg-filter-component-transfer-invalid-values.svg" title="svg-filter-component-transfer-invalid-values (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-invalid-values.png" width="56" alt="svg-filter-component-transfer-invalid-values"></a>
+<a href="./svg-filter-component-transfer-linear.svg" title="svg-filter-component-transfer-linear (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-linear.png" width="56" alt="svg-filter-component-transfer-linear"></a>
+<a href="./svg-filter-component-transfer-matrix-order.svg" title="svg-filter-component-transfer-matrix-order (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-matrix-order.png" width="56" alt="svg-filter-component-transfer-matrix-order"></a>
+<a href="./svg-filter-component-transfer-number-order.svg" title="svg-filter-component-transfer-number-order (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-number-order.png" width="56" alt="svg-filter-component-transfer-number-order"></a>
+<a href="./svg-filter-component-transfer-offset-order.svg" title="svg-filter-component-transfer-offset-order (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-offset-order.png" width="56" alt="svg-filter-component-transfer-offset-order"></a>
+<a href="./svg-filter-component-transfer-opacity-clip.svg" title="svg-filter-component-transfer-opacity-clip (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-opacity-clip.png" width="56" alt="svg-filter-component-transfer-opacity-clip"></a>
+<a href="./svg-filter-component-transfer-path.svg" title="svg-filter-component-transfer-path (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-path.png" width="56" alt="svg-filter-component-transfer-path"></a>
+<a href="./svg-filter-component-transfer-primitive-units.svg" title="svg-filter-component-transfer-primitive-units (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-primitive-units.png" width="56" alt="svg-filter-component-transfer-primitive-units"></a>
+<a href="./svg-filter-component-transfer-scalar-grammar.svg" title="svg-filter-component-transfer-scalar-grammar (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-scalar-grammar.png" width="56" alt="svg-filter-component-transfer-scalar-grammar"></a>
+<a href="./svg-filter-component-transfer-shadow-order.svg" title="svg-filter-component-transfer-shadow-order (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-shadow-order.png" width="56" alt="svg-filter-component-transfer-shadow-order"></a>
+<a href="./svg-filter-component-transfer-stroke.svg" title="svg-filter-component-transfer-stroke (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-stroke.png" width="56" alt="svg-filter-component-transfer-stroke"></a>
+<a href="./svg-filter-component-transfer-table-interpolation.svg" title="svg-filter-component-transfer-table-interpolation (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-table-interpolation.png" width="56" alt="svg-filter-component-transfer-table-interpolation"></a>
+<a href="./svg-filter-component-transfer-table-list.svg" title="svg-filter-component-transfer-table-list (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-table-list.png" width="56" alt="svg-filter-component-transfer-table-list"></a>
+<a href="./svg-filter-component-transfer-table-truncation.svg" title="svg-filter-component-transfer-table-truncation (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-table-truncation.png" width="56" alt="svg-filter-component-transfer-table-truncation"></a>
+<a href="./svg-filter-component-transfer-transform.svg" title="svg-filter-component-transfer-transform (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-transform.png" width="56" alt="svg-filter-component-transfer-transform"></a>
+<a href="./svg-filter-component-transfer-type-grammar.svg" title="svg-filter-component-transfer-type-grammar (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-type-grammar.png" width="56" alt="svg-filter-component-transfer-type-grammar"></a>
+<a href="./svg-filter-component-transfer-use.svg" title="svg-filter-component-transfer-use (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-use.png" width="56" alt="svg-filter-component-transfer-use"></a>
+<a href="./svg-filter-component-transfer-viewbox.svg" title="svg-filter-component-transfer-viewbox (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-viewbox.png" width="56" alt="svg-filter-component-transfer-viewbox"></a>
 <a href="./svg-filter-composite-arithmetic-default.svg" title="svg-filter-composite-arithmetic-default (standalone-svg)"><img src="./chromium/svg-filter-composite-arithmetic-default.png" width="56" alt="svg-filter-composite-arithmetic-default"></a>
 <a href="./svg-filter-composite-arithmetic-k1.svg" title="svg-filter-composite-arithmetic-k1 (standalone-svg)"><img src="./chromium/svg-filter-composite-arithmetic-k1.png" width="56" alt="svg-filter-composite-arithmetic-k1"></a>
 <a href="./svg-filter-composite-arithmetic-k2.svg" title="svg-filter-composite-arithmetic-k2 (standalone-svg)"><img src="./chromium/svg-filter-composite-arithmetic-k2.png" width="56" alt="svg-filter-composite-arithmetic-k2"></a>
@@ -531,7 +563,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (131)
+## The refusal register (134)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -561,12 +593,15 @@ its row into the cells above.
 | `svg-filter-color-matrix-spatial-precision` | declared | skipped svg/circle[1]: unsupported SVG filter: a source-derived filter graph combines feColorMatrix with a spatial filter at the pinned-backend composed-operation precision boundary |
 | `svg-filter-color-matrix-transform-precision` | declared | skipped svg/circle[1]: unsupported SVG filter: feColorMatrix's target mapping crosses the pinned-backend color-matrix transform precision boundary |
 | `svg-filter-color-raw-syntax` | declared | skipped svg/rect[2]: unsupported SVG filter: color-interpolation-filters presentation attribute contains a CSS comment; the direct attribute decoder does not tokenize comments |
+| `svg-filter-component-transfer-source-layer-precision` | declared | skipped svg/circle[1]: unsupported SVG filter: feComponentTransfer's source image crosses the pinned-backend table-filter paint-server precision boundary; skipped svg/circle[2]: unsupported SVG filter: feComponentTransfer's source image crosses the pinned-backend table-filter paint-server precision boundary; skipped svg/circle[3]: unsupported SVG filter: feComponentTransfer's source image crosses the pinned-backend table-filter paint-server precision boundary |
+| `svg-filter-component-transfer-transform-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feComponentTransfer's target mapping crosses the pinned-backend table-filter transform precision boundary; skipped svg/rect[3]: unsupported SVG filter: feComponentTransfer's target mapping crosses the pinned-backend table-filter transform precision boundary |
 | `svg-filter-css-functions` | declared | skipped svg/rect[2]: unsupported SVG filter: filter presentation attribute uses CSS filter functions, which are a separate unresolved operation grammar |
 | `svg-filter-css-property` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares filter, which this cascade does not represent |
 | `svg-filter-drop-shadow-color-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feDropShadow with an interior-channel flood color in linearRGB crosses the pinned-backend native-shadow color-conversion precision boundary |
 | `svg-filter-drop-shadow-range` | declared | skipped svg/rect[2]: unsupported SVG filter: feDropShadow parameters cross the admitted native-shadow range |
 | `svg-filter-drop-shadow-source-layer-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feDropShadow's source subtree crosses the pinned-backend native-shadow source-layer precision boundary |
 | `svg-filter-drop-shadow-transform-precision` | declared | skipped svg/g[1]: unsupported SVG filter: feDropShadow's target mapping crosses the pinned-backend native-shadow transform precision boundary |
+| `svg-filter-effect-stack-precision` | declared | skipped svg/g[1]/rect[1]: unsupported SVG filter: a filtered target is enclosed by one element that combines clip-path with partial opacity at the pinned-backend effect-stack precision boundary |
 | `svg-filter-external` | declared | skipped svg/rect[2]: unsupported SVG filter: url(https://example.test/filter.svg#f) is external; this compiler owns no resource I/O |
 | `svg-filter-flood-color-syntax` | declared | skipped svg/rect[2]: unsupported SVG filter: feFlood flood-color is outside the admitted color slice: color space Hsl is not yet gated against Chromium |
 | `svg-filter-flood-css-property` | declared | declaration ignored at svg/style[1]: a stylesheet declares flood-color, which this cascade does not represent; elements it matches render without it |

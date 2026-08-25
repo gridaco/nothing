@@ -121,6 +121,16 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "color-matrix transform precision boundary",
     ),
     (
+        "svg-filter-component-transfer-source-layer-precision",
+        DeclaredByBestEffort,
+        "table-filter paint-server precision boundary",
+    ),
+    (
+        "svg-filter-component-transfer-transform-precision",
+        DeclaredByBestEffort,
+        "table-filter transform precision boundary",
+    ),
+    (
         "svg-filter-color-raw-syntax",
         DeclaredByBestEffort,
         "contains a CSS comment",
@@ -154,6 +164,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "svg-filter-drop-shadow-transform-precision",
         DeclaredByBestEffort,
         "native-shadow transform precision boundary",
+    ),
+    (
+        "svg-filter-effect-stack-precision",
+        DeclaredByBestEffort,
+        "effect-stack precision boundary",
     ),
     ("svg-filter-external", DeclaredByBestEffort, "external"),
     (
