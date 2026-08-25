@@ -135,11 +135,11 @@ use cg::{CGColor, CGColor32F};
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
-    ClipGeometry, ClipLayer, ClipPath, FillRule, Filter, FilterColorSpace, FilterComposite,
-    FilterInput, FilterNode, FilterPrimitive, FilterProgram, Frame, FrameItem, FrameItems,
-    FrameItemsError, FrameNode, Geometry, Identity, Mask, MaskMode, PaintAlphaFactor, PaintStack,
-    PathData, Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeDash,
-    StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, VisualRef,
+    ClipGeometry, ClipLayer, ClipPath, FillRule, Filter, FilterChannelTables, FilterColorSpace,
+    FilterComposite, FilterInput, FilterNode, FilterPrimitive, FilterProgram, Frame, FrameItem,
+    FrameItems, FrameItemsError, FrameNode, Geometry, Identity, Mask, MaskMode, PaintAlphaFactor,
+    PaintStack, PathData, Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap,
+    StrokeDash, StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, VisualRef,
 };
 use std::sync::Arc;
 
@@ -4957,6 +4957,154 @@ mod filter_resource {
         }
     }
 
+    enum ComponentTransferFunction {
+        Identity,
+        Table(Vec<f32>),
+        Discrete(Vec<f32>),
+        Linear {
+            slope: f32,
+            intercept: f32,
+        },
+        Gamma {
+            amplitude: f32,
+            exponent: f32,
+            offset: f32,
+        },
+    }
+
+    /// One SVG `<number>` field through Blink's ordered number evaluation.
+    /// The same complete-list parser also preserves the measured lone trailing
+    /// comma while rejecting every form that leaves a second member.
+    fn component_transfer_number(element: HtmlElement<'_>, name: &str, initial: f32) -> f32 {
+        let Some(raw) = get_attr(element, name) else {
+            return initial;
+        };
+        match crate::svg_number_list::parse(&raw).as_deref() {
+            Some([value]) => *value,
+            _ => initial,
+        }
+    }
+
+    fn component_transfer_function(element: HtmlElement<'_>) -> ComponentTransferFunction {
+        match get_attr(element, "type").as_deref() {
+            Some("table") => ComponentTransferFunction::Table(
+                get_attr(element, "tableValues")
+                    .as_deref()
+                    .and_then(crate::svg_number_list::parse)
+                    .unwrap_or_default(),
+            ),
+            Some("discrete") => ComponentTransferFunction::Discrete(
+                get_attr(element, "tableValues")
+                    .as_deref()
+                    .and_then(crate::svg_number_list::parse)
+                    .unwrap_or_default(),
+            ),
+            Some("linear") => ComponentTransferFunction::Linear {
+                slope: component_transfer_number(element, "slope", 1.0),
+                intercept: component_transfer_number(element, "intercept", 0.0),
+            },
+            Some("gamma") => ComponentTransferFunction::Gamma {
+                amplitude: component_transfer_number(element, "amplitude", 1.0),
+                exponent: component_transfer_number(element, "exponent", 1.0),
+                offset: component_transfer_number(element, "offset", 0.0),
+            },
+            // Missing, empty, invalid, wrong-case, and whitespace-padded enum
+            // values all select the initial identity member in Blink.
+            _ => ComponentTransferFunction::Identity,
+        }
+    }
+
+    fn component_transfer_byte(value: f64) -> u8 {
+        if value.is_nan() {
+            return 0;
+        }
+        value.clamp(0.0, 255.0) as u8
+    }
+
+    fn component_transfer_table(function: ComponentTransferFunction) -> [u8; 256] {
+        let mut table = std::array::from_fn(|index| index as u8);
+        match function {
+            ComponentTransferFunction::Identity => {}
+            ComponentTransferFunction::Table(values) if values.is_empty() => {}
+            ComponentTransferFunction::Table(values) => {
+                let last = values.len() - 1;
+                for (index, byte) in table.iter_mut().enumerate() {
+                    let c = index as f64 / 255.0;
+                    let position = c * last as f64;
+                    let lower = position as usize;
+                    let v1 = f64::from(values[lower]);
+                    let v2 = f64::from(values[(lower + 1).min(last)]);
+                    *byte = component_transfer_byte(
+                        255.0 * (v1 + (position - lower as f64) * (v2 - v1)),
+                    );
+                }
+            }
+            ComponentTransferFunction::Discrete(values) if values.is_empty() => {}
+            ComponentTransferFunction::Discrete(values) => {
+                let last = values.len() - 1;
+                for (index, byte) in table.iter_mut().enumerate() {
+                    let member = ((index * values.len()) as f64 / 255.0) as usize;
+                    *byte = component_transfer_byte(255.0 * f64::from(values[member.min(last)]));
+                }
+            }
+            ComponentTransferFunction::Linear { slope, intercept } => {
+                for (index, byte) in table.iter_mut().enumerate() {
+                    // Both products and their sum are float expressions in
+                    // pinned Blink before the result promotes to double for
+                    // clamping. Retaining these three f32 roundings is
+                    // observable for negative intercepts.
+                    let scaled = slope * index as f32;
+                    let translated = 255.0_f32 * intercept;
+                    *byte = component_transfer_byte(f64::from(scaled + translated));
+                }
+            }
+            ComponentTransferFunction::Gamma {
+                amplitude,
+                exponent,
+                offset,
+            } => {
+                let exponent = f64::from(exponent);
+                for (index, byte) in table.iter_mut().enumerate() {
+                    let c = index as f64 / 255.0;
+                    *byte = component_transfer_byte(
+                        255.0 * (f64::from(amplitude) * c.powf(exponent) + f64::from(offset)),
+                    );
+                }
+            }
+        }
+        table
+    }
+
+    fn component_transfer(
+        primitive: HtmlElement<'_>,
+        override_skips: &HashMap<NodeId, String>,
+    ) -> Result<FilterChannelTables, CompileError> {
+        let mut functions: [ComponentTransferFunction; 4] =
+            std::array::from_fn(|_| ComponentTransferFunction::Identity);
+        let mut child = primitive.first_element_child();
+        while let Some(candidate) = child {
+            child = candidate.next_element_sibling();
+            let channel = match candidate.local_name_string().as_str() {
+                "feFuncR" => 0,
+                "feFuncG" => 1,
+                "feFuncB" => 2,
+                "feFuncA" => 3,
+                _ => continue,
+            };
+            if let Some(reason) = override_skips.get(&candidate.node_id()) {
+                return Err(CompileError::UnsupportedFilter(format!(
+                    "the <{}> authored state is overridden at document load: {reason}",
+                    candidate.local_name_string()
+                )));
+            }
+            // Blink walks direct children in source order; a later function
+            // for the same channel replaces the earlier one.
+            functions[channel] = component_transfer_function(candidate);
+        }
+        let [red, green, blue, alpha] = functions.map(component_transfer_table);
+        Ok(FilterChannelTables::new(red, green, blue, alpha))
+    }
+
     const IDENTITY_COLOR_MATRIX: [f32; 20] = [
         1.0, 0.0, 0.0, 0.0, 0.0, //
         0.0, 1.0, 0.0, 0.0, 0.0, //
@@ -5255,6 +5403,62 @@ mod filter_resource {
         axis_or_quarter_turn && [a, b, c, d].into_iter().all(f32::is_finite)
     }
 
+    fn component_transfer_source_has_paint_server(
+        target: HtmlElement<'_>,
+    ) -> Result<bool, CompileError> {
+        let mut stack = vec![target];
+        while let Some(element) = stack.pop() {
+            for property in [PaintProperty::Fill, PaintProperty::Stroke] {
+                if matches!(
+                    computed_paint(element, property)?.kind,
+                    SVGPaintKind::PaintServer(_)
+                ) {
+                    return Ok(true);
+                }
+            }
+            let mut child = element.first_element_child();
+            while let Some(next) = child {
+                stack.push(next);
+                child = next.next_element_sibling();
+            }
+        }
+        Ok(false)
+    }
+
+    /// The pinned backend and Chromium take different byte-domain restore
+    /// routes when one element owns both a geometric clip and partial opacity
+    /// around any filtered descendant. Keeping those effects on separate
+    /// elements establishes a distinct, exact compositing boundary.
+    fn filter_crosses_same_scope_clip_opacity(
+        target: HtmlElement<'_>,
+    ) -> Result<bool, CompileError> {
+        let mut current = Some(target);
+        while let Some(element) = current {
+            let data = element
+                .borrow_data()
+                .ok_or(CompileError::MissingComputedStyle)?;
+            let opacity = data.styles.primary().clone_opacity().clamp(0.0, 1.0);
+            if opacity > 0.0 && opacity < 1.0 && element_has_computed_clip_path(element)? {
+                return Ok(true);
+            }
+            current = element.traversal_parent();
+        }
+        Ok(false)
+    }
+
+    /// Source-derived component transfer is exact for finite axis maps and
+    /// exact quarter turns at integer translations. Fractional translation
+    /// and sampled general rotations expose distinct table-source raster
+    /// boundaries. Generated-only table inputs do not inherit this patrol.
+    fn component_transfer_mapping_is_admitted(target_to_frame: AffineTransform) -> bool {
+        let [[a, c, tx], [b, d, ty]] = target_to_frame.matrix;
+        let axis_or_quarter_turn = (b == 0.0 && c == 0.0) || (a == 0.0 && d == 0.0);
+        axis_or_quarter_turn
+            && [a, b, c, d, tx, ty].into_iter().all(f32::is_finite)
+            && tx.fract() == 0.0
+            && ty.fract() == 0.0
+    }
+
     fn compile_graph(
         filter: HtmlElement<'_>,
         target: HtmlElement<'_>,
@@ -5350,6 +5554,15 @@ mod filter_resource {
                         vec![resolve_input(element, "in", previous, &names)],
                         FilterPrimitive::ColorMatrix {
                             matrix: color_matrix(element)?,
+                        },
+                    )
+                }
+                "feComponentTransfer" => {
+                    patrol_color_style(element)?;
+                    (
+                        vec![resolve_input(element, "in", previous, &names)],
+                        FilterPrimitive::ComponentTransfer {
+                            tables: component_transfer(element, override_skips)?,
                         },
                     )
                 }
@@ -5487,6 +5700,7 @@ mod filter_resource {
         }
         let mut source_dependencies = Vec::with_capacity(nodes.len());
         let mut has_source_dependent_color_matrix = false;
+        let mut has_source_dependent_component_transfer = false;
         for node in &nodes {
             let source_dependent = node.inputs().iter().any(|input| match *input {
                 FilterInput::Source | FilterInput::SourceAlpha => true,
@@ -5494,6 +5708,11 @@ mod filter_resource {
             });
             if source_dependent && matches!(node.primitive(), FilterPrimitive::ColorMatrix { .. }) {
                 has_source_dependent_color_matrix = true;
+            }
+            if source_dependent
+                && matches!(node.primitive(), FilterPrimitive::ComponentTransfer { .. })
+            {
+                has_source_dependent_component_transfer = true;
             }
             source_dependencies.push(source_dependent);
         }
@@ -5518,6 +5737,20 @@ mod filter_resource {
             }) {
                 return Err(CompileError::UnsupportedFilter(
                     "a source-derived filter graph combines feColorMatrix with a spatial filter at the pinned-backend composed-operation precision boundary"
+                        .to_string(),
+                ));
+            }
+        }
+        if has_source_dependent_component_transfer {
+            if component_transfer_source_has_paint_server(target)? {
+                return Err(CompileError::UnsupportedFilter(
+                    "feComponentTransfer's source image crosses the pinned-backend table-filter paint-server precision boundary"
+                        .to_string(),
+                ));
+            }
+            if !component_transfer_mapping_is_admitted(target_to_frame) {
+                return Err(CompileError::UnsupportedFilter(
+                    "feComponentTransfer's target mapping crosses the pinned-backend table-filter transform precision boundary"
                         .to_string(),
                 ));
             }
@@ -5605,6 +5838,12 @@ mod filter_resource {
         if filter_has_href(element) {
             return Err(CompileError::UnsupportedFilter(
                 "<filter> href inheritance is not yet resolved".to_string(),
+            ));
+        }
+        if filter_crosses_same_scope_clip_opacity(target)? {
+            return Err(CompileError::UnsupportedFilter(
+                "a filtered target is enclosed by one element that combines clip-path with partial opacity at the pinned-backend effect-stack precision boundary"
+                    .to_string(),
             ));
         }
         patrol_color_style(element)?;

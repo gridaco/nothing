@@ -1425,7 +1425,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [x] `<ellipse>`
 - [ ] `<feBlend>`
 - [x] `<feColorMatrix>`
-- [ ] `<feComponentTransfer>`
+- [x] `<feComponentTransfer>`
 - [x] `<feComposite>`
 - [ ] `<feConvolveMatrix>`
 - [ ] `<feDiffuseLighting>`
@@ -1433,10 +1433,22 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `<feDistantLight>`
 - [x] `<feDropShadow>`
 - [x] `<feFlood>`
-- [ ] `<feFuncA>`
-- [ ] `<feFuncB>`
-- [ ] `<feFuncG>`
-- [ ] `<feFuncR>`
+- [x] `<feFuncA>`
+- [x] `<feFuncB>`
+- [x] `<feFuncG>`
+- [x] `<feFuncR>`
+
+> **2026-08-25 close:** component transfer carries the complete static
+> direct-child vocabulary for all four channels: missing channels are
+> identity, later same-channel children win, and `identity | table |
+> discrete | linear | gamma` resolve through exact byte lookup tables. The
+> committed Chromium evidence covers straight RGBA, alpha creation/removal,
+> both filter color spaces, graph inputs, regions and units, safe transforms,
+> shapes, stroke, `<use>`, and neighboring filter operations. Paint-server
+> sources and the unsafe transform envelope remain named backend-precision
+> refusals; the generic same-scope clip-plus-opacity boundary is likewise
+> quarantined before paint. Transfer-function animation remains a separate
+> open axis.
 - [ ] `<feGaussianBlur>`
 - [ ] `<feImage>`
 - [x] `<feMerge>`
@@ -1755,7 +1767,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 
 ### SVG attributes
 
-- [ ] `amplitude`
+- [x] `amplitude`
 - [ ] `aria-activedescendant`
 - [ ] `aria-atomic`
 - [ ] `aria-autocomplete`
@@ -1827,7 +1839,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `dy`
 - [ ] `edgeMode`
 - [ ] `elevation`
-- [ ] `exponent`
+- [x] `exponent`
 - [ ] `fetchpriority`
 - [x] `filterUnits`
 
@@ -1846,7 +1858,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `id`
 - [ ] `in`
 - [ ] `in2`
-- [ ] `intercept`
+- [x] `intercept`
 - [x] `k1`
 - [x] `k2`
 - [x] `k3`
@@ -1990,7 +2002,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `scale`
 - [ ] `seed`
 - [ ] `side`
-- [ ] `slope`
+- [x] `slope`
 - [ ] `spacing`
 - [ ] `specularConstant`
 - [ ] `specularExponent`
@@ -2002,7 +2014,18 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `surfaceScale`
 - [ ] `systemLanguage`
 - [ ] `tabindex`
-- [ ] `tableValues`
+- [x] `tableValues`
+
+> **2026-08-25 close:** the five function-parameter attributes close at their
+> complete applicability to `<feFuncR>`/`G`/`B`/`A`. `amplitude` and
+> `exponent` carry gamma's initial one; `offset` remains open because it is a
+> wider shared attribute. `slope` carries linear's initial one, `intercept`
+> its initial zero, and `tableValues` carries the complete SVG number-list
+> grammar for table/discrete, including absent, empty, singleton, multiple,
+> malformed, signed, exponent, separator, trailing-comma, and out-of-range
+> cases. Blink's ordered source-number normalization, function arithmetic,
+> clamping, and byte truncation are Chromium-gated. The wider shared `type`
+> row remains open.
 - [ ] `target`
 - [ ] `targetX`
 - [ ] `targetY`

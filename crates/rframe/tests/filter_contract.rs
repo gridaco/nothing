@@ -5,8 +5,8 @@ use std::sync::Arc;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
-    Filter, FilterColorSpace, FilterComposite, FilterError, FilterInput, FilterNode,
-    FilterPrimitive, FilterProgram, FilterProgramError, MAX_FILTER_NODES,
+    Filter, FilterChannelTables, FilterColorSpace, FilterComposite, FilterError, FilterInput,
+    FilterNode, FilterPrimitive, FilterProgram, FilterProgramError, MAX_FILTER_NODES,
 };
 
 fn blur(input: FilterInput, sigma_x: f32, sigma_y: f32) -> FilterNode {
@@ -251,6 +251,41 @@ fn color_matrix_has_one_input_and_only_finite_coefficients() {
     );
     FilterProgram::new(Arc::from([matrix(Arc::from([FilterInput::Source]), -3.5)]))
         .expect("finite signed color coefficients are resolved facts");
+}
+
+#[test]
+fn component_transfer_has_one_input_and_four_exact_named_tables() {
+    let region = Rectangle::from_xywh(0.0, 0.0, 10.0, 10.0);
+    let identity = std::array::from_fn(|index| index as u8);
+    let mut alpha = identity;
+    alpha[0] = 127;
+    let tables = FilterChannelTables::new(identity, [17; 256], [29; 256], alpha);
+    assert_eq!(tables.red()[255], 255);
+    assert_eq!(tables.green()[128], 17);
+    assert_eq!(tables.blue()[128], 29);
+    assert_eq!(tables.alpha()[0], 127);
+
+    let transfer = |inputs| {
+        FilterNode::new(
+            inputs,
+            region,
+            FilterColorSpace::Srgb,
+            FilterPrimitive::ComponentTransfer {
+                tables: tables.clone(),
+            },
+        )
+    };
+    assert_eq!(
+        FilterProgram::new(Arc::from([transfer(Arc::from([]))])),
+        Err(FilterProgramError::InvalidInputCount {
+            node: 0,
+            expected: 1,
+            actual: 0,
+        })
+    );
+    let program = FilterProgram::new(Arc::from([transfer(Arc::from([FilterInput::Source]))]))
+        .expect("a full four-table transfer is checked by construction");
+    assert!(program.may_paint_transparent_input());
 }
 
 #[test]

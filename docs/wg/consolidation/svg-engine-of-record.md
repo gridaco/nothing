@@ -64,23 +64,24 @@ from the dated addenda below:
   same-document SVG filters on non-root admitted targets through a checked
   resolved graph of safe-kernel `feGaussianBlur`, integer `feOffset`,
   zero-input `feFlood`, all `feComposite` operators, ordered
-  `feMerge`/`feMergeNode`, native one-input `feDropShadow`, and one-input
-  `feColorMatrix`, with
-  `SourceGraphic`/`SourceAlpha`/prior and named inputs, both filter coordinate
-  systems and color spaces, hard regions, nesting, transforms, `<use>`, and the
-  established effect order;
+  `feMerge`/`feMergeNode`, native one-input `feDropShadow`, one-input
+  `feColorMatrix`, and one-input `feComponentTransfer` with its direct
+  `feFuncR`/`feFuncG`/`feFuncB`/`feFuncA` children; graph inputs resolve from
+  `SourceGraphic`/`SourceAlpha`/prior and named results, with both filter
+  coordinate systems and color spaces, hard regions, nesting, transforms,
+  `<use>`, and the established effect order;
   one declared-font, single-run `<text>` profile; viewBox-only root sizing with
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 502 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 534 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 131 rows.
+  register has 134 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -3025,4 +3026,97 @@ to green.
 Three focused rows join the refusal register, moving it from 128 to 131. The
 primitive corpus moves from 475 to 502 cells; the ten exact-time sampled frames
 are unchanged. Only `<feColorMatrix>` ticks. This records no conformance score
+and takes no FLIP action.
+
+## Rung: `feComponentTransfer` and `feFunc*` (2026-08-25)
+
+The verdict is CLOSE/SPLIT. `<feComponentTransfer>` and all four channel
+function elements close for their complete static direct-child vocabulary.
+The function-only `amplitude`, `exponent`, `intercept`, `slope`, and
+`tableValues` attributes close with them. The shared `type`, `offset`, `in`,
+`result`, primitive-region, `color-interpolation-filters`, `filter`, and
+`<filter>` rows remain open for their wider applicability, cascade, resource,
+host, or dynamics surface. Transfer-function animation remains outside this
+static rung. No CSS property row closes.
+
+The resolved graph carries four independent 256-byte lookup tables over
+straight RGBA and exactly one input. No authored function element, type name,
+number list, result name, document node, or backend object crosses that
+boundary. The existing graph continues to resolve SourceGraphic, SourceAlpha,
+the previous result, and an earlier named result, and the primitive region
+continues to hard-crop the output. A table that creates nonzero alpha from zero
+is explicitly visible to the graph's transparent-input accounting.
+
+Chromium 149.0.7827.55 establishes the source vocabulary. Only direct
+`feFuncR`, `feFuncG`, `feFuncB`, and `feFuncA` children participate; a nested
+function is inert, and the last direct function for a repeated channel wins.
+A missing channel is identity. The case-sensitive types are `identity`,
+`table`, `discrete`, `linear`, and `gamma`; missing and invalid `type` use
+identity. Linear defaults to slope one and intercept zero. Gamma defaults to
+amplitude one, exponent one, and offset zero. Invalid scalar text uses that
+parameter's initial value. Empty table/discrete lists are identity, a singleton
+is active, and longer lists use the complete ordered SVG number-list grammar.
+
+The numeric audit carries signs, leading dots, exponents, SVG whitespace,
+comma-only and mixed separators, one trailing comma, adjacent signed numbers,
+and a second dot beginning another number. Malformed separators, CSS tokens,
+parsed-number overflow, and non-ASCII whitespace invalidate the complete list.
+Values beyond the unit interval remain active before final clamping. Negative
+gamma exponents are likewise active, including their non-finite operation
+result at source zero.
+
+Blink's source normalization order is observable. The linear source
+`slope="1.654435761" intercept=".18682"` selects the upper binary32 control;
+parsing the same text through the lower adjacent float changes all 2,304 source
+pixels by one code value. A `.9` table member separately exposes three lookup
+bytes at that normalization boundary. Table, discrete, and gamma evaluation
+then follow the measured double-precision route, while linear uses the measured
+float products and sum. Results clamp to the byte range and truncate. All 256
+input byte values were swept twice for every function kind (measured, not
+celled).
+
+The committed cells carry identity and every active type; defaults and invalid
+fallbacks; list interpolation, indexing, clamping, and truncation; alpha
+creation and removal; SourceAlpha, generated and named inputs; both filter
+color spaces; regions and both primitive unit systems; direct shapes, paths,
+stroke, `<use>`, transforms, and `viewBox`; and ordering with blur, offset,
+color matrix, native shadow, composite, and merge. Keeping a geometric clip
+and partial opacity on separate enclosing elements is exact.
+
+Three silent raster classes were quarantined before close. A source-derived
+transfer over a paint-server fill or stroke differs from Chromium: the sampled
+linear-gradient identity case changes 848 pixels at maximum channel delta 2,
+an active transfer changes 434 at delta 3, a radial source reaches delta 115,
+and a gradient stroke reaches delta 6. Fractional target translation changes
+two pixels at delta 7, and a 17-degree rotation changes 58 at delta 12; the
+admitted mapping envelope retains integer translation, axis maps, reflection,
+and exact quarter turns. Generated-only inputs do not inherit either
+source-dependent patrol (measured, not celled).
+
+The third class is operation-independent. When one enclosing element owns both
+a geometric clip and partial opacity, identity component transfer, identity
+color matrix, zero blur, zero offset, one-input merge, and a transparent
+zero-shadow each reproduce the same 1,154-pixel restore difference at maximum
+delta 2; an active transfer reaches 1,162 pixels at delta 3. The unfiltered
+control and the split-scope clip/opacity control are exact. One generic
+effect-stack refusal therefore guards every active filter rather than
+mislabeling this as component-transfer grammar (measured, not celled).
+
+A separate direct-circle edge probe also differed without any filter. The
+matching unfiltered controls place it in the already tracked fill-only
+ellipse/box-world boundary, so this rung neither changes nor hides that issue
+(measured, not celled).
+
+Thirty-two Chromium cells carry the admitted slice, all byte-exact. Every
+scratch and committed source rendered through both actual command admissions,
+and strict and best-effort output agree for every admitted cell. Gate
+sensitivity was proved by temporarily swapping the red and blue painter
+tables: `just gate` rejected twenty-eight component-transfer cells, with up to
+all 4,096 pixels differing and maximum channel delta 255. Restoring the channel
+order returned all 534 cells to green.
+
+Three focused rows join the refusal register, moving it from 131 to 134. The
+primitive corpus moves from 502 to 534 cells; the ten exact-time sampled frames
+are unchanged. Exactly ten checklist rows tick: the five elements and five
+function-parameter attributes named above. This records no conformance score
 and takes no FLIP action.

@@ -324,6 +324,101 @@ fn color_matrix_types_lower_to_one_finite_checked_matrix() {
 }
 
 #[test]
+fn component_transfer_children_lower_to_four_exact_byte_tables() {
+    let source = |primitive: &str| {
+        document(&format!(
+            r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"
+          color-interpolation-filters="sRGB">{primitive}</filter>
+  <rect x="8" y="8" width="48" height="48" fill="#0ea5e9" filter="url(#f)"/>"##
+        ))
+    };
+    let tables = |primitive: &str| {
+        let frame = admit_both(&source(primitive));
+        let filter = resolved_filter(&frame);
+        assert_eq!(filter.program().iter().count(), 1, "one transfer node");
+        let node = filter.program().iter().next().expect("one transfer node");
+        assert_eq!(node.inputs(), [FilterInput::Source]);
+        assert_eq!(node.color_space(), FilterColorSpace::Srgb);
+        let FilterPrimitive::ComponentTransfer { tables } = node.primitive() else {
+            panic!("the authored function vocabulary resolves before the frame")
+        };
+        tables
+    };
+
+    let identity = std::array::from_fn(|index| index as u8);
+    for primitive in [
+        r##"<feComponentTransfer/>"##,
+        r##"<feComponentTransfer><feFuncR/></feComponentTransfer>"##,
+        r##"<feComponentTransfer><feFuncR type="Linear" slope="0"/></feComponentTransfer>"##,
+        r##"<feComponentTransfer><feFuncR type="table" tableValues="0,,1"/></feComponentTransfer>"##,
+        r##"<feComponentTransfer><g><feFuncR type="linear" slope="0"/></g></feComponentTransfer>"##,
+    ] {
+        let actual = tables(primitive);
+        assert_eq!(actual.red(), &identity, "{primitive}");
+        assert_eq!(actual.green(), &identity, "{primitive}");
+        assert_eq!(actual.blue(), &identity, "{primitive}");
+        assert_eq!(actual.alpha(), &identity, "{primitive}");
+    }
+
+    let actual = tables(
+        r##"<feComponentTransfer>
+          <feFuncR type="table" tableValues="-.2 .1 .9 1.2"/>
+          <feFuncG type="discrete" tableValues="1 .5 0"/>
+          <feFuncB type="linear" slope=".73" intercept=".11"/>
+          <feFuncA type="gamma" amplitude=".83" exponent="1.3" offset=".07"/>
+        </feComponentTransfer>"##,
+    );
+    assert_eq!(
+        (actual.red()[175], actual.red()[185], actual.red()[195]),
+        (234, 243, 252)
+    );
+    assert_eq!(
+        (
+            actual.green()[84],
+            actual.green()[85],
+            actual.green()[169],
+            actual.green()[170]
+        ),
+        (255, 127, 127, 0)
+    );
+    assert_eq!(
+        (actual.blue()[0], actual.blue()[127], actual.blue()[255]),
+        (28, 120, 214)
+    );
+    assert_eq!(
+        (actual.alpha()[0], actual.alpha()[127], actual.alpha()[255]),
+        (17, 103, 229)
+    );
+
+    let ordered = tables(
+        r##"<feComponentTransfer><feFuncR type="linear" slope="1.654435761" intercept=".18682"/></feComponentTransfer>"##,
+    );
+    assert_eq!(ordered.red()[25], 89, "Blink's ordered SVG-number f32 wins");
+    let linear = tables(
+        r##"<feComponentTransfer><feFuncG type="linear" slope="2" intercept="-.4"/></feComponentTransfer>"##,
+    );
+    assert_eq!(linear.green()[52], 2, "linear products and sum stay f32");
+    let singleton = tables(
+        r##"<feComponentTransfer><feFuncR type="table" tableValues=".5"/></feComponentTransfer>"##,
+    );
+    assert_eq!(
+        singleton.red()[0],
+        127,
+        "LUT conversion truncates, not rounds"
+    );
+
+    let duplicate = tables(
+        r##"<feComponentTransfer><feFuncR type="linear" slope="0"/><feFuncR type="identity"/></feComponentTransfer>"##,
+    );
+    assert_eq!(
+        duplicate.red(),
+        &identity,
+        "the last same-channel child wins"
+    );
+}
+
+#[test]
 fn color_matrix_can_cross_channels_and_create_alpha_inside_its_hard_region() {
     let frame = admit_both(&document(
         r##"  <rect width="64" height="64" fill="white"/>
@@ -392,6 +487,94 @@ fn color_matrix_precision_patrols_name_source_transform_and_spatial_boundaries()
     ] {
         assert_target_skip(&source, reason);
     }
+}
+
+#[test]
+fn component_transfer_precision_patrols_name_paint_server_and_transform_boundaries() {
+    for (source, reason) in [
+        (
+            document(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <defs><linearGradient id="g"><stop stop-color="blue"/><stop offset="1" stop-color="orange"/></linearGradient></defs>
+  <filter id="f" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope=".5"/></feComponentTransfer></filter>
+  <circle cx="32" cy="32" r="16" fill="url(#g)" filter="url(#f)"/>"##,
+            ),
+            "table-filter paint-server precision boundary",
+        ),
+        (
+            document(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope=".5"/></feComponentTransfer></filter>
+  <rect x="12" y="12" width="40" height="40" rx="7" fill="#0ea5e9" transform="rotate(17 32 32)" filter="url(#f)"/>"##,
+            ),
+            "table-filter transform precision boundary",
+        ),
+    ] {
+        assert_target_skip(&source, reason);
+    }
+
+    admit_both(&document(
+        r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" color-interpolation-filters="sRGB">
+    <feFlood flood-color="#0ea5e9"/>
+    <feComponentTransfer><feFuncR type="linear" slope=".5"/></feComponentTransfer>
+  </filter>
+  <circle cx="32" cy="32" r="16" fill="#0f172a" transform="rotate(17 32 32)" filter="url(#f)"/>"##,
+    ));
+}
+
+#[test]
+fn filtered_descendants_refuse_same_scope_clip_and_partial_opacity() {
+    let defs = r##"  <defs>
+    <clipPath id="c"><circle cx="32" cy="32" r="19"/></clipPath>
+    <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <feOffset dx="0" dy="0"/>
+    </filter>
+  </defs>"##;
+    assert_target_skip(
+        &document(&format!(
+            r##"  <rect width="64" height="64" fill="white"/>
+{defs}
+  <g opacity=".63" clip-path="url(#c)">
+    <rect x="5" y="5" width="54" height="54" fill="#406080" filter="url(#f)"/>
+  </g>"##
+        )),
+        "effect-stack precision boundary",
+    );
+
+    admit_both(&document(&format!(
+        r##"{defs}
+  <g opacity=".63"><g clip-path="url(#c)">
+    <rect x="5" y="5" width="54" height="54" fill="#406080" filter="url(#f)"/>
+  </g></g>"##
+    )));
+}
+
+#[test]
+fn load_active_function_animation_refuses_before_authored_tables_escape() {
+    let source = document(
+        r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" color-interpolation-filters="sRGB">
+    <feComponentTransfer>
+      <feFuncR type="linear" slope="1"><set attributeName="slope" to="0"/></feFuncR>
+    </feComponentTransfer>
+  </filter>
+  <rect x="8" y="8" width="48" height="48" fill="#0ea5e9" filter="url(#f)"/>"##,
+    );
+    let strict = SvgFrameSource::from_standalone_svg(source.as_str(), viewport())
+        .expect_err("strict must refuse");
+    assert!(
+        strict.to_string().contains("animation element <set>"),
+        "{strict}"
+    );
+    let best = SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport())
+        .expect("best effort declares the overridden function");
+    assert!(best.degradations().iter().any(|degradation| {
+        degradation.action() == DegradationAction::Skipped
+            && degradation
+                .reason()
+                .contains("<feFuncR> authored state is overridden")
+    }));
 }
 
 #[test]
@@ -685,7 +868,7 @@ fn quoted_urls_share_the_url_branch_and_lists_refuse_by_name() {
 }
 
 #[test]
-fn same_element_order_is_clip_then_opacity_then_mask_then_filter() {
+fn admitted_effect_order_is_clip_then_opacity_then_mask_then_filter() {
     let frame = admit_both(&document(
         r##"  <rect width="64" height="64" fill="white"/>
   <clipPath id="c"><rect x="8" y="8" width="48" height="48"/></clipPath>
@@ -693,10 +876,10 @@ fn same_element_order_is_clip_then_opacity_then_mask_then_filter() {
   <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
     <feGaussianBlur stdDeviation="2"/>
   </filter>
-  <g clip-path="url(#c)" opacity=".5" mask="url(#m)" filter="url(#f)">
+  <g clip-path="url(#c)"><g opacity=".5"><g mask="url(#m)"><g filter="url(#f)">
     <rect x="16" y="16" width="32" height="32" fill="black"/>
     <rect x="24" y="16" width="24" height="32" fill="black"/>
-  </g>"##,
+  </g></g></g></g>"##,
     ));
     let tags: Vec<_> = frame
         .items

@@ -259,7 +259,7 @@ cargo run -p n0_cli --bin n0 -- \
   authored result names. Its current operations are `feGaussianBlur`, integer
   `feOffset`, zero-input `feFlood`, all seven `feComposite` operators,
   ordered `feMerge`/`feMergeNode`, native one-input `feDropShadow`, and
-  one-input `feColorMatrix`. Inputs
+  one-input `feColorMatrix` and `feComponentTransfer`. Inputs
   resolve to `SourceGraphic`, `SourceAlpha`, the previous result, or an earlier
   named result before the frame; unknown values follow Chromium's measured
   first/previous fallback.
@@ -324,6 +324,33 @@ cargo run -p n0_cli --bin n0 -- \
   Fractional axis maps, reflections, exact quarter turns, target opacity,
   target clips, circles, and paths are Chromium-baked exact inside the admitted
   envelope.
+  Component transfer carries four independent 256-byte channel tables over
+  straight RGBA. Missing channel functions are identity and the last direct
+  child for a repeated channel wins. The complete case-sensitive `identity`,
+  `table`, `discrete`, `linear`, and `gamma` behavior is admitted, including
+  initial parameters, invalid fallback, singleton and multi-member tables, the
+  full SVG number-list grammar, out-of-range clamping, negative exponents, and
+  alpha creation/removal inside the hard primitive region. Authored function
+  elements, type names, and numeric lists resolve before the frame; the frame
+  carries only the four checked tables and one input.
+  Blink's ordered SVG-number normalization is observable: the source
+  `slope="1.654435761" intercept=".18682"` selects the upper binary32 control
+  and differs from the raw lexical lower control by 2,304 pixels at delta one.
+  Table, discrete, and gamma arithmetic then use the measured double route;
+  linear keeps the measured float products and sum; all four clamp and
+  truncate to bytes. All 256 source-byte values were probed for every kind
+  (measured, not celled).
+  Source-derived and generated inputs, SourceAlpha, both color spaces, hard
+  regions, both primitive unit systems, safe transforms, paths, circles,
+  strokes, `<use>`, alpha, clip/opacity on separate scopes, and ordering with
+  blur, offset, matrix, native shadow, composite, and merge are Chromium-baked
+  exact. Paint-server source pixels and the unsafe source-transform envelope
+  refuse by two component-transfer precision names. A third generic patrol
+  refuses any filtered descendant under one element that combines geometric
+  clipping with partial opacity: even identity filters reproduce that
+  backend effect-stack split. Transfer-function animation remains outside the
+  static slice. The separately tracked fill-only ellipse/box-world boundary
+  is unchanged.
   `filterUnits` and `primitiveUnits` carry their complete case-sensitive
   `userSpaceOnUse | objectBoundingBox` grammars, defaults, and invalid-value
   fallbacks. Filter and primitive regions accept admitted finite numbers,
@@ -341,13 +368,15 @@ cargo run -p n0_cli --bin n0 -- \
   one-input merge has no internal composition stage, so the final restore is
   where its generated-only rounding is enforced. Native sRGB shadow descendants
   add the independently measured exact-restore case described above. ARM and
-  x86 are exact without a tolerance. One hundred forty-one
+  x86 are exact without a tolerance. One hundred seventy-three
   Chromium-baked filter cells are exact: twenty-six from the chassis/blur slice,
-  sixty from the shadow-graph rung, twenty-eight from native drop shadow, and
-  twenty-seven from color matrix. The complete corpus is 502 Chromium-baked
-  cells plus 10 sampled frames, with 131 named refusal rows. `feFlood`,
-  `feComposite`, `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`, and
-  `k1`–`k4` close; `feOffset`, `feGaussianBlur`, `<filter>`,
+  sixty from the shadow-graph rung, twenty-eight from native drop shadow,
+  twenty-seven from color matrix, and thirty-two from component transfer. The
+  complete corpus is 534 Chromium-baked cells plus 10 sampled frames, with 134
+  named refusal rows. `feFlood`, `feComposite`, `feMerge`, `feMergeNode`,
+  `feDropShadow`, `feColorMatrix`, `feComponentTransfer`, `feFuncR`, `feFuncG`,
+  `feFuncB`, `feFuncA`, `k1`–`k4`, `amplitude`, `exponent`, `intercept`, `slope`,
+  and `tableValues` close; `feOffset`, `feGaussianBlur`, `<filter>`,
   `filter`, `color-interpolation-filters`, `in`, `in2`, `operator`, `result`,
   `dx`, `dy`, `stdDeviation`, `flood-color`, and `flood-opacity` remain open for
   the named precision, applicability, resource, cascade, or value remainder.

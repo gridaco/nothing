@@ -925,6 +925,16 @@ fn compile_filter(program: &FilterProgram, region: math2::Rectangle) -> Resolved
                 FilterPrimitive::ColorMatrix { matrix } => {
                     ResolvedFilterPrimitive::ColorMatrix { matrix }
                 }
+                FilterPrimitive::ComponentTransfer { tables } => {
+                    ResolvedFilterPrimitive::ComponentTransfer {
+                        tables: Arc::new([
+                            *tables.red(),
+                            *tables.green(),
+                            *tables.blue(),
+                            *tables.alpha(),
+                        ]),
+                    }
+                }
                 FilterPrimitive::Merge => ResolvedFilterPrimitive::Merge,
             },
         })

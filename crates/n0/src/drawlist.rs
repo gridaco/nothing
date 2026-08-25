@@ -79,7 +79,7 @@ pub(crate) enum ResolvedFilterComposite {
 }
 
 /// The private filter-operation vocabulary admitted by the painter.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) enum ResolvedFilterPrimitive {
     GaussianBlur {
         sigma_x: f32,
@@ -104,6 +104,11 @@ pub(crate) enum ResolvedFilterPrimitive {
     },
     ColorMatrix {
         matrix: [f32; 20],
+    },
+    ComponentTransfer {
+        /// R, G, B, then A. The source-neutral frame contract names this
+        /// order before projection into the private drawlist.
+        tables: Arc<[[u8; 256]; 4]>,
     },
     Merge,
 }

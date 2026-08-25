@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "b3072862c92a3fb20e1ee1c295c135188223136f19745f7d72ff5b4cc3f6aa77",
+  "suite_sha256": "92e34f55916a88b5f814b0ede14d67a1f912483a056466c9783ff9ad6012f912",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -889,6 +889,294 @@
       "source_sha256": "0c532ff56ca076865ee6a6fd4d3774abb2f8173d75b549d9222dec17d2abfe66",
       "oracle": "chromium/svg-filter-color-srgb.png",
       "oracle_sha256": "592d60562fa92f2c8a0bc42720aff8d3907326a42d338d0f89b030a43415d5e3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-alpha",
+      "source": "svg-filter-component-transfer-alpha.svg",
+      "source_sha256": "c1aa1c9dd55498f3abee0ae3343611697d56eb2904e1d2e57726a5453a2e8ddc",
+      "oracle": "chromium/svg-filter-component-transfer-alpha.png",
+      "oracle_sha256": "85d40b24b719e937e4540286d737c1fb404315fbad846a1a6f3f71e65e74a574",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-alpha-region",
+      "source": "svg-filter-component-transfer-alpha-region.svg",
+      "source_sha256": "6b866553e48fec999b2aca13416c3ea680ded2547b57a9e60aa5f56667c139ac",
+      "oracle": "chromium/svg-filter-component-transfer-alpha-region.png",
+      "oracle_sha256": "7118e37c665473b9e31e5aaa4d0683328716c536cc907e2efcea7bb253bdf3e0",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-blur-order",
+      "source": "svg-filter-component-transfer-blur-order.svg",
+      "source_sha256": "05beec0866e08328cc7ca5c71959a46c333f41b11ff1aa7d40c21763c20e4869",
+      "oracle": "chromium/svg-filter-component-transfer-blur-order.png",
+      "oracle_sha256": "73a7029d47d061cdbd11f2960484dc4a1bff540fcc594e1fa977ca0648f32559",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-channel-types",
+      "source": "svg-filter-component-transfer-channel-types.svg",
+      "source_sha256": "16a060ce891f1866b77d99f381e471edeea70c6661720d376ea10495e2641a31",
+      "oracle": "chromium/svg-filter-component-transfer-channel-types.png",
+      "oracle_sha256": "39a7f35ad3316141d795c1459a10e2370e67064fa2ef6f1c11aae64928c74e2e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-child-dispatch",
+      "source": "svg-filter-component-transfer-child-dispatch.svg",
+      "source_sha256": "01a5699604c1a5776b49177cfb3e082954eca678badb32a9863ba762ed3283f5",
+      "oracle": "chromium/svg-filter-component-transfer-child-dispatch.png",
+      "oracle_sha256": "52a971e441a8637006bbaf4789001f16b298750bb482217b16558376f19c874c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-circle",
+      "source": "svg-filter-component-transfer-circle.svg",
+      "source_sha256": "0ba1b0cc05707b34109b4570473c6b92613e9ffbad08db13af223f11633a65dc",
+      "oracle": "chromium/svg-filter-component-transfer-circle.png",
+      "oracle_sha256": "9f9df12ebfd8042c9cd2ffca7cdf2a2dc953a6ea8d7e1049c0e677eb98784087",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-clamp",
+      "source": "svg-filter-component-transfer-clamp.svg",
+      "source_sha256": "172c886581fd898c2c013b725bceec1fec0f98fb37aad15d9440b41886fd0a32",
+      "oracle": "chromium/svg-filter-component-transfer-clamp.png",
+      "oracle_sha256": "30b5174207a07630a3746aebd7aef83813244d2be0e686cbea5d0e3e5a52d2b7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-color-linear",
+      "source": "svg-filter-component-transfer-color-linear.svg",
+      "source_sha256": "4813ecacfdd6744caab87e218292f67de705cee371255f3eddc0f33741c6f158",
+      "oracle": "chromium/svg-filter-component-transfer-color-linear.png",
+      "oracle_sha256": "42672b41a3821cc7c902703ef935d34eedb900b7f22c4739da1d702fdfc980e4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-color-srgb",
+      "source": "svg-filter-component-transfer-color-srgb.svg",
+      "source_sha256": "72dbbae0e2c4198f6b6955ef0a554b0c16caaa162a419b287c1b2aea62e3dc8c",
+      "oracle": "chromium/svg-filter-component-transfer-color-srgb.png",
+      "oracle_sha256": "2e74ec5ffb9d8920835251f59e578f66a13e11f67d06f5f1d04817f4a994b3d7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-composite-merge",
+      "source": "svg-filter-component-transfer-composite-merge.svg",
+      "source_sha256": "1af03bcbe223b3fa0eb031aabd3e334ae168eabd7c35154289c8dad1c213010e",
+      "oracle": "chromium/svg-filter-component-transfer-composite-merge.png",
+      "oracle_sha256": "1637589877f5e6772664210fd3ffb3f06796eb0323037fdf553ec1e8d363f463",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-discrete",
+      "source": "svg-filter-component-transfer-discrete.svg",
+      "source_sha256": "c7a48762596841d48ba64128fdb0b9d99722da6b2ebc21cfe5493e97323ddfc0",
+      "oracle": "chromium/svg-filter-component-transfer-discrete.png",
+      "oracle_sha256": "00adf5caf8ff7e4f84df7cfa2575acd247a399ac4ca9f5270c9aa3b2f34e1500",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-gamma",
+      "source": "svg-filter-component-transfer-gamma.svg",
+      "source_sha256": "fa4a6c17a2e35622f351de8b554521f973bb2bd610df344a0b2d8ad2e88598f4",
+      "oracle": "chromium/svg-filter-component-transfer-gamma.png",
+      "oracle_sha256": "fa330ddd2e02344310614aae4b24cfc02e0af004eaba535e2498c37286fc3b21",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-generated",
+      "source": "svg-filter-component-transfer-generated.svg",
+      "source_sha256": "29c492a9fb7f3f5123dee401325542a51dbb636f1820f3b7c2f4c787a7c6aaf2",
+      "oracle": "chromium/svg-filter-component-transfer-generated.png",
+      "oracle_sha256": "d84ff2d60733350213b3188335af0e9b62760fcd33b8f519b7266a233611fdd4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-inputs",
+      "source": "svg-filter-component-transfer-inputs.svg",
+      "source_sha256": "5a165add2f903bd7049a6267c9611abb38c15ba7d13b2e0cf65e85ee62a56495",
+      "oracle": "chromium/svg-filter-component-transfer-inputs.png",
+      "oracle_sha256": "f87455a959ff2a5cbc86b01db03278ab34d1dae197a58428c53cccfa30899a05",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-invalid-values",
+      "source": "svg-filter-component-transfer-invalid-values.svg",
+      "source_sha256": "316a9193d60fa48da195f05b269a70f8464e207f8edf629dd81d73ece7f5b40d",
+      "oracle": "chromium/svg-filter-component-transfer-invalid-values.png",
+      "oracle_sha256": "f1c51ca12d940a7f17bc9783baaef034f7e757d81ce675f1cd258feb410ab144",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-linear",
+      "source": "svg-filter-component-transfer-linear.svg",
+      "source_sha256": "224031b43997456aebde5f78f5a817d822e43f183ff29f7c406c7caa714cd5ed",
+      "oracle": "chromium/svg-filter-component-transfer-linear.png",
+      "oracle_sha256": "8d10476d316c9370db73096fa153007561d0eacff7990daa9ae5522b6526d61c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-matrix-order",
+      "source": "svg-filter-component-transfer-matrix-order.svg",
+      "source_sha256": "d0108cdd86f798bb095bc165f1b82d8a7e5e3139daba1f63658feec628efcb2a",
+      "oracle": "chromium/svg-filter-component-transfer-matrix-order.png",
+      "oracle_sha256": "6ec13935fc6a61037ef4fcf05ae33d2ef08d467b8a1a70c276f360fa827068f1",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-number-order",
+      "source": "svg-filter-component-transfer-number-order.svg",
+      "source_sha256": "886048f78d999e4d5b21f13e4b4aa3674f246f036b80063e6786da912f22ddf8",
+      "oracle": "chromium/svg-filter-component-transfer-number-order.png",
+      "oracle_sha256": "d0d27d5e897a7ab09241650fd440ca7216135576881f2a64860af25f91eadd21",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-offset-order",
+      "source": "svg-filter-component-transfer-offset-order.svg",
+      "source_sha256": "60af83c9d6c658df689f28cdfe4be412c31acf6dbbea380bcb682208ee6eb98a",
+      "oracle": "chromium/svg-filter-component-transfer-offset-order.png",
+      "oracle_sha256": "209a1187d1471a24dc8471770fbdf3a5d4d85018b6ee2965f351a0a395bb9bc5",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-opacity-clip",
+      "source": "svg-filter-component-transfer-opacity-clip.svg",
+      "source_sha256": "15cf55027e77e5d0b946b3d8d9bad7e3fcdd100b71561275ae01c986bdc28c3b",
+      "oracle": "chromium/svg-filter-component-transfer-opacity-clip.png",
+      "oracle_sha256": "aab0f6bc5b9e15e6f9766206207fa62d54bc5376e7761e2c532f7136a64938e3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-path",
+      "source": "svg-filter-component-transfer-path.svg",
+      "source_sha256": "8c6b241c46116c2bf3816864da3b181d530ae362c9086af3af60df06bcf39f39",
+      "oracle": "chromium/svg-filter-component-transfer-path.png",
+      "oracle_sha256": "549154477b59152dbff976623af400f35e91c64d813c7c502c8e7312d92999ef",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-primitive-units",
+      "source": "svg-filter-component-transfer-primitive-units.svg",
+      "source_sha256": "e61e066190bee9e0f7a027d4f06dcb1305e5623e508115e033e06d7c43a030c6",
+      "oracle": "chromium/svg-filter-component-transfer-primitive-units.png",
+      "oracle_sha256": "d13a39ff0d969ccc703f1384ab845687a6b93f8a44983bd6c5f36731b250494f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-scalar-grammar",
+      "source": "svg-filter-component-transfer-scalar-grammar.svg",
+      "source_sha256": "d59c481aa45de74d163bec4acd291b945dd944b72b323cf127a61c099169b3b2",
+      "oracle": "chromium/svg-filter-component-transfer-scalar-grammar.png",
+      "oracle_sha256": "48539577ab91ef2348c4a444354df74a6ae3f5d9381b6d674203b43be69f666b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-shadow-order",
+      "source": "svg-filter-component-transfer-shadow-order.svg",
+      "source_sha256": "e48dc00efe6236e7a2b34db3644d3bde53d191c12cb37c21f3878fcb5bc5ba4c",
+      "oracle": "chromium/svg-filter-component-transfer-shadow-order.png",
+      "oracle_sha256": "f1d54ed3088b0475d698d6b8ef0f022eca3f7b55cd5d13050e4eac4a4b642488",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-stroke",
+      "source": "svg-filter-component-transfer-stroke.svg",
+      "source_sha256": "0499af001a7c3f625b38600a4533ce5c525b742098c0ab487f898eb956264e07",
+      "oracle": "chromium/svg-filter-component-transfer-stroke.png",
+      "oracle_sha256": "9529770c3060993bc0ddf4f2b10bb0f5263d306e742a2eae951cf495302cf90e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-table-interpolation",
+      "source": "svg-filter-component-transfer-table-interpolation.svg",
+      "source_sha256": "e14160e14c76dfc881c347983b16b724b188d354067ac8fa6bfa7d9b2ac6e0bc",
+      "oracle": "chromium/svg-filter-component-transfer-table-interpolation.png",
+      "oracle_sha256": "5395ac4df35278294de071590ea558ea81ff0a6407ef95830ecaa1418d6bf792",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-table-list",
+      "source": "svg-filter-component-transfer-table-list.svg",
+      "source_sha256": "fb70baf7254003ebafef4693ed65adf9c0c6de9d7a5a3e64664ac50f0f17d6cd",
+      "oracle": "chromium/svg-filter-component-transfer-table-list.png",
+      "oracle_sha256": "ed2f60e60a7804c8291461e7c9b8118f708ceabb7a3e7e41be4b02b9f7319868",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-table-truncation",
+      "source": "svg-filter-component-transfer-table-truncation.svg",
+      "source_sha256": "32b3923e2dd4e18005933aebb4cf3f323c7b13a80cab9ca628006242566b788d",
+      "oracle": "chromium/svg-filter-component-transfer-table-truncation.png",
+      "oracle_sha256": "0bc4a00e4ade9d048354798b69c83cc1298a63a9aa604e6544788f354cbd3559",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-transform",
+      "source": "svg-filter-component-transfer-transform.svg",
+      "source_sha256": "1fe9ce1c7dd262ed8f314457e5dbaaed1c969b81d214dcb155918ac6dac3d958",
+      "oracle": "chromium/svg-filter-component-transfer-transform.png",
+      "oracle_sha256": "677e2746e770dd016ae468c8806cc6c9b8cba4dc9e72f18e6d88d80f4d7efff1",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-type-grammar",
+      "source": "svg-filter-component-transfer-type-grammar.svg",
+      "source_sha256": "98089f58b7cb33a2820d8221505959e436e6ea66dcdf6f721d4c28924f268077",
+      "oracle": "chromium/svg-filter-component-transfer-type-grammar.png",
+      "oracle_sha256": "f1c51ca12d940a7f17bc9783baaef034f7e757d81ce675f1cd258feb410ab144",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-use",
+      "source": "svg-filter-component-transfer-use.svg",
+      "source_sha256": "f2f397f6b7604bd5c3e86ed8ce86bd9e2627f888c31db74087c0028e62072847",
+      "oracle": "chromium/svg-filter-component-transfer-use.png",
+      "oracle_sha256": "acc2d51d76950482a9938e551458115998079ed6f18aa287b0407ec6cb148af5",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-viewbox",
+      "source": "svg-filter-component-transfer-viewbox.svg",
+      "source_sha256": "cd44334ca0814e5d97d23cd41502e574280f80a17faf7f19df80ade805e87e99",
+      "oracle": "chromium/svg-filter-component-transfer-viewbox.png",
+      "oracle_sha256": "6275308d6fe1ee01f915608f04863c0dcb7143da1489beece2f9de574d3280bd",
       "width": 64,
       "height": 64
     },
