@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+    <feColorMatrix values="0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0 0 0 1 0" result="matrix"/>
+    <feGaussianBlur in="matrix" stdDeviation="2"/>
+  </filter>
+  <circle cx="32" cy="32" r="16" fill="#0ea5e9" filter="url(#f)"/>
+</svg>

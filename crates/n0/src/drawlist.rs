@@ -102,6 +102,9 @@ pub(crate) enum ResolvedFilterPrimitive {
         sigma_y: f32,
         color: n0_model::model::Color32F,
     },
+    ColorMatrix {
+        matrix: [f32; 20],
+    },
     Merge,
 }
 

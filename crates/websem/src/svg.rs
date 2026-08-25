@@ -2811,7 +2811,7 @@ impl<'a> ChildWalk<'a> {
         mut facts: SpanFacts,
         filter: Filter,
     ) -> SpanFacts {
-        if facts.draws == 0 && !facts.has_scope {
+        if facts.draws == 0 && !facts.has_scope && !filter.program().may_paint_transparent_input() {
             return facts;
         }
         self.items
@@ -4957,6 +4957,115 @@ mod filter_resource {
         }
     }
 
+    const IDENTITY_COLOR_MATRIX: [f32; 20] = [
+        1.0, 0.0, 0.0, 0.0, 0.0, //
+        0.0, 1.0, 0.0, 0.0, 0.0, //
+        0.0, 0.0, 1.0, 0.0, 0.0, //
+        0.0, 0.0, 0.0, 1.0, 0.0,
+    ];
+
+    fn color_matrix(element: HtmlElement<'_>) -> Result<[f32; 20], CompileError> {
+        let kind = get_attr(element, "type");
+        let kind = kind.as_deref().unwrap_or("matrix");
+        let values = || {
+            get_attr(element, "values")
+                .as_deref()
+                .and_then(crate::svg_number_list::parse)
+                .unwrap_or_default()
+        };
+
+        let matrix = match kind {
+            "saturate" => match values().as_slice() {
+                [s] => saturate_matrix(*s),
+                _ => IDENTITY_COLOR_MATRIX,
+            },
+            "hueRotate" => match values().as_slice() {
+                [hue] => hue_rotate_matrix(*hue),
+                _ => IDENTITY_COLOR_MATRIX,
+            },
+            "luminanceToAlpha" => luminance_to_alpha_matrix(),
+            // Missing, invalid, wrong-case, and whitespace-padded enum values
+            // all resolve through the initial matrix member in Blink.
+            _ => match values().as_slice() {
+                values @ [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _] => {
+                    values.try_into().expect("twenty values matched")
+                }
+                _ => IDENTITY_COLOR_MATRIX,
+            },
+        };
+        if !matrix.into_iter().all(f32::is_finite) {
+            return Err(CompileError::UnsupportedFilter(
+                "feColorMatrix resolves a non-finite coefficient".to_string(),
+            ));
+        }
+        Ok(matrix)
+    }
+
+    fn saturate_matrix(s: f32) -> [f32; 20] {
+        [
+            0.213 + 0.787 * s,
+            0.715 - 0.715 * s,
+            0.072 - 0.072 * s,
+            0.0,
+            0.0,
+            0.213 - 0.213 * s,
+            0.715 + 0.285 * s,
+            0.072 - 0.072 * s,
+            0.0,
+            0.0,
+            0.213 - 0.213 * s,
+            0.715 - 0.715 * s,
+            0.072 + 0.928 * s,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+        ]
+    }
+
+    fn hue_rotate_matrix(hue: f32) -> [f32; 20] {
+        // Blink's float overload computes this multiplication before `cosf`
+        // and `sinf`. Do not reduce the authored angle modulo a full turn:
+        // the argument-reduction result is visibly different at large values.
+        let radians = hue * (std::f32::consts::PI / 180.0);
+        let cos = radians.cos();
+        let sin = radians.sin();
+        [
+            0.213 + cos * 0.787 - sin * 0.213,
+            0.715 - cos * 0.715 - sin * 0.715,
+            0.072 - cos * 0.072 + sin * 0.928,
+            0.0,
+            0.0,
+            0.213 - cos * 0.213 + sin * 0.143,
+            0.715 + cos * 0.285 + sin * 0.140,
+            0.072 - cos * 0.072 - sin * 0.283,
+            0.0,
+            0.0,
+            0.213 - cos * 0.213 - sin * 0.787,
+            0.715 - cos * 0.715 + sin * 0.715,
+            0.072 + cos * 0.928 + sin * 0.072,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+        ]
+    }
+
+    fn luminance_to_alpha_matrix() -> [f32; 20] {
+        [
+            0.0, 0.0, 0.0, 0.0, 0.0, //
+            0.0, 0.0, 0.0, 0.0, 0.0, //
+            0.0, 0.0, 0.0, 0.0, 0.0, //
+            0.2125, 0.7154, 0.0721, 0.0, 0.0,
+        ]
+    }
+
     fn builtin_input(name: &str) -> bool {
         matches!(
             name,
@@ -5101,6 +5210,51 @@ mod filter_resource {
         Ok(false)
     }
 
+    /// The pinned Chromium/backend pair agrees for a source-derived color
+    /// matrix when its isolated source is one opaque solid fill on one direct
+    /// geometry target. Curved strokes, paint servers, authored translucency,
+    /// descendant compositing, and multi-draw groups cross independently
+    /// measured source-layer precision boundaries.
+    fn color_matrix_source_is_admitted(target: HtmlElement<'_>) -> Result<bool, CompileError> {
+        if !matches!(
+            target.local_name_string().as_str(),
+            "rect" | "circle" | "ellipse" | "path" | "polygon" | "polyline"
+        ) || target.first_element_child().is_some()
+        {
+            return Ok(false);
+        }
+
+        let data = target
+            .borrow_data()
+            .ok_or(CompileError::MissingComputedStyle)?;
+        let style: &ComputedValues = data.styles.primary();
+        let fill_opacity = match style.clone_fill_opacity() {
+            SVGOpacity::Opacity(value) => value,
+            _ => return Ok(false),
+        };
+        let fill = style.clone_fill();
+        let opaque_fill = match fill.kind {
+            SVGPaintKind::Color(color) => {
+                fill_opacity == 1.0 && style.resolve_color(&color).alpha == 1.0
+            }
+            SVGPaintKind::None
+            | SVGPaintKind::PaintServer(_)
+            | SVGPaintKind::ContextFill
+            | SVGPaintKind::ContextStroke => false,
+        };
+        let no_stroke = matches!(style.clone_stroke().kind, SVGPaintKind::None);
+        Ok(opaque_fill && no_stroke)
+    }
+
+    /// Axis-aligned maps and exact quarter turns are exact across the sampled
+    /// color-matrix grammar. General rotations and shears expose a separate
+    /// anti-aliased source-raster precision split.
+    fn color_matrix_mapping_is_admitted(target_to_frame: AffineTransform) -> bool {
+        let [[a, c, _], [b, d, _]] = target_to_frame.matrix;
+        let axis_or_quarter_turn = (b == 0.0 && c == 0.0) || (a == 0.0 && d == 0.0);
+        axis_or_quarter_turn && [a, b, c, d].into_iter().all(f32::is_finite)
+    }
+
     fn compile_graph(
         filter: HtmlElement<'_>,
         target: HtmlElement<'_>,
@@ -5187,6 +5341,15 @@ mod filter_resource {
                         vec![input, input2],
                         FilterPrimitive::Composite {
                             operator: composite_operator(element),
+                        },
+                    )
+                }
+                "feColorMatrix" => {
+                    patrol_color_style(element)?;
+                    (
+                        vec![resolve_input(element, "in", previous, &names)],
+                        FilterPrimitive::ColorMatrix {
+                            matrix: color_matrix(element)?,
                         },
                     )
                 }
@@ -5321,6 +5484,43 @@ mod filter_resource {
         }
         if nodes.is_empty() {
             return Ok(None);
+        }
+        let mut source_dependencies = Vec::with_capacity(nodes.len());
+        let mut has_source_dependent_color_matrix = false;
+        for node in &nodes {
+            let source_dependent = node.inputs().iter().any(|input| match *input {
+                FilterInput::Source | FilterInput::SourceAlpha => true,
+                FilterInput::Node(index) => source_dependencies[index],
+            });
+            if source_dependent && matches!(node.primitive(), FilterPrimitive::ColorMatrix { .. }) {
+                has_source_dependent_color_matrix = true;
+            }
+            source_dependencies.push(source_dependent);
+        }
+        if has_source_dependent_color_matrix {
+            if !color_matrix_source_is_admitted(target)? {
+                return Err(CompileError::UnsupportedFilter(
+                    "feColorMatrix's source image crosses the pinned-backend color-matrix source-layer precision boundary"
+                        .to_string(),
+                ));
+            }
+            if !color_matrix_mapping_is_admitted(target_to_frame) {
+                return Err(CompileError::UnsupportedFilter(
+                    "feColorMatrix's target mapping crosses the pinned-backend color-matrix transform precision boundary"
+                        .to_string(),
+                ));
+            }
+            if nodes.iter().any(|node| {
+                matches!(
+                    node.primitive(),
+                    FilterPrimitive::GaussianBlur { .. } | FilterPrimitive::DropShadow { .. }
+                )
+            }) {
+                return Err(CompileError::UnsupportedFilter(
+                    "a source-derived filter graph combines feColorMatrix with a spatial filter at the pinned-backend composed-operation precision boundary"
+                        .to_string(),
+                ));
+            }
         }
         if nodes.iter().any(|node| {
             matches!(

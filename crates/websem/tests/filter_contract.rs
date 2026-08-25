@@ -11,7 +11,8 @@ mod support;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
-    FilterColorSpace, FilterComposite, FilterInput, FilterPrimitive, Frame, FrameItem, ScopeEffect,
+    Filter, FilterColorSpace, FilterComposite, FilterInput, FilterPrimitive, Frame, FrameItem,
+    ScopeEffect,
 };
 use support::render_through_n0;
 use websem::{DegradationAction, InitialViewport, SvgFrameSource};
@@ -74,6 +75,20 @@ fn assert_target_skip(source: &str, reason: &str) {
 fn at(pixels: &[u8], x: usize, y: usize) -> [u8; 4] {
     let offset = (y * 64 + x) * 4;
     pixels[offset..offset + 4].try_into().expect("RGBA pixel")
+}
+
+fn resolved_filter(frame: &Frame) -> &Filter {
+    frame
+        .items
+        .iter()
+        .find_map(|item| match item {
+            FrameItem::ScopeBegin(scope) => match &scope.effect {
+                ScopeEffect::Filter(filter) => Some(filter),
+                ScopeEffect::Opacity(_) | ScopeEffect::Clip(_) => None,
+            },
+            _ => None,
+        })
+        .expect("one resolved filter")
 }
 
 #[test]
@@ -239,6 +254,144 @@ fn drop_shadow_resolves_to_one_native_checked_operation() {
     let pixels = render_through_n0(&frame, 64, 64);
     assert_eq!(at(&pixels, 24, 24), [14, 165, 233, 255]);
     assert_ne!(at(&pixels, 47, 32), [255, 255, 255, 255]);
+}
+
+#[test]
+fn color_matrix_types_lower_to_one_finite_checked_matrix() {
+    let source = |primitive: &str| {
+        document(&format!(
+            r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"
+          color-interpolation-filters="sRGB">{primitive}</filter>
+  <circle cx="32" cy="32" r="16" fill="#0ea5e9" filter="url(#f)"/>"##
+        ))
+    };
+    let matrix = |primitive: &str| {
+        let frame = admit_both(&source(primitive));
+        let filter = resolved_filter(&frame);
+        assert_eq!(filter.program().iter().count(), 1, "one matrix node");
+        let node = filter.program().iter().next().expect("one matrix node");
+        assert_eq!(node.inputs(), [FilterInput::Source]);
+        assert_eq!(node.color_space(), FilterColorSpace::Srgb);
+        let FilterPrimitive::ColorMatrix { matrix } = node.primitive() else {
+            panic!("the source syntax resolves away before the frame")
+        };
+        assert!(matrix.iter().all(|coefficient| coefficient.is_finite()));
+        matrix
+    };
+
+    let identity = [
+        1.0, 0.0, 0.0, 0.0, 0.0, //
+        0.0, 1.0, 0.0, 0.0, 0.0, //
+        0.0, 0.0, 1.0, 0.0, 0.0, //
+        0.0, 0.0, 0.0, 1.0, 0.0,
+    ];
+    assert_eq!(
+        matrix(r##"<feColorMatrix values="+1,0 0 0 0,0 +1 0 0 0,0 0 +1 0 0,0 0 0 +1 0,"/>"##),
+        identity,
+        "the measured SVG number-list grammar reaches one row-major matrix"
+    );
+    for primitive in [
+        r##"<feColorMatrix/>"##,
+        r##"<feColorMatrix values="1 0 0"/>"##,
+        r##"<feColorMatrix values="1,,0"/>"##,
+        r##"<feColorMatrix type="saturate"/>"##,
+        r##"<feColorMatrix type="hueRotate" values="90 180"/>"##,
+    ] {
+        assert_eq!(matrix(primitive), identity, "{primitive}");
+    }
+
+    assert_eq!(
+        matrix(r##"<feColorMatrix type="saturate" values="0"/>"##),
+        [
+            0.213, 0.715, 0.072, 0.0, 0.0, 0.213, 0.715, 0.072, 0.0, 0.0, 0.213, 0.715, 0.072, 0.0,
+            0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+        ]
+    );
+    assert_ne!(
+        matrix(r##"<feColorMatrix type="saturate" values="-1"/>"##),
+        matrix(r##"<feColorMatrix type="saturate" values="0"/>"##),
+        "saturation is not clamped"
+    );
+    assert_ne!(
+        matrix(r##"<feColorMatrix type="hueRotate" values="360000090"/>"##),
+        matrix(r##"<feColorMatrix type="hueRotate" values="90"/>"##),
+        "large angles are not reduced before Blink's f32 trig route"
+    );
+    let luminance = matrix(r##"<feColorMatrix type="luminanceToAlpha" values="bad"/>"##);
+    assert_eq!(&luminance[..15], &[0.0; 15]);
+    assert_eq!(&luminance[15..], &[0.2125, 0.7154, 0.0721, 0.0, 0.0]);
+}
+
+#[test]
+fn color_matrix_can_cross_channels_and_create_alpha_inside_its_hard_region() {
+    let frame = admit_both(&document(
+        r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+          x="8" y="8" width="48" height="48" color-interpolation-filters="sRGB">
+    <feColorMatrix x="12" y="12" width="40" height="40"
+      values="0 0 0 1 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 .25"/>
+  </filter>
+  <rect x="24" y="24" width="16" height="16" fill="#0ea5e9" filter="url(#f)"/>"##,
+    ));
+    let pixels = render_through_n0(&frame, 64, 64);
+    assert_ne!(at(&pixels, 16, 16), [255, 255, 255, 255]);
+    assert_eq!(
+        at(&pixels, 9, 9),
+        [255, 255, 255, 255],
+        "alpha creation cannot escape the primitive crop"
+    );
+    assert_ne!(
+        at(&pixels, 30, 30),
+        [14, 165, 233, 255],
+        "the alpha channel feeds the red output"
+    );
+}
+
+#[test]
+fn generated_color_matrix_input_does_not_inherit_source_layer_patrols() {
+    admit_both(&document(
+        r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"
+          color-interpolation-filters="sRGB">
+    <feFlood flood-color="#0ea5e9" flood-opacity=".4" result="f"/>
+    <feColorMatrix in="f"
+      values=".5 0 0 0 0  0 .5 0 0 0  0 0 .5 0 0  0 0 0 1 .25"/>
+  </filter>
+  <g filter="url(#f)"><circle cx="20" cy="20" r="12"/><circle cx="42" cy="42" r="12"/></g>"##,
+    ));
+}
+
+#[test]
+fn color_matrix_precision_patrols_name_source_transform_and_spatial_boundaries() {
+    for (source, reason) in [
+        (
+            document(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" color-interpolation-filters="sRGB"><feColorMatrix/></filter>
+  <circle cx="32" cy="32" r="16" fill="#0ea5e9" stroke="#0f172a" filter="url(#f)"/>"##,
+            ),
+            "color-matrix source-layer precision boundary",
+        ),
+        (
+            document(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" color-interpolation-filters="sRGB"><feColorMatrix values=".5 0 0 0 0 0 .5 0 0 0 0 0 .5 0 0 0 0 0 1 0"/></filter>
+  <circle cx="32" cy="32" r="16" fill="#0ea5e9" transform="rotate(17 32 32)" filter="url(#f)"/>"##,
+            ),
+            "color-matrix transform precision boundary",
+        ),
+        (
+            document(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" color-interpolation-filters="sRGB"><feColorMatrix/><feGaussianBlur stdDeviation="2"/></filter>
+  <circle cx="32" cy="32" r="16" fill="#0ea5e9" filter="url(#f)"/>"##,
+            ),
+            "composed-operation precision boundary",
+        ),
+    ] {
+        assert_target_skip(&source, reason);
+    }
 }
 
 #[test]

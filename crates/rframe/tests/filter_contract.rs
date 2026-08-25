@@ -221,6 +221,79 @@ fn drop_shadow_has_one_input_and_checked_geometry() {
 }
 
 #[test]
+fn color_matrix_has_one_input_and_only_finite_coefficients() {
+    let region = Rectangle::from_xywh(0.0, 0.0, 10.0, 10.0);
+    let matrix = |inputs: Arc<[FilterInput]>, coefficient| {
+        let mut matrix = [0.0; 20];
+        matrix[0] = coefficient;
+        FilterNode::new(
+            inputs,
+            region,
+            FilterColorSpace::Srgb,
+            FilterPrimitive::ColorMatrix { matrix },
+        )
+    };
+
+    assert_eq!(
+        FilterProgram::new(Arc::from([matrix(Arc::from([]), 1.0)])),
+        Err(FilterProgramError::InvalidInputCount {
+            node: 0,
+            expected: 1,
+            actual: 0,
+        })
+    );
+    assert_eq!(
+        FilterProgram::new(Arc::from([matrix(
+            Arc::from([FilterInput::Source]),
+            f32::INFINITY,
+        )])),
+        Err(FilterProgramError::InvalidColorMatrix { node: 0 })
+    );
+    FilterProgram::new(Arc::from([matrix(Arc::from([FilterInput::Source]), -3.5)]))
+        .expect("finite signed color coefficients are resolved facts");
+}
+
+#[test]
+fn generated_and_additive_nodes_keep_a_transparent_input_scope_alive() {
+    let region = Rectangle::from_xywh(0.0, 0.0, 10.0, 10.0);
+    let node = |primitive| {
+        FilterNode::new(
+            Arc::from([FilterInput::Source]),
+            region,
+            FilterColorSpace::Srgb,
+            primitive,
+        )
+    };
+    let mut additive = [0.0; 20];
+    additive[19] = 0.5;
+    let matrix = FilterProgram::new(Arc::from([node(FilterPrimitive::ColorMatrix {
+        matrix: additive,
+    })]))
+    .expect("finite matrix");
+    assert!(matrix.may_paint_transparent_input());
+
+    let identity = FilterProgram::new(Arc::from([node(FilterPrimitive::ColorMatrix {
+        matrix: [
+            1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+        ],
+    })]))
+    .expect("finite matrix");
+    assert!(!identity.may_paint_transparent_input());
+
+    let solid = FilterProgram::new(Arc::from([FilterNode::new(
+        Arc::from([]),
+        region,
+        FilterColorSpace::Srgb,
+        FilterPrimitive::SolidColor {
+            color: cg::CGColor32F::from_rgba8(cg::CGColor::RED),
+        },
+    )]))
+    .expect("solid source");
+    assert!(solid.may_paint_transparent_input());
+}
+
+#[test]
 fn the_effect_rejects_an_invalid_operation_space_or_outer_region() {
     let program = || {
         FilterProgram::new(Arc::from([blur(FilterInput::Source, 2.0, 2.0)])).expect("valid program")

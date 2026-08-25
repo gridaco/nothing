@@ -632,6 +632,222 @@
       "height": 64
     },
     {
+      "id": "svg-filter-color-matrix-alpha-create",
+      "source": "svg-filter-color-matrix-alpha-create.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-alpha-create.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-alpha-scale",
+      "source": "svg-filter-color-matrix-alpha-scale.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-alpha-scale.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-axis-fractional",
+      "source": "svg-filter-color-matrix-axis-fractional.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-axis-fractional.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-color-linear",
+      "source": "svg-filter-color-matrix-color-linear.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-color-linear.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-flood-composite-input",
+      "source": "svg-filter-color-matrix-flood-composite-input.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-flood-composite-input.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-generated-flood",
+      "source": "svg-filter-color-matrix-generated-flood.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-generated-flood.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-hue-grammar",
+      "source": "svg-filter-color-matrix-hue-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-hue-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-hue-large",
+      "source": "svg-filter-color-matrix-hue-large.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-hue-large.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-hue-quarter",
+      "source": "svg-filter-color-matrix-hue-quarter.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-hue-quarter.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-identity",
+      "source": "svg-filter-color-matrix-identity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-identity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-invalid-number-list",
+      "source": "svg-filter-color-matrix-invalid-number-list.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-invalid-number-list.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-luminance",
+      "source": "svg-filter-color-matrix-luminance.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-luminance.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-luminance-values",
+      "source": "svg-filter-color-matrix-luminance-values.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-luminance-values.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-matrix-count",
+      "source": "svg-filter-color-matrix-matrix-count.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-matrix-count.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-number-list",
+      "source": "svg-filter-color-matrix-number-list.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-number-list.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-number-underflow",
+      "source": "svg-filter-color-matrix-number-underflow.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-number-underflow.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-path",
+      "source": "svg-filter-color-matrix-path.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-path.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-quarter-turn",
+      "source": "svg-filter-color-matrix-quarter-turn.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-quarter-turn.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-reflection",
+      "source": "svg-filter-color-matrix-reflection.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-reflection.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-rgb-scale",
+      "source": "svg-filter-color-matrix-rgb-scale.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-rgb-scale.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-saturate-grammar",
+      "source": "svg-filter-color-matrix-saturate-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-saturate-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-saturate-negative",
+      "source": "svg-filter-color-matrix-saturate-negative.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-saturate-negative.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-saturate-over",
+      "source": "svg-filter-color-matrix-saturate-over.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-saturate-over.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-source-alpha",
+      "source": "svg-filter-color-matrix-source-alpha.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-source-alpha.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-target-clip",
+      "source": "svg-filter-color-matrix-target-clip.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-target-clip.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-target-opacity",
+      "source": "svg-filter-color-matrix-target-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-target-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-color-matrix-type-grammar",
+      "source": "svg-filter-color-matrix-type-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-color-matrix-type-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-filter-color-srgb",
       "source": "svg-filter-color-srgb.svg",
       "entry": "standalone-svg",
