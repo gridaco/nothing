@@ -73,6 +73,17 @@ pub enum FilterPrimitive {
     Composite {
         operator: FilterComposite,
     },
+    /// One resolved shadow operation. The painter draws the shadow below the
+    /// input and preserves the input as the operation's foreground.
+    DropShadow {
+        dx: f32,
+        dy: f32,
+        sigma_x: f32,
+        sigma_y: f32,
+        /// Resolved sRGB shadow colour. The operation converts its colour
+        /// channels into its declared interpolation space at paint time.
+        color: CGColor32F,
+    },
     Merge,
 }
 
@@ -148,6 +159,9 @@ pub enum FilterProgramError {
     InvalidComposite {
         node: usize,
     },
+    InvalidDropShadow {
+        node: usize,
+    },
 }
 
 impl std::fmt::Display for FilterProgramError {
@@ -186,6 +200,10 @@ impl std::fmt::Display for FilterProgramError {
                     "filter node {node} has a non-finite arithmetic coefficient"
                 )
             }
+            Self::InvalidDropShadow { node } => write!(
+                f,
+                "filter node {node} has a non-finite offset or non-finite/negative shadow sigma"
+            ),
         }
     }
 }
@@ -206,7 +224,9 @@ impl FilterProgram {
         }
         for (index, node) in nodes.iter().enumerate() {
             let expected_inputs = match node.primitive {
-                FilterPrimitive::GaussianBlur { .. } | FilterPrimitive::Offset { .. } => Some(1),
+                FilterPrimitive::GaussianBlur { .. }
+                | FilterPrimitive::Offset { .. }
+                | FilterPrimitive::DropShadow { .. } => Some(1),
                 FilterPrimitive::SolidColor { .. } => Some(0),
                 FilterPrimitive::Composite { .. } => Some(2),
                 FilterPrimitive::Merge => None,
@@ -248,9 +268,22 @@ impl FilterProgram {
                 } if ![k1, k2, k3, k4].into_iter().all(f32::is_finite) => {
                     return Err(FilterProgramError::InvalidComposite { node: index });
                 }
+                FilterPrimitive::DropShadow {
+                    dx,
+                    dy,
+                    sigma_x,
+                    sigma_y,
+                    ..
+                } if ![dx, dy, sigma_x, sigma_y].into_iter().all(f32::is_finite)
+                    || sigma_x < 0.0
+                    || sigma_y < 0.0 =>
+                {
+                    return Err(FilterProgramError::InvalidDropShadow { node: index });
+                }
                 FilterPrimitive::Offset { .. }
                 | FilterPrimitive::SolidColor { .. }
                 | FilterPrimitive::Composite { .. }
+                | FilterPrimitive::DropShadow { .. }
                 | FilterPrimitive::Merge => {}
             }
         }

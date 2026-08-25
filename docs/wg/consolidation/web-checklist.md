@@ -1431,7 +1431,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `<feDiffuseLighting>`
 - [ ] `<feDisplacementMap>`
 - [ ] `<feDistantLight>`
-- [ ] `<feDropShadow>`
+- [x] `<feDropShadow>`
 - [x] `<feFlood>`
 - [ ] `<feFuncA>`
 - [ ] `<feFuncB>`
@@ -1495,6 +1495,37 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > generated-only results use exact byte-domain SrcOver, while source-derived
 > coverage stays floating. Together those boundaries restore exact output on
 > both processor families without tolerance.
+>
+> **2026-08-25 close/split:** `<feDropShadow>` now carries its complete static
+> primitive behavior through one native, checked, one-input operation. Missing
+> `dx`, `dy`, and `stdDeviation` use `2`; the measured number-list grammar,
+> independent negative-axis clamp, source and result routing, both primitive
+> unit systems, hard regions, direct flood values, admitted sRGB placement,
+> transforms, `viewBox`, `<use>`, stroke, groups, target opacity, clips, and
+> neighboring admitted graph operations are covered by twenty-eight exact
+> Chromium cells. A default-linear endpoint-color cell also consumes an earlier
+> blur. The native operation includes its source foreground and is not rewritten
+> into the separately guarded blur-plus-offset graph. Hosted processor-family
+> verification first found all twenty-eight cells departing through the
+> backend's direct helper, by as much as eight code values. Making the shadow's
+> internal byte-domain compositions exact narrowed that to twenty-five
+> source-derived sRGB cells, all at one code value; replacing the internal
+> colorization and changing offset sampling left that exact set unchanged, and
+> a zero-blur member was still in it. The remaining operation was the filtered
+> layer's restore onto its backdrop. Exact byte-domain restore for sRGB native-
+> shadow descendants makes both processor families exact without tolerance;
+> applying that rule to every source-derived filter instead changes three
+> unrelated floating-path cells, so color-space conversion clears it and the
+> default-linear endpoint stays on the floating route. This is painter policy:
+> the resolved contract remains one native operation. Four new refusal rows name
+> native-shadow range, transform, source-layer, and linearRGB color-conversion
+> precision boundaries; the shared small-kernel and flood cascade/value patrols
+> also apply. Those independently registered
+> boundaries leave `dx`, `dy`, `stdDeviation`, `flood-color`, `flood-opacity`,
+> `color-interpolation-filters`, `filter`, and `<filter>` open for their wider
+> applicability or value surface. Only the element row closes. The corpus is
+> 475 Chromium-baked cells plus 10 sampled frames; the refusal register has 128
+> rows.
 
 - [ ] `<foreignObject>`
 - [x] `<g>`
@@ -1616,9 +1647,10 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > black/one, admitted sRGB colors and `currentColor`, number/percentage
 > opacity with clamping, reset and invalid fallbacks, separate color-alpha ×
 > opacity multiplication, non-inheritance, and hard primitive regions. Both
-> rows stay open for `feDropShadow`, explicit inheritance, unavailable CSS
-> ingress, and the independently listed wider color/math/custom-property
-> value families.
+> rows stay open for explicit inheritance, unavailable CSS ingress, and the
+> independently listed wider color/math/custom-property value families; the
+> native `feDropShadow` route reuses the admitted direct subset and the same
+> named patrols.
 
 - [ ] `font-family`
 - [ ] `font-size`

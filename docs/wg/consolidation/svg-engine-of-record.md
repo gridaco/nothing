@@ -63,22 +63,23 @@ from the dated addenda below:
   clips, nesting, transforms, and effect ordering);
   same-document SVG filters on non-root admitted targets through a checked
   resolved graph of safe-kernel `feGaussianBlur`, integer `feOffset`,
-  zero-input `feFlood`, all `feComposite` operators, and ordered
-  `feMerge`/`feMergeNode`, with `SourceGraphic`/`SourceAlpha`/prior and named
-  inputs, both filter coordinate systems and color spaces, hard regions,
-  nesting, transforms, `<use>`, and the established effect order;
+  zero-input `feFlood`, all `feComposite` operators, ordered
+  `feMerge`/`feMergeNode`, and native one-input `feDropShadow`, with
+  `SourceGraphic`/`SourceAlpha`/prior and named inputs, both filter coordinate
+  systems and color spaces, hard regions, nesting, transforms, `<use>`, and the
+  established effect order;
   one declared-font, single-run `<text>` profile; viewBox-only root sizing with
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 447 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 475 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 124 rows.
+  register has 128 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -2794,8 +2795,9 @@ and parallel safe branches are exact (measured, not celled).
 The fully blurred five-node hand shadow is byte-identical to native
 `feDropShadow` in Chromium at the sampled sRGB parameters (measured, not
 celled). It is not admitted through the hand graph because blur plus offset is
-one of the named boundaries; native `feDropShadow` remains the next primitive
-rung. Under the default linear interpolation route the hand graph and native
+one of the named boundaries; native `feDropShadow` was left for the next
+primitive rung at that checkpoint and lands below. Under the default linear
+interpolation route the hand graph and native
 primitive differ by 135 pixels at maximum delta 2 (measured, not celled), so
 that later rung must retain its own color-placement evidence.
 
@@ -2831,3 +2833,103 @@ the broad unsupported-primitive witness moves from the now-admitted offset to
 `feBlend`. The primitive corpus moves from 386 to 447 cells; the ten exact-time
 sampled frames are unchanged. The named register moves from 116 to 124. This
 records no conformance score and takes no FLIP action.
+
+## Rung: native `feDropShadow` (2026-08-25)
+
+The verdict is CLOSE/SPLIT. The `<feDropShadow>` element closes for its static
+primitive behavior through the existing filter graph. Its shared `dx`, `dy`,
+`stdDeviation`, `flood-color`, `flood-opacity`,
+`color-interpolation-filters`, `filter`, and `<filter>` rows remain open for
+their wider applicability, cascade, value-family, resource, dynamics, or
+precision surface. No CSS property row closes.
+
+The resolved graph carries drop shadow as one checked one-input operation. It
+states two offsets, two non-negative blur axes, one resolved color with float
+alpha, one operation color space, and one hard primitive region. The operation
+includes the input as foreground. It is not lowered into blur, offset, flood,
+composite, and merge: that decomposition crosses the already named
+blur-plus-offset boundary, and a sampled fractional native shadow differs from
+the hand graph at 579 pixels with maximum channel delta 13 (measured, not
+celled). Authored element identity, input and result names, parser state, and a
+backend object still stop before the frame.
+
+Hosted processor-family verification exposed a second backend boundary after
+the semantic operation was already exact locally. The direct shadow helper
+departed in all twenty-eight cells, by as much as eight code values. Making the
+shadow's byte-domain internal compositions exact narrowed the set to twenty-five
+source-derived sRGB cells at one code value. Replacing colorization and changing
+offset sampling left that same set unchanged, and the zero-blur cell still
+departed, ruling out the kernel and offset as the shared cause. The remaining
+boundary was the filtered result's restore onto the backdrop. Exact byte-domain
+restore for sRGB native-shadow descendants makes both processor families exact
+without tolerance. A blanket source-derived rule is incorrect: it changes three
+unrelated floating-path cells, so a color-space conversion clears the rule and
+the default-linear endpoint remains floating. None of this changes the resolved
+vocabulary: the frame still states one drop-shadow operation, and its backend
+realization remains painter-owned.
+
+Missing `dx`, `dy`, and `stdDeviation` use Chromium's measured initial `2`.
+Signs, fractions, leading plus, exponents, comma-separated axes, and a lone
+trailing comma prefix are accepted. One sigma expands to both axes; each
+negative sigma independently becomes zero. Invalid, unit-bearing, percentage,
+CSS-math, and custom-property forms return the affected field to its initial
+in current Chromium. First, previous, source-alpha, named, and unknown input
+routing and `result` reuse remain the graph's common rules. No second
+raw-number normalization divergence reproduced across the midpoint and
+percentage aliases tested for all four scalars (measured, not celled).
+
+Both primitive coordinate systems, hard primitive regions, anisotropic blur,
+safe prior and following operations, and direct flood color/opacity values are
+carried. The opacity percentage cell reuses the CSS parse/divide/narrow witness
+that caught the earlier flood alias. Direct sRGB, `currentColor`, embedded color
+alpha times float opacity are carried. A committed endpoint-channel control
+proves the default linearRGB route exact while consuming an earlier blur;
+missing and explicit linearRGB are byte-identical on that source. Authored flood
+CSS, explicit inheritance, wider color functions, CSS math, and `var()` continue
+through their existing stable refusal rows; the pinned cascade has no flood
+longhands and no matcher was added around it.
+
+Composition stays in the one effect route. Exact cells cover an exact quarter
+turn, integer axis scaling, integer `viewBox` mapping, `<use>`, centered stroke,
+group source content, target opacity, clip order, a blurred input, and a later
+native-shadow result. The native operation therefore neither bypasses the
+checked graph nor introduces a second effect-order path.
+
+The backend audit found four additional silent classes and registered each
+before the element row closed. Pure translations, exact quarter turns, and
+integer axis maps are exact, while a 19-degree rotation differs even when
+offset or blur is zero and sampled fractional maps also differ. Solid
+fill/stroke source layers are exact; gradients and a non-target descendant
+opacity cross a distinct source-layer precision split. Under linearRGB, a
+sampled interior-channel shadow color differs at 194 pixels by one code value,
+while the committed sRGB control is exact. The Web used-length ceiling control
+at 33,554,428 is exact, but larger finite and non-finite-producing parameters
+cannot safely cross the checked frame. These range, transform, source-layer,
+and color-conversion classes now refuse by stable native-shadow names in both
+admission policies (measured, not celled).
+
+The shared blur patrol also applies to native shadow. Identity-mapped effective
+sigmas in the sampled open interval between exact `.25` and `2` endpoints
+differ from Chromium, while the endpoints and safe anisotropic controls are
+exact (measured, not celled). The patrol remains one operation-independent
+kernel boundary rather than a second drop-shadow approximation.
+
+Twenty-eight Chromium cells carry the admitted slice, all byte-exact. They
+cover defaults, number spellings, independent axes, zero blur, fractional
+offset, input and result routing, regions and units, direct color and opacity,
+the default-linear endpoint route, the safe transform envelope, source
+composition, and neighboring graph nodes. Every scratch and committed source
+also rendered through the product command. Gate sensitivity was proved by
+temporarily adding one unit to the native operation's horizontal offset: `just
+gate` rejected twenty-six drop-shadow cells. Restoring the resolved offset
+returned all 475 cells to green.
+
+The same complete 475-cell gate passes on hosted x86 after the scoped restore
+rule. The earlier all-cell, internal-composition, colorization, sampling, and
+blanket-restore classifiers are retained as measured negative evidence; no
+tolerance was introduced.
+
+Four focused rows join the refusal register, moving it from 124 to 128. The
+primitive corpus moves from 447 to 475 cells; the ten exact-time sampled frames
+are unchanged. Only `<feDropShadow>` ticks. This records no conformance score
+and takes no FLIP action.

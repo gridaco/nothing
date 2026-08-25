@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 32 32">
+  <rect width="32" height="32" fill="#f8fafc"/>
+  <path d="M0 0h16v16H0zM16 16h16v16H16z" fill="#e2e8f0"/>
+  <defs>
+    <filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="32" height="32" color-interpolation-filters="sRGB">
+      <feDropShadow dx="3" dy="2" stdDeviation="1" flood-color="#7c3aed" flood-opacity=".65"/>
+    </filter>
+  </defs>
+  <rect x="10" y="9" width="12" height="12" rx="1.5" fill="#0ea5e9" stroke="#0f172a" stroke-width="1" filter="url(#f)"/>
+</svg>

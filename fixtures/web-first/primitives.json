@@ -816,6 +816,230 @@
       "height": 64
     },
     {
+      "id": "svg-filter-drop-shadow-anisotropic",
+      "source": "svg-filter-drop-shadow-anisotropic.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-anisotropic.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-blur-input",
+      "source": "svg-filter-drop-shadow-blur-input.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-blur-input.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-chain",
+      "source": "svg-filter-drop-shadow-chain.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-chain.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-clip-order",
+      "source": "svg-filter-drop-shadow-clip-order.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-clip-order.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-color-linear-endpoint",
+      "source": "svg-filter-drop-shadow-color-linear-endpoint.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-color-linear-endpoint.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-color-srgb",
+      "source": "svg-filter-drop-shadow-color-srgb.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-color-srgb.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-currentcolor",
+      "source": "svg-filter-drop-shadow-currentcolor.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-currentcolor.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-default",
+      "source": "svg-filter-drop-shadow-default.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-default.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-fractional-offset",
+      "source": "svg-filter-drop-shadow-fractional-offset.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-fractional-offset.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-group-source",
+      "source": "svg-filter-drop-shadow-group-source.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-group-source.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-integer-scale",
+      "source": "svg-filter-drop-shadow-integer-scale.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-integer-scale.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-named-input",
+      "source": "svg-filter-drop-shadow-named-input.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-named-input.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-number-plus",
+      "source": "svg-filter-drop-shadow-number-plus.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-number-plus.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-opacity-percentage-precision",
+      "source": "svg-filter-drop-shadow-opacity-percentage-precision.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-opacity-percentage-precision.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-primitive-region",
+      "source": "svg-filter-drop-shadow-primitive-region.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-primitive-region.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-primitive-units-object",
+      "source": "svg-filter-drop-shadow-primitive-units-object.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-primitive-units-object.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-quarter-turn",
+      "source": "svg-filter-drop-shadow-quarter-turn.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-quarter-turn.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-result-chain",
+      "source": "svg-filter-drop-shadow-result-chain.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-result-chain.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-source-alpha",
+      "source": "svg-filter-drop-shadow-source-alpha.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-source-alpha.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-stddev-comma",
+      "source": "svg-filter-drop-shadow-stddev-comma.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-stddev-comma.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-stddev-negative-axis",
+      "source": "svg-filter-drop-shadow-stddev-negative-axis.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-stddev-negative-axis.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-stddev-one",
+      "source": "svg-filter-drop-shadow-stddev-one.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-stddev-one.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-stddev-trailing-comma",
+      "source": "svg-filter-drop-shadow-stddev-trailing-comma.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-stddev-trailing-comma.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-stroke-source",
+      "source": "svg-filter-drop-shadow-stroke-source.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-stroke-source.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-target-opacity",
+      "source": "svg-filter-drop-shadow-target-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-target-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-use-instance",
+      "source": "svg-filter-drop-shadow-use-instance.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-use-instance.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-viewbox-scale",
+      "source": "svg-filter-drop-shadow-viewbox-scale.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-viewbox-scale.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-drop-shadow-zero-blur",
+      "source": "svg-filter-drop-shadow-zero-blur.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-drop-shadow-zero-blur.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-filter-empty-graph",
       "source": "svg-filter-empty-graph.svg",
       "entry": "standalone-svg",

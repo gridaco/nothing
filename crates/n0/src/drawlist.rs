@@ -81,10 +81,27 @@ pub(crate) enum ResolvedFilterComposite {
 /// The private filter-operation vocabulary admitted by the painter.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum ResolvedFilterPrimitive {
-    GaussianBlur { sigma_x: f32, sigma_y: f32 },
-    Offset { dx: f32, dy: f32 },
-    SolidColor { color: n0_model::model::Color32F },
-    Composite { operator: ResolvedFilterComposite },
+    GaussianBlur {
+        sigma_x: f32,
+        sigma_y: f32,
+    },
+    Offset {
+        dx: f32,
+        dy: f32,
+    },
+    SolidColor {
+        color: n0_model::model::Color32F,
+    },
+    Composite {
+        operator: ResolvedFilterComposite,
+    },
+    DropShadow {
+        dx: f32,
+        dy: f32,
+        sigma_x: f32,
+        sigma_y: f32,
+        color: n0_model::model::Color32F,
+    },
     Merge,
 }
 

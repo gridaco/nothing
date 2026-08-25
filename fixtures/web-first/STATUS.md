@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (447)
+## Chromium-baked cells (475)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -120,6 +120,34 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-filter-composite-region-default.svg" title="svg-filter-composite-region-default (standalone-svg)"><img src="./chromium/svg-filter-composite-region-default.png" width="56" alt="svg-filter-composite-region-default"></a>
 <a href="./svg-filter-composite-region-union.svg" title="svg-filter-composite-region-union (standalone-svg)"><img src="./chromium/svg-filter-composite-region-union.png" width="56" alt="svg-filter-composite-region-union"></a>
 <a href="./svg-filter-composite-xor.svg" title="svg-filter-composite-xor (standalone-svg)"><img src="./chromium/svg-filter-composite-xor.png" width="56" alt="svg-filter-composite-xor"></a>
+<a href="./svg-filter-drop-shadow-anisotropic.svg" title="svg-filter-drop-shadow-anisotropic (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-anisotropic.png" width="56" alt="svg-filter-drop-shadow-anisotropic"></a>
+<a href="./svg-filter-drop-shadow-blur-input.svg" title="svg-filter-drop-shadow-blur-input (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-blur-input.png" width="56" alt="svg-filter-drop-shadow-blur-input"></a>
+<a href="./svg-filter-drop-shadow-chain.svg" title="svg-filter-drop-shadow-chain (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-chain.png" width="56" alt="svg-filter-drop-shadow-chain"></a>
+<a href="./svg-filter-drop-shadow-clip-order.svg" title="svg-filter-drop-shadow-clip-order (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-clip-order.png" width="56" alt="svg-filter-drop-shadow-clip-order"></a>
+<a href="./svg-filter-drop-shadow-color-linear-endpoint.svg" title="svg-filter-drop-shadow-color-linear-endpoint (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-color-linear-endpoint.png" width="56" alt="svg-filter-drop-shadow-color-linear-endpoint"></a>
+<a href="./svg-filter-drop-shadow-color-srgb.svg" title="svg-filter-drop-shadow-color-srgb (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-color-srgb.png" width="56" alt="svg-filter-drop-shadow-color-srgb"></a>
+<a href="./svg-filter-drop-shadow-currentcolor.svg" title="svg-filter-drop-shadow-currentcolor (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-currentcolor.png" width="56" alt="svg-filter-drop-shadow-currentcolor"></a>
+<a href="./svg-filter-drop-shadow-default.svg" title="svg-filter-drop-shadow-default (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-default.png" width="56" alt="svg-filter-drop-shadow-default"></a>
+<a href="./svg-filter-drop-shadow-fractional-offset.svg" title="svg-filter-drop-shadow-fractional-offset (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-fractional-offset.png" width="56" alt="svg-filter-drop-shadow-fractional-offset"></a>
+<a href="./svg-filter-drop-shadow-group-source.svg" title="svg-filter-drop-shadow-group-source (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-group-source.png" width="56" alt="svg-filter-drop-shadow-group-source"></a>
+<a href="./svg-filter-drop-shadow-integer-scale.svg" title="svg-filter-drop-shadow-integer-scale (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-integer-scale.png" width="56" alt="svg-filter-drop-shadow-integer-scale"></a>
+<a href="./svg-filter-drop-shadow-named-input.svg" title="svg-filter-drop-shadow-named-input (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-named-input.png" width="56" alt="svg-filter-drop-shadow-named-input"></a>
+<a href="./svg-filter-drop-shadow-number-plus.svg" title="svg-filter-drop-shadow-number-plus (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-number-plus.png" width="56" alt="svg-filter-drop-shadow-number-plus"></a>
+<a href="./svg-filter-drop-shadow-opacity-percentage-precision.svg" title="svg-filter-drop-shadow-opacity-percentage-precision (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-opacity-percentage-precision.png" width="56" alt="svg-filter-drop-shadow-opacity-percentage-precision"></a>
+<a href="./svg-filter-drop-shadow-primitive-region.svg" title="svg-filter-drop-shadow-primitive-region (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-primitive-region.png" width="56" alt="svg-filter-drop-shadow-primitive-region"></a>
+<a href="./svg-filter-drop-shadow-primitive-units-object.svg" title="svg-filter-drop-shadow-primitive-units-object (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-primitive-units-object.png" width="56" alt="svg-filter-drop-shadow-primitive-units-object"></a>
+<a href="./svg-filter-drop-shadow-quarter-turn.svg" title="svg-filter-drop-shadow-quarter-turn (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-quarter-turn.png" width="56" alt="svg-filter-drop-shadow-quarter-turn"></a>
+<a href="./svg-filter-drop-shadow-result-chain.svg" title="svg-filter-drop-shadow-result-chain (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-result-chain.png" width="56" alt="svg-filter-drop-shadow-result-chain"></a>
+<a href="./svg-filter-drop-shadow-source-alpha.svg" title="svg-filter-drop-shadow-source-alpha (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-source-alpha.png" width="56" alt="svg-filter-drop-shadow-source-alpha"></a>
+<a href="./svg-filter-drop-shadow-stddev-comma.svg" title="svg-filter-drop-shadow-stddev-comma (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-stddev-comma.png" width="56" alt="svg-filter-drop-shadow-stddev-comma"></a>
+<a href="./svg-filter-drop-shadow-stddev-negative-axis.svg" title="svg-filter-drop-shadow-stddev-negative-axis (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-stddev-negative-axis.png" width="56" alt="svg-filter-drop-shadow-stddev-negative-axis"></a>
+<a href="./svg-filter-drop-shadow-stddev-one.svg" title="svg-filter-drop-shadow-stddev-one (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-stddev-one.png" width="56" alt="svg-filter-drop-shadow-stddev-one"></a>
+<a href="./svg-filter-drop-shadow-stddev-trailing-comma.svg" title="svg-filter-drop-shadow-stddev-trailing-comma (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-stddev-trailing-comma.png" width="56" alt="svg-filter-drop-shadow-stddev-trailing-comma"></a>
+<a href="./svg-filter-drop-shadow-stroke-source.svg" title="svg-filter-drop-shadow-stroke-source (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-stroke-source.png" width="56" alt="svg-filter-drop-shadow-stroke-source"></a>
+<a href="./svg-filter-drop-shadow-target-opacity.svg" title="svg-filter-drop-shadow-target-opacity (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-target-opacity.png" width="56" alt="svg-filter-drop-shadow-target-opacity"></a>
+<a href="./svg-filter-drop-shadow-use-instance.svg" title="svg-filter-drop-shadow-use-instance (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-use-instance.png" width="56" alt="svg-filter-drop-shadow-use-instance"></a>
+<a href="./svg-filter-drop-shadow-viewbox-scale.svg" title="svg-filter-drop-shadow-viewbox-scale (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-viewbox-scale.png" width="56" alt="svg-filter-drop-shadow-viewbox-scale"></a>
+<a href="./svg-filter-drop-shadow-zero-blur.svg" title="svg-filter-drop-shadow-zero-blur (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-zero-blur.png" width="56" alt="svg-filter-drop-shadow-zero-blur"></a>
 <a href="./svg-filter-empty-graph.svg" title="svg-filter-empty-graph (standalone-svg)"><img src="./chromium/svg-filter-empty-graph.png" width="56" alt="svg-filter-empty-graph"></a>
 <a href="./svg-filter-first-id.svg" title="svg-filter-first-id (standalone-svg)"><img src="./chromium/svg-filter-first-id.png" width="56" alt="svg-filter-first-id"></a>
 <a href="./svg-filter-flood-alpha-product.svg" title="svg-filter-flood-alpha-product (standalone-svg)"><img src="./chromium/svg-filter-flood-alpha-product.png" width="56" alt="svg-filter-flood-alpha-product"></a>
@@ -476,7 +504,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (124)
+## The refusal register (128)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -505,6 +533,10 @@ its row into the cells above.
 | `svg-filter-color-raw-syntax` | declared | skipped svg/rect[2]: unsupported SVG filter: color-interpolation-filters presentation attribute contains a CSS comment; the direct attribute decoder does not tokenize comments |
 | `svg-filter-css-functions` | declared | skipped svg/rect[2]: unsupported SVG filter: filter presentation attribute uses CSS filter functions, which are a separate unresolved operation grammar |
 | `svg-filter-css-property` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares filter, which this cascade does not represent |
+| `svg-filter-drop-shadow-color-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feDropShadow with an interior-channel flood color in linearRGB crosses the pinned-backend native-shadow color-conversion precision boundary |
+| `svg-filter-drop-shadow-range` | declared | skipped svg/rect[2]: unsupported SVG filter: feDropShadow parameters cross the admitted native-shadow range |
+| `svg-filter-drop-shadow-source-layer-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feDropShadow's source subtree crosses the pinned-backend native-shadow source-layer precision boundary |
+| `svg-filter-drop-shadow-transform-precision` | declared | skipped svg/g[1]: unsupported SVG filter: feDropShadow's target mapping crosses the pinned-backend native-shadow transform precision boundary |
 | `svg-filter-external` | declared | skipped svg/rect[2]: unsupported SVG filter: url(https://example.test/filter.svg#f) is external; this compiler owns no resource I/O |
 | `svg-filter-flood-color-syntax` | declared | skipped svg/rect[2]: unsupported SVG filter: feFlood flood-color is outside the admitted color slice: color space Hsl is not yet gated against Chromium |
 | `svg-filter-flood-css-property` | declared | declaration ignored at svg/style[1]: a stylesheet declares flood-color, which this cascade does not represent; elements it matches render without it |

@@ -4753,37 +4753,47 @@ mod filter_resource {
         Ok(FilterColorSpace::LinearRgb)
     }
 
-    fn parse_std_deviation(element: HtmlElement<'_>) -> Result<(f32, f32), CompileError> {
+    fn parse_std_deviation(
+        element: HtmlElement<'_>,
+        owner: &str,
+        initial: f32,
+    ) -> Result<(f32, f32), CompileError> {
+        let initial = (initial, initial);
         let Some(raw) = get_attr(element, "stdDeviation") else {
-            return Ok((0.0, 0.0));
+            return Ok(initial);
         };
         if raw.contains("/*") {
-            return Err(CompileError::UnsupportedFilter(
-                "feGaussianBlur stdDeviation contains a CSS comment outside the SVG number grammar"
-                    .to_string(),
-            ));
+            return Err(CompileError::UnsupportedFilter(format!(
+                "{owner} stdDeviation contains a CSS comment outside the SVG number grammar"
+            )));
         }
         let mut input = ParserInput::new(&raw);
         let mut parser = Parser::new(&mut input);
         let Ok(first) = parser.expect_number() else {
-            return Ok((0.0, 0.0));
+            return Ok(initial);
         };
         let second = if parser.is_exhausted() {
             first
         } else {
-            let _ = parser.try_parse(|input| input.expect_comma());
-            let Ok(second) = parser.expect_number() else {
-                return Ok((0.0, 0.0));
-            };
-            if parser.expect_exhausted().is_err() {
-                return Ok((0.0, 0.0));
+            let had_comma = parser.try_parse(|input| input.expect_comma()).is_ok();
+            // Blink's SVG number-optional-number reader preserves a parsed
+            // first member followed by one trailing comma.
+            if had_comma && parser.is_exhausted() {
+                first
+            } else {
+                let Ok(second) = parser.expect_number() else {
+                    return Ok(initial);
+                };
+                if parser.expect_exhausted().is_err() {
+                    return Ok(initial);
+                }
+                second
             }
-            second
         };
         if !first.is_finite() || !second.is_finite() {
-            return Err(CompileError::UnsupportedFilter(
-                "feGaussianBlur stdDeviation crosses the finite resolved-filter range".to_string(),
-            ));
+            return Err(CompileError::UnsupportedFilter(format!(
+                "{owner} stdDeviation crosses the finite resolved-filter range"
+            )));
         }
         Ok((first.max(0.0), second.max(0.0)))
     }
@@ -4816,43 +4826,40 @@ mod filter_resource {
         }
     }
 
-    fn patrol_flood_style(element: HtmlElement<'_>) -> Result<(), CompileError> {
+    fn patrol_flood_style(element: HtmlElement<'_>, owner: &str) -> Result<(), CompileError> {
         let Some(style) = get_attr(element, "style") else {
             return Ok(());
         };
         if style.contains('\\') {
-            return Err(CompileError::UnsupportedFilter(
-                "inline style on <feFlood> contains a CSS escape; property identity cannot be proven by the direct decoder"
-                    .to_string(),
-            ));
+            return Err(CompileError::UnsupportedFilter(format!(
+                "inline style on <{owner}> contains a CSS escape; property identity cannot be proven by the direct decoder"
+            )));
         }
         for property in ["flood-color", "flood-opacity"] {
             if css_declares_property(&style, property) {
                 return Err(CompileError::UnsupportedFilter(format!(
-                    "CSS {property} on <feFlood> is not represented by the pinned cascade; its direct presentation attribute is a separate ingress"
+                    "CSS {property} on <{owner}> is not represented by the pinned cascade; its direct presentation attribute is a separate ingress"
                 )));
             }
         }
         Ok(())
     }
 
-    fn flood_color(element: HtmlElement<'_>) -> Result<AbsoluteColor, CompileError> {
+    fn flood_color(element: HtmlElement<'_>, owner: &str) -> Result<AbsoluteColor, CompileError> {
         let Some(raw) = get_attr(element, "flood-color") else {
             return Ok(AbsoluteColor::BLACK);
         };
         let lowered = raw.to_ascii_lowercase();
         let trimmed = trim_svg_whitespace(&lowered);
         if lowered.contains("var(") {
-            return Err(CompileError::UnsupportedFilter(
-                "feFlood flood-color resolves through var(), whose substitution is not represented at this Stylo pin"
-                    .to_string(),
-            ));
+            return Err(CompileError::UnsupportedFilter(format!(
+                "{owner} flood-color resolves through var(), whose substitution is not represented at this Stylo pin"
+            )));
         }
         if trimmed == "inherit" {
-            return Err(CompileError::UnsupportedFilter(
-                "feFlood flood-color uses inherit, which needs the unavailable cascaded flood-color longhand"
-                    .to_string(),
-            ));
+            return Err(CompileError::UnsupportedFilter(format!(
+                "{owner} flood-color uses inherit, which needs the unavailable cascaded flood-color longhand"
+            )));
         }
         if matches!(trimmed, "initial" | "unset" | "revert" | "revert-layer") {
             return Ok(AbsoluteColor::BLACK);
@@ -4867,7 +4874,7 @@ mod filter_resource {
             }
             Some(ParsedColorAttribute::BeyondSlice(reason)) => {
                 Err(CompileError::UnsupportedFilter(format!(
-                    "feFlood flood-color is outside the admitted color slice: {reason}"
+                    "{owner} flood-color is outside the admitted color slice: {reason}"
                 )))
             }
             // An invalid presentation hint contributes the initial black.
@@ -4875,23 +4882,21 @@ mod filter_resource {
         }
     }
 
-    fn flood_opacity(element: HtmlElement<'_>) -> Result<f32, CompileError> {
+    fn flood_opacity(element: HtmlElement<'_>, owner: &str) -> Result<f32, CompileError> {
         let Some(raw) = get_attr(element, "flood-opacity") else {
             return Ok(1.0);
         };
         let lowered = raw.to_ascii_lowercase();
         let trimmed = trim_svg_whitespace(&lowered);
         if lowered.contains("var(") {
-            return Err(CompileError::UnsupportedFilter(
-                "feFlood flood-opacity resolves through var(), whose substitution is not represented at this Stylo pin"
-                    .to_string(),
-            ));
+            return Err(CompileError::UnsupportedFilter(format!(
+                "{owner} flood-opacity resolves through var(), whose substitution is not represented at this Stylo pin"
+            )));
         }
         if trimmed == "inherit" {
-            return Err(CompileError::UnsupportedFilter(
-                "feFlood flood-opacity uses inherit, which needs the unavailable cascaded flood-opacity longhand"
-                    .to_string(),
-            ));
+            return Err(CompileError::UnsupportedFilter(format!(
+                "{owner} flood-opacity uses inherit, which needs the unavailable cascaded flood-opacity longhand"
+            )));
         }
         if matches!(trimmed, "initial" | "unset" | "revert" | "revert-layer") {
             return Ok(1.0);
@@ -4910,25 +4915,24 @@ mod filter_resource {
             // arithmetic composition.
             Some(Token::Percentage { unit_value, .. }) if unit_value.is_finite() => unit_value,
             Some(Token::Function(_)) => {
-                return Err(CompileError::UnsupportedFilter(
-                    "feFlood flood-opacity is a CSS function this build cannot evaluate without a computation context"
-                        .to_string(),
-                ));
+                return Err(CompileError::UnsupportedFilter(format!(
+                    "{owner} flood-opacity is a CSS function this build cannot evaluate without a computation context"
+                )));
             }
             _ => return Ok(1.0),
         };
         Ok(value.clamp(0.0, 1.0))
     }
 
-    fn flood_source(element: HtmlElement<'_>) -> Result<CGColor32F, CompileError> {
-        let color = admitted_srgb(flood_color(element)?, 1.0).map_err(|reason| {
+    fn flood_source(element: HtmlElement<'_>, owner: &str) -> Result<CGColor32F, CompileError> {
+        let color = admitted_srgb(flood_color(element, owner)?, 1.0).map_err(|reason| {
             CompileError::UnsupportedFilter(format!(
-                "feFlood flood-color is outside the admitted color slice: {reason}"
+                "{owner} flood-color is outside the admitted color slice: {reason}"
             ))
         })?;
-        let alpha = (f32::from(color.a()) / 255.0) * flood_opacity(element)?;
+        let alpha = (f32::from(color.a()) / 255.0) * flood_opacity(element, owner)?;
         CGColor32F::from_rgb8_alpha(color, alpha).map_err(|error| {
-            CompileError::UnsupportedFilter(format!("feFlood resolved color is unusable: {error}"))
+            CompileError::UnsupportedFilter(format!("{owner} resolved color is unusable: {error}"))
         })
     }
 
@@ -5056,8 +5060,50 @@ mod filter_resource {
         (a * dx + c * dy, b * dx + d * dy)
     }
 
+    /// The two sampled backend generations agree for translations, exact
+    /// quarter turns, and integer axis scales. Fractional axis maps and
+    /// non-quarter rotations cross native-shadow raster boundaries even when
+    /// their mapped offsets and sigmas are integral.
+    fn native_shadow_mapping_is_admitted(target_to_frame: AffineTransform) -> bool {
+        let [[a, c, _], [b, d, _]] = target_to_frame.matrix;
+        let integer = |value: f32| value.is_finite() && value.fract() == 0.0;
+        let axis_or_quarter_turn = (b == 0.0 && c == 0.0) || (a == 0.0 && d == 0.0);
+        axis_or_quarter_turn && [a, b, c, d].into_iter().all(integer)
+    }
+
+    fn source_subtree_crosses_native_shadow_boundary(
+        target: HtmlElement<'_>,
+    ) -> Result<bool, CompileError> {
+        let mut stack = vec![(target, true)];
+        while let Some((element, is_target)) = stack.pop() {
+            for property in [PaintProperty::Fill, PaintProperty::Stroke] {
+                if matches!(
+                    computed_paint(element, property)?.kind,
+                    SVGPaintKind::PaintServer(_)
+                ) {
+                    return Ok(true);
+                }
+            }
+            if !is_target {
+                let data = element
+                    .borrow_data()
+                    .ok_or(CompileError::MissingComputedStyle)?;
+                if data.styles.primary().clone_opacity().clamp(0.0, 1.0) != 1.0 {
+                    return Ok(true);
+                }
+            }
+            let mut child = element.first_element_child();
+            while let Some(next) = child {
+                stack.push((next, false));
+                child = next.next_element_sibling();
+            }
+        }
+        Ok(false)
+    }
+
     fn compile_graph(
         filter: HtmlElement<'_>,
+        target: HtmlElement<'_>,
         primitive_units: Units,
         target_box: Rectangle,
         bases: PercentBases,
@@ -5082,7 +5128,8 @@ mod filter_resource {
                 "feGaussianBlur" => {
                     patrol_color_style(element)?;
                     let input = resolve_input(element, "in", previous, &names);
-                    let (mut sigma_x, mut sigma_y) = parse_std_deviation(element)?;
+                    let (mut sigma_x, mut sigma_y) =
+                        parse_std_deviation(element, "feGaussianBlur", 0.0)?;
                     if primitive_units == Units::ObjectBoundingBox {
                         sigma_x *= target_box.width;
                         sigma_y *= target_box.height;
@@ -5124,11 +5171,11 @@ mod filter_resource {
                 }
                 "feFlood" => {
                     patrol_color_style(element)?;
-                    patrol_flood_style(element)?;
+                    patrol_flood_style(element, "feFlood")?;
                     (
                         Vec::new(),
                         FilterPrimitive::SolidColor {
-                            color: flood_source(element)?,
+                            color: flood_source(element, "feFlood")?,
                         },
                     )
                 }
@@ -5160,6 +5207,89 @@ mod filter_resource {
                         inputs.push(resolve_input(candidate, "in", previous, &names));
                     }
                     (inputs, FilterPrimitive::Merge)
+                }
+                "feDropShadow" => {
+                    patrol_color_style(element)?;
+                    patrol_flood_style(element, "feDropShadow")?;
+                    if source_subtree_crosses_native_shadow_boundary(target)? {
+                        return Err(CompileError::UnsupportedFilter(
+                            "feDropShadow's source subtree crosses the pinned-backend native-shadow source-layer precision boundary"
+                                .to_string(),
+                        ));
+                    }
+                    if !native_shadow_mapping_is_admitted(target_to_frame) {
+                        return Err(CompileError::UnsupportedFilter(
+                            "feDropShadow's target mapping crosses the pinned-backend native-shadow transform precision boundary"
+                                .to_string(),
+                        ));
+                    }
+                    let input = resolve_input(element, "in", previous, &names);
+                    let mut dx = svg_number(element, "dx", 2.0);
+                    let mut dy = svg_number(element, "dy", 2.0);
+                    let (mut sigma_x, mut sigma_y) =
+                        parse_std_deviation(element, "feDropShadow", 2.0)?;
+                    if primitive_units == Units::ObjectBoundingBox {
+                        dx *= target_box.width;
+                        dy *= target_box.height;
+                        sigma_x *= target_box.width;
+                        sigma_y *= target_box.height;
+                    }
+                    let local_parameters = [dx, dy, sigma_x, sigma_y];
+                    let local_range_ok = (WEB_USED_LENGTH_MIN..=WEB_USED_LENGTH_MAX).contains(&dx)
+                        && (WEB_USED_LENGTH_MIN..=WEB_USED_LENGTH_MAX).contains(&dy)
+                        && sigma_x <= WEB_USED_LENGTH_MAX
+                        && sigma_y <= WEB_USED_LENGTH_MAX;
+                    let (mapped_dx, mapped_dy) = mapped_offset(target_to_frame, dx, dy);
+                    let mapped_parameters = [
+                        mapped_dx,
+                        mapped_dy,
+                        sigma_x * frame_scale_x,
+                        sigma_y * frame_scale_y,
+                    ];
+                    let mapped_range_ok = (WEB_USED_LENGTH_MIN..=WEB_USED_LENGTH_MAX)
+                        .contains(&mapped_dx)
+                        && (WEB_USED_LENGTH_MIN..=WEB_USED_LENGTH_MAX).contains(&mapped_dy)
+                        && mapped_parameters[2] <= WEB_USED_LENGTH_MAX
+                        && mapped_parameters[3] <= WEB_USED_LENGTH_MAX;
+                    if !local_parameters.into_iter().all(f32::is_finite)
+                        || !mapped_parameters.into_iter().all(f32::is_finite)
+                        || !local_range_ok
+                        || !mapped_range_ok
+                    {
+                        return Err(CompileError::UnsupportedFilter(
+                            "feDropShadow parameters cross the admitted native-shadow range"
+                                .to_string(),
+                        ));
+                    }
+                    if blur_crosses_small_kernel_boundary(sigma_x, frame_scale_x)
+                        || blur_crosses_small_kernel_boundary(sigma_y, frame_scale_y)
+                    {
+                        return Err(CompileError::UnsupportedFilter(
+                            "feDropShadow has an effective sigma in the pinned-backend small-kernel precision boundary"
+                                .to_string(),
+                        ));
+                    }
+                    let color = flood_source(element, "feDropShadow")?;
+                    if inherited_color_space(element)? == FilterColorSpace::LinearRgb
+                        && [color.r(), color.g(), color.b()]
+                            .into_iter()
+                            .any(|component| component != 0.0 && component != 1.0)
+                    {
+                        return Err(CompileError::UnsupportedFilter(
+                            "feDropShadow with an interior-channel flood color in linearRGB crosses the pinned-backend native-shadow color-conversion precision boundary"
+                                .to_string(),
+                        ));
+                    }
+                    (
+                        vec![input],
+                        FilterPrimitive::DropShadow {
+                            dx,
+                            dy,
+                            sigma_x,
+                            sigma_y,
+                            color,
+                        },
+                    )
                 }
                 _ if tag.starts_with("fe") => {
                     return Err(CompileError::UnsupportedFilter(format!(
@@ -5294,6 +5424,7 @@ mod filter_resource {
         }
         let Some(program) = compile_graph(
             element,
+            target,
             primitive_units(element),
             target_box,
             bases,

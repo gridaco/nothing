@@ -909,6 +909,19 @@ fn compile_filter(program: &FilterProgram, region: math2::Rectangle) -> Resolved
                         }
                     },
                 },
+                FilterPrimitive::DropShadow {
+                    dx,
+                    dy,
+                    sigma_x,
+                    sigma_y,
+                    color,
+                } => ResolvedFilterPrimitive::DropShadow {
+                    dx,
+                    dy,
+                    sigma_x,
+                    sigma_y,
+                    color: compile_color32f(color),
+                },
                 FilterPrimitive::Merge => ResolvedFilterPrimitive::Merge,
             },
         })
