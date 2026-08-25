@@ -1905,6 +1905,9 @@ struct BuiltFilterResult {
     /// coverage must remain floating through Porter-Duff math; graphs made
     /// only from generated filter sources follow Chromium's unorm8 rounding.
     source_dependent: bool,
+    /// Whether the result still carries the isolated source's color channels,
+    /// rather than only SourceAlpha or generated filter color.
+    source_color_dependent: bool,
 }
 
 struct BuiltFilter {
@@ -1952,6 +1955,7 @@ fn convert_filter_space(
         image_filter: Some(image_filter),
         color_space: target,
         source_dependent: result.source_dependent,
+        source_color_dependent: result.source_color_dependent,
     })
 }
 
@@ -2085,6 +2089,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
         image_filter: None,
         color_space: ResolvedFilterColorSpace::Srgb,
         source_dependent: true,
+        source_color_dependent: true,
     };
     let source_alpha =
         BuiltFilterResult {
@@ -2093,6 +2098,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
             })?),
             color_space: ResolvedFilterColorSpace::Srgb,
             source_dependent: true,
+            source_color_dependent: false,
         };
     let mut results: Vec<BuiltFilterResult> = Vec::with_capacity(filter.nodes.len());
     for node in filter.nodes.iter() {
@@ -2110,7 +2116,10 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
         }
         let crop = Rect::from_xywh(node.region.x, node.region.y, node.region.w, node.region.h);
         let source_dependent = inputs.iter().any(|input| input.source_dependent);
-        let (image_filter, output_space, source_dependent) = match node.primitive {
+        let source_color_dependent = inputs.iter().any(|input| input.source_color_dependent);
+        let (image_filter, output_space, source_dependent, source_color_dependent) = match node
+            .primitive
+        {
             ResolvedFilterPrimitive::GaussianBlur { sigma_x, sigma_y } => {
                 let input = inputs.pop().expect("Gaussian blur has one checked input");
                 if sigma_x == 0.0 && sigma_y == 0.0 {
@@ -2122,7 +2131,12 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                     .ok_or_else(|| {
                         "the backend could not construct a zero-sigma blur crop".to_string()
                     })?;
-                    (Some(filter), node.color_space, input.source_dependent)
+                    (
+                        Some(filter),
+                        node.color_space,
+                        input.source_dependent,
+                        input.source_color_dependent,
+                    )
                 } else {
                     let filter = skia_safe::image_filters::blur(
                         (sigma_x, sigma_y),
@@ -2133,7 +2147,12 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                     .ok_or_else(|| {
                         "the backend could not construct a Gaussian blur operation".to_string()
                     })?;
-                    (Some(filter), node.color_space, input.source_dependent)
+                    (
+                        Some(filter),
+                        node.color_space,
+                        input.source_dependent,
+                        input.source_color_dependent,
+                    )
                 }
             }
             ResolvedFilterPrimitive::Offset { dx, dy } => {
@@ -2142,7 +2161,12 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                     .ok_or_else(|| {
                     "the backend could not construct an offset operation".to_string()
                 })?;
-                (Some(filter), node.color_space, input.source_dependent)
+                (
+                    Some(filter),
+                    node.color_space,
+                    input.source_dependent,
+                    input.source_color_dependent,
+                )
             }
             ResolvedFilterPrimitive::SolidColor { color } => {
                 let color = Color4f::new(color.r(), color.g(), color.b(), color.a());
@@ -2162,7 +2186,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                     .ok_or_else(|| {
                         "the backend could not construct a solid filter source".to_string()
                     })?;
-                (Some(filter), ResolvedFilterColorSpace::Srgb, false)
+                (Some(filter), ResolvedFilterColorSpace::Srgb, false, false)
             }
             ResolvedFilterPrimitive::Composite { operator } => {
                 let background = inputs.pop().expect("composite has two checked inputs");
@@ -2190,7 +2214,12 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 .ok_or_else(|| {
                     "the backend could not construct a composite operation".to_string()
                 })?;
-                (Some(filter), node.color_space, source_dependent)
+                (
+                    Some(filter),
+                    node.color_space,
+                    source_dependent,
+                    source_color_dependent,
+                )
             }
             ResolvedFilterPrimitive::DropShadow {
                 dx,
@@ -2220,18 +2249,43 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                     ),
                 };
                 let shadow = Color4f::new(r, g, b, color.a());
-                let filter = skia_safe::image_filters::drop_shadow(
+                // Skia's DropShadow helper finishes with Merge(shadow, input),
+                // whose low-precision SrcOver differs between NEON and x86.
+                // Keep Skia's native shadow raster, then make the foreground
+                // composition explicit. Source-color coverage uses Skia's
+                // one-shader SrcOver, while SourceAlpha/generated foregrounds
+                // use the checked exact byte-domain program.
+                let shadow_filter = skia_safe::image_filters::drop_shadow_only(
                     (dx, dy),
                     (sigma_x, sigma_y),
                     shadow,
                     Option::<ColorSpace>::None,
+                    input.image_filter.clone(),
+                    skia_safe::image_filters::CropRect::default(),
+                )
+                .ok_or_else(|| {
+                    "the backend could not construct a native drop-shadow raster".to_string()
+                })?;
+                let foreground_blender: Blender = if input.source_color_dependent {
+                    skia_safe::BlendMode::SrcOver.into()
+                } else {
+                    exact_unorm8_blender(ResolvedFilterComposite::Over)?
+                };
+                let filter = skia_safe::image_filters::blend(
+                    foreground_blender,
+                    Some(shadow_filter),
                     input.image_filter,
                     crop,
                 )
                 .ok_or_else(|| {
-                    "the backend could not construct a native drop-shadow operation".to_string()
+                    "the backend could not compose a native drop-shadow foreground".to_string()
                 })?;
-                (Some(filter), node.color_space, input.source_dependent)
+                (
+                    Some(filter),
+                    node.color_space,
+                    input.source_dependent,
+                    input.source_color_dependent,
+                )
             }
             ResolvedFilterPrimitive::Merge => {
                 let mut inputs = inputs.into_iter();
@@ -2267,13 +2321,19 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                         "the backend could not construct an empty merge result".to_string()
                     })?
                 };
-                (Some(image_filter), node.color_space, source_dependent)
+                (
+                    Some(image_filter),
+                    node.color_space,
+                    source_dependent,
+                    source_color_dependent,
+                )
             }
         };
         results.push(BuiltFilterResult {
             image_filter,
             color_space: output_space,
             source_dependent,
+            source_color_dependent,
         });
     }
     let output = results
