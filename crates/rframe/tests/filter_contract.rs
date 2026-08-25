@@ -5,13 +5,13 @@ use std::sync::Arc;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
-    Filter, FilterColorSpace, FilterError, FilterInput, FilterNode, FilterPrimitive, FilterProgram,
-    FilterProgramError, MAX_FILTER_NODES,
+    Filter, FilterColorSpace, FilterComposite, FilterError, FilterInput, FilterNode,
+    FilterPrimitive, FilterProgram, FilterProgramError, MAX_FILTER_NODES,
 };
 
 fn blur(input: FilterInput, sigma_x: f32, sigma_y: f32) -> FilterNode {
     FilterNode::new(
-        input,
+        Arc::from([input]),
         Rectangle::from_xywh(-4.0, -4.0, 48.0, 48.0),
         FilterColorSpace::LinearRgb,
         FilterPrimitive::GaussianBlur { sigma_x, sigma_y },
@@ -70,7 +70,7 @@ fn every_node_reference_must_point_backward() {
 #[test]
 fn invalid_regions_and_blur_scalars_never_cross_the_contract() {
     let bad_region = FilterNode::new(
-        FilterInput::Source,
+        Arc::from([FilterInput::Source]),
         Rectangle::from_xywh(0.0, 0.0, 0.0, 10.0),
         FilterColorSpace::Srgb,
         FilterPrimitive::GaussianBlur {
@@ -88,6 +88,82 @@ fn invalid_regions_and_blur_scalars_never_cross_the_contract() {
             Err(FilterProgramError::InvalidGaussianBlur { node: 0 })
         );
     }
+}
+
+#[test]
+fn operation_arities_and_all_input_edges_are_checked() {
+    let region = Rectangle::from_xywh(0.0, 0.0, 10.0, 10.0);
+    let bad_composite = FilterNode::new(
+        Arc::from([FilterInput::Source]),
+        region,
+        FilterColorSpace::Srgb,
+        FilterPrimitive::Composite {
+            operator: FilterComposite::Over,
+        },
+    );
+    assert_eq!(
+        FilterProgram::new(Arc::from([bad_composite])),
+        Err(FilterProgramError::InvalidInputCount {
+            node: 0,
+            expected: 2,
+            actual: 1,
+        })
+    );
+
+    let source = FilterNode::new(
+        Arc::from([]),
+        region,
+        FilterColorSpace::Srgb,
+        FilterPrimitive::SolidColor {
+            color: cg::CGColor32F::from_rgba8(cg::CGColor::RED),
+        },
+    );
+    let bad_merge = FilterNode::new(
+        Arc::from([FilterInput::Node(0), FilterInput::Node(2)]),
+        region,
+        FilterColorSpace::Srgb,
+        FilterPrimitive::Merge,
+    );
+    assert_eq!(
+        FilterProgram::new(Arc::from([source, bad_merge])),
+        Err(FilterProgramError::InputIsNotEarlier { node: 1, input: 2 })
+    );
+}
+
+#[test]
+fn offset_and_arithmetic_scalars_must_be_finite() {
+    let region = Rectangle::from_xywh(0.0, 0.0, 10.0, 10.0);
+    let offset = FilterNode::new(
+        Arc::from([FilterInput::Source]),
+        region,
+        FilterColorSpace::Srgb,
+        FilterPrimitive::Offset {
+            dx: f32::INFINITY,
+            dy: 0.0,
+        },
+    );
+    assert_eq!(
+        FilterProgram::new(Arc::from([offset])),
+        Err(FilterProgramError::InvalidOffset { node: 0 })
+    );
+
+    let composite = FilterNode::new(
+        Arc::from([FilterInput::Source, FilterInput::SourceAlpha]),
+        region,
+        FilterColorSpace::Srgb,
+        FilterPrimitive::Composite {
+            operator: FilterComposite::Arithmetic {
+                k1: 0.0,
+                k2: f32::NAN,
+                k3: 0.0,
+                k4: 0.0,
+            },
+        },
+    );
+    assert_eq!(
+        FilterProgram::new(Arc::from([composite])),
+        Err(FilterProgramError::InvalidComposite { node: 0 })
+    );
 }
 
 #[test]

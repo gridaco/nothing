@@ -9,6 +9,7 @@
 //! checked execution method; the raw function here is for glyphless structural
 //! probes and internal retained-list replay only.
 
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -26,15 +27,17 @@ use skia_safe::canvas::{SaveLayerFlags, SaveLayerRec};
 use skia_safe::gradient::{Colors as GradientColors, Gradient, Interpolation};
 use skia_safe::{
     image::CachingHint, path_effect::PathEffect, shaders, stroke_rec::InitStyle, Blender, Canvas,
-    ClipOp, Color, ColorMatrix, CubicResampler, Data, Font, Image, ImageFilter, ImageInfo, Matrix,
-    OpBuilder, Paint, PaintCap, PaintJoin, PaintStyle, Path, PathBuilder, PathDirection,
-    PathFillType, PathOp, Point, RRect, Rect, SamplingOptions, Shader, StrokeRec,
+    ClipOp, Color, Color4f, ColorMatrix, ColorSpace, CubicResampler, Data, Font, Image,
+    ImageFilter, ImageInfo, Matrix, OpBuilder, Paint, PaintCap, PaintJoin, PaintStyle, Path,
+    PathBuilder, PathDirection, PathFillType, PathOp, Point, RRect, Rect, SamplingOptions, Shader,
+    StrokeRec,
 };
 
 use crate::drawlist::{
     DrawList, ItemKind, PostPaintOpacity, ResolvedClipGeometry, ResolvedClipGeometryKind,
     ResolvedClipLayer, ResolvedClipPath, ResolvedFilter, ResolvedFilterColorSpace,
-    ResolvedFilterInput, ResolvedFilterPrimitive, ResolvedMaskMode, StrokeDashPhase,
+    ResolvedFilterComposite, ResolvedFilterInput, ResolvedFilterPrimitive, ResolvedMaskMode,
+    StrokeDashPhase,
 };
 
 /// The gradient family whose local matrix could not be represented by the
@@ -1898,6 +1901,18 @@ struct BuiltFilterResult {
     /// original composite, not a construction failure.
     image_filter: Option<ImageFilter>,
     color_space: ResolvedFilterColorSpace,
+    /// Whether this result samples the isolated source image. Source-derived
+    /// coverage must remain floating through Porter-Duff math; graphs made
+    /// only from generated filter sources follow Chromium's unorm8 rounding.
+    source_dependent: bool,
+}
+
+struct BuiltFilter {
+    image_filter: Option<ImageFilter>,
+    /// Generated-only graphs finish with the same exact unorm8 SrcOver used
+    /// between their internal nodes. Source-derived coverage stays on Skia's
+    /// floating restore path.
+    restore_blender: Option<Blender>,
 }
 
 fn source_alpha_filter() -> Option<ImageFilter> {
@@ -1936,16 +1951,140 @@ fn convert_filter_space(
     Ok(BuiltFilterResult {
         image_filter: Some(image_filter),
         color_space: target,
+        source_dependent: result.source_dependent,
     })
 }
 
-/// Build one checked private filter graph. The return's outer `Result` names
-/// backend construction failure; the inner `Option` preserves the valid
-/// input-image sentinel for an identity program.
-fn build_filter(filter: &ResolvedFilter) -> Result<Option<ImageFilter>, String> {
+fn transparent_filter(region: n0_model::math::RectF) -> Option<ImageFilter> {
+    skia_safe::image_filters::shader(
+        shaders::color(Color::TRANSPARENT),
+        Rect::from_xywh(region.x, region.y, region.w, region.h),
+    )
+}
+
+thread_local! {
+    // Runtime-effect handles are cheap to clone after compilation. Keep the
+    // six Porter-Duff programs in each precision mode local to the painting
+    // thread instead of rebuilding SkSL for every graph replay.
+    static FILTER_PORTER_DUFF_BLENDERS: RefCell<Vec<Option<Blender>>> =
+        const { RefCell::new(Vec::new()) };
+}
+
+fn compile_filter_blender(source: String) -> Result<Blender, String> {
+    let options = skia_safe::runtime_effect::Options {
+        force_unoptimized: true,
+        name: "n0_svg_filter_porter_duff",
+    };
+    let effect = skia_safe::RuntimeEffect::make_for_blender(source, Some(&options))
+        .map_err(|error| format!("the backend could not compile a filter blender: {error}"))?;
+    effect
+        .make_blender(Data::new_empty(), None)
+        .ok_or_else(|| "the backend could not construct a filter blender".to_string())
+}
+
+fn cached_filter_blender(slot: usize, source: impl FnOnce() -> String) -> Result<Blender, String> {
+    FILTER_PORTER_DUFF_BLENDERS.with(|cache| {
+        if let Some(blender) = cache.borrow().get(slot).and_then(Option::as_ref).cloned() {
+            return Ok(blender);
+        }
+        let blender = compile_filter_blender(source())?;
+        let mut cache = cache.borrow_mut();
+        if cache.len() <= slot {
+            cache.resize_with(slot + 1, || None);
+        }
+        cache[slot] = Some(blender.clone());
+        Ok(blender)
+    })
+}
+
+fn porter_duff_slot(operator: ResolvedFilterComposite) -> Result<usize, String> {
+    match operator {
+        ResolvedFilterComposite::Over => Ok(0),
+        ResolvedFilterComposite::In => Ok(1),
+        ResolvedFilterComposite::Out => Ok(2),
+        ResolvedFilterComposite::Atop => Ok(3),
+        ResolvedFilterComposite::Xor => Ok(4),
+        ResolvedFilterComposite::Lighter => Ok(5),
+        ResolvedFilterComposite::Arithmetic { .. } => {
+            Err("arithmetic composition does not use a Porter-Duff blender".to_string())
+        }
+    }
+}
+
+fn porter_duff_expression(operator: ResolvedFilterComposite) -> Result<&'static str, String> {
+    let expression = match operator {
+        ResolvedFilterComposite::Over => "src + dst * (1.0 - src.a)",
+        ResolvedFilterComposite::In => "src * dst.a",
+        ResolvedFilterComposite::Out => "src * (1.0 - dst.a)",
+        ResolvedFilterComposite::Atop => "src * dst.a + dst * (1.0 - src.a)",
+        ResolvedFilterComposite::Xor => "src * (1.0 - dst.a) + dst * (1.0 - src.a)",
+        ResolvedFilterComposite::Lighter => "min(src + dst, half4(1.0))",
+        ResolvedFilterComposite::Arithmetic { .. } => {
+            return Err("arithmetic composition does not use a Porter-Duff blender".to_string());
+        }
+    };
+    Ok(expression)
+}
+
+fn floating_porter_duff_blender(operator: ResolvedFilterComposite) -> Result<Blender, String> {
+    let slot = porter_duff_slot(operator)?;
+    let expression = porter_duff_expression(operator)?;
+    cached_filter_blender(slot, || {
+        format!(r#"half4 main(half4 src, half4 dst) {{ return {expression}; }}"#)
+    })
+}
+
+fn exact_unorm8_blender(operator: ResolvedFilterComposite) -> Result<Blender, String> {
+    // Skia's low-precision blend stages deliberately use an approximate
+    // divide-by-255 on x86 while NEON uses the accurate operation. Spell the
+    // rounding for generated-source graphs so both CPU families agree.
+    let slot = 6 + porter_duff_slot(operator)?;
+    let expression = match operator {
+        ResolvedFilterComposite::Over => "s + div255(d * (255.0 - s.a))",
+        ResolvedFilterComposite::In => "div255(s * d.a)",
+        ResolvedFilterComposite::Out => "div255(s * (255.0 - d.a))",
+        ResolvedFilterComposite::Atop => "div255(s * d.a + d * (255.0 - s.a))",
+        ResolvedFilterComposite::Xor => "div255(s * (255.0 - d.a) + d * (255.0 - s.a))",
+        ResolvedFilterComposite::Lighter => "min(s + d, float4(255.0))",
+        ResolvedFilterComposite::Arithmetic { .. } => {
+            return Err("arithmetic composition does not use a Porter-Duff blender".to_string());
+        }
+    };
+    cached_filter_blender(slot, || {
+        format!(
+            r#"
+float4 div255(float4 value) {{
+    return floor((value + 127.0) / 255.0);
+}}
+
+half4 main(half4 src, half4 dst) {{
+    float4 s = floor(float4(src) * 255.0 + 0.5);
+    float4 d = floor(float4(dst) * 255.0 + 0.5);
+    float4 result = {expression};
+    return half4(clamp(result, 0.0, 255.0) / 255.0);
+}}
+"#
+        )
+    })
+}
+
+fn deterministic_porter_duff_blender(
+    operator: ResolvedFilterComposite,
+    source_dependent: bool,
+) -> Result<Blender, String> {
+    if source_dependent {
+        floating_porter_duff_blender(operator)
+    } else {
+        exact_unorm8_blender(operator)
+    }
+}
+
+/// Build one checked private filter graph and its final-composition policy.
+fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
     let source = BuiltFilterResult {
         image_filter: None,
         color_space: ResolvedFilterColorSpace::Srgb,
+        source_dependent: true,
     };
     let source_alpha =
         BuiltFilterResult {
@@ -1953,66 +2092,181 @@ fn build_filter(filter: &ResolvedFilter) -> Result<Option<ImageFilter>, String> 
                 "the backend could not construct the SourceAlpha input".to_string()
             })?),
             color_space: ResolvedFilterColorSpace::Srgb,
+            source_dependent: true,
         };
     let mut results: Vec<BuiltFilterResult> = Vec::with_capacity(filter.nodes.len());
     for node in filter.nodes.iter() {
-        let input = match node.input {
-            ResolvedFilterInput::Source => source.clone(),
-            ResolvedFilterInput::SourceAlpha => source_alpha.clone(),
-            ResolvedFilterInput::Node(index) => results
-                .get(index)
-                .cloned()
-                .expect("the resolved filter contract checked every node index"),
-        };
-        let input = convert_filter_space(input, node.color_space)?;
-        let image_filter = match node.primitive {
+        let mut inputs = Vec::with_capacity(node.inputs.len());
+        for input in node.inputs.iter() {
+            let input = match *input {
+                ResolvedFilterInput::Source => source.clone(),
+                ResolvedFilterInput::SourceAlpha => source_alpha.clone(),
+                ResolvedFilterInput::Node(index) => results
+                    .get(index)
+                    .cloned()
+                    .expect("the resolved filter contract checked every node index"),
+            };
+            inputs.push(convert_filter_space(input, node.color_space)?);
+        }
+        let crop = Rect::from_xywh(node.region.x, node.region.y, node.region.w, node.region.h);
+        let source_dependent = inputs.iter().any(|input| input.source_dependent);
+        let (image_filter, output_space, source_dependent) = match node.primitive {
             ResolvedFilterPrimitive::GaussianBlur { sigma_x, sigma_y } => {
+                let input = inputs.pop().expect("Gaussian blur has one checked input");
                 if sigma_x == 0.0 && sigma_y == 0.0 {
-                    input.image_filter
+                    let filter = skia_safe::image_filters::crop(
+                        crop,
+                        Some(skia_safe::TileMode::Decal),
+                        input.image_filter,
+                    )
+                    .ok_or_else(|| {
+                        "the backend could not construct a zero-sigma blur crop".to_string()
+                    })?;
+                    (Some(filter), node.color_space, input.source_dependent)
                 } else {
-                    skia_safe::image_filters::blur(
+                    let filter = skia_safe::image_filters::blur(
                         (sigma_x, sigma_y),
                         Some(skia_safe::TileMode::Decal),
                         input.image_filter,
-                        Rect::from_xywh(node.region.x, node.region.y, node.region.w, node.region.h),
+                        crop,
                     )
                     .ok_or_else(|| {
                         "the backend could not construct a Gaussian blur operation".to_string()
-                    })?
-                    .into()
+                    })?;
+                    (Some(filter), node.color_space, input.source_dependent)
                 }
+            }
+            ResolvedFilterPrimitive::Offset { dx, dy } => {
+                let input = inputs.pop().expect("offset has one checked input");
+                let filter = skia_safe::image_filters::offset((dx, dy), input.image_filter, crop)
+                    .ok_or_else(|| {
+                    "the backend could not construct an offset operation".to_string()
+                })?;
+                (Some(filter), node.color_space, input.source_dependent)
+            }
+            ResolvedFilterPrimitive::SolidColor { color } => {
+                let color = Color4f::new(color.r(), color.g(), color.b(), color.a());
+                // Blink's FEFlood is a constant Src color filter over a null
+                // input, not a shader image filter. Those graph shapes differ
+                // under arithmetic and gamma conversion even when a lone
+                // flood stores the same pixels.
+                let color_filter = skia_safe::color_filters::blend_with_color_space(
+                    color,
+                    Option::<ColorSpace>::None,
+                    skia_safe::BlendMode::Src,
+                )
+                .ok_or_else(|| {
+                    "the backend could not construct a solid-source color filter".to_string()
+                })?;
+                let filter = skia_safe::image_filters::color_filter(color_filter, None, crop)
+                    .ok_or_else(|| {
+                        "the backend could not construct a solid filter source".to_string()
+                    })?;
+                (Some(filter), ResolvedFilterColorSpace::Srgb, false)
+            }
+            ResolvedFilterPrimitive::Composite { operator } => {
+                let background = inputs.pop().expect("composite has two checked inputs");
+                let foreground = inputs.pop().expect("composite has two checked inputs");
+                let filter = match operator {
+                    ResolvedFilterComposite::Arithmetic { k1, k2, k3, k4 } => {
+                        skia_safe::image_filters::arithmetic(
+                            k1,
+                            k2,
+                            k3,
+                            k4,
+                            true,
+                            background.image_filter,
+                            foreground.image_filter,
+                            crop,
+                        )
+                    }
+                    operator => skia_safe::image_filters::blend(
+                        deterministic_porter_duff_blender(operator, source_dependent)?,
+                        background.image_filter,
+                        foreground.image_filter,
+                        crop,
+                    ),
+                }
+                .ok_or_else(|| {
+                    "the backend could not construct a composite operation".to_string()
+                })?;
+                (Some(filter), node.color_space, source_dependent)
+            }
+            ResolvedFilterPrimitive::Merge => {
+                let mut inputs = inputs.into_iter();
+                let image_filter = if let Some(first) = inputs.next() {
+                    let mut merged = first.image_filter;
+                    let blender = if inputs.len() > 0 {
+                        Some(deterministic_porter_duff_blender(
+                            ResolvedFilterComposite::Over,
+                            source_dependent,
+                        )?)
+                    } else {
+                        None
+                    };
+                    for foreground in inputs {
+                        merged = skia_safe::image_filters::blend(
+                            blender
+                                .clone()
+                                .expect("a non-empty merge tail compiled its blender"),
+                            merged,
+                            foreground.image_filter,
+                            crop,
+                        );
+                        if merged.is_none() {
+                            return Err(
+                                "the backend could not construct a merge operation".to_string()
+                            );
+                        }
+                    }
+                    skia_safe::image_filters::crop(crop, Some(skia_safe::TileMode::Decal), merged)
+                        .ok_or_else(|| "the backend could not crop a merge operation".to_string())?
+                } else {
+                    transparent_filter(node.region).ok_or_else(|| {
+                        "the backend could not construct an empty merge result".to_string()
+                    })?
+                };
+                (Some(image_filter), node.color_space, source_dependent)
             }
         };
         results.push(BuiltFilterResult {
             image_filter,
-            color_space: node.color_space,
+            color_space: output_space,
+            source_dependent,
         });
     }
     let output = results
         .pop()
         .expect("the resolved filter contract requires a non-empty program");
-    let output = convert_filter_space(output, ResolvedFilterColorSpace::Srgb)?.image_filter;
-    if output.is_some() {
-        // A materialized terminal operation already carries its checked crop.
-        // Avoid wrapping it in a redundant graph node: backend graph shape is
-        // raster-observable after several operations.
-        return Ok(output);
+    let mut output = convert_filter_space(output, ResolvedFilterColorSpace::Srgb)?;
+    if output.image_filter.is_none() {
+        // The backend's `None` sentinel is a valid pass-through graph, but it
+        // has no operation on which to carry the outer hard region.
+        output.image_filter = Some(
+            skia_safe::image_filters::crop(
+                Rect::from_xywh(
+                    filter.region.x,
+                    filter.region.y,
+                    filter.region.w,
+                    filter.region.h,
+                ),
+                Some(skia_safe::TileMode::Decal),
+                None,
+            )
+            .ok_or_else(|| {
+                "the backend could not construct the hard filter-region crop".to_string()
+            })?,
+        );
     }
-    // The backend's `None` sentinel is a valid pass-through graph, but it has
-    // no operation on which to carry the outer hard region. Materialize only
-    // this identity case as a crop.
-    skia_safe::image_filters::crop(
-        Rect::from_xywh(
-            filter.region.x,
-            filter.region.y,
-            filter.region.w,
-            filter.region.h,
-        ),
-        Some(skia_safe::TileMode::Decal),
-        output,
-    )
-    .map(Some)
-    .ok_or_else(|| "the backend could not construct the hard filter-region crop".to_string())
+    let restore_blender = if output.source_dependent {
+        None
+    } else {
+        Some(exact_unorm8_blender(ResolvedFilterComposite::Over)?)
+    };
+    Ok(BuiltFilter {
+        image_filter: output.image_filter,
+        restore_blender,
+    })
 }
 
 /// Product-build preflight for a resolved image-filter graph. Replay repeats
@@ -2433,10 +2687,13 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                     filter.region.w,
                     filter.region.h,
                 );
-                let image_filter = build_filter(filter)
+                let built_filter = build_filter(filter)
                     .expect("resolved image-filter builders were preflighted at product build");
                 let mut restore_paint = Paint::default();
-                restore_paint.set_image_filter(image_filter);
+                restore_paint.set_image_filter(built_filter.image_filter);
+                if let Some(blender) = built_filter.restore_blender {
+                    restore_paint.set_blender(blender);
+                }
                 let layer = SaveLayerRec::default()
                     .bounds(&region)
                     .paint(&restore_paint);

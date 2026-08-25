@@ -121,7 +121,9 @@ use style::computed_values::stroke_linejoin::T as StyloLinejoin;
 use style::computed_values::visibility::T as Visibility;
 use style::dom::TElement;
 
-use crate::svg_paint_server::{GradientBases, PaintServers, ResolvedPaintServer};
+use crate::svg_paint_server::{
+    GradientBases, PaintServers, ParsedColorAttribute, ResolvedPaintServer, parse_color_attribute,
+};
 use crate::svg_transform::{TransformRefusal, computed_transform_to_affine};
 use style::properties::ComputedValues;
 use style::thread_state::{self, ThreadState};
@@ -129,15 +131,15 @@ use style::values::computed::{Length, SVGOpacity, SVGPaint, Size};
 use style::values::generics::basic_shape::FillRule as StyloFillRule;
 use style::values::generics::svg::{SVGLength, SVGPaintKind, SVGStrokeDashArray};
 
-use cg::CGColor;
+use cg::{CGColor, CGColor32F};
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
-    ClipGeometry, ClipLayer, ClipPath, FillRule, Filter, FilterColorSpace, FilterInput, FilterNode,
-    FilterPrimitive, FilterProgram, Frame, FrameItem, FrameItems, FrameItemsError, FrameNode,
-    Geometry, Identity, Mask, MaskMode, PaintAlphaFactor, PaintStack, PathData, Provenance, Scope,
-    ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeDash, StrokeDashIntervals,
-    StrokeDashIntervalsError, StrokeJoin, VisualRef,
+    ClipGeometry, ClipLayer, ClipPath, FillRule, Filter, FilterColorSpace, FilterComposite,
+    FilterInput, FilterNode, FilterPrimitive, FilterProgram, Frame, FrameItem, FrameItems,
+    FrameItemsError, FrameNode, Geometry, Identity, Mask, MaskMode, PaintAlphaFactor, PaintStack,
+    PathData, Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeDash,
+    StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, VisualRef,
 };
 use std::sync::Arc;
 
@@ -4612,6 +4614,7 @@ mod filter_resource {
         target_box: Rectangle,
         bases: PercentBases,
         filter_region: Rectangle,
+        default_region: Rectangle,
     ) -> Result<Rectangle, CompileError> {
         let x_basis = match units {
             Units::UserSpaceOnUse => bases.width,
@@ -4630,20 +4633,20 @@ mod filter_resource {
             && parsed_width.is_none()
             && parsed_height.is_none()
         {
-            return Ok(filter_region);
+            return Ok(default_region);
         }
         let mut x = parsed_x
             .map(|value| resolve_region_length(value, units, x_basis))
-            .unwrap_or(filter_region.x);
+            .unwrap_or(default_region.x);
         let mut y = parsed_y
             .map(|value| resolve_region_length(value, units, y_basis))
-            .unwrap_or(filter_region.y);
+            .unwrap_or(default_region.y);
         let width = parsed_width
             .map(|value| resolve_region_length(value, units, x_basis))
-            .unwrap_or(filter_region.width);
+            .unwrap_or(default_region.width);
         let height = parsed_height
             .map(|value| resolve_region_length(value, units, y_basis))
-            .unwrap_or(filter_region.height);
+            .unwrap_or(default_region.height);
         if units == Units::ObjectBoundingBox {
             if parsed_x.is_some() {
                 x += target_box.x;
@@ -4785,6 +4788,171 @@ mod filter_resource {
         Ok((first.max(0.0), second.max(0.0)))
     }
 
+    /// One SVG `<number>` field as Blink 149 measures it for offset and
+    /// arithmetic-coefficient attributes. A lone trailing comma preserves the
+    /// parsed prefix; every other invalid form contributes the field's
+    /// initial value.
+    fn svg_number(element: HtmlElement<'_>, name: &str, initial: f32) -> f32 {
+        let Some(raw) = get_attr(element, name) else {
+            return initial;
+        };
+        if raw.contains("/*") {
+            return initial;
+        }
+        let mut input = ParserInput::new(&raw);
+        let mut parser = Parser::new(&mut input);
+        let Ok(value) = parser.expect_number() else {
+            return initial;
+        };
+        if !value.is_finite() {
+            return initial;
+        }
+        if parser.is_exhausted()
+            || (parser.try_parse(|input| input.expect_comma()).is_ok() && parser.is_exhausted())
+        {
+            value
+        } else {
+            initial
+        }
+    }
+
+    fn patrol_flood_style(element: HtmlElement<'_>) -> Result<(), CompileError> {
+        let Some(style) = get_attr(element, "style") else {
+            return Ok(());
+        };
+        if style.contains('\\') {
+            return Err(CompileError::UnsupportedFilter(
+                "inline style on <feFlood> contains a CSS escape; property identity cannot be proven by the direct decoder"
+                    .to_string(),
+            ));
+        }
+        for property in ["flood-color", "flood-opacity"] {
+            if css_declares_property(&style, property) {
+                return Err(CompileError::UnsupportedFilter(format!(
+                    "CSS {property} on <feFlood> is not represented by the pinned cascade; its direct presentation attribute is a separate ingress"
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    fn flood_color(element: HtmlElement<'_>) -> Result<AbsoluteColor, CompileError> {
+        let Some(raw) = get_attr(element, "flood-color") else {
+            return Ok(AbsoluteColor::BLACK);
+        };
+        let lowered = raw.to_ascii_lowercase();
+        let trimmed = trim_svg_whitespace(&lowered);
+        if lowered.contains("var(") {
+            return Err(CompileError::UnsupportedFilter(
+                "feFlood flood-color resolves through var(), whose substitution is not represented at this Stylo pin"
+                    .to_string(),
+            ));
+        }
+        if trimmed == "inherit" {
+            return Err(CompileError::UnsupportedFilter(
+                "feFlood flood-color uses inherit, which needs the unavailable cascaded flood-color longhand"
+                    .to_string(),
+            ));
+        }
+        if matches!(trimmed, "initial" | "unset" | "revert" | "revert-layer") {
+            return Ok(AbsoluteColor::BLACK);
+        }
+        match parse_color_attribute(&raw) {
+            Some(ParsedColorAttribute::Absolute(color)) => Ok(color),
+            Some(ParsedColorAttribute::CurrentColor) => {
+                let Some(data) = element.borrow_data() else {
+                    return Ok(AbsoluteColor::BLACK);
+                };
+                Ok(data.styles.primary().clone_color())
+            }
+            Some(ParsedColorAttribute::BeyondSlice(reason)) => {
+                Err(CompileError::UnsupportedFilter(format!(
+                    "feFlood flood-color is outside the admitted color slice: {reason}"
+                )))
+            }
+            // An invalid presentation hint contributes the initial black.
+            None => Ok(AbsoluteColor::BLACK),
+        }
+    }
+
+    fn flood_opacity(element: HtmlElement<'_>) -> Result<f32, CompileError> {
+        let Some(raw) = get_attr(element, "flood-opacity") else {
+            return Ok(1.0);
+        };
+        let lowered = raw.to_ascii_lowercase();
+        let trimmed = trim_svg_whitespace(&lowered);
+        if lowered.contains("var(") {
+            return Err(CompileError::UnsupportedFilter(
+                "feFlood flood-opacity resolves through var(), whose substitution is not represented at this Stylo pin"
+                    .to_string(),
+            ));
+        }
+        if trimmed == "inherit" {
+            return Err(CompileError::UnsupportedFilter(
+                "feFlood flood-opacity uses inherit, which needs the unavailable cascaded flood-opacity longhand"
+                    .to_string(),
+            ));
+        }
+        if matches!(trimmed, "initial" | "unset" | "revert" | "revert-layer") {
+            return Ok(1.0);
+        }
+        let mut input = ParserInput::new(trimmed);
+        let mut parser = Parser::new(&mut input);
+        let token = parser.next().ok().cloned();
+        if parser.expect_exhausted().is_err() {
+            return Ok(1.0);
+        }
+        let value = match token {
+            Some(Token::Number { value, .. }) if value.is_finite() => value,
+            // Keep the CSS token's f64-parse, divide, then f32 normalization.
+            // Parsing the authored percentage into f32 before dividing can
+            // choose the adjacent used alpha and is raster-observable after
+            // arithmetic composition.
+            Some(Token::Percentage { unit_value, .. }) if unit_value.is_finite() => unit_value,
+            Some(Token::Function(_)) => {
+                return Err(CompileError::UnsupportedFilter(
+                    "feFlood flood-opacity is a CSS function this build cannot evaluate without a computation context"
+                        .to_string(),
+                ));
+            }
+            _ => return Ok(1.0),
+        };
+        Ok(value.clamp(0.0, 1.0))
+    }
+
+    fn flood_source(element: HtmlElement<'_>) -> Result<CGColor32F, CompileError> {
+        let color = admitted_srgb(flood_color(element)?, 1.0).map_err(|reason| {
+            CompileError::UnsupportedFilter(format!(
+                "feFlood flood-color is outside the admitted color slice: {reason}"
+            ))
+        })?;
+        let alpha = (f32::from(color.a()) / 255.0) * flood_opacity(element)?;
+        CGColor32F::from_rgb8_alpha(color, alpha).map_err(|error| {
+            CompileError::UnsupportedFilter(format!("feFlood resolved color is unusable: {error}"))
+        })
+    }
+
+    fn composite_operator(element: HtmlElement<'_>) -> FilterComposite {
+        match get_attr(element, "operator")
+            .as_deref()
+            .map(trim_svg_whitespace)
+        {
+            Some("in") => FilterComposite::In,
+            Some("out") => FilterComposite::Out,
+            Some("atop") => FilterComposite::Atop,
+            Some("xor") => FilterComposite::Xor,
+            Some("lighter") => FilterComposite::Lighter,
+            Some("arithmetic") => FilterComposite::Arithmetic {
+                k1: svg_number(element, "k1", 0.0),
+                k2: svg_number(element, "k2", 0.0),
+                k3: svg_number(element, "k3", 0.0),
+                k4: svg_number(element, "k4", 0.0),
+            },
+            // Missing, invalid, and wrong-case enumeration values use `over`.
+            _ => FilterComposite::Over,
+        }
+    }
+
     fn builtin_input(name: &str) -> bool {
         matches!(
             name,
@@ -4799,6 +4967,7 @@ mod filter_resource {
 
     fn resolve_input(
         element: HtmlElement<'_>,
+        attribute: &str,
         previous: Option<usize>,
         names: &HashMap<String, usize>,
     ) -> FilterInput {
@@ -4807,7 +4976,7 @@ mod filter_resource {
                 .map(FilterInput::Node)
                 .unwrap_or(FilterInput::Source)
         };
-        let Some(raw) = get_attr(element, "in") else {
+        let Some(raw) = get_attr(element, attribute) else {
             return fallback();
         };
         let value = trim_svg_whitespace(&raw);
@@ -4826,6 +4995,40 @@ mod filter_resource {
         }
     }
 
+    fn union_rect(a: Rectangle, b: Rectangle) -> Rectangle {
+        let x0 = a.x.min(b.x);
+        let y0 = a.y.min(b.y);
+        let x1 = (a.x + a.width).max(b.x + b.width);
+        let y1 = (a.y + a.height).max(b.y + b.height);
+        Rectangle::from_xywh(x0, y0, x1 - x0, y1 - y0)
+    }
+
+    /// Filter Effects' default primitive subregion: source and source-alpha
+    /// collapse it to the filter region; otherwise it is the union of the
+    /// referenced earlier results. A zero-input source likewise starts at the
+    /// filter region.
+    fn default_primitive_region(
+        inputs: &[FilterInput],
+        nodes: &[FilterNode],
+        filter_region: Rectangle,
+    ) -> Rectangle {
+        if inputs.is_empty()
+            || inputs
+                .iter()
+                .any(|input| matches!(input, FilterInput::Source | FilterInput::SourceAlpha))
+        {
+            return filter_region;
+        }
+        inputs
+            .iter()
+            .filter_map(|input| match input {
+                FilterInput::Node(index) => nodes.get(*index).map(FilterNode::region),
+                FilterInput::Source | FilterInput::SourceAlpha => None,
+            })
+            .reduce(union_rect)
+            .unwrap_or(filter_region)
+    }
+
     fn record_result(element: HtmlElement<'_>, index: usize, names: &mut HashMap<String, usize>) {
         let Some(raw) = get_attr(element, "result") else {
             return;
@@ -4838,65 +5041,197 @@ mod filter_resource {
         }
     }
 
+    /// Chromium and this pinned backend agree at effective sigma 0.25 and 2,
+    /// while sampled values from 0.5 through 1.875 diverge. Keep the open
+    /// interval conservative until the backend generations converge.
+    fn blur_crosses_small_kernel_boundary(sigma: f32, frame_scale: f32) -> bool {
+        let effective = sigma * frame_scale;
+        effective > 0.25 && effective < 2.0
+    }
+
+    /// Offset is stated in the filter's operation space, then carried through
+    /// the target's linear map. Translation cancels for a displacement.
+    fn mapped_offset(target_to_frame: AffineTransform, dx: f32, dy: f32) -> (f32, f32) {
+        let [[a, c, _], [b, d, _]] = target_to_frame.matrix;
+        (a * dx + c * dy, b * dx + d * dy)
+    }
+
     fn compile_graph(
         filter: HtmlElement<'_>,
         primitive_units: Units,
         target_box: Rectangle,
         bases: PercentBases,
         region: Rectangle,
+        target_to_frame: AffineTransform,
         override_skips: &HashMap<NodeId, String>,
     ) -> Result<Option<FilterProgram>, CompileError> {
-        let mut nodes = Vec::new();
+        let mut nodes: Vec<FilterNode> = Vec::new();
         let mut names = HashMap::new();
         let mut previous = None;
+        let (frame_scale_x, frame_scale_y) = target_to_frame.get_scale();
         let mut child = filter.first_element_child();
         while let Some(element) = child {
+            child = element.next_element_sibling();
             let tag = element.local_name_string();
             if let Some(reason) = override_skips.get(&element.node_id()) {
                 return Err(CompileError::UnsupportedFilter(format!(
                     "the <{tag}> authored state is overridden at document load: {reason}"
                 )));
             }
-            if tag == "feGaussianBlur" {
-                if nodes.len() >= 2 {
-                    return Err(CompileError::UnsupportedFilter(
-                        "a filter graph deeper than two operations crosses the pinned-backend precision boundary (three chained blurs differ from Chromium)"
-                            .to_string(),
-                    ));
+            let (inputs, primitive) = match tag.as_str() {
+                "feGaussianBlur" => {
+                    patrol_color_style(element)?;
+                    let input = resolve_input(element, "in", previous, &names);
+                    let (mut sigma_x, mut sigma_y) = parse_std_deviation(element)?;
+                    if primitive_units == Units::ObjectBoundingBox {
+                        sigma_x *= target_box.width;
+                        sigma_y *= target_box.height;
+                    }
+                    if !sigma_x.is_finite() || !sigma_y.is_finite() {
+                        return Err(CompileError::UnsupportedFilter(
+                            "feGaussianBlur stdDeviation resolves outside the finite filter range"
+                                .to_string(),
+                        ));
+                    }
+                    if blur_crosses_small_kernel_boundary(sigma_x, frame_scale_x)
+                        || blur_crosses_small_kernel_boundary(sigma_y, frame_scale_y)
+                    {
+                        return Err(CompileError::UnsupportedFilter(
+                            "feGaussianBlur has an effective sigma in the pinned-backend small-kernel precision boundary"
+                                .to_string(),
+                        ));
+                    }
+                    (
+                        vec![input],
+                        FilterPrimitive::GaussianBlur { sigma_x, sigma_y },
+                    )
                 }
-                patrol_color_style(element)?;
-                let input = resolve_input(element, previous, &names);
-                let (mut sigma_x, mut sigma_y) = parse_std_deviation(element)?;
-                if primitive_units == Units::ObjectBoundingBox {
-                    sigma_x *= target_box.width;
-                    sigma_y *= target_box.height;
+                "feOffset" => {
+                    patrol_color_style(element)?;
+                    let input = resolve_input(element, "in", previous, &names);
+                    let mut dx = svg_number(element, "dx", 0.0);
+                    let mut dy = svg_number(element, "dy", 0.0);
+                    if primitive_units == Units::ObjectBoundingBox {
+                        dx *= target_box.width;
+                        dy *= target_box.height;
+                    }
+                    if !dx.is_finite() || !dy.is_finite() {
+                        return Err(CompileError::UnsupportedFilter(
+                            "feOffset dx/dy resolve outside the finite filter range".to_string(),
+                        ));
+                    }
+                    (vec![input], FilterPrimitive::Offset { dx, dy })
                 }
-                if !sigma_x.is_finite() || !sigma_y.is_finite() {
-                    return Err(CompileError::UnsupportedFilter(
-                        "feGaussianBlur stdDeviation resolves outside the finite filter range"
-                            .to_string(),
-                    ));
+                "feFlood" => {
+                    patrol_color_style(element)?;
+                    patrol_flood_style(element)?;
+                    (
+                        Vec::new(),
+                        FilterPrimitive::SolidColor {
+                            color: flood_source(element)?,
+                        },
+                    )
                 }
-                let node = FilterNode::new(
-                    input,
-                    primitive_region(element, primitive_units, target_box, bases, region)?,
-                    inherited_color_space(element)?,
-                    FilterPrimitive::GaussianBlur { sigma_x, sigma_y },
-                );
-                let index = nodes.len();
-                nodes.push(node);
-                record_result(element, index, &mut names);
-                previous = Some(index);
-            } else if tag.starts_with("fe") {
-                return Err(CompileError::UnsupportedFilter(format!(
-                    "filter graph contains unsupported primitive <{tag}>"
-                )));
-            }
-            // Non-primitive children do not participate in Blink's graph.
-            child = element.next_element_sibling();
+                "feComposite" => {
+                    patrol_color_style(element)?;
+                    let input = resolve_input(element, "in", previous, &names);
+                    let input2 = resolve_input(element, "in2", previous, &names);
+                    (
+                        vec![input, input2],
+                        FilterPrimitive::Composite {
+                            operator: composite_operator(element),
+                        },
+                    )
+                }
+                "feMerge" => {
+                    patrol_color_style(element)?;
+                    let mut inputs = Vec::new();
+                    let mut merge_child = element.first_element_child();
+                    while let Some(candidate) = merge_child {
+                        merge_child = candidate.next_element_sibling();
+                        if candidate.local_name_string() != "feMergeNode" {
+                            continue;
+                        }
+                        if let Some(reason) = override_skips.get(&candidate.node_id()) {
+                            return Err(CompileError::UnsupportedFilter(format!(
+                                "the <feMergeNode> authored state is overridden at document load: {reason}"
+                            )));
+                        }
+                        inputs.push(resolve_input(candidate, "in", previous, &names));
+                    }
+                    (inputs, FilterPrimitive::Merge)
+                }
+                _ if tag.starts_with("fe") => {
+                    return Err(CompileError::UnsupportedFilter(format!(
+                        "filter graph contains unsupported primitive <{tag}>"
+                    )));
+                }
+                // Non-primitive children do not participate in Blink's graph.
+                _ => continue,
+            };
+
+            let default_region = default_primitive_region(&inputs, &nodes, region);
+            let node = FilterNode::new(
+                inputs.into(),
+                primitive_region(
+                    element,
+                    primitive_units,
+                    target_box,
+                    bases,
+                    region,
+                    default_region,
+                )?,
+                inherited_color_space(element)?,
+                primitive,
+            );
+            let index = nodes.len();
+            nodes.push(node);
+            record_result(element, index, &mut names);
+            previous = Some(index);
         }
         if nodes.is_empty() {
             return Ok(None);
+        }
+        if nodes.iter().any(|node| {
+            matches!(
+                node.primitive(),
+                FilterPrimitive::Offset { dx, dy }
+                    if dx.fract() != 0.0 || dy.fract() != 0.0
+            )
+        }) {
+            return Err(CompileError::UnsupportedFilter(
+                "feOffset uses a fractional displacement, which crosses the pinned-backend rasterization boundary"
+                    .to_string(),
+            ));
+        }
+        for node in &nodes {
+            let FilterPrimitive::Offset { dx, dy } = node.primitive() else {
+                continue;
+            };
+            let (mapped_dx, mapped_dy) = mapped_offset(target_to_frame, dx, dy);
+            if !mapped_dx.is_finite() || !mapped_dy.is_finite() {
+                return Err(CompileError::UnsupportedFilter(
+                    "feOffset resolves outside the finite mapped displacement range".to_string(),
+                ));
+            }
+            if mapped_dx.fract() != 0.0 || mapped_dy.fract() != 0.0 {
+                return Err(CompileError::UnsupportedFilter(
+                    "feOffset's target mapping produces a fractional device-space displacement at the pinned-backend rasterization boundary"
+                        .to_string(),
+                ));
+            }
+        }
+        let has_blur = nodes
+            .iter()
+            .any(|node| matches!(node.primitive(), FilterPrimitive::GaussianBlur { .. }));
+        let has_offset = nodes
+            .iter()
+            .any(|node| matches!(node.primitive(), FilterPrimitive::Offset { .. }));
+        if has_blur && has_offset {
+            return Err(CompileError::UnsupportedFilter(
+                "a filter graph combines feOffset with Gaussian blur, which crosses the pinned-backend composed-operation precision boundary"
+                    .to_string(),
+            ));
         }
         FilterProgram::new(nodes.into())
             .map(Some)
@@ -4963,6 +5298,7 @@ mod filter_resource {
             target_box,
             bases,
             region,
+            target_to_frame,
             override_skips,
         )?
         else {

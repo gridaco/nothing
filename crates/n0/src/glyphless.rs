@@ -23,16 +23,16 @@ use n0_model::model::{
 };
 use n0_model::path::ResolvedPathArtifact;
 use rframe::{
-    ClipPath, FilterColorSpace, FilterInput, FilterPrimitive, FilterProgram, Frame, FrameItem,
-    Geometry, MaskMode, PaintStack, ScopeEffect, VisualRef,
+    ClipPath, FilterColorSpace, FilterComposite, FilterInput, FilterPrimitive, FilterProgram,
+    Frame, FrameItem, Geometry, MaskMode, PaintStack, ScopeEffect, VisualRef,
 };
 
 use crate::damage::{diff_inputs, DamageOwner, FrameDamageInput};
 use crate::drawlist::{
     DrawList, GlyphlessOwnerSlot, Item, ItemKind, PostPaintOpacity, ResolvedClipGeometry,
     ResolvedClipGeometryKind, ResolvedClipLayer, ResolvedClipPath, ResolvedFilter,
-    ResolvedFilterColorSpace, ResolvedFilterInput, ResolvedFilterNode, ResolvedFilterPrimitive,
-    ResolvedMaskMode, StrokeDashPhase,
+    ResolvedFilterColorSpace, ResolvedFilterComposite, ResolvedFilterInput, ResolvedFilterNode,
+    ResolvedFilterPrimitive, ResolvedMaskMode, StrokeDashPhase,
 };
 use crate::frame::FrameExecutionError;
 use crate::paint::PaintCtx;
@@ -873,11 +873,16 @@ fn compile_filter(program: &FilterProgram, region: math2::Rectangle) -> Resolved
     let nodes = program
         .iter()
         .map(|node| ResolvedFilterNode {
-            input: match node.input() {
-                FilterInput::Source => ResolvedFilterInput::Source,
-                FilterInput::SourceAlpha => ResolvedFilterInput::SourceAlpha,
-                FilterInput::Node(index) => ResolvedFilterInput::Node(index),
-            },
+            inputs: node
+                .inputs()
+                .iter()
+                .map(|input| match input {
+                    FilterInput::Source => ResolvedFilterInput::Source,
+                    FilterInput::SourceAlpha => ResolvedFilterInput::SourceAlpha,
+                    FilterInput::Node(index) => ResolvedFilterInput::Node(*index),
+                })
+                .collect::<Vec<_>>()
+                .into(),
             region: to_rectf(node.region()),
             color_space: match node.color_space() {
                 FilterColorSpace::Srgb => ResolvedFilterColorSpace::Srgb,
@@ -887,6 +892,24 @@ fn compile_filter(program: &FilterProgram, region: math2::Rectangle) -> Resolved
                 FilterPrimitive::GaussianBlur { sigma_x, sigma_y } => {
                     ResolvedFilterPrimitive::GaussianBlur { sigma_x, sigma_y }
                 }
+                FilterPrimitive::Offset { dx, dy } => ResolvedFilterPrimitive::Offset { dx, dy },
+                FilterPrimitive::SolidColor { color } => ResolvedFilterPrimitive::SolidColor {
+                    color: compile_color32f(color),
+                },
+                FilterPrimitive::Composite { operator } => ResolvedFilterPrimitive::Composite {
+                    operator: match operator {
+                        FilterComposite::Over => ResolvedFilterComposite::Over,
+                        FilterComposite::In => ResolvedFilterComposite::In,
+                        FilterComposite::Out => ResolvedFilterComposite::Out,
+                        FilterComposite::Atop => ResolvedFilterComposite::Atop,
+                        FilterComposite::Xor => ResolvedFilterComposite::Xor,
+                        FilterComposite::Lighter => ResolvedFilterComposite::Lighter,
+                        FilterComposite::Arithmetic { k1, k2, k3, k4 } => {
+                            ResolvedFilterComposite::Arithmetic { k1, k2, k3, k4 }
+                        }
+                    },
+                },
+                FilterPrimitive::Merge => ResolvedFilterPrimitive::Merge,
             },
         })
         .collect::<Vec<_>>()
@@ -990,14 +1013,14 @@ fn compile_gradient_stops(stops: &[cg::GradientStop]) -> Vec<n0_model::model::Gr
             // Component-for-component: both leaves are checked unit sRGB, so
             // the resolved stop crosses into the model without a quantization
             // step that would substitute a neighbouring alpha.
-            color: compile_stop_color(stop.color),
+            color: compile_color32f(stop.color),
         })
         .collect()
 }
 
-fn compile_stop_color(color: cg::CGColor32F) -> n0_model::model::Color32F {
+fn compile_color32f(color: cg::CGColor32F) -> n0_model::model::Color32F {
     n0_model::model::Color32F::new(color.r(), color.g(), color.b(), color.a())
-        .expect("a checked cg stop colour is inside the model's checked unit domain")
+        .expect("a checked cg colour is inside the model's checked unit domain")
 }
 
 fn compile_tile_mode(mode: cg::TileMode) -> n0_model::model::TileMode {
@@ -1704,7 +1727,7 @@ mod tests {
     fn blur_scope_begin(owner: VisualRef, input: FilterInput) -> FrameItem {
         let region = Rectangle::from_xywh(0.0, 0.0, 64.0, 48.0);
         let program = FilterProgram::new(Arc::from([FilterNode::new(
-            input,
+            Arc::from([input]),
             region,
             FilterColorSpace::LinearRgb,
             FilterPrimitive::GaussianBlur {

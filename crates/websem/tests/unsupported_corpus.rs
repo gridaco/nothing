@@ -122,9 +122,34 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     ),
     ("svg-filter-external", DeclaredByBestEffort, "external"),
     (
-        "svg-filter-graph-depth-precision",
+        "svg-filter-flood-color-syntax",
         DeclaredByBestEffort,
-        "deeper than two operations",
+        "outside the admitted color slice",
+    ),
+    (
+        "svg-filter-flood-css-property",
+        DeclaredByBestEffort,
+        "stylesheet declares flood-color",
+    ),
+    (
+        "svg-filter-flood-inherit",
+        DeclaredByBestEffort,
+        "flood-color uses inherit",
+    ),
+    (
+        "svg-filter-flood-opacity-calc",
+        DeclaredByBestEffort,
+        "CSS function",
+    ),
+    (
+        "svg-filter-flood-var",
+        DeclaredByBestEffort,
+        "flood-color resolves through var()",
+    ),
+    (
+        "svg-filter-blur-sigma-precision",
+        DeclaredByBestEffort,
+        "small-kernel precision boundary",
     ),
     ("svg-filter-href", DeclaredByBestEffort, "href inheritance"),
     (
@@ -136,6 +161,21 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "svg-filter-list-quoted",
         DeclaredByBestEffort,
         "multiple filter operations",
+    ),
+    (
+        "svg-filter-offset-blur-precision",
+        DeclaredByBestEffort,
+        "combines feOffset with Gaussian blur",
+    ),
+    (
+        "svg-filter-offset-fractional-precision",
+        DeclaredByBestEffort,
+        "fractional displacement",
+    ),
+    (
+        "svg-filter-offset-transform-precision",
+        DeclaredByBestEffort,
+        "fractional device-space displacement",
     ),
     (
         "svg-filter-primitive",
