@@ -1905,9 +1905,11 @@ struct BuiltFilterResult {
     /// coverage must remain floating through Porter-Duff math; graphs made
     /// only from generated filter sources follow Chromium's unorm8 rounding.
     source_dependent: bool,
-    /// Whether the result still carries the isolated source's color channels,
-    /// rather than only SourceAlpha or generated filter color.
-    source_color_dependent: bool,
+    /// Whether the result must cross the outer layer boundary with Chromium's
+    /// exact byte-domain SrcOver. Native sRGB shadows materialize an N32
+    /// intermediate before that boundary; Skia's default lowp restore rounds
+    /// it differently on NEON and x86.
+    requires_exact_restore: bool,
 }
 
 struct BuiltFilter {
@@ -1955,7 +1957,9 @@ fn convert_filter_space(
         image_filter: Some(image_filter),
         color_space: target,
         source_dependent: result.source_dependent,
-        source_color_dependent: result.source_color_dependent,
+        // A color-space conversion resumes the floating filter path; its
+        // eventual restore must not be forced through the N32 shadow rule.
+        requires_exact_restore: false,
     })
 }
 
@@ -2089,7 +2093,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
         image_filter: None,
         color_space: ResolvedFilterColorSpace::Srgb,
         source_dependent: true,
-        source_color_dependent: true,
+        requires_exact_restore: false,
     };
     let source_alpha =
         BuiltFilterResult {
@@ -2098,7 +2102,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
             })?),
             color_space: ResolvedFilterColorSpace::Srgb,
             source_dependent: true,
-            source_color_dependent: false,
+            requires_exact_restore: false,
         };
     let mut results: Vec<BuiltFilterResult> = Vec::with_capacity(filter.nodes.len());
     for node in filter.nodes.iter() {
@@ -2116,8 +2120,8 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
         }
         let crop = Rect::from_xywh(node.region.x, node.region.y, node.region.w, node.region.h);
         let source_dependent = inputs.iter().any(|input| input.source_dependent);
-        let source_color_dependent = inputs.iter().any(|input| input.source_color_dependent);
-        let (image_filter, output_space, source_dependent, source_color_dependent) = match node
+        let requires_exact_restore = inputs.iter().any(|input| input.requires_exact_restore);
+        let (image_filter, output_space, source_dependent, requires_exact_restore) = match node
             .primitive
         {
             ResolvedFilterPrimitive::GaussianBlur { sigma_x, sigma_y } => {
@@ -2135,7 +2139,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                         Some(filter),
                         node.color_space,
                         input.source_dependent,
-                        input.source_color_dependent,
+                        input.requires_exact_restore,
                     )
                 } else {
                     let filter = skia_safe::image_filters::blur(
@@ -2151,7 +2155,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                         Some(filter),
                         node.color_space,
                         input.source_dependent,
-                        input.source_color_dependent,
+                        input.requires_exact_restore,
                     )
                 }
             }
@@ -2165,7 +2169,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                     Some(filter),
                     node.color_space,
                     input.source_dependent,
-                    input.source_color_dependent,
+                    input.requires_exact_restore,
                 )
             }
             ResolvedFilterPrimitive::SolidColor { color } => {
@@ -2218,7 +2222,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                     Some(filter),
                     node.color_space,
                     source_dependent,
-                    source_color_dependent,
+                    requires_exact_restore,
                 )
             }
             ResolvedFilterPrimitive::DropShadow {
@@ -2250,11 +2254,9 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 };
                 let shadow = Color4f::new(r, g, b, color.a());
                 // Skia's DropShadow helper is itself Blur -> solid SrcIn ->
-                // linear MatrixTransform -> Merge. Its low-precision blend
-                // and bilerp stages differ between NEON and x86. Spell the
-                // blends explicitly and request linear mip sampling at the
-                // 1:1 offset stage: that bypasses Skia's 8888 lowp bilerp
-                // fast path while retaining the helper's native blur and
+                // linear MatrixTransform -> Merge. Spell the blend stages
+                // explicitly so their byte-domain rounding is architecture
+                // independent while retaining the helper's native blur and
                 // linear-offset raster.
                 let blurred = skia_safe::image_filters::blur(
                     (sigma_x, sigma_y),
@@ -2296,10 +2298,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 })?;
                 let shadow_filter = skia_safe::image_filters::matrix_transform(
                     &Matrix::translate((dx, dy)),
-                    SamplingOptions::new(
-                        skia_safe::FilterMode::Linear,
-                        skia_safe::MipmapMode::Linear,
-                    ),
+                    skia_safe::FilterMode::Linear,
                     Some(colored),
                 )
                 .ok_or_else(|| {
@@ -2320,7 +2319,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                     Some(filter),
                     node.color_space,
                     input.source_dependent,
-                    input.source_color_dependent,
+                    node.color_space == ResolvedFilterColorSpace::Srgb,
                 )
             }
             ResolvedFilterPrimitive::Merge => {
@@ -2361,7 +2360,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                     Some(image_filter),
                     node.color_space,
                     source_dependent,
-                    source_color_dependent,
+                    requires_exact_restore,
                 )
             }
         };
@@ -2369,7 +2368,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
             image_filter,
             color_space: output_space,
             source_dependent,
-            source_color_dependent,
+            requires_exact_restore,
         });
     }
     let output = results
@@ -2395,7 +2394,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
             })?,
         );
     }
-    let restore_blender = if output.source_dependent {
+    let restore_blender = if output.source_dependent && !output.requires_exact_restore {
         None
     } else {
         Some(exact_unorm8_blender(ResolvedFilterComposite::Over)?)
