@@ -2250,10 +2250,12 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 };
                 let shadow = Color4f::new(r, g, b, color.a());
                 // Skia's DropShadow helper is itself Blur -> solid SrcIn ->
-                // linear MatrixTransform -> Merge. Its low-precision solid
-                // SrcIn and Merge stages differ between NEON and x86. Spell
-                // those two stages explicitly while retaining the helper's
-                // native blur and linear-offset raster.
+                // linear MatrixTransform -> Merge. Its low-precision blend
+                // and bilerp stages differ between NEON and x86. Spell the
+                // blends explicitly and request linear mip sampling at the
+                // 1:1 offset stage: that bypasses Skia's 8888 lowp bilerp
+                // fast path while retaining the helper's native blur and
+                // linear-offset raster.
                 let blurred = skia_safe::image_filters::blur(
                     (sigma_x, sigma_y),
                     Some(skia_safe::TileMode::Decal),
@@ -2294,7 +2296,10 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 })?;
                 let shadow_filter = skia_safe::image_filters::matrix_transform(
                     &Matrix::translate((dx, dy)),
-                    skia_safe::FilterMode::Linear,
+                    SamplingOptions::new(
+                        skia_safe::FilterMode::Linear,
+                        skia_safe::MipmapMode::Linear,
+                    ),
                     Some(colored),
                 )
                 .ok_or_else(|| {
