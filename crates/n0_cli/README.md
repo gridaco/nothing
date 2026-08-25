@@ -297,10 +297,11 @@ cargo run -p n0_cli --bin n0 -- \
   Flood percentages retain the CSS parser's parse/divide/narrow order; the
   raw-f32 neighbour alias is an exact regression cell. A zero-sigma blur still
   applies its explicit primitive region; a dedicated cell guards that crop.
-  Internal Porter-Duff composition distinguishes exact byte-domain generated
-  sources from floating source-image coverage. A one-input merge whose hard
-  region already equals its input remains an identity instead of adding a
-  raster-observable crop. ARM and x86 are exact without a tolerance. Eighty-six
+  Internal Porter-Duff composition and the final layer restore distinguish
+  exact byte-domain generated sources from floating source-image coverage. A
+  one-input merge has no internal composition stage, so the final restore is
+  where its generated-only rounding is enforced. ARM and x86 are exact without
+  a tolerance. Eighty-six
   Chromium-baked filter cells are exact: twenty-six from the chassis/blur slice
   and sixty from the shadow-graph rung. The complete corpus is 447 Chromium-baked
   cells plus 10 sampled frames, with 124 named refusal

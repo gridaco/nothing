@@ -1490,10 +1490,11 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > 1,160 pixels at maximum delta 218. Hosted x86 verification also exposed seven
 > composite/merge departures of one code value. Keeping generated-source byte
 > rounding distinct from source-image floating coverage fixes six. The seventh
-> is a one-input merge whose input already has the merge's hard region; keeping
-> that semantic identity free of a redundant crop avoids the processor-specific
-> restore path. Together those boundaries restore exact output on both
-> processor families without tolerance.
+> is a one-input merge, so it has no internal composition stage on which that
+> rule can run. The final layer restore now makes the same distinction:
+> generated-only results use exact byte-domain SrcOver, while source-derived
+> coverage stays floating. Together those boundaries restore exact output on
+> both processor families without tolerance.
 
 - [ ] `<foreignObject>`
 - [x] `<g>`

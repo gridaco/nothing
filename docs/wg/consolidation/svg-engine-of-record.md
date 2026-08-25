@@ -2818,11 +2818,12 @@ departures. The cause was a CPU-family split in low-precision Porter-Duff
 division: generated filter sources require the exact byte-domain divide-by-255
 rounding Chromium exhibits, while graphs sampling the source image retain
 floating source coverage. Six cells returned to exactness after separating
-those graph domains. The remaining case was a one-input merge whose input
-already had exactly the merge's hard region. It is a semantic identity; adding
-another crop changed only the backend graph and selected the divergent restore
-path. Preserving that identity returns both processor families to the same
-exact oracles without tolerance.
+those graph domains. The remaining case was a one-input merge, which performs
+no internal composition and therefore reached Skia's platform-specific final
+SrcOver unchanged. The layer restore now carries the same split as the graph:
+generated-only results use exact byte-domain SrcOver, while source-derived
+coverage stays floating. Both processor families then reach the same exact
+oracles without tolerance.
 
 Eight focused offset/flood rows join the refusal register. The former graph-
 depth row is corrected to the small-kernel row without changing the count, and

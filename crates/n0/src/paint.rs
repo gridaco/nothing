@@ -1906,6 +1906,14 @@ struct BuiltFilterResult {
     source_dependent: bool,
 }
 
+struct BuiltFilter {
+    image_filter: Option<ImageFilter>,
+    /// Generated-only graphs finish with the same exact unorm8 SrcOver used
+    /// between their internal nodes. Source-derived coverage stays on Skia's
+    /// floating restore path.
+    restore_blender: Option<Blender>,
+}
+
 fn source_alpha_filter() -> Option<ImageFilter> {
     let mut matrix = ColorMatrix::default();
     matrix.set_scale(0.0, 0.0, 0.0, 1.0);
@@ -2031,10 +2039,8 @@ fn deterministic_porter_duff_blender(
     }
 }
 
-/// Build one checked private filter graph. The return's outer `Result` names
-/// backend construction failure; the inner `Option` preserves the valid
-/// input-image sentinel for an identity program.
-fn build_filter(filter: &ResolvedFilter) -> Result<Option<ImageFilter>, String> {
+/// Build one checked private filter graph and its final-composition policy.
+fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
     let source = BuiltFilterResult {
         image_filter: None,
         color_space: ResolvedFilterColorSpace::Srgb,
@@ -2064,15 +2070,6 @@ fn build_filter(filter: &ResolvedFilter) -> Result<Option<ImageFilter>, String> 
         }
         let crop = Rect::from_xywh(node.region.x, node.region.y, node.region.w, node.region.h);
         let source_dependent = inputs.iter().any(|input| input.source_dependent);
-        let single_merge_input_has_same_region =
-            matches!(node.primitive, ResolvedFilterPrimitive::Merge)
-                && node.inputs.len() == 1
-                && match node.inputs[0] {
-                    ResolvedFilterInput::Source | ResolvedFilterInput::SourceAlpha => {
-                        filter.region == node.region
-                    }
-                    ResolvedFilterInput::Node(index) => filter.nodes[index].region == node.region,
-                };
         let (image_filter, output_space, source_dependent) = match node.primitive {
             ResolvedFilterPrimitive::GaussianBlur { sigma_x, sigma_y } => {
                 let input = inputs.pop().expect("Gaussian blur has one checked input");
@@ -2156,51 +2153,33 @@ fn build_filter(filter: &ResolvedFilter) -> Result<Option<ImageFilter>, String> 
                 (Some(filter), node.color_space, source_dependent)
             }
             ResolvedFilterPrimitive::Merge => {
-                let image_filter = if single_merge_input_has_same_region {
-                    // One direct input with the same hard region is the
-                    // complete merge result. A redundant crop changes the
-                    // backend graph and exposes CPU-specific restore rounding.
-                    inputs
-                        .pop()
-                        .expect("the identity merge has one checked input")
-                        .image_filter
-                } else {
-                    let mut inputs = inputs.into_iter();
-                    if let Some(first) = inputs.next() {
-                        let mut merged = first.image_filter;
-                        for foreground in inputs {
-                            merged = skia_safe::image_filters::blend(
-                                deterministic_porter_duff_blender(
-                                    ResolvedFilterComposite::Over,
-                                    source_dependent,
-                                )?,
-                                merged,
-                                foreground.image_filter,
-                                crop,
+                let mut inputs = inputs.into_iter();
+                let image_filter = if let Some(first) = inputs.next() {
+                    let mut merged = first.image_filter;
+                    for foreground in inputs {
+                        merged = skia_safe::image_filters::blend(
+                            deterministic_porter_duff_blender(
+                                ResolvedFilterComposite::Over,
+                                source_dependent,
+                            )?,
+                            merged,
+                            foreground.image_filter,
+                            crop,
+                        );
+                        if merged.is_none() {
+                            return Err(
+                                "the backend could not construct a merge operation".to_string()
                             );
-                            if merged.is_none() {
-                                return Err(
-                                    "the backend could not construct a merge operation".to_string()
-                                );
-                            }
                         }
-                        Some(
-                            skia_safe::image_filters::crop(
-                                crop,
-                                Some(skia_safe::TileMode::Decal),
-                                merged,
-                            )
-                            .ok_or_else(|| {
-                                "the backend could not crop a merge operation".to_string()
-                            })?,
-                        )
-                    } else {
-                        Some(transparent_filter(node.region).ok_or_else(|| {
-                            "the backend could not construct an empty merge result".to_string()
-                        })?)
                     }
+                    skia_safe::image_filters::crop(crop, Some(skia_safe::TileMode::Decal), merged)
+                        .ok_or_else(|| "the backend could not crop a merge operation".to_string())?
+                } else {
+                    transparent_filter(node.region).ok_or_else(|| {
+                        "the backend could not construct an empty merge result".to_string()
+                    })?
                 };
-                (image_filter, node.color_space, source_dependent)
+                (Some(image_filter), node.color_space, source_dependent)
             }
         };
         results.push(BuiltFilterResult {
@@ -2212,28 +2191,35 @@ fn build_filter(filter: &ResolvedFilter) -> Result<Option<ImageFilter>, String> 
     let output = results
         .pop()
         .expect("the resolved filter contract requires a non-empty program");
-    let output = convert_filter_space(output, ResolvedFilterColorSpace::Srgb)?.image_filter;
-    if output.is_some() {
-        // A materialized terminal operation already carries its checked crop.
-        // Avoid wrapping it in a redundant graph node: backend graph shape is
-        // raster-observable after several operations.
-        return Ok(output);
+    let mut output = convert_filter_space(output, ResolvedFilterColorSpace::Srgb)?;
+    if output.image_filter.is_none() {
+        // The backend's `None` sentinel is a valid pass-through graph, but it
+        // has no operation on which to carry the outer hard region.
+        output.image_filter = Some(
+            skia_safe::image_filters::crop(
+                Rect::from_xywh(
+                    filter.region.x,
+                    filter.region.y,
+                    filter.region.w,
+                    filter.region.h,
+                ),
+                Some(skia_safe::TileMode::Decal),
+                None,
+            )
+            .ok_or_else(|| {
+                "the backend could not construct the hard filter-region crop".to_string()
+            })?,
+        );
     }
-    // The backend's `None` sentinel is a valid pass-through graph, but it has
-    // no operation on which to carry the outer hard region. Materialize only
-    // this identity case as a crop.
-    skia_safe::image_filters::crop(
-        Rect::from_xywh(
-            filter.region.x,
-            filter.region.y,
-            filter.region.w,
-            filter.region.h,
-        ),
-        Some(skia_safe::TileMode::Decal),
-        output,
-    )
-    .map(Some)
-    .ok_or_else(|| "the backend could not construct the hard filter-region crop".to_string())
+    let restore_blender = if output.source_dependent {
+        None
+    } else {
+        Some(exact_unorm8_blender(ResolvedFilterComposite::Over)?)
+    };
+    Ok(BuiltFilter {
+        image_filter: output.image_filter,
+        restore_blender,
+    })
 }
 
 /// Product-build preflight for a resolved image-filter graph. Replay repeats
@@ -2654,10 +2640,13 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                     filter.region.w,
                     filter.region.h,
                 );
-                let image_filter = build_filter(filter)
+                let built_filter = build_filter(filter)
                     .expect("resolved image-filter builders were preflighted at product build");
                 let mut restore_paint = Paint::default();
-                restore_paint.set_image_filter(image_filter);
+                restore_paint.set_image_filter(built_filter.image_filter);
+                if let Some(blender) = built_filter.restore_blender {
+                    restore_paint.set_blender(blender);
+                }
                 let layer = SaveLayerRec::default()
                     .bounds(&region)
                     .paint(&restore_paint);
