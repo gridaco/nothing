@@ -2192,6 +2192,47 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 })?;
                 (Some(filter), node.color_space, source_dependent)
             }
+            ResolvedFilterPrimitive::DropShadow {
+                dx,
+                dy,
+                sigma_x,
+                sigma_y,
+                color,
+            } => {
+                let input = inputs.pop().expect("drop shadow has one checked input");
+                let to_linear = |component: f32| {
+                    if component <= 0.04045 {
+                        component / 12.92
+                    } else {
+                        ((component + 0.055) / 1.055).powf(2.4)
+                    }
+                };
+                // Blink resolves flood-color in device sRGB, multiplies its
+                // alpha by flood-opacity, then adapts the color channels to
+                // this primitive's operating interpolation space before
+                // constructing one native shadow-and-foreground filter.
+                let (r, g, b) = match node.color_space {
+                    ResolvedFilterColorSpace::Srgb => (color.r(), color.g(), color.b()),
+                    ResolvedFilterColorSpace::LinearRgb => (
+                        to_linear(color.r()),
+                        to_linear(color.g()),
+                        to_linear(color.b()),
+                    ),
+                };
+                let shadow = Color4f::new(r, g, b, color.a());
+                let filter = skia_safe::image_filters::drop_shadow(
+                    (dx, dy),
+                    (sigma_x, sigma_y),
+                    shadow,
+                    Option::<ColorSpace>::None,
+                    input.image_filter,
+                    crop,
+                )
+                .ok_or_else(|| {
+                    "the backend could not construct a native drop-shadow operation".to_string()
+                })?;
+                (Some(filter), node.color_space, input.source_dependent)
+            }
             ResolvedFilterPrimitive::Merge => {
                 let mut inputs = inputs.into_iter();
                 let image_filter = if let Some(first) = inputs.next() {

@@ -120,6 +120,26 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "declares filter",
     ),
+    (
+        "svg-filter-drop-shadow-color-precision",
+        DeclaredByBestEffort,
+        "native-shadow color-conversion precision boundary",
+    ),
+    (
+        "svg-filter-drop-shadow-range",
+        DeclaredByBestEffort,
+        "admitted native-shadow range",
+    ),
+    (
+        "svg-filter-drop-shadow-source-layer-precision",
+        DeclaredByBestEffort,
+        "native-shadow source-layer precision boundary",
+    ),
+    (
+        "svg-filter-drop-shadow-transform-precision",
+        DeclaredByBestEffort,
+        "native-shadow transform precision boundary",
+    ),
     ("svg-filter-external", DeclaredByBestEffort, "external"),
     (
         "svg-filter-flood-color-syntax",

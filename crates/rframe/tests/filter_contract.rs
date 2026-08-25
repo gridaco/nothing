@@ -167,6 +167,60 @@ fn offset_and_arithmetic_scalars_must_be_finite() {
 }
 
 #[test]
+fn drop_shadow_has_one_input_and_checked_geometry() {
+    let region = Rectangle::from_xywh(0.0, 0.0, 10.0, 10.0);
+    let shadow = |inputs: Arc<[FilterInput]>, dx, dy, sigma_x, sigma_y| {
+        FilterNode::new(
+            inputs,
+            region,
+            FilterColorSpace::LinearRgb,
+            FilterPrimitive::DropShadow {
+                dx,
+                dy,
+                sigma_x,
+                sigma_y,
+                color: cg::CGColor32F::from_rgba8(cg::CGColor::RED),
+            },
+        )
+    };
+
+    assert_eq!(
+        FilterProgram::new(Arc::from([shadow(Arc::from([]), 2.0, 2.0, 2.0, 2.0)])),
+        Err(FilterProgramError::InvalidInputCount {
+            node: 0,
+            expected: 1,
+            actual: 0,
+        })
+    );
+    for (dx, dy, sigma_x, sigma_y) in [
+        (f32::INFINITY, 0.0, 0.0, 0.0),
+        (0.0, f32::NAN, 0.0, 0.0),
+        (0.0, 0.0, -1.0, 0.0),
+        (0.0, 0.0, 0.0, f32::INFINITY),
+    ] {
+        assert_eq!(
+            FilterProgram::new(Arc::from([shadow(
+                Arc::from([FilterInput::Source]),
+                dx,
+                dy,
+                sigma_x,
+                sigma_y,
+            )])),
+            Err(FilterProgramError::InvalidDropShadow { node: 0 })
+        );
+    }
+
+    FilterProgram::new(Arc::from([shadow(
+        Arc::from([FilterInput::Source]),
+        -2.5,
+        1.25,
+        0.0,
+        3.0,
+    )]))
+    .expect("finite signed displacement and non-negative sigma are resolved facts");
+}
+
+#[test]
 fn the_effect_rejects_an_invalid_operation_space_or_outer_region() {
     let program = || {
         FilterProgram::new(Arc::from([blur(FilterInput::Source, 2.0, 2.0)])).expect("valid program")

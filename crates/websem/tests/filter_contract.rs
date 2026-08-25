@@ -198,6 +198,120 @@ fn hard_shadow_graph_resolves_zero_one_two_and_n_input_operations() {
 }
 
 #[test]
+fn drop_shadow_resolves_to_one_native_checked_operation() {
+    let frame = admit_both(&document(
+        r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+          x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+    <feDropShadow in="SourceGraphic" dx="5" dy="-4" stdDeviation="2 3"
+                  flood-color="#7c3aed" flood-opacity=".65" result="shadow"/>
+  </filter>
+  <rect x="20" y="20" width="24" height="24" fill="#0ea5e9" filter="url(#f)"/>"##,
+    ));
+    let filter = frame
+        .items
+        .iter()
+        .find_map(|item| match item {
+            FrameItem::ScopeBegin(scope) => match &scope.effect {
+                ScopeEffect::Filter(filter) => Some(filter),
+                ScopeEffect::Opacity(_) | ScopeEffect::Clip(_) => None,
+            },
+            _ => None,
+        })
+        .expect("resolved filter scope");
+    let nodes: Vec<_> = filter.program().iter().collect();
+    assert_eq!(nodes.len(), 1);
+    assert_eq!(nodes[0].inputs(), [FilterInput::Source]);
+    assert_eq!(nodes[0].color_space(), FilterColorSpace::Srgb);
+    let FilterPrimitive::DropShadow {
+        dx,
+        dy,
+        sigma_x,
+        sigma_y,
+        color,
+    } = nodes[0].primitive()
+    else {
+        panic!("the graph carries one native drop shadow")
+    };
+    assert_eq!((dx, dy, sigma_x, sigma_y), (5.0, -4.0, 2.0, 3.0));
+    assert_eq!(color.to_rgba8(), cg::CGColor::from_rgba(124, 58, 237, 166));
+
+    let pixels = render_through_n0(&frame, 64, 64);
+    assert_eq!(at(&pixels, 24, 24), [14, 165, 233, 255]);
+    assert_ne!(at(&pixels, 47, 32), [255, 255, 255, 255]);
+}
+
+#[test]
+fn drop_shadow_number_defaults_clamps_and_units_follow_blink() {
+    let source = |primitive: &str, filter_extra: &str, target: &str| {
+        document(&format!(
+            r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"
+          color-interpolation-filters="sRGB" {filter_extra}>{primitive}</filter>
+  {target}"##
+        ))
+    };
+    let target = r##"<rect x="20" y="20" width="16" height="8" fill="#0ea5e9" filter="url(#f)"/>"##;
+    assert_eq!(
+        admit_both(&source("<feDropShadow/>", "", target)),
+        admit_both(&source(
+            r##"<feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="black" flood-opacity="1"/>"##,
+            "",
+            target,
+        )),
+        "missing fields use Blink's native initial 2/2/2 and black"
+    );
+    assert_eq!(
+        admit_both(&source(
+            r##"<feDropShadow dx="+4" dy="+2" stdDeviation="+2,+4"/>"##,
+            "",
+            target,
+        )),
+        admit_both(&source(
+            r##"<feDropShadow dx="4" dy="2" stdDeviation="2 4"/>"##,
+            "",
+            target,
+        )),
+        "leading plus and comma separators preserve the number grammar"
+    );
+    assert_eq!(
+        admit_both(&source(
+            r##"<feDropShadow dx="4px" dy="25%" stdDeviation="calc(2)"/>"##,
+            "",
+            target,
+        )),
+        admit_both(&source("<feDropShadow/>", "", target)),
+        "invalid number spellings return each field to its initial"
+    );
+    assert_eq!(
+        admit_both(&source(
+            r##"<feDropShadow dx="4" dy="2" stdDeviation="-2 4"/>"##,
+            "",
+            target,
+        )),
+        admit_both(&source(
+            r##"<feDropShadow dx="4" dy="2" stdDeviation="0 4"/>"##,
+            "",
+            target,
+        )),
+        "negative blur axes clamp independently to zero"
+    );
+    assert_eq!(
+        admit_both(&source(
+            r##"<feDropShadow dx="4" dy="2" stdDeviation="2 4"/>"##,
+            r##"primitiveUnits="userSpaceOnUse""##,
+            target,
+        )),
+        admit_both(&source(
+            r##"<feDropShadow dx=".25" dy=".25" stdDeviation=".125 .5"/>"##,
+            r##"primitiveUnits="objectBoundingBox""##,
+            target,
+        )),
+        "object-box numbers resolve against the target's two axes"
+    );
+}
+
+#[test]
 fn flood_opacity_percentage_keeps_css_parser_normalization_order() {
     let source = |opacity: &str| {
         document(&format!(
@@ -554,10 +668,93 @@ fn unsupported_filter_routes_skip_the_whole_target_by_stable_name() {
         ),
         (
             target(
-                r##"<filter id="f"><feDropShadow dx="2" dy="2"/></filter>"##,
+                r##"<filter id="f"><feDropShadow stdDeviation="1"/></filter>"##,
                 r##"filter="url(#f)""##,
             ),
-            "unsupported primitive <feDropShadow>",
+            "small-kernel precision boundary",
+        ),
+        (
+            document(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" color-interpolation-filters="sRGB"><feDropShadow stdDeviation="2"/></filter>
+  <g transform="rotate(19 32 32)" filter="url(#f)">
+    <rect x="20" y="20" width="24" height="24" fill="#16a34a"/>
+  </g>"##,
+            ),
+            "native-shadow transform precision boundary",
+        ),
+        (
+            document(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <linearGradient id="g"><stop stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient>
+  <filter id="f" color-interpolation-filters="sRGB"><feDropShadow stdDeviation="2"/></filter>
+  <rect x="20" y="20" width="24" height="24" fill="url(#g)" filter="url(#f)"/>"##,
+            ),
+            "native-shadow source-layer precision boundary",
+        ),
+        (
+            document(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" color-interpolation-filters="sRGB"><feDropShadow stdDeviation="2"/></filter>
+  <g filter="url(#f)"><g opacity=".55"><rect x="20" y="20" width="24" height="24" fill="#16a34a"/></g></g>"##,
+            ),
+            "native-shadow source-layer precision boundary",
+        ),
+        (
+            target(
+                r##"<filter id="f"><feDropShadow stdDeviation="2" flood-color="#7c3aed"/></filter>"##,
+                r##"filter="url(#f)""##,
+            ),
+            "native-shadow color-conversion precision boundary",
+        ),
+        (
+            target(
+                r##"<filter id="f" color-interpolation-filters="sRGB"><feDropShadow dx="33554432" stdDeviation="2"/></filter>"##,
+                r##"filter="url(#f)""##,
+            ),
+            "admitted native-shadow range",
+        ),
+        (
+            target(
+                r##"<filter id="f" color-interpolation-filters="sRGB"><feDropShadow stdDeviation="1e999"/></filter>"##,
+                r##"filter="url(#f)""##,
+            ),
+            "finite resolved-filter range",
+        ),
+        (
+            target(
+                r##"<filter id="f" color-interpolation-filters="sRGB"><feDropShadow style="flood-color:red"/></filter>"##,
+                r##"filter="url(#f)""##,
+            ),
+            "CSS flood-color on <feDropShadow>",
+        ),
+        (
+            target(
+                r##"<filter id="f" color-interpolation-filters="sRGB"><feDropShadow flood-color="var(--c)"/></filter>"##,
+                r##"filter="url(#f)""##,
+            ),
+            "feDropShadow flood-color resolves through var()",
+        ),
+        (
+            target(
+                r##"<filter id="f" color-interpolation-filters="sRGB"><feDropShadow flood-color="inherit"/></filter>"##,
+                r##"filter="url(#f)""##,
+            ),
+            "feDropShadow flood-color uses inherit",
+        ),
+        (
+            target(
+                r##"<filter id="f" color-interpolation-filters="sRGB"><feDropShadow flood-color="hsl(0 100% 50%)"/></filter>"##,
+                r##"filter="url(#f)""##,
+            ),
+            "feDropShadow flood-color is outside the admitted color slice",
+        ),
+        (
+            target(
+                r##"<filter id="f" color-interpolation-filters="sRGB"><feDropShadow flood-opacity="calc(1 / 2)"/></filter>"##,
+                r##"filter="url(#f)""##,
+            ),
+            "feDropShadow flood-opacity is a CSS function",
         ),
         (
             target(

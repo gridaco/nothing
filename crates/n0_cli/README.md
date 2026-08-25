@@ -257,10 +257,11 @@ cargo run -p n0_cli --bin n0 -- \
   than matched by another parser.
   The resolved frame carries a checked backend-neutral graph, never the URL or
   authored result names. Its current operations are `feGaussianBlur`, integer
-  `feOffset`, zero-input `feFlood`, all seven `feComposite` operators, and
-  ordered `feMerge`/`feMergeNode`. Inputs resolve to `SourceGraphic`,
-  `SourceAlpha`, the previous result, or an earlier named result before the
-  frame; unknown values follow Chromium's measured first/previous fallback.
+  `feOffset`, zero-input `feFlood`, all seven `feComposite` operators,
+  ordered `feMerge`/`feMergeNode`, and native one-input `feDropShadow`. Inputs
+  resolve to `SourceGraphic`, `SourceAlpha`, the previous result, or an earlier
+  named result before the frame; unknown values follow Chromium's measured
+  first/previous fallback.
   Flood carries initial black/one, admitted sRGB colors and `currentColor`,
   number/percentage opacity with clamping, float alpha multiplication, and a
   hard primitive region. Composite carries `over`, `in`, `out`, `atop`, `xor`,
@@ -285,6 +286,18 @@ cargo run -p n0_cli --bin n0 -- \
   interval between those endpoints after target mapping. Current Chromium
   ignores `edgeMode` on blur (measured, not celled); its global row remains open
   because the attribute also applies to `<feConvolveMatrix>`.
+  Native drop shadow carries its own operation rather than lowering to the
+  blur-plus-offset graph. Missing `dx`, `dy`, and `stdDeviation` use `2`; one
+  or two sigma axes, negative-axis clamping, measured number spellings,
+  source/result routing, both unit systems, hard regions, direct flood values,
+  and safe transforms and composition are admitted. The shared small-kernel
+  patrol applies. Four focused native-shadow patrols also refuse out-of-range
+  parameters, non-quarter/fractional target mappings, paint-server or
+  descendant-opacity source layers, and interior-channel linearRGB shadow
+  colors. The direct sRGB route, exact quarter turns, integer axis mappings,
+  solid source layers, `<use>`, stroke, groups, target opacity, and clip order
+  are Chromium-baked exact. CSS flood ingress, inheritance, wider color/math
+  values, and custom-property substitution retain their existing named rows.
   `filterUnits` and `primitiveUnits` carry their complete case-sensitive
   `userSpaceOnUse | objectBoundingBox` grammars, defaults, and invalid-value
   fallbacks. Filter and primitive regions accept admitted finite numbers,
@@ -301,15 +314,15 @@ cargo run -p n0_cli --bin n0 -- \
   exact byte-domain generated sources from floating source-image coverage. A
   one-input merge has no internal composition stage, so the final restore is
   where its generated-only rounding is enforced. ARM and x86 are exact without
-  a tolerance. Eighty-six
-  Chromium-baked filter cells are exact: twenty-six from the chassis/blur slice
-  and sixty from the shadow-graph rung. The complete corpus is 447 Chromium-baked
-  cells plus 10 sampled frames, with 124 named refusal
-  rows. `feFlood`, `feComposite`, `feMerge`, `feMergeNode`, and `k1`–`k4`
-  close; `feOffset`, `feGaussianBlur`, `<filter>`, `filter`, `in`, `in2`,
-  `operator`, `result`, `dx`, `dy`, `flood-color`, and `flood-opacity` remain
-  open for the named precision, applicability, resource, cascade, or value
-  remainder.
+  a tolerance. One hundred thirteen
+  Chromium-baked filter cells are exact: twenty-six from the chassis/blur slice,
+  sixty from the shadow-graph rung, and twenty-seven from native drop shadow.
+  The complete corpus is 474 Chromium-baked cells plus 10 sampled frames, with
+  128 named refusal rows. `feFlood`, `feComposite`, `feMerge`, `feMergeNode`,
+  `feDropShadow`, and `k1`–`k4` close; `feOffset`, `feGaussianBlur`, `<filter>`,
+  `filter`, `color-interpolation-filters`, `in`, `in2`, `operator`, `result`,
+  `dx`, `dy`, `stdDeviation`, `flood-color`, and `flood-opacity` remain open for
+  the named precision, applicability, resource, cascade, or value remainder.
   A stroke is centred, its width is a cascaded length in either spelling —
   numbers, absolute units, `em`/`rem` against an authored or default
   font-size, percentages against the normalized diagonal, and pure-length
