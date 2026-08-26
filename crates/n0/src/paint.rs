@@ -2126,6 +2126,82 @@ fn deterministic_porter_duff_blender(
     }
 }
 
+fn exact_unorm8_filter_blend_source(expression: &str) -> String {
+    format!(
+        r#"
+float div255(float value) {{
+    return floor((value + 127.0) / 255.0);
+}}
+
+float4 div255(float4 value) {{
+    return floor((value + 127.0) / 255.0);
+}}
+
+float3 div255_3(float3 value) {{
+    return floor((value + 127.0) / 255.0);
+}}
+
+float overlay_channel(float s, float d, float sa, float da) {{
+    float blend = 2.0 * d <= da
+        ? 2.0 * s * d
+        : sa * da - 2.0 * (sa - s) * (da - d);
+    return div255(s * (255.0 - da) + d * (255.0 - sa) + blend);
+}}
+
+float hard_light_channel(float s, float d, float sa, float da) {{
+    float blend = 2.0 * s <= sa
+        ? 2.0 * s * d
+        : sa * da - 2.0 * (sa - s) * (da - d);
+    return div255(s * (255.0 - da) + d * (255.0 - sa) + blend);
+}}
+
+half4 main(half4 src, half4 dst) {{
+    float4 s = floor(float4(src) * 255.0 + 0.5);
+    float4 d = floor(float4(dst) * 255.0 + 0.5);
+    float4 result = {expression};
+    return half4(clamp(result, 0.0, 255.0) / 255.0);
+}}
+"#
+    )
+}
+
+fn deterministic_filter_blender(mode: ResolvedFilterBlend) -> Result<Blender, String> {
+    let (slot, expression) = match mode {
+        ResolvedFilterBlend::Normal => (12, "s + div255(d * (255.0 - s.a))"),
+        ResolvedFilterBlend::Multiply => (
+            13,
+            "div255(s * (255.0 - d.a) + d * (255.0 - s.a) + s * d)",
+        ),
+        ResolvedFilterBlend::Screen => (14, "s + d - div255(s * d)"),
+        ResolvedFilterBlend::Overlay => (
+            15,
+            "float4(overlay_channel(s.r, d.r, s.a, d.a), overlay_channel(s.g, d.g, s.a, d.a), overlay_channel(s.b, d.b, s.a, d.a), s.a + div255(d.a * (255.0 - s.a)))",
+        ),
+        ResolvedFilterBlend::Darken => (
+            16,
+            "float4(s.rgb + d.rgb - div255_3(max(s.rgb * d.a, d.rgb * s.a)), s.a + div255(d.a * (255.0 - s.a)))",
+        ),
+        ResolvedFilterBlend::Lighten => (
+            17,
+            "float4(s.rgb + d.rgb - div255_3(min(s.rgb * d.a, d.rgb * s.a)), s.a + div255(d.a * (255.0 - s.a)))",
+        ),
+        ResolvedFilterBlend::HardLight => (
+            18,
+            "float4(hard_light_channel(s.r, d.r, s.a, d.a), hard_light_channel(s.g, d.g, s.a, d.a), hard_light_channel(s.b, d.b, s.a, d.a), s.a + div255(d.a * (255.0 - s.a)))",
+        ),
+        ResolvedFilterBlend::Difference => (
+            19,
+            "float4(s.rgb + d.rgb - 2.0 * div255_3(min(s.rgb * d.a, d.rgb * s.a)), s.a + div255(d.a * (255.0 - s.a)))",
+        ),
+        ResolvedFilterBlend::Exclusion => (
+            20,
+            "float4(s.rgb + d.rgb - 2.0 * div255_3(s.rgb * d.rgb), s.a + div255(d.a * (255.0 - s.a)))",
+        ),
+        _ => return Ok(sk_filter_blend_mode(mode).into()),
+    };
+    cached_filter_blender(slot, || exact_unorm8_filter_blend_source(expression))
+}
+
 /// Build one checked private filter graph and its final-composition policy.
 fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
     let source = BuiltFilterResult {
@@ -2314,7 +2390,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 let background = inputs.pop().expect("blend has two checked inputs");
                 let foreground = inputs.pop().expect("blend has two checked inputs");
                 let filter = skia_safe::image_filters::blend(
-                    sk_filter_blend_mode(mode),
+                    deterministic_filter_blender(mode)?,
                     background.image_filter,
                     foreground.image_filter,
                     crop,
