@@ -498,8 +498,8 @@ cargo run -p n0_cli --bin n0 -- \
   Initializing Skia before drawlist replay selects the fused AVX2 path on x86.
   The 700-cell baseline is byte-exact on ARM and hosted x86 without a
   tolerance. The forty-one-cell convolution rung keeps the complete 741-cell
-  gate byte-exact on the current ARM host without a new tolerance.
-  All three hundred eighty Chromium-baked filter cells are exact on that host.
+  gate byte-exact on ARM and hosted x86 without a new tolerance. All three
+  hundred eighty Chromium-baked filter cells are exact on both hosts.
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 32 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, and 41 convolution-rung cells. The complete corpus
