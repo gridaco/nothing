@@ -2047,9 +2047,9 @@
     {
       "id": "svg-filter-convolve-target-mask",
       "source": "svg-filter-convolve-target-mask.svg",
-      "source_sha256": "50f9ca5f5555b8a3b2e09d021fdb765a79fb0e98b39a9168c3d19c5dea670307",
+      "source_sha256": "addf9b198a020cfc6816171ff0d81e163065ef21743ed928a003f4cb20afa9b5",
       "oracle": "chromium/svg-filter-convolve-target-mask.png",
-      "oracle_sha256": "339aff690fc075b9aba5a07871dd1fd7a28a4aa2c02694a9ddb2a174e87f9815",
+      "oracle_sha256": "04d50021b6b09bb02808657c1df7a222347d4f62e32e28d11955167407e2b5ad",
       "width": 64,
       "height": 64
     },
