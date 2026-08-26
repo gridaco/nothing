@@ -1423,7 +1423,18 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [x] `<defs>`
 - [x] `<desc>`
 - [x] `<ellipse>`
-- [ ] `<feBlend>`
+- [x] `<feBlend>`
+
+> **2026-08-26 close:** `feBlend` carries the complete static sixteen-mode
+> Compositing Level 1 vocabulary over two checked image inputs. Chromium-baked
+> evidence covers opaque and translucent arithmetic, foreground/backdrop
+> order, graph fallbacks and result reuse, both filter color spaces, hard
+> regions and primitive units, source shapes and paint servers, `<use>`,
+> `viewBox`, safe mappings, opacity and mask order, and neighboring admitted
+> filter operations. General target mappings, geometric clipping, and the
+> independently discovered translucent-source multi-input composition class
+> refuse by three stable precision names before paint. Shared graph, region,
+> interpolation, filter-resource, and dynamics rows remain open.
 - [x] `<feColorMatrix>`
 - [x] `<feComponentTransfer>`
 - [x] `<feComposite>`
@@ -1889,7 +1900,15 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 
 - [ ] `media`
 - [ ] `method`
-- [ ] `mode`
+- [x] `mode`
+
+> **2026-08-26 close:** `mode` applies only to `feBlend` and carries the
+> complete case-sensitive `normal | multiply | screen | overlay | darken |
+> lighten | color-dodge | color-burn | hard-light | soft-light | difference |
+> exclusion | hue | saturation | color | luminosity` grammar. Missing, empty,
+> invalid, wrong-case, whitespace-padded, legacy camelCase, CSS-wide, and
+> draft-only spellings select the initial `normal`; Chromium ignores the
+> sampled `no-composite` spelling without changing a valid mode.
 - [ ] `numOctaves`
 - [ ] `offset`
 - [ ] `onabort`

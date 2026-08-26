@@ -135,11 +135,11 @@ use cg::{CGColor, CGColor32F};
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
-    ClipGeometry, ClipLayer, ClipPath, FillRule, Filter, FilterChannelTables, FilterColorSpace,
-    FilterComposite, FilterInput, FilterNode, FilterPrimitive, FilterProgram, Frame, FrameItem,
-    FrameItems, FrameItemsError, FrameNode, Geometry, Identity, Mask, MaskMode, PaintAlphaFactor,
-    PaintStack, PathData, Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap,
-    StrokeDash, StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, VisualRef,
+    ClipGeometry, ClipLayer, ClipPath, FillRule, Filter, FilterBlend, FilterChannelTables,
+    FilterColorSpace, FilterComposite, FilterInput, FilterNode, FilterPrimitive, FilterProgram,
+    Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry, Identity, Mask, MaskMode,
+    PaintAlphaFactor, PaintStack, PathData, Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke,
+    StrokeCap, StrokeDash, StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, VisualRef,
 };
 use std::sync::Arc;
 
@@ -4957,6 +4957,30 @@ mod filter_resource {
         }
     }
 
+    fn blend_mode(element: HtmlElement<'_>) -> FilterBlend {
+        match get_attr(element, "mode").as_deref() {
+            Some("multiply") => FilterBlend::Multiply,
+            Some("screen") => FilterBlend::Screen,
+            Some("overlay") => FilterBlend::Overlay,
+            Some("darken") => FilterBlend::Darken,
+            Some("lighten") => FilterBlend::Lighten,
+            Some("color-dodge") => FilterBlend::ColorDodge,
+            Some("color-burn") => FilterBlend::ColorBurn,
+            Some("hard-light") => FilterBlend::HardLight,
+            Some("soft-light") => FilterBlend::SoftLight,
+            Some("difference") => FilterBlend::Difference,
+            Some("exclusion") => FilterBlend::Exclusion,
+            Some("hue") => FilterBlend::Hue,
+            Some("saturation") => FilterBlend::Saturation,
+            Some("color") => FilterBlend::Color,
+            Some("luminosity") => FilterBlend::Luminosity,
+            // Chromium's SVG enumeration is case-sensitive and does not trim.
+            // Missing, empty, invalid, CSS-wide, and draft-only spellings all
+            // retain the initial normal member.
+            _ => FilterBlend::Normal,
+        }
+    }
+
     enum ComponentTransferFunction {
         Identity,
         Table(Vec<f32>),
@@ -5459,6 +5483,79 @@ mod filter_resource {
             && ty.fract() == 0.0
     }
 
+    /// Axis maps and exact quarter turns reproduce Chromium for both
+    /// source-derived and generated blend inputs. A general rotation changes
+    /// the backend's filtered-layer sampling even when neither input reads the
+    /// target, so this is a target mapping boundary rather than a source fact.
+    fn blend_mapping_is_admitted(target_to_frame: AffineTransform) -> bool {
+        let [[a, c, _], [b, d, _]] = target_to_frame.matrix;
+        let axis_or_quarter_turn = (b == 0.0 && c == 0.0) || (a == 0.0 && d == 0.0);
+        axis_or_quarter_turn && [a, b, c, d].into_iter().all(f32::is_finite)
+    }
+
+    fn filter_crosses_clip_path(target: HtmlElement<'_>) -> Result<bool, CompileError> {
+        let mut current = Some(target);
+        while let Some(element) = current {
+            if element_has_computed_clip_path(element)? {
+                return Ok(true);
+            }
+            current = element.traversal_parent();
+        }
+        Ok(false)
+    }
+
+    /// Whether the isolated source contains authored partial alpha before the
+    /// filter runs. The target's own `opacity` is deliberately excluded: SVG
+    /// applies it after filtering. Descendant opacity, paint alpha, and
+    /// fill/stroke opacity are source-image facts.
+    fn filter_source_has_authored_translucency(
+        target: HtmlElement<'_>,
+    ) -> Result<bool, CompileError> {
+        let mut stack = vec![(target, true)];
+        while let Some((element, is_target)) = stack.pop() {
+            let data = element
+                .borrow_data()
+                .ok_or(CompileError::MissingComputedStyle)?;
+            let style: &ComputedValues = data.styles.primary();
+            if !is_target && style.clone_opacity().clamp(0.0, 1.0) != 1.0 {
+                return Ok(true);
+            }
+
+            if matches!(
+                element.local_name_string().as_str(),
+                "rect" | "circle" | "ellipse" | "path" | "line" | "polygon" | "polyline" | "text"
+            ) {
+                for (property, opacity) in [
+                    (PaintProperty::Fill, style.clone_fill_opacity()),
+                    (PaintProperty::Stroke, style.clone_stroke_opacity()),
+                ] {
+                    let SVGOpacity::Opacity(opacity) = opacity else {
+                        return Ok(true);
+                    };
+                    let paint = computed_paint(element, property)?;
+                    match paint.kind {
+                        SVGPaintKind::None => {}
+                        SVGPaintKind::Color(color) => {
+                            if opacity != 1.0 || style.resolve_color(&color).alpha != 1.0 {
+                                return Ok(true);
+                            }
+                        }
+                        SVGPaintKind::PaintServer(_)
+                        | SVGPaintKind::ContextFill
+                        | SVGPaintKind::ContextStroke => return Ok(true),
+                    }
+                }
+            }
+
+            let mut child = element.first_element_child();
+            while let Some(next) = child {
+                stack.push((next, false));
+                child = next.next_element_sibling();
+            }
+        }
+        Ok(false)
+    }
+
     fn compile_graph(
         filter: HtmlElement<'_>,
         target: HtmlElement<'_>,
@@ -5545,6 +5642,17 @@ mod filter_resource {
                         vec![input, input2],
                         FilterPrimitive::Composite {
                             operator: composite_operator(element),
+                        },
+                    )
+                }
+                "feBlend" => {
+                    patrol_color_style(element)?;
+                    let input = resolve_input(element, "in", previous, &names);
+                    let input2 = resolve_input(element, "in2", previous, &names);
+                    (
+                        vec![input, input2],
+                        FilterPrimitive::Blend {
+                            mode: blend_mode(element),
                         },
                     )
                 }
@@ -5701,6 +5809,8 @@ mod filter_resource {
         let mut source_dependencies = Vec::with_capacity(nodes.len());
         let mut has_source_dependent_color_matrix = false;
         let mut has_source_dependent_component_transfer = false;
+        let mut has_source_dependent_multi_input = false;
+        let mut has_blend = false;
         for node in &nodes {
             let source_dependent = node.inputs().iter().any(|input| match *input {
                 FilterInput::Source | FilterInput::SourceAlpha => true,
@@ -5714,7 +5824,35 @@ mod filter_resource {
             {
                 has_source_dependent_component_transfer = true;
             }
+            if source_dependent
+                && (matches!(node.primitive(), FilterPrimitive::Composite { .. })
+                    || matches!(node.primitive(), FilterPrimitive::Merge)
+                        && node.inputs().len() > 1)
+            {
+                has_source_dependent_multi_input = true;
+            }
+            has_blend |= matches!(node.primitive(), FilterPrimitive::Blend { .. });
             source_dependencies.push(source_dependent);
+        }
+        if has_blend {
+            if !blend_mapping_is_admitted(target_to_frame) {
+                return Err(CompileError::UnsupportedFilter(
+                    "feBlend's target mapping crosses the pinned-backend blend-filter transform precision boundary"
+                        .to_string(),
+                ));
+            }
+            if filter_crosses_clip_path(target)? {
+                return Err(CompileError::UnsupportedFilter(
+                    "feBlend crosses the pinned-backend filtered clip-path precision boundary"
+                        .to_string(),
+                ));
+            }
+        }
+        if has_source_dependent_multi_input && filter_source_has_authored_translucency(target)? {
+            return Err(CompileError::UnsupportedFilter(
+                "a source-derived multi-input filter graph crosses the pinned-backend translucent-source composition precision boundary"
+                    .to_string(),
+            ));
         }
         if has_source_dependent_color_matrix {
             if !color_matrix_source_is_admitted(target)? {

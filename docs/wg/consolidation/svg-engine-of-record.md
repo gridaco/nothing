@@ -63,25 +63,25 @@ from the dated addenda below:
   clips, nesting, transforms, and effect ordering);
   same-document SVG filters on non-root admitted targets through a checked
   resolved graph of safe-kernel `feGaussianBlur`, integer `feOffset`,
-  zero-input `feFlood`, all `feComposite` operators, ordered
-  `feMerge`/`feMergeNode`, native one-input `feDropShadow`, one-input
-  `feColorMatrix`, and one-input `feComponentTransfer` with its direct
-  `feFuncR`/`feFuncG`/`feFuncB`/`feFuncA` children; graph inputs resolve from
-  `SourceGraphic`/`SourceAlpha`/prior and named results, with both filter
+  zero-input `feFlood`, all `feComposite` operators, all sixteen `feBlend`
+  modes, ordered `feMerge`/`feMergeNode`, native one-input `feDropShadow`,
+  one-input `feColorMatrix`, and one-input `feComponentTransfer` with its
+  direct `feFuncR`/`feFuncG`/`feFuncB`/`feFuncA` children; graph inputs resolve
+  from `SourceGraphic`/`SourceAlpha`/prior and named results, with both filter
   coordinate systems and color spaces, hard regions, nesting, transforms,
   `<use>`, and the established effect order;
   one declared-font, single-run `<text>` profile; viewBox-only root sizing with
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 534 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 572 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 134 rows.
+  register has 137 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -3120,3 +3120,96 @@ primitive corpus moves from 502 to 534 cells; the ten exact-time sampled frames
 are unchanged. Exactly ten checklist rows tick: the five elements and five
 function-parameter attributes named above. This records no conformance score
 and takes no FLIP action.
+
+## Rung: `feBlend` (2026-08-26)
+
+The verdict is CLOSE/SPLIT. `<feBlend>` closes for its complete static
+Compositing Level 1 behavior, and the element-specific `mode` attribute closes
+with it. The shared `in`, `in2`, `result`, primitive-region,
+`color-interpolation-filters`, `filter`, and `<filter>` rows remain open for
+their wider primitive applicability, cascade, resource, host, or dynamics
+surface. CSS `mix-blend-mode`, filter-function syntax, animation, and later
+draft additions are separate surfaces. No CSS property row closes.
+
+The resolved graph carries one checked two-input blend operation and one
+source-neutral sixteen-member mode. Its first input is the foreground and its
+second is the backdrop. Authored element names, mode text, input names, result
+names, document nodes, and backend objects are all resolved before that
+boundary. The filter blend vocabulary remains distinct from paint-stack or
+layer blending even where their mode names coincide.
+
+Chromium 149.0.7827.55 establishes the source grammar. The complete
+case-sensitive set is `normal`, `multiply`, `screen`, `overlay`, `darken`,
+`lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`,
+`difference`, `exclusion`, `hue`, `saturation`, `color`, and `luminosity`.
+Missing, empty, invalid, wrong-case, whitespace-padded, legacy camelCase,
+`plus-lighter`, and CSS-wide spellings all select the initial `normal`.
+Sampled empty and valued `no-composite` spellings leave a valid `multiply`
+unchanged. The last two findings are Chromium drops carried by committed
+controls under the valid-drop precedent; neither draft spelling expands the
+resolved vocabulary.
+
+The arithmetic audit uses asymmetric opaque and translucent mode atlases. All
+fifteen non-normal modes differ from normal on the translucent generated-input
+control across all 4,096 pixels, with maximum channel deltas from 11 through
+73. Exact center values distinguish every mode, including non-separable hue,
+saturation, color, and luminosity behavior. Native backend blend arithmetic is
+byte-exact to Chromium for all sixteen modes in both atlases and in the
+grammar control; no custom formula or tolerance was introduced.
+
+Graph routing remains common to the checked filter program. `in` is the
+foreground and `in2` the backdrop: swapping an overlay changes all 4,096
+pixels at maximum delta 38. A missing, empty, or unknown input name selects
+the previous result, or `SourceGraphic` when the blend is first. The last
+duplicate `result` name wins and a blend result can feed later operations.
+`SourceAlpha`, generated flood inputs, hard primitive crops, primitive-unit
+mapping, and explicit result reuse all have exact committed evidence.
+
+Missing `color-interpolation-filters` equals explicit linearRGB. Explicit sRGB
+changes the sampled screen blend across all 4,096 pixels at maximum delta 13,
+and a primitive-level value overrides the filter ancestor. Exact cells also
+cover direct solid source, path, stroke, gradient, group, `<use>`, non-uniform
+`viewBox`, fractional axis translation, fractional axis scale, exact quarter
+turn, target opacity, target mask, and blend ordering before and after blur,
+offset, component transfer, generated composite, and generated merge.
+
+The precision audit found three silent classes and registered each before the
+rows closed. Axis maps, fractional translations and scales, and exact quarter
+turns are exact. A sampled 17-degree source-derived blend differs by 358
+pixels at maximum delta 212; generated-only controls differ by 104–108 pixels
+at maximum delta 179/153. The mapping patrol therefore belongs to the filtered
+blend output, not source rasterization, and conservatively admits only axis
+maps and exact quarter turns (measured, not separately celled).
+
+A circular geometric clip changes 92 generated-only pixels and 100
+source-derived pixels, both at maximum delta 85. Moving the same clip to an
+ancestor is identical in Chromium. Axis-aligned rectangular clip controls are
+exact, but the current clip patrol deliberately over-refuses the whole
+geometric-clip class until a stable narrower boundary is known (measured, not
+celled). The pre-existing same-scope clip-plus-partial-opacity patrol remains
+operation-independent and is not relabeled as blend behavior.
+
+The third class is independently generic. A translucent `SourceGraphic`
+entering a later two-input composite or multi-input merge can differ even with
+no blend at all: the no-blend `atop` control changes 2,147 pixels at maximum
+delta 3. Blend→`atop` changes 1,925 at delta 3 and blend→merge changes nine at
+delta 1, while generated-only controls are exact. One translucent-source
+multi-input refusal therefore guards the underlying composition boundary for
+every filter graph rather than installing a blend-shaped exception (measured,
+not celled).
+
+Thirty-eight Chromium cells carry the admitted slice, all byte-exact. They
+cover the complete mode vocabulary and fallback grammar, both operand orders,
+input defaults and unknown-name fallback, SourceAlpha, result shadowing and
+reuse, both color spaces and local override, region union and crop, both
+primitive unit systems, the source and composition profiles above, and safe
+neighboring operations. Every scratch and committed candidate rendered
+through both actual command admissions. Gate sensitivity was proved by
+temporarily mapping `multiply` to `normal`: `just gate` rejected four named
+cells, with 256–512 differing pixels and maximum channel delta 202. Restoring
+the mode returned all 572 cells to green.
+
+Three focused rows join the refusal register, moving it from 134 to 137. The
+primitive corpus moves from 534 to 572 cells; the ten exact-time sampled frames
+are unchanged. Exactly two checklist rows tick: `<feBlend>` and `mode`. This
+records no conformance score and takes no FLIP action.

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs><filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB" >
+    <feFlood flood-color="#1fadd6" flood-opacity=".47" result="bg"/><feBlend mode="soft-light" in="SourceGraphic" in2="bg" result="mixed"/>
+  </filter></defs>
+  <path d="M8 9H56V55H8Z M20 20L44 44M44 20L20 44" fill="#c43779" fill-rule="evenodd" fill-opacity=".62" filter="url(#f)"/>
+</svg>

@@ -11,8 +11,8 @@ mod support;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
-    Filter, FilterColorSpace, FilterComposite, FilterInput, FilterPrimitive, Frame, FrameItem,
-    ScopeEffect,
+    Filter, FilterBlend, FilterColorSpace, FilterComposite, FilterInput, FilterPrimitive, Frame,
+    FrameItem, ScopeEffect,
 };
 use support::render_through_n0;
 use websem::{DegradationAction, InitialViewport, SvgFrameSource};
@@ -416,6 +416,134 @@ fn component_transfer_children_lower_to_four_exact_byte_tables() {
         &identity,
         "the last same-channel child wins"
     );
+}
+
+#[test]
+fn blend_modes_lower_to_one_checked_two_input_operation() {
+    let mode = |attribute: Option<&str>| {
+        let attribute = attribute
+            .map(|value| format!(r##" mode="{value}""##))
+            .unwrap_or_default();
+        let frame = admit_both(&document(&format!(
+            r##"  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"
+          color-interpolation-filters="sRGB">
+    <feFlood flood-color="#1fadd6" result="bg"/>
+    <feFlood flood-color="#c43779" result="fg"/>
+    <feBlend in="fg" in2="bg"{attribute}/>
+  </filter>
+  <rect width="64" height="64" filter="url(#f)"/>"##
+        )));
+        let filter = resolved_filter(&frame);
+        let node = filter.program().iter().last().expect("one blend output");
+        assert_eq!(node.inputs(), [FilterInput::Node(1), FilterInput::Node(0)]);
+        assert_eq!(node.color_space(), FilterColorSpace::Srgb);
+        let FilterPrimitive::Blend { mode } = node.primitive() else {
+            panic!("the authored blend vocabulary resolves before the frame")
+        };
+        mode
+    };
+
+    for (name, expected) in [
+        ("normal", FilterBlend::Normal),
+        ("multiply", FilterBlend::Multiply),
+        ("screen", FilterBlend::Screen),
+        ("overlay", FilterBlend::Overlay),
+        ("darken", FilterBlend::Darken),
+        ("lighten", FilterBlend::Lighten),
+        ("color-dodge", FilterBlend::ColorDodge),
+        ("color-burn", FilterBlend::ColorBurn),
+        ("hard-light", FilterBlend::HardLight),
+        ("soft-light", FilterBlend::SoftLight),
+        ("difference", FilterBlend::Difference),
+        ("exclusion", FilterBlend::Exclusion),
+        ("hue", FilterBlend::Hue),
+        ("saturation", FilterBlend::Saturation),
+        ("color", FilterBlend::Color),
+        ("luminosity", FilterBlend::Luminosity),
+    ] {
+        assert_eq!(mode(Some(name)), expected, "{name}");
+    }
+    for fallback in [
+        None,
+        Some(""),
+        Some("bogus"),
+        Some("Multiply"),
+        Some(" multiply "),
+        Some("colorDodge"),
+        Some("plus-lighter"),
+        Some("initial"),
+        Some("inherit"),
+        Some("unset"),
+        Some("revert"),
+        Some("revert-layer"),
+    ] {
+        assert_eq!(mode(fallback), FilterBlend::Normal, "{fallback:?}");
+    }
+}
+
+#[test]
+fn blend_precision_patrols_name_mapping_and_clip_boundaries() {
+    for (source, reason) in [
+        (
+            document(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+    <feFlood flood-color="#1fadd6" result="bg"/><feFlood flood-color="#c43779" result="fg"/>
+    <feBlend in="fg" in2="bg" mode="soft-light"/>
+  </filter>
+  <rect x="8" y="9" width="48" height="46" transform="rotate(17 32 32)" filter="url(#f)"/>"##,
+            ),
+            "blend-filter transform precision boundary",
+        ),
+        (
+            document(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <defs><clipPath id="c"><circle cx="32" cy="32" r="19"/></clipPath></defs>
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+    <feFlood flood-color="#1fadd6" result="bg"/><feFlood flood-color="#c43779" result="fg"/>
+    <feBlend in="fg" in2="bg" mode="soft-light"/>
+  </filter>
+  <rect x="8" y="9" width="48" height="46" clip-path="url(#c)" filter="url(#f)"/>"##,
+            ),
+            "filtered clip-path precision boundary",
+        ),
+    ] {
+        assert_target_skip(&source, reason);
+    }
+
+    admit_both(&document(
+        r##"  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+    <feFlood flood-color="#1fadd6" result="bg"/><feFlood flood-color="#c43779" result="fg"/>
+    <feBlend in="fg" in2="bg" mode="soft-light"/>
+  </filter>
+  <rect x="8" y="9" width="48" height="46" transform="translate(.375 .625) scale(.875)" filter="url(#f)"/>"##,
+    ));
+}
+
+#[test]
+fn translucent_source_multi_input_precision_boundary_is_named() {
+    assert_target_skip(
+        &document(
+            r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+    <feFlood flood-color="#e6a817" flood-opacity=".34" result="gold"/>
+    <feComposite in="SourceGraphic" in2="gold" operator="atop"/>
+  </filter>
+  <rect x="8" y="9" width="48" height="46" rx="7" fill="#c43779" fill-opacity=".62" filter="url(#f)"/>"##,
+        ),
+        "translucent-source composition precision boundary",
+    );
+
+    admit_both(&document(
+        r##"  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+    <feFlood flood-color="#1fadd6" flood-opacity=".47" result="bg"/>
+    <feFlood flood-color="#c43779" flood-opacity=".62" result="fg"/>
+    <feBlend in="fg" in2="bg" mode="soft-light" result="mixed"/>
+    <feFlood flood-color="#e6a817" flood-opacity=".34" result="gold"/>
+    <feComposite in="mixed" in2="gold" operator="atop"/>
+  </filter>
+  <rect x="8" y="9" width="48" height="46" rx="7" fill="#c43779" fill-opacity=".62" filter="url(#f)"/>"##,
+    ));
 }
 
 #[test]

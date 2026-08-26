@@ -5,8 +5,8 @@ use std::sync::Arc;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
-    Filter, FilterChannelTables, FilterColorSpace, FilterComposite, FilterError, FilterInput,
-    FilterNode, FilterPrimitive, FilterProgram, FilterProgramError, MAX_FILTER_NODES,
+    Filter, FilterBlend, FilterChannelTables, FilterColorSpace, FilterComposite, FilterError,
+    FilterInput, FilterNode, FilterPrimitive, FilterProgram, FilterProgramError, MAX_FILTER_NODES,
 };
 
 fn blur(input: FilterInput, sigma_x: f32, sigma_y: f32) -> FilterNode {
@@ -128,6 +128,54 @@ fn operation_arities_and_all_input_edges_are_checked() {
         FilterProgram::new(Arc::from([source, bad_merge])),
         Err(FilterProgramError::InputIsNotEarlier { node: 1, input: 2 })
     );
+}
+
+#[test]
+fn blend_has_two_ordered_inputs_and_the_closed_mode_vocabulary() {
+    let region = Rectangle::from_xywh(0.0, 0.0, 10.0, 10.0);
+    let modes = [
+        FilterBlend::Normal,
+        FilterBlend::Multiply,
+        FilterBlend::Screen,
+        FilterBlend::Overlay,
+        FilterBlend::Darken,
+        FilterBlend::Lighten,
+        FilterBlend::ColorDodge,
+        FilterBlend::ColorBurn,
+        FilterBlend::HardLight,
+        FilterBlend::SoftLight,
+        FilterBlend::Difference,
+        FilterBlend::Exclusion,
+        FilterBlend::Hue,
+        FilterBlend::Saturation,
+        FilterBlend::Color,
+        FilterBlend::Luminosity,
+    ];
+    assert_eq!(modes.len(), 16);
+
+    for mode in modes {
+        let blend = |inputs| {
+            FilterNode::new(
+                inputs,
+                region,
+                FilterColorSpace::Srgb,
+                FilterPrimitive::Blend { mode },
+            )
+        };
+        assert_eq!(
+            FilterProgram::new(Arc::from([blend(Arc::from([FilterInput::Source]))])),
+            Err(FilterProgramError::InvalidInputCount {
+                node: 0,
+                expected: 2,
+                actual: 1,
+            })
+        );
+        FilterProgram::new(Arc::from([blend(Arc::from([
+            FilterInput::Source,
+            FilterInput::SourceAlpha,
+        ]))]))
+        .expect("foreground and backdrop are a checked two-input blend");
+    }
 }
 
 #[test]

@@ -23,16 +23,16 @@ use n0_model::model::{
 };
 use n0_model::path::ResolvedPathArtifact;
 use rframe::{
-    ClipPath, FilterColorSpace, FilterComposite, FilterInput, FilterPrimitive, FilterProgram,
-    Frame, FrameItem, Geometry, MaskMode, PaintStack, ScopeEffect, VisualRef,
+    ClipPath, FilterBlend, FilterColorSpace, FilterComposite, FilterInput, FilterPrimitive,
+    FilterProgram, Frame, FrameItem, Geometry, MaskMode, PaintStack, ScopeEffect, VisualRef,
 };
 
 use crate::damage::{diff_inputs, DamageOwner, FrameDamageInput};
 use crate::drawlist::{
     DrawList, GlyphlessOwnerSlot, Item, ItemKind, PostPaintOpacity, ResolvedClipGeometry,
     ResolvedClipGeometryKind, ResolvedClipLayer, ResolvedClipPath, ResolvedFilter,
-    ResolvedFilterColorSpace, ResolvedFilterComposite, ResolvedFilterInput, ResolvedFilterNode,
-    ResolvedFilterPrimitive, ResolvedMaskMode, StrokeDashPhase,
+    ResolvedFilterBlend, ResolvedFilterColorSpace, ResolvedFilterComposite, ResolvedFilterInput,
+    ResolvedFilterNode, ResolvedFilterPrimitive, ResolvedMaskMode, StrokeDashPhase,
 };
 use crate::frame::FrameExecutionError;
 use crate::paint::PaintCtx;
@@ -907,6 +907,26 @@ fn compile_filter(program: &FilterProgram, region: math2::Rectangle) -> Resolved
                         FilterComposite::Arithmetic { k1, k2, k3, k4 } => {
                             ResolvedFilterComposite::Arithmetic { k1, k2, k3, k4 }
                         }
+                    },
+                },
+                FilterPrimitive::Blend { mode } => ResolvedFilterPrimitive::Blend {
+                    mode: match mode {
+                        FilterBlend::Normal => ResolvedFilterBlend::Normal,
+                        FilterBlend::Multiply => ResolvedFilterBlend::Multiply,
+                        FilterBlend::Screen => ResolvedFilterBlend::Screen,
+                        FilterBlend::Overlay => ResolvedFilterBlend::Overlay,
+                        FilterBlend::Darken => ResolvedFilterBlend::Darken,
+                        FilterBlend::Lighten => ResolvedFilterBlend::Lighten,
+                        FilterBlend::ColorDodge => ResolvedFilterBlend::ColorDodge,
+                        FilterBlend::ColorBurn => ResolvedFilterBlend::ColorBurn,
+                        FilterBlend::HardLight => ResolvedFilterBlend::HardLight,
+                        FilterBlend::SoftLight => ResolvedFilterBlend::SoftLight,
+                        FilterBlend::Difference => ResolvedFilterBlend::Difference,
+                        FilterBlend::Exclusion => ResolvedFilterBlend::Exclusion,
+                        FilterBlend::Hue => ResolvedFilterBlend::Hue,
+                        FilterBlend::Saturation => ResolvedFilterBlend::Saturation,
+                        FilterBlend::Color => ResolvedFilterBlend::Color,
+                        FilterBlend::Luminosity => ResolvedFilterBlend::Luminosity,
                     },
                 },
                 FilterPrimitive::DropShadow {

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs><filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="objectBoundingBox"
+       x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+       <feFlood x="0" y="0" width="1" height="1" flood-color="#1fadd6" result="bg"/>
+       <feFlood x=".25" y=".25" width=".5" height=".5" flood-color="#c43779" result="fg"/>
+       <feBlend x="0" y="0" width="1" height="1" mode="screen" in="fg" in2="bg"/>
+     </filter></defs>
+  <rect x="16" y="16" width="32" height="32" fill="#111" filter="url(#f)"/>
+</svg>

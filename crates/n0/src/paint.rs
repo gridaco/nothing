@@ -35,9 +35,9 @@ use skia_safe::{
 
 use crate::drawlist::{
     DrawList, ItemKind, PostPaintOpacity, ResolvedClipGeometry, ResolvedClipGeometryKind,
-    ResolvedClipLayer, ResolvedClipPath, ResolvedFilter, ResolvedFilterColorSpace,
-    ResolvedFilterComposite, ResolvedFilterInput, ResolvedFilterPrimitive, ResolvedMaskMode,
-    StrokeDashPhase,
+    ResolvedClipLayer, ResolvedClipPath, ResolvedFilter, ResolvedFilterBlend,
+    ResolvedFilterColorSpace, ResolvedFilterComposite, ResolvedFilterInput,
+    ResolvedFilterPrimitive, ResolvedMaskMode, StrokeDashPhase,
 };
 
 /// The gradient family whose local matrix could not be represented by the
@@ -514,6 +514,27 @@ fn sk_blend_mode(mode: BlendMode) -> skia_safe::BlendMode {
         BlendMode::Saturation => skia_safe::BlendMode::Saturation,
         BlendMode::Color => skia_safe::BlendMode::Color,
         BlendMode::Luminosity => skia_safe::BlendMode::Luminosity,
+    }
+}
+
+fn sk_filter_blend_mode(mode: ResolvedFilterBlend) -> skia_safe::BlendMode {
+    match mode {
+        ResolvedFilterBlend::Normal => skia_safe::BlendMode::SrcOver,
+        ResolvedFilterBlend::Multiply => skia_safe::BlendMode::Multiply,
+        ResolvedFilterBlend::Screen => skia_safe::BlendMode::Screen,
+        ResolvedFilterBlend::Overlay => skia_safe::BlendMode::Overlay,
+        ResolvedFilterBlend::Darken => skia_safe::BlendMode::Darken,
+        ResolvedFilterBlend::Lighten => skia_safe::BlendMode::Lighten,
+        ResolvedFilterBlend::ColorDodge => skia_safe::BlendMode::ColorDodge,
+        ResolvedFilterBlend::ColorBurn => skia_safe::BlendMode::ColorBurn,
+        ResolvedFilterBlend::HardLight => skia_safe::BlendMode::HardLight,
+        ResolvedFilterBlend::SoftLight => skia_safe::BlendMode::SoftLight,
+        ResolvedFilterBlend::Difference => skia_safe::BlendMode::Difference,
+        ResolvedFilterBlend::Exclusion => skia_safe::BlendMode::Exclusion,
+        ResolvedFilterBlend::Hue => skia_safe::BlendMode::Hue,
+        ResolvedFilterBlend::Saturation => skia_safe::BlendMode::Saturation,
+        ResolvedFilterBlend::Color => skia_safe::BlendMode::Color,
+        ResolvedFilterBlend::Luminosity => skia_safe::BlendMode::Luminosity,
     }
 }
 
@@ -2282,6 +2303,23 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 .ok_or_else(|| {
                     "the backend could not construct a composite operation".to_string()
                 })?;
+                (
+                    Some(filter),
+                    node.color_space,
+                    source_dependent,
+                    requires_exact_restore,
+                )
+            }
+            ResolvedFilterPrimitive::Blend { mode } => {
+                let background = inputs.pop().expect("blend has two checked inputs");
+                let foreground = inputs.pop().expect("blend has two checked inputs");
+                let filter = skia_safe::image_filters::blend(
+                    sk_filter_blend_mode(mode),
+                    background.image_filter,
+                    foreground.image_filter,
+                    crop,
+                )
+                .ok_or_else(|| "the backend could not construct a blend operation".to_string())?;
                 (
                     Some(filter),
                     node.color_space,

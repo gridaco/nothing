@@ -101,6 +101,16 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "display: contents",
     ),
     (
+        "svg-filter-blend-clip-precision",
+        DeclaredByBestEffort,
+        "filtered clip-path precision boundary",
+    ),
+    (
+        "svg-filter-blend-transform-precision",
+        DeclaredByBestEffort,
+        "blend-filter transform precision boundary",
+    ),
+    (
         "svg-filter-color-css",
         DeclaredByBestEffort,
         "CSS color-interpolation-filters",
@@ -250,6 +260,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     ("svg-filter-region-unit", DeclaredByBestEffort, "em unit"),
     ("svg-filter-region-var", DeclaredByBestEffort, "uses var()"),
     ("svg-filter-root", BothRefuse, "root <svg>"),
+    (
+        "svg-filter-translucent-source-composition-precision",
+        DeclaredByBestEffort,
+        "translucent-source composition precision boundary",
+    ),
     (
         "svg-foreign-object",
         DeclaredByBestEffort,

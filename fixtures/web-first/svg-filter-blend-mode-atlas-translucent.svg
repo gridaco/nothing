@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs><filter id="m0" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="0" y="0" width="16" height="16" color-interpolation-filters="sRGB">
+      <feFlood x="0" y="0" width="16" height="16" flood-color="#1fadd6" flood-opacity=".76" result="bg"/>
+      <feBlend x="0" y="0" width="16" height="16" mode="normal" in="SourceGraphic" in2="bg"/>
+    </filter><filter id="m1" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="16" y="0" width="16" height="16" color-interpolation-filters="sRGB">
+      <feFlood x="16" y="0" width="16" height="16" flood-color="#1fadd6" flood-opacity=".76" result="bg"/>
+      <feBlend x="16" y="0" width="16" height="16" mode="multiply" in="SourceGraphic" in2="bg"/>
+    </filter><filter id="m2" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="32" y="0" width="16" height="16" color-interpolation-filters="sRGB">
+      <feFlood x="32" y="0" width="16" height="16" flood-color="#1fadd6" flood-opacity=".76" result="bg"/>
+      <feBlend x="32" y="0" width="16" height="16" mode="screen" in="SourceGraphic" in2="bg"/>
+    </filter><filter id="m3" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="48" y="0" width="16" height="16" color-interpolation-filters="sRGB">
+      <feFlood x="48" y="0" width="16" height="16" flood-color="#1fadd6" flood-opacity=".76" result="bg"/>
+      <feBlend x="48" y="0" width="16" height="16" mode="overlay" in="SourceGraphic" in2="bg"/>
+    </filter><filter id="m4" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="0" y="16" width="16" height="16" color-interpolation-filters="sRGB">
+      <feFlood x="0" y="16" width="16" height="16" flood-color="#d94f3d" flood-opacity=".39" result="bg"/>
+      <feBlend x="0" y="16" width="16" height="16" mode="darken" in="SourceGraphic" in2="bg"/>
+    </filter><filter id="m5" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="16" y="16" width="16" height="16" color-interpolation-filters="sRGB">
+      <feFlood x="16" y="16" width="16" height="16" flood-color="#d94f3d" flood-opacity=".39" result="bg"/>
+      <feBlend x="16" y="16" width="16" height="16" mode="lighten" in="SourceGraphic" in2="bg"/>
+    </filter><filter id="m6" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="32" y="16" width="16" height="16" color-interpolation-filters="sRGB">
+      <feFlood x="32" y="16" width="16" height="16" flood-color="#d94f3d" flood-opacity=".39" result="bg"/>
+      <feBlend x="32" y="16" width="16" height="16" mode="color-dodge" in="SourceGraphic" in2="bg"/>
+    </filter><filter id="m7" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="48" y="16" width="16" height="16" color-interpolation-filters="sRGB">
+      <feFlood x="48" y="16" width="16" height="16" flood-color="#d94f3d" flood-opacity=".39" result="bg"/>
+      <feBlend x="48" y="16" width="16" height="16" mode="color-burn" in="SourceGraphic" in2="bg"/>
+    </filter><filter id="m8" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="0" y="32" width="16" height="16" color-interpolation-filters="sRGB">
+      <feFlood x="0" y="32" width="16" height="16" flood-color="#754b1f" flood-opacity=".58" result="bg"/>
+      <feBlend x="0" y="32" width="16" height="16" mode="hard-light" in="SourceGraphic" in2="bg"/>
+    </filter><filter id="m9" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="16" y="32" width="16" height="16" color-interpolation-filters="sRGB">
+      <feFlood x="16" y="32" width="16" height="16" flood-color="#754b1f" flood-opacity=".58" result="bg"/>
+      <feBlend x="16" y="32" width="16" height="16" mode="soft-light" in="SourceGraphic" in2="bg"/>
+    </filter><filter id="m10" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="32" y="32" width="16" height="16" color-interpolation-filters="sRGB">
+      <feFlood x="32" y="32" width="16" height="16" flood-color="#754b1f" flood-opacity=".58" result="bg"/>
+      <feBlend x="32" y="32" width="16" height="16" mode="difference" in="SourceGraphic" in2="bg"/>
+    </filter><filter id="m11" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="48" y="32" width="16" height="16" color-interpolation-filters="sRGB">
+      <feFlood x="48" y="32" width="16" height="16" flood-color="#754b1f" flood-opacity=".58" result="bg"/>
+      <feBlend x="48" y="32" width="16" height="16" mode="exclusion" in="SourceGraphic" in2="bg"/>
+    </filter><filter id="m12" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="0" y="48" width="16" height="16" color-interpolation-filters="sRGB">
+      <feFlood x="0" y="48" width="16" height="16" flood-color="#35a853" flood-opacity=".28" result="bg"/>
+      <feBlend x="0" y="48" width="16" height="16" mode="hue" in="SourceGraphic" in2="bg"/>
+    </filter><filter id="m13" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="16" y="48" width="16" height="16" color-interpolation-filters="sRGB">
+      <feFlood x="16" y="48" width="16" height="16" flood-color="#35a853" flood-opacity=".28" result="bg"/>
+      <feBlend x="16" y="48" width="16" height="16" mode="saturation" in="SourceGraphic" in2="bg"/>
+    </filter><filter id="m14" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="32" y="48" width="16" height="16" color-interpolation-filters="sRGB">
+      <feFlood x="32" y="48" width="16" height="16" flood-color="#35a853" flood-opacity=".28" result="bg"/>
+      <feBlend x="32" y="48" width="16" height="16" mode="color" in="SourceGraphic" in2="bg"/>
+    </filter><filter id="m15" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="48" y="48" width="16" height="16" color-interpolation-filters="sRGB">
+      <feFlood x="48" y="48" width="16" height="16" flood-color="#35a853" flood-opacity=".28" result="bg"/>
+      <feBlend x="48" y="48" width="16" height="16" mode="luminosity" in="SourceGraphic" in2="bg"/>
+    </filter></defs>
+  <rect width="64" height="64" fill="#f8fafc"/><rect x="0" y="0" width="16" height="16" fill="#c43779" fill-opacity=".23" filter="url(#m0)"/><rect x="16" y="0" width="16" height="16" fill="#e6a817" fill-opacity=".47" filter="url(#m1)"/><rect x="32" y="0" width="16" height="16" fill="#2f9e68" fill-opacity=".62" filter="url(#m2)"/><rect x="48" y="0" width="16" height="16" fill="#6941c6" fill-opacity=".81" filter="url(#m3)"/><rect x="0" y="16" width="16" height="16" fill="#c43779" fill-opacity=".23" filter="url(#m4)"/><rect x="16" y="16" width="16" height="16" fill="#e6a817" fill-opacity=".47" filter="url(#m5)"/><rect x="32" y="16" width="16" height="16" fill="#2f9e68" fill-opacity=".62" filter="url(#m6)"/><rect x="48" y="16" width="16" height="16" fill="#6941c6" fill-opacity=".81" filter="url(#m7)"/><rect x="0" y="32" width="16" height="16" fill="#c43779" fill-opacity=".23" filter="url(#m8)"/><rect x="16" y="32" width="16" height="16" fill="#e6a817" fill-opacity=".47" filter="url(#m9)"/><rect x="32" y="32" width="16" height="16" fill="#2f9e68" fill-opacity=".62" filter="url(#m10)"/><rect x="48" y="32" width="16" height="16" fill="#6941c6" fill-opacity=".81" filter="url(#m11)"/><rect x="0" y="48" width="16" height="16" fill="#c43779" fill-opacity=".23" filter="url(#m12)"/><rect x="16" y="48" width="16" height="16" fill="#e6a817" fill-opacity=".47" filter="url(#m13)"/><rect x="32" y="48" width="16" height="16" fill="#2f9e68" fill-opacity=".62" filter="url(#m14)"/><rect x="48" y="48" width="16" height="16" fill="#6941c6" fill-opacity=".81" filter="url(#m15)"/>
+</svg>

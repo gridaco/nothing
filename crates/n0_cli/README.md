@@ -258,8 +258,9 @@ cargo run -p n0_cli --bin n0 -- \
   The resolved frame carries a checked backend-neutral graph, never the URL or
   authored result names. Its current operations are `feGaussianBlur`, integer
   `feOffset`, zero-input `feFlood`, all seven `feComposite` operators,
-  ordered `feMerge`/`feMergeNode`, native one-input `feDropShadow`, and
-  one-input `feColorMatrix` and `feComponentTransfer`. Inputs
+  all sixteen two-input `feBlend` modes, ordered `feMerge`/`feMergeNode`,
+  native one-input `feDropShadow`, and one-input `feColorMatrix` and
+  `feComponentTransfer`. Inputs
   resolve to `SourceGraphic`, `SourceAlpha`, the previous result, or an earlier
   named result before the frame; unknown values follow Chromium's measured
   first/previous fallback.
@@ -351,6 +352,23 @@ cargo run -p n0_cli --bin n0 -- \
   backend effect-stack split. Transfer-function animation remains outside the
   static slice. The separately tracked fill-only ellipse/box-world boundary
   is unchanged.
+  Blend carries the complete case-sensitive `normal`, `multiply`, `screen`,
+  `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`,
+  `soft-light`, `difference`, `exclusion`, `hue`, `saturation`, `color`, and
+  `luminosity` vocabulary. Missing and invalid mode text uses `normal`; that
+  includes wrong case, surrounding whitespace, legacy camelCase, CSS-wide,
+  and sampled draft-only spellings. The first checked input is foreground and
+  the second is backdrop. Omitted, empty, and unknown input names retain the
+  graph's previous-or-first-SourceGraphic fallback.
+  Opaque and translucent arithmetic, both color spaces, hard regions and
+  primitive units, direct and generated sources, path/stroke/gradient/group,
+  `<use>`, `viewBox`, fractional axis mapping, exact quarter turns, target
+  opacity and mask, and safe ordering with admitted neighboring operations are
+  Chromium-baked exact. Three stable patrols guard the measured remainder:
+  general blend-output mappings, blend across geometric clipping, and the
+  operation-independent case where an authored-translucent source feeds a
+  later multi-input composite or merge. The last class reproduces without a
+  blend and is therefore a generic graph refusal, not a mode exception.
   `filterUnits` and `primitiveUnits` carry their complete case-sensitive
   `userSpaceOnUse | objectBoundingBox` grammars, defaults, and invalid-value
   fallbacks. Filter and primitive regions accept admitted finite numbers,
@@ -368,15 +386,18 @@ cargo run -p n0_cli --bin n0 -- \
   one-input merge has no internal composition stage, so the final restore is
   where its generated-only rounding is enforced. Native sRGB shadow descendants
   add the independently measured exact-restore case described above. ARM and
-  x86 are exact without a tolerance. One hundred seventy-three
-  Chromium-baked filter cells are exact: twenty-six from the chassis/blur slice,
-  sixty from the shadow-graph rung, twenty-eight from native drop shadow,
-  twenty-seven from color matrix, and thirty-two from component transfer. The
-  complete corpus is 534 Chromium-baked cells plus 10 sampled frames, with 134
+  x86 are exact without a tolerance through the hosted component-transfer
+  rung. On the current ARM host, two hundred eleven Chromium-baked filter
+  cells are exact: twenty-six from the chassis/blur slice, sixty from the
+  shadow-graph rung, twenty-eight from native drop shadow, twenty-seven from
+  color matrix, thirty-two from component transfer, and thirty-eight from
+  blend. The complete corpus is 572 Chromium-baked cells plus 10 sampled
+  frames, with 137
   named refusal rows. `feFlood`, `feComposite`, `feMerge`, `feMergeNode`,
-  `feDropShadow`, `feColorMatrix`, `feComponentTransfer`, `feFuncR`, `feFuncG`,
-  `feFuncB`, `feFuncA`, `k1`–`k4`, `amplitude`, `exponent`, `intercept`, `slope`,
-  and `tableValues` close; `feOffset`, `feGaussianBlur`, `<filter>`,
+  `feDropShadow`, `feColorMatrix`, `feComponentTransfer`, `feBlend`, `feFuncR`,
+  `feFuncG`, `feFuncB`, `feFuncA`, `k1`–`k4`, `amplitude`, `exponent`,
+  `intercept`, `slope`, `tableValues`, and blend-only `mode` close; `feOffset`,
+  `feGaussianBlur`, `<filter>`,
   `filter`, `color-interpolation-filters`, `in`, `in2`, `operator`, `result`,
   `dx`, `dy`, `stdDeviation`, `flood-color`, and `flood-opacity` remain open for
   the named precision, applicability, resource, cascade, or value remainder.
