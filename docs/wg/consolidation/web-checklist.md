@@ -1494,7 +1494,13 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > to 609 cells, and swapping erosion with dilation makes thirty-five of those
 > cells fail loudly. The shared `operator`, `radius`, graph, region, color,
 > filter-resource, and dynamics rows remain open for their wider
-> applicability.
+> applicability. The first full-workspace hosted-x86 run contradicted the
+> ARM-local result in nine active sRGB morphology cells: 1,633 pixels differed
+> in total, all by one channel level. They shared the final filter-layer
+> restore, where the pinned backend's low-precision division differs by CPU
+> family. An active-sRGB-scoped exact byte-domain restore clears the class;
+> zero radius and later color-space conversion retain their prior paths. The
+> complete 609-cell gate is exact on ARM and hosted x86 without tolerance.
 - [ ] `<feOffset>`
 - [ ] `<fePointLight>`
 - [ ] `<feSpecularLighting>`

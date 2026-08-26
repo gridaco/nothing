@@ -419,9 +419,14 @@ cargo run -p n0_cli --bin n0 -- \
   exact byte-domain generated sources from floating source-image coverage. A
   one-input merge has no internal composition stage, so the final restore is
   where its generated-only rounding is enforced. Native sRGB shadow descendants
-  add the independently measured exact-restore case described above. All two
-  hundred forty-eight Chromium-baked filter cells are exact on the current ARM
-  host and hosted x86 without a tolerance. The filter
+  add the independently measured exact-restore case described above. Active
+  sRGB morphology adds another measured instance of the same CPU-family
+  boundary: the first full-workspace hosted-x86 run differed in nine cells and
+  1,633 pixels, all by one channel level, at the final filter-layer restore.
+  Its scoped exact byte-domain restore leaves zero radius and later color-space
+  conversion on their prior paths. The same hosted workspace test now passes,
+  so all two hundred forty-eight Chromium-baked filter cells are exact on the
+  current ARM host and hosted x86 without a tolerance. The filter
   estate is twenty-six from the chassis/blur slice, sixty from the
   shadow-graph rung, twenty-eight from native drop shadow, twenty-seven from
   color matrix, thirty-two from component transfer, and thirty-eight from

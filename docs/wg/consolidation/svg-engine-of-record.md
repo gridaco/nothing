@@ -3330,6 +3330,22 @@ sensitivity was proved by temporarily swapping erosion and dilation:
 a maximum channel delta of 255. Restoring the operation returned all 609 cells
 to green.
 
+The first full-workspace hosted-x86 run then contradicted the ARM-local result
+in nine active sRGB morphology cells: `axis-fractional`, `blur-after`,
+`blur-before`, `matrix-before`, `path`, `quarter-turn`, `rounded-rect`,
+`source-use`, and `stroke`. They differed in 1,633 pixels altogether, every
+one at maximum channel delta 1. The common boundary was not morphology's
+channel-extrema operation: it was the final low-precision sRGB filter-layer
+restore, where the pinned backend performs exact divide-by-255 rounding on
+NEON and its approximate division on x86. Active sRGB morphology now requests
+the architecture-neutral byte-domain restore already established for that
+boundary. A zero-radius operation retains its earlier pass-through policy, and
+a later color-space conversion clears the restore policy before floating
+arithmetic. The same hosted workspace test now passes the complete 609-cell
+gate, as does ARM; no tolerance was introduced. The separate hosted n0 rig is
+not treated as Web-first corpus evidence because it does not enumerate these
+cells.
+
 Three focused rows join the refusal register, moving it from 137 to 140. The
 primitive corpus moves from 572 to 609 cells; the ten exact-time sampled frames
 are unchanged. Exactly one checklist row ticks: `<feMorphology>`. This records
