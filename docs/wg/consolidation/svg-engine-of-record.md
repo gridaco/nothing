@@ -3521,13 +3521,22 @@ sRGB displacement cases and four procedural outputs, totalling 294 pixels, all
 at delta 1. Scoped exact displacement restore cleared all eighteen displacement
 failures on the second run. That run left four procedural cells and 729 pixels,
 all at delta 1: one pixel each in the default-color, linear-color, and stitched
-controls, plus 726 pixels in the procedural blend. This isolates both the final
-N32 quantization and the low-precision blend path as CPU-family boundaries, not
-noise-formula or displacement-sampling disagreements. Explicit floating mode
+controls, plus 726 pixels in the procedural blend. Explicit floating mode
 arithmetic, the direct-sRGB product exception above, and composed-result-only
-half-up quantization keep all 700 ARM cells exact. The next hosted-x86 run is
-pending; this paragraph records both failed runs and the candidate separately
-rather than treating local architecture agreement as proof.
+half-up quantization cleared the blend control on the third hosted run. Three
+singleton delta-1 pixels remained: default-color and linear-color produced
+`[203, 190, 203, 255]` where Chromium produced `[203, 189, 203, 255]`, and the
+stitched control produced `[173, 159, 171, 255]` where Chromium produced
+`[174, 159, 171, 255]`.
+
+Pinned Skia source located that last direct-noise split in process startup.
+The painter had never initialized Skia's runtime-selected raster pipeline, so
+hosted x86 retained the baseline non-fused Perlin path while ARM used its fused
+NEON path. `skia_safe::graphics::init()` now runs before any drawlist replay;
+on hosted x86 it selects the AVX2 pipeline whose fused multiply-add ordering
+matches the admitted procedural values. The fourth hosted-x86 gate and the ARM
+gate are byte-exact across all 700 cells. No tolerance or pixel exception was
+introduced.
 
 Three focused rows join the refusal register, moving it from 140 to 143. The
 primitive corpus moves from 609 to 700 cells; the ten exact-time sampled frames

@@ -464,8 +464,13 @@ cargo run -p n0_cli --bin n0 -- \
   distinctions. The first hosted-x86 run found 294 one-code-value pixels across
   eighteen sRGB displacement and four procedural cells. The displacement repair
   cleared all eighteen on the second run, which left 729 delta-1 pixels in four
-  procedural cells. The scoped arithmetic/quantization candidate is exact
-  across the current ARM corpus and awaits the next hosted-x86 confirmation.
+  procedural cells. Scoped procedural arithmetic cleared the 726-pixel blend
+  control on the third run, leaving three singleton direct-noise pixels. Pinned
+  Skia source located them in an uninitialized runtime raster-pipeline dispatch:
+  x86 stayed on baseline non-fused Perlin arithmetic while ARM used fused NEON.
+  Initializing Skia before drawlist replay selects the fused AVX2 path on x86.
+  The complete 700-cell gate is byte-exact on ARM and hosted x86 without a
+  tolerance.
   The same hosted workspace test covers the earlier two hundred
   forty-eight-cell estate; all three hundred thirty-nine
   Chromium-baked filter cells are exact on the current ARM host without a

@@ -1542,8 +1542,14 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > later blend; carrying the earlier floating state silently changed 3,468 and
 > 3,700 pixels. Two committed chain controls now guard that transition.
 > Explicit procedural mode arithmetic and composed-result half-up quantization
-> keep all 700 ARM cells exact; the next hosted-x86 run is the remaining
-> portability proof.
+> kept all 700 ARM cells exact. The third hosted-x86 run cleared the 726-pixel
+> blend control and left three singleton delta-1 pixels: one each in the
+> default-color, linear-color, and stitched procedural controls. Pinned Skia
+> source located that final split in process startup: no caller initialized the
+> runtime-selected raster pipeline, so hosted x86 retained baseline non-fused
+> Perlin arithmetic while ARM used its fused NEON path. Initializing Skia before
+> drawlist replay selects x86 AVX2's fused path as well. The fourth hosted-x86
+> gate and the ARM gate are byte-exact across all 700 cells, with no tolerance.
 - [ ] `<filter>`
 
 > **2026-08-25 split:** the static filter graph carries safe-kernel
