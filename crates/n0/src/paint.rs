@@ -2011,16 +2011,16 @@ fn transparent_filter(region: n0_model::math::RectF) -> Option<ImageFilter> {
 
 thread_local! {
     // Runtime-effect handles are cheap to clone after compilation. Keep the
-    // six Porter-Duff programs in each precision mode local to the painting
-    // thread instead of rebuilding SkSL for every graph replay.
-    static FILTER_PORTER_DUFF_BLENDERS: RefCell<Vec<Option<Blender>>> =
+    // deterministic filter blenders local to the painting thread instead of
+    // rebuilding SkSL for every graph replay.
+    static FILTER_BLENDERS: RefCell<Vec<Option<Blender>>> =
         const { RefCell::new(Vec::new()) };
 }
 
 fn compile_filter_blender(source: String) -> Result<Blender, String> {
     let options = skia_safe::runtime_effect::Options {
         force_unoptimized: true,
-        name: "n0_svg_filter_porter_duff",
+        name: "n0_svg_filter_blender",
     };
     let effect = skia_safe::RuntimeEffect::make_for_blender(source, Some(&options))
         .map_err(|error| format!("the backend could not compile a filter blender: {error}"))?;
@@ -2030,7 +2030,7 @@ fn compile_filter_blender(source: String) -> Result<Blender, String> {
 }
 
 fn cached_filter_blender(slot: usize, source: impl FnOnce() -> String) -> Result<Blender, String> {
-    FILTER_PORTER_DUFF_BLENDERS.with(|cache| {
+    FILTER_BLENDERS.with(|cache| {
         if let Some(blender) = cache.borrow().get(slot).and_then(Option::as_ref).cloned() {
             return Ok(blender);
         }
@@ -2126,6 +2126,12 @@ fn deterministic_porter_duff_blender(
     }
 }
 
+// Skia's N32 low-precision pipeline uses exact divide-by-255 rounding on
+// NEON, but an intentionally approximate `(value + 255) / 256` on x86. The
+// approximation is observable in SVG blend pixels. Re-state the nine modes
+// that use that pipeline over explicit unorm8 values so both CPU families
+// reproduce the committed Chromium bytes. The remaining seven modes use Skia's
+// high-precision path and stay native unless measurement proves otherwise.
 fn exact_unorm8_filter_blend_source(expression: &str) -> String {
     format!(
         r#"
@@ -2396,6 +2402,12 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                     crop,
                 )
                 .ok_or_else(|| "the backend could not construct a blend operation".to_string())?;
+                // Exact mode arithmetic can still differ by one code value
+                // across NEON and x86 during the final N32 sRGB restore. A
+                // later color-space conversion clears this policy before its
+                // own floating-point arithmetic.
+                let requires_exact_restore =
+                    requires_exact_restore || node.color_space == ResolvedFilterColorSpace::Srgb;
                 (
                     Some(filter),
                     node.color_space,
