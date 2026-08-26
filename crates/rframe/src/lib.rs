@@ -26,7 +26,8 @@ pub use clip::{
 };
 pub use filter::{
     Filter, FilterBlend, FilterChannelTables, FilterColorSpace, FilterComposite, FilterError,
-    FilterInput, FilterNode, FilterPrimitive, FilterProgram, FilterProgramError, MAX_FILTER_NODES,
+    FilterInput, FilterMorphology, FilterNode, FilterPrimitive, FilterProgram, FilterProgramError,
+    MAX_FILTER_NODES,
 };
 pub use frame::{
     Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry, Identity, MAX_SCOPE_DEPTH,

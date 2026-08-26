@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" >
+
+  <defs><filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB" ><feMorphology operator="dilate" radius="2" color-interpolation-filters="linearRGB"/></filter></defs>
+  <g filter="url(#f)" ><rect x="20" y="20" width="4" height="6" fill="#f00" fill-opacity=".5"/><rect x="26" y="20" width="4" height="6" fill="#00f" fill-opacity=".75"/></g>
+</svg>

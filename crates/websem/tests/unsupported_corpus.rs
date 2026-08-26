@@ -223,6 +223,21 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "multiple filter operations",
     ),
     (
+        "svg-filter-morphology-filled-ellipse-precision",
+        DeclaredByBestEffort,
+        "retained filled-ellipse coverage boundary",
+    ),
+    (
+        "svg-filter-morphology-paint-server-precision",
+        DeclaredByBestEffort,
+        "morphology paint-server precision boundary",
+    ),
+    (
+        "svg-filter-morphology-transform-precision",
+        DeclaredByBestEffort,
+        "morphology transform precision boundary",
+    ),
+    (
         "svg-filter-offset-blur-precision",
         DeclaredByBestEffort,
         "combines feOffset with Gaussian blur",

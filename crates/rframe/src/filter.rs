@@ -74,6 +74,13 @@ pub enum FilterBlend {
     Luminosity,
 }
 
+/// One source-neutral morphology operation over premultiplied image channels.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FilterMorphology {
+    Erode,
+    Dilate,
+}
+
 /// Four exact byte lookup tables for one non-premultiplied RGBA operation.
 ///
 /// Channel order is named at construction and access, so a producer cannot
@@ -157,6 +164,12 @@ pub enum FilterPrimitive {
     ComponentTransfer {
         tables: FilterChannelTables,
     },
+    /// Per-channel extrema over one rectangular, axis-aligned kernel.
+    Morphology {
+        operator: FilterMorphology,
+        radius_x: f32,
+        radius_y: f32,
+    },
     Merge,
 }
 
@@ -238,6 +251,9 @@ pub enum FilterProgramError {
     InvalidColorMatrix {
         node: usize,
     },
+    InvalidMorphology {
+        node: usize,
+    },
 }
 
 impl std::fmt::Display for FilterProgramError {
@@ -286,6 +302,10 @@ impl std::fmt::Display for FilterProgramError {
                     "filter node {node} has a non-finite color-matrix coefficient"
                 )
             }
+            Self::InvalidMorphology { node } => write!(
+                f,
+                "filter node {node} has a non-finite or negative morphology radius"
+            ),
         }
     }
 }
@@ -310,7 +330,8 @@ impl FilterProgram {
                 | FilterPrimitive::Offset { .. }
                 | FilterPrimitive::DropShadow { .. }
                 | FilterPrimitive::ColorMatrix { .. }
-                | FilterPrimitive::ComponentTransfer { .. } => Some(1),
+                | FilterPrimitive::ComponentTransfer { .. }
+                | FilterPrimitive::Morphology { .. } => Some(1),
                 FilterPrimitive::SolidColor { .. } => Some(0),
                 FilterPrimitive::Composite { .. } | FilterPrimitive::Blend { .. } => Some(2),
                 FilterPrimitive::Merge => None,
@@ -369,6 +390,15 @@ impl FilterProgram {
                 {
                     return Err(FilterProgramError::InvalidColorMatrix { node: index });
                 }
+                FilterPrimitive::Morphology {
+                    radius_x, radius_y, ..
+                } if !radius_x.is_finite()
+                    || !radius_y.is_finite()
+                    || radius_x < 0.0
+                    || radius_y < 0.0 =>
+                {
+                    return Err(FilterProgramError::InvalidMorphology { node: index });
+                }
                 FilterPrimitive::Offset { .. }
                 | FilterPrimitive::SolidColor { .. }
                 | FilterPrimitive::Composite { .. }
@@ -376,6 +406,7 @@ impl FilterProgram {
                 | FilterPrimitive::DropShadow { .. }
                 | FilterPrimitive::ColorMatrix { .. }
                 | FilterPrimitive::ComponentTransfer { .. }
+                | FilterPrimitive::Morphology { .. }
                 | FilterPrimitive::Merge => {}
             }
         }
@@ -406,6 +437,7 @@ impl FilterProgram {
             | FilterPrimitive::Composite { .. }
             | FilterPrimitive::Blend { .. }
             | FilterPrimitive::DropShadow { .. }
+            | FilterPrimitive::Morphology { .. }
             | FilterPrimitive::Merge => false,
         })
     }

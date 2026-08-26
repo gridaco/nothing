@@ -1475,7 +1475,26 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `<feImage>`
 - [x] `<feMerge>`
 - [x] `<feMergeNode>`
-- [ ] `<feMorphology>`
+- [x] `<feMorphology>`
+
+> **2026-08-26 close:** `feMorphology` carries the complete static
+> case-sensitive `erode | dilate` operation and SVG
+> `<number-optional-number>` radius grammar. Missing and invalid operation
+> text selects `erode`; missing and invalid radius text selects zero; one
+> number supplies both axes; and negative members clamp independently to
+> zero, so the other axis remains active. Chromium-baked evidence covers
+> mapped half-step rounding, non-uniform `viewBox` and object-box units,
+> SourceAlpha and generated inputs, result reuse, hard regions, both filter
+> color spaces, premultiplied channel extrema, paths, strokes, rounded
+> rectangles, `<use>`, safe mappings, target effects, and ordering with the
+> admitted filter family. General affine mappings, paint-server source images,
+> and active filled-circle/ellipse sources refuse by three stable precision
+> names before paint; the last boundary leaves the older fill-only ellipse
+> issue to gridaco/nothing#88. Thirty-seven exact cells move the complete gate
+> to 609 cells, and swapping erosion with dilation makes thirty-five of those
+> cells fail loudly. The shared `operator`, `radius`, graph, region, color,
+> filter-resource, and dynamics rows remain open for their wider
+> applicability.
 - [ ] `<feOffset>`
 - [ ] `<fePointLight>`
 - [ ] `<feSpecularLighting>`

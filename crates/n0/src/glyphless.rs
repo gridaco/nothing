@@ -23,8 +23,9 @@ use n0_model::model::{
 };
 use n0_model::path::ResolvedPathArtifact;
 use rframe::{
-    ClipPath, FilterBlend, FilterColorSpace, FilterComposite, FilterInput, FilterPrimitive,
-    FilterProgram, Frame, FrameItem, Geometry, MaskMode, PaintStack, ScopeEffect, VisualRef,
+    ClipPath, FilterBlend, FilterColorSpace, FilterComposite, FilterInput, FilterMorphology,
+    FilterPrimitive, FilterProgram, Frame, FrameItem, Geometry, MaskMode, PaintStack, ScopeEffect,
+    VisualRef,
 };
 
 use crate::damage::{diff_inputs, DamageOwner, FrameDamageInput};
@@ -32,7 +33,8 @@ use crate::drawlist::{
     DrawList, GlyphlessOwnerSlot, Item, ItemKind, PostPaintOpacity, ResolvedClipGeometry,
     ResolvedClipGeometryKind, ResolvedClipLayer, ResolvedClipPath, ResolvedFilter,
     ResolvedFilterBlend, ResolvedFilterColorSpace, ResolvedFilterComposite, ResolvedFilterInput,
-    ResolvedFilterNode, ResolvedFilterPrimitive, ResolvedMaskMode, StrokeDashPhase,
+    ResolvedFilterMorphology, ResolvedFilterNode, ResolvedFilterPrimitive, ResolvedMaskMode,
+    StrokeDashPhase,
 };
 use crate::frame::FrameExecutionError;
 use crate::paint::PaintCtx;
@@ -955,6 +957,18 @@ fn compile_filter(program: &FilterProgram, region: math2::Rectangle) -> Resolved
                         ]),
                     }
                 }
+                FilterPrimitive::Morphology {
+                    operator,
+                    radius_x,
+                    radius_y,
+                } => ResolvedFilterPrimitive::Morphology {
+                    operator: match operator {
+                        FilterMorphology::Erode => ResolvedFilterMorphology::Erode,
+                        FilterMorphology::Dilate => ResolvedFilterMorphology::Dilate,
+                    },
+                    radius_x,
+                    radius_y,
+                },
                 FilterPrimitive::Merge => ResolvedFilterPrimitive::Merge,
             },
         })

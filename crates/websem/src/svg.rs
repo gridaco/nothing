@@ -136,10 +136,11 @@ use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
     ClipGeometry, ClipLayer, ClipPath, FillRule, Filter, FilterBlend, FilterChannelTables,
-    FilterColorSpace, FilterComposite, FilterInput, FilterNode, FilterPrimitive, FilterProgram,
-    Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry, Identity, Mask, MaskMode,
-    PaintAlphaFactor, PaintStack, PathData, Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke,
-    StrokeCap, StrokeDash, StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, VisualRef,
+    FilterColorSpace, FilterComposite, FilterInput, FilterMorphology, FilterNode, FilterPrimitive,
+    FilterProgram, Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry, Identity,
+    Mask, MaskMode, PaintAlphaFactor, PaintStack, PathData, Provenance, Scope, ScopeEffect,
+    ScopeOpacity, Stroke, StrokeCap, StrokeDash, StrokeDashIntervals, StrokeDashIntervalsError,
+    StrokeJoin, VisualRef,
 };
 use std::sync::Arc;
 
@@ -4981,6 +4982,33 @@ mod filter_resource {
         }
     }
 
+    fn morphology_operator(element: HtmlElement<'_>) -> FilterMorphology {
+        match get_attr(element, "operator").as_deref() {
+            Some("dilate") => FilterMorphology::Dilate,
+            // Chromium's SVG enumeration is case-sensitive and does not trim.
+            // Missing, empty, invalid, and CSS-wide spellings retain erode.
+            _ => FilterMorphology::Erode,
+        }
+    }
+
+    /// Blink's complete SVG number-optional-number grammar for morphology.
+    /// One member duplicates across both axes; every other count or lexical
+    /// failure selects the initial zero pair. Blink then clamps each member
+    /// independently, so one non-positive axis still leaves the other active.
+    fn morphology_radius(element: HtmlElement<'_>) -> (f32, f32) {
+        let values = get_attr(element, "radius")
+            .as_deref()
+            .and_then(crate::svg_number_list::parse);
+        match values.as_deref() {
+            Some([radius]) => {
+                let radius = radius.max(0.0);
+                (radius, radius)
+            }
+            Some([radius_x, radius_y]) => (radius_x.max(0.0), radius_y.max(0.0)),
+            _ => (0.0, 0.0),
+        }
+    }
+
     enum ComponentTransferFunction {
         Identity,
         Table(Vec<f32>),
@@ -5427,9 +5455,7 @@ mod filter_resource {
         axis_or_quarter_turn && [a, b, c, d].into_iter().all(f32::is_finite)
     }
 
-    fn component_transfer_source_has_paint_server(
-        target: HtmlElement<'_>,
-    ) -> Result<bool, CompileError> {
+    fn filter_source_has_paint_server(target: HtmlElement<'_>) -> Result<bool, CompileError> {
         let mut stack = vec![target];
         while let Some(element) = stack.pop() {
             for property in [PaintProperty::Fill, PaintProperty::Stroke] {
@@ -5437,6 +5463,34 @@ mod filter_resource {
                     computed_paint(element, property)?.kind,
                     SVGPaintKind::PaintServer(_)
                 ) {
+                    return Ok(true);
+                }
+            }
+            let mut child = element.first_element_child();
+            while let Some(next) = child {
+                stack.push(next);
+                child = next.next_element_sibling();
+            }
+        }
+        Ok(false)
+    }
+
+    /// Active morphology amplifies the retained fill-only ellipse/circle
+    /// box-world coverage boundary. Curved paths, rounded rectangles, and
+    /// round strokes are independently exact; keep this patrol scoped to a
+    /// contributing fill on native ellipse geometry and leave that older
+    /// geometry issue to its own follow-up.
+    fn morphology_source_has_filled_ellipse(target: HtmlElement<'_>) -> Result<bool, CompileError> {
+        let mut stack = vec![target];
+        while let Some(element) = stack.pop() {
+            if matches!(element.local_name_string().as_str(), "circle" | "ellipse") {
+                let data = element
+                    .borrow_data()
+                    .ok_or(CompileError::MissingComputedStyle)?;
+                let style: &ComputedValues = data.styles.primary();
+                let fill_contributes = !matches!(style.clone_fill().kind, SVGPaintKind::None)
+                    && !matches!(style.clone_fill_opacity(), SVGOpacity::Opacity(value) if value == 0.0);
+                if fill_contributes {
                     return Ok(true);
                 }
             }
@@ -5488,6 +5542,15 @@ mod filter_resource {
     /// the backend's filtered-layer sampling even when neither input reads the
     /// target, so this is a target mapping boundary rather than a source fact.
     fn blend_mapping_is_admitted(target_to_frame: AffineTransform) -> bool {
+        let [[a, c, _], [b, d, _]] = target_to_frame.matrix;
+        let axis_or_quarter_turn = (b == 0.0 && c == 0.0) || (a == 0.0 && d == 0.0);
+        axis_or_quarter_turn && [a, b, c, d].into_iter().all(f32::is_finite)
+    }
+
+    /// Morphology agrees across source-derived and generated inputs for axis
+    /// maps and exact quarter turns. General rotations and shears cross the
+    /// pinned backend's mapped-kernel/source-raster boundary.
+    fn morphology_mapping_is_admitted(target_to_frame: AffineTransform) -> bool {
         let [[a, c, _], [b, d, _]] = target_to_frame.matrix;
         let axis_or_quarter_turn = (b == 0.0 && c == 0.0) || (a == 0.0 && d == 0.0);
         axis_or_quarter_turn && [a, b, c, d].into_iter().all(f32::is_finite)
@@ -5674,6 +5737,29 @@ mod filter_resource {
                         },
                     )
                 }
+                "feMorphology" => {
+                    patrol_color_style(element)?;
+                    let input = resolve_input(element, "in", previous, &names);
+                    let (mut radius_x, mut radius_y) = morphology_radius(element);
+                    if primitive_units == Units::ObjectBoundingBox {
+                        radius_x *= target_box.width;
+                        radius_y *= target_box.height;
+                    }
+                    if !radius_x.is_finite() || !radius_y.is_finite() {
+                        return Err(CompileError::UnsupportedFilter(
+                            "feMorphology radius resolves outside the finite filter range"
+                                .to_string(),
+                        ));
+                    }
+                    (
+                        vec![input],
+                        FilterPrimitive::Morphology {
+                            operator: morphology_operator(element),
+                            radius_x,
+                            radius_y,
+                        },
+                    )
+                }
                 "feMerge" => {
                     patrol_color_style(element)?;
                     let mut inputs = Vec::new();
@@ -5811,6 +5897,9 @@ mod filter_resource {
         let mut has_source_dependent_component_transfer = false;
         let mut has_source_dependent_multi_input = false;
         let mut has_blend = false;
+        let mut has_morphology = false;
+        let mut has_source_dependent_morphology = false;
+        let mut has_source_dependent_active_morphology = false;
         for node in &nodes {
             let source_dependent = node.inputs().iter().any(|input| match *input {
                 FilterInput::Source | FilterInput::SourceAlpha => true,
@@ -5832,6 +5921,15 @@ mod filter_resource {
                 has_source_dependent_multi_input = true;
             }
             has_blend |= matches!(node.primitive(), FilterPrimitive::Blend { .. });
+            if let FilterPrimitive::Morphology {
+                radius_x, radius_y, ..
+            } = node.primitive()
+            {
+                has_morphology = true;
+                has_source_dependent_morphology |= source_dependent;
+                has_source_dependent_active_morphology |=
+                    source_dependent && (radius_x > 0.0 || radius_y > 0.0);
+            }
             source_dependencies.push(source_dependent);
         }
         if has_blend {
@@ -5847,6 +5945,24 @@ mod filter_resource {
                         .to_string(),
                 ));
             }
+        }
+        if has_morphology && !morphology_mapping_is_admitted(target_to_frame) {
+            return Err(CompileError::UnsupportedFilter(
+                "feMorphology's target mapping crosses the pinned-backend morphology transform precision boundary"
+                    .to_string(),
+            ));
+        }
+        if has_source_dependent_morphology && filter_source_has_paint_server(target)? {
+            return Err(CompileError::UnsupportedFilter(
+                "feMorphology's source image crosses the pinned-backend morphology paint-server precision boundary"
+                    .to_string(),
+            ));
+        }
+        if has_source_dependent_active_morphology && morphology_source_has_filled_ellipse(target)? {
+            return Err(CompileError::UnsupportedFilter(
+                "feMorphology's active source image crosses the retained filled-ellipse coverage boundary"
+                    .to_string(),
+            ));
         }
         if has_source_dependent_multi_input && filter_source_has_authored_translucency(target)? {
             return Err(CompileError::UnsupportedFilter(
@@ -5870,7 +5986,9 @@ mod filter_resource {
             if nodes.iter().any(|node| {
                 matches!(
                     node.primitive(),
-                    FilterPrimitive::GaussianBlur { .. } | FilterPrimitive::DropShadow { .. }
+                    FilterPrimitive::GaussianBlur { .. }
+                        | FilterPrimitive::DropShadow { .. }
+                        | FilterPrimitive::Morphology { .. }
                 )
             }) {
                 return Err(CompileError::UnsupportedFilter(
@@ -5880,7 +5998,7 @@ mod filter_resource {
             }
         }
         if has_source_dependent_component_transfer {
-            if component_transfer_source_has_paint_server(target)? {
+            if filter_source_has_paint_server(target)? {
                 return Err(CompileError::UnsupportedFilter(
                     "feComponentTransfer's source image crosses the pinned-backend table-filter paint-server precision boundary"
                         .to_string(),
