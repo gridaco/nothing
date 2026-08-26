@@ -403,6 +403,30 @@ cargo run -p n0_cli --bin n0 -- \
   retained fill-only ellipse coverage boundary. Rounded rectangles, curved
   paths, and circle/path strokes stay admitted. That last patrol leaves
   gridaco/nothing#88 separate and unchanged.
+  Turbulence carries both procedural formulas: the case-sensitive values
+  `turbulence` and `fractalNoise`, one/two-axis non-negative `baseFrequency`,
+  integer `numOctaves` capped at nine, signed `seed`, and the case-sensitive
+  values `stitch` and `noStitch`. Missing and invalid fields take their measured
+  initials; either negative frequency resets the pair, zero octaves still
+  reaches the selected formula, and a negative octave count produces a
+  transparent image. The generated source is bounded by its primitive region
+  and participates in its declared filter color space. A user-space filter may
+  therefore paint a target
+  whose isolated source is fully transparent; object-box filter units on the
+  same zero-area target produce no region and paint nothing.
+  Displacement map carries two ordered image inputs, a finite signed `scale`,
+  and independent case-sensitive `R | G | B | A` selectors with initial alpha.
+  Selection reads non-premultiplied map channels after conversion into the
+  primitive's filter color space. Under object-box primitive units Chromium's
+  one native displacement scalar uses the target width for both axes. Exact
+  evidence covers transparent and partial-alpha maps, source/source-alpha and
+  generated maps, procedural maps, hard regions, stroke/path sources, opacity,
+  safe axis mappings, exact quarter turns, `<use>`, and non-uniform `viewBox`.
+  General rotations and shears for either primitive, and geometric clipping
+  around displacement, refuse by three stable precision names. Axis maps,
+  fractional translation and scale, reflections, and exact quarter turns stay
+  admitted. The wider shared graph, region, color, resource, and animation
+  surfaces retain their own boundaries.
   `filterUnits` and `primitiveUnits` carry their complete case-sensitive
   `userSpaceOnUse | objectBoundingBox` grammars, defaults, and invalid-value
   fallbacks. Filter and primitive regions accept admitted finite numbers,
@@ -424,24 +448,48 @@ cargo run -p n0_cli --bin n0 -- \
   boundary: the first full-workspace hosted-x86 run differed in nine cells and
   1,633 pixels, all by one channel level, at the final filter-layer restore.
   Its scoped exact byte-domain restore leaves zero radius and later color-space
-  conversion on their prior paths. The same hosted workspace test now passes,
-  so all two hundred forty-eight Chromium-baked filter cells are exact on the
-  current ARM host and hosted x86 without a tolerance. The filter
-  estate is twenty-six from the chassis/blur slice, sixty from the
-  shadow-graph rung, twenty-eight from native drop shadow, twenty-seven from
-  color matrix, thirty-two from component transfer, and thirty-eight from
-  blend, plus thirty-seven from morphology. The complete corpus is 609
-  Chromium-baked cells plus 10 sampled frames, with 140
-  named refusal rows. `feFlood`, `feComposite`, `feMerge`, `feMergeNode`,
-  `feDropShadow`, `feColorMatrix`, `feComponentTransfer`, `feBlend`,
-  `feMorphology`, `feFuncR`, `feFuncG`, `feFuncB`, `feFuncA`, `k1`–`k4`,
-  `amplitude`, `exponent`,
-  `intercept`, `slope`, `tableValues`, and blend-only `mode` close; `feOffset`,
-  `feGaussianBlur`, `<filter>`,
+  conversion on their prior paths. Procedural sources carry floating
+  provenance through blend arithmetic. Direct sRGB procedural
+  `difference`/`exclusion` retains the pinned backend's byte-domain product
+  rounding; linear or component-transferred inputs use floating products. An
+  sRGB blend result materializes before a later blend; linear output remains
+  floating, and a later transfer promotes either route again. The final
+  procedural restore quantizes only the composed output with explicit
+  half-up byte rounding. Direct active sRGB morphology materializes procedural
+  provenance; blend before morphology preserves it. sRGB displacement output
+  takes the exact byte-domain restore. Empty generated-source scopes seed
+  damage coverage from their transformed filter region, so procedural
+  parameter edits damage pixels even without a source draw. Fifteen
+  operation-order, color-transition, and blend-domain controls guard these
+  distinctions. The first hosted-x86 run found 294 one-code-value pixels across
+  eighteen sRGB displacement and four procedural cells. The displacement repair
+  cleared all eighteen on the second run, which left 729 delta-1 pixels in four
+  procedural cells. Scoped procedural arithmetic cleared the 726-pixel blend
+  control on the third run, leaving three singleton direct-noise pixels. Pinned
+  Skia source located them in an uninitialized runtime raster-pipeline dispatch:
+  x86 stayed on baseline non-fused Perlin arithmetic while ARM used fused NEON.
+  Initializing Skia before drawlist replay selects the fused AVX2 path on x86.
+  The complete 700-cell gate is byte-exact on ARM and hosted x86 without a
+  tolerance.
+  The same hosted workspace test covers the earlier two hundred
+  forty-eight-cell estate; all three hundred thirty-nine
+  Chromium-baked filter cells are exact on the current ARM host without a
+  tolerance. The filter estate contains 26 chassis/blur cells, 60 shadow-graph,
+  28 native drop-shadow, 27 color-matrix, 32 component-transfer, 38 blend, 37
+  morphology, and 91 turbulence/displacement cells. The complete corpus
+  contains 700 Chromium-baked cells plus 10 sampled frames, with 143 named
+  refusal rows. `feFlood`, `feComposite`,
+  `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
+  `feComponentTransfer`, `feBlend`,
+  `feMorphology`, `feTurbulence`, `feDisplacementMap`, `feFuncR`, `feFuncG`,
+  `feFuncB`, `feFuncA`, `k1`–`k4`, `amplitude`, `exponent`, `intercept`,
+  `slope`, `tableValues`, blend-only `mode`, `baseFrequency`, `numOctaves`,
+  `seed`, `stitchTiles`, displacement `scale`, `xChannelSelector`, and
+  `yChannelSelector` close; `feOffset`, `feGaussianBlur`, `<filter>`,
   `filter`, `color-interpolation-filters`, `in`, `in2`, `operator`, `result`,
   `radius`, `dx`, `dy`, `stdDeviation`, `flood-color`, and `flood-opacity`
-  remain open for
-  the named precision, applicability, resource, cascade, or value remainder.
+  remain open for the named precision, applicability, resource, cascade, or
+  value remainder.
   A stroke is centred, its width is a cascaded length in either spelling —
   numbers, absolute units, `em`/`rem` against an authored or default
   font-size, percentages against the normalized diagonal, and pure-length

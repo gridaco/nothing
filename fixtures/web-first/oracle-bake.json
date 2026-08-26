@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "65cee4b36d44ccb9c3dfda94b33af827e468849d203cf7801192f114187e3990",
+  "suite_sha256": "c52554b86bfd62e891dec375bb6bc22fe6f95ebca55294a490a5b184972701b3",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -1721,6 +1721,330 @@
       "height": 64
     },
     {
+      "id": "svg-filter-displacement-color-linear",
+      "source": "svg-filter-displacement-color-linear.svg",
+      "source_sha256": "80c6a8fd20689e44d3c2970adc88de0a907cffa004f388b9e150264cb210f823",
+      "oracle": "chromium/svg-filter-displacement-color-linear.png",
+      "oracle_sha256": "e5333de361b6cac8727beed97f64c55175965cf1dd9fb38c8d00b5429554af64",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-color-srgb",
+      "source": "svg-filter-displacement-color-srgb.svg",
+      "source_sha256": "7059700c07b4fa063466bd240bea932aed39ec191c26f3749882dc45cd19e9ba",
+      "oracle": "chromium/svg-filter-displacement-color-srgb.png",
+      "oracle_sha256": "50c4f12fb22968ec2793c1807c2dfb6569b344542e3fd381eb3a055bb68267ab",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-default",
+      "source": "svg-filter-displacement-default.svg",
+      "source_sha256": "496b25d7b84b981914029d8fb48672b37ffd69e7ab0ba9fbce2e1c1e7ec47c6d",
+      "oracle": "chromium/svg-filter-displacement-default.png",
+      "oracle_sha256": "50c4f12fb22968ec2793c1807c2dfb6569b344542e3fd381eb3a055bb68267ab",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-empty-generated",
+      "source": "svg-filter-displacement-empty-generated.svg",
+      "source_sha256": "e92b060d143ec290d877d1c627fb4646bf0d4ba43d70641debe8a7e1b6f5df07",
+      "oracle": "chromium/svg-filter-displacement-empty-generated.png",
+      "oracle_sha256": "ac6d3d0bb8745741b0143a49d09f2673843d7de051f8491561ebea3c251f17d3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-generated-color",
+      "source": "svg-filter-displacement-generated-color.svg",
+      "source_sha256": "e3325aa8826a2da743312901ba3fb20e6ba87d37d32b457631b5fa4ee5a9fdac",
+      "oracle": "chromium/svg-filter-displacement-generated-color.png",
+      "oracle_sha256": "871ea3c8b7db61c0d11ae8326aacef70e8c003b3f9bf3fa30b709b5c47d283ae",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-half-alpha-map",
+      "source": "svg-filter-displacement-half-alpha-map.svg",
+      "source_sha256": "077ef133c3b77383de9fc5e6c810507934ab3b6b43be3771226db9b9cb3f43a1",
+      "oracle": "chromium/svg-filter-displacement-half-alpha-map.png",
+      "oracle_sha256": "e308116a6b01f8882f33d85ade8800d54e65cabffcb6afc8bd6052f0a6c71a72",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-input-default-in2",
+      "source": "svg-filter-displacement-input-default-in2.svg",
+      "source_sha256": "c75175b0dda7f7677d05006672feea1a24ccd3644c7bb9e03769b02852d19ac7",
+      "oracle": "chromium/svg-filter-displacement-input-default-in2.png",
+      "oracle_sha256": "ac617ba298bb5ae51819dbac6c1038cd252a6eb74a493f67896eaaea48bb888f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-input-unknown-in",
+      "source": "svg-filter-displacement-input-unknown-in.svg",
+      "source_sha256": "01e430d5ccb3c1d65e4f0491dbbfed0ab5958030814a3efd77ded88dbcc0f231",
+      "oracle": "chromium/svg-filter-displacement-input-unknown-in.png",
+      "oracle_sha256": "98a306634de2d8ded0f22a9bce9ae353e15f44ba3e9017317eac932661a26e85",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-map-region",
+      "source": "svg-filter-displacement-map-region.svg",
+      "source_sha256": "91da7f31bc6fd04a4a485862f01e420cdde46a9ff9033da9f1e733167b1cf81c",
+      "oracle": "chromium/svg-filter-displacement-map-region.png",
+      "oracle_sha256": "c51790800671204a0300ec71280fdceb539cc6caad9bacc5e8d99c03268c325f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-opacity",
+      "source": "svg-filter-displacement-opacity.svg",
+      "source_sha256": "6bbcbc83a28f67f1a8c11dd8e3341ea8a282d08e9a950ae2ebf0b8c077a7e952",
+      "oracle": "chromium/svg-filter-displacement-opacity.png",
+      "oracle_sha256": "e4e0e3301c4c4d79f0ab24decad6439f86e02dbecf56ca53d66f7834c269d820",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-path",
+      "source": "svg-filter-displacement-path.svg",
+      "source_sha256": "6dbf3672179c2c634c2d53269095cd36d7e48675e5c3da568be6c83834a21190",
+      "oracle": "chromium/svg-filter-displacement-path.png",
+      "oracle_sha256": "83f05829e3cd4b6c22290d53c70e34921f5d1c6ac63c91586a18da74a9d514d4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-primitive-units",
+      "source": "svg-filter-displacement-primitive-units.svg",
+      "source_sha256": "72d5ef98462e1a129ec25455eb89db2c4cb52e06aafcb28b2938abef17a1085d",
+      "oracle": "chromium/svg-filter-displacement-primitive-units.png",
+      "oracle_sha256": "85d8658ebe43a157546109bb953956f76b192bb1a07587102c8a59ae15890173",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-quarter-turn",
+      "source": "svg-filter-displacement-quarter-turn.svg",
+      "source_sha256": "7b1a53caf0d330913b9a2bb7d2355a5fb6095dc9d79c799f388430458526e5a3",
+      "oracle": "chromium/svg-filter-displacement-quarter-turn.png",
+      "oracle_sha256": "bb7d849dcbbf49a93439b285b7a3695f4adc4e29f38d43e2c7aec8d161ebd203",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-region-percent",
+      "source": "svg-filter-displacement-region-percent.svg",
+      "source_sha256": "36f4245b952df9e46b0ad63464f814ef143954033af95ee7b7011a07a6f1a268",
+      "oracle": "chromium/svg-filter-displacement-region-percent.png",
+      "oracle_sha256": "34dbc30d9e39e46a23dbeb2e198cd297b455edabd770622ad227cefd426c37d3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-scale-fraction",
+      "source": "svg-filter-displacement-scale-fraction.svg",
+      "source_sha256": "aaeb87be895571f286cd4f48bc3e6b1dac579da8c97b4cc3f5c783eb81b3557d",
+      "oracle": "chromium/svg-filter-displacement-scale-fraction.png",
+      "oracle_sha256": "b31dae4b8c77c28045a3c29295fee29a2143b6595bdd6198c9363c878bdb3b65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-scale-invalid",
+      "source": "svg-filter-displacement-scale-invalid.svg",
+      "source_sha256": "8fddbc8dae390d8f1f00e2d25e886a1edce7bb5f2aa8e5cc0150c85e72d83a2b",
+      "oracle": "chromium/svg-filter-displacement-scale-invalid.png",
+      "oracle_sha256": "50c4f12fb22968ec2793c1807c2dfb6569b344542e3fd381eb3a055bb68267ab",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-scale-negative",
+      "source": "svg-filter-displacement-scale-negative.svg",
+      "source_sha256": "f17ead830871326163fca43019b9beb9a30eda7aa85c6fe9a3ec9924ccd2dc50",
+      "oracle": "chromium/svg-filter-displacement-scale-negative.png",
+      "oracle_sha256": "58bc82de609c3ca90e14b49f23b8cd094d83116c4deb68f632856abd04ca89d6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-scale-positive",
+      "source": "svg-filter-displacement-scale-positive.svg",
+      "source_sha256": "aa11235ad89321bc255e4665760492118cc6c477d3c686775da1ad1b6ed79696",
+      "oracle": "chromium/svg-filter-displacement-scale-positive.png",
+      "oracle_sha256": "ac617ba298bb5ae51819dbac6c1038cd252a6eb74a493f67896eaaea48bb888f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-scale-trailing-comma",
+      "source": "svg-filter-displacement-scale-trailing-comma.svg",
+      "source_sha256": "57f05e4c8929ae7acc6398d4153cad6c2c6bb29163dc16ef3d0b1cbb66230590",
+      "oracle": "chromium/svg-filter-displacement-scale-trailing-comma.png",
+      "oracle_sha256": "ac617ba298bb5ae51819dbac6c1038cd252a6eb74a493f67896eaaea48bb888f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-scale-transform",
+      "source": "svg-filter-displacement-scale-transform.svg",
+      "source_sha256": "65167a780841f824217e62e68dbe948e1461da5545cbdcb2ce740876b3786b59",
+      "oracle": "chromium/svg-filter-displacement-scale-transform.png",
+      "oracle_sha256": "25cd03d7857daaba281e89fbf2c71460dacd685a2f230a90e3402aaba8736f05",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-scale-zero",
+      "source": "svg-filter-displacement-scale-zero.svg",
+      "source_sha256": "e13cd07b41a0652095acd3f34544454bf23604eff8520e979b9558cebe0a83f6",
+      "oracle": "chromium/svg-filter-displacement-scale-zero.png",
+      "oracle_sha256": "50c4f12fb22968ec2793c1807c2dfb6569b344542e3fd381eb3a055bb68267ab",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-selector-alpha",
+      "source": "svg-filter-displacement-selector-alpha.svg",
+      "source_sha256": "b72536f8fe32d8bbcb5c533cb07ebe278f2ccd80b58152f8fa507aedd6b8f4c1",
+      "oracle": "chromium/svg-filter-displacement-selector-alpha.png",
+      "oracle_sha256": "ac617ba298bb5ae51819dbac6c1038cd252a6eb74a493f67896eaaea48bb888f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-selector-axes",
+      "source": "svg-filter-displacement-selector-axes.svg",
+      "source_sha256": "381f86382a08598ffaaad8e37f0d9909868100941fcac46d4abb07e0ca7ae32c",
+      "oracle": "chromium/svg-filter-displacement-selector-axes.png",
+      "oracle_sha256": "6e802945d80b9ffbb84ea8546edee6410c94b587e0546da1ed549998c93b31cd",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-selector-blue",
+      "source": "svg-filter-displacement-selector-blue.svg",
+      "source_sha256": "171d9d5190e8dc908d368a24d0a51131f83c626a4dee596aeeb0f2741121fc54",
+      "oracle": "chromium/svg-filter-displacement-selector-blue.png",
+      "oracle_sha256": "50c4f12fb22968ec2793c1807c2dfb6569b344542e3fd381eb3a055bb68267ab",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-selector-default",
+      "source": "svg-filter-displacement-selector-default.svg",
+      "source_sha256": "aa11235ad89321bc255e4665760492118cc6c477d3c686775da1ad1b6ed79696",
+      "oracle": "chromium/svg-filter-displacement-selector-default.png",
+      "oracle_sha256": "ac617ba298bb5ae51819dbac6c1038cd252a6eb74a493f67896eaaea48bb888f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-selector-grammar",
+      "source": "svg-filter-displacement-selector-grammar.svg",
+      "source_sha256": "566f2d6938a9b0a33842f33e7e3cbd73c54f5024230f4a3de8027122e34c87d2",
+      "oracle": "chromium/svg-filter-displacement-selector-grammar.png",
+      "oracle_sha256": "ac617ba298bb5ae51819dbac6c1038cd252a6eb74a493f67896eaaea48bb888f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-selector-green",
+      "source": "svg-filter-displacement-selector-green.svg",
+      "source_sha256": "e4dabb1f7b0672ed112c236bcd25bd9c496b2ad56bfd9e3b17302ec70d1d5809",
+      "oracle": "chromium/svg-filter-displacement-selector-green.png",
+      "oracle_sha256": "e7b25a1259378fb92010d786fc1d99d42794477316b5c3ceec4499fd25e710fd",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-selector-red",
+      "source": "svg-filter-displacement-selector-red.svg",
+      "source_sha256": "793dc09980252f0fe6de80f8e8f080756a6ad810b86ff2617d9448309d8d4e6e",
+      "oracle": "chromium/svg-filter-displacement-selector-red.png",
+      "oracle_sha256": "4eb9f750928b55908b052519bbf671810f93e14a61ad85ccd3d1e69efcb3982b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-source-alpha-map",
+      "source": "svg-filter-displacement-source-alpha-map.svg",
+      "source_sha256": "6d927e45198fb7ce0cf13180e23cf960c05c1f064ec7193c971f68411c532a55",
+      "oracle": "chromium/svg-filter-displacement-source-alpha-map.png",
+      "oracle_sha256": "37dfa510a9cc9debc01f4a935a08e74b2930caab0e4613a51312eecaef01e10e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-source-rgb-map",
+      "source": "svg-filter-displacement-source-rgb-map.svg",
+      "source_sha256": "ab6d131acd954ae2c6b3a32f1d37bfbb47f7e3244794b3de6f7512f3b0c03ce4",
+      "oracle": "chromium/svg-filter-displacement-source-rgb-map.png",
+      "oracle_sha256": "79d9a21f26b76991c404b935bd0872b6f8678954d18996c1f48d2099606cd938",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-stroke",
+      "source": "svg-filter-displacement-stroke.svg",
+      "source_sha256": "1472adcd00def039ed8886f7390e563e34878fffe240b22ca997a81904a9b956",
+      "oracle": "chromium/svg-filter-displacement-stroke.png",
+      "oracle_sha256": "ec26f30327ab984d8ed0f979cc435fc620c5a6e3d0c20924b298e0b06f9e514a",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-transparent-map",
+      "source": "svg-filter-displacement-transparent-map.svg",
+      "source_sha256": "31927257d0d032f680ff9439bfce3fb23ffd481dfbc45198f9c08aa671fb61a9",
+      "oracle": "chromium/svg-filter-displacement-transparent-map.png",
+      "oracle_sha256": "701dd853a22ba4e7e72ea4e80ba46a13712208023c2bdacce041ee70ad007926",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-turbulence-map",
+      "source": "svg-filter-displacement-turbulence-map.svg",
+      "source_sha256": "de8ca15c750c9fa181b3e7830ce886421a1c0effc555a528171eed9c1ff11fdc",
+      "oracle": "chromium/svg-filter-displacement-turbulence-map.png",
+      "oracle_sha256": "e124e15561aa76af737bbde7ed7187ed87aa62f3d1d6dac549c586d391a45b7a",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-turbulence-map-linear",
+      "source": "svg-filter-displacement-turbulence-map-linear.svg",
+      "source_sha256": "f5bcf42876ca00160983f1678b490d29300f494597f5035822d16e4b4927b57c",
+      "oracle": "chromium/svg-filter-displacement-turbulence-map-linear.png",
+      "oracle_sha256": "408ae6589b1a2aa979aa05d783fa2274c1c0dac689c4037756da3d6c463d5fb0",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-use",
+      "source": "svg-filter-displacement-use.svg",
+      "source_sha256": "9ad7beb95a5b206fe8f977522769115ff7a8612ba210657262a9524bfaa1ba97",
+      "oracle": "chromium/svg-filter-displacement-use.png",
+      "oracle_sha256": "1e25439c6202ff993ed5c033190a7e7727fffe36215b8c1ef664cb8e63d23517",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-viewbox",
+      "source": "svg-filter-displacement-viewbox.svg",
+      "source_sha256": "24bb30349178d18aac1d17c55357fbd2f51f28ca180a19aea860caf8271849e9",
+      "oracle": "chromium/svg-filter-displacement-viewbox.png",
+      "oracle_sha256": "a5d932939e87a6eaa86690f051f24118ffbad8c253e765dd880ff6f29d2b6ebc",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-filter-drop-shadow-anisotropic",
       "source": "svg-filter-drop-shadow-anisotropic.svg",
       "source_sha256": "48eb49209f70a72ed604843c286535903d2db2de8f946efab9a5e174c3a02f99",
@@ -2806,6 +3130,501 @@
       "source_sha256": "fe6df81d51a49e73d5a7ad926d65eb9edb84a2e562101737079e0bc0f4ea4ff4",
       "oracle": "chromium/svg-filter-target-rotate.png",
       "oracle_sha256": "dd683c042256e175251d82cb7e1aa1811b3da83323200a30e81bcf6f156afb43",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-base-comma",
+      "source": "svg-filter-turbulence-base-comma.svg",
+      "source_sha256": "4f4a5ce21e6726be4847bc234a89ea512dd9c63e3b3205a1df06d7d8100b2a28",
+      "oracle": "chromium/svg-filter-turbulence-base-comma.png",
+      "oracle_sha256": "535bfc3966bfa7d30fe8606b1d9df939ebb85b906c886494bcb3697a528cfaad",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-base-invalid",
+      "source": "svg-filter-turbulence-base-invalid.svg",
+      "source_sha256": "1b73b8135b917dfec3af727f24543cb10fabd0926efb3400026a64c06ed60625",
+      "oracle": "chromium/svg-filter-turbulence-base-invalid.png",
+      "oracle_sha256": "5892610a63d0176452c8b1f3ad1f284dab7ec872b7d1b351daf781799e71e9a3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-base-negative-axis",
+      "source": "svg-filter-turbulence-base-negative-axis.svg",
+      "source_sha256": "09ef3ce4339f08d2b2608f4d76a0916a1c6b36a5925632f8273028fd5e85ebb1",
+      "oracle": "chromium/svg-filter-turbulence-base-negative-axis.png",
+      "oracle_sha256": "5892610a63d0176452c8b1f3ad1f284dab7ec872b7d1b351daf781799e71e9a3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-base-one",
+      "source": "svg-filter-turbulence-base-one.svg",
+      "source_sha256": "980c5dbe83b365bfd7bdf0a7f0a1b323e9ad93f31302ba97a9e0d049de3a5146",
+      "oracle": "chromium/svg-filter-turbulence-base-one.png",
+      "oracle_sha256": "86c1ae45c0b3986a84c85f011f35679e3146502b8c697729e50583f05f16a844",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-base-plus-exponent",
+      "source": "svg-filter-turbulence-base-plus-exponent.svg",
+      "source_sha256": "2be01e260e1ddb8a3b7d6ffe702931a8faabd58a7abbda35d70dcb18fa4ae355",
+      "oracle": "chromium/svg-filter-turbulence-base-plus-exponent.png",
+      "oracle_sha256": "86c1ae45c0b3986a84c85f011f35679e3146502b8c697729e50583f05f16a844",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-base-trailing-comma",
+      "source": "svg-filter-turbulence-base-trailing-comma.svg",
+      "source_sha256": "016cd9f96309c5ee9b7f35a69b63439554ab565e71c352e7b4f686addf145944",
+      "oracle": "chromium/svg-filter-turbulence-base-trailing-comma.png",
+      "oracle_sha256": "86c1ae45c0b3986a84c85f011f35679e3146502b8c697729e50583f05f16a844",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-base-two",
+      "source": "svg-filter-turbulence-base-two.svg",
+      "source_sha256": "317cfe94347604d7a8de73b359c43d8b9892dd0054630deea484ff6406a9f91b",
+      "oracle": "chromium/svg-filter-turbulence-base-two.png",
+      "oracle_sha256": "535bfc3966bfa7d30fe8606b1d9df939ebb85b906c886494bcb3697a528cfaad",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-blend-chain-difference",
+      "source": "svg-filter-turbulence-blend-chain-difference.svg",
+      "source_sha256": "8f2620f8a2987155b84b2e05b2fb97dee47dd0454e2b9b375e9ecca1362ee82b",
+      "oracle": "chromium/svg-filter-turbulence-blend-chain-difference.png",
+      "oracle_sha256": "cf72543639dd9492bb8d845bd6ec0d1539f0e72e30007a832a23430bddae5e91",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-blend-chain-exclusion",
+      "source": "svg-filter-turbulence-blend-chain-exclusion.svg",
+      "source_sha256": "0be8971522469d8e9dca0b3410a449a8c3aff26ba84f042a5a9b6bbf972558c1",
+      "oracle": "chromium/svg-filter-turbulence-blend-chain-exclusion.png",
+      "oracle_sha256": "09640ee194b678c09cc2889ae85e8a3071f67a58ab7672c5d4d4e082cd839ef6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-blend-morphology-restore",
+      "source": "svg-filter-turbulence-blend-morphology-restore.svg",
+      "source_sha256": "de0ddccf3c694015fae1497ece12e619147f715c258f3badf34ec4ec662edd2f",
+      "oracle": "chromium/svg-filter-turbulence-blend-morphology-restore.png",
+      "oracle_sha256": "ac1bba196fe00c0ce5705ee12939085f2c001d6fc62af2eb03b0c8c8a3e2b149",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-color-default",
+      "source": "svg-filter-turbulence-color-default.svg",
+      "source_sha256": "d197e14b8e70d14c14fec5fc99835614f7ec43bc8677e8e4fea07583ef29653a",
+      "oracle": "chromium/svg-filter-turbulence-color-default.png",
+      "oracle_sha256": "12dfb58e8418af5241ed649817f7e187c2a7ef3014facb36df1ffcf0ad34bf6e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-color-linear",
+      "source": "svg-filter-turbulence-color-linear.svg",
+      "source_sha256": "10c9080643915f7ec8c0912b597be7c38fe099aa72ef4be0f3456ed1a90754c0",
+      "oracle": "chromium/svg-filter-turbulence-color-linear.png",
+      "oracle_sha256": "12dfb58e8418af5241ed649817f7e187c2a7ef3014facb36df1ffcf0ad34bf6e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-color-srgb",
+      "source": "svg-filter-turbulence-color-srgb.svg",
+      "source_sha256": "80fb7530740d4c391adb9d900439f29d78fa9dc7206f6b5b5e49bd1ba2fbe1fa",
+      "oracle": "chromium/svg-filter-turbulence-color-srgb.png",
+      "oracle_sha256": "0dbc51e7d5227990936f59cf3bd6e9b831dd0cc3377ff7b6e88d1ef64849cc27",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-default",
+      "source": "svg-filter-turbulence-default.svg",
+      "source_sha256": "16494c9a7f34508b992a3da8a4bc1adec8a6d53683e6cccae92e0806b2003790",
+      "oracle": "chromium/svg-filter-turbulence-default.png",
+      "oracle_sha256": "5892610a63d0176452c8b1f3ad1f284dab7ec872b7d1b351daf781799e71e9a3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-difference-linear",
+      "source": "svg-filter-turbulence-difference-linear.svg",
+      "source_sha256": "b18e33d808ea548d5be919a7c113ce540a4ed28b4eab08e2c44c7ec93180f0c8",
+      "oracle": "chromium/svg-filter-turbulence-difference-linear.png",
+      "oracle_sha256": "e6d003ca6b10fd129a1eee112c040336a3de71ef58611be143f40943ecc294c6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-difference-srgb-direct",
+      "source": "svg-filter-turbulence-difference-srgb-direct.svg",
+      "source_sha256": "6ffc41c888340b3aed6ef08a6e0024538831523f21a6149e1e0b2236427636eb",
+      "oracle": "chromium/svg-filter-turbulence-difference-srgb-direct.png",
+      "oracle_sha256": "9d97fb06a65ac24252de1224eacf5fe9fa9b69011b8d3c99f6411ecec39cc64e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-difference-srgb-transfer",
+      "source": "svg-filter-turbulence-difference-srgb-transfer.svg",
+      "source_sha256": "926a9f74174872f8d420d885abc7854146daa66bbdc9b4190d26a2d6faed9a01",
+      "oracle": "chromium/svg-filter-turbulence-difference-srgb-transfer.png",
+      "oracle_sha256": "1429426526b27a8adbc0d249a323dba21ff2b5642d0083d61f26eb191fd0ee15",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-displacement-map",
+      "source": "svg-filter-turbulence-displacement-map.svg",
+      "source_sha256": "1a2f3c37c17fd507589ba43035e11d2b20b7c501c8840cfbfb29eef94ef1bae0",
+      "oracle": "chromium/svg-filter-turbulence-displacement-map.png",
+      "oracle_sha256": "9969499ef3ab420200916b28bd4ecebd12b36ab2f05faddee117de26fc83fed5",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-empty-source",
+      "source": "svg-filter-turbulence-empty-source.svg",
+      "source_sha256": "d8d0bd5fd45e269a66d56b5892d56dfb7369601df8f241f5e06257a3c518fa91",
+      "oracle": "chromium/svg-filter-turbulence-empty-source.png",
+      "oracle_sha256": "8970105d789845abb1b37d062a2edd6539bb5e3f66257fc81531a1548d66b695",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-exclusion-linear",
+      "source": "svg-filter-turbulence-exclusion-linear.svg",
+      "source_sha256": "2dacfad0a6c1bcc046f77fa647460de327662edb5303cf9f5b758136ee0546f5",
+      "oracle": "chromium/svg-filter-turbulence-exclusion-linear.png",
+      "oracle_sha256": "fe26c88827bde44ed27f3b47315fd6aa81c8fdd77b985a8561c07c9eadfca840",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-exclusion-srgb-direct",
+      "source": "svg-filter-turbulence-exclusion-srgb-direct.svg",
+      "source_sha256": "0564bd1d3bc4fc6fdbaec933ea8562e0312d60035327d9f8f92a2011cd736285",
+      "oracle": "chromium/svg-filter-turbulence-exclusion-srgb-direct.png",
+      "oracle_sha256": "b30c0d315b48a062aa5a1b94efc8cf008fd42257a77cde5264447011a6c22d29",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-exclusion-srgb-transfer",
+      "source": "svg-filter-turbulence-exclusion-srgb-transfer.svg",
+      "source_sha256": "215b558d3a69f0cfbd7df479e2ee435aab6616e34940e31815fa4eee04abc514",
+      "oracle": "chromium/svg-filter-turbulence-exclusion-srgb-transfer.png",
+      "oracle_sha256": "8e6faf2875a38edd599cfdaf3dc392c078a4cd978bbfdc427583a8f87a504cc3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-fractal-octave-zero",
+      "source": "svg-filter-turbulence-fractal-octave-zero.svg",
+      "source_sha256": "da083c4e54aad62969b1c3707cf418de458b068d8673f5351478b42d47002678",
+      "oracle": "chromium/svg-filter-turbulence-fractal-octave-zero.png",
+      "oracle_sha256": "3c47a6c02e9d5b130464e5e0630863c137c83169dfd6cf50fd7d295440f07c9e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-fractional-translate",
+      "source": "svg-filter-turbulence-fractional-translate.svg",
+      "source_sha256": "53a2b993ac0de33a1f6d1806f29c91a06f47342c7eb5a871ccf1acb316df2091",
+      "oracle": "chromium/svg-filter-turbulence-fractional-translate.png",
+      "oracle_sha256": "1977b6a13a9da452eefc10dd49c7441deb6f110c3edd43022bff337b244a9e82",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-graph-blend",
+      "source": "svg-filter-turbulence-graph-blend.svg",
+      "source_sha256": "7d2b920b58b9c45225548372e2db74242de19fff353ed26e9eab903e42abb1d4",
+      "oracle": "chromium/svg-filter-turbulence-graph-blend.png",
+      "oracle_sha256": "82769795ffd6535f811d3f1b238636fe82c4cd679efd5a1c7b9e3524ca444528",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-graph-result-reuse",
+      "source": "svg-filter-turbulence-graph-result-reuse.svg",
+      "source_sha256": "5dbb54d317c4609446a0e199484fd00e9bc6bdb1790315995e9f8572eaf248d6",
+      "oracle": "chromium/svg-filter-turbulence-graph-result-reuse.png",
+      "oracle_sha256": "e1dd588428c315bf062b8f9381d3beda636cfcb6d5229123689d9b9a13baeffe",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-linear-blend",
+      "source": "svg-filter-turbulence-linear-blend.svg",
+      "source_sha256": "db5ad834b261838797f5f5ce86b5a69ec3797a62a3173afe0743b04b7fecf825",
+      "oracle": "chromium/svg-filter-turbulence-linear-blend.png",
+      "oracle_sha256": "43837d815e68e4d44993a262687178e24992f494bb7b1c9b946ad2507bba9e6e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-linear-srgb-blend",
+      "source": "svg-filter-turbulence-linear-srgb-blend.svg",
+      "source_sha256": "8ef288ac3d48522f67ba181d54ae19b45bf2db3116e7b379ff04efdf51c638fa",
+      "oracle": "chromium/svg-filter-turbulence-linear-srgb-blend.png",
+      "oracle_sha256": "8aa8ad7ef637f73f979b1a58cff663e2ec0361b42c0c305e75ca8fb612f44844",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-linear-srgb-morphology",
+      "source": "svg-filter-turbulence-linear-srgb-morphology.svg",
+      "source_sha256": "2b215c27428298e4679714343239d7c6f21078ab18f00d803ea1fd8208282172",
+      "oracle": "chromium/svg-filter-turbulence-linear-srgb-morphology.png",
+      "oracle_sha256": "794476cb26e074f8eac472a9c84b39043ec9e654dd78f1ee6aec82a641488612",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-morphology-blend-restore",
+      "source": "svg-filter-turbulence-morphology-blend-restore.svg",
+      "source_sha256": "9b7efd5b846c9f46a2d75583684a50041064165222f6010805bcac2103f42f74",
+      "oracle": "chromium/svg-filter-turbulence-morphology-blend-restore.png",
+      "oracle_sha256": "bf6243487410162a719a64f5fd81533eb974e471aef3f5b29a231128cb5c31de",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-octave-cap",
+      "source": "svg-filter-turbulence-octave-cap.svg",
+      "source_sha256": "c18027810d3b5b459d8f4c4385e4d76a61951f30b06b45d6a5a1a38e36220ecf",
+      "oracle": "chromium/svg-filter-turbulence-octave-cap.png",
+      "oracle_sha256": "0a87c7e482fd8d6487d1b4d813494982a47bd409d4953590fef8a357da6d7517",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-octave-grammar",
+      "source": "svg-filter-turbulence-octave-grammar.svg",
+      "source_sha256": "d0dc7f2a24f3cfe795698ef9e73bf4f972363d20265660c572bb683bbeed0dd9",
+      "oracle": "chromium/svg-filter-turbulence-octave-grammar.png",
+      "oracle_sha256": "86c1ae45c0b3986a84c85f011f35679e3146502b8c697729e50583f05f16a844",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-octave-negative",
+      "source": "svg-filter-turbulence-octave-negative.svg",
+      "source_sha256": "7efd4b9931f38ca1f9a6120916b536424aa99ea7fab63fa2b7d067694169c68b",
+      "oracle": "chromium/svg-filter-turbulence-octave-negative.png",
+      "oracle_sha256": "5892610a63d0176452c8b1f3ad1f284dab7ec872b7d1b351daf781799e71e9a3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-octave-nine",
+      "source": "svg-filter-turbulence-octave-nine.svg",
+      "source_sha256": "672da89efe7ee94565d9f786181a8cad55ae27c0a15e72ef629df38a7557d6dc",
+      "oracle": "chromium/svg-filter-turbulence-octave-nine.png",
+      "oracle_sha256": "0a87c7e482fd8d6487d1b4d813494982a47bd409d4953590fef8a357da6d7517",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-octave-one",
+      "source": "svg-filter-turbulence-octave-one.svg",
+      "source_sha256": "5abd5d3b4fb36b19356dfb0b6b9b4f5c6354e3d61ccab4f8201573c42bd13c24",
+      "oracle": "chromium/svg-filter-turbulence-octave-one.png",
+      "oracle_sha256": "86c1ae45c0b3986a84c85f011f35679e3146502b8c697729e50583f05f16a844",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-octave-two",
+      "source": "svg-filter-turbulence-octave-two.svg",
+      "source_sha256": "4114e2f7b88207df4015293ea003204694cf655d0d01abe2cc8f1b5caca5c65c",
+      "oracle": "chromium/svg-filter-turbulence-octave-two.png",
+      "oracle_sha256": "fe9f1d83a04ca260feefc41615fba1b75c02f45acaa873211c9e21e9c76ffdf3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-octave-zero",
+      "source": "svg-filter-turbulence-octave-zero.svg",
+      "source_sha256": "e7ba13a70a58deb37a957f117a04019fdfe36c7386c7fc385e31c78168b80975",
+      "oracle": "chromium/svg-filter-turbulence-octave-zero.png",
+      "oracle_sha256": "5892610a63d0176452c8b1f3ad1f284dab7ec872b7d1b351daf781799e71e9a3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-quarter-turn",
+      "source": "svg-filter-turbulence-quarter-turn.svg",
+      "source_sha256": "13c7451ab0ba4ee4ad2c706dd784e05614c08ac56da39f5fea8dfe607593c634",
+      "oracle": "chromium/svg-filter-turbulence-quarter-turn.png",
+      "oracle_sha256": "1e1db21306450a211e106c376fcf266fa43fcedee0ee1473165ae03dc80becb8",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-region-percent",
+      "source": "svg-filter-turbulence-region-percent.svg",
+      "source_sha256": "ca4f5617cd40d2296986db473dc1c912415423df2571a22ebe4776f7216a3109",
+      "oracle": "chromium/svg-filter-turbulence-region-percent.png",
+      "oracle_sha256": "84a48e1f60371c08ef65313d076809296d1dd7653c3bf2c8b71b4ec78dfade00",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-region-stitch-fraction",
+      "source": "svg-filter-turbulence-region-stitch-fraction.svg",
+      "source_sha256": "9af0837efa4efb41f52ef57e44e9db01b9e8a62967e34c8dd8ef01b7e4058912",
+      "oracle": "chromium/svg-filter-turbulence-region-stitch-fraction.png",
+      "oracle_sha256": "9851b1150466ec9a829d8a6defddbf8903ab8eaa153756a6c0b9c70937f23851",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-seed-fraction",
+      "source": "svg-filter-turbulence-seed-fraction.svg",
+      "source_sha256": "a9bc29a6e8c245b40ddc53679ed5acb2dac4ce4449414106152bf0caf0a4abc7",
+      "oracle": "chromium/svg-filter-turbulence-seed-fraction.png",
+      "oracle_sha256": "86c1ae45c0b3986a84c85f011f35679e3146502b8c697729e50583f05f16a844",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-seed-grammar",
+      "source": "svg-filter-turbulence-seed-grammar.svg",
+      "source_sha256": "66412ef431d32b5892687d67fcfd45e24066db74ef59ebfba6695fdc0663a948",
+      "oracle": "chromium/svg-filter-turbulence-seed-grammar.png",
+      "oracle_sha256": "86c1ae45c0b3986a84c85f011f35679e3146502b8c697729e50583f05f16a844",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-seed-negative",
+      "source": "svg-filter-turbulence-seed-negative.svg",
+      "source_sha256": "8fb67e596f41806323ef7b426ba95b25a3d76760dccd90d4449aa03b70a6e7e4",
+      "oracle": "chromium/svg-filter-turbulence-seed-negative.png",
+      "oracle_sha256": "0085203bbd3eec2d81d16990924e537199ebfffcd1d8184d725033f25be0895f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-seed-one",
+      "source": "svg-filter-turbulence-seed-one.svg",
+      "source_sha256": "620dab51cbdc1de9ff77881301a4fdcb0ad368e71947ba0e3092ee0a720013c6",
+      "oracle": "chromium/svg-filter-turbulence-seed-one.png",
+      "oracle_sha256": "86c1ae45c0b3986a84c85f011f35679e3146502b8c697729e50583f05f16a844",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-seed-zero",
+      "source": "svg-filter-turbulence-seed-zero.svg",
+      "source_sha256": "772fddf7635aecd9e80f67f58eb73f5579a5c5c38e5525c5fb17574345fa419e",
+      "oracle": "chromium/svg-filter-turbulence-seed-zero.png",
+      "oracle_sha256": "86c1ae45c0b3986a84c85f011f35679e3146502b8c697729e50583f05f16a844",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-srgb-linear-blend",
+      "source": "svg-filter-turbulence-srgb-linear-blend.svg",
+      "source_sha256": "c9d612359418e8a203404501f69e43199655148a516b5558c8087b6f3b4f15b0",
+      "oracle": "chromium/svg-filter-turbulence-srgb-linear-blend.png",
+      "oracle_sha256": "01d3d6b4e2ba3ae4b2c9dbc9cae4384a0cc068caeae21322d32fae6f5e082281",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-srgb-linear-morphology",
+      "source": "svg-filter-turbulence-srgb-linear-morphology.svg",
+      "source_sha256": "9b07a43b919e7ac264c6fc8bfb097cdfee74730ea8c4980e6b1b9cf2fd563df1",
+      "oracle": "chromium/svg-filter-turbulence-srgb-linear-morphology.png",
+      "oracle_sha256": "5d614123e280ffc33840c003e30396d52161ce6a4d1041e6c05aaa90de70ff03",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-stitch",
+      "source": "svg-filter-turbulence-stitch.svg",
+      "source_sha256": "41c8d6291223c87c258499f8d4517dd87f82170f8375a6284d7ca10a4e4e16ad",
+      "oracle": "chromium/svg-filter-turbulence-stitch.png",
+      "oracle_sha256": "3f7c45f4014676bf3d614ee6cb9b98764220f2a69f45fdae72eac88db6052ceb",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-stitch-grammar",
+      "source": "svg-filter-turbulence-stitch-grammar.svg",
+      "source_sha256": "a05d743b46f5553da4a7151ee5fea595ef8f482be3ca0edd088c8d0038df4e54",
+      "oracle": "chromium/svg-filter-turbulence-stitch-grammar.png",
+      "oracle_sha256": "605b14448abce2b32df17c06f8e4e73cabf21472985d2d71605984bc752bfd7f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-stitch-none",
+      "source": "svg-filter-turbulence-stitch-none.svg",
+      "source_sha256": "adb7680e9edcc77bb4d0ca0ac47eb0c22e65e8e32ddb7c2330d8ec81e902a2b9",
+      "oracle": "chromium/svg-filter-turbulence-stitch-none.png",
+      "oracle_sha256": "605b14448abce2b32df17c06f8e4e73cabf21472985d2d71605984bc752bfd7f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-type-fractal",
+      "source": "svg-filter-turbulence-type-fractal.svg",
+      "source_sha256": "7fd59f4f8432f5a6a687e971579c5d7ca438b188c31a1b9e7e4fd612dff4f070",
+      "oracle": "chromium/svg-filter-turbulence-type-fractal.png",
+      "oracle_sha256": "0e04ea656944c612dee8b41ccc740110fcd9e751d57f15b41927cf8ad74ed5d0",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-type-grammar",
+      "source": "svg-filter-turbulence-type-grammar.svg",
+      "source_sha256": "d89d2972975d79680ac1b68688d96ab2764ac8507af56732fa9b0c9a697cae21",
+      "oracle": "chromium/svg-filter-turbulence-type-grammar.png",
+      "oracle_sha256": "86c1ae45c0b3986a84c85f011f35679e3146502b8c697729e50583f05f16a844",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-type-turbulence",
+      "source": "svg-filter-turbulence-type-turbulence.svg",
+      "source_sha256": "20e5bf1197d210570ed3376b01fc68672f6ee2493e8a65e553602f8fa41327e3",
+      "oracle": "chromium/svg-filter-turbulence-type-turbulence.png",
+      "oracle_sha256": "86c1ae45c0b3986a84c85f011f35679e3146502b8c697729e50583f05f16a844",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-use",
+      "source": "svg-filter-turbulence-use.svg",
+      "source_sha256": "9b17399e7c7bd90888fa320764000f962a93424c75e55741371dce223de150f5",
+      "oracle": "chromium/svg-filter-turbulence-use.png",
+      "oracle_sha256": "bfe0103497040b07a89908436ab241db85eab1d370018b9549ae2fb2c3472ec7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-viewbox",
+      "source": "svg-filter-turbulence-viewbox.svg",
+      "source_sha256": "f647e37e9bd47bf369a7954c652e8fe65b09ac07b56bd03d5bb4c3340fda77ac",
+      "oracle": "chromium/svg-filter-turbulence-viewbox.png",
+      "oracle_sha256": "7cd5aa1c5949c8bbf6316371e582aa8f9e4419cbfff91153cfe927edda43d4a3",
       "width": 64,
       "height": 64
     },

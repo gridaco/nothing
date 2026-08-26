@@ -5,9 +5,9 @@ use std::sync::Arc;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
-    Filter, FilterBlend, FilterChannelTables, FilterColorSpace, FilterComposite, FilterError,
-    FilterInput, FilterMorphology, FilterNode, FilterPrimitive, FilterProgram, FilterProgramError,
-    MAX_FILTER_NODES,
+    Filter, FilterBlend, FilterChannelTables, FilterColorSpace, FilterComposite,
+    FilterDisplacementChannel, FilterError, FilterInput, FilterMorphology, FilterNode,
+    FilterPrimitive, FilterProgram, FilterProgramError, FilterTurbulenceKind, MAX_FILTER_NODES,
 };
 
 fn blur(input: FilterInput, sigma_x: f32, sigma_y: f32) -> FilterNode {
@@ -393,6 +393,172 @@ fn morphology_has_one_input_and_checked_non_negative_radii() {
         .expect("finite non-negative local radii are resolved facts");
         assert!(!program.may_paint_transparent_input());
     }
+}
+
+#[test]
+fn turbulence_is_a_zero_input_generated_source_with_checked_parameters() {
+    let region = Rectangle::from_xywh(0.0, 0.0, 10.0, 10.0);
+    let turbulence = |inputs: Arc<[FilterInput]>,
+                      kind,
+                      base_frequency_x,
+                      base_frequency_y,
+                      num_octaves,
+                      seed,
+                      stitch_tiles| {
+        FilterNode::new(
+            inputs,
+            region,
+            FilterColorSpace::LinearRgb,
+            FilterPrimitive::Turbulence {
+                kind,
+                base_frequency_x,
+                base_frequency_y,
+                num_octaves,
+                seed,
+                stitch_tiles,
+            },
+        )
+    };
+
+    assert_eq!(
+        FilterProgram::new(Arc::from([turbulence(
+            Arc::from([FilterInput::Source]),
+            FilterTurbulenceKind::Turbulence,
+            0.1,
+            0.2,
+            1,
+            0.0,
+            false,
+        )])),
+        Err(FilterProgramError::InvalidInputCount {
+            node: 0,
+            expected: 0,
+            actual: 1,
+        })
+    );
+
+    for (base_frequency_x, base_frequency_y, num_octaves, seed) in [
+        (-0.1, 0.0, 1, 0.0),
+        (0.0, -0.1, 1, 0.0),
+        (f32::INFINITY, 0.0, 1, 0.0),
+        (0.0, f32::NAN, 1, 0.0),
+        (0.0, 0.0, 10, 0.0),
+        (0.0, 0.0, 1, f32::INFINITY),
+    ] {
+        assert_eq!(
+            FilterProgram::new(Arc::from([turbulence(
+                Arc::from([]),
+                FilterTurbulenceKind::FractalNoise,
+                base_frequency_x,
+                base_frequency_y,
+                num_octaves,
+                seed,
+                true,
+            )])),
+            Err(FilterProgramError::InvalidTurbulence { node: 0 })
+        );
+    }
+
+    for kind in [
+        FilterTurbulenceKind::Turbulence,
+        FilterTurbulenceKind::FractalNoise,
+    ] {
+        for num_octaves in [0, 1, 9] {
+            let program = FilterProgram::new(Arc::from([turbulence(
+                Arc::from([]),
+                kind,
+                0.0,
+                256.0,
+                num_octaves,
+                -7.5,
+                true,
+            )]))
+            .expect("finite non-negative frequencies and at most nine octaves are resolved facts");
+            assert!(program.may_paint_transparent_input());
+        }
+    }
+}
+
+#[test]
+fn displacement_map_has_two_ordered_inputs_and_checked_channel_vocabulary() {
+    let region = Rectangle::from_xywh(0.0, 0.0, 10.0, 10.0);
+    let displacement = |inputs: Arc<[FilterInput]>, scale, x_channel, y_channel| {
+        FilterNode::new(
+            inputs,
+            region,
+            FilterColorSpace::Srgb,
+            FilterPrimitive::DisplacementMap {
+                scale,
+                x_channel,
+                y_channel,
+            },
+        )
+    };
+
+    assert_eq!(
+        FilterProgram::new(Arc::from([displacement(
+            Arc::from([FilterInput::Source]),
+            20.0,
+            FilterDisplacementChannel::Red,
+            FilterDisplacementChannel::Green,
+        )])),
+        Err(FilterProgramError::InvalidInputCount {
+            node: 0,
+            expected: 2,
+            actual: 1,
+        })
+    );
+    assert_eq!(
+        FilterProgram::new(Arc::from([displacement(
+            Arc::from([FilterInput::Source, FilterInput::SourceAlpha]),
+            f32::NAN,
+            FilterDisplacementChannel::Blue,
+            FilterDisplacementChannel::Alpha,
+        )])),
+        Err(FilterProgramError::InvalidDisplacementMap { node: 0 })
+    );
+
+    let channels = [
+        FilterDisplacementChannel::Red,
+        FilterDisplacementChannel::Green,
+        FilterDisplacementChannel::Blue,
+        FilterDisplacementChannel::Alpha,
+    ];
+    for x_channel in channels {
+        for y_channel in channels {
+            let program = FilterProgram::new(Arc::from([displacement(
+                Arc::from([FilterInput::Source, FilterInput::SourceAlpha]),
+                -256.5,
+                x_channel,
+                y_channel,
+            )]))
+            .expect("finite signed scale and two named channels are resolved facts");
+            assert!(!program.may_paint_transparent_input());
+        }
+    }
+}
+
+#[test]
+fn a_filter_invocation_names_when_its_source_is_fully_transparent() {
+    let region = Rectangle::from_xywh(0.0, 0.0, 10.0, 10.0);
+    let program = FilterProgram::new(Arc::from([FilterNode::new(
+        Arc::from([]),
+        region,
+        FilterColorSpace::LinearRgb,
+        FilterPrimitive::Turbulence {
+            kind: FilterTurbulenceKind::Turbulence,
+            base_frequency_x: 0.1,
+            base_frequency_y: 0.2,
+            num_octaves: 2,
+            seed: 3.0,
+            stitch_tiles: false,
+        },
+    )]))
+    .expect("generated source program");
+    let filter = Filter::new(AffineTransform::identity(), region, program)
+        .expect("checked filter invocation");
+    assert!(!filter.source_is_transparent());
+    assert!(filter.with_transparent_source().source_is_transparent());
 }
 
 #[test]

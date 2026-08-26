@@ -25,9 +25,9 @@ pub use clip::{
     MAX_CLIP_GEOMETRIES_PER_LAYER, MAX_CLIP_LAYERS,
 };
 pub use filter::{
-    Filter, FilterBlend, FilterChannelTables, FilterColorSpace, FilterComposite, FilterError,
-    FilterInput, FilterMorphology, FilterNode, FilterPrimitive, FilterProgram, FilterProgramError,
-    MAX_FILTER_NODES,
+    Filter, FilterBlend, FilterChannelTables, FilterColorSpace, FilterComposite,
+    FilterDisplacementChannel, FilterError, FilterInput, FilterMorphology, FilterNode,
+    FilterPrimitive, FilterProgram, FilterProgramError, FilterTurbulenceKind, MAX_FILTER_NODES,
 };
 pub use frame::{
     Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry, Identity, MAX_SCOPE_DEPTH,

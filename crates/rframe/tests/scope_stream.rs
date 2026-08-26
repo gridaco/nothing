@@ -10,9 +10,11 @@ use cg::CGColor;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
-    FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry, Identity, MAX_SCOPE_DEPTH,
-    PaintStack, Provenance, Scope, ScopeEffect, ScopeOpacity, VisualRef,
+    Filter, FilterColorSpace, FilterInput, FilterNode, FilterPrimitive, FilterProgram,
+    FilterTurbulenceKind, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry, Identity,
+    MAX_SCOPE_DEPTH, PaintStack, Provenance, Scope, ScopeEffect, ScopeOpacity, VisualRef,
 };
+use std::sync::Arc;
 
 fn owner(id: u64) -> VisualRef {
     VisualRef::new(Identity::new(id), Provenance::new(id))
@@ -34,6 +36,48 @@ fn begin(id: u64) -> FrameItem {
     FrameItem::ScopeBegin(Scope {
         owner: owner(id),
         effect: ScopeEffect::Opacity(ScopeOpacity::new(0.5).expect("0.5 is a scope fact")),
+    })
+}
+
+fn filter_begin(id: u64, generated: bool, transparent_source: bool) -> FrameItem {
+    let region = Rectangle::from_xywh(0.0, 0.0, 40.0, 40.0);
+    let primitive = if generated {
+        FilterPrimitive::Turbulence {
+            kind: FilterTurbulenceKind::Turbulence,
+            base_frequency_x: 0.1,
+            base_frequency_y: 0.2,
+            num_octaves: 2,
+            seed: 3.0,
+            stitch_tiles: false,
+        }
+    } else {
+        FilterPrimitive::GaussianBlur {
+            sigma_x: 2.0,
+            sigma_y: 2.0,
+        }
+    };
+    let inputs: Arc<[FilterInput]> = if generated {
+        Arc::from([])
+    } else {
+        Arc::from([FilterInput::Source])
+    };
+    let program = FilterProgram::new(Arc::from([FilterNode::new(
+        inputs,
+        region,
+        FilterColorSpace::LinearRgb,
+        primitive,
+    )]))
+    .expect("test filter graph is checked");
+    let filter = Filter::new(AffineTransform::identity(), region, program)
+        .expect("test filter invocation is checked");
+    let filter = if transparent_source {
+        filter.with_transparent_source()
+    } else {
+        filter
+    };
+    FrameItem::ScopeBegin(Scope {
+        owner: owner(id),
+        effect: ScopeEffect::Filter(filter),
     })
 }
 
@@ -79,6 +123,24 @@ fn an_empty_scope_is_refused_at_its_begin() {
     assert_eq!(
         FrameItems::try_new(vec![node(1), begin(2), FrameItem::ScopeEnd]),
         Err(FrameItemsError::EmptyScope { index: 1 })
+    );
+}
+
+#[test]
+fn a_generated_filter_over_a_declared_transparent_source_is_meaningful_when_empty() {
+    FrameItems::try_new(vec![filter_begin(1, true, true), FrameItem::ScopeEnd])
+        .expect("the generated filter output is the empty span's visual fact");
+}
+
+#[test]
+fn an_empty_filter_cannot_claim_meaning_without_both_contract_facts() {
+    assert_eq!(
+        FrameItems::try_new(vec![filter_begin(1, true, false), FrameItem::ScopeEnd]),
+        Err(FrameItemsError::EmptyScope { index: 0 })
+    );
+    assert_eq!(
+        FrameItems::try_new(vec![filter_begin(1, false, true), FrameItem::ScopeEnd]),
+        Err(FrameItemsError::EmptyScope { index: 0 })
     );
 }
 

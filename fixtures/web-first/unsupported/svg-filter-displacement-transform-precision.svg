@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+    <feFlood flood-color="#e04080" flood-opacity=".7" result="map"/>
+    <feDisplacementMap in="SourceGraphic" in2="map" scale="16"
+                       xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+  <rect x="12" y="14" width="40" height="36" fill="#dc2626"
+        transform="skewX(13)" filter="url(#f)"/>
+</svg>

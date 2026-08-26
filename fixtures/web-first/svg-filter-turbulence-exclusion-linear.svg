@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="#f8fafc"/>
+  <defs><filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="linearRGB">
+    <feTurbulence baseFrequency=".083 .117" numOctaves="2" seed="-3" result="noise"/>
+
+    <feBlend in="noise" in2="SourceGraphic" mode="exclusion"/>
+  </filter></defs>
+  <rect width="64" height="64" fill="#c43779" fill-opacity=".47" filter="url(#f)"/>
+</svg>

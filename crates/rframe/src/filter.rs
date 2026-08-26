@@ -81,6 +81,22 @@ pub enum FilterMorphology {
     Dilate,
 }
 
+/// One source-neutral procedural-noise formula.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FilterTurbulenceKind {
+    Turbulence,
+    FractalNoise,
+}
+
+/// One non-premultiplied channel selected from a displacement image.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FilterDisplacementChannel {
+    Red,
+    Green,
+    Blue,
+    Alpha,
+}
+
 /// Four exact byte lookup tables for one non-premultiplied RGBA operation.
 ///
 /// Channel order is named at construction and access, so a producer cannot
@@ -170,6 +186,22 @@ pub enum FilterPrimitive {
         radius_x: f32,
         radius_y: f32,
     },
+    /// A bounded four-channel procedural-noise source. The octave count is
+    /// already capped to the resolved algorithm's meaningful range.
+    Turbulence {
+        kind: FilterTurbulenceKind,
+        base_frequency_x: f32,
+        base_frequency_y: f32,
+        num_octaves: u8,
+        seed: f32,
+        stitch_tiles: bool,
+    },
+    /// Displace `inputs[0]` by non-premultiplied channels from `inputs[1]`.
+    DisplacementMap {
+        scale: f32,
+        x_channel: FilterDisplacementChannel,
+        y_channel: FilterDisplacementChannel,
+    },
     Merge,
 }
 
@@ -254,6 +286,12 @@ pub enum FilterProgramError {
     InvalidMorphology {
         node: usize,
     },
+    InvalidTurbulence {
+        node: usize,
+    },
+    InvalidDisplacementMap {
+        node: usize,
+    },
 }
 
 impl std::fmt::Display for FilterProgramError {
@@ -306,6 +344,13 @@ impl std::fmt::Display for FilterProgramError {
                 f,
                 "filter node {node} has a non-finite or negative morphology radius"
             ),
+            Self::InvalidTurbulence { node } => write!(
+                f,
+                "filter node {node} has a non-finite/negative frequency, non-finite seed, or more than nine octaves"
+            ),
+            Self::InvalidDisplacementMap { node } => {
+                write!(f, "filter node {node} has a non-finite displacement scale")
+            }
         }
     }
 }
@@ -332,8 +377,10 @@ impl FilterProgram {
                 | FilterPrimitive::ColorMatrix { .. }
                 | FilterPrimitive::ComponentTransfer { .. }
                 | FilterPrimitive::Morphology { .. } => Some(1),
-                FilterPrimitive::SolidColor { .. } => Some(0),
-                FilterPrimitive::Composite { .. } | FilterPrimitive::Blend { .. } => Some(2),
+                FilterPrimitive::SolidColor { .. } | FilterPrimitive::Turbulence { .. } => Some(0),
+                FilterPrimitive::Composite { .. }
+                | FilterPrimitive::Blend { .. }
+                | FilterPrimitive::DisplacementMap { .. } => Some(2),
                 FilterPrimitive::Merge => None,
             };
             if let Some(expected) = expected_inputs
@@ -399,6 +446,24 @@ impl FilterProgram {
                 {
                     return Err(FilterProgramError::InvalidMorphology { node: index });
                 }
+                FilterPrimitive::Turbulence {
+                    base_frequency_x,
+                    base_frequency_y,
+                    num_octaves,
+                    seed,
+                    ..
+                } if !base_frequency_x.is_finite()
+                    || !base_frequency_y.is_finite()
+                    || base_frequency_x < 0.0
+                    || base_frequency_y < 0.0
+                    || num_octaves > 9
+                    || !seed.is_finite() =>
+                {
+                    return Err(FilterProgramError::InvalidTurbulence { node: index });
+                }
+                FilterPrimitive::DisplacementMap { scale, .. } if !scale.is_finite() => {
+                    return Err(FilterProgramError::InvalidDisplacementMap { node: index });
+                }
                 FilterPrimitive::Offset { .. }
                 | FilterPrimitive::SolidColor { .. }
                 | FilterPrimitive::Composite { .. }
@@ -407,6 +472,8 @@ impl FilterProgram {
                 | FilterPrimitive::ColorMatrix { .. }
                 | FilterPrimitive::ComponentTransfer { .. }
                 | FilterPrimitive::Morphology { .. }
+                | FilterPrimitive::Turbulence { .. }
+                | FilterPrimitive::DisplacementMap { .. }
                 | FilterPrimitive::Merge => {}
             }
         }
@@ -432,12 +499,14 @@ impl FilterProgram {
             } => k4 > 0.0,
             FilterPrimitive::ColorMatrix { matrix } => matrix[19] > 0.0,
             FilterPrimitive::ComponentTransfer { tables } => tables.alpha()[0] > 0,
+            FilterPrimitive::Turbulence { .. } => true,
             FilterPrimitive::GaussianBlur { .. }
             | FilterPrimitive::Offset { .. }
             | FilterPrimitive::Composite { .. }
             | FilterPrimitive::Blend { .. }
             | FilterPrimitive::DropShadow { .. }
             | FilterPrimitive::Morphology { .. }
+            | FilterPrimitive::DisplacementMap { .. }
             | FilterPrimitive::Merge => false,
         })
     }
@@ -469,6 +538,7 @@ pub struct Filter {
     transform: AffineTransform,
     region: Rectangle,
     program: FilterProgram,
+    source_is_transparent: bool,
 }
 
 impl Filter {
@@ -487,7 +557,18 @@ impl Filter {
             transform,
             region,
             program,
+            source_is_transparent: false,
         })
+    }
+
+    /// Declare that this invocation's isolated source image is fully
+    /// transparent. Generated/additive nodes may still paint; a consumer must
+    /// materialize an explicit transparent source rather than a lazy backend
+    /// input sentinel for that case.
+    #[must_use]
+    pub fn with_transparent_source(mut self) -> Self {
+        self.source_is_transparent = true;
+        self
     }
 
     #[must_use]
@@ -503,6 +584,11 @@ impl Filter {
     #[must_use]
     pub const fn program(&self) -> &FilterProgram {
         &self.program
+    }
+
+    #[must_use]
+    pub const fn source_is_transparent(&self) -> bool {
+        self.source_is_transparent
     }
 }
 
