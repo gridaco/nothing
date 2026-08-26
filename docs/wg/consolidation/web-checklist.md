@@ -1517,7 +1517,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > safe mappings, `<use>`, and `viewBox`. A user-space procedural filter may
 > paint even when its target contributes a fully transparent source; an
 > object-box filter region on the same zero-area target paints nothing.
-> Eighty-three exact Chromium cells move the complete gate to 692. General
+> Ninety-one exact Chromium cells move the complete gate to 700. General
 > affine mappings for both primitives and geometric clipping for displacement
 > refuse by three stable precision names before paint. The shared `type`, `in`,
 > `in2`, `result`, region, interpolation, filter-resource, and dynamics rows
@@ -1528,10 +1528,22 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > that procedural images must remain floating through blend arithmetic, while
 > active sRGB morphology materializes a direct procedural image. Restoring the
 > old policy makes five dedicated cells fail at up to 2,365 pixels and maximum
-> channel delta 6. The first hosted-x86 run also found 294 one-code-value
-> pixels across twenty-two displacement/procedural cells; scoped exact
-> displacement restore and floating procedural provenance keep the complete
-> ARM gate exact while the hosted rerun is pending.
+> channel delta 6. The first hosted-x86 run found 294 one-code-value pixels
+> across twenty-two displacement/procedural cells. Its first repair cleared all
+> eighteen displacement failures; the second hosted run left 729 delta-1
+> pixels across four procedural cells, including 726 in the blend control.
+> Pinned Skia source and a four-atlas, sixty-four-mode Chromium replay then
+> separated direct sRGB byte-domain blend products from promoted floating
+> products and made every atlas exact. Six committed difference/exclusion
+> controls guard both routes: forcing floating arithmetic breaks the two direct
+> controls by 3,497 and 3,532 pixels, while forcing byte arithmetic breaks the
+> four promoted controls by 3,287–3,697 pixels. A further thirty-four-source
+> operation-chain matrix found that an sRGB blend result materializes before a
+> later blend; carrying the earlier floating state silently changed 3,468 and
+> 3,700 pixels. Two committed chain controls now guard that transition.
+> Explicit procedural mode arithmetic and composed-result half-up quantization
+> keep all 700 ARM cells exact; the next hosted-x86 run is the remaining
+> portability proof.
 - [ ] `<filter>`
 
 > **2026-08-25 split:** the static filter graph carries safe-kernel

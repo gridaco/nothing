@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (692)
+## Chromium-baked cells (700)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -381,13 +381,21 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-filter-turbulence-base-plus-exponent.svg" title="svg-filter-turbulence-base-plus-exponent (standalone-svg)"><img src="./chromium/svg-filter-turbulence-base-plus-exponent.png" width="56" alt="svg-filter-turbulence-base-plus-exponent"></a>
 <a href="./svg-filter-turbulence-base-trailing-comma.svg" title="svg-filter-turbulence-base-trailing-comma (standalone-svg)"><img src="./chromium/svg-filter-turbulence-base-trailing-comma.png" width="56" alt="svg-filter-turbulence-base-trailing-comma"></a>
 <a href="./svg-filter-turbulence-base-two.svg" title="svg-filter-turbulence-base-two (standalone-svg)"><img src="./chromium/svg-filter-turbulence-base-two.png" width="56" alt="svg-filter-turbulence-base-two"></a>
+<a href="./svg-filter-turbulence-blend-chain-difference.svg" title="svg-filter-turbulence-blend-chain-difference (standalone-svg)"><img src="./chromium/svg-filter-turbulence-blend-chain-difference.png" width="56" alt="svg-filter-turbulence-blend-chain-difference"></a>
+<a href="./svg-filter-turbulence-blend-chain-exclusion.svg" title="svg-filter-turbulence-blend-chain-exclusion (standalone-svg)"><img src="./chromium/svg-filter-turbulence-blend-chain-exclusion.png" width="56" alt="svg-filter-turbulence-blend-chain-exclusion"></a>
 <a href="./svg-filter-turbulence-blend-morphology-restore.svg" title="svg-filter-turbulence-blend-morphology-restore (standalone-svg)"><img src="./chromium/svg-filter-turbulence-blend-morphology-restore.png" width="56" alt="svg-filter-turbulence-blend-morphology-restore"></a>
 <a href="./svg-filter-turbulence-color-default.svg" title="svg-filter-turbulence-color-default (standalone-svg)"><img src="./chromium/svg-filter-turbulence-color-default.png" width="56" alt="svg-filter-turbulence-color-default"></a>
 <a href="./svg-filter-turbulence-color-linear.svg" title="svg-filter-turbulence-color-linear (standalone-svg)"><img src="./chromium/svg-filter-turbulence-color-linear.png" width="56" alt="svg-filter-turbulence-color-linear"></a>
 <a href="./svg-filter-turbulence-color-srgb.svg" title="svg-filter-turbulence-color-srgb (standalone-svg)"><img src="./chromium/svg-filter-turbulence-color-srgb.png" width="56" alt="svg-filter-turbulence-color-srgb"></a>
 <a href="./svg-filter-turbulence-default.svg" title="svg-filter-turbulence-default (standalone-svg)"><img src="./chromium/svg-filter-turbulence-default.png" width="56" alt="svg-filter-turbulence-default"></a>
+<a href="./svg-filter-turbulence-difference-linear.svg" title="svg-filter-turbulence-difference-linear (standalone-svg)"><img src="./chromium/svg-filter-turbulence-difference-linear.png" width="56" alt="svg-filter-turbulence-difference-linear"></a>
+<a href="./svg-filter-turbulence-difference-srgb-direct.svg" title="svg-filter-turbulence-difference-srgb-direct (standalone-svg)"><img src="./chromium/svg-filter-turbulence-difference-srgb-direct.png" width="56" alt="svg-filter-turbulence-difference-srgb-direct"></a>
+<a href="./svg-filter-turbulence-difference-srgb-transfer.svg" title="svg-filter-turbulence-difference-srgb-transfer (standalone-svg)"><img src="./chromium/svg-filter-turbulence-difference-srgb-transfer.png" width="56" alt="svg-filter-turbulence-difference-srgb-transfer"></a>
 <a href="./svg-filter-turbulence-displacement-map.svg" title="svg-filter-turbulence-displacement-map (standalone-svg)"><img src="./chromium/svg-filter-turbulence-displacement-map.png" width="56" alt="svg-filter-turbulence-displacement-map"></a>
 <a href="./svg-filter-turbulence-empty-source.svg" title="svg-filter-turbulence-empty-source (standalone-svg)"><img src="./chromium/svg-filter-turbulence-empty-source.png" width="56" alt="svg-filter-turbulence-empty-source"></a>
+<a href="./svg-filter-turbulence-exclusion-linear.svg" title="svg-filter-turbulence-exclusion-linear (standalone-svg)"><img src="./chromium/svg-filter-turbulence-exclusion-linear.png" width="56" alt="svg-filter-turbulence-exclusion-linear"></a>
+<a href="./svg-filter-turbulence-exclusion-srgb-direct.svg" title="svg-filter-turbulence-exclusion-srgb-direct (standalone-svg)"><img src="./chromium/svg-filter-turbulence-exclusion-srgb-direct.png" width="56" alt="svg-filter-turbulence-exclusion-srgb-direct"></a>
+<a href="./svg-filter-turbulence-exclusion-srgb-transfer.svg" title="svg-filter-turbulence-exclusion-srgb-transfer (standalone-svg)"><img src="./chromium/svg-filter-turbulence-exclusion-srgb-transfer.png" width="56" alt="svg-filter-turbulence-exclusion-srgb-transfer"></a>
 <a href="./svg-filter-turbulence-fractal-octave-zero.svg" title="svg-filter-turbulence-fractal-octave-zero (standalone-svg)"><img src="./chromium/svg-filter-turbulence-fractal-octave-zero.png" width="56" alt="svg-filter-turbulence-fractal-octave-zero"></a>
 <a href="./svg-filter-turbulence-fractional-translate.svg" title="svg-filter-turbulence-fractional-translate (standalone-svg)"><img src="./chromium/svg-filter-turbulence-fractional-translate.png" width="56" alt="svg-filter-turbulence-fractional-translate"></a>
 <a href="./svg-filter-turbulence-graph-blend.svg" title="svg-filter-turbulence-graph-blend (standalone-svg)"><img src="./chromium/svg-filter-turbulence-graph-blend.png" width="56" alt="svg-filter-turbulence-graph-blend"></a>

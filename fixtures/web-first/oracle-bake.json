@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "d6df57f610243ca1a3e4d7cc404e7a56a0db7e7ee62fc7712b628a38314d7beb",
+  "suite_sha256": "c52554b86bfd62e891dec375bb6bc22fe6f95ebca55294a490a5b184972701b3",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -3197,6 +3197,24 @@
       "height": 64
     },
     {
+      "id": "svg-filter-turbulence-blend-chain-difference",
+      "source": "svg-filter-turbulence-blend-chain-difference.svg",
+      "source_sha256": "8f2620f8a2987155b84b2e05b2fb97dee47dd0454e2b9b375e9ecca1362ee82b",
+      "oracle": "chromium/svg-filter-turbulence-blend-chain-difference.png",
+      "oracle_sha256": "cf72543639dd9492bb8d845bd6ec0d1539f0e72e30007a832a23430bddae5e91",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-blend-chain-exclusion",
+      "source": "svg-filter-turbulence-blend-chain-exclusion.svg",
+      "source_sha256": "0be8971522469d8e9dca0b3410a449a8c3aff26ba84f042a5a9b6bbf972558c1",
+      "oracle": "chromium/svg-filter-turbulence-blend-chain-exclusion.png",
+      "oracle_sha256": "09640ee194b678c09cc2889ae85e8a3071f67a58ab7672c5d4d4e082cd839ef6",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-filter-turbulence-blend-morphology-restore",
       "source": "svg-filter-turbulence-blend-morphology-restore.svg",
       "source_sha256": "de0ddccf3c694015fae1497ece12e619147f715c258f3badf34ec4ec662edd2f",
@@ -3242,6 +3260,33 @@
       "height": 64
     },
     {
+      "id": "svg-filter-turbulence-difference-linear",
+      "source": "svg-filter-turbulence-difference-linear.svg",
+      "source_sha256": "b18e33d808ea548d5be919a7c113ce540a4ed28b4eab08e2c44c7ec93180f0c8",
+      "oracle": "chromium/svg-filter-turbulence-difference-linear.png",
+      "oracle_sha256": "e6d003ca6b10fd129a1eee112c040336a3de71ef58611be143f40943ecc294c6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-difference-srgb-direct",
+      "source": "svg-filter-turbulence-difference-srgb-direct.svg",
+      "source_sha256": "6ffc41c888340b3aed6ef08a6e0024538831523f21a6149e1e0b2236427636eb",
+      "oracle": "chromium/svg-filter-turbulence-difference-srgb-direct.png",
+      "oracle_sha256": "9d97fb06a65ac24252de1224eacf5fe9fa9b69011b8d3c99f6411ecec39cc64e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-difference-srgb-transfer",
+      "source": "svg-filter-turbulence-difference-srgb-transfer.svg",
+      "source_sha256": "926a9f74174872f8d420d885abc7854146daa66bbdc9b4190d26a2d6faed9a01",
+      "oracle": "chromium/svg-filter-turbulence-difference-srgb-transfer.png",
+      "oracle_sha256": "1429426526b27a8adbc0d249a323dba21ff2b5642d0083d61f26eb191fd0ee15",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-filter-turbulence-displacement-map",
       "source": "svg-filter-turbulence-displacement-map.svg",
       "source_sha256": "1a2f3c37c17fd507589ba43035e11d2b20b7c501c8840cfbfb29eef94ef1bae0",
@@ -3256,6 +3301,33 @@
       "source_sha256": "d8d0bd5fd45e269a66d56b5892d56dfb7369601df8f241f5e06257a3c518fa91",
       "oracle": "chromium/svg-filter-turbulence-empty-source.png",
       "oracle_sha256": "8970105d789845abb1b37d062a2edd6539bb5e3f66257fc81531a1548d66b695",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-exclusion-linear",
+      "source": "svg-filter-turbulence-exclusion-linear.svg",
+      "source_sha256": "2dacfad0a6c1bcc046f77fa647460de327662edb5303cf9f5b758136ee0546f5",
+      "oracle": "chromium/svg-filter-turbulence-exclusion-linear.png",
+      "oracle_sha256": "fe26c88827bde44ed27f3b47315fd6aa81c8fdd77b985a8561c07c9eadfca840",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-exclusion-srgb-direct",
+      "source": "svg-filter-turbulence-exclusion-srgb-direct.svg",
+      "source_sha256": "0564bd1d3bc4fc6fdbaec933ea8562e0312d60035327d9f8f92a2011cd736285",
+      "oracle": "chromium/svg-filter-turbulence-exclusion-srgb-direct.png",
+      "oracle_sha256": "b30c0d315b48a062aa5a1b94efc8cf008fd42257a77cde5264447011a6c22d29",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-exclusion-srgb-transfer",
+      "source": "svg-filter-turbulence-exclusion-srgb-transfer.svg",
+      "source_sha256": "215b558d3a69f0cfbd7df479e2ee435aab6616e34940e31815fa4eee04abc514",
+      "oracle": "chromium/svg-filter-turbulence-exclusion-srgb-transfer.png",
+      "oracle_sha256": "8e6faf2875a38edd599cfdaf3dc392c078a4cd978bbfdc427583a8f87a504cc3",
       "width": 64,
       "height": 64
     },

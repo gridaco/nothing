@@ -2904,6 +2904,22 @@
       "height": 64
     },
     {
+      "id": "svg-filter-turbulence-blend-chain-difference",
+      "source": "svg-filter-turbulence-blend-chain-difference.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-blend-chain-difference.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-blend-chain-exclusion",
+      "source": "svg-filter-turbulence-blend-chain-exclusion.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-blend-chain-exclusion.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-filter-turbulence-blend-morphology-restore",
       "source": "svg-filter-turbulence-blend-morphology-restore.svg",
       "entry": "standalone-svg",
@@ -2944,6 +2960,30 @@
       "height": 64
     },
     {
+      "id": "svg-filter-turbulence-difference-linear",
+      "source": "svg-filter-turbulence-difference-linear.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-difference-linear.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-difference-srgb-direct",
+      "source": "svg-filter-turbulence-difference-srgb-direct.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-difference-srgb-direct.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-difference-srgb-transfer",
+      "source": "svg-filter-turbulence-difference-srgb-transfer.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-difference-srgb-transfer.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-filter-turbulence-displacement-map",
       "source": "svg-filter-turbulence-displacement-map.svg",
       "entry": "standalone-svg",
@@ -2956,6 +2996,30 @@
       "source": "svg-filter-turbulence-empty-source.svg",
       "entry": "standalone-svg",
       "oracle": "chromium/svg-filter-turbulence-empty-source.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-exclusion-linear",
+      "source": "svg-filter-turbulence-exclusion-linear.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-exclusion-linear.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-exclusion-srgb-direct",
+      "source": "svg-filter-turbulence-exclusion-srgb-direct.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-exclusion-srgb-direct.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-exclusion-srgb-transfer",
+      "source": "svg-filter-turbulence-exclusion-srgb-transfer.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-exclusion-srgb-transfer.png",
       "width": 64,
       "height": 64
     },

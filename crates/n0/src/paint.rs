@@ -1939,10 +1939,14 @@ struct BuiltFilterResult {
     /// input through one additional source-image boundary. Preserve that
     /// measured boundary through later graph nodes.
     source_preflatten: bool,
-    /// An upstream procedural shader remains a floating image fact. Preserve
-    /// that provenance so later blends do not quantize it as an ordinary byte
-    /// image and the final layer takes an architecture-stable floating restore.
+    /// An upstream procedural shader needs procedural-scoped blend arithmetic
+    /// and final restore policy even after an intermediate sRGB result
+    /// materializes. The next field tracks that narrower blend-domain state.
     procedural_provenance: bool,
+    /// A direct sRGB procedural shader still enters Skia's byte-domain blend
+    /// stages. Color conversion or another arithmetic primitive promotes that
+    /// route to floating point even though procedural provenance remains.
+    procedural_unorm8_blend: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -2005,6 +2009,8 @@ fn convert_filter_space(
         color_restore: None,
         source_preflatten: result.source_preflatten,
         procedural_provenance: result.procedural_provenance,
+        // Gamma conversion promotes the next blend to Skia's floating path.
+        procedural_unorm8_blend: false,
     })
 }
 
@@ -2084,6 +2090,31 @@ fn floating_porter_duff_blender(operator: ResolvedFilterComposite) -> Result<Ble
     let expression = porter_duff_expression(operator)?;
     cached_filter_blender(slot, || {
         format!(r#"half4 main(half4 src, half4 dst) {{ return {expression}; }}"#)
+    })
+}
+
+fn quantized_floating_porter_duff_blender(
+    operator: ResolvedFilterComposite,
+) -> Result<Blender, String> {
+    // Procedural shaders must stay floating until the final composition, but
+    // leaving the last N32 quantization implicit selects different Skia CPU
+    // packing paths on NEON and x86. Quantize only the composed result: doing
+    // so earlier changes Chromium's blend and morphology arithmetic.
+    let slot = 21 + porter_duff_slot(operator)?;
+    let expression = porter_duff_expression(operator)?
+        .replace("src", "s")
+        .replace("dst", "d");
+    cached_filter_blender(slot, || {
+        format!(
+            r#"
+half4 main(half4 src, half4 dst) {{
+    float4 s = float4(src);
+    float4 d = float4(dst);
+    float4 result = {expression};
+    return half4(floor(clamp(result, 0.0, 1.0) * 255.0 + 0.5) / 255.0);
+}}
+"#
+        )
     })
 }
 
@@ -2177,6 +2208,37 @@ half4 main(half4 src, half4 dst) {{
     )
 }
 
+fn floating_filter_blend_source(expression: &str) -> String {
+    format!(
+        r#"
+float overlay_channel(float s, float d, float sa, float da) {{
+    float blend = 2.0 * d <= da
+        ? 2.0 * s * d
+        : sa * da - 2.0 * (sa - s) * (da - d);
+    return s * (1.0 - da) + d * (1.0 - sa) + blend;
+}}
+
+float hard_light_channel(float s, float d, float sa, float da) {{
+    float blend = 2.0 * s <= sa
+        ? 2.0 * s * d
+        : sa * da - 2.0 * (sa - s) * (da - d);
+    return s * (1.0 - da) + d * (1.0 - sa) + blend;
+}}
+
+float3 unorm8_product(float3 value) {{
+    return floor((value * 65025.0 + 127.0) / 255.0) / 255.0;
+}}
+
+half4 main(half4 src, half4 dst) {{
+    float4 s = float4(src);
+    float4 d = float4(dst);
+    float4 result = {expression};
+    return half4(clamp(result, 0.0, 1.0));
+}}
+"#
+    )
+}
+
 fn deterministic_filter_blender(mode: ResolvedFilterBlend) -> Result<Blender, String> {
     let (slot, expression) = match mode {
         ResolvedFilterBlend::Normal => (12, "s + div255(d * (255.0 - s.a))"),
@@ -2214,6 +2276,52 @@ fn deterministic_filter_blender(mode: ResolvedFilterBlend) -> Result<Blender, St
     cached_filter_blender(slot, || exact_unorm8_filter_blend_source(expression))
 }
 
+fn procedural_filter_blender(
+    mode: ResolvedFilterBlend,
+    unorm8_input: bool,
+) -> Result<Blender, String> {
+    // The same nine modes that enter Skia's architecture-dependent lowp path
+    // need explicit formulas for procedural inputs. Most stay floating; direct
+    // or materialized sRGB difference/exclusion retain one measured unorm8
+    // product-rounding step. The remaining modes use Skia's high-precision path.
+    let (slot, expression) = match mode {
+        ResolvedFilterBlend::Normal => (27, "s + d * (1.0 - s.a)"),
+        ResolvedFilterBlend::Multiply => (
+            28,
+            "s * (1.0 - d.a) + d * (1.0 - s.a) + s * d",
+        ),
+        ResolvedFilterBlend::Screen => (29, "s + d - s * d"),
+        ResolvedFilterBlend::Overlay => (
+            30,
+            "float4(overlay_channel(s.r, d.r, s.a, d.a), overlay_channel(s.g, d.g, s.a, d.a), overlay_channel(s.b, d.b, s.a, d.a), s.a + d.a - s.a * d.a)",
+        ),
+        ResolvedFilterBlend::Darken => (31, "s + d - max(s * d.a, d * s.a)"),
+        ResolvedFilterBlend::Lighten => (32, "s + d - min(s * d.a, d * s.a)"),
+        ResolvedFilterBlend::HardLight => (
+            33,
+            "float4(hard_light_channel(s.r, d.r, s.a, d.a), hard_light_channel(s.g, d.g, s.a, d.a), hard_light_channel(s.b, d.b, s.a, d.a), s.a + d.a - s.a * d.a)",
+        ),
+        ResolvedFilterBlend::Difference => (
+            if unorm8_input { 36 } else { 34 },
+            if unorm8_input {
+                "float4(s.rgb + d.rgb - 2.0 * unorm8_product(min(s.rgb * d.a, d.rgb * s.a)), s.a + d.a - s.a * d.a)"
+            } else {
+                "float4(s.rgb + d.rgb - 2.0 * min(s.rgb * d.a, d.rgb * s.a), s.a + d.a - s.a * d.a)"
+            },
+        ),
+        ResolvedFilterBlend::Exclusion => (
+            if unorm8_input { 37 } else { 35 },
+            if unorm8_input {
+                "float4(s.rgb + d.rgb - 2.0 * unorm8_product(s.rgb * d.rgb), s.a + d.a - s.a * d.a)"
+            } else {
+                "float4(s.rgb + d.rgb - 2.0 * s.rgb * d.rgb, s.a + d.a - s.a * d.a)"
+            },
+        ),
+        _ => return Ok(sk_filter_blend_mode(mode).into()),
+    };
+    cached_filter_blender(slot, || floating_filter_blend_source(expression))
+}
+
 fn sk_displacement_channel(channel: ResolvedFilterDisplacementChannel) -> ColorChannel {
     match channel {
         ResolvedFilterDisplacementChannel::Red => ColorChannel::R,
@@ -2240,6 +2348,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
         color_restore: None,
         source_preflatten: false,
         procedural_provenance: false,
+        procedural_unorm8_blend: false,
     };
     let source_alpha = BuiltFilterResult {
         image_filter: if let Some(source) = explicit_transparent_source {
@@ -2255,6 +2364,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
         color_restore: None,
         source_preflatten: false,
         procedural_provenance: false,
+        procedural_unorm8_blend: false,
     };
     let mut results: Vec<BuiltFilterResult> = Vec::with_capacity(filter.nodes.len());
     for node in filter.nodes.iter() {
@@ -2319,8 +2429,19 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 ResolvedFilterPrimitive::Morphology { radius_x, radius_y, .. }
                     if source_dependent && (*radius_x > 0.0 || *radius_y > 0.0)
             );
-        let mut procedural_provenance = inputs.iter().any(|input| input.procedural_provenance)
+        let has_procedural_input = inputs.iter().any(|input| input.procedural_provenance);
+        let mut procedural_provenance = has_procedural_input
             || matches!(&node.primitive, ResolvedFilterPrimitive::Turbulence { .. });
+        let mut procedural_unorm8_blend =
+            if matches!(&node.primitive, ResolvedFilterPrimitive::Turbulence { .. }) {
+                node.color_space == ResolvedFilterColorSpace::Srgb
+            } else {
+                has_procedural_input
+                    && inputs
+                        .iter()
+                        .filter(|input| input.procedural_provenance)
+                        .all(|input| input.procedural_unorm8_blend)
+            };
         let (image_filter, output_space, source_dependent, requires_exact_restore) = match node
             .primitive
             .clone()
@@ -2430,7 +2551,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 let background = inputs.pop().expect("blend has two checked inputs");
                 let foreground = inputs.pop().expect("blend has two checked inputs");
                 let blender = if procedural_provenance {
-                    sk_filter_blend_mode(mode).into()
+                    procedural_filter_blender(mode, procedural_unorm8_blend)?
                 } else {
                     deterministic_filter_blender(mode)?
                 };
@@ -2447,6 +2568,11 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 // own floating-point arithmetic.
                 let requires_exact_restore =
                     requires_exact_restore || node.color_space == ResolvedFilterColorSpace::Srgb;
+                // The runtime blender computes this operation in the measured
+                // domain, then an sRGB result materializes before a later blend.
+                // Linear output remains floating. Final procedural provenance
+                // is independent and survives either transition.
+                procedural_unorm8_blend = node.color_space == ResolvedFilterColorSpace::Srgb;
                 (
                     Some(filter),
                     node.color_space,
@@ -2553,6 +2679,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
             }
             ResolvedFilterPrimitive::ColorMatrix { matrix } => {
                 let input = inputs.pop().expect("color matrix has one checked input");
+                procedural_unorm8_blend = false;
                 let color_filter = skia_safe::color_filters::matrix_row_major(&matrix, None);
                 let filter =
                     skia_safe::image_filters::color_filter(color_filter, input.image_filter, crop)
@@ -2573,6 +2700,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 let input = inputs
                     .pop()
                     .expect("component transfer has one checked input");
+                procedural_unorm8_blend = false;
                 let color_filter = skia_safe::color_filters::table_argb(
                     Some(&tables[3]),
                     Some(&tables[0]),
@@ -2611,6 +2739,9 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                     && !input.requires_exact_restore
                 {
                     procedural_provenance = false;
+                }
+                if active {
+                    procedural_unorm8_blend = false;
                 }
                 let filter = match operator {
                     ResolvedFilterMorphology::Erode => skia_safe::image_filters::erode(
@@ -2764,6 +2895,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
             color_restore,
             source_preflatten,
             procedural_provenance,
+            procedural_unorm8_blend,
         });
     }
     let output = results
@@ -2790,7 +2922,9 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
         );
     }
     let restore_blender = if output.procedural_provenance {
-        Some(floating_porter_duff_blender(ResolvedFilterComposite::Over)?)
+        Some(quantized_floating_porter_duff_blender(
+            ResolvedFilterComposite::Over,
+        )?)
     } else if output.requires_exact_restore {
         Some(exact_unorm8_blender(ResolvedFilterComposite::Over)?)
     } else if output.color_restore == Some(ColorRestore::Floating) {

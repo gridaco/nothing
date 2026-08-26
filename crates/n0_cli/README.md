@@ -449,22 +449,30 @@ cargo run -p n0_cli --bin n0 -- \
   1,633 pixels, all by one channel level, at the final filter-layer restore.
   Its scoped exact byte-domain restore leaves zero radius and later color-space
   conversion on their prior paths. Procedural sources carry floating
-  provenance through blend arithmetic and use an architecture-stable floating
-  final restore. Direct active sRGB morphology materializes that provenance;
-  blend before morphology preserves it. sRGB displacement output takes the
-  exact byte-domain restore. Empty generated-source scopes seed damage coverage
-  from their transformed filter region, so procedural parameter edits damage
-  pixels even without a source draw. Seven operation-order and color-transition
-  controls guard these distinctions. The first hosted-x86 run found 294
-  one-code-value pixels across eighteen sRGB displacement and four procedural
-  cells; the scoped candidate is exact across the current ARM corpus and awaits
-  hosted-x86 confirmation. The same hosted workspace test covers the earlier
-  two hundred forty-eight-cell estate; all three hundred thirty-one
+  provenance through blend arithmetic. Direct sRGB procedural
+  `difference`/`exclusion` retains the pinned backend's byte-domain product
+  rounding; linear or component-transferred inputs use floating products. An
+  sRGB blend result materializes before a later blend; linear output remains
+  floating, and a later transfer promotes either route again. The final
+  procedural restore quantizes only the composed output with explicit
+  half-up byte rounding. Direct active sRGB morphology materializes procedural
+  provenance; blend before morphology preserves it. sRGB displacement output
+  takes the exact byte-domain restore. Empty generated-source scopes seed
+  damage coverage from their transformed filter region, so procedural
+  parameter edits damage pixels even without a source draw. Fifteen
+  operation-order, color-transition, and blend-domain controls guard these
+  distinctions. The first hosted-x86 run found 294 one-code-value pixels across
+  eighteen sRGB displacement and four procedural cells. The displacement repair
+  cleared all eighteen on the second run, which left 729 delta-1 pixels in four
+  procedural cells. The scoped arithmetic/quantization candidate is exact
+  across the current ARM corpus and awaits the next hosted-x86 confirmation.
+  The same hosted workspace test covers the earlier two hundred
+  forty-eight-cell estate; all three hundred thirty-nine
   Chromium-baked filter cells are exact on the current ARM host without a
   tolerance. The filter estate contains 26 chassis/blur cells, 60 shadow-graph,
   28 native drop-shadow, 27 color-matrix, 32 component-transfer, 38 blend, 37
-  morphology, and 83 turbulence/displacement cells. The complete corpus
-  contains 692 Chromium-baked cells plus 10 sampled frames, with 143 named
+  morphology, and 91 turbulence/displacement cells. The complete corpus
+  contains 700 Chromium-baked cells plus 10 sampled frames, with 143 named
   refusal rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`,
