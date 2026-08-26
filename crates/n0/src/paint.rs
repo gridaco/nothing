@@ -2567,6 +2567,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 radius_y,
             } => {
                 let input = inputs.pop().expect("morphology has one checked input");
+                let active = radius_x > 0.0 || radius_y > 0.0;
                 let filter = match operator {
                     ResolvedFilterMorphology::Erode => skia_safe::image_filters::erode(
                         (radius_x, radius_y),
@@ -2582,11 +2583,20 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 .ok_or_else(|| {
                     "the backend could not construct a morphology operation".to_string()
                 })?;
+                // Native sRGB morphology reaches Skia's low-precision N32
+                // layer restore. NEON performs exact divide-by-255 rounding
+                // there, while x86 uses the backend's approximate division;
+                // carry the same explicit byte-domain restore used by the
+                // other measured low-precision filter operations. A zero
+                // radius stays on the pre-existing pass-through policy, and
+                // a later color-space conversion clears this flag.
+                let requires_exact_restore = input.requires_exact_restore
+                    || (active && node.color_space == ResolvedFilterColorSpace::Srgb);
                 (
                     Some(filter),
                     node.color_space,
                     input.source_dependent,
-                    input.requires_exact_restore,
+                    requires_exact_restore,
                 )
             }
             ResolvedFilterPrimitive::Merge => {
@@ -2828,10 +2838,10 @@ mod filter_policy_tests {
 
     #[test]
     fn only_active_source_dependent_morphology_preflattens_its_source() {
-        let morphology = |input, radius| ResolvedFilterNode {
+        let morphology = |input, radius, color_space| ResolvedFilterNode {
             inputs: Arc::from([input]),
             region: REGION,
-            color_space: ResolvedFilterColorSpace::Srgb,
+            color_space,
             primitive: ResolvedFilterPrimitive::Morphology {
                 operator: ResolvedFilterMorphology::Dilate,
                 radius_x: radius,
@@ -2843,13 +2853,38 @@ mod filter_policy_tests {
             nodes: Arc::from([node]),
         };
 
-        let active = build_filter(&one(morphology(ResolvedFilterInput::Source, 2.0)))
-            .expect("active source morphology builds");
+        let active = build_filter(&one(morphology(
+            ResolvedFilterInput::Source,
+            2.0,
+            ResolvedFilterColorSpace::Srgb,
+        )))
+        .expect("active source morphology builds");
         assert!(active.source_preflatten);
+        assert!(
+            active.restore_blender.is_some(),
+            "active sRGB morphology uses an architecture-neutral layer restore"
+        );
 
-        let zero = build_filter(&one(morphology(ResolvedFilterInput::Source, 0.0)))
-            .expect("zero source morphology builds");
+        let zero = build_filter(&one(morphology(
+            ResolvedFilterInput::Source,
+            0.0,
+            ResolvedFilterColorSpace::Srgb,
+        )))
+        .expect("zero source morphology builds");
         assert!(!zero.source_preflatten);
+        assert!(zero.restore_blender.is_none());
+
+        let linear = build_filter(&one(morphology(
+            ResolvedFilterInput::Source,
+            2.0,
+            ResolvedFilterColorSpace::LinearRgb,
+        )))
+        .expect("linear source morphology builds");
+        assert!(linear.source_preflatten);
+        assert!(
+            linear.restore_blender.is_none(),
+            "the output gamma conversion ends the sRGB restore boundary"
+        );
 
         let generated = ResolvedFilter {
             region: REGION,
@@ -2862,7 +2897,11 @@ mod filter_policy_tests {
                         color: Color32F::new(0.2, 0.4, 0.8, 0.5).expect("unit color"),
                     },
                 },
-                morphology(ResolvedFilterInput::Node(0), 2.0),
+                morphology(
+                    ResolvedFilterInput::Node(0),
+                    2.0,
+                    ResolvedFilterColorSpace::Srgb,
+                ),
             ]),
         };
         let generated = build_filter(&generated).expect("generated morphology builds");
