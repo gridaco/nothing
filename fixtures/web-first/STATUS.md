@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (534)
+## Chromium-baked cells (572)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -95,6 +95,44 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-fill-opacity-overlap.svg" title="svg-fill-opacity-overlap (standalone-svg)"><img src="./chromium/svg-fill-opacity-overlap.png" width="56" alt="svg-fill-opacity-overlap"></a>
 <a href="./svg-fill-opacity-percentage.svg" title="svg-fill-opacity-percentage (standalone-svg)"><img src="./chromium/svg-fill-opacity-percentage.png" width="56" alt="svg-fill-opacity-percentage"></a>
 <a href="./svg-fill-opacity-times-alpha.svg" title="svg-fill-opacity-times-alpha (standalone-svg)"><img src="./chromium/svg-fill-opacity-times-alpha.png" width="56" alt="svg-fill-opacity-times-alpha"></a>
+<a href="./svg-filter-blend-axis-fractional.svg" title="svg-filter-blend-axis-fractional (standalone-svg)"><img src="./chromium/svg-filter-blend-axis-fractional.png" width="56" alt="svg-filter-blend-axis-fractional"></a>
+<a href="./svg-filter-blend-blur-after.svg" title="svg-filter-blend-blur-after (standalone-svg)"><img src="./chromium/svg-filter-blend-blur-after.png" width="56" alt="svg-filter-blend-blur-after"></a>
+<a href="./svg-filter-blend-blur-before.svg" title="svg-filter-blend-blur-before (standalone-svg)"><img src="./chromium/svg-filter-blend-blur-before.png" width="56" alt="svg-filter-blend-blur-before"></a>
+<a href="./svg-filter-blend-color-linear.svg" title="svg-filter-blend-color-linear (standalone-svg)"><img src="./chromium/svg-filter-blend-color-linear.png" width="56" alt="svg-filter-blend-color-linear"></a>
+<a href="./svg-filter-blend-color-override.svg" title="svg-filter-blend-color-override (standalone-svg)"><img src="./chromium/svg-filter-blend-color-override.png" width="56" alt="svg-filter-blend-color-override"></a>
+<a href="./svg-filter-blend-color-srgb.svg" title="svg-filter-blend-color-srgb (standalone-svg)"><img src="./chromium/svg-filter-blend-color-srgb.png" width="56" alt="svg-filter-blend-color-srgb"></a>
+<a href="./svg-filter-blend-composite-order.svg" title="svg-filter-blend-composite-order (standalone-svg)"><img src="./chromium/svg-filter-blend-composite-order.png" width="56" alt="svg-filter-blend-composite-order"></a>
+<a href="./svg-filter-blend-gradient.svg" title="svg-filter-blend-gradient (standalone-svg)"><img src="./chromium/svg-filter-blend-gradient.png" width="56" alt="svg-filter-blend-gradient"></a>
+<a href="./svg-filter-blend-group.svg" title="svg-filter-blend-group (standalone-svg)"><img src="./chromium/svg-filter-blend-group.png" width="56" alt="svg-filter-blend-group"></a>
+<a href="./svg-filter-blend-input-default-both.svg" title="svg-filter-blend-input-default-both (standalone-svg)"><img src="./chromium/svg-filter-blend-input-default-both.png" width="56" alt="svg-filter-blend-input-default-both"></a>
+<a href="./svg-filter-blend-input-default-in.svg" title="svg-filter-blend-input-default-in (standalone-svg)"><img src="./chromium/svg-filter-blend-input-default-in.png" width="56" alt="svg-filter-blend-input-default-in"></a>
+<a href="./svg-filter-blend-input-default-in2.svg" title="svg-filter-blend-input-default-in2 (standalone-svg)"><img src="./chromium/svg-filter-blend-input-default-in2.png" width="56" alt="svg-filter-blend-input-default-in2"></a>
+<a href="./svg-filter-blend-input-first.svg" title="svg-filter-blend-input-first (standalone-svg)"><img src="./chromium/svg-filter-blend-input-first.png" width="56" alt="svg-filter-blend-input-first"></a>
+<a href="./svg-filter-blend-input-order-backdrop.svg" title="svg-filter-blend-input-order-backdrop (standalone-svg)"><img src="./chromium/svg-filter-blend-input-order-backdrop.png" width="56" alt="svg-filter-blend-input-order-backdrop"></a>
+<a href="./svg-filter-blend-input-order-foreground.svg" title="svg-filter-blend-input-order-foreground (standalone-svg)"><img src="./chromium/svg-filter-blend-input-order-foreground.png" width="56" alt="svg-filter-blend-input-order-foreground"></a>
+<a href="./svg-filter-blend-input-unknown-in.svg" title="svg-filter-blend-input-unknown-in (standalone-svg)"><img src="./chromium/svg-filter-blend-input-unknown-in.png" width="56" alt="svg-filter-blend-input-unknown-in"></a>
+<a href="./svg-filter-blend-input-unknown-in2.svg" title="svg-filter-blend-input-unknown-in2 (standalone-svg)"><img src="./chromium/svg-filter-blend-input-unknown-in2.png" width="56" alt="svg-filter-blend-input-unknown-in2"></a>
+<a href="./svg-filter-blend-merge-order.svg" title="svg-filter-blend-merge-order (standalone-svg)"><img src="./chromium/svg-filter-blend-merge-order.png" width="56" alt="svg-filter-blend-merge-order"></a>
+<a href="./svg-filter-blend-mode-atlas-opaque.svg" title="svg-filter-blend-mode-atlas-opaque (standalone-svg)"><img src="./chromium/svg-filter-blend-mode-atlas-opaque.png" width="56" alt="svg-filter-blend-mode-atlas-opaque"></a>
+<a href="./svg-filter-blend-mode-atlas-translucent.svg" title="svg-filter-blend-mode-atlas-translucent (standalone-svg)"><img src="./chromium/svg-filter-blend-mode-atlas-translucent.png" width="56" alt="svg-filter-blend-mode-atlas-translucent"></a>
+<a href="./svg-filter-blend-mode-grammar.svg" title="svg-filter-blend-mode-grammar (standalone-svg)"><img src="./chromium/svg-filter-blend-mode-grammar.png" width="56" alt="svg-filter-blend-mode-grammar"></a>
+<a href="./svg-filter-blend-offset-order.svg" title="svg-filter-blend-offset-order (standalone-svg)"><img src="./chromium/svg-filter-blend-offset-order.png" width="56" alt="svg-filter-blend-offset-order"></a>
+<a href="./svg-filter-blend-path.svg" title="svg-filter-blend-path (standalone-svg)"><img src="./chromium/svg-filter-blend-path.png" width="56" alt="svg-filter-blend-path"></a>
+<a href="./svg-filter-blend-primitive-units.svg" title="svg-filter-blend-primitive-units (standalone-svg)"><img src="./chromium/svg-filter-blend-primitive-units.png" width="56" alt="svg-filter-blend-primitive-units"></a>
+<a href="./svg-filter-blend-quarter-turn.svg" title="svg-filter-blend-quarter-turn (standalone-svg)"><img src="./chromium/svg-filter-blend-quarter-turn.png" width="56" alt="svg-filter-blend-quarter-turn"></a>
+<a href="./svg-filter-blend-region-crop.svg" title="svg-filter-blend-region-crop (standalone-svg)"><img src="./chromium/svg-filter-blend-region-crop.png" width="56" alt="svg-filter-blend-region-crop"></a>
+<a href="./svg-filter-blend-region-union.svg" title="svg-filter-blend-region-union (standalone-svg)"><img src="./chromium/svg-filter-blend-region-union.png" width="56" alt="svg-filter-blend-region-union"></a>
+<a href="./svg-filter-blend-result-reuse.svg" title="svg-filter-blend-result-reuse (standalone-svg)"><img src="./chromium/svg-filter-blend-result-reuse.png" width="56" alt="svg-filter-blend-result-reuse"></a>
+<a href="./svg-filter-blend-result-shadow.svg" title="svg-filter-blend-result-shadow (standalone-svg)"><img src="./chromium/svg-filter-blend-result-shadow.png" width="56" alt="svg-filter-blend-result-shadow"></a>
+<a href="./svg-filter-blend-scale.svg" title="svg-filter-blend-scale (standalone-svg)"><img src="./chromium/svg-filter-blend-scale.png" width="56" alt="svg-filter-blend-scale"></a>
+<a href="./svg-filter-blend-source-alpha.svg" title="svg-filter-blend-source-alpha (standalone-svg)"><img src="./chromium/svg-filter-blend-source-alpha.png" width="56" alt="svg-filter-blend-source-alpha"></a>
+<a href="./svg-filter-blend-source-direct.svg" title="svg-filter-blend-source-direct (standalone-svg)"><img src="./chromium/svg-filter-blend-source-direct.png" width="56" alt="svg-filter-blend-source-direct"></a>
+<a href="./svg-filter-blend-stroke.svg" title="svg-filter-blend-stroke (standalone-svg)"><img src="./chromium/svg-filter-blend-stroke.png" width="56" alt="svg-filter-blend-stroke"></a>
+<a href="./svg-filter-blend-target-mask.svg" title="svg-filter-blend-target-mask (standalone-svg)"><img src="./chromium/svg-filter-blend-target-mask.png" width="56" alt="svg-filter-blend-target-mask"></a>
+<a href="./svg-filter-blend-target-opacity.svg" title="svg-filter-blend-target-opacity (standalone-svg)"><img src="./chromium/svg-filter-blend-target-opacity.png" width="56" alt="svg-filter-blend-target-opacity"></a>
+<a href="./svg-filter-blend-transfer-order.svg" title="svg-filter-blend-transfer-order (standalone-svg)"><img src="./chromium/svg-filter-blend-transfer-order.png" width="56" alt="svg-filter-blend-transfer-order"></a>
+<a href="./svg-filter-blend-use.svg" title="svg-filter-blend-use (standalone-svg)"><img src="./chromium/svg-filter-blend-use.png" width="56" alt="svg-filter-blend-use"></a>
+<a href="./svg-filter-blend-viewbox.svg" title="svg-filter-blend-viewbox (standalone-svg)"><img src="./chromium/svg-filter-blend-viewbox.png" width="56" alt="svg-filter-blend-viewbox"></a>
 <a href="./svg-filter-blur-zero-primitive-region.svg" title="svg-filter-blur-zero-primitive-region (standalone-svg)"><img src="./chromium/svg-filter-blur-zero-primitive-region.png" width="56" alt="svg-filter-blur-zero-primitive-region"></a>
 <a href="./svg-filter-color-linear.svg" title="svg-filter-color-linear (standalone-svg)"><img src="./chromium/svg-filter-color-linear.png" width="56" alt="svg-filter-color-linear"></a>
 <a href="./svg-filter-color-matrix-alpha-create.svg" title="svg-filter-color-matrix-alpha-create (standalone-svg)"><img src="./chromium/svg-filter-color-matrix-alpha-create.png" width="56" alt="svg-filter-color-matrix-alpha-create"></a>
@@ -563,7 +601,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (134)
+## The refusal register (137)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -587,6 +625,8 @@ its row into the cells above.
 | `svg-css-transform-box` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform-box, which this cascade does not represent |
 | `svg-css-transform-origin` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares transform-origin, which this cascade does not represent |
 | `svg-display-contents` | declared | skipped svg/g[1]: unsupported computed style: display: contents is not yet consumed |
+| `svg-filter-blend-clip-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feBlend crosses the pinned-backend filtered clip-path precision boundary |
+| `svg-filter-blend-transform-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feBlend's target mapping crosses the pinned-backend blend-filter transform precision boundary |
 | `svg-filter-blur-sigma-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feGaussianBlur has an effective sigma in the pinned-backend small-kernel precision boundary |
 | `svg-filter-color-css` | declared | skipped svg/rect[2]: unsupported SVG filter: CSS color-interpolation-filters in a filter resource is not represented by the pinned cascade; use of it is quarantined from the direct attribute decoder |
 | `svg-filter-color-matrix-source-layer-precision` | declared | skipped svg/circle[1]: unsupported SVG filter: feColorMatrix's source image crosses the pinned-backend color-matrix source-layer precision boundary |
@@ -614,13 +654,14 @@ its row into the cells above.
 | `svg-filter-offset-blur-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: a filter graph combines feOffset with Gaussian blur, which crosses the pinned-backend composed-operation precision boundary |
 | `svg-filter-offset-fractional-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feOffset uses a fractional displacement, which crosses the pinned-backend rasterization boundary |
 | `svg-filter-offset-transform-precision` | declared | skipped svg/g[1]/rect[1]: unsupported SVG filter: feOffset's target mapping produces a fractional device-space displacement at the pinned-backend rasterization boundary |
-| `svg-filter-primitive` | declared | skipped svg/rect[2]: unsupported SVG filter: filter graph contains unsupported primitive <feBlend> |
+| `svg-filter-primitive` | declared | skipped svg/rect[2]: unsupported SVG filter: filter graph contains unsupported primitive <feMorphology> |
 | `svg-filter-primitive-empty-region` | declared | skipped svg/rect[2]: unsupported SVG filter: a non-positive filter primitive region is not yet represented as a transparent graph result |
 | `svg-filter-region-calc` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region x uses calc(), whose computed length is not represented at this Stylo pin |
 | `svg-filter-region-range` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region width crosses the unimplemented Web used-length range |
 | `svg-filter-region-unit` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region x uses the em unit, whose basis is not admitted |
 | `svg-filter-region-var` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region x uses var(), whose computed length is not represented at this Stylo pin |
 | `svg-filter-root` | **both refuse** | unsupported SVG filter: filter on the root <svg> uses the host CSS-layer coordinate route |
+| `svg-filter-translucent-source-composition-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: a source-derived multi-input filter graph crosses the pinned-backend translucent-source composition precision boundary |
 | `svg-foreign-object` | declared | skipped svg/foreignObject[1]: unsupported element <foreignObject> |
 | `svg-geometry-calc-values` | declared | skipped svg/circle[1]: attribute cx="calc(8px + 8px)" is not a number; skipped svg/circle[2]: attribute cy="calc(8px \* 4)" is not a number; skipped svg/circle[3]: attribute r="calc(4px + 4px)" is not a number |
 | `svg-geometry-css-comments` | declared | skipped svg/circle[1]: attribute cx="/\*\*/16" is not a number; skipped svg/circle[2]: attribute cy="/\*\*/32/\*\*/" is not a number; skipped svg/circle[3]: attribute r="/\*\*/8/\*\*/" is not a number |

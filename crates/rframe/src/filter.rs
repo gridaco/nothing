@@ -49,6 +49,31 @@ pub enum FilterComposite {
     Arithmetic { k1: f32, k2: f32, k3: f32, k4: f32 },
 }
 
+/// One source-neutral blend function over a foreground and backdrop image.
+///
+/// The enum is deliberately owned by the filter contract. Paint-stack blend
+/// vocabulary is a different operation even where its members have the same
+/// names.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FilterBlend {
+    Normal,
+    Multiply,
+    Screen,
+    Overlay,
+    Darken,
+    Lighten,
+    ColorDodge,
+    ColorBurn,
+    HardLight,
+    SoftLight,
+    Difference,
+    Exclusion,
+    Hue,
+    Saturation,
+    Color,
+    Luminosity,
+}
+
 /// Four exact byte lookup tables for one non-premultiplied RGBA operation.
 ///
 /// Channel order is named at construction and access, so a producer cannot
@@ -108,6 +133,10 @@ pub enum FilterPrimitive {
     },
     Composite {
         operator: FilterComposite,
+    },
+    /// Blend `inputs[0]` as the foreground over `inputs[1]` as the backdrop.
+    Blend {
+        mode: FilterBlend,
     },
     /// One resolved shadow operation. The painter draws the shadow below the
     /// input and preserves the input as the operation's foreground.
@@ -283,7 +312,7 @@ impl FilterProgram {
                 | FilterPrimitive::ColorMatrix { .. }
                 | FilterPrimitive::ComponentTransfer { .. } => Some(1),
                 FilterPrimitive::SolidColor { .. } => Some(0),
-                FilterPrimitive::Composite { .. } => Some(2),
+                FilterPrimitive::Composite { .. } | FilterPrimitive::Blend { .. } => Some(2),
                 FilterPrimitive::Merge => None,
             };
             if let Some(expected) = expected_inputs
@@ -343,6 +372,7 @@ impl FilterProgram {
                 FilterPrimitive::Offset { .. }
                 | FilterPrimitive::SolidColor { .. }
                 | FilterPrimitive::Composite { .. }
+                | FilterPrimitive::Blend { .. }
                 | FilterPrimitive::DropShadow { .. }
                 | FilterPrimitive::ColorMatrix { .. }
                 | FilterPrimitive::ComponentTransfer { .. }
@@ -374,6 +404,7 @@ impl FilterProgram {
             FilterPrimitive::GaussianBlur { .. }
             | FilterPrimitive::Offset { .. }
             | FilterPrimitive::Composite { .. }
+            | FilterPrimitive::Blend { .. }
             | FilterPrimitive::DropShadow { .. }
             | FilterPrimitive::Merge => false,
         })

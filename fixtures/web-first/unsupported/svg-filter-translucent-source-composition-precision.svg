@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+    <feFlood flood-color="#e6a817" flood-opacity=".34" result="gold"/>
+    <feComposite in="SourceGraphic" in2="gold" operator="atop"/>
+  </filter>
+  <rect x="8" y="9" width="48" height="46" rx="7" fill="#c43779" fill-opacity=".62" filter="url(#f)"/>
+</svg>

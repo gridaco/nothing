@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs><filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+
+  <feFlood flood-color="#1fadd6" flood-opacity=".47" result="bg"/>
+  <feFlood flood-color="#c43779" flood-opacity=".62" result="fg"/><feBlend mode="overlay" in="fg" in2="bg"/>
+  </filter></defs>
+  <rect width="64" height="64" fill="#111" filter="url(#f)"/>
+</svg>

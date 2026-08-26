@@ -35,9 +35,9 @@ use skia_safe::{
 
 use crate::drawlist::{
     DrawList, ItemKind, PostPaintOpacity, ResolvedClipGeometry, ResolvedClipGeometryKind,
-    ResolvedClipLayer, ResolvedClipPath, ResolvedFilter, ResolvedFilterColorSpace,
-    ResolvedFilterComposite, ResolvedFilterInput, ResolvedFilterPrimitive, ResolvedMaskMode,
-    StrokeDashPhase,
+    ResolvedClipLayer, ResolvedClipPath, ResolvedFilter, ResolvedFilterBlend,
+    ResolvedFilterColorSpace, ResolvedFilterComposite, ResolvedFilterInput,
+    ResolvedFilterPrimitive, ResolvedMaskMode, StrokeDashPhase,
 };
 
 /// The gradient family whose local matrix could not be represented by the
@@ -514,6 +514,27 @@ fn sk_blend_mode(mode: BlendMode) -> skia_safe::BlendMode {
         BlendMode::Saturation => skia_safe::BlendMode::Saturation,
         BlendMode::Color => skia_safe::BlendMode::Color,
         BlendMode::Luminosity => skia_safe::BlendMode::Luminosity,
+    }
+}
+
+fn sk_filter_blend_mode(mode: ResolvedFilterBlend) -> skia_safe::BlendMode {
+    match mode {
+        ResolvedFilterBlend::Normal => skia_safe::BlendMode::SrcOver,
+        ResolvedFilterBlend::Multiply => skia_safe::BlendMode::Multiply,
+        ResolvedFilterBlend::Screen => skia_safe::BlendMode::Screen,
+        ResolvedFilterBlend::Overlay => skia_safe::BlendMode::Overlay,
+        ResolvedFilterBlend::Darken => skia_safe::BlendMode::Darken,
+        ResolvedFilterBlend::Lighten => skia_safe::BlendMode::Lighten,
+        ResolvedFilterBlend::ColorDodge => skia_safe::BlendMode::ColorDodge,
+        ResolvedFilterBlend::ColorBurn => skia_safe::BlendMode::ColorBurn,
+        ResolvedFilterBlend::HardLight => skia_safe::BlendMode::HardLight,
+        ResolvedFilterBlend::SoftLight => skia_safe::BlendMode::SoftLight,
+        ResolvedFilterBlend::Difference => skia_safe::BlendMode::Difference,
+        ResolvedFilterBlend::Exclusion => skia_safe::BlendMode::Exclusion,
+        ResolvedFilterBlend::Hue => skia_safe::BlendMode::Hue,
+        ResolvedFilterBlend::Saturation => skia_safe::BlendMode::Saturation,
+        ResolvedFilterBlend::Color => skia_safe::BlendMode::Color,
+        ResolvedFilterBlend::Luminosity => skia_safe::BlendMode::Luminosity,
     }
 }
 
@@ -1990,16 +2011,16 @@ fn transparent_filter(region: n0_model::math::RectF) -> Option<ImageFilter> {
 
 thread_local! {
     // Runtime-effect handles are cheap to clone after compilation. Keep the
-    // six Porter-Duff programs in each precision mode local to the painting
-    // thread instead of rebuilding SkSL for every graph replay.
-    static FILTER_PORTER_DUFF_BLENDERS: RefCell<Vec<Option<Blender>>> =
+    // deterministic filter blenders local to the painting thread instead of
+    // rebuilding SkSL for every graph replay.
+    static FILTER_BLENDERS: RefCell<Vec<Option<Blender>>> =
         const { RefCell::new(Vec::new()) };
 }
 
 fn compile_filter_blender(source: String) -> Result<Blender, String> {
     let options = skia_safe::runtime_effect::Options {
         force_unoptimized: true,
-        name: "n0_svg_filter_porter_duff",
+        name: "n0_svg_filter_blender",
     };
     let effect = skia_safe::RuntimeEffect::make_for_blender(source, Some(&options))
         .map_err(|error| format!("the backend could not compile a filter blender: {error}"))?;
@@ -2009,7 +2030,7 @@ fn compile_filter_blender(source: String) -> Result<Blender, String> {
 }
 
 fn cached_filter_blender(slot: usize, source: impl FnOnce() -> String) -> Result<Blender, String> {
-    FILTER_PORTER_DUFF_BLENDERS.with(|cache| {
+    FILTER_BLENDERS.with(|cache| {
         if let Some(blender) = cache.borrow().get(slot).and_then(Option::as_ref).cloned() {
             return Ok(blender);
         }
@@ -2103,6 +2124,88 @@ fn deterministic_porter_duff_blender(
     } else {
         exact_unorm8_blender(operator)
     }
+}
+
+// Skia's N32 low-precision pipeline uses exact divide-by-255 rounding on
+// NEON, but an intentionally approximate `(value + 255) / 256` on x86. The
+// approximation is observable in SVG blend pixels. Re-state the nine modes
+// that use that pipeline over explicit unorm8 values so both CPU families
+// reproduce the committed Chromium bytes. The remaining seven modes use Skia's
+// high-precision path and stay native unless measurement proves otherwise.
+fn exact_unorm8_filter_blend_source(expression: &str) -> String {
+    format!(
+        r#"
+float div255(float value) {{
+    return floor((value + 127.0) / 255.0);
+}}
+
+float4 div255(float4 value) {{
+    return floor((value + 127.0) / 255.0);
+}}
+
+float3 div255_3(float3 value) {{
+    return floor((value + 127.0) / 255.0);
+}}
+
+float overlay_channel(float s, float d, float sa, float da) {{
+    float blend = 2.0 * d <= da
+        ? 2.0 * s * d
+        : sa * da - 2.0 * (sa - s) * (da - d);
+    return div255(s * (255.0 - da) + d * (255.0 - sa) + blend);
+}}
+
+float hard_light_channel(float s, float d, float sa, float da) {{
+    float blend = 2.0 * s <= sa
+        ? 2.0 * s * d
+        : sa * da - 2.0 * (sa - s) * (da - d);
+    return div255(s * (255.0 - da) + d * (255.0 - sa) + blend);
+}}
+
+half4 main(half4 src, half4 dst) {{
+    float4 s = floor(float4(src) * 255.0 + 0.5);
+    float4 d = floor(float4(dst) * 255.0 + 0.5);
+    float4 result = {expression};
+    return half4(clamp(result, 0.0, 255.0) / 255.0);
+}}
+"#
+    )
+}
+
+fn deterministic_filter_blender(mode: ResolvedFilterBlend) -> Result<Blender, String> {
+    let (slot, expression) = match mode {
+        ResolvedFilterBlend::Normal => (12, "s + div255(d * (255.0 - s.a))"),
+        ResolvedFilterBlend::Multiply => (
+            13,
+            "div255(s * (255.0 - d.a) + d * (255.0 - s.a) + s * d)",
+        ),
+        ResolvedFilterBlend::Screen => (14, "s + d - div255(s * d)"),
+        ResolvedFilterBlend::Overlay => (
+            15,
+            "float4(overlay_channel(s.r, d.r, s.a, d.a), overlay_channel(s.g, d.g, s.a, d.a), overlay_channel(s.b, d.b, s.a, d.a), s.a + div255(d.a * (255.0 - s.a)))",
+        ),
+        ResolvedFilterBlend::Darken => (
+            16,
+            "float4(s.rgb + d.rgb - div255_3(max(s.rgb * d.a, d.rgb * s.a)), s.a + div255(d.a * (255.0 - s.a)))",
+        ),
+        ResolvedFilterBlend::Lighten => (
+            17,
+            "float4(s.rgb + d.rgb - div255_3(min(s.rgb * d.a, d.rgb * s.a)), s.a + div255(d.a * (255.0 - s.a)))",
+        ),
+        ResolvedFilterBlend::HardLight => (
+            18,
+            "float4(hard_light_channel(s.r, d.r, s.a, d.a), hard_light_channel(s.g, d.g, s.a, d.a), hard_light_channel(s.b, d.b, s.a, d.a), s.a + div255(d.a * (255.0 - s.a)))",
+        ),
+        ResolvedFilterBlend::Difference => (
+            19,
+            "float4(s.rgb + d.rgb - 2.0 * div255_3(min(s.rgb * d.a, d.rgb * s.a)), s.a + div255(d.a * (255.0 - s.a)))",
+        ),
+        ResolvedFilterBlend::Exclusion => (
+            20,
+            "float4(s.rgb + d.rgb - 2.0 * div255_3(s.rgb * d.rgb), s.a + div255(d.a * (255.0 - s.a)))",
+        ),
+        _ => return Ok(sk_filter_blend_mode(mode).into()),
+    };
+    cached_filter_blender(slot, || exact_unorm8_filter_blend_source(expression))
 }
 
 /// Build one checked private filter graph and its final-composition policy.
@@ -2282,6 +2385,29 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 .ok_or_else(|| {
                     "the backend could not construct a composite operation".to_string()
                 })?;
+                (
+                    Some(filter),
+                    node.color_space,
+                    source_dependent,
+                    requires_exact_restore,
+                )
+            }
+            ResolvedFilterPrimitive::Blend { mode } => {
+                let background = inputs.pop().expect("blend has two checked inputs");
+                let foreground = inputs.pop().expect("blend has two checked inputs");
+                let filter = skia_safe::image_filters::blend(
+                    deterministic_filter_blender(mode)?,
+                    background.image_filter,
+                    foreground.image_filter,
+                    crop,
+                )
+                .ok_or_else(|| "the backend could not construct a blend operation".to_string())?;
+                // Exact mode arithmetic can still differ by one code value
+                // across NEON and x86 during the final N32 sRGB restore. A
+                // later color-space conversion clears this policy before its
+                // own floating-point arithmetic.
+                let requires_exact_restore =
+                    requires_exact_restore || node.color_space == ResolvedFilterColorSpace::Srgb;
                 (
                     Some(filter),
                     node.color_space,

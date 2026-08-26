@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
   <rect width="64" height="64" fill="white"/>
-  <filter id="f"><feBlend in="SourceGraphic" in2="SourceGraphic" mode="multiply"/></filter>
+  <filter id="f"><feMorphology in="SourceGraphic" operator="dilate" radius="2"/></filter>
   <rect x="20" y="20" width="24" height="24" fill="#16a34a" filter="url(#f)"/>
 </svg>

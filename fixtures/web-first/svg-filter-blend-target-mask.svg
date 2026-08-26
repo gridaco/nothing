@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"><rect width="64" height="64" fill="white"/><circle cx="32" cy="32" r="14" fill="#777"/></mask><filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+      x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB" >
+    <feFlood flood-color="#1fadd6" flood-opacity=".47" result="bg"/><feBlend mode="soft-light" in="SourceGraphic" in2="bg" result="mixed"/>
+  </filter></defs>
+  <rect x="8" y="9" width="48" height="46" rx="7" fill="#c43779" fill-opacity=".62" mask="url(#m)" filter="url(#f)"/>
+</svg>
