@@ -98,6 +98,12 @@ pub(crate) enum ResolvedFilterBlend {
     Luminosity,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ResolvedFilterMorphology {
+    Erode,
+    Dilate,
+}
+
 /// The private filter-operation vocabulary admitted by the painter.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum ResolvedFilterPrimitive {
@@ -132,6 +138,11 @@ pub(crate) enum ResolvedFilterPrimitive {
         /// R, G, B, then A. The source-neutral frame contract names this
         /// order before projection into the private drawlist.
         tables: Arc<[[u8; 256]; 4]>,
+    },
+    Morphology {
+        operator: ResolvedFilterMorphology,
+        radius_x: f32,
+        radius_y: f32,
     },
     Merge,
 }

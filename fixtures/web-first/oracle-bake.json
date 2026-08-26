@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "8ab642a75a157290be8f1d98d4ac260bc1c9cd1c1b43eac8dda531ad70dea6f8",
+  "suite_sha256": "65cee4b36d44ccb9c3dfda94b33af827e468849d203cf7801192f114187e3990",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -2275,6 +2275,339 @@
       "source_sha256": "ca3c5e6ad16fd09061ee36c079c2dc3fcb85ac1057c2937e793a0d32d3201309",
       "oracle": "chromium/svg-filter-merge-result-reuse.png",
       "oracle_sha256": "1e6c5e942e169d05253caf3303c9e59d8b8160bdf35dd4fa7190a06cf07dafc0",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-axis-fractional",
+      "source": "svg-filter-morphology-axis-fractional.svg",
+      "source_sha256": "97fadb35376533d3d03356a78a862c07d47ff0e76b1d318e7b15c52ec82417c8",
+      "oracle": "chromium/svg-filter-morphology-axis-fractional.png",
+      "oracle_sha256": "ba9ddc96aa557dcc75284e3e90213c5f6a7a49412eef3b721c561e33203aa7ec",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-blend-after",
+      "source": "svg-filter-morphology-blend-after.svg",
+      "source_sha256": "eadb32bd28eb4a60992ebcee62f0a329ed00181ae9e6cee7c87092a58bfcc313",
+      "oracle": "chromium/svg-filter-morphology-blend-after.png",
+      "oracle_sha256": "7db9755a9b328962f6f880a819a6e173c67312140aad245e0b7f78123a344057",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-blend-before",
+      "source": "svg-filter-morphology-blend-before.svg",
+      "source_sha256": "417d96b6c8b0148956e03409621ba2c04472458c950c14be367304b41e978af8",
+      "oracle": "chromium/svg-filter-morphology-blend-before.png",
+      "oracle_sha256": "7db9755a9b328962f6f880a819a6e173c67312140aad245e0b7f78123a344057",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-blur-after",
+      "source": "svg-filter-morphology-blur-after.svg",
+      "source_sha256": "a3082aceb38e7df349c20012a81a408e397d1074a8d9a7ea15a0f49acccc8118",
+      "oracle": "chromium/svg-filter-morphology-blur-after.png",
+      "oracle_sha256": "3803932a8d255ffae651f7974331cd9bce4f9ab8786ae27fb70e5efd006ac27f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-blur-before",
+      "source": "svg-filter-morphology-blur-before.svg",
+      "source_sha256": "e07319df152344cf97cda07d4599c7a2a6c0c72a4f24377dbfb88f1c6f69979f",
+      "oracle": "chromium/svg-filter-morphology-blur-before.png",
+      "oracle_sha256": "67753589923b13606cae00c3756fdb107b4821e2db694a65e1bb4ac73c77e1bc",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-chain-two",
+      "source": "svg-filter-morphology-chain-two.svg",
+      "source_sha256": "64ec6a564be5b06523fd6d97cd2a566a6918070e489d427f81aaa6b86bdc2dc0",
+      "oracle": "chromium/svg-filter-morphology-chain-two.png",
+      "oracle_sha256": "8066e172899b0ec35615cd3097ef35591c7cdf752778e5c2f33d3e9869e4be64",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-channel-alpha",
+      "source": "svg-filter-morphology-channel-alpha.svg",
+      "source_sha256": "aaed074761b0eed17c69acc39537f5145dc686c1ce21c2a5082a844389aa6a0f",
+      "oracle": "chromium/svg-filter-morphology-channel-alpha.png",
+      "oracle_sha256": "5339799658fafaf9b1c4117aa7ac023804ee7ab37097dee377c6e972ea2a7134",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-channel-linear",
+      "source": "svg-filter-morphology-channel-linear.svg",
+      "source_sha256": "e61ec92346a1519197e8c32a756182ad16ec152790f5da7c2cf720c6cb09b0f7",
+      "oracle": "chromium/svg-filter-morphology-channel-linear.png",
+      "oracle_sha256": "1bc2403af51fde6c5d6f801809bfbe73d013714d1f6ea66329acf104bede993c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-channel-srgb",
+      "source": "svg-filter-morphology-channel-srgb.svg",
+      "source_sha256": "48ca640a1b12762da1199d9b7351ed174ddfdb0cabc31ea08e1963b4cf491a60",
+      "oracle": "chromium/svg-filter-morphology-channel-srgb.png",
+      "oracle_sha256": "493cb3be9c4f2ea64211ba73965da9d624fb1935cce001728a008fb92724333f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-input-previous",
+      "source": "svg-filter-morphology-input-previous.svg",
+      "source_sha256": "1464d8ceb1621a12eba6530bc4450b604b1952c3be4ed1a96021b184d8d3f768",
+      "oracle": "chromium/svg-filter-morphology-input-previous.png",
+      "oracle_sha256": "377779b69d3d2486824110b21743132481bd4274dd24550d12f0a8e921ad286e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-matrix-after",
+      "source": "svg-filter-morphology-matrix-after.svg",
+      "source_sha256": "dff87bd8b7fc66ceb124ff9bbcaf767808a432a5d987b9b188f57b145b90d0e3",
+      "oracle": "chromium/svg-filter-morphology-matrix-after.png",
+      "oracle_sha256": "1c39a0b2d0eccf13de30c7f68a40c6391c9442104f95280df8ef226ed7c78712",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-matrix-before",
+      "source": "svg-filter-morphology-matrix-before.svg",
+      "source_sha256": "3d0dafad454e18eebb4309458d74cbaf4e273ac2fd26fe28039d846dc03b5920",
+      "oracle": "chromium/svg-filter-morphology-matrix-before.png",
+      "oracle_sha256": "1c39a0b2d0eccf13de30c7f68a40c6391c9442104f95280df8ef226ed7c78712",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-operator-grammar",
+      "source": "svg-filter-morphology-operator-grammar.svg",
+      "source_sha256": "21ad3a1a8c7be033e911954494db65f57c255f1220e1934f3caeaf78cd3ecf91",
+      "oracle": "chromium/svg-filter-morphology-operator-grammar.png",
+      "oracle_sha256": "c957424b60e922a05c7cb81ca88cf9a1e3c17c147fa8a8b40f3ccd635d36e0dc",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-path",
+      "source": "svg-filter-morphology-path.svg",
+      "source_sha256": "f5f0aa47d59b2e693fb64f5d04b28a563336beb8c86ac3ca5944ec65c7999f2a",
+      "oracle": "chromium/svg-filter-morphology-path.png",
+      "oracle_sha256": "b8a8709aeeaf2b168ccc0f16713fc7ae7506fd535efed0133ce2d57770003165",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-primitive-units",
+      "source": "svg-filter-morphology-primitive-units.svg",
+      "source_sha256": "b6fd513ce48a49a90b66cf1c64802a788bcb7f7608fef587a2289a7c6d494d96",
+      "oracle": "chromium/svg-filter-morphology-primitive-units.png",
+      "oracle_sha256": "20c0b23d93a47a98a0ac5fc20e6d3704b446da06513d8b7655226d4d284ca718",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-quarter-turn",
+      "source": "svg-filter-morphology-quarter-turn.svg",
+      "source_sha256": "875ca4a61da81359f22d04db0c3584beb390cbe7cfcc12c9363e803cef7a4364",
+      "oracle": "chromium/svg-filter-morphology-quarter-turn.png",
+      "oracle_sha256": "28ac7153250eae5210d08665c18cb5b12e1d9e387b68254286036f67cae00d27",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-radius-invalid",
+      "source": "svg-filter-morphology-radius-invalid.svg",
+      "source_sha256": "27ed2788b90f87dfe73a788932b9d65f769d797d9fa7d245a74c3d9b544e4460",
+      "oracle": "chromium/svg-filter-morphology-radius-invalid.png",
+      "oracle_sha256": "718a937b4b04d54e4319194f31e11e1c01bc0829018a85ff088600d213798276",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-radius-large-finite",
+      "source": "svg-filter-morphology-radius-large-finite.svg",
+      "source_sha256": "cbfd60ef39316592fab1c59e1b8d57eb3afc5d4551993cf4d4e71d47786112f7",
+      "oracle": "chromium/svg-filter-morphology-radius-large-finite.png",
+      "oracle_sha256": "b2e49ab92ec9548c8b6e4a085eece5ff1154a5d8b0c28672620d548c2905274b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-radius-number-list",
+      "source": "svg-filter-morphology-radius-number-list.svg",
+      "source_sha256": "fb56bd4a3ef0a8d5d2c2a85bcb302ce152f71006915d9e5c237ab9436a12005f",
+      "oracle": "chromium/svg-filter-morphology-radius-number-list.png",
+      "oracle_sha256": "812c77bba29bf67ecd7180ad100702e561909ea89550808039ba6cf66b66c2a8",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-radius-rounding",
+      "source": "svg-filter-morphology-radius-rounding.svg",
+      "source_sha256": "bb08dc4eead4faab8b1a1c36b1dee2830ff4138dc2077e7db8ed909fc4b1b5ea",
+      "oracle": "chromium/svg-filter-morphology-radius-rounding.png",
+      "oracle_sha256": "9684410bbc89e41bd090d57900b6b91e4e70f0b552429442c5eae8f0dccdd59e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-region-crop",
+      "source": "svg-filter-morphology-region-crop.svg",
+      "source_sha256": "4e8bedb1b295b186f445a3e0002fa2aa119ea7641ad3dc6a891b45a417511c34",
+      "oracle": "chromium/svg-filter-morphology-region-crop.png",
+      "oracle_sha256": "06d4c39e7c456db15c8084f1f5e49a557a3700be70a15c975bdb8568469f56e9",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-region-zero-crop",
+      "source": "svg-filter-morphology-region-zero-crop.svg",
+      "source_sha256": "0cfb2702990c779809da010061c42b75a33aea6ceda25a7ffd7856bc56e61a9e",
+      "oracle": "chromium/svg-filter-morphology-region-zero-crop.png",
+      "oracle_sha256": "7164fb3f2876427cc8bbb1f621420c2cde5acec508847b230d49a337a7632a3b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-result-shadow",
+      "source": "svg-filter-morphology-result-shadow.svg",
+      "source_sha256": "f40c39346391882e835bce21c255ca083945a81671696fb581528f58b528f297",
+      "oracle": "chromium/svg-filter-morphology-result-shadow.png",
+      "oracle_sha256": "5985b6dcd430d976748c09e48b5acf772c207965c946062df7dcba5491d75fd8",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-rounded-rect",
+      "source": "svg-filter-morphology-rounded-rect.svg",
+      "source_sha256": "ac86d4c9e758b6eb8c9e414ea538da390f162e22804ca55a88287a42e50b6520",
+      "oracle": "chromium/svg-filter-morphology-rounded-rect.png",
+      "oracle_sha256": "ffc812b6f081b9408867e172db479577974f37fea49d98978a1c2aae28302a6b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-shadow-after",
+      "source": "svg-filter-morphology-shadow-after.svg",
+      "source_sha256": "37468377822c1f71b95a44699922b5a0793aed68749b32bdd5daa482312d84e0",
+      "oracle": "chromium/svg-filter-morphology-shadow-after.png",
+      "oracle_sha256": "26e5e910702e3021dec0407259cbd7e39e67075396fd73c18f52e362d874500b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-shadow-before",
+      "source": "svg-filter-morphology-shadow-before.svg",
+      "source_sha256": "34dd85ea070cb54def83e11a22dc4b0366a8a39e81e6ca65363af905dccb0a1e",
+      "oracle": "chromium/svg-filter-morphology-shadow-before.png",
+      "oracle_sha256": "ab37898262976af4642d18e9b3b3763e45b38c6bfe2f57962afcb144fb101fbb",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-source-alpha",
+      "source": "svg-filter-morphology-source-alpha.svg",
+      "source_sha256": "19dc2abb44a7fc52ba18859ce5591d8633ae9f0efa06890d7bc0b57d1c6303ff",
+      "oracle": "chromium/svg-filter-morphology-source-alpha.png",
+      "oracle_sha256": "bc1aa46d95a3845a543246c49aa65a9a8d3819889c81fc46ab7a1aecaa69c635",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-source-number-alias",
+      "source": "svg-filter-morphology-source-number-alias.svg",
+      "source_sha256": "1af30d295266e9e48006808d5a55582b42a6496327f63ad2202ae69d53205e67",
+      "oracle": "chromium/svg-filter-morphology-source-number-alias.png",
+      "oracle_sha256": "a53b444eeb69e2f40278068fd9ff7fff900def41bc97d177c9b45c7791700aa4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-source-use",
+      "source": "svg-filter-morphology-source-use.svg",
+      "source_sha256": "93003bb543f35c1502e02b1acacb21a6be4fd3b65fa18eaf1464f87068946f4a",
+      "oracle": "chromium/svg-filter-morphology-source-use.png",
+      "oracle_sha256": "acf4173eaf419bb1c650f544f4cf73d3720c8685a09d8e0a4149d0bae585ff04",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-stroke",
+      "source": "svg-filter-morphology-stroke.svg",
+      "source_sha256": "16b0af81633fea3041c68adc58b8540804f0a6f550d7b00317ba73c0e98648cb",
+      "oracle": "chromium/svg-filter-morphology-stroke.png",
+      "oracle_sha256": "400d111907a7b4e80b1c3d6a051d6008a0eeff56236363baeb7e25ae936bbf8c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-target-clip",
+      "source": "svg-filter-morphology-target-clip.svg",
+      "source_sha256": "00175711b0648055fe50fe1bb1ffdcd4e066381fb26ecd3b5919e7500c040259",
+      "oracle": "chromium/svg-filter-morphology-target-clip.png",
+      "oracle_sha256": "06d4c39e7c456db15c8084f1f5e49a557a3700be70a15c975bdb8568469f56e9",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-target-mask",
+      "source": "svg-filter-morphology-target-mask.svg",
+      "source_sha256": "1fb347683b8b46f53f375563c14b28e15a48b3f53c990228560d5c27c209142a",
+      "oracle": "chromium/svg-filter-morphology-target-mask.png",
+      "oracle_sha256": "2b591c6cd839c0e4768b9340d603d4da56f1e9998cd3085f2cfbe8f5a145a44c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-target-opacity",
+      "source": "svg-filter-morphology-target-opacity.svg",
+      "source_sha256": "6ac09525b6dfe65e40ccaebc1a688117359692f06244b1771c3c65b10b5573da",
+      "oracle": "chromium/svg-filter-morphology-target-opacity.png",
+      "oracle_sha256": "7679858b19bc02d9942e7312b975421b484f877217dda09f4c75ead019adb591",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-transfer-after",
+      "source": "svg-filter-morphology-transfer-after.svg",
+      "source_sha256": "ee4cbca48d0f627c63fe40424887f496a673b6edf458b96fe2209e653562ec0b",
+      "oracle": "chromium/svg-filter-morphology-transfer-after.png",
+      "oracle_sha256": "31cf9a9582c222941a9eea636d4c22bdab7167bf139db1c8b7bdbdafc276a6c1",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-transfer-before",
+      "source": "svg-filter-morphology-transfer-before.svg",
+      "source_sha256": "1798e95631691064982cbfb774e72e5f87e8032409964f7f74c6c711a10c816f",
+      "oracle": "chromium/svg-filter-morphology-transfer-before.png",
+      "oracle_sha256": "31cf9a9582c222941a9eea636d4c22bdab7167bf139db1c8b7bdbdafc276a6c1",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-viewbox-half-step",
+      "source": "svg-filter-morphology-viewbox-half-step.svg",
+      "source_sha256": "c497d63cb6d4538decd82da8107c586975fb17ffd299eb0dba44e5eb9ab2524c",
+      "oracle": "chromium/svg-filter-morphology-viewbox-half-step.png",
+      "oracle_sha256": "f5e8973ddfcd9d6f5e59e76e5ca0ca0e70e25c86f027a6ee1c8ebd37e0501f0d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-viewbox-nonuniform",
+      "source": "svg-filter-morphology-viewbox-nonuniform.svg",
+      "source_sha256": "0804bc793766a1403bcadab37f782ed08aebb9418c6f87caa33167ed0d53f127",
+      "oracle": "chromium/svg-filter-morphology-viewbox-nonuniform.png",
+      "oracle_sha256": "f5e8973ddfcd9d6f5e59e76e5ca0ca0e70e25c86f027a6ee1c8ebd37e0501f0d",
       "width": 64,
       "height": 64
     },

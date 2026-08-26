@@ -2088,6 +2088,302 @@
       "height": 64
     },
     {
+      "id": "svg-filter-morphology-axis-fractional",
+      "source": "svg-filter-morphology-axis-fractional.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-axis-fractional.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-blend-after",
+      "source": "svg-filter-morphology-blend-after.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-blend-after.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-blend-before",
+      "source": "svg-filter-morphology-blend-before.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-blend-before.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-blur-after",
+      "source": "svg-filter-morphology-blur-after.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-blur-after.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-blur-before",
+      "source": "svg-filter-morphology-blur-before.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-blur-before.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-chain-two",
+      "source": "svg-filter-morphology-chain-two.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-chain-two.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-channel-alpha",
+      "source": "svg-filter-morphology-channel-alpha.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-channel-alpha.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-channel-linear",
+      "source": "svg-filter-morphology-channel-linear.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-channel-linear.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-channel-srgb",
+      "source": "svg-filter-morphology-channel-srgb.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-channel-srgb.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-input-previous",
+      "source": "svg-filter-morphology-input-previous.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-input-previous.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-matrix-after",
+      "source": "svg-filter-morphology-matrix-after.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-matrix-after.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-matrix-before",
+      "source": "svg-filter-morphology-matrix-before.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-matrix-before.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-operator-grammar",
+      "source": "svg-filter-morphology-operator-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-operator-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-path",
+      "source": "svg-filter-morphology-path.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-path.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-primitive-units",
+      "source": "svg-filter-morphology-primitive-units.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-primitive-units.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-quarter-turn",
+      "source": "svg-filter-morphology-quarter-turn.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-quarter-turn.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-radius-invalid",
+      "source": "svg-filter-morphology-radius-invalid.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-radius-invalid.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-radius-large-finite",
+      "source": "svg-filter-morphology-radius-large-finite.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-radius-large-finite.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-radius-number-list",
+      "source": "svg-filter-morphology-radius-number-list.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-radius-number-list.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-radius-rounding",
+      "source": "svg-filter-morphology-radius-rounding.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-radius-rounding.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-region-crop",
+      "source": "svg-filter-morphology-region-crop.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-region-crop.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-region-zero-crop",
+      "source": "svg-filter-morphology-region-zero-crop.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-region-zero-crop.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-result-shadow",
+      "source": "svg-filter-morphology-result-shadow.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-result-shadow.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-rounded-rect",
+      "source": "svg-filter-morphology-rounded-rect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-rounded-rect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-shadow-after",
+      "source": "svg-filter-morphology-shadow-after.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-shadow-after.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-shadow-before",
+      "source": "svg-filter-morphology-shadow-before.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-shadow-before.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-source-alpha",
+      "source": "svg-filter-morphology-source-alpha.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-source-alpha.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-source-number-alias",
+      "source": "svg-filter-morphology-source-number-alias.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-source-number-alias.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-source-use",
+      "source": "svg-filter-morphology-source-use.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-source-use.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-stroke",
+      "source": "svg-filter-morphology-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-target-clip",
+      "source": "svg-filter-morphology-target-clip.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-target-clip.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-target-mask",
+      "source": "svg-filter-morphology-target-mask.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-target-mask.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-target-opacity",
+      "source": "svg-filter-morphology-target-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-target-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-transfer-after",
+      "source": "svg-filter-morphology-transfer-after.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-transfer-after.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-transfer-before",
+      "source": "svg-filter-morphology-transfer-before.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-transfer-before.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-viewbox-half-step",
+      "source": "svg-filter-morphology-viewbox-half-step.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-viewbox-half-step.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-morphology-viewbox-nonuniform",
+      "source": "svg-filter-morphology-viewbox-nonuniform.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-morphology-viewbox-nonuniform.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-filter-nested",
       "source": "svg-filter-nested.svg",
       "entry": "standalone-svg",

@@ -37,7 +37,7 @@ use crate::drawlist::{
     DrawList, ItemKind, PostPaintOpacity, ResolvedClipGeometry, ResolvedClipGeometryKind,
     ResolvedClipLayer, ResolvedClipPath, ResolvedFilter, ResolvedFilterBlend,
     ResolvedFilterColorSpace, ResolvedFilterComposite, ResolvedFilterInput,
-    ResolvedFilterPrimitive, ResolvedMaskMode, StrokeDashPhase,
+    ResolvedFilterMorphology, ResolvedFilterPrimitive, ResolvedMaskMode, StrokeDashPhase,
 };
 
 /// The gradient family whose local matrix could not be represented by the
@@ -1934,9 +1934,9 @@ struct BuiltFilterResult {
     /// boundary in the pinned backend. Source-derived output needs an explicit
     /// floating SrcOver; generated-only output needs the backend default.
     color_restore: Option<ColorRestore>,
-    /// Chromium snapshots source-derived table and matrix input through one
-    /// additional source-image boundary. Preserve that measured boundary
-    /// through later graph nodes.
+    /// Chromium snapshots source-derived table, matrix, and active morphology
+    /// input through one additional source-image boundary. Preserve that
+    /// measured boundary through later graph nodes.
     source_preflatten: bool,
 }
 
@@ -2286,6 +2286,11 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
             || matches!(
                 &node.primitive,
                 ResolvedFilterPrimitive::ComponentTransfer { .. } if source_dependent
+            )
+            || matches!(
+                &node.primitive,
+                ResolvedFilterPrimitive::Morphology { radius_x, radius_y, .. }
+                    if source_dependent && (*radius_x > 0.0 || *radius_y > 0.0)
             );
         let (image_filter, output_space, source_dependent, requires_exact_restore) = match node
             .primitive
@@ -2556,6 +2561,44 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                     false,
                 )
             }
+            ResolvedFilterPrimitive::Morphology {
+                operator,
+                radius_x,
+                radius_y,
+            } => {
+                let input = inputs.pop().expect("morphology has one checked input");
+                let active = radius_x > 0.0 || radius_y > 0.0;
+                let filter = match operator {
+                    ResolvedFilterMorphology::Erode => skia_safe::image_filters::erode(
+                        (radius_x, radius_y),
+                        input.image_filter,
+                        crop,
+                    ),
+                    ResolvedFilterMorphology::Dilate => skia_safe::image_filters::dilate(
+                        (radius_x, radius_y),
+                        input.image_filter,
+                        crop,
+                    ),
+                }
+                .ok_or_else(|| {
+                    "the backend could not construct a morphology operation".to_string()
+                })?;
+                // Native sRGB morphology reaches Skia's low-precision N32
+                // layer restore. NEON performs exact divide-by-255 rounding
+                // there, while x86 uses the backend's approximate division;
+                // carry the same explicit byte-domain restore used by the
+                // other measured low-precision filter operations. A zero
+                // radius stays on the pre-existing pass-through policy, and
+                // a later color-space conversion clears this flag.
+                let requires_exact_restore = input.requires_exact_restore
+                    || (active && node.color_space == ResolvedFilterColorSpace::Srgb);
+                (
+                    Some(filter),
+                    node.color_space,
+                    input.source_dependent,
+                    requires_exact_restore,
+                )
+            }
             ResolvedFilterPrimitive::Merge => {
                 let mut inputs = inputs.into_iter();
                 let image_filter = if let Some(first) = inputs.next() {
@@ -2647,13 +2690,13 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
 }
 
 #[cfg(test)]
-mod color_filter_policy_tests {
+mod filter_policy_tests {
     use std::sync::Arc;
 
     use n0_model::math::RectF;
     use n0_model::model::Color32F;
 
-    use crate::drawlist::ResolvedFilterNode;
+    use crate::drawlist::{ResolvedFilterMorphology, ResolvedFilterNode};
 
     use super::{
         build_filter, ResolvedFilter, ResolvedFilterColorSpace, ResolvedFilterInput,
@@ -2791,6 +2834,78 @@ mod color_filter_policy_tests {
         let generated = build_filter(&generated).expect("generated table builds");
         assert!(!generated.source_preflatten);
         assert!(generated.restore_blender.is_none());
+    }
+
+    #[test]
+    fn only_active_source_dependent_morphology_preflattens_its_source() {
+        let morphology = |input, radius, color_space| ResolvedFilterNode {
+            inputs: Arc::from([input]),
+            region: REGION,
+            color_space,
+            primitive: ResolvedFilterPrimitive::Morphology {
+                operator: ResolvedFilterMorphology::Dilate,
+                radius_x: radius,
+                radius_y: radius,
+            },
+        };
+        let one = |node| ResolvedFilter {
+            region: REGION,
+            nodes: Arc::from([node]),
+        };
+
+        let active = build_filter(&one(morphology(
+            ResolvedFilterInput::Source,
+            2.0,
+            ResolvedFilterColorSpace::Srgb,
+        )))
+        .expect("active source morphology builds");
+        assert!(active.source_preflatten);
+        assert!(
+            active.restore_blender.is_some(),
+            "active sRGB morphology uses an architecture-neutral layer restore"
+        );
+
+        let zero = build_filter(&one(morphology(
+            ResolvedFilterInput::Source,
+            0.0,
+            ResolvedFilterColorSpace::Srgb,
+        )))
+        .expect("zero source morphology builds");
+        assert!(!zero.source_preflatten);
+        assert!(zero.restore_blender.is_none());
+
+        let linear = build_filter(&one(morphology(
+            ResolvedFilterInput::Source,
+            2.0,
+            ResolvedFilterColorSpace::LinearRgb,
+        )))
+        .expect("linear source morphology builds");
+        assert!(linear.source_preflatten);
+        assert!(
+            linear.restore_blender.is_none(),
+            "the output gamma conversion ends the sRGB restore boundary"
+        );
+
+        let generated = ResolvedFilter {
+            region: REGION,
+            nodes: Arc::from([
+                ResolvedFilterNode {
+                    inputs: Arc::from([]),
+                    region: REGION,
+                    color_space: ResolvedFilterColorSpace::Srgb,
+                    primitive: ResolvedFilterPrimitive::SolidColor {
+                        color: Color32F::new(0.2, 0.4, 0.8, 0.5).expect("unit color"),
+                    },
+                },
+                morphology(
+                    ResolvedFilterInput::Node(0),
+                    2.0,
+                    ResolvedFilterColorSpace::Srgb,
+                ),
+            ]),
+        };
+        let generated = build_filter(&generated).expect("generated morphology builds");
+        assert!(!generated.source_preflatten);
     }
 }
 
@@ -3206,12 +3321,6 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 let total = view.then(&item.world);
                 canvas.save();
                 canvas.set_matrix(&skia_matrix(&total).into());
-                let region = Rect::from_xywh(
-                    filter.region.x,
-                    filter.region.y,
-                    filter.region.w,
-                    filter.region.h,
-                );
                 let built_filter = build_filter(filter)
                     .expect("resolved image-filter builders were preflighted at product build");
                 let mut restore_paint = Paint::default();
@@ -3219,9 +3328,13 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 if let Some(blender) = built_filter.restore_blender {
                     restore_paint.set_blender(blender);
                 }
-                let layer = SaveLayerRec::default()
-                    .bounds(&region)
-                    .paint(&restore_paint);
+                // The filter region is a hard output crop, not an input-image
+                // crop. Every checked graph output already carries its
+                // intersected primitive/filter crop. Bounding this source
+                // layer to `region` would discard pixels a spatial kernel
+                // must sample just outside that output region before it crops
+                // the result (most visibly, morphology dilation).
+                let layer = SaveLayerRec::default().paint(&restore_paint);
                 canvas.save_layer(&layer);
                 if built_filter.source_preflatten {
                     canvas.save_layer(&SaveLayerRec::default());

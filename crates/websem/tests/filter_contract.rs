@@ -11,8 +11,8 @@ mod support;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
-    Filter, FilterBlend, FilterColorSpace, FilterComposite, FilterInput, FilterPrimitive, Frame,
-    FrameItem, ScopeEffect,
+    Filter, FilterBlend, FilterColorSpace, FilterComposite, FilterInput, FilterMorphology,
+    FilterPrimitive, Frame, FrameItem, ScopeEffect,
 };
 use support::render_through_n0;
 use websem::{DegradationAction, InitialViewport, SvgFrameSource};
@@ -415,6 +415,131 @@ fn component_transfer_children_lower_to_four_exact_byte_tables() {
         duplicate.red(),
         &identity,
         "the last same-channel child wins"
+    );
+}
+
+#[test]
+fn morphology_resolves_complete_parser_fallback_and_axis_semantics() {
+    let source = |primitive: &str, primitive_units: &str| {
+        document(&format!(
+            r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="{primitive_units}"
+          x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+    {primitive}
+  </filter>
+  <rect x="20" y="20" width="20" height="10" fill="#0ea5e9" filter="url(#f)"/>"##
+        ))
+    };
+    let resolved = |primitive: &str, primitive_units: &str| {
+        let frame = admit_both(&source(primitive, primitive_units));
+        let filter = resolved_filter(&frame);
+        assert_eq!(filter.program().iter().count(), 1);
+        let node = filter.program().iter().next().expect("one morphology node");
+        assert_eq!(node.inputs(), [FilterInput::Source]);
+        let FilterPrimitive::Morphology {
+            operator,
+            radius_x,
+            radius_y,
+        } = node.primitive()
+        else {
+            panic!("morphology syntax resolves before the frame")
+        };
+        (operator, radius_x, radius_y, frame)
+    };
+
+    let (operator, radius_x, radius_y, frame) = resolved(
+        r##"<feMorphology operator="dilate" radius="+2,3,"/>"##,
+        "userSpaceOnUse",
+    );
+    assert_eq!(operator, FilterMorphology::Dilate);
+    assert_eq!((radius_x, radius_y), (2.0, 3.0));
+    let pixels = render_through_n0(&frame, 64, 64);
+    assert_eq!(at(&pixels, 18, 25), [14, 165, 233, 255]);
+    assert_eq!(at(&pixels, 17, 25), [255, 255, 255, 255]);
+
+    for (primitive, expected) in [
+        (
+            r##"<feMorphology operator=" dilate " radius="2px"/>"##,
+            (FilterMorphology::Erode, 0.0, 0.0),
+        ),
+        (
+            r##"<feMorphology operator="dilate" radius="-1 2"/>"##,
+            (FilterMorphology::Dilate, 0.0, 2.0),
+        ),
+        (
+            r##"<feMorphology operator="dilate" radius="2.0.2"/>"##,
+            (FilterMorphology::Dilate, 2.0, 0.2),
+        ),
+        (
+            r##"<feMorphology operator="dilate" radius="2 2 2"/>"##,
+            (FilterMorphology::Dilate, 0.0, 0.0),
+        ),
+    ] {
+        let (operator, radius_x, radius_y, _) = resolved(primitive, "userSpaceOnUse");
+        assert_eq!((operator, radius_x, radius_y), expected, "{primitive}");
+    }
+
+    let (operator, radius_x, radius_y, _) = resolved(
+        r##"<feMorphology operator="dilate" radius=".025 .05"/>"##,
+        "objectBoundingBox",
+    );
+    assert_eq!(operator, FilterMorphology::Dilate);
+    assert_eq!((radius_x, radius_y), (0.50000006, 0.50000006));
+}
+
+#[test]
+fn morphology_precision_boundaries_refuse_before_a_wrong_pixel() {
+    let filter = r##"<filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+          x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+    <feMorphology operator="dilate" radius="2"/>
+  </filter>"##;
+    for (target, reason) in [
+        (
+            r##"<rect x="20" y="18" width="20" height="18" fill="url(#g)" filter="url(#f)"/>"##,
+            "morphology paint-server precision boundary",
+        ),
+        (
+            r##"<circle cx="30" cy="27" r="9" fill="#d946ef" filter="url(#f)"/>"##,
+            "retained filled-ellipse coverage boundary",
+        ),
+        (
+            r##"<use href="#circle-source" filter="url(#f)"/>"##,
+            "retained filled-ellipse coverage boundary",
+        ),
+        (
+            r##"<rect x="20" y="18" width="20" height="18" fill="#d946ef" transform="rotate(17 30 27)" filter="url(#f)"/>"##,
+            "morphology transform precision boundary",
+        ),
+    ] {
+        assert_target_skip(
+            &document(&format!(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <defs><linearGradient id="g"><stop stop-color="#dc2626"/><stop offset="1" stop-color="#2563eb"/></linearGradient><circle id="circle-source" cx="30" cy="27" r="9" fill="#d946ef"/></defs>
+  {filter}
+  {target}"##
+            )),
+            reason,
+        );
+    }
+
+    admit_both(&document(&format!(
+        r##"  {filter}
+  <circle cx="30" cy="27" r="9" fill="none" stroke="#d946ef" stroke-width="3" filter="url(#f)"/>
+  <rect x="20" y="18" width="20" height="18" rx="6" fill="#d946ef" filter="url(#f)"/>"##
+    )));
+
+    let generated_rotated = document(
+        r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+          x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+    <feFlood x="20" y="18" width="20" height="18" flood-color="#d946ef" result="seed"/>
+    <feMorphology in="seed" operator="dilate" radius="2" x="0" y="0" width="64" height="64"/>
+  </filter>
+  <rect width="64" height="64" fill="transparent" transform="rotate(17 30 27)" filter="url(#f)"/>"##,
+    );
+    assert_target_skip(
+        &generated_rotated,
+        "morphology transform precision boundary",
     );
 }
 

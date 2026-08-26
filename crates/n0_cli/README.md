@@ -260,7 +260,7 @@ cargo run -p n0_cli --bin n0 -- \
   `feOffset`, zero-input `feFlood`, all seven `feComposite` operators,
   all sixteen two-input `feBlend` modes, ordered `feMerge`/`feMergeNode`,
   native one-input `feDropShadow`, and one-input `feColorMatrix` and
-  `feComponentTransfer`. Inputs
+  `feComponentTransfer`, plus one-input `feMorphology`. Inputs
   resolve to `SourceGraphic`, `SourceAlpha`, the previous result, or an earlier
   named result before the frame; unknown values follow Chromium's measured
   first/previous fallback.
@@ -377,6 +377,32 @@ cargo run -p n0_cli --bin n0 -- \
   blend-scoped exact restore closes it and clears on later color-space
   conversion. ARM and x86 reproduce every committed blend cell exactly with
   no tolerance.
+  Morphology carries case-sensitive `erode | dilate` with initial `erode` and
+  the complete measured SVG `<number-optional-number>` radius grammar with
+  initial zero. One radius supplies both axes; two remain independent;
+  negative members clamp independently to zero. Invalid number-list, unit,
+  percentage, CSS-math, custom-property, CSS-wide, comment, overflow, and
+  extra-member spellings use the initial zero rather than a parsed prefix.
+  Blink-ordered source-number normalization is retained before the checked
+  two-radius fact.
+  Device-space radii round at positive half-pixel boundaries after mapping,
+  independently per axis, and the pinned operation caps each axis at 256
+  pixels. Both color spaces and SourceAlpha preserve their distinct
+  premultiplied channel extrema. Zero radius remains a graph operation because
+  its primitive region still hard-crops the input.
+  Exact committed evidence covers generated and source inputs, previous and
+  named results, object-box and user-space primitive units, non-uniform
+  `viewBox`, paths, strokes, rounded rectangles, `<use>`, fractional axis maps,
+  exact quarter turns, target opacity/clip/mask, and neighboring filter
+  operations. The filter output region never preclips source pixels needed by
+  a spatial kernel; each graph node applies the hard output crop.
+  Three stable morphology patrols guard the measured remainder. General
+  rotations and shears cross the mapped-kernel/source-raster boundary;
+  paint-server source images cross a source-layer precision boundary, even at
+  zero radius; and an active filled `<circle>` or `<ellipse>` crosses the
+  retained fill-only ellipse coverage boundary. Rounded rectangles, curved
+  paths, and circle/path strokes stay admitted. That last patrol leaves
+  gridaco/nothing#88 separate and unchanged.
   `filterUnits` and `primitiveUnits` carry their complete case-sensitive
   `userSpaceOnUse | objectBoundingBox` grammars, defaults, and invalid-value
   fallbacks. Filter and primitive regions accept admitted finite numbers,
@@ -393,21 +419,28 @@ cargo run -p n0_cli --bin n0 -- \
   exact byte-domain generated sources from floating source-image coverage. A
   one-input merge has no internal composition stage, so the final restore is
   where its generated-only rounding is enforced. Native sRGB shadow descendants
-  add the independently measured exact-restore case described above. ARM and
-  x86 are exact without a tolerance through the hosted blend rung. All two
-  hundred eleven Chromium-baked filter cells are exact on the current ARM host
-  and hosted x86: twenty-six from the chassis/blur slice, sixty from the
+  add the independently measured exact-restore case described above. Active
+  sRGB morphology adds another measured instance of the same CPU-family
+  boundary: the first full-workspace hosted-x86 run differed in nine cells and
+  1,633 pixels, all by one channel level, at the final filter-layer restore.
+  Its scoped exact byte-domain restore leaves zero radius and later color-space
+  conversion on their prior paths. The same hosted workspace test now passes,
+  so all two hundred forty-eight Chromium-baked filter cells are exact on the
+  current ARM host and hosted x86 without a tolerance. The filter
+  estate is twenty-six from the chassis/blur slice, sixty from the
   shadow-graph rung, twenty-eight from native drop shadow, twenty-seven from
   color matrix, thirty-two from component transfer, and thirty-eight from
-  blend. The complete corpus is 572 Chromium-baked cells plus 10 sampled
-  frames, with 137
+  blend, plus thirty-seven from morphology. The complete corpus is 609
+  Chromium-baked cells plus 10 sampled frames, with 140
   named refusal rows. `feFlood`, `feComposite`, `feMerge`, `feMergeNode`,
-  `feDropShadow`, `feColorMatrix`, `feComponentTransfer`, `feBlend`, `feFuncR`,
-  `feFuncG`, `feFuncB`, `feFuncA`, `k1`–`k4`, `amplitude`, `exponent`,
+  `feDropShadow`, `feColorMatrix`, `feComponentTransfer`, `feBlend`,
+  `feMorphology`, `feFuncR`, `feFuncG`, `feFuncB`, `feFuncA`, `k1`–`k4`,
+  `amplitude`, `exponent`,
   `intercept`, `slope`, `tableValues`, and blend-only `mode` close; `feOffset`,
   `feGaussianBlur`, `<filter>`,
   `filter`, `color-interpolation-filters`, `in`, `in2`, `operator`, `result`,
-  `dx`, `dy`, `stdDeviation`, `flood-color`, and `flood-opacity` remain open for
+  `radius`, `dx`, `dy`, `stdDeviation`, `flood-color`, and `flood-opacity`
+  remain open for
   the named precision, applicability, resource, cascade, or value remainder.
   A stroke is centred, its width is a cascaded length in either spelling —
   numbers, absolute units, `em`/`rem` against an authored or default

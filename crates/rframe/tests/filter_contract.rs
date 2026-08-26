@@ -6,7 +6,8 @@ use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
     Filter, FilterBlend, FilterChannelTables, FilterColorSpace, FilterComposite, FilterError,
-    FilterInput, FilterNode, FilterPrimitive, FilterProgram, FilterProgramError, MAX_FILTER_NODES,
+    FilterInput, FilterMorphology, FilterNode, FilterPrimitive, FilterProgram, FilterProgramError,
+    MAX_FILTER_NODES,
 };
 
 fn blur(input: FilterInput, sigma_x: f32, sigma_y: f32) -> FilterNode {
@@ -334,6 +335,64 @@ fn component_transfer_has_one_input_and_four_exact_named_tables() {
     let program = FilterProgram::new(Arc::from([transfer(Arc::from([FilterInput::Source]))]))
         .expect("a full four-table transfer is checked by construction");
     assert!(program.may_paint_transparent_input());
+}
+
+#[test]
+fn morphology_has_one_input_and_checked_non_negative_radii() {
+    let region = Rectangle::from_xywh(0.0, 0.0, 10.0, 10.0);
+    let morphology = |inputs: Arc<[FilterInput]>, operator, radius_x, radius_y| {
+        FilterNode::new(
+            inputs,
+            region,
+            FilterColorSpace::Srgb,
+            FilterPrimitive::Morphology {
+                operator,
+                radius_x,
+                radius_y,
+            },
+        )
+    };
+
+    assert_eq!(
+        FilterProgram::new(Arc::from([morphology(
+            Arc::from([]),
+            FilterMorphology::Dilate,
+            2.0,
+            3.0,
+        )])),
+        Err(FilterProgramError::InvalidInputCount {
+            node: 0,
+            expected: 1,
+            actual: 0,
+        })
+    );
+    for (radius_x, radius_y) in [
+        (-1.0, 0.0),
+        (0.0, -1.0),
+        (f32::INFINITY, 0.0),
+        (0.0, f32::NAN),
+    ] {
+        assert_eq!(
+            FilterProgram::new(Arc::from([morphology(
+                Arc::from([FilterInput::Source]),
+                FilterMorphology::Erode,
+                radius_x,
+                radius_y,
+            )])),
+            Err(FilterProgramError::InvalidMorphology { node: 0 })
+        );
+    }
+
+    for operator in [FilterMorphology::Erode, FilterMorphology::Dilate] {
+        let program = FilterProgram::new(Arc::from([morphology(
+            Arc::from([FilterInput::Source]),
+            operator,
+            0.0,
+            256.0,
+        )]))
+        .expect("finite non-negative local radii are resolved facts");
+        assert!(!program.may_paint_transparent_input());
+    }
 }
 
 #[test]

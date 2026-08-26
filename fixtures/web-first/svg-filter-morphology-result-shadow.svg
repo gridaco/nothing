@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" >
+  <rect width="64" height="64" fill="#e2e8f0"/><path d="M0 0h32v32H0zM32 32h32v32H32z" fill="#cbd5e1"/>
+  <defs><filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB" ><feMorphology in="SourceGraphic" operator="erode" radius="1" result="x"/><feMorphology in="SourceGraphic" operator="dilate" radius="2" result="x"/><feOffset in="x" dx="3" dy="2"/></filter></defs>
+  <g filter="url(#f)" ><g><rect x="20" y="18" width="18" height="18" fill="#d946ef" fill-opacity=".65"/><rect x="28" y="24" width="12" height="8" fill="#059669"/><rect x="23" y="21" width="4" height="4" fill="#facc15"/></g></g>
+</svg>

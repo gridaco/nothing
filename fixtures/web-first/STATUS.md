@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (572)
+## Chromium-baked cells (609)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -279,6 +279,43 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-filter-merge-region-default.svg" title="svg-filter-merge-region-default (standalone-svg)"><img src="./chromium/svg-filter-merge-region-default.png" width="56" alt="svg-filter-merge-region-default"></a>
 <a href="./svg-filter-merge-region-union.svg" title="svg-filter-merge-region-union (standalone-svg)"><img src="./chromium/svg-filter-merge-region-union.png" width="56" alt="svg-filter-merge-region-union"></a>
 <a href="./svg-filter-merge-result-reuse.svg" title="svg-filter-merge-result-reuse (standalone-svg)"><img src="./chromium/svg-filter-merge-result-reuse.png" width="56" alt="svg-filter-merge-result-reuse"></a>
+<a href="./svg-filter-morphology-axis-fractional.svg" title="svg-filter-morphology-axis-fractional (standalone-svg)"><img src="./chromium/svg-filter-morphology-axis-fractional.png" width="56" alt="svg-filter-morphology-axis-fractional"></a>
+<a href="./svg-filter-morphology-blend-after.svg" title="svg-filter-morphology-blend-after (standalone-svg)"><img src="./chromium/svg-filter-morphology-blend-after.png" width="56" alt="svg-filter-morphology-blend-after"></a>
+<a href="./svg-filter-morphology-blend-before.svg" title="svg-filter-morphology-blend-before (standalone-svg)"><img src="./chromium/svg-filter-morphology-blend-before.png" width="56" alt="svg-filter-morphology-blend-before"></a>
+<a href="./svg-filter-morphology-blur-after.svg" title="svg-filter-morphology-blur-after (standalone-svg)"><img src="./chromium/svg-filter-morphology-blur-after.png" width="56" alt="svg-filter-morphology-blur-after"></a>
+<a href="./svg-filter-morphology-blur-before.svg" title="svg-filter-morphology-blur-before (standalone-svg)"><img src="./chromium/svg-filter-morphology-blur-before.png" width="56" alt="svg-filter-morphology-blur-before"></a>
+<a href="./svg-filter-morphology-chain-two.svg" title="svg-filter-morphology-chain-two (standalone-svg)"><img src="./chromium/svg-filter-morphology-chain-two.png" width="56" alt="svg-filter-morphology-chain-two"></a>
+<a href="./svg-filter-morphology-channel-alpha.svg" title="svg-filter-morphology-channel-alpha (standalone-svg)"><img src="./chromium/svg-filter-morphology-channel-alpha.png" width="56" alt="svg-filter-morphology-channel-alpha"></a>
+<a href="./svg-filter-morphology-channel-linear.svg" title="svg-filter-morphology-channel-linear (standalone-svg)"><img src="./chromium/svg-filter-morphology-channel-linear.png" width="56" alt="svg-filter-morphology-channel-linear"></a>
+<a href="./svg-filter-morphology-channel-srgb.svg" title="svg-filter-morphology-channel-srgb (standalone-svg)"><img src="./chromium/svg-filter-morphology-channel-srgb.png" width="56" alt="svg-filter-morphology-channel-srgb"></a>
+<a href="./svg-filter-morphology-input-previous.svg" title="svg-filter-morphology-input-previous (standalone-svg)"><img src="./chromium/svg-filter-morphology-input-previous.png" width="56" alt="svg-filter-morphology-input-previous"></a>
+<a href="./svg-filter-morphology-matrix-after.svg" title="svg-filter-morphology-matrix-after (standalone-svg)"><img src="./chromium/svg-filter-morphology-matrix-after.png" width="56" alt="svg-filter-morphology-matrix-after"></a>
+<a href="./svg-filter-morphology-matrix-before.svg" title="svg-filter-morphology-matrix-before (standalone-svg)"><img src="./chromium/svg-filter-morphology-matrix-before.png" width="56" alt="svg-filter-morphology-matrix-before"></a>
+<a href="./svg-filter-morphology-operator-grammar.svg" title="svg-filter-morphology-operator-grammar (standalone-svg)"><img src="./chromium/svg-filter-morphology-operator-grammar.png" width="56" alt="svg-filter-morphology-operator-grammar"></a>
+<a href="./svg-filter-morphology-path.svg" title="svg-filter-morphology-path (standalone-svg)"><img src="./chromium/svg-filter-morphology-path.png" width="56" alt="svg-filter-morphology-path"></a>
+<a href="./svg-filter-morphology-primitive-units.svg" title="svg-filter-morphology-primitive-units (standalone-svg)"><img src="./chromium/svg-filter-morphology-primitive-units.png" width="56" alt="svg-filter-morphology-primitive-units"></a>
+<a href="./svg-filter-morphology-quarter-turn.svg" title="svg-filter-morphology-quarter-turn (standalone-svg)"><img src="./chromium/svg-filter-morphology-quarter-turn.png" width="56" alt="svg-filter-morphology-quarter-turn"></a>
+<a href="./svg-filter-morphology-radius-invalid.svg" title="svg-filter-morphology-radius-invalid (standalone-svg)"><img src="./chromium/svg-filter-morphology-radius-invalid.png" width="56" alt="svg-filter-morphology-radius-invalid"></a>
+<a href="./svg-filter-morphology-radius-large-finite.svg" title="svg-filter-morphology-radius-large-finite (standalone-svg)"><img src="./chromium/svg-filter-morphology-radius-large-finite.png" width="56" alt="svg-filter-morphology-radius-large-finite"></a>
+<a href="./svg-filter-morphology-radius-number-list.svg" title="svg-filter-morphology-radius-number-list (standalone-svg)"><img src="./chromium/svg-filter-morphology-radius-number-list.png" width="56" alt="svg-filter-morphology-radius-number-list"></a>
+<a href="./svg-filter-morphology-radius-rounding.svg" title="svg-filter-morphology-radius-rounding (standalone-svg)"><img src="./chromium/svg-filter-morphology-radius-rounding.png" width="56" alt="svg-filter-morphology-radius-rounding"></a>
+<a href="./svg-filter-morphology-region-crop.svg" title="svg-filter-morphology-region-crop (standalone-svg)"><img src="./chromium/svg-filter-morphology-region-crop.png" width="56" alt="svg-filter-morphology-region-crop"></a>
+<a href="./svg-filter-morphology-region-zero-crop.svg" title="svg-filter-morphology-region-zero-crop (standalone-svg)"><img src="./chromium/svg-filter-morphology-region-zero-crop.png" width="56" alt="svg-filter-morphology-region-zero-crop"></a>
+<a href="./svg-filter-morphology-result-shadow.svg" title="svg-filter-morphology-result-shadow (standalone-svg)"><img src="./chromium/svg-filter-morphology-result-shadow.png" width="56" alt="svg-filter-morphology-result-shadow"></a>
+<a href="./svg-filter-morphology-rounded-rect.svg" title="svg-filter-morphology-rounded-rect (standalone-svg)"><img src="./chromium/svg-filter-morphology-rounded-rect.png" width="56" alt="svg-filter-morphology-rounded-rect"></a>
+<a href="./svg-filter-morphology-shadow-after.svg" title="svg-filter-morphology-shadow-after (standalone-svg)"><img src="./chromium/svg-filter-morphology-shadow-after.png" width="56" alt="svg-filter-morphology-shadow-after"></a>
+<a href="./svg-filter-morphology-shadow-before.svg" title="svg-filter-morphology-shadow-before (standalone-svg)"><img src="./chromium/svg-filter-morphology-shadow-before.png" width="56" alt="svg-filter-morphology-shadow-before"></a>
+<a href="./svg-filter-morphology-source-alpha.svg" title="svg-filter-morphology-source-alpha (standalone-svg)"><img src="./chromium/svg-filter-morphology-source-alpha.png" width="56" alt="svg-filter-morphology-source-alpha"></a>
+<a href="./svg-filter-morphology-source-number-alias.svg" title="svg-filter-morphology-source-number-alias (standalone-svg)"><img src="./chromium/svg-filter-morphology-source-number-alias.png" width="56" alt="svg-filter-morphology-source-number-alias"></a>
+<a href="./svg-filter-morphology-source-use.svg" title="svg-filter-morphology-source-use (standalone-svg)"><img src="./chromium/svg-filter-morphology-source-use.png" width="56" alt="svg-filter-morphology-source-use"></a>
+<a href="./svg-filter-morphology-stroke.svg" title="svg-filter-morphology-stroke (standalone-svg)"><img src="./chromium/svg-filter-morphology-stroke.png" width="56" alt="svg-filter-morphology-stroke"></a>
+<a href="./svg-filter-morphology-target-clip.svg" title="svg-filter-morphology-target-clip (standalone-svg)"><img src="./chromium/svg-filter-morphology-target-clip.png" width="56" alt="svg-filter-morphology-target-clip"></a>
+<a href="./svg-filter-morphology-target-mask.svg" title="svg-filter-morphology-target-mask (standalone-svg)"><img src="./chromium/svg-filter-morphology-target-mask.png" width="56" alt="svg-filter-morphology-target-mask"></a>
+<a href="./svg-filter-morphology-target-opacity.svg" title="svg-filter-morphology-target-opacity (standalone-svg)"><img src="./chromium/svg-filter-morphology-target-opacity.png" width="56" alt="svg-filter-morphology-target-opacity"></a>
+<a href="./svg-filter-morphology-transfer-after.svg" title="svg-filter-morphology-transfer-after (standalone-svg)"><img src="./chromium/svg-filter-morphology-transfer-after.png" width="56" alt="svg-filter-morphology-transfer-after"></a>
+<a href="./svg-filter-morphology-transfer-before.svg" title="svg-filter-morphology-transfer-before (standalone-svg)"><img src="./chromium/svg-filter-morphology-transfer-before.png" width="56" alt="svg-filter-morphology-transfer-before"></a>
+<a href="./svg-filter-morphology-viewbox-half-step.svg" title="svg-filter-morphology-viewbox-half-step (standalone-svg)"><img src="./chromium/svg-filter-morphology-viewbox-half-step.png" width="56" alt="svg-filter-morphology-viewbox-half-step"></a>
+<a href="./svg-filter-morphology-viewbox-nonuniform.svg" title="svg-filter-morphology-viewbox-nonuniform (standalone-svg)"><img src="./chromium/svg-filter-morphology-viewbox-nonuniform.png" width="56" alt="svg-filter-morphology-viewbox-nonuniform"></a>
 <a href="./svg-filter-nested.svg" title="svg-filter-nested (standalone-svg)"><img src="./chromium/svg-filter-nested.png" width="56" alt="svg-filter-nested"></a>
 <a href="./svg-filter-offset-basic.svg" title="svg-filter-offset-basic (standalone-svg)"><img src="./chromium/svg-filter-offset-basic.png" width="56" alt="svg-filter-offset-basic"></a>
 <a href="./svg-filter-offset-chain.svg" title="svg-filter-offset-chain (standalone-svg)"><img src="./chromium/svg-filter-offset-chain.png" width="56" alt="svg-filter-offset-chain"></a>
@@ -601,7 +638,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (137)
+## The refusal register (140)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -651,10 +688,13 @@ its row into the cells above.
 | `svg-filter-href` | declared | skipped svg/rect[2]: unsupported SVG filter: <filter> href inheritance is not yet resolved |
 | `svg-filter-list` | declared | skipped svg/rect[2]: unsupported SVG filter: filter presentation attribute uses multiple filter operations |
 | `svg-filter-list-quoted` | declared | skipped svg/rect[2]: unsupported SVG filter: filter presentation attribute uses multiple filter operations |
+| `svg-filter-morphology-filled-ellipse-precision` | declared | skipped svg/circle[1]: unsupported SVG filter: feMorphology's active source image crosses the retained filled-ellipse coverage boundary |
+| `svg-filter-morphology-paint-server-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feMorphology's source image crosses the pinned-backend morphology paint-server precision boundary |
+| `svg-filter-morphology-transform-precision` | declared | skipped svg/g[1]: unsupported SVG filter: feMorphology's target mapping crosses the pinned-backend morphology transform precision boundary |
 | `svg-filter-offset-blur-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: a filter graph combines feOffset with Gaussian blur, which crosses the pinned-backend composed-operation precision boundary |
 | `svg-filter-offset-fractional-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feOffset uses a fractional displacement, which crosses the pinned-backend rasterization boundary |
 | `svg-filter-offset-transform-precision` | declared | skipped svg/g[1]/rect[1]: unsupported SVG filter: feOffset's target mapping produces a fractional device-space displacement at the pinned-backend rasterization boundary |
-| `svg-filter-primitive` | declared | skipped svg/rect[2]: unsupported SVG filter: filter graph contains unsupported primitive <feMorphology> |
+| `svg-filter-primitive` | declared | skipped svg/rect[2]: unsupported SVG filter: filter graph contains unsupported primitive <feTurbulence> |
 | `svg-filter-primitive-empty-region` | declared | skipped svg/rect[2]: unsupported SVG filter: a non-positive filter primitive region is not yet represented as a transparent graph result |
 | `svg-filter-region-calc` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region x uses calc(), whose computed length is not represented at this Stylo pin |
 | `svg-filter-region-range` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region width crosses the unimplemented Web used-length range |

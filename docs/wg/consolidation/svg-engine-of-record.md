@@ -65,23 +65,24 @@ from the dated addenda below:
   resolved graph of safe-kernel `feGaussianBlur`, integer `feOffset`,
   zero-input `feFlood`, all `feComposite` operators, all sixteen `feBlend`
   modes, ordered `feMerge`/`feMergeNode`, native one-input `feDropShadow`,
-  one-input `feColorMatrix`, and one-input `feComponentTransfer` with its
-  direct `feFuncR`/`feFuncG`/`feFuncB`/`feFuncA` children; graph inputs resolve
-  from `SourceGraphic`/`SourceAlpha`/prior and named results, with both filter
-  coordinate systems and color spaces, hard regions, nesting, transforms,
-  `<use>`, and the established effect order;
+  one-input `feColorMatrix`, one-input `feComponentTransfer` with its direct
+  `feFuncR`/`feFuncG`/`feFuncB`/`feFuncA` children, and one-input
+  `feMorphology`; graph inputs resolve from
+  `SourceGraphic`/`SourceAlpha`/prior and named results, with both filter
+  coordinate systems and color spaces, hard regions, nesting, admitted
+  transforms, `<use>`, and the established effect order;
   one declared-font, single-run `<text>` profile; viewBox-only root sizing with
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 572 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 609 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 137 rows.
+  register has 140 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -3238,3 +3239,114 @@ Three focused rows join the refusal register, moving it from 134 to 137. The
 primitive corpus moves from 534 to 572 cells; the ten exact-time sampled frames
 are unchanged. Exactly two checklist rows tick: `<feBlend>` and `mode`. This
 records no conformance score and takes no FLIP action.
+
+## Rung: `feMorphology` (2026-08-26)
+
+The verdict is CLOSE/SPLIT. `<feMorphology>` closes for its complete static
+Chromium behavior. The shared `operator`, `radius`, `in`, `result`, primitive
+region, color-interpolation, filter-resource, and dynamics rows remain open for
+their wider primitive applicability. CSS filter functions and animation are
+separate surfaces. No CSS property row closes.
+
+The resolved graph carries one checked one-input operation: erosion or
+dilation, with two finite non-negative local-space radii. Authored text,
+parser state, input and result names, document nodes, and backend objects are
+resolved before that boundary. Erosion and dilation stay filter-image
+operations; they are not shape inset/outset vocabulary.
+
+Chromium 149.0.7827.55 establishes the source grammar. `operator` is the
+case-sensitive `erode | dilate` enumeration with initial `erode`; missing,
+empty, invalid, wrong-case, whitespace-padded, CSS-wide, and comment-bearing
+spellings select that initial. `radius` is SVG
+`<number-optional-number>` with initial zero. One number supplies both axes;
+two numbers stay independent. Leading plus, exponent, comma-wsp, one trailing
+comma, an adjacent sign, and a second dot that starts a second number are
+accepted. Missing, empty, malformed, unit-bearing, percentage, CSS-math,
+custom-property, CSS-wide, overflowing, non-ASCII-whitespace, extra-member,
+and trailing-dot forms select zero. Numeric underflow also reaches zero.
+
+Pinned Chromium clamps negative members independently before painting. A
+negative or zero horizontal member therefore leaves a positive vertical
+member active, and conversely; only two effective zero axes make the operation
+an identity. This differs from the older whole-operation wording but is the
+twice-measured browser behavior. A zero operation still applies its primitive
+subregion as a hard output crop.
+
+Mapped positive radii round at half-pixel boundaries after the target mapping,
+independently on each axis. Exact probes pin `.49 → 0`, `.5 → 1`, `1.49 → 1`,
+`1.5 → 2`, `2.49 → 2`, and `2.5 → 3`, including non-uniform `viewBox` and
+object-box mappings. A 600×32 scratch bank places the device-radius ceiling at
+256: `255.49` remains 255, `255.5` becomes 256, and `256.5`, `257`, and `1000`
+all equal 256 (measured, not celled). A finite `3e38` source remains active,
+while positive overflow is invalid and selects zero.
+
+The source-number normalization order is observable. Under an amplifying
+mapping, the valid source
+`1.000000059604644775390625000000000000000000000001` equals the upper
+binary32 neighbor and differs from the lower control by 32 pixels at maximum
+delta 162. The committed alias cell carries that branch exactly; a raw lexical
+parse would select the wrong radius.
+
+Morphology takes channel-wise extrema over premultiplied filter pixels. Exact
+channel cells distinguish sRGB `[171,0,255,191]`, linearRGB
+`[214,0,255,191]`, and SourceAlpha `[0,0,0,191]` at the measured overlap.
+Graph evidence covers first and prior inputs, SourceAlpha, generated floods,
+duplicate-result shadowing, hard regions, both primitive unit systems, paths,
+strokes, rounded rectangles, `<use>`, fractional axis maps, exact quarter
+turns, target opacity, clips, masks, and ordering around blur, component
+transfer, color matrix, blend, merge, and native shadow.
+
+The region probe exposed one filter-chassis fault before close. The source
+image was being clipped to the filter's output region before a spatial kernel
+could read it. A filter region is an output crop; source pixels outside it may
+still contribute to an output pixel inside it. Removing that premature source
+clip corrected 16 pixels at maximum delta 136 in the discriminating
+morphology crop and preserved the complete earlier filter corpus. The hard
+crop remains carried by every graph result, where it belongs.
+
+Three measured raster boundaries are quarantined. First, axis maps and exact
+quarter turns are exact, while a sampled 17-degree source mapping differs by
+171 pixels at maximum delta 12 and a generated-only mapping differs by 142 at
+delta 9; shears reproduce the class. Second, paint-server source images differ
+even through a zero morphology: sampled linear gradients differ by 125 pixels
+at delta 1 at zero and 191 at delta 1 when active; radial and gradient-stroke
+controls reproduce it. Third, active filled native circles and ellipses expose
+the retained fill-coverage boundary: the circle differs by three pixels at
+delta 9 and a fractional ellipse by eight at delta 6. Rounded rectangles,
+curved paths, circle strokes, and round path strokes are exact. The third
+patrol deliberately leaves the older fill-only ellipse work to
+[gridaco/nothing#88](https://github.com/gridaco/nothing/issues/88); this rung
+does not alter that issue or its evidence. These are measured, not separately
+celled precision classes.
+
+The broad scratch replay contains 187 twice-deterministic Chromium sources.
+After the patrols, all 162 admitted sources are pixel-exact and strict and
+best-effort agree; the other 25 reach one of the three new stable names or an
+older operation-specific patrol. Five compact grammar/source candidates were
+then captured twice and are exact in both admissions. Thirty-seven committed
+Chromium cells carry the admitted slice without a new tolerance. Gate
+sensitivity was proved by temporarily swapping erosion and dilation:
+`just gate` rejected 35 of the 37 cells, with up to 1,560 differing pixels and
+a maximum channel delta of 255. Restoring the operation returned all 609 cells
+to green.
+
+The first full-workspace hosted-x86 run then contradicted the ARM-local result
+in nine active sRGB morphology cells: `axis-fractional`, `blur-after`,
+`blur-before`, `matrix-before`, `path`, `quarter-turn`, `rounded-rect`,
+`source-use`, and `stroke`. They differed in 1,633 pixels altogether, every
+one at maximum channel delta 1. The common boundary was not morphology's
+channel-extrema operation: it was the final low-precision sRGB filter-layer
+restore, where the pinned backend performs exact divide-by-255 rounding on
+NEON and its approximate division on x86. Active sRGB morphology now requests
+the architecture-neutral byte-domain restore already established for that
+boundary. A zero-radius operation retains its earlier pass-through policy, and
+a later color-space conversion clears the restore policy before floating
+arithmetic. The same hosted workspace test now passes the complete 609-cell
+gate, as does ARM; no tolerance was introduced. The separate hosted n0 rig is
+not treated as Web-first corpus evidence because it does not enumerate these
+cells.
+
+Three focused rows join the refusal register, moving it from 137 to 140. The
+primitive corpus moves from 572 to 609 cells; the ten exact-time sampled frames
+are unchanged. Exactly one checklist row ticks: `<feMorphology>`. This records
+no conformance score and takes no FLIP action.
