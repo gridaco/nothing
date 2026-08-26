@@ -340,9 +340,10 @@ pub struct FrameNode {
 ///
 /// A scope's contents are the items between its begin and its end — a
 /// contiguous span, because an isolated group *is* a contiguous span of
-/// painter order. Balance, nesting depth, and non-emptiness are invariants
-/// of [`FrameItems`] construction, so a consumer matching on this enum
-/// never meets a dangling boundary.
+/// painter order. Balance, nesting depth, and meaningful content are
+/// invariants of [`FrameItems`] construction, so a consumer matching on this
+/// enum never meets a dangling boundary. The one meaningful empty span is a
+/// filter whose declared transparent source can itself generate output.
 #[derive(Clone, Debug, PartialEq)]
 pub enum FrameItem {
     /// One resolved painted node.
@@ -376,8 +377,8 @@ pub enum FrameItemsError {
     /// The [`FrameItem::ScopeBegin`] at this index is never closed.
     UnclosedScope { index: usize },
     /// The [`FrameItem::ScopeBegin`] at this index encloses nothing. An
-    /// empty group is not a resolved visual fact — a producer whose scope
-    /// resolved to nothing states nothing.
+    /// empty group is not a resolved visual fact — except for a filter whose
+    /// declared transparent source can itself generate output.
     EmptyScope { index: usize },
     /// The [`FrameItem::ScopeBegin`] at this index nests deeper than
     /// [`MAX_SCOPE_DEPTH`].
@@ -439,8 +440,9 @@ impl std::fmt::Display for FrameItemsError {
 
 impl std::error::Error for FrameItemsError {}
 
-/// A checked painter-ordered item stream: every scope is balanced,
-/// non-empty, and nested within [`MAX_SCOPE_DEPTH`].
+/// A checked painter-ordered item stream: every scope is balanced, meaningful,
+/// and nested within [`MAX_SCOPE_DEPTH`]. Only a source-generating filter may
+/// be meaningful without enclosed items.
 ///
 /// Like [`PathData`], this is a checked type: construction proves the
 /// invariants once, and a consumer trusts them rather than re-deriving
@@ -452,7 +454,7 @@ impl FrameItems {
     pub fn try_new(items: Vec<FrameItem>) -> Result<Self, FrameItemsError> {
         #[derive(Clone, Copy)]
         enum OpenKind {
-            Scope,
+            Scope { permits_empty: bool },
             MaskTarget,
             MaskSource,
         }
@@ -474,13 +476,20 @@ impl FrameItems {
         for (index, item) in items.iter().enumerate() {
             match item {
                 FrameItem::Node(_) => complete_item(&mut open),
-                FrameItem::ScopeBegin(_) => {
+                FrameItem::ScopeBegin(scope) => {
                     if open.len() >= MAX_SCOPE_DEPTH {
                         return Err(FrameItemsError::ScopeTooDeep { index });
                     }
                     open.push(Open {
                         index,
-                        kind: OpenKind::Scope,
+                        kind: OpenKind::Scope {
+                            permits_empty: matches!(
+                                &scope.effect,
+                                crate::scope::ScopeEffect::Filter(filter)
+                                    if filter.source_is_transparent()
+                                        && filter.program().may_paint_transparent_input()
+                            ),
+                        },
                         has_content: false,
                     });
                 }
@@ -488,10 +497,10 @@ impl FrameItems {
                     let Some(current) = open.last().copied() else {
                         return Err(FrameItemsError::UnopenedScopeEnd { index });
                     };
-                    if !matches!(current.kind, OpenKind::Scope) {
+                    let OpenKind::Scope { permits_empty } = current.kind else {
                         return Err(FrameItemsError::UnopenedScopeEnd { index });
-                    }
-                    if !current.has_content {
+                    };
+                    if !current.has_content && !permits_empty {
                         return Err(FrameItemsError::EmptyScope {
                             index: current.index,
                         });
@@ -538,7 +547,7 @@ impl FrameItems {
         }
         if let Some(current) = open.first() {
             return Err(match current.kind {
-                OpenKind::Scope => FrameItemsError::UnclosedScope {
+                OpenKind::Scope { .. } => FrameItemsError::UnclosedScope {
                     index: current.index,
                 },
                 OpenKind::MaskTarget | OpenKind::MaskSource => FrameItemsError::UnclosedMask {

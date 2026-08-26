@@ -136,11 +136,11 @@ use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
     ClipGeometry, ClipLayer, ClipPath, FillRule, Filter, FilterBlend, FilterChannelTables,
-    FilterColorSpace, FilterComposite, FilterInput, FilterMorphology, FilterNode, FilterPrimitive,
-    FilterProgram, Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry, Identity,
-    Mask, MaskMode, PaintAlphaFactor, PaintStack, PathData, Provenance, Scope, ScopeEffect,
-    ScopeOpacity, Stroke, StrokeCap, StrokeDash, StrokeDashIntervals, StrokeDashIntervalsError,
-    StrokeJoin, VisualRef,
+    FilterColorSpace, FilterComposite, FilterDisplacementChannel, FilterInput, FilterMorphology,
+    FilterNode, FilterPrimitive, FilterProgram, FilterTurbulenceKind, Frame, FrameItem, FrameItems,
+    FrameItemsError, FrameNode, Geometry, Identity, Mask, MaskMode, PaintAlphaFactor, PaintStack,
+    PathData, Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeDash,
+    StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, VisualRef,
 };
 use std::sync::Arc;
 
@@ -2810,10 +2810,13 @@ impl<'a> ChildWalk<'a> {
         &mut self,
         checkpoint: usize,
         mut facts: SpanFacts,
-        filter: Filter,
+        mut filter: Filter,
     ) -> SpanFacts {
-        if facts.draws == 0 && !facts.has_scope && !filter.program().may_paint_transparent_input() {
-            return facts;
+        if facts.draws == 0 && !facts.has_scope {
+            if !filter.program().may_paint_transparent_input() {
+                return facts;
+            }
+            filter = filter.with_transparent_source();
         }
         self.items
             .insert(checkpoint, filter_scope_item(&mut self.next_id, filter));
@@ -5009,6 +5012,74 @@ mod filter_resource {
         }
     }
 
+    fn turbulence_kind(element: HtmlElement<'_>) -> FilterTurbulenceKind {
+        match get_attr(element, "type").as_deref() {
+            Some("fractalNoise") => FilterTurbulenceKind::FractalNoise,
+            // SVG enumerations are case-sensitive and do not trim authored
+            // text. Missing and every invalid spelling retain turbulence.
+            _ => FilterTurbulenceKind::Turbulence,
+        }
+    }
+
+    /// Complete SVG number-optional-number grammar for `baseFrequency`.
+    /// Invalid lists select the initial pair; one member duplicates; one
+    /// negative member makes the whole pair unsupported and therefore initial.
+    fn turbulence_base_frequency(element: HtmlElement<'_>) -> (f32, f32) {
+        let values = get_attr(element, "baseFrequency")
+            .as_deref()
+            .and_then(crate::svg_number_list::parse);
+        let pair = match values.as_deref() {
+            Some([value]) => (*value, *value),
+            Some([x, y]) => (*x, *y),
+            _ => (0.0, 0.0),
+        };
+        if pair.0 < 0.0 || pair.1 < 0.0 {
+            (0.0, 0.0)
+        } else {
+            pair
+        }
+    }
+
+    /// A resolved non-negative octave count capped to Blink's eight-bit-output
+    /// ceiling. `None` is the measured negative-count transparent result;
+    /// zero still reaches the formula (and fractal noise therefore yields its
+    /// neutral half sample).
+    fn turbulence_num_octaves(element: HtmlElement<'_>) -> Option<u8> {
+        let parsed = get_attr(element, "numOctaves")
+            .as_deref()
+            .map(trim_svg_whitespace)
+            .and_then(|raw| raw.parse::<i32>().ok())
+            .unwrap_or(1);
+        (parsed >= 0).then(|| parsed.min(9) as u8)
+    }
+
+    /// One SVG number through the shared ordered evaluator. A lone trailing
+    /// comma is accepted by Blink; every other residual token selects initial.
+    fn resolved_svg_number(element: HtmlElement<'_>, name: &str, initial: f32) -> f32 {
+        let Some(raw) = get_attr(element, name) else {
+            return initial;
+        };
+        match crate::svg_number_list::parse(&raw).as_deref() {
+            Some([value]) => *value,
+            _ => initial,
+        }
+    }
+
+    fn turbulence_stitches(element: HtmlElement<'_>) -> bool {
+        matches!(get_attr(element, "stitchTiles").as_deref(), Some("stitch"))
+    }
+
+    fn displacement_channel(element: HtmlElement<'_>, name: &str) -> FilterDisplacementChannel {
+        match get_attr(element, name).as_deref() {
+            Some("R") => FilterDisplacementChannel::Red,
+            Some("G") => FilterDisplacementChannel::Green,
+            Some("B") => FilterDisplacementChannel::Blue,
+            // Missing and every invalid, padded, or wrong-case spelling
+            // retain the initial alpha selector.
+            _ => FilterDisplacementChannel::Alpha,
+        }
+    }
+
     enum ComponentTransferFunction {
         Identity,
         Table(Vec<f32>),
@@ -5556,6 +5627,15 @@ mod filter_resource {
         axis_or_quarter_turn && [a, b, c, d].into_iter().all(f32::is_finite)
     }
 
+    /// Procedural noise and displacement agree for axis maps and exact
+    /// quarter turns. General rotations and shears cross the pinned backend's
+    /// filtered-layer sampling boundary.
+    fn turbulence_displacement_mapping_is_admitted(target_to_frame: AffineTransform) -> bool {
+        let [[a, c, _], [b, d, _]] = target_to_frame.matrix;
+        let axis_or_quarter_turn = (b == 0.0 && c == 0.0) || (a == 0.0 && d == 0.0);
+        axis_or_quarter_turn && [a, b, c, d].into_iter().all(f32::is_finite)
+    }
+
     fn filter_crosses_clip_path(target: HtmlElement<'_>) -> Result<bool, CompileError> {
         let mut current = Some(target);
         while let Some(element) = current {
@@ -5760,6 +5840,53 @@ mod filter_resource {
                         },
                     )
                 }
+                "feTurbulence" => {
+                    patrol_color_style(element)?;
+                    let (base_frequency_x, base_frequency_y) = turbulence_base_frequency(element);
+                    let primitive = match turbulence_num_octaves(element) {
+                        Some(num_octaves) => FilterPrimitive::Turbulence {
+                            kind: turbulence_kind(element),
+                            base_frequency_x,
+                            base_frequency_y,
+                            num_octaves,
+                            seed: resolved_svg_number(element, "seed", 0.0),
+                            stitch_tiles: turbulence_stitches(element),
+                        },
+                        // Blink's negative octave count contributes no sample:
+                        // one bounded transparent source is the complete
+                        // resolved image fact. Zero remains in the formula;
+                        // fractal noise produces its neutral half sample.
+                        None => FilterPrimitive::SolidColor {
+                            color: CGColor32F::TRANSPARENT,
+                        },
+                    };
+                    (Vec::new(), primitive)
+                }
+                "feDisplacementMap" => {
+                    patrol_color_style(element)?;
+                    let input = resolve_input(element, "in", previous, &names);
+                    let input2 = resolve_input(element, "in2", previous, &names);
+                    let mut scale = resolved_svg_number(element, "scale", 0.0);
+                    if primitive_units == Units::ObjectBoundingBox {
+                        // Blink's native filter exposes one scalar and applies
+                        // the horizontal object-box scale to both channels.
+                        scale *= target_box.width;
+                    }
+                    if !scale.is_finite() {
+                        return Err(CompileError::UnsupportedFilter(
+                            "feDisplacementMap scale resolves outside the finite filter range"
+                                .to_string(),
+                        ));
+                    }
+                    (
+                        vec![input, input2],
+                        FilterPrimitive::DisplacementMap {
+                            scale,
+                            x_channel: displacement_channel(element, "xChannelSelector"),
+                            y_channel: displacement_channel(element, "yChannelSelector"),
+                        },
+                    )
+                }
                 "feMerge" => {
                     patrol_color_style(element)?;
                     let mut inputs = Vec::new();
@@ -5898,6 +6025,8 @@ mod filter_resource {
         let mut has_source_dependent_multi_input = false;
         let mut has_blend = false;
         let mut has_morphology = false;
+        let mut has_turbulence = false;
+        let mut has_displacement_map = false;
         let mut has_source_dependent_morphology = false;
         let mut has_source_dependent_active_morphology = false;
         for node in &nodes {
@@ -5930,6 +6059,9 @@ mod filter_resource {
                 has_source_dependent_active_morphology |=
                     source_dependent && (radius_x > 0.0 || radius_y > 0.0);
             }
+            has_turbulence |= matches!(node.primitive(), FilterPrimitive::Turbulence { .. });
+            has_displacement_map |=
+                matches!(node.primitive(), FilterPrimitive::DisplacementMap { .. });
             source_dependencies.push(source_dependent);
         }
         if has_blend {
@@ -5949,6 +6081,24 @@ mod filter_resource {
         if has_morphology && !morphology_mapping_is_admitted(target_to_frame) {
             return Err(CompileError::UnsupportedFilter(
                 "feMorphology's target mapping crosses the pinned-backend morphology transform precision boundary"
+                    .to_string(),
+            ));
+        }
+        if has_turbulence && !turbulence_displacement_mapping_is_admitted(target_to_frame) {
+            return Err(CompileError::UnsupportedFilter(
+                "feTurbulence's target mapping crosses the pinned-backend procedural-filter transform precision boundary"
+                    .to_string(),
+            ));
+        }
+        if has_displacement_map && !turbulence_displacement_mapping_is_admitted(target_to_frame) {
+            return Err(CompileError::UnsupportedFilter(
+                "feDisplacementMap's target mapping crosses the pinned-backend displacement-filter transform precision boundary"
+                    .to_string(),
+            ));
+        }
+        if has_displacement_map && filter_crosses_clip_path(target)? {
+            return Err(CompileError::UnsupportedFilter(
+                "feDisplacementMap crosses the pinned-backend filtered clip-path precision boundary"
                     .to_string(),
             ));
         }
@@ -6109,10 +6259,13 @@ mod filter_resource {
                 "filter resolution needs the target's complete fill-geometry box".to_string(),
             )
         })?;
-        if target_box.width <= 0.0 || target_box.height <= 0.0 {
+        let units = filter_units(element);
+        let primitive_units = primitive_units(element);
+        if (target_box.width <= 0.0 || target_box.height <= 0.0)
+            && units == Units::ObjectBoundingBox
+        {
             return Ok(Resolution::Hide);
         }
-        let units = filter_units(element);
         let region = filter_region(element, units, target_box, bases)?;
         if region.width <= 0.0 || region.height <= 0.0 {
             return Ok(Resolution::Hide);
@@ -6120,7 +6273,7 @@ mod filter_resource {
         let Some(program) = compile_graph(
             element,
             target,
-            primitive_units(element),
+            primitive_units,
             target_box,
             bases,
             region,

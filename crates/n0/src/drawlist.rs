@@ -104,6 +104,20 @@ pub(crate) enum ResolvedFilterMorphology {
     Dilate,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ResolvedFilterTurbulenceKind {
+    Turbulence,
+    FractalNoise,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ResolvedFilterDisplacementChannel {
+    Red,
+    Green,
+    Blue,
+    Alpha,
+}
+
 /// The private filter-operation vocabulary admitted by the painter.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum ResolvedFilterPrimitive {
@@ -144,6 +158,19 @@ pub(crate) enum ResolvedFilterPrimitive {
         radius_x: f32,
         radius_y: f32,
     },
+    Turbulence {
+        kind: ResolvedFilterTurbulenceKind,
+        base_frequency_x: f32,
+        base_frequency_y: f32,
+        num_octaves: u8,
+        seed: f32,
+        stitch_tiles: bool,
+    },
+    DisplacementMap {
+        scale: f32,
+        x_channel: ResolvedFilterDisplacementChannel,
+        y_channel: ResolvedFilterDisplacementChannel,
+    },
     Merge,
 }
 
@@ -160,6 +187,14 @@ pub(crate) struct ResolvedFilterNode {
 pub struct ResolvedFilter {
     pub(crate) region: n0_model::math::RectF,
     pub(crate) nodes: Arc<[ResolvedFilterNode]>,
+    /// Whether the graph can create output from a fully transparent source.
+    /// Such a graph needs one explicit transparent source raster even when
+    /// its scope contains no draw item, or a lazy layer restore is skipped.
+    pub(crate) may_paint_transparent_input: bool,
+    /// The invocation's isolated source is known to be fully transparent.
+    /// Source references are materialized explicitly so generated/additive
+    /// graph output is not skipped by a lazy backend layer.
+    pub(crate) source_is_transparent: bool,
 }
 
 /// Product-local owner slot for a source-neutral glyphless frame.

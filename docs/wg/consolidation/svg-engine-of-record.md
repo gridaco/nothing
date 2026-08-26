@@ -67,7 +67,8 @@ from the dated addenda below:
   modes, ordered `feMerge`/`feMergeNode`, native one-input `feDropShadow`,
   one-input `feColorMatrix`, one-input `feComponentTransfer` with its direct
   `feFuncR`/`feFuncG`/`feFuncB`/`feFuncA` children, and one-input
-  `feMorphology`; graph inputs resolve from
+  `feMorphology`, plus zero-input `feTurbulence` and two-input
+  `feDisplacementMap`; graph inputs resolve from
   `SourceGraphic`/`SourceAlpha`/prior and named results, with both filter
   coordinate systems and color spaces, hard regions, nesting, admitted
   transforms, `<use>`, and the established effect order;
@@ -75,14 +76,14 @@ from the dated addenda below:
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 609 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 685 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 140 rows.
+  register has 143 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -3350,3 +3351,132 @@ Three focused rows join the refusal register, moving it from 137 to 140. The
 primitive corpus moves from 572 to 609 cells; the ten exact-time sampled frames
 are unchanged. Exactly one checklist row ticks: `<feMorphology>`. This records
 no conformance score and takes no FLIP action.
+
+## Rung: `feTurbulence` + `feDisplacementMap` (2026-08-26)
+
+The verdict is CLOSE/SPLIT. `<feTurbulence>` and `<feDisplacementMap>` close
+for their complete static Chromium behavior. Their seven element-specific
+attributes close with them: `baseFrequency`, `numOctaves`, `seed`,
+`stitchTiles`, `scale`, `xChannelSelector`, and `yChannelSelector`. The shared
+`type`, `in`, `in2`, `result`, primitive-region,
+`color-interpolation-filters`, filter-resource, and dynamics rows remain open
+for their wider applicability. CSS filter functions, animation, and external
+resources are separate surfaces. No CSS property row closes.
+
+Chromium 149.0.7827.55 establishes the turbulence grammar. `type` is the
+case-sensitive `turbulence | fractalNoise` enumeration with initial
+`turbulence`; missing, empty, invalid, wrong-case, whitespace-padded, and
+CSS-wide spellings select that initial. `baseFrequency` is one or two SVG
+numbers with initial zero. One member supplies both axes. Leading plus,
+exponent, comma-wsp, and one trailing comma are accepted. Missing, empty,
+malformed, unit-bearing, percentage, CSS-function, comment-bearing,
+extra-member, and overflowing spellings select the initial pair. If either
+parsed member is negative, Chromium resets both axes to that pair rather than
+clamping one independently.
+
+`numOctaves` is an integer with initial one. Leading plus and surrounding SVG
+whitespace are accepted; decimal, exponent, trailing-comma, and integer-
+overflow spellings select one. Positive values cap at nine in the rendered
+formula. Zero remains a real formula input: zero-octave turbulence is
+transparent, while zero-octave fractal noise is the neutral-half field. A
+negative integer produces a transparent result. `seed` is a signed SVG number
+with initial zero. Fractional values are accepted and the procedural formula
+truncates them toward zero; negative seeds remain active. `stitchTiles` is the
+case-sensitive `stitch | noStitch` enumeration with initial `noStitch` and the
+same exact-text fallback discipline as `type`.
+
+The resolved procedural source carries only its formula, two finite
+non-negative frequencies, capped octave count, finite seed, stitch decision,
+hard region, and operating color space. It has no image input. The
+`baseFrequency` pair is not scaled by `primitiveUnits`; object-box units still
+govern authored primitive regions. For a stitched source, Chromium truncates
+the finite primitive-region width and height to integer tile lengths before
+constructing the repeating field. Fractional stitched-region controls and the
+corresponding non-stitched field differ and are both exact.
+
+Chromium establishes a distinct two-input displacement operation. `scale` is
+a signed SVG number with initial zero and the same one-member grammar as
+`seed`. Each selector is the case-sensitive `R | G | B | A` enumeration with
+initial `A`; padded, wrong-case, invalid, and CSS-wide spellings select alpha.
+The operation reads non-premultiplied channels from its second image and moves
+the first image by `(channel - 0.5) × scale` on each axis. A transparent map
+therefore selects the negative half-scale vector rather than zero movement;
+the half-alpha control lies near the zero vector at the byte-normalized alpha.
+Both source images enter the primitive's declared filter color space before
+sampling. This is observable even with alpha selectors because the color input
+conversion also participates in the result.
+
+Object-box displacement follows Blink's one-scalar native route: the authored
+scale is multiplied by the target width for both x and y displacement, not by
+independent axis bases. A non-square target discriminates that rule from both
+the height basis and separate-axis scaling. Hard filter and primitive regions,
+percentage regions, bounded displacement maps, SourceGraphic, SourceAlpha,
+source-as-map, generated color/map inputs, named/previous input fallback,
+procedural maps, and result reuse all have exact evidence.
+
+The source audit exposed a filter-chassis error rather than a procedural-noise
+error. A user-space filter can have a positive region even when the target
+contributes no source pixels; a generated primitive must still paint that
+region. The prior route discarded every zero-area target before filter-unit
+resolution, and the resolved item stream rejected the resulting empty scope.
+The corrected contract distinguishes a fully transparent source invocation
+from an absent filter: source references become an explicit bounded
+transparent image, and a source-generating graph makes the otherwise empty
+filter scope meaningful. The same empty target under object-box filter units
+has no positive filter region and correctly paints nothing. User-space filter
+units with object-box primitive units still paint the unscaled turbulence
+field. Empty-source turbulence, turbulence blended with SourceGraphic, and a
+generated displacement graph are committed exact controls.
+
+The color audit found a second narrow chassis boundary. Missing
+`color-interpolation-filters` equals explicit linearRGB; explicit sRGB changes
+both noise formulas and a procedural displacement map. The procedural source
+itself is backend-native, and its linearRGB-to-sRGB output needed the native
+final layer restore. The prior generic generated-source restore produced a
+widespread one-code-value difference. Keeping native restore provenance with
+the procedural output clears that split while generated solid and byte-domain
+filter outputs retain their established policies. Both turbulence formulas in
+both color spaces and the noise-to-displacement chain are exact on the current
+ARM host without a tolerance.
+
+Three remaining silent classes are now stable refusals. Axis maps, fractional
+translation and scale, reflection, and exact quarter turns are exact. A
+sampled 17-degree turbulence mapping differs by 3,173 pixels at maximum
+channel delta 7 and a shear by 3,110 at delta 6. The corresponding displacement
+controls differ by 280 pixels at delta 13 and 360 at delta 18. Separate mapping
+patrols therefore guard each operation before paint. A geometric clip around
+displacement differs by 35 pixels at maximum delta 2; the opacity control
+without that clip is exact. One displacement-specific clip patrol quarantines
+that class. Existing small-blur and translucent-source multi-input patrols
+continue to own their independent graph boundaries (measured, not celled).
+
+The numeric crux did not reproduce the earlier stroke/geometry provenance
+alias in a visible procedural field. Seed values bracketing sampled binary32
+midpoints and adjacent tiny base frequencies produced deterministic equal
+pixels at 64×64, so no second numeric refusal was invented from an
+undiscriminating raster. The admitted route nevertheless uses the shared
+ordered SVG-number evaluator rather than Rust's raw lexical `f32` parser. This
+is a negative probe verdict, not a claim that every possible numeric alias is
+impossible (measured, not celled).
+
+Two broad matrices contain 164 twice-deterministic Chromium sources, each also
+rendered through both actual command admissions. All 156 admitted sources are
+pixel-exact and strict and best-effort agree; eight reach one of the three new
+stable names or an older operation-specific patrol. Seventy-six committed
+Chromium cells carry the admitted slice without a new tolerance. They cover
+the complete parameter grammars, both formulas, all selectors, color spaces,
+regions and units, source and map profiles, empty targets, graph routing,
+safe mappings, source shapes, opacity, `<use>`, `viewBox`, and the combined
+procedural-warp graph.
+
+Gate sensitivity was proved by temporarily mapping turbulence to fractal noise
+and the red displacement selector to alpha. `just gate` rejected fifty-five
+new cells: turbulence controls changed up to all 4,096 pixels and displacement
+controls reached maximum channel delta 202. Restoring both mappings returned
+the complete 685-cell gate to green.
+
+Three focused rows join the refusal register, moving it from 140 to 143. The
+primitive corpus moves from 609 to 685 cells; the ten exact-time sampled frames
+are unchanged. Exactly nine checklist rows tick: the two elements and seven
+element-specific attributes named above. This records no conformance score and
+takes no FLIP action.

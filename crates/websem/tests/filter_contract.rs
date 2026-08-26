@@ -11,8 +11,8 @@ mod support;
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
-    Filter, FilterBlend, FilterColorSpace, FilterComposite, FilterInput, FilterMorphology,
-    FilterPrimitive, Frame, FrameItem, ScopeEffect,
+    Filter, FilterBlend, FilterColorSpace, FilterComposite, FilterDisplacementChannel, FilterInput,
+    FilterMorphology, FilterPrimitive, FilterTurbulenceKind, Frame, FrameItem, ScopeEffect,
 };
 use support::render_through_n0;
 use websem::{DegradationAction, InitialViewport, SvgFrameSource};
@@ -541,6 +541,262 @@ fn morphology_precision_boundaries_refuse_before_a_wrong_pixel() {
         &generated_rotated,
         "morphology transform precision boundary",
     );
+}
+
+#[test]
+fn turbulence_resolves_the_measured_grammar_before_crossing_the_frame_seam() {
+    let source = |primitive: &str| {
+        document(&format!(
+            r##"  <filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+          x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+    {primitive}
+  </filter>
+  <rect x="12" y="14" width="40" height="36" fill="#0ea5e9" filter="url(#f)"/>"##
+        ))
+    };
+    let primitive = |authored: &str| {
+        let frame = admit_both(&source(authored));
+        let filter = resolved_filter(&frame);
+        assert_eq!(filter.program().iter().count(), 1);
+        let node = filter.program().iter().next().expect("one turbulence node");
+        assert!(node.inputs().is_empty(), "turbulence is a generated source");
+        node.primitive()
+    };
+
+    assert_eq!(
+        primitive(
+            r##"<feTurbulence type="fractalNoise" baseFrequency="+.125,.25," numOctaves="12"
+                seed="-3.5," stitchTiles="stitch"/>"##
+        ),
+        FilterPrimitive::Turbulence {
+            kind: FilterTurbulenceKind::FractalNoise,
+            base_frequency_x: 0.125,
+            base_frequency_y: 0.25,
+            num_octaves: 9,
+            seed: -3.5,
+            stitch_tiles: true,
+        }
+    );
+    assert_eq!(
+        primitive(r##"<feTurbulence baseFrequency=".125" numOctaves="+2"/>"##),
+        FilterPrimitive::Turbulence {
+            kind: FilterTurbulenceKind::Turbulence,
+            base_frequency_x: 0.125,
+            base_frequency_y: 0.125,
+            num_octaves: 2,
+            seed: 0.0,
+            stitch_tiles: false,
+        },
+        "one frequency duplicates across both axes"
+    );
+
+    for authored in [
+        r##"<feTurbulence baseFrequency="-1 2"/>"##,
+        r##"<feTurbulence baseFrequency="2 -1"/>"##,
+        r##"<feTurbulence baseFrequency="2 2 2"/>"##,
+        r##"<feTurbulence baseFrequency="2px"/>"##,
+        r##"<feTurbulence baseFrequency="calc(2)"/>"##,
+    ] {
+        let FilterPrimitive::Turbulence {
+            base_frequency_x,
+            base_frequency_y,
+            ..
+        } = primitive(authored)
+        else {
+            panic!("invalid frequency retains the initial turbulence member")
+        };
+        assert_eq!(
+            (base_frequency_x, base_frequency_y),
+            (0.0, 0.0),
+            "{authored}"
+        );
+    }
+
+    for authored in [
+        r##"<feTurbulence type="FractalNoise" stitchTiles="Stitch" numOctaves="1.0" seed="2px"/>"##,
+        r##"<feTurbulence type=" fractalNoise " stitchTiles=" stitch " numOctaves="2147483648" seed="1 2"/>"##,
+    ] {
+        assert_eq!(
+            primitive(authored),
+            FilterPrimitive::Turbulence {
+                kind: FilterTurbulenceKind::Turbulence,
+                base_frequency_x: 0.0,
+                base_frequency_y: 0.0,
+                num_octaves: 1,
+                seed: 0.0,
+                stitch_tiles: false,
+            },
+            "invalid enumeration and scalar spellings retain each initial: {authored}"
+        );
+    }
+
+    assert_eq!(
+        primitive(r##"<feTurbulence type="fractalNoise" numOctaves="0"/>"##),
+        FilterPrimitive::Turbulence {
+            kind: FilterTurbulenceKind::FractalNoise,
+            base_frequency_x: 0.0,
+            base_frequency_y: 0.0,
+            num_octaves: 0,
+            seed: 0.0,
+            stitch_tiles: false,
+        },
+        "zero reaches the fractal formula"
+    );
+    assert!(
+        matches!(
+            primitive(r##"<feTurbulence numOctaves="-1"/>"##),
+            FilterPrimitive::SolidColor { color } if color.a() == 0.0
+        ),
+        "a negative octave count resolves to a bounded transparent image"
+    );
+}
+
+#[test]
+fn displacement_map_resolves_ordered_inputs_channels_and_horizontal_object_box_scale() {
+    let source = |primitive: &str, primitive_units: &str| {
+        document(&format!(
+            r##"  <filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="{primitive_units}"
+          x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+    <feFlood flood-color="#ff0080" result="color"/>
+    <feFlood flood-color="#40c080" result="map"/>
+    {primitive}
+  </filter>
+  <rect x="12" y="18" width="20" height="10" fill="#0ea5e9" filter="url(#f)"/>"##
+        ))
+    };
+    let resolved = |primitive: &str, primitive_units: &str| {
+        let frame = admit_both(&source(primitive, primitive_units));
+        let filter = resolved_filter(&frame);
+        let node = filter.program().iter().last().expect("displacement output");
+        assert_eq!(node.inputs(), [FilterInput::Node(0), FilterInput::Node(1)]);
+        node.primitive()
+    };
+
+    assert_eq!(
+        resolved(
+            r##"<feDisplacementMap in="color" in2="map" scale=".25," xChannelSelector="R" yChannelSelector="G"/>"##,
+            "objectBoundingBox",
+        ),
+        FilterPrimitive::DisplacementMap {
+            scale: 5.0,
+            x_channel: FilterDisplacementChannel::Red,
+            y_channel: FilterDisplacementChannel::Green,
+        },
+        "Blink's one native scalar uses target width for both displacement axes"
+    );
+
+    let channels = [
+        ("R", FilterDisplacementChannel::Red),
+        ("G", FilterDisplacementChannel::Green),
+        ("B", FilterDisplacementChannel::Blue),
+        ("A", FilterDisplacementChannel::Alpha),
+    ];
+    for (x_name, x_channel) in channels {
+        for (y_name, y_channel) in channels {
+            assert_eq!(
+                resolved(
+                    &format!(
+                        r##"<feDisplacementMap in="color" in2="map" scale="-12.5" xChannelSelector="{x_name}" yChannelSelector="{y_name}"/>"##
+                    ),
+                    "userSpaceOnUse",
+                ),
+                FilterPrimitive::DisplacementMap {
+                    scale: -12.5,
+                    x_channel,
+                    y_channel,
+                }
+            );
+        }
+    }
+
+    for authored in [
+        r##"<feDisplacementMap in="color" in2="map" scale="2px" xChannelSelector="r" yChannelSelector=" G "/>"##,
+        r##"<feDisplacementMap in="color" in2="map" scale="calc(2)" xChannelSelector="initial" yChannelSelector="unset"/>"##,
+        r##"<feDisplacementMap in="color" in2="map" scale="1 2" xChannelSelector="" yChannelSelector="bogus"/>"##,
+    ] {
+        assert_eq!(
+            resolved(authored, "userSpaceOnUse"),
+            FilterPrimitive::DisplacementMap {
+                scale: 0.0,
+                x_channel: FilterDisplacementChannel::Alpha,
+                y_channel: FilterDisplacementChannel::Alpha,
+            },
+            "invalid spellings retain each initial: {authored}"
+        );
+    }
+}
+
+#[test]
+fn generated_turbulence_can_paint_a_declared_empty_user_space_source() {
+    let source = |primitive_units: &str| {
+        document(&format!(
+            r##"  <rect width="64" height="64" fill="white"/>
+  <filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="{primitive_units}"
+          x="8" y="8" width="48" height="48" color-interpolation-filters="sRGB">
+    <feTurbulence baseFrequency=".07 .11" numOctaves="2" seed="3"/>
+  </filter>
+  <g filter="url(#f)"/>"##
+        ))
+    };
+    let user = admit_both(&source("userSpaceOnUse"));
+    let object = admit_both(&source("objectBoundingBox"));
+    for frame in [&user, &object] {
+        let filter = resolved_filter(frame);
+        assert!(filter.source_is_transparent());
+        let pixels = render_through_n0(frame, 64, 64);
+        assert_ne!(at(&pixels, 24, 24), [255, 255, 255, 255]);
+        assert_eq!(at(&pixels, 4, 4), [255, 255, 255, 255]);
+    }
+    assert_eq!(
+        render_through_n0(&user, 64, 64),
+        render_through_n0(&object, 64, 64),
+        "base frequency itself is not primitiveUnits-scaled"
+    );
+}
+
+#[test]
+fn turbulence_and_displacement_precision_boundaries_refuse_before_paint() {
+    let turbulence = r##"<filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+    <feTurbulence baseFrequency=".07 .11" seed="3"/>
+  </filter>"##;
+    let displacement = r##"<filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+    <feFlood flood-color="#ff0080" result="map"/>
+    <feDisplacementMap in="SourceGraphic" in2="map" scale="16" xChannelSelector="R" yChannelSelector="B"/>
+  </filter>"##;
+    for (filter, target, reason) in [
+        (
+            turbulence,
+            r##"<rect x="12" y="14" width="40" height="36" transform="rotate(17 32 32)" filter="url(#f)"/>"##,
+            "procedural-filter transform precision boundary",
+        ),
+        (
+            displacement,
+            r##"<rect x="12" y="14" width="40" height="36" transform="skewX(17)" filter="url(#f)"/>"##,
+            "displacement-filter transform precision boundary",
+        ),
+        (
+            displacement,
+            r##"<rect x="12" y="14" width="40" height="36" clip-path="url(#c)" filter="url(#f)"/>"##,
+            "filtered clip-path precision boundary",
+        ),
+    ] {
+        assert_target_skip(
+            &document(&format!(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <defs><clipPath id="c"><circle cx="32" cy="32" r="18"/></clipPath></defs>
+  {filter}
+  {target}"##
+            )),
+            reason,
+        );
+    }
+
+    for transform in ["rotate(90 32 32)", "translate(64 0) scale(-1 1)"] {
+        admit_both(&document(&format!(
+            r##"  {turbulence}
+  <rect x="12" y="14" width="40" height="36" transform="{transform}" filter="url(#f)"/>"##
+        )));
+    }
 }
 
 #[test]

@@ -176,6 +176,16 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "native-shadow transform precision boundary",
     ),
     (
+        "svg-filter-displacement-clip-precision",
+        DeclaredByBestEffort,
+        "filtered clip-path precision boundary",
+    ),
+    (
+        "svg-filter-displacement-transform-precision",
+        DeclaredByBestEffort,
+        "displacement-filter transform precision boundary",
+    ),
+    (
         "svg-filter-effect-stack-precision",
         DeclaredByBestEffort,
         "effect-stack precision boundary",
@@ -279,6 +289,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "svg-filter-translucent-source-composition-precision",
         DeclaredByBestEffort,
         "translucent-source composition precision boundary",
+    ),
+    (
+        "svg-filter-turbulence-transform-precision",
+        DeclaredByBestEffort,
+        "procedural-filter transform precision boundary",
     ),
     (
         "svg-foreign-object",

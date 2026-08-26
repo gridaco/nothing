@@ -23,17 +23,18 @@ use n0_model::model::{
 };
 use n0_model::path::ResolvedPathArtifact;
 use rframe::{
-    ClipPath, FilterBlend, FilterColorSpace, FilterComposite, FilterInput, FilterMorphology,
-    FilterPrimitive, FilterProgram, Frame, FrameItem, Geometry, MaskMode, PaintStack, ScopeEffect,
-    VisualRef,
+    ClipPath, FilterBlend, FilterColorSpace, FilterComposite, FilterDisplacementChannel,
+    FilterInput, FilterMorphology, FilterPrimitive, FilterTurbulenceKind, Frame, FrameItem,
+    Geometry, MaskMode, PaintStack, ScopeEffect, VisualRef,
 };
 
 use crate::damage::{diff_inputs, DamageOwner, FrameDamageInput};
 use crate::drawlist::{
     DrawList, GlyphlessOwnerSlot, Item, ItemKind, PostPaintOpacity, ResolvedClipGeometry,
     ResolvedClipGeometryKind, ResolvedClipLayer, ResolvedClipPath, ResolvedFilter,
-    ResolvedFilterBlend, ResolvedFilterColorSpace, ResolvedFilterComposite, ResolvedFilterInput,
-    ResolvedFilterMorphology, ResolvedFilterNode, ResolvedFilterPrimitive, ResolvedMaskMode,
+    ResolvedFilterBlend, ResolvedFilterColorSpace, ResolvedFilterComposite,
+    ResolvedFilterDisplacementChannel, ResolvedFilterInput, ResolvedFilterMorphology,
+    ResolvedFilterNode, ResolvedFilterPrimitive, ResolvedFilterTurbulenceKind, ResolvedMaskMode,
     StrokeDashPhase,
 };
 use crate::frame::FrameExecutionError;
@@ -386,7 +387,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                         OpenScopeKind::Clip { bounds }
                     }
                     ScopeEffect::Filter(filter) => {
-                        let compiled = Arc::new(compile_filter(filter.program(), filter.region()));
+                        let compiled = Arc::new(compile_filter(filter));
                         if let Err(reason) = crate::paint::preflight_filter(&compiled) {
                             return Err(BuildError::Filter {
                                 owner: scope.owner,
@@ -871,7 +872,8 @@ fn compile_clip_path(clip: &ClipPath) -> ResolvedClipPath {
 /// Project one checked, source-neutral filter program into private painter
 /// material. Every index and scalar has already been validated by `rframe`;
 /// this is a vocabulary translation, not a second resolver.
-fn compile_filter(program: &FilterProgram, region: math2::Rectangle) -> ResolvedFilter {
+fn compile_filter(filter: &rframe::Filter) -> ResolvedFilter {
+    let program = filter.program();
     let nodes = program
         .iter()
         .map(|node| ResolvedFilterNode {
@@ -969,14 +971,65 @@ fn compile_filter(program: &FilterProgram, region: math2::Rectangle) -> Resolved
                     radius_x,
                     radius_y,
                 },
+                FilterPrimitive::Turbulence {
+                    kind,
+                    base_frequency_x,
+                    base_frequency_y,
+                    num_octaves,
+                    seed,
+                    stitch_tiles,
+                } => ResolvedFilterPrimitive::Turbulence {
+                    kind: match kind {
+                        FilterTurbulenceKind::Turbulence => {
+                            ResolvedFilterTurbulenceKind::Turbulence
+                        }
+                        FilterTurbulenceKind::FractalNoise => {
+                            ResolvedFilterTurbulenceKind::FractalNoise
+                        }
+                    },
+                    base_frequency_x,
+                    base_frequency_y,
+                    num_octaves,
+                    seed,
+                    stitch_tiles,
+                },
+                FilterPrimitive::DisplacementMap {
+                    scale,
+                    x_channel,
+                    y_channel,
+                } => ResolvedFilterPrimitive::DisplacementMap {
+                    scale,
+                    x_channel: match x_channel {
+                        FilterDisplacementChannel::Red => ResolvedFilterDisplacementChannel::Red,
+                        FilterDisplacementChannel::Green => {
+                            ResolvedFilterDisplacementChannel::Green
+                        }
+                        FilterDisplacementChannel::Blue => ResolvedFilterDisplacementChannel::Blue,
+                        FilterDisplacementChannel::Alpha => {
+                            ResolvedFilterDisplacementChannel::Alpha
+                        }
+                    },
+                    y_channel: match y_channel {
+                        FilterDisplacementChannel::Red => ResolvedFilterDisplacementChannel::Red,
+                        FilterDisplacementChannel::Green => {
+                            ResolvedFilterDisplacementChannel::Green
+                        }
+                        FilterDisplacementChannel::Blue => ResolvedFilterDisplacementChannel::Blue,
+                        FilterDisplacementChannel::Alpha => {
+                            ResolvedFilterDisplacementChannel::Alpha
+                        }
+                    },
+                },
                 FilterPrimitive::Merge => ResolvedFilterPrimitive::Merge,
             },
         })
         .collect::<Vec<_>>()
         .into();
     ResolvedFilter {
-        region: to_rectf(region),
+        region: to_rectf(filter.region()),
         nodes,
+        may_paint_transparent_input: program.may_paint_transparent_input(),
+        source_is_transparent: filter.source_is_transparent(),
     }
 }
 
@@ -1540,8 +1593,8 @@ mod tests {
     };
     use n0_model::resolve::ResolveOptions;
     use rframe::{
-        Filter, FilterNode, FrameItems, FrameNode, Identity, PaintAlphaFactor, Provenance, Scope,
-        ScopeOpacity,
+        Filter, FilterNode, FilterProgram, FrameItems, FrameNode, Identity, PaintAlphaFactor,
+        Provenance, Scope, ScopeOpacity,
     };
     use skia_safe::surfaces;
 

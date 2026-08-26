@@ -1592,6 +1592,294 @@
       "height": 64
     },
     {
+      "id": "svg-filter-displacement-color-linear",
+      "source": "svg-filter-displacement-color-linear.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-color-linear.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-color-srgb",
+      "source": "svg-filter-displacement-color-srgb.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-color-srgb.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-default",
+      "source": "svg-filter-displacement-default.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-default.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-empty-generated",
+      "source": "svg-filter-displacement-empty-generated.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-empty-generated.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-generated-color",
+      "source": "svg-filter-displacement-generated-color.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-generated-color.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-half-alpha-map",
+      "source": "svg-filter-displacement-half-alpha-map.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-half-alpha-map.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-input-default-in2",
+      "source": "svg-filter-displacement-input-default-in2.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-input-default-in2.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-input-unknown-in",
+      "source": "svg-filter-displacement-input-unknown-in.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-input-unknown-in.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-map-region",
+      "source": "svg-filter-displacement-map-region.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-map-region.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-opacity",
+      "source": "svg-filter-displacement-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-path",
+      "source": "svg-filter-displacement-path.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-path.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-primitive-units",
+      "source": "svg-filter-displacement-primitive-units.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-primitive-units.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-quarter-turn",
+      "source": "svg-filter-displacement-quarter-turn.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-quarter-turn.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-region-percent",
+      "source": "svg-filter-displacement-region-percent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-region-percent.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-scale-fraction",
+      "source": "svg-filter-displacement-scale-fraction.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-scale-fraction.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-scale-invalid",
+      "source": "svg-filter-displacement-scale-invalid.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-scale-invalid.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-scale-negative",
+      "source": "svg-filter-displacement-scale-negative.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-scale-negative.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-scale-positive",
+      "source": "svg-filter-displacement-scale-positive.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-scale-positive.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-scale-trailing-comma",
+      "source": "svg-filter-displacement-scale-trailing-comma.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-scale-trailing-comma.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-scale-transform",
+      "source": "svg-filter-displacement-scale-transform.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-scale-transform.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-scale-zero",
+      "source": "svg-filter-displacement-scale-zero.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-scale-zero.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-selector-alpha",
+      "source": "svg-filter-displacement-selector-alpha.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-selector-alpha.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-selector-axes",
+      "source": "svg-filter-displacement-selector-axes.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-selector-axes.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-selector-blue",
+      "source": "svg-filter-displacement-selector-blue.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-selector-blue.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-selector-default",
+      "source": "svg-filter-displacement-selector-default.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-selector-default.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-selector-grammar",
+      "source": "svg-filter-displacement-selector-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-selector-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-selector-green",
+      "source": "svg-filter-displacement-selector-green.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-selector-green.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-selector-red",
+      "source": "svg-filter-displacement-selector-red.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-selector-red.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-source-alpha-map",
+      "source": "svg-filter-displacement-source-alpha-map.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-source-alpha-map.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-source-rgb-map",
+      "source": "svg-filter-displacement-source-rgb-map.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-source-rgb-map.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-stroke",
+      "source": "svg-filter-displacement-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-transparent-map",
+      "source": "svg-filter-displacement-transparent-map.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-transparent-map.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-turbulence-map",
+      "source": "svg-filter-displacement-turbulence-map.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-turbulence-map.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-turbulence-map-linear",
+      "source": "svg-filter-displacement-turbulence-map-linear.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-turbulence-map-linear.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-use",
+      "source": "svg-filter-displacement-use.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-use.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-displacement-viewbox",
+      "source": "svg-filter-displacement-viewbox.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-displacement-viewbox.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-filter-drop-shadow-anisotropic",
       "source": "svg-filter-drop-shadow-anisotropic.svg",
       "entry": "standalone-svg",
@@ -2556,6 +2844,326 @@
       "source": "svg-filter-target-rotate.svg",
       "entry": "standalone-svg",
       "oracle": "chromium/svg-filter-target-rotate.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-base-comma",
+      "source": "svg-filter-turbulence-base-comma.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-base-comma.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-base-invalid",
+      "source": "svg-filter-turbulence-base-invalid.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-base-invalid.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-base-negative-axis",
+      "source": "svg-filter-turbulence-base-negative-axis.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-base-negative-axis.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-base-one",
+      "source": "svg-filter-turbulence-base-one.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-base-one.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-base-plus-exponent",
+      "source": "svg-filter-turbulence-base-plus-exponent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-base-plus-exponent.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-base-trailing-comma",
+      "source": "svg-filter-turbulence-base-trailing-comma.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-base-trailing-comma.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-base-two",
+      "source": "svg-filter-turbulence-base-two.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-base-two.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-color-default",
+      "source": "svg-filter-turbulence-color-default.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-color-default.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-color-linear",
+      "source": "svg-filter-turbulence-color-linear.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-color-linear.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-color-srgb",
+      "source": "svg-filter-turbulence-color-srgb.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-color-srgb.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-default",
+      "source": "svg-filter-turbulence-default.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-default.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-displacement-map",
+      "source": "svg-filter-turbulence-displacement-map.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-displacement-map.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-empty-source",
+      "source": "svg-filter-turbulence-empty-source.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-empty-source.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-fractal-octave-zero",
+      "source": "svg-filter-turbulence-fractal-octave-zero.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-fractal-octave-zero.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-fractional-translate",
+      "source": "svg-filter-turbulence-fractional-translate.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-fractional-translate.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-graph-blend",
+      "source": "svg-filter-turbulence-graph-blend.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-graph-blend.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-graph-result-reuse",
+      "source": "svg-filter-turbulence-graph-result-reuse.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-graph-result-reuse.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-octave-cap",
+      "source": "svg-filter-turbulence-octave-cap.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-octave-cap.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-octave-grammar",
+      "source": "svg-filter-turbulence-octave-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-octave-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-octave-negative",
+      "source": "svg-filter-turbulence-octave-negative.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-octave-negative.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-octave-nine",
+      "source": "svg-filter-turbulence-octave-nine.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-octave-nine.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-octave-one",
+      "source": "svg-filter-turbulence-octave-one.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-octave-one.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-octave-two",
+      "source": "svg-filter-turbulence-octave-two.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-octave-two.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-octave-zero",
+      "source": "svg-filter-turbulence-octave-zero.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-octave-zero.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-quarter-turn",
+      "source": "svg-filter-turbulence-quarter-turn.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-quarter-turn.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-region-percent",
+      "source": "svg-filter-turbulence-region-percent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-region-percent.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-region-stitch-fraction",
+      "source": "svg-filter-turbulence-region-stitch-fraction.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-region-stitch-fraction.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-seed-fraction",
+      "source": "svg-filter-turbulence-seed-fraction.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-seed-fraction.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-seed-grammar",
+      "source": "svg-filter-turbulence-seed-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-seed-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-seed-negative",
+      "source": "svg-filter-turbulence-seed-negative.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-seed-negative.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-seed-one",
+      "source": "svg-filter-turbulence-seed-one.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-seed-one.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-seed-zero",
+      "source": "svg-filter-turbulence-seed-zero.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-seed-zero.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-stitch",
+      "source": "svg-filter-turbulence-stitch.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-stitch.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-stitch-grammar",
+      "source": "svg-filter-turbulence-stitch-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-stitch-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-stitch-none",
+      "source": "svg-filter-turbulence-stitch-none.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-stitch-none.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-type-fractal",
+      "source": "svg-filter-turbulence-type-fractal.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-type-fractal.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-type-grammar",
+      "source": "svg-filter-turbulence-type-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-type-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-type-turbulence",
+      "source": "svg-filter-turbulence-type-turbulence.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-type-turbulence.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-use",
+      "source": "svg-filter-turbulence-use.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-use.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-viewbox",
+      "source": "svg-filter-turbulence-viewbox.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-viewbox.png",
       "width": 64,
       "height": 64
     },

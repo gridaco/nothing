@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (609)
+## Chromium-baked cells (685)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -217,6 +217,42 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-filter-composite-region-default.svg" title="svg-filter-composite-region-default (standalone-svg)"><img src="./chromium/svg-filter-composite-region-default.png" width="56" alt="svg-filter-composite-region-default"></a>
 <a href="./svg-filter-composite-region-union.svg" title="svg-filter-composite-region-union (standalone-svg)"><img src="./chromium/svg-filter-composite-region-union.png" width="56" alt="svg-filter-composite-region-union"></a>
 <a href="./svg-filter-composite-xor.svg" title="svg-filter-composite-xor (standalone-svg)"><img src="./chromium/svg-filter-composite-xor.png" width="56" alt="svg-filter-composite-xor"></a>
+<a href="./svg-filter-displacement-color-linear.svg" title="svg-filter-displacement-color-linear (standalone-svg)"><img src="./chromium/svg-filter-displacement-color-linear.png" width="56" alt="svg-filter-displacement-color-linear"></a>
+<a href="./svg-filter-displacement-color-srgb.svg" title="svg-filter-displacement-color-srgb (standalone-svg)"><img src="./chromium/svg-filter-displacement-color-srgb.png" width="56" alt="svg-filter-displacement-color-srgb"></a>
+<a href="./svg-filter-displacement-default.svg" title="svg-filter-displacement-default (standalone-svg)"><img src="./chromium/svg-filter-displacement-default.png" width="56" alt="svg-filter-displacement-default"></a>
+<a href="./svg-filter-displacement-empty-generated.svg" title="svg-filter-displacement-empty-generated (standalone-svg)"><img src="./chromium/svg-filter-displacement-empty-generated.png" width="56" alt="svg-filter-displacement-empty-generated"></a>
+<a href="./svg-filter-displacement-generated-color.svg" title="svg-filter-displacement-generated-color (standalone-svg)"><img src="./chromium/svg-filter-displacement-generated-color.png" width="56" alt="svg-filter-displacement-generated-color"></a>
+<a href="./svg-filter-displacement-half-alpha-map.svg" title="svg-filter-displacement-half-alpha-map (standalone-svg)"><img src="./chromium/svg-filter-displacement-half-alpha-map.png" width="56" alt="svg-filter-displacement-half-alpha-map"></a>
+<a href="./svg-filter-displacement-input-default-in2.svg" title="svg-filter-displacement-input-default-in2 (standalone-svg)"><img src="./chromium/svg-filter-displacement-input-default-in2.png" width="56" alt="svg-filter-displacement-input-default-in2"></a>
+<a href="./svg-filter-displacement-input-unknown-in.svg" title="svg-filter-displacement-input-unknown-in (standalone-svg)"><img src="./chromium/svg-filter-displacement-input-unknown-in.png" width="56" alt="svg-filter-displacement-input-unknown-in"></a>
+<a href="./svg-filter-displacement-map-region.svg" title="svg-filter-displacement-map-region (standalone-svg)"><img src="./chromium/svg-filter-displacement-map-region.png" width="56" alt="svg-filter-displacement-map-region"></a>
+<a href="./svg-filter-displacement-opacity.svg" title="svg-filter-displacement-opacity (standalone-svg)"><img src="./chromium/svg-filter-displacement-opacity.png" width="56" alt="svg-filter-displacement-opacity"></a>
+<a href="./svg-filter-displacement-path.svg" title="svg-filter-displacement-path (standalone-svg)"><img src="./chromium/svg-filter-displacement-path.png" width="56" alt="svg-filter-displacement-path"></a>
+<a href="./svg-filter-displacement-primitive-units.svg" title="svg-filter-displacement-primitive-units (standalone-svg)"><img src="./chromium/svg-filter-displacement-primitive-units.png" width="56" alt="svg-filter-displacement-primitive-units"></a>
+<a href="./svg-filter-displacement-quarter-turn.svg" title="svg-filter-displacement-quarter-turn (standalone-svg)"><img src="./chromium/svg-filter-displacement-quarter-turn.png" width="56" alt="svg-filter-displacement-quarter-turn"></a>
+<a href="./svg-filter-displacement-region-percent.svg" title="svg-filter-displacement-region-percent (standalone-svg)"><img src="./chromium/svg-filter-displacement-region-percent.png" width="56" alt="svg-filter-displacement-region-percent"></a>
+<a href="./svg-filter-displacement-scale-fraction.svg" title="svg-filter-displacement-scale-fraction (standalone-svg)"><img src="./chromium/svg-filter-displacement-scale-fraction.png" width="56" alt="svg-filter-displacement-scale-fraction"></a>
+<a href="./svg-filter-displacement-scale-invalid.svg" title="svg-filter-displacement-scale-invalid (standalone-svg)"><img src="./chromium/svg-filter-displacement-scale-invalid.png" width="56" alt="svg-filter-displacement-scale-invalid"></a>
+<a href="./svg-filter-displacement-scale-negative.svg" title="svg-filter-displacement-scale-negative (standalone-svg)"><img src="./chromium/svg-filter-displacement-scale-negative.png" width="56" alt="svg-filter-displacement-scale-negative"></a>
+<a href="./svg-filter-displacement-scale-positive.svg" title="svg-filter-displacement-scale-positive (standalone-svg)"><img src="./chromium/svg-filter-displacement-scale-positive.png" width="56" alt="svg-filter-displacement-scale-positive"></a>
+<a href="./svg-filter-displacement-scale-trailing-comma.svg" title="svg-filter-displacement-scale-trailing-comma (standalone-svg)"><img src="./chromium/svg-filter-displacement-scale-trailing-comma.png" width="56" alt="svg-filter-displacement-scale-trailing-comma"></a>
+<a href="./svg-filter-displacement-scale-transform.svg" title="svg-filter-displacement-scale-transform (standalone-svg)"><img src="./chromium/svg-filter-displacement-scale-transform.png" width="56" alt="svg-filter-displacement-scale-transform"></a>
+<a href="./svg-filter-displacement-scale-zero.svg" title="svg-filter-displacement-scale-zero (standalone-svg)"><img src="./chromium/svg-filter-displacement-scale-zero.png" width="56" alt="svg-filter-displacement-scale-zero"></a>
+<a href="./svg-filter-displacement-selector-alpha.svg" title="svg-filter-displacement-selector-alpha (standalone-svg)"><img src="./chromium/svg-filter-displacement-selector-alpha.png" width="56" alt="svg-filter-displacement-selector-alpha"></a>
+<a href="./svg-filter-displacement-selector-axes.svg" title="svg-filter-displacement-selector-axes (standalone-svg)"><img src="./chromium/svg-filter-displacement-selector-axes.png" width="56" alt="svg-filter-displacement-selector-axes"></a>
+<a href="./svg-filter-displacement-selector-blue.svg" title="svg-filter-displacement-selector-blue (standalone-svg)"><img src="./chromium/svg-filter-displacement-selector-blue.png" width="56" alt="svg-filter-displacement-selector-blue"></a>
+<a href="./svg-filter-displacement-selector-default.svg" title="svg-filter-displacement-selector-default (standalone-svg)"><img src="./chromium/svg-filter-displacement-selector-default.png" width="56" alt="svg-filter-displacement-selector-default"></a>
+<a href="./svg-filter-displacement-selector-grammar.svg" title="svg-filter-displacement-selector-grammar (standalone-svg)"><img src="./chromium/svg-filter-displacement-selector-grammar.png" width="56" alt="svg-filter-displacement-selector-grammar"></a>
+<a href="./svg-filter-displacement-selector-green.svg" title="svg-filter-displacement-selector-green (standalone-svg)"><img src="./chromium/svg-filter-displacement-selector-green.png" width="56" alt="svg-filter-displacement-selector-green"></a>
+<a href="./svg-filter-displacement-selector-red.svg" title="svg-filter-displacement-selector-red (standalone-svg)"><img src="./chromium/svg-filter-displacement-selector-red.png" width="56" alt="svg-filter-displacement-selector-red"></a>
+<a href="./svg-filter-displacement-source-alpha-map.svg" title="svg-filter-displacement-source-alpha-map (standalone-svg)"><img src="./chromium/svg-filter-displacement-source-alpha-map.png" width="56" alt="svg-filter-displacement-source-alpha-map"></a>
+<a href="./svg-filter-displacement-source-rgb-map.svg" title="svg-filter-displacement-source-rgb-map (standalone-svg)"><img src="./chromium/svg-filter-displacement-source-rgb-map.png" width="56" alt="svg-filter-displacement-source-rgb-map"></a>
+<a href="./svg-filter-displacement-stroke.svg" title="svg-filter-displacement-stroke (standalone-svg)"><img src="./chromium/svg-filter-displacement-stroke.png" width="56" alt="svg-filter-displacement-stroke"></a>
+<a href="./svg-filter-displacement-transparent-map.svg" title="svg-filter-displacement-transparent-map (standalone-svg)"><img src="./chromium/svg-filter-displacement-transparent-map.png" width="56" alt="svg-filter-displacement-transparent-map"></a>
+<a href="./svg-filter-displacement-turbulence-map.svg" title="svg-filter-displacement-turbulence-map (standalone-svg)"><img src="./chromium/svg-filter-displacement-turbulence-map.png" width="56" alt="svg-filter-displacement-turbulence-map"></a>
+<a href="./svg-filter-displacement-turbulence-map-linear.svg" title="svg-filter-displacement-turbulence-map-linear (standalone-svg)"><img src="./chromium/svg-filter-displacement-turbulence-map-linear.png" width="56" alt="svg-filter-displacement-turbulence-map-linear"></a>
+<a href="./svg-filter-displacement-use.svg" title="svg-filter-displacement-use (standalone-svg)"><img src="./chromium/svg-filter-displacement-use.png" width="56" alt="svg-filter-displacement-use"></a>
+<a href="./svg-filter-displacement-viewbox.svg" title="svg-filter-displacement-viewbox (standalone-svg)"><img src="./chromium/svg-filter-displacement-viewbox.png" width="56" alt="svg-filter-displacement-viewbox"></a>
 <a href="./svg-filter-drop-shadow-anisotropic.svg" title="svg-filter-drop-shadow-anisotropic (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-anisotropic.png" width="56" alt="svg-filter-drop-shadow-anisotropic"></a>
 <a href="./svg-filter-drop-shadow-blur-input.svg" title="svg-filter-drop-shadow-blur-input (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-blur-input.png" width="56" alt="svg-filter-drop-shadow-blur-input"></a>
 <a href="./svg-filter-drop-shadow-chain.svg" title="svg-filter-drop-shadow-chain (standalone-svg)"><img src="./chromium/svg-filter-drop-shadow-chain.png" width="56" alt="svg-filter-drop-shadow-chain"></a>
@@ -338,6 +374,46 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-filter-source-alpha.svg" title="svg-filter-source-alpha (standalone-svg)"><img src="./chromium/svg-filter-source-alpha.png" width="56" alt="svg-filter-source-alpha"></a>
 <a href="./svg-filter-stroke.svg" title="svg-filter-stroke (standalone-svg)"><img src="./chromium/svg-filter-stroke.png" width="56" alt="svg-filter-stroke"></a>
 <a href="./svg-filter-target-rotate.svg" title="svg-filter-target-rotate (standalone-svg)"><img src="./chromium/svg-filter-target-rotate.png" width="56" alt="svg-filter-target-rotate"></a>
+<a href="./svg-filter-turbulence-base-comma.svg" title="svg-filter-turbulence-base-comma (standalone-svg)"><img src="./chromium/svg-filter-turbulence-base-comma.png" width="56" alt="svg-filter-turbulence-base-comma"></a>
+<a href="./svg-filter-turbulence-base-invalid.svg" title="svg-filter-turbulence-base-invalid (standalone-svg)"><img src="./chromium/svg-filter-turbulence-base-invalid.png" width="56" alt="svg-filter-turbulence-base-invalid"></a>
+<a href="./svg-filter-turbulence-base-negative-axis.svg" title="svg-filter-turbulence-base-negative-axis (standalone-svg)"><img src="./chromium/svg-filter-turbulence-base-negative-axis.png" width="56" alt="svg-filter-turbulence-base-negative-axis"></a>
+<a href="./svg-filter-turbulence-base-one.svg" title="svg-filter-turbulence-base-one (standalone-svg)"><img src="./chromium/svg-filter-turbulence-base-one.png" width="56" alt="svg-filter-turbulence-base-one"></a>
+<a href="./svg-filter-turbulence-base-plus-exponent.svg" title="svg-filter-turbulence-base-plus-exponent (standalone-svg)"><img src="./chromium/svg-filter-turbulence-base-plus-exponent.png" width="56" alt="svg-filter-turbulence-base-plus-exponent"></a>
+<a href="./svg-filter-turbulence-base-trailing-comma.svg" title="svg-filter-turbulence-base-trailing-comma (standalone-svg)"><img src="./chromium/svg-filter-turbulence-base-trailing-comma.png" width="56" alt="svg-filter-turbulence-base-trailing-comma"></a>
+<a href="./svg-filter-turbulence-base-two.svg" title="svg-filter-turbulence-base-two (standalone-svg)"><img src="./chromium/svg-filter-turbulence-base-two.png" width="56" alt="svg-filter-turbulence-base-two"></a>
+<a href="./svg-filter-turbulence-color-default.svg" title="svg-filter-turbulence-color-default (standalone-svg)"><img src="./chromium/svg-filter-turbulence-color-default.png" width="56" alt="svg-filter-turbulence-color-default"></a>
+<a href="./svg-filter-turbulence-color-linear.svg" title="svg-filter-turbulence-color-linear (standalone-svg)"><img src="./chromium/svg-filter-turbulence-color-linear.png" width="56" alt="svg-filter-turbulence-color-linear"></a>
+<a href="./svg-filter-turbulence-color-srgb.svg" title="svg-filter-turbulence-color-srgb (standalone-svg)"><img src="./chromium/svg-filter-turbulence-color-srgb.png" width="56" alt="svg-filter-turbulence-color-srgb"></a>
+<a href="./svg-filter-turbulence-default.svg" title="svg-filter-turbulence-default (standalone-svg)"><img src="./chromium/svg-filter-turbulence-default.png" width="56" alt="svg-filter-turbulence-default"></a>
+<a href="./svg-filter-turbulence-displacement-map.svg" title="svg-filter-turbulence-displacement-map (standalone-svg)"><img src="./chromium/svg-filter-turbulence-displacement-map.png" width="56" alt="svg-filter-turbulence-displacement-map"></a>
+<a href="./svg-filter-turbulence-empty-source.svg" title="svg-filter-turbulence-empty-source (standalone-svg)"><img src="./chromium/svg-filter-turbulence-empty-source.png" width="56" alt="svg-filter-turbulence-empty-source"></a>
+<a href="./svg-filter-turbulence-fractal-octave-zero.svg" title="svg-filter-turbulence-fractal-octave-zero (standalone-svg)"><img src="./chromium/svg-filter-turbulence-fractal-octave-zero.png" width="56" alt="svg-filter-turbulence-fractal-octave-zero"></a>
+<a href="./svg-filter-turbulence-fractional-translate.svg" title="svg-filter-turbulence-fractional-translate (standalone-svg)"><img src="./chromium/svg-filter-turbulence-fractional-translate.png" width="56" alt="svg-filter-turbulence-fractional-translate"></a>
+<a href="./svg-filter-turbulence-graph-blend.svg" title="svg-filter-turbulence-graph-blend (standalone-svg)"><img src="./chromium/svg-filter-turbulence-graph-blend.png" width="56" alt="svg-filter-turbulence-graph-blend"></a>
+<a href="./svg-filter-turbulence-graph-result-reuse.svg" title="svg-filter-turbulence-graph-result-reuse (standalone-svg)"><img src="./chromium/svg-filter-turbulence-graph-result-reuse.png" width="56" alt="svg-filter-turbulence-graph-result-reuse"></a>
+<a href="./svg-filter-turbulence-octave-cap.svg" title="svg-filter-turbulence-octave-cap (standalone-svg)"><img src="./chromium/svg-filter-turbulence-octave-cap.png" width="56" alt="svg-filter-turbulence-octave-cap"></a>
+<a href="./svg-filter-turbulence-octave-grammar.svg" title="svg-filter-turbulence-octave-grammar (standalone-svg)"><img src="./chromium/svg-filter-turbulence-octave-grammar.png" width="56" alt="svg-filter-turbulence-octave-grammar"></a>
+<a href="./svg-filter-turbulence-octave-negative.svg" title="svg-filter-turbulence-octave-negative (standalone-svg)"><img src="./chromium/svg-filter-turbulence-octave-negative.png" width="56" alt="svg-filter-turbulence-octave-negative"></a>
+<a href="./svg-filter-turbulence-octave-nine.svg" title="svg-filter-turbulence-octave-nine (standalone-svg)"><img src="./chromium/svg-filter-turbulence-octave-nine.png" width="56" alt="svg-filter-turbulence-octave-nine"></a>
+<a href="./svg-filter-turbulence-octave-one.svg" title="svg-filter-turbulence-octave-one (standalone-svg)"><img src="./chromium/svg-filter-turbulence-octave-one.png" width="56" alt="svg-filter-turbulence-octave-one"></a>
+<a href="./svg-filter-turbulence-octave-two.svg" title="svg-filter-turbulence-octave-two (standalone-svg)"><img src="./chromium/svg-filter-turbulence-octave-two.png" width="56" alt="svg-filter-turbulence-octave-two"></a>
+<a href="./svg-filter-turbulence-octave-zero.svg" title="svg-filter-turbulence-octave-zero (standalone-svg)"><img src="./chromium/svg-filter-turbulence-octave-zero.png" width="56" alt="svg-filter-turbulence-octave-zero"></a>
+<a href="./svg-filter-turbulence-quarter-turn.svg" title="svg-filter-turbulence-quarter-turn (standalone-svg)"><img src="./chromium/svg-filter-turbulence-quarter-turn.png" width="56" alt="svg-filter-turbulence-quarter-turn"></a>
+<a href="./svg-filter-turbulence-region-percent.svg" title="svg-filter-turbulence-region-percent (standalone-svg)"><img src="./chromium/svg-filter-turbulence-region-percent.png" width="56" alt="svg-filter-turbulence-region-percent"></a>
+<a href="./svg-filter-turbulence-region-stitch-fraction.svg" title="svg-filter-turbulence-region-stitch-fraction (standalone-svg)"><img src="./chromium/svg-filter-turbulence-region-stitch-fraction.png" width="56" alt="svg-filter-turbulence-region-stitch-fraction"></a>
+<a href="./svg-filter-turbulence-seed-fraction.svg" title="svg-filter-turbulence-seed-fraction (standalone-svg)"><img src="./chromium/svg-filter-turbulence-seed-fraction.png" width="56" alt="svg-filter-turbulence-seed-fraction"></a>
+<a href="./svg-filter-turbulence-seed-grammar.svg" title="svg-filter-turbulence-seed-grammar (standalone-svg)"><img src="./chromium/svg-filter-turbulence-seed-grammar.png" width="56" alt="svg-filter-turbulence-seed-grammar"></a>
+<a href="./svg-filter-turbulence-seed-negative.svg" title="svg-filter-turbulence-seed-negative (standalone-svg)"><img src="./chromium/svg-filter-turbulence-seed-negative.png" width="56" alt="svg-filter-turbulence-seed-negative"></a>
+<a href="./svg-filter-turbulence-seed-one.svg" title="svg-filter-turbulence-seed-one (standalone-svg)"><img src="./chromium/svg-filter-turbulence-seed-one.png" width="56" alt="svg-filter-turbulence-seed-one"></a>
+<a href="./svg-filter-turbulence-seed-zero.svg" title="svg-filter-turbulence-seed-zero (standalone-svg)"><img src="./chromium/svg-filter-turbulence-seed-zero.png" width="56" alt="svg-filter-turbulence-seed-zero"></a>
+<a href="./svg-filter-turbulence-stitch.svg" title="svg-filter-turbulence-stitch (standalone-svg)"><img src="./chromium/svg-filter-turbulence-stitch.png" width="56" alt="svg-filter-turbulence-stitch"></a>
+<a href="./svg-filter-turbulence-stitch-grammar.svg" title="svg-filter-turbulence-stitch-grammar (standalone-svg)"><img src="./chromium/svg-filter-turbulence-stitch-grammar.png" width="56" alt="svg-filter-turbulence-stitch-grammar"></a>
+<a href="./svg-filter-turbulence-stitch-none.svg" title="svg-filter-turbulence-stitch-none (standalone-svg)"><img src="./chromium/svg-filter-turbulence-stitch-none.png" width="56" alt="svg-filter-turbulence-stitch-none"></a>
+<a href="./svg-filter-turbulence-type-fractal.svg" title="svg-filter-turbulence-type-fractal (standalone-svg)"><img src="./chromium/svg-filter-turbulence-type-fractal.png" width="56" alt="svg-filter-turbulence-type-fractal"></a>
+<a href="./svg-filter-turbulence-type-grammar.svg" title="svg-filter-turbulence-type-grammar (standalone-svg)"><img src="./chromium/svg-filter-turbulence-type-grammar.png" width="56" alt="svg-filter-turbulence-type-grammar"></a>
+<a href="./svg-filter-turbulence-type-turbulence.svg" title="svg-filter-turbulence-type-turbulence (standalone-svg)"><img src="./chromium/svg-filter-turbulence-type-turbulence.png" width="56" alt="svg-filter-turbulence-type-turbulence"></a>
+<a href="./svg-filter-turbulence-use.svg" title="svg-filter-turbulence-use (standalone-svg)"><img src="./chromium/svg-filter-turbulence-use.png" width="56" alt="svg-filter-turbulence-use"></a>
+<a href="./svg-filter-turbulence-viewbox.svg" title="svg-filter-turbulence-viewbox (standalone-svg)"><img src="./chromium/svg-filter-turbulence-viewbox.png" width="56" alt="svg-filter-turbulence-viewbox"></a>
 <a href="./svg-filter-units-grammar.svg" title="svg-filter-units-grammar (standalone-svg)"><img src="./chromium/svg-filter-units-grammar.png" width="56" alt="svg-filter-units-grammar"></a>
 <a href="./svg-filter-url-comments.svg" title="svg-filter-url-comments (standalone-svg)"><img src="./chromium/svg-filter-url-comments.png" width="56" alt="svg-filter-url-comments"></a>
 <a href="./svg-filter-url-quoted.svg" title="svg-filter-url-quoted (standalone-svg)"><img src="./chromium/svg-filter-url-quoted.png" width="56" alt="svg-filter-url-quoted"></a>
@@ -638,7 +714,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (140)
+## The refusal register (143)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -674,6 +750,8 @@ its row into the cells above.
 | `svg-filter-component-transfer-transform-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feComponentTransfer's target mapping crosses the pinned-backend table-filter transform precision boundary; skipped svg/rect[3]: unsupported SVG filter: feComponentTransfer's target mapping crosses the pinned-backend table-filter transform precision boundary |
 | `svg-filter-css-functions` | declared | skipped svg/rect[2]: unsupported SVG filter: filter presentation attribute uses CSS filter functions, which are a separate unresolved operation grammar |
 | `svg-filter-css-property` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares filter, which this cascade does not represent |
+| `svg-filter-displacement-clip-precision` | declared | skipped svg/path[1]: unsupported SVG filter: feDisplacementMap crosses the pinned-backend filtered clip-path precision boundary |
+| `svg-filter-displacement-transform-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feDisplacementMap's target mapping crosses the pinned-backend displacement-filter transform precision boundary |
 | `svg-filter-drop-shadow-color-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feDropShadow with an interior-channel flood color in linearRGB crosses the pinned-backend native-shadow color-conversion precision boundary |
 | `svg-filter-drop-shadow-range` | declared | skipped svg/rect[2]: unsupported SVG filter: feDropShadow parameters cross the admitted native-shadow range |
 | `svg-filter-drop-shadow-source-layer-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feDropShadow's source subtree crosses the pinned-backend native-shadow source-layer precision boundary |
@@ -694,7 +772,7 @@ its row into the cells above.
 | `svg-filter-offset-blur-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: a filter graph combines feOffset with Gaussian blur, which crosses the pinned-backend composed-operation precision boundary |
 | `svg-filter-offset-fractional-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feOffset uses a fractional displacement, which crosses the pinned-backend rasterization boundary |
 | `svg-filter-offset-transform-precision` | declared | skipped svg/g[1]/rect[1]: unsupported SVG filter: feOffset's target mapping produces a fractional device-space displacement at the pinned-backend rasterization boundary |
-| `svg-filter-primitive` | declared | skipped svg/rect[2]: unsupported SVG filter: filter graph contains unsupported primitive <feTurbulence> |
+| `svg-filter-primitive` | declared | skipped svg/rect[2]: unsupported SVG filter: filter graph contains unsupported primitive <feConvolveMatrix> |
 | `svg-filter-primitive-empty-region` | declared | skipped svg/rect[2]: unsupported SVG filter: a non-positive filter primitive region is not yet represented as a transparent graph result |
 | `svg-filter-region-calc` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region x uses calc(), whose computed length is not represented at this Stylo pin |
 | `svg-filter-region-range` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region width crosses the unimplemented Web used-length range |
@@ -702,6 +780,7 @@ its row into the cells above.
 | `svg-filter-region-var` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region x uses var(), whose computed length is not represented at this Stylo pin |
 | `svg-filter-root` | **both refuse** | unsupported SVG filter: filter on the root <svg> uses the host CSS-layer coordinate route |
 | `svg-filter-translucent-source-composition-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: a source-derived multi-input filter graph crosses the pinned-backend translucent-source composition precision boundary |
+| `svg-filter-turbulence-transform-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feTurbulence's target mapping crosses the pinned-backend procedural-filter transform precision boundary |
 | `svg-foreign-object` | declared | skipped svg/foreignObject[1]: unsupported element <foreignObject> |
 | `svg-geometry-calc-values` | declared | skipped svg/circle[1]: attribute cx="calc(8px + 8px)" is not a number; skipped svg/circle[2]: attribute cy="calc(8px \* 4)" is not a number; skipped svg/circle[3]: attribute r="calc(4px + 4px)" is not a number |
 | `svg-geometry-css-comments` | declared | skipped svg/circle[1]: attribute cx="/\*\*/16" is not a number; skipped svg/circle[2]: attribute cy="/\*\*/32/\*\*/" is not a number; skipped svg/circle[3]: attribute r="/\*\*/8/\*\*/" is not a number |

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="100%" height="100%" fill="#e2e8f0"/>
+  <path d="M0 0h32v7H0zM32 57h32v7H32z" fill="#cbd5e1"/>
+  <defs><filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB"><feTurbulence baseFrequency=".08" seed="2"/></filter></defs>
+  <g  filter="url(#f)"><g/></g>
+</svg>

@@ -1451,7 +1451,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [x] `<feComposite>`
 - [ ] `<feConvolveMatrix>`
 - [ ] `<feDiffuseLighting>`
-- [ ] `<feDisplacementMap>`
+- [x] `<feDisplacementMap>`
 - [ ] `<feDistantLight>`
 - [x] `<feDropShadow>`
 - [x] `<feFlood>`
@@ -1506,7 +1506,25 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `<feSpecularLighting>`
 - [ ] `<feSpotLight>`
 - [ ] `<feTile>`
-- [ ] `<feTurbulence>`
+- [x] `<feTurbulence>`
+
+> **2026-08-26 close:** `feTurbulence` carries both static procedural-noise
+> formulas, the complete five-parameter attribute vocabulary, generated-source
+> regions, both filter color spaces, graph reuse, safe mappings, `<use>`, and
+> `viewBox`. `feDisplacementMap` carries two ordered images, signed scale, all
+> four non-premultiplied channel selectors, hard regions and object-box units,
+> color conversion, source/generated/procedural maps, source shapes, opacity,
+> safe mappings, `<use>`, and `viewBox`. A user-space procedural filter may
+> paint even when its target contributes a fully transparent source; an
+> object-box filter region on the same zero-area target paints nothing.
+> Seventy-six exact Chromium cells move the complete gate to 685. General
+> affine mappings for both primitives and geometric clipping for displacement
+> refuse by three stable precision names before paint. The shared `type`, `in`,
+> `in2`, `result`, region, interpolation, filter-resource, and dynamics rows
+> remain open for their wider applicability. Swapping the two noise formulas
+> and red/alpha displacement selection made fifty-five new cells fail, up to
+> all 4,096 pixels and maximum channel delta 202; restoration returned the
+> complete gate to green.
 - [ ] `<filter>`
 
 > **2026-08-25 split:** the static filter graph carries safe-kernel
@@ -1865,7 +1883,13 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `aria-valuetext`
 - [ ] `autofocus`
 - [ ] `azimuth`
-- [ ] `baseFrequency`
+- [x] `baseFrequency`
+
+> **2026-08-26 close:** `baseFrequency` applies only to `feTurbulence` and
+> carries the complete SVG one-or-two-number grammar. One value supplies both
+> axes; comma-wsp, leading plus, exponent, and the measured lone trailing comma
+> are carried. Missing, malformed, unit-bearing, and overlong lists select the
+> initial zero pair; either negative member makes the whole pair initial.
 - [ ] `bias`
 - [ ] `class`
 - [x] `clipPathUnits`
@@ -1945,7 +1969,12 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > invalid, wrong-case, whitespace-padded, legacy camelCase, CSS-wide, and
 > draft-only spellings select the initial `normal`; Chromium ignores the
 > sampled `no-composite` spelling without changing a valid mode.
-- [ ] `numOctaves`
+- [x] `numOctaves`
+
+> **2026-08-26 close:** `numOctaves` applies only to `feTurbulence`. Missing or
+> invalid integer text selects one, leading plus and surrounding SVG whitespace
+> are carried, positive values cap at nine, zero reaches the selected formula,
+> and a negative integer produces the measured transparent result.
 - [ ] `offset`
 - [ ] `onabort`
 - [ ] `onafterprint`
@@ -2054,8 +2083,15 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `result`
 - [ ] `role`
 - [ ] `rotate`
-- [ ] `scale`
-- [ ] `seed`
+- [x] `scale`
+- [x] `seed`
+
+> **2026-08-26 close:** displacement `scale` and turbulence `seed` each carry
+> the complete signed SVG-number grammar with initial zero, including leading
+> plus, exponent, and the measured lone trailing comma. Invalid, unit-bearing,
+> percentage, CSS-function, and multi-member text selects the initial. Scale
+> keeps its sign and fractions; the noise formula truncates fractional seed
+> values toward zero as Chromium does.
 - [ ] `side`
 - [x] `slope`
 - [ ] `spacing`
@@ -2064,7 +2100,12 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [x] `spreadMethod`
 - [ ] `startOffset`
 - [ ] `stdDeviation`
-- [ ] `stitchTiles`
+- [x] `stitchTiles`
+
+> **2026-08-26 close:** `stitchTiles` applies only to `feTurbulence` and carries
+> the complete case-sensitive `stitch | noStitch` grammar. Missing, empty,
+> invalid, wrong-case, whitespace-padded, and CSS-wide spellings select the
+> initial `noStitch`; stitched fractional primitive regions are Chromium-baked.
 - [ ] `style`
 - [ ] `surfaceScale`
 - [ ] `systemLanguage`
@@ -2091,13 +2132,19 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `viewBox`
 - [ ] `x1`
 - [ ] `x2`
-- [ ] `xChannelSelector`
+- [x] `xChannelSelector`
 - [ ] `xlink:href`
 - [ ] `xlink:title`
 - [ ] `xml:space`
 - [ ] `y1`
 - [ ] `y2`
-- [ ] `yChannelSelector`
+- [x] `yChannelSelector`
+
+> **2026-08-26 close:** both displacement selectors carry the complete
+> case-sensitive `R | G | B | A` grammar independently. Missing, empty,
+> invalid, wrong-case, whitespace-padded, and CSS-wide spellings select the
+> initial `A`; committed pairs prove that selection occurs on the
+> non-premultiplied displacement image.
 - [ ] `z`
 
 

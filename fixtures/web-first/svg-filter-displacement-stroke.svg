@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="100%" height="100%" fill="#e2e8f0"/>
+  <path d="M0 0h32v7H0zM32 57h32v7H32z" fill="#cbd5e1"/>
+  <defs><filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB"><feFlood flood-color="#e04080" flood-opacity=".7" result="map"/><feDisplacementMap in="SourceGraphic" in2="map" scale="16" xChannelSelector="R" yChannelSelector="G"/></filter></defs>
+  <g  filter="url(#f)"><path d="M10 18h36v25H10z" fill="#dc2626" stroke="#2563eb" stroke-width="7"/></g>
+</svg>

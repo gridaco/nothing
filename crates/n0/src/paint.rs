@@ -27,17 +27,18 @@ use skia_safe::canvas::{SaveLayerFlags, SaveLayerRec};
 use skia_safe::gradient::{Colors as GradientColors, Gradient, Interpolation};
 use skia_safe::{
     image::CachingHint, path_effect::PathEffect, shaders, stroke_rec::InitStyle, Blender, Canvas,
-    ClipOp, Color, Color4f, ColorMatrix, ColorSpace, CubicResampler, Data, Font, Image,
-    ImageFilter, ImageInfo, Matrix, OpBuilder, Paint, PaintCap, PaintJoin, PaintStyle, Path,
-    PathBuilder, PathDirection, PathFillType, PathOp, Point, RRect, Rect, SamplingOptions, Shader,
-    StrokeRec,
+    ClipOp, Color, Color4f, ColorChannel, ColorMatrix, ColorSpace, CubicResampler, Data, Font,
+    ISize, Image, ImageFilter, ImageInfo, Matrix, OpBuilder, Paint, PaintCap, PaintJoin,
+    PaintStyle, Path, PathBuilder, PathDirection, PathFillType, PathOp, Point, RRect, Rect,
+    SamplingOptions, Shader, StrokeRec,
 };
 
 use crate::drawlist::{
     DrawList, ItemKind, PostPaintOpacity, ResolvedClipGeometry, ResolvedClipGeometryKind,
     ResolvedClipLayer, ResolvedClipPath, ResolvedFilter, ResolvedFilterBlend,
-    ResolvedFilterColorSpace, ResolvedFilterComposite, ResolvedFilterInput,
-    ResolvedFilterMorphology, ResolvedFilterPrimitive, ResolvedMaskMode, StrokeDashPhase,
+    ResolvedFilterColorSpace, ResolvedFilterComposite, ResolvedFilterDisplacementChannel,
+    ResolvedFilterInput, ResolvedFilterMorphology, ResolvedFilterPrimitive,
+    ResolvedFilterTurbulenceKind, ResolvedMaskMode, StrokeDashPhase,
 };
 
 /// The gradient family whose local matrix could not be represented by the
@@ -1938,6 +1939,10 @@ struct BuiltFilterResult {
     /// input through one additional source-image boundary. Preserve that
     /// measured boundary through later graph nodes.
     source_preflatten: bool,
+    /// A linear procedural source crosses Chromium's native final restore
+    /// after gamma conversion. The exact generated-source byte restore used
+    /// by solid and composite graphs differs by one channel level here.
+    requires_native_restore: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1999,6 +2004,7 @@ fn convert_filter_space(
         // matrix-specific sRGB restore boundary.
         color_restore: None,
         source_preflatten: result.source_preflatten,
+        requires_native_restore: result.requires_native_restore,
     })
 }
 
@@ -2208,27 +2214,48 @@ fn deterministic_filter_blender(mode: ResolvedFilterBlend) -> Result<Blender, St
     cached_filter_blender(slot, || exact_unorm8_filter_blend_source(expression))
 }
 
+fn sk_displacement_channel(channel: ResolvedFilterDisplacementChannel) -> ColorChannel {
+    match channel {
+        ResolvedFilterDisplacementChannel::Red => ColorChannel::R,
+        ResolvedFilterDisplacementChannel::Green => ColorChannel::G,
+        ResolvedFilterDisplacementChannel::Blue => ColorChannel::B,
+        ResolvedFilterDisplacementChannel::Alpha => ColorChannel::A,
+    }
+}
+
 /// Build one checked private filter graph and its final-composition policy.
 fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
+    let explicit_transparent_source = if filter.source_is_transparent {
+        Some(transparent_filter(filter.region).ok_or_else(|| {
+            "the backend could not construct an explicit transparent filter source".to_string()
+        })?)
+    } else {
+        None
+    };
     let source = BuiltFilterResult {
-        image_filter: None,
+        image_filter: explicit_transparent_source.clone(),
         color_space: ResolvedFilterColorSpace::Srgb,
         source_dependent: true,
         requires_exact_restore: false,
         color_restore: None,
         source_preflatten: false,
+        requires_native_restore: false,
     };
-    let source_alpha =
-        BuiltFilterResult {
-            image_filter: Some(source_alpha_filter().ok_or_else(|| {
+    let source_alpha = BuiltFilterResult {
+        image_filter: if let Some(source) = explicit_transparent_source {
+            Some(source)
+        } else {
+            Some(source_alpha_filter().ok_or_else(|| {
                 "the backend could not construct the SourceAlpha input".to_string()
-            })?),
-            color_space: ResolvedFilterColorSpace::Srgb,
-            source_dependent: true,
-            requires_exact_restore: false,
-            color_restore: None,
-            source_preflatten: false,
-        };
+            })?)
+        },
+        color_space: ResolvedFilterColorSpace::Srgb,
+        source_dependent: true,
+        requires_exact_restore: false,
+        color_restore: None,
+        source_preflatten: false,
+        requires_native_restore: false,
+    };
     let mut results: Vec<BuiltFilterResult> = Vec::with_capacity(filter.nodes.len());
     for node in filter.nodes.iter() {
         let mut inputs = Vec::with_capacity(node.inputs.len());
@@ -2291,6 +2318,12 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 &node.primitive,
                 ResolvedFilterPrimitive::Morphology { radius_x, radius_y, .. }
                     if source_dependent && (*radius_x > 0.0 || *radius_y > 0.0)
+            );
+        let requires_native_restore = inputs.iter().any(|input| input.requires_native_restore)
+            || matches!(
+                &node.primitive,
+                ResolvedFilterPrimitive::Turbulence { .. }
+                    if node.color_space == ResolvedFilterColorSpace::LinearRgb
             );
         let (image_filter, output_space, source_dependent, requires_exact_restore) = match node
             .primitive
@@ -2599,6 +2632,71 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                     requires_exact_restore,
                 )
             }
+            ResolvedFilterPrimitive::Turbulence {
+                kind,
+                base_frequency_x,
+                base_frequency_y,
+                num_octaves,
+                seed,
+                stitch_tiles,
+            } => {
+                // Blink truncates the finite primitive subregion dimensions
+                // to signed integer tile lengths before constructing a
+                // stitched Perlin source. Rust's float-to-int cast has the
+                // same saturating, truncating contract.
+                let tile_size =
+                    stitch_tiles.then(|| ISize::new(node.region.w as i32, node.region.h as i32));
+                let shader = match kind {
+                    ResolvedFilterTurbulenceKind::Turbulence => shaders::turbulence(
+                        (base_frequency_x, base_frequency_y),
+                        usize::from(num_octaves),
+                        seed,
+                        tile_size,
+                    ),
+                    ResolvedFilterTurbulenceKind::FractalNoise => shaders::fractal_noise(
+                        (base_frequency_x, base_frequency_y),
+                        usize::from(num_octaves),
+                        seed,
+                        tile_size,
+                    ),
+                }
+                .ok_or_else(|| "the backend could not construct a turbulence shader".to_string())?;
+                let filter = skia_safe::image_filters::shader(shader, crop).ok_or_else(|| {
+                    "the backend could not construct a turbulence operation".to_string()
+                })?;
+                (Some(filter), node.color_space, false, false)
+            }
+            ResolvedFilterPrimitive::DisplacementMap {
+                scale,
+                x_channel,
+                y_channel,
+            } => {
+                let displacement = inputs
+                    .pop()
+                    .expect("displacement map has two checked inputs");
+                let color = inputs
+                    .pop()
+                    .expect("displacement map has two checked inputs");
+                let filter = skia_safe::image_filters::displacement_map(
+                    (
+                        sk_displacement_channel(x_channel),
+                        sk_displacement_channel(y_channel),
+                    ),
+                    scale,
+                    displacement.image_filter,
+                    color.image_filter,
+                    crop,
+                )
+                .ok_or_else(|| {
+                    "the backend could not construct a displacement-map operation".to_string()
+                })?;
+                (
+                    Some(filter),
+                    node.color_space,
+                    source_dependent,
+                    requires_exact_restore,
+                )
+            }
             ResolvedFilterPrimitive::Merge => {
                 let mut inputs = inputs.into_iter();
                 let image_filter = if let Some(first) = inputs.next() {
@@ -2648,6 +2746,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
             requires_exact_restore,
             color_restore,
             source_preflatten,
+            requires_native_restore,
         });
     }
     let output = results
@@ -2675,6 +2774,8 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
     }
     let restore_blender = if output.requires_exact_restore {
         Some(exact_unorm8_blender(ResolvedFilterComposite::Over)?)
+    } else if output.requires_native_restore {
+        None
     } else if output.color_restore == Some(ColorRestore::Floating) {
         Some(floating_porter_duff_blender(ResolvedFilterComposite::Over)?)
     } else if output.color_restore == Some(ColorRestore::Default) || output.source_dependent {
@@ -2738,6 +2839,8 @@ mod filter_policy_tests {
                     matrix: identity(alpha_offset),
                 },
             }]),
+            may_paint_transparent_input: alpha_offset > 0.0,
+            source_is_transparent: false,
         }
     }
 
@@ -2776,6 +2879,8 @@ mod filter_policy_tests {
                     },
                 },
             ]),
+            may_paint_transparent_input: true,
+            source_is_transparent: false,
         };
         let generated = build_filter(&generated).expect("generated matrix builds");
         assert!(!generated.source_preflatten);
@@ -2804,6 +2909,8 @@ mod filter_policy_tests {
         let source = ResolvedFilter {
             region: REGION,
             nodes: Arc::from([transfer(ResolvedFilterInput::Source, identity_tables(0))]),
+            may_paint_transparent_input: false,
+            source_is_transparent: false,
         };
         let source = build_filter(&source).expect("source table builds");
         assert!(source.source_preflatten);
@@ -2812,6 +2919,8 @@ mod filter_policy_tests {
         let alpha_creating = ResolvedFilter {
             region: REGION,
             nodes: Arc::from([transfer(ResolvedFilterInput::Source, identity_tables(127))]),
+            may_paint_transparent_input: true,
+            source_is_transparent: false,
         };
         let alpha_creating = build_filter(&alpha_creating).expect("alpha table builds");
         assert!(alpha_creating.source_preflatten);
@@ -2830,6 +2939,8 @@ mod filter_policy_tests {
                 },
                 transfer(ResolvedFilterInput::Node(0), identity_tables(0)),
             ]),
+            may_paint_transparent_input: true,
+            source_is_transparent: false,
         };
         let generated = build_filter(&generated).expect("generated table builds");
         assert!(!generated.source_preflatten);
@@ -2851,6 +2962,8 @@ mod filter_policy_tests {
         let one = |node| ResolvedFilter {
             region: REGION,
             nodes: Arc::from([node]),
+            may_paint_transparent_input: false,
+            source_is_transparent: false,
         };
 
         let active = build_filter(&one(morphology(
@@ -2903,6 +3016,8 @@ mod filter_policy_tests {
                     ResolvedFilterColorSpace::Srgb,
                 ),
             ]),
+            may_paint_transparent_input: true,
+            source_is_transparent: false,
         };
         let generated = build_filter(&generated).expect("generated morphology builds");
         assert!(!generated.source_preflatten);
@@ -3338,6 +3453,25 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 canvas.save_layer(&layer);
                 if built_filter.source_preflatten {
                     canvas.save_layer(&SaveLayerRec::default());
+                }
+                if filter.source_is_transparent && filter.may_paint_transparent_input {
+                    // A source-independent primitive still needs a material
+                    // source layer for Skia to evaluate its restore filter.
+                    // Seed that lazy layer with an opaque Src draw; the graph
+                    // cannot observe it because every Source input was replaced
+                    // above by an explicit transparent filter.
+                    let mut seed = Paint::default();
+                    seed.set_blend_mode(skia_safe::BlendMode::Src);
+                    let region = Rect::from_xywh(
+                        filter.region.x,
+                        filter.region.y,
+                        filter.region.w,
+                        filter.region.h,
+                    );
+                    // This raster only forces the lazy-layer restore to run and
+                    // cannot leak into graph output.
+                    seed.set_color(Color::BLACK);
+                    canvas.draw_rect(region, &seed);
                 }
                 scopes.push(Scope::Filter {
                     source_preflatten: built_filter.source_preflatten,

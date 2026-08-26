@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <defs>
+    <clipPath id="clip"><path d="M8 8h42v42H20z"/></clipPath>
+    <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <feFlood flood-color="#e04080" flood-opacity=".7" result="map"/>
+      <feDisplacementMap in="SourceGraphic" in2="map" scale="16"
+                         xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+  <path d="M11 14h38v29H35v8H18v-12h-7z" fill="#dc2626"
+        clip-path="url(#clip)" filter="url(#f)"/>
+</svg>
