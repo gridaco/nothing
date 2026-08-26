@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"
+    color-interpolation-filters="sRGB">
+    <feDiffuseLighting in="SourceAlpha" surfaceScale="6" diffuseConstant="1"
+      lighting-color="#f59e0b" result="lit">
+      <feDistantLight azimuth="225" elevation="45"/>
+    </feDiffuseLighting>
+    <feComposite in="lit" in2="SourceAlpha" operator="in"/>
+  </filter>
+  <g filter="url(#f)">
+    <path d="M10 14h30l13 16-14 22H12L6 34z" fill="#dbeafe"/>
+  </g>
+</svg>

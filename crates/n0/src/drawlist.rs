@@ -125,6 +125,22 @@ pub(crate) enum ResolvedFilterConvolveEdgeMode {
     None,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) enum ResolvedFilterLightSource {
+    Distant {
+        direction: [f32; 3],
+    },
+    Point {
+        location: [f32; 3],
+    },
+    Spot {
+        location: [f32; 3],
+        target: [f32; 3],
+        falloff_exponent: f32,
+        cutoff_angle: f32,
+    },
+}
+
 /// The private filter-operation vocabulary admitted by the painter.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum ResolvedFilterPrimitive {
@@ -188,6 +204,12 @@ pub(crate) enum ResolvedFilterPrimitive {
         target_y: u16,
         edge_mode: ResolvedFilterConvolveEdgeMode,
         preserve_alpha: bool,
+    },
+    DiffuseLighting {
+        surface_scale: f32,
+        diffuse_constant: f32,
+        color: n0_model::model::Color,
+        light: ResolvedFilterLightSource,
     },
     Merge,
 }

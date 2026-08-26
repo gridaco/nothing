@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (741)
+## Chromium-baked cells (812)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -258,6 +258,77 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-filter-convolve-target-y.svg" title="svg-filter-convolve-target-y (standalone-svg)"><img src="./chromium/svg-filter-convolve-target-y.png" width="56" alt="svg-filter-convolve-target-y"></a>
 <a href="./svg-filter-convolve-use.svg" title="svg-filter-convolve-use (standalone-svg)"><img src="./chromium/svg-filter-convolve-use.png" width="56" alt="svg-filter-convolve-use"></a>
 <a href="./svg-filter-convolve-viewbox.svg" title="svg-filter-convolve-viewbox (standalone-svg)"><img src="./chromium/svg-filter-convolve-viewbox.png" width="56" alt="svg-filter-convolve-viewbox"></a>
+<a href="./svg-filter-diffuse-blur-after.svg" title="svg-filter-diffuse-blur-after (standalone-svg)"><img src="./chromium/svg-filter-diffuse-blur-after.png" width="56" alt="svg-filter-diffuse-blur-after"></a>
+<a href="./svg-filter-diffuse-blur-before.svg" title="svg-filter-diffuse-blur-before (standalone-svg)"><img src="./chromium/svg-filter-diffuse-blur-before.png" width="56" alt="svg-filter-diffuse-blur-before"></a>
+<a href="./svg-filter-diffuse-child-order.svg" title="svg-filter-diffuse-child-order (standalone-svg)"><img src="./chromium/svg-filter-diffuse-child-order.png" width="56" alt="svg-filter-diffuse-child-order"></a>
+<a href="./svg-filter-diffuse-color-linear.svg" title="svg-filter-diffuse-color-linear (standalone-svg)"><img src="./chromium/svg-filter-diffuse-color-linear.png" width="56" alt="svg-filter-diffuse-color-linear"></a>
+<a href="./svg-filter-diffuse-color-srgb.svg" title="svg-filter-diffuse-color-srgb (standalone-svg)"><img src="./chromium/svg-filter-diffuse-color-srgb.png" width="56" alt="svg-filter-diffuse-color-srgb"></a>
+<a href="./svg-filter-diffuse-composite-out.svg" title="svg-filter-diffuse-composite-out (standalone-svg)"><img src="./chromium/svg-filter-diffuse-composite-out.png" width="56" alt="svg-filter-diffuse-composite-out"></a>
+<a href="./svg-filter-diffuse-constant-default.svg" title="svg-filter-diffuse-constant-default (standalone-svg)"><img src="./chromium/svg-filter-diffuse-constant-default.png" width="56" alt="svg-filter-diffuse-constant-default"></a>
+<a href="./svg-filter-diffuse-constant-empty-zero.svg" title="svg-filter-diffuse-constant-empty-zero (standalone-svg)"><img src="./chromium/svg-filter-diffuse-constant-empty-zero.png" width="56" alt="svg-filter-diffuse-constant-empty-zero"></a>
+<a href="./svg-filter-diffuse-constant-negative-clamp.svg" title="svg-filter-diffuse-constant-negative-clamp (standalone-svg)"><img src="./chromium/svg-filter-diffuse-constant-negative-clamp.png" width="56" alt="svg-filter-diffuse-constant-negative-clamp"></a>
+<a href="./svg-filter-diffuse-constant-number-exponent.svg" title="svg-filter-diffuse-constant-number-exponent (standalone-svg)"><img src="./chromium/svg-filter-diffuse-constant-number-exponent.png" width="56" alt="svg-filter-diffuse-constant-number-exponent"></a>
+<a href="./svg-filter-diffuse-constant-number-plus.svg" title="svg-filter-diffuse-constant-number-plus (standalone-svg)"><img src="./chromium/svg-filter-diffuse-constant-number-plus.png" width="56" alt="svg-filter-diffuse-constant-number-plus"></a>
+<a href="./svg-filter-diffuse-constant-zero.svg" title="svg-filter-diffuse-constant-zero (standalone-svg)"><img src="./chromium/svg-filter-diffuse-constant-zero.png" width="56" alt="svg-filter-diffuse-constant-zero"></a>
+<a href="./svg-filter-diffuse-convolve-before.svg" title="svg-filter-diffuse-convolve-before (standalone-svg)"><img src="./chromium/svg-filter-diffuse-convolve-before.png" width="56" alt="svg-filter-diffuse-convolve-before"></a>
+<a href="./svg-filter-diffuse-distant.svg" title="svg-filter-diffuse-distant (standalone-svg)"><img src="./chromium/svg-filter-diffuse-distant.png" width="56" alt="svg-filter-diffuse-distant"></a>
+<a href="./svg-filter-diffuse-distant-angle-default.svg" title="svg-filter-diffuse-distant-angle-default (standalone-svg)"><img src="./chromium/svg-filter-diffuse-distant-angle-default.png" width="56" alt="svg-filter-diffuse-distant-angle-default"></a>
+<a href="./svg-filter-diffuse-distant-angle-large.svg" title="svg-filter-diffuse-distant-angle-large (standalone-svg)"><img src="./chromium/svg-filter-diffuse-distant-angle-large.png" width="56" alt="svg-filter-diffuse-distant-angle-large"></a>
+<a href="./svg-filter-diffuse-distant-azimuth-negative.svg" title="svg-filter-diffuse-distant-azimuth-negative (standalone-svg)"><img src="./chromium/svg-filter-diffuse-distant-azimuth-negative.png" width="56" alt="svg-filter-diffuse-distant-azimuth-negative"></a>
+<a href="./svg-filter-diffuse-distant-elevation-negative.svg" title="svg-filter-diffuse-distant-elevation-negative (standalone-svg)"><img src="./chromium/svg-filter-diffuse-distant-elevation-negative.png" width="56" alt="svg-filter-diffuse-distant-elevation-negative"></a>
+<a href="./svg-filter-diffuse-gradient-alpha.svg" title="svg-filter-diffuse-gradient-alpha (standalone-svg)"><img src="./chromium/svg-filter-diffuse-gradient-alpha.png" width="56" alt="svg-filter-diffuse-gradient-alpha"></a>
+<a href="./svg-filter-diffuse-input-default.svg" title="svg-filter-diffuse-input-default (standalone-svg)"><img src="./chromium/svg-filter-diffuse-input-default.png" width="56" alt="svg-filter-diffuse-input-default"></a>
+<a href="./svg-filter-diffuse-input-source-alpha.svg" title="svg-filter-diffuse-input-source-alpha (standalone-svg)"><img src="./chromium/svg-filter-diffuse-input-source-alpha.png" width="56" alt="svg-filter-diffuse-input-source-alpha"></a>
+<a href="./svg-filter-diffuse-input-source-graphic.svg" title="svg-filter-diffuse-input-source-graphic (standalone-svg)"><img src="./chromium/svg-filter-diffuse-input-source-graphic.png" width="56" alt="svg-filter-diffuse-input-source-graphic"></a>
+<a href="./svg-filter-diffuse-kernel-unit-length-drop.svg" title="svg-filter-diffuse-kernel-unit-length-drop (standalone-svg)"><img src="./chromium/svg-filter-diffuse-kernel-unit-length-drop.png" width="56" alt="svg-filter-diffuse-kernel-unit-length-drop"></a>
+<a href="./svg-filter-diffuse-kernel-unit-length-invalid-drop.svg" title="svg-filter-diffuse-kernel-unit-length-invalid-drop (standalone-svg)"><img src="./chromium/svg-filter-diffuse-kernel-unit-length-invalid-drop.png" width="56" alt="svg-filter-diffuse-kernel-unit-length-invalid-drop"></a>
+<a href="./svg-filter-diffuse-light-color-alpha-ignored.svg" title="svg-filter-diffuse-light-color-alpha-ignored (standalone-svg)"><img src="./chromium/svg-filter-diffuse-light-color-alpha-ignored.png" width="56" alt="svg-filter-diffuse-light-color-alpha-ignored"></a>
+<a href="./svg-filter-diffuse-light-color-currentcolor.svg" title="svg-filter-diffuse-light-color-currentcolor (standalone-svg)"><img src="./chromium/svg-filter-diffuse-light-color-currentcolor.png" width="56" alt="svg-filter-diffuse-light-color-currentcolor"></a>
+<a href="./svg-filter-diffuse-light-color-default.svg" title="svg-filter-diffuse-light-color-default (standalone-svg)"><img src="./chromium/svg-filter-diffuse-light-color-default.png" width="56" alt="svg-filter-diffuse-light-color-default"></a>
+<a href="./svg-filter-diffuse-light-color-invalid.svg" title="svg-filter-diffuse-light-color-invalid (standalone-svg)"><img src="./chromium/svg-filter-diffuse-light-color-invalid.png" width="56" alt="svg-filter-diffuse-light-color-invalid"></a>
+<a href="./svg-filter-diffuse-light-color-rgb.svg" title="svg-filter-diffuse-light-color-rgb (standalone-svg)"><img src="./chromium/svg-filter-diffuse-light-color-rgb.png" width="56" alt="svg-filter-diffuse-light-color-rgb"></a>
+<a href="./svg-filter-diffuse-light-color-srgb-function.svg" title="svg-filter-diffuse-light-color-srgb-function (standalone-svg)"><img src="./chromium/svg-filter-diffuse-light-color-srgb-function.png" width="56" alt="svg-filter-diffuse-light-color-srgb-function"></a>
+<a href="./svg-filter-diffuse-light-color-transparent.svg" title="svg-filter-diffuse-light-color-transparent (standalone-svg)"><img src="./chromium/svg-filter-diffuse-light-color-transparent.png" width="56" alt="svg-filter-diffuse-light-color-transparent"></a>
+<a href="./svg-filter-diffuse-missing-light.svg" title="svg-filter-diffuse-missing-light (standalone-svg)"><img src="./chromium/svg-filter-diffuse-missing-light.png" width="56" alt="svg-filter-diffuse-missing-light"></a>
+<a href="./svg-filter-diffuse-nested-light.svg" title="svg-filter-diffuse-nested-light (standalone-svg)"><img src="./chromium/svg-filter-diffuse-nested-light.png" width="56" alt="svg-filter-diffuse-nested-light"></a>
+<a href="./svg-filter-diffuse-nonlight-child.svg" title="svg-filter-diffuse-nonlight-child (standalone-svg)"><img src="./chromium/svg-filter-diffuse-nonlight-child.png" width="56" alt="svg-filter-diffuse-nonlight-child"></a>
+<a href="./svg-filter-diffuse-object-box-overflow.svg" title="svg-filter-diffuse-object-box-overflow (standalone-svg)"><img src="./chromium/svg-filter-diffuse-object-box-overflow.png" width="56" alt="svg-filter-diffuse-object-box-overflow"></a>
+<a href="./svg-filter-diffuse-output-alpha.svg" title="svg-filter-diffuse-output-alpha (standalone-svg)"><img src="./chromium/svg-filter-diffuse-output-alpha.png" width="56" alt="svg-filter-diffuse-output-alpha"></a>
+<a href="./svg-filter-diffuse-point.svg" title="svg-filter-diffuse-point (standalone-svg)"><img src="./chromium/svg-filter-diffuse-point.png" width="56" alt="svg-filter-diffuse-point"></a>
+<a href="./svg-filter-diffuse-point-primitive-units.svg" title="svg-filter-diffuse-point-primitive-units (standalone-svg)"><img src="./chromium/svg-filter-diffuse-point-primitive-units.png" width="56" alt="svg-filter-diffuse-point-primitive-units"></a>
+<a href="./svg-filter-diffuse-point-x-negative.svg" title="svg-filter-diffuse-point-x-negative (standalone-svg)"><img src="./chromium/svg-filter-diffuse-point-x-negative.png" width="56" alt="svg-filter-diffuse-point-x-negative"></a>
+<a href="./svg-filter-diffuse-point-y-negative.svg" title="svg-filter-diffuse-point-y-negative (standalone-svg)"><img src="./chromium/svg-filter-diffuse-point-y-negative.png" width="56" alt="svg-filter-diffuse-point-y-negative"></a>
+<a href="./svg-filter-diffuse-point-z-negative.svg" title="svg-filter-diffuse-point-z-negative (standalone-svg)"><img src="./chromium/svg-filter-diffuse-point-z-negative.png" width="56" alt="svg-filter-diffuse-point-z-negative"></a>
+<a href="./svg-filter-diffuse-region-percent.svg" title="svg-filter-diffuse-region-percent (standalone-svg)"><img src="./chromium/svg-filter-diffuse-region-percent.png" width="56" alt="svg-filter-diffuse-region-percent"></a>
+<a href="./svg-filter-diffuse-spot.svg" title="svg-filter-diffuse-spot (standalone-svg)"><img src="./chromium/svg-filter-diffuse-spot.png" width="56" alt="svg-filter-diffuse-spot"></a>
+<a href="./svg-filter-diffuse-spot-cone-active.svg" title="svg-filter-diffuse-spot-cone-active (standalone-svg)"><img src="./chromium/svg-filter-diffuse-spot-cone-active.png" width="56" alt="svg-filter-diffuse-spot-cone-active"></a>
+<a href="./svg-filter-diffuse-spot-cone-default.svg" title="svg-filter-diffuse-spot-cone-default (standalone-svg)"><img src="./chromium/svg-filter-diffuse-spot-cone-default.png" width="56" alt="svg-filter-diffuse-spot-cone-default"></a>
+<a href="./svg-filter-diffuse-spot-cone-negative.svg" title="svg-filter-diffuse-spot-cone-negative (standalone-svg)"><img src="./chromium/svg-filter-diffuse-spot-cone-negative.png" width="56" alt="svg-filter-diffuse-spot-cone-negative"></a>
+<a href="./svg-filter-diffuse-spot-cone-outside.svg" title="svg-filter-diffuse-spot-cone-outside (standalone-svg)"><img src="./chromium/svg-filter-diffuse-spot-cone-outside.png" width="56" alt="svg-filter-diffuse-spot-cone-outside"></a>
+<a href="./svg-filter-diffuse-spot-degenerate.svg" title="svg-filter-diffuse-spot-degenerate (standalone-svg)"><img src="./chromium/svg-filter-diffuse-spot-degenerate.png" width="56" alt="svg-filter-diffuse-spot-degenerate"></a>
+<a href="./svg-filter-diffuse-spot-exponent-default.svg" title="svg-filter-diffuse-spot-exponent-default (standalone-svg)"><img src="./chromium/svg-filter-diffuse-spot-exponent-default.png" width="56" alt="svg-filter-diffuse-spot-exponent-default"></a>
+<a href="./svg-filter-diffuse-spot-exponent-lower-clamp.svg" title="svg-filter-diffuse-spot-exponent-lower-clamp (standalone-svg)"><img src="./chromium/svg-filter-diffuse-spot-exponent-lower-clamp.png" width="56" alt="svg-filter-diffuse-spot-exponent-lower-clamp"></a>
+<a href="./svg-filter-diffuse-spot-exponent-upper-clamp.svg" title="svg-filter-diffuse-spot-exponent-upper-clamp (standalone-svg)"><img src="./chromium/svg-filter-diffuse-spot-exponent-upper-clamp.png" width="56" alt="svg-filter-diffuse-spot-exponent-upper-clamp"></a>
+<a href="./svg-filter-diffuse-spot-primitive-units.svg" title="svg-filter-diffuse-spot-primitive-units (standalone-svg)"><img src="./chromium/svg-filter-diffuse-spot-primitive-units.png" width="56" alt="svg-filter-diffuse-spot-primitive-units"></a>
+<a href="./svg-filter-diffuse-spot-target-x.svg" title="svg-filter-diffuse-spot-target-x (standalone-svg)"><img src="./chromium/svg-filter-diffuse-spot-target-x.png" width="56" alt="svg-filter-diffuse-spot-target-x"></a>
+<a href="./svg-filter-diffuse-spot-target-y.svg" title="svg-filter-diffuse-spot-target-y (standalone-svg)"><img src="./chromium/svg-filter-diffuse-spot-target-y.png" width="56" alt="svg-filter-diffuse-spot-target-y"></a>
+<a href="./svg-filter-diffuse-spot-target-z.svg" title="svg-filter-diffuse-spot-target-z (standalone-svg)"><img src="./chromium/svg-filter-diffuse-spot-target-z.png" width="56" alt="svg-filter-diffuse-spot-target-z"></a>
+<a href="./svg-filter-diffuse-stroke.svg" title="svg-filter-diffuse-stroke (standalone-svg)"><img src="./chromium/svg-filter-diffuse-stroke.png" width="56" alt="svg-filter-diffuse-stroke"></a>
+<a href="./svg-filter-diffuse-surface-default.svg" title="svg-filter-diffuse-surface-default (standalone-svg)"><img src="./chromium/svg-filter-diffuse-surface-default.png" width="56" alt="svg-filter-diffuse-surface-default"></a>
+<a href="./svg-filter-diffuse-surface-empty-zero.svg" title="svg-filter-diffuse-surface-empty-zero (standalone-svg)"><img src="./chromium/svg-filter-diffuse-surface-empty-zero.png" width="56" alt="svg-filter-diffuse-surface-empty-zero"></a>
+<a href="./svg-filter-diffuse-surface-max.svg" title="svg-filter-diffuse-surface-max (standalone-svg)"><img src="./chromium/svg-filter-diffuse-surface-max.png" width="56" alt="svg-filter-diffuse-surface-max"></a>
+<a href="./svg-filter-diffuse-surface-negative.svg" title="svg-filter-diffuse-surface-negative (standalone-svg)"><img src="./chromium/svg-filter-diffuse-surface-negative.png" width="56" alt="svg-filter-diffuse-surface-negative"></a>
+<a href="./svg-filter-diffuse-surface-number-exponent.svg" title="svg-filter-diffuse-surface-number-exponent (standalone-svg)"><img src="./chromium/svg-filter-diffuse-surface-number-exponent.png" width="56" alt="svg-filter-diffuse-surface-number-exponent"></a>
+<a href="./svg-filter-diffuse-surface-number-plus.svg" title="svg-filter-diffuse-surface-number-plus (standalone-svg)"><img src="./chromium/svg-filter-diffuse-surface-number-plus.png" width="56" alt="svg-filter-diffuse-surface-number-plus"></a>
+<a href="./svg-filter-diffuse-surface-zero.svg" title="svg-filter-diffuse-surface-zero (standalone-svg)"><img src="./chromium/svg-filter-diffuse-surface-zero.png" width="56" alt="svg-filter-diffuse-surface-zero"></a>
+<a href="./svg-filter-diffuse-target-clip.svg" title="svg-filter-diffuse-target-clip (standalone-svg)"><img src="./chromium/svg-filter-diffuse-target-clip.png" width="56" alt="svg-filter-diffuse-target-clip"></a>
+<a href="./svg-filter-diffuse-target-mask.svg" title="svg-filter-diffuse-target-mask (standalone-svg)"><img src="./chromium/svg-filter-diffuse-target-mask.png" width="56" alt="svg-filter-diffuse-target-mask"></a>
+<a href="./svg-filter-diffuse-target-opacity.svg" title="svg-filter-diffuse-target-opacity (standalone-svg)"><img src="./chromium/svg-filter-diffuse-target-opacity.png" width="56" alt="svg-filter-diffuse-target-opacity"></a>
+<a href="./svg-filter-diffuse-transform-axis.svg" title="svg-filter-diffuse-transform-axis (standalone-svg)"><img src="./chromium/svg-filter-diffuse-transform-axis.png" width="56" alt="svg-filter-diffuse-transform-axis"></a>
+<a href="./svg-filter-diffuse-transform-quarter-turn.svg" title="svg-filter-diffuse-transform-quarter-turn (standalone-svg)"><img src="./chromium/svg-filter-diffuse-transform-quarter-turn.png" width="56" alt="svg-filter-diffuse-transform-quarter-turn"></a>
+<a href="./svg-filter-diffuse-transform-reflection.svg" title="svg-filter-diffuse-transform-reflection (standalone-svg)"><img src="./chromium/svg-filter-diffuse-transform-reflection.png" width="56" alt="svg-filter-diffuse-transform-reflection"></a>
+<a href="./svg-filter-diffuse-use.svg" title="svg-filter-diffuse-use (standalone-svg)"><img src="./chromium/svg-filter-diffuse-use.png" width="56" alt="svg-filter-diffuse-use"></a>
+<a href="./svg-filter-diffuse-viewbox.svg" title="svg-filter-diffuse-viewbox (standalone-svg)"><img src="./chromium/svg-filter-diffuse-viewbox.png" width="56" alt="svg-filter-diffuse-viewbox"></a>
 <a href="./svg-filter-displacement-color-linear.svg" title="svg-filter-displacement-color-linear (standalone-svg)"><img src="./chromium/svg-filter-displacement-color-linear.png" width="56" alt="svg-filter-displacement-color-linear"></a>
 <a href="./svg-filter-displacement-color-srgb.svg" title="svg-filter-displacement-color-srgb (standalone-svg)"><img src="./chromium/svg-filter-displacement-color-srgb.png" width="56" alt="svg-filter-displacement-color-srgb"></a>
 <a href="./svg-filter-displacement-default.svg" title="svg-filter-displacement-default (standalone-svg)"><img src="./chromium/svg-filter-displacement-default.png" width="56" alt="svg-filter-displacement-default"></a>
@@ -770,7 +841,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (146)
+## The refusal register (152)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -809,6 +880,8 @@ its row into the cells above.
 | `svg-filter-convolve-transform-precision` | declared | skipped svg/g[1]: unsupported SVG filter: feConvolveMatrix's target mapping crosses the pinned-backend convolution-filter transform precision boundary |
 | `svg-filter-css-functions` | declared | skipped svg/rect[2]: unsupported SVG filter: filter presentation attribute uses CSS filter functions, which are a separate unresolved operation grammar |
 | `svg-filter-css-property` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares filter, which this cascade does not represent |
+| `svg-filter-diffuse-composition-precision` | declared | skipped svg/g[1]: unsupported SVG filter: feDiffuseLighting as the foreground of feComposite in/atop against a source-derived second input crosses the pinned-backend lighting-composition precision boundary |
+| `svg-filter-diffuse-transform-precision` | declared | skipped svg/g[1]: unsupported SVG filter: feDiffuseLighting's target mapping crosses the pinned-backend lighting-filter transform precision boundary |
 | `svg-filter-displacement-clip-precision` | declared | skipped svg/path[1]: unsupported SVG filter: feDisplacementMap crosses the pinned-backend filtered clip-path precision boundary |
 | `svg-filter-displacement-transform-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feDisplacementMap's target mapping crosses the pinned-backend displacement-filter transform precision boundary |
 | `svg-filter-drop-shadow-color-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feDropShadow with an interior-channel flood color in linearRGB crosses the pinned-backend native-shadow color-conversion precision boundary |
@@ -823,6 +896,10 @@ its row into the cells above.
 | `svg-filter-flood-opacity-calc` | declared | skipped svg/rect[2]: unsupported SVG filter: feFlood flood-opacity is a CSS function this build cannot evaluate without a computation context |
 | `svg-filter-flood-var` | declared | skipped svg/rect[2]: unsupported SVG filter: feFlood flood-color resolves through var(), whose substitution is not represented at this Stylo pin |
 | `svg-filter-href` | declared | skipped svg/rect[2]: unsupported SVG filter: <filter> href inheritance is not yet resolved |
+| `svg-filter-lighting-color-css` | declared | skipped svg/rect[1]: unsupported SVG filter: CSS lighting-color on <feDiffuseLighting> is not represented by the pinned cascade; its direct presentation attribute is a separate ingress |
+| `svg-filter-lighting-color-inherit` | declared | skipped svg/rect[1]: unsupported SVG filter: feDiffuseLighting lighting-color uses inherit, which needs the unavailable cascaded lighting-color longhand |
+| `svg-filter-lighting-color-syntax` | declared | skipped svg/rect[1]: unsupported SVG filter: feDiffuseLighting lighting-color is outside the admitted color slice: color space Lab is not yet gated against Chromium |
+| `svg-filter-lighting-color-var` | declared | skipped svg/rect[1]: unsupported SVG filter: feDiffuseLighting lighting-color resolves through var(), whose substitution is not represented at this Stylo pin |
 | `svg-filter-list` | declared | skipped svg/rect[2]: unsupported SVG filter: filter presentation attribute uses multiple filter operations |
 | `svg-filter-list-quoted` | declared | skipped svg/rect[2]: unsupported SVG filter: filter presentation attribute uses multiple filter operations |
 | `svg-filter-morphology-filled-ellipse-precision` | declared | skipped svg/circle[1]: unsupported SVG filter: feMorphology's active source image crosses the retained filled-ellipse coverage boundary |
@@ -831,7 +908,7 @@ its row into the cells above.
 | `svg-filter-offset-blur-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: a filter graph combines feOffset with Gaussian blur, which crosses the pinned-backend composed-operation precision boundary |
 | `svg-filter-offset-fractional-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feOffset uses a fractional displacement, which crosses the pinned-backend rasterization boundary |
 | `svg-filter-offset-transform-precision` | declared | skipped svg/g[1]/rect[1]: unsupported SVG filter: feOffset's target mapping produces a fractional device-space displacement at the pinned-backend rasterization boundary |
-| `svg-filter-primitive` | declared | skipped svg/rect[2]: unsupported SVG filter: filter graph contains unsupported primitive <feDiffuseLighting> |
+| `svg-filter-primitive` | declared | skipped svg/rect[2]: unsupported SVG filter: filter graph contains unsupported primitive <feSpecularLighting> |
 | `svg-filter-primitive-empty-region` | declared | skipped svg/rect[2]: unsupported SVG filter: a non-positive filter primitive region is not yet represented as a transparent graph result |
 | `svg-filter-region-calc` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region x uses calc(), whose computed length is not represented at this Stylo pin |
 | `svg-filter-region-range` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region width crosses the unimplemented Web used-length range |

@@ -6,9 +6,9 @@ use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
     Filter, FilterBlend, FilterChannelTables, FilterColorSpace, FilterComposite,
-    FilterConvolveEdgeMode, FilterDisplacementChannel, FilterError, FilterInput, FilterMorphology,
-    FilterNode, FilterPrimitive, FilterProgram, FilterProgramError, FilterTurbulenceKind,
-    MAX_FILTER_CONVOLVE_KERNEL_VALUES, MAX_FILTER_NODES,
+    FilterConvolveEdgeMode, FilterDisplacementChannel, FilterError, FilterInput, FilterLightSource,
+    FilterMorphology, FilterNode, FilterPrimitive, FilterProgram, FilterProgramError,
+    FilterTurbulenceKind, MAX_FILTER_CONVOLVE_KERNEL_VALUES, MAX_FILTER_NODES,
 };
 
 fn blur(input: FilterInput, sigma_x: f32, sigma_y: f32) -> FilterNode {
@@ -731,6 +731,124 @@ fn convolution_has_one_input_and_a_bounded_finite_checked_kernel() {
         )]))
         .expect("preserved alpha suppresses generated RGB on a transparent input");
         assert!(!preserved.may_paint_transparent_input());
+    }
+}
+
+#[test]
+fn diffuse_lighting_has_one_input_and_a_checked_shared_light_source() {
+    let region = Rectangle::from_xywh(0.0, 0.0, 10.0, 10.0);
+    let lighting = |inputs: Arc<[FilterInput]>, surface_scale, diffuse_constant, color, light| {
+        FilterNode::new(
+            inputs,
+            region,
+            FilterColorSpace::LinearRgb,
+            FilterPrimitive::DiffuseLighting {
+                surface_scale,
+                diffuse_constant,
+                color,
+                light,
+            },
+        )
+    };
+    let distant = FilterLightSource::Distant {
+        direction: [0.5, -0.5, std::f32::consts::FRAC_1_SQRT_2],
+    };
+
+    assert_eq!(
+        FilterProgram::new(Arc::from([lighting(
+            Arc::from([]),
+            1.0,
+            1.0,
+            cg::CGColor::WHITE,
+            distant,
+        )])),
+        Err(FilterProgramError::InvalidInputCount {
+            node: 0,
+            expected: 1,
+            actual: 0,
+        })
+    );
+
+    for light in [
+        distant,
+        FilterLightSource::Point {
+            location: [-4.0, 8.0, 12.0],
+        },
+        FilterLightSource::Spot {
+            location: [2.0, 3.0, 8.0],
+            target: [7.0, 6.0, 0.0],
+            falloff_exponent: 128.0,
+            cutoff_angle: -35.0,
+        },
+    ] {
+        let program = FilterProgram::new(Arc::from([lighting(
+            Arc::from([FilterInput::SourceAlpha]),
+            -3.0,
+            0.0,
+            cg::CGColor::from_rgb(0x25, 0x63, 0xeb),
+            light,
+        )]))
+        .expect("a finite diffuse operation with any resolved light kind is admitted");
+        assert!(program.may_paint_transparent_input());
+    }
+
+    for node in [
+        lighting(
+            Arc::from([FilterInput::Source]),
+            f32::INFINITY,
+            1.0,
+            cg::CGColor::WHITE,
+            distant,
+        ),
+        lighting(
+            Arc::from([FilterInput::Source]),
+            1.0,
+            -1.0,
+            cg::CGColor::WHITE,
+            distant,
+        ),
+        lighting(
+            Arc::from([FilterInput::Source]),
+            1.0,
+            1.0,
+            cg::CGColor::from_rgba(255, 255, 255, 128),
+            distant,
+        ),
+        lighting(
+            Arc::from([FilterInput::Source]),
+            1.0,
+            1.0,
+            cg::CGColor::WHITE,
+            FilterLightSource::Distant {
+                direction: [0.0, 0.0, 0.0],
+            },
+        ),
+        lighting(
+            Arc::from([FilterInput::Source]),
+            1.0,
+            1.0,
+            cg::CGColor::WHITE,
+            FilterLightSource::Point {
+                location: [0.0, f32::NAN, 0.0],
+            },
+        ),
+        lighting(
+            Arc::from([FilterInput::Source]),
+            1.0,
+            1.0,
+            cg::CGColor::WHITE,
+            FilterLightSource::Spot {
+                location: [0.0, 0.0, 1.0],
+                target: [0.0, 0.0, 0.0],
+                falloff_exponent: 129.0,
+                cutoff_angle: 0.0,
+            },
+        ),
+    ] {
+        assert_eq!(
+            FilterProgram::new(Arc::from([node])),
+            Err(FilterProgramError::InvalidDiffuseLighting { node: 0 })
+        );
     }
 }
 

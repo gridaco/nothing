@@ -8,7 +8,7 @@
 
 use std::sync::Arc;
 
-use cg::CGColor32F;
+use cg::{CGColor, CGColor32F};
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 
@@ -110,6 +110,27 @@ pub enum FilterConvolveEdgeMode {
     Duplicate,
     Wrap,
     None,
+}
+
+/// One already-resolved light source for a surface-lighting operation.
+///
+/// Source angles and coordinate-unit conventions stop at the producer. The
+/// contract carries the direction or three-dimensional points consumed by
+/// the image operation, with no element or attribute vocabulary attached.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum FilterLightSource {
+    Distant {
+        direction: [f32; 3],
+    },
+    Point {
+        location: [f32; 3],
+    },
+    Spot {
+        location: [f32; 3],
+        target: [f32; 3],
+        falloff_exponent: f32,
+        cutoff_angle: f32,
+    },
 }
 
 /// Four exact byte lookup tables for one non-premultiplied RGBA operation.
@@ -236,6 +257,15 @@ pub enum FilterPrimitive {
         edge_mode: FilterConvolveEdgeMode,
         preserve_alpha: bool,
     },
+    /// Diffuse illumination derived from one input's alpha height field.
+    DiffuseLighting {
+        surface_scale: f32,
+        diffuse_constant: f32,
+        /// Opaque resolved sRGB light colour. A painter adapts its channels
+        /// to the operation's declared interpolation space.
+        color: CGColor,
+        light: FilterLightSource,
+    },
     Merge,
 }
 
@@ -329,6 +359,9 @@ pub enum FilterProgramError {
     InvalidConvolveMatrix {
         node: usize,
     },
+    InvalidDiffuseLighting {
+        node: usize,
+    },
 }
 
 impl std::fmt::Display for FilterProgramError {
@@ -392,6 +425,10 @@ impl std::fmt::Display for FilterProgramError {
                 f,
                 "filter node {node} has an invalid convolution order, kernel, target, gain, or bias"
             ),
+            Self::InvalidDiffuseLighting { node } => write!(
+                f,
+                "filter node {node} has an invalid diffuse-light parameter, colour, or light source"
+            ),
         }
     }
 }
@@ -418,7 +455,8 @@ impl FilterProgram {
                 | FilterPrimitive::ColorMatrix { .. }
                 | FilterPrimitive::ComponentTransfer { .. }
                 | FilterPrimitive::Morphology { .. }
-                | FilterPrimitive::ConvolveMatrix { .. } => Some(1),
+                | FilterPrimitive::ConvolveMatrix { .. }
+                | FilterPrimitive::DiffuseLighting { .. } => Some(1),
                 FilterPrimitive::SolidColor { .. } | FilterPrimitive::Turbulence { .. } => Some(0),
                 FilterPrimitive::Composite { .. }
                 | FilterPrimitive::Blend { .. }
@@ -530,6 +568,19 @@ impl FilterProgram {
                 {
                     return Err(FilterProgramError::InvalidConvolveMatrix { node: index });
                 }
+                FilterPrimitive::DiffuseLighting {
+                    surface_scale,
+                    diffuse_constant,
+                    color,
+                    light,
+                } if !surface_scale.is_finite()
+                    || !diffuse_constant.is_finite()
+                    || diffuse_constant < 0.0
+                    || color.a() != u8::MAX
+                    || !valid_light(light) =>
+                {
+                    return Err(FilterProgramError::InvalidDiffuseLighting { node: index });
+                }
                 FilterPrimitive::Offset { .. }
                 | FilterPrimitive::SolidColor { .. }
                 | FilterPrimitive::Composite { .. }
@@ -541,6 +592,7 @@ impl FilterProgram {
                 | FilterPrimitive::Turbulence { .. }
                 | FilterPrimitive::DisplacementMap { .. }
                 | FilterPrimitive::ConvolveMatrix { .. }
+                | FilterPrimitive::DiffuseLighting { .. }
                 | FilterPrimitive::Merge => {}
             }
         }
@@ -572,6 +624,7 @@ impl FilterProgram {
                 preserve_alpha,
                 ..
             } => !preserve_alpha && bias > 0.0,
+            FilterPrimitive::DiffuseLighting { .. } => true,
             FilterPrimitive::GaussianBlur { .. }
             | FilterPrimitive::Offset { .. }
             | FilterPrimitive::Composite { .. }
@@ -581,6 +634,37 @@ impl FilterProgram {
             | FilterPrimitive::DisplacementMap { .. }
             | FilterPrimitive::Merge => false,
         })
+    }
+}
+
+fn valid_light(light: FilterLightSource) -> bool {
+    match light {
+        FilterLightSource::Distant { direction } => {
+            direction.into_iter().all(f32::is_finite)
+                && direction
+                    .into_iter()
+                    .all(|component| (-1.0..=1.0).contains(&component))
+                && direction
+                    .into_iter()
+                    .map(|component| component * component)
+                    .sum::<f32>()
+                    > 0.0
+        }
+        FilterLightSource::Point { location } => location.into_iter().all(f32::is_finite),
+        FilterLightSource::Spot {
+            location,
+            target,
+            falloff_exponent,
+            cutoff_angle,
+        } => {
+            location.into_iter().all(f32::is_finite)
+                && target.into_iter().all(f32::is_finite)
+                && falloff_exponent.is_finite()
+                && (1.0..=128.0).contains(&falloff_exponent)
+                && cutoff_angle.is_finite()
+                && cutoff_angle != 0.0
+                && (-90.0..=90.0).contains(&cutoff_angle)
+        }
     }
 }
 

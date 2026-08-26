@@ -29,7 +29,7 @@ use skia_safe::{
     image::CachingHint, path_effect::PathEffect, shaders, stroke_rec::InitStyle, Blender, Canvas,
     ClipOp, Color, Color4f, ColorChannel, ColorMatrix, ColorSpace, CubicResampler, Data, Font,
     ISize, Image, ImageFilter, ImageInfo, Matrix, OpBuilder, Paint, PaintCap, PaintJoin,
-    PaintStyle, Path, PathBuilder, PathDirection, PathFillType, PathOp, Point, RRect, Rect,
+    PaintStyle, Path, PathBuilder, PathDirection, PathFillType, PathOp, Point, Point3, RRect, Rect,
     SamplingOptions, Shader, StrokeRec,
 };
 
@@ -37,8 +37,9 @@ use crate::drawlist::{
     DrawList, ItemKind, PostPaintOpacity, ResolvedClipGeometry, ResolvedClipGeometryKind,
     ResolvedClipLayer, ResolvedClipPath, ResolvedFilter, ResolvedFilterBlend,
     ResolvedFilterColorSpace, ResolvedFilterComposite, ResolvedFilterConvolveEdgeMode,
-    ResolvedFilterDisplacementChannel, ResolvedFilterInput, ResolvedFilterMorphology,
-    ResolvedFilterPrimitive, ResolvedFilterTurbulenceKind, ResolvedMaskMode, StrokeDashPhase,
+    ResolvedFilterDisplacementChannel, ResolvedFilterInput, ResolvedFilterLightSource,
+    ResolvedFilterMorphology, ResolvedFilterPrimitive, ResolvedFilterTurbulenceKind,
+    ResolvedMaskMode, StrokeDashPhase,
 };
 
 /// The gradient family whose local matrix could not be represented by the
@@ -2339,6 +2340,34 @@ fn sk_convolve_tile_mode(mode: ResolvedFilterConvolveEdgeMode) -> skia_safe::Til
     }
 }
 
+fn sk_lighting_color(color: n0_model::model::Color, space: ResolvedFilterColorSpace) -> Color {
+    let argb = color.argb();
+    let channel = |shift| ((argb >> shift) & 0xff_u32) as u8;
+    let to_linear_byte = |component: u8| {
+        let component = f32::from(component) / 255.0;
+        let linear = if component <= 0.04045 {
+            component / 12.92
+        } else {
+            ((component + 0.055) / 1.055).powf(2.4)
+        };
+        (linear * 255.0).round() as u8
+    };
+    let (r, g, b) = (channel(16), channel(8), channel(0));
+    match space {
+        ResolvedFilterColorSpace::Srgb => Color::from_argb(u8::MAX, r, g, b),
+        ResolvedFilterColorSpace::LinearRgb => Color::from_argb(
+            u8::MAX,
+            to_linear_byte(r),
+            to_linear_byte(g),
+            to_linear_byte(b),
+        ),
+    }
+}
+
+fn sk_point3(point: [f32; 3]) -> Point3 {
+    Point3::new(point[0], point[1], point[2])
+}
+
 /// Build one checked private filter graph and its final-composition policy.
 fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
     let explicit_transparent_source = if filter.source_is_transparent {
@@ -2419,6 +2448,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                     ColorRestore::Floating
                 })
             }
+            ResolvedFilterPrimitive::DiffuseLighting { .. } => Some(ColorRestore::Default),
             ResolvedFilterPrimitive::SolidColor { .. } => None,
             _ => inherited_color_restore,
         };
@@ -2899,6 +2929,67 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                         || node.color_space == ResolvedFilterColorSpace::Srgb,
                 )
             }
+            ResolvedFilterPrimitive::DiffuseLighting {
+                surface_scale,
+                diffuse_constant,
+                color,
+                light,
+            } => {
+                let input = inputs
+                    .pop()
+                    .expect("diffuse lighting has one checked input");
+                procedural_provenance = false;
+                procedural_unorm8_blend = false;
+                let color = sk_lighting_color(color, node.color_space);
+                let filter = match light {
+                    ResolvedFilterLightSource::Distant { direction } => {
+                        skia_safe::image_filters::distant_lit_diffuse(
+                            sk_point3(direction),
+                            color,
+                            surface_scale,
+                            diffuse_constant,
+                            input.image_filter,
+                            crop,
+                        )
+                    }
+                    ResolvedFilterLightSource::Point { location } => {
+                        skia_safe::image_filters::point_lit_diffuse(
+                            sk_point3(location),
+                            color,
+                            surface_scale,
+                            diffuse_constant,
+                            input.image_filter,
+                            crop,
+                        )
+                    }
+                    ResolvedFilterLightSource::Spot {
+                        location,
+                        target,
+                        falloff_exponent,
+                        cutoff_angle,
+                    } => skia_safe::image_filters::spot_lit_diffuse(
+                        sk_point3(location),
+                        sk_point3(target),
+                        falloff_exponent,
+                        cutoff_angle,
+                        color,
+                        surface_scale,
+                        diffuse_constant,
+                        input.image_filter,
+                        crop,
+                    ),
+                }
+                .ok_or_else(|| {
+                    "the backend could not construct a diffuse-lighting operation".to_string()
+                })?;
+                (
+                    Some(filter),
+                    node.color_space,
+                    input.source_dependent,
+                    input.requires_exact_restore
+                        || node.color_space == ResolvedFilterColorSpace::Srgb,
+                )
+            }
             ResolvedFilterPrimitive::Merge => {
                 let mut inputs = inputs.into_iter();
                 let image_filter = if let Some(first) = inputs.next() {
@@ -3000,10 +3091,11 @@ mod filter_policy_tests {
     use std::sync::Arc;
 
     use n0_model::math::RectF;
-    use n0_model::model::Color32F;
+    use n0_model::model::{Color as ModelColor, Color32F};
 
     use crate::drawlist::{
-        ResolvedFilterConvolveEdgeMode, ResolvedFilterMorphology, ResolvedFilterNode,
+        ResolvedFilterConvolveEdgeMode, ResolvedFilterLightSource, ResolvedFilterMorphology,
+        ResolvedFilterNode,
     };
 
     use super::{
@@ -3276,6 +3368,54 @@ mod filter_policy_tests {
         ))
         .expect("preserved alpha remains a checked native operation");
         assert!(alpha_preserving.source_preflatten);
+    }
+
+    #[test]
+    fn every_checked_diffuse_light_kind_builds_with_its_color_space_policy() {
+        let lights = [
+            ResolvedFilterLightSource::Distant {
+                direction: [0.5, -0.5, std::f32::consts::FRAC_1_SQRT_2],
+            },
+            ResolvedFilterLightSource::Point {
+                location: [4.0, 8.0, 12.0],
+            },
+            ResolvedFilterLightSource::Spot {
+                location: [2.0, 3.0, 8.0],
+                target: [7.0, 6.0, 0.0],
+                falloff_exponent: 8.0,
+                cutoff_angle: 35.0,
+            },
+        ];
+        for color_space in [
+            ResolvedFilterColorSpace::Srgb,
+            ResolvedFilterColorSpace::LinearRgb,
+        ] {
+            for light in lights {
+                let filter = ResolvedFilter {
+                    region: REGION,
+                    nodes: Arc::from([ResolvedFilterNode {
+                        inputs: Arc::from([ResolvedFilterInput::SourceAlpha]),
+                        region: REGION,
+                        color_space,
+                        primitive: ResolvedFilterPrimitive::DiffuseLighting {
+                            surface_scale: -2.0,
+                            diffuse_constant: 0.75,
+                            color: ModelColor(0xffff_b347),
+                            light,
+                        },
+                    }]),
+                    may_paint_transparent_input: true,
+                    source_is_transparent: false,
+                };
+                let built = build_filter(&filter).expect("checked native diffuse light builds");
+                assert!(!built.source_preflatten);
+                assert_eq!(
+                    built.restore_blender.is_some(),
+                    color_space == ResolvedFilterColorSpace::Srgb,
+                    "sRGB lighting uses the architecture-neutral outer restore; gamma conversion ends it"
+                );
+            }
+        }
     }
 }
 

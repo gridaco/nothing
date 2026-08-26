@@ -259,8 +259,11 @@ cargo run -p n0_cli --bin n0 -- \
   authored result names. Its current operations are `feGaussianBlur`, integer
   `feOffset`, zero-input `feFlood`, all seven `feComposite` operators,
   all sixteen two-input `feBlend` modes, ordered `feMerge`/`feMergeNode`,
-  native one-input `feDropShadow`, and one-input `feColorMatrix` and
-  `feComponentTransfer`, plus one-input `feMorphology`. Inputs
+  native one-input `feDropShadow`, one-input `feColorMatrix`,
+  `feComponentTransfer`, `feMorphology`, `feConvolveMatrix`, and
+  `feDiffuseLighting` with one direct `feDistantLight`, `fePointLight`, or
+  `feSpotLight` child, plus zero-input `feTurbulence` and two-input
+  `feDisplacementMap`. Inputs
   resolve to `SourceGraphic`, `SourceAlpha`, the previous result, or an earlier
   named result before the frame; unknown values follow Chromium's measured
   first/previous fallback.
@@ -430,6 +433,36 @@ cargo run -p n0_cli --bin n0 -- \
   accepted kernel-size strategy through 256 stay admitted. Representative
   fallback branches are celled; the wider invalid-spelling matrix is measured,
   not all separately celled.
+  Diffuse lighting consumes one input's alpha as a height field and carries one
+  already-resolved distant, point, or spot light. The first recognized direct
+  light child wins; non-light children are ignored, nested lights do not
+  participate, and no light produces transparent black. The operation's own
+  output is opaque across its primitive subregion, including opaque black at
+  zero diffuse constant. Missing input follows the established first/previous
+  graph fallback; SourceGraphic and SourceAlpha therefore give the same
+  illumination for the same source coverage.
+  `surfaceScale` and `diffuseConstant` carry signed SVG numbers with initial
+  one; an exactly empty attribute becomes zero, malformed nonempty text uses
+  the initial, surface height keeps its sign, and a negative diffuse constant
+  clamps to zero. Distant angles are signed and periodic. Point and spot
+  coordinates default independently to zero. Under object-box primitive units,
+  their x/y coordinates use the target axes and z uses the normalized diagonal.
+  Spot exponent defaults to one and clamps to 1–128. A missing, zero, or
+  out-of-range cone angle uses the measured 90-degree behavior; an in-range
+  negative angle equals its positive magnitude.
+  Direct `lighting-color` carries initial white, admitted sRGB forms,
+  `currentColor`, reset/invalid fallback, non-inheritance, and ignored authored
+  alpha. The light channels adapt to the selected filter color space; missing
+  interpolation is linearRGB and explicit sRGB differs. CSS lighting color,
+  explicit inheritance, `var()`, and wider color functions refuse by stable
+  name. General affine target mappings and diffuse output used as the
+  foreground of `feComposite` `in`/`atop` against a source-derived second input
+  have two further precision patrols. Axis maps, reflection, exact quarter
+  turns, other composite operators, blend/merge, neighboring one-input spatial
+  operations, regions, `<use>`, `viewBox`, stroke and gradient alpha, and target
+  opacity/clip/mask are Chromium-baked exact. Chromium ignores sampled valid
+  and invalid `kernelUnitLength` spellings; two cells carry the diffuse drop,
+  while that shared row and `feSpecularLighting` remain open.
   Turbulence carries both procedural formulas: the case-sensitive values
   `turbulence` and `fractalNoise`, one/two-axis non-negative `baseFrequency`,
   integer `numOctaves` capped at nine, signed `seed`, and the case-sensitive
@@ -498,27 +531,34 @@ cargo run -p n0_cli --bin n0 -- \
   Initializing Skia before drawlist replay selects the fused AVX2 path on x86.
   The 700-cell baseline is byte-exact on ARM and hosted x86 without a
   tolerance. The forty-one-cell convolution rung keeps the complete 741-cell
-  gate byte-exact on ARM and hosted x86 without a new tolerance. All three
-  hundred eighty Chromium-baked filter cells are exact on both hosts.
+  gate byte-exact on ARM and hosted x86 without a new tolerance. The
+  seventy-one-cell diffuse-lighting rung keeps the complete 812-cell gate
+  byte-exact without a new tolerance. All four hundred fifty-one
+  Chromium-baked filter cells are exact.
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 32 component-transfer, 38 blend, 37 morphology,
-  91 turbulence/displacement, and 41 convolution-rung cells. The complete corpus
-  contains 741 Chromium-baked cells plus 10 sampled frames, with 146 named
+  91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
+  cells. The complete corpus contains 812 Chromium-baked cells plus 10 sampled
+  frames, with 152 named
   refusal rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
-  `feComponentTransfer`, `feBlend`,
-  `feMorphology`, `feConvolveMatrix`, `feTurbulence`, `feDisplacementMap`,
+  `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
+  `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
+  `feTurbulence`, `feDisplacementMap`,
   `feFuncR`, `feFuncG`, `feFuncB`, `feFuncA`, `k1`–`k4`, `amplitude`,
   `exponent`, `intercept`,
   `slope`, `tableValues`, blend-only `mode`, `baseFrequency`, `numOctaves`,
   `seed`, `stitchTiles`, displacement `scale`, `xChannelSelector`, and
   `yChannelSelector`, `bias`, `divisor`, `edgeMode`, `kernelMatrix`,
-  convolution `order`, `preserveAlpha`, `targetX`, and `targetY` close;
-  `feOffset`, `feGaussianBlur`, `<filter>`,
+  convolution `order`, `preserveAlpha`, `targetX`, `targetY`, `azimuth`,
+  `diffuseConstant`, `elevation`, `limitingConeAngle`, `pointsAtX`,
+  `pointsAtY`, `pointsAtZ`, and `surfaceScale` close;
+  `feOffset`, `feGaussianBlur`, `feSpecularLighting`, `<filter>`,
   `filter`, `color-interpolation-filters`, `in`, `in2`, `operator`, `result`,
-  `radius`, `kernelUnitLength`, `dx`, `dy`, `stdDeviation`, `flood-color`, and
-  `flood-opacity` remain open for the named precision, applicability, resource,
-  cascade, or value remainder.
+  `radius`, `kernelUnitLength`, `lighting-color`, `specularExponent`, `x`, `y`,
+  `z`, `dx`, `dy`, `stdDeviation`, `flood-color`, and `flood-opacity` remain
+  open for the named precision, applicability, resource, cascade, or value
+  remainder.
   A stroke is centred, its width is a cascaded length in either spelling —
   numbers, absolute units, `em`/`rem` against an authored or default
   font-size, percentages against the normalized diagonal, and pure-length

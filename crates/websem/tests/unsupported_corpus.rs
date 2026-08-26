@@ -201,6 +201,16 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "displacement-filter transform precision boundary",
     ),
     (
+        "svg-filter-diffuse-composition-precision",
+        DeclaredByBestEffort,
+        "lighting-composition precision boundary",
+    ),
+    (
+        "svg-filter-diffuse-transform-precision",
+        DeclaredByBestEffort,
+        "lighting-filter transform precision boundary",
+    ),
+    (
         "svg-filter-effect-stack-precision",
         DeclaredByBestEffort,
         "effect-stack precision boundary",
@@ -237,6 +247,26 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "small-kernel precision boundary",
     ),
     ("svg-filter-href", DeclaredByBestEffort, "href inheritance"),
+    (
+        "svg-filter-lighting-color-css",
+        DeclaredByBestEffort,
+        "CSS lighting-color",
+    ),
+    (
+        "svg-filter-lighting-color-inherit",
+        DeclaredByBestEffort,
+        "lighting-color uses inherit",
+    ),
+    (
+        "svg-filter-lighting-color-syntax",
+        DeclaredByBestEffort,
+        "lighting-color is outside the admitted color slice",
+    ),
+    (
+        "svg-filter-lighting-color-var",
+        DeclaredByBestEffort,
+        "lighting-color resolves through var()",
+    ),
     (
         "svg-filter-list",
         DeclaredByBestEffort,

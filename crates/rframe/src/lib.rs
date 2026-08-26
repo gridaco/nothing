@@ -26,9 +26,9 @@ pub use clip::{
 };
 pub use filter::{
     Filter, FilterBlend, FilterChannelTables, FilterColorSpace, FilterComposite,
-    FilterConvolveEdgeMode, FilterDisplacementChannel, FilterError, FilterInput, FilterMorphology,
-    FilterNode, FilterPrimitive, FilterProgram, FilterProgramError, FilterTurbulenceKind,
-    MAX_FILTER_CONVOLVE_KERNEL_VALUES, MAX_FILTER_NODES,
+    FilterConvolveEdgeMode, FilterDisplacementChannel, FilterError, FilterInput, FilterLightSource,
+    FilterMorphology, FilterNode, FilterPrimitive, FilterProgram, FilterProgramError,
+    FilterTurbulenceKind, MAX_FILTER_CONVOLVE_KERNEL_VALUES, MAX_FILTER_NODES,
 };
 pub use frame::{
     Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry, Identity, MAX_SCOPE_DEPTH,

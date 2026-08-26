@@ -137,7 +137,7 @@ use math2::transform::AffineTransform;
 use rframe::{
     ClipGeometry, ClipLayer, ClipPath, FillRule, Filter, FilterBlend, FilterChannelTables,
     FilterColorSpace, FilterComposite, FilterConvolveEdgeMode, FilterDisplacementChannel,
-    FilterInput, FilterMorphology, FilterNode, FilterPrimitive, FilterProgram,
+    FilterInput, FilterLightSource, FilterMorphology, FilterNode, FilterPrimitive, FilterProgram,
     FilterTurbulenceKind, Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry,
     Identity, MAX_FILTER_CONVOLVE_KERNEL_VALUES, Mask, MaskMode, PaintAlphaFactor, PaintStack,
     PathData, Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeDash,
@@ -4941,6 +4941,209 @@ mod filter_resource {
         })
     }
 
+    /// One lighting-family SVGAnimatedNumber value as Chromium 149 exposes
+    /// it. An exactly empty attribute is the animated-number zero; ASCII
+    /// whitespace-only and every other malformed spelling use the field's
+    /// initial value.
+    fn lighting_number(element: HtmlElement<'_>, name: &str, initial: f32) -> f32 {
+        if get_attr(element, name).as_deref() == Some("") {
+            0.0
+        } else {
+            svg_number(element, name, initial)
+        }
+    }
+
+    fn patrol_lighting_style(element: HtmlElement<'_>, owner: &str) -> Result<(), CompileError> {
+        let Some(style) = get_attr(element, "style") else {
+            return Ok(());
+        };
+        if style.contains('\\') {
+            return Err(CompileError::UnsupportedFilter(format!(
+                "inline style on <{owner}> contains a CSS escape; property identity cannot be proven by the direct decoder"
+            )));
+        }
+        if css_declares_property(&style, "lighting-color") {
+            return Err(CompileError::UnsupportedFilter(format!(
+                "CSS lighting-color on <{owner}> is not represented by the pinned cascade; its direct presentation attribute is a separate ingress"
+            )));
+        }
+        Ok(())
+    }
+
+    fn lighting_color(element: HtmlElement<'_>, owner: &str) -> Result<CGColor, CompileError> {
+        let absolute = match get_attr(element, "lighting-color") {
+            None => AbsoluteColor::WHITE,
+            Some(raw) => {
+                let lowered = raw.to_ascii_lowercase();
+                let trimmed = trim_svg_whitespace(&lowered);
+                if lowered.contains("var(") {
+                    return Err(CompileError::UnsupportedFilter(format!(
+                        "{owner} lighting-color resolves through var(), whose substitution is not represented at this Stylo pin"
+                    )));
+                }
+                if trimmed == "inherit" {
+                    return Err(CompileError::UnsupportedFilter(format!(
+                        "{owner} lighting-color uses inherit, which needs the unavailable cascaded lighting-color longhand"
+                    )));
+                }
+                if matches!(trimmed, "initial" | "unset" | "revert" | "revert-layer") {
+                    AbsoluteColor::WHITE
+                } else {
+                    match parse_color_attribute(&raw) {
+                        Some(ParsedColorAttribute::Absolute(color)) => color,
+                        Some(ParsedColorAttribute::CurrentColor) => element
+                            .borrow_data()
+                            .map(|data| data.styles.primary().clone_color())
+                            .unwrap_or(AbsoluteColor::WHITE),
+                        Some(ParsedColorAttribute::BeyondSlice(reason)) => {
+                            return Err(CompileError::UnsupportedFilter(format!(
+                                "{owner} lighting-color is outside the admitted color slice: {reason}"
+                            )));
+                        }
+                        // An invalid presentation hint contributes initial white.
+                        None => AbsoluteColor::WHITE,
+                    }
+                }
+            }
+        };
+        let color = admitted_srgb(absolute, 1.0).map_err(|reason| {
+            CompileError::UnsupportedFilter(format!(
+                "{owner} lighting-color is outside the admitted color slice: {reason}"
+            ))
+        })?;
+        // Blink adapts only RGB into the operation space. Authored color
+        // alpha has no effect on either lighting primitive.
+        Ok(CGColor::from_rgb(color.r(), color.g(), color.b()))
+    }
+
+    fn lighting_point(
+        element: HtmlElement<'_>,
+        units: Units,
+        target_box: Rectangle,
+        x_name: &str,
+        y_name: &str,
+        z_name: &str,
+    ) -> [f32; 3] {
+        let x = lighting_number(element, x_name, 0.0);
+        let y = lighting_number(element, y_name, 0.0);
+        let z = lighting_number(element, z_name, 0.0);
+        match units {
+            Units::UserSpaceOnUse => [x, y, z],
+            Units::ObjectBoundingBox => {
+                // Blink's Resolve3dPoint uses the normalized diagonal for Z,
+                // with this exact float operation order.
+                let z_basis = ((target_box.width * target_box.width
+                    + target_box.height * target_box.height)
+                    / 2.0)
+                    .sqrt();
+                [
+                    target_box.x + x * target_box.width,
+                    target_box.y + y * target_box.height,
+                    z * z_basis,
+                ]
+            }
+        }
+    }
+
+    fn diffuse_light_source(
+        primitive: HtmlElement<'_>,
+        primitive_units: Units,
+        target_box: Rectangle,
+        override_skips: &HashMap<NodeId, String>,
+    ) -> Result<Option<FilterLightSource>, CompileError> {
+        let mut child = primitive.first_element_child();
+        while let Some(candidate) = child {
+            child = candidate.next_element_sibling();
+            let tag = candidate.local_name_string();
+            if !matches!(
+                tag.as_str(),
+                "feDistantLight" | "fePointLight" | "feSpotLight"
+            ) {
+                continue;
+            }
+            if let Some(reason) = override_skips.get(&candidate.node_id()) {
+                return Err(CompileError::UnsupportedFilter(format!(
+                    "the <{tag}> authored state is overridden at document load: {reason}"
+                )));
+            }
+            let light = match tag.as_str() {
+                "feDistantLight" => {
+                    let radians = |degrees: f32| degrees * (std::f32::consts::PI / 180.0);
+                    let azimuth = radians(lighting_number(candidate, "azimuth", 0.0));
+                    let elevation = radians(lighting_number(candidate, "elevation", 0.0));
+                    FilterLightSource::Distant {
+                        direction: [
+                            azimuth.cos() * elevation.cos(),
+                            azimuth.sin() * elevation.cos(),
+                            elevation.sin(),
+                        ],
+                    }
+                }
+                "fePointLight" => FilterLightSource::Point {
+                    location: lighting_point(candidate, primitive_units, target_box, "x", "y", "z"),
+                },
+                "feSpotLight" => {
+                    let limiting_cone_angle = lighting_number(candidate, "limitingConeAngle", 0.0);
+                    FilterLightSource::Spot {
+                        location: lighting_point(
+                            candidate,
+                            primitive_units,
+                            target_box,
+                            "x",
+                            "y",
+                            "z",
+                        ),
+                        target: lighting_point(
+                            candidate,
+                            primitive_units,
+                            target_box,
+                            "pointsAtX",
+                            "pointsAtY",
+                            "pointsAtZ",
+                        ),
+                        falloff_exponent: lighting_number(candidate, "specularExponent", 1.0)
+                            .clamp(1.0, 128.0),
+                        cutoff_angle: if limiting_cone_angle == 0.0
+                            || !(-90.0..=90.0).contains(&limiting_cone_angle)
+                        {
+                            90.0
+                        } else {
+                            limiting_cone_angle
+                        },
+                    }
+                }
+                _ => unreachable!("recognized light tag"),
+            };
+            let finite = match light {
+                FilterLightSource::Distant { direction } => {
+                    direction.into_iter().all(f32::is_finite)
+                }
+                FilterLightSource::Point { location } => location.into_iter().all(f32::is_finite),
+                FilterLightSource::Spot {
+                    location,
+                    target,
+                    falloff_exponent,
+                    cutoff_angle,
+                } => {
+                    location.into_iter().all(f32::is_finite)
+                        && target.into_iter().all(f32::is_finite)
+                        && falloff_exponent.is_finite()
+                        && cutoff_angle.is_finite()
+                }
+            };
+            if !finite {
+                // Chromium's native lighting builder contributes transparent
+                // black when a finite authored number overflows during
+                // object-box point resolution. State that image explicitly;
+                // never let a backend construction failure become an
+                // unfiltered fallback.
+                return Ok(None);
+            }
+            return Ok(Some(light));
+        }
+        Ok(None)
+    }
+
     fn composite_operator(element: HtmlElement<'_>) -> FilterComposite {
         match get_attr(element, "operator")
             .as_deref()
@@ -5790,6 +5993,15 @@ mod filter_resource {
         axis_or_quarter_turn && [a, b, c, d].into_iter().all(f32::is_finite)
     }
 
+    /// Native lighting agrees for translations, axis maps, reflections, and
+    /// exact quarter turns. General rotations and shears change the pinned
+    /// backend's mapped height-field sampling by observable channel values.
+    fn diffuse_lighting_mapping_is_admitted(target_to_frame: AffineTransform) -> bool {
+        let [[a, c, _], [b, d, _]] = target_to_frame.matrix;
+        let axis_or_quarter_turn = (b == 0.0 && c == 0.0) || (a == 0.0 && d == 0.0);
+        axis_or_quarter_turn && [a, b, c, d].into_iter().all(f32::is_finite)
+    }
+
     fn filter_crosses_clip_path(target: HtmlElement<'_>) -> Result<bool, CompileError> {
         let mut current = Some(target);
         while let Some(element) = current {
@@ -6056,6 +6268,35 @@ mod filter_resource {
                         ),
                     }
                 }
+                "feDiffuseLighting" => {
+                    patrol_color_style(element)?;
+                    patrol_lighting_style(element, "feDiffuseLighting")?;
+                    match diffuse_light_source(
+                        element,
+                        primitive_units,
+                        target_box,
+                        override_skips,
+                    )? {
+                        Some(light) => (
+                            vec![resolve_input(element, "in", previous, &names)],
+                            FilterPrimitive::DiffuseLighting {
+                                surface_scale: lighting_number(element, "surfaceScale", 1.0),
+                                diffuse_constant: lighting_number(element, "diffuseConstant", 1.0)
+                                    .max(0.0),
+                                color: lighting_color(element, "feDiffuseLighting")?,
+                                light,
+                            },
+                        ),
+                        // A lighting primitive without one recognized direct
+                        // light child contributes transparent black.
+                        None => (
+                            Vec::new(),
+                            FilterPrimitive::SolidColor {
+                                color: CGColor32F::TRANSPARENT,
+                            },
+                        ),
+                    }
+                }
                 "feMerge" => {
                     patrol_color_style(element)?;
                     let mut inputs = Vec::new();
@@ -6197,9 +6438,12 @@ mod filter_resource {
         let mut has_turbulence = false;
         let mut has_displacement_map = false;
         let mut has_convolve_matrix = false;
+        let mut has_diffuse_lighting = false;
+        let mut has_diffuse_lighting_composition_boundary = false;
         let mut has_source_dependent_morphology = false;
         let mut has_source_dependent_active_morphology = false;
         let mut has_source_dependent_convolve_matrix = false;
+        let mut lighting_dependencies = Vec::with_capacity(nodes.len());
         for node in &nodes {
             let source_dependent = node.inputs().iter().any(|input| match *input {
                 FilterInput::Source | FilterInput::SourceAlpha => true,
@@ -6237,7 +6481,30 @@ mod filter_resource {
                 has_convolve_matrix = true;
                 has_source_dependent_convolve_matrix |= source_dependent;
             }
+            let lighting_dependent =
+                matches!(node.primitive(), FilterPrimitive::DiffuseLighting { .. })
+                    || node.inputs().iter().any(|input| match *input {
+                        FilterInput::Source | FilterInput::SourceAlpha => false,
+                        FilterInput::Node(index) => lighting_dependencies[index],
+                    });
+            has_diffuse_lighting |=
+                matches!(node.primitive(), FilterPrimitive::DiffuseLighting { .. });
+            if matches!(
+                node.primitive(),
+                FilterPrimitive::Composite {
+                    operator: FilterComposite::In | FilterComposite::Atop
+                }
+            ) && node.inputs().first().is_some_and(|input| match *input {
+                FilterInput::Source | FilterInput::SourceAlpha => false,
+                FilterInput::Node(index) => lighting_dependencies[index],
+            }) && node.inputs().get(1).is_some_and(|input| match *input {
+                FilterInput::Source | FilterInput::SourceAlpha => true,
+                FilterInput::Node(index) => source_dependencies[index],
+            }) {
+                has_diffuse_lighting_composition_boundary = true;
+            }
             source_dependencies.push(source_dependent);
+            lighting_dependencies.push(lighting_dependent);
         }
         if has_blend {
             if !blend_mapping_is_admitted(target_to_frame) {
@@ -6280,6 +6547,18 @@ mod filter_resource {
         if has_convolve_matrix && !morphology_mapping_is_admitted(target_to_frame) {
             return Err(CompileError::UnsupportedFilter(
                 "feConvolveMatrix's target mapping crosses the pinned-backend convolution-filter transform precision boundary"
+                    .to_string(),
+            ));
+        }
+        if has_diffuse_lighting && !diffuse_lighting_mapping_is_admitted(target_to_frame) {
+            return Err(CompileError::UnsupportedFilter(
+                "feDiffuseLighting's target mapping crosses the pinned-backend lighting-filter transform precision boundary"
+                    .to_string(),
+            ));
+        }
+        if has_diffuse_lighting_composition_boundary {
+            return Err(CompileError::UnsupportedFilter(
+                "feDiffuseLighting as the foreground of feComposite in/atop against a source-derived second input crosses the pinned-backend lighting-composition precision boundary"
                     .to_string(),
             ));
         }
