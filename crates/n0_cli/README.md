@@ -286,8 +286,8 @@ cargo run -p n0_cli --bin n0 -- \
   is sampled from effective `.5` through `1.875`, while `.25` and `2` are
   exact (measured, not celled). The patrol conservatively refuses the open
   interval between those endpoints after target mapping. Current Chromium
-  ignores `edgeMode` on blur (measured, not celled); its global row remains open
-  because the attribute also applies to `<feConvolveMatrix>`.
+  ignores `edgeMode` on blur; a dedicated Chromium-baked drop cell and the
+  complete convolution behavior now close that shared attribute row.
   Native drop shadow carries its own operation rather than lowering to the
   blur-plus-offset graph. Missing `dx`, `dy`, and `stdDeviation` use `2`; one
   or two sigma axes, negative-axis clamping, measured number spellings,
@@ -403,6 +403,33 @@ cargo run -p n0_cli --bin n0 -- \
   retained fill-only ellipse coverage boundary. Rounded rectangles, curved
   paths, and circle/path strokes stay admitted. That last patrol leaves
   gridaco/nothing#88 separate and unchanged.
+  Convolve matrix carries one checked rectangular kernel of at most 256 finite
+  coefficients. One/two-member `order` values normalize by truncation toward
+  zero; the matrix must contain exactly the resulting product. The authored
+  coefficients reverse once to state SVG convolution rather than correlation.
+  Missing or malformed order selects 3×3, while non-positive order, a missing
+  or wrong-count matrix, and an over-bound kernel produce Chromium's
+  transparent result instead of an unfiltered fallback.
+  `divisor` carries one signed number. Missing, exactly empty, and signed-zero
+  values use the ordered binary32 kernel sum, with a zero sum becoming one; a
+  present nonempty malformed value uses one. `bias` carries one signed number
+  with initial zero. `targetX`/`targetY` use signed integer text, default to
+  half their respective order axes, reset malformed authored text to zero, and
+  produce transparent when a valid value lies outside the kernel. The complete
+  case-sensitive `duplicate | wrap | none` edge vocabulary and `false | true`
+  alpha-preservation vocabulary are admitted. Chromium ignores
+  `kernelUnitLength` on convolution; that drop is baked, while its shared
+  lighting applicability remains open.
+  Both filter color spaces, SourceGraphic/SourceAlpha/previous/named/generated
+  inputs, result reuse, hard regions, primitive units, paths, strokes, groups,
+  safe axis mappings, exact quarter turns, target opacity/clip/mask,
+  blur/morphology ordering, `<use>`, and `viewBox` are exact. General affine target
+  mappings, source-dependent paint servers, and divisors whose reciprocal is
+  not finite refuse by three stable convolution names before paint. Fractional
+  axis maps, reflections, exact quarter turns, generated inputs, and every
+  accepted kernel-size strategy through 256 stay admitted. Representative
+  fallback branches are celled; the wider invalid-spelling matrix is measured,
+  not all separately celled.
   Turbulence carries both procedural formulas: the case-sensitive values
   `turbulence` and `fractalNoise`, one/two-axis non-negative `baseFrequency`,
   integer `numOctaves` capped at nine, signed `seed`, and the case-sensitive
@@ -469,27 +496,29 @@ cargo run -p n0_cli --bin n0 -- \
   Skia source located them in an uninitialized runtime raster-pipeline dispatch:
   x86 stayed on baseline non-fused Perlin arithmetic while ARM used fused NEON.
   Initializing Skia before drawlist replay selects the fused AVX2 path on x86.
-  The complete 700-cell gate is byte-exact on ARM and hosted x86 without a
-  tolerance.
-  The same hosted workspace test covers the earlier two hundred
-  forty-eight-cell estate; all three hundred thirty-nine
-  Chromium-baked filter cells are exact on the current ARM host without a
-  tolerance. The filter estate contains 26 chassis/blur cells, 60 shadow-graph,
-  28 native drop-shadow, 27 color-matrix, 32 component-transfer, 38 blend, 37
-  morphology, and 91 turbulence/displacement cells. The complete corpus
-  contains 700 Chromium-baked cells plus 10 sampled frames, with 143 named
+  The 700-cell baseline is byte-exact on ARM and hosted x86 without a
+  tolerance. The forty-one-cell convolution rung keeps the complete 741-cell
+  gate byte-exact on the current ARM host without a new tolerance.
+  All three hundred eighty Chromium-baked filter cells are exact on that host.
+  The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
+  drop-shadow, 27 color-matrix, 32 component-transfer, 38 blend, 37 morphology,
+  91 turbulence/displacement, and 41 convolution-rung cells. The complete corpus
+  contains 741 Chromium-baked cells plus 10 sampled frames, with 146 named
   refusal rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`,
-  `feMorphology`, `feTurbulence`, `feDisplacementMap`, `feFuncR`, `feFuncG`,
-  `feFuncB`, `feFuncA`, `k1`–`k4`, `amplitude`, `exponent`, `intercept`,
+  `feMorphology`, `feConvolveMatrix`, `feTurbulence`, `feDisplacementMap`,
+  `feFuncR`, `feFuncG`, `feFuncB`, `feFuncA`, `k1`–`k4`, `amplitude`,
+  `exponent`, `intercept`,
   `slope`, `tableValues`, blend-only `mode`, `baseFrequency`, `numOctaves`,
   `seed`, `stitchTiles`, displacement `scale`, `xChannelSelector`, and
-  `yChannelSelector` close; `feOffset`, `feGaussianBlur`, `<filter>`,
+  `yChannelSelector`, `bias`, `divisor`, `edgeMode`, `kernelMatrix`,
+  convolution `order`, `preserveAlpha`, `targetX`, and `targetY` close;
+  `feOffset`, `feGaussianBlur`, `<filter>`,
   `filter`, `color-interpolation-filters`, `in`, `in2`, `operator`, `result`,
-  `radius`, `dx`, `dy`, `stdDeviation`, `flood-color`, and `flood-opacity`
-  remain open for the named precision, applicability, resource, cascade, or
-  value remainder.
+  `radius`, `kernelUnitLength`, `dx`, `dy`, `stdDeviation`, `flood-color`, and
+  `flood-opacity` remain open for the named precision, applicability, resource,
+  cascade, or value remainder.
   A stroke is centred, its width is a cascaded length in either spelling —
   numbers, absolute units, `em`/`rem` against an authored or default
   font-size, percentages against the normalized diagonal, and pure-length

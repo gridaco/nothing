@@ -6,8 +6,9 @@ use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
     Filter, FilterBlend, FilterChannelTables, FilterColorSpace, FilterComposite,
-    FilterDisplacementChannel, FilterError, FilterInput, FilterMorphology, FilterNode,
-    FilterPrimitive, FilterProgram, FilterProgramError, FilterTurbulenceKind, MAX_FILTER_NODES,
+    FilterConvolveEdgeMode, FilterDisplacementChannel, FilterError, FilterInput, FilterMorphology,
+    FilterNode, FilterPrimitive, FilterProgram, FilterProgramError, FilterTurbulenceKind,
+    MAX_FILTER_CONVOLVE_KERNEL_VALUES, MAX_FILTER_NODES,
 };
 
 fn blur(input: FilterInput, sigma_x: f32, sigma_y: f32) -> FilterNode {
@@ -535,6 +536,201 @@ fn displacement_map_has_two_ordered_inputs_and_checked_channel_vocabulary() {
             .expect("finite signed scale and two named channels are resolved facts");
             assert!(!program.may_paint_transparent_input());
         }
+    }
+}
+
+#[test]
+fn convolution_has_one_input_and_a_bounded_finite_checked_kernel() {
+    let region = Rectangle::from_xywh(0.0, 0.0, 10.0, 10.0);
+    let convolve = |inputs: Arc<[FilterInput]>,
+                    order_x,
+                    order_y,
+                    kernel: Arc<[f32]>,
+                    gain,
+                    bias,
+                    target_x,
+                    target_y,
+                    edge_mode,
+                    preserve_alpha| {
+        FilterNode::new(
+            inputs,
+            region,
+            FilterColorSpace::Srgb,
+            FilterPrimitive::ConvolveMatrix {
+                order_x,
+                order_y,
+                kernel,
+                gain,
+                bias,
+                target_x,
+                target_y,
+                edge_mode,
+                preserve_alpha,
+            },
+        )
+    };
+
+    assert_eq!(
+        FilterProgram::new(Arc::from([convolve(
+            Arc::from([]),
+            1,
+            1,
+            Arc::from([1.0]),
+            1.0,
+            0.0,
+            0,
+            0,
+            FilterConvolveEdgeMode::None,
+            false,
+        )])),
+        Err(FilterProgramError::InvalidInputCount {
+            node: 0,
+            expected: 1,
+            actual: 0,
+        })
+    );
+
+    for node in [
+        convolve(
+            Arc::from([FilterInput::Source]),
+            0,
+            1,
+            Arc::from([]),
+            1.0,
+            0.0,
+            0,
+            0,
+            FilterConvolveEdgeMode::Duplicate,
+            false,
+        ),
+        convolve(
+            Arc::from([FilterInput::Source]),
+            2,
+            2,
+            Arc::from([1.0, 0.0, 0.0]),
+            1.0,
+            0.0,
+            0,
+            0,
+            FilterConvolveEdgeMode::Wrap,
+            false,
+        ),
+        convolve(
+            Arc::from([FilterInput::Source]),
+            1,
+            1,
+            Arc::from([f32::NAN]),
+            1.0,
+            0.0,
+            0,
+            0,
+            FilterConvolveEdgeMode::None,
+            false,
+        ),
+        convolve(
+            Arc::from([FilterInput::Source]),
+            1,
+            1,
+            Arc::from([1.0]),
+            f32::INFINITY,
+            0.0,
+            0,
+            0,
+            FilterConvolveEdgeMode::None,
+            false,
+        ),
+        convolve(
+            Arc::from([FilterInput::Source]),
+            1,
+            1,
+            Arc::from([1.0]),
+            1.0,
+            f32::NAN,
+            0,
+            0,
+            FilterConvolveEdgeMode::None,
+            false,
+        ),
+        convolve(
+            Arc::from([FilterInput::Source]),
+            2,
+            2,
+            Arc::from([1.0, 0.0, 0.0, 0.0]),
+            1.0,
+            0.0,
+            2,
+            0,
+            FilterConvolveEdgeMode::None,
+            false,
+        ),
+        convolve(
+            Arc::from([FilterInput::Source]),
+            257,
+            1,
+            vec![0.0; MAX_FILTER_CONVOLVE_KERNEL_VALUES + 1].into(),
+            1.0,
+            0.0,
+            0,
+            0,
+            FilterConvolveEdgeMode::None,
+            false,
+        ),
+    ] {
+        assert_eq!(
+            FilterProgram::new(Arc::from([node])),
+            Err(FilterProgramError::InvalidConvolveMatrix { node: 0 })
+        );
+    }
+
+    for edge_mode in [
+        FilterConvolveEdgeMode::Duplicate,
+        FilterConvolveEdgeMode::Wrap,
+        FilterConvolveEdgeMode::None,
+    ] {
+        let ordinary = FilterProgram::new(Arc::from([convolve(
+            Arc::from([FilterInput::Source]),
+            16,
+            16,
+            vec![0.0; MAX_FILTER_CONVOLVE_KERNEL_VALUES].into(),
+            -2.0,
+            -0.5,
+            15,
+            15,
+            edge_mode,
+            false,
+        )]))
+        .expect("the maximum finite checked kernel is a resolved fact");
+        assert!(!ordinary.may_paint_transparent_input());
+
+        let additive = FilterProgram::new(Arc::from([convolve(
+            Arc::from([FilterInput::Source]),
+            1,
+            1,
+            Arc::from([1.0]),
+            1.0,
+            0.25,
+            0,
+            0,
+            edge_mode,
+            false,
+        )]))
+        .expect("positive alpha bias can create output");
+        assert!(additive.may_paint_transparent_input());
+
+        let preserved = FilterProgram::new(Arc::from([convolve(
+            Arc::from([FilterInput::Source]),
+            1,
+            1,
+            Arc::from([1.0]),
+            1.0,
+            0.25,
+            0,
+            0,
+            edge_mode,
+            true,
+        )]))
+        .expect("preserved alpha suppresses generated RGB on a transparent input");
+        assert!(!preserved.may_paint_transparent_input());
     }
 }
 

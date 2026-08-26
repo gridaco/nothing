@@ -23,9 +23,9 @@ use n0_model::model::{
 };
 use n0_model::path::ResolvedPathArtifact;
 use rframe::{
-    ClipPath, FilterBlend, FilterColorSpace, FilterComposite, FilterDisplacementChannel,
-    FilterInput, FilterMorphology, FilterPrimitive, FilterTurbulenceKind, Frame, FrameItem,
-    Geometry, MaskMode, PaintStack, ScopeEffect, VisualRef,
+    ClipPath, FilterBlend, FilterColorSpace, FilterComposite, FilterConvolveEdgeMode,
+    FilterDisplacementChannel, FilterInput, FilterMorphology, FilterPrimitive,
+    FilterTurbulenceKind, Frame, FrameItem, Geometry, MaskMode, PaintStack, ScopeEffect, VisualRef,
 };
 
 use crate::damage::{diff_inputs, DamageOwner, FrameDamageInput};
@@ -33,9 +33,9 @@ use crate::drawlist::{
     DrawList, GlyphlessOwnerSlot, Item, ItemKind, PostPaintOpacity, ResolvedClipGeometry,
     ResolvedClipGeometryKind, ResolvedClipLayer, ResolvedClipPath, ResolvedFilter,
     ResolvedFilterBlend, ResolvedFilterColorSpace, ResolvedFilterComposite,
-    ResolvedFilterDisplacementChannel, ResolvedFilterInput, ResolvedFilterMorphology,
-    ResolvedFilterNode, ResolvedFilterPrimitive, ResolvedFilterTurbulenceKind, ResolvedMaskMode,
-    StrokeDashPhase,
+    ResolvedFilterConvolveEdgeMode, ResolvedFilterDisplacementChannel, ResolvedFilterInput,
+    ResolvedFilterMorphology, ResolvedFilterNode, ResolvedFilterPrimitive,
+    ResolvedFilterTurbulenceKind, ResolvedMaskMode, StrokeDashPhase,
 };
 use crate::frame::FrameExecutionError;
 use crate::paint::PaintCtx;
@@ -1026,6 +1026,33 @@ fn compile_filter(filter: &rframe::Filter) -> ResolvedFilter {
                             ResolvedFilterDisplacementChannel::Alpha
                         }
                     },
+                },
+                FilterPrimitive::ConvolveMatrix {
+                    order_x,
+                    order_y,
+                    kernel,
+                    gain,
+                    bias,
+                    target_x,
+                    target_y,
+                    edge_mode,
+                    preserve_alpha,
+                } => ResolvedFilterPrimitive::ConvolveMatrix {
+                    order_x,
+                    order_y,
+                    kernel,
+                    gain,
+                    bias,
+                    target_x,
+                    target_y,
+                    edge_mode: match edge_mode {
+                        FilterConvolveEdgeMode::Duplicate => {
+                            ResolvedFilterConvolveEdgeMode::Duplicate
+                        }
+                        FilterConvolveEdgeMode::Wrap => ResolvedFilterConvolveEdgeMode::Wrap,
+                        FilterConvolveEdgeMode::None => ResolvedFilterConvolveEdgeMode::None,
+                    },
+                    preserve_alpha,
                 },
                 FilterPrimitive::Merge => ResolvedFilterPrimitive::Merge,
             },

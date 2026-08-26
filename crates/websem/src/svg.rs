@@ -136,9 +136,10 @@ use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
     ClipGeometry, ClipLayer, ClipPath, FillRule, Filter, FilterBlend, FilterChannelTables,
-    FilterColorSpace, FilterComposite, FilterDisplacementChannel, FilterInput, FilterMorphology,
-    FilterNode, FilterPrimitive, FilterProgram, FilterTurbulenceKind, Frame, FrameItem, FrameItems,
-    FrameItemsError, FrameNode, Geometry, Identity, Mask, MaskMode, PaintAlphaFactor, PaintStack,
+    FilterColorSpace, FilterComposite, FilterConvolveEdgeMode, FilterDisplacementChannel,
+    FilterInput, FilterMorphology, FilterNode, FilterPrimitive, FilterProgram,
+    FilterTurbulenceKind, Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry,
+    Identity, MAX_FILTER_CONVOLVE_KERNEL_VALUES, Mask, MaskMode, PaintAlphaFactor, PaintStack,
     PathData, Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeDash,
     StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, VisualRef,
 };
@@ -5080,6 +5081,159 @@ mod filter_resource {
         }
     }
 
+    /// Blink's `order` wrapper parses one or two SVG numbers and truncates
+    /// each toward zero. Missing, empty, and lexical failures retain the
+    /// initial 3-by-3 order; a parsed non-positive member is an invalid
+    /// convolution and therefore resolves to transparent black.
+    fn convolve_order(element: HtmlElement<'_>) -> Option<(u16, u16)> {
+        let values = get_attr(element, "order")
+            .filter(|raw| !trim_svg_whitespace(raw).is_empty())
+            .as_deref()
+            .and_then(crate::svg_number_list::parse);
+        let (x, y) = match values.as_deref() {
+            None => (3.0, 3.0),
+            Some([value]) => (*value, *value),
+            Some([x, y]) => (*x, *y),
+            _ => (3.0, 3.0),
+        };
+        let x = x.trunc();
+        let y = y.trunc();
+        if x <= 0.0 || y <= 0.0 || x > u16::MAX as f32 || y > u16::MAX as f32 {
+            return None;
+        }
+        Some((x as u16, y as u16))
+    }
+
+    /// One complete SVG integer field. Unlike `order`, target coordinates use
+    /// the integer lexical grammar: fractions and exponents are invalid and
+    /// reset an authored field to zero in Blink.
+    fn convolve_target(element: HtmlElement<'_>, name: &str, default: u16) -> Option<u16> {
+        let Some(raw) = get_attr(element, name) else {
+            return Some(default);
+        };
+        let bytes = trim_svg_whitespace(&raw).as_bytes();
+        let (negative, digits) = match bytes.first() {
+            Some(b'+') => (false, &bytes[1..]),
+            Some(b'-') => (true, &bytes[1..]),
+            _ => (false, bytes),
+        };
+        let parsed = if digits.is_empty() || !digits.iter().all(u8::is_ascii_digit) {
+            0_i64
+        } else {
+            let magnitude = std::str::from_utf8(digits)
+                .ok()
+                .and_then(|digits| digits.parse::<i64>().ok());
+            let signed = magnitude.and_then(|magnitude| {
+                if negative {
+                    magnitude.checked_neg()
+                } else {
+                    Some(magnitude)
+                }
+            });
+            // Overflowing the SVG integer storage is a lexical failure and
+            // retains the animated property's initial zero.
+            signed
+                .filter(|value| i32::try_from(*value).is_ok())
+                .unwrap_or(0)
+        };
+        if parsed < 0 || parsed > i64::from(u16::MAX) {
+            return None;
+        }
+        Some(parsed as u16)
+    }
+
+    /// Resolve one complete `<feConvolveMatrix>` operation. `None` is
+    /// Chromium's transparent-black error image, not a compiler refusal.
+    fn convolve_matrix(element: HtmlElement<'_>) -> Result<Option<FilterPrimitive>, CompileError> {
+        let Some((order_x, order_y)) = convolve_order(element) else {
+            return Ok(None);
+        };
+        let Some(area) = usize::from(order_x).checked_mul(usize::from(order_y)) else {
+            return Ok(None);
+        };
+        // Chromium 149's Skia construction returns transparent black above
+        // this bound. Resolve it before allocating or entering the painter.
+        if area > MAX_FILTER_CONVOLVE_KERNEL_VALUES {
+            return Ok(None);
+        }
+
+        let Some(mut kernel) = get_attr(element, "kernelMatrix")
+            .as_deref()
+            .and_then(crate::svg_number_list::parse)
+            .filter(|kernel| kernel.len() == area)
+        else {
+            return Ok(None);
+        };
+
+        let divisor = match get_attr(element, "divisor") {
+            None => 0.0,
+            Some(raw) if raw.is_empty() => 0.0,
+            Some(raw) => match crate::svg_number_list::parse(&raw).as_deref() {
+                Some([value]) => *value,
+                // A present, non-empty malformed divisor retains the SVG
+                // animated-number initial value 1 rather than becoming
+                // unspecified.
+                _ => 1.0,
+            },
+        };
+        let divisor = if divisor == 0.0 {
+            let sum = kernel
+                .iter()
+                .copied()
+                .fold(0.0_f32, |sum, value| sum + value);
+            if sum == 0.0 { 1.0 } else { sum }
+        } else {
+            divisor
+        };
+        let gain = 1.0 / divisor;
+        let bias = get_attr(element, "bias")
+            .as_deref()
+            .and_then(crate::svg_number_list::parse)
+            .and_then(|values| match values.as_slice() {
+                [value] => Some(*value),
+                _ => None,
+            })
+            .unwrap_or(0.0);
+        if !gain.is_finite() || !bias.is_finite() {
+            return Err(CompileError::UnsupportedFilter(
+                "feConvolveMatrix divisor or bias crosses the finite native-convolution arithmetic boundary"
+                    .to_string(),
+            ));
+        }
+
+        let Some(target_x) = convolve_target(element, "targetX", order_x / 2) else {
+            return Ok(None);
+        };
+        let Some(target_y) = convolve_target(element, "targetY", order_y / 2) else {
+            return Ok(None);
+        };
+        if target_x >= order_x || target_y >= order_y {
+            return Ok(None);
+        }
+
+        // SVG defines a convolution rather than correlation. Blink rotates
+        // the authored matrix once before handing the resolved operation to
+        // its image-filter backend.
+        kernel.reverse();
+        Ok(Some(FilterPrimitive::ConvolveMatrix {
+            order_x,
+            order_y,
+            kernel: kernel.into(),
+            gain,
+            bias,
+            target_x,
+            target_y,
+            edge_mode: match get_attr(element, "edgeMode").as_deref() {
+                Some("wrap") => FilterConvolveEdgeMode::Wrap,
+                Some("none") => FilterConvolveEdgeMode::None,
+                // Missing, invalid, wrong-case, whitespace-padded, and
+                // CSS-wide spellings retain the initial duplicate member.
+                _ => FilterConvolveEdgeMode::Duplicate,
+            },
+            preserve_alpha: get_attr(element, "preserveAlpha").as_deref() == Some("true"),
+        }))
+    }
+
     enum ComponentTransferFunction {
         Identity,
         Table(Vec<f32>),
@@ -5887,6 +6041,21 @@ mod filter_resource {
                         },
                     )
                 }
+                "feConvolveMatrix" => {
+                    patrol_color_style(element)?;
+                    match convolve_matrix(element)? {
+                        Some(primitive) => (
+                            vec![resolve_input(element, "in", previous, &names)],
+                            primitive,
+                        ),
+                        None => (
+                            Vec::new(),
+                            FilterPrimitive::SolidColor {
+                                color: CGColor32F::TRANSPARENT,
+                            },
+                        ),
+                    }
+                }
                 "feMerge" => {
                     patrol_color_style(element)?;
                     let mut inputs = Vec::new();
@@ -6027,8 +6196,10 @@ mod filter_resource {
         let mut has_morphology = false;
         let mut has_turbulence = false;
         let mut has_displacement_map = false;
+        let mut has_convolve_matrix = false;
         let mut has_source_dependent_morphology = false;
         let mut has_source_dependent_active_morphology = false;
+        let mut has_source_dependent_convolve_matrix = false;
         for node in &nodes {
             let source_dependent = node.inputs().iter().any(|input| match *input {
                 FilterInput::Source | FilterInput::SourceAlpha => true,
@@ -6062,6 +6233,10 @@ mod filter_resource {
             has_turbulence |= matches!(node.primitive(), FilterPrimitive::Turbulence { .. });
             has_displacement_map |=
                 matches!(node.primitive(), FilterPrimitive::DisplacementMap { .. });
+            if matches!(node.primitive(), FilterPrimitive::ConvolveMatrix { .. }) {
+                has_convolve_matrix = true;
+                has_source_dependent_convolve_matrix |= source_dependent;
+            }
             source_dependencies.push(source_dependent);
         }
         if has_blend {
@@ -6099,6 +6274,18 @@ mod filter_resource {
         if has_displacement_map && filter_crosses_clip_path(target)? {
             return Err(CompileError::UnsupportedFilter(
                 "feDisplacementMap crosses the pinned-backend filtered clip-path precision boundary"
+                    .to_string(),
+            ));
+        }
+        if has_convolve_matrix && !morphology_mapping_is_admitted(target_to_frame) {
+            return Err(CompileError::UnsupportedFilter(
+                "feConvolveMatrix's target mapping crosses the pinned-backend convolution-filter transform precision boundary"
+                    .to_string(),
+            ));
+        }
+        if has_source_dependent_convolve_matrix && filter_source_has_paint_server(target)? {
+            return Err(CompileError::UnsupportedFilter(
+                "feConvolveMatrix's source image crosses the pinned-backend convolution-filter paint-server precision boundary"
                     .to_string(),
             ));
         }

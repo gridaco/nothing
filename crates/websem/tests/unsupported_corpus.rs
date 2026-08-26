@@ -141,6 +141,21 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "table-filter transform precision boundary",
     ),
     (
+        "svg-filter-convolve-arithmetic-range",
+        DeclaredByBestEffort,
+        "finite native-convolution arithmetic boundary",
+    ),
+    (
+        "svg-filter-convolve-paint-server-precision",
+        DeclaredByBestEffort,
+        "convolution-filter paint-server precision boundary",
+    ),
+    (
+        "svg-filter-convolve-transform-precision",
+        DeclaredByBestEffort,
+        "convolution-filter transform precision boundary",
+    ),
+    (
         "svg-filter-color-raw-syntax",
         DeclaredByBestEffort,
         "contains a CSS comment",

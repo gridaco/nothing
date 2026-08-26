@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="#e2e8f0"/>
+  <path d="M0 0h32v5H0zM32 59h32v5H32z" fill="#94a3b8"/>
+  <defs><filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+    x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB" >
+    <feConvolveMatrix in="SourceGraphic" order="257 1" kernelMatrix="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0" divisor="1" preserveAlpha="true" edgeMode="none" targetX="128" targetY="0"/>
+  </filter></defs>
+  <g filter="url(#f)"><g>
+  <rect x="10" y="11" width="27" height="23" fill="#d946ef" fill-opacity=".72"/>
+  <rect x="25" y="18" width="22" height="24" fill="#059669"/>
+  <path d="M15 38h10v9h13v7H15z" fill="#2563eb"/>
+  <rect x="39" y="12" width="6" height="7" fill="#facc15"/>
+</g></g>
+</svg>

@@ -67,7 +67,8 @@ from the dated addenda below:
   modes, ordered `feMerge`/`feMergeNode`, native one-input `feDropShadow`,
   one-input `feColorMatrix`, one-input `feComponentTransfer` with its direct
   `feFuncR`/`feFuncG`/`feFuncB`/`feFuncA` children, and one-input
-  `feMorphology`, plus zero-input `feTurbulence` and two-input
+  `feMorphology` and `feConvolveMatrix`, plus zero-input `feTurbulence` and
+  two-input
   `feDisplacementMap`; graph inputs resolve from
   `SourceGraphic`/`SourceAlpha`/prior and named results, with both filter
   coordinate systems and color spaces, hard regions, nesting, admitted
@@ -76,14 +77,14 @@ from the dated addenda below:
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 700 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 741 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 143 rows.
+  register has 146 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -2681,9 +2682,10 @@ celled). The admitted direct inherited attribute preserves conversions at each
 operation. CSS ingress, comments, escapes, and `var()` remain named gaps at the
 Stylo boundary. All three valid `edgeMode` values and the missing value were
 byte-identical even on a boundary-sensitive source; current Blink has no blur
-edge-mode field and uses transparent decal. That browser-dropped behavior is
-measured, not celled, and cannot close the global attribute row because
-`edgeMode` also belongs to `feConvolveMatrix`.
+edge-mode field and uses transparent decal. At this rung that browser-dropped
+behavior was measured but not celled, so the global attribute row stayed open
+for `feConvolveMatrix`. The convolution rung below commits the blur drop and
+closes the shared row.
 
 Composition stays one meaning across effects. Filter isolation encloses fill,
 stroke, descendants, and overlaps; target transforms carry its operation
@@ -3543,3 +3545,116 @@ primitive corpus moves from 609 to 700 cells; the ten exact-time sampled frames
 are unchanged. Exactly nine checklist rows tick: the two elements and seven
 element-specific attributes named above. This records no conformance score and
 takes no FLIP action.
+
+## Rung: `feConvolveMatrix` (2026-08-27)
+
+The verdict is CLOSE/SPLIT. `<feConvolveMatrix>` closes for its complete static
+Chromium behavior. Eight attribute rows close with it: `bias`, `divisor`,
+`edgeMode`, `kernelMatrix`, convolution `order`, `preserveAlpha`, `targetX`,
+and `targetY`. `kernelUnitLength` remains open because it also applies to the
+still-open lighting primitives. The shared `in`, `result`, primitive-region,
+`color-interpolation-filters`, filter-resource, and dynamics rows remain open
+for their wider applicability. No CSS property row closes.
+
+Chromium 149.0.7827.55 establishes one rectangular convolution. `order` takes
+one or two values, with one supplying both axes; Blink normalizes finite values
+by truncating toward zero. Missing, empty, malformed, wrong-count,
+unit-bearing, function-valued, and CSS-wide spellings retain the initial 3×3
+order. A parsed non-positive axis produces a transparent operation result. The
+wider invalid-spelling matrix is measured, not all separately celled.
+`kernelMatrix` is an SVG number list whose length must equal the product of the
+two order axes. Missing, malformed, non-finite, and wrong-count lists likewise
+produce transparent. The authored matrix is reversed once so the operation is
+convolution rather than correlation. One-hot left/right and asymmetric target
+cells distinguish that direction from a backend correlation.
+
+The pinned operation accepts at most 256 coefficients. Chromium executes the
+measured strategy boundaries at 28, 29, 64, 65, and 256 coefficients, while a
+257-coefficient kernel produces transparent. Those accepted boundaries and
+the browser drop are committed exact evidence. This follows the browser-drop
+precedent established by
+[gridaco/nothing#77](https://github.com/gridaco/nothing/pull/77): a listed
+value the oracle itself drops does not require this engine to invent pixels.
+
+`divisor` carries one signed SVG number. Missing, an exactly empty attribute,
+and either signed zero select the kernel's ordered binary32 sum; a zero sum
+becomes one. A present, nonempty malformed value selects one rather than the
+sum. Positive and negative nonzero values remain active. The ordered sum is
+observable: cancellation in `1e20 1 -1e20` is not interchangeable with a
+reassociated sum. A default sum that overflows produces Chromium's measured
+transparent output. `bias` carries one signed SVG number with initial zero;
+missing and malformed values select that initial, while large finite values
+clamp only at output.
+
+`targetX` and `targetY` use the signed SVG-integer grammar. When absent, each
+defaults independently to the floor of half its order axis. An authored
+fraction, exponent, malformed token, or integer-storage overflow selects zero.
+A valid negative target or a value at or beyond its order axis produces
+transparent. `edgeMode` is the case-sensitive `duplicate | wrap | none`
+enumeration with initial `duplicate`; all three differ at an actual input-image
+boundary. `preserveAlpha` is the case-sensitive `false | true` enumeration with
+initial `false`. SourceAlpha and positive-bias controls prove that false
+convolves alpha and may create coverage over a transparent source, while true
+retains the input alpha.
+
+The other listed `edgeMode` applicability is `feGaussianBlur`. Current Chromium
+ignores every blur spelling; a dedicated committed cell now carries the drop
+that the chassis rung had only measured. Current Chromium likewise ignores
+every sampled `kernelUnitLength` spelling on convolution: positive one- and
+two-axis values, zero, negative, malformed, units, percentages, functions,
+custom properties, and CSS-wide values all leave a discriminating kernel
+unchanged (measured, not all separately celled). The drop is celled, but the row
+cannot close before its lighting applicability is earned.
+
+The operation participates in the established filter graph and effect order.
+Committed exact cells cover SourceGraphic, SourceAlpha, previous and named
+results, generated input, result reuse, hard primitive crops, both primitive
+unit systems, default linearRGB, explicit linearRGB and sRGB, Chromium's
+`auto`-to-sRGB behavior, paths, strokes, groups, `<use>`, non-uniform `viewBox`,
+fractional axis mapping, exact quarter turns, target opacity, clip, and mask,
+and ordering beside blur and morphology. Stroke geometry enters the isolated
+source before convolution; target effects remain outside the filter scope in
+their established order.
+
+The numeric probe found the source-parser crux rather than assuming it away.
+An amplified decimal just above the midpoint between adjacent binary32 values
+selects the upper neighbor in Chromium and is exact through the shared ordered
+SVG-number evaluator. Kernel-size strategy boundaries, ordered divisor sums,
+sum overflow, large bias, and accepted finite arithmetic all reproduce without
+a tolerance. Unit, percentage, CSS-function, custom-property, and CSS-wide
+spellings take their measured fallback or transparent-error branch; none
+silently becomes a different valid kernel.
+
+Three remaining silent classes are stable refusals. Fractional translation and
+scale, reflections, axis maps, and exact quarter turns are exact, but a sampled
+17-degree target rotation differs by 462 pixels at maximum channel delta 15
+and a shear by 632 at delta 13. Arbitrarily small sampled rotations and shears
+reproduce the class. A source-dependent linear-gradient fill differs by 1,425
+pixels, a radial fill by 1,658, and a gradient stroke by 609, each at maximum
+delta 7; generated-only input stays exact. Finally, a valid nonzero divisor of
+`1e-45` has a reciprocal outside the finite resolved arithmetic domain.
+Chromium executes it and the sampled pixels equal a nearby finite-gain control,
+so the engine refuses that narrow arithmetic range rather than emit a
+non-finite operation. These pixel verdicts are measured, not celled; three
+focused refusal fixtures guard their stable names in strict and best-effort
+admission.
+
+Four twice-deterministic scratch matrices exercised grammar, error states,
+operation semantics, precision boundaries, graph routing, composition, and
+source classes. Every candidate also rendered through both actual command
+admissions; every admitted result was compared by pixels, not merely by process
+success. Three dense grammar atlases and thirty-seven focused convolution cells
+carry the accepted surface. One further cell commits the blur `edgeMode` drop.
+All forty-one are byte-exact without a new tolerance.
+
+Gate sensitivity was proved by temporarily removing the required matrix
+reversal. `just gate` rejected eleven convolution cells. The dedicated reversal
+cell changed 230 pixels at maximum channel delta 202; the broad failures reached
+2,814 pixels and maximum delta 250. Restoring the reversal returned the complete
+741-cell gate to green.
+
+Three focused rows join the refusal register, moving it from 143 to 146. The
+primitive corpus moves from 700 to 741 cells; the ten exact-time sampled frames
+are unchanged. Exactly nine checklist rows tick: the element and eight
+attributes named above. This records no conformance score and takes no FLIP
+action.

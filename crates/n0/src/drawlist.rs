@@ -118,6 +118,13 @@ pub(crate) enum ResolvedFilterDisplacementChannel {
     Alpha,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ResolvedFilterConvolveEdgeMode {
+    Duplicate,
+    Wrap,
+    None,
+}
+
 /// The private filter-operation vocabulary admitted by the painter.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum ResolvedFilterPrimitive {
@@ -170,6 +177,17 @@ pub(crate) enum ResolvedFilterPrimitive {
         scale: f32,
         x_channel: ResolvedFilterDisplacementChannel,
         y_channel: ResolvedFilterDisplacementChannel,
+    },
+    ConvolveMatrix {
+        order_x: u16,
+        order_y: u16,
+        kernel: Arc<[f32]>,
+        gain: f32,
+        bias: f32,
+        target_x: u16,
+        target_y: u16,
+        edge_mode: ResolvedFilterConvolveEdgeMode,
+        preserve_alpha: bool,
     },
     Merge,
 }

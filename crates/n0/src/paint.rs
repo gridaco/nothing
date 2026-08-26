@@ -36,9 +36,9 @@ use skia_safe::{
 use crate::drawlist::{
     DrawList, ItemKind, PostPaintOpacity, ResolvedClipGeometry, ResolvedClipGeometryKind,
     ResolvedClipLayer, ResolvedClipPath, ResolvedFilter, ResolvedFilterBlend,
-    ResolvedFilterColorSpace, ResolvedFilterComposite, ResolvedFilterDisplacementChannel,
-    ResolvedFilterInput, ResolvedFilterMorphology, ResolvedFilterPrimitive,
-    ResolvedFilterTurbulenceKind, ResolvedMaskMode, StrokeDashPhase,
+    ResolvedFilterColorSpace, ResolvedFilterComposite, ResolvedFilterConvolveEdgeMode,
+    ResolvedFilterDisplacementChannel, ResolvedFilterInput, ResolvedFilterMorphology,
+    ResolvedFilterPrimitive, ResolvedFilterTurbulenceKind, ResolvedMaskMode, StrokeDashPhase,
 };
 
 /// The gradient family whose local matrix could not be represented by the
@@ -2331,6 +2331,14 @@ fn sk_displacement_channel(channel: ResolvedFilterDisplacementChannel) -> ColorC
     }
 }
 
+fn sk_convolve_tile_mode(mode: ResolvedFilterConvolveEdgeMode) -> skia_safe::TileMode {
+    match mode {
+        ResolvedFilterConvolveEdgeMode::Duplicate => skia_safe::TileMode::Clamp,
+        ResolvedFilterConvolveEdgeMode::Wrap => skia_safe::TileMode::Repeat,
+        ResolvedFilterConvolveEdgeMode::None => skia_safe::TileMode::Decal,
+    }
+}
+
 /// Build one checked private filter graph and its final-composition policy.
 fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
     let explicit_transparent_source = if filter.source_is_transparent {
@@ -2428,6 +2436,10 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 &node.primitive,
                 ResolvedFilterPrimitive::Morphology { radius_x, radius_y, .. }
                     if source_dependent && (*radius_x > 0.0 || *radius_y > 0.0)
+            )
+            || matches!(
+                &node.primitive,
+                ResolvedFilterPrimitive::ConvolveMatrix { .. } if source_dependent
             );
         let has_procedural_input = inputs.iter().any(|input| input.procedural_provenance);
         let mut procedural_provenance = has_procedural_input
@@ -2845,6 +2857,48 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                     requires_exact_restore || node.color_space == ResolvedFilterColorSpace::Srgb,
                 )
             }
+            ResolvedFilterPrimitive::ConvolveMatrix {
+                order_x,
+                order_y,
+                kernel,
+                gain,
+                bias,
+                target_x,
+                target_y,
+                edge_mode,
+                preserve_alpha,
+            } => {
+                let input = inputs
+                    .pop()
+                    .expect("convolution matrix has one checked input");
+                procedural_unorm8_blend = false;
+                if node.color_space == ResolvedFilterColorSpace::Srgb
+                    && !input.requires_exact_restore
+                {
+                    procedural_provenance = false;
+                }
+                let filter = skia_safe::image_filters::matrix_convolution(
+                    (i32::from(order_x), i32::from(order_y)),
+                    &kernel,
+                    gain,
+                    bias * 255.0,
+                    (i32::from(target_x), i32::from(target_y)),
+                    sk_convolve_tile_mode(edge_mode),
+                    !preserve_alpha,
+                    input.image_filter,
+                    crop,
+                )
+                .ok_or_else(|| {
+                    "the backend could not construct a convolution-matrix operation".to_string()
+                })?;
+                (
+                    Some(filter),
+                    node.color_space,
+                    input.source_dependent,
+                    input.requires_exact_restore
+                        || node.color_space == ResolvedFilterColorSpace::Srgb,
+                )
+            }
             ResolvedFilterPrimitive::Merge => {
                 let mut inputs = inputs.into_iter();
                 let image_filter = if let Some(first) = inputs.next() {
@@ -2948,7 +3002,9 @@ mod filter_policy_tests {
     use n0_model::math::RectF;
     use n0_model::model::Color32F;
 
-    use crate::drawlist::{ResolvedFilterMorphology, ResolvedFilterNode};
+    use crate::drawlist::{
+        ResolvedFilterConvolveEdgeMode, ResolvedFilterMorphology, ResolvedFilterNode,
+    };
 
     use super::{
         build_filter, ResolvedFilter, ResolvedFilterColorSpace, ResolvedFilterInput,
@@ -3172,6 +3228,54 @@ mod filter_policy_tests {
         };
         let generated = build_filter(&generated).expect("generated morphology builds");
         assert!(!generated.source_preflatten);
+    }
+
+    #[test]
+    fn checked_convolution_builds_at_the_kernel_bound_and_keeps_source_policy() {
+        let convolve = |input, count, bias, preserve_alpha| ResolvedFilterNode {
+            inputs: Arc::from([input]),
+            region: REGION,
+            color_space: ResolvedFilterColorSpace::Srgb,
+            primitive: ResolvedFilterPrimitive::ConvolveMatrix {
+                order_x: count,
+                order_y: 1,
+                kernel: vec![0.0; usize::from(count)].into(),
+                gain: 1.0,
+                bias,
+                target_x: count / 2,
+                target_y: 0,
+                edge_mode: ResolvedFilterConvolveEdgeMode::Wrap,
+                preserve_alpha,
+            },
+        };
+        let one = |node, may_paint_transparent_input| ResolvedFilter {
+            region: REGION,
+            nodes: Arc::from([node]),
+            may_paint_transparent_input,
+            source_is_transparent: false,
+        };
+
+        let bounded = build_filter(&one(
+            convolve(ResolvedFilterInput::Source, 256, 0.0, false),
+            false,
+        ))
+        .expect("the checked maximum kernel builds transactionally");
+        assert!(bounded.source_preflatten);
+        assert!(bounded.restore_blender.is_some());
+
+        let alpha_creating = build_filter(&one(
+            convolve(ResolvedFilterInput::Source, 1, 0.25, false),
+            true,
+        ))
+        .expect("a biased convolution builds over an explicit source");
+        assert!(alpha_creating.source_preflatten);
+
+        let alpha_preserving = build_filter(&one(
+            convolve(ResolvedFilterInput::SourceAlpha, 1, 0.25, true),
+            false,
+        ))
+        .expect("preserved alpha remains a checked native operation");
+        assert!(alpha_preserving.source_preflatten);
     }
 }
 
