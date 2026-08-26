@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (700)
+## Chromium-baked cells (741)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -133,6 +133,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-filter-blend-transfer-order.svg" title="svg-filter-blend-transfer-order (standalone-svg)"><img src="./chromium/svg-filter-blend-transfer-order.png" width="56" alt="svg-filter-blend-transfer-order"></a>
 <a href="./svg-filter-blend-use.svg" title="svg-filter-blend-use (standalone-svg)"><img src="./chromium/svg-filter-blend-use.png" width="56" alt="svg-filter-blend-use"></a>
 <a href="./svg-filter-blend-viewbox.svg" title="svg-filter-blend-viewbox (standalone-svg)"><img src="./chromium/svg-filter-blend-viewbox.png" width="56" alt="svg-filter-blend-viewbox"></a>
+<a href="./svg-filter-blur-edge-mode-drop.svg" title="svg-filter-blur-edge-mode-drop (standalone-svg)"><img src="./chromium/svg-filter-blur-edge-mode-drop.png" width="56" alt="svg-filter-blur-edge-mode-drop"></a>
 <a href="./svg-filter-blur-zero-primitive-region.svg" title="svg-filter-blur-zero-primitive-region (standalone-svg)"><img src="./chromium/svg-filter-blur-zero-primitive-region.png" width="56" alt="svg-filter-blur-zero-primitive-region"></a>
 <a href="./svg-filter-color-linear.svg" title="svg-filter-color-linear (standalone-svg)"><img src="./chromium/svg-filter-color-linear.png" width="56" alt="svg-filter-color-linear"></a>
 <a href="./svg-filter-color-matrix-alpha-create.svg" title="svg-filter-color-matrix-alpha-create (standalone-svg)"><img src="./chromium/svg-filter-color-matrix-alpha-create.png" width="56" alt="svg-filter-color-matrix-alpha-create"></a>
@@ -217,6 +218,46 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-filter-composite-region-default.svg" title="svg-filter-composite-region-default (standalone-svg)"><img src="./chromium/svg-filter-composite-region-default.png" width="56" alt="svg-filter-composite-region-default"></a>
 <a href="./svg-filter-composite-region-union.svg" title="svg-filter-composite-region-union (standalone-svg)"><img src="./chromium/svg-filter-composite-region-union.png" width="56" alt="svg-filter-composite-region-union"></a>
 <a href="./svg-filter-composite-xor.svg" title="svg-filter-composite-xor (standalone-svg)"><img src="./chromium/svg-filter-composite-xor.png" width="56" alt="svg-filter-composite-xor"></a>
+<a href="./svg-filter-convolve-axis-fractional.svg" title="svg-filter-convolve-axis-fractional (standalone-svg)"><img src="./chromium/svg-filter-convolve-axis-fractional.png" width="56" alt="svg-filter-convolve-axis-fractional"></a>
+<a href="./svg-filter-convolve-bias-large.svg" title="svg-filter-convolve-bias-large (standalone-svg)"><img src="./chromium/svg-filter-convolve-bias-large.png" width="56" alt="svg-filter-convolve-bias-large"></a>
+<a href="./svg-filter-convolve-blur-before.svg" title="svg-filter-convolve-blur-before (standalone-svg)"><img src="./chromium/svg-filter-convolve-blur-before.png" width="56" alt="svg-filter-convolve-blur-before"></a>
+<a href="./svg-filter-convolve-color-auto.svg" title="svg-filter-convolve-color-auto (standalone-svg)"><img src="./chromium/svg-filter-convolve-color-auto.png" width="56" alt="svg-filter-convolve-color-auto"></a>
+<a href="./svg-filter-convolve-color-default.svg" title="svg-filter-convolve-color-default (standalone-svg)"><img src="./chromium/svg-filter-convolve-color-default.png" width="56" alt="svg-filter-convolve-color-default"></a>
+<a href="./svg-filter-convolve-color-linear.svg" title="svg-filter-convolve-color-linear (standalone-svg)"><img src="./chromium/svg-filter-convolve-color-linear.png" width="56" alt="svg-filter-convolve-color-linear"></a>
+<a href="./svg-filter-convolve-color-srgb.svg" title="svg-filter-convolve-color-srgb (standalone-svg)"><img src="./chromium/svg-filter-convolve-color-srgb.png" width="56" alt="svg-filter-convolve-color-srgb"></a>
+<a href="./svg-filter-convolve-divisor-bias-target-grammar.svg" title="svg-filter-convolve-divisor-bias-target-grammar (standalone-svg)"><img src="./chromium/svg-filter-convolve-divisor-bias-target-grammar.png" width="56" alt="svg-filter-convolve-divisor-bias-target-grammar"></a>
+<a href="./svg-filter-convolve-divisor-sum-order.svg" title="svg-filter-convolve-divisor-sum-order (standalone-svg)"><img src="./chromium/svg-filter-convolve-divisor-sum-order.png" width="56" alt="svg-filter-convolve-divisor-sum-order"></a>
+<a href="./svg-filter-convolve-divisor-sum-overflow.svg" title="svg-filter-convolve-divisor-sum-overflow (standalone-svg)"><img src="./chromium/svg-filter-convolve-divisor-sum-overflow.png" width="56" alt="svg-filter-convolve-divisor-sum-overflow"></a>
+<a href="./svg-filter-convolve-edge-alpha-kernel-unit-grammar.svg" title="svg-filter-convolve-edge-alpha-kernel-unit-grammar (standalone-svg)"><img src="./chromium/svg-filter-convolve-edge-alpha-kernel-unit-grammar.png" width="56" alt="svg-filter-convolve-edge-alpha-kernel-unit-grammar"></a>
+<a href="./svg-filter-convolve-empty-bias.svg" title="svg-filter-convolve-empty-bias (standalone-svg)"><img src="./chromium/svg-filter-convolve-empty-bias.png" width="56" alt="svg-filter-convolve-empty-bias"></a>
+<a href="./svg-filter-convolve-generated-input.svg" title="svg-filter-convolve-generated-input (standalone-svg)"><img src="./chromium/svg-filter-convolve-generated-input.png" width="56" alt="svg-filter-convolve-generated-input"></a>
+<a href="./svg-filter-convolve-input-previous.svg" title="svg-filter-convolve-input-previous (standalone-svg)"><img src="./chromium/svg-filter-convolve-input-previous.png" width="56" alt="svg-filter-convolve-input-previous"></a>
+<a href="./svg-filter-convolve-kernel-large-65.svg" title="svg-filter-convolve-kernel-large-65 (standalone-svg)"><img src="./chromium/svg-filter-convolve-kernel-large-65.png" width="56" alt="svg-filter-convolve-kernel-large-65"></a>
+<a href="./svg-filter-convolve-kernel-max-256.svg" title="svg-filter-convolve-kernel-max-256 (standalone-svg)"><img src="./chromium/svg-filter-convolve-kernel-max-256.png" width="56" alt="svg-filter-convolve-kernel-max-256"></a>
+<a href="./svg-filter-convolve-kernel-over-max.svg" title="svg-filter-convolve-kernel-over-max (standalone-svg)"><img src="./chromium/svg-filter-convolve-kernel-over-max.png" width="56" alt="svg-filter-convolve-kernel-over-max"></a>
+<a href="./svg-filter-convolve-kernel-reversal.svg" title="svg-filter-convolve-kernel-reversal (standalone-svg)"><img src="./chromium/svg-filter-convolve-kernel-reversal.png" width="56" alt="svg-filter-convolve-kernel-reversal"></a>
+<a href="./svg-filter-convolve-kernel-texture-29.svg" title="svg-filter-convolve-kernel-texture-29 (standalone-svg)"><img src="./chromium/svg-filter-convolve-kernel-texture-29.png" width="56" alt="svg-filter-convolve-kernel-texture-29"></a>
+<a href="./svg-filter-convolve-kernel-texture-64.svg" title="svg-filter-convolve-kernel-texture-64 (standalone-svg)"><img src="./chromium/svg-filter-convolve-kernel-texture-64.png" width="56" alt="svg-filter-convolve-kernel-texture-64"></a>
+<a href="./svg-filter-convolve-kernel-uniform-28.svg" title="svg-filter-convolve-kernel-uniform-28 (standalone-svg)"><img src="./chromium/svg-filter-convolve-kernel-uniform-28.png" width="56" alt="svg-filter-convolve-kernel-uniform-28"></a>
+<a href="./svg-filter-convolve-morphology-after.svg" title="svg-filter-convolve-morphology-after (standalone-svg)"><img src="./chromium/svg-filter-convolve-morphology-after.png" width="56" alt="svg-filter-convolve-morphology-after"></a>
+<a href="./svg-filter-convolve-order-kernel-grammar.svg" title="svg-filter-convolve-order-kernel-grammar (standalone-svg)"><img src="./chromium/svg-filter-convolve-order-kernel-grammar.png" width="56" alt="svg-filter-convolve-order-kernel-grammar"></a>
+<a href="./svg-filter-convolve-primitive-units.svg" title="svg-filter-convolve-primitive-units (standalone-svg)"><img src="./chromium/svg-filter-convolve-primitive-units.png" width="56" alt="svg-filter-convolve-primitive-units"></a>
+<a href="./svg-filter-convolve-quarter-turn.svg" title="svg-filter-convolve-quarter-turn (standalone-svg)"><img src="./chromium/svg-filter-convolve-quarter-turn.png" width="56" alt="svg-filter-convolve-quarter-turn"></a>
+<a href="./svg-filter-convolve-region-crop.svg" title="svg-filter-convolve-region-crop (standalone-svg)"><img src="./chromium/svg-filter-convolve-region-crop.png" width="56" alt="svg-filter-convolve-region-crop"></a>
+<a href="./svg-filter-convolve-result-reuse.svg" title="svg-filter-convolve-result-reuse (standalone-svg)"><img src="./chromium/svg-filter-convolve-result-reuse.png" width="56" alt="svg-filter-convolve-result-reuse"></a>
+<a href="./svg-filter-convolve-sharpen.svg" title="svg-filter-convolve-sharpen (standalone-svg)"><img src="./chromium/svg-filter-convolve-sharpen.png" width="56" alt="svg-filter-convolve-sharpen"></a>
+<a href="./svg-filter-convolve-source-alpha.svg" title="svg-filter-convolve-source-alpha (standalone-svg)"><img src="./chromium/svg-filter-convolve-source-alpha.png" width="56" alt="svg-filter-convolve-source-alpha"></a>
+<a href="./svg-filter-convolve-source-alpha-preserve.svg" title="svg-filter-convolve-source-alpha-preserve (standalone-svg)"><img src="./chromium/svg-filter-convolve-source-alpha-preserve.png" width="56" alt="svg-filter-convolve-source-alpha-preserve"></a>
+<a href="./svg-filter-convolve-source-group.svg" title="svg-filter-convolve-source-group (standalone-svg)"><img src="./chromium/svg-filter-convolve-source-group.png" width="56" alt="svg-filter-convolve-source-group"></a>
+<a href="./svg-filter-convolve-source-number-alias.svg" title="svg-filter-convolve-source-number-alias (standalone-svg)"><img src="./chromium/svg-filter-convolve-source-number-alias.png" width="56" alt="svg-filter-convolve-source-number-alias"></a>
+<a href="./svg-filter-convolve-source-path.svg" title="svg-filter-convolve-source-path (standalone-svg)"><img src="./chromium/svg-filter-convolve-source-path.png" width="56" alt="svg-filter-convolve-source-path"></a>
+<a href="./svg-filter-convolve-source-stroke.svg" title="svg-filter-convolve-source-stroke (standalone-svg)"><img src="./chromium/svg-filter-convolve-source-stroke.png" width="56" alt="svg-filter-convolve-source-stroke"></a>
+<a href="./svg-filter-convolve-target-clip.svg" title="svg-filter-convolve-target-clip (standalone-svg)"><img src="./chromium/svg-filter-convolve-target-clip.png" width="56" alt="svg-filter-convolve-target-clip"></a>
+<a href="./svg-filter-convolve-target-mask.svg" title="svg-filter-convolve-target-mask (standalone-svg)"><img src="./chromium/svg-filter-convolve-target-mask.png" width="56" alt="svg-filter-convolve-target-mask"></a>
+<a href="./svg-filter-convolve-target-opacity.svg" title="svg-filter-convolve-target-opacity (standalone-svg)"><img src="./chromium/svg-filter-convolve-target-opacity.png" width="56" alt="svg-filter-convolve-target-opacity"></a>
+<a href="./svg-filter-convolve-target-y.svg" title="svg-filter-convolve-target-y (standalone-svg)"><img src="./chromium/svg-filter-convolve-target-y.png" width="56" alt="svg-filter-convolve-target-y"></a>
+<a href="./svg-filter-convolve-use.svg" title="svg-filter-convolve-use (standalone-svg)"><img src="./chromium/svg-filter-convolve-use.png" width="56" alt="svg-filter-convolve-use"></a>
+<a href="./svg-filter-convolve-viewbox.svg" title="svg-filter-convolve-viewbox (standalone-svg)"><img src="./chromium/svg-filter-convolve-viewbox.png" width="56" alt="svg-filter-convolve-viewbox"></a>
 <a href="./svg-filter-displacement-color-linear.svg" title="svg-filter-displacement-color-linear (standalone-svg)"><img src="./chromium/svg-filter-displacement-color-linear.png" width="56" alt="svg-filter-displacement-color-linear"></a>
 <a href="./svg-filter-displacement-color-srgb.svg" title="svg-filter-displacement-color-srgb (standalone-svg)"><img src="./chromium/svg-filter-displacement-color-srgb.png" width="56" alt="svg-filter-displacement-color-srgb"></a>
 <a href="./svg-filter-displacement-default.svg" title="svg-filter-displacement-default (standalone-svg)"><img src="./chromium/svg-filter-displacement-default.png" width="56" alt="svg-filter-displacement-default"></a>
@@ -729,7 +770,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (143)
+## The refusal register (146)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -763,6 +804,9 @@ its row into the cells above.
 | `svg-filter-color-raw-syntax` | declared | skipped svg/rect[2]: unsupported SVG filter: color-interpolation-filters presentation attribute contains a CSS comment; the direct attribute decoder does not tokenize comments |
 | `svg-filter-component-transfer-source-layer-precision` | declared | skipped svg/circle[1]: unsupported SVG filter: feComponentTransfer's source image crosses the pinned-backend table-filter paint-server precision boundary; skipped svg/circle[2]: unsupported SVG filter: feComponentTransfer's source image crosses the pinned-backend table-filter paint-server precision boundary; skipped svg/circle[3]: unsupported SVG filter: feComponentTransfer's source image crosses the pinned-backend table-filter paint-server precision boundary |
 | `svg-filter-component-transfer-transform-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feComponentTransfer's target mapping crosses the pinned-backend table-filter transform precision boundary; skipped svg/rect[3]: unsupported SVG filter: feComponentTransfer's target mapping crosses the pinned-backend table-filter transform precision boundary |
+| `svg-filter-convolve-arithmetic-range` | declared | skipped svg/path[1]: unsupported SVG filter: feConvolveMatrix divisor or bias crosses the finite native-convolution arithmetic boundary |
+| `svg-filter-convolve-paint-server-precision` | declared | skipped svg/path[1]: unsupported SVG filter: feConvolveMatrix's source image crosses the pinned-backend convolution-filter paint-server precision boundary |
+| `svg-filter-convolve-transform-precision` | declared | skipped svg/g[1]: unsupported SVG filter: feConvolveMatrix's target mapping crosses the pinned-backend convolution-filter transform precision boundary |
 | `svg-filter-css-functions` | declared | skipped svg/rect[2]: unsupported SVG filter: filter presentation attribute uses CSS filter functions, which are a separate unresolved operation grammar |
 | `svg-filter-css-property` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares filter, which this cascade does not represent |
 | `svg-filter-displacement-clip-precision` | declared | skipped svg/path[1]: unsupported SVG filter: feDisplacementMap crosses the pinned-backend filtered clip-path precision boundary |
@@ -787,7 +831,7 @@ its row into the cells above.
 | `svg-filter-offset-blur-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: a filter graph combines feOffset with Gaussian blur, which crosses the pinned-backend composed-operation precision boundary |
 | `svg-filter-offset-fractional-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feOffset uses a fractional displacement, which crosses the pinned-backend rasterization boundary |
 | `svg-filter-offset-transform-precision` | declared | skipped svg/g[1]/rect[1]: unsupported SVG filter: feOffset's target mapping produces a fractional device-space displacement at the pinned-backend rasterization boundary |
-| `svg-filter-primitive` | declared | skipped svg/rect[2]: unsupported SVG filter: filter graph contains unsupported primitive <feConvolveMatrix> |
+| `svg-filter-primitive` | declared | skipped svg/rect[2]: unsupported SVG filter: filter graph contains unsupported primitive <feDiffuseLighting> |
 | `svg-filter-primitive-empty-region` | declared | skipped svg/rect[2]: unsupported SVG filter: a non-positive filter primitive region is not yet represented as a transparent graph result |
 | `svg-filter-region-calc` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region x uses calc(), whose computed length is not represented at this Stylo pin |
 | `svg-filter-region-range` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region width crosses the unimplemented Web used-length range |

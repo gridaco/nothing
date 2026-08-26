@@ -1449,7 +1449,25 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [x] `<feColorMatrix>`
 - [x] `<feComponentTransfer>`
 - [x] `<feComposite>`
-- [ ] `<feConvolveMatrix>`
+- [x] `<feConvolveMatrix>`
+
+> **2026-08-27 close/split:** `feConvolveMatrix` carries Chromium's complete
+> static convolution behavior: rectangular kernels through 256 coefficients,
+> kernel reversal, divisor and bias arithmetic, asymmetric targets, all three
+> edge modes, alpha preservation, both filter color spaces, graph inputs and
+> reuse, hard regions and primitive units, safe mappings, source geometry,
+> blur/morphology ordering, target effects, `<use>`, and `viewBox`.
+> Invalid operation states and Chromium's 257-coefficient construction limit
+> produce the browser's transparent result rather than an unfiltered fallback.
+> Chromium ignores `kernelUnitLength` on this primitive; the drop is celled,
+> while that attribute row stays open for its lighting applicability. General
+> affine mappings, paint-server source images, and a divisor whose reciprocal
+> exceeds finite resolved arithmetic refuse by three stable names before paint.
+> Forty exact convolution cells and one blur-edge drop cell move the complete
+> gate to 741. Removing the required kernel reversal makes eleven cells fail,
+> up to 2,814 pixels and maximum channel delta 250; restoration returns the
+> gate to green. The shared graph, region, interpolation, filter-resource, and
+> dynamics rows remain open.
 - [ ] `<feDiffuseLighting>`
 - [x] `<feDisplacementMap>`
 - [ ] `<feDistantLight>`
@@ -1563,8 +1581,9 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > multi-operation lists, host, and dynamics surface; `<feGaussianBlur>` still
 > has valid empty primitive results, inherited raw-syntax gaps, animation, and
 > a measured small-kernel backend precision boundary. Current Chromium
-> drops every `edgeMode` spelling on this primitive (measured, not celled), but
-> that attribute also applies to `<feConvolveMatrix>` and stays open.
+> drops every `edgeMode` spelling on this primitive. The later convolution rung
+> commits that drop and closes the shared attribute row; it does not close the
+> blur element's other remainders.
 > **2026-08-25 close/split:** `feFlood`, `feComposite`, `feMerge`, and
 > `feMergeNode` now carry the complete static primitive behavior for their
 > rows: zero-, two-, and ordered N-input graph nodes; all seven composite
@@ -1915,7 +1934,15 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > axes; comma-wsp, leading plus, exponent, and the measured lone trailing comma
 > are carried. Missing, malformed, unit-bearing, and overlong lists select the
 > initial zero pair; either negative member makes the whole pair initial.
-- [ ] `bias`
+- [x] `bias`
+
+> **2026-08-27 close:** convolution `bias` carries one signed SVG number with
+> initial zero; missing, empty, malformed, unit-bearing, CSS-function, and
+> CSS-wide text selects that initial. `divisor` carries the same one-number
+> grammar. Missing, exactly empty, and explicit positive or negative zero use
+> the kernel's ordered binary32 sum; a zero sum becomes one. A present nonempty
+> malformed divisor uses one. Signed nonzero divisors remain active. The wider
+> invalid-spelling matrix is measured, not all separately celled.
 - [ ] `class`
 - [x] `clipPathUnits`
 
@@ -1929,11 +1956,17 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `data-*`
 - [ ] `decoding`
 - [ ] `diffuseConstant`
-- [ ] `divisor`
+- [x] `divisor`
 - [ ] `download`
 - [ ] `dx`
 - [ ] `dy`
-- [ ] `edgeMode`
+- [x] `edgeMode`
+
+> **2026-08-27 close:** the complete case-sensitive `duplicate | wrap | none`
+> grammar is Chromium-baked at actual input boundaries; missing and every
+> invalid spelling select `duplicate`. The attribute's other listed
+> applicability is blur, where current Chromium drops all spellings; one
+> committed drop cell records that browser behavior.
 - [ ] `elevation`
 - [x] `exponent`
 - [ ] `fetchpriority`
@@ -1965,8 +1998,17 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > background, and constant terms are Chromium-baked; signs, decimals, and
 > exponents are carried, and output channels clamp to the unit interval.
 
-- [ ] `kernelMatrix`
+- [x] `kernelMatrix`
 - [ ] `kernelUnitLength`
+
+> **2026-08-27 close/split:** `kernelMatrix` carries the complete SVG
+> number-list grammar and must contain exactly `order-x × order-y` values.
+> Missing, malformed, non-finite, or wrong-count matrices produce the measured
+> transparent result. Kernels at the measured native strategy boundaries—28,
+> 29, 64, 65, and 256 coefficients—are exact; 257 coefficients produce the
+> celled Chromium drop. `kernelUnitLength` stays open: Chromium ignores every
+> sampled valid and invalid spelling on convolution, while the attribute also
+> applies to the still-open lighting primitives.
 - [ ] `lang`
 - [ ] `lengthAdjust`
 - [ ] `limitingConeAngle`
@@ -2077,7 +2119,14 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `onwaiting`
 - [ ] `onwheel`
 - [ ] `operator`
-- [ ] `order`
+- [x] `order`
+
+> **2026-08-27 close:** convolution `order` carries one or two values; one
+> supplies both axes, and Chromium truncates each finite value toward zero.
+> Missing, empty, malformed, wrong-count, unit-bearing, CSS-function, and
+> CSS-wide text selects the initial 3×3 order. A parsed non-positive member or
+> an unconstructable finite area produces the measured transparent result. The
+> wider invalid-spelling matrix is measured, not all separately celled.
 - [ ] `orient`
 - [ ] `path`
 - [x] `pathLength`
@@ -2090,7 +2139,12 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `pointsAtX`
 - [ ] `pointsAtY`
 - [ ] `pointsAtZ`
-- [ ] `preserveAlpha`
+- [x] `preserveAlpha`
+
+> **2026-08-27 close:** the complete case-sensitive `false | true` grammar is
+> Chromium-baked. Missing and invalid spellings select `false`; committed
+> SourceAlpha and positive-bias pairs distinguish convolved alpha from
+> preserved input alpha.
 - [x] `preserveAspectRatio`
 - [x] `primitiveUnits`
 
@@ -2148,8 +2202,14 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > clamping, and byte truncation are Chromium-gated. The wider shared `type`
 > row remains open.
 - [ ] `target`
-- [ ] `targetX`
-- [ ] `targetY`
+- [x] `targetX`
+- [x] `targetY`
+
+> **2026-08-27 close:** both target coordinates carry the signed SVG-integer
+> grammar. Missing values default independently to the floor of half their
+> order axis. An authored lexical failure or integer-storage overflow selects
+> zero; a valid negative or value outside its kernel axis produces the measured
+> transparent result. Asymmetric x/y cells distinguish both coordinates.
 - [ ] `textLength`
 - [ ] `timelinebegin`
 - [ ] `title`

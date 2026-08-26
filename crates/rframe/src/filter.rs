@@ -18,6 +18,13 @@ use math2::transform::AffineTransform;
 /// graph exceeds it refuses before constructing a frame.
 pub const MAX_FILTER_NODES: usize = 256;
 
+/// The largest spatial convolution kernel carried by the resolved contract.
+///
+/// The bound keeps the operation finite and cheap to validate before paint.
+/// A source producer resolves any source-language behavior beyond it before
+/// constructing a program.
+pub const MAX_FILTER_CONVOLVE_KERNEL_VALUES: usize = 256;
+
 /// The pixel interpolation space in which one operation executes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FilterColorSpace {
@@ -95,6 +102,14 @@ pub enum FilterDisplacementChannel {
     Green,
     Blue,
     Alpha,
+}
+
+/// Sampling outside the input image for one resolved convolution kernel.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FilterConvolveEdgeMode {
+    Duplicate,
+    Wrap,
+    None,
 }
 
 /// Four exact byte lookup tables for one non-premultiplied RGBA operation.
@@ -202,6 +217,25 @@ pub enum FilterPrimitive {
         x_channel: FilterDisplacementChannel,
         y_channel: FilterDisplacementChannel,
     },
+    /// One finite rectangular convolution over premultiplied channels, or
+    /// over unpremultiplied colors while preserving the input alpha.
+    ///
+    /// `kernel` is row-major in sample order: its first member weights the
+    /// top-left sample around `target_x,target_y`. Source-language rotation
+    /// or orientation conventions have already been resolved by the producer.
+    ConvolveMatrix {
+        order_x: u16,
+        order_y: u16,
+        kernel: Arc<[f32]>,
+        gain: f32,
+        /// Unit-range channel bias. A painter converts it to any backend-local
+        /// channel scale only at the backend call.
+        bias: f32,
+        target_x: u16,
+        target_y: u16,
+        edge_mode: FilterConvolveEdgeMode,
+        preserve_alpha: bool,
+    },
     Merge,
 }
 
@@ -292,6 +326,9 @@ pub enum FilterProgramError {
     InvalidDisplacementMap {
         node: usize,
     },
+    InvalidConvolveMatrix {
+        node: usize,
+    },
 }
 
 impl std::fmt::Display for FilterProgramError {
@@ -351,6 +388,10 @@ impl std::fmt::Display for FilterProgramError {
             Self::InvalidDisplacementMap { node } => {
                 write!(f, "filter node {node} has a non-finite displacement scale")
             }
+            Self::InvalidConvolveMatrix { node } => write!(
+                f,
+                "filter node {node} has an invalid convolution order, kernel, target, gain, or bias"
+            ),
         }
     }
 }
@@ -376,7 +417,8 @@ impl FilterProgram {
                 | FilterPrimitive::DropShadow { .. }
                 | FilterPrimitive::ColorMatrix { .. }
                 | FilterPrimitive::ComponentTransfer { .. }
-                | FilterPrimitive::Morphology { .. } => Some(1),
+                | FilterPrimitive::Morphology { .. }
+                | FilterPrimitive::ConvolveMatrix { .. } => Some(1),
                 FilterPrimitive::SolidColor { .. } | FilterPrimitive::Turbulence { .. } => Some(0),
                 FilterPrimitive::Composite { .. }
                 | FilterPrimitive::Blend { .. }
@@ -464,6 +506,30 @@ impl FilterProgram {
                 FilterPrimitive::DisplacementMap { scale, .. } if !scale.is_finite() => {
                     return Err(FilterProgramError::InvalidDisplacementMap { node: index });
                 }
+                FilterPrimitive::ConvolveMatrix {
+                    order_x,
+                    order_y,
+                    ref kernel,
+                    gain,
+                    bias,
+                    target_x,
+                    target_y,
+                    ..
+                } if order_x == 0
+                    || order_y == 0
+                    || usize::from(order_x)
+                        .checked_mul(usize::from(order_y))
+                        .is_none_or(|area| {
+                            area > MAX_FILTER_CONVOLVE_KERNEL_VALUES || area != kernel.len()
+                        })
+                    || !kernel.iter().all(|value| value.is_finite())
+                    || !gain.is_finite()
+                    || !bias.is_finite()
+                    || target_x >= order_x
+                    || target_y >= order_y =>
+                {
+                    return Err(FilterProgramError::InvalidConvolveMatrix { node: index });
+                }
                 FilterPrimitive::Offset { .. }
                 | FilterPrimitive::SolidColor { .. }
                 | FilterPrimitive::Composite { .. }
@@ -474,6 +540,7 @@ impl FilterProgram {
                 | FilterPrimitive::Morphology { .. }
                 | FilterPrimitive::Turbulence { .. }
                 | FilterPrimitive::DisplacementMap { .. }
+                | FilterPrimitive::ConvolveMatrix { .. }
                 | FilterPrimitive::Merge => {}
             }
         }
@@ -500,6 +567,11 @@ impl FilterProgram {
             FilterPrimitive::ColorMatrix { matrix } => matrix[19] > 0.0,
             FilterPrimitive::ComponentTransfer { tables } => tables.alpha()[0] > 0,
             FilterPrimitive::Turbulence { .. } => true,
+            FilterPrimitive::ConvolveMatrix {
+                bias,
+                preserve_alpha,
+                ..
+            } => !preserve_alpha && bias > 0.0,
             FilterPrimitive::GaussianBlur { .. }
             | FilterPrimitive::Offset { .. }
             | FilterPrimitive::Composite { .. }

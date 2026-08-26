@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#e2e8f0"/>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#ef4444"/>
+      <stop offset=".37" stop-color="#22c55e" stop-opacity=".53"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+    <filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+      <feConvolveMatrix order="3" kernelMatrix="0 -1 0 -1 5 -1 0 -1 0" divisor="1" bias=".03" edgeMode="duplicate" preserveAlpha="false"/>
+    </filter>
+  </defs>
+  <path d="M8 9h46v13H37v12h12v21H18V39H8z" fill="url(#g)" filter="url(#f)"/>
+</svg>
