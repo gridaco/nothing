@@ -3153,9 +3153,28 @@ The arithmetic audit uses asymmetric opaque and translucent mode atlases. All
 fifteen non-normal modes differ from normal on the translucent generated-input
 control across all 4,096 pixels, with maximum channel deltas from 11 through
 73. Exact center values distinguish every mode, including non-separable hue,
-saturation, color, and luminosity behavior. Native backend blend arithmetic is
-byte-exact to Chromium for all sixteen modes in both atlases and in the
-grammar control; no custom formula or tolerance was introduced.
+saturation, color, and luminosity behavior.
+
+Local ARM initially made the native backend route look byte-exact, but the
+first hosted x86 gate contradicted it in eight blend cells: four input/default
+controls, both mode atlases, the grammar control, and the region crop differed
+by one to three code values. The pinned backend explains the CPU-family split:
+its N32 low-precision blend path performs exact divide-by-255 rounding on NEON
+but intentionally approximates the same step as `(value + 255) / 256` on x86.
+Nine modes use that path: `normal`, `multiply`, `screen`, `overlay`, `darken`,
+`lighten`, `hard-light`, `difference`, and `exclusion`. They now run over
+explicit byte-domain operands with exact divide-by-255 rounding. The seven
+modes on the backend's high-precision path remain native.
+
+That arithmetic repair removed seven fixture failures and every opaque
+mismatch on the second hosted x86 run. Only the translucent atlas remained:
+2,816 pixels at delta 1 across eleven mode tiles, with first engine/oracle
+bytes `[109,160,200,255]` and `[109,160,199,255]`. The mode-independent shape
+located a second CPU-family split at the final sRGB layer restore, not in
+`color-dodge`, `color-burn`, `soft-light`, or the non-separable formulas. A
+blend-scoped exact restore closes that boundary; a later color-space conversion
+clears the policy before its own floating arithmetic. The complete 572-cell
+gate is byte-exact on ARM and hosted x86. No tolerance was introduced.
 
 Graph routing remains common to the checked filter program. `in` is the
 foreground and `in2` the backdrop: swapping an overlay changes all 4,096
@@ -3207,7 +3226,13 @@ neighboring operations. Every scratch and committed candidate rendered
 through both actual command admissions. Gate sensitivity was proved by
 temporarily mapping `multiply` to `normal`: `just gate` rejected four named
 cells, with 256–512 differing pixels and maximum channel delta 202. Restoring
-the mode returned all 572 cells to green.
+the mode returned all 572 cells to green. The architecture repair has its own
+control: replacing exact divide-by-255 rounding with the measured x86
+approximation made twelve blend cells fail, with up to 4,096 differing pixels
+and maximum channel delta 3. Restoring exact arithmetic returned the complete
+gate to green. The second and third hosted x86 runs independently make the
+scoped restore load-bearing: before it, the translucent atlas alone differed;
+after it, the full workspace and all 572 oracle cells pass.
 
 Three focused rows join the refusal register, moving it from 134 to 137. The
 primitive corpus moves from 534 to 572 cells; the ten exact-time sampled frames

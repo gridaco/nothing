@@ -1435,6 +1435,17 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > independently discovered translucent-source multi-input composition class
 > refuse by three stable precision names before paint. Shared graph, region,
 > interpolation, filter-resource, and dynamics rows remain open.
+> Hosted x86 initially contradicted the ARM-local blend result in eight cells.
+> The pinned backend's low-precision path divides by 255 exactly on NEON but
+> approximates that step as division by 256 on x86. Nine modes now state their
+> exact byte-domain arithmetic; the seven high-precision modes remain native.
+> That repair removed seven failures and every opaque mismatch. One translucent
+> atlas remained at 2,816 pixels / delta 1 across eleven mode tiles, locating a
+> separate final sRGB layer-restore split. A blend-scoped exact restore closes
+> it and clears across later color-space conversion. The complete 572-cell
+> gate is exact on ARM and hosted x86 with no tolerance. Restoring the
+> approximate division made twelve blend cells fail locally, up to 4,096
+> pixels / delta 3; restoring exact arithmetic returned the gate to green.
 - [x] `<feColorMatrix>`
 - [x] `<feComponentTransfer>`
 - [x] `<feComposite>`

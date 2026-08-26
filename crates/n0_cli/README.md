@@ -369,6 +369,14 @@ cargo run -p n0_cli --bin n0 -- \
   operation-independent case where an authored-translucent source feeds a
   later multi-input composite or merge. The last class reproduces without a
   blend and is therefore a generic graph refusal, not a mode exception.
+  Blend precision is architecture-neutral rather than backend-default. The
+  nine modes on the pinned backend's low-precision path use exact byte-domain
+  divide-by-255 arithmetic because that backend approximates the division on
+  x86; its seven high-precision modes remain native. Hosted x86 then isolated
+  one further one-code-value split in the final translucent sRGB restore. A
+  blend-scoped exact restore closes it and clears on later color-space
+  conversion. ARM and x86 reproduce every committed blend cell exactly with
+  no tolerance.
   `filterUnits` and `primitiveUnits` carry their complete case-sensitive
   `userSpaceOnUse | objectBoundingBox` grammars, defaults, and invalid-value
   fallbacks. Filter and primitive regions accept admitted finite numbers,
@@ -386,9 +394,9 @@ cargo run -p n0_cli --bin n0 -- \
   one-input merge has no internal composition stage, so the final restore is
   where its generated-only rounding is enforced. Native sRGB shadow descendants
   add the independently measured exact-restore case described above. ARM and
-  x86 are exact without a tolerance through the hosted component-transfer
-  rung. On the current ARM host, two hundred eleven Chromium-baked filter
-  cells are exact: twenty-six from the chassis/blur slice, sixty from the
+  x86 are exact without a tolerance through the hosted blend rung. All two
+  hundred eleven Chromium-baked filter cells are exact on the current ARM host
+  and hosted x86: twenty-six from the chassis/blur slice, sixty from the
   shadow-graph rung, twenty-eight from native drop shadow, twenty-seven from
   color matrix, thirty-two from component transfer, and thirty-eight from
   blend. The complete corpus is 572 Chromium-baked cells plus 10 sampled
