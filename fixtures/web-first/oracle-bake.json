@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "ed72867d17735c95e8559ce81d0be59145dc0c7428438a2c6246065724677b6a",
+  "suite_sha256": "d6df57f610243ca1a3e4d7cc404e7a56a0db7e7ee62fc7712b628a38314d7beb",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -3197,6 +3197,15 @@
       "height": 64
     },
     {
+      "id": "svg-filter-turbulence-blend-morphology-restore",
+      "source": "svg-filter-turbulence-blend-morphology-restore.svg",
+      "source_sha256": "de0ddccf3c694015fae1497ece12e619147f715c258f3badf34ec4ec662edd2f",
+      "oracle": "chromium/svg-filter-turbulence-blend-morphology-restore.png",
+      "oracle_sha256": "ac1bba196fe00c0ce5705ee12939085f2c001d6fc62af2eb03b0c8c8a3e2b149",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-filter-turbulence-color-default",
       "source": "svg-filter-turbulence-color-default.svg",
       "source_sha256": "d197e14b8e70d14c14fec5fc99835614f7ec43bc8677e8e4fea07583ef29653a",
@@ -3283,6 +3292,42 @@
       "source_sha256": "5dbb54d317c4609446a0e199484fd00e9bc6bdb1790315995e9f8572eaf248d6",
       "oracle": "chromium/svg-filter-turbulence-graph-result-reuse.png",
       "oracle_sha256": "e1dd588428c315bf062b8f9381d3beda636cfcb6d5229123689d9b9a13baeffe",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-linear-blend",
+      "source": "svg-filter-turbulence-linear-blend.svg",
+      "source_sha256": "db5ad834b261838797f5f5ce86b5a69ec3797a62a3173afe0743b04b7fecf825",
+      "oracle": "chromium/svg-filter-turbulence-linear-blend.png",
+      "oracle_sha256": "43837d815e68e4d44993a262687178e24992f494bb7b1c9b946ad2507bba9e6e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-linear-srgb-blend",
+      "source": "svg-filter-turbulence-linear-srgb-blend.svg",
+      "source_sha256": "8ef288ac3d48522f67ba181d54ae19b45bf2db3116e7b379ff04efdf51c638fa",
+      "oracle": "chromium/svg-filter-turbulence-linear-srgb-blend.png",
+      "oracle_sha256": "8aa8ad7ef637f73f979b1a58cff663e2ec0361b42c0c305e75ca8fb612f44844",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-linear-srgb-morphology",
+      "source": "svg-filter-turbulence-linear-srgb-morphology.svg",
+      "source_sha256": "2b215c27428298e4679714343239d7c6f21078ab18f00d803ea1fd8208282172",
+      "oracle": "chromium/svg-filter-turbulence-linear-srgb-morphology.png",
+      "oracle_sha256": "794476cb26e074f8eac472a9c84b39043ec9e654dd78f1ee6aec82a641488612",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-morphology-blend-restore",
+      "source": "svg-filter-turbulence-morphology-blend-restore.svg",
+      "source_sha256": "9b7efd5b846c9f46a2d75583684a50041064165222f6010805bcac2103f42f74",
+      "oracle": "chromium/svg-filter-turbulence-morphology-blend-restore.png",
+      "oracle_sha256": "bf6243487410162a719a64f5fd81533eb974e471aef3f5b29a231128cb5c31de",
       "width": 64,
       "height": 64
     },
@@ -3418,6 +3463,24 @@
       "source_sha256": "772fddf7635aecd9e80f67f58eb73f5579a5c5c38e5525c5fb17574345fa419e",
       "oracle": "chromium/svg-filter-turbulence-seed-zero.png",
       "oracle_sha256": "86c1ae45c0b3986a84c85f011f35679e3146502b8c697729e50583f05f16a844",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-srgb-linear-blend",
+      "source": "svg-filter-turbulence-srgb-linear-blend.svg",
+      "source_sha256": "c9d612359418e8a203404501f69e43199655148a516b5558c8087b6f3b4f15b0",
+      "oracle": "chromium/svg-filter-turbulence-srgb-linear-blend.png",
+      "oracle_sha256": "01d3d6b4e2ba3ae4b2c9dbc9cae4384a0cc068caeae21322d32fae6f5e082281",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-srgb-linear-morphology",
+      "source": "svg-filter-turbulence-srgb-linear-morphology.svg",
+      "source_sha256": "9b07a43b919e7ac264c6fc8bfb097cdfee74730ea8c4980e6b1b9cf2fd563df1",
+      "oracle": "chromium/svg-filter-turbulence-srgb-linear-morphology.png",
+      "oracle_sha256": "5d614123e280ffc33840c003e30396d52161ce6a4d1041e6c05aaa90de70ff03",
       "width": 64,
       "height": 64
     },

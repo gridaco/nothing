@@ -2904,6 +2904,14 @@
       "height": 64
     },
     {
+      "id": "svg-filter-turbulence-blend-morphology-restore",
+      "source": "svg-filter-turbulence-blend-morphology-restore.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-blend-morphology-restore.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-filter-turbulence-color-default",
       "source": "svg-filter-turbulence-color-default.svg",
       "entry": "standalone-svg",
@@ -2980,6 +2988,38 @@
       "source": "svg-filter-turbulence-graph-result-reuse.svg",
       "entry": "standalone-svg",
       "oracle": "chromium/svg-filter-turbulence-graph-result-reuse.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-linear-blend",
+      "source": "svg-filter-turbulence-linear-blend.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-linear-blend.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-linear-srgb-blend",
+      "source": "svg-filter-turbulence-linear-srgb-blend.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-linear-srgb-blend.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-linear-srgb-morphology",
+      "source": "svg-filter-turbulence-linear-srgb-morphology.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-linear-srgb-morphology.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-morphology-blend-restore",
+      "source": "svg-filter-turbulence-morphology-blend-restore.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-morphology-blend-restore.png",
       "width": 64,
       "height": 64
     },
@@ -3100,6 +3140,22 @@
       "source": "svg-filter-turbulence-seed-zero.svg",
       "entry": "standalone-svg",
       "oracle": "chromium/svg-filter-turbulence-seed-zero.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-srgb-linear-blend",
+      "source": "svg-filter-turbulence-srgb-linear-blend.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-srgb-linear-blend.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-turbulence-srgb-linear-morphology",
+      "source": "svg-filter-turbulence-srgb-linear-morphology.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-turbulence-srgb-linear-morphology.png",
       "width": 64,
       "height": 64
     },

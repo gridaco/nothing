@@ -1939,10 +1939,10 @@ struct BuiltFilterResult {
     /// input through one additional source-image boundary. Preserve that
     /// measured boundary through later graph nodes.
     source_preflatten: bool,
-    /// A linear procedural source crosses Chromium's native final restore
-    /// after gamma conversion. The exact generated-source byte restore used
-    /// by solid and composite graphs differs by one channel level here.
-    requires_native_restore: bool,
+    /// An upstream procedural shader remains a floating image fact. Preserve
+    /// that provenance so later blends do not quantize it as an ordinary byte
+    /// image and the final layer takes an architecture-stable floating restore.
+    procedural_provenance: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -2004,7 +2004,7 @@ fn convert_filter_space(
         // matrix-specific sRGB restore boundary.
         color_restore: None,
         source_preflatten: result.source_preflatten,
-        requires_native_restore: result.requires_native_restore,
+        procedural_provenance: result.procedural_provenance,
     })
 }
 
@@ -2239,7 +2239,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
         requires_exact_restore: false,
         color_restore: None,
         source_preflatten: false,
-        requires_native_restore: false,
+        procedural_provenance: false,
     };
     let source_alpha = BuiltFilterResult {
         image_filter: if let Some(source) = explicit_transparent_source {
@@ -2254,7 +2254,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
         requires_exact_restore: false,
         color_restore: None,
         source_preflatten: false,
-        requires_native_restore: false,
+        procedural_provenance: false,
     };
     let mut results: Vec<BuiltFilterResult> = Vec::with_capacity(filter.nodes.len());
     for node in filter.nodes.iter() {
@@ -2319,12 +2319,8 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 ResolvedFilterPrimitive::Morphology { radius_x, radius_y, .. }
                     if source_dependent && (*radius_x > 0.0 || *radius_y > 0.0)
             );
-        let requires_native_restore = inputs.iter().any(|input| input.requires_native_restore)
-            || matches!(
-                &node.primitive,
-                ResolvedFilterPrimitive::Turbulence { .. }
-                    if node.color_space == ResolvedFilterColorSpace::LinearRgb
-            );
+        let mut procedural_provenance = inputs.iter().any(|input| input.procedural_provenance)
+            || matches!(&node.primitive, ResolvedFilterPrimitive::Turbulence { .. });
         let (image_filter, output_space, source_dependent, requires_exact_restore) = match node
             .primitive
             .clone()
@@ -2433,8 +2429,13 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
             ResolvedFilterPrimitive::Blend { mode } => {
                 let background = inputs.pop().expect("blend has two checked inputs");
                 let foreground = inputs.pop().expect("blend has two checked inputs");
+                let blender = if procedural_provenance {
+                    sk_filter_blend_mode(mode).into()
+                } else {
+                    deterministic_filter_blender(mode)?
+                };
                 let filter = skia_safe::image_filters::blend(
-                    deterministic_filter_blender(mode)?,
+                    blender,
                     background.image_filter,
                     foreground.image_filter,
                     crop,
@@ -2601,6 +2602,16 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
             } => {
                 let input = inputs.pop().expect("morphology has one checked input");
                 let active = radius_x > 0.0 || radius_y > 0.0;
+                // Active sRGB morphology over a direct procedural source
+                // establishes the exact byte restore Chromium uses for that
+                // kernel. A preceding exact blend leaves its stronger
+                // procedural-composition provenance intact.
+                if active
+                    && node.color_space == ResolvedFilterColorSpace::Srgb
+                    && !input.requires_exact_restore
+                {
+                    procedural_provenance = false;
+                }
                 let filter = match operator {
                     ResolvedFilterMorphology::Erode => skia_safe::image_filters::erode(
                         (radius_x, radius_y),
@@ -2690,11 +2701,17 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
                 .ok_or_else(|| {
                     "the backend could not construct a displacement-map operation".to_string()
                 })?;
+                // The first hosted-x86 corpus run isolated the same final
+                // N32 restore split in every admitted sRGB displacement
+                // shape: 18 of the 22 failing rung cells (294 pixels total,
+                // all one code value). Keep the floating sampling operation
+                // native, then restore its sRGB result through the
+                // architecture-neutral byte path.
                 (
                     Some(filter),
                     node.color_space,
                     source_dependent,
-                    requires_exact_restore,
+                    requires_exact_restore || node.color_space == ResolvedFilterColorSpace::Srgb,
                 )
             }
             ResolvedFilterPrimitive::Merge => {
@@ -2746,7 +2763,7 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
             requires_exact_restore,
             color_restore,
             source_preflatten,
-            requires_native_restore,
+            procedural_provenance,
         });
     }
     let output = results
@@ -2772,10 +2789,10 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
             })?,
         );
     }
-    let restore_blender = if output.requires_exact_restore {
+    let restore_blender = if output.procedural_provenance {
+        Some(floating_porter_duff_blender(ResolvedFilterComposite::Over)?)
+    } else if output.requires_exact_restore {
         Some(exact_unorm8_blender(ResolvedFilterComposite::Over)?)
-    } else if output.requires_native_restore {
-        None
     } else if output.color_restore == Some(ColorRestore::Floating) {
         Some(floating_porter_duff_blender(ResolvedFilterComposite::Over)?)
     } else if output.color_restore == Some(ColorRestore::Default) || output.source_dependent {

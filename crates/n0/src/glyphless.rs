@@ -357,7 +357,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                 provenance.owners.push(scope.owner);
                 // Placeholder until the scope closes and its union is known.
                 provenance.coverage.push(None);
-                let kind = match &scope.effect {
+                let (kind, initial_coverage) = match &scope.effect {
                     ScopeEffect::Opacity(opacity) => {
                         items.push(Item {
                             node: slot,
@@ -366,7 +366,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                                 opacity: opacity.get(),
                             },
                         });
-                        OpenScopeKind::Opacity
+                        (OpenScopeKind::Opacity, None)
                     }
                     ScopeEffect::Clip(clip) => {
                         let compiled = Arc::new(compile_clip_path(clip));
@@ -384,7 +384,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                             world: Affine::IDENTITY,
                             kind: ItemKind::BeginClipPath { clip: compiled },
                         });
-                        OpenScopeKind::Clip { bounds }
+                        (OpenScopeKind::Clip { bounds }, None)
                     }
                     ScopeEffect::Filter(filter) => {
                         let compiled = Arc::new(compile_filter(filter));
@@ -403,12 +403,19 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                             world: to_affine(filter.transform()),
                             kind: ItemKind::BeginFilter { filter: compiled },
                         });
-                        OpenScopeKind::Filter { bounds }
+                        let initial_coverage = if filter.source_is_transparent()
+                            && filter.program().may_paint_transparent_input()
+                        {
+                            bounds
+                        } else {
+                            None
+                        };
+                        (OpenScopeKind::Filter { bounds }, initial_coverage)
                     }
                 };
                 open_scopes.push(OpenScope {
                     slot,
-                    coverage: None,
+                    coverage: initial_coverage,
                     kind,
                 });
                 continue;
@@ -1858,6 +1865,33 @@ mod tests {
         })
     }
 
+    fn empty_turbulence_scope_begin(owner: VisualRef, seed: f32) -> FrameItem {
+        let region = Rectangle::from_xywh(4.0, 5.0, 10.0, 12.0);
+        let program = FilterProgram::new(Arc::from([FilterNode::new(
+            Arc::from([]),
+            region,
+            FilterColorSpace::LinearRgb,
+            FilterPrimitive::Turbulence {
+                kind: FilterTurbulenceKind::Turbulence,
+                base_frequency_x: 0.08,
+                base_frequency_y: 0.11,
+                num_octaves: 2,
+                seed,
+                stitch_tiles: false,
+            },
+        )]))
+        .expect("test turbulence is a checked generated program");
+        let transform = AffineTransform::from_acebdf(1.0, 0.0, 7.0, 0.0, 1.0, 8.0);
+        FrameItem::ScopeBegin(Scope {
+            owner,
+            effect: ScopeEffect::Filter(
+                Filter::new(transform, region, program)
+                    .expect("test filter is a checked effect")
+                    .with_transparent_source(),
+            ),
+        })
+    }
+
     fn clip_begin(owner: VisualRef, layers: Vec<Vec<(Rectangle, AffineTransform)>>) -> FrameItem {
         let layers = layers
             .into_iter()
@@ -3108,6 +3142,31 @@ mod tests {
             rgba_at(&alpha_pixels, 64, 18, 14),
             "SourceAlpha clears RGB before the same blur"
         );
+    }
+
+    #[test]
+    fn an_empty_generated_filter_edit_damages_its_transformed_region() {
+        let scene = |seed| {
+            let items = FrameItems::try_new(vec![
+                empty_turbulence_scope_begin(SCOPE_OWNER, seed),
+                FrameItem::ScopeEnd,
+            ])
+            .expect("a declared generated filter is meaningful without source draws");
+            compile(frame_of(items)).expect("admitted generated-filter frame")
+        };
+        let before = scene(2.0);
+        let after = scene(3.0);
+        let coverage = Rectangle::from_xywh(11.0, 13.0, 10.0, 12.0);
+
+        assert_eq!(coverage_for(&before, SCOPE_OWNER), Some(to_rectf(coverage)));
+        assert_eq!(
+            diff_frame(&before, &after),
+            Damage {
+                changed: vec![SCOPE_OWNER],
+                union_frame: Some(coverage),
+            }
+        );
+        assert!(diff_frame(&before, &before).is_empty());
     }
 
     /// The contract's union/intersection normal form lowers to one private

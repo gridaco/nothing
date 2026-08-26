@@ -1517,14 +1517,21 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > safe mappings, `<use>`, and `viewBox`. A user-space procedural filter may
 > paint even when its target contributes a fully transparent source; an
 > object-box filter region on the same zero-area target paints nothing.
-> Seventy-six exact Chromium cells move the complete gate to 685. General
+> Eighty-three exact Chromium cells move the complete gate to 692. General
 > affine mappings for both primitives and geometric clipping for displacement
 > refuse by three stable precision names before paint. The shared `type`, `in`,
 > `in2`, `result`, region, interpolation, filter-resource, and dynamics rows
 > remain open for their wider applicability. Swapping the two noise formulas
 > and red/alpha displacement selection made fifty-five new cells fail, up to
 > all 4,096 pixels and maximum channel delta 202; restoration returned the
-> complete gate to green.
+> complete gate to green. A review-triggered color-space/operation matrix found
+> that procedural images must remain floating through blend arithmetic, while
+> active sRGB morphology materializes a direct procedural image. Restoring the
+> old policy makes five dedicated cells fail at up to 2,365 pixels and maximum
+> channel delta 6. The first hosted-x86 run also found 294 one-code-value
+> pixels across twenty-two displacement/procedural cells; scoped exact
+> displacement restore and floating procedural provenance keep the complete
+> ARM gate exact while the hosted rerun is pending.
 - [ ] `<filter>`
 
 > **2026-08-25 split:** the static filter graph carries safe-kernel
