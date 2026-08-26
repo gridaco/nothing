@@ -3459,6 +3459,13 @@ fn text_path<K>(
 /// [`crate::frame::FrameProduct::execute`], which refuses a context whose
 /// incarnation or resource revision differs from the one captured at build.
 pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, ctx: &PaintCtx) {
+    // Install Skia's runtime-selected raster pipeline before any drawlist
+    // replay. Without this initialization, x86 stays on the baseline SSE
+    // implementation while ARM enters the default NEON implementation. That
+    // changes the fused arithmetic used by procedural shaders such as Perlin
+    // noise and can move a boundary value across N32 quantization.
+    skia_safe::graphics::init();
+
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum Scope {
         Opacity,
