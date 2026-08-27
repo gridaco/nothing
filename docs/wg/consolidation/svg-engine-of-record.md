@@ -45,7 +45,8 @@ from the dated addenda below:
   gradient paint (`<linearGradient>`/`<radialGradient>` paint servers, the
   gradient rung), or a bounded same-document repeating vector pattern resolved
   per client through both pattern unit systems, template chains, `viewBox`,
-  and the admitted transform envelope; including
+  the admitted transform envelope, and standard context-paint selection;
+  including
   `context-fill`/`context-stroke` selected through same-document use instances
   and fully resolved before the frame; with
   centred stroke geometry, the closed cap/join family, opacity, and resolved
@@ -75,19 +76,21 @@ from the dated addenda below:
   `feTurbulence` and two-input `feDisplacementMap`; graph inputs resolve from
   `SourceGraphic`/`SourceAlpha`/prior and named results, with both filter
   coordinate systems and color spaces, hard regions, nesting, admitted
-  transforms, `<use>`, and the established effect order;
+  transforms, `<use>`, and the established effect order; admitted filters may
+  execute inside a pattern tile program, and a pattern-painted direct
+  sharp-cornered rectangle may supply a filter's source image;
   one declared-font, single-run `<text>` profile; viewBox-only root sizing with
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 874 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 936 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 170 rows.
+  register has 169 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -3920,3 +3923,104 @@ therefore moves from 152 to 170. The primitive corpus moves from 812 to 874 cell
 exact-time sampled frames and the 451-cell filter estate are unchanged.
 Exactly two checklist rows tick: `patternUnits` and `patternContentUnits`.
 This records no conformance score and takes no FLIP action.
+
+## Rung: SVG pattern context and filter composition (2026-08-27)
+
+The verdict is ADMIT/SPLIT with no checklist closure. The P1 resolved pattern
+program is sufficient for three further static relations: selecting a pattern
+outward through `context-fill` or `context-stroke`, executing an admitted SVG
+filter inside pattern content, and using pattern paint as a filter's source
+image in one bounded source profile. `<pattern>` remains open for external I/O,
+unsupported descendants, dynamics, and the retained picture-shader precision
+classes. `patternTransform` and every shared attribute/property row keep their
+previous verdicts.
+
+Context selection now carries all four destination/owner crossings: fill or
+stroke may select either a context fill or context stroke. The eventual
+pattern owner keeps its reference box and coordinate map through immediate and
+recursive `<use>` instances, every instance translation, object-box and
+user-space units, axis maps, reflection, exact quarter turns, and a singular
+destination. Presentation-attribute and inline-CSS server ingress agree.
+Invalid selected URLs activate their fallback; valid empty patterns suppress
+it. Destination paint opacity remains on the destination, and target filter
+and mask scopes retain the established order.
+
+An admitted filter may now live inside the pattern's checked `FrameItems`
+program. The matrix covers sRGB and linearRGB, both filter and primitive unit
+systems, hard regions, SourceGraphic and SourceAlpha, generated inputs, named
+results, one- and two-input graphs, groups and adjacent draws, and
+representatives of every admitted primitive family. A filter around the sole
+nested-pattern draw is admitted; the independently measured wrong case—another
+draw beside a nested pattern—continues to refuse. No URL, DOM node, cascade
+fact, backend object, or fixed-resolution raster was added to `rframe`.
+A follow-up scratch crossing made each of the twelve admitted filter families
+visibly exercise that sole nested-pattern draw; all thirteen controls and
+candidates were exact through both admissions (twenty-six comparisons,
+measured, not celled).
+
+Pattern paint also feeds source-dependent filters when the filtered source is
+one direct sharp-cornered rectangle with exactly one pattern-painted fill or
+simple stroke channel. The exact matrix includes transparent tile space,
+source alpha, destination paint opacity, two-draw opaque tiles, gradients,
+masks, strokes, and nested patterns inside the tile. Color matrix, component
+transfer, morphology, convolution, native drop shadow, source-derived
+multi-input composition, blur, offset, blend, merge, displacement, and diffuse
+lighting all reproduce Chromium in that profile.
+The six operation families not repeated on strokes in the first ingress matrix
+were then crossed with direct and context-selected pattern strokes, both opaque
+and partially opaque. All twenty-four visibly discriminating candidates plus
+four controls were exact through strict and best effort (fifty-six comparisons,
+measured, not celled).
+
+The crux found a pre-existing silent patrol bypass. Filter precision checks
+inspected each target's authored paint token, so a `context-fill` or
+`context-stroke` token hid the eventual gradient server. Before repair,
+context-selected gradients changed 738 pixels at maximum channel delta 1 under
+component transfer, 2,277 at delta 7 under convolution, 1,262 at delta 1 under
+morphology, and 684 at delta 1 under native drop shadow. Filter resolution now
+receives the active context-owner stack and whole-document paint-server table,
+classifies the eventual source paint, and routes those gradients to the same
+existing stable precision names as direct gradients. This is a producer-side
+classification fact; nothing new crosses the frame seam (measured, not
+celled).
+
+Measurement also rejected a blanket pattern exemption. A pattern-filled cubic
+path differed by one pixel at delta 1 under color matrix and component
+transfer, one pixel at delta 2 under offset, and two pixels at delta 2 under
+merge. A rounded rectangle differed by fifteen pixels at delta 1 under blur,
+one pixel at delta 7 under morphology, and four pixels at delta 4 under native
+drop shadow. A single operation-independent filtered-pattern source-profile
+patrol now quarantines curved, rounded, multi-draw, and wider container
+filter targets before any filter executes. This is distinct from a filter
+inside the tile program: the exact group and adjacent-draw cells above
+deliberately admit multiple solid/gradient tile draws. Stylesheet `rx`/`ry`
+remains the independent geometry-property departure—the pinned cascade does
+not represent that rounded geometry—while authored radius attributes reach
+this profile patrol. Its focused refusal witness protects both admissions.
+Exact circle and ellipse-stroke controls do not widen that predicate;
+over-refusal is deliberate until a complete geometry class earns its own
+profile (measured, not celled).
+
+The P1 source residues were rechecked and remain separate. Curved geometry
+inside the tile, isolated multi-draw source opacity, a geometric source clip,
+and another draw beside a nested pattern still reach their original stable
+picture-shader names. P2 changes neither those patrols nor the external,
+unsupported-descendant, used-range, fractional-tile, affine, or depth
+boundaries.
+
+Sixty-two cells entered only through `just add`: twenty-three context cells,
+twenty-one filter-inside-source cells, twelve pattern-as-filter-source cells,
+and six diverse source-profile cells. Every cell is twice-deterministic in
+Chromium 149.0.7827.55 and exact through strict and best-effort n0 admission
+without a tolerance. The two former context/source-filter refusal rows
+graduate into cells; one filtered-pattern coverage row joins the register.
+The primitive corpus therefore moves from 874 to 936 cells, the ten sampled
+frames and 451-cell filter estate are unchanged, and the named register moves
+from 170 to 169 rows.
+
+Gate sensitivity was proved at the new classification seam. Temporarily
+classifying an eventual pattern as an unadmitted server made `just gate` fail
+on `svg-pattern-context-filter-color-matrix` with the existing color-matrix
+source-layer refusal. Restoring the classification returned the complete
+936-cell gate to green. No conformance score was produced, and no FLIP record,
+rule, or baseline changed.

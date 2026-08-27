@@ -539,8 +539,8 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 32 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete corpus contains 874 Chromium-baked cells plus 10 sampled
-  frames, with 170 named
+  cells. The complete corpus contains 936 Chromium-baked cells plus 10 sampled
+  frames, with 169 named
   refusal rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
@@ -787,22 +787,35 @@ cargo run -p n0_cli --bin n0 -- \
   `patternTransform` is the transform property's presentation hint: CSS beats
   it and a plain `transform` attribute is inert. Translation, axis scale,
   reflection, and exact quarter turns are admitted. The repeating source can
-  contain admitted rectangles, gradients, `<use>`, masks, and a pattern nested
-  alone; pattern paint covers admitted rect, ellipse, and path fills and
-  strokes, and target opacity, clip, mask, and filter scopes retain their
-  established order. Sixty-two Chromium-baked cells cover that profile,
+  contain admitted rectangles, gradients, `<use>`, masks, filters, and a
+  pattern nested alone; a filter may wrap that sole nested-pattern draw.
+  Pattern paint covers admitted rect, ellipse, and path fills and strokes, and
+  target opacity, clip, mask, and filter scopes retain their established
+  order. A pattern may be selected through all four destination
+  fill/stroke × context-fill/context-stroke crossings, including CSS ingress,
+  recursive `<use>` owners, object-box coordinates, transforms, opacity,
+  fallback/nothing semantics, masks, and filters. It may also supply a
+  source-derived filter's input when the filtered source is one direct
+  sharp-cornered rectangle with exactly one pattern-painted fill or simple
+  stroke channel. That filter profile includes transparent and alpha-bearing
+  tiles, gradients, masks, strokes, and nested patterns. One hundred
+  twenty-four Chromium-baked cells cover the core and composition profiles,
   including independent object-box clients and one inline-HTML SVG entry; all
   are exact without a new tolerance.
-  What refuses by stable name: a pattern selected through
-  `context-fill`/`context-stroke`; an external template dependency; a non-`px`
+  What refuses by stable name: an external template dependency; a non-`px`
   unit, CSS math, `var()`, CSS-wide tile value, or CSS comments around an
   otherwise valid tile length; a source child outside the admitted element
-  slice; filter composition inside the source program; curved source
-  coverage; isolated multi-draw source
+  slice; curved source coverage; isolated multi-draw source
   opacity or a geometric source clip; another source draw mixed with a nested
   pattern; a fractional final tile extent; and a final tile map carrying a
-  general rotation or shear. Those last five are measured picture-shader
-  precision boundaries, not guessed omissions. Before its patrol, the valid
+  general rotation or shear. A source-derived filter over curved, rounded,
+  multi-draw, or wider pattern-painted target geometry has its own
+  filtered-pattern coverage refusal. The context-aware source classifier also
+  keeps eventual gradients behind the existing color-matrix, component-
+  transfer, convolution, morphology, native-shadow, and translucent-source
+  precision names instead of letting a context keyword hide them. Those
+  picture-shader and source-layer boundaries are measured, not guessed
+  omissions. Before its patrol, the valid
   comment spelling silently selected fallback in both admissions and changed
   all 2,304 target pixels at maximum delta 202. A derived template whose
   author stylesheet may contribute `transform:none` also refuses because the

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <defs><filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="16" height="16" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".2 0 0 0 .3  0 .7 0 0 0  0 0 .4 0 .2  0 0 0 .8 0"/></filter><pattern id="p" patternUnits="userSpaceOnUse" width="16" height="16" ><rect x="4" y="4" width="8" height="8" fill="#16a34a" filter="url(#f)"/></pattern></defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#p)"/>
+</svg>

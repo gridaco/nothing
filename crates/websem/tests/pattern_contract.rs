@@ -9,7 +9,7 @@
 mod support;
 
 use cg::{CGColor, Paint};
-use rframe::{Frame, PatternPaint};
+use rframe::{Frame, FrameItem, PatternPaint, ScopeEffect};
 use support::render_through_n0;
 use websem::{DegradationAction, InitialViewport, SvgFrameSource};
 
@@ -276,6 +276,68 @@ fn href_beats_xlink_and_the_first_local_content_owner_wins() {
 }
 
 #[test]
+fn filters_inside_pattern_content_keep_the_measured_source_programs() {
+    let frame = admit_both(&document(
+        r##"  <defs>
+    <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="16" height="16"
+            color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="2"/></filter>
+    <pattern id="p" patternUnits="userSpaceOnUse" width="16" height="16">
+      <rect x="4" y="4" width="8" height="8" fill="#16a34a" filter="url(#f)"/>
+    </pattern>
+  </defs>
+  <rect width="64" height="64" fill="url(#p)"/>"##,
+    ));
+    let source = pattern_of(&frame, 0);
+    assert!(source.items().iter().any(|item| {
+        matches!(
+            item,
+            FrameItem::ScopeBegin(scope) if matches!(scope.effect, ScopeEffect::Filter(_))
+        )
+    }));
+
+    let nested = admit_both(&document(
+        r##"  <defs>
+    <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="16" height="16"
+            color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="2"/></filter>
+    <pattern id="q" patternUnits="userSpaceOnUse" width="4" height="4"><rect width="2" height="4" fill="#e11d48"/></pattern>
+    <pattern id="p" patternUnits="userSpaceOnUse" width="16" height="16">
+      <rect width="16" height="16" fill="url(#q)" filter="url(#f)"/>
+    </pattern>
+  </defs>
+  <rect width="64" height="64" fill="url(#p)"/>"##,
+    ));
+    assert!(pattern_of(&nested, 0).items().iter().any(|item| {
+        matches!(
+            item,
+            FrameItem::ScopeBegin(scope) if matches!(scope.effect, ScopeEffect::Filter(_))
+        )
+    }));
+
+    let multi_draw = admit_both(&document(
+        r##"  <defs>
+    <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="16" height="16"
+            color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="2"/></filter>
+    <pattern id="p" patternUnits="userSpaceOnUse" width="16" height="16">
+      <g filter="url(#f)"><rect width="8" height="16" fill="#e11d48"/><rect x="8" width="8" height="16" fill="#2563eb"/></g>
+    </pattern>
+  </defs>
+  <rect width="64" height="64" fill="url(#p)"/>"##,
+    ));
+    let source = pattern_of(&multi_draw, 0);
+    assert_eq!(
+        source.items().nodes().count(),
+        2,
+        "the P2 group-filter profile intentionally carries both source draws"
+    );
+    assert!(source.items().iter().any(|item| {
+        matches!(
+            item,
+            FrameItem::ScopeBegin(scope) if matches!(scope.effect, ScopeEffect::Filter(_))
+        )
+    }));
+}
+
+#[test]
 fn every_measured_picture_shader_boundary_refuses_in_both_admissions() {
     let cases = [
         (
@@ -289,10 +351,6 @@ fn every_measured_picture_shader_boundary_refuses_in_both_admissions() {
         (
             r##"<pattern id="p" patternUnits="userSpaceOnUse" width="16" height="16"><g opacity=".5"><rect width="8" height="16" fill="red"/><rect x="8" width="8" height="16" fill="blue"/></g></pattern>"##,
             "source-effect precision boundary",
-        ),
-        (
-            r##"<filter id="f"><feGaussianBlur stdDeviation="2"/></filter><pattern id="p" patternUnits="userSpaceOnUse" width="16" height="16"><rect x="4" y="4" width="8" height="8" fill="red" filter="url(#f)"/></pattern>"##,
-            "filter composition outside the admitted pattern source slice",
         ),
         (
             r##"<pattern id="q" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="red"/></pattern><pattern id="p" patternUnits="userSpaceOnUse" width="16" height="16"><rect width="16" height="16" fill="url(#q)"/><rect width="4" height="4" fill="white"/></pattern>"##,

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <defs><pattern id="empty" patternUnits="userSpaceOnUse" width="8" height="8"><title>valid empty</title></pattern><rect id="leaf" x="8" y="8" width="48" height="48" fill="context-fill"/></defs>
+  <use href="#leaf" fill="url(#empty) #e11d48"/>
+</svg>

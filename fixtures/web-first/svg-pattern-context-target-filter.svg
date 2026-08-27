@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <defs><pattern id="p" patternUnits="userSpaceOnUse" width="8" height="8" >
+  <rect width="4" height="8" fill="#16a34a"/>
+</pattern><filter id="blur" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="2"/></filter><rect id="leaf" x="8" y="8" width="48" height="48" fill="context-fill" filter="url(#blur)"/></defs>
+  <use href="#leaf" fill="url(#p)"/>
+</svg>

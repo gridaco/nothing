@@ -3103,7 +3103,20 @@ fn patrol_pattern_source_program(items: &FrameItems) -> Result<(), &'static str>
                 .is_some_and(|stroke| stroke.paints().pattern().is_some())
     });
     let has_compositing_commands = items.iter().any(|item| !matches!(item, FrameItem::Node(_)));
-    if has_nested_pattern && (draw_count != 1 || has_compositing_commands) {
+    let one_filtered_nested_draw = items.len() == 3
+        && matches!(
+            items.iter().next(),
+            Some(FrameItem::ScopeBegin(scope)) if matches!(scope.effect, ScopeEffect::Filter(_))
+        )
+        && matches!(items.iter().nth(1), Some(FrameItem::Node(_)))
+        && matches!(items.iter().nth(2), Some(FrameItem::ScopeEnd));
+    // Filters over several solid/gradient draws are intentionally admitted:
+    // P2's group and adjacent-draw cells discriminate that exact picture
+    // program. The sole-draw rule belongs only to a nested pattern, where a
+    // second repeating picture shader crosses the measured composition edge.
+    if has_nested_pattern
+        && (draw_count != 1 || (has_compositing_commands && !one_filtered_nested_draw))
+    {
         return Err(
             "source mixes a nested pattern with another draw at the pinned-backend picture-shader composition precision boundary",
         );
@@ -3139,11 +3152,6 @@ fn patrol_pattern_source_program(items: &FrameItems) -> Result<(), &'static str>
             {
                 return Err(
                     "source carries an isolated opacity or geometric clip at the pinned-backend picture-shader source-effect precision boundary",
-                );
-            }
-            FrameItem::ScopeBegin(scope) if matches!(scope.effect, ScopeEffect::Filter(_)) => {
-                return Err(
-                    "source uses a filter composition outside the admitted pattern source slice",
                 );
             }
             FrameItem::ScopeBegin(_)
@@ -3496,6 +3504,8 @@ impl<'a> ChildWalk<'a> {
             target_box,
             self.bases,
             self.override_skips,
+            self.servers,
+            &self.paint_contexts,
         )
     }
 
@@ -6512,17 +6522,188 @@ mod filter_resource {
         axis_or_quarter_turn && [a, b, c, d].into_iter().all(integer)
     }
 
-    fn source_subtree_crosses_native_shadow_boundary(
-        target: HtmlElement<'_>,
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    enum EffectiveSourcePaint {
+        None,
+        OpaqueSolid,
+        TranslucentSolid,
+        Pattern,
+        OtherServer,
+        Unresolved,
+    }
+
+    /// Classify the paint that actually reaches one source-image channel.
+    /// Looking only at the target's authored `SVGPaintKind` is insufficient:
+    /// `context-fill` / `context-stroke` may select a gradient or pattern from
+    /// an enclosing `<use>`. The filter precision patrols must see that
+    /// eventual server before any pixels are admitted.
+    fn effective_source_paint<'d>(
+        element: HtmlElement<'d>,
+        property: PaintProperty,
+        servers: &PaintServers<'d>,
+        paint_contexts: &[PaintContext<'d>],
+    ) -> Result<EffectiveSourcePaint, CompileError> {
+        let selected = match select_paint(element, property, paint_contexts) {
+            Ok(Some(selected)) => selected,
+            Ok(None) => return Ok(EffectiveSourcePaint::None),
+            // The ordinary paint compiler owns the stable diagnostic for an
+            // invalid context relation. Do not replace it with a speculative
+            // filter-profile diagnosis merely because filtering runs first.
+            Err(_) => return Ok(EffectiveSourcePaint::Unresolved),
+        };
+        match &selected.value.kind {
+            SVGPaintKind::None => Ok(EffectiveSourcePaint::None),
+            SVGPaintKind::Color(color) => {
+                let data = selected
+                    .owner
+                    .borrow_data()
+                    .ok_or(CompileError::MissingComputedStyle)?;
+                if data.styles.primary().resolve_color(color).alpha == 1.0 {
+                    Ok(EffectiveSourcePaint::OpaqueSolid)
+                } else {
+                    Ok(EffectiveSourcePaint::TranslucentSolid)
+                }
+            }
+            SVGPaintKind::PaintServer(url) => {
+                let Some(resolved_url) = url.url() else {
+                    return Ok(EffectiveSourcePaint::OtherServer);
+                };
+                let Some(fragment) = crate::svg_paint_server::same_document_fragment(resolved_url)
+                else {
+                    return Ok(EffectiveSourcePaint::OtherServer);
+                };
+                Ok(match crate::svg_paint_server::classify(servers, fragment) {
+                    Ok(ClassifiedServer::Pattern(_)) => EffectiveSourcePaint::Pattern,
+                    Ok(ClassifiedServer::Invalid | ClassifiedServer::Gradient) | Err(_) => {
+                        EffectiveSourcePaint::OtherServer
+                    }
+                })
+            }
+            SVGPaintKind::ContextFill | SVGPaintKind::ContextStroke => {
+                unreachable!("select_paint removes every context relation")
+            }
+        }
+    }
+
+    /// Whether one element contributes fill/stroke channels to a filter's
+    /// source image. Containers are traversed but never classified as paint.
+    fn source_paint_leaf(element: HtmlElement<'_>) -> bool {
+        matches!(
+            element.local_name_string().as_str(),
+            "rect" | "circle" | "ellipse" | "path" | "line" | "polygon" | "polyline" | "text"
+        )
+    }
+
+    /// A nested `<use>` establishes a new context owner for its cloned
+    /// descendants. Filter source-profile walks do not need its geometry map,
+    /// only the owner ordering used by `select_paint`.
+    fn descendant_paint_contexts<'d>(
+        element: HtmlElement<'d>,
+        paint_contexts: &[PaintContext<'d>],
+    ) -> Vec<PaintContext<'d>> {
+        let mut contexts = paint_contexts.to_vec();
+        if element.local_name_string() == "use" {
+            contexts.push(PaintContext {
+                element,
+                reference_box: None,
+                to_frame: AffineTransform::identity(),
+            });
+        }
+        contexts
+    }
+
+    /// Add one source element's children to the iterative profile walk while
+    /// carrying any context owner established by the parent.
+    fn push_source_children<'d>(
+        element: HtmlElement<'d>,
+        paint_contexts: &[PaintContext<'d>],
+        stack: &mut Vec<(HtmlElement<'d>, Vec<PaintContext<'d>>, bool)>,
+    ) {
+        let child_contexts = descendant_paint_contexts(element, paint_contexts);
+        let mut child = element.first_element_child();
+        while let Some(next) = child {
+            stack.push((next, child_contexts.clone(), false));
+            child = next.next_element_sibling();
+        }
+    }
+
+    /// P2 proves filtered pattern source images only for one direct,
+    /// sharp-cornered `<rect>` channel. Chromium/n0 probes found separate
+    /// picture-shader coverage splits on cubic paths (color matrix, component
+    /// transfer, offset, and merge) and rounded rectangles (blur, morphology,
+    /// and drop shadow). Keep that operation-independent source profile here
+    /// so a newly admitted primitive cannot silently bypass the same raster
+    /// boundary.
+    fn filter_source_crosses_pattern_profile_boundary<'d>(
+        target: HtmlElement<'d>,
+        servers: &PaintServers<'d>,
+        paint_contexts: &[PaintContext<'d>],
     ) -> Result<bool, CompileError> {
-        let mut stack = vec![(target, true)];
-        while let Some((element, is_target)) = stack.pop() {
-            for property in [PaintProperty::Fill, PaintProperty::Stroke] {
-                if matches!(
-                    computed_paint(element, property)?.kind,
-                    SVGPaintKind::PaintServer(_)
-                ) {
-                    return Ok(true);
+        let mut stack = vec![(target, paint_contexts.to_vec(), true)];
+        while let Some((element, contexts, is_target)) = stack.pop() {
+            if source_paint_leaf(element) {
+                let fill =
+                    effective_source_paint(element, PaintProperty::Fill, servers, &contexts)?;
+                let stroke =
+                    effective_source_paint(element, PaintProperty::Stroke, servers, &contexts)?;
+                let pattern_property = match (fill, stroke) {
+                    (EffectiveSourcePaint::Pattern, EffectiveSourcePaint::None) => {
+                        Some(PaintProperty::Fill)
+                    }
+                    (EffectiveSourcePaint::None, EffectiveSourcePaint::Pattern) => {
+                        Some(PaintProperty::Stroke)
+                    }
+                    (EffectiveSourcePaint::Pattern, _) | (_, EffectiveSourcePaint::Pattern) => {
+                        return Ok(true);
+                    }
+                    _ => None,
+                };
+                if let Some(pattern_property) = pattern_property {
+                    if !is_target
+                        || element.local_name_string() != "rect"
+                        || element.first_element_child().is_some()
+                        || get_attr(element, "rx").is_some()
+                        || get_attr(element, "ry").is_some()
+                    {
+                        return Ok(true);
+                    }
+                    if matches!(pattern_property, PaintProperty::Stroke) {
+                        let data = element
+                            .borrow_data()
+                            .ok_or(CompileError::MissingComputedStyle)?;
+                        let style = data.styles.primary();
+                        if !matches!(
+                            style.clone_stroke_dasharray(),
+                            SVGStrokeDashArray::Values(values) if values.is_empty()
+                        ) || style.clone_stroke_linecap() != StyloLinecap::Butt
+                            || style.clone_stroke_linejoin() != StyloLinejoin::Miter
+                            || style.clone_stroke_miterlimit().0 != 4.0
+                        {
+                            return Ok(true);
+                        }
+                    }
+                }
+            }
+            push_source_children(element, &contexts, &mut stack);
+        }
+        Ok(false)
+    }
+
+    fn source_subtree_crosses_native_shadow_boundary<'d>(
+        target: HtmlElement<'d>,
+        servers: &PaintServers<'d>,
+        paint_contexts: &[PaintContext<'d>],
+    ) -> Result<bool, CompileError> {
+        let mut stack = vec![(target, paint_contexts.to_vec(), true)];
+        while let Some((element, contexts, is_target)) = stack.pop() {
+            if source_paint_leaf(element) {
+                for property in [PaintProperty::Fill, PaintProperty::Stroke] {
+                    if matches!(
+                        effective_source_paint(element, property, servers, &contexts)?,
+                        EffectiveSourcePaint::OtherServer
+                    ) {
+                        return Ok(true);
+                    }
                 }
             }
             if !is_target {
@@ -6533,21 +6714,22 @@ mod filter_resource {
                     return Ok(true);
                 }
             }
-            let mut child = element.first_element_child();
-            while let Some(next) = child {
-                stack.push((next, false));
-                child = next.next_element_sibling();
-            }
+            push_source_children(element, &contexts, &mut stack);
         }
         Ok(false)
     }
 
     /// The pinned Chromium/backend pair agrees for a source-derived color
     /// matrix when its isolated source is one opaque solid fill on one direct
-    /// geometry target. Curved strokes, paint servers, authored translucency,
-    /// descendant compositing, and multi-draw groups cross independently
-    /// measured source-layer precision boundaries.
-    fn color_matrix_source_is_admitted(target: HtmlElement<'_>) -> Result<bool, CompileError> {
+    /// geometry target, or for the separately measured direct sharp-rect
+    /// pattern profile. Curved strokes, non-pattern paint servers, authored
+    /// solid translucency, descendant compositing, and multi-draw groups cross
+    /// independently measured source-layer precision boundaries.
+    fn color_matrix_source_is_admitted<'d>(
+        target: HtmlElement<'d>,
+        servers: &PaintServers<'d>,
+        paint_contexts: &[PaintContext<'d>],
+    ) -> Result<bool, CompileError> {
         if !matches!(
             target.local_name_string().as_str(),
             "rect" | "circle" | "ellipse" | "path" | "polygon" | "polyline"
@@ -6564,18 +6746,29 @@ mod filter_resource {
             SVGOpacity::Opacity(value) => value,
             _ => return Ok(false),
         };
-        let fill = style.clone_fill();
-        let opaque_fill = match fill.kind {
-            SVGPaintKind::Color(color) => {
-                fill_opacity == 1.0 && style.resolve_color(&color).alpha == 1.0
-            }
-            SVGPaintKind::None
-            | SVGPaintKind::PaintServer(_)
-            | SVGPaintKind::ContextFill
-            | SVGPaintKind::ContextStroke => false,
+        let _stroke_opacity = match style.clone_stroke_opacity() {
+            SVGOpacity::Opacity(value) => value,
+            _ => return Ok(false),
         };
-        let no_stroke = matches!(style.clone_stroke().kind, SVGPaintKind::None);
-        Ok(opaque_fill && no_stroke)
+        drop(data);
+        let fill = effective_source_paint(target, PaintProperty::Fill, servers, paint_contexts)?;
+        let stroke =
+            effective_source_paint(target, PaintProperty::Stroke, servers, paint_contexts)?;
+        let opaque_solid = fill_opacity == 1.0
+            && fill == EffectiveSourcePaint::OpaqueSolid
+            && stroke == EffectiveSourcePaint::None;
+        let measured_pattern_rect = target.local_name_string() == "rect"
+            && get_attr(target, "rx").is_none()
+            && get_attr(target, "ry").is_none()
+            && matches!(
+                (fill, stroke),
+                (EffectiveSourcePaint::Pattern, EffectiveSourcePaint::None)
+                    | (EffectiveSourcePaint::None, EffectiveSourcePaint::Pattern)
+            );
+        // The typed matches above retain the established refusal for an
+        // unrepresentable opacity value. P2's matrix admits the complete
+        // resolved numeric fill/stroke paint-opacity range on this route.
+        Ok(opaque_solid || measured_pattern_rect)
     }
 
     /// Axis-aligned maps and exact quarter turns are exact across the sampled
@@ -6587,22 +6780,24 @@ mod filter_resource {
         axis_or_quarter_turn && [a, b, c, d].into_iter().all(f32::is_finite)
     }
 
-    fn filter_source_has_paint_server(target: HtmlElement<'_>) -> Result<bool, CompileError> {
-        let mut stack = vec![target];
-        while let Some(element) = stack.pop() {
-            for property in [PaintProperty::Fill, PaintProperty::Stroke] {
-                if matches!(
-                    computed_paint(element, property)?.kind,
-                    SVGPaintKind::PaintServer(_)
-                ) {
-                    return Ok(true);
+    fn filter_source_has_non_pattern_paint_server<'d>(
+        target: HtmlElement<'d>,
+        servers: &PaintServers<'d>,
+        paint_contexts: &[PaintContext<'d>],
+    ) -> Result<bool, CompileError> {
+        let mut stack = vec![(target, paint_contexts.to_vec(), true)];
+        while let Some((element, contexts, _)) = stack.pop() {
+            if source_paint_leaf(element) {
+                for property in [PaintProperty::Fill, PaintProperty::Stroke] {
+                    if matches!(
+                        effective_source_paint(element, property, servers, &contexts)?,
+                        EffectiveSourcePaint::OtherServer
+                    ) {
+                        return Ok(true);
+                    }
                 }
             }
-            let mut child = element.first_element_child();
-            while let Some(next) = child {
-                stack.push(next);
-                child = next.next_element_sibling();
-            }
+            push_source_children(element, &contexts, &mut stack);
         }
         Ok(false)
     }
@@ -6721,11 +6916,13 @@ mod filter_resource {
     /// filter runs. The target's own `opacity` is deliberately excluded: SVG
     /// applies it after filtering. Descendant opacity, paint alpha, and
     /// fill/stroke opacity are source-image facts.
-    fn filter_source_has_authored_translucency(
-        target: HtmlElement<'_>,
+    fn filter_source_has_authored_translucency<'d>(
+        target: HtmlElement<'d>,
+        servers: &PaintServers<'d>,
+        paint_contexts: &[PaintContext<'d>],
     ) -> Result<bool, CompileError> {
-        let mut stack = vec![(target, true)];
-        while let Some((element, is_target)) = stack.pop() {
+        let mut stack = vec![(target, paint_contexts.to_vec(), true)];
+        while let Some((element, contexts, is_target)) = stack.pop() {
             let data = element
                 .borrow_data()
                 .ok_or(CompileError::MissingComputedStyle)?;
@@ -6745,26 +6942,25 @@ mod filter_resource {
                     let SVGOpacity::Opacity(opacity) = opacity else {
                         return Ok(true);
                     };
-                    let paint = computed_paint(element, property)?;
-                    match paint.kind {
-                        SVGPaintKind::None => {}
-                        SVGPaintKind::Color(color) => {
-                            if opacity != 1.0 || style.resolve_color(&color).alpha != 1.0 {
+                    match effective_source_paint(element, property, servers, &contexts)? {
+                        EffectiveSourcePaint::None => {}
+                        EffectiveSourcePaint::OpaqueSolid => {
+                            if opacity != 1.0 {
                                 return Ok(true);
                             }
                         }
-                        SVGPaintKind::PaintServer(_)
-                        | SVGPaintKind::ContextFill
-                        | SVGPaintKind::ContextStroke => return Ok(true),
+                        // P2's profile matrix covers transparent tile space,
+                        // source alpha inside the tile, and destination paint
+                        // opacity for both fill and stroke pattern ingresses.
+                        EffectiveSourcePaint::Pattern => {}
+                        EffectiveSourcePaint::TranslucentSolid
+                        | EffectiveSourcePaint::OtherServer
+                        | EffectiveSourcePaint::Unresolved => return Ok(true),
                     }
                 }
             }
-
-            let mut child = element.first_element_child();
-            while let Some(next) = child {
-                stack.push((next, false));
-                child = next.next_element_sibling();
-            }
+            drop(data);
+            push_source_children(element, &contexts, &mut stack);
         }
         Ok(false)
     }
@@ -6778,6 +6974,8 @@ mod filter_resource {
         region: Rectangle,
         target_to_frame: AffineTransform,
         override_skips: &HashMap<NodeId, String>,
+        servers: &PaintServers<'_>,
+        paint_contexts: &[PaintContext<'_>],
     ) -> Result<Option<FilterProgram>, CompileError> {
         let mut nodes: Vec<FilterNode> = Vec::new();
         let mut names = HashMap::new();
@@ -7022,7 +7220,11 @@ mod filter_resource {
                 "feDropShadow" => {
                     patrol_color_style(element)?;
                     patrol_flood_style(element, "feDropShadow")?;
-                    if source_subtree_crosses_native_shadow_boundary(target)? {
+                    if source_subtree_crosses_native_shadow_boundary(
+                        target,
+                        servers,
+                        paint_contexts,
+                    )? {
                         return Err(CompileError::UnsupportedFilter(
                             "feDropShadow's source subtree crosses the pinned-backend native-shadow source-layer precision boundary"
                                 .to_string(),
@@ -7210,6 +7412,15 @@ mod filter_resource {
             source_dependencies.push(source_dependent);
             lighting_dependencies.push(lighting_dependent);
         }
+        let output_is_source_dependent = source_dependencies.last().copied().unwrap_or(false);
+        if output_is_source_dependent
+            && filter_source_crosses_pattern_profile_boundary(target, servers, paint_contexts)?
+        {
+            return Err(CompileError::UnsupportedFilter(
+                "a source-derived filter reads pattern paint outside the admitted direct sharp-rect source profile at the pinned-backend filtered-pattern coverage precision boundary"
+                    .to_string(),
+            ));
+        }
         if has_blend {
             if !blend_mapping_is_admitted(target_to_frame) {
                 return Err(CompileError::UnsupportedFilter(
@@ -7263,16 +7474,20 @@ mod filter_resource {
         if has_diffuse_lighting_composition_boundary {
             return Err(CompileError::UnsupportedFilter(
                 "feDiffuseLighting as the foreground of feComposite in/atop against a source-derived second input crosses the pinned-backend lighting-composition precision boundary"
-                    .to_string(),
+                .to_string(),
             ));
         }
-        if has_source_dependent_convolve_matrix && filter_source_has_paint_server(target)? {
+        if has_source_dependent_convolve_matrix
+            && filter_source_has_non_pattern_paint_server(target, servers, paint_contexts)?
+        {
             return Err(CompileError::UnsupportedFilter(
                 "feConvolveMatrix's source image crosses the pinned-backend convolution-filter paint-server precision boundary"
                     .to_string(),
             ));
         }
-        if has_source_dependent_morphology && filter_source_has_paint_server(target)? {
+        if has_source_dependent_morphology
+            && filter_source_has_non_pattern_paint_server(target, servers, paint_contexts)?
+        {
             return Err(CompileError::UnsupportedFilter(
                 "feMorphology's source image crosses the pinned-backend morphology paint-server precision boundary"
                     .to_string(),
@@ -7281,17 +7496,19 @@ mod filter_resource {
         if has_source_dependent_active_morphology && morphology_source_has_filled_ellipse(target)? {
             return Err(CompileError::UnsupportedFilter(
                 "feMorphology's active source image crosses the retained filled-ellipse coverage boundary"
-                    .to_string(),
+                .to_string(),
             ));
         }
-        if has_source_dependent_multi_input && filter_source_has_authored_translucency(target)? {
+        if has_source_dependent_multi_input
+            && filter_source_has_authored_translucency(target, servers, paint_contexts)?
+        {
             return Err(CompileError::UnsupportedFilter(
                 "a source-derived multi-input filter graph crosses the pinned-backend translucent-source composition precision boundary"
                     .to_string(),
             ));
         }
         if has_source_dependent_color_matrix {
-            if !color_matrix_source_is_admitted(target)? {
+            if !color_matrix_source_is_admitted(target, servers, paint_contexts)? {
                 return Err(CompileError::UnsupportedFilter(
                     "feColorMatrix's source image crosses the pinned-backend color-matrix source-layer precision boundary"
                         .to_string(),
@@ -7318,7 +7535,7 @@ mod filter_resource {
             }
         }
         if has_source_dependent_component_transfer {
-            if filter_source_has_paint_server(target)? {
+            if filter_source_has_non_pattern_paint_server(target, servers, paint_contexts)? {
                 return Err(CompileError::UnsupportedFilter(
                     "feComponentTransfer's source image crosses the pinned-backend table-filter paint-server precision boundary"
                         .to_string(),
@@ -7387,6 +7604,8 @@ mod filter_resource {
         target_box: Option<Rectangle>,
         bases: PercentBases,
         override_skips: &HashMap<NodeId, String>,
+        servers: &PaintServers<'d>,
+        paint_contexts: &[PaintContext<'d>],
     ) -> Result<Resolution, CompileError> {
         let AuthoredFilter::Fragment(fragment) = authored_filter(target)? else {
             return Ok(Resolution::None);
@@ -7449,6 +7668,8 @@ mod filter_resource {
             region,
             target_to_frame,
             override_skips,
+            servers,
+            paint_contexts,
         )?
         else {
             return Ok(Resolution::Hide);
@@ -9484,7 +9705,6 @@ fn resolve_fill(
     else {
         return Ok(PaintStack::empty());
     };
-    let selected_through_context = selected.context.is_some();
     let owner_data = selected
         .owner
         .borrow_data()
@@ -9517,7 +9737,6 @@ fn resolve_fill(
                 bases,
                 paint_opacity,
                 extra_opacity,
-                selected_through_context,
                 "fill",
             )? {
                 Some(stack) => Ok(stack.with_alpha_factor(
@@ -9547,7 +9766,6 @@ fn resolve_paint_server_stack(
     bases: PercentBases,
     paint_opacity: f32,
     post_paint_opacity: f32,
-    selected_through_context: bool,
     property: &str,
 ) -> Result<Option<PaintStack>, CompileError> {
     let refusal = |reason: String| match property {
@@ -9593,11 +9811,6 @@ fn resolve_paint_server_stack(
             })
         }
         ClassifiedServer::Pattern(first) => {
-            if selected_through_context {
-                return Err(refusal(format!(
-                    "url(#{fragment}) resolves to a pattern paint selected through context-fill/context-stroke, outside the admitted pattern composition slice"
-                )));
-            }
             let Some((reference_box, owner_to_destination)) = reference_space()
                 .map_err(|reason| refusal(format!("url(#{fragment}): {reason}")))?
             else {
@@ -10359,7 +10572,6 @@ fn resolve_stroke(
     else {
         return Ok(None);
     };
-    let selected_through_context = selected.context.is_some();
     let owner_data = selected
         .owner
         .borrow_data()
@@ -10394,7 +10606,6 @@ fn resolve_stroke(
                 bases,
                 paint_opacity,
                 extra_opacity,
-                selected_through_context,
                 "stroke",
             )? {
                 Some(stack) => stack.with_alpha_factor(

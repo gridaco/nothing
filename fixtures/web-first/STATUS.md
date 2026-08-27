@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (874)
+## Chromium-baked cells (936)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -664,6 +664,29 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-path-smooth-cubic.svg" title="svg-path-smooth-cubic (standalone-svg)"><img src="./chromium/svg-path-smooth-cubic.png" width="56" alt="svg-path-smooth-cubic"></a>
 <a href="./svg-path-two-subpaths.svg" title="svg-path-two-subpaths (standalone-svg)"><img src="./chromium/svg-path-two-subpaths.png" width="56" alt="svg-path-two-subpaths"></a>
 <a href="./svg-path-unclosed-fill.svg" title="svg-path-unclosed-fill (standalone-svg)"><img src="./chromium/svg-path-unclosed-fill.png" width="56" alt="svg-path-unclosed-fill"></a>
+<a href="./svg-pattern-context-axis-transform.svg" title="svg-pattern-context-axis-transform (standalone-svg)"><img src="./chromium/svg-pattern-context-axis-transform.png" width="56" alt="svg-pattern-context-axis-transform"></a>
+<a href="./svg-pattern-context-css-ingress.svg" title="svg-pattern-context-css-ingress (standalone-svg)"><img src="./chromium/svg-pattern-context-css-ingress.png" width="56" alt="svg-pattern-context-css-ingress"></a>
+<a href="./svg-pattern-context-destination-opacity.svg" title="svg-pattern-context-destination-opacity (standalone-svg)"><img src="./chromium/svg-pattern-context-destination-opacity.png" width="56" alt="svg-pattern-context-destination-opacity"></a>
+<a href="./svg-pattern-context-fill-from-stroke.svg" title="svg-pattern-context-fill-from-stroke (standalone-svg)"><img src="./chromium/svg-pattern-context-fill-from-stroke.png" width="56" alt="svg-pattern-context-fill-from-stroke"></a>
+<a href="./svg-pattern-context-filter-color-matrix.svg" title="svg-pattern-context-filter-color-matrix (standalone-svg)"><img src="./chromium/svg-pattern-context-filter-color-matrix.png" width="56" alt="svg-pattern-context-filter-color-matrix"></a>
+<a href="./svg-pattern-context-filter-component-transfer.svg" title="svg-pattern-context-filter-component-transfer (standalone-svg)"><img src="./chromium/svg-pattern-context-filter-component-transfer.png" width="56" alt="svg-pattern-context-filter-component-transfer"></a>
+<a href="./svg-pattern-context-filter-composite.svg" title="svg-pattern-context-filter-composite (standalone-svg)"><img src="./chromium/svg-pattern-context-filter-composite.png" width="56" alt="svg-pattern-context-filter-composite"></a>
+<a href="./svg-pattern-context-filter-convolve.svg" title="svg-pattern-context-filter-convolve (standalone-svg)"><img src="./chromium/svg-pattern-context-filter-convolve.png" width="56" alt="svg-pattern-context-filter-convolve"></a>
+<a href="./svg-pattern-context-filter-drop-shadow.svg" title="svg-pattern-context-filter-drop-shadow (standalone-svg)"><img src="./chromium/svg-pattern-context-filter-drop-shadow.png" width="56" alt="svg-pattern-context-filter-drop-shadow"></a>
+<a href="./svg-pattern-context-filter-morphology.svg" title="svg-pattern-context-filter-morphology (standalone-svg)"><img src="./chromium/svg-pattern-context-filter-morphology.png" width="56" alt="svg-pattern-context-filter-morphology"></a>
+<a href="./svg-pattern-context-invalid-fallback.svg" title="svg-pattern-context-invalid-fallback (standalone-svg)"><img src="./chromium/svg-pattern-context-invalid-fallback.png" width="56" alt="svg-pattern-context-invalid-fallback"></a>
+<a href="./svg-pattern-context-nested-translate.svg" title="svg-pattern-context-nested-translate (standalone-svg)"><img src="./chromium/svg-pattern-context-nested-translate.png" width="56" alt="svg-pattern-context-nested-translate"></a>
+<a href="./svg-pattern-context-object-box.svg" title="svg-pattern-context-object-box (standalone-svg)"><img src="./chromium/svg-pattern-context-object-box.png" width="56" alt="svg-pattern-context-object-box"></a>
+<a href="./svg-pattern-context-quarter-turn.svg" title="svg-pattern-context-quarter-turn (standalone-svg)"><img src="./chromium/svg-pattern-context-quarter-turn.png" width="56" alt="svg-pattern-context-quarter-turn"></a>
+<a href="./svg-pattern-context-recursive-owner.svg" title="svg-pattern-context-recursive-owner (standalone-svg)"><img src="./chromium/svg-pattern-context-recursive-owner.png" width="56" alt="svg-pattern-context-recursive-owner"></a>
+<a href="./svg-pattern-context-reflection.svg" title="svg-pattern-context-reflection (standalone-svg)"><img src="./chromium/svg-pattern-context-reflection.png" width="56" alt="svg-pattern-context-reflection"></a>
+<a href="./svg-pattern-context-selection.svg" title="svg-pattern-context-selection (standalone-svg)"><img src="./chromium/svg-pattern-context-selection.png" width="56" alt="svg-pattern-context-selection"></a>
+<a href="./svg-pattern-context-singular.svg" title="svg-pattern-context-singular (standalone-svg)"><img src="./chromium/svg-pattern-context-singular.png" width="56" alt="svg-pattern-context-singular"></a>
+<a href="./svg-pattern-context-stroke-from-fill.svg" title="svg-pattern-context-stroke-from-fill (standalone-svg)"><img src="./chromium/svg-pattern-context-stroke-from-fill.png" width="56" alt="svg-pattern-context-stroke-from-fill"></a>
+<a href="./svg-pattern-context-stroke-from-stroke.svg" title="svg-pattern-context-stroke-from-stroke (standalone-svg)"><img src="./chromium/svg-pattern-context-stroke-from-stroke.png" width="56" alt="svg-pattern-context-stroke-from-stroke"></a>
+<a href="./svg-pattern-context-target-filter.svg" title="svg-pattern-context-target-filter (standalone-svg)"><img src="./chromium/svg-pattern-context-target-filter.png" width="56" alt="svg-pattern-context-target-filter"></a>
+<a href="./svg-pattern-context-target-mask.svg" title="svg-pattern-context-target-mask (standalone-svg)"><img src="./chromium/svg-pattern-context-target-mask.png" width="56" alt="svg-pattern-context-target-mask"></a>
+<a href="./svg-pattern-context-valid-empty.svg" title="svg-pattern-context-valid-empty (standalone-svg)"><img src="./chromium/svg-pattern-context-valid-empty.png" width="56" alt="svg-pattern-context-valid-empty"></a>
 <a href="./svg-pattern-degenerate-viewbox-fallback.svg" title="svg-pattern-degenerate-viewbox-fallback (standalone-svg)"><img src="./chromium/svg-pattern-degenerate-viewbox-fallback.png" width="56" alt="svg-pattern-degenerate-viewbox-fallback"></a>
 <a href="./svg-pattern-descriptive-content-drop.svg" title="svg-pattern-descriptive-content-drop (standalone-svg)"><img src="./chromium/svg-pattern-descriptive-content-drop.png" width="56" alt="svg-pattern-descriptive-content-drop"></a>
 <a href="./svg-pattern-duplicate-id-first.svg" title="svg-pattern-duplicate-id-first (standalone-svg)"><img src="./chromium/svg-pattern-duplicate-id-first.png" width="56" alt="svg-pattern-duplicate-id-first"></a>
@@ -672,6 +695,12 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-pattern-fill-path-evenodd.svg" title="svg-pattern-fill-path-evenodd (standalone-svg)"><img src="./chromium/svg-pattern-fill-path-evenodd.png" width="56" alt="svg-pattern-fill-path-evenodd"></a>
 <a href="./svg-pattern-fill-rounded-rect.svg" title="svg-pattern-fill-rounded-rect (standalone-svg)"><img src="./chromium/svg-pattern-fill-rounded-rect.png" width="56" alt="svg-pattern-fill-rounded-rect"></a>
 <a href="./svg-pattern-fill-stroke-opacity.svg" title="svg-pattern-fill-stroke-opacity (standalone-svg)"><img src="./chromium/svg-pattern-fill-stroke-opacity.png" width="56" alt="svg-pattern-fill-stroke-opacity"></a>
+<a href="./svg-pattern-filter-profile-alpha.svg" title="svg-pattern-filter-profile-alpha (standalone-svg)"><img src="./chromium/svg-pattern-filter-profile-alpha.png" width="56" alt="svg-pattern-filter-profile-alpha"></a>
+<a href="./svg-pattern-filter-profile-gradient.svg" title="svg-pattern-filter-profile-gradient (standalone-svg)"><img src="./chromium/svg-pattern-filter-profile-gradient.png" width="56" alt="svg-pattern-filter-profile-gradient"></a>
+<a href="./svg-pattern-filter-profile-mask.svg" title="svg-pattern-filter-profile-mask (standalone-svg)"><img src="./chromium/svg-pattern-filter-profile-mask.png" width="56" alt="svg-pattern-filter-profile-mask"></a>
+<a href="./svg-pattern-filter-profile-nested.svg" title="svg-pattern-filter-profile-nested (standalone-svg)"><img src="./chromium/svg-pattern-filter-profile-nested.png" width="56" alt="svg-pattern-filter-profile-nested"></a>
+<a href="./svg-pattern-filter-profile-stroke.svg" title="svg-pattern-filter-profile-stroke (standalone-svg)"><img src="./chromium/svg-pattern-filter-profile-stroke.png" width="56" alt="svg-pattern-filter-profile-stroke"></a>
+<a href="./svg-pattern-filter-profile-transparent.svg" title="svg-pattern-filter-profile-transparent (standalone-svg)"><img src="./chromium/svg-pattern-filter-profile-transparent.png" width="56" alt="svg-pattern-filter-profile-transparent"></a>
 <a href="./svg-pattern-height-absent-fallback.svg" title="svg-pattern-height-absent-fallback (standalone-svg)"><img src="./chromium/svg-pattern-height-absent-fallback.png" width="56" alt="svg-pattern-height-absent-fallback"></a>
 <a href="./svg-pattern-height-negative-fallback.svg" title="svg-pattern-height-negative-fallback (standalone-svg)"><img src="./chromium/svg-pattern-height-negative-fallback.png" width="56" alt="svg-pattern-height-negative-fallback"></a>
 <a href="./svg-pattern-height-zero-fallback.svg" title="svg-pattern-height-zero-fallback (standalone-svg)"><img src="./chromium/svg-pattern-height-zero-fallback.png" width="56" alt="svg-pattern-height-zero-fallback"></a>
@@ -692,6 +721,27 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-pattern-px-lengths.svg" title="svg-pattern-px-lengths (standalone-svg)"><img src="./chromium/svg-pattern-px-lengths.png" width="56" alt="svg-pattern-px-lengths"></a>
 <a href="./svg-pattern-repeat.svg" title="svg-pattern-repeat (standalone-svg)"><img src="./chromium/svg-pattern-repeat.png" width="56" alt="svg-pattern-repeat"></a>
 <a href="./svg-pattern-singular-transform-fallback.svg" title="svg-pattern-singular-transform-fallback (standalone-svg)"><img src="./chromium/svg-pattern-singular-transform-fallback.png" width="56" alt="svg-pattern-singular-transform-fallback"></a>
+<a href="./svg-pattern-source-filter.svg" title="svg-pattern-source-filter (standalone-svg)"><img src="./chromium/svg-pattern-source-filter.png" width="56" alt="svg-pattern-source-filter"></a>
+<a href="./svg-pattern-source-filter-blend.svg" title="svg-pattern-source-filter-blend (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-blend.png" width="56" alt="svg-pattern-source-filter-blend"></a>
+<a href="./svg-pattern-source-filter-blur-linear.svg" title="svg-pattern-source-filter-blur-linear (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-blur-linear.png" width="56" alt="svg-pattern-source-filter-blur-linear"></a>
+<a href="./svg-pattern-source-filter-color-matrix.svg" title="svg-pattern-source-filter-color-matrix (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-color-matrix.png" width="56" alt="svg-pattern-source-filter-color-matrix"></a>
+<a href="./svg-pattern-source-filter-component-transfer.svg" title="svg-pattern-source-filter-component-transfer (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-component-transfer.png" width="56" alt="svg-pattern-source-filter-component-transfer"></a>
+<a href="./svg-pattern-source-filter-composite-arithmetic.svg" title="svg-pattern-source-filter-composite-arithmetic (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-composite-arithmetic.png" width="56" alt="svg-pattern-source-filter-composite-arithmetic"></a>
+<a href="./svg-pattern-source-filter-composite-in.svg" title="svg-pattern-source-filter-composite-in (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-composite-in.png" width="56" alt="svg-pattern-source-filter-composite-in"></a>
+<a href="./svg-pattern-source-filter-convolve.svg" title="svg-pattern-source-filter-convolve (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-convolve.png" width="56" alt="svg-pattern-source-filter-convolve"></a>
+<a href="./svg-pattern-source-filter-diffuse.svg" title="svg-pattern-source-filter-diffuse (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-diffuse.png" width="56" alt="svg-pattern-source-filter-diffuse"></a>
+<a href="./svg-pattern-source-filter-displacement.svg" title="svg-pattern-source-filter-displacement (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-displacement.png" width="56" alt="svg-pattern-source-filter-displacement"></a>
+<a href="./svg-pattern-source-filter-drop-shadow.svg" title="svg-pattern-source-filter-drop-shadow (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-drop-shadow.png" width="56" alt="svg-pattern-source-filter-drop-shadow"></a>
+<a href="./svg-pattern-source-filter-flood.svg" title="svg-pattern-source-filter-flood (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-flood.png" width="56" alt="svg-pattern-source-filter-flood"></a>
+<a href="./svg-pattern-source-filter-group-two-draws.svg" title="svg-pattern-source-filter-group-two-draws (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-group-two-draws.png" width="56" alt="svg-pattern-source-filter-group-two-draws"></a>
+<a href="./svg-pattern-source-filter-hard-region.svg" title="svg-pattern-source-filter-hard-region (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-hard-region.png" width="56" alt="svg-pattern-source-filter-hard-region"></a>
+<a href="./svg-pattern-source-filter-merge.svg" title="svg-pattern-source-filter-merge (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-merge.png" width="56" alt="svg-pattern-source-filter-merge"></a>
+<a href="./svg-pattern-source-filter-morphology.svg" title="svg-pattern-source-filter-morphology (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-morphology.png" width="56" alt="svg-pattern-source-filter-morphology"></a>
+<a href="./svg-pattern-source-filter-nested-pattern.svg" title="svg-pattern-source-filter-nested-pattern (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-nested-pattern.png" width="56" alt="svg-pattern-source-filter-nested-pattern"></a>
+<a href="./svg-pattern-source-filter-object-units.svg" title="svg-pattern-source-filter-object-units (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-object-units.png" width="56" alt="svg-pattern-source-filter-object-units"></a>
+<a href="./svg-pattern-source-filter-offset.svg" title="svg-pattern-source-filter-offset (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-offset.png" width="56" alt="svg-pattern-source-filter-offset"></a>
+<a href="./svg-pattern-source-filter-plus-draw.svg" title="svg-pattern-source-filter-plus-draw (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-plus-draw.png" width="56" alt="svg-pattern-source-filter-plus-draw"></a>
+<a href="./svg-pattern-source-filter-turbulence.svg" title="svg-pattern-source-filter-turbulence (standalone-svg)"><img src="./chromium/svg-pattern-source-filter-turbulence.png" width="56" alt="svg-pattern-source-filter-turbulence"></a>
 <a href="./svg-pattern-source-gradient.svg" title="svg-pattern-source-gradient (standalone-svg)"><img src="./chromium/svg-pattern-source-gradient.png" width="56" alt="svg-pattern-source-gradient"></a>
 <a href="./svg-pattern-source-mask.svg" title="svg-pattern-source-mask (standalone-svg)"><img src="./chromium/svg-pattern-source-mask.png" width="56" alt="svg-pattern-source-mask"></a>
 <a href="./svg-pattern-source-one-draw-opacity.svg" title="svg-pattern-source-one-draw-opacity (standalone-svg)"><img src="./chromium/svg-pattern-source-one-draw-opacity.png" width="56" alt="svg-pattern-source-one-draw-opacity"></a>
@@ -704,6 +754,18 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-pattern-target-element-opacity.svg" title="svg-pattern-target-element-opacity (standalone-svg)"><img src="./chromium/svg-pattern-target-element-opacity.png" width="56" alt="svg-pattern-target-element-opacity"></a>
 <a href="./svg-pattern-target-fill-opacity.svg" title="svg-pattern-target-fill-opacity (standalone-svg)"><img src="./chromium/svg-pattern-target-fill-opacity.png" width="56" alt="svg-pattern-target-fill-opacity"></a>
 <a href="./svg-pattern-target-filter.svg" title="svg-pattern-target-filter (standalone-svg)"><img src="./chromium/svg-pattern-target-filter.png" width="56" alt="svg-pattern-target-filter"></a>
+<a href="./svg-pattern-target-filter-blend.svg" title="svg-pattern-target-filter-blend (standalone-svg)"><img src="./chromium/svg-pattern-target-filter-blend.png" width="56" alt="svg-pattern-target-filter-blend"></a>
+<a href="./svg-pattern-target-filter-blur.svg" title="svg-pattern-target-filter-blur (standalone-svg)"><img src="./chromium/svg-pattern-target-filter-blur.png" width="56" alt="svg-pattern-target-filter-blur"></a>
+<a href="./svg-pattern-target-filter-color-matrix.svg" title="svg-pattern-target-filter-color-matrix (standalone-svg)"><img src="./chromium/svg-pattern-target-filter-color-matrix.png" width="56" alt="svg-pattern-target-filter-color-matrix"></a>
+<a href="./svg-pattern-target-filter-component-transfer.svg" title="svg-pattern-target-filter-component-transfer (standalone-svg)"><img src="./chromium/svg-pattern-target-filter-component-transfer.png" width="56" alt="svg-pattern-target-filter-component-transfer"></a>
+<a href="./svg-pattern-target-filter-composite.svg" title="svg-pattern-target-filter-composite (standalone-svg)"><img src="./chromium/svg-pattern-target-filter-composite.png" width="56" alt="svg-pattern-target-filter-composite"></a>
+<a href="./svg-pattern-target-filter-convolve.svg" title="svg-pattern-target-filter-convolve (standalone-svg)"><img src="./chromium/svg-pattern-target-filter-convolve.png" width="56" alt="svg-pattern-target-filter-convolve"></a>
+<a href="./svg-pattern-target-filter-diffuse.svg" title="svg-pattern-target-filter-diffuse (standalone-svg)"><img src="./chromium/svg-pattern-target-filter-diffuse.png" width="56" alt="svg-pattern-target-filter-diffuse"></a>
+<a href="./svg-pattern-target-filter-displacement.svg" title="svg-pattern-target-filter-displacement (standalone-svg)"><img src="./chromium/svg-pattern-target-filter-displacement.png" width="56" alt="svg-pattern-target-filter-displacement"></a>
+<a href="./svg-pattern-target-filter-drop-shadow.svg" title="svg-pattern-target-filter-drop-shadow (standalone-svg)"><img src="./chromium/svg-pattern-target-filter-drop-shadow.png" width="56" alt="svg-pattern-target-filter-drop-shadow"></a>
+<a href="./svg-pattern-target-filter-merge.svg" title="svg-pattern-target-filter-merge (standalone-svg)"><img src="./chromium/svg-pattern-target-filter-merge.png" width="56" alt="svg-pattern-target-filter-merge"></a>
+<a href="./svg-pattern-target-filter-morphology.svg" title="svg-pattern-target-filter-morphology (standalone-svg)"><img src="./chromium/svg-pattern-target-filter-morphology.png" width="56" alt="svg-pattern-target-filter-morphology"></a>
+<a href="./svg-pattern-target-filter-offset.svg" title="svg-pattern-target-filter-offset (standalone-svg)"><img src="./chromium/svg-pattern-target-filter-offset.png" width="56" alt="svg-pattern-target-filter-offset"></a>
 <a href="./svg-pattern-target-group-opacity.svg" title="svg-pattern-target-group-opacity (standalone-svg)"><img src="./chromium/svg-pattern-target-group-opacity.png" width="56" alt="svg-pattern-target-group-opacity"></a>
 <a href="./svg-pattern-target-mask.svg" title="svg-pattern-target-mask (standalone-svg)"><img src="./chromium/svg-pattern-target-mask.png" width="56" alt="svg-pattern-target-mask"></a>
 <a href="./svg-pattern-template-style-owner.svg" title="svg-pattern-template-style-owner (standalone-svg)"><img src="./chromium/svg-pattern-template-style-owner.png" width="56" alt="svg-pattern-template-style-owner"></a>
@@ -903,7 +965,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (170)
+## The refusal register (169)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -970,6 +1032,7 @@ its row into the cells above.
 | `svg-filter-offset-blur-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: a filter graph combines feOffset with Gaussian blur, which crosses the pinned-backend composed-operation precision boundary |
 | `svg-filter-offset-fractional-precision` | declared | skipped svg/rect[2]: unsupported SVG filter: feOffset uses a fractional displacement, which crosses the pinned-backend rasterization boundary |
 | `svg-filter-offset-transform-precision` | declared | skipped svg/g[1]/rect[1]: unsupported SVG filter: feOffset's target mapping produces a fractional device-space displacement at the pinned-backend rasterization boundary |
+| `svg-filter-pattern-source-coverage-precision` | declared | skipped svg/path[1]: unsupported SVG filter: a source-derived filter reads pattern paint outside the admitted direct sharp-rect source profile at the pinned-backend filtered-pattern coverage precision boundary |
 | `svg-filter-primitive` | declared | skipped svg/rect[2]: unsupported SVG filter: filter graph contains unsupported primitive <feSpecularLighting> |
 | `svg-filter-primitive-empty-region` | declared | skipped svg/rect[2]: unsupported SVG filter: a non-positive filter primitive region is not yet represented as a transparent graph result |
 | `svg-filter-region-calc` | declared | skipped svg/rect[2]: unsupported SVG filter: filter region x uses calc(), whose computed length is not represented at this Stylo pin |
@@ -1029,7 +1092,6 @@ its row into the cells above.
 | `svg-path-css-d-property` | declared | declaration ignored at svg/style[1]: a stylesheet declares d, which this cascade does not represent; elements it matches render without it |
 | `svg-path-marker-end` | declared | skipped svg/path[1]: unsupported rendering attribute marker-end on <path> (not yet consumed) |
 | `svg-pattern-affine-precision` | declared | skipped svg/rect[2]: unsupported fill value "target mapping carries a general rotation or shear at the pinned-backend picture-shader affine precision boundary" |
-| `svg-pattern-context-selection` | declared | skipped svg/use[1]/rect[1]: unsupported fill value "url(#p) resolves to a pattern paint selected through context-fill/context-stroke, outside the admitted pattern composition slice" |
 | `svg-pattern-css-transform-percentage` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern transform percentage has no proved reference-box basis" |
 | `svg-pattern-external` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p needs attributes or content from an external template, and external resources are not resolved" |
 | `svg-pattern-length-calc` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern width uses a CSS function in \"calc(4px + 4px)\", which this direct decoder does not consume" |
@@ -1044,7 +1106,6 @@ its row into the cells above.
 | `svg-pattern-source-clip-precision` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p source carries an isolated opacity or geometric clip at the pinned-backend picture-shader source-effect precision boundary" |
 | `svg-pattern-source-coverage-precision` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p source carries curved/vector geometry at the pinned-backend picture-shader source-coverage precision boundary" |
 | `svg-pattern-source-effect-precision` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p source carries an isolated opacity or geometric clip at the pinned-backend picture-shader source-effect precision boundary" |
-| `svg-pattern-source-filter` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p source uses a filter composition outside the admitted pattern source slice" |
 | `svg-pattern-source-unsupported` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p source cannot compile completely: unsupported element <image>" |
 | `svg-pattern-tile-sampling-precision` | declared | skipped svg/rect[2]: unsupported fill value "tile has a fractional final device extent at the pinned-backend picture-shader sampling precision boundary" |
 | `svg-pattern-transform-none-provenance` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): an author stylesheet may set transform:none on a derived pattern; the empty computed value loses the provenance needed to decide template inheritance" |

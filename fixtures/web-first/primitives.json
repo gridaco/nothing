@@ -5188,6 +5188,190 @@
       "height": 64
     },
     {
+      "id": "svg-pattern-context-axis-transform",
+      "source": "svg-pattern-context-axis-transform.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-axis-transform.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-css-ingress",
+      "source": "svg-pattern-context-css-ingress.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-css-ingress.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-destination-opacity",
+      "source": "svg-pattern-context-destination-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-destination-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-fill-from-stroke",
+      "source": "svg-pattern-context-fill-from-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-fill-from-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-filter-color-matrix",
+      "source": "svg-pattern-context-filter-color-matrix.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-filter-color-matrix.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-filter-component-transfer",
+      "source": "svg-pattern-context-filter-component-transfer.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-filter-component-transfer.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-filter-composite",
+      "source": "svg-pattern-context-filter-composite.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-filter-composite.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-filter-convolve",
+      "source": "svg-pattern-context-filter-convolve.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-filter-convolve.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-filter-drop-shadow",
+      "source": "svg-pattern-context-filter-drop-shadow.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-filter-drop-shadow.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-filter-morphology",
+      "source": "svg-pattern-context-filter-morphology.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-filter-morphology.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-invalid-fallback",
+      "source": "svg-pattern-context-invalid-fallback.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-invalid-fallback.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-nested-translate",
+      "source": "svg-pattern-context-nested-translate.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-nested-translate.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-object-box",
+      "source": "svg-pattern-context-object-box.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-object-box.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-quarter-turn",
+      "source": "svg-pattern-context-quarter-turn.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-quarter-turn.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-recursive-owner",
+      "source": "svg-pattern-context-recursive-owner.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-recursive-owner.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-reflection",
+      "source": "svg-pattern-context-reflection.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-reflection.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-selection",
+      "source": "svg-pattern-context-selection.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-selection.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-singular",
+      "source": "svg-pattern-context-singular.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-singular.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-stroke-from-fill",
+      "source": "svg-pattern-context-stroke-from-fill.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-stroke-from-fill.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-stroke-from-stroke",
+      "source": "svg-pattern-context-stroke-from-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-stroke-from-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-target-filter",
+      "source": "svg-pattern-context-target-filter.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-target-filter.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-target-mask",
+      "source": "svg-pattern-context-target-mask.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-target-mask.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-context-valid-empty",
+      "source": "svg-pattern-context-valid-empty.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-context-valid-empty.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-pattern-degenerate-viewbox-fallback",
       "source": "svg-pattern-degenerate-viewbox-fallback.svg",
       "entry": "standalone-svg",
@@ -5248,6 +5432,54 @@
       "source": "svg-pattern-fill-stroke-opacity.svg",
       "entry": "standalone-svg",
       "oracle": "chromium/svg-pattern-fill-stroke-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-filter-profile-alpha",
+      "source": "svg-pattern-filter-profile-alpha.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-filter-profile-alpha.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-filter-profile-gradient",
+      "source": "svg-pattern-filter-profile-gradient.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-filter-profile-gradient.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-filter-profile-mask",
+      "source": "svg-pattern-filter-profile-mask.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-filter-profile-mask.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-filter-profile-nested",
+      "source": "svg-pattern-filter-profile-nested.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-filter-profile-nested.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-filter-profile-stroke",
+      "source": "svg-pattern-filter-profile-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-filter-profile-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-filter-profile-transparent",
+      "source": "svg-pattern-filter-profile-transparent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-filter-profile-transparent.png",
       "width": 64,
       "height": 64
     },
@@ -5412,6 +5644,174 @@
       "height": 64
     },
     {
+      "id": "svg-pattern-source-filter",
+      "source": "svg-pattern-source-filter.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-blend",
+      "source": "svg-pattern-source-filter-blend.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-blend.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-blur-linear",
+      "source": "svg-pattern-source-filter-blur-linear.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-blur-linear.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-color-matrix",
+      "source": "svg-pattern-source-filter-color-matrix.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-color-matrix.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-component-transfer",
+      "source": "svg-pattern-source-filter-component-transfer.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-component-transfer.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-composite-arithmetic",
+      "source": "svg-pattern-source-filter-composite-arithmetic.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-composite-arithmetic.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-composite-in",
+      "source": "svg-pattern-source-filter-composite-in.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-composite-in.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-convolve",
+      "source": "svg-pattern-source-filter-convolve.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-convolve.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-diffuse",
+      "source": "svg-pattern-source-filter-diffuse.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-diffuse.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-displacement",
+      "source": "svg-pattern-source-filter-displacement.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-displacement.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-drop-shadow",
+      "source": "svg-pattern-source-filter-drop-shadow.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-drop-shadow.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-flood",
+      "source": "svg-pattern-source-filter-flood.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-flood.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-group-two-draws",
+      "source": "svg-pattern-source-filter-group-two-draws.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-group-two-draws.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-hard-region",
+      "source": "svg-pattern-source-filter-hard-region.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-hard-region.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-merge",
+      "source": "svg-pattern-source-filter-merge.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-merge.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-morphology",
+      "source": "svg-pattern-source-filter-morphology.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-morphology.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-nested-pattern",
+      "source": "svg-pattern-source-filter-nested-pattern.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-nested-pattern.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-object-units",
+      "source": "svg-pattern-source-filter-object-units.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-object-units.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-offset",
+      "source": "svg-pattern-source-filter-offset.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-offset.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-plus-draw",
+      "source": "svg-pattern-source-filter-plus-draw.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-plus-draw.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-filter-turbulence",
+      "source": "svg-pattern-source-filter-turbulence.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-source-filter-turbulence.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-pattern-source-gradient",
       "source": "svg-pattern-source-gradient.svg",
       "entry": "standalone-svg",
@@ -5504,6 +5904,102 @@
       "source": "svg-pattern-target-filter.svg",
       "entry": "standalone-svg",
       "oracle": "chromium/svg-pattern-target-filter.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-filter-blend",
+      "source": "svg-pattern-target-filter-blend.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-target-filter-blend.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-filter-blur",
+      "source": "svg-pattern-target-filter-blur.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-target-filter-blur.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-filter-color-matrix",
+      "source": "svg-pattern-target-filter-color-matrix.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-target-filter-color-matrix.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-filter-component-transfer",
+      "source": "svg-pattern-target-filter-component-transfer.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-target-filter-component-transfer.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-filter-composite",
+      "source": "svg-pattern-target-filter-composite.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-target-filter-composite.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-filter-convolve",
+      "source": "svg-pattern-target-filter-convolve.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-target-filter-convolve.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-filter-diffuse",
+      "source": "svg-pattern-target-filter-diffuse.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-target-filter-diffuse.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-filter-displacement",
+      "source": "svg-pattern-target-filter-displacement.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-target-filter-displacement.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-filter-drop-shadow",
+      "source": "svg-pattern-target-filter-drop-shadow.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-target-filter-drop-shadow.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-filter-merge",
+      "source": "svg-pattern-target-filter-merge.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-target-filter-merge.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-filter-morphology",
+      "source": "svg-pattern-target-filter-morphology.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-target-filter-morphology.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-filter-offset",
+      "source": "svg-pattern-target-filter-offset.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-pattern-target-filter-offset.png",
       "width": 64,
       "height": 64
     },
