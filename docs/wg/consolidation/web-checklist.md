@@ -654,9 +654,9 @@ excluded.
 > separate unresolved operation grammar. Authored declarations are therefore
 > quarantined by name rather than matched by a second cascade. The other four
 > filter-effect properties are Gecko-only at this Stylo pin and also remain
-> open. The direct `feFlood` attribute route now carries an admitted subset,
-> but it does not create a CSS computed-value route and does not change these
-> property rows.
+> open. The direct `feFlood` and `feDiffuseLighting` attribute routes now carry
+> admitted subsets, but neither creates a CSS computed-value route or changes
+> these property rows.
 
 
 ### Compositing and blending
@@ -1468,9 +1468,9 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > up to 2,814 pixels and maximum channel delta 250; restoration returns the
 > gate to green. The shared graph, region, interpolation, filter-resource, and
 > dynamics rows remain open.
-- [ ] `<feDiffuseLighting>`
+- [x] `<feDiffuseLighting>`
 - [x] `<feDisplacementMap>`
-- [ ] `<feDistantLight>`
+- [x] `<feDistantLight>`
 - [x] `<feDropShadow>`
 - [x] `<feFlood>`
 - [x] `<feFuncA>`
@@ -1520,9 +1520,24 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > zero radius and later color-space conversion retain their prior paths. The
 > complete 609-cell gate is exact on ARM and hosted x86 without tolerance.
 - [ ] `<feOffset>`
-- [ ] `<fePointLight>`
+- [x] `<fePointLight>`
 - [ ] `<feSpecularLighting>`
-- [ ] `<feSpotLight>`
+- [x] `<feSpotLight>`
+
+> **2026-08-27 close/split:** `feDiffuseLighting` reads one input alpha field
+> and closes with all three direct light kinds. The first recognized direct
+> light child wins; non-light children are skipped, nested lights do not
+> participate, and no light produces transparent black. Exact cells cover
+> distant, point, and spot illumination; opaque output alpha; signed surface
+> height; object-box x/y/normalized-diagonal-z mapping; both filter color
+> spaces; graph inputs; hard regions; `<use>`, `viewBox`, stroke and gradient
+> alpha; target effects; safe transforms; and neighboring filter operations.
+> General affine mappings and one narrow `feComposite` foreground placement
+> refuse by stable precision names. Seventy-one exact cells move the complete
+> gate to 812. Halving the diffuse coefficient makes sixty-one of them fail,
+> up to all 4,096 pixels and maximum channel delta 128; restoration returns
+> the gate to green. `feSpecularLighting` remains open behind the advanced
+> transactional primitive witness.
 - [ ] `<feTile>`
 - [x] `<feTurbulence>`
 
@@ -1808,6 +1823,16 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `image-rendering`
 - [ ] `letter-spacing`
 - [ ] `lighting-color`
+
+> **2026-08-27 split:** direct `lighting-color` on admitted diffuse lighting
+> carries initial white, the admitted sRGB color subset, `currentColor`, reset
+> and invalid fallback, non-inheritance, and Chromium's rule that light-color
+> alpha is ignored. Missing filter interpolation is linearRGB and explicit
+> sRGB remains distinct. Explicit inheritance, CSS ingress, `var()`, and wider
+> color functions refuse by four stable names under their independently
+> listed rows. The presentation-attribute row also applies to the still-open
+> specular primitive, so it does not tick; its CSS property twin is absent at
+> the pinned cascade and stays separately open.
 - [ ] `marker-end`
 - [ ] `marker-mid`
 - [ ] `marker-start`
@@ -1926,7 +1951,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `aria-valuenow`
 - [ ] `aria-valuetext`
 - [ ] `autofocus`
-- [ ] `azimuth`
+- [x] `azimuth`
 - [x] `baseFrequency`
 
 > **2026-08-26 close:** `baseFrequency` applies only to `feTurbulence` and
@@ -1955,7 +1980,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `crossorigin`
 - [ ] `data-*`
 - [ ] `decoding`
-- [ ] `diffuseConstant`
+- [x] `diffuseConstant`
 - [x] `divisor`
 - [ ] `download`
 - [ ] `dx`
@@ -1967,7 +1992,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > invalid spelling select `duplicate`. The attribute's other listed
 > applicability is blur, where current Chromium drops all spellings; one
 > committed drop cell records that browser behavior.
-- [ ] `elevation`
+- [x] `elevation`
 - [x] `exponent`
 - [ ] `fetchpriority`
 - [x] `filterUnits`
@@ -2006,12 +2031,13 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > Missing, malformed, non-finite, or wrong-count matrices produce the measured
 > transparent result. Kernels at the measured native strategy boundaries—28,
 > 29, 64, 65, and 256 coefficients—are exact; 257 coefficients produce the
-> celled Chromium drop. `kernelUnitLength` stays open: Chromium ignores every
-> sampled valid and invalid spelling on convolution, while the attribute also
-> applies to the still-open lighting primitives.
+> celled Chromium drop. Current Chromium also ignores every sampled valid and
+> invalid spelling on diffuse lighting, with valid and invalid drop cells, and
+> sampled specular controls reproduce that result. `kernelUnitLength` stays
+> open until the specular primitive itself is admitted.
 - [ ] `lang`
 - [ ] `lengthAdjust`
-- [ ] `limitingConeAngle`
+- [x] `limitingConeAngle`
 - [ ] `markerHeight`
 - [ ] `markerUnits`
 - [ ] `markerWidth`
@@ -2136,9 +2162,9 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `ping`
 - [ ] `playbackorder`
 - [ ] `points`
-- [ ] `pointsAtX`
-- [ ] `pointsAtY`
-- [ ] `pointsAtZ`
+- [x] `pointsAtX`
+- [x] `pointsAtY`
+- [x] `pointsAtZ`
 - [x] `preserveAlpha`
 
 > **2026-08-27 close:** the complete case-sensitive `false | true` grammar is
@@ -2186,7 +2212,22 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > invalid, wrong-case, whitespace-padded, and CSS-wide spellings select the
 > initial `noStitch`; stitched fractional primitive regions are Chromium-baked.
 - [ ] `style`
-- [ ] `surfaceScale`
+- [x] `surfaceScale`
+
+> **2026-08-27 close/split:** the eight diffuse/light-only attributes tick at
+> their complete signed SVG-number behavior. `surfaceScale` and
+> `diffuseConstant` have initial one; an exactly empty attribute becomes zero,
+> while whitespace-only or malformed text takes the initial. Surface height
+> keeps its sign and a negative diffuse constant clamps to zero. Azimuth and
+> elevation are signed and periodic. Spot targets default independently to
+> zero. `limitingConeAngle` uses the measured 90-degree behavior when missing,
+> zero, or outside ±90; a negative in-range angle equals its positive
+> magnitude. Leading plus, exponent, trailing-comma prefix, finite extremes,
+> underflow, and overflow fallback were measured across the family. The wider
+> invalid-spelling matrix is measured, not all separately celled. Shared
+> `x`/`y`/`z` remain open for their other element applicability, and
+> `specularExponent` remains open for `feSpecularLighting` even though the spot
+> light's initial one and inclusive 1–128 clamp are carried.
 - [ ] `systemLanguage`
 - [ ] `tabindex`
 - [x] `tableValues`

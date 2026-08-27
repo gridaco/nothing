@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+    <feDiffuseLighting in="SourceAlpha" surfaceScale="6" diffuseConstant="1"
+      lighting-color="#f59e0b">
+      <feDistantLight azimuth="225" elevation="45"/>
+    </feDiffuseLighting>
+  </filter>
+  <g transform="rotate(17 32 32)" filter="url(#f)">
+    <path d="M10 14h30l13 16-14 22H12L6 34z" fill="#dbeafe"/>
+  </g>
+</svg>

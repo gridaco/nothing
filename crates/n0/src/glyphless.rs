@@ -24,7 +24,7 @@ use n0_model::model::{
 use n0_model::path::ResolvedPathArtifact;
 use rframe::{
     ClipPath, FilterBlend, FilterColorSpace, FilterComposite, FilterConvolveEdgeMode,
-    FilterDisplacementChannel, FilterInput, FilterMorphology, FilterPrimitive,
+    FilterDisplacementChannel, FilterInput, FilterLightSource, FilterMorphology, FilterPrimitive,
     FilterTurbulenceKind, Frame, FrameItem, Geometry, MaskMode, PaintStack, ScopeEffect, VisualRef,
 };
 
@@ -34,8 +34,8 @@ use crate::drawlist::{
     ResolvedClipGeometryKind, ResolvedClipLayer, ResolvedClipPath, ResolvedFilter,
     ResolvedFilterBlend, ResolvedFilterColorSpace, ResolvedFilterComposite,
     ResolvedFilterConvolveEdgeMode, ResolvedFilterDisplacementChannel, ResolvedFilterInput,
-    ResolvedFilterMorphology, ResolvedFilterNode, ResolvedFilterPrimitive,
-    ResolvedFilterTurbulenceKind, ResolvedMaskMode, StrokeDashPhase,
+    ResolvedFilterLightSource, ResolvedFilterMorphology, ResolvedFilterNode,
+    ResolvedFilterPrimitive, ResolvedFilterTurbulenceKind, ResolvedMaskMode, StrokeDashPhase,
 };
 use crate::frame::FrameExecutionError;
 use crate::paint::PaintCtx;
@@ -1053,6 +1053,35 @@ fn compile_filter(filter: &rframe::Filter) -> ResolvedFilter {
                         FilterConvolveEdgeMode::None => ResolvedFilterConvolveEdgeMode::None,
                     },
                     preserve_alpha,
+                },
+                FilterPrimitive::DiffuseLighting {
+                    surface_scale,
+                    diffuse_constant,
+                    color,
+                    light,
+                } => ResolvedFilterPrimitive::DiffuseLighting {
+                    surface_scale,
+                    diffuse_constant,
+                    color: compile_color(color),
+                    light: match light {
+                        FilterLightSource::Distant { direction } => {
+                            ResolvedFilterLightSource::Distant { direction }
+                        }
+                        FilterLightSource::Point { location } => {
+                            ResolvedFilterLightSource::Point { location }
+                        }
+                        FilterLightSource::Spot {
+                            location,
+                            target,
+                            falloff_exponent,
+                            cutoff_angle,
+                        } => ResolvedFilterLightSource::Spot {
+                            location,
+                            target,
+                            falloff_exponent,
+                            cutoff_angle,
+                        },
+                    },
                 },
                 FilterPrimitive::Merge => ResolvedFilterPrimitive::Merge,
             },

@@ -2,9 +2,9 @@
   <rect width="64" height="64" fill="white"/>
   <filter id="f">
     <feFlood flood-color="#7c3aed" result="seed"/>
-    <feDiffuseLighting in="seed" surfaceScale="2" diffuseConstant="1" lighting-color="white">
+    <feSpecularLighting in="seed" surfaceScale="2" specularConstant="1" specularExponent="8" lighting-color="white">
       <feDistantLight azimuth="225" elevation="45"/>
-    </feDiffuseLighting>
+    </feSpecularLighting>
   </filter>
   <rect x="20" y="20" width="24" height="24" fill="#16a34a" filter="url(#f)"/>
 </svg>

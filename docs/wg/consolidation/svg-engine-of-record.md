@@ -67,9 +67,9 @@ from the dated addenda below:
   modes, ordered `feMerge`/`feMergeNode`, native one-input `feDropShadow`,
   one-input `feColorMatrix`, one-input `feComponentTransfer` with its direct
   `feFuncR`/`feFuncG`/`feFuncB`/`feFuncA` children, and one-input
-  `feMorphology` and `feConvolveMatrix`, plus zero-input `feTurbulence` and
-  two-input
-  `feDisplacementMap`; graph inputs resolve from
+  `feMorphology`, `feConvolveMatrix`, and `feDiffuseLighting` with one direct
+  `feDistantLight`, `fePointLight`, or `feSpotLight` child, plus zero-input
+  `feTurbulence` and two-input `feDisplacementMap`; graph inputs resolve from
   `SourceGraphic`/`SourceAlpha`/prior and named results, with both filter
   coordinate systems and color spaces, hard regions, nesting, admitted
   transforms, `<use>`, and the established effect order;
@@ -77,14 +77,14 @@ from the dated addenda below:
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 741 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 812 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 146 rows.
+  register has 152 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -3656,5 +3656,112 @@ cell changed 230 pixels at maximum channel delta 202; the broad failures reached
 Three focused rows join the refusal register, moving it from 143 to 146. The
 primitive corpus moves from 700 to 741 cells; the ten exact-time sampled frames
 are unchanged. Exactly nine checklist rows tick: the element and eight
+attributes named above. This records no conformance score and takes no FLIP
+action.
+
+## Rung: `feDiffuseLighting` and the light-source family (2026-08-27)
+
+The verdict is CLOSE/SPLIT. `<feDiffuseLighting>`, `<feDistantLight>`,
+`<fePointLight>`, and `<feSpotLight>` close for their complete static
+Chromium behavior. Eight element-specific attribute rows close with them:
+`azimuth`, `diffuseConstant`, `elevation`, `limitingConeAngle`, `pointsAtX`,
+`pointsAtY`, `pointsAtZ`, and `surfaceScale`. The shared `x`, `y`, `z`,
+`specularExponent`, `kernelUnitLength`, `lighting-color`, `in`, `result`,
+primitive-region, color-space, filter-resource, and dynamics rows remain open
+for their wider applicability or independently named value/cascade remainder.
+`<feSpecularLighting>` remains unsupported; no CSS property row closes.
+
+Chromium 149.0.7827.55 establishes diffuse illumination from one input image's
+alpha field. Missing `in` follows the established first/previous graph rule,
+and SourceGraphic and SourceAlpha are identical because source RGB does not
+enter the operation. The result is opaque throughout its primitive subregion,
+including opaque black where the diffuse coefficient is zero; a primitive
+without a recognized direct light child instead contributes transparent
+black. Non-light children are skipped, nested lights do not participate, and
+the first recognized direct `feDistantLight`, `fePointLight`, or `feSpotLight`
+child wins.
+
+`surfaceScale` and `diffuseConstant` carry one signed SVG number with initial
+one. For this animated-number family an exactly empty attribute becomes zero,
+while whitespace-only and malformed text use the initial; leading plus,
+exponent, and the measured trailing-comma prefix are accepted.
+`surfaceScale` remains signed. A negative diffuse constant clamps to zero.
+The three light-source coordinates and the three spot targets carry the same
+one-number grammar with initial zero. Distant azimuth and elevation are signed
+and periodic. Spot exponent defaults to one and clamps to the inclusive
+1–128 range; its shared attribute row stays open because the same name also
+applies to specular lighting. A missing or zero cone angle, or one outside the
+inclusive -90–90 range, selects the backend's 90-degree behavior. Within that
+range a negative angle is pixel-identical to its positive magnitude. A spot
+whose position equals its target retains Chromium's native degenerate result.
+
+User-space point coordinates pass through directly. Under object-box primitive
+units, x and y map against the target box's independent axes and z maps against
+the normalized diagonal, `sqrt((width² + height²) / 2)`. Spot positions and
+targets use that same three-dimensional map. Exact controls cover non-square
+boxes, negative coordinates, non-uniform `viewBox` mapping, axis transforms,
+reflection, exact quarter turns, `<use>`, stroke geometry, gradient alpha, and
+target opacity, clip, and mask. A finite authored object-box coordinate whose
+mapping overflows produces Chromium's transparent operation result rather than
+an unfiltered fallback; that boundary is committed exact.
+
+The direct `lighting-color` subset has initial white, is not inherited by
+default, admits the established sRGB color forms and `currentColor`, treats an
+invalid or reset spelling as the initial, and ignores authored color alpha
+while retaining its RGB channels. Missing filter interpolation equals
+linearRGB; explicit sRGB is visibly distinct. The operation adapts the light
+channels into that selected space before illumination. Explicit inheritance,
+CSS-authored `lighting-color`, custom-property substitution, and wider color
+functions are all honored by Chromium and now refuse by four focused stable
+names. Those independently listed cascade, custom-property, and color-family
+gaps—plus the still-open specular applicability—keep the `lighting-color`
+presentation-attribute row open. The CSS property twin is unavailable in the
+pinned Servo-mode cascade, and no matcher is added around it.
+
+Current Chromium ignores every sampled `kernelUnitLength` spelling on diffuse
+lighting: positive one- and two-axis numbers, fractions, zero, negative,
+malformed text, units, percentages, CSS math, custom properties, and CSS-wide
+keywords all leave a discriminating surface unchanged. The same drop reproduced
+on sampled specular-lighting controls. Two diffuse cells commit a valid and an
+invalid drop, but `kernelUnitLength` remains open until the specular primitive
+itself is admitted. This follows the browser-drop precedent established by
+[gridaco/nothing#77](https://github.com/gridaco/nothing/pull/77).
+
+The numeric crux was measured instead of inferred. Source decimals around the
+binary32 midpoint, adjacent finite extrema, subnormals, underflow, parser
+overflow fallback, and huge signed angles all reproduce Chromium through the
+shared ordered SVG-number evaluator. At this 64×64 amplification, the midpoint
+witness and both adjacent controls happen to be pixel-identical, so no new
+numeric patrol was invented from a non-discriminating raster. This is a
+negative probe verdict, not a proof that no larger raster can expose another
+alias (measured, not celled).
+
+Two silent backend classes remain and are now named. General target rotation
+changed 551 pixels at maximum channel delta 15, a shear changed 543 at delta
+12, and a sampled affine map changed 624 at delta 12. Translation, arbitrary
+sampled axis maps, reflection, and exact quarter turns are exact. Separately,
+using diffuse lighting as the foreground of `feComposite` `in` or `atop`
+against a source-derived second input changed 69 pixels at maximum delta 180.
+The other composite operators, arithmetic composition, blend, merge,
+generated-background composition, lighting in the second input, and adjacent
+one-input spatial operations are exact. Two focused refusal fixtures guard
+those boundaries in strict and best-effort admission (measured, not celled).
+
+Six twice-deterministic scratch matrices exercised 236 sources across grammar,
+light selection, operation semantics, color, units, graph composition,
+transforms, extremes, and `kernelUnitLength`. Every candidate rendered through
+the actual command path. After the named patrols, 217 candidates are
+pixel-exact and admission-identical; the remaining 19 reach one of the new or
+already-established stable names. Seventy-one cells entered only through
+`just add`; all are Chromium-baked and exact without a tolerance.
+
+Gate sensitivity was proved by temporarily halving the resolved diffuse
+coefficient in the painter. `just gate` rejected 61 of the new cells, with up
+to all 4,096 pixels changed and maximum channel delta 128. Restoring the
+coefficient returned the complete 812-cell gate to green.
+
+Six focused rows join the refusal register, moving it from 146 to 152. The
+primitive corpus moves from 741 to 812 cells; the ten exact-time sampled frames
+are unchanged. Exactly twelve checklist rows tick: the four elements and eight
 attributes named above. This records no conformance score and takes no FLIP
 action.

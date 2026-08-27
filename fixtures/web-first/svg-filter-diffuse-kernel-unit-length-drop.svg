@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="#172554"/>
+  <defs><filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"
+    x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+    <feDiffuseLighting in="SourceGraphic" surfaceScale="7" diffuseConstant="1.35"
+    lighting-color="#fbbf24" kernelUnitLength="4 1" >
+    <feDistantLight azimuth="225" elevation="38"/>
+  </feDiffuseLighting>
+  </filter></defs>
+  <g filter="url(#f)">
+  <g>
+    <rect x="8" y="9" width="22" height="20" rx="3" fill="#ef4444"/>
+    <path d="M18 17h31v10H38v27H24V35H18z" fill="#0f766e" fill-opacity=".65"/>
+    <circle cx="45" cy="16" r="8" fill="#2563eb"/>
+  </g></g>
+</svg>
