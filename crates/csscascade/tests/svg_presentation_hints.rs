@@ -34,6 +34,7 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
     #clip-style-attr-beats-rule { clip-path: url(#rule-clip); }
     #clip-webkit-alias { -webkit-clip-path: url(#vendor-clip); }
     #family-rule-beats-hint { font-family: monospace; }
+    #pattern-rule-beats-hint { transform: translate(30px, 0px); }
   </style>
   <rect id="hint-only" fill="#16a34a" width="8" height="8"/>
   <rect id="named" fill="rebeccapurple" width="8" height="8"/>
@@ -96,6 +97,11 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
   <g font-family="Ahem"><text id="family-inherited">X</text></g>
   <linearGradient id="gradient-transform-hint" gradientTransform="translate(10 10)"/>
   <linearGradient id="gradient-plain-transform-inert" transform="translate(10 10)"/>
+  <pattern id="pattern-transform-hint" patternTransform="translate(10 10)"/>
+  <pattern id="pattern-plain-transform-inert" transform="translate(10 10)"/>
+  <pattern id="pattern-rule-beats-hint" patternTransform="translate(10 10)"/>
+  <pattern id="pattern-style-beats-hint" patternTransform="translate(10 10)"
+           style="transform: translate(40px, 0px)"/>
 </svg>"##;
 
 #[test]
@@ -425,6 +431,25 @@ fn standalone_svg_presentation_hints_enter_below_author_rules() {
             LonghandId::Transform
         ),
         "none"
+    );
+    // Patterns use the sibling resource spelling. It enters the same
+    // transform longhand below author rules and style attributes; the plain
+    // transform attribute remains inert on the resource element.
+    assert_eq!(
+        property(root, "pattern-transform-hint", LonghandId::Transform),
+        "translate(10px, 10px)"
+    );
+    assert_eq!(
+        property(root, "pattern-plain-transform-inert", LonghandId::Transform),
+        "none"
+    );
+    assert_eq!(
+        property(root, "pattern-rule-beats-hint", LonghandId::Transform),
+        "translate(30px)"
+    );
+    assert_eq!(
+        property(root, "pattern-style-beats-hint", LonghandId::Transform),
+        "translate(40px)"
     );
 }
 

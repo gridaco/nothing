@@ -27,10 +27,10 @@ use skia_safe::canvas::{SaveLayerFlags, SaveLayerRec};
 use skia_safe::gradient::{Colors as GradientColors, Gradient, Interpolation};
 use skia_safe::{
     image::CachingHint, path_effect::PathEffect, shaders, stroke_rec::InitStyle, Blender, Canvas,
-    ClipOp, Color, Color4f, ColorChannel, ColorMatrix, ColorSpace, CubicResampler, Data, Font,
-    ISize, Image, ImageFilter, ImageInfo, Matrix, OpBuilder, Paint, PaintCap, PaintJoin,
-    PaintStyle, Path, PathBuilder, PathDirection, PathFillType, PathOp, Point, Point3, RRect, Rect,
-    SamplingOptions, Shader, StrokeRec,
+    ClipOp, Color, Color4f, ColorChannel, ColorMatrix, ColorSpace, CubicResampler, Data,
+    FilterMode, Font, ISize, Image, ImageFilter, ImageInfo, Matrix, OpBuilder, Paint, PaintCap,
+    PaintJoin, PaintStyle, Path, PathBuilder, PathDirection, PathFillType, PathOp, PictureRecorder,
+    Point, Point3, RRect, Rect, SamplingOptions, Shader, StrokeRec,
 };
 
 use crate::drawlist::{
@@ -39,7 +39,7 @@ use crate::drawlist::{
     ResolvedFilterColorSpace, ResolvedFilterComposite, ResolvedFilterConvolveEdgeMode,
     ResolvedFilterDisplacementChannel, ResolvedFilterInput, ResolvedFilterLightSource,
     ResolvedFilterMorphology, ResolvedFilterPrimitive, ResolvedFilterTurbulenceKind,
-    ResolvedMaskMode, StrokeDashPhase,
+    ResolvedMaskMode, ResolvedPattern, ResolvedPatternGeometry, StrokeDashPhase,
 };
 
 /// The gradient family whose local matrix could not be represented by the
@@ -185,6 +185,25 @@ impl std::fmt::Display for ImagePreflightError {
 }
 
 impl std::error::Error for ImagePreflightError {}
+
+/// A checked vector-pattern program could not be recorded into the backend's
+/// repeat shader before replay began.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PatternPreflightError {
+    pub draw_item: usize,
+}
+
+impl std::fmt::Display for PatternPreflightError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "vector pattern in draw item {} could not construct its repeat shader",
+            self.draw_item
+        )
+    }
+}
+
+impl std::error::Error for PatternPreflightError {}
 
 static NEXT_PAINT_CONTEXT_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -773,7 +792,9 @@ pub(crate) fn preflight_gradients<K: Copy>(
                     )?;
                 }
             }
-            ItemKind::BeginOpacity { .. }
+            ItemKind::PatternFill { .. }
+            | ItemKind::PatternStroke { .. }
+            | ItemKind::BeginOpacity { .. }
             | ItemKind::BeginIsolatedOpacity { .. }
             | ItemKind::EndOpacity
             | ItemKind::BeginClipRect { .. }
@@ -960,7 +981,9 @@ pub(crate) fn preflight_images(
                     )?;
                 }
             }
-            ItemKind::BeginOpacity { .. }
+            ItemKind::PatternFill { .. }
+            | ItemKind::PatternStroke { .. }
+            | ItemKind::BeginOpacity { .. }
             | ItemKind::BeginIsolatedOpacity { .. }
             | ItemKind::EndOpacity
             | ItemKind::BeginClipRect { .. }
@@ -1072,6 +1095,95 @@ fn image_shader(paint: &ImagePaint, paint_box: PaintBox, ctx: &PaintCtx) -> Opti
         Some(&matrix),
     )?;
     Some(shader)
+}
+
+/// Record one already-compiled tile program and expose it as an infinitely
+/// repeating shader. The nested list starts with its own hard frame clip, so
+/// content outside `(0, 0, width, height)` cannot leak into a neighbouring
+/// tile before repetition.
+fn pattern_shader(pattern: &ResolvedPattern, ctx: &PaintCtx) -> Option<Shader> {
+    let tile = Rect::from_wh(pattern.width, pattern.height);
+    let mut recorder = PictureRecorder::new();
+    let canvas = recorder.begin_recording(tile, false);
+    execute_unchecked(canvas, &pattern.program, &Affine::IDENTITY, ctx);
+    let picture = recorder.finish_recording_as_picture(Some(&tile))?;
+    Some(picture.to_shader(
+        Some((skia_safe::TileMode::Repeat, skia_safe::TileMode::Repeat)),
+        FilterMode::Linear,
+        Some(&skia_matrix(&pattern.transform)),
+        Some(&tile),
+    ))
+}
+
+fn pattern_paint(
+    pattern: &ResolvedPattern,
+    post_paint_opacity: PostPaintOpacity,
+    ctx: &PaintCtx,
+) -> Option<Paint> {
+    let mut paint = Paint::default();
+    paint.set_anti_alias(true);
+    paint.set_shader(pattern_shader(pattern, ctx)?);
+    // Pattern paint opacity follows the same byte-alpha materialization as a
+    // gradient shader. A one-draw element-opacity fold then multiplies that
+    // materialized alpha without another quantization.
+    let opacity = pattern.opacity.clamp(0.0, 1.0);
+    paint.set_alpha_f((opacity * 255.0).round() / 255.0);
+    let factor = post_paint_opacity.value();
+    if factor != 1.0 {
+        paint.set_alpha_f(paint.alpha_f() * factor);
+    }
+    Some(paint)
+}
+
+fn pattern_stroke_paint(
+    pattern: &ResolvedPattern,
+    stroke: &Stroke,
+    dash_phase: StrokeDashPhase,
+    post_paint_opacity: PostPaintOpacity,
+    ctx: &PaintCtx,
+) -> Option<Paint> {
+    let width = uniform_stroke_width(stroke)?;
+    let mut paint = pattern_paint(pattern, post_paint_opacity, ctx)?;
+    paint.set_style(PaintStyle::Stroke);
+    paint.set_stroke_width(width);
+    paint.set_stroke_cap(sk_stroke_cap(stroke.cap));
+    paint.set_stroke_join(sk_stroke_join(stroke.join));
+    paint.set_stroke_miter(stroke.miter_limit);
+    if let Some(values) = stroke.dash_array.as_deref() {
+        if !values.is_empty() {
+            let intervals = normalized_dash_array(values)?;
+            paint.set_path_effect(PathEffect::dash(&intervals, dash_phase.value())?);
+        }
+    }
+    Some(paint)
+}
+
+fn preflight_pattern(pattern: &ResolvedPattern, ctx: &PaintCtx) -> bool {
+    if preflight_patterns(&pattern.program, ctx).is_err() {
+        return false;
+    }
+    pattern_shader(pattern, ctx).is_some()
+}
+
+/// Prove every nested picture/repeat shader before the first target draw.
+/// This keeps backend refusal outside replay: an unavailable shader cannot
+/// silently turn a valid pattern into transparent paint.
+pub(crate) fn preflight_patterns<K>(
+    list: &DrawList<K>,
+    ctx: &PaintCtx,
+) -> Result<(), PatternPreflightError> {
+    for (draw_item, item) in list.items.iter().enumerate() {
+        let pattern = match &item.kind {
+            ItemKind::PatternFill { pattern, .. } | ItemKind::PatternStroke { pattern, .. } => {
+                pattern
+            }
+            _ => continue,
+        };
+        if !preflight_pattern(pattern, ctx) {
+            return Err(PatternPreflightError { draw_item });
+        }
+    }
+    Ok(())
 }
 
 /// Materialize one model paint. The caller draws these in list order instead
@@ -3891,6 +4003,68 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                     canvas.restore();
                     canvas.restore();
                 }
+            }
+            ItemKind::PatternFill {
+                geometry,
+                pattern,
+                post_paint_opacity,
+            } => {
+                with_local_transform(canvas, view, &item.world, || {
+                    let paint = pattern_paint(pattern, *post_paint_opacity, ctx)
+                        .expect("preflighted pattern shader construction failed");
+                    match geometry {
+                        ResolvedPatternGeometry::Rect { x, y, w, h } => {
+                            canvas.draw_rect(Rect::from_xywh(*x, *y, *w, *h), &paint);
+                        }
+                        ResolvedPatternGeometry::Oval { x, y, w, h } => {
+                            canvas.draw_oval(Rect::from_xywh(*x, *y, *w, *h), &paint);
+                        }
+                        ResolvedPatternGeometry::Path(path) => {
+                            canvas.draw_path(&backend_path(path), &paint);
+                        }
+                    }
+                });
+            }
+            ItemKind::PatternStroke {
+                geometry,
+                pattern,
+                stroke,
+                dash_phase,
+                post_paint_opacity,
+            } => {
+                with_local_transform(canvas, view, &item.world, || {
+                    debug_assert_eq!(stroke.align, StrokeAlign::Center);
+                    let adjusted = match geometry {
+                        ResolvedPatternGeometry::Oval { w, h, .. } if *w > 0.0 && *h > 0.0 => {
+                            stroke_cap_for_closed_contours(stroke)
+                        }
+                        ResolvedPatternGeometry::Path(path)
+                            if path.all_contours_closed && !any_contour_may_be_degenerate(path) =>
+                        {
+                            stroke_cap_for_closed_contours(stroke)
+                        }
+                        _ => stroke.clone(),
+                    };
+                    let paint = pattern_stroke_paint(
+                        pattern,
+                        &adjusted,
+                        *dash_phase,
+                        *post_paint_opacity,
+                        ctx,
+                    )
+                    .expect("preflighted pattern stroke shader construction failed");
+                    match geometry {
+                        ResolvedPatternGeometry::Rect { x, y, w, h } => {
+                            canvas.draw_rect(Rect::from_xywh(*x, *y, *w, *h), &paint);
+                        }
+                        ResolvedPatternGeometry::Oval { x, y, w, h } => {
+                            canvas.draw_oval(Rect::from_xywh(*x, *y, *w, *h), &paint);
+                        }
+                        ResolvedPatternGeometry::Path(path) => {
+                            canvas.draw_path(&backend_path(path), &paint);
+                        }
+                    }
+                });
             }
             ItemKind::RectFill {
                 w,

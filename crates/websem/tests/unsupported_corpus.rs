@@ -530,11 +530,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     ),
     ("svg-mask-root", BothRefuse, "root <svg>"),
     (
-        "svg-mask-source-pattern",
-        DeclaredByBestEffort,
-        "mask source cannot be compiled completely",
-    ),
-    (
         "svg-mask-transform-precision",
         DeclaredByBestEffort,
         "translation/positive-downscale precision envelope",
@@ -569,9 +564,104 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     // rung consumed defs; the marker attribute itself is the named hole.
     ("svg-path-marker-end", DeclaredByBestEffort, "marker-end"),
     (
-        "svg-pattern-paint-server",
+        "svg-pattern-affine-precision",
         DeclaredByBestEffort,
-        "<pattern>",
+        "picture-shader affine precision boundary",
+    ),
+    (
+        "svg-pattern-context-selection",
+        DeclaredByBestEffort,
+        "pattern paint selected through context-fill/context-stroke",
+    ),
+    (
+        "svg-pattern-css-transform-percentage",
+        DeclaredByBestEffort,
+        "pattern transform percentage has no proved reference-box basis",
+    ),
+    (
+        "svg-pattern-external",
+        DeclaredByBestEffort,
+        "external template",
+    ),
+    (
+        "svg-pattern-length-calc",
+        DeclaredByBestEffort,
+        "pattern width uses a CSS function",
+    ),
+    (
+        "svg-pattern-length-css-comments",
+        DeclaredByBestEffort,
+        "pattern width contains a CSS comment",
+    ),
+    (
+        "svg-pattern-length-css-wide",
+        DeclaredByBestEffort,
+        "pattern width uses the CSS-wide value",
+    ),
+    (
+        "svg-pattern-length-unit",
+        DeclaredByBestEffort,
+        "length unit whose basis this slice does not consume",
+    ),
+    (
+        "svg-pattern-length-used-range",
+        DeclaredByBestEffort,
+        "pattern x exceeds the admitted Web used-value range",
+    ),
+    (
+        "svg-pattern-length-var",
+        DeclaredByBestEffort,
+        "pattern width resolves through var()",
+    ),
+    (
+        "svg-pattern-nested-composition-precision",
+        DeclaredByBestEffort,
+        "picture-shader composition precision boundary",
+    ),
+    (
+        "svg-pattern-nesting-too-deep",
+        DeclaredByBestEffort,
+        "nested pattern paint chain exceeds the resolved 8-program limit",
+    ),
+    (
+        "svg-pattern-number-precision-alias",
+        DeclaredByBestEffort,
+        "numeric precision alias",
+    ),
+    (
+        "svg-pattern-source-clip-precision",
+        DeclaredByBestEffort,
+        "picture-shader source-effect precision boundary",
+    ),
+    (
+        "svg-pattern-source-coverage-precision",
+        DeclaredByBestEffort,
+        "picture-shader source-coverage precision boundary",
+    ),
+    (
+        "svg-pattern-source-effect-precision",
+        DeclaredByBestEffort,
+        "picture-shader source-effect precision boundary",
+    ),
+    (
+        "svg-pattern-source-filter",
+        DeclaredByBestEffort,
+        "filter composition outside the admitted pattern source slice",
+    ),
+    (
+        "svg-pattern-source-unsupported",
+        DeclaredByBestEffort,
+        "source cannot compile completely",
+    ),
+    (
+        "svg-pattern-tile-sampling-precision",
+        DeclaredByBestEffort,
+        "picture-shader sampling precision boundary",
+    ),
+    (
+        "svg-pattern-transform-none-provenance",
+        DeclaredByBestEffort,
+        "transform:none on a derived pattern",
     ),
     (
         "svg-points-odd-coordinate",

@@ -27,6 +27,8 @@ fn tag(k: &ItemKind) -> &'static str {
         ItemKind::EndMaskContent => "mask-content-end",
         ItemKind::BeginFilter { .. } => "filter-begin",
         ItemKind::EndFilter => "filter-end",
+        ItemKind::PatternFill { .. } => "patternfill",
+        ItemKind::PatternStroke { .. } => "patternstroke",
         ItemKind::RectFill { .. } => "rectfill",
         ItemKind::RectStroke { .. } => "rectstroke",
         ItemKind::OvalFill { .. } => "ovalfill",

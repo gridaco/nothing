@@ -115,9 +115,154 @@ impl Default for PaintAlphaFactor {
     }
 }
 
-/// A validated ordered stack of visible normal-blend `cg` paints: solids,
-/// linear gradients, and radial gradients, plus one uniform post-paint alpha
-/// factor.
+/// The deepest pattern-program nesting the resolved contract admits.
+///
+/// Pattern programs are immutable item streams and can therefore contain a
+/// node painted by another pattern program. Keeping the bound here makes the
+/// recursive contract finite before any consumer compiles or replays it.
+pub const MAX_PATTERN_DEPTH: usize = 8;
+
+/// Why a resolved repeating pattern program cannot enter the contract.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PatternPaintError {
+    /// A tile must have a finite, strictly positive extent.
+    InvalidTile,
+    /// The tile-to-item mapping must be finite and invertible.
+    InvalidTransform,
+    /// Paint opacity is a finite factor in the closed unit interval.
+    InvalidOpacity,
+    /// A nested pattern would exceed [`MAX_PATTERN_DEPTH`].
+    TooDeep,
+}
+
+impl std::fmt::Display for PatternPaintError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidTile => {
+                f.write_str("resolved pattern tile extent must be finite and positive")
+            }
+            Self::InvalidTransform => {
+                f.write_str("resolved pattern tile mapping must be finite and invertible")
+            }
+            Self::InvalidOpacity => {
+                f.write_str("resolved pattern opacity must be in the closed unit interval")
+            }
+            Self::TooDeep => write!(
+                f,
+                "resolved pattern programs may nest at most {MAX_PATTERN_DEPTH} levels"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PatternPaintError {}
+
+/// One checked source-neutral repeating vector program.
+///
+/// `items` is recorded in tile-local coordinates. The tile occupies
+/// `(0, 0)–(width, height)` and clips the program there before repetition.
+/// `transform` maps those tile-local coordinates into the consuming node's
+/// local geometry space. A producer has already resolved every source-side
+/// unit system, template relation, viewport mapping, and transform into these
+/// two facts; the program carries no lookup key or source handle.
+///
+/// An empty item stream remains meaningful: a source can select a valid local
+/// content owner whose children paint nothing. That transparent tile is
+/// distinct from an invalid paint-server reference, which never constructs a
+/// `PatternPaint` and lets the producer apply its authored fallback instead.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PatternPaint {
+    width: f32,
+    height: f32,
+    transform: AffineTransform,
+    items: Arc<FrameItems>,
+    opacity: f32,
+    depth: usize,
+}
+
+impl PatternPaint {
+    /// Check one finite repeating program.
+    pub fn new(
+        width: f32,
+        height: f32,
+        transform: AffineTransform,
+        items: Arc<FrameItems>,
+        opacity: f32,
+    ) -> Result<Self, PatternPaintError> {
+        if !width.is_finite() || !height.is_finite() || width <= 0.0 || height <= 0.0 {
+            return Err(PatternPaintError::InvalidTile);
+        }
+        if !transform
+            .matrix
+            .iter()
+            .flatten()
+            .all(|component| component.is_finite())
+            || transform.inverse().is_none()
+        {
+            return Err(PatternPaintError::InvalidTransform);
+        }
+        if !opacity.is_finite() || !(0.0..=1.0).contains(&opacity) {
+            return Err(PatternPaintError::InvalidOpacity);
+        }
+        let child_depth = items
+            .nodes()
+            .flat_map(|node| {
+                node.paints.pattern().into_iter().chain(
+                    node.stroke
+                        .as_ref()
+                        .and_then(|stroke| stroke.paints().pattern()),
+                )
+            })
+            .map(|pattern| pattern.depth)
+            .max()
+            .unwrap_or(0);
+        let depth = child_depth + 1;
+        if depth > MAX_PATTERN_DEPTH {
+            return Err(PatternPaintError::TooDeep);
+        }
+        Ok(Self {
+            width,
+            height,
+            transform,
+            items,
+            opacity,
+            depth,
+        })
+    }
+
+    #[must_use]
+    pub const fn width(&self) -> f32 {
+        self.width
+    }
+
+    #[must_use]
+    pub const fn height(&self) -> f32 {
+        self.height
+    }
+
+    #[must_use]
+    pub const fn transform(&self) -> AffineTransform {
+        self.transform
+    }
+
+    #[must_use]
+    pub const fn items(&self) -> &Arc<FrameItems> {
+        &self.items
+    }
+
+    #[must_use]
+    pub const fn opacity(&self) -> f32 {
+        self.opacity
+    }
+
+    #[must_use]
+    pub const fn depth(&self) -> usize {
+        self.depth
+    }
+}
+
+/// A validated ordered stack of visible normal-blend leaf paints, or one
+/// checked repeating pattern program, plus one uniform post-paint alpha factor.
 ///
 /// This is an admitted subset of the shared leaf vocabulary, not a competing
 /// paint vocabulary. Construction removes paints with no visual effect and
@@ -133,15 +278,17 @@ impl Default for PaintAlphaFactor {
 /// source's coordinate systems into these unit-box facts; no source vocabulary
 /// (units, references, spread keywords) crosses the contract.
 ///
-/// The alpha factor applies independently to every entry, after that entry's
-/// own alpha materializes and before it composites over the entries below it.
-/// It is therefore not opacity over the already-composited stack and creates
-/// no isolated group. A producer that needs to modulate the stack's composite
-/// states a [`Scope`] instead. This order is equally defined for a one-paint
-/// and a multi-paint stack; the factor never changes paint order.
+/// The alpha factor applies independently to every leaf entry, or to the one
+/// complete pattern program after its tile composite materializes, and before
+/// that entry composites over anything below it. It is therefore not opacity
+/// over an already-composited multi-entry stack and creates no isolated group.
+/// A producer that needs to modulate the stack's composite states a [`Scope`]
+/// instead. This order is equally defined for a one-paint and a multi-paint
+/// stack; the factor never changes paint order.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PaintStack {
     paints: cg::Paints,
+    pattern: Option<Arc<PatternPaint>>,
     alpha_factor: PaintAlphaFactor,
 }
 
@@ -149,6 +296,7 @@ impl Default for PaintStack {
     fn default() -> Self {
         Self {
             paints: cg::Paints::default(),
+            pattern: None,
             alpha_factor: PaintAlphaFactor::IDENTITY,
         }
     }
@@ -165,6 +313,7 @@ impl PaintStack {
         }
         Self {
             paints: cg::Paints::new([cg::Paint::Solid(cg::SolidPaint::new_color(color))]),
+            pattern: None,
             alpha_factor: PaintAlphaFactor::IDENTITY,
         }
     }
@@ -189,8 +338,25 @@ impl PaintStack {
         }
         Ok(Self {
             paints: cg::Paints::new(admitted),
+            pattern: None,
             alpha_factor: PaintAlphaFactor::IDENTITY,
         })
+    }
+
+    /// Carry one checked repeating program as the complete paint value.
+    ///
+    /// No current producer needs to mix a composite pattern program with the
+    /// ordered `cg` leaf stack, so construction keeps those two meanings
+    /// exclusive instead of inventing an unproved interleaving rule.
+    pub fn from_pattern(pattern: PatternPaint) -> Self {
+        if pattern.opacity() == 0.0 {
+            return Self::empty();
+        }
+        Self {
+            paints: cg::Paints::default(),
+            pattern: Some(Arc::new(pattern)),
+            alpha_factor: PaintAlphaFactor::IDENTITY,
+        }
     }
 
     /// Attach the factor applied after every entry's intrinsic paint alpha.
@@ -216,16 +382,27 @@ impl PaintStack {
         self.alpha_factor
     }
 
+    /// Iterate the ordinary `cg` leaves.
+    ///
+    /// A pattern is a mutually exclusive composite program and is exposed by
+    /// [`PaintStack::pattern`] rather than pretending to be a `cg` leaf.
     pub fn iter(&self) -> impl Iterator<Item = &cg::Paint> {
         self.paints.iter()
     }
 
+    /// The checked repeating program, when this stack carries that composite
+    /// paint meaning instead of `cg` leaves.
+    #[must_use]
+    pub fn pattern(&self) -> Option<&PatternPaint> {
+        self.pattern.as_deref()
+    }
+
     pub fn len(&self) -> usize {
-        self.paints.len()
+        self.paints.len() + usize::from(self.pattern.is_some())
     }
 
     pub fn is_empty(&self) -> bool {
-        self.paints.is_empty()
+        self.paints.is_empty() && self.pattern.is_none()
     }
 }
 

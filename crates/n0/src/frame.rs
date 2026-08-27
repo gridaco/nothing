@@ -139,6 +139,7 @@ impl From<crate::paint::GradientPreflightError> for FrameBuildError {
 pub enum FrameExecutionError {
     Environment(PaintEnvironmentMismatch),
     Image(crate::paint::ImagePreflightError),
+    Pattern(crate::paint::PatternPreflightError),
 }
 
 impl std::fmt::Display for FrameExecutionError {
@@ -146,6 +147,7 @@ impl std::fmt::Display for FrameExecutionError {
         match self {
             FrameExecutionError::Environment(error) => error.fmt(f),
             FrameExecutionError::Image(error) => error.fmt(f),
+            FrameExecutionError::Pattern(error) => error.fmt(f),
         }
     }
 }
@@ -161,6 +163,12 @@ impl From<PaintEnvironmentMismatch> for FrameExecutionError {
 impl From<crate::paint::ImagePreflightError> for FrameExecutionError {
     fn from(error: crate::paint::ImagePreflightError) -> Self {
         FrameExecutionError::Image(error)
+    }
+}
+
+impl From<crate::paint::PatternPreflightError> for FrameExecutionError {
+    fn from(error: crate::paint::PatternPreflightError) -> Self {
+        FrameExecutionError::Pattern(error)
     }
 }
 

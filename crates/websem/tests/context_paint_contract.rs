@@ -330,7 +330,7 @@ fn pattern_and_external_urls_keep_their_own_refusal_through_context() {
         r##"<defs><pattern id="p" width="8" height="8"><rect width="4" height="4" fill="red"/></pattern><rect id="r" width="20" height="20" fill="context-fill"/></defs><use href="#r" fill="url(#p)"/>"##,
     ));
     assert!(
-        matches!(pattern, CompileError::UnsupportedFill(ref reason) if reason.contains("<pattern>")),
+        matches!(pattern, CompileError::UnsupportedFill(ref reason) if reason.contains("pattern paint selected through context-fill/context-stroke")),
         "{pattern}"
     );
 

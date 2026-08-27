@@ -70,7 +70,7 @@
 //! | entries and session | `SourceEntry`, `CompileMode`, [`SvgFrameSource`], the two `compile_*` functions, the child walk |
 //! | departures | [`CompileError`], [`Degradation`], and every `patrol_*` — the attribute tables, the cascaded-property reads, the stylesheet scans, the unit patrol |
 //! | shapes | `compile_rect`/`_circle`/`_ellipse`/`_path`/`_line` and `shape_node` |
-//! | paint | `resolve_fill`, `resolve_stroke`, `resolve_fill_rule`, and the admitted colour surface |
+//! | paint | `resolve_fill`, `resolve_stroke`, `resolve_fill_rule`, and the admitted colour and paint-server surface |
 //! | viewport | [`InitialViewport`], `parse_viewbox`, the `preserveAspectRatio` grammar and its viewport mapping |
 //!
 //! Two conversions *are* separate files, because they are value-in/value-out
@@ -92,13 +92,14 @@
 //! and quantize once. A valid paint server instead keeps element opacity as a
 //! post-paint factor. The Chromium-baked primitive suite gates both routes
 //! pixel-exactly — plus same-document linear and radial gradient paint
-//! servers (the gradient rung), plus standard `context-fill` / `context-stroke`
-//! relationships under expanded `<use>` instances. Context relationships
-//! resolve completely here — including recursive selection, currentColor and
-//! gradient reference spaces — and never cross `rframe`. Everything else
-//! refuses explicitly: Stylo's non-standard context-paint fallback extension,
-//! context-valued opacities, non-sRGB color spaces, and `<pattern>`
-//! (`tests/typed_fill.rs` and the translucency contract pin each).
+//! servers (the gradient rung), bounded same-document repeating vector
+//! patterns, and standard `context-fill` / `context-stroke` relationships
+//! under expanded `<use>` instances. Context relationships resolve completely
+//! here — including recursive selection, currentColor and gradient reference
+//! spaces — and never cross `rframe`. Unsupported pattern composition and
+//! precision branches refuse by their own stable names. Other paint gaps also
+//! refuse explicitly, including Stylo's non-standard context-paint fallback
+//! extension, context-valued opacities, and non-sRGB color spaces.
 //!
 //! ## Document lifetime
 //! Each retained source owns one [`csscascade::adapter::DocumentSession`].
@@ -122,7 +123,8 @@ use style::computed_values::visibility::T as Visibility;
 use style::dom::TElement;
 
 use crate::svg_paint_server::{
-    GradientBases, PaintServers, ParsedColorAttribute, ResolvedPaintServer, parse_color_attribute,
+    ClassifiedServer, GradientBases, PaintServers, ParsedColorAttribute, ResolvedPaintServer,
+    parse_color_attribute,
 };
 use crate::svg_transform::{TransformRefusal, computed_transform_to_affine};
 use style::properties::ComputedValues;
@@ -140,8 +142,8 @@ use rframe::{
     FilterInput, FilterLightSource, FilterMorphology, FilterNode, FilterPrimitive, FilterProgram,
     FilterTurbulenceKind, Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry,
     Identity, MAX_FILTER_CONVOLVE_KERNEL_VALUES, Mask, MaskMode, PaintAlphaFactor, PaintStack,
-    PathData, Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeDash,
-    StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, VisualRef,
+    PathData, PatternPaint, Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap,
+    StrokeDash, StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, VisualRef,
 };
 use std::sync::Arc;
 
@@ -2552,6 +2554,18 @@ fn compile_svg_element(
     let clips = clip_path::Resources::collect(document_root(svg), svg);
     let masks = mask_resource::Resources::collect(document_root(svg), svg);
     let filters = filter_resource::Resources::collect(document_root(svg), svg);
+    let has_author_css = document_has_author_css(svg);
+    let patterns = PatternCompiler {
+        values,
+        root_bases: bases,
+        override_skips,
+        has_author_css,
+        servers: &servers,
+        clips: &clips,
+        masks: &masks,
+        filters: &filters,
+        fonts,
+    };
     let GeometryMeasurements {
         use_boxes,
         effect_boxes,
@@ -2562,11 +2576,12 @@ fn compile_svg_element(
         mode,
         degradations,
         override_skips,
-        has_author_css: document_has_author_css(svg),
+        has_author_css,
         servers: &servers,
         clips: &clips,
         masks: &masks,
         filters: &filters,
+        patterns: &patterns,
         use_boxes,
         effect_boxes,
         paint_contexts: Vec::new(),
@@ -2575,6 +2590,7 @@ fn compile_svg_element(
         items: Vec::new(),
         top_level_shapes: Vec::new(),
         active_masks: Vec::new(),
+        active_patterns: Vec::new(),
         next_id: 0,
     };
     if root_disposition != RenderDisposition::PrunedSubtree || initial_viewport.is_some() {
@@ -2662,6 +2678,679 @@ impl SpanFacts {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PatternUnits {
+    UserSpaceOnUse,
+    ObjectBoundingBox,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum PatternViewBox {
+    None,
+    Degenerate,
+    Mapped((f32, f32, f32, f32)),
+}
+
+/// The three semantic outcomes of resolving a valid same-document pattern
+/// reference. `Invalid` lets the paint property's authored fallback fire;
+/// `Paint` may contain an empty program, which is a valid transparent paint
+/// and deliberately suppresses that fallback.
+enum PatternResolution {
+    Invalid,
+    Paint(PatternPaint),
+}
+
+/// Immutable document-side inputs needed to turn one `<pattern>` into a
+/// source-neutral program for one consuming paint box.
+///
+/// Resolution is deliberately per client: object-box units and inherited
+/// source state can make two references to the same DOM element produce
+/// different tile and coordinate facts. The selected source subtree is
+/// compiled transactionally through a fresh strict [`ChildWalk`]; no partially
+/// compiled tile can escape.
+struct PatternCompiler<'a> {
+    values: &'a EffectiveValues,
+    root_bases: PercentBases,
+    override_skips: &'a HashMap<NodeId, String>,
+    has_author_css: bool,
+    servers: &'a PaintServers<'a>,
+    clips: &'a clip_path::Resources<'a>,
+    masks: &'a mask_resource::Resources<'a>,
+    filters: &'a filter_resource::Resources<'a>,
+    fonts: &'a textlayout::Environment,
+}
+
+impl<'a> PatternCompiler<'a> {
+    #[allow(clippy::too_many_arguments)]
+    fn resolve(
+        &self,
+        fragment: &str,
+        first: HtmlElement<'a>,
+        reference_box: Rectangle,
+        owner_to_destination: AffineTransform,
+        paint_opacity: f32,
+        active_patterns: &[NodeId],
+    ) -> Result<PatternResolution, String> {
+        if active_patterns.len() >= rframe::MAX_PATTERN_DEPTH {
+            return Err(format!(
+                "nested pattern paint chain exceeds the resolved {}-program limit",
+                rframe::MAX_PATTERN_DEPTH
+            ));
+        }
+        if active_patterns.contains(&first.node_id()) {
+            return Err(format!(
+                "nested pattern paint cycle reaches #{fragment} while its tile program is active"
+            ));
+        }
+
+        let (chain, external_tail) = self.template_chain(first)?;
+        for element in &chain {
+            patrol_rendering_attributes(*element, "pattern", &[])
+                .map_err(|error| error.to_string())?;
+            patrol_style_attribute(*element, "pattern").map_err(|error| error.to_string())?;
+        }
+
+        let content_owner = chain
+            .iter()
+            .copied()
+            .find(|element| element.first_element_child().is_some());
+
+        // Crossing the document boundary is harmless only when no fact could
+        // be inherited through it. Otherwise the external resource might
+        // change the tile and this resource-free compiler must refuse rather
+        // than silently use local defaults.
+        if external_tail
+            && (content_owner.is_none()
+                || [
+                    "x",
+                    "y",
+                    "width",
+                    "height",
+                    "patternUnits",
+                    "patternContentUnits",
+                    "patternTransform",
+                    "viewBox",
+                    "preserveAspectRatio",
+                ]
+                .iter()
+                .any(|name| pattern_chain_attr(&chain, name).is_none()))
+        {
+            return Err(format!(
+                "pattern #{fragment} needs attributes or content from an external template, and external resources are not resolved"
+            ));
+        }
+
+        // No selected element child means no content source at all. Chromium
+        // treats that as an invalid pattern and selects the URL fallback. By
+        // contrast, a selected `<title>`, `<defs>`, or other non-painting
+        // element child is a valid source owner and compiles to an empty
+        // program below, suppressing fallback.
+        let Some(content_owner) = content_owner else {
+            return Ok(PatternResolution::Invalid);
+        };
+
+        let pattern_units =
+            resolve_pattern_units(&chain, "patternUnits", PatternUnits::ObjectBoundingBox);
+        let content_units =
+            resolve_pattern_units(&chain, "patternContentUnits", PatternUnits::UserSpaceOnUse);
+        let x = pattern_length(&chain, "x", pattern_units, reference_box, self.root_bases)?;
+        let y = pattern_length(&chain, "y", pattern_units, reference_box, self.root_bases)?;
+        let width = pattern_length(
+            &chain,
+            "width",
+            pattern_units,
+            reference_box,
+            self.root_bases,
+        )?;
+        let height = pattern_length(
+            &chain,
+            "height",
+            pattern_units,
+            reference_box,
+            self.root_bases,
+        )?;
+        if !(width > 0.0 && height > 0.0) {
+            return Ok(PatternResolution::Invalid);
+        }
+
+        let (tile_x, tile_y) = match pattern_units {
+            PatternUnits::UserSpaceOnUse => (x, y),
+            PatternUnits::ObjectBoundingBox => (reference_box.x + x, reference_box.y + y),
+        };
+        if ![tile_x, tile_y, width, height]
+            .into_iter()
+            .all(f32::is_finite)
+        {
+            return Err(format!(
+                "pattern #{fragment} tile geometry resolves outside the finite frame range"
+            ));
+        }
+
+        let view_box = pattern_view_box(&chain);
+        if view_box == PatternViewBox::Degenerate {
+            return Ok(PatternResolution::Invalid);
+        }
+        let par = match pattern_chain_attr(&chain, "preserveAspectRatio") {
+            Some(value) => parse_preserve_aspect_ratio(&value).map_err(|error| {
+                format!("pattern #{fragment} preserveAspectRatio is unsupported: {error}")
+            })?,
+            None => PreserveAspectRatio::default(),
+        };
+        let pattern_transform = self.pattern_transform(&chain)?;
+        let tile_origin = AffineTransform::from_acebdf(1.0, 0.0, tile_x, 0.0, 1.0, tile_y);
+        let tile_to_destination = owner_to_destination
+            .compose(&pattern_transform)
+            .compose(&tile_origin);
+        if !tile_to_destination
+            .matrix
+            .iter()
+            .flatten()
+            .all(|value| value.is_finite())
+            || tile_to_destination.inverse().is_none()
+        {
+            // A valid server whose tile cannot establish an invertible
+            // sampling space is invalid for painting; Chromium selects the
+            // authored URL fallback for the measured singular cases.
+            return Ok(PatternResolution::Invalid);
+        }
+
+        let (content_to_tile, source_bases) = match view_box {
+            PatternViewBox::Mapped(view_box) => (
+                viewbox_to_viewport_transform((width, height), view_box, par),
+                PercentBases {
+                    width: view_box.2,
+                    height: view_box.3,
+                },
+            ),
+            PatternViewBox::None => match content_units {
+                // No viewBox establishes a tile-local origin. Chromium keeps
+                // user-space content in the referencing element's current
+                // coordinate system; tile x/y changes phase independently.
+                PatternUnits::UserSpaceOnUse => (AffineTransform::identity(), self.root_bases),
+                // Object-box content maps the normalized coordinates by the
+                // box extents only. Its origin likewise remains independent
+                // from the pattern tile's x/y phase.
+                PatternUnits::ObjectBoundingBox => (
+                    AffineTransform::from_acebdf(
+                        reference_box.width,
+                        0.0,
+                        0.0,
+                        0.0,
+                        reference_box.height,
+                        0.0,
+                    ),
+                    PercentBases {
+                        width: 1.0,
+                        height: 1.0,
+                    },
+                ),
+            },
+            PatternViewBox::Degenerate => unreachable!("handled above"),
+        };
+        if !content_to_tile
+            .matrix
+            .iter()
+            .flatten()
+            .all(|value| value.is_finite())
+        {
+            return Err(format!(
+                "pattern #{fragment} content mapping resolves outside the finite frame range"
+            ));
+        }
+
+        let items = self.compile_source(
+            fragment,
+            content_owner,
+            content_to_tile,
+            source_bases,
+            active_patterns,
+            first.node_id(),
+        )?;
+        let pattern = PatternPaint::new(
+            width,
+            height,
+            tile_to_destination,
+            Arc::new(items),
+            paint_opacity,
+        )
+        .map_err(|error| format!("pattern #{fragment} cannot enter the resolved frame: {error}"))?;
+        Ok(PatternResolution::Paint(pattern))
+    }
+
+    fn template_chain(
+        &self,
+        first: HtmlElement<'a>,
+    ) -> Result<(Vec<HtmlElement<'a>>, bool), String> {
+        let mut chain = vec![first];
+        let mut visited = std::collections::HashSet::from([first.node_id()]);
+        let mut current = first;
+        loop {
+            let Some(reference) = crate::svg_paint_server::paint_server_href(current) else {
+                return Ok((chain, false));
+            };
+            let Some(fragment) = reference.strip_prefix('#') else {
+                return Ok((chain, true));
+            };
+            let Some(next) = crate::svg_paint_server::pattern_template(self.servers, fragment)?
+            else {
+                return Ok((chain, false));
+            };
+            if !visited.insert(next.node_id()) {
+                return Ok((chain, false));
+            }
+            chain.push(next);
+            current = next;
+        }
+    }
+
+    fn pattern_transform(&self, chain: &[HtmlElement<'a>]) -> Result<AffineTransform, String> {
+        for (index, element) in chain.iter().copied().enumerate() {
+            let data = element
+                .borrow_data()
+                .ok_or_else(|| "a pattern element has no computed style".to_string())?;
+            let transform = data.styles.primary().clone_transform();
+            drop(data);
+            let has_attribute = get_attr(element, "patternTransform").is_some();
+            let inline_declares = get_attr(element, "style")
+                .is_some_and(|style| css_declares_property(&style, "transform"));
+            if transform.0.is_empty() && !has_attribute && !inline_declares {
+                // A stylesheet `transform:none` on a derived pattern is not
+                // attributable from the computed empty list. If a later
+                // template contributes a transform, proceeding would silently
+                // resurrect it, so quarantine that narrow provenance loss.
+                if self.has_author_css
+                    && index + 1 < chain.len()
+                    && chain[index + 1..]
+                        .iter()
+                        .any(|later| get_attr(*later, "patternTransform").is_some())
+                {
+                    return Err(
+                        "an author stylesheet may set transform:none on a derived pattern; the empty computed value loses the provenance needed to decide template inheritance"
+                            .to_string(),
+                    );
+                }
+                continue;
+            }
+            if transform.0.is_empty() {
+                return Ok(AffineTransform::identity());
+            }
+            let affine = computed_transform_to_affine(&transform, None).map_err(|refusal| match refusal {
+                TransformRefusal::Function(name) => format!(
+                    "pattern transform uses {name}(), outside the admitted 2D affine function set"
+                ),
+                TransformRefusal::Calc => {
+                    "pattern transform uses calc(), which is not yet consumed".to_string()
+                }
+                TransformRefusal::Percentage => {
+                    "pattern transform percentage has no proved reference-box basis".to_string()
+                }
+            })?;
+            if !affine
+                .matrix
+                .iter()
+                .flatten()
+                .all(|value| value.is_finite())
+            {
+                return Err("pattern transform is not finite".to_string());
+            }
+            return Ok(affine);
+        }
+        Ok(AffineTransform::identity())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn compile_source(
+        &self,
+        fragment: &str,
+        content_owner: HtmlElement<'a>,
+        content_to_tile: AffineTransform,
+        source_bases: PercentBases,
+        active_patterns: &[NodeId],
+        pattern_id: NodeId,
+    ) -> Result<FrameItems, String> {
+        let GeometryMeasurements {
+            use_boxes,
+            effect_boxes,
+        } = measure_geometry(
+            content_owner,
+            self.values,
+            source_bases,
+            self.fonts,
+            self.override_skips,
+        )
+        .map_err(|error| format!("pattern #{fragment} source geometry: {error}"))?;
+        let mut degradations = Vec::new();
+        let mut source_active_patterns = active_patterns.to_vec();
+        source_active_patterns.push(pattern_id);
+        let mut walk = ChildWalk {
+            values: self.values,
+            bases: source_bases,
+            mode: CompileMode::Strict,
+            degradations: &mut degradations,
+            override_skips: self.override_skips,
+            has_author_css: self.has_author_css,
+            servers: self.servers,
+            clips: self.clips,
+            masks: self.masks,
+            filters: self.filters,
+            patterns: self,
+            use_boxes,
+            effect_boxes,
+            paint_contexts: Vec::new(),
+            context_paint_transform: content_to_tile,
+            fonts: self.fonts,
+            items: Vec::new(),
+            top_level_shapes: Vec::new(),
+            active_masks: Vec::new(),
+            active_patterns: source_active_patterns,
+            next_id: 0,
+        };
+        walk.compile_children(
+            content_owner,
+            content_to_tile,
+            &format!("pattern-source(#{fragment})"),
+            0,
+            1.0,
+        )
+        .map_err(|error| {
+            format!("pattern #{fragment} source cannot compile completely: {error}")
+        })?;
+        let items = std::mem::take(&mut walk.items);
+        drop(walk);
+        if let Some(degradation) = degradations.first() {
+            return Err(format!(
+                "pattern #{fragment} source cannot compile completely: {}",
+                degradation.reason()
+            ));
+        }
+        let items = FrameItems::try_new(items).map_err(|error| {
+            format!("pattern #{fragment} source item stream is invalid: {error}")
+        })?;
+        patrol_pattern_source_program(&items)
+            .map_err(|reason| format!("pattern #{fragment} {reason}"))?;
+        Ok(items)
+    }
+}
+
+/// Keep the admitted picture-shader source on the exact side of the measured
+/// Chromium/pinned-Skia boundary.
+///
+/// Rectangular content whose mapped edges land on tile pixels is exact across
+/// solids, gradients, strokes, masks, filters, and `<use>`. Curved or
+/// subpixel source geometry changes antialias coverage; an isolated source
+/// opacity or geometric clip changes the recorded layer's byte-domain route;
+/// and composing another draw over a nested pattern changes picture sampling.
+/// Those are backend-generation facts, not SVG grammar defaults, so each
+/// refuses the complete affected paint instead of letting a plausible tile
+/// escape.
+fn patrol_pattern_source_program(items: &FrameItems) -> Result<(), &'static str> {
+    let draw_count = items
+        .nodes()
+        .map(|node| {
+            usize::from(!node.paints.is_empty())
+                + usize::from(
+                    node.stroke
+                        .as_ref()
+                        .is_some_and(|stroke| !stroke.paints().is_empty()),
+                )
+        })
+        .sum::<usize>();
+    let has_nested_pattern = items.nodes().any(|node| {
+        node.paints.pattern().is_some()
+            || node
+                .stroke
+                .as_ref()
+                .is_some_and(|stroke| stroke.paints().pattern().is_some())
+    });
+    let has_compositing_commands = items.iter().any(|item| !matches!(item, FrameItem::Node(_)));
+    if has_nested_pattern && (draw_count != 1 || has_compositing_commands) {
+        return Err(
+            "source mixes a nested pattern with another draw at the pinned-backend picture-shader composition precision boundary",
+        );
+    }
+
+    for item in items {
+        match item {
+            FrameItem::Node(node) => {
+                if !matches!(node.geometry, Geometry::Rect(_)) {
+                    return Err(
+                        "source carries curved/vector geometry at the pinned-backend picture-shader source-coverage precision boundary",
+                    );
+                }
+                let [[a, c, _], [b, d, _]] = node.transform.matrix;
+                let axis_or_quarter_turn = (b == 0.0 && c == 0.0) || (a == 0.0 && d == 0.0);
+                if !axis_or_quarter_turn {
+                    return Err(
+                        "source carries a general rotation or shear at the pinned-backend picture-shader source-coverage precision boundary",
+                    );
+                }
+                let bounds = node.bounds;
+                if ![bounds.x, bounds.y, bounds.width, bounds.height]
+                    .into_iter()
+                    .all(|value| value.is_finite() && value.fract() == 0.0)
+                {
+                    return Err(
+                        "source carries subpixel geometry or a subpixel transform at the pinned-backend picture-shader source-coverage precision boundary",
+                    );
+                }
+            }
+            FrameItem::ScopeBegin(scope)
+                if matches!(scope.effect, ScopeEffect::Opacity(_) | ScopeEffect::Clip(_)) =>
+            {
+                return Err(
+                    "source carries an isolated opacity or geometric clip at the pinned-backend picture-shader source-effect precision boundary",
+                );
+            }
+            FrameItem::ScopeBegin(scope) if matches!(scope.effect, ScopeEffect::Filter(_)) => {
+                return Err(
+                    "source uses a filter composition outside the admitted pattern source slice",
+                );
+            }
+            FrameItem::ScopeBegin(_)
+            | FrameItem::ScopeEnd
+            | FrameItem::MaskBegin(_)
+            | FrameItem::MaskSource
+            | FrameItem::MaskEnd => {}
+        }
+    }
+    Ok(())
+}
+
+/// Picture repetition is exact for translations, reflections, independent
+/// axis scales, and exact quarter turns while the final tile extents land on
+/// whole pixels. General rotations can agree for one source subdivision and
+/// differ for another by one to three code values; shears and fractional tile
+/// extents expose wider instances of the same backend-generation boundary.
+fn patrol_pattern_target_mapping(
+    pattern: &PatternPaint,
+    node_to_frame: AffineTransform,
+) -> Result<(), &'static str> {
+    let tile_to_frame = node_to_frame.compose(&pattern.transform());
+    let [[a, c, _], [b, d, _]] = tile_to_frame.matrix;
+    if ![a, b, c, d].into_iter().all(f32::is_finite) {
+        return Err("tile mapping is not finite");
+    }
+
+    let axis_or_quarter_turn = (b == 0.0 && c == 0.0) || (a == 0.0 && d == 0.0);
+    if !axis_or_quarter_turn {
+        return Err(
+            "target mapping carries a general rotation or shear at the pinned-backend picture-shader affine precision boundary",
+        );
+    }
+
+    let x_length = a.hypot(b);
+    let y_length = c.hypot(d);
+    let near_integer = |value: f32| {
+        value.is_finite()
+            && (value - value.round()).abs() <= value.abs().max(1.0) * f32::EPSILON * 8.0
+    };
+    if !near_integer(pattern.width() * x_length) || !near_integer(pattern.height() * y_length) {
+        return Err(
+            "tile has a fractional final device extent at the pinned-backend picture-shader sampling precision boundary",
+        );
+    }
+    Ok(())
+}
+
+fn pattern_chain_attr(chain: &[HtmlElement<'_>], name: &str) -> Option<String> {
+    chain
+        .iter()
+        .find_map(|element| get_attr(*element, name))
+        .map(|value| trim_svg_whitespace(&value).to_string())
+}
+
+fn resolve_pattern_units(
+    chain: &[HtmlElement<'_>],
+    name: &str,
+    initial: PatternUnits,
+) -> PatternUnits {
+    match pattern_chain_attr(chain, name).as_deref() {
+        Some("userSpaceOnUse") => PatternUnits::UserSpaceOnUse,
+        Some("objectBoundingBox") => PatternUnits::ObjectBoundingBox,
+        // Missing, empty, malformed, and wrong-case values all select the
+        // initial member in current Chromium.
+        _ => initial,
+    }
+}
+
+fn pattern_length(
+    chain: &[HtmlElement<'_>],
+    name: &str,
+    units: PatternUnits,
+    reference_box: Rectangle,
+    root_bases: PercentBases,
+) -> Result<f32, String> {
+    let Some(text) = pattern_chain_attr(chain, name) else {
+        return Ok(0.0);
+    };
+    let text = trim_svg_whitespace(&text);
+    if text.is_empty() {
+        return Ok(0.0);
+    }
+    let lower = text.to_ascii_lowercase();
+    if text.contains("/*") {
+        return Err(format!(
+            "pattern {name} contains a CSS comment; the direct length decoder does not tokenize comments"
+        ));
+    }
+    if text.contains('\\') {
+        return Err(format!(
+            "pattern {name} carries a CSS escape whose length meaning this direct decoder cannot prove"
+        ));
+    }
+    if lower.contains("var(") {
+        return Err(format!(
+            "pattern {name} resolves through var(), which this direct decoder cannot follow"
+        ));
+    }
+    if ["inherit", "initial", "unset", "revert", "revert-layer"].contains(&lower.as_str()) {
+        return Err(format!(
+            "pattern {name} uses the CSS-wide value {text:?}, whose cascaded length route is not represented"
+        ));
+    }
+    if lower.contains('(') {
+        return Err(format!(
+            "pattern {name} uses a CSS function in {text:?}, which this direct decoder does not consume"
+        ));
+    }
+
+    let (number, percentage) = match text.strip_suffix('%') {
+        Some(number) => (trim_svg_whitespace(number), true),
+        None => {
+            let number = if lower.ends_with("px") {
+                &text[..text.len() - 2]
+            } else {
+                text
+            };
+            (trim_svg_whitespace(number), false)
+        }
+    };
+    if !dots_carry_digits(number) {
+        return Ok(0.0);
+    }
+    let parsed = match number.parse::<f32>() {
+        Ok(value) if value.is_finite() => value,
+        _ => {
+            if number.parse::<f64>().is_ok_and(f64::is_finite) {
+                return Err(format!(
+                    "pattern {name} exceeds the admitted Web used-value range"
+                ));
+            }
+            let numeric_prefix = number
+                .bytes()
+                .next()
+                .is_some_and(|byte| byte.is_ascii_digit() || matches!(byte, b'+' | b'-' | b'.'));
+            if numeric_prefix
+                && number
+                    .bytes()
+                    .any(|byte| byte.is_ascii_alphabetic() && !matches!(byte, b'e' | b'E'))
+            {
+                return Err(format!(
+                    "pattern {name}={text:?} uses a length unit whose basis this slice does not consume"
+                ));
+            }
+            return Ok(0.0);
+        }
+    };
+    let axis = match name {
+        "x" | "width" => reference_box.width,
+        _ => reference_box.height,
+    };
+    let resolved = match (units, percentage) {
+        (PatternUnits::ObjectBoundingBox, false) => parsed * axis,
+        (PatternUnits::ObjectBoundingBox, true) => resolve_geometry_percentage(parsed, axis),
+        (PatternUnits::UserSpaceOnUse, false) => parsed,
+        (PatternUnits::UserSpaceOnUse, true) => {
+            resolve_geometry_percentage(parsed, root_bases.axis(name))
+        }
+    };
+    if !resolved.is_finite() {
+        return Err(format!(
+            "pattern {name} resolves outside the finite frame range"
+        ));
+    }
+    let outside_used_range = match name {
+        "x" | "y" => !(WEB_USED_LENGTH_MIN..=WEB_USED_LENGTH_MAX).contains(&resolved),
+        "width" | "height" => resolved > WEB_USED_LENGTH_MAX,
+        _ => false,
+    };
+    if outside_used_range {
+        return Err(format!(
+            "pattern {name} exceeds the admitted Web used-value range"
+        ));
+    }
+    if (matches!(name, "x" | "y") || resolved > 0.0)
+        && geometry_number_source_loses_provenance(number, percentage)
+    {
+        return Err(format!(
+            "pattern {name} numeric precision alias loses Chromium used-value provenance"
+        ));
+    }
+    Ok(resolved)
+}
+
+fn pattern_view_box(chain: &[HtmlElement<'_>]) -> PatternViewBox {
+    let Some(text) = pattern_chain_attr(chain, "viewBox") else {
+        return PatternViewBox::None;
+    };
+    let Some(values) = crate::svg_number_list::parse(&text) else {
+        return PatternViewBox::None;
+    };
+    let [x, y, width, height] = values.as_slice() else {
+        return PatternViewBox::None;
+    };
+    if ![*x, *y, *width, *height].into_iter().all(f32::is_finite) {
+        return PatternViewBox::None;
+    }
+    if *width == 0.0 || *height == 0.0 {
+        PatternViewBox::Degenerate
+    } else if *width < 0.0 || *height < 0.0 {
+        PatternViewBox::None
+    } else {
+        PatternViewBox::Mapped((*x, *y, *width, *height))
+    }
+}
+
 /// The recursive descent that materializes shapes in painter order.
 ///
 /// Containers are **flattened** wherever flattening is exact: a `<g>`
@@ -2705,6 +3394,9 @@ struct ChildWalk<'a> {
     /// Same-document filter graphs. Authored lookup and named results resolve
     /// here; only checked numeric operation nodes cross into `rframe`.
     filters: &'a filter_resource::Resources<'a>,
+    /// Per-client SVG pattern resolver. It compiles each selected source
+    /// subtree into a nested source-neutral frame program.
+    patterns: &'a PatternCompiler<'a>,
     /// Complete geometry boxes of expanded `<use>` instances, in each use
     /// element's own user space. They are measured before paint resolution so
     /// a context URL never learns its reference box from whichever leaf
@@ -2736,6 +3428,9 @@ struct ChildWalk<'a> {
     /// Mask resources currently compiling as source images. The stack makes
     /// descendant cycles and pathological nesting explicit refusals.
     active_masks: Vec<NodeId>,
+    /// Pattern resources whose source programs are currently compiling.
+    /// Nested pattern paints may recurse, but a source cycle never can.
+    active_patterns: Vec<NodeId>,
     next_id: u64,
 }
 
@@ -3052,6 +3747,13 @@ impl<'a> ChildWalk<'a> {
             // skips the subtree (its `<stop>` children are the table's
             // material, never paintable content).
             if tag == "linearGradient" || tag == "radialGradient" {
+                child = c.next_element_sibling();
+                continue;
+            }
+            // `<pattern>` is likewise a never-rendered paint resource. Its
+            // selected content subtree is compiled only for an actual paint
+            // client, in that client's coordinate system.
+            if tag == "pattern" {
                 child = c.next_element_sibling();
                 continue;
             }
@@ -3405,6 +4107,8 @@ impl<'a> ChildWalk<'a> {
             &mut self.next_id,
             self.values,
             self.servers,
+            self.patterns,
+            &self.active_patterns,
             &self.paint_contexts,
             self.bases,
             mask.is_some() || filter.is_some(),
@@ -7443,6 +8147,8 @@ fn compile_shape(
     next_id: &mut u64,
     values: &EffectiveValues,
     servers: &PaintServers<'_>,
+    patterns: &PatternCompiler<'_>,
+    active_patterns: &[NodeId],
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     defer_own_opacity: bool,
@@ -7465,6 +8171,8 @@ fn compile_shape(
             next_id,
             values,
             servers,
+            patterns,
+            active_patterns,
             paint_contexts,
             bases,
             defer_own_opacity,
@@ -7477,6 +8185,8 @@ fn compile_shape(
             next_id,
             values,
             servers,
+            patterns,
+            active_patterns,
             paint_contexts,
             bases,
             defer_own_opacity,
@@ -7489,6 +8199,8 @@ fn compile_shape(
             next_id,
             values,
             servers,
+            patterns,
+            active_patterns,
             paint_contexts,
             bases,
             defer_own_opacity,
@@ -7500,6 +8212,8 @@ fn compile_shape(
             context_paint_transform,
             next_id,
             servers,
+            patterns,
+            active_patterns,
             paint_contexts,
             bases,
             defer_own_opacity,
@@ -7512,6 +8226,8 @@ fn compile_shape(
             next_id,
             values,
             servers,
+            patterns,
+            active_patterns,
             paint_contexts,
             bases,
             defer_own_opacity,
@@ -7525,6 +8241,8 @@ fn compile_shape(
             next_id,
             values,
             servers,
+            patterns,
+            active_patterns,
             paint_contexts,
             bases,
             defer_own_opacity,
@@ -7537,6 +8255,8 @@ fn compile_shape(
             next_id,
             PointsClosure::Closed,
             servers,
+            patterns,
+            active_patterns,
             paint_contexts,
             bases,
             defer_own_opacity,
@@ -7549,6 +8269,8 @@ fn compile_shape(
             next_id,
             PointsClosure::Open,
             servers,
+            patterns,
+            active_patterns,
             paint_contexts,
             bases,
             defer_own_opacity,
@@ -7582,6 +8304,8 @@ fn compile_text(
     next_id: &mut u64,
     values: &EffectiveValues,
     servers: &PaintServers<'_>,
+    patterns: &PatternCompiler<'_>,
+    active_patterns: &[NodeId],
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     defer_own_opacity: bool,
@@ -7607,6 +8331,8 @@ fn compile_text(
         "text",
         None,
         servers,
+        patterns,
+        active_patterns,
         paint_contexts,
         Rectangle::from_xywh(0.0, 0.0, 1.0, 1.0),
         context_paint_transform,
@@ -7693,6 +8419,8 @@ fn compile_text(
         next_id,
         Strokable::RenderingDisabled,
         servers,
+        patterns,
+        active_patterns,
         paint_contexts,
         bases,
         if defer_own_opacity {
@@ -7713,6 +8441,8 @@ fn compile_rect(
     next_id: &mut u64,
     values: &EffectiveValues,
     servers: &PaintServers<'_>,
+    patterns: &PatternCompiler<'_>,
+    active_patterns: &[NodeId],
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     defer_own_opacity: bool,
@@ -7749,6 +8479,8 @@ fn compile_rect(
         next_id,
         box_strokable(w, h),
         servers,
+        patterns,
+        active_patterns,
         paint_contexts,
         bases,
         if defer_own_opacity {
@@ -7791,6 +8523,8 @@ fn compile_circle(
     next_id: &mut u64,
     values: &EffectiveValues,
     servers: &PaintServers<'_>,
+    patterns: &PatternCompiler<'_>,
+    active_patterns: &[NodeId],
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     defer_own_opacity: bool,
@@ -7829,6 +8563,8 @@ fn compile_circle(
         next_id,
         box_strokable(r, r),
         servers,
+        patterns,
+        active_patterns,
         paint_contexts,
         bases,
         if defer_own_opacity {
@@ -7849,6 +8585,8 @@ fn compile_ellipse(
     next_id: &mut u64,
     values: &EffectiveValues,
     servers: &PaintServers<'_>,
+    patterns: &PatternCompiler<'_>,
+    active_patterns: &[NodeId],
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     defer_own_opacity: bool,
@@ -7893,6 +8631,8 @@ fn compile_ellipse(
         next_id,
         box_strokable(rx, ry),
         servers,
+        patterns,
+        active_patterns,
         paint_contexts,
         bases,
         if defer_own_opacity {
@@ -7923,6 +8663,8 @@ fn compile_path(
     context_paint_transform: AffineTransform,
     next_id: &mut u64,
     servers: &PaintServers<'_>,
+    patterns: &PatternCompiler<'_>,
+    active_patterns: &[NodeId],
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     defer_own_opacity: bool,
@@ -7967,6 +8709,8 @@ fn compile_path(
         next_id,
         Strokable::Yes,
         servers,
+        patterns,
+        active_patterns,
         paint_contexts,
         bases,
         if defer_own_opacity {
@@ -8000,6 +8744,8 @@ fn compile_line(
     next_id: &mut u64,
     values: &EffectiveValues,
     servers: &PaintServers<'_>,
+    patterns: &PatternCompiler<'_>,
+    active_patterns: &[NodeId],
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     defer_own_opacity: bool,
@@ -8039,6 +8785,8 @@ fn compile_line(
         next_id,
         Strokable::Yes,
         servers,
+        patterns,
+        active_patterns,
         paint_contexts,
         bases,
         if defer_own_opacity {
@@ -8085,6 +8833,8 @@ fn compile_points_shape(
     next_id: &mut u64,
     closure: PointsClosure,
     servers: &PaintServers<'_>,
+    patterns: &PatternCompiler<'_>,
+    active_patterns: &[NodeId],
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     defer_own_opacity: bool,
@@ -8165,6 +8915,8 @@ fn compile_points_shape(
         next_id,
         Strokable::Yes,
         servers,
+        patterns,
+        active_patterns,
         paint_contexts,
         bases,
         if defer_own_opacity {
@@ -8288,6 +9040,8 @@ fn shape_node(
     next_id: &mut u64,
     strokable: Strokable,
     servers: &PaintServers<'_>,
+    patterns: &PatternCompiler<'_>,
+    active_patterns: &[NodeId],
     paint_contexts: &[PaintContext<'_>],
     bases: PercentBases,
     own_opacity: f32,
@@ -8298,6 +9052,8 @@ fn shape_node(
     let mut paints = resolve_fill(
         el,
         servers,
+        patterns,
+        active_patterns,
         paint_contexts,
         rect,
         context_paint_transform,
@@ -8310,6 +9066,8 @@ fn shape_node(
             &el.local_name_string(),
             Some(&geometry),
             servers,
+            patterns,
+            active_patterns,
             paint_contexts,
             rect,
             context_paint_transform,
@@ -8340,6 +9098,8 @@ fn shape_node(
                 paints = resolve_fill(
                     el,
                     servers,
+                    patterns,
+                    active_patterns,
                     paint_contexts,
                     rect,
                     context_paint_transform,
@@ -8352,6 +9112,8 @@ fn shape_node(
                     &el.local_name_string(),
                     Some(&geometry),
                     servers,
+                    patterns,
+                    active_patterns,
                     paint_contexts,
                     rect,
                     context_paint_transform,
@@ -8361,6 +9123,15 @@ fn shape_node(
             }
             one_draw_opacity = true;
         }
+    }
+
+    if let Some(pattern) = paints.pattern() {
+        patrol_pattern_target_mapping(pattern, viewport)
+            .map_err(|reason| CompileError::UnsupportedFill(reason.to_string()))?;
+    }
+    if let Some(pattern) = stroke.as_ref().and_then(|stroke| stroke.paints().pattern()) {
+        patrol_pattern_target_mapping(pattern, viewport)
+            .map_err(|reason| CompileError::UnsupportedStroke(reason.to_string()))?;
     }
 
     let visual_id = *next_id + 1;
@@ -8682,6 +9453,8 @@ fn context_reference_space(
 fn resolve_fill(
     el: HtmlElement<'_>,
     servers: &PaintServers<'_>,
+    patterns: &PatternCompiler<'_>,
+    active_patterns: &[NodeId],
     paint_contexts: &[PaintContext<'_>],
     consumer_box: Rectangle,
     destination_to_frame: AffineTransform,
@@ -8711,6 +9484,7 @@ fn resolve_fill(
     else {
         return Ok(PaintStack::empty());
     };
+    let selected_through_context = selected.context.is_some();
     let owner_data = selected
         .owner
         .borrow_data()
@@ -8735,12 +9509,15 @@ fn resolve_fill(
         SVGPaintKind::PaintServer(url) => {
             match resolve_paint_server_stack(
                 servers,
+                patterns,
+                active_patterns,
                 url,
                 || context_reference_space(selected.context, consumer_box, destination_to_frame),
                 consumer_box,
                 bases,
                 paint_opacity,
                 extra_opacity,
+                selected_through_context,
                 "fill",
             )? {
                 Some(stack) => Ok(stack.with_alpha_factor(
@@ -8762,12 +9539,15 @@ fn resolve_fill(
 /// nothings paint nothing and deliberately do not fall back).
 fn resolve_paint_server_stack(
     servers: &PaintServers<'_>,
+    patterns: &PatternCompiler<'_>,
+    active_patterns: &[NodeId],
     url: &style::values::computed::url::ComputedUrl,
     reference_space: impl FnOnce() -> Result<Option<(Rectangle, AffineTransform)>, String>,
     destination_box: Rectangle,
     bases: PercentBases,
     paint_opacity: f32,
     post_paint_opacity: f32,
+    selected_through_context: bool,
     property: &str,
 ) -> Result<Option<PaintStack>, CompileError> {
     let refusal = |reason: String| match property {
@@ -8783,34 +9563,64 @@ fn resolve_paint_server_stack(
              are not resolved"
         )));
     };
-    let valid_gradient = crate::svg_paint_server::classify(servers, fragment)
+    let classified = crate::svg_paint_server::classify(servers, fragment)
         .map_err(|reason| refusal(format!("url(#{fragment}): {reason}")))?;
-    if !valid_gradient {
-        return Ok(None);
+    match classified {
+        ClassifiedServer::Invalid => Ok(None),
+        ClassifiedServer::Gradient => {
+            let gradient_bases = GradientBases {
+                width: bases.width,
+                height: bases.height,
+            };
+            let resolved = crate::svg_paint_server::resolve(
+                servers,
+                fragment,
+                destination_box,
+                reference_space,
+                gradient_bases,
+                paint_opacity,
+                post_paint_opacity,
+            )
+            .map_err(|reason| refusal(format!("url(#{fragment}): {reason}")))?;
+            Ok(match resolved {
+                ResolvedPaintServer::Invalid => None,
+                ResolvedPaintServer::Nothing => Some(PaintStack::empty()),
+                ResolvedPaintServer::Solid(color) => Some(PaintStack::solid(color)),
+                ResolvedPaintServer::Gradient(paint) => Some(
+                    PaintStack::try_from_paints(cg::Paints::new([paint]))
+                        .map_err(|error| refusal(error.to_string()))?,
+                ),
+            })
+        }
+        ClassifiedServer::Pattern(first) => {
+            if selected_through_context {
+                return Err(refusal(format!(
+                    "url(#{fragment}) resolves to a pattern paint selected through context-fill/context-stroke, outside the admitted pattern composition slice"
+                )));
+            }
+            let Some((reference_box, owner_to_destination)) = reference_space()
+                .map_err(|reason| refusal(format!("url(#{fragment}): {reason}")))?
+            else {
+                // A valid server through a singular context destination paints
+                // nothing and does not select fallback, matching gradients.
+                return Ok(Some(PaintStack::empty()));
+            };
+            match patterns
+                .resolve(
+                    fragment,
+                    first,
+                    reference_box,
+                    owner_to_destination,
+                    paint_opacity,
+                    active_patterns,
+                )
+                .map_err(|reason| refusal(format!("url(#{fragment}): {reason}")))?
+            {
+                PatternResolution::Invalid => Ok(None),
+                PatternResolution::Paint(pattern) => Ok(Some(PaintStack::from_pattern(pattern))),
+            }
+        }
     }
-    let gradient_bases = GradientBases {
-        width: bases.width,
-        height: bases.height,
-    };
-    let resolved = crate::svg_paint_server::resolve(
-        servers,
-        fragment,
-        destination_box,
-        reference_space,
-        gradient_bases,
-        paint_opacity,
-        post_paint_opacity,
-    )
-    .map_err(|reason| refusal(format!("url(#{fragment}): {reason}")))?;
-    Ok(match resolved {
-        ResolvedPaintServer::Invalid => None,
-        ResolvedPaintServer::Nothing => Some(PaintStack::empty()),
-        ResolvedPaintServer::Solid(color) => Some(PaintStack::solid(color)),
-        ResolvedPaintServer::Gradient(paint) => Some(
-            PaintStack::try_from_paints(cg::Paints::new([paint]))
-                .map_err(|error| refusal(error.to_string()))?,
-        ),
-    })
 }
 
 /// Length units whose basis this build does not have, and which therefore must
@@ -9521,6 +10331,8 @@ fn resolve_stroke(
     element_name: &str,
     path_length_geometry: Option<&Geometry>,
     servers: &PaintServers<'_>,
+    patterns: &PatternCompiler<'_>,
+    active_patterns: &[NodeId],
     paint_contexts: &[PaintContext<'_>],
     consumer_box: Rectangle,
     destination_to_frame: AffineTransform,
@@ -9547,6 +10359,7 @@ fn resolve_stroke(
     else {
         return Ok(None);
     };
+    let selected_through_context = selected.context.is_some();
     let owner_data = selected
         .owner
         .borrow_data()
@@ -9573,12 +10386,15 @@ fn resolve_stroke(
             // inked reach beyond it pads (measured).
             match resolve_paint_server_stack(
                 servers,
+                patterns,
+                active_patterns,
                 url,
                 || context_reference_space(selected.context, consumer_box, destination_to_frame),
                 consumer_box,
                 bases,
                 paint_opacity,
                 extra_opacity,
+                selected_through_context,
                 "stroke",
             )? {
                 Some(stack) => stack.with_alpha_factor(

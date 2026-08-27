@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (812)
+## Chromium-baked cells (874)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -30,6 +30,7 @@ to its fixture source. No new image is committed for this view.
 
 <a href="./html-inline-svg-ancestor-opacity.html" title="html-inline-svg-ancestor-opacity (html-inline-svg)"><img src="./chromium/html-inline-svg-ancestor-opacity.png" width="56" alt="html-inline-svg-ancestor-opacity"></a>
 <a href="./html-inline-svg-currentcolor-rect.html" title="html-inline-svg-currentcolor-rect (html-inline-svg)"><img src="./chromium/html-inline-svg-currentcolor-rect.png" width="56" alt="html-inline-svg-currentcolor-rect"></a>
+<a href="./html-inline-svg-pattern.html" title="html-inline-svg-pattern (html-inline-svg)"><img src="./chromium/html-inline-svg-pattern.png" width="56" alt="html-inline-svg-pattern"></a>
 <a href="./html-webpage-mockup.html" title="html-webpage-mockup (html-inline-svg)"><img src="./chromium/html-webpage-mockup.png" width="56" alt="html-webpage-mockup"></a>
 <a href="./svg-anchor-container.svg" title="svg-anchor-container (standalone-svg)"><img src="./chromium/svg-anchor-container.png" width="56" alt="svg-anchor-container"></a>
 <a href="./svg-circle-defaults-clip.svg" title="svg-circle-defaults-clip (standalone-svg)"><img src="./chromium/svg-circle-defaults-clip.png" width="56" alt="svg-circle-defaults-clip"></a>
@@ -663,6 +664,67 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-path-smooth-cubic.svg" title="svg-path-smooth-cubic (standalone-svg)"><img src="./chromium/svg-path-smooth-cubic.png" width="56" alt="svg-path-smooth-cubic"></a>
 <a href="./svg-path-two-subpaths.svg" title="svg-path-two-subpaths (standalone-svg)"><img src="./chromium/svg-path-two-subpaths.png" width="56" alt="svg-path-two-subpaths"></a>
 <a href="./svg-path-unclosed-fill.svg" title="svg-path-unclosed-fill (standalone-svg)"><img src="./chromium/svg-path-unclosed-fill.png" width="56" alt="svg-path-unclosed-fill"></a>
+<a href="./svg-pattern-degenerate-viewbox-fallback.svg" title="svg-pattern-degenerate-viewbox-fallback (standalone-svg)"><img src="./chromium/svg-pattern-degenerate-viewbox-fallback.png" width="56" alt="svg-pattern-degenerate-viewbox-fallback"></a>
+<a href="./svg-pattern-descriptive-content-drop.svg" title="svg-pattern-descriptive-content-drop (standalone-svg)"><img src="./chromium/svg-pattern-descriptive-content-drop.png" width="56" alt="svg-pattern-descriptive-content-drop"></a>
+<a href="./svg-pattern-duplicate-id-first.svg" title="svg-pattern-duplicate-id-first (standalone-svg)"><img src="./chromium/svg-pattern-duplicate-id-first.png" width="56" alt="svg-pattern-duplicate-id-first"></a>
+<a href="./svg-pattern-fill-circle.svg" title="svg-pattern-fill-circle (standalone-svg)"><img src="./chromium/svg-pattern-fill-circle.png" width="56" alt="svg-pattern-fill-circle"></a>
+<a href="./svg-pattern-fill-path-cubic.svg" title="svg-pattern-fill-path-cubic (standalone-svg)"><img src="./chromium/svg-pattern-fill-path-cubic.png" width="56" alt="svg-pattern-fill-path-cubic"></a>
+<a href="./svg-pattern-fill-path-evenodd.svg" title="svg-pattern-fill-path-evenodd (standalone-svg)"><img src="./chromium/svg-pattern-fill-path-evenodd.png" width="56" alt="svg-pattern-fill-path-evenodd"></a>
+<a href="./svg-pattern-fill-rounded-rect.svg" title="svg-pattern-fill-rounded-rect (standalone-svg)"><img src="./chromium/svg-pattern-fill-rounded-rect.png" width="56" alt="svg-pattern-fill-rounded-rect"></a>
+<a href="./svg-pattern-fill-stroke-opacity.svg" title="svg-pattern-fill-stroke-opacity (standalone-svg)"><img src="./chromium/svg-pattern-fill-stroke-opacity.png" width="56" alt="svg-pattern-fill-stroke-opacity"></a>
+<a href="./svg-pattern-height-absent-fallback.svg" title="svg-pattern-height-absent-fallback (standalone-svg)"><img src="./chromium/svg-pattern-height-absent-fallback.png" width="56" alt="svg-pattern-height-absent-fallback"></a>
+<a href="./svg-pattern-height-negative-fallback.svg" title="svg-pattern-height-negative-fallback (standalone-svg)"><img src="./chromium/svg-pattern-height-negative-fallback.png" width="56" alt="svg-pattern-height-negative-fallback"></a>
+<a href="./svg-pattern-height-zero-fallback.svg" title="svg-pattern-height-zero-fallback (standalone-svg)"><img src="./chromium/svg-pattern-height-zero-fallback.png" width="56" alt="svg-pattern-height-zero-fallback"></a>
+<a href="./svg-pattern-href-beats-xlink.svg" title="svg-pattern-href-beats-xlink (standalone-svg)"><img src="./chromium/svg-pattern-href-beats-xlink.png" width="56" alt="svg-pattern-href-beats-xlink"></a>
+<a href="./svg-pattern-href-cycle-content.svg" title="svg-pattern-href-cycle-content (standalone-svg)"><img src="./chromium/svg-pattern-href-cycle-content.png" width="56" alt="svg-pattern-href-cycle-content"></a>
+<a href="./svg-pattern-href-first-present.svg" title="svg-pattern-href-first-present (standalone-svg)"><img src="./chromium/svg-pattern-href-first-present.png" width="56" alt="svg-pattern-href-first-present"></a>
+<a href="./svg-pattern-href-template.svg" title="svg-pattern-href-template (standalone-svg)"><img src="./chromium/svg-pattern-href-template.png" width="56" alt="svg-pattern-href-template"></a>
+<a href="./svg-pattern-invalid-content-units.svg" title="svg-pattern-invalid-content-units (standalone-svg)"><img src="./chromium/svg-pattern-invalid-content-units.png" width="56" alt="svg-pattern-invalid-content-units"></a>
+<a href="./svg-pattern-invalid-pattern-units.svg" title="svg-pattern-invalid-pattern-units (standalone-svg)"><img src="./chromium/svg-pattern-invalid-pattern-units.png" width="56" alt="svg-pattern-invalid-pattern-units"></a>
+<a href="./svg-pattern-mask-source.svg" title="svg-pattern-mask-source (standalone-svg)"><img src="./chromium/svg-pattern-mask-source.png" width="56" alt="svg-pattern-mask-source"></a>
+<a href="./svg-pattern-negative-origin.svg" title="svg-pattern-negative-origin (standalone-svg)"><img src="./chromium/svg-pattern-negative-origin.png" width="56" alt="svg-pattern-negative-origin"></a>
+<a href="./svg-pattern-nested-repeat.svg" title="svg-pattern-nested-repeat (standalone-svg)"><img src="./chromium/svg-pattern-nested-repeat.png" width="56" alt="svg-pattern-nested-repeat"></a>
+<a href="./svg-pattern-object-number.svg" title="svg-pattern-object-number (standalone-svg)"><img src="./chromium/svg-pattern-object-number.png" width="56" alt="svg-pattern-object-number"></a>
+<a href="./svg-pattern-object-per-client.svg" title="svg-pattern-object-per-client (standalone-svg)"><img src="./chromium/svg-pattern-object-per-client.png" width="56" alt="svg-pattern-object-per-client"></a>
+<a href="./svg-pattern-object-percent.svg" title="svg-pattern-object-percent (standalone-svg)"><img src="./chromium/svg-pattern-object-percent.png" width="56" alt="svg-pattern-object-percent"></a>
+<a href="./svg-pattern-overflow-default-clip.svg" title="svg-pattern-overflow-default-clip (standalone-svg)"><img src="./chromium/svg-pattern-overflow-default-clip.png" width="56" alt="svg-pattern-overflow-default-clip"></a>
+<a href="./svg-pattern-plain-transform-inert.svg" title="svg-pattern-plain-transform-inert (standalone-svg)"><img src="./chromium/svg-pattern-plain-transform-inert.png" width="56" alt="svg-pattern-plain-transform-inert"></a>
+<a href="./svg-pattern-px-lengths.svg" title="svg-pattern-px-lengths (standalone-svg)"><img src="./chromium/svg-pattern-px-lengths.png" width="56" alt="svg-pattern-px-lengths"></a>
+<a href="./svg-pattern-repeat.svg" title="svg-pattern-repeat (standalone-svg)"><img src="./chromium/svg-pattern-repeat.png" width="56" alt="svg-pattern-repeat"></a>
+<a href="./svg-pattern-singular-transform-fallback.svg" title="svg-pattern-singular-transform-fallback (standalone-svg)"><img src="./chromium/svg-pattern-singular-transform-fallback.png" width="56" alt="svg-pattern-singular-transform-fallback"></a>
+<a href="./svg-pattern-source-gradient.svg" title="svg-pattern-source-gradient (standalone-svg)"><img src="./chromium/svg-pattern-source-gradient.png" width="56" alt="svg-pattern-source-gradient"></a>
+<a href="./svg-pattern-source-mask.svg" title="svg-pattern-source-mask (standalone-svg)"><img src="./chromium/svg-pattern-source-mask.png" width="56" alt="svg-pattern-source-mask"></a>
+<a href="./svg-pattern-source-one-draw-opacity.svg" title="svg-pattern-source-one-draw-opacity (standalone-svg)"><img src="./chromium/svg-pattern-source-one-draw-opacity.png" width="56" alt="svg-pattern-source-one-draw-opacity"></a>
+<a href="./svg-pattern-source-use.svg" title="svg-pattern-source-use (standalone-svg)"><img src="./chromium/svg-pattern-source-use.png" width="56" alt="svg-pattern-source-use"></a>
+<a href="./svg-pattern-stroke-dash-round.svg" title="svg-pattern-stroke-dash-round (standalone-svg)"><img src="./chromium/svg-pattern-stroke-dash-round.png" width="56" alt="svg-pattern-stroke-dash-round"></a>
+<a href="./svg-pattern-stroke-ellipse.svg" title="svg-pattern-stroke-ellipse (standalone-svg)"><img src="./chromium/svg-pattern-stroke-ellipse.png" width="56" alt="svg-pattern-stroke-ellipse"></a>
+<a href="./svg-pattern-stroke-rect.svg" title="svg-pattern-stroke-rect (standalone-svg)"><img src="./chromium/svg-pattern-stroke-rect.png" width="56" alt="svg-pattern-stroke-rect"></a>
+<a href="./svg-pattern-target-axis-transform.svg" title="svg-pattern-target-axis-transform (standalone-svg)"><img src="./chromium/svg-pattern-target-axis-transform.png" width="56" alt="svg-pattern-target-axis-transform"></a>
+<a href="./svg-pattern-target-clip.svg" title="svg-pattern-target-clip (standalone-svg)"><img src="./chromium/svg-pattern-target-clip.png" width="56" alt="svg-pattern-target-clip"></a>
+<a href="./svg-pattern-target-element-opacity.svg" title="svg-pattern-target-element-opacity (standalone-svg)"><img src="./chromium/svg-pattern-target-element-opacity.png" width="56" alt="svg-pattern-target-element-opacity"></a>
+<a href="./svg-pattern-target-fill-opacity.svg" title="svg-pattern-target-fill-opacity (standalone-svg)"><img src="./chromium/svg-pattern-target-fill-opacity.png" width="56" alt="svg-pattern-target-fill-opacity"></a>
+<a href="./svg-pattern-target-filter.svg" title="svg-pattern-target-filter (standalone-svg)"><img src="./chromium/svg-pattern-target-filter.png" width="56" alt="svg-pattern-target-filter"></a>
+<a href="./svg-pattern-target-group-opacity.svg" title="svg-pattern-target-group-opacity (standalone-svg)"><img src="./chromium/svg-pattern-target-group-opacity.png" width="56" alt="svg-pattern-target-group-opacity"></a>
+<a href="./svg-pattern-target-mask.svg" title="svg-pattern-target-mask (standalone-svg)"><img src="./chromium/svg-pattern-target-mask.png" width="56" alt="svg-pattern-target-mask"></a>
+<a href="./svg-pattern-template-style-owner.svg" title="svg-pattern-template-style-owner (standalone-svg)"><img src="./chromium/svg-pattern-template-style-owner.png" width="56" alt="svg-pattern-template-style-owner"></a>
+<a href="./svg-pattern-transform-axis-scale.svg" title="svg-pattern-transform-axis-scale (standalone-svg)"><img src="./chromium/svg-pattern-transform-axis-scale.png" width="56" alt="svg-pattern-transform-axis-scale"></a>
+<a href="./svg-pattern-transform-css.svg" title="svg-pattern-transform-css (standalone-svg)"><img src="./chromium/svg-pattern-transform-css.png" width="56" alt="svg-pattern-transform-css"></a>
+<a href="./svg-pattern-transform-hint.svg" title="svg-pattern-transform-hint (standalone-svg)"><img src="./chromium/svg-pattern-transform-hint.png" width="56" alt="svg-pattern-transform-hint"></a>
+<a href="./svg-pattern-transform-quarter-turn.svg" title="svg-pattern-transform-quarter-turn (standalone-svg)"><img src="./chromium/svg-pattern-transform-quarter-turn.png" width="56" alt="svg-pattern-transform-quarter-turn"></a>
+<a href="./svg-pattern-use-scale.svg" title="svg-pattern-use-scale (standalone-svg)"><img src="./chromium/svg-pattern-use-scale.png" width="56" alt="svg-pattern-use-scale"></a>
+<a href="./svg-pattern-use-translate.svg" title="svg-pattern-use-translate (standalone-svg)"><img src="./chromium/svg-pattern-use-translate.png" width="56" alt="svg-pattern-use-translate"></a>
+<a href="./svg-pattern-user-percent.svg" title="svg-pattern-user-percent (standalone-svg)"><img src="./chromium/svg-pattern-user-percent.png" width="56" alt="svg-pattern-user-percent"></a>
+<a href="./svg-pattern-valid-empty.svg" title="svg-pattern-valid-empty (standalone-svg)"><img src="./chromium/svg-pattern-valid-empty.png" width="56" alt="svg-pattern-valid-empty"></a>
+<a href="./svg-pattern-viewbox-content-object.svg" title="svg-pattern-viewbox-content-object (standalone-svg)"><img src="./chromium/svg-pattern-viewbox-content-object.png" width="56" alt="svg-pattern-viewbox-content-object"></a>
+<a href="./svg-pattern-viewbox-content-user.svg" title="svg-pattern-viewbox-content-user (standalone-svg)"><img src="./chromium/svg-pattern-viewbox-content-user.png" width="56" alt="svg-pattern-viewbox-content-user"></a>
+<a href="./svg-pattern-viewbox-meet.svg" title="svg-pattern-viewbox-meet (standalone-svg)"><img src="./chromium/svg-pattern-viewbox-meet.png" width="56" alt="svg-pattern-viewbox-meet"></a>
+<a href="./svg-pattern-viewbox-none.svg" title="svg-pattern-viewbox-none (standalone-svg)"><img src="./chromium/svg-pattern-viewbox-none.png" width="56" alt="svg-pattern-viewbox-none"></a>
+<a href="./svg-pattern-viewbox-slice.svg" title="svg-pattern-viewbox-slice (standalone-svg)"><img src="./chromium/svg-pattern-viewbox-slice.png" width="56" alt="svg-pattern-viewbox-slice"></a>
+<a href="./svg-pattern-width-absent-fallback.svg" title="svg-pattern-width-absent-fallback (standalone-svg)"><img src="./chromium/svg-pattern-width-absent-fallback.png" width="56" alt="svg-pattern-width-absent-fallback"></a>
+<a href="./svg-pattern-width-malformed-fallback.svg" title="svg-pattern-width-malformed-fallback (standalone-svg)"><img src="./chromium/svg-pattern-width-malformed-fallback.png" width="56" alt="svg-pattern-width-malformed-fallback"></a>
+<a href="./svg-pattern-width-negative-fallback.svg" title="svg-pattern-width-negative-fallback (standalone-svg)"><img src="./chromium/svg-pattern-width-negative-fallback.png" width="56" alt="svg-pattern-width-negative-fallback"></a>
+<a href="./svg-pattern-width-zero-fallback.svg" title="svg-pattern-width-zero-fallback (standalone-svg)"><img src="./chromium/svg-pattern-width-zero-fallback.png" width="56" alt="svg-pattern-width-zero-fallback"></a>
+<a href="./svg-pattern-xlink-template.svg" title="svg-pattern-xlink-template (standalone-svg)"><img src="./chromium/svg-pattern-xlink-template.png" width="56" alt="svg-pattern-xlink-template"></a>
 <a href="./svg-percent-circle-diagonal.svg" title="svg-percent-circle-diagonal (standalone-svg)"><img src="./chromium/svg-percent-circle-diagonal.png" width="56" alt="svg-percent-circle-diagonal"></a>
 <a href="./svg-percent-ellipse.svg" title="svg-percent-ellipse (standalone-svg)"><img src="./chromium/svg-percent-ellipse.png" width="56" alt="svg-percent-ellipse"></a>
 <a href="./svg-percent-line.svg" title="svg-percent-line (standalone-svg)"><img src="./chromium/svg-percent-line.png" width="56" alt="svg-percent-line"></a>
@@ -841,7 +903,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (152)
+## The refusal register (170)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -958,7 +1020,6 @@ its row into the cells above.
 | `svg-mask-region-var` | declared | skipped svg/rect[2]: unsupported SVG mask: mask region x uses var(), whose computed length is not represented at this Stylo pin |
 | `svg-mask-resource-style-inheritance` | declared | skipped svg/rect[2]: unsupported SVG mask: inline style on <mask> declares shape-rendering, whose source-side cascade effect is not represented; skipped svg/rect[3]: unsupported SVG mask: inline style on <mask> declares color-interpolation, whose source-side cascade effect is not represented |
 | `svg-mask-root` | **both refuse** | unsupported SVG mask: mask on the root <svg> uses the host CSS-layer coordinate route |
-| `svg-mask-source-pattern` | declared | skipped svg/rect[2]: unsupported SVG mask: mask source cannot be compiled completely: unsupported element <pattern> |
 | `svg-mask-transform-precision` | declared | skipped svg/rect[2]: unsupported SVG mask: mask region target transform leaves the measured translation/positive-downscale precision envelope |
 | `svg-mask-type-css` | declared | skipped svg/rect[2]: unsupported SVG mask: CSS mask-type on <mask> is not represented by the pinned cascade; use of it is quarantined from the direct attribute decoder |
 | `svg-mask-type-inherit` | declared | skipped svg/rect[2]: unsupported SVG mask: mask-type presentation attribute uses inherit, whose parent computed value is not represented at this Stylo pin |
@@ -967,7 +1028,26 @@ its row into the cells above.
 | `svg-nested-svg` | declared | skipped svg/svg[1]: unsupported element <svg> |
 | `svg-path-css-d-property` | declared | declaration ignored at svg/style[1]: a stylesheet declares d, which this cascade does not represent; elements it matches render without it |
 | `svg-path-marker-end` | declared | skipped svg/path[1]: unsupported rendering attribute marker-end on <path> (not yet consumed) |
-| `svg-pattern-paint-server` | declared | skipped svg/pattern[1]: unsupported element <pattern>; skipped svg/rect[2]: unsupported fill value "url(#p): url(#p) resolves to a <pattern> paint server, which the resolved frame cannot express" |
+| `svg-pattern-affine-precision` | declared | skipped svg/rect[2]: unsupported fill value "target mapping carries a general rotation or shear at the pinned-backend picture-shader affine precision boundary" |
+| `svg-pattern-context-selection` | declared | skipped svg/use[1]/rect[1]: unsupported fill value "url(#p) resolves to a pattern paint selected through context-fill/context-stroke, outside the admitted pattern composition slice" |
+| `svg-pattern-css-transform-percentage` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern transform percentage has no proved reference-box basis" |
+| `svg-pattern-external` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p needs attributes or content from an external template, and external resources are not resolved" |
+| `svg-pattern-length-calc` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern width uses a CSS function in \"calc(4px + 4px)\", which this direct decoder does not consume" |
+| `svg-pattern-length-css-comments` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern width contains a CSS comment; the direct length decoder does not tokenize comments" |
+| `svg-pattern-length-css-wide` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern width uses the CSS-wide value \"inherit\", whose cascaded length route is not represented" |
+| `svg-pattern-length-unit` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern width=\".2cm\" uses a length unit whose basis this slice does not consume" |
+| `svg-pattern-length-used-range` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern x exceeds the admitted Web used-value range" |
+| `svg-pattern-length-var` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern width resolves through var(), which this direct decoder cannot follow" |
+| `svg-pattern-nested-composition-precision` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p source mixes a nested pattern with another draw at the pinned-backend picture-shader composition precision boundary" |
+| `svg-pattern-nesting-too-deep` | declared | skipped svg/rect[2]: unsupported fill value "url(#p0): pattern #p0 source cannot compile completely: unsupported fill value \"url(#p1): pattern #p1 source cannot compile completely: unsupported fill value \\\"url(#p2): pattern #p2 source cannot compile completely: unsupported fill value \\\\\\\"url(#p3): pattern #p3 source cannot compile completely: unsupported fill value \\\\\\\\\\\\\\\"url(#p4): pattern #p4 source cannot compile completely: unsupported fill value \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"url(#p5): pattern #p5 source cannot compile completely: unsupported fill value \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"url(#p6): pattern #p6 source cannot compile completely: unsupported fill value \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"url(#p7): pattern #p7 source cannot compile completely: unsupported fill value \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"url(#p8): nested pattern paint chain exceeds the resolved 8-program limit\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"\\\\\\\\\\\\\\\"\\\\\\\"\\\"\"" |
+| `svg-pattern-number-precision-alias` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern x numeric precision alias loses Chromium used-value provenance" |
+| `svg-pattern-source-clip-precision` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p source carries an isolated opacity or geometric clip at the pinned-backend picture-shader source-effect precision boundary" |
+| `svg-pattern-source-coverage-precision` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p source carries curved/vector geometry at the pinned-backend picture-shader source-coverage precision boundary" |
+| `svg-pattern-source-effect-precision` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p source carries an isolated opacity or geometric clip at the pinned-backend picture-shader source-effect precision boundary" |
+| `svg-pattern-source-filter` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p source uses a filter composition outside the admitted pattern source slice" |
+| `svg-pattern-source-unsupported` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p source cannot compile completely: unsupported element <image>" |
+| `svg-pattern-tile-sampling-precision` | declared | skipped svg/rect[2]: unsupported fill value "tile has a fractional final device extent at the pinned-backend picture-shader sampling precision boundary" |
+| `svg-pattern-transform-none-provenance` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): an author stylesheet may set transform:none on a derived pattern; the empty computed value loses the provenance needed to decide template inheritance" |
 | `svg-points-odd-coordinate` | declared | skipped svg/polygon[1]: points on <polygon> is invalid at byte 17 (near "") |
 | `svg-preserve-aspect-ratio-case-folded` | **both refuse** | preserveAspectRatio "xmidymid meet" is invalid |
 | `svg-preserve-aspect-ratio-defer` | **both refuse** | preserveAspectRatio "defer xMidYMid meet" is invalid |

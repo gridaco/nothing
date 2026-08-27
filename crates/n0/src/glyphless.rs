@@ -2,10 +2,10 @@
 //!
 //! [`rframe::Frame`] is the backend-free resolved contract. It carries no
 //! authored n0 document, HTML/CSS/SVG syntax, parser binding, backend object,
-//! I/O handle, or clock. This module admits its current solid- and
-//! gradient-filled rectangle, ellipse, and path slice plus checked opacity,
-//! clip, mask, and image-filter effects, compiles them into n0's one private
-//! drawlist, and executes them through n0's one private painter.
+//! I/O handle, or clock. This module admits its current solid-, gradient-, and
+//! resolved-pattern-painted rectangle, ellipse, and path slice plus checked
+//! opacity, clip, mask, and image-filter effects, compiles them into n0's one
+//! private drawlist, and executes them through n0's one private painter.
 //!
 //! The resulting [`FrameProduct`] is intentionally separate from
 //! [`crate::frame::FrameProduct`]. The latter owns an n0-model
@@ -35,7 +35,8 @@ use crate::drawlist::{
     ResolvedFilterBlend, ResolvedFilterColorSpace, ResolvedFilterComposite,
     ResolvedFilterConvolveEdgeMode, ResolvedFilterDisplacementChannel, ResolvedFilterInput,
     ResolvedFilterLightSource, ResolvedFilterMorphology, ResolvedFilterNode,
-    ResolvedFilterPrimitive, ResolvedFilterTurbulenceKind, ResolvedMaskMode, StrokeDashPhase,
+    ResolvedFilterPrimitive, ResolvedFilterTurbulenceKind, ResolvedMaskMode, ResolvedPattern,
+    ResolvedPatternGeometry, StrokeDashPhase,
 };
 use crate::frame::FrameExecutionError;
 use crate::paint::PaintCtx;
@@ -153,8 +154,10 @@ impl std::error::Error for BuildError {}
 /// One immutable source-neutral frame, its private compiled material, and its
 /// opaque provenance projection.
 ///
-/// The admitted solid/geometry slice is resource-free, so this product neither
-/// captures nor checks a [`crate::paint::PaintEnvironmentKey`].
+/// Every admitted paint is already resolved and carries no resource handle, so
+/// this product neither captures nor checks a
+/// [`crate::paint::PaintEnvironmentKey`]. A repeating vector program is nested
+/// immutable draw material, not a late resource lookup.
 #[derive(Debug, Clone)]
 pub struct FrameProduct {
     resolved: Frame,
@@ -176,6 +179,7 @@ impl FrameProduct {
         ctx: &PaintCtx,
     ) -> Result<(), FrameExecutionError> {
         self.assert_provenance_complete();
+        crate::paint::preflight_patterns(&self.drawlist, ctx)?;
         crate::paint::execute_unchecked(canvas, &self.drawlist, &to_affine(*view), ctx);
         Ok(())
     }
@@ -190,6 +194,7 @@ impl FrameProduct {
         ctx: &PaintCtx,
     ) -> Result<Vec<u8>, FrameExecutionError> {
         self.assert_provenance_complete();
+        crate::paint::preflight_patterns(&self.drawlist, ctx)?;
         Ok(crate::paint::raster_to_bytes_unchecked(
             &self.drawlist,
             &to_affine(*view),
@@ -287,9 +292,9 @@ fn damage_input(product: &FrameProduct) -> FrameDamageInput<'_, VisualRef, (), G
 /// slice is rectangles, ellipses (each carried as its local-space bounding
 /// rectangle) and paths, the contract's admitted `cg` paints (solids, linear
 /// and radial gradients — every gradient preflighted against its resolved
-/// paint box before the product exists), a centred stroke over the fill,
-/// isolated opacity scopes, resolved geometric clip scopes, and the
-/// frame-bounds clip.
+/// paint box before the product exists), checked repeating vector programs, a
+/// centred stroke over the fill, isolated opacity scopes, resolved geometric
+/// clip scopes, and the frame-bounds clip.
 ///
 /// The contract's item stream is a checked type ([`rframe::FrameItems`]):
 /// balance, non-emptiness, and bounded nesting were proven at construction,
@@ -591,6 +596,11 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
             _ => None,
         };
         let paints = compile_paints(&node.paints, unit_offset);
+        let fill_pattern = node
+            .paints
+            .pattern()
+            .map(|pattern| compile_pattern(pattern, node.owner))
+            .transpose()?;
         let fill_post_paint_opacity =
             PostPaintOpacity::from_resolved(node.paints.alpha_factor().get());
         let owner = GlyphlessOwnerSlot::new(
@@ -645,7 +655,17 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
             Geometry::Path(path) => Some(compile_path(path)),
             _ => None,
         };
-        if !paints.is_empty() {
+        if let Some(pattern) = fill_pattern {
+            items.push(Item {
+                node: owner,
+                world: to_affine(node.transform),
+                kind: ItemKind::PatternFill {
+                    geometry: compile_pattern_geometry(&node.geometry),
+                    pattern,
+                    post_paint_opacity: fill_post_paint_opacity,
+                },
+            });
+        } else if !paints.is_empty() {
             let kind = match &node.geometry {
                 Geometry::Rect(_) => ItemKind::RectFill {
                     w,
@@ -679,6 +699,11 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         // other in the same private drawlist, which is why a stroke needs no
         // group scope.
         if let Some(stroke) = &node.stroke {
+            let stroke_pattern = stroke
+                .paints()
+                .pattern()
+                .map(|pattern| compile_pattern(pattern, node.owner))
+                .transpose()?;
             // A resolved dashed oval must preserve the exact local conic
             // stream over which its producer resolved the dash facts. Skia's
             // path measurement and dash traversal are f32
@@ -693,6 +718,20 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                 && rect.height > 0.0
                 && stroke.dash().is_some();
             let (stroke, dash_phase, post_paint_opacity) = compile_stroke(stroke, unit_offset);
+            if let Some(pattern) = stroke_pattern {
+                items.push(Item {
+                    node: owner,
+                    world: to_affine(node.transform),
+                    kind: ItemKind::PatternStroke {
+                        geometry: compile_pattern_geometry(&node.geometry),
+                        pattern,
+                        stroke,
+                        dash_phase,
+                        post_paint_opacity,
+                    },
+                });
+                continue;
+            }
             let kind = match &node.geometry {
                 Geometry::Rect(_) => ItemKind::RectStroke {
                     w,
@@ -1224,6 +1263,50 @@ fn compile_gradient_transform(
     affine
 }
 
+fn compile_pattern_geometry(geometry: &Geometry) -> ResolvedPatternGeometry {
+    match geometry {
+        Geometry::Rect(rect) => ResolvedPatternGeometry::Rect {
+            x: rect.x,
+            y: rect.y,
+            w: rect.width,
+            h: rect.height,
+        },
+        Geometry::Ellipse(rect) => ResolvedPatternGeometry::Oval {
+            x: rect.x,
+            y: rect.y,
+            w: rect.width,
+            h: rect.height,
+        },
+        Geometry::Path(path) => ResolvedPatternGeometry::Path(compile_path(path)),
+    }
+}
+
+/// Compile a checked nested frame program without issuing raster commands.
+/// Recursive programs re-enter this same proving shell; `rframe` already
+/// bounds their depth, and every nested gradient/effect receives the same
+/// deterministic preflight as a top-level frame.
+fn compile_pattern(
+    pattern: &rframe::PatternPaint,
+    owner: VisualRef,
+) -> Result<Arc<ResolvedPattern>, BuildError> {
+    let nested = Frame {
+        owner: VisualRef::new(rframe::Identity::new(0), rframe::Provenance::new(0)),
+        bounds: math2::Rectangle::from_xywh(0.0, 0.0, pattern.width(), pattern.height()),
+        items: pattern.items().as_ref().clone(),
+    };
+    let product = compile(nested).map_err(|error| BuildError::Paint {
+        owner,
+        reason: format!("nested pattern program failed projection: {error}"),
+    })?;
+    Ok(Arc::new(ResolvedPattern {
+        width: pattern.width(),
+        height: pattern.height(),
+        transform: to_affine(pattern.transform()),
+        program: Arc::new(product.drawlist),
+        opacity: pattern.opacity(),
+    }))
+}
+
 fn compile_paints(paints: &PaintStack, unit_offset: Option<(f32, f32)>) -> Paints {
     let mut compiled = Vec::with_capacity(paints.len());
     for paint in paints.iter() {
@@ -1685,7 +1768,13 @@ mod tests {
 
     fn post_paint_opacity(kind: &ItemKind) -> Option<PostPaintOpacity> {
         match kind {
-            ItemKind::RectFill {
+            ItemKind::PatternFill {
+                post_paint_opacity, ..
+            }
+            | ItemKind::PatternStroke {
+                post_paint_opacity, ..
+            }
+            | ItemKind::RectFill {
                 post_paint_opacity, ..
             }
             | ItemKind::OvalFill {

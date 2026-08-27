@@ -117,11 +117,15 @@ enum Server<'d> {
         element: HtmlElement<'d>,
         inside_compiled_svg: bool,
     },
-    /// A pattern is a valid SVG paint server, but it is deliberately outside
-    /// rframe's resolved paint vocabulary. Keeping it in the same first-id
-    /// table as gradients is load-bearing: otherwise a pattern in `<defs>`
-    /// looks exactly like a missing id and silently becomes fallback/no-paint.
-    Pattern,
+    /// A pattern is retained with its element because it resolves per
+    /// consuming geometry into a checked repeating program. Keeping it in the
+    /// same first-id table as gradients is load-bearing: otherwise a pattern
+    /// in `<defs>` looks exactly like a missing id and silently becomes
+    /// fallback/no-paint.
+    Pattern {
+        element: HtmlElement<'d>,
+        inside_compiled_svg: bool,
+    },
     /// An id on any other element makes the reference invalid as a paint
     /// server. It still occupies the first-id slot, exactly as DOM id lookup
     /// does, so a later gradient with the same id cannot incorrectly win.
@@ -188,7 +192,10 @@ impl<'d> PaintServers<'d> {
                     element: el,
                     inside_compiled_svg: is_inside(el, compiled_svg),
                 },
-                "pattern" => Server::Pattern,
+                "pattern" => Server::Pattern {
+                    element: el,
+                    inside_compiled_svg: is_inside(el, compiled_svg),
+                },
                 _ => Server::Other,
             };
             by_fragment.entry(id).or_insert(server);
@@ -218,23 +225,60 @@ pub(crate) enum ResolvedPaintServer {
     Gradient(cg::Paint),
 }
 
+/// Whole-document classification of one same-document paint-server id.
+#[derive(Clone, Copy)]
+pub(crate) enum ClassifiedServer<'d> {
+    Invalid,
+    Gradient,
+    Pattern(HtmlElement<'d>),
+}
+
 /// Classification that must happen before context-box rebasing. It preserves
 /// each construct's own outcome when a context relation selects it: an
 /// external URL stays external, a pattern stays a pattern refusal, and a
 /// missing/non-server id remains invalid so the authored fallback can fire.
-pub(crate) fn classify(servers: &PaintServers<'_>, fragment: &str) -> Result<bool, String> {
+pub(crate) fn classify<'d>(
+    servers: &PaintServers<'d>,
+    fragment: &str,
+) -> Result<ClassifiedServer<'d>, String> {
     match servers.by_fragment.get(fragment) {
-        None | Some(Server::Other) => Ok(false),
-        Some(Server::Pattern) => Err(format!(
-            "url(#{fragment}) resolves to a <pattern> paint server, which the resolved frame cannot express"
+        None | Some(Server::Other) => Ok(ClassifiedServer::Invalid),
+        Some(Server::Pattern {
+            inside_compiled_svg: false,
+            ..
+        }) => Err(format!(
+            "url(#{fragment}) resolves outside the compiled SVG subtree, which contributes nothing"
         )),
+        Some(Server::Pattern { element, .. }) => Ok(ClassifiedServer::Pattern(*element)),
         Some(Server::Gradient {
             inside_compiled_svg: false,
             ..
         }) => Err(format!(
             "url(#{fragment}) resolves outside the compiled SVG subtree, which contributes nothing"
         )),
-        Some(Server::Gradient { .. }) => Ok(true),
+        Some(Server::Gradient { .. }) => Ok(ClassifiedServer::Gradient),
+    }
+}
+
+/// Resolve a template-chain edge only when its first-id target is another
+/// in-subtree pattern. A wrong-type or missing edge dies; crossing outside the
+/// compiled SVG is a named boundary rather than a partial template.
+pub(crate) fn pattern_template<'d>(
+    servers: &PaintServers<'d>,
+    fragment: &str,
+) -> Result<Option<HtmlElement<'d>>, String> {
+    match servers.by_fragment.get(fragment) {
+        Some(Server::Pattern {
+            element,
+            inside_compiled_svg: true,
+        }) => Ok(Some(*element)),
+        Some(Server::Pattern {
+            inside_compiled_svg: false,
+            ..
+        }) => Err(format!(
+            "pattern template #{fragment} resolves outside the compiled SVG subtree"
+        )),
+        _ => Ok(None),
     }
 }
 
@@ -275,7 +319,7 @@ pub(crate) fn resolve(
             element,
             inside_compiled_svg,
         } => (*element, *inside_compiled_svg),
-        Server::Pattern => {
+        Server::Pattern { .. } => {
             return Err(format!(
                 "url(#{fragment}) resolves to a <pattern> paint server, which the resolved frame cannot express"
             ));
@@ -381,7 +425,7 @@ fn template_chain<'d>(servers: &PaintServers<'d>, first: HtmlElement<'d>) -> Vec
     let mut visited: HashSet<NodeId> = HashSet::from([first.node_id()]);
     let mut current = first;
     loop {
-        let Some(reference) = gradient_href(current) else {
+        let Some(reference) = paint_server_href(current) else {
             break;
         };
         let Some(fragment) = reference.strip_prefix('#') else {
@@ -408,7 +452,7 @@ fn template_chain<'d>(servers: &PaintServers<'d>, first: HtmlElement<'d>) -> Vec
 }
 
 /// `href` beats `xlink:href` when both are present (measured).
-fn gradient_href(el: HtmlElement<'_>) -> Option<String> {
+pub(crate) fn paint_server_href(el: HtmlElement<'_>) -> Option<String> {
     if let DemoNodeData::Element(e) = &el.dom_node().data {
         let mut xlink = None;
         for attr in &e.attrs {

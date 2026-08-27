@@ -782,15 +782,15 @@ fn svg_presentation_hints(
     if name.ns != markup5ever::ns!(svg) {
         return None;
     }
-    // On a gradient element the transform property's presentation attribute
-    // is `gradientTransform`, and the plain `transform` attribute is inert
-    // (measured: it changes no pixel in Chromium). Both spellings share one
-    // grammar and one measured rewrite; the computed value is applied about
-    // the raw origin in gradient space, identically for the attribute and an
-    // author `transform` declaration (measured with non-quarter rotations and
-    // scales — byte-identical).
+    // On a paint-server element the transform property's presentation
+    // attribute has the resource-specific spelling: `gradientTransform` or
+    // `patternTransform`. The plain `transform` attribute is inert on both
+    // families (measured in Chromium), while an author `transform`
+    // declaration still wins through the ordinary cascade. The special
+    // attributes share the transform grammar and measured rewrite below.
     let transform_attribute = match name.local.as_ref() {
         "linearGradient" | "radialGradient" => "gradientTransform",
+        "pattern" => "patternTransform",
         _ => "transform",
     };
     let mut block = PropertyDeclarationBlock::new();

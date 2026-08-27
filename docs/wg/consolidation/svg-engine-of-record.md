@@ -43,8 +43,11 @@ from the dated addenda below:
 - **The admitted slice** is `<rect>`, `<circle>`, `<ellipse>`, `<path>`,
   `<line>`, `<polygon>` and `<polyline>`, filled and stroked — solid or
   gradient paint (`<linearGradient>`/`<radialGradient>` paint servers, the
-  gradient rung), including `context-fill`/`context-stroke` selected through
-  same-document use instances and fully resolved before the frame; with
+  gradient rung), or a bounded same-document repeating vector pattern resolved
+  per client through both pattern unit systems, template chains, `viewBox`,
+  and the admitted transform envelope; including
+  `context-fill`/`context-stroke` selected through same-document use instances
+  and fully resolved before the frame; with
   centred stroke geometry, the closed cap/join family, opacity, and resolved
   dash patterns with a checked cycle, signed local-space phase, and
   `pathLength` source calibration;
@@ -77,14 +80,14 @@ from the dated addenda below:
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 812 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 874 Chromium-baked primitive cells plus 10 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 152 rows.
+  register has 170 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -3765,3 +3768,155 @@ primitive corpus moves from 741 to 812 cells; the ten exact-time sampled frames
 are unchanged. Exactly twelve checklist rows tick: the four elements and eight
 attributes named above. This records no conformance score and takes no FLIP
 action.
+
+## Rung: SVG repeating vector patterns (2026-08-27)
+
+The verdict is CLOSE/SPLIT. The complete case-sensitive
+`userSpaceOnUse | objectBoundingBox` grammars close the `patternUnits` and
+`patternContentUnits` rows, including their different initials and invalid
+fallback. `<pattern>` stays open because valid source programs and external
+template dependencies remain outside the admitted source envelope.
+`patternTransform` stays open because valid general rotations and shears cross
+a measured backend precision boundary. The shared `x`, `y`, `width`, `height`,
+`href`, `viewBox`, value-type, resource, and dynamics rows remain open for
+their wider applicability. No presentation-property row closes.
+
+The resolved seam carries no SVG resource. `websem` resolves one pattern for
+each consuming fill or stroke into a finite positive tile, one finite
+invertible tile-to-client map, and a bounded immutable `rframe::FrameItems`
+program in tile-local coordinates. `rframe` carries that checked program and
+no id, URL, element, cascade fact, or backend object. `n0` compiles the nested
+items through its ordinary private drawlist, records them into one tile
+picture, and repeats the picture through the same painter. Nested programs are
+bounded at eight levels and recursively preflighted before the first raster
+command. Thus the contract still refuses a paint that *references* a resource;
+the new fact is the fully resolved paint program, not a resource handle.
+
+Chromium 149.0.7827.55 establishes per-client resolution. Under
+`objectBoundingBox`, `x`, `y`, `width`, and `height` map against each consuming
+geometry box; under `userSpaceOnUse`, numbers and percentages use the target's
+user coordinate system and independent axis bases. Negative origins are
+ordinary. Missing, zero, negative, malformed, or non-finite tile extents make
+the server invalid and activate the authored paint fallback. A valid pattern
+whose selected content owner has no painting children is instead transparent,
+with the fallback inert. Dedicated cells distinguish both outcomes.
+
+Same-document lookup is first-id-wins. Plain `href` takes precedence over
+`xlink:href`; a template chain inherits each missing attribute independently,
+and children come all-or-nothing from the first pattern in the chain that owns
+children. A cycle removes only the cyclic edge. The source is non-rendering in
+document position and compiles transactionally: if any participating source
+child cannot compile, the affected client refuses rather than painting a
+plausible partial tile. An external tail refuses whenever local facts may
+depend on it, because this compiler owns no resource I/O.
+
+Pattern `viewBox` uses the already-admitted complete
+`preserveAspectRatio` resolver. When present it supersedes
+`patternContentUnits`; without one, user-space content remains in the target's
+user system while object-box content scales independently by the target box.
+`patternTransform` is the transform property's presentation hint on the
+pattern element: author CSS beats it, a plain `transform` attribute is inert,
+and template ownership remains per attribute. Translation, axis scale,
+reflection, and exact quarter turns are admitted. Fills and strokes on rects,
+ellipses, and paths, dashes and caps, target opacity/clip/mask/filter scopes,
+source gradients, `<use>`, one-draw folded opacity, and a pattern nested alone
+inside another pattern all reproduce Chromium exactly inside that envelope.
+
+The picture-shader boundary was measured rather than generalized from those
+successes. A general rotation is content-dependent: two sampled layouts were
+exact, while a six-unit grid changed two pixels at maximum channel delta 1 and
+a related non-square grid changed one pixel at delta 3. Shear and skew changed
+147–222 pixels at delta 2. Fractional final tile extents changed 164–407
+pixels, up to delta 28; fractional root mappings reached delta 4. Curved source
+geometry changed 189–315 pixels, up to delta 32. A multi-draw isolated source
+opacity changed 1,152–1,728 pixels at delta 2, a circular source clip changed
+216 at delta 9, and mixing another draw with a nested pattern changed 108 at
+delta 1. Stable affine, tile-sampling, source-coverage, source-effect, and
+nested-composition refusals now guard all of those classes in strict and
+best-effort admission. They deliberately over-refuse some exact controls
+rather than release content-dependent wrong pixels.
+
+Filter composition inside the source program also remains split. Chromium
+honors the sampled safe blur—the filtered and plain controls differ across all
+2,304 target pixels at maximum delta 182—and the current nested replay happened
+to match that one Chromium raster exactly. One clean blur does not establish
+the complete filter graph inside a second picture-shader composition, so the
+route now refuses by name pending its own matrix (measured, not celled).
+
+Unit-bearing tile lengths, CSS math, `var()`, CSS-wide values, and CSS comments
+around an otherwise valid length all paint in Chromium and now refuse by their
+exact pattern field. The comment witness was a manual-review finding: before
+the patrol, both admissions silently selected fallback and differed from
+Chromium across all 2,304 target pixels at maximum channel delta 202. Those
+gaps retain their own unchecked syntax/value-type rows, following the own-row refusal precedent of
+[gridaco/nothing#75](https://github.com/gridaco/nothing/pull/75) and
+[gridaco/nothing#80](https://github.com/gridaco/nothing/pull/80). A derived
+template with an author stylesheet that may supply `transform:none` also
+refuses: the pinned computed representation loses the provenance needed to
+distinguish that value from an absent declaration. That valid no-own-row case,
+the general-affine boundary, and the remaining valid source programs keep the
+element and transform rows open under the partial-rung precedent of
+[gridaco/nothing#81](https://github.com/gridaco/nothing/pull/81) and
+[gridaco/nothing#89](https://github.com/gridaco/nothing/pull/89).
+
+The post-PR review probe found a second transform boundary at the CSS ingress.
+On a 64-unit viewport and a 14-unit tile, Chromium resolves inline
+`transform:translate(50%, 0px)` on the pattern resource exactly like `32px`.
+The former route supplied the tile width to the computed transform and selected
+`7px`, changing 1,008 target pixels at maximum channel delta 205. A percentage
+inside the `patternTransform` presentation attribute itself is invalid and
+drops to identity in Chromium. The computed CSS percentage now refuses by a
+focused stable name until its reference box can be carried without invention
+(measured, not celled).
+
+The same review found that the eight-program contract bound was enforced only
+after recursively compiling every distinct nested source. `websem` now checks
+the active pattern stack before measuring or entering a ninth source walk, so
+the stable depth refusal wins before unrelated inner-source errors or excessive
+work. The active-id check remains independently responsible for cycles.
+
+A pattern selected outward through `context-fill` or `context-stroke` remains
+the next pattern-composition rung. Chromium propagates the server through that
+relation; the direct witness differs from no paint by 1,152 pixels at maximum
+delta 255. The implementation briefly admitted this route during the contract
+spike, but the independent law pass caught that it had no committed matrix.
+It now refuses by a focused stable name instead of turning an ungated clean
+render into an accidental capability claim (measured, not celled).
+
+The raw-number normalization crux produced a negative raster verdict. The established
+`57384.267578125007%` normalization alias and a direct midpoint-adjacent pair
+were amplified through pattern geometry, but Chromium's adjacent controls were
+pixel-identical at 64×64. No second *normalization alias* was found. The direct
+binary32 decoder still cannot prove which Blink CSS-parser used value entered
+the tile, so a conservative one-way provenance patrol remains; this is
+measured, not celled, and is not presented as a demonstrated pixel mismatch.
+
+The range follow-up did find a separate raw-route divergence. Chromium clamps
+`x="1000000000"`, `x="33554430"`, `x="-1000000000"`, and the finite source
+`x="1e100"` to its signed Web used-length limits. Before the patrol, both
+admissions differed from Chromium by 1,152, 1,152, 768, and 2,112 pixels
+respectively, all at maximum channel delta 205. Pattern geometry now shares the
+conservative used-range refusal already earned by shape geometry rather than
+selecting a wrong repetition phase (measured, not celled).
+
+The scratch matrices were captured twice through the one hash-pinned Chromium
+module, and every candidate also rendered through the actual `n0` command in
+strict and best-effort modes. Sixty-two cells entered only through `just add`,
+including one inline-HTML SVG cell. All sixty-two are exact without a new
+tolerance. They cover defaults and errors, both unit systems and independent
+clients, every template edge above, all three `viewBox` mappings, cascade and
+transform ownership, fill and stroke geometry, target effects, admitted source
+programs, nesting, `<use>`, and invalid-fallback versus valid-empty behavior.
+
+Gate sensitivity required a discriminating mutation. Changing linear tile
+filtering to nearest moved none of the admitted cells and was rejected as
+evidence. Changing horizontal repetition to clamp then made `just gate` reject
+43 pattern cells, with up to 1,824 differing pixels and maximum channel delta
+255. Restoring repeat returned the complete 874-cell gate to green.
+
+The two former broad pattern refusals graduate into cells, while twenty
+focused rows name the measured and bounded remainder; the refusal register
+therefore moves from 152 to 170. The primitive corpus moves from 812 to 874 cells; the ten
+exact-time sampled frames and the 451-cell filter estate are unchanged.
+Exactly two checklist rows tick: `patternUnits` and `patternContentUnits`.
+This records no conformance score and takes no FLIP action.

@@ -247,6 +247,23 @@ fn the_mask_resources_own_css_filter_is_inert() {
 }
 
 #[test]
+fn a_pattern_is_an_admitted_mask_source_paint() {
+    let frame = admit_both(&document(
+        r##"  <rect width="64" height="64" fill="white"/>
+  <mask id="m" mask-type="alpha">
+    <pattern id="p" width="8" height="8" patternUnits="userSpaceOnUse">
+      <rect width="4" height="8" fill="white"/>
+    </pattern>
+    <rect width="64" height="64" fill="url(#p)"/>
+  </mask>
+  <rect x="8" y="8" width="48" height="48" fill="black" mask="url(#m)"/>"##,
+    ));
+    let pixels = render_through_n0(&frame, 64, 64);
+    assert_eq!(at(&pixels, 10, 32), [0, 0, 0, 255]);
+    assert_eq!(at(&pixels, 14, 32), [255, 255, 255, 255]);
+}
+
+#[test]
 fn unsupported_mask_routes_skip_the_whole_target_by_stable_name() {
     let target = |mask: &str, target_extra: &str| {
         document(&format!(
@@ -276,13 +293,6 @@ fn unsupported_mask_routes_skip_the_whole_target_by_stable_name() {
                 "",
             ),
             "unimplemented Web used-length range",
-        ),
-        (
-            target(
-                r##"<mask id="m"><pattern id="p"/><rect width="64" height="64" fill="url(#p)"/></mask>"##,
-                "",
-            ),
-            "mask source cannot be compiled completely",
         ),
         (
             target(

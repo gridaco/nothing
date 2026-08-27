@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <style>#p { transform: none; }</style>
+  <rect width="64" height="64" fill="white"/>
+  <defs>
+    <pattern id="q" patternUnits="userSpaceOnUse" width="8" height="8"
+             patternTransform="translate(4 0)">
+      <rect width="8" height="8" fill="#ef4444"/>
+    </pattern>
+    <pattern id="p" href="#q"/>
+  </defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#p)"/>
+</svg>
