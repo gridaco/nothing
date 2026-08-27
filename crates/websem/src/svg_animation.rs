@@ -16,7 +16,10 @@ use csscascade::dom::{DemoNodeData, NodeId};
 use style::dom::TElement;
 
 use crate::effective_values::EffectiveValues;
-use crate::svg::SourceEntry;
+use crate::svg::{
+    SourceEntry, direct_number_source_loses_chromium_provenance, dots_carry_digits,
+    trim_svg_whitespace,
+};
 
 /// A deterministic rejection from the deliberately closed rect-x animation
 /// slice.
@@ -487,7 +490,14 @@ fn required<'a>(
 }
 
 fn parse_finite_number(value: &str, name: &str, path: &str) -> Result<f32, AnimationError> {
-    let parsed = value.trim().parse::<f32>().map_err(|_| {
+    let source = trim_svg_whitespace(value);
+    if !dots_carry_digits(source) {
+        return Err(AnimationError::new(
+            path,
+            format!("{name}={value:?} is not a unitless SVG number"),
+        ));
+    }
+    let parsed = source.parse::<f32>().map_err(|_| {
         AnimationError::new(
             path,
             format!("{name}={value:?} is not a unitless SVG number"),
@@ -497,6 +507,14 @@ fn parse_finite_number(value: &str, name: &str, path: &str) -> Result<f32, Anima
         return Err(AnimationError::new(
             path,
             format!("{name}={value:?} is not finite"),
+        ));
+    }
+    if direct_number_source_loses_chromium_provenance(source) {
+        return Err(AnimationError::new(
+            path,
+            format!(
+                "{name} source number loses Chromium used-value provenance at the binary32 normalization boundary"
+            ),
         ));
     }
     Ok(parsed)

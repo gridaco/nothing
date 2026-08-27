@@ -102,6 +102,64 @@
           3000000000
         ]
       }
+    },
+    {
+      "id": "svg-pattern-client-animation",
+      "width": 64,
+      "height": 64,
+      "probe": "#probe",
+      "authored_base_x": 4,
+      "frame": {
+        "node_count": 2,
+        "animated_node_index": 1
+      },
+      "base": {
+        "source": "svg-pattern-client-base.svg",
+        "oracle": "chromium/svg-pattern-client-animation/base.png",
+        "expected_x": 4
+      },
+      "animation": {
+        "source": "svg-pattern-client-animation.svg",
+        "samples": [
+          {
+            "time_ns": 0,
+            "oracle": "chromium/svg-pattern-client-animation/sample-0ns.png",
+            "expected_x": 8
+          },
+          {
+            "time_ns": 250000000,
+            "oracle": "chromium/svg-pattern-client-animation/sample-250000000ns.png",
+            "expected_x": 10
+          },
+          {
+            "time_ns": 1000000000,
+            "oracle": "chromium/svg-pattern-client-animation/sample-1000000000ns.png",
+            "expected_x": 16
+          },
+          {
+            "time_ns": 2000000000,
+            "oracle": "chromium/svg-pattern-client-animation/sample-2000000000ns.png",
+            "expected_x": 24
+          },
+          {
+            "time_ns": 3000000000,
+            "oracle": "chromium/svg-pattern-client-animation/sample-3000000000ns.png",
+            "expected_x": 24
+          }
+        ],
+        "retained_seek_order_ns": [
+          2000000000,
+          250000000,
+          0,
+          3000000000,
+          1000000000,
+          250000000,
+          2000000000,
+          0,
+          1000000000,
+          3000000000
+        ]
+      }
     }
   ]
 }

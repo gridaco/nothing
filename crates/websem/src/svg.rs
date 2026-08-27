@@ -2906,6 +2906,12 @@ impl<'a> PatternCompiler<'a> {
             active_patterns,
             first.node_id(),
         )?;
+        let is_integer = |value: f32| value.is_finite() && value == value.round();
+        if !items.is_empty() && (!is_integer(x) || !is_integer(y)) {
+            return Err(format!(
+                "pattern #{fragment} tile phase resolves to a fractional coordinate at the pinned-backend picture-shader phase precision boundary"
+            ));
+        }
         let pattern = PatternPaint::new(
             width,
             height,
@@ -6634,6 +6640,17 @@ mod filter_resource {
     /// and drop shadow). Keep that operation-independent source profile here
     /// so a newly admitted primitive cannot silently bypass the same raster
     /// boundary.
+    fn has_non_animation_element_child(element: HtmlElement<'_>) -> bool {
+        let mut child = element.first_element_child();
+        while let Some(candidate) = child {
+            if !crate::svg_animation::is_animation_element(&candidate.local_name_string()) {
+                return true;
+            }
+            child = candidate.next_element_sibling();
+        }
+        false
+    }
+
     fn filter_source_crosses_pattern_profile_boundary<'d>(
         target: HtmlElement<'d>,
         servers: &PaintServers<'d>,
@@ -6661,7 +6678,7 @@ mod filter_resource {
                 if let Some(pattern_property) = pattern_property {
                     if !is_target
                         || element.local_name_string() != "rect"
-                        || element.first_element_child().is_some()
+                        || has_non_animation_element_child(element)
                         || get_attr(element, "rx").is_some()
                         || get_attr(element, "ry").is_some()
                     {
@@ -6733,7 +6750,7 @@ mod filter_resource {
         if !matches!(
             target.local_name_string().as_str(),
             "rect" | "circle" | "ellipse" | "path" | "polygon" | "polyline"
-        ) || target.first_element_child().is_some()
+        ) || has_non_animation_element_child(target)
         {
             return Ok(false);
         }
@@ -11219,6 +11236,14 @@ fn geometry_number_source_loses_provenance(source: &str, percentage: bool) -> bo
     } else {
         authored_f32.to_bits() != (authored_f64 as f32).to_bits()
     }
+}
+
+/// Whether a direct unitless source number's correctly rounded `f32` differs
+/// from Chromium's measured CSS-number route. The shadow `f64` conversion is
+/// a classifier only: callers refuse the source and never substitute it as a
+/// second parser.
+pub(crate) fn direct_number_source_loses_chromium_provenance(source: &str) -> bool {
+    geometry_number_source_loses_provenance(source, false)
 }
 
 #[cfg(test)]

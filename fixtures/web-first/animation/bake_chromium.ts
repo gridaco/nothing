@@ -20,8 +20,13 @@ import { dirname, join } from "node:path";
 import { exit } from "node:process";
 import { fileURLToPath } from "node:url";
 
-import { chromium, type BrowserContext, type Page } from "@playwright/test";
+import { type BrowserContext, type Page } from "@playwright/test";
 import { PNG } from "pngjs";
+
+import {
+  deterministicContext,
+  launchDeterministicChromium,
+} from "../chromium_capture";
 
 interface BaseCase {
   source: string;
@@ -80,6 +85,7 @@ const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const DIR = dirname(SCRIPT_PATH);
 const SUITE_PATH = join(DIR, "cases.json");
 const MANIFEST_PATH = join(DIR, "oracle-bake.json");
+const CAPTURE_MODULE_PATH = join(DIR, "../chromium_capture.ts");
 
 function sha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
@@ -442,33 +448,23 @@ async function bakeFixture(
 }
 
 async function main(): Promise<void> {
-  const [scriptBytes, suiteBytes] = await Promise.all([
+  const [scriptBytes, suiteBytes, captureModuleBytes] = await Promise.all([
     readFile(SCRIPT_PATH),
     readFile(SUITE_PATH),
+    readFile(CAPTURE_MODULE_PATH),
   ]);
   const suite = JSON.parse(suiteBytes.toString("utf8")) as CaseSuite;
   validateSuite(suite);
 
-  const browser = await chromium.launch({
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
+  const browser = await launchDeterministicChromium();
   const browserVersion = browser.version();
-  const context = await browser.newContext({
-    javaScriptEnabled: true,
-    viewport: { width: suite.fixtures[0].width, height: suite.fixtures[0].height },
-    deviceScaleFactor: 1,
-    colorScheme: "light",
-    locale: "en-US",
-    timezoneId: "UTC",
-  });
+  const context = await deterministicContext(browser);
   const networkAttempts: string[] = [];
-  await context.route("**/*", (route) => {
-    const url = route.request().url();
+  context.on("request", (request) => {
+    const url = request.url();
     if (url.startsWith("http://") || url.startsWith("https://")) {
       networkAttempts.push(url);
-      return route.abort();
     }
-    return route.continue();
   });
 
   try {
@@ -494,6 +490,7 @@ async function main(): Promise<void> {
       platform: `${process.platform}-${process.arch}`,
       node_version: process.version,
       bake_script_sha256: sha256(scriptBytes),
+      capture_module_sha256: sha256(captureModuleBytes),
       suite: "cases.json",
       suite_sha256: sha256(suiteBytes),
       capture: {
@@ -504,7 +501,7 @@ async function main(): Promise<void> {
         timezone: "UTC",
         omit_background: true,
         source_transport: "data-url-from-exact-file-bytes",
-        javascript_enabled: true,
+        javascript_enabled: false,
         network: "all http(s) requests aborted; zero attempted",
         target: "root-svg-element",
         timeline_control: "pauseAnimations() then setCurrentTime(ns / 1e9)",

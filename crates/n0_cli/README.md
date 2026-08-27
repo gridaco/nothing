@@ -539,8 +539,8 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 32 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete corpus contains 936 Chromium-baked cells plus 10 sampled
-  frames, with 169 named
+  cells. The complete corpus contains 936 Chromium-baked cells plus 16 sampled
+  frames, with 172 named
   refusal rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
@@ -837,6 +837,19 @@ cargo run -p n0_cli --bin n0 -- \
   conservative provenance patrol remains. The `<pattern>` and
   `patternTransform` checklist rows therefore stay open; only `patternUnits`
   and `patternContentUnits` close.
+  The exact-time `<animate attributeName="x">` slice may target the same direct
+  sharp-cornered rectangle while it carries admitted pattern paint, including
+  a filter inside the tile and a source-derived filter around the target. Six
+  committed Chromium frames cover Base and exact samples at 0, 0.25, 1, 2,
+  and 3 seconds; strict and best-effort pixels are exact and identical.
+  Pattern source geometry and tile geometry remain static. A fractional X or
+  Y tile phase refuses at the measured picture-shader boundary: four
+  discriminating witnesses differ from Chromium by 96–576 pixels at maximum
+  channel delta 1. Animation endpoints use SVG-number syntax and a one-way
+  Chromium-normalization patrol; trailing-dot and Unicode-whitespace forms
+  formerly admitted only by Rust, and one valid midpoint-adjacent decimal
+  formerly selected the wrong binary32 neighbour. Three focused refusal rows
+  guard those classes. The `<pattern>` and `<animate>` rows remain open.
   `<text>` is consumed (the text rung), and its font environment is the
   host's: text resolves only against fonts declared with
   `--font FAMILY=PATH@sha256:HEX` (repeatable), whose bytes are **verified

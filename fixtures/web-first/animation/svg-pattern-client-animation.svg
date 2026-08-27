@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <defs>
+    <filter id="source-filter" filterUnits="userSpaceOnUse" x="0" y="0" width="8" height="8" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values=".2 0 0 0 .3  0 .7 0 0 0  0 0 .4 0 .2  0 0 0 .8 0"/>
+    </filter>
+    <pattern id="template" patternUnits="userSpaceOnUse" width="8" height="8">
+      <rect width="4" height="8" fill="#16a34a" filter="url(#source-filter)"/>
+    </pattern>
+    <pattern id="pattern" href="#template"/>
+    <filter id="target-filter" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">
+      <feColorMatrix type="saturate" values=".2"/>
+    </filter>
+  </defs>
+  <rect id="probe" x="4" y="8" width="24" height="48" fill="url(#pattern)" filter="url(#target-filter)">
+    <animate attributeName="x" from="8" to="24" dur="2s" fill="freeze"/>
+  </rect>
+</svg>

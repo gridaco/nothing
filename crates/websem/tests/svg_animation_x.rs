@@ -4,10 +4,9 @@
 //! pixels. These tests consume only those artifacts; they never run the sealed
 //! consolidation scoreboard or compute a similarity score.
 //!
-//! The slice itself is one `<animate>` on a top-level `<rect>`'s `x`. Two
-//! fixtures exercise it: a bare rect on a backdrop, and `svg-scene-cub` — a
-//! whole composition whose animated rect is one node among seventeen, so the
-//! sampling path is gated over a scene rather than only over a single shape.
+//! The slice itself is one `<animate>` on a top-level `<rect>`'s `x`. The
+//! fixtures exercise a bare rect, a whole curve-heavy composition, and a
+//! pattern-painted rect whose source and target both cross admitted filters.
 
 mod support;
 
@@ -101,6 +100,7 @@ struct BakeManifest {
     schema_version: u32,
     kind: String,
     bake_script_sha256: String,
+    capture_module_sha256: String,
     suite: String,
     suite_sha256: String,
     capture: CapturePolicy,
@@ -111,6 +111,7 @@ struct BakeManifest {
 struct CapturePolicy {
     viewport: String,
     device_scale_factor: u32,
+    javascript_enabled: bool,
     network: String,
     timeline_control: String,
     comparison: String,
@@ -236,10 +237,15 @@ fn chromium_animation_oracle_provenance_is_current() {
         sha256_file(&root.join("bake_chromium.ts"))
     );
     assert_eq!(
+        manifest.capture_module_sha256,
+        sha256_file(&root.join("../chromium_capture.ts"))
+    );
+    assert_eq!(
         manifest.capture.viewport,
         "per-fixture declared dims (the initial viewport)"
     );
     assert_eq!(manifest.capture.device_scale_factor, 1);
+    assert!(!manifest.capture.javascript_enabled);
     assert_eq!(
         manifest.capture.network,
         "all http(s) requests aborted; zero attempted"
@@ -546,6 +552,26 @@ fn load_active_animation_refuses_at_construction_and_skips_by_declaration() {
             r#"<animate attributeName="x" from="1" to="2" dur="1.5s" fill="freeze"/>"#,
             "positive integer in ms or s",
         ),
+        (
+            r#"<animate attributeName="x" from="1." to="2" dur="1s" fill="freeze"/>"#,
+            "not a unitless SVG number",
+        ),
+        (
+            r#"<animate attributeName="x" from="1.e0" to="2" dur="1s" fill="freeze"/>"#,
+            "not a unitless SVG number",
+        ),
+        (
+            r#"<animate attributeName="x" from="&#160;1&#160;" to="2" dur="1s" fill="freeze"/>"#,
+            "not a unitless SVG number",
+        ),
+        (
+            r#"<animate attributeName="x" from="&#12288;1&#12288;" to="2" dur="1s" fill="freeze"/>"#,
+            "not a unitless SVG number",
+        ),
+        (
+            r#"<animate attributeName="x" from="1.000000059604644775390625000000000000000000000001" to="2" dur="1s" fill="freeze"/>"#,
+            "source number loses Chromium used-value provenance",
+        ),
     ];
 
     for (markup, expected) in CASES {
@@ -591,6 +617,36 @@ fn load_active_animation_refuses_at_construction_and_skips_by_declaration() {
             best.base_frame(),
             "every view shares the skip"
         );
+    }
+}
+
+#[test]
+fn measured_svg_number_controls_remain_admitted_animation_endpoints() {
+    for spelling in [" 1 ", "+1", ".1e1"] {
+        let svg = format!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+                 <rect x="2" y="4" width="4" height="4">
+                   <animate attributeName="x" from="{spelling}" to="{spelling}" dur="1s" fill="freeze"/>
+                 </rect>
+               </svg>"#
+        );
+        let strict = SvgFrameSource::from_standalone_svg(svg.clone(), host_viewport())
+            .unwrap_or_else(|error| panic!("measured control {spelling:?}: {error}"));
+        let best = SvgFrameSource::from_standalone_svg_best_effort(svg, host_viewport())
+            .unwrap_or_else(|error| panic!("best-effort control {spelling:?}: {error}"));
+        assert!(best.degradations().is_empty());
+
+        let strict_sample = strict
+            .sample_frame(SampleTime::ZERO)
+            .expect("strict control sample");
+        let best_sample = best
+            .sample_frame(SampleTime::ZERO)
+            .expect("best-effort control sample");
+        assert_eq!(strict_sample, best_sample);
+        let Geometry::Rect(rect) = &strict_sample.nodes()[0].geometry else {
+            panic!("measured control must remain a rectangle")
+        };
+        assert_eq!(rect.x, 1.0, "measured control {spelling:?}");
     }
 }
 
