@@ -843,9 +843,10 @@ cargo run -p n0_cli --bin n0 -- \
   committed Chromium frames cover Base and exact samples at 0, 0.25, 1, 2,
   and 3 seconds; strict and best-effort pixels are exact and identical.
   Pattern source geometry and tile geometry remain static. A fractional X or
-  Y tile phase refuses at the measured picture-shader boundary: four
+  Y tile phase refuses at the measured picture-shader boundary: six
   discriminating witnesses differ from Chromium by 96–576 pixels at maximum
-  channel delta 1. Animation endpoints use SVG-number syntax and a one-way
+  channel delta 1, including both object-box client-origin axes. Animation
+  endpoints use SVG-number syntax and a one-way
   Chromium-normalization patrol; trailing-dot and Unicode-whitespace forms
   formerly admitted only by Rust, and one valid midpoint-adjacent decimal
   formerly selected the wrong binary32 neighbour. Three focused refusal rows

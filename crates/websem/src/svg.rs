@@ -2907,7 +2907,7 @@ impl<'a> PatternCompiler<'a> {
             first.node_id(),
         )?;
         let is_integer = |value: f32| value.is_finite() && value == value.round();
-        if !items.is_empty() && (!is_integer(x) || !is_integer(y)) {
+        if !items.is_empty() && (!is_integer(tile_x) || !is_integer(tile_y)) {
             return Err(format!(
                 "pattern #{fragment} tile phase resolves to a fractional coordinate at the pinned-backend picture-shader phase precision boundary"
             ));

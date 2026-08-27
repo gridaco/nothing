@@ -392,6 +392,21 @@ fn every_measured_picture_shader_boundary_refuses_in_both_admissions() {
             reason,
         );
     }
+
+    let object_origin_defs = r##"<filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="8" height="8" color-interpolation-filters="sRGB"><feColorMatrix type="saturate" values=".2"/></filter><pattern id="p" patternUnits="objectBoundingBox" width=".25" height=".25" viewBox="0 0 8 8"><rect width="4" height="8" fill="red" filter="url(#f)"/></pattern>"##;
+    for target in [
+        r#"<rect x="8.5" y="8" width="48" height="48" fill="url(#p)"/>"#,
+        r#"<rect x="8" y="8.5" width="48" height="48" fill="url(#p)"/>"#,
+    ] {
+        assert_target_skip(
+            &document(&format!(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <defs>{object_origin_defs}</defs>
+  {target}"##
+            )),
+            "phase precision boundary",
+        );
+    }
 }
 
 #[test]

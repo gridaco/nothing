@@ -4063,10 +4063,14 @@ retained source-coverage precision boundary. Pattern-phase motion also did not
 earn admission. Several phase controls were exact, but an object-box X witness
 changed 192 pixels at maximum channel delta 1, a filtered-source X witness
 changed 356 at delta 1, and discriminating Y mirrors changed 96 and 576 at
-delta 1. The boundary is therefore content-dependent, not a tolerance case.
+delta 1. A review matrix isolated the object-box client's own origin: the
+unfiltered fractional X and Y controls were exact, while the filtered-source
+mirrors each changed 336 pixels at delta 1. The boundary is therefore
+content-dependent, not a tolerance case.
 
 A focused phase patrol now refuses a non-empty valid pattern whose resolved X
-or Y tile coordinate is fractional. It runs only after tile validity and source
+or Y tile origin is fractional, including the client-box origin under
+object-box units. It runs only after tile validity and source
 compilation, so an invalid server still selects its authored fallback and a
 valid empty server still suppresses fallback as transparent. Integer phase
 remains admitted. The same stable name protects strict and best-effort paths.
