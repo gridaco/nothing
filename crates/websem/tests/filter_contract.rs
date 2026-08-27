@@ -1033,6 +1033,113 @@ fn component_transfer_precision_patrols_name_paint_server_and_transform_boundari
 }
 
 #[test]
+fn direct_rect_patterns_feed_every_admitted_source_dependent_filter_family() {
+    let primitives = [
+        r##"<feGaussianBlur stdDeviation="2"/>"##,
+        r##"<feOffset dx="3" dy="2"/>"##,
+        r##"<feFlood flood-color="#e11d48" result="f"/><feBlend in="SourceGraphic" in2="f" mode="multiply"/>"##,
+        r##"<feOffset dx="3" dy="2" result="o"/><feMerge><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge>"##,
+        r##"<feComponentTransfer><feFuncR type="linear" slope=".4" intercept=".1"/><feFuncA type="linear" slope=".7"/></feComponentTransfer>"##,
+        r##"<feMorphology operator="dilate" radius="2"/>"##,
+        r##"<feConvolveMatrix order="3" kernelMatrix="0 -1 0 -1 5 -1 0 -1 0"/>"##,
+        r##"<feDropShadow dx="3" dy="2" stdDeviation="2" flood-color="#0f172a"/>"##,
+        r##"<feColorMatrix type="saturate" values=".2"/>"##,
+        r##"<feFlood flood-color="#e11d48" flood-opacity=".7" result="f"/><feComposite in="SourceGraphic" in2="f" operator="arithmetic" k1=".5" k2=".5" k3=".25" k4=".1"/>"##,
+        r##"<feTurbulence baseFrequency=".08" numOctaves="1" seed="5" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="7"/>"##,
+        r##"<feDiffuseLighting surfaceScale="2" diffuseConstant="1.2" lighting-color="#f8fafc"><feDistantLight azimuth="225" elevation="45"/></feDiffuseLighting>"##,
+    ];
+    for primitive in primitives {
+        admit_both(&document(&format!(
+            r##"  <rect width="64" height="64" fill="white"/>
+  <defs>
+    <pattern id="p" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="4" height="8" fill="#16a34a"/><rect x="4" width="4" height="8" fill="#2563eb"/></pattern>
+    <filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">{primitive}</filter>
+  </defs>
+  <rect x="10" y="10" width="44" height="44" fill="url(#p)" fill-opacity=".57" filter="url(#f)"/>"##
+        )));
+    }
+
+    admit_both(&document(
+        r##"  <rect width="64" height="64" fill="white"/>
+  <defs>
+    <pattern id="p" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="4" height="8" fill="#16a34a"/></pattern>
+    <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope=".4"/></feComponentTransfer></filter>
+    <rect id="leaf" x="10" y="10" width="44" height="44" fill="context-fill" filter="url(#f)"/>
+  </defs>
+  <use href="#leaf" fill="url(#p)"/>"##,
+    ));
+}
+
+#[test]
+fn context_selected_gradients_reach_the_existing_filter_precision_patrols() {
+    for (primitive, reason) in [
+        (
+            r##"<feDropShadow dx="3" dy="2" stdDeviation="2"/>"##,
+            "native-shadow source-layer precision boundary",
+        ),
+        (
+            r##"<feConvolveMatrix order="3" kernelMatrix="0 -1 0 -1 5 -1 0 -1 0"/>"##,
+            "convolution-filter paint-server precision boundary",
+        ),
+        (
+            r##"<feMorphology operator="dilate" radius="2"/>"##,
+            "morphology paint-server precision boundary",
+        ),
+        (
+            r##"<feComponentTransfer><feFuncR type="linear" slope=".4"/></feComponentTransfer>"##,
+            "table-filter paint-server precision boundary",
+        ),
+        (
+            r##"<feColorMatrix type="saturate" values=".2"/>"##,
+            "color-matrix source-layer precision boundary",
+        ),
+        (
+            r##"<feFlood flood-color="#e11d48" result="f"/><feComposite in="SourceGraphic" in2="f" operator="arithmetic" k1=".5" k2=".5"/>"##,
+            "translucent-source composition precision boundary",
+        ),
+    ] {
+        assert_target_skip(
+            &document(&format!(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <defs>
+    <linearGradient id="g"><stop stop-color="#e11d48"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">{primitive}</filter>
+    <rect id="leaf" x="10" y="10" width="44" height="44" fill="context-fill" filter="url(#f)"/>
+  </defs>
+  <use href="#leaf" fill="url(#g)"/>"##
+            )),
+            reason,
+        );
+    }
+}
+
+#[test]
+fn filtered_patterns_refuse_curved_and_rounded_source_profiles() {
+    for (primitive, target) in [
+        (
+            r##"<feOffset dx="3" dy="2"/>"##,
+            r##"<path d="M8 49 C13 5 51 5 56 49 C45 37 19 37 8 49 Z" fill="url(#p)" filter="url(#f)"/>"##,
+        ),
+        (
+            r##"<feGaussianBlur stdDeviation="2"/>"##,
+            r##"<rect x="8" y="10" width="48" height="44" rx="13" fill="url(#p)" filter="url(#f)"/>"##,
+        ),
+    ] {
+        assert_target_skip(
+            &document(&format!(
+                r##"  <rect width="64" height="64" fill="white"/>
+  <defs>
+    <pattern id="p" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="4" height="8" fill="#16a34a"/></pattern>
+    <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">{primitive}</filter>
+  </defs>
+  {target}"##
+            )),
+            "filtered-pattern coverage precision boundary",
+        );
+    }
+}
+
+#[test]
 fn filtered_descendants_refuse_same_scope_clip_and_partial_opacity() {
     let defs = r##"  <defs>
     <clipPath id="c"><circle cx="32" cy="32" r="19"/></clipPath>

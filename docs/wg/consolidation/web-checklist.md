@@ -1713,13 +1713,24 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > transforms, `<use>`, effects around the target, nested repetition, and the
 > invalid-reference-fallback versus valid-empty distinction are carried by 62
 > exact Chromium cells. The element stays open: external template facts,
-> context-selected pattern paint, unsupported source descendants, curved
-> source coverage, source filters, isolated source effects, mixed nested
+> unsupported source descendants, curved
+> source coverage, isolated source effects, mixed nested
 > composition, used-length saturation, fractional tile sampling, and general
 > affine mapping refuse by stable name at measured pixel boundaries. A ninth
 > distinct nested program now refuses before source compilation begins. Shared
 > `x`/`y`/`width`/`height`, `href`, `viewBox`, CSS-token/value-type, resource, and
 > dynamics rows remain independently open.
+>
+> **2026-08-27 composition split:** 62 further exact Chromium cells admit a
+> pattern selected through all four `fill`/`stroke` ×
+> `context-fill`/`context-stroke` crossings, filters inside the resolved tile
+> program, and pattern paint as a filter source in the measured direct
+> sharp-rectangle profile. The element remains open. A source-derived filter
+> over curved, rounded, multi-draw, or otherwise wider pattern-painted target
+> geometry now refuses at its own measured filtered-pattern coverage boundary;
+> every P1 source-coverage/effect/nesting boundary above also remains. External
+> I/O, unsupported source descendants, and pattern dynamics are unchanged.
+> No checklist row closes in this composition rung.
 
 - [x] `<polygon>`
 - [x] `<polyline>`

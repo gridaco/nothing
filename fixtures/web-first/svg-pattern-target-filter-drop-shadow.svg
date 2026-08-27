@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <defs><pattern id="p" patternUnits="userSpaceOnUse" width="8" height="8" >
+  <rect width="4" height="8" fill="#16a34a"/>
+</pattern><filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB"><feDropShadow dx="3" dy="2" stdDeviation="2" flood-color="#e11d48"/></filter></defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#p)" filter="url(#f)" />
+</svg>

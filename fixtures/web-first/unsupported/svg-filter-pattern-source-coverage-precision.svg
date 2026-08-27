@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <defs>
+    <pattern id="p" patternUnits="userSpaceOnUse" width="8" height="8">
+      <rect width="4" height="8" fill="#16a34a"/>
+      <rect x="4" width="4" height="8" fill="#2563eb"/>
+    </pattern>
+    <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <feOffset dx="3" dy="2"/>
+    </filter>
+  </defs>
+  <path d="M8 49 C13 5 51 5 56 49 C45 37 19 37 8 49 Z"
+        fill="url(#p)" filter="url(#f)"/>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <defs>
+    <mask id="tile-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="8" height="8"><rect width="5" height="8" fill="white"/></mask>
+    <pattern id="p" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="8" height="8" fill="#2563eb" mask="url(#tile-mask)"/></pattern>
+    <filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope=".4" intercept=".1"/><feFuncG type="gamma" amplitude=".8" exponent="1.6" offset=".1"/><feFuncA type="linear" slope=".7"/></feComponentTransfer></filter>
+  </defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#p)" filter="url(#f)"/>
+</svg>

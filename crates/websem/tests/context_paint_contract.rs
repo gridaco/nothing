@@ -325,13 +325,13 @@ fn nonstandard_context_fallback_refuses_from_every_ingress() {
 }
 
 #[test]
-fn pattern_and_external_urls_keep_their_own_refusal_through_context() {
-    let pattern = refusal(&document(
+fn pattern_resolves_through_context_while_external_urls_keep_their_refusal() {
+    let pattern = admit_both(&document(
         r##"<defs><pattern id="p" width="8" height="8"><rect width="4" height="4" fill="red"/></pattern><rect id="r" width="20" height="20" fill="context-fill"/></defs><use href="#r" fill="url(#p)"/>"##,
     ));
     assert!(
-        matches!(pattern, CompileError::UnsupportedFill(ref reason) if reason.contains("pattern paint selected through context-fill/context-stroke")),
-        "{pattern}"
+        pattern.nodes()[0].paints.pattern().is_some(),
+        "the eventual context owner resolves to a source-neutral pattern"
     );
 
     let external = refusal(&document(

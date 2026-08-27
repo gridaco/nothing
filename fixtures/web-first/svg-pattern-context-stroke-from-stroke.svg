@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <defs><pattern id="p" patternUnits="userSpaceOnUse" width="8" height="8" >
+  <rect width="4" height="8" fill="#16a34a"/>
+</pattern><rect id="leaf" x="10" y="10" width="44" height="44" fill="none" stroke="context-stroke" stroke-width="8"/></defs>
+  <use href="#leaf" stroke="url(#p)"/>
+</svg>

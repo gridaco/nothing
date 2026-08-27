@@ -308,6 +308,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "fractional device-space displacement",
     ),
     (
+        "svg-filter-pattern-source-coverage-precision",
+        DeclaredByBestEffort,
+        "filtered-pattern coverage precision boundary",
+    ),
+    (
         "svg-filter-primitive",
         DeclaredByBestEffort,
         "unsupported primitive",
@@ -569,11 +574,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "picture-shader affine precision boundary",
     ),
     (
-        "svg-pattern-context-selection",
-        DeclaredByBestEffort,
-        "pattern paint selected through context-fill/context-stroke",
-    ),
-    (
         "svg-pattern-css-transform-percentage",
         DeclaredByBestEffort,
         "pattern transform percentage has no proved reference-box basis",
@@ -642,11 +642,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "svg-pattern-source-effect-precision",
         DeclaredByBestEffort,
         "picture-shader source-effect precision boundary",
-    ),
-    (
-        "svg-pattern-source-filter",
-        DeclaredByBestEffort,
-        "filter composition outside the admitted pattern source slice",
     ),
     (
         "svg-pattern-source-unsupported",
