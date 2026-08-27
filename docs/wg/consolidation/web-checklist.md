@@ -1731,6 +1731,18 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > every P1 source-coverage/effect/nesting boundary above also remains. External
 > I/O, unsupported source descendants, and pattern dynamics are unchanged.
 > No checklist row closes in this composition rung.
+>
+> **2026-08-28 exact-time split:** a top-level rectangle may now move through
+> the admitted `x` animation while carrying a templated pattern, a filter
+> inside that pattern, and a source-derived filter around the client. Base and
+> exact samples at 0, 0.25, 1, 2, and 3 seconds are committed Chromium oracle
+> frames. Pattern-source and tile-geometry dynamics remain outside the slice.
+> Fractional X and Y tile phase is a content-dependent picture-shader boundary
+> and now refuses by stable name; measured witnesses differ by 96–576 pixels
+> at maximum channel delta 1. Animation endpoint numbers also gained stable
+> SVG-syntax and Chromium-normalization patrols after measured silent
+> divergences. Neither `<pattern>` nor `<animate>` closes, and no other
+> checklist row changes.
 
 - [x] `<polygon>`
 - [x] `<polyline>`

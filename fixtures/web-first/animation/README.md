@@ -6,14 +6,18 @@ authored scene — captured from Chromium at a paused timeline, so the engine's
 Base view and its exact-nanosecond samples are both gated against browser
 pixels.
 
-The admitted animation slice is deliberately one thing: a single `<animate>` on
-a top-level `<rect>`'s `x`, with `from`/`to`/`dur`/`fill="freeze"`. Everything
-else in a fixture is ordinary static vocabulary.
+The admitted animation slice is deliberately one target and value vocabulary:
+a single `<animate>` on a top-level `<rect>`'s `x`, with
+`from`/`to`/`dur`/`fill="freeze"`. Everything else in a fixture is ordinary
+static vocabulary. The rectangle may use the admitted repeating-pattern paint
+and pattern/filter composition profile; the pattern source and tile geometry
+remain static.
 
 | Fixture | What it is |
 | --- | --- |
 | `svg-rect-x-animation` | The minimal case: one black rect on a white backdrop. Authored `x` is `4`; the animation moves it from `20` to `44` over two seconds and freezes there. |
 | `svg-scene-cub` | The same slice over a **whole composition** — see below. Authored `x` is `12`; the block slides from `6` to `38` over two seconds and freezes. |
+| `svg-pattern-client-animation` | The same animated client carrying a templated repeating pattern, a color-matrix filter inside the tile, and another color-matrix filter around the target. Its quarter-second sample proves a non-endpoint exact time as the rect moves from `8` to `24`. |
 
 - `<id>-base.svg` is the static Base projection: the same authored scene with
   the animation element removed.
@@ -26,8 +30,15 @@ else in a fixture is ordinary static vocabulary.
 - `bake_chromium.ts` verifies the DOM animation value and bounding box before
   each capture. It double-captures every case on fresh pages, then seeks a
   retained document in shuffled order and requires exact decoded RGBA equality.
+- The baker and primitive-cell harness import the same hash-pinned
+  `../chromium_capture.ts`; the animation manifest records that module's hash
+  as well as the baker and suite hashes.
 - `oracle-bake.json` records the Chromium version, environment, inputs, outputs,
   hashes, and capture policy.
+
+The three fixtures contain 16 committed oracle frames: three Base projections
+and thirteen exact-time samples. They do not change the separately counted
+primitive-cell corpus.
 
 Chromium does not expose the engine's Base policy for an animated document.
 The Base oracle is therefore deliberately a static authoring projection, not

@@ -965,7 +965,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (169)
+## The refusal register (172)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -1107,6 +1107,7 @@ its row into the cells above.
 | `svg-pattern-source-coverage-precision` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p source carries curved/vector geometry at the pinned-backend picture-shader source-coverage precision boundary" |
 | `svg-pattern-source-effect-precision` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p source carries an isolated opacity or geometric clip at the pinned-backend picture-shader source-effect precision boundary" |
 | `svg-pattern-source-unsupported` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p source cannot compile completely: unsupported element <image>" |
+| `svg-pattern-tile-phase-precision` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p tile phase resolves to a fractional coordinate at the pinned-backend picture-shader phase precision boundary" |
 | `svg-pattern-tile-sampling-precision` | declared | skipped svg/rect[2]: unsupported fill value "tile has a fractional final device extent at the pinned-backend picture-shader sampling precision boundary" |
 | `svg-pattern-transform-none-provenance` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): an author stylesheet may set transform:none on a derived pattern; the empty computed value loses the provenance needed to decide template inheritance" |
 | `svg-points-odd-coordinate` | declared | skipped svg/polygon[1]: points on <polygon> is invalid at byte 17 (near "") |
@@ -1114,6 +1115,8 @@ its row into the cells above.
 | `svg-preserve-aspect-ratio-defer` | **both refuse** | preserveAspectRatio "defer xMidYMid meet" is invalid |
 | `svg-preserve-aspect-ratio-invalid-align` | **both refuse** | preserveAspectRatio "xMidYMiddle meet" is invalid |
 | `svg-smil-animate-transform` | declared | skipped svg/g[1]: its authored state is overridden at document load by the unsupported animation at svg/g[1]/animateTransform[1]: animation element <animateTransform> is outside the rect-x proving slice |
+| `svg-smil-number-precision-alias` | declared | skipped svg/rect[2]: its authored state is overridden at document load by the unsupported animation at svg/rect[2]/animate[1]: from source number loses Chromium used-value provenance at the binary32 normalization boundary |
+| `svg-smil-number-source-syntax` | declared | skipped svg/rect[2]: its authored state is overridden at document load by the unsupported animation at svg/rect[2]/animate[1]: from="1." is not a unitless SVG number |
 | `svg-smil-retarget-href` | **both refuse** | SVG animation at svg/rect[2]/set[1] is unsupported: animation element <set> is outside the rect-x proving slice; it carries href, so its target cannot be attributed to one element without id resolution; it is active at document load, so the authored state it overrides cannot render as the Base view |
 | `svg-smil-set-load-active` | declared | skipped svg/rect[2]: its authored state is overridden at document load by the unsupported animation at svg/rect[2]/set[1]: animation element <set> is outside the rect-x proving slice |
 | `svg-stroke-dasharray-escape` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dasharray on <path> carries a CSS escape this patrol cannot read" |

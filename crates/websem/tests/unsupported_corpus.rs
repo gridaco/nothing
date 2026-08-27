@@ -649,6 +649,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "source cannot compile completely",
     ),
     (
+        "svg-pattern-tile-phase-precision",
+        DeclaredByBestEffort,
+        "picture-shader phase precision boundary",
+    ),
+    (
         "svg-pattern-tile-sampling-precision",
         DeclaredByBestEffort,
         "picture-shader sampling precision boundary",
@@ -682,6 +687,16 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "svg-smil-animate-transform",
         DeclaredByBestEffort,
         "animation element <animateTransform>",
+    ),
+    (
+        "svg-smil-number-precision-alias",
+        DeclaredByBestEffort,
+        "source number loses Chromium used-value provenance",
+    ),
+    (
+        "svg-smil-number-source-syntax",
+        DeclaredByBestEffort,
+        "not a unitless SVG number",
     ),
     ("svg-smil-retarget-href", BothRefuse, "href"),
     (

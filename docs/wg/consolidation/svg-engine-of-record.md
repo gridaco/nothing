@@ -81,16 +81,18 @@ from the dated addenda below:
   sharp-cornered rectangle may supply a filter's source image;
   one declared-font, single-run `<text>` profile; viewBox-only root sizing with
   the full `preserveAspectRatio` grammar; and one exact-time
-  `<animate attributeName="x">` on a top-level `<rect>`.
+  `<animate attributeName="x">` on a top-level `<rect>`, including a client
+  carrying admitted repeating-pattern paint and admitted source/target filter
+  composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 936 Chromium-baked primitive cells plus 10 sampled frames.
+- **The corpus** is 936 Chromium-baked primitive cells plus 16 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 169 rows.
+  register has 172 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -4024,3 +4026,76 @@ on `svg-pattern-context-filter-color-matrix` with the existing color-matrix
 source-layer refusal. Restoring the classification returned the complete
 936-cell gate to green. No conformance score was produced, and no FLIP record,
 rule, or baseline changed.
+
+## Rung: exact-time SVG pattern clients (2026-08-28)
+
+The verdict is ADMIT/SPLIT with no checklist closure. The existing exact-time
+animation of a top-level rectangle's `x` coordinate may now move a client that
+carries the P2 repeating-pattern profile: a same-document template, a filter
+inside the tile program, and a source-derived filter around the client. Pattern
+source geometry and tile geometry remain static. `<pattern>`, `<animate>`, and
+all shared dynamics and geometry rows therefore remain open.
+
+This needs no second temporal or painting meaning. Sampling still changes one
+effective scalar on the existing rectangle and recompiles the same immutable
+resolved frame. The pattern source program, target filter, resolved contract,
+and painter vocabulary are unchanged. An animation element contributes no
+static draw to the filtered-pattern source profile; the closed animation
+inventory remains solely responsible for deciding whether that dynamic surface
+is admitted. Treating the non-rendering animation child as source geometry had
+incorrectly widened the otherwise exact direct-rectangle profile.
+
+The committed oracle adds six frames: the static Base projection and exact
+samples at 0, 0.25, 1, 2, and 3 seconds. Chromium 149.0.7827.55 captured every
+case twice on fresh pages, then reproduced it through shuffled retained seeks.
+The shared hash-pinned capture module disabled script and network access and is
+recorded in the animation manifest. Strict and best-effort n0 renders are exact
+decoded RGBA against every frame and against each other. The quarter-second
+case distinguishes an interpolated value from both endpoints; the three-second
+case distinguishes frozen fill from continued motion.
+
+The wider scratch matrix crossed direct and templated clients, object-box and
+user-space patterns, filters inside and outside the tile, `<use>`, strokes,
+axis maps, reflections, and exact quarter turns. Moving the client stayed exact
+through the admitted profiles (measured, not celled). Moving pattern source
+geometry did not earn admission: a fractional source coordinate reaches the
+retained source-coverage precision boundary. Pattern-phase motion also did not
+earn admission. Several phase controls were exact, but an object-box X witness
+changed 192 pixels at maximum channel delta 1, a filtered-source X witness
+changed 356 at delta 1, and discriminating Y mirrors changed 96 and 576 at
+delta 1. A review matrix isolated the object-box client's own origin: the
+unfiltered fractional X and Y controls were exact, while the filtered-source
+mirrors each changed 336 pixels at delta 1. The boundary is therefore
+content-dependent, not a tolerance case.
+
+A focused phase patrol now refuses a non-empty valid pattern whose resolved X
+or Y tile origin is fractional, including the client-box origin under
+object-box units. It runs only after tile validity and source
+compilation, so an invalid server still selects its authored fallback and a
+valid empty server still suppresses fallback as transparent. Integer phase
+remains admitted. The same stable name protects strict and best-effort paths.
+
+The endpoint-number crux found two silent parser departures. The valid decimal
+`1.000000059604644775390625000000000000000000000001` resolves to `1` through
+Chromium's animation-value route while the former direct binary32 parse chose
+the next value; an exact transform amplifier changed 48 pixels at maximum
+channel delta 238. Chromium also rejects trailing-dot spellings (`1.`, `1.e0`)
+and Unicode NBSP or ideographic-space padding that Rust's broader float parser
+formerly admitted; the amplifier changed 3,072 pixels at delta 238. ASCII SVG
+whitespace, leading plus, and a leading fractional dot remain admitted
+controls. One-way provenance and SVG-number-syntax patrols now reject the two
+unsafe classes by stable name without substituting a guessed value (measured,
+not celled).
+
+Gate sensitivity was proved twice. Temporarily accepting only zero as an
+integer tile phase made `just gate` fail on `svg-pattern-negative-origin` with
+the new phase refusal; restoring the classifier returned all 936 primitive
+cells to green. Temporarily treating the `<animate>` child as static source
+geometry made the exact-time oracle test fail on
+`svg-pattern-client-animation` with the filtered-pattern coverage refusal;
+restoring dynamic ownership returned all sixteen sampled frames to green.
+
+The primitive corpus remains 936 cells and the filter estate remains 451
+cells. The sampled corpus moves from 10 to 16 frames. Three focused rows join
+the refusal register, moving it from 169 to 172. No conformance score was
+produced, and no FLIP record, rule, or baseline changed.

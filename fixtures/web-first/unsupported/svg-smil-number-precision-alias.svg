@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <rect x="2" y="8" width="1" height="48" fill="#111827" transform="matrix(8388608 0 0 1 -8388608 0)">
+    <animate attributeName="x" from="1.000000059604644775390625000000000000000000000001" to="1.000000059604644775390625000000000000000000000001" dur="2s" fill="freeze"/>
+  </rect>
+</svg>

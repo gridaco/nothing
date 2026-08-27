@@ -1202,6 +1202,49 @@ fn filtered_patterns_refuse_curved_and_rounded_source_profiles() {
     }
 }
 
+/// An admitted animation element contributes no static source draw. The
+/// filtered-pattern profile must classify the animated rect itself, leaving
+/// the animation inventory to decide the dynamic surface; treating the
+/// `<animate>` child as source geometry over-refuses an otherwise exact P2
+/// pattern/filter program.
+#[test]
+fn animation_child_does_not_widen_the_filtered_pattern_rect_profile() {
+    let source = document(
+        r##"  <rect width="64" height="64" fill="white"/>
+  <defs>
+    <filter id="sf" filterUnits="userSpaceOnUse" x="0" y="0" width="8" height="8"
+            color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values=".2 0 0 0 .3  0 .7 0 0 0  0 0 .4 0 .2  0 0 0 .8 0"/>
+    </filter>
+    <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"
+            color-interpolation-filters="sRGB">
+      <feColorMatrix type="saturate" values=".2"/>
+    </filter>
+    <pattern id="template" patternUnits="userSpaceOnUse" width="8" height="8">
+      <rect width="4" height="8" fill="#16a34a" filter="url(#sf)"/>
+    </pattern>
+    <pattern id="p" href="#template"/>
+  </defs>
+  <rect x="4" y="8" width="24" height="48" fill="url(#p)" filter="url(#f)">
+    <animate attributeName="x" from="8" to="24" dur="2s" fill="freeze"/>
+  </rect>"##,
+    );
+    let strict = SvgFrameSource::from_standalone_svg(source.clone(), viewport())
+        .expect("the direct animated pattern rect stays inside the measured profile");
+    let best = SvgFrameSource::from_standalone_svg_best_effort(source, viewport())
+        .expect("best effort admits the same dynamic source");
+    assert!(best.degradations().is_empty());
+    assert_eq!(strict.base_frame(), best.base_frame());
+    for time_ns in [0, 250_000_000, 1_000_000_000, 2_000_000_000, 3_000_000_000] {
+        let time = animation_sampling::SampleTime::from_nanoseconds(time_ns);
+        assert_eq!(
+            strict.sample_frame(time).expect("strict sample"),
+            best.sample_frame(time).expect("best-effort sample"),
+            "admissions agree at {time_ns}ns"
+        );
+    }
+}
+
 #[test]
 fn filtered_descendants_refuse_same_scope_clip_and_partial_opacity() {
     let defs = r##"  <defs>
