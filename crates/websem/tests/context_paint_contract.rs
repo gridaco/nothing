@@ -327,11 +327,20 @@ fn nonstandard_context_fallback_refuses_from_every_ingress() {
 #[test]
 fn pattern_resolves_through_context_while_external_urls_keep_their_refusal() {
     let pattern = admit_both(&document(
-        r##"<defs><pattern id="p" width="8" height="8"><rect width="4" height="4" fill="red"/></pattern><rect id="r" width="20" height="20" fill="context-fill"/></defs><use href="#r" fill="url(#p)"/>"##,
+        r##"<defs><pattern id="p" width=".25" height=".5"><rect width="5" height="10" fill="red"/></pattern><rect id="r" width="20" height="20" fill="context-fill"/></defs><use href="#r" fill="url(#p)"/>"##,
     ));
+    let resolved = pattern.nodes()[0]
+        .paints
+        .pattern()
+        .expect("the context owner selects one source-neutral pattern");
     assert!(
-        pattern.nodes()[0].paints.pattern().is_some(),
-        "the eventual context owner resolves to a source-neutral pattern"
+        resolved.items().nodes().next().is_some(),
+        "the selected pattern retains its resolved source program"
+    );
+    assert_eq!(
+        (resolved.width(), resolved.height()),
+        (5.0, 10.0),
+        "object-box tile extents use the 20x20 context owner's reference space"
     );
 
     let external = refusal(&document(

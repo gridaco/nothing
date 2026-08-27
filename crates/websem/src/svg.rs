@@ -3110,6 +3110,10 @@ fn patrol_pattern_source_program(items: &FrameItems) -> Result<(), &'static str>
         )
         && matches!(items.iter().nth(1), Some(FrameItem::Node(_)))
         && matches!(items.iter().nth(2), Some(FrameItem::ScopeEnd));
+    // Filters over several solid/gradient draws are intentionally admitted:
+    // P2's group and adjacent-draw cells discriminate that exact picture
+    // program. The sole-draw rule belongs only to a nested pattern, where a
+    // second repeating picture shader crosses the measured composition edge.
     if has_nested_pattern
         && (draw_count != 1 || (has_compositing_commands && !one_filtered_nested_draw))
     {
@@ -6581,6 +6585,8 @@ mod filter_resource {
         }
     }
 
+    /// Whether one element contributes fill/stroke channels to a filter's
+    /// source image. Containers are traversed but never classified as paint.
     fn source_paint_leaf(element: HtmlElement<'_>) -> bool {
         matches!(
             element.local_name_string().as_str(),
@@ -6606,6 +6612,8 @@ mod filter_resource {
         contexts
     }
 
+    /// Add one source element's children to the iterative profile walk while
+    /// carrying any context owner established by the parent.
     fn push_source_children<'d>(
         element: HtmlElement<'d>,
         paint_contexts: &[PaintContext<'d>],
@@ -6738,7 +6746,7 @@ mod filter_resource {
             SVGOpacity::Opacity(value) => value,
             _ => return Ok(false),
         };
-        let stroke_opacity = match style.clone_stroke_opacity() {
+        let _stroke_opacity = match style.clone_stroke_opacity() {
             SVGOpacity::Opacity(value) => value,
             _ => return Ok(false),
         };
@@ -6756,9 +6764,10 @@ mod filter_resource {
                 (fill, stroke),
                 (EffectiveSourcePaint::Pattern, EffectiveSourcePaint::None)
                     | (EffectiveSourcePaint::None, EffectiveSourcePaint::Pattern)
-            )
-            && fill_opacity.is_finite()
-            && stroke_opacity.is_finite();
+            );
+        // The typed matches above retain the established refusal for an
+        // unrepresentable opacity value. P2's matrix admits the complete
+        // resolved numeric fill/stroke paint-opacity range on this route.
         Ok(opaque_solid || measured_pattern_rect)
     }
 

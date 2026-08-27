@@ -3991,10 +3991,15 @@ merge. A rounded rectangle differed by fifteen pixels at delta 1 under blur,
 one pixel at delta 7 under morphology, and four pixels at delta 4 under native
 drop shadow. A single operation-independent filtered-pattern source-profile
 patrol now quarantines curved, rounded, multi-draw, and wider container
-sources before any filter executes. Its focused refusal witness protects both
-admissions. Exact circle and ellipse-stroke controls do not widen that
-predicate; over-refusal is deliberate until a complete geometry class earns
-its own profile (measured, not celled).
+filter targets before any filter executes. This is distinct from a filter
+inside the tile program: the exact group and adjacent-draw cells above
+deliberately admit multiple solid/gradient tile draws. Stylesheet `rx`/`ry`
+remains the independent geometry-property departure—the pinned cascade does
+not represent that rounded geometry—while authored radius attributes reach
+this profile patrol. Its focused refusal witness protects both admissions.
+Exact circle and ellipse-stroke controls do not widen that predicate;
+over-refusal is deliberate until a complete geometry class earns its own
+profile (measured, not celled).
 
 The P1 source residues were rechecked and remain separate. Curved geometry
 inside the tile, isolated multi-draw source opacity, a geometric source clip,

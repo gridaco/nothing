@@ -29,10 +29,11 @@ fn document(body: &str) -> String {
     )
 }
 
-fn admit_both(source: &str) -> Frame {
-    let strict = SvgFrameSource::from_standalone_svg(source, viewport()).expect("strict admits");
+fn admit_both_named(source: &str, context: &str) -> Frame {
+    let strict = SvgFrameSource::from_standalone_svg(source, viewport())
+        .unwrap_or_else(|error| panic!("{context}: strict must admit: {error}"));
     let best = SvgFrameSource::from_standalone_svg_best_effort(source, viewport())
-        .expect("best effort admits");
+        .unwrap_or_else(|error| panic!("{context}: best effort must admit: {error}"));
     let declared: Vec<_> = best
         .degradations()
         .iter()
@@ -40,11 +41,19 @@ fn admit_both(source: &str) -> Frame {
         .collect();
     assert!(
         declared.is_empty(),
-        "an admitted filter declares nothing: {declared:?}"
+        "{context}: an admitted filter declares nothing: {declared:?}"
     );
     let frame = strict.base_frame();
-    assert_eq!(frame, best.base_frame(), "admissions are frame-identical");
+    assert_eq!(
+        frame,
+        best.base_frame(),
+        "{context}: admissions are frame-identical"
+    );
     frame
+}
+
+fn admit_both(source: &str) -> Frame {
+    admit_both_named(source, "filter source")
 }
 
 fn assert_target_skip(source: &str, reason: &str) {
@@ -1049,14 +1058,17 @@ fn direct_rect_patterns_feed_every_admitted_source_dependent_filter_family() {
         r##"<feDiffuseLighting surfaceScale="2" diffuseConstant="1.2" lighting-color="#f8fafc"><feDistantLight azimuth="225" elevation="45"/></feDiffuseLighting>"##,
     ];
     for primitive in primitives {
-        admit_both(&document(&format!(
-            r##"  <rect width="64" height="64" fill="white"/>
+        admit_both_named(
+            &document(&format!(
+                r##"  <rect width="64" height="64" fill="white"/>
   <defs>
     <pattern id="p" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="4" height="8" fill="#16a34a"/><rect x="4" width="4" height="8" fill="#2563eb"/></pattern>
     <filter id="f" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="64" height="64" color-interpolation-filters="sRGB">{primitive}</filter>
   </defs>
   <rect x="10" y="10" width="44" height="44" fill="url(#p)" fill-opacity=".57" filter="url(#f)"/>"##
-        )));
+            )),
+            primitive,
+        );
     }
 
     admit_both(&document(
@@ -1068,6 +1080,57 @@ fn direct_rect_patterns_feed_every_admitted_source_dependent_filter_family() {
   </defs>
   <use href="#leaf" fill="url(#p)"/>"##,
     ));
+}
+
+/// A stylesheet geometry declaration that could round the filtered target is
+/// already the `rx`/`ry` property's own named departure. Strict refuses at the
+/// sheet; best effort records that declaration as ignored before compiling the
+/// sharp rectangle it actually represents. The filter profile must not claim
+/// to consume the missing geometry property or duplicate its refusal.
+#[test]
+fn stylesheet_rect_radius_keeps_its_own_departure_before_pattern_filtering() {
+    for property in ["rx", "ry"] {
+        let source = document(&format!(
+            r##"  <style>.rounded {{ {property}: 12px; }}</style>
+  <rect width="64" height="64" fill="white"/>
+  <defs>
+    <pattern id="p" patternUnits="userSpaceOnUse" width="8" height="8"><rect width="4" height="8" fill="#16a34a"/></pattern>
+    <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"><feGaussianBlur stdDeviation="2"/></filter>
+  </defs>
+  <rect class="rounded" x="10" y="10" width="44" height="44" fill="url(#p)" filter="url(#f)"/>"##
+        ));
+        let strict = SvgFrameSource::from_standalone_svg(source.as_str(), viewport())
+            .expect_err("strict refuses the unrepresented geometry property");
+        assert!(
+            strict
+                .to_string()
+                .contains(&format!("stylesheet declares {property}")),
+            "{property}: {strict}"
+        );
+
+        let best = SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport())
+            .expect("best effort declares the property departure");
+        let declared: Vec<_> = best
+            .degradations()
+            .iter()
+            .filter(|degradation| degradation.action() == DegradationAction::DeclarationIgnored)
+            .collect();
+        assert_eq!(declared.len(), 1, "{property}: {declared:?}");
+        assert!(
+            declared[0]
+                .reason()
+                .contains(&format!("stylesheet declares {property}")),
+            "{property}: {}",
+            declared[0].reason()
+        );
+        assert!(
+            best.degradations()
+                .iter()
+                .all(|degradation| degradation.action() != DegradationAction::Skipped),
+            "{property}: the own-row declaration, not a duplicate filter skip, owns the gap"
+        );
+        resolved_filter(&best.base_frame());
+    }
 }
 
 #[test]

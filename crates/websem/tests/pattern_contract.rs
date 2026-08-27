@@ -276,7 +276,7 @@ fn href_beats_xlink_and_the_first_local_content_owner_wins() {
 }
 
 #[test]
-fn a_filter_inside_pattern_content_stays_in_the_resolved_source_program() {
+fn filters_inside_pattern_content_keep_the_measured_source_programs() {
     let frame = admit_both(&document(
         r##"  <defs>
     <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="16" height="16"
@@ -307,6 +307,29 @@ fn a_filter_inside_pattern_content_stays_in_the_resolved_source_program() {
   <rect width="64" height="64" fill="url(#p)"/>"##,
     ));
     assert!(pattern_of(&nested, 0).items().iter().any(|item| {
+        matches!(
+            item,
+            FrameItem::ScopeBegin(scope) if matches!(scope.effect, ScopeEffect::Filter(_))
+        )
+    }));
+
+    let multi_draw = admit_both(&document(
+        r##"  <defs>
+    <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="16" height="16"
+            color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="2"/></filter>
+    <pattern id="p" patternUnits="userSpaceOnUse" width="16" height="16">
+      <g filter="url(#f)"><rect width="8" height="16" fill="#e11d48"/><rect x="8" width="8" height="16" fill="#2563eb"/></g>
+    </pattern>
+  </defs>
+  <rect width="64" height="64" fill="url(#p)"/>"##,
+    ));
+    let source = pattern_of(&multi_draw, 0);
+    assert_eq!(
+        source.items().nodes().count(),
+        2,
+        "the P2 group-filter profile intentionally carries both source draws"
+    );
+    assert!(source.items().iter().any(|item| {
         matches!(
             item,
             FrameItem::ScopeBegin(scope) if matches!(scope.effect, ScopeEffect::Filter(_))
