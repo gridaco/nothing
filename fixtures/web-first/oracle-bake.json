@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "7b182ef872ad3dfe4c4baa3a0c07cba9cc7be7fa9acd891d61d7030044ea3125",
+  "suite_sha256": "25d5f7f1423060a73cbe6b9378e82b92ecf6b5ba93e9edb5555d75d59a34f6ae",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -34,6 +34,15 @@
       "source_sha256": "26c6bf984d4b5c91e113a48de9930c44451ce106cb6e6cca18f4c44c612eaffb",
       "oracle": "chromium/html-inline-svg-currentcolor-rect.png",
       "oracle_sha256": "6f4bc09437add7d83beb4429ffec5327b45c94ae909eab27f1225d6f82451d29",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "html-inline-svg-pattern",
+      "source": "html-inline-svg-pattern.html",
+      "source_sha256": "e01dc21e24bcb30e8af1cf9ab43f8d5613c56242cba00b06759d04f7ea7eacba",
+      "oracle": "chromium/html-inline-svg-pattern.png",
+      "oracle_sha256": "0ac29fe0ee43f998a4dc30d0ee0d4764013d4cb7833cf17f4d6df15ef617cf8c",
       "width": 64,
       "height": 64
     },
@@ -5731,6 +5740,555 @@
       "source_sha256": "6fb18d3915f2e864b9fba7d34f1e037ea13eb945a64f0fdea7f2f7788011fa92",
       "oracle": "chromium/svg-path-unclosed-fill.png",
       "oracle_sha256": "7b20e52ebce165b1c0ab147b3ebc558258ef4d9975f4502afeb527f062e91d79",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-degenerate-viewbox-fallback",
+      "source": "svg-pattern-degenerate-viewbox-fallback.svg",
+      "source_sha256": "50ed0225e02ac0a0d2107603c56676a9e85c28d94d2702c90913ffa081e42288",
+      "oracle": "chromium/svg-pattern-degenerate-viewbox-fallback.png",
+      "oracle_sha256": "e3e7d7bd8868770106d447601e0288678be1b89fc87573df7ed87e5884b54d65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-descriptive-content-drop",
+      "source": "svg-pattern-descriptive-content-drop.svg",
+      "source_sha256": "48fe20380558c8d24d68c4c581c0db418bec049581487e3387a76a91a49abcbe",
+      "oracle": "chromium/svg-pattern-descriptive-content-drop.png",
+      "oracle_sha256": "1502272898b22a79c129dc16ab37a1280c353a18767753769bc82532dddd72a7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-duplicate-id-first",
+      "source": "svg-pattern-duplicate-id-first.svg",
+      "source_sha256": "01a2b7ea51bd26aeaf2ce65fa347ada84a437a3a477478c28314c4ac42bc26e5",
+      "oracle": "chromium/svg-pattern-duplicate-id-first.png",
+      "oracle_sha256": "e3e7d7bd8868770106d447601e0288678be1b89fc87573df7ed87e5884b54d65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-fill-circle",
+      "source": "svg-pattern-fill-circle.svg",
+      "source_sha256": "f1456bfb0f6b43519036a42328fe16f896f4aff4732f228ce5b3b6d32460d8cf",
+      "oracle": "chromium/svg-pattern-fill-circle.png",
+      "oracle_sha256": "b33f33fdf0861b7f66dfb3e1ea620eca05436c762d978c2e5003ea6ceb0a6067",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-fill-path-cubic",
+      "source": "svg-pattern-fill-path-cubic.svg",
+      "source_sha256": "3b03d9782bbb2b9d28d7966d479bb72c426adfdd10b7de725966a19b7e8e00ff",
+      "oracle": "chromium/svg-pattern-fill-path-cubic.png",
+      "oracle_sha256": "b585d85f12bbae8c2b18852a8c7b4ebcc919d608c86433e3db5ccdc602dc51ee",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-fill-path-evenodd",
+      "source": "svg-pattern-fill-path-evenodd.svg",
+      "source_sha256": "2924b3a4c142b6362baccbaa8f982bd958e9050b2d72edd2beb5df1a0067e053",
+      "oracle": "chromium/svg-pattern-fill-path-evenodd.png",
+      "oracle_sha256": "c6c6db9a965b0727ee65089328f132ce45ec517e9451efcfadc38dc83d0e802e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-fill-rounded-rect",
+      "source": "svg-pattern-fill-rounded-rect.svg",
+      "source_sha256": "020638da16a764e0161253fe226c4eb96fda4bfc14779ac70c0c818fed3da79f",
+      "oracle": "chromium/svg-pattern-fill-rounded-rect.png",
+      "oracle_sha256": "e43070d6630b878c65517fa743fc69038d181037a5ef4a3ce249a2a05de89d93",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-fill-stroke-opacity",
+      "source": "svg-pattern-fill-stroke-opacity.svg",
+      "source_sha256": "899944bab98694a35b4aa9052f4ff87dd8ca147e50337f15266fe57c2604c120",
+      "oracle": "chromium/svg-pattern-fill-stroke-opacity.png",
+      "oracle_sha256": "51c45a113a2b0a1cff766a74b67d17aae9e75040201aa81629dfbffc2c1b9194",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-height-absent-fallback",
+      "source": "svg-pattern-height-absent-fallback.svg",
+      "source_sha256": "f4438f90607da96da1f9a794e79f50cb1d92e3d7f7d017079a5dc21bcaec5f2c",
+      "oracle": "chromium/svg-pattern-height-absent-fallback.png",
+      "oracle_sha256": "e3e7d7bd8868770106d447601e0288678be1b89fc87573df7ed87e5884b54d65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-height-negative-fallback",
+      "source": "svg-pattern-height-negative-fallback.svg",
+      "source_sha256": "e82291fb5fa03ca36aa52b16ba5fc8cacf540d19884611779adb56eb74070d05",
+      "oracle": "chromium/svg-pattern-height-negative-fallback.png",
+      "oracle_sha256": "e3e7d7bd8868770106d447601e0288678be1b89fc87573df7ed87e5884b54d65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-height-zero-fallback",
+      "source": "svg-pattern-height-zero-fallback.svg",
+      "source_sha256": "c9fbf5156ed8e124724d72dc27d7352198ce7390222ce9ceaffb0bfdec3e166c",
+      "oracle": "chromium/svg-pattern-height-zero-fallback.png",
+      "oracle_sha256": "e3e7d7bd8868770106d447601e0288678be1b89fc87573df7ed87e5884b54d65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-href-beats-xlink",
+      "source": "svg-pattern-href-beats-xlink.svg",
+      "source_sha256": "5a4c62f8910b8957bed6eff17a3d73d950083069b9e93ed156d4e21bb18b5aa5",
+      "oracle": "chromium/svg-pattern-href-beats-xlink.png",
+      "oracle_sha256": "e3e7d7bd8868770106d447601e0288678be1b89fc87573df7ed87e5884b54d65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-href-cycle-content",
+      "source": "svg-pattern-href-cycle-content.svg",
+      "source_sha256": "c70404a8d26605b5f10f6592237031a490b195cc1875f5a06b352c2a398fcb7a",
+      "oracle": "chromium/svg-pattern-href-cycle-content.png",
+      "oracle_sha256": "e3e7d7bd8868770106d447601e0288678be1b89fc87573df7ed87e5884b54d65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-href-first-present",
+      "source": "svg-pattern-href-first-present.svg",
+      "source_sha256": "96c88ba11fbfe4f63a430e2642e4185b361e4397c1f4445e4d7cd7ad8696770a",
+      "oracle": "chromium/svg-pattern-href-first-present.png",
+      "oracle_sha256": "206fdbeb5fadea4bdd038e8dda67ed2670b111b6c027342dc36646ac62631c1b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-href-template",
+      "source": "svg-pattern-href-template.svg",
+      "source_sha256": "be2e56ca3eca3d08dd0f577b2a62dfcf9b484b14eca0f79b16f1030d6c053f5e",
+      "oracle": "chromium/svg-pattern-href-template.png",
+      "oracle_sha256": "e3e7d7bd8868770106d447601e0288678be1b89fc87573df7ed87e5884b54d65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-invalid-content-units",
+      "source": "svg-pattern-invalid-content-units.svg",
+      "source_sha256": "e2367ee392999b0ccb7c50eda3fa2d6cba454341cf73ebd09d041bdb49fcf1b7",
+      "oracle": "chromium/svg-pattern-invalid-content-units.png",
+      "oracle_sha256": "e3e7d7bd8868770106d447601e0288678be1b89fc87573df7ed87e5884b54d65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-invalid-pattern-units",
+      "source": "svg-pattern-invalid-pattern-units.svg",
+      "source_sha256": "3b495f01af5c4513eddaff6680a7f31b5743fc8919b6e5bdf7bb7283c70995f0",
+      "oracle": "chromium/svg-pattern-invalid-pattern-units.png",
+      "oracle_sha256": "e3e7d7bd8868770106d447601e0288678be1b89fc87573df7ed87e5884b54d65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-mask-source",
+      "source": "svg-pattern-mask-source.svg",
+      "source_sha256": "58e00abe238aa1d070d09e364ffff6449c8a3c17ffe2092ca67b78c4d5953e3d",
+      "oracle": "chromium/svg-pattern-mask-source.png",
+      "oracle_sha256": "6c9e4854178c8ccb2ca18e75698cde1ac750be130f420a8dafd8ad990bdd8cb3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-negative-origin",
+      "source": "svg-pattern-negative-origin.svg",
+      "source_sha256": "1c324733c8d1dd5e1135452f94737fb04eaf15f42c0a9d4f34158964070f8dcf",
+      "oracle": "chromium/svg-pattern-negative-origin.png",
+      "oracle_sha256": "3c0c16503c4d6aab204ddde7b1d85ca5a8a71b68b81488806de820c6faeb7f45",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-nested-repeat",
+      "source": "svg-pattern-nested-repeat.svg",
+      "source_sha256": "c96b63d323a260702e4717d675dfa39eba76818a821b24774567e072c03dcf03",
+      "oracle": "chromium/svg-pattern-nested-repeat.png",
+      "oracle_sha256": "7b66b1be5f4b33bb46ca838bb4dc49aae26c485afa9917dee9147d8df1cd26be",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-object-number",
+      "source": "svg-pattern-object-number.svg",
+      "source_sha256": "61c4b49dfa557bf78d86d973054a50507e368b954edc1ea4423b42453ebc3309",
+      "oracle": "chromium/svg-pattern-object-number.png",
+      "oracle_sha256": "b8c3990f7b7ca01970bc54aac74289a7bab0b9e58999aeb814cef5305177afa4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-object-per-client",
+      "source": "svg-pattern-object-per-client.svg",
+      "source_sha256": "14efb91e3aab8b4059b91a84288ea2b42a545bd25cb13ca4f7cf5fd29cc763be",
+      "oracle": "chromium/svg-pattern-object-per-client.png",
+      "oracle_sha256": "f120b968f3b31751d8e5ac13aa01cdd202c36b1e4502b58a8debacafa4f1bcde",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-object-percent",
+      "source": "svg-pattern-object-percent.svg",
+      "source_sha256": "c67d275cf7f1f8f5f4ba6b5715e75547f233e97fbccfb8f5da3a91e8ff78090e",
+      "oracle": "chromium/svg-pattern-object-percent.png",
+      "oracle_sha256": "b8c3990f7b7ca01970bc54aac74289a7bab0b9e58999aeb814cef5305177afa4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-overflow-default-clip",
+      "source": "svg-pattern-overflow-default-clip.svg",
+      "source_sha256": "d12e632515f31f1bc1d68ba2dac067e081d5df77a623288d0feac5bb8f08c6e8",
+      "oracle": "chromium/svg-pattern-overflow-default-clip.png",
+      "oracle_sha256": "a698fa0be5cbf4a09e20eecc93a24d27bc42a940690d34becc220120e6ccd4a1",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-plain-transform-inert",
+      "source": "svg-pattern-plain-transform-inert.svg",
+      "source_sha256": "dada37c0afc5f7abbcd489af1d43b0df19483e7c43614b581cd8d244ff6cccc4",
+      "oracle": "chromium/svg-pattern-plain-transform-inert.png",
+      "oracle_sha256": "cd343be558bf411efff6ce1e9b4510ed925c7c136476d0cf943b2dc9a1c66694",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-px-lengths",
+      "source": "svg-pattern-px-lengths.svg",
+      "source_sha256": "d826b1ffdafd1052c67cc70ff8420ca96825bef8a9516d764d2cfbc46bd6515b",
+      "oracle": "chromium/svg-pattern-px-lengths.png",
+      "oracle_sha256": "74018b538ef02b856bf6a318fc742db44e311e89017762f8e06995e5bb6c45ff",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-repeat",
+      "source": "svg-pattern-repeat.svg",
+      "source_sha256": "d21a1ebb8edb8fae81d956b87086d45cafe962795ba9019aec95a353d9868aaa",
+      "oracle": "chromium/svg-pattern-repeat.png",
+      "oracle_sha256": "b17cc2e310b423413dfdcb8bdd039eda614710f172e05eb0e52fc0b93ab4f17a",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-singular-transform-fallback",
+      "source": "svg-pattern-singular-transform-fallback.svg",
+      "source_sha256": "d64dfd0e7ccb94883e4a765a69a94be90e172deba1ec25e9f86b5ceeaf300e56",
+      "oracle": "chromium/svg-pattern-singular-transform-fallback.png",
+      "oracle_sha256": "e3e7d7bd8868770106d447601e0288678be1b89fc87573df7ed87e5884b54d65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-gradient",
+      "source": "svg-pattern-source-gradient.svg",
+      "source_sha256": "f9d600c847d6e6d7c57c964860c8667f3ee7914149fcf5b02a3a6a8cc8e51368",
+      "oracle": "chromium/svg-pattern-source-gradient.png",
+      "oracle_sha256": "0a5a1ebdba5c88af2610e4aa6a34497ecfad063d5a34cb5d32cffd06b73327c1",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-mask",
+      "source": "svg-pattern-source-mask.svg",
+      "source_sha256": "9a2b7227b7f7fe8a5607403c16928565475c67cd033d87407947ada4db19bc25",
+      "oracle": "chromium/svg-pattern-source-mask.png",
+      "oracle_sha256": "6835363080fa57e2b0cad3b5079f39bed0d1fc71ac2f83b08f60083334ca1123",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-one-draw-opacity",
+      "source": "svg-pattern-source-one-draw-opacity.svg",
+      "source_sha256": "deaeac98aa2491313387c34ea73986607586abb679aad16a428b6610d9561bab",
+      "oracle": "chromium/svg-pattern-source-one-draw-opacity.png",
+      "oracle_sha256": "0047fa75e060439b46c2bea75f162ff39285f67c74e536f83ee94202d0c2d65f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-source-use",
+      "source": "svg-pattern-source-use.svg",
+      "source_sha256": "fb07254fa59037aaa95bd30db7e50f5c91f7a2f4c46745cb334f8cf41a20697d",
+      "oracle": "chromium/svg-pattern-source-use.png",
+      "oracle_sha256": "39867bd5fbcbf4389e64e790047b66970aab4984e55fe0124978c163ca004dce",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-stroke-dash-round",
+      "source": "svg-pattern-stroke-dash-round.svg",
+      "source_sha256": "ff39d6b20fd29f5ba1970d9feaa064e3f9320e15bebe644fd85f5da60036be68",
+      "oracle": "chromium/svg-pattern-stroke-dash-round.png",
+      "oracle_sha256": "f0300bf007b277b903899f575b2fc66031ea4943691573ec5d246bf10e4f2d33",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-stroke-ellipse",
+      "source": "svg-pattern-stroke-ellipse.svg",
+      "source_sha256": "4999131313f78de2592b1ed25127f15efab22255530e48586cd137033eab968e",
+      "oracle": "chromium/svg-pattern-stroke-ellipse.png",
+      "oracle_sha256": "10ddf184586efdecf838bdbf30094729abd3263b35c4ff64bc67e4c61e175b75",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-stroke-rect",
+      "source": "svg-pattern-stroke-rect.svg",
+      "source_sha256": "6bdb58c2af073c1d4e4d9ea07bde641a29daa540939ea817043050f5b67353b5",
+      "oracle": "chromium/svg-pattern-stroke-rect.png",
+      "oracle_sha256": "fa2e93e404f840728cc3d3dc1ce55fdda468f5dd98a02cb63328008298b146e0",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-axis-transform",
+      "source": "svg-pattern-target-axis-transform.svg",
+      "source_sha256": "f215b82c1bab25fd6732259d7bf0faeeee39174e6982e2fdfbe5ff6782dc4b2f",
+      "oracle": "chromium/svg-pattern-target-axis-transform.png",
+      "oracle_sha256": "701abdbd1e15af779bd1bdf8c92bf739c07e609a9b7e598b137217d4528d7aef",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-clip",
+      "source": "svg-pattern-target-clip.svg",
+      "source_sha256": "8b792159a2acafbf43486b15c3257fb5618c578760bc2998be132d3ac0722cdf",
+      "oracle": "chromium/svg-pattern-target-clip.png",
+      "oracle_sha256": "95194b82fd726213a2434fa59001e588e4f20614b07103fcf00816d17b24d0d9",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-element-opacity",
+      "source": "svg-pattern-target-element-opacity.svg",
+      "source_sha256": "d06c1ae21402d38e484dbf320671e63fcc4a2ba01eb873f7f31e2bf118cc27ec",
+      "oracle": "chromium/svg-pattern-target-element-opacity.png",
+      "oracle_sha256": "a03f869c7451e4f2e458540da6ddf1c1aec1865d358abe0379038134e40306e7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-fill-opacity",
+      "source": "svg-pattern-target-fill-opacity.svg",
+      "source_sha256": "6ca2ec9307d80b2ba8aa32b26e7484e41cd9ed78e4b667ff05e4c21c56802bfe",
+      "oracle": "chromium/svg-pattern-target-fill-opacity.png",
+      "oracle_sha256": "58f6f3613e4eb6a2b90aaab1d17757953b50eee41915dfbbef4951fa04d8f14e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-filter",
+      "source": "svg-pattern-target-filter.svg",
+      "source_sha256": "3e223120ba471d0eb393995aacf02b900d6a4a68c7bf091bcf4993fb9b782a15",
+      "oracle": "chromium/svg-pattern-target-filter.png",
+      "oracle_sha256": "575880903d533acbebf434034237e33aa36c14589ee36b5daef9f3591afe49f6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-group-opacity",
+      "source": "svg-pattern-target-group-opacity.svg",
+      "source_sha256": "c5b431c4b1993d9d4192f2d5c5c6bc2c75203302b1f164eedadb4c9d0e33d1ea",
+      "oracle": "chromium/svg-pattern-target-group-opacity.png",
+      "oracle_sha256": "de6d591106d2eb97c9ddfaafe65171a5e76599e2cd41711d9d800ce9ab65ba99",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-target-mask",
+      "source": "svg-pattern-target-mask.svg",
+      "source_sha256": "7c2180fbaa595d054ce3dfeb94b3a4cf2b8b0605d8a7620c6d5d02eb94e05af6",
+      "oracle": "chromium/svg-pattern-target-mask.png",
+      "oracle_sha256": "893fa37ba73b4124234f6ffad4d769272365a1bf8dc4e9f6758b1ae0a0b0577f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-template-style-owner",
+      "source": "svg-pattern-template-style-owner.svg",
+      "source_sha256": "53d980da511f35170d053682a65584c70e6c5f75bf24aacaf42ecb431fd46fa7",
+      "oracle": "chromium/svg-pattern-template-style-owner.png",
+      "oracle_sha256": "31a43626eee89c600a77ae3e806d345ec0034f94226a8f0317665838eb17e365",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-transform-axis-scale",
+      "source": "svg-pattern-transform-axis-scale.svg",
+      "source_sha256": "28135f11fb6266dc526c99ac6716be30edeef7991c8bde95051858c591652125",
+      "oracle": "chromium/svg-pattern-transform-axis-scale.png",
+      "oracle_sha256": "65f601e443f67c182ad4d23ae3e72b6c88d5cfa5bdf4dbf181314256828522ea",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-transform-css",
+      "source": "svg-pattern-transform-css.svg",
+      "source_sha256": "e2f4001f433810e4b95e82b6a839cf70254aaf9713801fb5fc18798bc9a6e834",
+      "oracle": "chromium/svg-pattern-transform-css.png",
+      "oracle_sha256": "ae6fa8e8432d6f195100eb9b99ca0bb68d7e9fa14fe1848f37a929853f4a485c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-transform-hint",
+      "source": "svg-pattern-transform-hint.svg",
+      "source_sha256": "34974aabd8b446047d9293c0b328d9c45a8409d466b8c3072020965f18998581",
+      "oracle": "chromium/svg-pattern-transform-hint.png",
+      "oracle_sha256": "95bf108449c971c942b1c262c23b46c0088b02c9da5019c2d6a306cbad1928b1",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-transform-quarter-turn",
+      "source": "svg-pattern-transform-quarter-turn.svg",
+      "source_sha256": "1b322587de8612eed7cf9a0b962a19d6b8d623a283787c897e9756348899e4ac",
+      "oracle": "chromium/svg-pattern-transform-quarter-turn.png",
+      "oracle_sha256": "6786beab76c1d9fc22f65948348804e04f04ac23c908658610b637b39992d4ff",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-use-scale",
+      "source": "svg-pattern-use-scale.svg",
+      "source_sha256": "b0edec5ee1c1814be42ec2b238e397c71ba52b80da06aba413b5ff41809185aa",
+      "oracle": "chromium/svg-pattern-use-scale.png",
+      "oracle_sha256": "40dad6814aa704670cb95bd9889cb64a15528ba63da9d09e61dcf34ea63a1868",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-use-translate",
+      "source": "svg-pattern-use-translate.svg",
+      "source_sha256": "d3f95203542d019449613ce8e3dc600423715f2b4b4febfdec067fb50809ebd1",
+      "oracle": "chromium/svg-pattern-use-translate.png",
+      "oracle_sha256": "1a092c8c1950dc14a48a1ad702416ddd0654cf135dd611dda2ef971f7eb70e39",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-user-percent",
+      "source": "svg-pattern-user-percent.svg",
+      "source_sha256": "75ce309eed4ca7250f15846271c28299a3459b362b84c6178c7740f1ea3ab983",
+      "oracle": "chromium/svg-pattern-user-percent.png",
+      "oracle_sha256": "7e0ac10e923c772860b6c241f9fab42372824e8360e6f1b11110956cc0316a3d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-valid-empty",
+      "source": "svg-pattern-valid-empty.svg",
+      "source_sha256": "3137672fcadf72e5764fe4d9bb208b890011169f666c4c606d1fb3e490675429",
+      "oracle": "chromium/svg-pattern-valid-empty.png",
+      "oracle_sha256": "1502272898b22a79c129dc16ab37a1280c353a18767753769bc82532dddd72a7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-viewbox-content-object",
+      "source": "svg-pattern-viewbox-content-object.svg",
+      "source_sha256": "ea07d01cd4b6f3ad66163fc4cdb1d35dc5956bb7f69e41aae0b6a1d92152392c",
+      "oracle": "chromium/svg-pattern-viewbox-content-object.png",
+      "oracle_sha256": "3a377f4cf55d6b23dd4a77854f9ca4181e27a0dff43a0ed24d83e03ffce91c6f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-viewbox-content-user",
+      "source": "svg-pattern-viewbox-content-user.svg",
+      "source_sha256": "b8e77c4e9368684c5846630f02dd8ae8d6f2da558d653323270d99d702a2bdfb",
+      "oracle": "chromium/svg-pattern-viewbox-content-user.png",
+      "oracle_sha256": "3a377f4cf55d6b23dd4a77854f9ca4181e27a0dff43a0ed24d83e03ffce91c6f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-viewbox-meet",
+      "source": "svg-pattern-viewbox-meet.svg",
+      "source_sha256": "c35badddded32906c0600cc35adf60e251a2ef715c78a1e86b7f58b86a95df7e",
+      "oracle": "chromium/svg-pattern-viewbox-meet.png",
+      "oracle_sha256": "6e7c8df88e35acd79a224b20fa6367bc550b1174179de8ffc89470f264f2e627",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-viewbox-none",
+      "source": "svg-pattern-viewbox-none.svg",
+      "source_sha256": "d4126dcdebdcbfabd94d69ea8e1460fe83680249d4948e2e5f9d3bba0926e81b",
+      "oracle": "chromium/svg-pattern-viewbox-none.png",
+      "oracle_sha256": "3a377f4cf55d6b23dd4a77854f9ca4181e27a0dff43a0ed24d83e03ffce91c6f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-viewbox-slice",
+      "source": "svg-pattern-viewbox-slice.svg",
+      "source_sha256": "33147963313a06e382ebeb22fdec597921294df16f90d1d986eadd1c854f1489",
+      "oracle": "chromium/svg-pattern-viewbox-slice.png",
+      "oracle_sha256": "4fa59ab89599fd77666163f251eba6b58d4ad9bbfe77ae08785099aaf1333064",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-width-absent-fallback",
+      "source": "svg-pattern-width-absent-fallback.svg",
+      "source_sha256": "377adefde75ff9ccc3f86f6b9af42234de3b5a228d4a536080f03732558a55ff",
+      "oracle": "chromium/svg-pattern-width-absent-fallback.png",
+      "oracle_sha256": "e3e7d7bd8868770106d447601e0288678be1b89fc87573df7ed87e5884b54d65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-width-malformed-fallback",
+      "source": "svg-pattern-width-malformed-fallback.svg",
+      "source_sha256": "bfe34c8d3528c57068d71fe6bfc0b65e86373b2f8b2a72b05533ee981de082c6",
+      "oracle": "chromium/svg-pattern-width-malformed-fallback.png",
+      "oracle_sha256": "e3e7d7bd8868770106d447601e0288678be1b89fc87573df7ed87e5884b54d65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-width-negative-fallback",
+      "source": "svg-pattern-width-negative-fallback.svg",
+      "source_sha256": "d5105aec517fcb0b8f37e2f81680ad744824e3b5909f8d9a1690ce6e8372073d",
+      "oracle": "chromium/svg-pattern-width-negative-fallback.png",
+      "oracle_sha256": "e3e7d7bd8868770106d447601e0288678be1b89fc87573df7ed87e5884b54d65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-width-zero-fallback",
+      "source": "svg-pattern-width-zero-fallback.svg",
+      "source_sha256": "b3fa1beb15c93a305d0321770a982c5c05ecda35ef99a19e61eb14489b35f8fb",
+      "oracle": "chromium/svg-pattern-width-zero-fallback.png",
+      "oracle_sha256": "e3e7d7bd8868770106d447601e0288678be1b89fc87573df7ed87e5884b54d65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-pattern-xlink-template",
+      "source": "svg-pattern-xlink-template.svg",
+      "source_sha256": "e46ea926d8528577e3712372ec69b83b7fe006fa078139ce494fbd5f97c340b5",
+      "oracle": "chromium/svg-pattern-xlink-template.png",
+      "oracle_sha256": "e3e7d7bd8868770106d447601e0288678be1b89fc87573df7ed87e5884b54d65",
       "width": 64,
       "height": 64
     },

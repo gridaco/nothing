@@ -31,8 +31,9 @@ pub use filter::{
     FilterTurbulenceKind, MAX_FILTER_CONVOLVE_KERNEL_VALUES, MAX_FILTER_NODES,
 };
 pub use frame::{
-    Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry, Identity, MAX_SCOPE_DEPTH,
-    PaintAlphaFactor, PaintAlphaFactorError, PaintStack, PaintStackError, Provenance, VisualRef,
+    Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry, Identity,
+    MAX_PATTERN_DEPTH, MAX_SCOPE_DEPTH, PaintAlphaFactor, PaintAlphaFactorError, PaintStack,
+    PaintStackError, PatternPaint, PatternPaintError, Provenance, VisualRef,
 };
 pub use mask::{Mask, MaskMode};
 pub use path::{FillRule, PathCommand, PathData, PathDataError};

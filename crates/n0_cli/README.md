@@ -59,8 +59,9 @@ cargo run -p n0_cli --bin n0 -- \
   document-level refusal until a host-level oracle can bake it.
 - Resources: self-contained input only; external images and stylesheets are
   not resolved.
-- Capability: the admitted slice is deliberately narrow — solid- or
-  gradient-filled and -stroked `<rect>` (rounded corners included: `rx`/`ry`
+- Capability: the admitted slice is deliberately narrow — `<rect>` filled and
+  stroked with solid, gradient, or admitted repeating-pattern paint (rounded
+  corners included: `rx`/`ry`
   resolve by the measured auto/clamp matrix and lower to the conics Chromium
   draws them through), `<circle>`, `<ellipse>`, `<path>` (the complete
   `none | <path-data>` presentation-attribute grammar with `fill-rule`): source
@@ -116,9 +117,9 @@ cargo run -p n0_cli --bin n0 -- \
   are measured, not celled; their corresponding refusals are registered. Root
   `auto` remains admitted as the absent dimension, while root percentage
   sizing and CSS sizing remain the document-level contracts above. `<image>`
-  and `<pattern>` retain their own element/resource refusals; mask-region
-  geometry is admitted only by the separately bounded mask slice below, so
-  this rect evidence does not close the generic `x`/`y`/`width`/`height` rows.
+  retains its own element/resource refusal; pattern tile and mask-region
+  geometry are admitted only by their separately bounded slices below, so this
+  rect evidence does not close the generic `x`/`y`/`width`/`height` rows.
   `transform` is consumed in both spellings: the attribute is a presentation
   attribute of the one CSS `transform` property (CSS Transforms L1 §7),
   entering the cascade at hint level, so author CSS beats it —
@@ -538,8 +539,8 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 32 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete corpus contains 812 Chromium-baked cells plus 10 sampled
-  frames, with 152 named
+  cells. The complete corpus contains 874 Chromium-baked cells plus 10 sampled
+  frames, with 170 named
   refusal rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
@@ -767,7 +768,62 @@ cargo run -p n0_cli --bin n0 -- \
   declaring one is a document-level declaration and a stop's style
   attribute refuses the paint), font-relative units in gradient geometry,
   a percentage in a gradient's computed transform (Chromium resolves it
-  against mismatched spaces), an external reference, and `<pattern>`.
+  against mismatched spaces), and an external reference.
+  `<pattern>` paint servers are consumed in a bounded static profile. A
+  same-document `url(#…)` resolves first-id-wins for each consuming fill or
+  stroke. Plain `href` beats `xlink:href`; template chains inherit each missing
+  attribute independently and take children all-or-nothing from the first
+  owner that has them, while cycles remove only their cyclic edge. An invalid
+  server activates the authored paint fallback. A valid pattern with no
+  painting children instead paints transparent and leaves that fallback inert.
+  Source compilation is transactional, so an unsupported child refuses the
+  complete affected client instead of leaking a partial tile.
+  `patternUnits` defaults to `objectBoundingBox` and
+  `patternContentUnits` defaults to `userSpaceOnUse`; both complete
+  `userSpaceOnUse | objectBoundingBox` grammars and invalid fallback are
+  admitted. Tile numbers and percentages resolve per client against the
+  correct independent axes. A pattern `viewBox` uses the complete
+  `preserveAspectRatio` resolver and supersedes `patternContentUnits`.
+  `patternTransform` is the transform property's presentation hint: CSS beats
+  it and a plain `transform` attribute is inert. Translation, axis scale,
+  reflection, and exact quarter turns are admitted. The repeating source can
+  contain admitted rectangles, gradients, `<use>`, masks, and a pattern nested
+  alone; pattern paint covers admitted rect, ellipse, and path fills and
+  strokes, and target opacity, clip, mask, and filter scopes retain their
+  established order. Sixty-two Chromium-baked cells cover that profile,
+  including independent object-box clients and one inline-HTML SVG entry; all
+  are exact without a new tolerance.
+  What refuses by stable name: a pattern selected through
+  `context-fill`/`context-stroke`; an external template dependency; a non-`px`
+  unit, CSS math, `var()`, CSS-wide tile value, or CSS comments around an
+  otherwise valid tile length; a source child outside the admitted element
+  slice; filter composition inside the source program; curved source
+  coverage; isolated multi-draw source
+  opacity or a geometric source clip; another source draw mixed with a nested
+  pattern; a fractional final tile extent; and a final tile map carrying a
+  general rotation or shear. Those last five are measured picture-shader
+  precision boundaries, not guessed omissions. Before its patrol, the valid
+  comment spelling silently selected fallback in both admissions and changed
+  all 2,304 target pixels at maximum delta 202. A derived template whose
+  author stylesheet may contribute `transform:none` also refuses because the
+  pinned computed value loses the provenance needed to decide inheritance.
+  A CSS percentage transform on the pattern resource refuses until its
+  reference box can be carried without invention. Chromium resolves inline
+  `translate(50%, 0px)` against the 64-unit viewport; the former tile-width
+  basis changed 1,008 target pixels at maximum delta 205 (measured, not
+  celled). A ninth distinct nested pattern likewise refuses before its source
+  walk begins; the resolved contract admits at most eight programs, while
+  cycles retain their separate active-id refusal.
+  Finite tile coordinates beyond Chromium's Web used-length clamp refuse too:
+  the former raw route changed 768–2,112 pixels at maximum delta 205 for the
+  signed huge, adjacent, and beyond-binary32 witnesses instead of selecting
+  Chromium's clamped repetition phase (measured, not celled).
+  The source-number alias probe found no discriminating pattern raster at
+  64×64: Chromium's adjacent controls were pixel-identical (measured, not
+  celled), but the raw decoder still cannot prove Blink's used value, so the
+  conservative provenance patrol remains. The `<pattern>` and
+  `patternTransform` checklist rows therefore stay open; only `patternUnits`
+  and `patternContentUnits` close.
   `<text>` is consumed (the text rung), and its font environment is the
   host's: text resolves only against fonts declared with
   `--font FAMILY=PATH@sha256:HEX` (repeatable), whose bytes are **verified

@@ -251,6 +251,31 @@ impl GlyphlessOwnerSlot {
     }
 }
 
+/// One private source-neutral repeating vector program.
+///
+/// The nested drawlist is already compiled and preflighted. Its frame clip is
+/// the tile cell `(0, 0, width, height)`; `transform` maps that tile-local
+/// coordinate system into the consuming geometry's local space before both
+/// axes repeat.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ResolvedPattern {
+    pub(crate) width: f32,
+    pub(crate) height: f32,
+    pub(crate) transform: Affine,
+    pub(crate) program: Arc<DrawList<GlyphlessOwnerSlot>>,
+    pub(crate) opacity: f32,
+}
+
+/// Absolute geometry in the consuming node's local coordinate system.
+/// Pattern items keep that origin in geometry instead of folding it into
+/// `world`, because the pattern mapping is stated in the same local space.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ResolvedPatternGeometry {
+    Rect { x: f32, y: f32, w: f32, h: f32 },
+    Oval { x: f32, y: f32, w: f32, h: f32 },
+    Path(Arc<ResolvedPathArtifact>),
+}
+
 /// One canonical, source-neutral dash phase carried by private stroke
 /// material.
 ///
@@ -410,6 +435,20 @@ pub enum ItemKind {
         filter: Arc<ResolvedFilter>,
     },
     EndFilter,
+    /// Fill absolute local geometry through one checked repeat program.
+    PatternFill {
+        geometry: ResolvedPatternGeometry,
+        pattern: Arc<ResolvedPattern>,
+        post_paint_opacity: PostPaintOpacity,
+    },
+    /// Stroke absolute local geometry through one checked repeat program.
+    PatternStroke {
+        geometry: ResolvedPatternGeometry,
+        pattern: Arc<ResolvedPattern>,
+        stroke: Stroke,
+        dash_phase: StrokeDashPhase,
+        post_paint_opacity: PostPaintOpacity,
+    },
     RectFill {
         w: f32,
         h: f32,

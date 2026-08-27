@@ -1706,6 +1706,21 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `<mpath>`
 - [x] `<path>`
 - [ ] `<pattern>`
+
+> **2026-08-27 split:** same-document patterns now resolve per consuming fill
+> or stroke into a bounded, source-neutral repeating vector program. Both unit
+> systems, independent clients, template chains, `viewBox` mapping, cascade,
+> transforms, `<use>`, effects around the target, nested repetition, and the
+> invalid-reference-fallback versus valid-empty distinction are carried by 62
+> exact Chromium cells. The element stays open: external template facts,
+> context-selected pattern paint, unsupported source descendants, curved
+> source coverage, source filters, isolated source effects, mixed nested
+> composition, used-length saturation, fractional tile sampling, and general
+> affine mapping refuse by stable name at measured pixel boundaries. A ninth
+> distinct nested program now refuses before source compilation begins. Shared
+> `x`/`y`/`width`/`height`, `href`, `viewBox`, CSS-token/value-type, resource, and
+> dynamics rows remain independently open.
+
 - [x] `<polygon>`
 - [x] `<polyline>`
 - [x] `<radialGradient>`
@@ -2156,9 +2171,25 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `orient`
 - [ ] `path`
 - [x] `pathLength`
-- [ ] `patternContentUnits`
+- [x] `patternContentUnits`
 - [ ] `patternTransform`
-- [ ] `patternUnits`
+- [x] `patternUnits`
+
+> **2026-08-27 close/split:** the complete case-sensitive
+> `userSpaceOnUse | objectBoundingBox` grammars, their different initials
+> (`userSpaceOnUse` for content, `objectBoundingBox` for the tile), and invalid
+> fallback are Chromium-baked, so `patternContentUnits` and `patternUnits`
+> close. `patternTransform` stays open: translation, axis scale, reflection,
+> and exact quarter turns are admitted through the transform presentation
+> hint, but valid general rotations and shears cross the measured
+> picture-shader precision boundary; one derived-template stylesheet
+> `transform:none` provenance case also refuses by name. The shared CSS
+> `transform` route remains separate and open: Chromium resolves an inline
+> percentage translation on `<pattern>` against the root viewport, while the
+> former tile-width basis changed 1,008 pixels at maximum delta 205. That
+> computed percentage now refuses until its reference box is proved rather
+> than invented (measured, not celled).
+
 - [ ] `ping`
 - [ ] `playbackorder`
 - [ ] `points`

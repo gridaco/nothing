@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="white"/>
+  <defs>
+    <pattern id="p8" patternUnits="userSpaceOnUse" width="14" height="14"><rect width="14" height="14" fill="red"/></pattern>
+    <pattern id="p7" patternUnits="userSpaceOnUse" width="14" height="14"><rect width="14" height="14" fill="url(#p8)"/></pattern>
+    <pattern id="p6" patternUnits="userSpaceOnUse" width="14" height="14"><rect width="14" height="14" fill="url(#p7)"/></pattern>
+    <pattern id="p5" patternUnits="userSpaceOnUse" width="14" height="14"><rect width="14" height="14" fill="url(#p6)"/></pattern>
+    <pattern id="p4" patternUnits="userSpaceOnUse" width="14" height="14"><rect width="14" height="14" fill="url(#p5)"/></pattern>
+    <pattern id="p3" patternUnits="userSpaceOnUse" width="14" height="14"><rect width="14" height="14" fill="url(#p4)"/></pattern>
+    <pattern id="p2" patternUnits="userSpaceOnUse" width="14" height="14"><rect width="14" height="14" fill="url(#p3)"/></pattern>
+    <pattern id="p1" patternUnits="userSpaceOnUse" width="14" height="14"><rect width="14" height="14" fill="url(#p2)"/></pattern>
+    <pattern id="p0" patternUnits="userSpaceOnUse" width="14" height="14"><rect width="14" height="14" fill="url(#p1)"/></pattern>
+  </defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#p0)"/>
+</svg>
