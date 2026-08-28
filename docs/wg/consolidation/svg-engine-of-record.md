@@ -79,20 +79,25 @@ from the dated addenda below:
   transforms, `<use>`, and the established effect order; admitted filters may
   execute inside a pattern tile program, and a pattern-painted direct
   sharp-cornered rectangle may supply a filter's source image;
+  same-document static vertex markers on line/path/polyline/polygon clients,
+  with all three direct inherited position attributes, authored path topology
+  and tangent orientation, marker unit/viewBox/reference mapping, hard marker
+  viewport clips, solid/context-solid source programs, `<use>` clients, and
+  client transform/opacity/clip/mask/filter composition;
   one declared-font, single-run `<text>` profile; viewBox-only root sizing with
   the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`, including a client
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 936 Chromium-baked primitive cells plus 16 sampled frames.
+- **The corpus** is 1,026 Chromium-baked primitive cells plus 16 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 172 rows.
+  register has 189 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -4098,4 +4103,142 @@ restoring dynamic ownership returned all sixteen sampled frames to green.
 The primitive corpus remains 936 cells and the filter estate remains 451
 cells. The sampled corpus moves from 10 to 16 frames. Three focused rows join
 the refusal register, moving it from 169 to 172. No conformance score was
+produced, and no FLIP record, rule, or baseline changed.
+
+## Rung: same-document static SVG vertex markers (2026-08-28)
+
+The verdict is ADMIT/SPLIT with no checklist closure. A bounded M1 marker
+profile now paints same-document static marker instances at authored vertices
+of `<line>`, `<path>`, `<polyline>`, and `<polygon>` clients. It does not claim
+the complete `<marker>` element, the complete marker-resource attribute
+grammars, any marker CSS property, dynamics, or external resource loading.
+Those are distinct M2/M3 and resource-I/O boundaries rather than implied
+follow-through from one visible arrowhead.
+
+Client selection is the direct inherited presentation-attribute route for
+`marker-start`, `marker-mid`, and `marker-end`. `none` stops inheritance;
+missing, malformed, or wrong-kind references install no marker; same-document
+URL tokens carry quoted, escaped, and ordinary fragment forms; and the
+whole-document resource table is document-order, first-id-wins while excluding
+`<use>` shadow clones. `<use>` may instantiate a marked client, with the
+reference inherited either by the target or from the use site. Chromium drops
+the bare `marker` attribute and all marker attributes on rect/circle/ellipse;
+those inapplicability facts are committed cells, not accidental ignores. The
+four CSS marker properties remain at the pinned Stylo cap: this Servo-mode
+build has no corresponding longhands, so authored CSS ingress refuses rather
+than introducing a second matcher around the one cascade.
+
+The path crux required two projections from one parse. Raster geometry remains
+the existing canonical `rframe::PathData`; authored marker topology stays
+producer-only. Chromium's start and end are attached to the whole path, not to
+each subpath: the first authored element is start, the last is end, and every
+element between them—including later moves and prior subpath endpoints—is mid.
+A close contributes the duplicated subpath-start vertex and back-patches its
+start angle. Move-only paths and one-point open point lists have one end
+marker; a one-point polygon has coincident start and end markers. Completed
+segments in an erroneous `d` prefix keep their markers. One authored cubic,
+quadratic, or arc remains one marker edge even when the raster projection uses
+a different curve decomposition. Degenerate controls, angle wrap, exact
+opposite tangents, repeated moves, repeated closes, and zero-length lines are
+all independently celled.
+
+Marker viewport resolution carries the M1 numeric/percentage/`px` subset of
+`markerWidth`, `markerHeight`, `refX`, and `refY`; both case-sensitive
+`markerUnits` values and the default; explicit angles in unitless, degree,
+radian, gradian, and turn forms; `auto` and `auto-start-reverse`; and `viewBox`
+through the complete admitted `preserveAspectRatio` mapper. Percentages use
+the outer SVG viewport axes even when a marker viewBox changes its content
+space, matching Chromium's measured behavior. Reference coordinates are
+mapped through the viewBox before placement. Non-positive marker viewport
+geometry and a degenerate viewBox paint the measured nothing. Default
+`strokeWidth` units scale from the client's computed stroke width even when
+the stroke paint itself is `none`.
+
+The grammar probes found two silent-parser traps before they could become
+capability. Chromium accepts surrounding SVG whitespace on numeric orientation
+angles, but the `auto` and `auto-start-reverse` keywords are exact authored
+strings: surrounding whitespace or wrong case makes them invalid and selects
+zero degrees. `markerUnits="userSpaceOnUse"` is likewise exact; surrounding
+whitespace makes it invalid and selects initial `strokeWidth`. Both branches
+are committed. The amplified direct and percentage numeric aliases selected
+Chromium's value through the cssparser token route, including width, height,
+references, and orientation. No marker numeric-provenance refusal was invented
+because every discriminating candidate reproduced the oracle. Current
+Chromium also drops the sampled standard-track `refX`/`refY` alignment keywords
+to initial zero; representative drops are celled under the valid-browser-drop
+precedent of [gridaco/nothing#77](https://github.com/gridaco/nothing/pull/77),
+without claiming the wider grammar closed.
+
+An M1 source is one checked static solid/context-solid subtree of admitted
+shapes and groups with admitted transforms. Empty sources are valid. The
+client's context paint owner and reference box survive through marker source
+resolution. Client transforms, root viewBox mapping, centred stroke geometry,
+opacity, geometric clip, image mask, and filter scopes wrap the ordinary shape
+and every marker instance in Chromium's measured order. A marker resource is
+non-rendering at its document position, whether or not it lives in `<defs>`.
+
+The raster crux was the marker viewport boundary. Reusing ordinary
+anti-aliased geometric clipping produced wrong Chromium edge pixels. Chromium's
+marker viewport is a hard clip, including after marker placement. The resolved
+contract therefore gained one source-neutral clip-edge enum whose default
+preserves every existing anti-aliased clip and whose explicit hard member
+states the required raster fact. Each marker instance is still only ordinary
+frame nodes inside a generic hard clip scope; no marker, URL, DOM node,
+resource id, authored path topology, or marker-specific paint operation crosses
+`rframe`.
+
+Everything outside that source and grammar envelope refuses before painting:
+external references; a used marker in a document with author CSS, whose
+resource-side selector attribution is unavailable; CSS math, custom-property
+substitution, wider units, and CSS-wide marker-resource values; authored
+resource-root overflow, transform, opacity, clip, mask, filter, or an inherited
+rendering declaration; source-side
+paint servers, `<use>`, text, effects, nested markers, and animations; and
+checked position/source/client fan-out limits. Marker compilation is a client
+transaction. On any failure strict returns the stable marker error, while
+best effort truncates the complete client span and restores identity allocation
+before declaring the skipped client. An ordinary fill or stroke can therefore
+never leak beside a missing marker source.
+
+Four scratch matrices used Chromium 149.0.7827.55 through the one hash-pinned
+capture module, and every candidate rendered through both actual `n0`
+admissions. The broad matrix admitted 78 exact candidates and routed six to
+intended refusals; the corrected M1 source/effect matrix admitted 37 exact and
+refused five; all 44 precision/tangent candidates were exact; and the
+resource-grammar matrix admitted 24 exact while twenty reached stable names
+(measured, not celled). Ninety candidates ultimately entered the committed corpus
+only through `just add`; every new oracle is byte-exact through strict and
+best effort with no tolerance.
+
+The manual law pass found one further inherited-style leak before review.
+`shape-rendering="crispEdges"` on the marker root inherits into the source
+path exactly like the same child declaration; both attribute and inline-style
+routes differ from the default by 128 pixels at maximum channel delta 255.
+Root `paint-order="stroke fill"` likewise inherits like its child spelling and
+differs from default by 121 pixels at delta 188. Before the patrol, strict and
+best effort both rendered the default pixels with no declaration. A focused
+resource-root rendering-declaration refusal now guards both ingresses and the
+wider unrepresented inherited-property class (measured, not celled).
+
+A second manual law probe found a client-composition leak. Missing ids,
+wrong-kind targets, and a valid `marker-mid` on a client with no mid vertex are
+pixel-identical to `none` in Chromium. A selected real marker is different:
+even when its viewport is zero or its valid source is empty, it still selects
+the combined marker/client opacity composition, changing 997 pixels at maximum
+channel delta 2 in the amplified witness. The former compiler selected that
+composition for every syntactically present reference, making the missing and
+wrong-kind cases 997 pixels at delta 2 wrong and the unselected-mid case 380
+pixels at delta 2 wrong in both admissions. Selection now requires an authored
+vertex kind to resolve to an actual marker resource; the selected empty/zero
+cases retain the combined route. Five Chromium-baked cells guard both sides,
+and all seven probe controls are exact through both actual admissions (two
+controls measured, not celled).
+
+Gate sensitivity was proved at the raster seam. Temporarily changing marker
+viewport clips from hard to anti-aliased made `just gate` fail loudly on
+seventeen named marker cells. Restoring the hard edge returned the complete
+1,026-cell gate to green after the composition repair. The former broad marker refusal graduates; eighteen
+focused source, resource, cascade, and value rows replace it, moving the named
+register from 172 to 189. The sixteen exact-time frames and 451-cell filter
+estate are unchanged. No checklist row closes, no conformance score was
 produced, and no FLIP record, rule, or baseline changed.

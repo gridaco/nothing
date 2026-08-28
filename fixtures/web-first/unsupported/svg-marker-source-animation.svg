@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs>
+    <marker id="arrow" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10">
+      <rect width="5" height="10" fill="#e11d48"><set attributeName="width" to="10" begin="0s" dur="indefinite"/></rect>
+    </marker>
+  </defs>
+  <line x1="8" y1="32" x2="56" y2="32" stroke="#2563eb" marker-end="url(#arrow)"/>
+</svg>

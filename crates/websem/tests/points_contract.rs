@@ -323,12 +323,13 @@ fn empty_and_missing_points_render_nothing() {
     }
 }
 
-/// The points shapes inherit the path marker patrol: the unsupported paint
-/// trigger refuses or skips by name, never silently.
+/// Direct marker attributes are admitted, but the CSS-property twin remains a
+/// pinned-Stylo hole and therefore still refuses or skips by name.
 #[test]
-fn points_shapes_keep_the_marker_patrol() {
-    let source =
-        document(r##"  <polygon points="8,8 56,8 32,56" fill="#16a34a" marker-end="url(#m)"/>"##);
+fn points_shapes_keep_the_marker_css_patrol() {
+    let source = document(
+        r##"  <polygon points="8,8 56,8 32,56" fill="#16a34a" style="marker-end:url(#m)"/>"##,
+    );
     let strict = SvgFrameSource::from_standalone_svg(source.as_str(), viewport())
         .expect_err("marker-end: strict refuses");
     assert!(

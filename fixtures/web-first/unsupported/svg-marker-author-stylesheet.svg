@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <style>line { stroke: #2563eb }</style>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8"><rect width="8" height="8" fill="#e11d48"/></marker></defs>
+  <line x1="8" y1="32" x2="56" y2="32" marker-end="url(#arrow)"/>
+</svg>

@@ -1,0 +1,3 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <line x1="8" y1="32" x2="56" y2="32" stroke="#2563eb" marker-end="url(https://example.com/markers.svg#arrow)"/>
+</svg>

@@ -539,8 +539,8 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 32 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete corpus contains 936 Chromium-baked cells plus 16 sampled
-  frames, with 172 named
+  cells. The complete corpus contains 1,026 Chromium-baked cells plus 16 sampled
+  frames, with 189 named
   refusal rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
@@ -851,6 +851,51 @@ cargo run -p n0_cli --bin n0 -- \
   formerly admitted only by Rust, and one valid midpoint-adjacent decimal
   formerly selected the wrong binary32 neighbour. Three focused refusal rows
   guard those classes. The `<pattern>` and `<animate>` rows remain open.
+  `<marker>` is consumed in one bounded, same-document static profile.
+  Direct inherited `marker-start`, `marker-mid`, and `marker-end` references
+  apply to `<line>`, `<path>`, `<polyline>`, and `<polygon>`; `none`, malformed
+  hints, missing or wrong-kind targets, first-id lookup, quoted/escaped URL
+  forms, and `<use>` clients follow Chromium's measured selection behavior.
+  CSS marker properties remain authored-ingress refusals because the pinned
+  Stylo build has no marker longhands. Chromium's bare `marker` attribute and
+  marker attributes on rect/circle/ellipse are inert and celled as such.
+  Placement retains authored vertex topology independently of raster path
+  decomposition: start and end belong to the whole path, later subpath moves
+  are mids, close back-patches the start tangent and contributes its duplicate
+  vertex, and one authored cubic, quadratic, or arc contributes one marker
+  edge. Move-only, one-point, valid-prefix, zero-length, degenerate-tangent,
+  angle-wrap, and exact-opposite cases are baked.
+  The marker viewport admits numeric and percentage `markerWidth`,
+  `markerHeight`, `refX`, and `refY`, plus `px`; both `markerUnits` branches;
+  explicit `orient` angles in every listed angle unit, `auto`, and
+  `auto-start-reverse`; and `viewBox` through the complete admitted
+  `preserveAspectRatio` mapper. Length percentages use the outer SVG viewport
+  axes even when the marker has a `viewBox`, as Chromium measures. Invalid or
+  non-positive viewport geometry produces the measured nothing. The marker
+  viewport is a hard clip, not ordinary anti-aliased clip-path coverage.
+  A source may contain the admitted solid/context-solid shapes and groups with
+  transforms. Client transforms, computed stroke-width scaling even when the
+  stroke paint is none, opacity, clip, mask, filter, root mapping, and context
+  paint retain their measured order. Every instance lowers to ordinary
+  source-neutral frame nodes and hard geometric clip scopes; no marker,
+  resource id, URL, or authored topology crosses `rframe`.
+  Marker opacity composition begins only when an authored vertex kind selects
+  an actual marker resource. Missing ids, wrong-kind targets, and a valid
+  marker property for a vertex kind the client does not have are
+  Chromium-equivalent to `none`; a selected real marker still chooses the
+  combined span when its viewport is zero or its valid source is empty. Five
+  exact cells guard this distinction.
+  What refuses by stable marker name: external URLs; author CSS around a used
+  marker; CSS math, custom properties, wider units, and CSS-wide resource
+  values; resource-root overflow, effects, opacity, transform, or an inherited
+  rendering declaration; source
+  dynamics, paint servers, effects, nested markers, text, and `<use>`; and the
+  checked position/source/client fan-out limits. Source compilation is one
+  transaction: strict refuses, while best effort removes the complete client
+  span rather than leaking its ordinary fill or stroke. Ninety exact
+  Chromium cells carry M1. The element, three presentation attributes, four
+  CSS property rows, and six marker-resource attribute rows remain open for
+  the wider source, cascade, grammar, dynamics, and external-I/O surface.
   `<text>` is consumed (the text rung), and its font environment is the
   host's: text resolves only against fonts declared with
   `--font FAMILY=PATH@sha256:HEX` (repeatable), whose bytes are **verified

@@ -1026,6 +1026,13 @@ excluded.
 - [ ] `marker-start`
 - [ ] `marker-mid`
 - [ ] `marker-end`
+
+> **2026-08-28 split:** the CSS property quartet stays open at the pinned
+> Stylo cap. This build has no `marker-*` longhands, and authored CSS ingress
+> refuses rather than growing a matcher around the cascade. The direct
+> presentation-attribute route is recorded independently below; Chromium's
+> bare `marker` attribute is inert and has its own drop cell.
+
 - [ ] `paint-order`
 - [x] `path-length`
 - [ ] `color-interpolation`
@@ -1691,6 +1698,21 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [x] `<line>`
 - [x] `<linearGradient>`
 - [ ] `<marker>`
+
+> **2026-08-28 split:** same-document static vertex markers now paint on
+> `<line>`, `<path>`, `<polyline>`, and `<polygon>`. The committed matrix covers
+> authored path topology and tangents, all three positions, inheritance,
+> reference lookup, marker units and viewport mapping, hard viewport clips,
+> context solids, `<use>` clients, transforms, stroke geometry, and client
+> opacity/clip/mask/filter ordering. The element stays open for the wider
+> marker-source program, inherited rendering declarations on the resource
+> root, dynamics, external resource loading, and the full resource-attribute/
+> cascade audit. The root-inheritance boundary is a measured named refusal.
+> A second law audit found and repaired the no-marker opacity split: a missing
+> id, wrong-kind target, or unselected marker kind behaves like `none`, while
+> a selected real marker keeps combined opacity composition even when its
+> viewport or source paints nothing. Five committed cells guard both sides.
+
 - [ ] `<mask>`
 
 > **2026-08-24 split:** one isolated alpha/luminance source image, both
@@ -1874,6 +1896,18 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `marker-end`
 - [ ] `marker-mid`
 - [ ] `marker-start`
+
+> **2026-08-28 split:** the three direct inherited attributes carry
+> same-document `url(#…) | none` on the four applicable shape elements.
+> First-id lookup, missing/wrong/malformed fallback, quoted/escaped URLs,
+> placement on authored path vertices, `<use>` instances, transforms, stroke,
+> and client effects are Chromium-baked. Missing/wrong targets and an
+> unselected marker kind are distinguished from a selected empty or
+> zero-viewport resource at the client-opacity seam. External URLs, CSS
+> ingress, nested
+> markers, wider marker-source composition, and dynamics refuse by stable
+> marker names, so all three attribute rows remain open.
+
 - [ ] `mask`
 - [x] `mask-type`
 
@@ -2079,6 +2113,16 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `markerHeight`
 - [ ] `markerUnits`
 - [ ] `markerWidth`
+
+> **2026-08-28 split:** the M1 marker viewport carries numeric and percentage
+> width/height, `px`, missing/default, invalid, zero and negative behavior,
+> direct-number normalization witnesses, and both case-sensitive
+> `strokeWidth | userSpaceOnUse` unit branches. A whitespace-padded
+> `userSpaceOnUse` is invalid in Chromium and selects the initial
+> `strokeWidth`; that parser distinction is celled. CSS math, `var()`, wider
+> units, CSS-wide values, resource-side cascade, and the M3 complete-grammar
+> audit remain named work, so none of these rows closes.
+
 - [x] `maskContentUnits`
 - [x] `maskUnits`
 
@@ -2192,6 +2236,14 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > an unconstructable finite area produces the measured transparent result. The
 > wider invalid-spelling matrix is measured, not all separately celled.
 - [ ] `orient`
+
+> **2026-08-28 split:** static marker orientation carries explicit unitless,
+> `deg`, `rad`, `grad`, and `turn` angles plus exact `auto` and
+> `auto-start-reverse`. The two keywords are case- and surrounding-whitespace
+> sensitive in Chromium while numeric angles accept SVG whitespace; invalid
+> values select zero. CSS math, `var()`, CSS-wide/resource-cascade behavior,
+> animation, and the complete M3 grammar audit keep the row open.
+
 - [ ] `path`
 - [x] `pathLength`
 - [x] `patternContentUnits`
@@ -2237,6 +2289,15 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `referrerpolicy`
 - [ ] `refX`
 - [ ] `refY`
+
+> **2026-08-28 split:** numeric and percentage marker references are baked
+> with and without `viewBox`, including negative values and direct-number
+> normalization witnesses. Current Chromium drops the SVG 2
+> `left | center | right` and `top | center | bottom` keyword sets to the
+> initial zero; representative drop cells preserve that browser fact. Units,
+> CSS-wide values, computed functions, resource-side cascade, and the full M3
+> audit remain guarded, so both rows stay open.
+
 - [ ] `rel`
 - [ ] `requiredExtensions`
 - [ ] `result`

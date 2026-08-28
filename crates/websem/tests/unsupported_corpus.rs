@@ -493,6 +493,84 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     ),
     ("svg-image", DeclaredByBestEffort, "<image>"),
     (
+        "svg-marker-author-stylesheet",
+        DeclaredByBestEffort,
+        "resource-side selector attribution",
+    ),
+    ("svg-marker-external", DeclaredByBestEffort, "external"),
+    (
+        "svg-marker-height-var",
+        DeclaredByBestEffort,
+        "markerHeight uses var()",
+    ),
+    (
+        "svg-marker-orient-var",
+        DeclaredByBestEffort,
+        "orient uses CSS math or var()",
+    ),
+    (
+        "svg-marker-overflow",
+        DeclaredByBestEffort,
+        "authored overflow",
+    ),
+    (
+        "svg-marker-refx-unit",
+        DeclaredByBestEffort,
+        "refX uses em units",
+    ),
+    (
+        "svg-marker-refy-css-wide",
+        DeclaredByBestEffort,
+        "refY uses the CSS-wide value initial",
+    ),
+    (
+        "svg-marker-root-effect",
+        DeclaredByBestEffort,
+        "effect on the <marker>",
+    ),
+    (
+        "svg-marker-root-opacity",
+        DeclaredByBestEffort,
+        "opacity on the <marker>",
+    ),
+    (
+        "svg-marker-root-rendering-style",
+        DeclaredByBestEffort,
+        "resource-root rendering declaration",
+    ),
+    (
+        "svg-marker-root-transform",
+        DeclaredByBestEffort,
+        "transform on the <marker>",
+    ),
+    (
+        "svg-marker-source-animation",
+        DeclaredByBestEffort,
+        "animation inside",
+    ),
+    (
+        "svg-marker-source-gradient",
+        DeclaredByBestEffort,
+        "paint server",
+    ),
+    (
+        "svg-marker-source-nested",
+        DeclaredByBestEffort,
+        "nested marker source",
+    ),
+    (
+        "svg-marker-source-opacity",
+        DeclaredByBestEffort,
+        "opacity, clip, mask, or filter scope",
+    ),
+    ("svg-marker-source-text", DeclaredByBestEffort, "a <text>"),
+    ("svg-marker-source-use", DeclaredByBestEffort, "a <use>"),
+    (
+        "svg-marker-width-calc",
+        DeclaredByBestEffort,
+        "markerWidth uses calc()",
+    ),
+    (
         "svg-mask-css-properties",
         DeclaredByBestEffort,
         "declares mask-image",
@@ -565,9 +643,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "declares d",
     ),
-    // The <defs> half of this fixture stopped declaring when the use/defs
-    // rung consumed defs; the marker attribute itself is the named hole.
-    ("svg-path-marker-end", DeclaredByBestEffort, "marker-end"),
     (
         "svg-pattern-affine-precision",
         DeclaredByBestEffort,

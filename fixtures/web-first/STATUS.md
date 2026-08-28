@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (936)
+## Chromium-baked cells (1026)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -594,6 +594,95 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-group-rotate-diagonal.svg" title="svg-group-rotate-diagonal (standalone-svg)"><img src="./chromium/svg-group-rotate-diagonal.png" width="56" alt="svg-group-rotate-diagonal"></a>
 <a href="./svg-group-rotate-quarter.svg" title="svg-group-rotate-quarter (standalone-svg)"><img src="./chromium/svg-group-rotate-quarter.png" width="56" alt="svg-group-rotate-quarter"></a>
 <a href="./svg-group-transform-translate.svg" title="svg-group-transform-translate (standalone-svg)"><img src="./chromium/svg-group-transform-translate.png" width="56" alt="svg-group-transform-translate"></a>
+<a href="./svg-marker-bare-attribute-drop.svg" title="svg-marker-bare-attribute-drop (standalone-svg)"><img src="./chromium/svg-marker-bare-attribute-drop.png" width="56" alt="svg-marker-bare-attribute-drop"></a>
+<a href="./svg-marker-circle-drop.svg" title="svg-marker-circle-drop (standalone-svg)"><img src="./chromium/svg-marker-circle-drop.png" width="56" alt="svg-marker-circle-drop"></a>
+<a href="./svg-marker-client-clip.svg" title="svg-marker-client-clip (standalone-svg)"><img src="./chromium/svg-marker-client-clip.png" width="56" alt="svg-marker-client-clip"></a>
+<a href="./svg-marker-client-filter.svg" title="svg-marker-client-filter (standalone-svg)"><img src="./chromium/svg-marker-client-filter.png" width="56" alt="svg-marker-client-filter"></a>
+<a href="./svg-marker-client-mask.svg" title="svg-marker-client-mask (standalone-svg)"><img src="./chromium/svg-marker-client-mask.png" width="56" alt="svg-marker-client-mask"></a>
+<a href="./svg-marker-client-opacity.svg" title="svg-marker-client-opacity (standalone-svg)"><img src="./chromium/svg-marker-client-opacity.png" width="56" alt="svg-marker-client-opacity"></a>
+<a href="./svg-marker-client-opacity-empty-source.svg" title="svg-marker-client-opacity-empty-source (standalone-svg)"><img src="./chromium/svg-marker-client-opacity-empty-source.png" width="56" alt="svg-marker-client-opacity-empty-source"></a>
+<a href="./svg-marker-client-opacity-missing.svg" title="svg-marker-client-opacity-missing (standalone-svg)"><img src="./chromium/svg-marker-client-opacity-missing.png" width="56" alt="svg-marker-client-opacity-missing"></a>
+<a href="./svg-marker-client-opacity-unselected-mid.svg" title="svg-marker-client-opacity-unselected-mid (standalone-svg)"><img src="./chromium/svg-marker-client-opacity-unselected-mid.png" width="56" alt="svg-marker-client-opacity-unselected-mid"></a>
+<a href="./svg-marker-client-opacity-wrong-target.svg" title="svg-marker-client-opacity-wrong-target (standalone-svg)"><img src="./chromium/svg-marker-client-opacity-wrong-target.png" width="56" alt="svg-marker-client-opacity-wrong-target"></a>
+<a href="./svg-marker-client-opacity-zero-viewport.svg" title="svg-marker-client-opacity-zero-viewport (standalone-svg)"><img src="./chromium/svg-marker-client-opacity-zero-viewport.png" width="56" alt="svg-marker-client-opacity-zero-viewport"></a>
+<a href="./svg-marker-client-root-viewbox.svg" title="svg-marker-client-root-viewbox (standalone-svg)"><img src="./chromium/svg-marker-client-root-viewbox.png" width="56" alt="svg-marker-client-root-viewbox"></a>
+<a href="./svg-marker-client-stroke-none-width.svg" title="svg-marker-client-stroke-none-width (standalone-svg)"><img src="./chromium/svg-marker-client-stroke-none-width.png" width="56" alt="svg-marker-client-stroke-none-width"></a>
+<a href="./svg-marker-client-transform.svg" title="svg-marker-client-transform (standalone-svg)"><img src="./chromium/svg-marker-client-transform.png" width="56" alt="svg-marker-client-transform"></a>
+<a href="./svg-marker-client-use-inherited.svg" title="svg-marker-client-use-inherited (standalone-svg)"><img src="./chromium/svg-marker-client-use-inherited.png" width="56" alt="svg-marker-client-use-inherited"></a>
+<a href="./svg-marker-client-use-target.svg" title="svg-marker-client-use-target (standalone-svg)"><img src="./chromium/svg-marker-client-use-target.png" width="56" alt="svg-marker-client-use-target"></a>
+<a href="./svg-marker-context-fill.svg" title="svg-marker-context-fill (standalone-svg)"><img src="./chromium/svg-marker-context-fill.png" width="56" alt="svg-marker-context-fill"></a>
+<a href="./svg-marker-context-stroke.svg" title="svg-marker-context-stroke (standalone-svg)"><img src="./chromium/svg-marker-context-stroke.png" width="56" alt="svg-marker-context-stroke"></a>
+<a href="./svg-marker-default-viewport-clip.svg" title="svg-marker-default-viewport-clip (standalone-svg)"><img src="./chromium/svg-marker-default-viewport-clip.png" width="56" alt="svg-marker-default-viewport-clip"></a>
+<a href="./svg-marker-display-none-resource.svg" title="svg-marker-display-none-resource (standalone-svg)"><img src="./chromium/svg-marker-display-none-resource.png" width="56" alt="svg-marker-display-none-resource"></a>
+<a href="./svg-marker-duplicate-id-first.svg" title="svg-marker-duplicate-id-first (standalone-svg)"><img src="./chromium/svg-marker-duplicate-id-first.png" width="56" alt="svg-marker-duplicate-id-first"></a>
+<a href="./svg-marker-ellipse-drop.svg" title="svg-marker-ellipse-drop (standalone-svg)"><img src="./chromium/svg-marker-ellipse-drop.png" width="56" alt="svg-marker-ellipse-drop"></a>
+<a href="./svg-marker-height-direct-alias.svg" title="svg-marker-height-direct-alias (standalone-svg)"><img src="./chromium/svg-marker-height-direct-alias.png" width="56" alt="svg-marker-height-direct-alias"></a>
+<a href="./svg-marker-height-percentage.svg" title="svg-marker-height-percentage (standalone-svg)"><img src="./chromium/svg-marker-height-percentage.png" width="56" alt="svg-marker-height-percentage"></a>
+<a href="./svg-marker-inherited-end.svg" title="svg-marker-inherited-end (standalone-svg)"><img src="./chromium/svg-marker-inherited-end.png" width="56" alt="svg-marker-inherited-end"></a>
+<a href="./svg-marker-line.svg" title="svg-marker-line (standalone-svg)"><img src="./chromium/svg-marker-line.png" width="56" alt="svg-marker-line"></a>
+<a href="./svg-marker-line-zero-length.svg" title="svg-marker-line-zero-length (standalone-svg)"><img src="./chromium/svg-marker-line-zero-length.png" width="56" alt="svg-marker-line-zero-length"></a>
+<a href="./svg-marker-missing-reference.svg" title="svg-marker-missing-reference (standalone-svg)"><img src="./chromium/svg-marker-missing-reference.png" width="56" alt="svg-marker-missing-reference"></a>
+<a href="./svg-marker-none-reset.svg" title="svg-marker-none-reset (standalone-svg)"><img src="./chromium/svg-marker-none-reset.png" width="56" alt="svg-marker-none-reset"></a>
+<a href="./svg-marker-orient-auto-start-reverse.svg" title="svg-marker-orient-auto-start-reverse (standalone-svg)"><img src="./chromium/svg-marker-orient-auto-start-reverse.png" width="56" alt="svg-marker-orient-auto-start-reverse"></a>
+<a href="./svg-marker-orient-degrees.svg" title="svg-marker-orient-degrees (standalone-svg)"><img src="./chromium/svg-marker-orient-degrees.png" width="56" alt="svg-marker-orient-degrees"></a>
+<a href="./svg-marker-orient-direct-alias.svg" title="svg-marker-orient-direct-alias (standalone-svg)"><img src="./chromium/svg-marker-orient-direct-alias.png" width="56" alt="svg-marker-orient-direct-alias"></a>
+<a href="./svg-marker-orient-gradians.svg" title="svg-marker-orient-gradians (standalone-svg)"><img src="./chromium/svg-marker-orient-gradians.png" width="56" alt="svg-marker-orient-gradians"></a>
+<a href="./svg-marker-orient-invalid.svg" title="svg-marker-orient-invalid (standalone-svg)"><img src="./chromium/svg-marker-orient-invalid.png" width="56" alt="svg-marker-orient-invalid"></a>
+<a href="./svg-marker-orient-radians.svg" title="svg-marker-orient-radians (standalone-svg)"><img src="./chromium/svg-marker-orient-radians.png" width="56" alt="svg-marker-orient-radians"></a>
+<a href="./svg-marker-orient-turn.svg" title="svg-marker-orient-turn (standalone-svg)"><img src="./chromium/svg-marker-orient-turn.png" width="56" alt="svg-marker-orient-turn"></a>
+<a href="./svg-marker-orient-whitespace-drop.svg" title="svg-marker-orient-whitespace-drop (standalone-svg)"><img src="./chromium/svg-marker-orient-whitespace-drop.png" width="56" alt="svg-marker-orient-whitespace-drop"></a>
+<a href="./svg-marker-path.svg" title="svg-marker-path (standalone-svg)"><img src="./chromium/svg-marker-path.png" width="56" alt="svg-marker-path"></a>
+<a href="./svg-marker-path-arc-authored-vertex.svg" title="svg-marker-path-arc-authored-vertex (standalone-svg)"><img src="./chromium/svg-marker-path-arc-authored-vertex.png" width="56" alt="svg-marker-path-arc-authored-vertex"></a>
+<a href="./svg-marker-path-cubic-authored-vertex.svg" title="svg-marker-path-cubic-authored-vertex (standalone-svg)"><img src="./chromium/svg-marker-path-cubic-authored-vertex.png" width="56" alt="svg-marker-path-cubic-authored-vertex"></a>
+<a href="./svg-marker-path-move-only.svg" title="svg-marker-path-move-only (standalone-svg)"><img src="./chromium/svg-marker-path-move-only.png" width="56" alt="svg-marker-path-move-only"></a>
+<a href="./svg-marker-path-multiple-subpaths.svg" title="svg-marker-path-multiple-subpaths (standalone-svg)"><img src="./chromium/svg-marker-path-multiple-subpaths.png" width="56" alt="svg-marker-path-multiple-subpaths"></a>
+<a href="./svg-marker-path-quadratic-authored-vertex.svg" title="svg-marker-path-quadratic-authored-vertex (standalone-svg)"><img src="./chromium/svg-marker-path-quadratic-authored-vertex.png" width="56" alt="svg-marker-path-quadratic-authored-vertex"></a>
+<a href="./svg-marker-path-repeated-close.svg" title="svg-marker-path-repeated-close (standalone-svg)"><img src="./chromium/svg-marker-path-repeated-close.png" width="56" alt="svg-marker-path-repeated-close"></a>
+<a href="./svg-marker-path-repeated-moves.svg" title="svg-marker-path-repeated-moves (standalone-svg)"><img src="./chromium/svg-marker-path-repeated-moves.png" width="56" alt="svg-marker-path-repeated-moves"></a>
+<a href="./svg-marker-path-valid-prefix.svg" title="svg-marker-path-valid-prefix (standalone-svg)"><img src="./chromium/svg-marker-path-valid-prefix.png" width="56" alt="svg-marker-path-valid-prefix"></a>
+<a href="./svg-marker-polygon.svg" title="svg-marker-polygon (standalone-svg)"><img src="./chromium/svg-marker-polygon.png" width="56" alt="svg-marker-polygon"></a>
+<a href="./svg-marker-polygon-one-point.svg" title="svg-marker-polygon-one-point (standalone-svg)"><img src="./chromium/svg-marker-polygon-one-point.png" width="56" alt="svg-marker-polygon-one-point"></a>
+<a href="./svg-marker-polyline.svg" title="svg-marker-polyline (standalone-svg)"><img src="./chromium/svg-marker-polyline.png" width="56" alt="svg-marker-polyline"></a>
+<a href="./svg-marker-polyline-one-point.svg" title="svg-marker-polyline-one-point (standalone-svg)"><img src="./chromium/svg-marker-polyline-one-point.png" width="56" alt="svg-marker-polyline-one-point"></a>
+<a href="./svg-marker-rect-drop.svg" title="svg-marker-rect-drop (standalone-svg)"><img src="./chromium/svg-marker-rect-drop.png" width="56" alt="svg-marker-rect-drop"></a>
+<a href="./svg-marker-reference-negative.svg" title="svg-marker-reference-negative (standalone-svg)"><img src="./chromium/svg-marker-reference-negative.png" width="56" alt="svg-marker-reference-negative"></a>
+<a href="./svg-marker-refx-direct-alias.svg" title="svg-marker-refx-direct-alias (standalone-svg)"><img src="./chromium/svg-marker-refx-direct-alias.png" width="56" alt="svg-marker-refx-direct-alias"></a>
+<a href="./svg-marker-refx-keyword-drop.svg" title="svg-marker-refx-keyword-drop (standalone-svg)"><img src="./chromium/svg-marker-refx-keyword-drop.png" width="56" alt="svg-marker-refx-keyword-drop"></a>
+<a href="./svg-marker-refx-percentage-root.svg" title="svg-marker-refx-percentage-root (standalone-svg)"><img src="./chromium/svg-marker-refx-percentage-root.png" width="56" alt="svg-marker-refx-percentage-root"></a>
+<a href="./svg-marker-refx-percentage-viewbox.svg" title="svg-marker-refx-percentage-viewbox (standalone-svg)"><img src="./chromium/svg-marker-refx-percentage-viewbox.png" width="56" alt="svg-marker-refx-percentage-viewbox"></a>
+<a href="./svg-marker-refy-keyword-drop.svg" title="svg-marker-refy-keyword-drop (standalone-svg)"><img src="./chromium/svg-marker-refy-keyword-drop.png" width="56" alt="svg-marker-refy-keyword-drop"></a>
+<a href="./svg-marker-refy-percentage-alias.svg" title="svg-marker-refy-percentage-alias (standalone-svg)"><img src="./chromium/svg-marker-refy-percentage-alias.png" width="56" alt="svg-marker-refy-percentage-alias"></a>
+<a href="./svg-marker-source-empty.svg" title="svg-marker-source-empty (standalone-svg)"><img src="./chromium/svg-marker-source-empty.png" width="56" alt="svg-marker-source-empty"></a>
+<a href="./svg-marker-source-group-transform.svg" title="svg-marker-source-group-transform (standalone-svg)"><img src="./chromium/svg-marker-source-group-transform.png" width="56" alt="svg-marker-source-group-transform"></a>
+<a href="./svg-marker-source-shapes.svg" title="svg-marker-source-shapes (standalone-svg)"><img src="./chromium/svg-marker-source-shapes.png" width="56" alt="svg-marker-source-shapes"></a>
+<a href="./svg-marker-tangent-angle-wrap.svg" title="svg-marker-tangent-angle-wrap (standalone-svg)"><img src="./chromium/svg-marker-tangent-angle-wrap.png" width="56" alt="svg-marker-tangent-angle-wrap"></a>
+<a href="./svg-marker-tangent-degenerate-cubic.svg" title="svg-marker-tangent-degenerate-cubic (standalone-svg)"><img src="./chromium/svg-marker-tangent-degenerate-cubic.png" width="56" alt="svg-marker-tangent-degenerate-cubic"></a>
+<a href="./svg-marker-tangent-degenerate-quadratic.svg" title="svg-marker-tangent-degenerate-quadratic (standalone-svg)"><img src="./chromium/svg-marker-tangent-degenerate-quadratic.png" width="56" alt="svg-marker-tangent-degenerate-quadratic"></a>
+<a href="./svg-marker-tangent-opposite.svg" title="svg-marker-tangent-opposite (standalone-svg)"><img src="./chromium/svg-marker-tangent-opposite.png" width="56" alt="svg-marker-tangent-opposite"></a>
+<a href="./svg-marker-units-default.svg" title="svg-marker-units-default (standalone-svg)"><img src="./chromium/svg-marker-units-default.png" width="56" alt="svg-marker-units-default"></a>
+<a href="./svg-marker-units-invalid.svg" title="svg-marker-units-invalid (standalone-svg)"><img src="./chromium/svg-marker-units-invalid.png" width="56" alt="svg-marker-units-invalid"></a>
+<a href="./svg-marker-units-stroke-width.svg" title="svg-marker-units-stroke-width (standalone-svg)"><img src="./chromium/svg-marker-units-stroke-width.png" width="56" alt="svg-marker-units-stroke-width"></a>
+<a href="./svg-marker-units-user-space.svg" title="svg-marker-units-user-space (standalone-svg)"><img src="./chromium/svg-marker-units-user-space.png" width="56" alt="svg-marker-units-user-space"></a>
+<a href="./svg-marker-units-user-space-whitespace.svg" title="svg-marker-units-user-space-whitespace (standalone-svg)"><img src="./chromium/svg-marker-units-user-space-whitespace.png" width="56" alt="svg-marker-units-user-space-whitespace"></a>
+<a href="./svg-marker-url-commented.svg" title="svg-marker-url-commented (standalone-svg)"><img src="./chromium/svg-marker-url-commented.png" width="56" alt="svg-marker-url-commented"></a>
+<a href="./svg-marker-url-escaped.svg" title="svg-marker-url-escaped (standalone-svg)"><img src="./chromium/svg-marker-url-escaped.png" width="56" alt="svg-marker-url-escaped"></a>
+<a href="./svg-marker-url-malformed-drop.svg" title="svg-marker-url-malformed-drop (standalone-svg)"><img src="./chromium/svg-marker-url-malformed-drop.png" width="56" alt="svg-marker-url-malformed-drop"></a>
+<a href="./svg-marker-url-quoted.svg" title="svg-marker-url-quoted (standalone-svg)"><img src="./chromium/svg-marker-url-quoted.png" width="56" alt="svg-marker-url-quoted"></a>
+<a href="./svg-marker-viewbox-empty.svg" title="svg-marker-viewbox-empty (standalone-svg)"><img src="./chromium/svg-marker-viewbox-empty.png" width="56" alt="svg-marker-viewbox-empty"></a>
+<a href="./svg-marker-viewbox-invalid.svg" title="svg-marker-viewbox-invalid (standalone-svg)"><img src="./chromium/svg-marker-viewbox-invalid.png" width="56" alt="svg-marker-viewbox-invalid"></a>
+<a href="./svg-marker-viewbox-meet.svg" title="svg-marker-viewbox-meet (standalone-svg)"><img src="./chromium/svg-marker-viewbox-meet.png" width="56" alt="svg-marker-viewbox-meet"></a>
+<a href="./svg-marker-viewbox-negative.svg" title="svg-marker-viewbox-negative (standalone-svg)"><img src="./chromium/svg-marker-viewbox-negative.png" width="56" alt="svg-marker-viewbox-negative"></a>
+<a href="./svg-marker-viewbox-none.svg" title="svg-marker-viewbox-none (standalone-svg)"><img src="./chromium/svg-marker-viewbox-none.png" width="56" alt="svg-marker-viewbox-none"></a>
+<a href="./svg-marker-viewbox-nonzero-origin.svg" title="svg-marker-viewbox-nonzero-origin (standalone-svg)"><img src="./chromium/svg-marker-viewbox-nonzero-origin.png" width="56" alt="svg-marker-viewbox-nonzero-origin"></a>
+<a href="./svg-marker-viewbox-slice.svg" title="svg-marker-viewbox-slice (standalone-svg)"><img src="./chromium/svg-marker-viewbox-slice.png" width="56" alt="svg-marker-viewbox-slice"></a>
+<a href="./svg-marker-width-direct-alias.svg" title="svg-marker-width-direct-alias (standalone-svg)"><img src="./chromium/svg-marker-width-direct-alias.png" width="56" alt="svg-marker-width-direct-alias"></a>
+<a href="./svg-marker-width-invalid.svg" title="svg-marker-width-invalid (standalone-svg)"><img src="./chromium/svg-marker-width-invalid.png" width="56" alt="svg-marker-width-invalid"></a>
+<a href="./svg-marker-width-negative.svg" title="svg-marker-width-negative (standalone-svg)"><img src="./chromium/svg-marker-width-negative.png" width="56" alt="svg-marker-width-negative"></a>
+<a href="./svg-marker-width-percentage.svg" title="svg-marker-width-percentage (standalone-svg)"><img src="./chromium/svg-marker-width-percentage.png" width="56" alt="svg-marker-width-percentage"></a>
+<a href="./svg-marker-width-percentage-alias.svg" title="svg-marker-width-percentage-alias (standalone-svg)"><img src="./chromium/svg-marker-width-percentage-alias.png" width="56" alt="svg-marker-width-percentage-alias"></a>
+<a href="./svg-marker-width-px.svg" title="svg-marker-width-px (standalone-svg)"><img src="./chromium/svg-marker-width-px.png" width="56" alt="svg-marker-width-px"></a>
+<a href="./svg-marker-width-zero.svg" title="svg-marker-width-zero (standalone-svg)"><img src="./chromium/svg-marker-width-zero.png" width="56" alt="svg-marker-width-zero"></a>
+<a href="./svg-marker-wrong-target.svg" title="svg-marker-wrong-target (standalone-svg)"><img src="./chromium/svg-marker-wrong-target.png" width="56" alt="svg-marker-wrong-target"></a>
 <a href="./svg-mask-attribute-grammar.svg" title="svg-mask-attribute-grammar (standalone-svg)"><img src="./chromium/svg-mask-attribute-grammar.png" width="56" alt="svg-mask-attribute-grammar"></a>
 <a href="./svg-mask-clip-intersection.svg" title="svg-mask-clip-intersection (standalone-svg)"><img src="./chromium/svg-mask-clip-intersection.png" width="56" alt="svg-mask-clip-intersection"></a>
 <a href="./svg-mask-content-object.svg" title="svg-mask-content-object (standalone-svg)"><img src="./chromium/svg-mask-content-object.png" width="56" alt="svg-mask-content-object"></a>
@@ -658,6 +747,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-path-length-metrics-contours.svg" title="svg-path-length-metrics-contours (standalone-svg)"><img src="./chromium/svg-path-length-metrics-contours.png" width="56" alt="svg-path-length-metrics-contours"></a>
 <a href="./svg-path-length-nonfinite-phase.svg" title="svg-path-length-nonfinite-phase (standalone-svg)"><img src="./chromium/svg-path-length-nonfinite-phase.png" width="56" alt="svg-path-length-nonfinite-phase"></a>
 <a href="./svg-path-length-range.svg" title="svg-path-length-range (standalone-svg)"><img src="./chromium/svg-path-length-range.png" width="56" alt="svg-path-length-range"></a>
+<a href="./svg-path-marker-end.svg" title="svg-path-marker-end (standalone-svg)"><img src="./chromium/svg-path-marker-end.png" width="56" alt="svg-path-marker-end"></a>
 <a href="./svg-path-polygon-fill.svg" title="svg-path-polygon-fill (standalone-svg)"><img src="./chromium/svg-path-polygon-fill.png" width="56" alt="svg-path-polygon-fill"></a>
 <a href="./svg-path-quadratic.svg" title="svg-path-quadratic (standalone-svg)"><img src="./chromium/svg-path-quadratic.png" width="56" alt="svg-path-quadratic"></a>
 <a href="./svg-path-relative-commands.svg" title="svg-path-relative-commands (standalone-svg)"><img src="./chromium/svg-path-relative-commands.png" width="56" alt="svg-path-relative-commands"></a>
@@ -965,7 +1055,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (172)
+## The refusal register (189)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -1073,6 +1163,24 @@ its row into the cells above.
 | `svg-gradient-stop-var` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): a <stop> stop-opacity resolves through var(), an indirection this patrol cannot follow" |
 | `svg-gradient-unit-basis` | declared | skipped svg/rect[1]: unsupported fill value "url(#g): gradient geometry x2=\"4em\" uses a unit whose basis this slice does not consume (numbers, px, and percentages only)" |
 | `svg-image` | declared | skipped svg/image[1]: unsupported element <image> |
+| `svg-marker-author-stylesheet` | declared | skipped svg/line[1]: unsupported SVG marker: a used marker in a document with author CSS needs resource-side selector attribution at the pinned marker cascade boundary |
+| `svg-marker-external` | declared | skipped svg/line[1]: unsupported SVG marker: marker-end url(https://example.com/markers.svg#arrow) is external; this compiler owns no resource I/O |
+| `svg-marker-height-var` | declared | skipped svg/line[1]: unsupported SVG marker: marker markerHeight uses var(), whose computed length is not represented by the direct resource decoder |
+| `svg-marker-orient-var` | declared | skipped svg/line[1]: unsupported SVG marker: marker orient uses CSS math or var(), whose resource-side computed angle is not represented |
+| `svg-marker-overflow` | declared | skipped svg/line[1]: unsupported SVG marker: authored overflow on <marker> is outside the default hidden viewport-clip profile |
+| `svg-marker-refx-unit` | declared | skipped svg/line[1]: unsupported SVG marker: marker refX uses em units, whose basis is not admitted |
+| `svg-marker-refy-css-wide` | declared | skipped svg/line[1]: unsupported SVG marker: marker refY uses the CSS-wide value initial, whose resource-side cascade is not represented at this Stylo pin |
+| `svg-marker-root-effect` | declared | skipped svg/line[1]: unsupported SVG marker: an effect on the <marker> resource root needs marker-source effect composition |
+| `svg-marker-root-opacity` | declared | skipped svg/line[1]: unsupported SVG marker: opacity on the <marker> resource root needs one source compositing scope |
+| `svg-marker-root-rendering-style` | declared | skipped svg/line[1]: unsupported SVG marker: resource-root rendering declaration shape-rendering on <marker> can inherit into its source subtree, outside the M1 source profile |
+| `svg-marker-root-transform` | declared | skipped svg/line[1]: unsupported SVG marker: transform on the <marker> resource root is outside the admitted viewport mapping |
+| `svg-marker-source-animation` | declared | skipped svg/line[1]: unsupported SVG marker: animation inside a used marker source needs the marker sampling inventory |
+| `svg-marker-source-gradient` | declared | skipped svg/line[1]: unsupported SVG marker: a marker source resolves a paint server outside the admitted solid/context-solid profile |
+| `svg-marker-source-nested` | declared | skipped svg/line[1]: unsupported SVG marker: marker #arrow source cannot compile completely: unsupported SVG marker: nested marker source reaches url(#inner); bounded nested marker composition is a later rung |
+| `svg-marker-source-opacity` | declared | skipped svg/line[1]: unsupported SVG marker: a marker source needs an opacity, clip, mask, or filter scope outside the admitted simple subtree |
+| `svg-marker-source-text` | declared | skipped svg/line[1]: unsupported SVG marker: a <text> inside a used marker source is outside the admitted static solid subtree |
+| `svg-marker-source-use` | declared | skipped svg/line[1]: unsupported SVG marker: a <use> inside a used marker source is outside the admitted static solid subtree |
+| `svg-marker-width-calc` | declared | skipped svg/line[1]: unsupported SVG marker: marker markerWidth uses calc(), whose computed length is not represented by the direct resource decoder |
 | `svg-mask-css-properties` | declared | skipped svg/rect[2]: unsupported computed style: style attribute on <rect> declares mask-image, which this cascade does not represent |
 | `svg-mask-cycle` | declared | skipped svg/rect[2]: unsupported SVG mask: mask source cannot be compiled completely: unsupported SVG mask: mask source cannot be compiled completely: unsupported SVG mask: url(#a) forms a cyclic nested mask chain |
 | `svg-mask-external` | declared | skipped svg/rect[2]: unsupported SVG mask: url(https://example.test/mask.svg#m) is external; this compiler owns no resource I/O; skipped svg/rect[3]: unsupported SVG mask: url(../mask.svg#m) is a relative external reference; this compiler owns no resource base or I/O |
@@ -1090,7 +1198,6 @@ its row into the cells above.
 | `svg-mask-var` | declared | skipped svg/rect[2]: unsupported SVG mask: mask presentation attribute uses var(), whose substitution is not represented at this Stylo pin |
 | `svg-nested-svg` | declared | skipped svg/svg[1]: unsupported element <svg> |
 | `svg-path-css-d-property` | declared | declaration ignored at svg/style[1]: a stylesheet declares d, which this cascade does not represent; elements it matches render without it |
-| `svg-path-marker-end` | declared | skipped svg/path[1]: unsupported rendering attribute marker-end on <path> (not yet consumed) |
 | `svg-pattern-affine-precision` | declared | skipped svg/rect[2]: unsupported fill value "target mapping carries a general rotation or shear at the pinned-backend picture-shader affine precision boundary" |
 | `svg-pattern-css-transform-percentage` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern transform percentage has no proved reference-box basis" |
 | `svg-pattern-external` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p needs attributes or content from an external template, and external resources are not resolved" |

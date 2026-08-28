@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs><marker id="empty" markerWidth="8" markerHeight="8"><title>empty</title></marker></defs>
+  <rect width="64" height="64" fill="#e2e8f0"/>
+  <path d="M8.3 48.7L31.6 8.4L55.2 48.1Z" fill="#e11d48" opacity=".47" marker-end="url(#empty)" transform="rotate(7 32 32)"/>
+</svg>

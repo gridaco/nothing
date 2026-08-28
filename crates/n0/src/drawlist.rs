@@ -43,6 +43,8 @@ pub(crate) struct ResolvedClipLayer {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ResolvedClipPath {
     pub(crate) layers: Arc<[ResolvedClipLayer]>,
+    /// Whether the backend should compute fractional edge coverage.
+    pub(crate) anti_alias: bool,
 }
 
 /// Drawlist projection of a resolved mask-source interpretation.

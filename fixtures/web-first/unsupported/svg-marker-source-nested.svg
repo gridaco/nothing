@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs>
+    <marker id="inner" markerUnits="userSpaceOnUse" markerWidth="4" markerHeight="4"><circle cx="2" cy="2" r="2" fill="#16a34a"/></marker>
+    <marker id="arrow" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10">
+      <path d="M0 5L10 5" stroke="#e11d48" marker-end="url(#inner)"/>
+    </marker>
+  </defs>
+  <line x1="8" y1="32" x2="56" y2="32" stroke="#2563eb" marker-end="url(#arrow)"/>
+</svg>

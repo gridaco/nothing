@@ -29,6 +29,18 @@ pub const MAX_CLIP_GEOMETRIES_PER_LAYER: usize = 42;
 /// The maximum number of chained clip layers in one resolved effect.
 pub const MAX_CLIP_LAYERS: usize = 64;
 
+/// Raster edge policy for a resolved geometric clip.
+///
+/// Ordinary SVG `clip-path` coverage is anti-aliased. Viewport clips are hard
+/// pixel masks in Chromium, including after an affine mapping; carrying that
+/// distinction here avoids smuggling source vocabulary into the consumer.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ClipEdgeMode {
+    #[default]
+    AntiAliased,
+    Hard,
+}
+
 /// Why resolved clip geometry cannot cross the contract.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ClipGeometryError {
@@ -192,10 +204,18 @@ impl std::error::Error for ClipPathError {}
 pub struct ClipPath {
     layers: Arc<[ClipLayer]>,
     bounds: Option<Rectangle>,
+    edge_mode: ClipEdgeMode,
 }
 
 impl ClipPath {
     pub fn new(layers: impl Into<Arc<[ClipLayer]>>) -> Result<Self, ClipPathError> {
+        Self::new_with_edge_mode(layers, ClipEdgeMode::AntiAliased)
+    }
+
+    pub fn new_with_edge_mode(
+        layers: impl Into<Arc<[ClipLayer]>>,
+        edge_mode: ClipEdgeMode,
+    ) -> Result<Self, ClipPathError> {
         let layers = layers.into();
         if layers.is_empty() {
             return Err(ClipPathError::NoLayers);
@@ -212,7 +232,11 @@ impl ClipPath {
                 _ => None,
             };
         }
-        Ok(Self { layers, bounds })
+        Ok(Self {
+            layers,
+            bounds,
+            edge_mode,
+        })
     }
 
     #[must_use]
@@ -225,6 +249,13 @@ impl ClipPath {
     #[must_use]
     pub const fn bounds(&self) -> Option<Rectangle> {
         self.bounds
+    }
+
+    /// Whether the clip edge carries ordinary coverage AA or a hard viewport
+    /// boundary.
+    #[must_use]
+    pub const fn edge_mode(&self) -> ClipEdgeMode {
+        self.edge_mode
     }
 }
 

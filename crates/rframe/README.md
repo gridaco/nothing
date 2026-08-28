@@ -25,7 +25,7 @@ producer (e.g. websem, from SVG)
 | `path`   | `PathData` — checked absolute commands, fill rule, tight bounds solved once                                                                   |
 | `stroke` | `Stroke` — centred width, cap, join, miter limit, optional checked dash pattern, and finite `f64` `outset`                                    |
 | `scope`  | A checked painter-order scope stream: isolated opacity or source-neutral geometric clipping                                                   |
-| `clip`   | `ClipPath` — bounded path unions intersected in layers, with resolved transforms and conservative bounds                                      |
+| `clip`   | `ClipPath` — bounded path unions intersected in layers, with resolved transforms, conservative bounds, and an explicit anti-aliased or hard edge policy |
 
 Two details are load-bearing enough to state here. A node's `bounds` is the
 **geometry's** box, never the ink's: a stroke paints outside it, so a consumer
@@ -89,11 +89,13 @@ owns the transform. Path-length calibration remains inexpressible here rather
 than being ignored or approximated. Geometry is rect, ellipse or path.
 A geometric clip reuses that vocabulary after its source has resolved every
 resource lookup and coordinate system: one layer unions contributors, and
-layers intersect. It carries no URL, element, paint, alpha mask, or backend
-path; text/raster fallback and image-backed masks remain inexpressible. Groups
-as authored first-class nodes are likewise absent. A producer that meets one of
-those boundaries must refuse or declare it rather than lower it into something
-this contract cannot hold.
+layers intersect. Its edge policy is one resolved raster fact: ordinary
+coverage is anti-aliased by default, while a producer may explicitly require a
+hard boundary. It carries no URL, element, paint, alpha mask, backend path, or
+source reason for that policy; text/raster fallback and image-backed masks
+remain inexpressible. Groups as authored first-class nodes are likewise absent.
+A producer that meets one of those boundaries must refuse or declare it rather
+than lower it into something this contract cannot hold.
 
 Why this shape is chosen, and where the renderer joins it, is recorded in
 [docs/wg/consolidation/n0-join-point.md](../../docs/wg/consolidation/n0-join-point.md).

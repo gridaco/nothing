@@ -3898,7 +3898,7 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                     .expect("geometric clip path operations were preflighted at product build");
                 canvas.save();
                 canvas.set_matrix(&skia_matrix(&total).into());
-                canvas.clip_path(&path, ClipOp::Intersect, true);
+                canvas.clip_path(&path, ClipOp::Intersect, clip.anti_alias);
                 scopes.push(Scope::Clip);
             }
             ItemKind::EndClip => {
