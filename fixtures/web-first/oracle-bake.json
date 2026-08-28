@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "30d3eec63248d55759c4f312d50acb4b0bd1dbac847611e5aa1a97da6a8e33dc",
+  "suite_sha256": "11f9e757b180ffe9244dcd1d2f1a03a2eaec89d17bb649b5987a67c92ed3b4b9",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -5114,6 +5114,807 @@
       "height": 64
     },
     {
+      "id": "svg-marker-bare-attribute-drop",
+      "source": "svg-marker-bare-attribute-drop.svg",
+      "source_sha256": "8cc0ac5d8f312bdd9ccf48ff57c53168daa0bb8d5d748454322401f5fb7bd80d",
+      "oracle": "chromium/svg-marker-bare-attribute-drop.png",
+      "oracle_sha256": "bdfafa3ba65a5688f451a877b68cdb9f9dfc274cd0432a07dbcc713f893eb03f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-circle-drop",
+      "source": "svg-marker-circle-drop.svg",
+      "source_sha256": "8e90ef8bc4e5d2996b24f25904c3be0d1977d7ffba2a4f1cd5b627051feae50d",
+      "oracle": "chromium/svg-marker-circle-drop.png",
+      "oracle_sha256": "a5ced6314fc3eef35998d1cd139aa3eab36929b048cc90767631f2893489ab13",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-clip",
+      "source": "svg-marker-client-clip.svg",
+      "source_sha256": "c639849bc9be284c69cc520e3b9459d909fd9dcf6e1c5255b3c2cba877405ca3",
+      "oracle": "chromium/svg-marker-client-clip.png",
+      "oracle_sha256": "66c4ec76c717aed1deecc09837e0ed6c303586d462cef16742859ed6aa979837",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-filter",
+      "source": "svg-marker-client-filter.svg",
+      "source_sha256": "59c7f6dbf1465715fb78e23a3bcd0dc8a438208cac394b8dcbc0badc611e91d4",
+      "oracle": "chromium/svg-marker-client-filter.png",
+      "oracle_sha256": "329b24fdc2842f468b12b58e002071e69cee86415f37f076403dd0795f7ce41d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-mask",
+      "source": "svg-marker-client-mask.svg",
+      "source_sha256": "311efd478c81022585704bb8648e71edd42d8f79b06216b533c91bf25a6e1189",
+      "oracle": "chromium/svg-marker-client-mask.png",
+      "oracle_sha256": "98e63ca06a69555f69f513261236deb20527d873e6a6924cb86d4e5c614a2abb",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-opacity",
+      "source": "svg-marker-client-opacity.svg",
+      "source_sha256": "707e1888c44d9a6c27ca43b925f356336e3ff020e4412b892f953a202bbbf596",
+      "oracle": "chromium/svg-marker-client-opacity.png",
+      "oracle_sha256": "61b236fd461e57a82bb76283e14810737e930ce302375b294464abb675fdc172",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-opacity-empty-source",
+      "source": "svg-marker-client-opacity-empty-source.svg",
+      "source_sha256": "dcc10525530b2abbbfa43ea63a010c08ce7c9b43032c6b0124c70113130fe425",
+      "oracle": "chromium/svg-marker-client-opacity-empty-source.png",
+      "oracle_sha256": "dbe443d643f5769522b7bdd47ac781014e6be35b5a36601a806ecec0d8d04030",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-opacity-missing",
+      "source": "svg-marker-client-opacity-missing.svg",
+      "source_sha256": "28936dcac87e4c1bacddcded0f2f968026952a788ccccd957e188aaf8d60c296",
+      "oracle": "chromium/svg-marker-client-opacity-missing.png",
+      "oracle_sha256": "5d43dea3121bdc468306d42dbd14c6c015f9d66df0c8de6da0ae5bf8fa8dbaf4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-opacity-unselected-mid",
+      "source": "svg-marker-client-opacity-unselected-mid.svg",
+      "source_sha256": "d1198a6a656a575fe615abe70de28e74a782f2a777839b1b3ecd0af0bc12b00b",
+      "oracle": "chromium/svg-marker-client-opacity-unselected-mid.png",
+      "oracle_sha256": "930c29de5148d1447609188a22833e0b09dad504d749e591cc3265ac127a1ac5",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-opacity-wrong-target",
+      "source": "svg-marker-client-opacity-wrong-target.svg",
+      "source_sha256": "afa0921c48626d5c51afac8fb6ed41abca315894ef3030e0cb5bf48c7523682c",
+      "oracle": "chromium/svg-marker-client-opacity-wrong-target.png",
+      "oracle_sha256": "5d43dea3121bdc468306d42dbd14c6c015f9d66df0c8de6da0ae5bf8fa8dbaf4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-opacity-zero-viewport",
+      "source": "svg-marker-client-opacity-zero-viewport.svg",
+      "source_sha256": "204ff1e1b163bd3e13291ff597d68eea94b2592c8353b4130aed4402b62f6d56",
+      "oracle": "chromium/svg-marker-client-opacity-zero-viewport.png",
+      "oracle_sha256": "dbe443d643f5769522b7bdd47ac781014e6be35b5a36601a806ecec0d8d04030",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-root-viewbox",
+      "source": "svg-marker-client-root-viewbox.svg",
+      "source_sha256": "69d63c98ab87a83d80fd61c467de2d8024a3e99bd5b1bde8075dcfc06edba232",
+      "oracle": "chromium/svg-marker-client-root-viewbox.png",
+      "oracle_sha256": "09a26ddeed40480cd820dc29eff7bec1d625c450bb7e4cc2d0922748434f2d88",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-stroke-none-width",
+      "source": "svg-marker-client-stroke-none-width.svg",
+      "source_sha256": "adb26a2798286959af18fe9bfbd99a7022063387946907bd29767bab92f97d76",
+      "oracle": "chromium/svg-marker-client-stroke-none-width.png",
+      "oracle_sha256": "fa385b250027e28e29f015bbf175119bd41c6149c92869b7b07d82880534bdb3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-transform",
+      "source": "svg-marker-client-transform.svg",
+      "source_sha256": "c0409991d5e9eaebb1f018b469c4d70953d4865ee674e8d110cd625e62faf3d5",
+      "oracle": "chromium/svg-marker-client-transform.png",
+      "oracle_sha256": "032024ecb46ea223653c986b9b5b129793fc1022d72bbbfd6e08cb8bcf7959a9",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-use-inherited",
+      "source": "svg-marker-client-use-inherited.svg",
+      "source_sha256": "f178f204fcedd516c36c88e486825e1d11263063f9a5cf638f5667b52220ec59",
+      "oracle": "chromium/svg-marker-client-use-inherited.png",
+      "oracle_sha256": "0f3165c7e5e87c5f52addf9369833c8511d4efaa56a286035f93222632807d5c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-use-target",
+      "source": "svg-marker-client-use-target.svg",
+      "source_sha256": "e5a7980cff14cd513a8e44361ae8d5729377f59d931531897eea7b9ea6e9aa9e",
+      "oracle": "chromium/svg-marker-client-use-target.png",
+      "oracle_sha256": "9900596e64a3eaf102dc801c7aa4a8186e372544fa508d9febd8ea2d53ed3985",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-context-fill",
+      "source": "svg-marker-context-fill.svg",
+      "source_sha256": "41666f486cf922a1f3f15bf6c617ba8b67e3ce3acf7d1a7ab02651c8702aee64",
+      "oracle": "chromium/svg-marker-context-fill.png",
+      "oracle_sha256": "9ec82c696b6ee0e20acb4744a2b78d6bb5b1b5787eb7e4687b0c9ef7462fa3f5",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-context-stroke",
+      "source": "svg-marker-context-stroke.svg",
+      "source_sha256": "59cc9805336a03633547a089af48b0d02713ddf0472b9fb789f4bcf9b81be293",
+      "oracle": "chromium/svg-marker-context-stroke.png",
+      "oracle_sha256": "4353c701ce18e61eca0754598d0d03083ec550987733138e90aa1506e61242b4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-default-viewport-clip",
+      "source": "svg-marker-default-viewport-clip.svg",
+      "source_sha256": "7243d69a2422e45eda88b98c7f04ef3670689ff73cbbe6e43c3aa53d7b3e2719",
+      "oracle": "chromium/svg-marker-default-viewport-clip.png",
+      "oracle_sha256": "a2d570f7f8b94315379c8faa28e1823271455e61e577fee2d55621bc357a2b52",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-display-none-resource",
+      "source": "svg-marker-display-none-resource.svg",
+      "source_sha256": "343dc6fcab4dc753701bfbbd7398aca14794f344401ee10b0edcb91bb7c20402",
+      "oracle": "chromium/svg-marker-display-none-resource.png",
+      "oracle_sha256": "dbddc9576f5fea3c41cf387ab2b6a00d9a44b4ac672d22e34ba9bfc901fc7379",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-duplicate-id-first",
+      "source": "svg-marker-duplicate-id-first.svg",
+      "source_sha256": "eef7c7e078518eb20c20279812134fb8079fe78f6f930916ad4c3a31ee2ab630",
+      "oracle": "chromium/svg-marker-duplicate-id-first.png",
+      "oracle_sha256": "55f195721468b192f53fdf6b72c952b2cc119c29b89ba5659f8db930f60961ef",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-ellipse-drop",
+      "source": "svg-marker-ellipse-drop.svg",
+      "source_sha256": "8b80f8e4c4fd9bf4d00c952e5f2c1d57ec4197dc74fbc7cc84e678819e90c878",
+      "oracle": "chromium/svg-marker-ellipse-drop.png",
+      "oracle_sha256": "2dfd93205bf462eb1fddc70b4b9d16a678aa444277247d73ee231d187c0aea8b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-height-direct-alias",
+      "source": "svg-marker-height-direct-alias.svg",
+      "source_sha256": "bda7466efb891d20fde3385cf04c508d269976396014a8790572399e55eb86b3",
+      "oracle": "chromium/svg-marker-height-direct-alias.png",
+      "oracle_sha256": "fee2dcd400cb710686e5d88108c0442f8ca8cc3f9a52e245731df9f00f11c80b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-height-percentage",
+      "source": "svg-marker-height-percentage.svg",
+      "source_sha256": "1400177daff7f0c4da7d4d5b59c29d57aeff873fe89ab387f1265c2e6f156b0c",
+      "oracle": "chromium/svg-marker-height-percentage.png",
+      "oracle_sha256": "ac80b33c32ecc707042fbb01426302887c1be0839d4bf26c4d569221fbe8ba93",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-inherited-end",
+      "source": "svg-marker-inherited-end.svg",
+      "source_sha256": "f2ce75fc72408d004cbcd9a4996765cd0ee0e6b635c509dd58562c7d69d42a89",
+      "oracle": "chromium/svg-marker-inherited-end.png",
+      "oracle_sha256": "dbddc9576f5fea3c41cf387ab2b6a00d9a44b4ac672d22e34ba9bfc901fc7379",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-line",
+      "source": "svg-marker-line.svg",
+      "source_sha256": "0beffe152b890b9b32141d4f22ca857d214151caf9d97261f263b082dab6f177",
+      "oracle": "chromium/svg-marker-line.png",
+      "oracle_sha256": "a7c6ac886e1c988ecdda6c001c68c9af991e1ef6a8cab01968ed59455768df9d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-line-zero-length",
+      "source": "svg-marker-line-zero-length.svg",
+      "source_sha256": "3dd23ad8abd28f78ad9a4a931f181c33151c029729bb589aff3366683fce548d",
+      "oracle": "chromium/svg-marker-line-zero-length.png",
+      "oracle_sha256": "6c921d67a5dddff5255cebdf44cfaef5f4c45025af8e967d8cae4dfc6479e5ae",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-missing-reference",
+      "source": "svg-marker-missing-reference.svg",
+      "source_sha256": "aac1d872b43c5259be67c3780901b320e6c4e42582f03451fc960180afa6365e",
+      "oracle": "chromium/svg-marker-missing-reference.png",
+      "oracle_sha256": "bdfafa3ba65a5688f451a877b68cdb9f9dfc274cd0432a07dbcc713f893eb03f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-none-reset",
+      "source": "svg-marker-none-reset.svg",
+      "source_sha256": "c23586adc7c6831ba661d212da7215d8c0d3d2f558c0f85269cdea0ba2737404",
+      "oracle": "chromium/svg-marker-none-reset.png",
+      "oracle_sha256": "bdfafa3ba65a5688f451a877b68cdb9f9dfc274cd0432a07dbcc713f893eb03f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-orient-auto-start-reverse",
+      "source": "svg-marker-orient-auto-start-reverse.svg",
+      "source_sha256": "020c46de36b0422756eb8b9cf3b32bb37710aa22ac73797ffe34cc18a5b8bdf9",
+      "oracle": "chromium/svg-marker-orient-auto-start-reverse.png",
+      "oracle_sha256": "c7d7cfb343e3caa828543eaab3301fe5507cdd8c3a809c2674024cf41e39eedf",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-orient-degrees",
+      "source": "svg-marker-orient-degrees.svg",
+      "source_sha256": "75f3120eeb6964352762eab742fe91f5a7c5f425efb8483e5b18885573fe443b",
+      "oracle": "chromium/svg-marker-orient-degrees.png",
+      "oracle_sha256": "cea751890cd6008a62b70632c115c53802c3506c8db23cda9461e22f020557d8",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-orient-direct-alias",
+      "source": "svg-marker-orient-direct-alias.svg",
+      "source_sha256": "4b9009bc749dfc6b1ebc28d4d299e5b1689814258019c4fbeba10fa9613e49c0",
+      "oracle": "chromium/svg-marker-orient-direct-alias.png",
+      "oracle_sha256": "174a67ee5f6db7e867739b81e8462e6efd10608ba31c11769c2a22a569a69c6a",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-orient-gradians",
+      "source": "svg-marker-orient-gradians.svg",
+      "source_sha256": "3a23765bc781ce61df56ac66b3a6f229eb2268506dcd758aa3a26e68140de3e0",
+      "oracle": "chromium/svg-marker-orient-gradians.png",
+      "oracle_sha256": "cea751890cd6008a62b70632c115c53802c3506c8db23cda9461e22f020557d8",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-orient-invalid",
+      "source": "svg-marker-orient-invalid.svg",
+      "source_sha256": "f0ebc8a97e8f867eb8c6f22f9fc39c05241f889425a29de63e7e9847b057a549",
+      "oracle": "chromium/svg-marker-orient-invalid.png",
+      "oracle_sha256": "f428ea3ba6d2324eb67229015fab32cff61140ebb96f937db45b742646019a44",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-orient-radians",
+      "source": "svg-marker-orient-radians.svg",
+      "source_sha256": "c4e95ec62edaaf9bcd97ee38b9b47f8d8704fb9989ee3c9b851ad6fa17b0c6dd",
+      "oracle": "chromium/svg-marker-orient-radians.png",
+      "oracle_sha256": "cea751890cd6008a62b70632c115c53802c3506c8db23cda9461e22f020557d8",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-orient-turn",
+      "source": "svg-marker-orient-turn.svg",
+      "source_sha256": "0f60bc161baeb9fe7a525e3b547b9e762c77b882d560de69187600ada5a51cfb",
+      "oracle": "chromium/svg-marker-orient-turn.png",
+      "oracle_sha256": "cea751890cd6008a62b70632c115c53802c3506c8db23cda9461e22f020557d8",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-orient-whitespace-drop",
+      "source": "svg-marker-orient-whitespace-drop.svg",
+      "source_sha256": "3eb3d88136f7b46f2a02148ebf64aa8d33302fb5b5d24fa7a373972fa57efe60",
+      "oracle": "chromium/svg-marker-orient-whitespace-drop.png",
+      "oracle_sha256": "89f5e8acbf7c8892cb3a1fce0c5ee75e117cd5acb9806a43c7cb3baa88ff0fb6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path",
+      "source": "svg-marker-path.svg",
+      "source_sha256": "606b96624d6f6ea29c380d1d6297a5a5d877f56af5bcd6ea1518a149c9e96112",
+      "oracle": "chromium/svg-marker-path.png",
+      "oracle_sha256": "f2cce6d0aebe27de6be726e0caa1233f7c0050c7126dffe0ac60aafcfd652745",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path-arc-authored-vertex",
+      "source": "svg-marker-path-arc-authored-vertex.svg",
+      "source_sha256": "e6d561d592c0bd7abe875c89e8653d35bd6fdf766db00474b734fc1a186dd7a7",
+      "oracle": "chromium/svg-marker-path-arc-authored-vertex.png",
+      "oracle_sha256": "925cc9133ef4f226f7c429d97f510559ece2223fd328a0c086c1a0b6dbab6456",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path-cubic-authored-vertex",
+      "source": "svg-marker-path-cubic-authored-vertex.svg",
+      "source_sha256": "993a68b231b5dc7f88279c39b87a5170fef99a191831a482769a9aaa08c7810a",
+      "oracle": "chromium/svg-marker-path-cubic-authored-vertex.png",
+      "oracle_sha256": "2b81ecc8df794395e99fb9625361baca5d5ec3d097fc77cabe3a24d38cba4c72",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path-move-only",
+      "source": "svg-marker-path-move-only.svg",
+      "source_sha256": "c68eaef7bc6306896206ea3bff86ae4ee98558e549dd07898985a1c022e2110c",
+      "oracle": "chromium/svg-marker-path-move-only.png",
+      "oracle_sha256": "beb8522aee49a2cf77779ded9e9be2f4a90839389d34dc1b51ec7632d4dd674d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path-multiple-subpaths",
+      "source": "svg-marker-path-multiple-subpaths.svg",
+      "source_sha256": "69787d4d4fa4d1ee0d0e770eecda41c06a4506e2085e6ff15bc76c2110d7cdfa",
+      "oracle": "chromium/svg-marker-path-multiple-subpaths.png",
+      "oracle_sha256": "5176fb5782ccbe5d951e130f9cd27ccf8d7183af33f3ed9f03841b58b0329aa3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path-quadratic-authored-vertex",
+      "source": "svg-marker-path-quadratic-authored-vertex.svg",
+      "source_sha256": "e595f6ac241bb4cff0cb88470735fc60ceae491ce0ca0e27570147ca54efccb4",
+      "oracle": "chromium/svg-marker-path-quadratic-authored-vertex.png",
+      "oracle_sha256": "ffd28540b8888995d3bd0e7e1fbd6c5291165d8dbf5121db7f26e1b85a6bbb1e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path-repeated-close",
+      "source": "svg-marker-path-repeated-close.svg",
+      "source_sha256": "fd0566dc4dbff64300f4ef2676b899eeb67d5795f1513ec18cb8e11dd505765e",
+      "oracle": "chromium/svg-marker-path-repeated-close.png",
+      "oracle_sha256": "f28751a92dd36a18075615e347c786acca5e4c3f3d04bff66f251bc06e8d6bbb",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path-repeated-moves",
+      "source": "svg-marker-path-repeated-moves.svg",
+      "source_sha256": "12695ab3219fa96419285b40b3b35fa8e354ffe07c44c976848d48c3f3b5e806",
+      "oracle": "chromium/svg-marker-path-repeated-moves.png",
+      "oracle_sha256": "3770c9802eda4219a142d059da1545ed7aebb1d8361a7deb578d84fc86221bcb",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path-valid-prefix",
+      "source": "svg-marker-path-valid-prefix.svg",
+      "source_sha256": "1b6baf1ba63037136237f97f4b06de5c6a5805d482fffe03ae9dc95e91290fde",
+      "oracle": "chromium/svg-marker-path-valid-prefix.png",
+      "oracle_sha256": "9c460509e960ba883a2644e4c637f278f68d6823b7c758d5b9f7cae6cb2fd432",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-polygon",
+      "source": "svg-marker-polygon.svg",
+      "source_sha256": "cee256ba52763615556d287a808c14099dd1a236583a0f16aa3a9882b6d94dfa",
+      "oracle": "chromium/svg-marker-polygon.png",
+      "oracle_sha256": "43c7be3cbe93a423d3d341f42e12100a7dfecaf972b42f76ed02db1a5bb58a34",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-polygon-one-point",
+      "source": "svg-marker-polygon-one-point.svg",
+      "source_sha256": "a58c8ee4204dba98f47237031c9fdf9eb7d2e92571ab092eaf7f71759349f535",
+      "oracle": "chromium/svg-marker-polygon-one-point.png",
+      "oracle_sha256": "6c921d67a5dddff5255cebdf44cfaef5f4c45025af8e967d8cae4dfc6479e5ae",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-polyline",
+      "source": "svg-marker-polyline.svg",
+      "source_sha256": "2fb52288e0e572918622a5c4715d4ab78bc8cd91f236cbf5ebece3a8745ff765",
+      "oracle": "chromium/svg-marker-polyline.png",
+      "oracle_sha256": "f2cce6d0aebe27de6be726e0caa1233f7c0050c7126dffe0ac60aafcfd652745",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-polyline-one-point",
+      "source": "svg-marker-polyline-one-point.svg",
+      "source_sha256": "98093a9b556b62b3398f11674e0fa0fdc951089079afcdf5dff459a922687d57",
+      "oracle": "chromium/svg-marker-polyline-one-point.png",
+      "oracle_sha256": "beb8522aee49a2cf77779ded9e9be2f4a90839389d34dc1b51ec7632d4dd674d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-rect-drop",
+      "source": "svg-marker-rect-drop.svg",
+      "source_sha256": "ec2f22655306e489d9a9dad402173b8d3913ae6e0dd7e9428d68e1d81eecef95",
+      "oracle": "chromium/svg-marker-rect-drop.png",
+      "oracle_sha256": "945b1d5e444480f57bff7462046078f26fb3fcb7e936e3c70fcc8a0e4450023f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-reference-negative",
+      "source": "svg-marker-reference-negative.svg",
+      "source_sha256": "ed14c06fcd956b32b4c8d80394e674a60bc12a3b21c7669e2067696e26eddab2",
+      "oracle": "chromium/svg-marker-reference-negative.png",
+      "oracle_sha256": "990bbdaac5b6b3d7fc3a7f7b29f4216fcd5cbd97ada1ea2003869400005a269c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-refx-direct-alias",
+      "source": "svg-marker-refx-direct-alias.svg",
+      "source_sha256": "d7c04bec354868125832d52aa13bd115135b4769ef00fab174dd98e2944d6562",
+      "oracle": "chromium/svg-marker-refx-direct-alias.png",
+      "oracle_sha256": "078159e8d160d7c8df57bc0c88dad4cf3815d950c764ed2262bcfe607c5dcd97",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-refx-keyword-drop",
+      "source": "svg-marker-refx-keyword-drop.svg",
+      "source_sha256": "772bf10587e69175727a23422cbbc5f1ea54ff88e5a39c397211c8819d7b34e2",
+      "oracle": "chromium/svg-marker-refx-keyword-drop.png",
+      "oracle_sha256": "80284a44971d931103feddd87150b33cdf3cbabd77435dea13f409822c24baef",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-refx-percentage-root",
+      "source": "svg-marker-refx-percentage-root.svg",
+      "source_sha256": "946500067d50f4d8e90e0c4cd5763ad4dab23fc8c1c809be58b7c626c18c4380",
+      "oracle": "chromium/svg-marker-refx-percentage-root.png",
+      "oracle_sha256": "4cb3ac2d3948dc1743af7f12e1452c575da1b6e1650879d28598413dca7d371e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-refx-percentage-viewbox",
+      "source": "svg-marker-refx-percentage-viewbox.svg",
+      "source_sha256": "4a55fea5b8d8932f86b079c1efc96b590d3598631a8356b0575f3f45c8e8c46f",
+      "oracle": "chromium/svg-marker-refx-percentage-viewbox.png",
+      "oracle_sha256": "59e2692ab8a24b5fa3d8c22053ca871f6b4e1556bffb4787fea86a1875a4e8bd",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-refy-keyword-drop",
+      "source": "svg-marker-refy-keyword-drop.svg",
+      "source_sha256": "8c6bb168f0bb7173d6073626ecdca75a2fd733dd0cc661a85531f323f23ccd05",
+      "oracle": "chromium/svg-marker-refy-keyword-drop.png",
+      "oracle_sha256": "4b85c193885abec8bc6a690ff2bbd2514070a651459733504e4232939c3c733a",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-refy-percentage-alias",
+      "source": "svg-marker-refy-percentage-alias.svg",
+      "source_sha256": "3e349d0c3935103df4d4233e9dd31831d8321a61140d8f8f2478ffc8a2d31602",
+      "oracle": "chromium/svg-marker-refy-percentage-alias.png",
+      "oracle_sha256": "0291b0c742102318f5f9602150f3eb4b2cc8dedcf45e3e2e6801a394a4052e1f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-source-empty",
+      "source": "svg-marker-source-empty.svg",
+      "source_sha256": "0a552f7ab3d303f0f79a1aa5ba0e807306a7ea7795cf8107e6e5bbaf148ee9d7",
+      "oracle": "chromium/svg-marker-source-empty.png",
+      "oracle_sha256": "1502272898b22a79c129dc16ab37a1280c353a18767753769bc82532dddd72a7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-source-group-transform",
+      "source": "svg-marker-source-group-transform.svg",
+      "source_sha256": "334d24d64e6dcdfa90ffbe72d7c98dbf20637da4af1b97595e43ca6f0756ea8a",
+      "oracle": "chromium/svg-marker-source-group-transform.png",
+      "oracle_sha256": "9081bbd478e10185b988416f197fa93f9faeaaba8615d4645e43e49a1e2ef424",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-source-shapes",
+      "source": "svg-marker-source-shapes.svg",
+      "source_sha256": "c11e5a62fc024b088887769cabb557630f5e55961c4424db0ddaa6eda2b58a5c",
+      "oracle": "chromium/svg-marker-source-shapes.png",
+      "oracle_sha256": "e8b1ca79af1f81f17e5c7e44273df0982b7e7f8bc7e76e8a8b48c474188295a3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-tangent-angle-wrap",
+      "source": "svg-marker-tangent-angle-wrap.svg",
+      "source_sha256": "a09aceef822b2b888be0667398da39a2fb8870632c78b54c227f8a7140fa4ab2",
+      "oracle": "chromium/svg-marker-tangent-angle-wrap.png",
+      "oracle_sha256": "5d9785c24e70bc3ff9b99e2f1ca3188a3d008c016f280fb9d10d0b0dbb9ff4e9",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-tangent-degenerate-cubic",
+      "source": "svg-marker-tangent-degenerate-cubic.svg",
+      "source_sha256": "968d5cfe0c9f629ff1305e28a07c95bcf5e986942af4f9a47289fa6f1704342b",
+      "oracle": "chromium/svg-marker-tangent-degenerate-cubic.png",
+      "oracle_sha256": "a99358adf1f04da9cb23822abb92dd66c86295c77fc5236fb7f71a6de604a187",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-tangent-degenerate-quadratic",
+      "source": "svg-marker-tangent-degenerate-quadratic.svg",
+      "source_sha256": "ba79a960fa3119302fb9e69af8d4f7d01443a3dfc0cc3b6cc80f696093c697e6",
+      "oracle": "chromium/svg-marker-tangent-degenerate-quadratic.png",
+      "oracle_sha256": "a99358adf1f04da9cb23822abb92dd66c86295c77fc5236fb7f71a6de604a187",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-tangent-opposite",
+      "source": "svg-marker-tangent-opposite.svg",
+      "source_sha256": "beff478deef70aba897dc02ba8948669ef9252dd60a72085b8d8c9b6ec071a8f",
+      "oracle": "chromium/svg-marker-tangent-opposite.png",
+      "oracle_sha256": "efd276aa5710ef4754161bdd38a8c30aa211c9379e37dda0fd3c34b046e7019f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-units-default",
+      "source": "svg-marker-units-default.svg",
+      "source_sha256": "1e4e61c6593f488f41d2cf7dc62c2bb4dba3f47d415dd9082afb72254ddee82f",
+      "oracle": "chromium/svg-marker-units-default.png",
+      "oracle_sha256": "a3ea5f13a9c44df6c4dbb657cc15e3760557b2c31038835d0b9f7775575ae7fe",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-units-invalid",
+      "source": "svg-marker-units-invalid.svg",
+      "source_sha256": "413c04586857cbf26b4ad8721215b23dcfa58d6bf64a92c1909b4942b78fc86e",
+      "oracle": "chromium/svg-marker-units-invalid.png",
+      "oracle_sha256": "fa385b250027e28e29f015bbf175119bd41c6149c92869b7b07d82880534bdb3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-units-stroke-width",
+      "source": "svg-marker-units-stroke-width.svg",
+      "source_sha256": "38456035f13cf0681397a468d70a2a1278ce17070c93e70175eb9f0408dd75ce",
+      "oracle": "chromium/svg-marker-units-stroke-width.png",
+      "oracle_sha256": "a3ea5f13a9c44df6c4dbb657cc15e3760557b2c31038835d0b9f7775575ae7fe",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-units-user-space",
+      "source": "svg-marker-units-user-space.svg",
+      "source_sha256": "fcc086d8d8b81fb8c78d509528a20b3354f089164e18387bfa5cfcebc0ee0407",
+      "oracle": "chromium/svg-marker-units-user-space.png",
+      "oracle_sha256": "66e6a5d94c1d2fc786d2108b82f7a2d199bb422cb76add0fcec251f4ad405692",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-units-user-space-whitespace",
+      "source": "svg-marker-units-user-space-whitespace.svg",
+      "source_sha256": "4eefa55e9a71b21137e62dfb4e83ee44ff23a803154fa78dd15e287c73be3004",
+      "oracle": "chromium/svg-marker-units-user-space-whitespace.png",
+      "oracle_sha256": "112dec504accebd3fea53c54dcc983c6de41d5c49c65d46e0f0f56647d2483cc",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-url-commented",
+      "source": "svg-marker-url-commented.svg",
+      "source_sha256": "103b0987e236b90a7e4c42f4354b518ef69718be13bd3f0dd97a9e873ead152d",
+      "oracle": "chromium/svg-marker-url-commented.png",
+      "oracle_sha256": "f428ea3ba6d2324eb67229015fab32cff61140ebb96f937db45b742646019a44",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-url-escaped",
+      "source": "svg-marker-url-escaped.svg",
+      "source_sha256": "36c03486ba2aa65491bfd0b3afa5fcf00f83309fc4fd67fe777ccade9ebfbd16",
+      "oracle": "chromium/svg-marker-url-escaped.png",
+      "oracle_sha256": "f428ea3ba6d2324eb67229015fab32cff61140ebb96f937db45b742646019a44",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-url-malformed-drop",
+      "source": "svg-marker-url-malformed-drop.svg",
+      "source_sha256": "9638f0dc4a512b0f0ab2d9f4463ae01385d117d6187becd7d6035f3d31789b2c",
+      "oracle": "chromium/svg-marker-url-malformed-drop.png",
+      "oracle_sha256": "1502272898b22a79c129dc16ab37a1280c353a18767753769bc82532dddd72a7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-url-quoted",
+      "source": "svg-marker-url-quoted.svg",
+      "source_sha256": "9727459ec051d90ac928cd5b7e9cda112e9bd1473b565c9d896e23626e6747ea",
+      "oracle": "chromium/svg-marker-url-quoted.png",
+      "oracle_sha256": "f428ea3ba6d2324eb67229015fab32cff61140ebb96f937db45b742646019a44",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-viewbox-empty",
+      "source": "svg-marker-viewbox-empty.svg",
+      "source_sha256": "1f85e06dc53e2bcc96c98cecc519d7dfc4f07f1634e32418a74e24db32739325",
+      "oracle": "chromium/svg-marker-viewbox-empty.png",
+      "oracle_sha256": "1502272898b22a79c129dc16ab37a1280c353a18767753769bc82532dddd72a7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-viewbox-invalid",
+      "source": "svg-marker-viewbox-invalid.svg",
+      "source_sha256": "75695f85550d1581399d7dddda67549f23fe2cad64f94fd3122c0706deb84fe7",
+      "oracle": "chromium/svg-marker-viewbox-invalid.png",
+      "oracle_sha256": "8f90b2cb0f3040e0f51e70a56bcb36548a424615dff2df6d94b1a0755f0863dd",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-viewbox-meet",
+      "source": "svg-marker-viewbox-meet.svg",
+      "source_sha256": "637795e0f21882fd026b4f1b60ab6ea951ebd2bb8288037ecaffbc3e91ffa84c",
+      "oracle": "chromium/svg-marker-viewbox-meet.png",
+      "oracle_sha256": "8f85f801adf1278e946e05d7ee0ebfdeeda07665b29c84af4347f7bb732dc6bb",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-viewbox-negative",
+      "source": "svg-marker-viewbox-negative.svg",
+      "source_sha256": "fb9c3a70d2e6a9994ad2082169899f97d88f102c0a1ca110d48100538d481ee0",
+      "oracle": "chromium/svg-marker-viewbox-negative.png",
+      "oracle_sha256": "8f90b2cb0f3040e0f51e70a56bcb36548a424615dff2df6d94b1a0755f0863dd",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-viewbox-none",
+      "source": "svg-marker-viewbox-none.svg",
+      "source_sha256": "25994fae5c1edc08020c1c1016495c4fbcf8555bc1e70661a21139c64581cdda",
+      "oracle": "chromium/svg-marker-viewbox-none.png",
+      "oracle_sha256": "80ebec98c94c70d9589efdcceaefca67a724b2b02f695f8d8b591fd478994960",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-viewbox-nonzero-origin",
+      "source": "svg-marker-viewbox-nonzero-origin.svg",
+      "source_sha256": "cf5072dfbc892c01cb73b097fbe793b7e4a67bafd1b8daea82a6bc7672ecd449",
+      "oracle": "chromium/svg-marker-viewbox-nonzero-origin.png",
+      "oracle_sha256": "fa385b250027e28e29f015bbf175119bd41c6149c92869b7b07d82880534bdb3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-viewbox-slice",
+      "source": "svg-marker-viewbox-slice.svg",
+      "source_sha256": "a3076b7cc90eae6f53dd70ef2b86f434139105f4d157030fda96b0f03303a928",
+      "oracle": "chromium/svg-marker-viewbox-slice.png",
+      "oracle_sha256": "b161f8f47cbacb28b626f050d9ec293be500c325d0078828df610819984e26d1",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-width-direct-alias",
+      "source": "svg-marker-width-direct-alias.svg",
+      "source_sha256": "a2575f8562f3341b11a8bb127dda8e0767d62d6620f741057f6cb1d0c9442bd1",
+      "oracle": "chromium/svg-marker-width-direct-alias.png",
+      "oracle_sha256": "4400f39980202275686b4693ce81f84a291a39ed6a7da5c7706825c1bb70cf4e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-width-invalid",
+      "source": "svg-marker-width-invalid.svg",
+      "source_sha256": "4c7b1be83dcaf6a3f03fa16a0e5c6feabf450c1f8b61d640019c343916d656a7",
+      "oracle": "chromium/svg-marker-width-invalid.png",
+      "oracle_sha256": "e29236716e3e87d7af6eea2132c231ac195367e25540a1a60cb717007a991a12",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-width-negative",
+      "source": "svg-marker-width-negative.svg",
+      "source_sha256": "73ae356b66ae8a0fbb12c168e7a66153b3117a59313acb3ced835b9f428f351d",
+      "oracle": "chromium/svg-marker-width-negative.png",
+      "oracle_sha256": "bdfafa3ba65a5688f451a877b68cdb9f9dfc274cd0432a07dbcc713f893eb03f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-width-percentage",
+      "source": "svg-marker-width-percentage.svg",
+      "source_sha256": "686893c5d9362d9df5ffce035ef47c6f65663e3581d6e5b76c366f5c92903d3a",
+      "oracle": "chromium/svg-marker-width-percentage.png",
+      "oracle_sha256": "7d73ad4973cfa044aadd7d669db405843922f9c1af74bc6009d8adf72df512a2",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-width-percentage-alias",
+      "source": "svg-marker-width-percentage-alias.svg",
+      "source_sha256": "50833654559c48e6ffd6bf6d620a4c510df46638cd5c694e75ae85c1290b6e37",
+      "oracle": "chromium/svg-marker-width-percentage-alias.png",
+      "oracle_sha256": "5d8330ec3861909cacec41d7898a9aa23061ee5f9da691aa1d05d57ede17ee63",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-width-px",
+      "source": "svg-marker-width-px.svg",
+      "source_sha256": "7baf8e33be6e798e98facf6115de313d7e9be6a371bbb7af53dda9bdca2d89c7",
+      "oracle": "chromium/svg-marker-width-px.png",
+      "oracle_sha256": "dbddc9576f5fea3c41cf387ab2b6a00d9a44b4ac672d22e34ba9bfc901fc7379",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-width-zero",
+      "source": "svg-marker-width-zero.svg",
+      "source_sha256": "13dd41fb5c477e82f5f7a87d193208576e6be92401df768b9d04fe81031f348a",
+      "oracle": "chromium/svg-marker-width-zero.png",
+      "oracle_sha256": "bdfafa3ba65a5688f451a877b68cdb9f9dfc274cd0432a07dbcc713f893eb03f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-wrong-target",
+      "source": "svg-marker-wrong-target.svg",
+      "source_sha256": "45463ddf6d415a956d8531771664ca48f4fb6fcd416f899a39402f07c827e1b4",
+      "oracle": "chromium/svg-marker-wrong-target.png",
+      "oracle_sha256": "bdfafa3ba65a5688f451a877b68cdb9f9dfc274cd0432a07dbcc713f893eb03f",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-mask-attribute-grammar",
       "source": "svg-mask-attribute-grammar.svg",
       "source_sha256": "ed349e10f802edcb9b79879f84903297fa095b25e40dffb094f01a846c41c77d",
@@ -5688,6 +6489,15 @@
       "oracle_sha256": "60b652a49591eb72ac9577fabd60aaed8f1f5d397c111e30d9bd9eef49340d63",
       "width": 128,
       "height": 108
+    },
+    {
+      "id": "svg-path-marker-end",
+      "source": "svg-path-marker-end.svg",
+      "source_sha256": "22bf8b91b9b221254a913fc98da3e396667bb156c0dcf2019ad3984fa26a6e94",
+      "oracle": "chromium/svg-path-marker-end.png",
+      "oracle_sha256": "e09fea9e1f9aca89fedd3f6d359b2611fb5aa215398a952164b1a4dea5ec9b69",
+      "width": 64,
+      "height": 64
     },
     {
       "id": "svg-path-polygon-fill",

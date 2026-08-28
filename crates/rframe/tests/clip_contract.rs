@@ -1,8 +1,8 @@
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
-    ClipGeometry, ClipGeometryError, ClipLayer, ClipLayerError, ClipPath, ClipPathError, Geometry,
-    MAX_CLIP_GEOMETRIES_PER_LAYER, MAX_CLIP_LAYERS,
+    ClipEdgeMode, ClipGeometry, ClipGeometryError, ClipLayer, ClipLayerError, ClipPath,
+    ClipPathError, Geometry, MAX_CLIP_GEOMETRIES_PER_LAYER, MAX_CLIP_LAYERS,
 };
 
 fn rect(x: f32, y: f32, width: f32, height: f32) -> ClipGeometry {
@@ -39,6 +39,18 @@ fn an_empty_layer_is_a_valid_clip_all_fact() {
     assert_eq!(clip.layers().len(), 1);
     assert!(clip.layers()[0].geometries().is_empty());
     assert_eq!(clip.bounds(), None);
+}
+
+#[test]
+fn edge_policy_is_explicit_and_ordinary_clips_stay_antialiased() {
+    let layer = || ClipLayer::new(vec![rect(0.0, 0.0, 10.0, 10.0)]).unwrap();
+    let ordinary = ClipPath::new(vec![layer()]).unwrap();
+    assert_eq!(ordinary.edge_mode(), ClipEdgeMode::AntiAliased);
+
+    let hard = ClipPath::new_with_edge_mode(vec![layer()], ClipEdgeMode::Hard).unwrap();
+    assert_eq!(hard.edge_mode(), ClipEdgeMode::Hard);
+    assert_eq!(hard.layers(), ordinary.layers());
+    assert_eq!(hard.bounds(), ordinary.bounds());
 }
 
 #[test]

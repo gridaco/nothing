@@ -64,6 +64,61 @@
 use crate::svg_number::{self, ExponentParts, NumberParts};
 use rframe::PathCommand;
 
+/// The producer-side result of one authored `d` scan.
+///
+/// `commands` is the canonical raster path that may cross into `rframe`.
+/// `marker_elements` retains the authored vertex topology Blink uses for
+/// marker placement: move-only contours survive, quadratics are normalized to
+/// one cubic, and one authored arc contributes at most one synthetic cubic.
+/// Neither this type nor the marker projection crosses the resolved contract.
+#[derive(Debug, Default)]
+pub(crate) struct ParsedPath {
+    pub(crate) commands: Vec<PathCommand>,
+    marker_elements: Vec<MarkerPathElement>,
+    /// Derived non-finite ordinary geometry made the raster path invalid.
+    /// Marker painting for that extreme class is not admitted by inference.
+    marker_projection_poisoned: bool,
+}
+
+impl ParsedPath {
+    pub(crate) fn marker_positions(&self) -> Result<Vec<MarkerPosition>, &'static str> {
+        if self.marker_projection_poisoned {
+            return Err(
+                "marker geometry crosses a derived non-finite path boundary whose vertex projection is not admitted",
+            );
+        }
+        Ok(build_marker_positions(&self.marker_elements))
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum MarkerType {
+    Start,
+    Mid,
+    End,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct MarkerPosition {
+    pub(crate) kind: MarkerType,
+    pub(crate) origin: (f32, f32),
+    pub(crate) angle: f32,
+}
+
+/// Authored marker topology after Blink's path normalizer, but before marker
+/// positions and tangent angles are built.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) enum MarkerPathElement {
+    MoveTo((f32, f32)),
+    LineTo((f32, f32)),
+    CubicTo {
+        one: (f32, f32),
+        two: (f32, f32),
+        end: (f32, f32),
+    },
+    Close,
+}
+
 /// Why one SVG numeric grammar stopped parsing.
 ///
 /// Path data itself consumes its valid prefix when this occurs. `points`
@@ -82,6 +137,11 @@ pub(crate) enum SourceSyntaxError {
 /// SVG's `d` initial value is `none`, which also has an empty valid prefix.
 /// Any syntax error ends parsing after the last fully defined segment.
 pub(crate) fn parse_path_data(d: &str) -> Vec<PathCommand> {
+    parse_path(d).commands
+}
+
+/// Parse both producer projections from one token scan.
+pub(crate) fn parse_path(d: &str) -> ParsedPath {
     Parser::new(d).parse_path_prefix()
 }
 
@@ -119,6 +179,7 @@ struct Parser<'a> {
     bytes: &'a [u8],
     at: usize,
     commands: Vec<PathCommand>,
+    marker_elements: Vec<MarkerPathElement>,
     current: (f32, f32),
     subpath_start: (f32, f32),
     /// The open contour's `MoveTo` index and whether it has drawn yet.
@@ -141,6 +202,7 @@ impl<'a> Parser<'a> {
             bytes: d.as_bytes(),
             at: 0,
             commands: Vec::new(),
+            marker_elements: Vec::new(),
             current: (0.0, 0.0),
             subpath_start: (0.0, 0.0),
             open: None,
@@ -154,10 +216,10 @@ impl<'a> Parser<'a> {
         Err(SourceSyntaxError::Syntax { offset: self.at })
     }
 
-    fn parse_path_prefix(mut self) -> Vec<PathCommand> {
+    fn parse_path_prefix(mut self) -> ParsedPath {
         self.skip_wsp();
         if self.at >= self.bytes.len() {
-            return Vec::new();
+            return ParsedPath::default();
         }
         let mut first = true;
         while self.at < self.bytes.len() {
@@ -180,16 +242,24 @@ impl<'a> Parser<'a> {
         self.finish()
     }
 
-    fn finish(mut self) -> Vec<PathCommand> {
+    fn finish(mut self) -> ParsedPath {
         if self.poisoned {
-            return Vec::new();
+            return ParsedPath {
+                commands: Vec::new(),
+                marker_elements: Vec::new(),
+                marker_projection_poisoned: true,
+            };
         }
         // A trailing contour that only moved contributes nothing.
         if let Some((index, false)) = self.open {
             debug_assert_eq!(index + 1, self.commands.len());
             self.commands.truncate(index);
         }
-        self.commands
+        ParsedPath {
+            commands: self.commands,
+            marker_elements: self.marker_elements,
+            marker_projection_poisoned: false,
+        }
     }
 
     /// One command letter and its complete argument list, including every
@@ -326,11 +396,13 @@ impl<'a> Parser<'a> {
         if self.poisoned || !finite_point(point) {
             self.poisoned |= !finite_point(point);
             self.commands.clear();
+            self.marker_elements.clear();
             self.open = None;
             self.current = point;
             self.subpath_start = point;
             return;
         }
+        self.marker_elements.push(MarkerPathElement::MoveTo(point));
         // The contour this move replaces drew nothing, so it is not a visual
         // fact; its move is the last command emitted.
         if let Some((index, false)) = self.open {
@@ -372,10 +444,16 @@ impl<'a> Parser<'a> {
         if self.poisoned || !finite_point(point) {
             self.poisoned |= !finite_point(point);
             self.commands.clear();
+            self.marker_elements.clear();
             self.open = None;
             self.current = point;
             return;
         }
+        self.marker_elements.push(MarkerPathElement::LineTo(point));
+        self.emit_raster_line(point);
+    }
+
+    fn emit_raster_line(&mut self, point: (f32, f32)) {
         self.open_contour();
         self.commands.push(PathCommand::LineTo {
             x: point.0,
@@ -389,12 +467,34 @@ impl<'a> Parser<'a> {
         if self.poisoned || !finite_point(one) || !finite_point(end) {
             self.poisoned |= !finite_point(one) || !finite_point(end);
             self.commands.clear();
+            self.marker_elements.clear();
             self.open = None;
             self.current = end;
             self.last_quad = Some(one);
             self.last_cubic = None;
             return;
         }
+        // Blink normalizes one quadratic to one cubic with these f32 blend
+        // operations before its marker tangent builder sees it.
+        let start = if self.open.is_none() {
+            self.subpath_start
+        } else {
+            self.current
+        };
+        let one_third = 1.0 / 3.0_f32;
+        let cubic_one = (
+            (start.0 + 2.0 * one.0) * one_third,
+            (start.1 + 2.0 * one.1) * one_third,
+        );
+        let cubic_two = (
+            (end.0 + 2.0 * one.0) * one_third,
+            (end.1 + 2.0 * one.1) * one_third,
+        );
+        self.marker_elements.push(MarkerPathElement::CubicTo {
+            one: cubic_one,
+            two: cubic_two,
+            end,
+        });
         self.open_contour();
         self.commands.push(PathCommand::QuadTo {
             x1: one.0,
@@ -412,12 +512,15 @@ impl<'a> Parser<'a> {
         if self.poisoned || !finite_point(one) || !finite_point(two) || !finite_point(end) {
             self.poisoned |= !finite_point(one) || !finite_point(two) || !finite_point(end);
             self.commands.clear();
+            self.marker_elements.clear();
             self.open = None;
             self.current = end;
             self.last_cubic = Some(two);
             self.last_quad = None;
             return;
         }
+        self.marker_elements
+            .push(MarkerPathElement::CubicTo { one, two, end });
         self.open_contour();
         self.commands.push(PathCommand::CubicTo {
             x1: one.0,
@@ -454,6 +557,12 @@ impl<'a> Parser<'a> {
             self.current = self.subpath_start;
             return;
         }
+        // Blink's authored path stream preserves close commands even when a
+        // second close is raster-neutral. The marker builder still observes
+        // that authored vertex.
+        if !self.marker_elements.is_empty() {
+            self.marker_elements.push(MarkerPathElement::Close);
+        }
         match self.open {
             Some((_, true)) => {
                 self.commands.push(PathCommand::Close);
@@ -482,6 +591,7 @@ impl<'a> Parser<'a> {
             self.poisoned |=
                 !finite_point(one) || !finite_point(end) || !weight.is_finite() || weight <= 0.0;
             self.commands.clear();
+            self.marker_elements.clear();
             self.open = None;
             self.current = end;
             return;
@@ -528,11 +638,16 @@ impl<'a> Parser<'a> {
         } else {
             self.current
         };
+        // Marker topology is independent from Skia's raster path. Blink's
+        // normalizer turns a coincident-endpoint or zero-radius arc into one
+        // line for marker placement even when the raster builder elides it.
+        let marker_element = marker_arc_element(start, radii, angle, large, sweep, end);
+        self.marker_elements.push(marker_element);
         if start == end {
             return;
         }
         match resolve_arc_like_skia(start, radii, angle, large, sweep, end) {
-            ArcResolution::Line => self.emit_line(end),
+            ArcResolution::Line => self.emit_raster_line(end),
             ArcResolution::NoOp => self.current = end,
             ArcResolution::Conics(conics) => {
                 for (control, endpoint, weight) in conics {
@@ -673,6 +788,347 @@ impl<'a> Parser<'a> {
         self.skip_trailing_separator();
         Ok(flag)
     }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum MarkerElementType {
+    Move,
+    Line,
+    Cubic,
+    Close,
+}
+
+#[derive(Clone, Copy, Default)]
+struct MarkerSegmentData {
+    start_tangent: (f32, f32),
+    end_tangent: (f32, f32),
+    position: (f32, f32),
+}
+
+/// Blink's marker-position builder, kept producer-side because its authored
+/// path topology has no place in the resolved frame contract.
+fn build_marker_positions(elements: &[MarkerPathElement]) -> Vec<MarkerPosition> {
+    struct Builder {
+        positions: Vec<MarkerPosition>,
+        last_moveto_index: usize,
+        last_element_type: MarkerElementType,
+        origin: (f32, f32),
+        subpath_start: (f32, f32),
+        in_slope: (f32, f32),
+        out_slope: (f32, f32),
+        last_moveto_out_slope: (f32, f32),
+    }
+
+    impl Builder {
+        fn compute_quad_tangents(
+            data: &mut MarkerSegmentData,
+            start: (f32, f32),
+            control: (f32, f32),
+            end: (f32, f32),
+        ) {
+            data.start_tangent = subtract(control, start);
+            data.end_tangent = subtract(end, control);
+            if is_zero(data.start_tangent) {
+                data.start_tangent = data.end_tangent;
+            } else if is_zero(data.end_tangent) {
+                data.end_tangent = data.start_tangent;
+            }
+        }
+
+        fn features(&self, element: MarkerPathElement) -> (MarkerElementType, MarkerSegmentData) {
+            let mut data = MarkerSegmentData::default();
+            let kind = match element {
+                MarkerPathElement::MoveTo(position) => {
+                    data.position = position;
+                    data.start_tangent = subtract(position, self.origin);
+                    data.end_tangent = data.start_tangent;
+                    MarkerElementType::Move
+                }
+                MarkerPathElement::LineTo(position) => {
+                    data.position = position;
+                    data.start_tangent = subtract(position, self.origin);
+                    data.end_tangent = data.start_tangent;
+                    MarkerElementType::Line
+                }
+                MarkerPathElement::CubicTo { one, two, end } => {
+                    data.position = end;
+                    data.start_tangent = subtract(one, self.origin);
+                    data.end_tangent = subtract(end, two);
+                    if is_zero(data.start_tangent) {
+                        Self::compute_quad_tangents(&mut data, one, two, end);
+                    } else if is_zero(data.end_tangent) {
+                        Self::compute_quad_tangents(&mut data, self.origin, one, two);
+                    }
+                    MarkerElementType::Cubic
+                }
+                MarkerPathElement::Close => {
+                    let mut tangent = subtract(self.subpath_start, self.origin);
+                    if self.last_element_type != MarkerElementType::Move && is_zero(tangent) {
+                        tangent = self.last_moveto_out_slope;
+                    }
+                    data.position = self.subpath_start;
+                    data.start_tangent = tangent;
+                    data.end_tangent = tangent;
+                    MarkerElementType::Close
+                }
+            };
+            (kind, data)
+        }
+
+        fn current_angle(&self, ends_subpath: bool) -> f32 {
+            if self.last_element_type == MarkerElementType::Close {
+                return bisecting_angle(self.in_slope, self.out_slope);
+            }
+            if ends_subpath {
+                return slope_degrees(self.in_slope);
+            }
+            if self.last_element_type == MarkerElementType::Move {
+                return slope_degrees(self.out_slope);
+            }
+            bisecting_angle(self.in_slope, self.out_slope)
+        }
+
+        fn update_angle(&mut self, ends_subpath: bool) {
+            if self.last_element_type == MarkerElementType::Close {
+                self.out_slope = self.last_moveto_out_slope;
+            }
+            let angle = self.current_angle(ends_subpath);
+            if self.last_element_type == MarkerElementType::Close {
+                self.positions[self.last_moveto_index].angle = angle;
+            }
+            self.positions.last_mut().expect("a prior marker").angle = angle;
+        }
+
+        fn update(&mut self, element: MarkerPathElement) {
+            let (kind, segment) = self.features(element);
+            self.out_slope = segment.start_tangent;
+            if self.last_element_type == MarkerElementType::Move {
+                self.last_moveto_out_slope = self.out_slope;
+            }
+            let starts_new_subpath = kind == MarkerElementType::Move;
+            if !self.positions.is_empty() {
+                self.update_angle(starts_new_subpath);
+            }
+            self.in_slope = segment.end_tangent;
+            self.origin = segment.position;
+            if starts_new_subpath {
+                self.subpath_start = segment.position;
+                self.last_moveto_index = self.positions.len();
+            }
+            self.last_element_type = kind;
+            self.positions.push(MarkerPosition {
+                kind: if self.positions.is_empty() {
+                    MarkerType::Start
+                } else {
+                    MarkerType::Mid
+                },
+                origin: self.origin,
+                angle: 0.0,
+            });
+        }
+
+        fn finish(mut self) -> Vec<MarkerPosition> {
+            if self.positions.is_empty() {
+                return self.positions;
+            }
+            self.update_angle(true);
+            self.positions.last_mut().expect("one marker").kind = MarkerType::End;
+            self.positions
+        }
+    }
+
+    let mut builder = Builder {
+        positions: Vec::with_capacity(elements.len()),
+        last_moveto_index: 0,
+        last_element_type: MarkerElementType::Move,
+        origin: (0.0, 0.0),
+        subpath_start: (0.0, 0.0),
+        in_slope: (0.0, 0.0),
+        out_slope: (0.0, 0.0),
+        last_moveto_out_slope: (0.0, 0.0),
+    };
+    for element in elements {
+        builder.update(*element);
+    }
+    builder.finish()
+}
+
+pub(crate) fn line_marker_positions(start: (f32, f32), end: (f32, f32)) -> Vec<MarkerPosition> {
+    build_marker_positions(&[
+        MarkerPathElement::MoveTo(start),
+        MarkerPathElement::LineTo(end),
+    ])
+}
+
+pub(crate) fn points_marker_positions(points: &[(f32, f32)], closed: bool) -> Vec<MarkerPosition> {
+    let Some((first, rest)) = points.split_first() else {
+        return Vec::new();
+    };
+    let mut elements = Vec::with_capacity(points.len() + usize::from(closed));
+    elements.push(MarkerPathElement::MoveTo(*first));
+    for point in rest {
+        elements.push(MarkerPathElement::LineTo(*point));
+    }
+    if closed {
+        elements.push(MarkerPathElement::Close);
+    }
+    build_marker_positions(&elements)
+}
+
+fn subtract(left: (f32, f32), right: (f32, f32)) -> (f32, f32) {
+    (left.0 - right.0, left.1 - right.1)
+}
+
+fn is_zero(vector: (f32, f32)) -> bool {
+    vector == (0.0, 0.0)
+}
+
+fn slope_degrees(vector: (f32, f32)) -> f32 {
+    vector.1.atan2(vector.0).to_degrees()
+}
+
+fn bisecting_angle(in_slope: (f32, f32), out_slope: (f32, f32)) -> f32 {
+    let mut in_angle = f64::from(slope_degrees(in_slope));
+    let out_angle = f64::from(slope_degrees(out_slope));
+    let diff = in_angle - out_angle;
+    if diff > 180.0 || diff <= -180.0 {
+        in_angle += 360.0;
+    }
+    ((in_angle + out_angle) / 2.0) as f32
+}
+
+/// Normalize one authored arc to the single synthetic cubic Blink feeds to
+/// its marker builder: first control from the first decomposed cubic, and
+/// second control/end from the last. Failure becomes one line segment.
+fn marker_arc_element(
+    start: (f32, f32),
+    radii: (f32, f32),
+    angle: f32,
+    large: bool,
+    sweep: bool,
+    end: (f32, f32),
+) -> MarkerPathElement {
+    let curves = decompose_marker_arc_to_cubics(start, radii, angle, large, sweep, end);
+    let (Some(first), Some(last)) = (curves.first(), curves.last()) else {
+        return MarkerPathElement::LineTo(end);
+    };
+    MarkerPathElement::CubicTo {
+        one: first.0,
+        two: last.1,
+        end: last.2,
+    }
+}
+
+type MarkerCubic = ((f32, f32), (f32, f32), (f32, f32));
+
+/// Port of Blink's `SVGPathNormalizer::DecomposeArcToCubic` arithmetic.
+/// The raster path intentionally keeps its independent pinned-Skia conic
+/// route; this helper exists only for authored marker tangents.
+fn decompose_marker_arc_to_cubics(
+    start: (f32, f32),
+    radii: (f32, f32),
+    angle: f32,
+    large: bool,
+    sweep: bool,
+    end: (f32, f32),
+) -> Vec<MarkerCubic> {
+    let mut rx = radii.0.abs();
+    let mut ry = radii.1.abs();
+    if rx == 0.0 || ry == 0.0 || start == end {
+        return Vec::new();
+    }
+
+    let midpoint_delta = ((start.0 - end.0) * 0.5, (start.1 - end.1) * 0.5);
+    let transformed_midpoint = rotate_point_f32(midpoint_delta, -angle);
+    let square_rx = rx * rx;
+    let square_ry = ry * ry;
+    let square_x = transformed_midpoint.0 * transformed_midpoint.0;
+    let square_y = transformed_midpoint.1 * transformed_midpoint.1;
+    let radii_scale = square_x / square_rx + square_y / square_ry;
+    if radii_scale > 1.0 {
+        let scale = radii_scale.sqrt();
+        rx *= scale;
+        ry *= scale;
+    }
+    if ![rx, ry].into_iter().all(f32::is_finite) {
+        return Vec::new();
+    }
+
+    let point1 = ellipse_to_unit(start, rx, ry, angle);
+    let point2 = ellipse_to_unit(end, rx, ry, angle);
+    let mut delta = subtract(point2, point1);
+    let length_squared = delta.0 * delta.0 + delta.1 * delta.1;
+    let scale_factor_squared = f64::from((1.0 / length_squared) - 0.25).max(0.0);
+    let mut scale_factor = scale_factor_squared.sqrt() as f32;
+    if sweep == large {
+        scale_factor = -scale_factor;
+    }
+    delta.0 *= scale_factor;
+    delta.1 *= scale_factor;
+    let mut center = ((point1.0 + point2.0) * 0.5, (point1.1 + point2.1) * 0.5);
+    center.0 -= delta.1;
+    center.1 += delta.0;
+
+    let theta1 = (point1.1 - center.1).atan2(point1.0 - center.0);
+    let theta2 = (point2.1 - center.1).atan2(point2.0 - center.0);
+    let mut theta_arc = theta2 - theta1;
+    if theta_arc < 0.0 && sweep {
+        theta_arc += std::f32::consts::TAU;
+    } else if theta_arc > 0.0 && !sweep {
+        theta_arc -= std::f32::consts::TAU;
+    }
+    if !theta_arc.is_finite() {
+        return Vec::new();
+    }
+
+    let segments = (theta_arc.abs() / (std::f32::consts::FRAC_PI_2 + 0.001)).ceil() as usize;
+    if segments == 0 {
+        return Vec::new();
+    }
+    let mut curves = Vec::with_capacity(segments);
+    for index in 0..segments {
+        let start_theta = theta1 + index as f32 * theta_arc / segments as f32;
+        let end_theta = theta1 + (index + 1) as f32 * theta_arc / segments as f32;
+        let tangent = (8.0 / 6.0_f32) * (0.25 * (end_theta - start_theta)).tan();
+        if !tangent.is_finite() {
+            return Vec::new();
+        }
+        let (sin_start, cos_start) = start_theta.sin_cos();
+        let (sin_end, cos_end) = end_theta.sin_cos();
+        let control_one_unit = (
+            cos_start - tangent * sin_start + center.0,
+            sin_start + tangent * cos_start + center.1,
+        );
+        let target_unit = (cos_end + center.0, sin_end + center.1);
+        let control_two_unit = (
+            target_unit.0 + tangent * sin_end,
+            target_unit.1 - tangent * cos_end,
+        );
+        curves.push((
+            unit_to_ellipse(control_one_unit, rx, ry, angle),
+            unit_to_ellipse(control_two_unit, rx, ry, angle),
+            unit_to_ellipse(target_unit, rx, ry, angle),
+        ));
+    }
+    curves
+}
+
+fn rotate_point_f32(point: (f32, f32), degrees: f32) -> (f32, f32) {
+    let radians = f64::from(degrees).to_radians();
+    let (sin, cos) = radians.sin_cos();
+    (
+        (f64::from(point.0) * cos - f64::from(point.1) * sin) as f32,
+        (f64::from(point.0) * sin + f64::from(point.1) * cos) as f32,
+    )
+}
+
+fn ellipse_to_unit(point: (f32, f32), rx: f32, ry: f32, angle: f32) -> (f32, f32) {
+    let rotated = rotate_point_f32(point, -angle);
+    (rotated.0 / rx, rotated.1 / ry)
+}
+
+fn unit_to_ellipse(point: (f32, f32), rx: f32, ry: f32, angle: f32) -> (f32, f32) {
+    rotate_point_f32((point.0 * rx, point.1 * ry), angle)
 }
 
 type ResolvedConic = ((f32, f32), (f32, f32), f32);
@@ -875,4 +1331,116 @@ fn skia_round(value: f32) -> f32 {
 
 fn finite_point(point: (f32, f32)) -> bool {
     point.0.is_finite() && point.1.is_finite()
+}
+
+#[cfg(test)]
+mod marker_tests {
+    use super::*;
+
+    fn assert_position(actual: MarkerPosition, kind: MarkerType, origin: (f32, f32), angle: f32) {
+        assert_eq!(actual.kind, kind);
+        assert_eq!(actual.origin, origin);
+        assert!(
+            (actual.angle - angle).abs() <= 0.000_01,
+            "expected angle {angle}, got {}",
+            actual.angle
+        );
+    }
+
+    #[test]
+    fn one_scan_projects_raster_commands_and_authored_vertices() {
+        let parsed = parse_path("M0 0L10 0L10 10");
+        assert_eq!(
+            parsed.commands,
+            [
+                PathCommand::MoveTo { x: 0.0, y: 0.0 },
+                PathCommand::LineTo { x: 10.0, y: 0.0 },
+                PathCommand::LineTo { x: 10.0, y: 10.0 },
+            ]
+        );
+        let positions = parsed.marker_positions().expect("finite marker projection");
+        assert_eq!(positions.len(), 3);
+        assert_position(positions[0], MarkerType::Start, (0.0, 0.0), 0.0);
+        assert_position(positions[1], MarkerType::Mid, (10.0, 0.0), 45.0);
+        assert_position(positions[2], MarkerType::End, (10.0, 10.0), 90.0);
+    }
+
+    #[test]
+    fn start_and_end_belong_to_the_whole_path_not_each_subpath() {
+        let positions = parse_path("M0 0L10 0M20 0L20 10")
+            .marker_positions()
+            .expect("finite marker projection");
+        assert_eq!(positions.len(), 4);
+        assert_position(positions[0], MarkerType::Start, (0.0, 0.0), 0.0);
+        assert_position(positions[1], MarkerType::Mid, (10.0, 0.0), 0.0);
+        assert_position(positions[2], MarkerType::Mid, (20.0, 0.0), 90.0);
+        assert_position(positions[3], MarkerType::End, (20.0, 10.0), 90.0);
+    }
+
+    #[test]
+    fn close_backpatches_the_start_and_keeps_the_duplicate_vertex() {
+        let positions = parse_path("M0 0L10 0L10 10Z")
+            .marker_positions()
+            .expect("finite marker projection");
+        assert_eq!(positions.len(), 4);
+        assert_position(positions[0], MarkerType::Start, (0.0, 0.0), -67.5);
+        assert_position(positions[1], MarkerType::Mid, (10.0, 0.0), 45.0);
+        assert_position(positions[2], MarkerType::Mid, (10.0, 10.0), 157.5);
+        assert_position(positions[3], MarkerType::End, (0.0, 0.0), -67.5);
+    }
+
+    #[test]
+    fn marker_only_shapes_survive_raster_geometry_elision() {
+        let move_only = parse_path("M12 20");
+        assert!(move_only.commands.is_empty());
+        let positions = move_only
+            .marker_positions()
+            .expect("move-only marker projection");
+        assert_eq!(positions.len(), 1);
+        assert_position(
+            positions[0],
+            MarkerType::End,
+            (12.0, 20.0),
+            slope_degrees((12.0, 20.0)),
+        );
+
+        let polyline = points_marker_positions(&[(12.0, 20.0)], false);
+        assert_eq!(polyline.len(), 1);
+        assert_eq!(polyline[0].kind, MarkerType::End);
+
+        let polygon = points_marker_positions(&[(12.0, 20.0)], true);
+        assert_eq!(
+            polygon
+                .iter()
+                .map(|position| position.kind)
+                .collect::<Vec<_>>(),
+            [MarkerType::Start, MarkerType::End]
+        );
+    }
+
+    #[test]
+    fn one_authored_arc_is_one_marker_segment_even_when_raster_decomposes() {
+        let parsed = parse_path("M8 32A24 12 0 1 1 56 32");
+        assert!(
+            parsed.commands.len() > parsed.marker_elements.len(),
+            "the raster conics may not become authored marker vertices"
+        );
+        assert_eq!(parsed.marker_elements.len(), 2);
+        let MarkerPathElement::CubicTo { end, .. } = parsed.marker_elements[1] else {
+            panic!("an authored arc must have one synthetic cubic marker segment")
+        };
+        assert!((end.0 - 56.0).abs() < 0.000_01 && (end.1 - 32.0).abs() < 0.000_01);
+        let positions = parsed.marker_positions().expect("finite arc projection");
+        assert_eq!(positions.len(), 2);
+        assert_eq!(positions[0].kind, MarkerType::Start);
+        assert_eq!(positions[1].kind, MarkerType::End);
+    }
+
+    #[test]
+    fn exact_opposite_tangents_take_blinks_lower_bisector_branch() {
+        let positions = parse_path("M8 32L32 32L8 32")
+            .marker_positions()
+            .expect("finite marker projection");
+        assert_position(positions[1], MarkerType::Mid, (32.0, 32.0), 270.0);
+    }
 }

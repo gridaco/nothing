@@ -217,12 +217,22 @@ class SVGMarkerDataBuilder : private SVGPathConsumer {
 ```
 
 `SVGMarkerDataBuilder` walks the path as it's emitted segment-by-segment,
-computing tangent vectors. For each marker position:
+computing tangent vectors. Chromium 149 probes correct an easy but material
+misreading of that walk: start and end belong to the **whole path**, not to
+each subpath. The first authored path element is the start, the final element
+is the end, and every element between them is a mid — including a later
+subpath's `moveto` and the preceding subpath's endpoint. A close contributes a
+position at the subpath start and back-patches that start position's angle.
+A move-only path therefore has one end marker; a one-point open polyline also
+has one end, while a one-point closed polygon has start and end at the same
+point (measured and Chromium-celled 2026-08-28).
 
-- **Start** — first point after `moveto`; angle = outgoing tangent.
-- **End** — last point of each subpath; angle = incoming tangent.
-- **Mid** — interior segment joins; angle = bisecting tangent (unless
-  `orient="auto"` vs explicit).
+The start uses its outgoing tangent, the end its incoming tangent, and a mid
+uses the bisector of the incoming and outgoing tangents. Degenerate controls
+fall through Blink's tangent-recovery rules, exact opposite tangents take its
+lower-angle branch, and wraparound is corrected before averaging. Quadratic
+and arc normalization remains marker-local: one authored segment creates one
+marker edge even when the raster path uses another curve decomposition.
 
 ### Marker painting
 

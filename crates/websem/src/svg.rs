@@ -345,6 +345,9 @@ pub enum CompileError {
     /// A filter value, graph, or operation that cannot be resolved into the
     /// admitted source-neutral image-filter program.
     UnsupportedFilter(String),
+    /// A marker reference, placement value, authored vertex projection, or
+    /// source subtree outside the admitted bounded marker program.
+    UnsupportedMarker(String),
     /// A numeric attribute failed to parse.
     BadNumber { attr: String, value: String },
     /// Viewport sizing needs a default/CSS sizing path this slice lacks.
@@ -885,6 +888,9 @@ impl std::fmt::Display for CompileError {
             CompileError::UnsupportedFilter(reason) => {
                 write!(f, "unsupported SVG filter: {reason}")
             }
+            CompileError::UnsupportedMarker(reason) => {
+                write!(f, "unsupported SVG marker: {reason}")
+            }
             CompileError::BadNumber { attr, value } => {
                 write!(f, "attribute {attr}={value:?} is not a number")
             }
@@ -1081,13 +1087,11 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     // presentation hint (csscascade), the currentColor basis the paint
     // resolvers already read from the cascade.
     "paint-order",
-    // Markers apply to `<path>`, `<line>`, `<polyline>` and `<polygon>`, and
-    // this slice admits the first two. Nothing else "reads" a marker
-    // property — the property *is* the paint trigger — so this patrol is what
-    // keeps Chromium's arrowhead from becoming a silent hole.
-    "marker-start",
-    "marker-mid",
-    "marker-end",
+    // The direct marker resolver owns marker-start/mid/end on Chromium's four
+    // applicable shapes, including inheritance. Current Chromium drops those
+    // attributes on the other admitted shapes, so a global patrol would
+    // over-refuse the measured correct nothing. CSS spellings remain in the
+    // pinned-cascade patrol below; no matcher is added around Stylo.
     "shape-rendering",
     "image-rendering",
     "color-rendering",
@@ -1914,6 +1918,7 @@ fn measure_use_boxes_in_subtree(
             || tag == "linearGradient"
             || tag == "radialGradient"
             || tag == "pattern"
+            || tag == "marker"
         {
             child = el.next_element_sibling();
             continue;
@@ -2022,6 +2027,7 @@ fn measure_effect_boxes_in_subtree(
             || tag == "linearGradient"
             || tag == "radialGradient"
             || tag == "pattern"
+            || tag == "marker"
         {
             child = el.next_element_sibling();
             continue;
@@ -2103,6 +2109,7 @@ fn measure_subtree_geometry(
             || tag == "linearGradient"
             || tag == "radialGradient"
             || tag == "pattern"
+            || tag == "marker"
         {
             child = el.next_element_sibling();
             continue;
@@ -2554,6 +2561,7 @@ fn compile_svg_element(
     let clips = clip_path::Resources::collect(document_root(svg), svg);
     let masks = mask_resource::Resources::collect(document_root(svg), svg);
     let filters = filter_resource::Resources::collect(document_root(svg), svg);
+    let markers = marker_resource::Resources::collect(document_root(svg), svg);
     let has_author_css = document_has_author_css(svg);
     let patterns = PatternCompiler {
         values,
@@ -2564,6 +2572,7 @@ fn compile_svg_element(
         clips: &clips,
         masks: &masks,
         filters: &filters,
+        markers: &markers,
         fonts,
     };
     let GeometryMeasurements {
@@ -2581,6 +2590,7 @@ fn compile_svg_element(
         clips: &clips,
         masks: &masks,
         filters: &filters,
+        markers: &markers,
         patterns: &patterns,
         use_boxes,
         effect_boxes,
@@ -2591,6 +2601,7 @@ fn compile_svg_element(
         top_level_shapes: Vec::new(),
         active_masks: Vec::new(),
         active_patterns: Vec::new(),
+        active_markers: Vec::new(),
         next_id: 0,
     };
     if root_disposition != RenderDisposition::PrunedSubtree || initial_viewport.is_some() {
@@ -2717,6 +2728,7 @@ struct PatternCompiler<'a> {
     clips: &'a clip_path::Resources<'a>,
     masks: &'a mask_resource::Resources<'a>,
     filters: &'a filter_resource::Resources<'a>,
+    markers: &'a marker_resource::Resources<'a>,
     fonts: &'a textlayout::Environment,
 }
 
@@ -3039,6 +3051,7 @@ impl<'a> PatternCompiler<'a> {
             clips: self.clips,
             masks: self.masks,
             filters: self.filters,
+            markers: self.markers,
             patterns: self,
             use_boxes,
             effect_boxes,
@@ -3049,6 +3062,7 @@ impl<'a> PatternCompiler<'a> {
             top_level_shapes: Vec::new(),
             active_masks: Vec::new(),
             active_patterns: source_active_patterns,
+            active_markers: Vec::new(),
             next_id: 0,
         };
         walk.compile_children(
@@ -3365,6 +3379,678 @@ fn pattern_view_box(chain: &[HtmlElement<'_>]) -> PatternViewBox {
     }
 }
 
+/// Same-document SVG marker resources and their direct attribute grammar.
+///
+/// The pinned Servo cascade has no marker longhands. Client references are
+/// therefore decoded from inherited presentation attributes only, while the
+/// document-wide authored-CSS patrol continues to quarantine every CSS
+/// spelling. Resource values use cssparser's f64-accumulating token route —
+/// the same normalization order the Chromium precision probes selected — and
+/// are fully resolved before ordinary frame items are emitted.
+mod marker_resource {
+    use std::collections::HashMap;
+
+    use cssparser::{Parser, ParserInput, Token};
+
+    use super::*;
+
+    pub(super) const MAX_POSITIONS_PER_CLIENT: usize = 4096;
+    pub(super) const MAX_SOURCE_ITEMS: usize = 64;
+    pub(super) const MAX_ITEMS_PER_CLIENT: usize = 16_384;
+
+    enum Resource<'d> {
+        Marker {
+            element: HtmlElement<'d>,
+            inside_compiled_svg: bool,
+        },
+        Other,
+    }
+
+    pub(super) struct Resources<'d> {
+        by_fragment: HashMap<String, Resource<'d>>,
+    }
+
+    #[derive(Clone, Copy)]
+    pub(super) enum Lookup<'d> {
+        Invalid,
+        Outside,
+        Marker(HtmlElement<'d>),
+    }
+
+    impl<'d> Resources<'d> {
+        pub(super) fn collect(
+            document_root: HtmlElement<'d>,
+            compiled_svg: HtmlElement<'d>,
+        ) -> Self {
+            let mut by_fragment = HashMap::new();
+            let mut stack = vec![document_root];
+            while let Some(element) = stack.pop() {
+                let mut children = Vec::new();
+                let mut child = element.first_element_child();
+                while let Some(next) = child {
+                    children.push(next);
+                    child = next.next_element_sibling();
+                }
+                stack.extend(children.into_iter().rev());
+
+                if has_use_ancestor(element) {
+                    continue;
+                }
+                let Some(id) = element_id(element) else {
+                    continue;
+                };
+                by_fragment.entry(id).or_insert_with(|| {
+                    if element.local_name_string() == "marker" {
+                        Resource::Marker {
+                            element,
+                            inside_compiled_svg: is_inside(element, compiled_svg),
+                        }
+                    } else {
+                        Resource::Other
+                    }
+                });
+            }
+            Self { by_fragment }
+        }
+
+        pub(super) fn lookup(&self, fragment: &str) -> Lookup<'d> {
+            match self.by_fragment.get(fragment) {
+                None | Some(Resource::Other) => Lookup::Invalid,
+                Some(Resource::Marker {
+                    inside_compiled_svg: false,
+                    ..
+                }) => Lookup::Outside,
+                Some(Resource::Marker { element, .. }) => Lookup::Marker(*element),
+            }
+        }
+
+        /// Whether any marker property selected by an authored vertex resolves
+        /// to an actual marker resource.
+        ///
+        /// Missing ids, wrong-type targets, and an unselected marker kind are
+        /// Chromium-equivalent to `none`: they must not force the client's
+        /// combined marker/effect compositing route. A selected marker remains
+        /// active even when its viewport or source later paints nothing.
+        pub(super) fn has_selected_resource(
+            &self,
+            references: &References,
+            positions: &[crate::svg_path::MarkerPosition],
+        ) -> Result<bool, CompileError> {
+            let mut selected = false;
+            for position in positions {
+                let Some(fragment) = references.selected(position.kind) else {
+                    continue;
+                };
+                match self.lookup(fragment) {
+                    Lookup::Invalid => {}
+                    Lookup::Outside => {
+                        return Err(CompileError::UnsupportedMarker(format!(
+                            "url(#{fragment}) resolves outside the compiled SVG subtree"
+                        )));
+                    }
+                    Lookup::Marker(_) => selected = true,
+                }
+            }
+            Ok(selected)
+        }
+    }
+
+    fn has_use_ancestor(element: HtmlElement<'_>) -> bool {
+        let mut current = element.traversal_parent();
+        while let Some(parent) = current {
+            if parent.local_name_string() == "use" {
+                return true;
+            }
+            current = parent.traversal_parent();
+        }
+        false
+    }
+
+    fn is_inside(element: HtmlElement<'_>, ancestor: HtmlElement<'_>) -> bool {
+        let mut current = Some(element);
+        while let Some(node) = current {
+            if node.node_id() == ancestor.node_id() {
+                return true;
+            }
+            current = node.traversal_parent();
+        }
+        false
+    }
+
+    fn element_id(element: HtmlElement<'_>) -> Option<String> {
+        if let DemoNodeData::Element(data) = &element.dom_node().data {
+            data.id_attr.as_ref().map(ToString::to_string)
+        } else {
+            None
+        }
+    }
+
+    #[derive(Debug, Clone, Default, PartialEq, Eq)]
+    pub(super) struct References {
+        pub(super) start: Option<String>,
+        pub(super) mid: Option<String>,
+        pub(super) end: Option<String>,
+    }
+
+    impl References {
+        pub(super) fn is_empty(&self) -> bool {
+            self.start.is_none() && self.mid.is_none() && self.end.is_none()
+        }
+
+        pub(super) fn selected(&self, kind: crate::svg_path::MarkerType) -> Option<&str> {
+            match kind {
+                crate::svg_path::MarkerType::Start => self.start.as_deref(),
+                crate::svg_path::MarkerType::Mid => self.mid.as_deref(),
+                crate::svg_path::MarkerType::End => self.end.as_deref(),
+            }
+        }
+    }
+
+    pub(super) fn inherited_references(
+        element: HtmlElement<'_>,
+    ) -> Result<References, CompileError> {
+        Ok(References {
+            start: inherited_reference(element, "marker-start")?,
+            mid: inherited_reference(element, "marker-mid")?,
+            end: inherited_reference(element, "marker-end")?,
+        })
+    }
+
+    fn inherited_reference(
+        element: HtmlElement<'_>,
+        property: &str,
+    ) -> Result<Option<String>, CompileError> {
+        let mut current = Some(element);
+        while let Some(candidate) = current {
+            if let Some(raw) = get_attr(candidate, property) {
+                let mut input = ParserInput::new(&raw);
+                let mut parser = Parser::new(&mut input);
+                let parsed_url: Result<_, cssparser::ParseError<'_, ()>> =
+                    parser.parse_entirely(|input| input.expect_url().map_err(Into::into));
+                if let Ok(url) = parsed_url {
+                    let url = url.to_string();
+                    if url.contains("/*") {
+                        // A comment inside url() makes a bad URL token in
+                        // Chromium; the invalid hint disappears and inherited
+                        // marker state remains visible.
+                    } else {
+                        let base = ::url::Url::parse("about:blank").expect("fixed URL base");
+                        let resolved = base.join(&url).map_err(|_| {
+                            CompileError::UnsupportedMarker(format!(
+                                "{property} url({url}) is a relative external reference; this compiler owns no resource base or I/O"
+                            ))
+                        })?;
+                        let Some(fragment) =
+                            crate::svg_paint_server::same_document_fragment(&resolved)
+                        else {
+                            return Err(CompileError::UnsupportedMarker(format!(
+                                "{property} url({resolved}) is external; this compiler owns no resource I/O"
+                            )));
+                        };
+                        return Ok(Some(fragment.to_string()));
+                    }
+                } else if let Some(ident) = entire_ident(&raw) {
+                    match ident.to_ascii_lowercase().as_str() {
+                        "none" | "initial" => return Ok(None),
+                        // The property is inherited. These CSS-wide values
+                        // expose the parent value at this direct hint seat.
+                        "inherit" | "unset" | "revert" | "revert-layer" => {}
+                        _ => {}
+                    }
+                } else if first_function(&raw, "var") {
+                    return Err(CompileError::UnsupportedMarker(format!(
+                        "{property} presentation attribute uses var(), whose substitution is not represented at this Stylo pin"
+                    )));
+                }
+                // Every other malformed presentation hint is absent; keep
+                // walking because marker properties inherit.
+            }
+            current = candidate.traversal_parent();
+        }
+        Ok(None)
+    }
+
+    fn entire_ident(raw: &str) -> Option<String> {
+        let mut input = ParserInput::new(raw);
+        let mut parser = Parser::new(&mut input);
+        let parsed: Result<_, cssparser::ParseError<'_, ()>> =
+            parser.parse_entirely(|input| input.expect_ident_cloned().map_err(Into::into));
+        parsed.ok().map(|ident| ident.to_string())
+    }
+
+    fn first_function(raw: &str, expected: &str) -> bool {
+        let mut input = ParserInput::new(raw);
+        let mut parser = Parser::new(&mut input);
+        matches!(
+            parser.next().ok(),
+            Some(Token::Function(name)) if name.eq_ignore_ascii_case(expected)
+        )
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub(super) enum Units {
+        StrokeWidth,
+        UserSpaceOnUse,
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    pub(super) enum Orient {
+        Angle(f32),
+        Auto,
+        AutoStartReverse,
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    pub(super) enum ViewBox {
+        None,
+        Degenerate,
+        Mapped((f32, f32, f32, f32)),
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    pub(super) struct Viewport {
+        pub(super) width: f32,
+        pub(super) height: f32,
+        pub(super) ref_x: f32,
+        pub(super) ref_y: f32,
+        pub(super) units: Units,
+        pub(super) orient: Orient,
+        pub(super) view_box: ViewBox,
+        pub(super) preserve_aspect_ratio: PreserveAspectRatio,
+    }
+
+    pub(super) fn viewport(
+        marker: HtmlElement<'_>,
+        root_bases: PercentBases,
+        has_author_css: bool,
+    ) -> Result<Viewport, CompileError> {
+        patrol_marker_root(marker, has_author_css)?;
+        let units = match get_attr(marker, "markerUnits").as_deref() {
+            Some("userSpaceOnUse") => Units::UserSpaceOnUse,
+            Some("strokeWidth") | None => Units::StrokeWidth,
+            // Case-sensitive enum; an invalid value selects the initial.
+            _ => Units::StrokeWidth,
+        };
+        let width = length(marker, "markerWidth", root_bases.width, 3.0)?;
+        let height = length(marker, "markerHeight", root_bases.height, 3.0)?;
+        let ref_x = length(marker, "refX", root_bases.width, 0.0)?;
+        let ref_y = length(marker, "refY", root_bases.height, 0.0)?;
+        let orient = orient(marker)?;
+        let view_box = view_box(marker);
+        let preserve_aspect_ratio = match get_attr(marker, "preserveAspectRatio") {
+            Some(raw) => parse_preserve_aspect_ratio(&raw).map_err(|error| {
+                CompileError::UnsupportedMarker(format!(
+                    "marker preserveAspectRatio is not admitted: {error}"
+                ))
+            })?,
+            None => PreserveAspectRatio::default(),
+        };
+        Ok(Viewport {
+            width,
+            height,
+            ref_x,
+            ref_y,
+            units,
+            orient,
+            view_box,
+            preserve_aspect_ratio,
+        })
+    }
+
+    fn patrol_marker_root(
+        marker: HtmlElement<'_>,
+        has_author_css: bool,
+    ) -> Result<(), CompileError> {
+        if has_author_css {
+            return Err(CompileError::UnsupportedMarker(
+                "a used marker in a document with author CSS needs resource-side selector attribution at the pinned marker cascade boundary"
+                    .to_string(),
+            ));
+        }
+        if get_attr(marker, "overflow").is_some()
+            || get_attr(marker, "style")
+                .is_some_and(|style| css_declares_property(&style, "overflow"))
+        {
+            return Err(CompileError::UnsupportedMarker(
+                "authored overflow on <marker> is outside the default hidden viewport-clip profile"
+                    .to_string(),
+            ));
+        }
+        if ["filter", "mask", "clip-path"].iter().any(|name| {
+            get_attr(marker, name).is_some()
+                || get_attr(marker, "style")
+                    .is_some_and(|style| css_declares_property(&style, name))
+        }) {
+            return Err(CompileError::UnsupportedMarker(
+                "an effect on the <marker> resource root needs marker-source effect composition"
+                    .to_string(),
+            ));
+        }
+        if element_has_computed_transform(marker)? {
+            return Err(CompileError::UnsupportedMarker(
+                "transform on the <marker> resource root is outside the admitted viewport mapping"
+                    .to_string(),
+            ));
+        }
+        let patrol = patrol_computed_style(marker, false)?;
+        if patrol.opacity != 1.0 {
+            return Err(CompileError::UnsupportedMarker(
+                "opacity on the <marker> resource root needs one source compositing scope"
+                    .to_string(),
+            ));
+        }
+        if let DemoNodeData::Element(data) = &marker.dom_node().data
+            && let Some(attribute) = data.attrs.iter().find_map(|attribute| {
+                let local = attribute.name.local.as_ref();
+                RENDERING_ATTRIBUTES_NOT_CONSUMED
+                    .contains(&local)
+                    .then(|| local.to_string())
+            })
+        {
+            return Err(CompileError::UnsupportedMarker(format!(
+                "resource-root rendering declaration {attribute} on <marker> can inherit into its source subtree, outside the M1 source profile"
+            )));
+        }
+        if let Some(style) = get_attr(marker, "style")
+            && let Some(property) = unrepresented_property(&style)
+        {
+            return Err(CompileError::UnsupportedMarker(format!(
+                "resource-root rendering declaration {property} on <marker> can inherit into its source subtree, outside the M1 source profile"
+            )));
+        }
+        Ok(())
+    }
+
+    fn length(
+        element: HtmlElement<'_>,
+        name: &str,
+        percentage_basis: f32,
+        initial: f32,
+    ) -> Result<f32, CompileError> {
+        let Some(raw) = get_attr(element, name) else {
+            return Ok(initial);
+        };
+        let mut input = ParserInput::new(&raw);
+        let mut parser = Parser::new(&mut input);
+        let first = parser.next().ok().cloned();
+        if matches!(
+            first,
+            Some(Token::Function(ref function))
+                if function.eq_ignore_ascii_case("var") || function.eq_ignore_ascii_case("calc")
+        ) {
+            let function = match first {
+                Some(Token::Function(function)) => function,
+                _ => unreachable!(),
+            };
+            return Err(CompileError::UnsupportedMarker(format!(
+                "marker {name} uses {function}(), whose computed length is not represented by the direct resource decoder"
+            )));
+        }
+        let value = if parser.is_exhausted() {
+            match first {
+                Some(Token::Number { value, .. }) => Some(value),
+                Some(Token::Percentage { unit_value, .. }) => Some(percentage_basis * unit_value),
+                Some(Token::Dimension { value, unit, .. }) if unit.eq_ignore_ascii_case("px") => {
+                    Some(value)
+                }
+                Some(Token::Dimension { unit, .. }) => {
+                    return Err(CompileError::UnsupportedMarker(format!(
+                        "marker {name} uses {unit} units, whose basis is not admitted"
+                    )));
+                }
+                Some(Token::Ident(ident))
+                    if matches!(
+                        ident.to_ascii_lowercase().as_str(),
+                        "initial" | "inherit" | "unset" | "revert" | "revert-layer"
+                    ) =>
+                {
+                    return Err(CompileError::UnsupportedMarker(format!(
+                        "marker {name} uses the CSS-wide value {ident}, whose resource-side cascade is not represented at this Stylo pin"
+                    )));
+                }
+                // SVG 2 ref keywords are valid standard-track values, but
+                // Chromium 149 drops all of them to initial zero. Keep that
+                // measured browser behavior explicit rather than inventing
+                // marker-viewBox alignment.
+                Some(Token::Ident(ident))
+                    if matches!(
+                        (name, ident.to_ascii_lowercase().as_str()),
+                        ("refX", "left" | "center" | "right")
+                            | ("refY", "top" | "center" | "bottom")
+                    ) =>
+                {
+                    Some(initial)
+                }
+                _ => None,
+            }
+        } else {
+            None
+        };
+        let Some(value) = value.filter(|value| value.is_finite()) else {
+            // Invalid marker resource hints select their initial values.
+            return Ok(initial);
+        };
+        if !(WEB_USED_LENGTH_MIN..=WEB_USED_LENGTH_MAX).contains(&value) {
+            return Err(CompileError::UnsupportedMarker(format!(
+                "marker {name} exceeds the admitted Web used-value range"
+            )));
+        }
+        Ok(value)
+    }
+
+    fn orient(element: HtmlElement<'_>) -> Result<Orient, CompileError> {
+        let Some(raw) = get_attr(element, "orient") else {
+            return Ok(Orient::Angle(0.0));
+        };
+        // Blink's SVG-angle keyword route is case-sensitive and does not trim
+        // the authored token. Numeric angles take the CSS token route below,
+        // where surrounding whitespace is accepted.
+        if raw == "auto" {
+            return Ok(Orient::Auto);
+        }
+        if raw == "auto-start-reverse" {
+            return Ok(Orient::AutoStartReverse);
+        }
+        if let Some(ident) = entire_ident(&raw) {
+            return Ok(match ident.to_ascii_lowercase().as_str() {
+                "initial" | "inherit" | "unset" | "revert" | "revert-layer" => {
+                    return Err(CompileError::UnsupportedMarker(format!(
+                        "marker orient uses the CSS-wide value {ident}, whose resource-side cascade is not represented at this Stylo pin"
+                    )));
+                }
+                _ => Orient::Angle(0.0),
+            });
+        }
+        let mut input = ParserInput::new(&raw);
+        let mut parser = Parser::new(&mut input);
+        let first = parser.next().ok().cloned();
+        if matches!(
+            first,
+            Some(Token::Function(ref function))
+                if function.eq_ignore_ascii_case("var") || function.eq_ignore_ascii_case("calc")
+        ) {
+            return Err(CompileError::UnsupportedMarker(
+                "marker orient uses CSS math or var(), whose resource-side computed angle is not represented"
+                    .to_string(),
+            ));
+        }
+        let degrees = if parser.is_exhausted() {
+            match first {
+                Some(Token::Number { value, .. }) => Some(value),
+                Some(Token::Dimension { value, unit, .. }) if unit.eq_ignore_ascii_case("deg") => {
+                    Some(value)
+                }
+                Some(Token::Dimension { value, unit, .. }) if unit.eq_ignore_ascii_case("rad") => {
+                    Some(value.to_degrees())
+                }
+                Some(Token::Dimension { value, unit, .. }) if unit.eq_ignore_ascii_case("grad") => {
+                    Some(value * 0.9)
+                }
+                Some(Token::Dimension { value, unit, .. }) if unit.eq_ignore_ascii_case("turn") => {
+                    Some(value * 360.0)
+                }
+                _ => None,
+            }
+        } else {
+            None
+        };
+        Ok(Orient::Angle(
+            degrees.filter(|value| value.is_finite()).unwrap_or(0.0),
+        ))
+    }
+
+    fn view_box(element: HtmlElement<'_>) -> ViewBox {
+        let Some(raw) = get_attr(element, "viewBox") else {
+            return ViewBox::None;
+        };
+        let Some(values) = crate::svg_number_list::parse(&raw) else {
+            return ViewBox::None;
+        };
+        let [x, y, width, height] = values.as_slice() else {
+            return ViewBox::None;
+        };
+        if ![*x, *y, *width, *height].into_iter().all(f32::is_finite) {
+            return ViewBox::None;
+        }
+        if *width == 0.0 || *height == 0.0 {
+            ViewBox::Degenerate
+        } else if *width < 0.0 || *height < 0.0 {
+            ViewBox::None
+        } else {
+            ViewBox::Mapped((*x, *y, *width, *height))
+        }
+    }
+
+    pub(super) fn instance_angle(orient: Orient, position: crate::svg_path::MarkerPosition) -> f32 {
+        match orient {
+            Orient::Angle(angle) => angle,
+            Orient::Auto => position.angle,
+            Orient::AutoStartReverse if position.kind == crate::svg_path::MarkerType::Start => {
+                position.angle + 180.0
+            }
+            Orient::AutoStartReverse => position.angle,
+        }
+    }
+
+    /// Blink's marker transform rotates through its double affine helper even
+    /// though the stored marker angle is float. The matrix that reaches Skia
+    /// is therefore double-trig rounded to f32, not f32 radians/trig as on the
+    /// ordinary computed-transform route.
+    fn rotation_components(degrees: f32) -> (f32, f32) {
+        const EXACT_QUARTER_TURN_LIMIT: f32 = 360.0 * 1024.0;
+        if degrees.abs() <= EXACT_QUARTER_TURN_LIMIT && degrees % 90.0 == 0.0 {
+            return match (degrees / 90.0).rem_euclid(4.0) as i32 {
+                0 => (0.0, 1.0),
+                1 => (1.0, 0.0),
+                2 => (0.0, -1.0),
+                _ => (-1.0, 0.0),
+            };
+        }
+        let (sin, cos) = f64::from(degrees).to_radians().sin_cos();
+        (sin as f32, cos as f32)
+    }
+
+    /// Build Blink's translate/rotate/scale/reference sequence in its one
+    /// double affine before rounding the six matrix components for Skia.
+    pub(super) fn placement(
+        position: (f32, f32),
+        degrees: f32,
+        scale: f32,
+        mapped_reference: (f32, f32),
+    ) -> AffineTransform {
+        let (sin_f32, cos_f32) = rotation_components(degrees);
+        let sin = f64::from(sin_f32);
+        let cos = f64::from(cos_f32);
+        let scale = f64::from(scale);
+        let a = cos * scale;
+        let c = -sin * scale;
+        let b = sin * scale;
+        let d = cos * scale;
+        let ref_x = f64::from(mapped_reference.0);
+        let ref_y = f64::from(mapped_reference.1);
+        let e = f64::from(position.0) - a * ref_x - c * ref_y;
+        let f = f64::from(position.1) - b * ref_x - d * ref_y;
+        AffineTransform::from_acebdf(a as f32, c as f32, e as f32, b as f32, d as f32, f as f32)
+    }
+
+    pub(super) fn patrol_source_tree(marker: HtmlElement<'_>) -> Result<(), CompileError> {
+        let mut stack = Vec::new();
+        let mut child = marker.first_element_child();
+        while let Some(next) = child {
+            stack.push(next);
+            child = next.next_element_sibling();
+        }
+        while let Some(element) = stack.pop() {
+            let tag = element.local_name_string();
+            if is_animation_element(&tag) {
+                return Err(CompileError::UnsupportedMarker(
+                    "animation inside a used marker source needs the marker sampling inventory"
+                        .to_string(),
+                ));
+            }
+            if matches!(
+                tag.as_str(),
+                "use"
+                    | "text"
+                    | "image"
+                    | "foreignObject"
+                    | "filter"
+                    | "mask"
+                    | "clipPath"
+                    | "linearGradient"
+                    | "radialGradient"
+                    | "pattern"
+            ) {
+                return Err(CompileError::UnsupportedMarker(format!(
+                    "a <{tag}> inside a used marker source is outside the admitted static solid subtree"
+                )));
+            }
+            let mut child = element.first_element_child();
+            while let Some(next) = child {
+                stack.push(next);
+                child = next.next_element_sibling();
+            }
+        }
+        Ok(())
+    }
+
+    pub(super) fn patrol_source_items(items: &[FrameItem]) -> Result<(), CompileError> {
+        if items.len() > MAX_SOURCE_ITEMS {
+            return Err(CompileError::UnsupportedMarker(format!(
+                "one marker source emits {} frame items; the admitted limit is {MAX_SOURCE_ITEMS}",
+                items.len()
+            )));
+        }
+        for item in items {
+            let FrameItem::Node(node) = item else {
+                return Err(CompileError::UnsupportedMarker(
+                    "a marker source needs an opacity, clip, mask, or filter scope outside the admitted simple subtree"
+                        .to_string(),
+                ));
+            };
+            if node.paints.pattern().is_some()
+                || node
+                    .paints
+                    .iter()
+                    .any(|paint| !matches!(paint, cg::Paint::Solid(_)))
+                || node.stroke.as_ref().is_some_and(|stroke| {
+                    stroke.paints().pattern().is_some()
+                        || stroke
+                            .paints()
+                            .iter()
+                            .any(|paint| !matches!(paint, cg::Paint::Solid(_)))
+                })
+            {
+                return Err(CompileError::UnsupportedMarker(
+                    "a marker source resolves a paint server outside the admitted solid/context-solid profile"
+                        .to_string(),
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
 /// The recursive descent that materializes shapes in painter order.
 ///
 /// Containers are **flattened** wherever flattening is exact: a `<g>`
@@ -3408,6 +4094,9 @@ struct ChildWalk<'a> {
     /// Same-document filter graphs. Authored lookup and named results resolve
     /// here; only checked numeric operation nodes cross into `rframe`.
     filters: &'a filter_resource::Resources<'a>,
+    /// Same-document SVG marker resources. Marker instances flatten to
+    /// ordinary items; this table and every authored vertex stay producer-side.
+    markers: &'a marker_resource::Resources<'a>,
     /// Per-client SVG pattern resolver. It compiles each selected source
     /// subtree into a nested source-neutral frame program.
     patterns: &'a PatternCompiler<'a>,
@@ -3445,6 +4134,9 @@ struct ChildWalk<'a> {
     /// Pattern resources whose source programs are currently compiling.
     /// Nested pattern paints may recurse, but a source cycle never can.
     active_patterns: Vec<NodeId>,
+    /// Used marker resources currently compiling. M1 admits no nested marker
+    /// source; the stack names that boundary and prevents cycles.
+    active_markers: Vec<NodeId>,
     next_id: u64,
 }
 
@@ -3624,10 +4316,9 @@ impl<'a> ChildWalk<'a> {
         Ok(facts)
     }
 
-    /// Apply an already-resolved element opacity outside a completed masked
-    /// span. A mask is itself a compositing scope, so Chromium never takes the
-    /// unmasked one-draw fold for this branch; its opaque-luminance ordering
-    /// probe differs by one code value when opacity is placed inside instead.
+    /// Apply an already-resolved element opacity outside a completed effect or
+    /// marker span. Those spans contain multiple draws/scopes, so Chromium
+    /// never takes the ordinary one-draw alpha fold for this branch.
     fn wrap_masked_span_with_opacity(
         &mut self,
         checkpoint: usize,
@@ -3770,6 +4461,13 @@ impl<'a> ChildWalk<'a> {
             // selected content subtree is compiled only for an actual paint
             // client, in that client's coordinate system.
             if tag == "pattern" {
+                child = c.next_element_sibling();
+                continue;
+            }
+            // `<marker>` paints only through an applicable client's resolved
+            // marker reference. Its subtree is compiled transactionally for
+            // each selected vertex, never in authored resource position.
+            if tag == "marker" {
                 child = c.next_element_sibling();
                 continue;
             }
@@ -4079,6 +4777,275 @@ impl<'a> ChildWalk<'a> {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
+    fn compile_marker_instances(
+        &mut self,
+        client: HtmlElement<'a>,
+        client_to_frame: AffineTransform,
+        client_context_to_frame: AffineTransform,
+        client_box: Option<Rectangle>,
+        references: &marker_resource::References,
+        positions: &[crate::svg_path::MarkerPosition],
+        path: &str,
+        depth: usize,
+    ) -> Result<SpanFacts, CompileError> {
+        let checkpoint = self.items.len();
+        let next_id = self.next_id;
+        let result = self.compile_marker_instances_inner(
+            client,
+            client_to_frame,
+            client_context_to_frame,
+            client_box,
+            references,
+            positions,
+            path,
+            depth,
+        );
+        if result.is_err() {
+            self.items.truncate(checkpoint);
+            self.next_id = next_id;
+        }
+        result
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn compile_marker_instances_inner(
+        &mut self,
+        client: HtmlElement<'a>,
+        client_to_frame: AffineTransform,
+        client_context_to_frame: AffineTransform,
+        client_box: Option<Rectangle>,
+        references: &marker_resource::References,
+        positions: &[crate::svg_path::MarkerPosition],
+        path: &str,
+        depth: usize,
+    ) -> Result<SpanFacts, CompileError> {
+        if positions.len() > marker_resource::MAX_POSITIONS_PER_CLIENT {
+            return Err(CompileError::UnsupportedMarker(format!(
+                "one marker client has {} authored positions; the admitted limit is {}",
+                positions.len(),
+                marker_resource::MAX_POSITIONS_PER_CLIENT
+            )));
+        }
+        let mut facts = SpanFacts::default();
+        let mut emitted_items = 0usize;
+        for (index, position) in positions.iter().copied().enumerate() {
+            let Some(fragment) = references.selected(position.kind) else {
+                continue;
+            };
+            let marker = match self.markers.lookup(fragment) {
+                marker_resource::Lookup::Invalid => continue,
+                marker_resource::Lookup::Outside => {
+                    return Err(CompileError::UnsupportedMarker(format!(
+                        "url(#{fragment}) resolves outside the compiled SVG subtree"
+                    )));
+                }
+                marker_resource::Lookup::Marker(marker) => marker,
+            };
+            if !self.active_markers.is_empty() {
+                return Err(CompileError::UnsupportedMarker(format!(
+                    "nested marker source reaches url(#{fragment}); bounded nested marker composition is a later rung"
+                )));
+            }
+            let viewport = marker_resource::viewport(marker, self.bases, self.has_author_css)?;
+            if !(viewport.width > 0.0 && viewport.height > 0.0)
+                || viewport.view_box == marker_resource::ViewBox::Degenerate
+            {
+                continue;
+            }
+            let marker_scale = match viewport.units {
+                marker_resource::Units::UserSpaceOnUse => 1.0,
+                marker_resource::Units::StrokeWidth => {
+                    resolve_stroke_width(client, &client.local_name_string(), self.bases)?
+                }
+            };
+            if marker_scale == 0.0 {
+                continue;
+            }
+            let (content_mapping, source_bases) = match viewport.view_box {
+                marker_resource::ViewBox::Mapped(view_box) => (
+                    viewbox_to_viewport_transform(
+                        (viewport.width, viewport.height),
+                        view_box,
+                        viewport.preserve_aspect_ratio,
+                    ),
+                    PercentBases {
+                        width: view_box.2,
+                        height: view_box.3,
+                    },
+                ),
+                marker_resource::ViewBox::None => (
+                    AffineTransform::identity(),
+                    PercentBases {
+                        width: viewport.width,
+                        height: viewport.height,
+                    },
+                ),
+                marker_resource::ViewBox::Degenerate => unreachable!("suppressed above"),
+            };
+            let mapped_reference = map_point(content_mapping, (viewport.ref_x, viewport.ref_y));
+            let placement = marker_resource::placement(
+                position.origin,
+                marker_resource::instance_angle(viewport.orient, position),
+                marker_scale,
+                mapped_reference,
+            );
+            let marker_to_frame = client_to_frame.compose(&placement);
+            let content_to_frame = marker_to_frame.compose(&content_mapping);
+            if !content_to_frame
+                .matrix
+                .iter()
+                .flatten()
+                .all(|value| value.is_finite())
+            {
+                return Err(CompileError::UnsupportedMarker(format!(
+                    "marker instance {} for url(#{fragment}) has a non-finite placement transform",
+                    index + 1
+                )));
+            }
+            let mut source_items = self.compile_marker_source(
+                client,
+                client_context_to_frame,
+                client_box,
+                marker,
+                fragment,
+                content_to_frame,
+                source_bases,
+                path,
+                depth,
+            )?;
+            if source_items.is_empty() {
+                continue;
+            }
+            let clip_geometry = ClipGeometry::new(
+                marker_to_frame,
+                Geometry::Rect(Rectangle::from_xywh(
+                    0.0,
+                    0.0,
+                    viewport.width,
+                    viewport.height,
+                )),
+            )
+            .map_err(|error| {
+                CompileError::UnsupportedMarker(format!(
+                    "marker viewport clip cannot enter the resolved frame: {error}"
+                ))
+            })?;
+            let clip_layer = ClipLayer::new(Arc::<[ClipGeometry]>::from([clip_geometry]))
+                .map_err(|error| CompileError::UnsupportedMarker(error.to_string()))?;
+            let clip = ClipPath::new_with_edge_mode(
+                Arc::<[ClipLayer]>::from([clip_layer]),
+                rframe::ClipEdgeMode::Hard,
+            )
+            .map_err(|error| CompileError::UnsupportedMarker(error.to_string()))?;
+            source_items.insert(0, clip_scope_item(&mut self.next_id, clip));
+            source_items.push(FrameItem::ScopeEnd);
+            emitted_items += source_items.len();
+            if emitted_items > marker_resource::MAX_ITEMS_PER_CLIENT {
+                return Err(CompileError::UnsupportedMarker(format!(
+                    "one marker client emits more than {} resolved items",
+                    marker_resource::MAX_ITEMS_PER_CLIENT
+                )));
+            }
+            self.items.extend(source_items);
+            facts.has_scope = true;
+            facts.transformed = true;
+        }
+        Ok(facts)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn compile_marker_source(
+        &mut self,
+        client: HtmlElement<'a>,
+        client_context_to_frame: AffineTransform,
+        client_box: Option<Rectangle>,
+        marker: HtmlElement<'a>,
+        fragment: &str,
+        content_to_frame: AffineTransform,
+        source_bases: PercentBases,
+        target_path: &str,
+        depth: usize,
+    ) -> Result<Vec<FrameItem>, CompileError> {
+        marker_resource::patrol_source_tree(marker)?;
+        let GeometryMeasurements {
+            use_boxes,
+            effect_boxes,
+        } = measure_geometry(
+            marker,
+            self.values,
+            source_bases,
+            self.fonts,
+            self.override_skips,
+        )
+        .map_err(|error| {
+            CompileError::UnsupportedMarker(format!(
+                "marker #{fragment} source geometry cannot be measured: {error}"
+            ))
+        })?;
+        let mut degradations = Vec::new();
+        let mut active_markers = self.active_markers.clone();
+        active_markers.push(marker.node_id());
+        let mut walk = ChildWalk {
+            values: self.values,
+            bases: source_bases,
+            mode: CompileMode::Strict,
+            degradations: &mut degradations,
+            override_skips: self.override_skips,
+            has_author_css: self.has_author_css,
+            servers: self.servers,
+            clips: self.clips,
+            masks: self.masks,
+            filters: self.filters,
+            markers: self.markers,
+            patterns: self.patterns,
+            use_boxes,
+            effect_boxes,
+            paint_contexts: vec![PaintContext {
+                element: client,
+                reference_box: client_box,
+                to_frame: client_context_to_frame,
+            }],
+            context_paint_transform: content_to_frame,
+            fonts: self.fonts,
+            items: Vec::new(),
+            top_level_shapes: Vec::new(),
+            active_masks: self.active_masks.clone(),
+            active_patterns: self.active_patterns.clone(),
+            active_markers,
+            next_id: self.next_id,
+        };
+        walk.compile_children(
+            marker,
+            content_to_frame,
+            &format!("{target_path}/marker-source(#{fragment})"),
+            depth + 1,
+            1.0,
+        )
+        .map_err(|error| {
+            CompileError::UnsupportedMarker(format!(
+                "marker #{fragment} source cannot compile completely: {error}"
+            ))
+        })?;
+        let items = std::mem::take(&mut walk.items);
+        let next_id = walk.next_id;
+        drop(walk);
+        if let Some(degradation) = degradations.first() {
+            return Err(CompileError::UnsupportedMarker(format!(
+                "marker #{fragment} source cannot compile completely: {}",
+                degradation.reason()
+            )));
+        }
+        marker_resource::patrol_source_items(&items)?;
+        FrameItems::try_new(items.clone()).map_err(|error| {
+            CompileError::UnsupportedMarker(format!(
+                "marker #{fragment} source item stream is invalid: {error}"
+            ))
+        })?;
+        self.next_id = next_id;
+        Ok(items)
+    }
+
     fn compile_leaf(
         &mut self,
         el: HtmlElement<'a>,
@@ -4092,9 +5059,19 @@ impl<'a> ChildWalk<'a> {
         // whose `d` draws nothing. That is not a hole: the element is
         // admitted, it is simply not a node.
         let checkpoint = self.items.len();
+        let next_id_checkpoint = self.next_id;
         let mut facts = SpanFacts::default();
         let tag = el.local_name_string();
+        let marker_references = if matches!(tag.as_str(), "line" | "path" | "polyline" | "polygon")
+        {
+            marker_resource::inherited_references(el)?
+        } else {
+            marker_resource::References::default()
+        };
+        let marker_syntax_present = !marker_references.is_empty();
         let target_to_frame = compose_element_transform(el, transform, &tag, self.bases)?;
+        let client_context_to_frame =
+            compose_element_transform(el, self.context_paint_transform, &tag, self.bases)?;
         let target_box = self
             .effect_boxes
             .get(&el.node_id())
@@ -4111,12 +5088,22 @@ impl<'a> ChildWalk<'a> {
             filter_resource::Resolution::Apply(filter) => Some(filter),
         };
         let mask = self.resolve_mask(el, target_to_frame, target_box)?;
-        let deferred_opacity = if mask.is_some() || filter.is_some() {
+        let marker_projection =
+            prepare_marker_projection(el, &tag, self.values, self.bases, marker_syntax_present)?;
+        let marker_selected = self
+            .markers
+            .has_selected_resource(&marker_references, &marker_projection.positions)?;
+        let marker_client_clip = if marker_selected {
+            self.resolve_clip(el, target_to_frame, target_box)?
+        } else {
+            None
+        };
+        let deferred_opacity = if mask.is_some() || filter.is_some() || marker_selected {
             patrol_computed_style(el, tag == "rect")?.opacity
         } else {
             1.0
         };
-        if let Some(outcome) = compile_shape(
+        let compilation = compile_shape(
             el,
             transform,
             self.context_paint_transform,
@@ -4127,15 +5114,23 @@ impl<'a> ChildWalk<'a> {
             &self.active_patterns,
             &self.paint_contexts,
             self.bases,
-            mask.is_some() || filter.is_some(),
+            mask.is_some() || filter.is_some() || marker_selected,
             replay_opacity,
             self.fonts,
-        )? {
-            let clip = self.resolve_clip(
+            marker_projection,
+        )?;
+        let clip = if marker_selected {
+            marker_client_clip
+        } else if let Some(outcome) = compilation.outcome.as_ref() {
+            self.resolve_clip(
                 el,
                 outcome.node.transform,
                 Some(outcome.node.geometry.local_box()),
-            )?;
+            )?
+        } else {
+            None
+        };
+        if let Some(outcome) = compilation.outcome {
             facts.one_draw_opacity = outcome.one_draw_opacity;
             facts.transformed = outcome.transformed;
             match outcome.scope_opacity {
@@ -4154,13 +5149,34 @@ impl<'a> ChildWalk<'a> {
                     self.items.push(FrameItem::Node(outcome.node));
                 }
             }
-            if let Some(filter) = filter {
-                facts = self.wrap_span_with_filter(checkpoint, facts, filter);
-            }
-            facts = self.wrap_span_with_mask(checkpoint, facts, mask, path, depth)?;
-            facts = self.wrap_masked_span_with_opacity(checkpoint, facts, deferred_opacity);
-            facts = self.wrap_span_with_clip(checkpoint, facts, clip);
         }
+        let marker_facts = match self.compile_marker_instances(
+            el,
+            target_to_frame,
+            client_context_to_frame,
+            target_box,
+            &marker_references,
+            &compilation.marker_positions,
+            path,
+            depth,
+        ) {
+            Ok(facts) => facts,
+            Err(error) => {
+                // Marker source compilation is one client transaction. In
+                // best effort the parent will declare and skip this element;
+                // no already-emitted fill or stroke may survive that skip.
+                self.items.truncate(checkpoint);
+                self.next_id = next_id_checkpoint;
+                return Err(error);
+            }
+        };
+        facts.absorb(marker_facts);
+        if let Some(filter) = filter {
+            facts = self.wrap_span_with_filter(checkpoint, facts, filter);
+        }
+        facts = self.wrap_span_with_mask(checkpoint, facts, mask, path, depth)?;
+        facts = self.wrap_masked_span_with_opacity(checkpoint, facts, deferred_opacity);
+        facts = self.wrap_span_with_clip(checkpoint, facts, clip);
         if top_level {
             self.top_level_shapes.push(el.node_id());
         }
@@ -4188,6 +5204,17 @@ fn clip_scope_item(next_id: &mut u64, clip: ClipPath) -> FrameItem {
         owner: VisualRef::new(Identity::new(scope_id), Provenance::new(scope_id)),
         effect: ScopeEffect::Clip(clip),
     })
+}
+
+fn map_point(transform: AffineTransform, point: (f32, f32)) -> (f32, f32) {
+    (
+        transform.matrix[0][0] * point.0
+            + transform.matrix[0][1] * point.1
+            + transform.matrix[0][2],
+        transform.matrix[1][0] * point.0
+            + transform.matrix[1][1] * point.1
+            + transform.matrix[1][2],
+    )
 }
 
 fn filter_scope_item(next_id: &mut u64, filter: Filter) -> FrameItem {
@@ -8372,6 +9399,81 @@ fn compose_element_transform(
     Ok(composed)
 }
 
+/// Marker facts prepared before shape compilation so the client can choose
+/// the same opacity/effect route Chromium does without rescanning path data.
+#[derive(Debug, Default)]
+struct MarkerProjection {
+    parsed_path: Option<crate::svg_path::ParsedPath>,
+    positions: Vec<crate::svg_path::MarkerPosition>,
+}
+
+fn prepare_marker_projection(
+    el: HtmlElement<'_>,
+    tag: &str,
+    values: &EffectiveValues,
+    bases: PercentBases,
+    requested: bool,
+) -> Result<MarkerProjection, CompileError> {
+    if !requested {
+        return Ok(MarkerProjection::default());
+    }
+    let patrol = patrol_computed_style(el, false)?;
+    let projects = patrol.disposition == RenderDisposition::Renders && patrol.opacity != 0.0;
+    match tag {
+        "path" => {
+            let parsed_path = match get_attr(el, "d") {
+                None => crate::svg_path::ParsedPath::default(),
+                Some(value) => crate::svg_path::parse_path(&value),
+            };
+            let positions = if projects {
+                parsed_path
+                    .marker_positions()
+                    .map_err(|reason| CompileError::UnsupportedMarker(reason.to_string()))?
+            } else {
+                Vec::new()
+            };
+            Ok(MarkerProjection {
+                parsed_path: Some(parsed_path),
+                positions,
+            })
+        }
+        "line" if projects => {
+            let start = (
+                geometry_attr_f32(el, "x1", values, bases)?.unwrap_or(0.0),
+                geometry_attr_f32(el, "y1", values, bases)?.unwrap_or(0.0),
+            );
+            let end = (
+                geometry_attr_f32(el, "x2", values, bases)?.unwrap_or(0.0),
+                geometry_attr_f32(el, "y2", values, bases)?.unwrap_or(0.0),
+            );
+            Ok(MarkerProjection {
+                parsed_path: None,
+                positions: crate::svg_path::line_marker_positions(start, end),
+            })
+        }
+        "polygon" | "polyline" if projects => {
+            let points = match get_attr(el, "points") {
+                None => Vec::new(),
+                Some(value) => crate::svg_path::parse_points(&value).map_err(
+                    |crate::svg_path::SourceSyntaxError::Syntax { offset }| {
+                        CompileError::BadPoints {
+                            element: tag.to_string(),
+                            offset,
+                            excerpt: excerpt_at(&value, offset),
+                        }
+                    },
+                )?,
+            };
+            Ok(MarkerProjection {
+                parsed_path: None,
+                positions: crate::svg_path::points_marker_positions(&points, tag == "polygon"),
+            })
+        }
+        "line" | "polygon" | "polyline" => Ok(MarkerProjection::default()),
+        _ => unreachable!("marker projection is prepared only for applicable shapes"),
+    }
+}
+
 /// Compile a single shape element into a resolved node.
 ///
 /// Local names match exactly: SVG element names are case-sensitive, and each
@@ -8392,8 +9494,13 @@ fn compile_shape(
     defer_own_opacity: bool,
     replay_opacity: f32,
     fonts: &textlayout::Environment,
-) -> Result<Option<ShapeOutcome>, CompileError> {
+    marker_projection: MarkerProjection,
+) -> Result<ShapeCompilation, CompileError> {
     let tag = el.local_name_string();
+    let MarkerProjection {
+        mut parsed_path,
+        positions: marker_positions,
+    } = marker_projection;
     let transformed = element_has_computed_transform(el)?;
     // A shape's own `transform` composes inside the mapping it inherits
     // from the viewport and its ancestor containers, exactly as a
@@ -8444,19 +9551,28 @@ fn compile_shape(
             defer_own_opacity,
             replay_opacity,
         ),
-        "path" => compile_path(
-            el,
-            transform,
-            context_paint_transform,
-            next_id,
-            servers,
-            patterns,
-            active_patterns,
-            paint_contexts,
-            bases,
-            defer_own_opacity,
-            replay_opacity,
-        ),
+        "path" => {
+            let parsed = parsed_path
+                .take()
+                .unwrap_or_else(|| match get_attr(el, "d") {
+                    None => crate::svg_path::ParsedPath::default(),
+                    Some(value) => crate::svg_path::parse_path(&value),
+                });
+            compile_path(
+                el,
+                transform,
+                context_paint_transform,
+                next_id,
+                parsed.commands,
+                servers,
+                patterns,
+                active_patterns,
+                paint_contexts,
+                bases,
+                defer_own_opacity,
+                replay_opacity,
+            )
+        }
         "text" => compile_text(
             el,
             transform,
@@ -8516,10 +9632,14 @@ fn compile_shape(
         ),
         other => Err(CompileError::UnsupportedElement(other.to_string())),
     }?;
-    Ok(outcome.map(|outcome| ShapeOutcome {
+    let outcome = outcome.map(|outcome| ShapeOutcome {
         transformed,
         ..outcome
-    }))
+    });
+    Ok(ShapeCompilation {
+        outcome,
+        marker_positions,
+    })
 }
 
 /// Compile one `<text>` element: the document's run, resolved once by the
@@ -8900,6 +10020,7 @@ fn compile_path(
     viewport: AffineTransform,
     context_paint_transform: AffineTransform,
     next_id: &mut u64,
+    commands: Vec<rframe::PathCommand>,
     servers: &PaintServers<'_>,
     patterns: &PatternCompiler<'_>,
     active_patterns: &[NodeId],
@@ -8922,10 +10043,6 @@ fn compile_path(
     if patrol.opacity == 0.0 {
         return Ok(None);
     }
-    let commands = match get_attr(el, "d") {
-        None => Vec::new(),
-        Some(value) => crate::svg_path::parse_path_data(&value),
-    };
     if commands.is_empty() {
         return Ok(None);
     }
@@ -9239,6 +10356,11 @@ enum Strokable {
 /// One compiled shape plus the facts the group-scope rung's walk decides
 /// with: how many paint passes it draws, whether its own opacity needs an
 /// isolated layer, and whether one-draw opacity or a transform sits on it.
+struct ShapeCompilation {
+    outcome: Option<ShapeOutcome>,
+    marker_positions: Vec<crate::svg_path::MarkerPosition>,
+}
+
 struct ShapeOutcome {
     node: FrameNode,
     /// Paint passes the node draws (fill + stroke).
@@ -10556,6 +11678,42 @@ mod percentage_resolution_tests {
 /// A negative `stroke-width` never arrives: it fails the property's
 /// non-negative grammar, so the cascade drops the declaration and this read
 /// sees the inherited or initial value — exactly what Chromium paints.
+fn resolve_stroke_width(
+    el: HtmlElement<'_>,
+    element_name: &str,
+    bases: PercentBases,
+) -> Result<f32, CompileError> {
+    let destination_data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
+    let destination_style: &ComputedValues = destination_data.styles.primary();
+    match destination_style.clone_stroke_width() {
+        SVGLength::ContextValue => Err(CompileError::UnsupportedStroke(
+            "stroke-width: context-value".to_string(),
+        )),
+        SVGLength::LengthPercentage(width) => match width.0.to_length() {
+            Some(length) => {
+                patrol_stroke_width_units(el, element_name)?;
+                Ok(clamp_web_used_length(length))
+            }
+            None => match width.0.to_percentage() {
+                Some(percentage) => {
+                    patrol_stroke_width_percentage_provenance(el)?;
+                    resolve_web_percentage_length(percentage.0, bases.diagonal()).map_err(
+                        |PercentageResolutionError::PrecisionAlias| {
+                            CompileError::UnsupportedStroke(
+                                STROKE_WIDTH_PERCENTAGE_PRECISION_ALIAS.to_string(),
+                            )
+                        },
+                    )
+                }
+                None => Err(CompileError::UnsupportedStroke(
+                    "a calc() stroke-width mixing lengths and percentages is not consumed"
+                        .to_string(),
+                )),
+            },
+        },
+    }
+}
+
 fn resolve_stroke(
     el: HtmlElement<'_>,
     element_name: &str,
@@ -10642,56 +11800,15 @@ fn resolve_stroke(
         return Ok(None);
     }
 
-    // A percentage `stroke-width` resolves against the viewport's normalized
-    // diagonal (measured: `10%` on a 64x64 viewport paints 6.4 units wide) —
-    // the same basis chain the shape geometry percentages refuse on.
-    let destination_data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
-    let destination_style: &ComputedValues = destination_data.styles.primary();
-    let width = match destination_style.clone_stroke_width() {
-        SVGLength::ContextValue => {
-            return Err(CompileError::UnsupportedStroke(
-                "stroke-width: context-value".to_string(),
-            ));
-        }
-        SVGLength::LengthPercentage(width) => match width.0.to_length() {
-            Some(length) => {
-                // The unit is gone from a computed length, so the authored text
-                // is what says whether its basis was one this build has.
-                patrol_stroke_width_units(el, element_name)?;
-                clamp_web_used_length(length)
-            }
-            // A pure percentage resolves against the viewport's normalized
-            // diagonal (SVG2 §7.10; measured — `10%` of 64x64 paints 6.4
-            // units). A calc() mixing lengths and percentages has neither a
-            // computed length nor a pure percentage and stays refused.
-            None => match width.0.to_percentage() {
-                Some(percentage) => {
-                    // Stylo's fraction no longer says whether the source was
-                    // one recoverable literal or arithmetic/raw precision
-                    // whose Chromium result differs. Refuse that provenance
-                    // loss before the typed preimage check below.
-                    patrol_stroke_width_percentage_provenance(el)?;
-                    match resolve_web_percentage_length(percentage.0, bases.diagonal()) {
-                        Ok(width) => width,
-                        Err(PercentageResolutionError::PrecisionAlias) => {
-                            return Err(CompileError::UnsupportedStroke(
-                                STROKE_WIDTH_PERCENTAGE_PRECISION_ALIAS.to_string(),
-                            ));
-                        }
-                    }
-                }
-                None => {
-                    return Err(CompileError::UnsupportedStroke(
-                        "a calc() stroke-width mixing lengths and percentages is not consumed"
-                            .to_string(),
-                    ));
-                }
-            },
-        },
-    };
+    // Marker placement also consumes this computed width even when no stroke
+    // paint exists, so the numeric/cascade route lives in one helper.
+    let width = resolve_stroke_width(el, element_name, bases)?;
     if width == 0.0 {
         return Ok(None);
     }
+
+    let destination_data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
+    let destination_style: &ComputedValues = destination_data.styles.primary();
 
     // Computed values have already lost the authored unit and substitution
     // provenance. Patrol every ingress before looking at the typed list: a

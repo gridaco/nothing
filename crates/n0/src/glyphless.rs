@@ -912,7 +912,10 @@ fn compile_clip_path(clip: &ClipPath) -> ResolvedClipPath {
         })
         .collect::<Vec<_>>()
         .into();
-    ResolvedClipPath { layers }
+    ResolvedClipPath {
+        layers,
+        anti_alias: clip.edge_mode() == rframe::ClipEdgeMode::AntiAliased,
+    }
 }
 
 /// Project one checked, source-neutral filter program into private painter
@@ -2038,6 +2041,14 @@ mod tests {
     }
 
     fn clip_begin(owner: VisualRef, layers: Vec<Vec<(Rectangle, AffineTransform)>>) -> FrameItem {
+        clip_begin_with_edge(owner, layers, rframe::ClipEdgeMode::AntiAliased)
+    }
+
+    fn clip_begin_with_edge(
+        owner: VisualRef,
+        layers: Vec<Vec<(Rectangle, AffineTransform)>>,
+        edge_mode: rframe::ClipEdgeMode,
+    ) -> FrameItem {
         let layers = layers
             .into_iter()
             .map(|geometries| {
@@ -2054,7 +2065,8 @@ mod tests {
         FrameItem::ScopeBegin(Scope {
             owner,
             effect: ScopeEffect::Clip(
-                rframe::ClipPath::new(layers).expect("test clip has at least one layer"),
+                rframe::ClipPath::new_with_edge_mode(layers, edge_mode)
+                    .expect("test clip has at least one layer"),
             ),
         })
     }
@@ -3361,6 +3373,48 @@ mod tests {
         assert_eq!(rgba_at(&pixels, 64, 40, 14), [0x16, 0xa3, 0x4a, 0xff]);
         assert_eq!(rgba_at(&pixels, 64, 30, 14), [0xff, 0xff, 0xff, 0xff]);
         assert_eq!(rgba_at(&pixels, 64, 12, 24), [0xff, 0xff, 0xff, 0xff]);
+    }
+
+    #[test]
+    fn hard_clip_edge_policy_reaches_the_painter() {
+        let scene = |edge_mode| {
+            let items = FrameItems::try_new(vec![
+                clip_begin_with_edge(
+                    SCOPE_OWNER,
+                    vec![vec![(
+                        Rectangle::from_xywh(8.25, 6.25, 20.0, 16.0),
+                        AffineTransform::identity(),
+                    )]],
+                    edge_mode,
+                ),
+                FrameItem::Node(rect_node(
+                    RECT_OWNER,
+                    Rectangle::from_xywh(0.0, 0.0, 64.0, 48.0),
+                    0xFF16_A34A,
+                )),
+                FrameItem::ScopeEnd,
+            ])
+            .expect("balanced clip scope");
+            compile(frame_of(items)).expect("admitted clip scene")
+        };
+
+        let ordinary = scene(rframe::ClipEdgeMode::AntiAliased);
+        let hard = scene(rframe::ClipEdgeMode::Hard);
+        let ItemKind::BeginClipPath { clip } = &hard.drawlist.items[1].kind else {
+            panic!("resolved clip item")
+        };
+        assert!(!clip.anti_alias, "hard policy survives contract lowering");
+
+        let raster = |product: &FrameProduct| {
+            product
+                .raster_to_bytes(&AffineTransform::identity(), 64, 48, &PaintCtx::new(None))
+                .expect("resource-free clip raster")
+        };
+        assert_ne!(
+            raster(&ordinary),
+            raster(&hard),
+            "the backend edge flag changes fractional clip coverage"
+        );
     }
 
     #[test]

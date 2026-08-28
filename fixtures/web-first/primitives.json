@@ -4618,6 +4618,718 @@
       "height": 64
     },
     {
+      "id": "svg-marker-bare-attribute-drop",
+      "source": "svg-marker-bare-attribute-drop.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-bare-attribute-drop.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-circle-drop",
+      "source": "svg-marker-circle-drop.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-circle-drop.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-clip",
+      "source": "svg-marker-client-clip.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-client-clip.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-filter",
+      "source": "svg-marker-client-filter.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-client-filter.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-mask",
+      "source": "svg-marker-client-mask.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-client-mask.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-opacity",
+      "source": "svg-marker-client-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-client-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-opacity-empty-source",
+      "source": "svg-marker-client-opacity-empty-source.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-client-opacity-empty-source.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-opacity-missing",
+      "source": "svg-marker-client-opacity-missing.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-client-opacity-missing.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-opacity-unselected-mid",
+      "source": "svg-marker-client-opacity-unselected-mid.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-client-opacity-unselected-mid.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-opacity-wrong-target",
+      "source": "svg-marker-client-opacity-wrong-target.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-client-opacity-wrong-target.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-opacity-zero-viewport",
+      "source": "svg-marker-client-opacity-zero-viewport.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-client-opacity-zero-viewport.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-root-viewbox",
+      "source": "svg-marker-client-root-viewbox.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-client-root-viewbox.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-stroke-none-width",
+      "source": "svg-marker-client-stroke-none-width.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-client-stroke-none-width.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-transform",
+      "source": "svg-marker-client-transform.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-client-transform.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-use-inherited",
+      "source": "svg-marker-client-use-inherited.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-client-use-inherited.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-client-use-target",
+      "source": "svg-marker-client-use-target.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-client-use-target.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-context-fill",
+      "source": "svg-marker-context-fill.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-context-fill.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-context-stroke",
+      "source": "svg-marker-context-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-context-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-default-viewport-clip",
+      "source": "svg-marker-default-viewport-clip.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-default-viewport-clip.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-display-none-resource",
+      "source": "svg-marker-display-none-resource.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-display-none-resource.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-duplicate-id-first",
+      "source": "svg-marker-duplicate-id-first.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-duplicate-id-first.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-ellipse-drop",
+      "source": "svg-marker-ellipse-drop.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-ellipse-drop.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-height-direct-alias",
+      "source": "svg-marker-height-direct-alias.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-height-direct-alias.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-height-percentage",
+      "source": "svg-marker-height-percentage.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-height-percentage.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-inherited-end",
+      "source": "svg-marker-inherited-end.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-inherited-end.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-line",
+      "source": "svg-marker-line.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-line.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-line-zero-length",
+      "source": "svg-marker-line-zero-length.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-line-zero-length.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-missing-reference",
+      "source": "svg-marker-missing-reference.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-missing-reference.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-none-reset",
+      "source": "svg-marker-none-reset.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-none-reset.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-orient-auto-start-reverse",
+      "source": "svg-marker-orient-auto-start-reverse.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-orient-auto-start-reverse.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-orient-degrees",
+      "source": "svg-marker-orient-degrees.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-orient-degrees.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-orient-direct-alias",
+      "source": "svg-marker-orient-direct-alias.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-orient-direct-alias.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-orient-gradians",
+      "source": "svg-marker-orient-gradians.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-orient-gradians.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-orient-invalid",
+      "source": "svg-marker-orient-invalid.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-orient-invalid.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-orient-radians",
+      "source": "svg-marker-orient-radians.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-orient-radians.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-orient-turn",
+      "source": "svg-marker-orient-turn.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-orient-turn.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-orient-whitespace-drop",
+      "source": "svg-marker-orient-whitespace-drop.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-orient-whitespace-drop.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path",
+      "source": "svg-marker-path.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-path.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path-arc-authored-vertex",
+      "source": "svg-marker-path-arc-authored-vertex.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-path-arc-authored-vertex.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path-cubic-authored-vertex",
+      "source": "svg-marker-path-cubic-authored-vertex.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-path-cubic-authored-vertex.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path-move-only",
+      "source": "svg-marker-path-move-only.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-path-move-only.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path-multiple-subpaths",
+      "source": "svg-marker-path-multiple-subpaths.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-path-multiple-subpaths.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path-quadratic-authored-vertex",
+      "source": "svg-marker-path-quadratic-authored-vertex.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-path-quadratic-authored-vertex.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path-repeated-close",
+      "source": "svg-marker-path-repeated-close.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-path-repeated-close.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path-repeated-moves",
+      "source": "svg-marker-path-repeated-moves.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-path-repeated-moves.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-path-valid-prefix",
+      "source": "svg-marker-path-valid-prefix.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-path-valid-prefix.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-polygon",
+      "source": "svg-marker-polygon.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-polygon.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-polygon-one-point",
+      "source": "svg-marker-polygon-one-point.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-polygon-one-point.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-polyline",
+      "source": "svg-marker-polyline.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-polyline.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-polyline-one-point",
+      "source": "svg-marker-polyline-one-point.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-polyline-one-point.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-rect-drop",
+      "source": "svg-marker-rect-drop.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-rect-drop.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-reference-negative",
+      "source": "svg-marker-reference-negative.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-reference-negative.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-refx-direct-alias",
+      "source": "svg-marker-refx-direct-alias.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-refx-direct-alias.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-refx-keyword-drop",
+      "source": "svg-marker-refx-keyword-drop.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-refx-keyword-drop.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-refx-percentage-root",
+      "source": "svg-marker-refx-percentage-root.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-refx-percentage-root.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-refx-percentage-viewbox",
+      "source": "svg-marker-refx-percentage-viewbox.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-refx-percentage-viewbox.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-refy-keyword-drop",
+      "source": "svg-marker-refy-keyword-drop.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-refy-keyword-drop.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-refy-percentage-alias",
+      "source": "svg-marker-refy-percentage-alias.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-refy-percentage-alias.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-source-empty",
+      "source": "svg-marker-source-empty.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-source-empty.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-source-group-transform",
+      "source": "svg-marker-source-group-transform.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-source-group-transform.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-source-shapes",
+      "source": "svg-marker-source-shapes.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-source-shapes.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-tangent-angle-wrap",
+      "source": "svg-marker-tangent-angle-wrap.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-tangent-angle-wrap.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-tangent-degenerate-cubic",
+      "source": "svg-marker-tangent-degenerate-cubic.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-tangent-degenerate-cubic.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-tangent-degenerate-quadratic",
+      "source": "svg-marker-tangent-degenerate-quadratic.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-tangent-degenerate-quadratic.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-tangent-opposite",
+      "source": "svg-marker-tangent-opposite.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-tangent-opposite.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-units-default",
+      "source": "svg-marker-units-default.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-units-default.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-units-invalid",
+      "source": "svg-marker-units-invalid.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-units-invalid.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-units-stroke-width",
+      "source": "svg-marker-units-stroke-width.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-units-stroke-width.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-units-user-space",
+      "source": "svg-marker-units-user-space.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-units-user-space.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-units-user-space-whitespace",
+      "source": "svg-marker-units-user-space-whitespace.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-units-user-space-whitespace.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-url-commented",
+      "source": "svg-marker-url-commented.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-url-commented.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-url-escaped",
+      "source": "svg-marker-url-escaped.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-url-escaped.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-url-malformed-drop",
+      "source": "svg-marker-url-malformed-drop.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-url-malformed-drop.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-url-quoted",
+      "source": "svg-marker-url-quoted.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-url-quoted.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-viewbox-empty",
+      "source": "svg-marker-viewbox-empty.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-viewbox-empty.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-viewbox-invalid",
+      "source": "svg-marker-viewbox-invalid.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-viewbox-invalid.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-viewbox-meet",
+      "source": "svg-marker-viewbox-meet.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-viewbox-meet.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-viewbox-negative",
+      "source": "svg-marker-viewbox-negative.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-viewbox-negative.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-viewbox-none",
+      "source": "svg-marker-viewbox-none.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-viewbox-none.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-viewbox-nonzero-origin",
+      "source": "svg-marker-viewbox-nonzero-origin.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-viewbox-nonzero-origin.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-viewbox-slice",
+      "source": "svg-marker-viewbox-slice.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-viewbox-slice.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-width-direct-alias",
+      "source": "svg-marker-width-direct-alias.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-width-direct-alias.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-width-invalid",
+      "source": "svg-marker-width-invalid.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-width-invalid.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-width-negative",
+      "source": "svg-marker-width-negative.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-width-negative.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-width-percentage",
+      "source": "svg-marker-width-percentage.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-width-percentage.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-width-percentage-alias",
+      "source": "svg-marker-width-percentage-alias.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-width-percentage-alias.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-width-px",
+      "source": "svg-marker-width-px.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-width-px.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-width-zero",
+      "source": "svg-marker-width-zero.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-width-zero.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-marker-wrong-target",
+      "source": "svg-marker-wrong-target.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-marker-wrong-target.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-mask-attribute-grammar",
       "source": "svg-mask-attribute-grammar.svg",
       "entry": "standalone-svg",
@@ -5138,6 +5850,14 @@
       "oracle": "chromium/svg-path-length-range.png",
       "width": 128,
       "height": 108
+    },
+    {
+      "id": "svg-path-marker-end",
+      "source": "svg-path-marker-end.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-path-marker-end.png",
+      "width": 64,
+      "height": 64
     },
     {
       "id": "svg-path-polygon-fill",

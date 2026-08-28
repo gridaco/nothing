@@ -21,8 +21,8 @@ mod scope;
 mod stroke;
 
 pub use clip::{
-    ClipGeometry, ClipGeometryError, ClipLayer, ClipLayerError, ClipPath, ClipPathError,
-    MAX_CLIP_GEOMETRIES_PER_LAYER, MAX_CLIP_LAYERS,
+    ClipEdgeMode, ClipGeometry, ClipGeometryError, ClipLayer, ClipLayerError, ClipPath,
+    ClipPathError, MAX_CLIP_GEOMETRIES_PER_LAYER, MAX_CLIP_LAYERS,
 };
 pub use filter::{
     Filter, FilterBlend, FilterChannelTables, FilterColorSpace, FilterComposite,

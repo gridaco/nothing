@@ -744,23 +744,29 @@ fn the_css_d_property_is_declared_never_silently_dropped() {
     ));
 }
 
-/// `marker-start`/`-mid`/`-end` are refused by name on `<path>`. Nothing "reads"
-/// a marker property — the property *is* the paint trigger, so this refusal is
-/// what keeps Chromium's arrowhead from becoming a silent hole.
+/// The admitted direct attributes do not weaken the pinned-cascade boundary:
+/// Stylo has no marker longhands, so both CSS ingresses still refuse each
+/// property by name instead of silently dropping an authored arrowhead.
 #[test]
-fn marker_patrols_are_load_bearing() {
-    for attr in [
-        r##"marker-start="url(#a)""##,
-        r##"marker-mid="url(#a)""##,
-        r##"marker-end="url(#a)""##,
-    ] {
-        let source = document(&format!(
-            r##"  <path fill="#16a34a" {attr} d="M10 10 L54 10 L54 54 Z"/>"##
+fn marker_css_patrols_remain_load_bearing() {
+    for property in ["marker-start", "marker-mid", "marker-end"] {
+        let inline = document(&format!(
+            r##"  <path fill="#16a34a" style="{property}:url(#a)" d="M10 10 L54 10 L54 54 Z"/>"##
         ));
-        let error = refusal(&source);
+        let inline_error = refusal(&inline);
         assert!(
-            matches!(error, CompileError::UnsupportedAttribute { ref element, .. } if element == "path"),
-            "{attr} must refuse by name; got {error}"
+            inline_error.to_string().contains(property),
+            "got {inline_error}"
+        );
+
+        let sheet = document(&format!(
+            r##"  <style>path {{ {property}: url(#a) }}</style>
+  <path fill="#16a34a" d="M10 10 L54 10 L54 54 Z"/>"##
+        ));
+        let sheet_error = refusal(&sheet);
+        assert!(
+            sheet_error.to_string().contains(property),
+            "got {sheet_error}"
         );
     }
 }
