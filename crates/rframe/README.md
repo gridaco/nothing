@@ -19,12 +19,12 @@ producer (e.g. websem, from SVG)
 
 ## What it holds
 
-| Module   | Ownership                                                                                                                                     |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `frame`  | `Frame`, `FrameNode`, `Geometry`, leaf paint stacks or checked repeating vector programs, their post-paint alpha factor, and product identity |
-| `path`   | `PathData` — checked absolute commands, fill rule, tight bounds solved once                                                                   |
-| `stroke` | `Stroke` — centred width, cap, join, miter limit, optional checked dash pattern, and finite `f64` `outset`                                    |
-| `scope`  | A checked painter-order scope stream: isolated opacity or source-neutral geometric clipping                                                   |
+| Module   | Ownership                                                                                                                                               |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `frame`  | `Frame`, `FrameNode`, `Geometry`, leaf paint stacks or checked repeating vector programs, their post-paint alpha factor, and product identity           |
+| `path`   | `PathData` — checked absolute commands, fill rule, tight bounds solved once                                                                             |
+| `stroke` | `Stroke` — centred width, cap, join, miter limit, optional checked dash pattern, and finite `f64` `outset`                                              |
+| `scope`  | A checked painter-order scope stream: isolated opacity or source-neutral geometric clipping                                                             |
 | `clip`   | `ClipPath` — bounded path unions intersected in layers, with resolved transforms, conservative bounds, and an explicit anti-aliased or hard edge policy |
 
 Two details are load-bearing enough to state here. A node's `bounds` is the
