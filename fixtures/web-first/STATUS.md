@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (1026)
+## Chromium-baked cells (1035)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -883,7 +883,16 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-percent-rect-in-viewbox.svg" title="svg-percent-rect-in-viewbox (standalone-svg)"><img src="./chromium/svg-percent-rect-in-viewbox.png" width="56" alt="svg-percent-rect-in-viewbox"></a>
 <a href="./svg-percent-rect-root-units.svg" title="svg-percent-rect-root-units (standalone-svg)"><img src="./chromium/svg-percent-rect-root-units.png" width="56" alt="svg-percent-rect-root-units"></a>
 <a href="./svg-percent-stroke-width.svg" title="svg-percent-stroke-width (standalone-svg)"><img src="./chromium/svg-percent-stroke-width.png" width="56" alt="svg-percent-stroke-width"></a>
+<a href="./svg-points-invalid-clears-list.svg" title="svg-points-invalid-clears-list (standalone-svg)"><img src="./chromium/svg-points-invalid-clears-list.png" width="56" alt="svg-points-invalid-clears-list"></a>
 <a href="./svg-points-number-accumulation.svg" title="svg-points-number-accumulation (standalone-svg)"><img src="./chromium/svg-points-number-accumulation.png" width="56" alt="svg-points-number-accumulation"></a>
+<a href="./svg-points-odd-coordinate.svg" title="svg-points-odd-coordinate (standalone-svg)"><img src="./chromium/svg-points-odd-coordinate.png" width="56" alt="svg-points-odd-coordinate"></a>
+<a href="./svg-points-odd-coordinate-clip.svg" title="svg-points-odd-coordinate-clip (standalone-svg)"><img src="./chromium/svg-points-odd-coordinate-clip.png" width="56" alt="svg-points-odd-coordinate-clip"></a>
+<a href="./svg-points-odd-coordinate-marker.svg" title="svg-points-odd-coordinate-marker (standalone-svg)"><img src="./chromium/svg-points-odd-coordinate-marker.png" width="56" alt="svg-points-odd-coordinate-marker"></a>
+<a href="./svg-points-odd-coordinate-object-box.svg" title="svg-points-odd-coordinate-object-box (standalone-svg)"><img src="./chromium/svg-points-odd-coordinate-object-box.png" width="56" alt="svg-points-odd-coordinate-object-box"></a>
+<a href="./svg-points-odd-coordinate-polyline.svg" title="svg-points-odd-coordinate-polyline (standalone-svg)"><img src="./chromium/svg-points-odd-coordinate-polyline.png" width="56" alt="svg-points-odd-coordinate-polyline"></a>
+<a href="./svg-points-odd-coordinate-single-point.svg" title="svg-points-odd-coordinate-single-point (standalone-svg)"><img src="./chromium/svg-points-odd-coordinate-single-point.png" width="56" alt="svg-points-odd-coordinate-single-point"></a>
+<a href="./svg-points-odd-coordinate-trailing-comma.svg" title="svg-points-odd-coordinate-trailing-comma (standalone-svg)"><img src="./chromium/svg-points-odd-coordinate-trailing-comma.png" width="56" alt="svg-points-odd-coordinate-trailing-comma"></a>
+<a href="./svg-points-odd-coordinate-use.svg" title="svg-points-odd-coordinate-use (standalone-svg)"><img src="./chromium/svg-points-odd-coordinate-use.png" width="56" alt="svg-points-odd-coordinate-use"></a>
 <a href="./svg-points-trailing-comma.svg" title="svg-points-trailing-comma (standalone-svg)"><img src="./chromium/svg-points-trailing-comma.png" width="56" alt="svg-points-trailing-comma"></a>
 <a href="./svg-polygon-fill.svg" title="svg-polygon-fill (standalone-svg)"><img src="./chromium/svg-polygon-fill.png" width="56" alt="svg-polygon-fill"></a>
 <a href="./svg-polygon-fill-rule-evenodd.svg" title="svg-polygon-fill-rule-evenodd (standalone-svg)"><img src="./chromium/svg-polygon-fill-rule-evenodd.png" width="56" alt="svg-polygon-fill-rule-evenodd"></a>
@@ -1055,7 +1064,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (189)
+## The refusal register (188)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -1217,7 +1226,6 @@ its row into the cells above.
 | `svg-pattern-tile-phase-precision` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern #p tile phase resolves to a fractional coordinate at the pinned-backend picture-shader phase precision boundary" |
 | `svg-pattern-tile-sampling-precision` | declared | skipped svg/rect[2]: unsupported fill value "tile has a fractional final device extent at the pinned-backend picture-shader sampling precision boundary" |
 | `svg-pattern-transform-none-provenance` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): an author stylesheet may set transform:none on a derived pattern; the empty computed value loses the provenance needed to decide template inheritance" |
-| `svg-points-odd-coordinate` | declared | skipped svg/polygon[1]: points on <polygon> is invalid at byte 17 (near "") |
 | `svg-preserve-aspect-ratio-case-folded` | **both refuse** | preserveAspectRatio "xmidymid meet" is invalid |
 | `svg-preserve-aspect-ratio-defer` | **both refuse** | preserveAspectRatio "defer xMidYMid meet" is invalid |
 | `svg-preserve-aspect-ratio-invalid-align` | **both refuse** | preserveAspectRatio "xMidYMiddle meet" is invalid |

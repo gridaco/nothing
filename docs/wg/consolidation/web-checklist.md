@@ -2267,7 +2267,20 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 
 - [ ] `ping`
 - [ ] `playbackorder`
-- [ ] `points`
+- [x] `points`
+
+> **2026-08-30 close:** the complete point-list grammar is Chromium-baked for
+> both applicable elements. Empty and missing lists paint nothing; mixed
+> comma/whitespace separators, sign-separated numbers, exponents, ordered
+> source-number evaluation, and one trailing comma are carried. A final
+> unmatched x coordinate, including one followed by a trailing comma, is
+> dropped while all complete coordinate pairs remain. Every lexical or
+> numeric parse failure instead clears the whole list; the committed matrix
+> includes failures after complete pairs and after an unmatched x. Direct
+> polygon/polyline geometry, one-point and two-point contours, marker
+> topology, geometric clips, object-box bounds, and same-document use
+> instances share the result. Nine new cells are exact through strict and
+> best-effort admission with no declaration or tolerance.
 - [x] `pointsAtX`
 - [x] `pointsAtY`
 - [x] `pointsAtZ`

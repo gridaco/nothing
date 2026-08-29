@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "11f9e757b180ffe9244dcd1d2f1a03a2eaec89d17bb649b5987a67c92ed3b4b9",
+  "suite_sha256": "98c22bb109eb631920b3da76b0657f1d39a222d130272140b9ca311a79df0b0f",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -7715,11 +7715,92 @@
       "height": 64
     },
     {
+      "id": "svg-points-invalid-clears-list",
+      "source": "svg-points-invalid-clears-list.svg",
+      "source_sha256": "52cb8bc1b66079ac02f6dffc05dad8657483984392e2f81eb559e525188be8c9",
+      "oracle": "chromium/svg-points-invalid-clears-list.png",
+      "oracle_sha256": "4f852cfe622067e2872424c8add5d3977db6b7d6ad84a6329f288f6d7da566fa",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-points-number-accumulation",
       "source": "svg-points-number-accumulation.svg",
       "source_sha256": "bad2b1f0cd65306c676d40054ae58432abd76707a2a19599dcb6e5473141e981",
       "oracle": "chromium/svg-points-number-accumulation.png",
       "oracle_sha256": "6bd1af3cd8bf1b0ffa2e4f81392289552e0f232cb4f466642022a2e059512c1b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-odd-coordinate",
+      "source": "svg-points-odd-coordinate.svg",
+      "source_sha256": "c2914f73e07c7120a5455997f6da548b00ab71f380634a0ce3a153e74aaaab54",
+      "oracle": "chromium/svg-points-odd-coordinate.png",
+      "oracle_sha256": "5b5132bf617615a31e67d39a29adbc44c04527f054148708a2411b4da408f37c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-odd-coordinate-clip",
+      "source": "svg-points-odd-coordinate-clip.svg",
+      "source_sha256": "5df5e55ca3b0d04b918ea72419bc4649d720a4ec7c074c115307ec709174598a",
+      "oracle": "chromium/svg-points-odd-coordinate-clip.png",
+      "oracle_sha256": "5b5132bf617615a31e67d39a29adbc44c04527f054148708a2411b4da408f37c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-odd-coordinate-marker",
+      "source": "svg-points-odd-coordinate-marker.svg",
+      "source_sha256": "bc3199129216310eeca7649b57e26f03442f9103271f8f22b61d642358a3e7ce",
+      "oracle": "chromium/svg-points-odd-coordinate-marker.png",
+      "oracle_sha256": "39b87cf93ec8a0e3f3dc69e21d22d7d0e1c16f2d1dfb41d4360d27071a72f5e5",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-odd-coordinate-object-box",
+      "source": "svg-points-odd-coordinate-object-box.svg",
+      "source_sha256": "23a3261e86de4dea236fb8fd3eb02de2c2c67d05031fb7bc8c5eb09abafd065a",
+      "oracle": "chromium/svg-points-odd-coordinate-object-box.png",
+      "oracle_sha256": "b69f6643d7a5dc5ec52989e375c55c7d0f2a304515bce064a4c8aa48b7364d69",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-odd-coordinate-polyline",
+      "source": "svg-points-odd-coordinate-polyline.svg",
+      "source_sha256": "a7eb7897ef51c68b3f39588c015415346786d9c8c8518c728f1e83def4ed9444",
+      "oracle": "chromium/svg-points-odd-coordinate-polyline.png",
+      "oracle_sha256": "5ec41f8f346a3e8faba07ea8518a7abae40a5c0872574ff16d1d686822e2172b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-odd-coordinate-single-point",
+      "source": "svg-points-odd-coordinate-single-point.svg",
+      "source_sha256": "bcd1c73603402b5e0d4107b865a2c66e488a5375a4e22df0d4e5b8fae7d16438",
+      "oracle": "chromium/svg-points-odd-coordinate-single-point.png",
+      "oracle_sha256": "7d83da8993a38624518785357f2c582a6bd648b62997beda4f12cc5bdf7dca3f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-odd-coordinate-trailing-comma",
+      "source": "svg-points-odd-coordinate-trailing-comma.svg",
+      "source_sha256": "b3efe479d124616cd7432924f3974617922024a1c9c19217da1622e0c9f9e8da",
+      "oracle": "chromium/svg-points-odd-coordinate-trailing-comma.png",
+      "oracle_sha256": "5ec41f8f346a3e8faba07ea8518a7abae40a5c0872574ff16d1d686822e2172b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-odd-coordinate-use",
+      "source": "svg-points-odd-coordinate-use.svg",
+      "source_sha256": "40e3bd0d434d435ca7e40f92b8b0c6a2dd0c5d497ced1960c6887d01817f1f84",
+      "oracle": "chromium/svg-points-odd-coordinate-use.png",
+      "oracle_sha256": "5b5132bf617615a31e67d39a29adbc44c04527f054148708a2411b4da408f37c",
       "width": 64,
       "height": 64
     },

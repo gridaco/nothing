@@ -121,8 +121,8 @@ pub(crate) enum MarkerPathElement {
 
 /// Why one SVG numeric grammar stopped parsing.
 ///
-/// Path data itself consumes its valid prefix when this occurs. `points`
-/// retains the error because its valid-pair-prefix rule is a separate rung.
+/// Path data itself consumes its valid prefix when this occurs. Point lists
+/// use the same scanner but finalize their own list-level error semantics.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SourceSyntaxError {
     /// The source value stopped being valid at this byte offset.
@@ -145,28 +145,41 @@ pub(crate) fn parse_path(d: &str) -> ParsedPath {
     Parser::new(d).parse_path_prefix()
 }
 
-/// Parse one `points` list (SVG2 §10.4) into coordinate pairs, through the
-/// same number scanner as path data so the two grammars cannot drift.
+/// Parse one `points` list (SVG2 §10.4) into Chromium's used coordinate pairs,
+/// through the same number scanner as path data so the two grammars cannot
+/// drift.
 ///
 /// The separator rules are Blink's, measured against Chromium 149: a
 /// trailing separator after the last complete pair is accepted (unlike the
 /// `viewBox` grammar), a leading or doubled comma is an error, a trailing
 /// dot needs a digit, and a sign starts a new number (`32-56` is two).
-/// Chromium renders the valid *pair prefix* of an erroneous list; this
-/// slice refuses the whole element by name instead — the same declared
-/// divergence as path data, so an odd trailing coordinate is one named
-/// hole, never a silently different shape.
+/// A final unmatched x coordinate, with or without one trailing comma, is the
+/// one recoverable error: it is dropped and all complete pairs remain. Every
+/// lexical or numeric failure clears the whole list, including one after an
+/// unmatched x; no malformed-list prefix survives.
 ///
 /// An empty (or whitespace-only) value is valid and resolves to no points,
 /// which renders nothing.
-pub(crate) fn parse_points(value: &str) -> Result<Vec<(f32, f32)>, SourceSyntaxError> {
+pub(crate) fn parse_points(value: &str) -> Vec<(f32, f32)> {
     let mut parser = Parser::new(value);
     parser.skip_wsp();
     let mut points = Vec::new();
     while parser.at < parser.bytes.len() {
-        points.push(parser.coordinate_pair()?);
+        let Ok(x) = parser.number() else {
+            return Vec::new();
+        };
+        // Blink emits only complete pairs. Reaching the end after x is the
+        // SVGPointList odd-count exception, including when x consumed one
+        // trailing comma.
+        if parser.at == parser.bytes.len() {
+            return points;
+        }
+        let Ok(y) = parser.number() else {
+            return Vec::new();
+        };
+        points.push((x, y));
     }
-    Ok(points)
+    points
 }
 
 /// The five ASCII characters Blink's SVG parsers treat as whitespace

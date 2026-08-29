@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <g fill="none" stroke="#111827" stroke-width="2">
+    <polyline points=",2,2 14,2 14,12"/>
+    <polyline transform="translate(16)" points="2,2 14,2 14,12,,4,12"/>
+    <polyline transform="translate(32)" points="2,2 14,2 14,12 X"/>
+    <polyline transform="translate(48)" points="2,2 14,2 14,12 4 X"/>
+    <polyline transform="translate(0 16)" points="2,2 14,2 14,12 4.,12"/>
+    <polyline transform="translate(16 16)" points="2,2 14,2 14,12 4e,12"/>
+    <polyline transform="translate(32 16)" points="2,2 14,2 14,12 1e40,12"/>
+    <polyline transform="translate(48 16)" points="2,2 14,2 14,12 4,1e40"/>
+    <polyline transform="translate(0 32)" points="2,2 14,2 14,12 4px,12"/>
+    <polyline transform="translate(16 32)" points="2,2 14,2 14,12 4%,12"/>
+    <polyline transform="translate(32 32)" points="2,2 14,2 14,12 calc(4),12"/>
+    <polyline transform="translate(48 32)" points="2,2 14,2 14,12 var(--x),12"/>
+    <polyline transform="translate(0 48)" points="2,2 14,2 14,12 initial"/>
+    <polyline transform="translate(16 48)" points="2,2 14,2 14,12/**/4,12"/>
+    <polyline transform="translate(32 48)" points="2,2 14,2 14,12 4,12"/>
+    <polyline transform="translate(48 48)" points="2,2 14,2 14,12,,"/>
+  </g>
+</svg>

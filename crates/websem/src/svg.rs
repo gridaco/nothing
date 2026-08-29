@@ -362,20 +362,10 @@ pub enum CompileError {
     /// Chromium silently falls back to the default `xMidYMid meet` for
     /// these; the slice refuses by name instead of silently defaulting.
     BadPreserveAspectRatio(String),
-    /// A `points` list outside the SVG2 §10.4 grammar. Chromium renders the
-    /// valid coordinate-pair prefix and drops the rest; this slice refuses
-    /// the whole element by name instead, so an odd trailing coordinate is
-    /// one named hole, never a silently different shape.
-    BadPoints {
-        element: String,
-        /// Byte offset where the value stopped being a valid points list.
-        offset: usize,
-        excerpt: String,
-    },
     /// A producer-normalized path stream the resolved contract rejected.
-    /// Source `d` syntax errors are finalized at the last complete segment;
-    /// this variant therefore names a compiler arithmetic/contract failure,
-    /// not authored malformed path data.
+    /// Source `d` errors and authored point-list errors are finalized before
+    /// this boundary; this variant therefore names a compiler
+    /// arithmetic/contract failure, not malformed source data.
     BadPathData {
         element: String,
         /// Reserved source offset; normalized-stream failures use zero.
@@ -904,14 +894,6 @@ impl std::fmt::Display for CompileError {
             CompileError::BadPreserveAspectRatio(v) => {
                 write!(f, "preserveAspectRatio {v:?} is invalid")
             }
-            CompileError::BadPoints {
-                element,
-                offset,
-                excerpt,
-            } => write!(
-                f,
-                "points on <{element}> is invalid at byte {offset} (near {excerpt:?})"
-            ),
             CompileError::BadPathData {
                 element,
                 offset,
@@ -2224,13 +2206,7 @@ fn measure_leaf_geometry(
             let Some(value) = get_attr(el, "points") else {
                 return Ok(MeasuredGeometry::Empty);
             };
-            let points = crate::svg_path::parse_points(&value).map_err(
-                |crate::svg_path::SourceSyntaxError::Syntax { offset }| CompileError::BadPoints {
-                    element: el.local_name_string(),
-                    offset,
-                    excerpt: excerpt_at(&value, offset),
-                },
-            )?;
+            let points = crate::svg_path::parse_points(&value);
             if points.is_empty() {
                 return Ok(MeasuredGeometry::Empty);
             }
@@ -5874,18 +5850,7 @@ mod clip_path {
             }
             "polygon" | "polyline" => {
                 let points = get_attr(element, "points")
-                    .map(|value| {
-                        crate::svg_path::parse_points(&value).map_err(
-                            |crate::svg_path::SourceSyntaxError::Syntax { offset }| {
-                                CompileError::BadPoints {
-                                    element: tag.clone(),
-                                    offset,
-                                    excerpt: excerpt_at(&value, offset),
-                                }
-                            },
-                        )
-                    })
-                    .transpose()?
+                    .map(|value| crate::svg_path::parse_points(&value))
                     .unwrap_or_default();
                 let Some(((first_x, first_y), rest)) = points.split_first() else {
                     return Ok(Geometry::Rect(Rectangle::empty()));
@@ -5902,7 +5867,7 @@ mod clip_path {
                     commands.push(rframe::PathCommand::Close);
                 }
                 Geometry::Path(Arc::new(PathData::new(commands, fill_rule).map_err(
-                    |error| CompileError::BadPoints {
+                    |error| CompileError::BadPathData {
                         element: tag,
                         offset: 0,
                         excerpt: error.to_string(),
@@ -9452,18 +9417,9 @@ fn prepare_marker_projection(
             })
         }
         "polygon" | "polyline" if projects => {
-            let points = match get_attr(el, "points") {
-                None => Vec::new(),
-                Some(value) => crate::svg_path::parse_points(&value).map_err(
-                    |crate::svg_path::SourceSyntaxError::Syntax { offset }| {
-                        CompileError::BadPoints {
-                            element: tag.to_string(),
-                            offset,
-                            excerpt: excerpt_at(&value, offset),
-                        }
-                    },
-                )?,
-            };
+            let points = get_attr(el, "points")
+                .map(|value| crate::svg_path::parse_points(&value))
+                .unwrap_or_default();
             Ok(MarkerProjection {
                 parsed_path: None,
                 positions: crate::svg_path::points_marker_positions(&points, tag == "polygon"),
@@ -10177,10 +10133,9 @@ enum PointsClosure {
 /// geometry kind of its own, exactly as `<line>` lowers.
 ///
 /// The `points` list maps to `MoveTo` + `LineTo`* (+ `Close` for a
-/// polygon). Chromium renders the valid coordinate-pair prefix of an
-/// erroneous list; this slice refuses the whole element by name instead
-/// (see [`CompileError::BadPoints`]). A missing or empty list is valid and
-/// renders nothing, like an empty `d`.
+/// polygon). A final unmatched x coordinate is dropped after retaining every
+/// complete pair; any lexical or numeric parse error clears the list. A
+/// missing or empty list is valid and renders nothing, like an empty `d`.
 fn compile_points_shape(
     el: HtmlElement<'_>,
     viewport: AffineTransform,
@@ -10213,16 +10168,9 @@ fn compile_points_shape(
     if patrol.opacity == 0.0 {
         return Ok(None);
     }
-    let points = match get_attr(el, "points") {
-        None => Vec::new(),
-        Some(value) => crate::svg_path::parse_points(&value).map_err(
-            |crate::svg_path::SourceSyntaxError::Syntax { offset }| CompileError::BadPoints {
-                element: element.to_string(),
-                offset,
-                excerpt: excerpt_at(&value, offset),
-            },
-        )?,
-    };
+    let points = get_attr(el, "points")
+        .map(|value| crate::svg_path::parse_points(&value))
+        .unwrap_or_default();
     let Some(((first_x, first_y), rest)) = points.split_first() else {
         return Ok(None);
     };
@@ -10256,7 +10204,7 @@ fn compile_points_shape(
     let path = PathData::new(commands, resolve_fill_rule(el)?).map_err(|error| {
         // The producer normalizes into the contract's canonical form, so a
         // rejection here is this compiler's bug, not the document's.
-        CompileError::BadPoints {
+        CompileError::BadPathData {
             element: element.to_string(),
             offset: 0,
             excerpt: error.to_string(),
@@ -10283,23 +10231,6 @@ fn compile_points_shape(
         false,
     )
     .map(Some)
-}
-
-/// The authored text at an error offset, clipped to a readable excerpt on a
-/// character boundary.
-fn excerpt_at(value: &str, offset: usize) -> String {
-    /// Long enough to show the offending token, short enough that a
-    /// kilobyte-long `d` does not reach a terminal.
-    const WIDTH: usize = 24;
-    let start = (0..=offset.min(value.len()))
-        .rev()
-        .find(|index| value.is_char_boundary(*index))
-        .unwrap_or(0);
-    let end = (start..=(start + WIDTH).min(value.len()))
-        .rev()
-        .find(|index| value.is_char_boundary(*index))
-        .unwrap_or(value.len());
-    value[start..end].to_string()
 }
 
 /// The cascaded `fill-rule` — which regions of a self-overlapping path the
