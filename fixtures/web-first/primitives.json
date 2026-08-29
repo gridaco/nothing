@@ -6940,10 +6940,82 @@
       "height": 64
     },
     {
+      "id": "svg-points-invalid-clears-list",
+      "source": "svg-points-invalid-clears-list.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-points-invalid-clears-list.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-points-number-accumulation",
       "source": "svg-points-number-accumulation.svg",
       "entry": "standalone-svg",
       "oracle": "chromium/svg-points-number-accumulation.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-odd-coordinate",
+      "source": "svg-points-odd-coordinate.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-points-odd-coordinate.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-odd-coordinate-clip",
+      "source": "svg-points-odd-coordinate-clip.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-points-odd-coordinate-clip.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-odd-coordinate-marker",
+      "source": "svg-points-odd-coordinate-marker.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-points-odd-coordinate-marker.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-odd-coordinate-object-box",
+      "source": "svg-points-odd-coordinate-object-box.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-points-odd-coordinate-object-box.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-odd-coordinate-polyline",
+      "source": "svg-points-odd-coordinate-polyline.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-points-odd-coordinate-polyline.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-odd-coordinate-single-point",
+      "source": "svg-points-odd-coordinate-single-point.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-points-odd-coordinate-single-point.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-odd-coordinate-trailing-comma",
+      "source": "svg-points-odd-coordinate-trailing-comma.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-points-odd-coordinate-trailing-comma.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-points-odd-coordinate-use",
+      "source": "svg-points-odd-coordinate-use.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-points-odd-coordinate-use.png",
       "width": 64,
       "height": 64
     },

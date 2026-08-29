@@ -739,11 +739,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "transform:none on a derived pattern",
     ),
     (
-        "svg-points-odd-coordinate",
-        DeclaredByBestEffort,
-        "points on <polygon>",
-    ),
-    (
         "svg-preserve-aspect-ratio-case-folded",
         BothRefuse,
         "preserveAspectRatio",

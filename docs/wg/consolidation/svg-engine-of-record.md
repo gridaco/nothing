@@ -90,14 +90,14 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,026 Chromium-baked primitive cells plus 16 sampled frames.
+- **The corpus** is 1,035 Chromium-baked primitive cells plus 16 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 189 rows.
+  register has 188 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -922,21 +922,21 @@ Closure is the one semantic difference between the two elements, and the
 `points` grammar runs through the same number scanner as path data, so the
 two grammars cannot drift.
 
-**Measured before written.** The grammar's edges were probed against
-Chromium 149 before the parser existed, and the probe moved the design in
-one place: a trailing separator after the last complete pair is *accepted*
-in `points` (unlike the `viewBox` grammar, whose trailing comma stays a
-refusal), so the slice admits it, Chromium-baked. The rest confirmed the
-plan: a leading or doubled comma, a trailing dot, and a percent are errors
-whose valid *pair prefix* Chromium renders — this slice refuses the whole
-element by name instead, the paths rung's declared divergence restated
-(`svg-points-odd-coordinate` is its refusal-corpus row); a filled polyline
-paints as if closed; and a single point splits by closure — the polygon is
-the zero-length **closed** contour whose cap paints a dot, resolved into
-the contract's canonical `M x y L x y Z` spelling (the cap-normalization
-exception from the cap-defect addendum fires for it unchanged), while the
-polyline is a neutral move-only contour that paints nothing under any cap
-and is admitted as not-a-node.
+**Measured before written, corrected 2026-08-30.** The original probe correctly
+found that a trailing separator after the last complete pair is accepted in
+`points` (unlike the `viewBox` grammar), but incorrectly generalized the
+odd-coordinate recovery rule to lexical errors. Current Chromium, its parser,
+and the upstream point-list test agree on the narrower rule: a final unmatched
+x coordinate is dropped and complete pairs remain; every lexical or numeric
+failure clears the whole list. The original slice refused both classes. That
+made malformed lists declared over-refusals with the correct empty pixels,
+while `svg-points-odd-coordinate` was the actual missing-pixel row. The other
+findings stand: a filled polyline paints as if closed; and a single point
+splits by closure — the polygon is the zero-length **closed** contour whose cap
+paints a dot, resolved into the contract's canonical `M x y L x y Z` spelling
+(the cap-normalization exception from the cap-defect addendum fires for it
+unchanged), while the polyline is a neutral move-only contour that paints
+nothing under any cap and is admitted as not-a-node.
 
 **Eight cells, byte-exact.** Fill with mixed separators, the trailing
 separator, an evenodd self-intersecting star (the cascaded `fill-rule`
@@ -4242,3 +4242,68 @@ focused source, resource, cascade, and value rows replace it, moving the named
 register from 172 to 189. The sixteen exact-time frames and 451-cell filter
 estate are unchanged. No checklist row closes, no conformance score was
 produced, and no FLIP record, rule, or baseline changed.
+
+## Rung: SVG point-list attribute closure (2026-08-30)
+
+The verdict is CLOSE. The `points` attribute now carries its complete listed
+grammar on both `<polygon>` and `<polyline>`, so its checklist row closes. The
+two applicable element rows were already closed, and there is no CSS-property
+twin implied by this attribute result.
+
+The crux corrected the earlier points-rung record. SVG's odd-coordinate rule
+is not a general valid-prefix rule. Chromium 149.0.7827.55, Blink's current
+point-list parser, and the upstream point-list test all agree: parsing appends
+each completed coordinate pair; reaching the end after an unmatched x leaves
+those pairs in place, including when one trailing comma follows that x; any
+lexical or numeric parse failure clears the whole list. A malformed token after
+an unmatched x therefore overrides the odd-count recovery and clears even the
+earlier complete pairs. This also explains the former asymmetry: malformed
+lists already produced Chromium's empty pixels under best effort, but were
+unnecessarily declared and rejected by strict admission, while an odd list
+lost visible pixels in best effort and was the registered refusal.
+
+The standard grammar and browser implementation support the same boundary:
+[SVG 2 defines the unmatched-coordinate recovery](https://svgwg.org/svg2-draft/shapes.html#DataTypePoints),
+[Blink clears a list after any parser error](https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/core/svg/svg_point_list.cc),
+and the [upstream browser test](https://wpt.live/svg/types/scripted/SVGList-parse-invalid-clears-items.html)
+separately checks malformed-list clearing and odd-x truncation. Measurement,
+not the earlier prose, selected the corrected rule.
+
+Nine Chromium-baked cells carry the result. Four direct contour cells cover an
+odd coordinate after three, one, and two complete pairs and after a trailing
+comma. One sixteen-case cell covers leading and doubled separators, complete-
+pair and odd-x lexical errors, malformed dot and exponent forms, x/y overflow,
+units, percentages, calculations, variables, CSS-wide text, comments,
+non-ASCII whitespace, and a second trailing comma; all resolve to an empty
+list with no declaration. Four consumer cells carry the recovered list through
+marker topology, geometric clip geometry, object-box bounds, and same-document
+instancing. Existing cells continue to cover empty and missing lists, mixed
+separators, sign adjacency, exponents, ordered source-number evaluation,
+ordinary trailing commas, closure, fill rules, and single-point contours.
+Strict and best-effort admissions are frame-identical for every new cell, and
+all nine are byte-exact to Chromium without a tolerance.
+
+The wider scratch matrix measured the same split before admission. Odd-prefix
+controls were exact through direct geometry, markers, clips, and instances;
+depending on the route, clearing the odd list lost 64 to 1,200 pixels at
+maximum channel deltas from 218 to 233. Leading commas, doubled commas,
+garbage, overflow, unit and percentage spellings, calculations, variables,
+CSS-wide text, comments, non-ASCII whitespace, trailing-dot and malformed-
+exponent forms, and a second trailing comma were each pixel-identical to an
+empty list. A lexical error after an unmatched x also cleared the list, while
+one trailing comma after that x preserved the earlier pairs. Every candidate
+rendered through both actual admissions as well as Chromium (measured, not
+celled except where the nine cells named above carry the same branch).
+
+Gate sensitivity was proved against both halves at once. Temporarily restoring
+the stale behavior—clearing odd lists while retaining malformed complete-pair
+prefixes—made `just gate` fail loudly on all eight odd-coordinate route cells
+and the malformed-list matrix. The failures ranged from 64 to 1,200 pixels;
+the malformed matrix moved 660 pixels at maximum channel delta 238. Restoring
+the corrected rule returned the full gate to green.
+
+The primitive corpus moves from 1,026 to 1,035 cells. The former
+`svg-points-odd-coordinate` refusal graduates, moving the named register from
+189 to 188 rows. The sixteen sampled frames and 451-cell filter estate are
+unchanged. No conformance score was produced, and no FLIP record, rule, or
+baseline changed.

@@ -428,11 +428,12 @@ fn unknown_geometry_never_becomes_a_partial_context_box() {
 
 #[test]
 fn an_unindexed_nested_use_is_unknown_not_empty() {
-    // The odd `points` coordinate is a registered whole-element departure.
-    // Its measurement error deliberately prevents the outer group's prepass
-    // entry; the nested use must not reinterpret that absence as an empty box.
+    // The unit-bearing `x` is a registered whole-element `BadNumber`
+    // over-refusal. Its measurement error deliberately prevents the outer
+    // group's prepass entry; the nested use must not reinterpret that absence
+    // as an empty box.
     let source = document(
-        r##"<defs><linearGradient id="g"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient><rect id="leaf" x="8" y="8" width="24" height="24" fill="context-fill"/><g id="outer"><polygon points="8,8 20"/><use href="#leaf" fill="url(#g)"/></g></defs><use href="#outer"/>"##,
+        r##"<defs><linearGradient id="g"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient><rect id="leaf" x="8" y="8" width="24" height="24" fill="context-fill"/><g id="outer"><rect x="8px" y="8" width="1" height="1"/><use href="#leaf" fill="url(#g)"/></g></defs><use href="#outer"/>"##,
     );
     let best = SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport())
         .expect("best effort names both holes");

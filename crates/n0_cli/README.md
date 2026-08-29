@@ -74,8 +74,9 @@ cargo run -p n0_cli --bin n0 -- \
   remains a named refusal because the pinned
   cascade has no corresponding longhand. Also admitted are `<line>`, `<polygon>`
   and `<polyline>` (the `points` grammar through the same number scanner as
-  path data; an erroneous list refuses the whole element by name where
-  Chromium renders its valid pair prefix — a declared divergence), nested in
+  path data; a final unmatched x coordinate is dropped after all complete
+  pairs, while every lexical or numeric parse failure resolves to the empty
+  list), nested in
   `<g>` (and `<a>`, the same container semantics) with the whole `transform`
   grammar, under the outer `<svg>`.
   On `<circle>` and `<ellipse>`, the `cx`/`cy` presentation attributes default
@@ -539,8 +540,8 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 32 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete corpus contains 1,026 Chromium-baked cells plus 16 sampled
-  frames, with 189 named
+  cells. The complete corpus contains 1,035 Chromium-baked cells plus 16 sampled
+  frames, with 188 named
   refusal rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,

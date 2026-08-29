@@ -6,9 +6,9 @@
 //! same number scanner as path data so the two cannot drift, and its
 //! separator rules are Blink's, measured against Chromium: a trailing
 //! separator after the last complete pair is accepted (unlike `viewBox`),
-//! a leading or doubled comma is an error, and Chromium renders the valid
-//! pair prefix of an erroneous list where this slice refuses the whole
-//! element by name — the paths rung's declared divergence, restated here.
+//! a leading or doubled comma is an error, and a final unmatched x coordinate
+//! is dropped while retaining all complete pairs. Every lexical or numeric
+//! parse error clears the whole list, including one after an unmatched x.
 
 // This binary consumes only the n0 render half of the shared plumbing.
 #[allow(dead_code)]
@@ -16,7 +16,7 @@ mod support;
 
 use rframe::{Geometry, PathCommand};
 use support::render_through_n0;
-use websem::{CompileError, DegradationAction, InitialViewport, SvgFrameSource};
+use websem::{InitialViewport, SvgFrameSource};
 
 fn viewport() -> InitialViewport {
     InitialViewport::new(64.0, 64.0)
@@ -228,53 +228,66 @@ fn a_trailing_separator_after_the_last_pair_is_admitted() {
     assert_eq!(trailing.nodes()[0].geometry, clean.nodes()[0].geometry);
 }
 
-/// An erroneous list refuses the whole element by name, with the byte
-/// offset — Chromium renders the valid pair prefix instead, and that
-/// divergence is declared, never silent.
+/// A final unmatched x coordinate is the one recoverable list error: it is
+/// dropped, with or without one trailing comma, and every complete pair
+/// remains.
 #[test]
-fn an_erroneous_points_list_refuses_the_whole_element_by_name() {
+fn an_odd_coordinate_count_keeps_only_complete_pairs() {
+    for (label, odd, clean) in [
+        (
+            "three-point polygon",
+            r##"<polygon points="8,8 56,8 32,56 40" fill="#16a34a"/>"##,
+            r##"<polygon points="8,8 56,8 32,56" fill="#16a34a"/>"##,
+        ),
+        (
+            "one-point polygon",
+            r##"<polygon points="32,32 40" fill="none" stroke="#2563eb" stroke-width="8" stroke-linecap="square"/>"##,
+            r##"<polygon points="32,32" fill="none" stroke="#2563eb" stroke-width="8" stroke-linecap="square"/>"##,
+        ),
+        (
+            "two-point polyline",
+            r##"<polyline points="8,8 56,8 32" fill="none" stroke="#2563eb" stroke-width="6"/>"##,
+            r##"<polyline points="8,8 56,8" fill="none" stroke="#2563eb" stroke-width="6"/>"##,
+        ),
+        (
+            "odd x with trailing comma",
+            r##"<polygon points="8,8 56,8 32," fill="none" stroke="#2563eb" stroke-width="6"/>"##,
+            r##"<polygon points="8,8 56,8" fill="none" stroke="#2563eb" stroke-width="6"/>"##,
+        ),
+    ] {
+        let odd = admit_both(&document(odd));
+        let clean = admit_both(&document(clean));
+        assert_eq!(odd, clean, "{label}: only complete pairs survive");
+    }
+}
+
+/// Every other parse error invalidates the whole list. In particular, a
+/// lexical error after an unmatched x is not allowed to inherit the odd-count
+/// exception.
+#[test]
+fn a_non_odd_parse_error_clears_the_whole_list() {
     for (label, points) in [
         ("leading comma", ",8,8 56,8 32,56"),
         ("doubled comma", "8,8,,56,8 32,56"),
+        ("garbage after complete pairs", "8,8 56,8 32,56 X"),
+        ("garbage after unmatched x", "8,8 56,8 32 X"),
         ("trailing dot", "8,8 56,8 32.,56"),
-        ("odd coordinate count", "8,8 56,8 32,56 40"),
+        ("malformed exponent", "8,8 56,8 32e,56"),
+        ("overflowing x", "8,8 56,8 1e40,56"),
+        ("overflowing y", "8,8 56,8 32,1e40"),
+        ("unit", "8,8 56,8 32px,56"),
         ("percentage", "8,8 56,8 50%,56"),
+        ("calculation", "8,8 56,8 calc(32),56"),
+        ("variable", "8,8 56,8 var(--x),56"),
+        ("CSS-wide text", "8,8 56,8 initial"),
+        ("CSS comment", "8,8 56,8/**/32,56"),
+        ("non-ASCII whitespace", "8,8 56,8\u{a0}32,56"),
+        ("second trailing comma", "8,8 56,8 32,56,,"),
     ] {
-        let source = document(&format!(
+        let frame = admit_both(&document(&format!(
             r##"  <polygon points="{points}" fill="#16a34a"/>"##
-        ));
-        let strict = SvgFrameSource::from_standalone_svg(source.as_str(), viewport())
-            .expect_err(&format!("{label}: strict refuses"));
-        assert!(
-            matches!(strict, CompileError::BadPoints { .. }),
-            "{label}: expected BadPoints, got {strict}"
-        );
-        assert!(
-            strict.to_string().contains("points on <polygon>")
-                && strict.to_string().contains("invalid at byte"),
-            "{label}: the refusal names the construct and the offset; got {strict}"
-        );
-
-        let best = SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport())
-            .unwrap_or_else(|error| panic!("{label}: best-effort compiles: {error}"));
-        assert_eq!(
-            best.base_frame().nodes().len(),
-            0,
-            "{label}: a declared hole"
-        );
-        assert_eq!(best.degradations().len(), 1, "{label}");
-        assert!(
-            best.degradations()[0]
-                .reason()
-                .contains("points on <polygon>"),
-            "{label}: the skip names the construct; got {}",
-            best.degradations()[0].reason()
-        );
-        assert_eq!(
-            best.degradations()[0].action(),
-            DegradationAction::Skipped,
-            "{label}"
-        );
+        )));
+        assert_eq!(frame.nodes().len(), 0, "{label}: the used list is empty");
     }
 }
 
@@ -350,7 +363,7 @@ fn points_shapes_keep_the_marker_css_patrol() {
 /// (the equivalence law extended to the rung).
 #[test]
 fn inline_and_standalone_points_resolve_to_the_same_frame() {
-    let svg_body = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><polygon points="8,8 56,8 32,56" fill="#16a34a"/></svg>"##;
+    let svg_body = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><polygon points="8,8 56,8 32,56 40" fill="#16a34a"/></svg>"##;
     let html = format!("<html><body>{svg_body}</body></html>");
     let inline = websem::compile_html_inline_svg(&html).expect("compile inline entry");
     let standalone =
