@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 80 20" preserveAspectRatio="none">
+  <rect width="80" height="20" fill="#f8fafc"/>
+  <g transform="translate(4 1) scale(.9)">
+    <line x1="12.5%" y1="25%" x2="87.5%" y2="75%" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="87.5%" y1="25%" x2="12.5%" y2="75%" stroke="#e11d48" stroke-width="1" stroke-dasharray="3 2"/>
+  </g>
+</svg>

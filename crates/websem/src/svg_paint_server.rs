@@ -65,7 +65,11 @@ use cg::{CGColor, CGColor32F};
 use math2::Rectangle;
 use math2::transform::AffineTransform;
 
-use crate::svg::{admitted_srgb, dots_carry_digits, get_attr, trim_svg_whitespace};
+use crate::svg::{
+    WEB_USED_LENGTH_MAX, WEB_USED_LENGTH_MIN, admitted_srgb, dots_carry_digits,
+    geometry_number_source_loses_provenance, get_attr, resolve_geometry_percentage,
+    trim_svg_whitespace,
+};
 use crate::svg_transform::{TransformRefusal, computed_transform_to_affine};
 
 /// The two same-document URL bases the cascade resolves references against:
@@ -356,6 +360,17 @@ pub(crate) fn resolve(
         GradientTransform::Affine(affine) => affine,
     };
 
+    // An object-bounding-box paint server has no coordinate system when
+    // either consumer-box extent is zero. Chromium paints nothing before
+    // considering whether the ramp itself is constant or degenerate. User
+    // space has no such dependency and reaches the source-neutral branches
+    // below before its live-ramp contract boundary.
+    if matches!(units, GradientUnits::ObjectBoundingBox)
+        && (destination_box.width == 0.0 || destination_box.height == 0.0)
+    {
+        return Ok(ResolvedPaintServer::Nothing);
+    }
+
     if stops.len() == 1 {
         // A one-stop ramp is spatially constant but retains the backend's
         // gradient material route (including dithering and paint-alpha
@@ -633,10 +648,24 @@ fn resolve_gradient_transform(chain: &[HtmlElement<'_>]) -> Result<GradientTrans
     Ok(GradientTransform::Affine(AffineTransform::identity()))
 }
 
+fn strip_ascii_case_suffix<'a>(text: &'a str, suffix: &str) -> Option<&'a str> {
+    let split = text.len().checked_sub(suffix.len())?;
+    text.get(split..)?
+        .eq_ignore_ascii_case(suffix)
+        .then(|| &text[..split])
+}
+
 /// One gradient geometry length: a plain number, a `px` length (its
 /// number), or a percentage. Other units refuse — font-relative and
 /// viewport-relative bases are outside this slice, and in
 /// objectBoundingBox units no spec defines them at all.
+///
+/// This remains a direct attribute decoder because the pinned Stylo build
+/// carries no gradient-coordinate longhands. It therefore patrols every
+/// source class whose raw `f32` route cannot prove Blink's CSS-number
+/// provenance, and every value that would cross the checked frame/backend
+/// range, before a paint fact is emitted. The shadow number routes classify
+/// only; neither supplies a value.
 fn gradient_length(
     chain: &[HtmlElement<'_>],
     tag: &str,
@@ -651,9 +680,32 @@ fn gradient_length(
     if trimmed.is_empty() {
         return Ok(None);
     }
+    if trimmed.contains("/*") || trimmed.contains("*/") {
+        return Err(format!(
+            "gradient geometry {name} contains a CSS comment this direct length parser cannot tokenize"
+        ));
+    }
+    let lower = trimmed.to_ascii_lowercase();
+    if matches!(
+        lower.as_str(),
+        "initial" | "inherit" | "unset" | "revert" | "revert-layer"
+    ) {
+        return Err(format!(
+            "gradient geometry {name} uses the CSS-wide value {trimmed}, whose resource-side cascade is not represented at this Stylo pin"
+        ));
+    }
+    if let Some((function, _)) = lower.split_once('(') {
+        return Err(format!(
+            "gradient geometry {name} uses {}(), whose computed length is not represented by the direct resource decoder",
+            function.trim()
+        ));
+    }
     let (number_text, percent) = match trimmed.strip_suffix('%') {
         Some(number) => (number, true),
-        None => (trimmed.strip_suffix("px").unwrap_or(trimmed), false),
+        None => (
+            strip_ascii_case_suffix(trimmed, "px").unwrap_or(trimmed),
+            false,
+        ),
     };
     if !dots_carry_digits(number_text) {
         // Invalid number: the attribute is in error and takes its initial
@@ -661,6 +713,11 @@ fn gradient_length(
         return Ok(None);
     }
     let Ok(value) = number_text.parse::<f32>() else {
+        if number_text.parse::<f64>().is_ok() {
+            return Err(format!(
+                "gradient geometry {name} exceeds the admitted Web used-value range"
+            ));
+        }
         if number_text
             .bytes()
             .any(|byte| byte.is_ascii_alphabetic() && byte != b'e' && byte != b'E')
@@ -673,16 +730,28 @@ fn gradient_length(
         return Ok(None);
     };
     if !value.is_finite() {
-        return Ok(None);
+        return Err(format!(
+            "gradient geometry {name} exceeds the admitted Web used-value range"
+        ));
+    }
+    if geometry_number_source_loses_provenance(number_text, percent) {
+        return Err(format!(
+            "gradient geometry {name} numeric precision alias loses Chromium used-value provenance"
+        ));
     }
     let resolved = if percent {
         match units {
-            GradientUnits::ObjectBoundingBox => value / 100.0,
-            GradientUnits::UserSpaceOnUse => value / 100.0 * bases.axis(name),
+            GradientUnits::ObjectBoundingBox => resolve_geometry_percentage(value, 1.0),
+            GradientUnits::UserSpaceOnUse => resolve_geometry_percentage(value, bases.axis(name)),
         }
     } else {
         value
     };
+    if !resolved.is_finite() || !(WEB_USED_LENGTH_MIN..=WEB_USED_LENGTH_MAX).contains(&resolved) {
+        return Err(format!(
+            "gradient geometry {name} exceeds the admitted Web used-value range"
+        ));
+    }
     Ok(Some(resolved))
 }
 
@@ -1159,6 +1228,21 @@ fn resolve_linear(
         return solid_paint(color, paint_opacity, post_paint_opacity);
     }
 
+    // Every live gradient fact in `cg` is stated in the consumer geometry's
+    // unit box. A user-space ramp on a line-like zero-area geometry cannot be
+    // mapped into that box: either inverse extent would be non-finite. The
+    // object-box case resolved before constant/degenerate classification;
+    // user-space degenerate ramps resolved above and never reach this boundary.
+    if destination_box.width == 0.0 || destination_box.height == 0.0 {
+        return match units {
+            GradientUnits::ObjectBoundingBox => Ok(ResolvedPaintServer::Nothing),
+            GradientUnits::UserSpaceOnUse => Err(
+                "a live user-space gradient on zero-area geometry cannot be mapped into the resolved unit-box paint contract"
+                    .to_string(),
+            ),
+        };
+    }
+
     // Only an actual ramp needs owner geometry and a mapping into the leaf.
     // A singular context consumer paints nothing; no gradient fact crosses
     // the resolved contract.
@@ -1285,6 +1369,20 @@ fn resolve_radial(
             _ => ramp_average(&stops, paint_opacity, post_paint_opacity)?,
         };
         return solid_paint(color, paint_opacity, post_paint_opacity);
+    }
+
+    // As for a linear ramp, only live user-space radial geometry needs the
+    // inverse destination-box mapping. Object-box zero area resolved before
+    // constant/degenerate classification; preserve the source-neutral
+    // non-positive-radius result above before enforcing this boundary.
+    if destination_box.width == 0.0 || destination_box.height == 0.0 {
+        return match units {
+            GradientUnits::ObjectBoundingBox => Ok(ResolvedPaintServer::Nothing),
+            GradientUnits::UserSpaceOnUse => Err(
+                "a live user-space gradient on zero-area geometry cannot be mapped into the resolved unit-box paint contract"
+                    .to_string(),
+            ),
+        };
     }
 
     // A non-positive radius is already a source-neutral solid. Only a live

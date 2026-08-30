@@ -576,8 +576,16 @@ excluded.
 - [ ] `color-scheme`
 - [ ] `dynamic-range-limit`
 - [ ] `forced-color-adjust`
-- [x] `opacity`
+- [ ] `opacity`
 - [ ] `print-color-adjust`
+
+> **2026-08-30 reopen:** a partially opaque anti-aliased `<line>` exposed a
+> valid semantic class the former one-draw audit did not cover. Chromium
+> composites element opacity after stroke coverage; the former route folded
+> it into stroke opacity, making two Chromium-distinct inputs identical. The
+> direct property spelling now refuses by the same stable line-coverage name
+> as the presentation attribute. This no-own-row gap reopens both spellings;
+> the independently listed `stroke-opacity` row remains closed.
 
 
 ### CSS images
@@ -1924,7 +1932,17 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > A valid empty source always hides its target; opaque black hides in luminance
 > mode and reveals under `mask-type="alpha"`.
 
-- [x] `opacity`
+- [ ] `opacity`
+
+> **2026-08-30 reopen:** direct, inherited-container, and `<use>`-site partial
+> opacity around an anti-aliased `<line>` now refuse before element opacity can
+> alias stroke opacity. On the square witness Chromium's two opacity stages
+> differ by 62 pixels at maximum channel delta 11, while the former output is
+> exact to the wrong `stroke-opacity` control; a non-uniform mapped instance
+> reproduces 113–124 wrong pixels at delta 1–2. The registered coverage patrol
+> is deliberately line-specific until the resolved layer route can reproduce
+> this edge class without crossing the separately bounded pattern-source
+> profile (measured, not celled).
 - [ ] `overflow`
 - [ ] `paint-order`
 - [ ] `pointer-events`
@@ -2393,6 +2411,27 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `y1`
 - [ ] `y2`
 - [x] `yChannelSelector`
+
+> **2026-08-30 split:** six exact Chromium cells carry the shared
+> `x1`/`y1`/`x2`/`y2` subset on `<line>` and `<linearGradient>`: defaults and
+> explicit zero, signed number syntax, axis percentages through `viewBox`,
+> transforms and stroke geometry, same-document `<use>`, object-box and
+> user-space gradient vectors, case-insensitive `px`, and independent template
+> inheritance. Both actual admissions are pixel-identical to Chromium. The
+> four rows remain open. Two valid long-decimal classes select Chromium's
+> lower binary32 neighbour while the raw route selected the higher one, and
+> CSS comments around valid numbers also need a tokenizer; neither gap has an
+> independent checklist row. Case-insensitive `px` is admitted on gradients
+> but remains a line-consumer refusal under the unit row; wider unit families,
+> CSS math, custom properties, and CSS-wide values likewise retain their own
+> rows and refuse by exact field. Finite percentage overflow, the unimplemented
+> fixed used-value clamp, and a live user-space gradient on zero-area geometry
+> are likewise registered before a frame can carry a wrong value. Two companion
+> cells prove the zero-area unit split: object-box ramps are nothing before
+> constant/degenerate classification, while exact user-space one-stop and
+> linear/radial degenerate results resolve before the live-gradient boundary.
+> The corpus is 1,043 primitive cells plus 16 sampled frames; the named refusal
+> register has 198 rows.
 
 > **2026-08-26 close:** both displacement selectors carry the complete
 > case-sensitive `R | G | B | A` grammar independently. Missing, empty,

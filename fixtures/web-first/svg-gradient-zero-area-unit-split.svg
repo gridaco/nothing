@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#f8fafc"/>
+  <defs>
+    <linearGradient id="object-linear" x1=".5" y1=".5" x2=".5" y2=".5"><stop stop-color="#ef4444"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <radialGradient id="object-radial" cx=".5" cy=".5" r="0"><stop stop-color="#ef4444"/><stop offset="1" stop-color="#2563eb"/></radialGradient>
+    <linearGradient id="object-one"><stop stop-color="#16a34a"/></linearGradient>
+    <linearGradient id="user-one" gradientUnits="userSpaceOnUse"><stop stop-color="#16a34a"/></linearGradient>
+  </defs>
+  <line x1="8" y1="8" x2="56" y2="8" stroke="url(#object-linear)" stroke-width="6"/>
+  <line x1="8" y1="24" x2="56" y2="24" stroke="url(#object-radial)" stroke-width="6"/>
+  <line x1="8" y1="40" x2="56" y2="40" stroke="url(#object-one)" stroke-width="6"/>
+  <line x1="8" y1="56" x2="56" y2="56" stroke="url(#user-one)" stroke-width="6"/>
+</svg>

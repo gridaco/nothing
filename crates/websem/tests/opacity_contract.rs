@@ -179,6 +179,62 @@ fn a_lone_stroke_folds_into_the_stroke_paint() {
     );
 }
 
+/// The former one-draw fold was measured only on hard, pixel-aligned edges.
+/// A diagonal line proves the missing semantic distinction: Chromium's
+/// element opacity is post-coverage and differs from `stroke-opacity`, while
+/// the old route made them identical. Until the resolved/painter seam can
+/// reproduce that layer exactly, every attribute, inline/stylesheet CSS,
+/// inherited-container, and instance spelling leaves through one stable
+/// line-specific name.
+#[test]
+fn a_partially_opaque_line_refuses_before_element_opacity_can_alias_stroke_opacity() {
+    for (label, body) in [
+        (
+            "attribute",
+            r##"  <line x1="8" y1="8" x2="24" y2="24" stroke="#2563eb" stroke-width="3" opacity=".75"/>"##,
+        ),
+        (
+            "style",
+            r##"  <line x1="8" y1="8" x2="24" y2="24" stroke="#2563eb" stroke-width="3" style="opacity:.75"/>"##,
+        ),
+        (
+            "stylesheet",
+            r##"  <style>.target { opacity: .75 }</style>
+  <line class="target" x1="8" y1="8" x2="24" y2="24" stroke="#2563eb" stroke-width="3"/>"##,
+        ),
+        (
+            "container",
+            r##"  <g opacity=".75"><line x1="8" y1="8" x2="24" y2="24" stroke="#2563eb" stroke-width="3"/></g>"##,
+        ),
+        (
+            "use",
+            r##"  <defs><line id="l" x1="8" y1="8" x2="24" y2="24" stroke="#2563eb" stroke-width="3"/></defs><use href="#l" opacity=".75"/>"##,
+        ),
+    ] {
+        let source = document(body);
+        let error = SvgFrameSource::from_standalone_svg(source.as_str(), viewport())
+            .expect_err("strict refuses the unsafe fold");
+        let reason = error.to_string();
+        assert!(
+            reason.contains("<line> under partial element opacity")
+                && reason.contains("after coverage")
+                && reason.contains("stroke opacity"),
+            "{label}: {reason}"
+        );
+        let best = SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport())
+            .expect("best effort skips and declares the line");
+        assert!(
+            best.degradations().iter().any(|degradation| {
+                degradation.action() == websem::DegradationAction::Skipped
+                    && degradation.reason().contains("after coverage")
+                    && !degradation.path().is_empty()
+            }),
+            "{label}: {:?}",
+            best.degradations()
+        );
+    }
+}
+
 /// A shape with fill *and* stroke composites both through one isolated
 /// scope — the double-blend fact that kept element opacity a refusal until
 /// this rung: per-paint folding would blend the stroke-over-fill overlap

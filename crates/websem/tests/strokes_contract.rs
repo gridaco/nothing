@@ -65,6 +65,36 @@ fn refusal(source: &str) -> CompileError {
         .clone()
 }
 
+fn line_with_attribute(attr: &str, value: &str, style: &str) -> String {
+    let (x1, y1, x2, y2) = match attr {
+        "x1" => (value, "8", "56", "56"),
+        "y1" => ("8", value, "56", "56"),
+        "x2" => ("8", "8", value, "56"),
+        "y2" => ("8", "8", "56", value),
+        _ => unreachable!("the matrix names only line endpoint attributes"),
+    };
+    document(&format!(
+        r##"  <line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" {style} stroke="#111827" stroke-width="4"/>"##
+    ))
+}
+
+/// Strict refuses and best effort skips the same line and declares the exact
+/// endpoint reason. Sampling-only notices from a style attribute are outside
+/// this static contract.
+fn line_attribute_failure(source: &str) -> (CompileError, String) {
+    let error = refusal(source);
+    let best = SvgFrameSource::from_standalone_svg_best_effort(source, viewport(64.0, 64.0))
+        .expect("best effort compiles the remaining document");
+    let declared: Vec<_> = best
+        .degradations()
+        .iter()
+        .filter(|d| d.action() == DegradationAction::Skipped)
+        .collect();
+    assert_eq!(declared.len(), 1, "one line is skipped exactly once");
+    assert_eq!(declared[0].reason(), error.to_string());
+    (error, declared[0].reason().to_string())
+}
+
 fn assert_percentage_precision_alias(source: &str, label: &str) {
     let error = refusal(source);
     let rendered = error.to_string();
@@ -767,6 +797,120 @@ fn a_lines_fill_never_paints_and_its_endpoints_default_to_zero() {
         [0, 0, 0, 255],
         "and a dot under a round one"
     );
+}
+
+/// Endpoint percentages use independent viewport axes in user space, then the
+/// ordinary viewport transform carries the resulting path to the canvas.
+/// Signed coordinates remain valid geometry.
+#[test]
+fn line_endpoint_numbers_and_percentages_resolve_in_user_space() {
+    let frame = admit_both(
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 80 20" preserveAspectRatio="none">
+  <line x1="12.5%" y1="25%" x2="87.5%" y2="75%" stroke="#111827"/>
+</svg>"##,
+    );
+    let Geometry::Path(path) = &frame.nodes()[0].geometry else {
+        panic!("a line resolves to path geometry");
+    };
+    assert_eq!(
+        path.commands(),
+        [
+            PathCommand::MoveTo { x: 10.0, y: 5.0 },
+            PathCommand::LineTo { x: 70.0, y: 15.0 },
+        ],
+        "x endpoints use width; y endpoints use height"
+    );
+
+    let signed = admit_both(&document(
+        r##"  <line x1="-4" y1="+12" x2="12" y2="-4" stroke="#111827"/>"##,
+    ));
+    let Geometry::Path(path) = &signed.nodes()[0].geometry else {
+        panic!("a line resolves to path geometry");
+    };
+    assert_eq!(
+        path.commands(),
+        [
+            PathCommand::MoveTo { x: -4.0, y: 12.0 },
+            PathCommand::LineTo { x: 12.0, y: -4.0 },
+        ]
+    );
+}
+
+/// Blink's presentation-value parser and Rust's raw binary32 parser disagree
+/// on two valid long-decimal classes. The one-way patrol covers every line
+/// endpoint and both direct and percentage routes; it never guesses a value.
+#[test]
+fn line_endpoint_numeric_aliases_refuse_by_exact_attribute() {
+    for attr in ["x1", "y1", "x2", "y2"] {
+        for (class, value) in [
+            ("Blink decimal", "57384.267578125007"),
+            (
+                "midpoint",
+                "1.000000059604644775390625000000000000000000000001",
+            ),
+            ("percentage", "57384.267578125007%"),
+        ] {
+            let (error, reason) = line_attribute_failure(&line_with_attribute(attr, value, ""));
+            assert!(
+                matches!(&error, CompileError::UnsupportedGeometry(named)
+                    if named.contains(attr) && named.contains("numeric precision alias")),
+                "{class} {attr}: {error:?}"
+            );
+            assert!(
+                reason.contains("loses Chromium used-value provenance"),
+                "{class} {attr}: {reason}"
+            );
+        }
+    }
+}
+
+/// Every finite-source overflow and every finite coordinate beyond the
+/// established Web used-length range leaves through a stable endpoint name
+/// before non-finite or backend-dropped geometry can enter the frame.
+#[test]
+fn line_endpoint_range_boundaries_refuse_by_exact_attribute() {
+    for attr in ["x1", "y1", "x2", "y2"] {
+        for (value, expected) in [
+            ("3.4e38%", "resolves outside the finite frame range"),
+            ("2.176e38", "exceeds the admitted Web used-value range"),
+            ("-2.176e38", "exceeds the admitted Web used-value range"),
+        ] {
+            let (error, reason) = line_attribute_failure(&line_with_attribute(attr, value, ""));
+            assert!(
+                matches!(&error, CompileError::UnsupportedGeometry(named)
+                    if named.contains(attr) && named.contains(expected)),
+                "{attr}={value}: {error:?}"
+            );
+            assert!(reason.contains(expected), "{attr}={value}: {reason}");
+        }
+    }
+}
+
+/// These are Chromium-honoured presentation-value families, not malformed
+/// line geometry. Their computation context has its own checklist rows; the
+/// raw endpoint route conservatively refuses each exact ingress meanwhile.
+#[test]
+fn line_endpoint_css_value_families_refuse_by_exact_attribute() {
+    for attr in ["x1", "y1", "x2", "y2"] {
+        for (family, value, style) in [
+            ("px", "32PX", ""),
+            ("unit", "2em", ""),
+            ("calc", "calc(16px + 16px)", ""),
+            ("var", "var(--v)", r##"style="--v: 32px""##),
+            ("CSS-wide", "initial", ""),
+            ("CSS comment", "/**/32/**/", ""),
+        ] {
+            let (error, reason) = line_attribute_failure(&line_with_attribute(attr, value, style));
+            assert!(
+                matches!(&error, CompileError::BadNumber { attr: named, .. } if named == attr),
+                "{family} {attr}: {error:?}"
+            );
+            assert!(
+                reason.contains(&format!("attribute {attr}=")),
+                "{family} {attr}: {reason}"
+            );
+        }
+    }
 }
 
 // ─── what still refuses ──────────────────────────────────────────────────

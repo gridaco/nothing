@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs>
+    <linearGradient id="gx1" x1="/**/8/**/"><stop stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient>
+    <linearGradient id="gx2" x2="/**/56/**/"><stop stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient>
+    <linearGradient id="gy1" y1="/**/8/**/"><stop stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient>
+    <linearGradient id="gy2" y2="/**/56/**/"><stop stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient>
+  </defs>
+  <rect x="60" y="60" width="4" height="4" fill="#ef4444"/>
+  <line x1="/**/8/**/" y1="4" x2="12" y2="12" stroke="#111827"/>
+  <line x1="4" y1="4" x2="/**/56/**/" y2="12" stroke="#2563eb"/>
+  <line x1="4" y1="/**/8/**/" x2="12" y2="12" stroke="#16a34a"/>
+  <line x1="4" y1="4" x2="12" y2="/**/56/**/" stroke="#e11d48"/>
+  <rect x="0" y="16" width="8" height="8" fill="url(#gx1)"/>
+  <rect x="8" y="16" width="8" height="8" fill="url(#gx2)"/>
+  <rect x="16" y="16" width="8" height="8" fill="url(#gy1)"/>
+  <rect x="24" y="16" width="8" height="8" fill="url(#gy2)"/>
+</svg>
