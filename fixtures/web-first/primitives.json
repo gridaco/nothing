@@ -5636,6 +5636,22 @@
       "height": 64
     },
     {
+      "id": "svg-opacity-line-layer-attr",
+      "source": "svg-opacity-line-layer-attr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-opacity-line-layer-attr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-opacity-line-layer-css",
+      "source": "svg-opacity-line-layer-css.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-opacity-line-layer-css.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-opacity-nested-groups",
       "source": "svg-opacity-nested-groups.svg",
       "entry": "standalone-svg",
@@ -5644,10 +5660,26 @@
       "height": 64
     },
     {
+      "id": "svg-opacity-paintless-stages",
+      "source": "svg-opacity-paintless-stages.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-opacity-paintless-stages.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-opacity-rotated-group",
       "source": "svg-opacity-rotated-group.svg",
       "entry": "standalone-svg",
       "oracle": "chromium/svg-opacity-rotated-group.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-opacity-selected-empty-paints",
+      "source": "svg-opacity-selected-empty-paints.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-opacity-selected-empty-paints.png",
       "width": 64,
       "height": 64
     },

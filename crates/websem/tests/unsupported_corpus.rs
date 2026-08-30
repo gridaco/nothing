@@ -684,11 +684,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "unsupported element <svg>",
     ),
     (
-        "svg-opacity-line-coverage-precision",
-        DeclaredByBestEffort,
-        "<line> under partial element opacity",
-    ),
-    (
         "svg-path-css-d-property",
         DeclaredByBestEffort,
         "declares d",

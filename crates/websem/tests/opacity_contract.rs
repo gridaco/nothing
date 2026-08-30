@@ -2,16 +2,18 @@
 //! measured fold rule.
 //!
 //! Chromium's element opacity has distinct routes and each is meaning. A
-//! single un-transformed, un-folded solid draw **folds** opacity into that
-//! draw's colour product, quantized once (byte-identical to paint opacity,
-//! measured). A single gradient draw applies one separate alpha factor after
+//! single un-transformed, un-folded opacity pass **folds** opacity into that
+//! pass's colour product, quantized once (byte-identical to paint opacity,
+//! measured). A single gradient pass applies one separate alpha factor after
 //! the gradient's intrinsic opacity materializes. Everything else composites
 //! through a real **scope**: an isolated layer in the resolved contract,
-//! restored at the group alpha. Nesting never flattens to a product (each
-//! layer quantizes — measured one code value apart from the flat fold), a
-//! transform strictly *below* the scope element breaks the fold, and a factor
-//! lands at most once per draw. The probe matrix behind each law lives with
-//! the rung's register addendum.
+//! restored at the group alpha. A valid selected transparent paint remains a
+//! pass; `none`, an invalid URL without fallback, zero stroke width, and
+//! pruned geometry do not. Nesting never flattens to a product (each layer
+//! quantizes — measured one code value apart from the flat fold), a transform
+//! strictly *below* the scope element breaks the fold, and a factor lands at
+//! most once per pass. The probe matrix behind each law lives with the rung's
+//! register addendum.
 
 // This binary consumes only the compiler half of the shared plumbing.
 #[allow(dead_code)]
@@ -112,6 +114,14 @@ fn fill_alpha(frame: &rframe::Frame, index: usize) -> u8 {
     }
 }
 
+fn painted_node_count(frame: &rframe::Frame) -> usize {
+    frame
+        .nodes()
+        .iter()
+        .filter(|node| !node.paints.is_empty() || node.stroke.is_some())
+        .count()
+}
+
 /// A lone unstroked shape folds its element opacity into the fill exactly
 /// as `fill-opacity` folds — the two spellings resolve to the identical
 /// frame (measured byte-identical in Chromium), and no scope appears.
@@ -179,59 +189,186 @@ fn a_lone_stroke_folds_into_the_stroke_paint() {
     );
 }
 
-/// The former one-draw fold was measured only on hard, pixel-aligned edges.
-/// A diagonal line proves the missing semantic distinction: Chromium's
-/// element opacity is post-coverage and differs from `stroke-opacity`, while
-/// the old route made them identical. Until the resolved/painter seam can
-/// reproduce that layer exactly, every attribute, inline/stylesheet CSS,
-/// inherited-container, and instance spelling leaves through one stable
-/// line-specific name.
+/// A `<line>` has no visible fill area, but a valid selected fill still records
+/// an opacity pass in Chromium. Its default fill plus visible stroke therefore
+/// requires a scope; explicit `fill="none"` leaves the sole stroke pass and
+/// folds exactly like `stroke-opacity`. Attribute, CSS, container, and
+/// instance ingress all consume the same structural fact.
 #[test]
-fn a_partially_opaque_line_refuses_before_element_opacity_can_alias_stroke_opacity() {
-    for (label, body) in [
+fn a_line_counts_selected_fill_for_opacity_even_without_visible_fill_area() {
+    for (label, static_css, body) in [
         (
             "attribute",
+            false,
             r##"  <line x1="8" y1="8" x2="24" y2="24" stroke="#2563eb" stroke-width="3" opacity=".75"/>"##,
         ),
         (
             "style",
+            true,
             r##"  <line x1="8" y1="8" x2="24" y2="24" stroke="#2563eb" stroke-width="3" style="opacity:.75"/>"##,
         ),
         (
             "stylesheet",
+            true,
             r##"  <style>.target { opacity: .75 }</style>
   <line class="target" x1="8" y1="8" x2="24" y2="24" stroke="#2563eb" stroke-width="3"/>"##,
         ),
         (
             "container",
+            false,
             r##"  <g opacity=".75"><line x1="8" y1="8" x2="24" y2="24" stroke="#2563eb" stroke-width="3"/></g>"##,
         ),
         (
             "use",
+            false,
             r##"  <defs><line id="l" x1="8" y1="8" x2="24" y2="24" stroke="#2563eb" stroke-width="3"/></defs><use href="#l" opacity=".75"/>"##,
         ),
     ] {
         let source = document(body);
-        let error = SvgFrameSource::from_standalone_svg(source.as_str(), viewport())
-            .expect_err("strict refuses the unsafe fold");
-        let reason = error.to_string();
-        assert!(
-            reason.contains("<line> under partial element opacity")
-                && reason.contains("after coverage")
-                && reason.contains("stroke opacity"),
-            "{label}: {reason}"
+        let frame = if static_css {
+            admit_static_css_both(&source)
+        } else {
+            admit_both(&source)
+        };
+        assert_eq!(scope_opacities(&frame), [0.75], "{label}");
+        assert_eq!(
+            frame.nodes().len(),
+            1,
+            "{label}: only the stroke is visible"
         );
-        let best = SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport())
-            .expect("best effort skips and declares the line");
+    }
+
+    let element = admit_both(&document(
+        r##"  <line x1="8" y1="8" x2="24" y2="24" fill="none" stroke="#2563eb" stroke-width="3" opacity=".75"/>"##,
+    ));
+    let paint = admit_both(&document(
+        r##"  <line x1="8" y1="8" x2="24" y2="24" fill="none" stroke="#2563eb" stroke-width="3" stroke-opacity=".75"/>"##,
+    ));
+    assert_eq!(element, paint, "one selected stroke pass folds");
+    assert!(scope_opacities(&element).is_empty());
+}
+
+/// Paint selection, not resolved visible alpha, decides whether a pass exists.
+/// Transparent colours and valid servers that resolve to no ink still block a
+/// one-pass fold. `none`, an invalid URL without fallback, and a zero-width
+/// stroke do not.
+#[test]
+fn transparent_selected_paints_are_passes_but_absent_paints_are_not() {
+    for (label, sibling) in [
+        (
+            "transparent colour",
+            r##"<rect x="2" y="2" width="8" height="8" fill="transparent"/>"##,
+        ),
+        (
+            "zero-alpha colour",
+            r##"<rect x="2" y="2" width="8" height="8" fill="#ef444400"/>"##,
+        ),
+        (
+            "zero fill opacity",
+            r##"<rect x="2" y="2" width="8" height="8" fill="#ef4444" fill-opacity="0"/>"##,
+        ),
+        (
+            "stopless gradient",
+            r##"<rect x="2" y="2" width="8" height="8" fill="url(#empty)"/>"##,
+        ),
+        (
+            "transparent gradient",
+            r##"<rect x="2" y="2" width="8" height="8" fill="url(#transparent)"/>"##,
+        ),
+        (
+            "dash with no visible ink",
+            r##"<path d="M2 2L10 10" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="butt" stroke-dasharray="0 4"/>"##,
+        ),
+    ] {
+        let frame = admit_both(&document(&format!(
+            r##"  <defs>
+    <linearGradient id="empty"/>
+    <linearGradient id="transparent"><stop stop-color="#ef4444" stop-opacity="0"/><stop offset="1" stop-color="#2563eb" stop-opacity="0"/></linearGradient>
+  </defs>
+  <g opacity=".5"><rect x="16" y="16" width="32" height="32" fill="#16a34a"/>{sibling}</g>"##
+        )));
+        assert_eq!(scope_opacities(&frame), [0.5], "{label}");
         assert!(
-            best.degradations().iter().any(|degradation| {
-                degradation.action() == websem::DegradationAction::Skipped
-                    && degradation.reason().contains("after coverage")
-                    && !degradation.path().is_empty()
-            }),
-            "{label}: {:?}",
-            best.degradations()
+            (1..=2).contains(&frame.nodes().len()),
+            "{label}: only the visible sibling and an optional transparent shader node"
         );
+    }
+
+    for (label, sibling) in [
+        (
+            "none",
+            r##"<rect x="2" y="2" width="8" height="8" fill="none"/>"##,
+        ),
+        (
+            "missing URL",
+            r##"<rect x="2" y="2" width="8" height="8" fill="url(#missing)"/>"##,
+        ),
+        (
+            "zero stroke width",
+            r##"<path d="M2 2L10 10" fill="none" stroke="#ef4444" stroke-width="0"/>"##,
+        ),
+    ] {
+        let frame = admit_both(&document(&format!(
+            r##"  <g opacity=".5"><rect x="16" y="16" width="32" height="32" fill="#16a34a"/>{sibling}</g>"##
+        )));
+        assert!(
+            scope_opacities(&frame).is_empty(),
+            "{label}: sole pass folds"
+        );
+        assert_eq!(fill_alpha(&frame, 0), 128, "{label}");
+    }
+}
+
+/// A non-identity opacity stage on non-pruned geometry remains a structural
+/// fold barrier even when that geometry selects no paint or opacity is zero.
+/// Empty geometry, hidden geometry, and an empty opacity container are pruned
+/// and do not block the one visible sibling's fold.
+#[test]
+fn paintless_opacity_stages_block_outer_folds_until_their_geometry_is_pruned() {
+    for (label, sibling) in [
+        (
+            "partial paintless shape",
+            r##"<rect x="2" y="2" width="8" height="8" fill="none" opacity=".5"/>"##,
+        ),
+        (
+            "zero paintless shape",
+            r##"<rect x="2" y="2" width="8" height="8" fill="none" opacity="0"/>"##,
+        ),
+        (
+            "nested zero container",
+            r##"<g opacity="0"><rect x="2" y="2" width="8" height="8" fill="none"/></g>"##,
+        ),
+    ] {
+        let frame = admit_both(&document(&format!(
+            r##"  <g opacity=".5"><rect x="16" y="16" width="32" height="32" fill="#16a34a"/>{sibling}</g>"##
+        )));
+        assert_eq!(scope_opacities(&frame), [0.5], "{label}");
+        assert_eq!(painted_node_count(&frame), 1, "{label}");
+    }
+
+    for (label, sibling) in [
+        (
+            "zero extent",
+            r##"<rect x="2" y="2" width="0" height="8" fill="#ef4444" opacity=".5"/>"##,
+        ),
+        (
+            "empty path",
+            r##"<path d="" fill="#ef4444" opacity=".5"/>"##,
+        ),
+        (
+            "hidden geometry",
+            r##"<rect x="2" y="2" width="8" height="8" fill="#ef4444" opacity=".5" display="none"/>"##,
+        ),
+        ("empty container", r##"<g opacity=".5"/>"##),
+    ] {
+        let frame = admit_both(&document(&format!(
+            r##"  <g opacity=".5"><rect x="16" y="16" width="32" height="32" fill="#16a34a"/>{sibling}</g>"##
+        )));
+        assert!(
+            scope_opacities(&frame).is_empty(),
+            "{label}: sole pass folds"
+        );
+        assert_eq!(fill_alpha(&frame, 0), 128, "{label}");
     }
 }
 

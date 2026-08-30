@@ -576,16 +576,21 @@ excluded.
 - [ ] `color-scheme`
 - [ ] `dynamic-range-limit`
 - [ ] `forced-color-adjust`
-- [ ] `opacity`
+- [x] `opacity`
 - [ ] `print-color-adjust`
 
-> **2026-08-30 reopen:** a partially opaque anti-aliased `<line>` exposed a
-> valid semantic class the former one-draw audit did not cover. Chromium
-> composites element opacity after stroke coverage; the former route folded
-> it into stroke opacity, making two Chromium-distinct inputs identical. The
-> direct property spelling now refuses by the same stable line-coverage name
-> as the presentation attribute. This no-own-row gap reopens both spellings;
-> the independently listed `stroke-opacity` row remains closed.
+> **2026-08-31 close:** the property closes at its complete admitted
+> `<alpha-value>` grammar and applicability. Chromium folds element opacity by
+> recorded paint/effect structure, not by visible pixels: a valid selected
+> transparent paint remains a pass, while `none`, an invalid URL without a
+> fallback, and zero stroke width do not. Non-identity opacity on non-pruned
+> paintless geometry remains a fold barrier; zero-extent, empty, or
+> display-pruned geometry does not. A `<line>`'s valid fill selection is a pass
+> even though its fill covers no pixels, so default fill plus stroke uses an
+> isolated layer while explicit `fill="none"` leaves the stroke fold. Separate
+> exact attribute and CSS cells carry the repaired line route; the existing
+> grammar, root, host, group, gradient, transform, and instance cells carry the
+> rest. The former line-coverage refusal graduates.
 
 
 ### CSS images
@@ -1932,17 +1937,17 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > A valid empty source always hides its target; opaque black hides in luminance
 > mode and reveals under `mask-type="alpha"`.
 
-- [ ] `opacity`
+- [x] `opacity`
 
-> **2026-08-30 reopen:** direct, inherited-container, and `<use>`-site partial
-> opacity around an anti-aliased `<line>` now refuse before element opacity can
-> alias stroke opacity. On the square witness Chromium's two opacity stages
-> differ by 62 pixels at maximum channel delta 11, while the former output is
-> exact to the wrong `stroke-opacity` control; a non-uniform mapped instance
-> reproduces 113–124 wrong pixels at delta 1–2. The registered coverage patrol
-> is deliberately line-specific until the resolved layer route can reproduce
-> this edge class without crossing the separately bounded pattern-source
-> profile (measured, not celled).
+> **2026-08-31 close:** the presentation-attribute twin closes independently
+> through direct shape, inherited container, `<a>`, and `<use>` routes. Four
+> new byte-exact Chromium cells distinguish structural transparent paint
+> passes from absent paints, paintless opacity stages from pruned geometry, and
+> post-coverage line opacity from stroke opacity in both attribute and CSS
+> ingress. Their source mutations move 290–1,120 pixels; restoring the old
+> visible-draw proxy makes the gate fail by 294–840 pixels. The complete corpus
+> is now 1,051 primitive cells plus 16 sampled frames, and the named refusal
+> register has 197 rows. No new tolerance is used.
 - [ ] `overflow`
 - [ ] `paint-order`
 - [ ] `pointer-events`
@@ -2445,8 +2450,8 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > cells prove the zero-area unit split: object-box ramps are nothing before
 > constant/degenerate classification, while exact user-space one-stop and
 > linear/radial degenerate results resolve before the live-gradient boundary.
-> The corpus is 1,043 primitive cells plus 16 sampled frames; the named refusal
-> register has 198 rows.
+> At that split the corpus was 1,043 primitive cells plus 16 sampled frames;
+> the named refusal register had 198 rows.
 
 > **2026-08-26 close:** both displacement selectors carry the complete
 > case-sensitive `R | G | B | A` grammar independently. Missing, empty,

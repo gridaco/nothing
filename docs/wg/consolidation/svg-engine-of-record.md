@@ -90,14 +90,14 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,047 Chromium-baked primitive cells plus 16 sampled frames.
+- **The corpus** is 1,051 Chromium-baked primitive cells plus 16 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 198 rows.
+  register has 197 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -1957,7 +1957,7 @@ post-paint opacity. Every fill and stroke route applies the same float fold
 after its existing solid/gradient alpha materialization. Native n0 producers
 state identity, so no n0-model public API grew. Preflight sees the same drawlist
 fact as rasterization, and the factor participates in item equality and damage.
-This is the measured one-draw fold of Chromium's alpha-layer effect; it is not
+This is the measured one-pass fold of Chromium's alpha-layer effect; it is not
 a replacement for a group scope. Fill plus stroke, overlapping descendants,
 nested opacity, and the existing structural fold boundaries continue to use
 the isolated `Scope` fact and retain their per-layer quantization.
@@ -3829,7 +3829,7 @@ pattern element: author CSS beats it, a plain `transform` attribute is inert,
 and template ownership remains per attribute. Translation, axis scale,
 reflection, and exact quarter turns are admitted. Fills and strokes on rects,
 ellipses, and paths, dashes and caps, target opacity/clip/mask/filter scopes,
-source gradients, `<use>`, one-draw folded opacity, and a pattern nested alone
+source gradients, `<use>`, one-pass folded opacity, and a pattern nested alone
 inside another pattern all reproduce Chromium exactly inside that envelope.
 
 The picture-shader boundary was measured rather than generalized from those
@@ -4494,3 +4494,66 @@ The primitive corpus moves from 1,043 to 1,047 cells. Two component-transfer
 cells move the filter estate from 451 to 453; the sixteen sampled frames and
 198-row named refusal register are unchanged. No conformance score was
 produced, and no FLIP record, rule, or baseline changed.
+
+## Rung: SVG opacity structural-pass closure (2026-08-31)
+
+The verdict is CLOSE. The CSS `opacity` property and SVG presentation
+attribute rows close independently at the complete previously admitted
+`<alpha-value>` grammar. The line-coverage refusal that reopened both rows now
+graduates: direct attribute, inline and stylesheet CSS, inherited container,
+`<a>`, and same-document `<use>` routes all preserve Chromium's post-coverage
+element opacity.
+
+The crux was the wrong proxy for Chromium's fold decision. Visible pixels do
+not determine whether an opacity layer can fold into one paint. Recorded
+paint/effect structure does. A valid selected paint remains a structural pass
+when its colour alpha is zero, its paint opacity is zero, its valid gradient
+has no stops or only transparent stops, its valid pattern is transparent, or
+its dash paints no ink. `none`, an invalid paint-server URL with no fallback,
+and a stroke whose width is zero contribute no pass. A `<line>` therefore
+retains its valid fill pass even though its fill has no area: default fill plus
+stroke requires the isolated layer, while explicit `fill="none"` leaves the
+sole stroke pass eligible for the ordinary fold.
+
+Opacity stages and paint passes are separate again. A non-identity opacity on
+non-pruned paintless geometry blocks an enclosing fold at both partial and zero
+opacity. Zero-extent geometry, an empty path, display-pruned geometry, and an
+empty opacity container do not. Empty geometry may still exist in the resolved
+frame for context-paint and box ownership without becoming an opacity subject.
+The result needs no new public render vocabulary: the existing paint factor and
+isolated scope already state the two raster outcomes once the producer keeps
+visible draws, structural passes, geometry, and prior effects distinct until
+the fold decision.
+
+Four Chromium-149 cells carry the recovered boundary, all byte-exact through
+strict and best-effort admission without a tolerance.
+`svg-opacity-line-layer-attr` covers direct, inherited-container, `<a>`, and
+`<use>` opacity plus the explicit-`none` stroke fold;
+`svg-opacity-line-layer-css` covers inline style, stylesheet, percentage,
+cascade precedence, and the CSS explicit-`none` control;
+`svg-opacity-selected-empty-paints` distinguishes eight valid transparent
+selection routes from four absent-paint routes; and
+`svg-opacity-paintless-stages` distinguishes partial, zero, and nested
+paintless effects from four pruned controls. Existing opacity grammar, solid,
+gradient, root, host, transform, nesting, and instance cells retain the wider
+grammar and applicability evidence.
+
+The scratch audit measured 282 structural candidates through the hash-pinned
+capture posture and both actual CLI admissions. Strict and best effort were
+pixel-identical for every candidate. A separate 96-pair line search found 69
+Chromium-exact witnesses that still distinguished element opacity from stroke
+opacity; the committed line cells use that exact class, so no new tolerance
+was introduced. The remaining anti-aliased layer candidates stayed probe-only
+(measured, not celled). Source mutations that erased selected empty passes,
+paintless stages, or post-coverage line opacity moved 290 to 1,120 pixels at
+maximum channel deltas from 1 to 130.
+
+Gate sensitivity was then proved against the implementation seam. Temporarily
+collapsing structural passes back to visible draws made
+`svg-opacity-line-layer-attr` fail by 392 pixels at maximum channel delta 60,
+`svg-opacity-line-layer-css` by 294 pixels at delta 60, and
+`svg-opacity-selected-empty-paints` by 840 pixels at delta 1. Restoring the
+separate fact returned the complete 1,051-cell gate to green. The former
+line-coverage refusal graduates, moving the named register from 198 to 197
+rows. The sixteen sampled frames and 453-cell filter estate are unchanged. No
+conformance score was produced, and no FLIP record, rule, or baseline changed.

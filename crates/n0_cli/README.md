@@ -557,8 +557,8 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete corpus contains 1,047 Chromium-baked cells plus 16 sampled
-  frames, with 198 named
+  cells. The complete corpus contains 1,051 Chromium-baked cells plus 16 sampled
+  frames, with 197 named
   refusal rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
@@ -718,7 +718,7 @@ cargo run -p n0_cli --bin n0 -- \
   Element `opacity` is consumed in every spelling within the admitted coverage
   profiles (presentation attribute, style attribute, stylesheet — one
   <alpha-value> grammar, clamped exactly as Chromium clamps). A single
-  un-transformed, un-folded solid draw uses the
+  un-transformed, un-folded opacity pass uses the
   group-scope rung's measured fold: the element factor joins the colour and
   fill/stroke opacity product before its one quantization. A valid gradient
   instead keeps its intrinsic paint opacity and carries the element factor
@@ -727,14 +727,20 @@ cargo run -p n0_cli --bin n0 -- \
   second 8-bit quantization. A one-stop server remains a two-identical-stop
   constant gradient so it retains that raster route. An invalid URL fallback
   remains an ordinary solid and takes the solid fold.
-  A stroked `<line>` under partial element opacity is a named exception,
-  including direct attribute, inline/stylesheet CSS, inherited container, and
-  `<use>` instance routes. Chromium applies the element factor after stroke
-  coverage; folding it into stroke opacity changes 62 pixels at maximum
-  channel delta 11 in the direct witness, and mapped instances reproduce the
-  class. Both admissions refuse the affected line before painting, and the two
-  `opacity` checklist rows remain open until that coverage order is
-  representable (measured, not celled).
+  Fold eligibility follows Chromium's recorded paint/effect structure rather
+  than visible pixels. A selected transparent colour, zero paint opacity,
+  valid stopless or transparent server, and zero-ink dash remain opacity
+  passes; `none`, an invalid URL without fallback, and zero stroke width do
+  not. A non-identity opacity stage on non-pruned paintless geometry blocks an
+  enclosing fold even at zero, while zero-extent, empty, hidden, and
+  display-pruned geometry does not. Empty geometry nodes remain available to
+  context-paint and box consumers without becoming opacity subjects.
+  A `<line>`'s selected fill is likewise a structural pass even though its
+  interior paints nothing. Default fill plus stroke therefore composites
+  through the isolated post-coverage layer in direct, inline/stylesheet CSS,
+  inherited-container, `<a>`, and `<use>` routes; explicit `fill="none"`
+  leaves the single stroke fold. Both opacity checklist rows are closed and
+  the former line-coverage refusal has graduated.
   Everything that is genuinely a group composites through a real isolated
   layer: a shape's fill and stroke together, a group of several draws, nested
   opacities (which quantize per layer and never flatten to a product — measured

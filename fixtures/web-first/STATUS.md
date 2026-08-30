@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (1047)
+## Chromium-baked cells (1051)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -720,8 +720,12 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-opacity-group-nonhalf.svg" title="svg-opacity-group-nonhalf (standalone-svg)"><img src="./chromium/svg-opacity-group-nonhalf.png" width="56" alt="svg-opacity-group-nonhalf"></a>
 <a href="./svg-opacity-group-overlap.svg" title="svg-opacity-group-overlap (standalone-svg)"><img src="./chromium/svg-opacity-group-overlap.png" width="56" alt="svg-opacity-group-overlap"></a>
 <a href="./svg-opacity-hidden-in-group.svg" title="svg-opacity-hidden-in-group (standalone-svg)"><img src="./chromium/svg-opacity-hidden-in-group.png" width="56" alt="svg-opacity-hidden-in-group"></a>
+<a href="./svg-opacity-line-layer-attr.svg" title="svg-opacity-line-layer-attr (standalone-svg)"><img src="./chromium/svg-opacity-line-layer-attr.png" width="56" alt="svg-opacity-line-layer-attr"></a>
+<a href="./svg-opacity-line-layer-css.svg" title="svg-opacity-line-layer-css (standalone-svg)"><img src="./chromium/svg-opacity-line-layer-css.png" width="56" alt="svg-opacity-line-layer-css"></a>
 <a href="./svg-opacity-nested-groups.svg" title="svg-opacity-nested-groups (standalone-svg)"><img src="./chromium/svg-opacity-nested-groups.png" width="56" alt="svg-opacity-nested-groups"></a>
+<a href="./svg-opacity-paintless-stages.svg" title="svg-opacity-paintless-stages (standalone-svg)"><img src="./chromium/svg-opacity-paintless-stages.png" width="56" alt="svg-opacity-paintless-stages"></a>
 <a href="./svg-opacity-rotated-group.svg" title="svg-opacity-rotated-group (standalone-svg)"><img src="./chromium/svg-opacity-rotated-group.png" width="56" alt="svg-opacity-rotated-group"></a>
+<a href="./svg-opacity-selected-empty-paints.svg" title="svg-opacity-selected-empty-paints (standalone-svg)"><img src="./chromium/svg-opacity-selected-empty-paints.png" width="56" alt="svg-opacity-selected-empty-paints"></a>
 <a href="./svg-opacity-stroke-only-fold.svg" title="svg-opacity-stroke-only-fold (standalone-svg)"><img src="./chromium/svg-opacity-stroke-only-fold.png" width="56" alt="svg-opacity-stroke-only-fold"></a>
 <a href="./svg-opacity-times-fill-opacity.svg" title="svg-opacity-times-fill-opacity (standalone-svg)"><img src="./chromium/svg-opacity-times-fill-opacity.png" width="56" alt="svg-opacity-times-fill-opacity"></a>
 <a href="./svg-opacity-transform-below.svg" title="svg-opacity-transform-below (standalone-svg)"><img src="./chromium/svg-opacity-transform-below.png" width="56" alt="svg-opacity-transform-below"></a>
@@ -1076,7 +1080,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (198)
+## The refusal register (197)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -1227,7 +1231,6 @@ its row into the cells above.
 | `svg-mask-type-var` | declared | skipped svg/rect[2]: unsupported SVG mask: mask-type presentation attribute uses var(), whose substitution is not represented at this Stylo pin |
 | `svg-mask-var` | declared | skipped svg/rect[2]: unsupported SVG mask: mask presentation attribute uses var(), whose substitution is not represented at this Stylo pin |
 | `svg-nested-svg` | declared | skipped svg/svg[1]: unsupported element <svg> |
-| `svg-opacity-line-coverage-precision` | declared | skipped svg/line[1]: unsupported stroke value "a <line> under partial element opacity crosses the anti-aliased stroke coverage boundary: Chromium composites element opacity after coverage, while the current one-draw route would fold it into stroke opacity"; skipped svg/line[2]: unsupported stroke value "a <line> under partial element opacity crosses the anti-aliased stroke coverage boundary: Chromium composites element opacity after coverage, while the current one-draw route would fold it into stroke opacity"; skipped svg/line[3]: unsupported stroke value "a <line> under partial element opacity crosses the anti-aliased stroke coverage boundary: Chromium composites element opacity after coverage, while the current one-draw route would fold it into stroke opacity"; skipped svg/g[1]/line[1]: unsupported stroke value "a <line> under partial element opacity crosses the anti-aliased stroke coverage boundary: Chromium composites element opacity after coverage, while the current one-draw route would fold it into stroke opacity"; skipped svg/use[1]: unsupported <use>: the document carries author CSS, and shadow-scoped selector matching is not yet consumed (selectors must match inside the cloned subtree alone — measured) |
 | `svg-path-css-d-property` | declared | declaration ignored at svg/style[1]: a stylesheet declares d, which this cascade does not represent; elements it matches render without it |
 | `svg-pattern-affine-precision` | declared | skipped svg/rect[2]: unsupported fill value "target mapping carries a general rotation or shear at the pinned-backend picture-shader affine precision boundary" |
 | `svg-pattern-css-transform-percentage` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern transform percentage has no proved reference-box basis" |

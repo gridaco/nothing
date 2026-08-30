@@ -18,7 +18,7 @@
 //! on a path). Containers: `<g>`, `<a>`, `<use>`/`<defs>` and the whole
 //! `transform` grammar, flattened into a per-node affine rather than
 //! represented — except element `opacity` (the group-scope rung), which
-//! resolves on a lone draw as either a solid-paint fold or a post-paint alpha
+//! resolves on a lone opacity pass as either a solid-paint fold or a post-paint alpha
 //! factor, and otherwise emits a real [`rframe::Scope`] by the measured rule.
 //! Root sizing follows SVG2 §8.2: explicit
 //! `width`/`height` win; a missing dimension is `auto` and resolves to 100%
@@ -2638,19 +2638,27 @@ fn compile_svg_element(
 pub(crate) const MAX_CONTAINER_DEPTH: usize = 64;
 
 /// What one compiled span (a child, or a whole subtree) contributes to its
-/// enclosing container's opacity decision — the facts the measured one-draw
-/// rule reads. A "draw" is one paint pass (a fill or a stroke) not
-/// enclosed in a nested scope.
+/// enclosing container's opacity decision.
+///
+/// Visible draws and opacity passes are deliberately separate. Chromium's
+/// opacity fold follows recorded paint/effect structure: a valid transparent
+/// paint or stopless server contributes a pass even though the resolved frame
+/// correctly carries no visual paint. Filters, on the other hand, need the
+/// visible-draw fact to decide whether their SourceGraphic is transparent.
 #[derive(Debug, Clone, Copy, Default)]
 struct SpanFacts {
     /// Bare paint passes in the span (nested scopes' contents excluded).
     draws: usize,
+    /// Bare Chromium opacity-fold passes (nested scopes' contents excluded).
+    opacity_passes: usize,
     /// The span contains a compositing scope.
     has_scope: bool,
-    /// A one-draw element-opacity route already landed in the span.
-    one_draw_opacity: bool,
+    /// A non-identity element-opacity stage already landed in the span.
+    has_opacity: bool,
+    /// The span contains non-pruned geometry, even if it selects no paint.
+    has_geometry: bool,
     /// A non-`none` computed transform sits on an element in the span —
-    /// which breaks an enclosing one-draw route (measured: an intermediate
+    /// which breaks an enclosing one-pass route (measured: an intermediate
     /// transformed container, or a transformed draw, forces the layer; the
     /// scope element's own transform does not).
     transformed: bool,
@@ -2659,8 +2667,10 @@ struct SpanFacts {
 impl SpanFacts {
     fn absorb(&mut self, other: SpanFacts) {
         self.draws += other.draws;
+        self.opacity_passes += other.opacity_passes;
         self.has_scope |= other.has_scope;
-        self.one_draw_opacity |= other.one_draw_opacity;
+        self.has_opacity |= other.has_opacity;
+        self.has_geometry |= other.has_geometry;
         self.transformed |= other.transformed;
     }
 }
@@ -4033,7 +4043,7 @@ mod marker_resource {
 /// contributes its transform and its place in paint order, both of which
 /// compose into the per-node affine and the ordered item stream. The
 /// group-scope rung added the one construct that breaks flattening —
-/// element `opacity` — consumed by the measured one-draw rule: a single
+/// element `opacity` — consumed by the measured one-pass rule: a single
 /// un-transformed draw either folds into a direct solid's alpha product or
 /// keeps a separate post-paint factor for a valid paint server. Every other
 /// opacity emits a real [`rframe::Scope`] (an isolated layer). Chromium's
@@ -4203,9 +4213,9 @@ impl<'a> ChildWalk<'a> {
         self.items.push(FrameItem::ScopeEnd);
         facts = SpanFacts {
             draws: 0,
+            opacity_passes: 0,
             has_scope: true,
-            one_draw_opacity: false,
-            transformed: facts.transformed,
+            ..facts
         };
         facts
     }
@@ -4285,31 +4295,45 @@ impl<'a> ChildWalk<'a> {
         self.items.push(FrameItem::MaskEnd);
         facts = SpanFacts {
             draws: 0,
+            opacity_passes: 0,
             has_scope: true,
-            one_draw_opacity: false,
-            transformed: facts.transformed,
+            ..facts
         };
         Ok(facts)
     }
 
     /// Apply an already-resolved element opacity outside a completed effect or
     /// marker span. Those spans contain multiple draws/scopes, so Chromium
-    /// never takes the ordinary one-draw alpha fold for this branch.
+    /// never takes the ordinary one-pass alpha fold for this branch.
     fn wrap_masked_span_with_opacity(
         &mut self,
         checkpoint: usize,
         mut facts: SpanFacts,
         opacity: f32,
     ) -> SpanFacts {
-        if opacity < 1.0 && (facts.draws > 0 || facts.has_scope) {
-            self.items
-                .insert(checkpoint, scope_item(&mut self.next_id, opacity));
-            self.items.push(FrameItem::ScopeEnd);
+        let has_subject =
+            facts.has_geometry || facts.opacity_passes > 0 || facts.has_scope || facts.has_opacity;
+        if opacity == 0.0 && has_subject {
+            self.items.truncate(checkpoint);
+            facts = SpanFacts {
+                has_opacity: true,
+                has_geometry: facts.has_geometry,
+                transformed: facts.transformed,
+                ..SpanFacts::default()
+            };
+        } else if opacity < 1.0 && has_subject {
+            let materialized = facts.draws > 0 || facts.has_scope;
+            if materialized {
+                self.items
+                    .insert(checkpoint, scope_item(&mut self.next_id, opacity));
+                self.items.push(FrameItem::ScopeEnd);
+            }
             facts = SpanFacts {
                 draws: 0,
-                has_scope: true,
-                one_draw_opacity: false,
-                transformed: facts.transformed,
+                opacity_passes: 0,
+                has_scope: materialized,
+                has_opacity: true,
+                ..facts
             };
         }
         facts
@@ -4332,9 +4356,9 @@ impl<'a> ChildWalk<'a> {
             self.items.push(FrameItem::ScopeEnd);
             facts = SpanFacts {
                 draws: 0,
+                opacity_passes: 0,
                 has_scope: true,
-                one_draw_opacity: false,
-                transformed: facts.transformed,
+                ..facts
             };
         }
         facts
@@ -4342,7 +4366,7 @@ impl<'a> ChildWalk<'a> {
 
     /// Compile a parent's children in painter order, accumulating the span
     /// facts the parent's own opacity decision reads. `replay_opacity` is an
-    /// enclosing container's one-draw factor mid-replay (see
+    /// enclosing container's one-pass factor mid-replay (see
     /// [`ChildWalk::compile_container`]); it is `1.0` on the first pass.
     fn compile_children(
         &mut self,
@@ -4510,12 +4534,6 @@ impl<'a> ChildWalk<'a> {
             RenderDisposition::PrunedSubtree => return Ok(SpanFacts::default()),
             RenderDisposition::Renders | RenderDisposition::HiddenPaint => {}
         }
-        // `opacity: 0` composites nothing for the whole subtree — an
-        // admitted nothing (measured: siblings paint, contents never do),
-        // and unlike a hidden container nothing below can undo it.
-        if patrol.opacity == 0.0 {
-            return Ok(SpanFacts::default());
-        }
         let own_transformed = element_has_computed_transform(el)?;
         let transform = compose_element_transform(el, transform, element, self.bases)?;
         let target_box = self
@@ -4565,11 +4583,11 @@ impl<'a> ChildWalk<'a> {
     }
 
     /// Compile a container's subtree and apply its element opacity by the
-    /// measured one-draw rule: rewind the span and replay it with the factor
-    /// threaded to its sole draw. A solid paint folds the factor into its
+    /// measured one-pass rule: rewind the span and replay it with the factor
+    /// threaded to its sole opacity pass. A solid paint folds the factor into its
     /// alpha product; a gradient retains the factor separately after its
     /// intrinsic alpha. This replay is eligible only when the span is exactly
-    /// one draw, without prior one-draw opacity, un-scoped, and un-transformed
+    /// one pass, without prior opacity, un-scoped, and un-transformed
     /// below this element;
     /// otherwise the span gets a real scope (an isolated layer). Chromium's
     /// routes differ by code values, so each branch is oracle-pinned meaning.
@@ -4584,8 +4602,26 @@ impl<'a> ChildWalk<'a> {
     ) -> Result<SpanFacts, CompileError> {
         let checkpoint = (self.items.len(), self.next_id, self.degradations.len());
         let mut facts = self.compile_children(el, transform, path, depth + 1, replay_opacity)?;
-        if own_opacity < 1.0 {
-            if facts.draws == 1 && !facts.has_scope && !facts.one_draw_opacity && !facts.transformed
+        let has_subject =
+            facts.has_geometry || facts.opacity_passes > 0 || facts.has_scope || facts.has_opacity;
+        if own_opacity < 1.0 && has_subject {
+            if own_opacity == 0.0 {
+                // Zero still creates an opacity stage around non-pruned
+                // geometry in Chromium, and therefore blocks an enclosing
+                // fold, but its completed visual contribution is nothing.
+                self.items.truncate(checkpoint.0);
+                self.next_id = checkpoint.1;
+                self.degradations.truncate(checkpoint.2);
+                facts = SpanFacts {
+                    has_opacity: true,
+                    has_geometry: facts.has_geometry,
+                    transformed: facts.transformed,
+                    ..SpanFacts::default()
+                };
+            } else if facts.opacity_passes == 1
+                && !facts.has_scope
+                && !facts.has_opacity
+                && !facts.transformed
             {
                 // Replay the span with the accumulated factor so the sole
                 // draw can choose its solid-fold or post-paint-alpha route.
@@ -4599,20 +4635,22 @@ impl<'a> ChildWalk<'a> {
                     depth + 1,
                     replay_opacity * own_opacity,
                 )?;
-                facts.one_draw_opacity = true;
-            } else if facts.draws > 0 || facts.has_scope {
-                let scope = scope_item(&mut self.next_id, own_opacity);
-                self.items.insert(checkpoint.0, scope);
-                self.items.push(FrameItem::ScopeEnd);
+                facts.has_opacity = true;
+            } else {
+                let materialized = facts.draws > 0 || facts.has_scope;
+                if materialized {
+                    let scope = scope_item(&mut self.next_id, own_opacity);
+                    self.items.insert(checkpoint.0, scope);
+                    self.items.push(FrameItem::ScopeEnd);
+                }
                 facts = SpanFacts {
                     draws: 0,
-                    has_scope: true,
-                    one_draw_opacity: false,
-                    transformed: facts.transformed,
+                    opacity_passes: 0,
+                    has_scope: materialized,
+                    has_opacity: true,
+                    ..facts
                 };
             }
-            // A span with no draws and no scope composites nothing: the
-            // opacity states nothing, exactly as Chromium paints it.
         }
         Ok(facts)
     }
@@ -4686,9 +4724,6 @@ impl<'a> ChildWalk<'a> {
             RenderDisposition::PrunedSubtree => return Ok(SpanFacts::default()),
             RenderDisposition::Renders | RenderDisposition::HiddenPaint => {}
         }
-        if patrol.opacity == 0.0 {
-            return Ok(SpanFacts::default());
-        }
         let own_transformed = element_has_computed_transform(el)?;
         let context_transform = compose_element_transform(el, transform, "use", self.bases)?;
         let previous_context_paint_transform = self.context_paint_transform;
@@ -4745,7 +4780,7 @@ impl<'a> ChildWalk<'a> {
         let facts = self.wrap_span_with_clip(checkpoint, facts?, clip);
         // The `x`/`y` translate is part of the use's own transform (SVG2
         // §5.6.2), so like the transform property it stays *on* this
-        // element — an enclosing one-draw route is broken only by a transform
+        // element — an enclosing one-pass route is broken only by a transform
         // strictly below it, and this one is not below.
         Ok(SpanFacts {
             transformed: facts.transformed || own_transformed || x != 0.0 || y != 0.0,
@@ -5097,17 +5132,20 @@ impl<'a> ChildWalk<'a> {
         )?;
         let clip = if marker_selected {
             marker_client_clip
-        } else if let Some(outcome) = compilation.outcome.as_ref() {
-            self.resolve_clip(
-                el,
-                outcome.node.transform,
-                Some(outcome.node.geometry.local_box()),
-            )?
+        } else if let Some(node) = compilation
+            .outcome
+            .as_ref()
+            .and_then(|outcome| outcome.node.as_ref())
+        {
+            self.resolve_clip(el, node.transform, Some(node.geometry.local_box()))?
         } else {
             None
         };
         if let Some(outcome) = compilation.outcome {
-            facts.one_draw_opacity = outcome.one_draw_opacity;
+            facts.draws = outcome.draws;
+            facts.opacity_passes = outcome.opacity_passes;
+            facts.has_opacity = outcome.has_opacity;
+            facts.has_geometry = outcome.has_geometry;
             facts.transformed = outcome.transformed;
             match outcome.scope_opacity {
                 Some(opacity) => {
@@ -5116,13 +5154,18 @@ impl<'a> ChildWalk<'a> {
                     // element opacity a refusal until this rung.
                     let scope = scope_item(&mut self.next_id, opacity);
                     self.items.push(scope);
-                    self.items.push(FrameItem::Node(outcome.node));
+                    self.items.push(FrameItem::Node(
+                        outcome.node.expect("a scoped shape has a visible node"),
+                    ));
                     self.items.push(FrameItem::ScopeEnd);
+                    facts.draws = 0;
+                    facts.opacity_passes = 0;
                     facts.has_scope = true;
                 }
                 None => {
-                    facts.draws = outcome.draws;
-                    self.items.push(FrameItem::Node(outcome.node));
+                    if let Some(node) = outcome.node {
+                        self.items.push(FrameItem::Node(node));
+                    }
                 }
             }
         }
@@ -5203,7 +5246,7 @@ fn filter_scope_item(next_id: &mut u64, filter: Filter) -> FrameItem {
 }
 
 /// Whether the element's computed `transform` is anything but `none` — the
-/// fact that breaks an enclosing one-draw route (Blink's paint-property
+/// fact that breaks an enclosing one-pass route (Blink's paint-property
 /// boundary, measured one code value apart from that route).
 fn element_has_computed_transform(el: HtmlElement<'_>) -> Result<bool, CompileError> {
     let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
@@ -9633,10 +9676,6 @@ fn compile_text(
         RenderDisposition::Renders => {}
         RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
     }
-    if patrol.opacity == 0.0 {
-        return Ok(None);
-    }
-
     // A stroked run strokes glyph outlines, whose edges leave the admitted
     // numeric domain — the byte-exact gate could not hold. It refuses by
     // name rather than painting a fill-only approximation.
@@ -9653,6 +9692,7 @@ fn compile_text(
         bases,
         1.0,
     )?
+    .stroke
     .is_some()
     {
         return Err(CompileError::UnsupportedStroke(
@@ -9744,6 +9784,7 @@ fn compile_text(
         },
         replay_opacity,
         false,
+        true,
     )
     .map(Some)
 }
@@ -9771,15 +9812,11 @@ fn compile_rect(
         // admitted, and not a node.
         RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
     }
-    // `opacity: 0` paints nothing — an admitted nothing, not a node
-    // (measured: the sibling still paints).
-    if patrol.opacity == 0.0 {
-        return Ok(None);
-    }
     let x = geometry_attr_f32(el, "x", values, bases)?.unwrap_or(0.0);
     let y = geometry_attr_f32(el, "y", values, bases)?.unwrap_or(0.0);
     let w = box_extent(geometry_attr_f32(el, "width", values, bases)?.unwrap_or(0.0));
     let h = box_extent(geometry_attr_f32(el, "height", values, bases)?.unwrap_or(0.0));
+    let has_geometry = w > 0.0 && h > 0.0;
     let rect = Rectangle::from_xywh(x, y, w, h);
     let geometry = match rect_corner_radii(el, values, bases, w, h)? {
         Some((rx, ry)) => Geometry::Path(Arc::new(rounded_rect_path(rect, rx, ry)?)),
@@ -9804,6 +9841,7 @@ fn compile_rect(
         },
         replay_opacity,
         false,
+        has_geometry,
     )
     .map(Some)
 }
@@ -9853,11 +9891,6 @@ fn compile_circle(
         // admitted, and not a node.
         RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
     }
-    // `opacity: 0` paints nothing — an admitted nothing, not a node
-    // (measured: the sibling still paints).
-    if patrol.opacity == 0.0 {
-        return Ok(None);
-    }
     // SVG2 §10.3: a negative `r` is invalid and must be ignored, and a
     // computed value of zero disables rendering. Negative, zero, and missing
     // radii therefore remove the element from the rendered tree — they are
@@ -9888,6 +9921,7 @@ fn compile_circle(
         },
         replay_opacity,
         false,
+        true,
     )
     .map(Some)
 }
@@ -9915,11 +9949,6 @@ fn compile_ellipse(
         // admitted, and not a node.
         RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
     }
-    // `opacity: 0` paints nothing — an admitted nothing, not a node
-    // (measured: the sibling still paints).
-    if patrol.opacity == 0.0 {
-        return Ok(None);
-    }
     let cx = geometry_attr_f32(el, "cx", values, bases)?.unwrap_or(0.0);
     let cy = geometry_attr_f32(el, "cy", values, bases)?.unwrap_or(0.0);
     // SVG2 §10.4: `rx`/`ry` initially `auto`; a negative value is invalid
@@ -9936,6 +9965,7 @@ fn compile_ellipse(
         (None, Some(ry)) => (ry, ry),
         (None, None) => (0.0, 0.0),
     };
+    let has_geometry = rx > 0.0 && ry > 0.0;
     let rect = Rectangle::from_xywh(cx - rx, cy - ry, rx * 2.0, ry * 2.0);
     shape_node(
         el,
@@ -9956,6 +9986,7 @@ fn compile_ellipse(
         },
         replay_opacity,
         false,
+        has_geometry,
     )
     .map(Some)
 }
@@ -9994,11 +10025,6 @@ fn compile_path(
         // admitted, and not a node.
         RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
     }
-    // `opacity: 0` paints nothing — an admitted nothing, not a node
-    // (measured: the sibling still paints).
-    if patrol.opacity == 0.0 {
-        return Ok(None);
-    }
     if commands.is_empty() {
         return Ok(None);
     }
@@ -10031,6 +10057,7 @@ fn compile_path(
         },
         replay_opacity,
         false,
+        true,
     )
     .map(Some)
 }
@@ -10071,11 +10098,6 @@ fn compile_line(
         // admitted, and not a node.
         RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
     }
-    // `opacity: 0` paints nothing — an admitted nothing, not a node
-    // (measured: the sibling still paints).
-    if patrol.opacity == 0.0 {
-        return Ok(None);
-    }
     let x1 = geometry_attr_f32(el, "x1", values, bases)?.unwrap_or(0.0);
     let y1 = geometry_attr_f32(el, "y1", values, bases)?.unwrap_or(0.0);
     let x2 = geometry_attr_f32(el, "x2", values, bases)?.unwrap_or(0.0);
@@ -10106,6 +10128,7 @@ fn compile_line(
             patrol.opacity
         },
         replay_opacity,
+        true,
         true,
     )
     .map(Some)
@@ -10162,11 +10185,6 @@ fn compile_points_shape(
         // A hidden or display-pruned shape is Chromium's correct nothing —
         // admitted, and not a node.
         RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
-    }
-    // `opacity: 0` paints nothing — an admitted nothing, not a node
-    // (measured: the sibling still paints).
-    if patrol.opacity == 0.0 {
-        return Ok(None);
     }
     let points = get_attr(el, "points")
         .map(|value| crate::svg_path::parse_points(&value))
@@ -10229,6 +10247,7 @@ fn compile_points_shape(
         },
         replay_opacity,
         false,
+        true,
     )
     .map(Some)
 }
@@ -10285,37 +10304,47 @@ enum Strokable {
 }
 
 /// One compiled shape plus the facts the group-scope rung's walk decides
-/// with: how many paint passes it draws, whether its own opacity needs an
-/// isolated layer, and whether one-draw opacity or a transform sits on it.
+/// with: its visible and structural paint passes, whether its own opacity
+/// needs an isolated layer, and whether prior opacity or a transform sits on
+/// it.
 struct ShapeCompilation {
     outcome: Option<ShapeOutcome>,
     marker_positions: Vec<crate::svg_path::MarkerPosition>,
 }
 
 struct ShapeOutcome {
-    node: FrameNode,
-    /// Paint passes the node draws (fill + stroke).
+    /// The resolved geometry node. Paintless geometry remains an empty node
+    /// because context-paint and singular-transform consumers still need its
+    /// box; zero element opacity is the one route that removes it visually.
+    node: Option<FrameNode>,
+    /// Visible paint passes the node draws (fill + stroke).
     draws: usize,
+    /// Structural paint passes Chromium's element-opacity fold observes.
+    opacity_passes: usize,
     /// The shape's own opacity composites fill and stroke through one
     /// isolated layer — the walk wraps the node in a scope.
     scope_opacity: Option<f32>,
-    /// A solid fold or post-paint factor landed on this node's one draw.
-    one_draw_opacity: bool,
+    /// A non-identity element-opacity stage landed on this geometry.
+    has_opacity: bool,
+    /// The element has non-pruned geometry for Chromium's opacity fold. A
+    /// zero-extent box may still retain an empty frame node without setting
+    /// this fact.
+    has_geometry: bool,
     /// The element's computed `transform` is not `none` (breaks an
-    /// enclosing one-draw route). Set by [`compile_shape`].
+    /// enclosing one-pass route). Set by [`compile_shape`].
     transformed: bool,
 }
 
 /// The shared tail of every shape compile: resolve the typed fill and
-/// stroke, apply element opacity by the measured one-draw/scope rule, and emit
+/// stroke, apply element opacity by the measured one-pass/scope rule, and emit
 /// the resolved node. The node's `bounds` is the frame-space transform of
 /// its local geometry box — the exact-bounds law the n0 downstream
 /// re-checks on admission.
 ///
-/// `own_opacity` is the element's own computed opacity (already known
-/// non-zero); `replay_opacity` is an enclosing container's one-draw factor
+/// `own_opacity` is the element's own computed opacity; `replay_opacity` is an
+/// enclosing container's one-pass factor
 /// mid-replay. At most one differs from 1 — container replay is only eligible
-/// over a draw without prior one-draw opacity. A single solid pass **folds**
+/// over a pass without prior opacity. A single solid pass **folds**
 /// the factor into that pass's alpha product by re-resolving the pass, so the
 /// product still quantizes once (measured byte-identical in Chromium to the
 /// paint-level fold). A single valid paint-server pass carries a separate
@@ -10338,9 +10367,10 @@ fn shape_node(
     own_opacity: f32,
     replay_opacity: f32,
     fill_never_paints: bool,
+    has_geometry: bool,
 ) -> Result<ShapeOutcome, CompileError> {
     let rect = geometry.local_box();
-    let mut paints = resolve_fill(
+    let fill = resolve_fill(
         el,
         servers,
         patterns,
@@ -10351,7 +10381,9 @@ fn shape_node(
         bases,
         1.0,
     )?;
-    let mut stroke = match strokable {
+    let mut paints = fill.paints;
+    let fill_opacity_pass = fill.opacity_pass;
+    let resolved_stroke = match strokable {
         Strokable::Yes => resolve_stroke(
             el,
             &el.local_name_string(),
@@ -10365,33 +10397,57 @@ fn shape_node(
             bases,
             1.0,
         )?,
-        Strokable::RenderingDisabled => None,
+        Strokable::RenderingDisabled => StrokeResolution::none(),
     };
+    let mut stroke = resolved_stroke.stroke;
+    let stroke_opacity_pass = resolved_stroke.opacity_pass;
     patrol_mixed_contour_cap(&geometry, stroke.as_ref())?;
 
     debug_assert!(
-        own_opacity == 1.0 || replay_opacity == 1.0,
+        own_opacity == 1.0 || replay_opacity == 1.0 || !has_geometry,
         "container replay is never eligible over a shape with its own opacity"
     );
     let opacity = own_opacity * replay_opacity;
     // A `<line>`'s fill can never paint — SVG gives it no interior — so it
-    // is not a pass an opacity composites (the paints stay on the node,
-    // where their zero area paints the same nothing Chromium paints).
+    // is not a visible draw (the paint stays on the node, where its zero area
+    // paints nothing). It still contributes a structural opacity pass when a
+    // valid fill was selected: that pass is exactly why Chromium does not fold
+    // the element layer into the line's stroke.
     let fill_passes = usize::from(!paints.is_empty() && !fill_never_paints);
-    let draws = fill_passes + usize::from(stroke.is_some());
-    if fill_never_paints && stroke.is_some() && opacity > 0.0 && opacity < 1.0 {
-        return Err(CompileError::UnsupportedStroke(
-            "a <line> under partial element opacity crosses the anti-aliased stroke coverage boundary: Chromium composites element opacity after coverage, while the current one-draw route would fold it into stroke opacity"
-                .to_string(),
-        ));
-    }
-    let mut one_draw_opacity = false;
+    let mut draws = if has_geometry {
+        fill_passes + usize::from(stroke.is_some())
+    } else {
+        0
+    };
+    let opacity_passes = if has_geometry {
+        usize::from(fill_opacity_pass) + usize::from(stroke_opacity_pass)
+    } else {
+        0
+    };
+    let mut has_opacity = false;
     let mut scope_opacity = None;
-    if opacity < 1.0 && draws > 0 {
-        if draws > 1 {
-            scope_opacity = Some(opacity);
-        } else {
-            if fill_passes == 1 {
+    if opacity == 0.0 && has_geometry {
+        // Chromium retains the non-identity opacity stage for non-pruned
+        // geometry even when no paint is selected. It contributes no visual
+        // node, but it remains a fold barrier for an enclosing opacity.
+        return Ok(ShapeOutcome {
+            node: None,
+            draws: 0,
+            opacity_passes: 0,
+            scope_opacity: None,
+            has_opacity: true,
+            has_geometry: true,
+            transformed: false,
+        });
+    }
+    if opacity < 1.0 && has_geometry {
+        has_opacity = true;
+        if opacity_passes > 1 {
+            if draws > 0 {
+                scope_opacity = Some(opacity);
+            }
+        } else if opacity_passes == 1 {
+            if fill_opacity_pass {
                 paints = resolve_fill(
                     el,
                     servers,
@@ -10402,7 +10458,8 @@ fn shape_node(
                     context_paint_transform,
                     bases,
                     opacity,
-                )?;
+                )?
+                .paints;
             } else {
                 stroke = resolve_stroke(
                     el,
@@ -10416,9 +10473,11 @@ fn shape_node(
                     context_paint_transform,
                     bases,
                     opacity,
-                )?;
+                )?
+                .stroke;
             }
-            one_draw_opacity = true;
+            draws = usize::from(!paints.is_empty() && !fill_never_paints)
+                + usize::from(stroke.is_some());
         }
     }
 
@@ -10431,21 +10490,27 @@ fn shape_node(
             .map_err(|reason| CompileError::UnsupportedStroke(reason.to_string()))?;
     }
 
-    let visual_id = *next_id + 1;
-    let node = FrameNode {
-        owner: VisualRef::new(Identity::new(visual_id), Provenance::new(visual_id)),
-        transform: viewport,
-        geometry,
-        bounds: math2::rect_transform(rect, &viewport),
-        paints,
-        stroke,
+    let node = if opacity > 0.0 || !has_geometry {
+        let visual_id = *next_id + 1;
+        *next_id += 1;
+        Some(FrameNode {
+            owner: VisualRef::new(Identity::new(visual_id), Provenance::new(visual_id)),
+            transform: viewport,
+            geometry,
+            bounds: math2::rect_transform(rect, &viewport),
+            paints,
+            stroke,
+        })
+    } else {
+        None
     };
-    *next_id += 1;
     Ok(ShapeOutcome {
         node,
         draws,
+        opacity_passes,
         scope_opacity,
-        one_draw_opacity,
+        has_opacity,
+        has_geometry,
         transformed: false,
     })
 }
@@ -10747,6 +10812,31 @@ fn context_reference_space(
     }
 }
 
+/// One resolved paint plus the structural pass Chromium's element-opacity
+/// folding observes. A valid paint remains a pass when its alpha or selected
+/// server output is fully transparent; `none` and an invalid reference with no
+/// colour fallback do not.
+struct PaintResolution {
+    paints: PaintStack,
+    opacity_pass: bool,
+}
+
+impl PaintResolution {
+    fn none() -> Self {
+        Self {
+            paints: PaintStack::empty(),
+            opacity_pass: false,
+        }
+    }
+
+    fn selected(paints: PaintStack) -> Self {
+        Self {
+            paints,
+            opacity_pass: true,
+        }
+    }
+}
+
 fn resolve_fill(
     el: HtmlElement<'_>,
     servers: &PaintServers<'_>,
@@ -10757,7 +10847,7 @@ fn resolve_fill(
     destination_to_frame: AffineTransform,
     bases: PercentBases,
     extra_opacity: f32,
-) -> Result<PaintStack, CompileError> {
+) -> Result<PaintResolution, CompileError> {
     let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     let style: &ComputedValues = data.styles.primary();
     // A direct colour combines element opacity with `fill-opacity` in one
@@ -10779,7 +10869,7 @@ fn resolve_fill(
     let Some(selected) = select_paint(el, PaintProperty::Fill, paint_contexts)
         .map_err(CompileError::UnsupportedFill)?
     else {
-        return Ok(PaintStack::empty());
+        return Ok(PaintResolution::none());
     };
     let owner_data = selected
         .owner
@@ -10791,15 +10881,17 @@ fn resolve_fill(
         style::values::generics::svg::SVGPaintFallback::Color(color) => {
             admitted_srgb(owner_style.resolve_color(color), solid_opacity)
                 .map(PaintStack::solid)
+                .map(PaintResolution::selected)
                 .map_err(CompileError::UnsupportedFill)
         }
-        _ => Ok(PaintStack::empty()),
+        _ => Ok(PaintResolution::none()),
     };
     match &fill.kind {
-        SVGPaintKind::None => Ok(PaintStack::empty()),
+        SVGPaintKind::None => Ok(PaintResolution::none()),
         SVGPaintKind::Color(color) => {
             admitted_srgb(owner_style.resolve_color(color), solid_opacity)
                 .map(PaintStack::solid)
+                .map(PaintResolution::selected)
                 .map_err(CompileError::UnsupportedFill)
         }
         SVGPaintKind::PaintServer(url) => {
@@ -10815,9 +10907,11 @@ fn resolve_fill(
                 extra_opacity,
                 "fill",
             )? {
-                Some(stack) => Ok(stack.with_alpha_factor(
-                    PaintAlphaFactor::new(extra_opacity)
-                        .expect("computed opacity is finite and clamped to [0, 1]"),
+                Some(stack) => Ok(PaintResolution::selected(
+                    stack.with_alpha_factor(
+                        PaintAlphaFactor::new(extra_opacity)
+                            .expect("computed opacity is finite and clamped to [0, 1]"),
+                    ),
                 )),
                 None => fallback(),
             }
@@ -11651,6 +11745,20 @@ fn resolve_stroke_width(
     }
 }
 
+struct StrokeResolution {
+    stroke: Option<Stroke>,
+    opacity_pass: bool,
+}
+
+impl StrokeResolution {
+    fn none() -> Self {
+        Self {
+            stroke: None,
+            opacity_pass: false,
+        }
+    }
+}
+
 fn resolve_stroke(
     el: HtmlElement<'_>,
     element_name: &str,
@@ -11663,7 +11771,7 @@ fn resolve_stroke(
     destination_to_frame: AffineTransform,
     bases: PercentBases,
     extra_opacity: f32,
-) -> Result<Option<Stroke>, CompileError> {
+) -> Result<StrokeResolution, CompileError> {
     let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     let style: &ComputedValues = data.styles.primary();
 
@@ -11682,7 +11790,7 @@ fn resolve_stroke(
     let Some(selected) = select_paint(el, PaintProperty::Stroke, paint_contexts)
         .map_err(CompileError::UnsupportedStroke)?
     else {
-        return Ok(None);
+        return Ok(StrokeResolution::none());
     };
     let owner_data = selected
         .owner
@@ -11694,15 +11802,17 @@ fn resolve_stroke(
         style::values::generics::svg::SVGPaintFallback::Color(color) => {
             admitted_srgb(owner_style.resolve_color(color), solid_opacity)
                 .map(PaintStack::solid)
+                .map(PaintResolution::selected)
                 .map_err(CompileError::UnsupportedStroke)
         }
-        _ => Ok(PaintStack::empty()),
+        _ => Ok(PaintResolution::none()),
     };
-    let paints = match paint.kind {
-        SVGPaintKind::None => return Ok(None),
+    let paint = match paint.kind {
+        SVGPaintKind::None => return Ok(StrokeResolution::none()),
         SVGPaintKind::Color(ref color) => {
             admitted_srgb(owner_style.resolve_color(color), solid_opacity)
                 .map(PaintStack::solid)
+                .map(PaintResolution::selected)
                 .map_err(CompileError::UnsupportedStroke)?
         }
         SVGPaintKind::PaintServer(ref url) => {
@@ -11720,9 +11830,11 @@ fn resolve_stroke(
                 extra_opacity,
                 "stroke",
             )? {
-                Some(stack) => stack.with_alpha_factor(
-                    PaintAlphaFactor::new(extra_opacity)
-                        .expect("computed opacity is finite and clamped to [0, 1]"),
+                Some(stack) => PaintResolution::selected(
+                    stack.with_alpha_factor(
+                        PaintAlphaFactor::new(extra_opacity)
+                            .expect("computed opacity is finite and clamped to [0, 1]"),
+                    ),
                 ),
                 None => stroke_fallback()?,
             }
@@ -11731,18 +11843,24 @@ fn resolve_stroke(
             unreachable!("select_paint removes every context relation")
         }
     };
-    if paints.is_empty() {
-        // A paint-server stroke that resolves to nothing painted (or an
-        // invalid reference with no usable fallback) strokes nothing.
-        return Ok(None);
+    if !paint.opacity_pass {
+        return Ok(StrokeResolution::none());
     }
 
-    // Marker placement also consumes this computed width even when no stroke
-    // paint exists, so the numeric/cascade route lives in one helper.
+    // A valid transparent paint still records the stroke pass Chromium's
+    // opacity fold sees. Width zero is different: no stroke pass exists.
     let width = resolve_stroke_width(el, element_name, bases)?;
     if width == 0.0 {
-        return Ok(None);
+        return Ok(StrokeResolution::none());
     }
+    if paint.paints.is_empty() {
+        return Ok(StrokeResolution {
+            stroke: None,
+            opacity_pass: true,
+        });
+    }
+
+    let paints = paint.paints;
 
     let destination_data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     let destination_style: &ComputedValues = destination_data.styles.primary();
@@ -11887,8 +12005,12 @@ fn resolve_stroke(
 
     // The cascade's non-negative types make a rejection here unreachable from a
     // document, so it would be this compiler's bug — named, never painted.
-    Stroke::new_with_dash(paints, width, cap, join, miter_limit, dash)
-        .map_err(|error| CompileError::UnsupportedStroke(error.to_string()))
+    let stroke = Stroke::new_with_dash(paints, width, cap, join, miter_limit, dash)
+        .map_err(|error| CompileError::UnsupportedStroke(error.to_string()))?;
+    Ok(StrokeResolution {
+        stroke,
+        opacity_pass: true,
+    })
 }
 
 /// Admit a cascaded absolute color only where its fidelity is gated: the
