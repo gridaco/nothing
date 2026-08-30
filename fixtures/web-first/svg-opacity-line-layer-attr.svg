@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><defs><line id="line" x1="0" y1="4" x2="24" y2="16" stroke="#2563eb" stroke-width="2.5" stroke-linecap="butt"/></defs><rect width="64" height="64" fill="#f8fafc"/>
+    <line x1="4" y1="4" x2="28" y2="16" stroke="#2563eb" stroke-width="2.5" stroke-linecap="butt" opacity=".73"/>
+    <g opacity=".73"><line x1="36" y1="4" x2="60" y2="16" stroke="#16a34a" stroke-width="2.5" stroke-linecap="butt"/></g>
+    <use href="#line" x="4" y="24" opacity=".73"/>
+    <a opacity=".73"><line x1="36" y1="28" x2="60" y2="40" stroke="#e11d48" stroke-width="2.5" stroke-linecap="butt"/></a>
+    <line x1="4" y1="48" x2="28" y2="60" fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="butt" opacity=".73"/>
+  </svg>

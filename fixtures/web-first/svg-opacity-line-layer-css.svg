@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><style>
+    .sheet { opacity: 73%; }
+    .wins { opacity: .73; }
+  </style><rect width="64" height="64" fill="#f8fafc"/>
+    <line x1="4" y1="4" x2="28" y2="16" stroke="#2563eb" stroke-width="2.5" stroke-linecap="butt" style="opacity:.73"/>
+    <line class="sheet" x1="36" y1="4" x2="60" y2="16" stroke="#16a34a" stroke-width="2.5" stroke-linecap="butt"/>
+    <line class="wins" x1="4" y1="28" x2="28" y2="40" stroke="#e11d48" stroke-width="2.5" stroke-linecap="butt" opacity=".2"/>
+    <line x1="36" y1="28" x2="60" y2="40" fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="butt" style="opacity:.73"/>
+  </svg>

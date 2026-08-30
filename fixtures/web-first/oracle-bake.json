@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "70a745202f4c64c950f53270e1d3859c4ae2414a910d31d85e4e92375e063108",
+  "suite_sha256": "fbc3448488f375d0123fb42ba249bc6bda3dd17ba099d3ea18517f90cc0bd086",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -6248,6 +6248,24 @@
       "height": 64
     },
     {
+      "id": "svg-opacity-line-layer-attr",
+      "source": "svg-opacity-line-layer-attr.svg",
+      "source_sha256": "0e02c1bf05c2bd221c2dc9d6ad103d9a9cf7f6fcfb349a28e29e108908539fd5",
+      "oracle": "chromium/svg-opacity-line-layer-attr.png",
+      "oracle_sha256": "3392970076f5411edf4c9377253dd9a794ec88623502be65357cb3d331343fe6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-opacity-line-layer-css",
+      "source": "svg-opacity-line-layer-css.svg",
+      "source_sha256": "8f58702e4176e7e30dee06bfced80975ed808ffa77b1f2635e0f01b70f71eccf",
+      "oracle": "chromium/svg-opacity-line-layer-css.png",
+      "oracle_sha256": "097c36eb24ab9e60ec8c96074e7d7c5c299c88e510ffc8c33a737e470f79d634",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-opacity-nested-groups",
       "source": "svg-opacity-nested-groups.svg",
       "source_sha256": "ba8fb17514589ae10311ce39b7bf1eaaacf5809e6cd0b67ed8d0f4b9cf26566a",
@@ -6257,11 +6275,29 @@
       "height": 64
     },
     {
+      "id": "svg-opacity-paintless-stages",
+      "source": "svg-opacity-paintless-stages.svg",
+      "source_sha256": "d755de35cfe289c552694d7c819f92a1b9581e697a7f33fce04c53282319fc79",
+      "oracle": "chromium/svg-opacity-paintless-stages.png",
+      "oracle_sha256": "f5610385deae1e0e5d1bba8dee9ad41219ce33d4a4260a0ac4f2b4a0d8fe5e35",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-opacity-rotated-group",
       "source": "svg-opacity-rotated-group.svg",
       "source_sha256": "1275810eafe0ff0a4867d8a63e7474ce7f9ad7f02d086a1fb56c608baa25a5ad",
       "oracle": "chromium/svg-opacity-rotated-group.png",
       "oracle_sha256": "fa121d8a80bf9909c854fa49c1588f816c2491b946891e112816539c5f3d01cd",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-opacity-selected-empty-paints",
+      "source": "svg-opacity-selected-empty-paints.svg",
+      "source_sha256": "fb8b25cf6e58048c4ae17ad4e18794c881da3259f8f2ac321b535e6471addccf",
+      "oracle": "chromium/svg-opacity-selected-empty-paints.png",
+      "oracle_sha256": "9470e5f15e4367592c4609f534f450b679487c5c2b2bcad62edf52954a759072",
       "width": 64,
       "height": 64
     },

@@ -303,7 +303,7 @@ enum GradientKind {
 /// geometry. `paint_opacity` is the consumer's `fill-opacity` /
 /// `stroke-opacity`; it folds into the gradient's float opacity, or into a
 /// solid's alpha with one quantize. `post_paint_opacity` is the later
-/// one-draw element factor. A live gradient can carry it separately, while a
+/// one-pass element factor. A live gradient can carry it separately, while a
 /// degenerate gradient may have to refuse before collapsing those stages to
 /// one RGBA8 solid.
 pub(crate) fn resolve(
