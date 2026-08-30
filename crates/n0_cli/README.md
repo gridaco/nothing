@@ -79,6 +79,18 @@ cargo run -p n0_cli --bin n0 -- \
   list), nested in
   `<g>` (and `<a>`, the same container semantics) with the whole `transform`
   grammar, under the outer `<svg>`.
+  On `<line>`, `x1`/`y1`/`x2`/`y2` default to zero and accept finite numbers
+  and percentages; signed coordinates remain valid. Percentages use the width
+  axis for each x and the height axis for each y, both in unmapped root units
+  and through a `viewBox`, and retain those meanings through transforms, stroke
+  geometry, and `<use>`. Three Chromium-baked cells carry that subset. The four
+  attribute rows remain open:
+  two valid source-decimal classes and CSS comments would otherwise select or
+  parse differently from Chromium. Overflowing percentages, values outside the
+  admitted Web used-length range, wider units, CSS math, `var()`, and CSS-wide
+  keywords all refuse by their exact coordinate in both admissions. In
+  particular, `px` is admitted on the gradient consumer below but remains in
+  the line consumer's unit-family refusal.
   On `<circle>` and `<ellipse>`, the `cx`/`cy` presentation attributes default
   to zero and accept the admitted finite number/percentage route; negative
   centers remain valid. A circle with missing, zero, or negative `r` does not
@@ -540,8 +552,8 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 32 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete corpus contains 1,035 Chromium-baked cells plus 16 sampled
-  frames, with 188 named
+  cells. The complete corpus contains 1,041 Chromium-baked cells plus 16 sampled
+  frames, with 198 named
   refusal rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
@@ -697,9 +709,10 @@ cargo run -p n0_cli --bin n0 -- \
   sRGB, opaque or translucent: `fill-opacity`, `stroke-opacity`, and a
   colour's own alpha multiply in float and quantize once (the translucency
   rung), Chromium-baked.
-  Element `opacity` is consumed in every spelling (presentation attribute,
-  style attribute, stylesheet — one <alpha-value> grammar, clamped exactly
-  as Chromium clamps). A single un-transformed, un-folded solid draw uses the
+  Element `opacity` is consumed in every spelling within the admitted coverage
+  profiles (presentation attribute, style attribute, stylesheet — one
+  <alpha-value> grammar, clamped exactly as Chromium clamps). A single
+  un-transformed, un-folded solid draw uses the
   group-scope rung's measured fold: the element factor joins the colour and
   fill/stroke opacity product before its one quantization. A valid gradient
   instead keeps its intrinsic paint opacity and carries the element factor
@@ -708,6 +721,14 @@ cargo run -p n0_cli --bin n0 -- \
   second 8-bit quantization. A one-stop server remains a two-identical-stop
   constant gradient so it retains that raster route. An invalid URL fallback
   remains an ordinary solid and takes the solid fold.
+  A stroked `<line>` under partial element opacity is a named exception,
+  including direct attribute, inline/stylesheet CSS, inherited container, and
+  `<use>` instance routes. Chromium applies the element factor after stroke
+  coverage; folding it into stroke opacity changes 62 pixels at maximum
+  channel delta 11 in the direct witness, and mapped instances reproduce the
+  class. Both admissions refuse the affected line before painting, and the two
+  `opacity` checklist rows remain open until that coverage order is
+  representable (measured, not celled).
   Everything that is genuinely a group composites through a real isolated
   layer: a shape's fill and stroke together, a group of several draws, nested
   opacities (which quantize per layer and never flatten to a product — measured
@@ -732,6 +753,14 @@ cargo run -p n0_cli --bin n0 -- \
   `transform` attribute is inert there, and the value applies about the raw
   origin of gradient space, all Chromium-measured. Ramps interpolate
   unpremultiplied sRGB and dither exactly as Chromium's rasterizer does.
+  For `<linearGradient>`, `x1`/`y1`/`x2`/`y2` default independently to
+  `0%`/`0%`/`100%`/`0%` and accept signed finite numbers, percentages, and
+  case-insensitive `px` spellings. Object-box values use fractions or
+  percentages of the painted box; user-space values use the viewport axes.
+  Template chains inherit each missing coordinate independently. Three
+  Chromium-baked cells carry those branches, including transformed stroke and
+  degenerate-vector controls. The same source-decimal, comment, range, and
+  wider-value refusals as `<line>` keep the four shared attribute rows open.
   The authored fallback fires only on an _invalid_ reference (a missing id
   or a non-gradient target); the measured correct nothings — zero stops
   (fallback unfired), a self-cycle, a non-invertible gradient transform, an
@@ -767,7 +796,8 @@ cargo run -p n0_cli --bin n0 -- \
   author CSS on stops (`stop-color` /
   `stop-opacity` — the pinned cascade has no such longhands, so a sheet
   declaring one is a document-level declaration and a stop's style
-  attribute refuses the paint), font-relative units in gradient geometry,
+  attribute refuses the paint), a live user-space ramp on zero-area geometry,
+  unit families beyond `px` in gradient geometry,
   a percentage in a gradient's computed transform (Chromium resolves it
   against mismatched spaces), and an external reference.
   `<pattern>` paint servers are consumed in a bounded static profile. A

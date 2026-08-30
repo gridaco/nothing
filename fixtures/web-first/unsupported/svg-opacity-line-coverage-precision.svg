@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <style>.sheet { opacity: .75 }</style>
+  <rect width="64" height="64" fill="#f8fafc"/>
+  <defs>
+    <line id="l" x1="4" y1="4" x2="20" y2="20" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
+  </defs>
+  <line x1="4" y1="4" x2="20" y2="20" stroke="#2563eb" stroke-width="3" opacity=".75"/>
+  <line x1="24" y1="4" x2="40" y2="20" stroke="#16a34a" stroke-width="3" style="opacity:.75"/>
+  <line class="sheet" x1="44" y1="4" x2="60" y2="20" stroke="#7c3aed" stroke-width="3"/>
+  <g opacity=".75">
+    <line x1="4" y1="28" x2="20" y2="44" stroke="#e11d48" stroke-width="3"/>
+  </g>
+  <use href="#l" x="24" y="24" opacity=".75"/>
+</svg>

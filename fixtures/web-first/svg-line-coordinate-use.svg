@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#f8fafc"/>
+  <defs>
+    <line id="l" x1="12.5%" y1="12.5%" x2="37.5%" y2="37.5%" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
+  </defs>
+  <use href="#l" x="4" y="4"/>
+  <use href="#l" x="28" y="28"/>
+</svg>

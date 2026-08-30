@@ -491,7 +491,52 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "unit whose basis",
     ),
+    (
+        "svg-gradient-userspace-zero-area",
+        DeclaredByBestEffort,
+        "zero-area geometry",
+    ),
     ("svg-image", DeclaredByBestEffort, "<image>"),
+    (
+        "svg-line-gradient-coordinates-calc-values",
+        DeclaredByBestEffort,
+        "attribute x1",
+    ),
+    (
+        "svg-line-gradient-coordinates-css-comments",
+        DeclaredByBestEffort,
+        "attribute x1",
+    ),
+    (
+        "svg-line-gradient-coordinates-css-wide-keywords",
+        DeclaredByBestEffort,
+        "attribute x1",
+    ),
+    (
+        "svg-line-gradient-coordinates-numeric-precision-alias",
+        DeclaredByBestEffort,
+        "x1 numeric precision alias",
+    ),
+    (
+        "svg-line-gradient-coordinates-percentage-overflow",
+        DeclaredByBestEffort,
+        "x1 resolves outside the finite frame range",
+    ),
+    (
+        "svg-line-gradient-coordinates-unit-values",
+        DeclaredByBestEffort,
+        "attribute x1",
+    ),
+    (
+        "svg-line-gradient-coordinates-used-range",
+        DeclaredByBestEffort,
+        "x1 exceeds the admitted Web used-value range",
+    ),
+    (
+        "svg-line-gradient-coordinates-var-values",
+        DeclaredByBestEffort,
+        "attribute x1",
+    ),
     (
         "svg-marker-author-stylesheet",
         DeclaredByBestEffort,
@@ -637,6 +682,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "svg-nested-svg",
         DeclaredByBestEffort,
         "unsupported element <svg>",
+    ),
+    (
+        "svg-opacity-line-coverage-precision",
+        DeclaredByBestEffort,
+        "<line> under partial element opacity",
     ),
     (
         "svg-path-css-d-property",

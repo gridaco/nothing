@@ -10379,6 +10379,12 @@ fn shape_node(
     // where their zero area paints the same nothing Chromium paints).
     let fill_passes = usize::from(!paints.is_empty() && !fill_never_paints);
     let draws = fill_passes + usize::from(stroke.is_some());
+    if fill_never_paints && stroke.is_some() && opacity > 0.0 && opacity < 1.0 {
+        return Err(CompileError::UnsupportedStroke(
+            "a <line> under partial element opacity crosses the anti-aliased stroke coverage boundary: Chromium composites element opacity after coverage, while the current one-draw route would fold it into stroke opacity"
+                .to_string(),
+        ));
+    }
     let mut one_draw_opacity = false;
     let mut scope_opacity = None;
     if opacity < 1.0 && draws > 0 {
@@ -11256,8 +11262,8 @@ fn patrol_stroke_dasharray_units(
 /// Geometry currently refuses outside this range instead of silently feeding
 /// backend coordinates it cannot preserve; only the stroke resolver has an
 /// exact Chromium-baked clamp and may substitute the boundary value.
-const WEB_USED_LENGTH_MIN: f32 = (i32::MIN / 64 + 2) as f32;
-const WEB_USED_LENGTH_MAX: f32 = (i32::MAX / 64 - 2) as f32;
+pub(crate) const WEB_USED_LENGTH_MIN: f32 = (i32::MIN / 64 + 2) as f32;
+pub(crate) const WEB_USED_LENGTH_MAX: f32 = (i32::MAX / 64 - 2) as f32;
 
 fn clamp_web_used_length(length: Length) -> f32 {
     length.px().clamp(WEB_USED_LENGTH_MIN, WEB_USED_LENGTH_MAX)
@@ -12169,7 +12175,7 @@ fn effective_attr_f32(
 /// admits a percentage: `<number>%`, no space, resolved against the
 /// attribute's axis basis. A sampled override is already resolved user
 /// units and never a percentage. On `cx`/`cy`/`r`, every `x`/`y` consumer,
-/// and rect `width`/`height`, authored values whose direct `f32` route
+/// every line endpoint, and rect `width`/`height`, authored values whose direct `f32` route
 /// disagrees with the measured Chromium-shaped `f64` parse route refuse by
 /// name; choosing either adjacent result would silently misrender another
 /// valid decimal. Anything else malformed stays the
@@ -12207,8 +12213,10 @@ fn geometry_attr_f32(
     let resolved =
         percentage_basis.map_or(parsed, |basis| resolve_geometry_percentage(parsed, basis));
     let resolved = frame_safe_geometry_value(name, resolved)?;
-    if matches!(name, "cx" | "cy" | "r" | "x" | "y" | "width" | "height")
-        && (!matches!(name, "width" | "height") || resolved > 0.0)
+    if matches!(
+        name,
+        "cx" | "cy" | "r" | "x" | "y" | "width" | "height" | "x1" | "y1" | "x2" | "y2"
+    ) && (!matches!(name, "r" | "width" | "height") || resolved > 0.0)
         && geometry_number_source_loses_provenance(number, percentage_basis.is_some())
     {
         return Err(CompileError::UnsupportedGeometry(format!(
@@ -12232,7 +12240,9 @@ fn frame_safe_geometry_value(name: &str, value: f32) -> Result<f32, CompileError
         )));
     }
     let outside_used_range = match name {
-        "cx" | "cy" | "x" | "y" => !(WEB_USED_LENGTH_MIN..=WEB_USED_LENGTH_MAX).contains(&value),
+        "cx" | "cy" | "x" | "y" | "x1" | "y1" | "x2" | "y2" => {
+            !(WEB_USED_LENGTH_MIN..=WEB_USED_LENGTH_MAX).contains(&value)
+        }
         "r" | "width" | "height" => value > WEB_USED_LENGTH_MAX,
         _ => false,
     };
@@ -12248,7 +12258,7 @@ fn frame_safe_geometry_value(name: &str, value: f32) -> Result<f32, CompileError
 /// 100. The order is observable in `f32`: measured on a ten-unit basis,
 /// `.5%` reaches `0.05000000074505806`, while division first reaches the
 /// adjacent `0.04999999701976776` value.
-fn resolve_geometry_percentage(authored: f32, basis: f32) -> f32 {
+pub(crate) fn resolve_geometry_percentage(authored: f32, basis: f32) -> f32 {
     authored * basis / 100.0
 }
 
@@ -12259,18 +12269,41 @@ fn resolve_geometry_percentage(authored: f32, basis: f32) -> f32 {
 /// path. Three amplified probes establish the boundary: the stroke-rung
 /// `57384.267578125007%` alias diverges for `cx`, `cy`, `r`, `x`, `y`,
 /// `width`, and `height`; a decimal just above an exact f32 midpoint
-/// double-rounds to the other neighbour for all seven; and `.5%` confirms the
-/// ordinary multiply-before-divide order.
-/// The `f64` calculation here is only a classifier. Agreement admits the
-/// existing raw route; disagreement adds a named refusal and never substitutes
-/// the shadow value as a second parser.
-fn geometry_number_source_loses_provenance(source: &str, percentage: bool) -> bool {
+/// double-rounds to the other neighbour for those consumers and the line
+/// endpoints; and `.5%` confirms the ordinary multiply-before-divide order.
+/// Two independent shadows classify the source without becoming a second
+/// parser. The `f64` route catches double-rounding and percentage-normalization
+/// aliases. The ordered SVG-number route catches the pinned Blink decimal
+/// conversion class represented by `57384.267578125007`, which Chromium
+/// rounds down while Rust's direct `f32` parser rounds up. The latter shadow
+/// intentionally over-refuses if the two upstream number routes themselves
+/// disagree: only unanimous source provenance is admitted, and no shadow
+/// value is ever substituted into the frame.
+pub(crate) fn geometry_number_source_loses_provenance(source: &str, percentage: bool) -> bool {
     let Some(authored_f64) = source.parse::<f64>().ok().filter(|value| value.is_finite()) else {
         return false;
     };
     let Some(authored_f32) = source.parse::<f32>().ok().filter(|value| value.is_finite()) else {
         return false;
     };
+    let ordered_svg = crate::svg_number_list::parse(source)
+        .filter(|values| values.len() == 1)
+        .map(|values| values[0]);
+    // Nine significant decimal digits identify any binary32 value. Only ask
+    // the independent ordered parser to arbitrate longer mantissas; shorter
+    // spellings must not inherit that parser's different rounding policy.
+    let mantissa_digits = source
+        .split(['e', 'E'])
+        .next()
+        .unwrap_or(source)
+        .bytes()
+        .filter(u8::is_ascii_digit)
+        .count();
+    if mantissa_digits > 9
+        && ordered_svg.is_some_and(|value| value.to_bits() != authored_f32.to_bits())
+    {
+        return true;
+    }
     if percentage {
         // The percentage parser first normalizes the source number. Compare
         // that raw-decimal route with the route after the source number has
@@ -12314,8 +12347,21 @@ mod geometry_number_resolution_tests {
         let percentage = "57384.267578125007";
         assert!(geometry_number_source_loses_provenance(percentage, true));
 
-        let direct = "1.000000059604644775390625000000000000000000000001";
-        assert!(geometry_number_source_loses_provenance(direct, false));
+        for direct in [
+            "1.000000059604644775390625000000000000000000000001",
+            "57384.267578125007",
+        ] {
+            assert!(geometry_number_source_loses_provenance(direct, false));
+        }
+
+        // The ordered SVG-number shadow takes the adjacent value here while
+        // Chromium's CSS-number route agrees with Rust's raw parser. The
+        // classifier is deliberately one-way: uncertainty over-refuses and
+        // never supplies either shadow value to geometry.
+        assert!(geometry_number_source_loses_provenance(
+            "0.04999999701976776",
+            false
+        ));
 
         for safe in ["0", "-4", "+8", ".8e1", "32", "52.5"] {
             assert!(

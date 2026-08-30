@@ -90,14 +90,14 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,035 Chromium-baked primitive cells plus 16 sampled frames.
+- **The corpus** is 1,041 Chromium-baked primitive cells plus 16 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 188 rows.
+  register has 198 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -4307,3 +4307,91 @@ The primitive corpus moves from 1,026 to 1,035 cells. The former
 189 to 188 rows. The sixteen sampled frames and 451-cell filter estate are
 unchanged. No conformance score was produced, and no FLIP record, rule, or
 baseline changed.
+
+## Rung: SVG line and linear-gradient coordinate split (2026-08-30)
+
+The verdict is SPLIT. Six Chromium-baked cells admit the proved
+`x1`/`y1`/`x2`/`y2` subset shared by `<line>` and `<linearGradient>`, but all
+four checklist rows remain open. Valid long-decimal values and CSS comments
+still need source-value provenance that the direct attribute readers cannot
+recover. The rows therefore cannot close under the no-own-row split precedent.
+
+The admitted grammar covers absent and explicit-zero line endpoints; signed
+numbers with leading signs, leading dots, and exponents; negative coordinates;
+independent x/y percentages in root and `viewBox` user units; transforms,
+stroke geometry, and same-document instances. Linear gradients carry the
+initial `0% 0% 100% 0%` vector, signed fractions and percentages outside the
+client box, a degenerate vector, both gradient unit systems, user-space axis
+percentages, case-insensitive `px`, transformed gradient stroke, and template
+chains in which each missing coordinate inherits independently. Every cell is
+frame-identical between strict and best-effort admission and pixel-identical
+to Chromium 149.0.7827.55 without a tolerance.
+
+The numeric crux reproduced two independent source-loss classes on every
+field and both consumers. A decimal just above the exact midpoint following
+`8388608.5` selects the lower adjacent binary32 value in Chromium while the
+former direct binary32 parse selected the higher one. Amplified higher
+controls differ by 187–202 line pixels at maximum channel delta 170–185 and
+1,840–2,008 gradient pixels at delta 6–7. The second class is
+`57384.267578125007`: Chromium again selects the lower neighbour while the
+direct parse selects the higher. Its higher controls differ by 111–132 line
+pixels at delta 100–103 and 1,725–2,273 gradient pixels at delta 2–9. The
+percentage spelling reproduces the same lower selection: all four line
+controls differ from the higher neighbour by 189–194 pixels at delta 211, and
+all four gradient controls differ by 3,584 pixels at delta 20–21. Each source
+is twice deterministic and pixel-identical to its lower control (measured, not
+celled).
+
+The percentage operation itself is separately fixed by value measurement:
+on a ten-unit axis `.5%` reaches the multiply-before-divide binary32 result,
+not the adjacent divide-before-multiply result. The ordinary candidate values
+do not expose that one-bit distinction at 64×64, so no pixel claim is made for
+that sub-probe. The one-way source patrol uses independent number routes only
+to classify uncertainty; it never substitutes either shadow value into a
+resolved line or paint fact (measured, not celled).
+
+Eight coordinate-focused refusal rows name the remaining source/value
+families. Precision aliases, percentage-operation overflow, and finite values
+outside the established fixed Web used-length range refuse before producing a
+non-finite or silently dropped fact. Case-insensitive `px` is admitted by the
+gradient reader but remains a line-consumer refusal under the unit row; wider
+unit families, CSS math, custom-property substitution, and CSS-wide values
+remain guarded under their own open checklist rows. CSS comments are a valid
+no-own-row lexical gap and therefore independently keep all four coordinate
+rows open. Contract laws exercise every coordinate for every refusal family,
+so the corpus cannot pass merely because `x1` happens to fail first.
+
+The user-space gradient-stroke candidate found a separate contract hole. A
+live user-space ramp on zero-area line geometry needs an inverse geometry box,
+but the resolved gradient vocabulary states ramps in a consumer unit box and
+cannot represent that inverse finitely. Object-box paint on the same geometry
+remains the measured correct nothing; degenerate and one-stop ramps reduce to
+source-neutral colours before any box mapping. A ninth focused refusal now
+rejects only the live user-space case before a non-finite transform can reach
+paint (measured, not celled).
+
+The required instance audit exposed one pre-existing opacity error. Chromium
+composites element opacity after anti-aliased line coverage: element opacity
+is identical to a one-child group scope and differs from `stroke-opacity` by
+62 pixels at maximum channel delta 11 on the square witness. The former route
+was pixel-identical to that wrong stroke-opacity control. A non-uniform mapped
+instance reproduced 113–124 wrong pixels at delta 1–2. Direct attribute,
+inline/stylesheet CSS, inherited-container, and instance-site partial opacity
+on a stroked `<line>` now refuse
+by one stable coverage name. This valid class has no independent checklist
+row, so both `opacity` spellings reopen; `stroke-opacity` remains closed. The
+refusal is deliberately line-specific and does not absorb the separately
+tracked fill-only or pattern-source boundaries (measured, not celled).
+
+Gate sensitivity was proved on both admitted coordinate consumers. Swapping
+the x/y percentage bases made `svg-line-coordinate-viewbox-transform` fail by
+416 pixels at maximum channel delta 221 and
+`svg-linear-gradient-coordinate-userspace` fail by 2,900 pixels at delta 226;
+the older percentage-line cell also failed by 383 pixels at delta 218.
+Restoring the independent axes returned all 1,041 primitive cells to green.
+
+The primitive corpus moves from 1,035 to 1,041 cells. Nine coordinate/resource
+refusals and the opacity coverage refusal move the named register from 188 to
+198 rows. The sixteen sampled frames and 451-cell filter estate are unchanged.
+No conformance score was produced, and no FLIP record, rule, or baseline
+changed.

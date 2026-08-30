@@ -4618,6 +4618,54 @@
       "height": 64
     },
     {
+      "id": "svg-line-coordinate-grammar",
+      "source": "svg-line-coordinate-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-line-coordinate-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-line-coordinate-use",
+      "source": "svg-line-coordinate-use.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-line-coordinate-use.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-line-coordinate-viewbox-transform",
+      "source": "svg-line-coordinate-viewbox-transform.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-line-coordinate-viewbox-transform.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-linear-gradient-coordinate-grammar",
+      "source": "svg-linear-gradient-coordinate-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-linear-gradient-coordinate-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-linear-gradient-coordinate-href",
+      "source": "svg-linear-gradient-coordinate-href.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-linear-gradient-coordinate-href.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-linear-gradient-coordinate-userspace",
+      "source": "svg-linear-gradient-coordinate-userspace.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-linear-gradient-coordinate-userspace.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-marker-bare-attribute-drop",
       "source": "svg-marker-bare-attribute-drop.svg",
       "entry": "standalone-svg",

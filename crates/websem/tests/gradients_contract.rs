@@ -53,6 +53,29 @@ fn refusal(source: &str) -> CompileError {
         .clone()
 }
 
+fn linear_gradient_with_attribute(attr: &str, value: &str, style: &str) -> String {
+    document(&format!(
+        r##"  <defs><linearGradient id="g" gradientUnits="userSpaceOnUse" {attr}="{value}" {style}>{RAMP}</linearGradient></defs>
+  <rect x="8" y="8" width="48" height="48" fill="url(#g)"/>"##
+    ))
+}
+
+/// Strict refuses and best effort skips the one gradient-painted target while
+/// declaring the same resource-side cause at a structural path.
+fn gradient_attribute_failure(source: &str) -> (CompileError, Vec<String>) {
+    let error = refusal(source);
+    let best = SvgFrameSource::from_standalone_svg_best_effort(source, viewport(64.0, 64.0))
+        .expect("best effort compiles the remaining document");
+    let declared: Vec<String> = best
+        .degradations()
+        .iter()
+        .filter(|d| d.action() == DegradationAction::Skipped)
+        .map(|d| d.reason().to_string())
+        .collect();
+    assert!(!declared.is_empty(), "the target is skipped and declared");
+    (error, declared)
+}
+
 fn sole_fill(frame: &rframe::Frame) -> &cg::Paint {
     assert_eq!(frame.nodes().len(), 1, "one shape");
     frame.nodes()[0].paints.iter().next().expect("one paint")
@@ -258,6 +281,113 @@ fn a_degenerate_linear_resolves_to_the_measured_solid() {
         cg::CGColor::from_rgba(1, 0, 0, 255),
         "repeat: the ramp's integral average"
     );
+}
+
+/// Numbers, percentages, and the initial endpoint tuple resolve to the same
+/// object-box facts Chromium paints. Negative and beyond-box coordinates are
+/// valid; they extend the ramp rather than clamping it to the consumer box.
+#[test]
+fn linear_coordinate_numbers_percentages_and_defaults_share_one_grammar() {
+    let default = admit_both(&document(&format!(
+        r##"  <defs><linearGradient id="g">{RAMP}</linearGradient></defs>
+  {RECT}"##
+    )));
+    let explicit = admit_both(&document(&format!(
+        r##"  <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%">{RAMP}</linearGradient></defs>
+  {RECT}"##
+    )));
+    assert_eq!(sole_fill(&default), sole_fill(&explicit));
+
+    let numbers = admit_both(&document(&format!(
+        r##"  <defs><linearGradient id="g" x1="-.25" y1="+.5" x2="1.25e0" y2=".75">{RAMP}</linearGradient></defs>
+  {RECT}"##
+    )));
+    let percentages = admit_both(&document(&format!(
+        r##"  <defs><linearGradient id="g" x1="-25%" y1="+50%" x2="125%" y2="75%">{RAMP}</linearGradient></defs>
+  {RECT}"##
+    )));
+    assert_eq!(sole_fill(&numbers), sole_fill(&percentages));
+}
+
+/// The direct resource decoder has the same two valid long-decimal hazards as
+/// line geometry. Every endpoint and both number forms therefore reach the
+/// shared provenance patrol before a gradient fact can be emitted.
+#[test]
+fn linear_coordinate_numeric_aliases_refuse_by_exact_attribute() {
+    for attr in ["x1", "y1", "x2", "y2"] {
+        for (class, value) in [
+            ("Blink decimal", "57384.267578125007"),
+            (
+                "midpoint",
+                "1.000000059604644775390625000000000000000000000001",
+            ),
+            ("percentage", "57384.267578125007%"),
+        ] {
+            let (error, declared) =
+                gradient_attribute_failure(&linear_gradient_with_attribute(attr, value, ""));
+            let reason = error.to_string();
+            assert!(
+                reason.contains(&format!("gradient geometry {attr} numeric precision alias"))
+                    && reason.contains("loses Chromium used-value provenance"),
+                "{class} {attr}: {error:?}"
+            );
+            assert!(
+                declared.iter().any(|item| item.contains(&reason)),
+                "{class} {attr}: {declared:?}"
+            );
+        }
+    }
+}
+
+/// Direct and percentage-derived coordinates must remain inside the admitted
+/// Web used-length range. The resource resolver names the exact endpoint for
+/// both signs and for operation overflow.
+#[test]
+fn linear_coordinate_range_boundaries_refuse_by_exact_attribute() {
+    for attr in ["x1", "y1", "x2", "y2"] {
+        for value in ["3.4e38%", "2.176e38", "-2.176e38"] {
+            let (error, declared) =
+                gradient_attribute_failure(&linear_gradient_with_attribute(attr, value, ""));
+            let reason = error.to_string();
+            assert!(
+                reason.contains(&format!("gradient geometry {attr}"))
+                    && reason.contains("exceeds the admitted Web used-value range"),
+                "{attr}={value}: {error:?}"
+            );
+            assert!(
+                declared.iter().any(|item| item.contains(&reason)),
+                "{attr}={value}: {declared:?}"
+            );
+        }
+    }
+}
+
+/// Units beyond px, CSS math, custom-property substitution, CSS-wide values,
+/// and comments all need computation/tokenization context this direct resource
+/// decoder does not own. Each endpoint remains independently attributable.
+#[test]
+fn linear_coordinate_css_value_families_refuse_by_exact_attribute() {
+    for attr in ["x1", "y1", "x2", "y2"] {
+        for (family, value, style, expected) in [
+            ("unit", "2em", "", "uses a unit whose basis"),
+            ("calc", "calc(16px + 16px)", "", "uses calc()"),
+            ("var", "var(--v)", r##"style="--v: 32px""##, "uses var()"),
+            ("CSS-wide", "initial", "", "uses the CSS-wide value"),
+            ("CSS comment", "/**/32/**/", "", "contains a CSS comment"),
+        ] {
+            let (error, declared) =
+                gradient_attribute_failure(&linear_gradient_with_attribute(attr, value, style));
+            let reason = error.to_string();
+            assert!(
+                reason.contains(&format!("gradient geometry {attr}")) && reason.contains(expected),
+                "{family} {attr}: {error:?}"
+            );
+            assert!(
+                declared.iter().any(|item| item.contains(&reason)),
+                "{family} {attr}: {declared:?}"
+            );
+        }
+    }
 }
 
 /// A zero or negative-radius radial takes the same tile-specific backend
@@ -560,6 +690,23 @@ fn the_beyond_slice_gradient_family_refuses_by_name() {
         };
         assert!(reason.contains(needle), "{reason} must name {needle}");
     }
+}
+
+/// A live user-space ramp on a line reaches a zero-height geometry box. The
+/// resolved paint contract states gradients in that box's unit square, so an
+/// inverse map would contain infinity. Refuse at the producer seam instead of
+/// letting paint preflight discover a non-finite transform later.
+#[test]
+fn a_userspace_gradient_on_zero_area_geometry_refuses_before_the_frame() {
+    let error = refusal(&document(&format!(
+        r##"  <defs><linearGradient id="g" gradientUnits="userSpaceOnUse" x1="8" y1="32" x2="56" y2="32">{RAMP}</linearGradient></defs>
+  <line x1="8" y1="32" x2="56" y2="32" stroke="url(#g)" stroke-width="8"/>"##
+    )));
+    let CompileError::UnsupportedStroke(reason) = error else {
+        panic!("expected a stroke refusal, got {error:?}");
+    };
+    assert!(reason.contains("zero-area geometry"), "{reason}");
+    assert!(reason.contains("unit-box paint contract"), "{reason}");
 }
 
 /// A template's focal attribute makes the referencing gradient focal too:

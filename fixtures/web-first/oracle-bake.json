@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "98c22bb109eb631920b3da76b0657f1d39a222d130272140b9ca311a79df0b0f",
+  "suite_sha256": "6f86ce70bb6ff7a1aa69c0ee78e311b44c1b9d190225f96fd04a87738fa375a7",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -5110,6 +5110,60 @@
       "source_sha256": "f4b2b7db9e643d1426c5353f6c20f9a46b07722fdfc03d195a1f00a3e749c79f",
       "oracle": "chromium/svg-group-transform-translate.png",
       "oracle_sha256": "26ca6ca824f783dea5a23c1cb16a47647eb81de0b7205f71e1054250f33cda39",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-line-coordinate-grammar",
+      "source": "svg-line-coordinate-grammar.svg",
+      "source_sha256": "e47a0ae60cf39b4bf7a0afde94450f2b8826974e86845314018d4dfccd1c9e34",
+      "oracle": "chromium/svg-line-coordinate-grammar.png",
+      "oracle_sha256": "9295d21ecf116676f48ccb793e56826d0cfb82e1e72b78fc5b5c75b2905c1233",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-line-coordinate-use",
+      "source": "svg-line-coordinate-use.svg",
+      "source_sha256": "18867990363bb9c702c8100e813e93fe67382cdc6e30279c52d3e92ae3874923",
+      "oracle": "chromium/svg-line-coordinate-use.png",
+      "oracle_sha256": "306f787e6074e8d020f463c89772f35bf518761f15cb7f634f8d24e5251c7639",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-line-coordinate-viewbox-transform",
+      "source": "svg-line-coordinate-viewbox-transform.svg",
+      "source_sha256": "2c668dd70160ef7329e20d4b32916c5c86b16ad7b28b94ac2f50db16b423e38b",
+      "oracle": "chromium/svg-line-coordinate-viewbox-transform.png",
+      "oracle_sha256": "7e2e7969a2cbc5f07d72924b0a42848a8b69b4d24d9568bdb3e5797bbe9e0be6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-linear-gradient-coordinate-grammar",
+      "source": "svg-linear-gradient-coordinate-grammar.svg",
+      "source_sha256": "1d15742ec3c5a7379a20b91d38cc8b1e58a5ab3b2744591f3906166d9fc6f8da",
+      "oracle": "chromium/svg-linear-gradient-coordinate-grammar.png",
+      "oracle_sha256": "f70e2fea89102f4ee7388289ef6995707ff777eb8739e1b78862a95e1498b318",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-linear-gradient-coordinate-href",
+      "source": "svg-linear-gradient-coordinate-href.svg",
+      "source_sha256": "961016da0ab45346ee2b6ed9f8d0f4c530275e7f703da6f957a51d3734b0f9af",
+      "oracle": "chromium/svg-linear-gradient-coordinate-href.png",
+      "oracle_sha256": "fafe6caa9eae624cbdd2e077e52e6cf9bc6113d8c1bf686ccdd93066ff42ba32",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-linear-gradient-coordinate-userspace",
+      "source": "svg-linear-gradient-coordinate-userspace.svg",
+      "source_sha256": "9c3e96ec6b2ab1016cb63e2465543d722c5fa2eae7772798012952f3e118a980",
+      "oracle": "chromium/svg-linear-gradient-coordinate-userspace.png",
+      "oracle_sha256": "d1958f9fb90ffd1e97ee337f2bcbb8aedacb2c6502633209c45c8b01145f8f8d",
       "width": 64,
       "height": 64
     },
