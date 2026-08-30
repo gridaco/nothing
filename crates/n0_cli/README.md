@@ -351,6 +351,11 @@ cargo run -p n0_cli --bin n0 -- \
   alpha creation/removal inside the hard primitive region. Authored function
   elements, type names, and numeric lists resolve before the frame; the frame
   carries only the four checked tables and one input.
+  Gamma `offset` carries its number-only grammar and initial zero on all four
+  function elements. A lone trailing comma retains the parsed prefix; a
+  percentage or any other invalid scalar takes the initial. Other function
+  types ignore the attribute. Its long-decimal witness uses the same ordered
+  source-number evaluation as the list grammar.
   Blink's ordered SVG-number normalization is observable: the source
   `slope="1.654435761" intercept=".18682"` selects the upper binary32 control
   and differs from the raw lexical lower control by 2,304 pixels at delta one.
@@ -547,12 +552,12 @@ cargo run -p n0_cli --bin n0 -- \
   tolerance. The forty-one-cell convolution rung keeps the complete 741-cell
   gate byte-exact on ARM and hosted x86 without a new tolerance. The
   seventy-one-cell diffuse-lighting rung keeps the complete 812-cell gate
-  byte-exact without a new tolerance. All four hundred fifty-one
+  byte-exact without a new tolerance. All four hundred fifty-three
   Chromium-baked filter cells are exact.
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
-  drop-shadow, 27 color-matrix, 32 component-transfer, 38 blend, 37 morphology,
+  drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete corpus contains 1,043 Chromium-baked cells plus 16 sampled
+  cells. The complete corpus contains 1,047 Chromium-baked cells plus 16 sampled
   frames, with 198 named
   refusal rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
@@ -561,7 +566,8 @@ cargo run -p n0_cli --bin n0 -- \
   `feTurbulence`, `feDisplacementMap`,
   `feFuncR`, `feFuncG`, `feFuncB`, `feFuncA`, `k1`–`k4`, `amplitude`,
   `exponent`, `intercept`,
-  `slope`, `tableValues`, blend-only `mode`, `baseFrequency`, `numOctaves`,
+  `slope`, `tableValues`, shared stop/function `offset`, blend-only `mode`,
+  `baseFrequency`, `numOctaves`,
   `seed`, `stitchTiles`, displacement `scale`, `xChannelSelector`, and
   `yChannelSelector`, `bias`, `divisor`, `edgeMode`, `kernelMatrix`,
   convolution `order`, `preserveAlpha`, `targetX`, `targetY`, `azimuth`,
@@ -743,9 +749,11 @@ cargo run -p n0_cli --bin n0 -- \
   (the gradient rung): `fill`/`stroke` `url(#…)` references resolve through
   a whole-document, first-id-wins gradient table (shadow-content clones
   excluded — the document's element wins, measured), with both
-  `gradientUnits`, `spreadMethod`, stops from attributes (`offset` clamps
-  to the running maximum and is never sorted; equal-offset hard stops render
-  crisp), `href`/`xlink:href`
+  `gradientUnits`, `spreadMethod`, stops from attributes (`offset` is one
+  strict number or percentage, defaults invalid text to zero, clamps to the
+  unit interval and then to the running maximum, and is never sorted;
+  equal-offset hard stops render crisp; source numbers use Blink's ordered
+  evaluation before percentage normalization), `href`/`xlink:href`
   template chains (stops all-or-nothing from the first owner; geometry
   never crosses gradient types; a cycle kills only the edge), and
   `gradientTransform` as the transform property's presentation attribute on

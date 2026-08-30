@@ -408,6 +408,43 @@ fn component_transfer_children_lower_to_four_exact_byte_tables() {
         r##"<feComponentTransfer><feFuncG type="linear" slope="2" intercept="-.4"/></feComponentTransfer>"##,
     );
     assert_eq!(linear.green()[52], 2, "linear products and sum stay f32");
+
+    let ordered_offset = tables(
+        r##"<feComponentTransfer><feFuncR type="gamma" amplitude="-57384.26171875" exponent="1" offset="57384.267578125007"/></feComponentTransfer>"##,
+    );
+    let ordered_offset_control = tables(
+        r##"<feComponentTransfer><feFuncR type="gamma" amplitude="-57384.26171875" exponent="1" offset="57384.265625"/></feComponentTransfer>"##,
+    );
+    let higher_offset = tables(
+        r##"<feComponentTransfer><feFuncR type="gamma" amplitude="-57384.26171875" exponent="1" offset="57384.26953125"/></feComponentTransfer>"##,
+    );
+    assert_eq!(
+        ordered_offset.red(),
+        ordered_offset_control.red(),
+        "gamma offset shares Blink's ordered source-number value"
+    );
+    assert_eq!(ordered_offset.red()[255], 0);
+    assert_eq!(higher_offset.red()[255], 1, "the adjacent control differs");
+
+    let trailing_comma_offset = tables(
+        r##"<feComponentTransfer><feFuncR type="gamma" amplitude="1" exponent="1" offset="-.125,"/></feComponentTransfer>"##,
+    );
+    let plain_offset = tables(
+        r##"<feComponentTransfer><feFuncR type="gamma" amplitude="1" exponent="1" offset="-.125"/></feComponentTransfer>"##,
+    );
+    assert_eq!(
+        trailing_comma_offset.red(),
+        plain_offset.red(),
+        "the function scalar preserves Blink's lone-comma recovery"
+    );
+    let percentage_offset = tables(
+        r##"<feComponentTransfer><feFuncR type="gamma" amplitude="1" exponent="1" offset="25%"/></feComponentTransfer>"##,
+    );
+    assert_eq!(
+        percentage_offset.red(),
+        &identity,
+        "a function offset is a number, not a percentage"
+    );
     let singleton = tables(
         r##"<feComponentTransfer><feFuncR type="table" tableValues=".5"/></feComponentTransfer>"##,
     );

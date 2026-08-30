@@ -2168,7 +2168,21 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > invalid integer text selects one, leading plus and surrounding SVG whitespace
 > are carried, positive values cap at nine, zero reaches the selected formula,
 > and a negative integer produces the measured transparent result.
-- [ ] `offset`
+- [x] `offset`
+
+> **2026-08-30 close:** the shared attribute closes at both complete static
+> grammars. On `<stop>`, a strict scalar `<number> | <percentage>` has initial
+> zero, clamps to `[0, 1]`, then clamps to the preceding stop's used offset;
+> equal values retain the hard transition. Source numbers use Blink's ordered
+> binary32 evaluation before percentage normalization. On
+> `<feFuncR>`/`G`/`B`/`A`, `<number>` has initial zero, retains Blink's measured
+> lone-trailing-comma prefix, and affects only `type="gamma"`; percentages are
+> invalid there. Missing, empty, malformed, unit-bearing, CSS-math, variable,
+> CSS-wide, comment, and non-ASCII-whitespace spellings take the consumer's
+> initial behavior. Four Chromium cells carry both grammars and their
+> independent source-number witnesses. Transfer-function animation remains
+> outside the static slice under the animation rows. The unrelated CSS motion
+> `offset` property remains open.
 - [ ] `onabort`
 - [ ] `onafterprint`
 - [ ] `onbeforeprint`
@@ -2380,8 +2394,9 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 
 > **2026-08-25 close:** the five function-parameter attributes close at their
 > complete applicability to `<feFuncR>`/`G`/`B`/`A`. `amplitude` and
-> `exponent` carry gamma's initial one; `offset` remains open because it is a
-> wider shared attribute. `slope` carries linear's initial one, `intercept`
+> `exponent` carry gamma's initial one; `offset` was left open here because it
+> is a wider shared attribute, and later closes at its own cross-family row.
+> `slope` carries linear's initial one, `intercept`
 > its initial zero, and `tableValues` carries the complete SVG number-list
 > grammar for table/discrete, including absent, empty, singleton, multiple,
 > malformed, signed, exponent, separator, trailing-comma, and out-of-range

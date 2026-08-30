@@ -26,8 +26,29 @@ pub(crate) fn parse(raw: &str) -> Option<Vec<f32>> {
     let mut values = Vec::new();
     while parser.at < parser.bytes.len() {
         values.push(parser.number()?);
+        parser.skip_separator();
     }
     Some(values)
+}
+
+/// Parse exactly one SVG number with no list separator.
+///
+/// Consumers whose attribute grammar is a scalar use the same ordered
+/// arithmetic as a number list without inheriting that list's measured lone
+/// trailing-comma recovery.
+pub(crate) fn parse_one(raw: &str) -> Option<f32> {
+    if !raw.is_ascii() {
+        return None;
+    }
+
+    let mut parser = Parser {
+        bytes: raw.as_bytes(),
+        at: 0,
+    };
+    parser.skip_whitespace();
+    let value = parser.number()?;
+    parser.skip_whitespace();
+    (parser.at == parser.bytes.len()).then_some(value)
 }
 
 struct Parser<'a> {
@@ -108,7 +129,6 @@ impl Parser<'_> {
                 exponent,
             },
         )?;
-        self.skip_separator();
         Some(value)
     }
 
@@ -139,7 +159,7 @@ impl Parser<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::parse;
+    use super::{parse, parse_one};
 
     #[test]
     fn measured_separators_and_adjacent_numbers_are_preserved() {
@@ -166,5 +186,17 @@ mod tests {
         assert_eq!(parse("1e999"), None);
         assert_eq!(parse("-1e-999"), Some(vec![-0.0]));
         assert_eq!(parse("1\u{00a0}2"), None);
+    }
+
+    #[test]
+    fn scalar_grammar_shares_evaluation_without_list_recovery() {
+        assert_eq!(parse_one(" \t+.5e1\n"), Some(5.0));
+        assert_eq!(
+            parse_one("0.057384267578125007").map(f32::to_bits),
+            Some(0x3d6b_0bc6)
+        );
+        for raw in ["", "1,", "1 2", "1%", "1.", "1e+", "1\u{00a0}"] {
+            assert_eq!(parse_one(raw), None, "{raw:?}");
+        }
     }
 }

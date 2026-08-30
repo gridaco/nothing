@@ -829,7 +829,9 @@ fn patrol_stop_attribute(text: &str, attribute: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// `offset`: a number or percentage; an invalid value is 0 (measured).
+/// `offset`: a number or percentage through Blink's ordered SVG-number
+/// evaluation; an invalid value is 0 (measured). Unlike list-valued filter
+/// fields, this scalar rejects a lone trailing comma.
 fn stop_offset(stop: HtmlElement<'_>) -> f32 {
     let Some(text) = get_attr(stop, "offset") else {
         return 0.0;
@@ -839,15 +841,9 @@ fn stop_offset(stop: HtmlElement<'_>) -> f32 {
         Some(number) => (number, true),
         None => (trimmed, false),
     };
-    if !dots_carry_digits(number_text) {
-        return 0.0;
-    }
-    let Ok(value) = number_text.parse::<f32>() else {
+    let Some(value) = crate::svg_number_list::parse_one(number_text) else {
         return 0.0;
     };
-    if !value.is_finite() {
-        return 0.0;
-    }
     if percent { value / 100.0 } else { value }
 }
 
