@@ -552,7 +552,7 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 32 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete corpus contains 1,041 Chromium-baked cells plus 16 sampled
+  cells. The complete corpus contains 1,043 Chromium-baked cells plus 16 sampled
   frames, with 198 named
   refusal rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
@@ -768,6 +768,10 @@ cargo run -p n0_cli --bin n0 -- \
   zero or negative radial radius and linear endpoints inside the backend's
   degenerate threshold resolve to the tile-specific measured solid: the last
   stop under `pad`, or the ramp's integral average under `reflect`/`repeat`.
+  On zero-area line geometry, object-box paint is nothing before one-stop or
+  degenerate classification; user-space one-stop and concentric degenerate
+  ramps retain those source-neutral results before the live-gradient boundary.
+  Two companion Chromium cells carry the complete unit/ordering split.
   The `<stop>` presentation attributes are consumed at their listed
   grammars (the stop rung). `stop-color` carries the `color` property's
   `<color>`: hex in all four lengths, named colours, `transparent`,

@@ -4554,6 +4554,22 @@
       "height": 64
     },
     {
+      "id": "svg-gradient-zero-area-degenerate-solid",
+      "source": "svg-gradient-zero-area-degenerate-solid.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-zero-area-degenerate-solid.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-zero-area-unit-split",
+      "source": "svg-gradient-zero-area-unit-split.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-gradient-zero-area-unit-split.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-gradient-zero-bbox",
       "source": "svg-gradient-zero-bbox.svg",
       "entry": "standalone-svg",

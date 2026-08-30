@@ -90,7 +90,7 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,041 Chromium-baked primitive cells plus 16 sampled frames.
+- **The corpus** is 1,043 Chromium-baked primitive cells plus 16 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
@@ -4361,14 +4361,32 @@ no-own-row lexical gap and therefore independently keep all four coordinate
 rows open. Contract laws exercise every coordinate for every refusal family,
 so the corpus cannot pass merely because `x1` happens to fail first.
 
+Exponent overflow takes that range route too. Chromium reflects `1e999` and
+`-1e999` as the maximum and minimum finite SVG length values, then clamps their
+used values to 33,554,428 and -33,554,430. Under a millionth-scale gradient
+transform those sources are pixel-identical to the fixed clamp controls and
+differ from the absent/default control by 3,136 pixels at maximum channel
+delta 202 and 1,568 pixels at delta 89 respectively. Both actual admissions
+refuse each source by the exact range name; neither silently takes the default
+(measured, not celled).
+
 The user-space gradient-stroke candidate found a separate contract hole. A
 live user-space ramp on zero-area line geometry needs an inverse geometry box,
 but the resolved gradient vocabulary states ramps in a consumer unit box and
-cannot represent that inverse finitely. Object-box paint on the same geometry
-remains the measured correct nothing; degenerate and one-stop ramps reduce to
-source-neutral colours before any box mapping. A ninth focused refusal now
-rejects only the live user-space case before a non-finite transform can reach
-paint (measured, not celled).
+cannot represent that inverse finitely. The unit split is exact. Without an
+object box, every object-box ramp is nothing before one-stop or degenerate
+classification. User-space geometry is independent of that missing box:
+one-stop, linear `pad`/`repeat`, and a concentric non-positive radial reduce to
+source-neutral colours before any box mapping. Two companion Chromium cells
+guard both sides through both admissions. The live user-space control differs
+from nothing by 384 pixels at maximum channel delta 209; each object-box
+degenerate or one-stop control differs from its tempting solid by 384 pixels
+at delta 211–226 and is exact nothing. A ninth focused refusal rejects only the
+live user-space case before a non-finite transform can reach paint. A
+zero-radius radial with an off-center focus is also measured exact nothing;
+one with positive focal radius paints a live focal result and remains under
+the existing focal-radial refusal (the last three controls measured, not
+celled).
 
 The required instance audit exposed one pre-existing opacity error. Chromium
 composites element opacity after anti-aliased line coverage: element opacity
@@ -4388,10 +4406,17 @@ the x/y percentage bases made `svg-line-coordinate-viewbox-transform` fail by
 416 pixels at maximum channel delta 221 and
 `svg-linear-gradient-coordinate-userspace` fail by 2,900 pixels at delta 226;
 the older percentage-line cell also failed by 383 pixels at delta 218.
-Restoring the independent axes returned all 1,041 primitive cells to green.
+Restoring the independent axes returned the then-current 1,041 primitive cells
+to green. The zero-area ordering gate is independently sensitive: temporarily
+restoring the premature guard makes
+`svg-gradient-zero-area-degenerate-solid` fail at its first stroke. Restoring
+degenerate reduction first returns that cell to green. Independently bypassing
+the object-box early-nothing branch makes
+`svg-gradient-zero-area-unit-split` fail by 864 pixels at maximum channel delta
+226. Restoring both branches returns the complete 1,043-cell gate to green.
 
-The primitive corpus moves from 1,035 to 1,041 cells. Nine coordinate/resource
-refusals and the opacity coverage refusal move the named register from 188 to
-198 rows. The sixteen sampled frames and 451-cell filter estate are unchanged.
-No conformance score was produced, and no FLIP record, rule, or baseline
-changed.
+The primitive corpus moves from 1,035 to 1,043 cells: six coordinate cells and
+two zero-area ordering companions. Nine coordinate/resource refusals and the
+opacity coverage refusal move the named register from 188 to 198 rows. The
+sixteen sampled frames and 451-cell filter estate are unchanged. No conformance
+score was produced, and no FLIP record, rule, or baseline changed.

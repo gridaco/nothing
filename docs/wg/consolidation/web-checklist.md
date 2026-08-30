@@ -2426,9 +2426,12 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > CSS math, custom properties, and CSS-wide values likewise retain their own
 > rows and refuse by exact field. Finite percentage overflow, the unimplemented
 > fixed used-value clamp, and a live user-space gradient on zero-area geometry
-> are likewise registered before a frame can carry a wrong value. The corpus is
-> 1,041 primitive cells plus 16 sampled frames; the named refusal register has
-> 198 rows.
+> are likewise registered before a frame can carry a wrong value. Two companion
+> cells prove the zero-area unit split: object-box ramps are nothing before
+> constant/degenerate classification, while exact user-space one-stop and
+> linear/radial degenerate results resolve before the live-gradient boundary.
+> The corpus is 1,043 primitive cells plus 16 sampled frames; the named refusal
+> register has 198 rows.
 
 > **2026-08-26 close:** both displacement selectors carry the complete
 > case-sensitive `R | G | B | A` grammar independently. Missing, empty,

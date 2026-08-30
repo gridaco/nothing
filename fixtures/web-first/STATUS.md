@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (1041)
+## Chromium-baked cells (1043)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -586,6 +586,8 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-gradient-stylesheet-fill.svg" title="svg-gradient-stylesheet-fill (standalone-svg)"><img src="./chromium/svg-gradient-stylesheet-fill.png" width="56" alt="svg-gradient-stylesheet-fill"></a>
 <a href="./svg-gradient-transform.svg" title="svg-gradient-transform (standalone-svg)"><img src="./chromium/svg-gradient-transform.png" width="56" alt="svg-gradient-transform"></a>
 <a href="./svg-gradient-use-clone-order.svg" title="svg-gradient-use-clone-order (standalone-svg)"><img src="./chromium/svg-gradient-use-clone-order.png" width="56" alt="svg-gradient-use-clone-order"></a>
+<a href="./svg-gradient-zero-area-degenerate-solid.svg" title="svg-gradient-zero-area-degenerate-solid (standalone-svg)"><img src="./chromium/svg-gradient-zero-area-degenerate-solid.png" width="56" alt="svg-gradient-zero-area-degenerate-solid"></a>
+<a href="./svg-gradient-zero-area-unit-split.svg" title="svg-gradient-zero-area-unit-split (standalone-svg)"><img src="./chromium/svg-gradient-zero-area-unit-split.png" width="56" alt="svg-gradient-zero-area-unit-split"></a>
 <a href="./svg-gradient-zero-bbox.svg" title="svg-gradient-zero-bbox (standalone-svg)"><img src="./chromium/svg-gradient-zero-bbox.png" width="56" alt="svg-gradient-zero-bbox"></a>
 <a href="./svg-gradient-zero-stops-fallback.svg" title="svg-gradient-zero-stops-fallback (standalone-svg)"><img src="./chromium/svg-gradient-zero-stops-fallback.png" width="56" alt="svg-gradient-zero-stops-fallback"></a>
 <a href="./svg-group-inherited-fill.svg" title="svg-group-inherited-fill (standalone-svg)"><img src="./chromium/svg-group-inherited-fill.png" width="56" alt="svg-group-inherited-fill"></a>

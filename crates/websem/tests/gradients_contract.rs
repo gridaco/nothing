@@ -81,6 +81,18 @@ fn sole_fill(frame: &rframe::Frame) -> &cg::Paint {
     frame.nodes()[0].paints.iter().next().expect("one paint")
 }
 
+fn sole_stroke_paint(frame: &rframe::Frame) -> &cg::Paint {
+    assert_eq!(frame.nodes().len(), 1, "one shape");
+    frame.nodes()[0]
+        .stroke
+        .as_ref()
+        .expect("one stroke")
+        .paints()
+        .iter()
+        .next()
+        .expect("one stroke paint")
+}
+
 fn linear_of(paint: &cg::Paint) -> &cg::LinearGradientPaint {
     match paint {
         cg::Paint::LinearGradient(gradient) => gradient,
@@ -345,7 +357,7 @@ fn linear_coordinate_numeric_aliases_refuse_by_exact_attribute() {
 #[test]
 fn linear_coordinate_range_boundaries_refuse_by_exact_attribute() {
     for attr in ["x1", "y1", "x2", "y2"] {
-        for value in ["3.4e38%", "2.176e38", "-2.176e38"] {
+        for value in ["3.4e38%", "2.176e38", "-2.176e38", "1e999", "-1e999"] {
             let (error, declared) =
                 gradient_attribute_failure(&linear_gradient_with_attribute(attr, value, ""));
             let reason = error.to_string();
@@ -707,6 +719,85 @@ fn a_userspace_gradient_on_zero_area_geometry_refuses_before_the_frame() {
     };
     assert!(reason.contains("zero-area geometry"), "{reason}");
     assert!(reason.contains("unit-box paint contract"), "{reason}");
+}
+
+/// Zero-area consumer geometry does not preempt a gradient whose own geometry
+/// has already reduced to a source-neutral solid. Chromium makes the same
+/// pad/repeat substitutions for a horizontal line as for an area-bearing
+/// consumer; the combined pixel witness is
+/// `svg-gradient-zero-area-degenerate-solid`.
+#[test]
+fn zero_area_geometry_preserves_degenerate_gradient_solids() {
+    for (definition, expected, label) in [
+        (
+            format!(
+                r##"<linearGradient id="g" gradientUnits="userSpaceOnUse" x1="32" y1="32" x2="32" y2="32">{RAMP}</linearGradient>"##
+            ),
+            cg::CGColor::from_rgb(0, 0, 255),
+            "linear pad",
+        ),
+        (
+            r##"<linearGradient id="g" gradientUnits="userSpaceOnUse" x1="32" y1="32" x2="32" y2="32" spreadMethod="repeat"><stop stop-color="#16a34a"/><stop offset="1" stop-color="#18a34a"/></linearGradient>"##.to_string(),
+            cg::CGColor::from_rgb(23, 163, 74),
+            "linear repeat",
+        ),
+        (
+            format!(
+                r##"<radialGradient id="g" gradientUnits="userSpaceOnUse" cx="32" cy="32" r="0">{RAMP}</radialGradient>"##
+            ),
+            cg::CGColor::from_rgb(0, 0, 255),
+            "radial pad",
+        ),
+    ] {
+        let frame = admit_both(&document(&format!(
+            r##"  <defs>{definition}</defs>
+  <line x1="8" y1="32" x2="56" y2="32" fill="none" stroke="url(#g)" stroke-width="8"/>"##
+        )));
+        assert_eq!(solid_of(sole_stroke_paint(&frame)), expected, "{label}");
+    }
+}
+
+/// `objectBoundingBox` has no coordinate system on zero-area consumer
+/// geometry, so Chromium paints nothing before one-stop or degenerate-ramp
+/// substitution. User space is independent of that missing object box and a
+/// one-stop ramp remains a constant gradient. The pixel split is baked in
+/// `svg-gradient-zero-area-unit-split`.
+#[test]
+fn zero_area_geometry_splits_object_box_from_userspace_constants() {
+    for (definition, label) in [
+        (
+            format!(
+                r##"<linearGradient id="g" x1=".5" y1=".5" x2=".5" y2=".5">{RAMP}</linearGradient>"##
+            ),
+            "object-box linear degenerate",
+        ),
+        (
+            format!(r##"<radialGradient id="g" r="0">{RAMP}</radialGradient>"##),
+            "object-box radial degenerate",
+        ),
+        (
+            r##"<linearGradient id="g"><stop stop-color="#16a34a"/></linearGradient>"##.to_string(),
+            "object-box one-stop",
+        ),
+    ] {
+        let frame = admit_both(&document(&format!(
+            r##"  <defs>{definition}</defs>
+  <line x1="8" y1="32" x2="56" y2="32" fill="none" stroke="url(#g)" stroke-width="8"/>"##
+        )));
+        assert!(frame.nodes()[0].stroke.is_none(), "{label}");
+    }
+
+    let user = admit_both(&document(
+        r##"  <defs><linearGradient id="g" gradientUnits="userSpaceOnUse"><stop stop-color="#16a34a"/></linearGradient></defs>
+  <line x1="8" y1="32" x2="56" y2="32" fill="none" stroke="url(#g)" stroke-width="8"/>"##,
+    ));
+    let gradient = linear_of(sole_stroke_paint(&user));
+    assert!(
+        gradient
+            .stops
+            .iter()
+            .all(|stop| stop.color == cg::CGColor::from_rgb(22, 163, 74).into())
+    );
 }
 
 /// A template's focal attribute makes the referencing gradient focal too:

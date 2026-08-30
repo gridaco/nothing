@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "6f86ce70bb6ff7a1aa69c0ee78e311b44c1b9d190225f96fd04a87738fa375a7",
+  "suite_sha256": "3f027c4d7610ae5256b0c78767fd0c17486d2a3d7cdf83d084c60a2cc9852146",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -5038,6 +5038,24 @@
       "source_sha256": "b589fea47b3c76c7b8a0c9f6f98616215a3c4a48d3f6b09ccdedde14271f3976",
       "oracle": "chromium/svg-gradient-use-clone-order.png",
       "oracle_sha256": "d31d0f9d0b7cfed9e442c2c57b3e0caed4dcd79e84146eafd390073f2a1af868",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-zero-area-degenerate-solid",
+      "source": "svg-gradient-zero-area-degenerate-solid.svg",
+      "source_sha256": "a220243bb5ea856de45020c2fbe2ef9dbf20ccdbb15fbab0c13a0d9f41a9cd36",
+      "oracle": "chromium/svg-gradient-zero-area-degenerate-solid.png",
+      "oracle_sha256": "3dfc04cee32d00e74da80532cd2b5d082d77253dbbfe2ad94f06c7f48233e2fd",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-gradient-zero-area-unit-split",
+      "source": "svg-gradient-zero-area-unit-split.svg",
+      "source_sha256": "42715c586c1ad6eea8c1081076a0517310682fbe977d8163d4705d44dd1e3e22",
+      "oracle": "chromium/svg-gradient-zero-area-unit-split.png",
+      "oracle_sha256": "45e86bd6f69fd576cda98e241a1b6c9cc3cc0d21220a77b9962cffc9a4f0456e",
       "width": 64,
       "height": 64
     },

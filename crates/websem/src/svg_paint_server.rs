@@ -360,6 +360,17 @@ pub(crate) fn resolve(
         GradientTransform::Affine(affine) => affine,
     };
 
+    // An object-bounding-box paint server has no coordinate system when
+    // either consumer-box extent is zero. Chromium paints nothing before
+    // considering whether the ramp itself is constant or degenerate. User
+    // space has no such dependency and reaches the source-neutral branches
+    // below before its live-ramp contract boundary.
+    if matches!(units, GradientUnits::ObjectBoundingBox)
+        && (destination_box.width == 0.0 || destination_box.height == 0.0)
+    {
+        return Ok(ResolvedPaintServer::Nothing);
+    }
+
     if stops.len() == 1 {
         // A one-stop ramp is spatially constant but retains the backend's
         // gradient material route (including dithering and paint-alpha
@@ -368,23 +379,6 @@ pub(crate) fn resolve(
         // a constant shader; the transform outcome above still decides the
         // measured non-invertible nothing before this branch.
         return Ok(constant_gradient(kind, stops[0].color, paint_opacity));
-    }
-
-    // Every gradient fact in `cg` is stated in the consumer geometry's unit
-    // box. A live user-space ramp on a line-like zero-area geometry cannot be
-    // mapped into that box: either inverse extent would be non-finite. The
-    // object-box case is SVG's measured correct nothing; user space remains a
-    // named contract boundary until the paint vocabulary can state it without
-    // an inverse box. Degenerate and one-stop ramps resolved above are
-    // source-neutral colours and do not need this map.
-    if destination_box.width == 0.0 || destination_box.height == 0.0 {
-        return match units {
-            GradientUnits::ObjectBoundingBox => Ok(ResolvedPaintServer::Nothing),
-            GradientUnits::UserSpaceOnUse => Err(
-                "a live user-space gradient on zero-area geometry cannot be mapped into the resolved unit-box paint contract"
-                    .to_string(),
-            ),
-        };
     }
 
     match kind {
@@ -1234,6 +1228,21 @@ fn resolve_linear(
         return solid_paint(color, paint_opacity, post_paint_opacity);
     }
 
+    // Every live gradient fact in `cg` is stated in the consumer geometry's
+    // unit box. A user-space ramp on a line-like zero-area geometry cannot be
+    // mapped into that box: either inverse extent would be non-finite. The
+    // object-box case resolved before constant/degenerate classification;
+    // user-space degenerate ramps resolved above and never reach this boundary.
+    if destination_box.width == 0.0 || destination_box.height == 0.0 {
+        return match units {
+            GradientUnits::ObjectBoundingBox => Ok(ResolvedPaintServer::Nothing),
+            GradientUnits::UserSpaceOnUse => Err(
+                "a live user-space gradient on zero-area geometry cannot be mapped into the resolved unit-box paint contract"
+                    .to_string(),
+            ),
+        };
+    }
+
     // Only an actual ramp needs owner geometry and a mapping into the leaf.
     // A singular context consumer paints nothing; no gradient fact crosses
     // the resolved contract.
@@ -1360,6 +1369,20 @@ fn resolve_radial(
             _ => ramp_average(&stops, paint_opacity, post_paint_opacity)?,
         };
         return solid_paint(color, paint_opacity, post_paint_opacity);
+    }
+
+    // As for a linear ramp, only live user-space radial geometry needs the
+    // inverse destination-box mapping. Object-box zero area resolved before
+    // constant/degenerate classification; preserve the source-neutral
+    // non-positive-radius result above before enforcing this boundary.
+    if destination_box.width == 0.0 || destination_box.height == 0.0 {
+        return match units {
+            GradientUnits::ObjectBoundingBox => Ok(ResolvedPaintServer::Nothing),
+            GradientUnits::UserSpaceOnUse => Err(
+                "a live user-space gradient on zero-area geometry cannot be mapped into the resolved unit-box paint contract"
+                    .to_string(),
+            ),
+        };
     }
 
     // A non-positive radius is already a source-neutral solid. Only a live
