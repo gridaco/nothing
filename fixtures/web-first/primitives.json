@@ -1320,6 +1320,22 @@
       "height": 64
     },
     {
+      "id": "svg-filter-component-transfer-offset-grammar",
+      "source": "svg-filter-component-transfer-offset-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-offset-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-offset-number-order",
+      "source": "svg-filter-component-transfer-offset-number-order.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-filter-component-transfer-offset-number-order.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-filter-component-transfer-offset-order",
       "source": "svg-filter-component-transfer-offset-order.svg",
       "entry": "standalone-svg",
@@ -7256,6 +7272,22 @@
       "source": "svg-sizing-auto-rect.svg",
       "entry": "standalone-svg",
       "oracle": "chromium/svg-sizing-auto-rect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stop-offset-grammar",
+      "source": "svg-stop-offset-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stop-offset-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stop-offset-number-order",
+      "source": "svg-stop-offset-number-order.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-stop-offset-number-order.png",
       "width": 64,
       "height": 64
     },

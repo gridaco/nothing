@@ -90,7 +90,7 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,043 Chromium-baked primitive cells plus 16 sampled frames.
+- **The corpus** is 1,047 Chromium-baked primitive cells plus 16 sampled frames.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
@@ -4420,3 +4420,77 @@ two zero-area ordering companions. Nine coordinate/resource refusals and the
 opacity coverage refusal move the named register from 188 to 198 rows. The
 sixteen sampled frames and 451-cell filter estate are unchanged. No conformance
 score was produced, and no FLIP record, rule, or baseline changed.
+
+## Rung: shared SVG `offset` attribute closure (2026-08-30)
+
+The verdict is CLOSE. The SVG attribute row closes across both of its static
+consumer families: `<stop>` and `<feFuncR>`/`G`/`B`/`A`. The CSS motion
+`offset` shorthand is a different property and remains open. `<feOffset>` is a
+filter primitive rather than an attribute consumer and is likewise unaffected.
+Transfer-function animation remains outside the static slice under the separate
+animation rows.
+
+The two consumer families deliberately do not share a grammar. A stop accepts
+one strict `<number> | <percentage>`, defaults missing or invalid text to zero,
+clamps the result to the unit interval, and then clamps it to the preceding
+stop's used offset. Equal offsets preserve a hard transition. A transfer
+function accepts `<number>` only, defaults missing or invalid text to zero,
+retains Chromium's measured lone-trailing-comma prefix, and consumes the value
+only for `type="gamma"`. Percentages are invalid for the function family.
+Identity, table, discrete, and linear functions ignore the attribute.
+
+The stop route contained a shipped silent-pixel defect. It parsed a decimal
+directly to Rust `f32`, while Chromium evaluates the SVG source number in its
+ordered parser before narrowing; percentage normalization then happens in
+binary32. The source `0.502541578243925989` is Chromium-identical to
+`0.50254154`, not the raw-parser neighbour `0.5025416`. The percentage source
+`86.591846437450251439%` is identical to `86.59185%`, not `86.59184%`.
+Restoring the raw parser in the committed two-route witness changes 48 pixels
+at maximum channel delta 202. The repair gives strict scalar fields the same
+ordered arithmetic as SVG number lists without inheriting list separator
+recovery: a stop rejects a lone comma, while the function parser retains it.
+
+The function route already used the ordered SVG number-list evaluator. Its
+dedicated witness makes `offset="57384.267578125007"` select the
+`57384.265625` control rather than `57384.26953125`; a second transfer amplifies
+that source-value choice into visible channel output. Contract tests now pin
+both source/control identities and the scalar/list comma split.
+
+Four new Chromium cells carry the row. `svg-stop-offset-grammar` covers missing
+and explicit zero, number and percentage spellings, signs, fractions,
+exponents, SVG whitespace, both clamps, running maxima, equal and invalid
+offsets, finite extremes, overflow, and the invalid unit, calculation,
+variable, CSS-wide, comment, and non-ASCII-whitespace classes.
+`svg-stop-offset-number-order` carries the direct and percentage normalization
+witnesses. The two matching component-transfer cells cover the number-only
+grammar, initial and invalid behavior, the measured trailing comma, all four
+channels through existing dispatch evidence, gamma-only use, inactive function
+kinds, output clamps, finite extremes, overflow, and the independent ordered
+source-number witness. Earlier gradient cells retain equal-offset hard edges,
+non-monotonic running maxima, radial and stroke consumers, templates and
+`<use>`; earlier component-transfer cells retain all channel, graph, transform,
+instance, and operation-order consumers.
+
+A wider twice-captured Chromium matrix also measured the parser boundary before
+admission. Stop percentages are accepted while function percentages are not;
+both reject units, trailing dots, calculations, variables, CSS-wide keywords,
+comments, non-ASCII whitespace, extra members, and malformed exponents. Stop
+text rejects the lone trailing comma while the transfer-function scalar retains
+its parsed prefix. Finite extrema and overflow select the documented initial or
+clamped outcomes. Every candidate also rendered through strict and best-effort
+CLI admission; after the stop repair no second silent divergence class remained
+(measured, not celled except where the four cells above carry the same branch).
+
+Gate sensitivity was proved independently for both consumers. Replacing the
+ordered stop parser with raw lexical `f32` parsing made
+`svg-stop-offset-grammar` fail by 144 pixels at maximum channel delta 202 and
+`svg-stop-offset-number-order` fail by 48 pixels at the same maximum delta.
+Ignoring gamma offset then made twenty filter and pattern cells fail, including
+the new grammar cell at 1,152 pixels and delta 191 and the number-order cell at
+1,344 pixels and delta 255. Restoring each branch returned the complete
+1,047-cell gate to exact green.
+
+The primitive corpus moves from 1,043 to 1,047 cells. Two component-transfer
+cells move the filter estate from 451 to 453; the sixteen sampled frames and
+198-row named refusal register are unchanged. No conformance score was
+produced, and no FLIP record, rule, or baseline changed.

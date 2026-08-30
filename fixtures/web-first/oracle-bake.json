@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "suite": "primitives.json",
-  "suite_sha256": "3f027c4d7610ae5256b0c78767fd0c17486d2a3d7cdf83d084c60a2cc9852146",
+  "suite_sha256": "70a745202f4c64c950f53270e1d3859c4ae2414a910d31d85e4e92375e063108",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -1411,6 +1411,24 @@
       "source_sha256": "886048f78d999e4d5b21f13e4b4aa3674f246f036b80063e6786da912f22ddf8",
       "oracle": "chromium/svg-filter-component-transfer-number-order.png",
       "oracle_sha256": "d0d27d5e897a7ab09241650fd440ca7216135576881f2a64860af25f91eadd21",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-offset-grammar",
+      "source": "svg-filter-component-transfer-offset-grammar.svg",
+      "source_sha256": "9fb465619337bcca5d8746f0bc6bb1e3aadd85f74c0f1ca49aaa48018206ae6e",
+      "oracle": "chromium/svg-filter-component-transfer-offset-grammar.png",
+      "oracle_sha256": "a88f936351fedaed20bea2ade69edf1c9ec21035e7c27a32d27faa83210e7a3d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-filter-component-transfer-offset-number-order",
+      "source": "svg-filter-component-transfer-offset-number-order.svg",
+      "source_sha256": "5d768b1ef657aa52c1e0e702caf3a6eb1562353366b222d543c2e56ea60d4529",
+      "oracle": "chromium/svg-filter-component-transfer-offset-number-order.png",
+      "oracle_sha256": "c9091ab61d0566b0e6b93fa6dd10ae3b078e199664ed3de578925de66c69edd3",
       "width": 64,
       "height": 64
     },
@@ -8071,6 +8089,24 @@
       "source_sha256": "aa823521fbd91997550c0339f559303a68547502352bd52d23233f604e94709a",
       "oracle": "chromium/svg-sizing-auto-rect.png",
       "oracle_sha256": "588dabeaafeb64026db3b71d929e14e66f549ef7757bcb29dd10f3385c297324",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stop-offset-grammar",
+      "source": "svg-stop-offset-grammar.svg",
+      "source_sha256": "018d7f379664c88de7b32f6430514af5eb3ec106d036add38df4f4d786b98e9b",
+      "oracle": "chromium/svg-stop-offset-grammar.png",
+      "oracle_sha256": "700a73e636febfcf0378b5a4e087d58bd532a265e316e5d84d2e07af2d0e0c73",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-stop-offset-number-order",
+      "source": "svg-stop-offset-number-order.svg",
+      "source_sha256": "c3261bba1b14fe776ebdc5415244b4a74b40893003a4bae800a56e6dfcf2b1fa",
+      "oracle": "chromium/svg-stop-offset-number-order.png",
+      "oracle_sha256": "92c91bfce2a735e8d53d9c112c2bf4a4625e9a224631cf17e673e63cfd1163ec",
       "width": 64,
       "height": 64
     },

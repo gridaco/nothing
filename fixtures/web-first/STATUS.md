@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (1043)
+## Chromium-baked cells (1047)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -183,6 +183,8 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-filter-component-transfer-linear.svg" title="svg-filter-component-transfer-linear (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-linear.png" width="56" alt="svg-filter-component-transfer-linear"></a>
 <a href="./svg-filter-component-transfer-matrix-order.svg" title="svg-filter-component-transfer-matrix-order (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-matrix-order.png" width="56" alt="svg-filter-component-transfer-matrix-order"></a>
 <a href="./svg-filter-component-transfer-number-order.svg" title="svg-filter-component-transfer-number-order (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-number-order.png" width="56" alt="svg-filter-component-transfer-number-order"></a>
+<a href="./svg-filter-component-transfer-offset-grammar.svg" title="svg-filter-component-transfer-offset-grammar (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-offset-grammar.png" width="56" alt="svg-filter-component-transfer-offset-grammar"></a>
+<a href="./svg-filter-component-transfer-offset-number-order.svg" title="svg-filter-component-transfer-offset-number-order (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-offset-number-order.png" width="56" alt="svg-filter-component-transfer-offset-number-order"></a>
 <a href="./svg-filter-component-transfer-offset-order.svg" title="svg-filter-component-transfer-offset-order (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-offset-order.png" width="56" alt="svg-filter-component-transfer-offset-order"></a>
 <a href="./svg-filter-component-transfer-opacity-clip.svg" title="svg-filter-component-transfer-opacity-clip (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-opacity-clip.png" width="56" alt="svg-filter-component-transfer-opacity-clip"></a>
 <a href="./svg-filter-component-transfer-path.svg" title="svg-filter-component-transfer-path (standalone-svg)"><img src="./chromium/svg-filter-component-transfer-path.png" width="56" alt="svg-filter-component-transfer-path"></a>
@@ -923,6 +925,8 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-root-opacity-zero.svg" title="svg-root-opacity-zero (standalone-svg)"><img src="./chromium/svg-root-opacity-zero.png" width="56" alt="svg-root-opacity-zero"></a>
 <a href="./svg-shape-transform-matrix.svg" title="svg-shape-transform-matrix (standalone-svg)"><img src="./chromium/svg-shape-transform-matrix.png" width="56" alt="svg-shape-transform-matrix"></a>
 <a href="./svg-sizing-auto-rect.svg" title="svg-sizing-auto-rect (standalone-svg)"><img src="./chromium/svg-sizing-auto-rect.png" width="56" alt="svg-sizing-auto-rect"></a>
+<a href="./svg-stop-offset-grammar.svg" title="svg-stop-offset-grammar (standalone-svg)"><img src="./chromium/svg-stop-offset-grammar.png" width="56" alt="svg-stop-offset-grammar"></a>
+<a href="./svg-stop-offset-number-order.svg" title="svg-stop-offset-number-order (standalone-svg)"><img src="./chromium/svg-stop-offset-number-order.png" width="56" alt="svg-stop-offset-number-order"></a>
 <a href="./svg-stroke-cap-butt.svg" title="svg-stroke-cap-butt (standalone-svg)"><img src="./chromium/svg-stroke-cap-butt.png" width="56" alt="svg-stroke-cap-butt"></a>
 <a href="./svg-stroke-cap-circle-round.svg" title="svg-stroke-cap-circle-round (standalone-svg)"><img src="./chromium/svg-stroke-cap-circle-round.png" width="56" alt="svg-stroke-cap-circle-round"></a>
 <a href="./svg-stroke-cap-circle-square.svg" title="svg-stroke-cap-circle-square (standalone-svg)"><img src="./chromium/svg-stroke-cap-circle-square.png" width="56" alt="svg-stroke-cap-circle-square"></a>

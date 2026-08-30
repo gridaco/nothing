@@ -611,6 +611,33 @@ fn stop_offsets_clamp_against_the_running_maximum() {
     assert_eq!(offsets, [0.0, 0.8, 0.8]);
 }
 
+/// Chromium's `<stop>` SVGNumber parser evaluates source digits in ordered
+/// binary32 arithmetic before percentage normalization. The long spelling and
+/// its short exponential control therefore reach the same adjacent value;
+/// Rust's direct lexical `f32` parser selects a different neighbour.
+#[test]
+fn stop_offsets_share_blinks_ordered_source_number_evaluation() {
+    fn first_offset(authored: &str) -> f32 {
+        let frame = admit_both(&document(&format!(
+            r##"  <defs><linearGradient id="g"><stop offset="{authored}" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient></defs>
+  {RECT}"##
+        )));
+        linear_of(sole_fill(&frame)).stops[0].offset
+    }
+
+    let direct = first_offset("0.057384267578125007");
+    let direct_control = first_offset("5.7384275e-2");
+    assert_eq!(direct.to_bits(), 0x3d6b_0bc6);
+    assert_eq!(direct.to_bits(), direct_control.to_bits());
+
+    let percentage = first_offset("0.057384267578125007%");
+    let percentage_control = first_offset("5.7384275e-2%");
+    assert_eq!(percentage.to_bits(), 0x3a16_6def);
+    assert_eq!(percentage.to_bits(), percentage_control.to_bits());
+
+    assert_eq!(first_offset("1,"), 0.0, "a stop scalar rejects a comma");
+}
+
 // ─── references and fallbacks ────────────────────────────────────────────
 
 /// A same-document reference to an element that is not a gradient is an
