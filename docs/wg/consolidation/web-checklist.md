@@ -707,6 +707,16 @@ excluded.
 - [ ] `font-variant-numeric`
 - [ ] `font-variant-position`
 
+> **2026-08-31 text safety split:** the one declared-font SVG run now admits a
+> narrowly proved CSS `font-size` source profile: direct finite non-negative
+> `px` declarations that survive the pinned Stylo quantizer unchanged and are
+> integer multiples of five, including inline style, author-sheet precedence,
+> and transparent inheritance. The full listed grammar remains open:
+> percentages, wider units, math, variables, escapes, CSS-wide behavior, and
+> shorthand interaction are guarded source families rather than supported
+> values. The `font` shorthand and every represented font fact the v0 run does
+> not carry refuse by stable text-specific name. No CSS-font row ticks.
+
 
 ### CSS text
 
@@ -731,6 +741,15 @@ excluded.
 - [ ] `white-space-collapse`
 - [ ] `word-break`
 - [ ] `word-spacing`
+
+> **2026-08-31 text safety split:** authored spacing, writing-mode, baseline,
+> white-space, decoration, and related text-layout declarations are
+> now quarantined at a visible `<text>` node through direct, ancestor, and
+> stylesheet ingresses. Chromium probes found silent differences before the
+> patrol — `letter-spacing` changed 200 pixels and vertical writing mode 1,520,
+> both at maximum channel delta 255 — but the v0 text artifact still carries
+> none of this vocabulary. These are registered refusals, not admissions, so
+> no CSS-text row ticks.
 
 
 ### CSS text decoration
@@ -1797,6 +1816,15 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `<use>`
 - [ ] `<view>`
 
+> **2026-08-31 text safety split:** the existing single-run `<text>` proving
+> profile is now fenced at its authored size source and final device mapping.
+> Three new exact Ahem cells bring the separate text suite to nine: one crosses
+> direct/inline/stylesheet/inherited size ingress, one crosses integer
+> root/text/group/`<use>` translations, and one proves that composed transform
+> cancellation is judged by the final CTM. `<tspan>`, multiple runs, broader
+> shaping, positioning, font selection, and text layout remain outside the
+> profile, so the `<text>` row stays open.
+
 
 ### SVG presentation attributes
 
@@ -1890,6 +1918,20 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `font-style`
 - [ ] `font-variant`
 - [ ] `font-weight`
+
+> **2026-08-31 text safety split:** direct SVG `font-size` admits only the
+> proved finite non-negative unitless/`px` source profile described above; an
+> exact `inherit`/`unset` may select the same profile from an ancestor. An
+> authored `5119px` formerly became `5120px` in pinned Stylo and changed 149
+> Chromium pixels at maximum channel delta 255 while passing the old local
+> multiple-of-five check. Viewport/container/font-metric bases and hidden
+> source spellings exposed further silent differences. Seven new refusal rows
+> quarantine those classes, final non-integer/non-identity CTMs, and
+> unconsumed text CSS in both admissions. The register moves from 197 to 204;
+> the primitive corpus remains 1,051 cells plus 16 sampled frames, and the
+> separate text suite moves from six to nine exact cells. The full SVG
+> presentation-attribute grammar remains open, so no font/text row ticks.
+
 - [ ] `glyph-orientation-horizontal`
 - [ ] `glyph-orientation-vertical`
 - [ ] `height`

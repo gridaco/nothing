@@ -1115,6 +1115,103 @@ const TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "font",
 ];
 
+/// Cascaded text facts the v0 text oracle does not consume.
+///
+/// Unlike [`CASCADE_PROPERTIES_NOT_REPRESENTED`], most of these longhands do
+/// exist in the pinned Stylo build. That makes them more dangerous, not less:
+/// they compute successfully and would reach a `<text>` run that currently
+/// resolves only family, size, position, anchor, and fill. The authored scan
+/// is text-scoped so ordinary shape documents keep using those properties as
+/// inert CSS, while a visible run refuses instead of silently shaping the
+/// default. The `font` shorthand is included because it can set or reset
+/// several of these without naming any one longhand.
+const TEXT_CASCADE_PROPERTIES_NOT_CONSUMED: &[&str] = &[
+    "alignment-baseline",
+    "baseline-shift",
+    "direction",
+    "dominant-baseline",
+    "font",
+    "font-feature-settings",
+    "font-kerning",
+    "font-language-override",
+    "font-optical-sizing",
+    "font-palette",
+    "font-size-adjust",
+    "font-stretch",
+    "font-style",
+    "font-synthesis",
+    "font-synthesis-position",
+    "font-synthesis-small-caps",
+    "font-synthesis-style",
+    "font-synthesis-weight",
+    "font-variant",
+    "font-variant-alternates",
+    "font-variant-caps",
+    "font-variant-east-asian",
+    "font-variant-emoji",
+    "font-variant-ligatures",
+    "font-variant-numeric",
+    "font-variant-position",
+    "font-variation-settings",
+    "font-weight",
+    "glyph-orientation-horizontal",
+    "glyph-orientation-vertical",
+    "letter-spacing",
+    "line-height",
+    "tab-size",
+    "text-align",
+    "text-align-last",
+    "text-autospace",
+    "text-combine-upright",
+    "text-decoration",
+    "text-decoration-color",
+    "text-decoration-line",
+    "text-decoration-skip-ink",
+    "text-decoration-style",
+    "text-decoration-thickness",
+    "text-emphasis",
+    "text-emphasis-color",
+    "text-emphasis-position",
+    "text-emphasis-style",
+    "text-indent",
+    "text-orientation",
+    "text-rendering",
+    "text-shadow",
+    "text-transform",
+    "unicode-bidi",
+    "vertical-align",
+    "white-space",
+    "white-space-collapse",
+    "word-spacing",
+    "writing-mode",
+];
+
+/// Presentation attributes that may inherit or otherwise alter a descendant
+/// text run. The direct `<text>` spelling is already guarded by
+/// [`TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED`]; this companion list closes the
+/// ancestor route, where a generic container patrol cannot know that a later
+/// descendant is text.
+const TEXT_ANCESTOR_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
+    "alignment-baseline",
+    "baseline-shift",
+    "direction",
+    "dominant-baseline",
+    "font",
+    "font-size-adjust",
+    "font-stretch",
+    "font-style",
+    "font-variant",
+    "font-weight",
+    "glyph-orientation-horizontal",
+    "glyph-orientation-vertical",
+    "letter-spacing",
+    "text-decoration",
+    "text-rendering",
+    "unicode-bidi",
+    "word-spacing",
+    "writing-mode",
+];
+
 /// Rendering attributes additionally rejected on the root `<svg>`.
 ///
 /// `transform` is admitted on containers and shapes, where it maps user
@@ -1458,6 +1555,199 @@ fn css_declares_property(css: &str, property: &str) -> bool {
     css.split([';', '{', '}'])
         .filter_map(|chunk| chunk.split_once(':'))
         .any(|(name, _)| trim_svg_whitespace(name).eq_ignore_ascii_case(property))
+}
+
+/// The font-size quantizer at the pinned Stylo revision.
+///
+/// This is a patrol shadow only: it never supplies a value to shaping. The
+/// source profile below rejects a direct value whose authored binary32 would
+/// be changed here, before the computed-value read can mistake the bucket for
+/// the author's value. The wider-bin probe at 5120 is the discriminating
+/// witness: an authored 5119 becomes 5120 in this build and painted 149 wrong
+/// pixels while passing the old multiple-of-five check.
+fn pinned_stylo_font_size_quantization(size: f32) -> f32 {
+    const BITS_TO_DROP: u32 = 14;
+    const SCALE_PLUS_ONE: f32 = ((1 << BITS_TO_DROP) + 1) as f32;
+    const LIMIT: f32 = f32::MAX / SCALE_PLUS_ONE;
+    if size >= LIMIT {
+        return LIMIT;
+    }
+    let d = size * SCALE_PLUS_ONE;
+    let t = d - size;
+    d - t
+}
+
+/// Why one authored font-size source is outside the v0 text source profile.
+///
+/// The computed longhand is not enough evidence: its environment is pinned
+/// to a 1280×720 device and placeholder font metrics, and Stylo quantizes the
+/// result before [`compile_text`] reads it. Chromium instead resolves against
+/// the SVG viewport and declared font. Until those environments and source
+/// provenance are carried, this patrol admits only a direct finite
+/// non-negative unitless/`px` value that is invariant under the cascade's
+/// quantizer, plus transparent `inherit`/`unset`. The existing numeric-domain
+/// gate still independently requires the resulting size to be an integer
+/// multiple of five. Every wider unit/value family has its own unchecked
+/// checklist row.
+fn text_font_size_source_refusal(value: &str, allow_unitless: bool) -> Option<String> {
+    let without_comments = strip_css_comments(value);
+    let source = trim_svg_whitespace(&without_comments);
+    let lower = source.to_ascii_lowercase();
+
+    if matches!(lower.as_str(), "inherit" | "unset") {
+        return None;
+    }
+    if let Some(unit) = has_unit_without_a_basis(source) {
+        return Some(format!(
+            "authored font-size basis uses {unit}, which this cascade cannot resolve against the SVG text environment"
+        ));
+    }
+    if lower.contains("var(") {
+        return Some(
+            "authored font-size resolves through var(), whose source provenance this text patrol cannot follow"
+                .to_string(),
+        );
+    }
+    if source.contains('\\') {
+        return Some(
+            "authored font-size carries a CSS escape whose source spelling this text patrol cannot prove"
+                .to_string(),
+        );
+    }
+
+    let number = if let Some(number) = lower.strip_suffix("px") {
+        trim_svg_whitespace(number)
+    } else if allow_unitless {
+        source
+    } else {
+        return Some(format!(
+            "authored font-size {source:?} is outside the direct px source profile"
+        ));
+    };
+    let Some(source_f64) = number.parse::<f64>().ok().filter(|value| value.is_finite()) else {
+        return Some(format!(
+            "authored font-size {source:?} is outside the direct number/px source profile"
+        ));
+    };
+    let Some(source_f32) = number.parse::<f32>().ok().filter(|value| value.is_finite()) else {
+        return Some(format!(
+            "authored font-size {source:?} is outside the finite binary32 source profile"
+        ));
+    };
+    if source_f64 < 0.0 || source_f32 < 0.0 {
+        return Some(format!(
+            "authored font-size {source:?} is negative and outside the text source profile"
+        ));
+    }
+    if f64::from(source_f32) != source_f64 {
+        return Some(format!(
+            "authored font-size {source:?} loses decimal provenance before the numeric-domain check"
+        ));
+    }
+    if pinned_stylo_font_size_quantization(source_f32).to_bits() != source_f32.to_bits() {
+        return Some(format!(
+            "authored font-size {source:?} changes under Stylo font-size quantization before the numeric-domain check"
+        ));
+    }
+    None
+}
+
+/// First text-layout declaration in a CSS fragment that this source profile
+/// cannot honor. A style sheet is deliberately scanned without selector
+/// matching: when a visible text run exists, over-refusing an unrelated rule
+/// is safer than letting a matching rule silently reshape it.
+fn text_css_source_refusal(css: &str) -> Option<String> {
+    let css = strip_css_comments(css);
+    for chunk in css.split([';', '{', '}']) {
+        let Some((name, value)) = chunk.split_once(':') else {
+            continue;
+        };
+        let name = trim_svg_whitespace(name).to_ascii_lowercase();
+        if name.eq_ignore_ascii_case("font-size") {
+            if let Some(reason) = text_font_size_source_refusal(value, false) {
+                return Some(reason);
+            }
+            continue;
+        }
+        if TEXT_CASCADE_PROPERTIES_NOT_CONSUMED.contains(&name.as_str()) {
+            return Some(format!(
+                "text layout property {name} is represented or browser-consumed but not carried by the v0 text oracle"
+            ));
+        }
+    }
+    None
+}
+
+/// Patrol every authored text-semantic ingress before shaping.
+///
+/// Presentation attributes and style declarations inherit down the ancestor
+/// chain. A sheet can match any member of that chain, so it is scanned from
+/// the document root. This is intentionally a refusal patrol, never a second
+/// cascade: the one Stylo cascade still decides every admitted value.
+fn patrol_text_authored_semantics(el: HtmlElement<'_>) -> Result<(), CompileError> {
+    let mut root = el;
+    let mut ancestor = Some(el);
+    while let Some(element) = ancestor {
+        if let Some(value) = get_attr(element, "font-size")
+            && let Some(reason) = text_font_size_source_refusal(&value, true)
+        {
+            return Err(CompileError::UnsupportedStyle(format!("<text> {reason}")));
+        }
+        if let Some(attribute) = TEXT_ANCESTOR_ATTRIBUTES_NOT_CONSUMED
+            .iter()
+            .find(|attribute| get_attr(element, attribute).is_some())
+        {
+            return Err(CompileError::UnsupportedStyle(format!(
+                "text layout presentation attribute {attribute} in the ancestor chain is not carried by the v0 text oracle"
+            )));
+        }
+        if let Some(style) = get_attr(element, "style")
+            && let Some(reason) = text_css_source_refusal(&style)
+        {
+            return Err(CompileError::UnsupportedStyle(format!("<text> {reason}")));
+        }
+        root = element;
+        ancestor = element.traversal_parent();
+    }
+
+    let mut stack = vec![root];
+    while let Some(element) = stack.pop() {
+        if element.local_name_string() == "style" {
+            let mut sheet = String::new();
+            for child_id in &element.dom_node().children {
+                if let DemoNodeData::Text(text) = &element.dom().node(*child_id).data {
+                    sheet.push_str(text);
+                }
+            }
+            if let Some(reason) = text_css_source_refusal(&sheet) {
+                return Err(CompileError::UnsupportedStyle(format!(
+                    "<text> stylesheet {reason}"
+                )));
+            }
+        }
+        let mut child = element.first_element_child();
+        while let Some(c) = child {
+            stack.push(c);
+            child = c.next_element_sibling();
+        }
+    }
+    Ok(())
+}
+
+/// Enforce rung A's final-device numeric domain on the complete local→frame
+/// mapping. The ratified first profile admits identity linear mapping plus an
+/// integer translation only. Checking the composed CTM (not authored
+/// transform syntax) correctly admits cancelling ancestors and includes
+/// viewBox and `<use>` placement in the same decision.
+fn patrol_text_final_ctm(transform: AffineTransform) -> Result<(), CompileError> {
+    let [[a, c, tx], [b, d, ty]] = transform.matrix;
+    let integer_translation = tx.fract() == 0.0 && ty.fract() == 0.0;
+    if a == 1.0 && b == 0.0 && c == 0.0 && d == 1.0 && integer_translation {
+        return Ok(());
+    }
+    Err(CompileError::UnsupportedStyle(format!(
+        "text final CTM {transform:?} is outside the admitted numeric domain; rung A admits only identity linear mapping with integer device translation"
+    )))
 }
 
 /// Patrol an element's authored `style` attribute for a declaration the
@@ -9676,6 +9966,7 @@ fn compile_text(
         RenderDisposition::Renders => {}
         RenderDisposition::HiddenPaint | RenderDisposition::PrunedSubtree => return Ok(None),
     }
+    patrol_text_authored_semantics(el)?;
     // A stroked run strokes glyph outlines, whose edges leave the admitted
     // numeric domain — the byte-exact gate could not hold. It refuses by
     // name rather than painting a fill-only approximation.
@@ -9718,6 +10009,9 @@ fn compile_text(
         }
     }
     let content = crate::svg_text::collapse_whitespace(&raw);
+    if !content.is_empty() {
+        patrol_text_final_ctm(viewport)?;
+    }
 
     let x = geometry_attr_f32(el, "x", values, bases)?.unwrap_or(0.0);
     let y = geometry_attr_f32(el, "y", values, bases)?.unwrap_or(0.0);

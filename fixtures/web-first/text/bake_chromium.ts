@@ -25,8 +25,13 @@ import { dirname, join } from "node:path";
 import { exit } from "node:process";
 import { fileURLToPath } from "node:url";
 
-import { chromium, type Page } from "@playwright/test";
 import { PNG } from "pngjs";
+
+import {
+  captureFirstSvg,
+  deterministicContext,
+  launchDeterministicChromium,
+} from "../chromium_capture";
 
 interface Case {
   id: string;
@@ -46,6 +51,7 @@ const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const DIR = dirname(SCRIPT_PATH);
 const SUITE_PATH = join(DIR, "cases.json");
 const OUT_MANIFEST = join(DIR, "oracle-bake.json");
+const CAPTURE_MODULE = "../chromium_capture.ts";
 
 function sha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
@@ -65,24 +71,6 @@ function withFontDeclared(source: string, family: string, fontDataUrl: string): 
   return source.slice(0, rootEnd + 1) + rule + source.slice(rootEnd + 1);
 }
 
-async function capture(page: Page, fixture: Case, source: string): Promise<Buffer> {
-  await page.setViewportSize({ width: fixture.width, height: fixture.height });
-  const dataUrl = `data:image/svg+xml;base64,${Buffer.from(source).toString("base64")}`;
-  await page.goto(dataUrl, { waitUntil: "load" });
-
-  const svg = page.locator("svg").first();
-  if ((await svg.count()) !== 1) {
-    throw new Error(`${fixture.id}: expected a first <svg> element`);
-  }
-  const box = await svg.boundingBox();
-  if (!box || box.width !== fixture.width || box.height !== fixture.height) {
-    throw new Error(
-      `${fixture.id}: unexpected SVG box ${JSON.stringify(box)}; expected ${fixture.width}x${fixture.height}`,
-    );
-  }
-  return svg.screenshot({ omitBackground: true, type: "png" });
-}
-
 function assertSamePixels(existing: Buffer, fresh: Buffer, id: string): void {
   const a = PNG.sync.read(existing);
   const b = PNG.sync.read(fresh);
@@ -97,6 +85,29 @@ async function main(): Promise<void> {
   if (suite.schema_version !== 1 || suite.cases.length === 0) {
     throw new Error("unsupported or empty text suite");
   }
+  const ids = new Set<string>();
+  const sources = new Set<string>();
+  const oracles = new Set<string>();
+  let previousId = "";
+  for (const fixture of suite.cases) {
+    if (fixture.id <= previousId) {
+      throw new Error("text cases must have unique ids in sorted order");
+    }
+    if (
+      ids.has(fixture.id) ||
+      sources.has(fixture.source) ||
+      oracles.has(fixture.oracle)
+    ) {
+      throw new Error(`${fixture.id}: duplicate id, source, or oracle`);
+    }
+    if (fixture.width <= 0 || fixture.height <= 0) {
+      throw new Error(`${fixture.id}: dimensions must be positive`);
+    }
+    ids.add(fixture.id);
+    sources.add(fixture.source);
+    oracles.add(fixture.oracle);
+    previousId = fixture.id;
+  }
 
   // The font is an identity, not a path: verify before any capture.
   const fontBytes = await readFile(join(DIR, suite.font.path));
@@ -110,20 +121,10 @@ async function main(): Promise<void> {
   const fontDataUrl = `data:font/ttf;base64,${fontBytes.toString("base64")}`;
 
   const scriptBytes = await readFile(SCRIPT_PATH);
-  const browser = await chromium.launch({
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
+  const captureBytes = await readFile(join(DIR, CAPTURE_MODULE));
+  const browser = await launchDeterministicChromium();
   const browserVersion = browser.version();
-  const context = await browser.newContext({
-    javaScriptEnabled: false,
-    viewport: { width: 1280, height: 720 },
-    deviceScaleFactor: 1,
-    colorScheme: "light",
-    locale: "en-US",
-    timezoneId: "UTC",
-  });
-  await context.route("**/*", (route) => route.abort());
-  const page = await context.newPage();
+  const context = await deterministicContext(browser);
 
   const records: unknown[] = [];
   try {
@@ -136,9 +137,21 @@ async function main(): Promise<void> {
         fontDataUrl,
       );
 
-      const first = await capture(page, fixture, declared);
-      const second = await capture(page, fixture, declared);
-      assertSamePixels(first, second, `${fixture.id} (repeat capture)`);
+      const page = await context.newPage();
+      const capture = {
+        media: "image/svg+xml" as const,
+        source: Buffer.from(declared),
+        width: fixture.width,
+        height: fixture.height,
+        label: fixture.id,
+      };
+
+      const first = await captureFirstSvg(page, capture);
+      const second = await captureFirstSvg(page, capture);
+      await page.close();
+      if (!first.equals(second)) {
+        throw new Error(`${fixture.id}: Chromium capture is not byte-deterministic`);
+      }
 
       const decoded = PNG.sync.read(first);
       if (decoded.width !== fixture.width || decoded.height !== fixture.height) {
@@ -152,7 +165,7 @@ async function main(): Promise<void> {
         assertSamePixels(await readFile(oraclePath), first, fixture.id);
       } else {
         await mkdir(dirname(oraclePath), { recursive: true });
-        await writeFile(oraclePath, first);
+        await writeFile(oraclePath, first, { flag: "wx" });
         console.log(`created ${fixture.oracle}`);
       }
 
@@ -162,19 +175,25 @@ async function main(): Promise<void> {
         source_sha256: sha256(sourceBytes),
         oracle: fixture.oracle,
         oracle_sha256: sha256(await readFile(oraclePath)),
+        width: fixture.width,
+        height: fixture.height,
       });
     }
   } finally {
+    await context.close();
     await browser.close();
   }
 
   const manifest = {
+    schema_version: 1,
     kind: "chromium-svg-text-oracle",
     browser_version: browserVersion,
     suite: "cases.json",
     suite_sha256: sha256(suiteBytes),
     bake_script: "bake_chromium.ts",
     bake_script_sha256: sha256(scriptBytes),
+    capture_module: CAPTURE_MODULE,
+    capture_module_sha256: sha256(captureBytes),
     font: {
       family: suite.font.family,
       sha256: suite.font.sha256,

@@ -557,9 +557,9 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete corpus contains 1,051 Chromium-baked cells plus 16 sampled
-  frames, with 197 named
-  refusal rows. `feFlood`, `feComposite`,
+  cells. The complete primitive corpus contains 1,051 Chromium-baked cells plus
+  16 sampled frames; the dedicated exact text suite contains nine cells, and
+  the named refusal register has 204 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -961,18 +961,31 @@ cargo run -p n0_cli --bin n0 -- \
   the resolved frame. `x`, `y`, and the `text-anchor` attribute
   (`start`/`middle`/`end`) place the run; `font-family` and `font-size`
   come from the one cascade, where an author rule beats the presentation
-  attribute exactly as Chromium measured. Geometry is admitted only inside
+  attribute exactly as Chromium measured. Until the source environment is
+  carried more widely, `font-size` admits only a direct finite non-negative
+  unitless presentation value or `px` value that survives the pinned Stylo
+  quantizer unchanged and is an integer multiple of five; `inherit`/`unset`
+  may select the same proved ancestor profile. Viewport-, container-,
+  font-metric-, percentage-, math-, variable-, escaped-, shorthand-, and
+  wider-unit routes refuse by stable text-specific names instead of trusting
+  a computed value whose source basis or precision is gone. Geometry is
+  admitted only inside
   the ratified [numeric domain](../../docs/wg/consolidation/text-oracle.md)
   — integer position, a `font-size` that is an integer multiple of 5, an
-  integer anchor-resolved start — because that is where every rasterizer's
-  per-pixel coverage is 0 or 1 and the byte-exact gate holds; Chromium
+  integer anchor-resolved start, and a complete final CTM with identity linear
+  part plus integer device translation after root mapping, ancestors, and
+  `<use>` placement — because that is where every rasterizer's per-pixel
+  coverage is 0 or 1 and the byte-exact gate holds. Authored transforms that
+  cancel exactly are admitted; any non-identity or fractional final mapping
+  refuses. Chromium
   snaps everything else by a rasterizer-internal rule, and this refuses by
   name instead of codifying it. What refuses by name: the CSS spelling of
   `text-anchor` (Chromium consumes it from the cascade, the pinned Stylo
   build has no such longhand — a silent drop before the rung), a generic
   family (which names no declared font), `<tspan>` and any other element
-  child, `dx`/`dy`/`rotate` lists, `textLength`, decorations, letter and
-  word spacing, writing mode and direction, stroke on text, a colour or
+  child, `dx`/`dy`/`rotate` lists, `textLength`, font shorthands and unconsumed
+  font variants, decorations, letter and word spacing, baselines, writing mode
+  and direction, stroke on text, a colour or
   bitmap face, and any character outside the v0 repertoire. The inline-HTML
   entry declares no fonts, so its `<text>` refuses there.
   `display: none` and `visibility` are consumed from the one cascade

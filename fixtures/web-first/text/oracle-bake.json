@@ -1,10 +1,13 @@
 {
+  "schema_version": 1,
   "kind": "chromium-svg-text-oracle",
   "browser_version": "149.0.7827.55",
   "suite": "cases.json",
-  "suite_sha256": "4f42c9663904c19245c82cb45e2aa2fa2be645500b610b68356501f055db0ccc",
+  "suite_sha256": "e759912cc352c3277f4a5b5c5a37cc19e8860e3146ede5291276473f5c634aff",
   "bake_script": "bake_chromium.ts",
-  "bake_script_sha256": "aaf1c7cfec09de0ec0198a09ad87454083bb2fe43161fa30d739555de7cdff72",
+  "bake_script_sha256": "d4bb830561512c5df8f9a85004a8ae4d83a95a3089514877b7ddc7e9608a79c2",
+  "capture_module": "../chromium_capture.ts",
+  "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
   "font": {
     "family": "Ahem",
     "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
@@ -21,46 +24,85 @@
   },
   "records": [
     {
-      "id": "svg-text-em-box",
-      "source": "svg-text-em-box.svg",
-      "source_sha256": "3d463bebb38e1abfbaf0dea5614d7f173e4a87f098db4a89d1ed28a33ee46605",
-      "oracle": "chromium/svg-text-em-box.png",
-      "oracle_sha256": "6b69103543523c11599830b91b3678054424b217a2dccad1ad804fb261891230"
-    },
-    {
-      "id": "svg-text-space-advance",
-      "source": "svg-text-space-advance.svg",
-      "source_sha256": "3b358d29c23e7ea167e6b42f5576a748b63c1c15c80d89400fb1ad8c889786fe",
-      "oracle": "chromium/svg-text-space-advance.png",
-      "oracle_sha256": "7dfca4d41e5423b26f26eacfd52724baaf79ac6ec3f0c86372813247ad897f8b"
+      "id": "svg-text-anchor-end",
+      "source": "svg-text-anchor-end.svg",
+      "source_sha256": "d047a81c451c7faafb677558bfc953572a9d4251c6c79aa0034520c136ec2ea8",
+      "oracle": "chromium/svg-text-anchor-end.png",
+      "oracle_sha256": "b94018fc32c4f229e4f26919f6db0ba2256e1fc8a339611bfad01dac93ffd92f",
+      "width": 100,
+      "height": 100
     },
     {
       "id": "svg-text-anchor-middle",
       "source": "svg-text-anchor-middle.svg",
       "source_sha256": "e3dae9efd7ebc42055837dbf480b37cf772516d6d471312d48a7054fca11d419",
       "oracle": "chromium/svg-text-anchor-middle.png",
-      "oracle_sha256": "9cbc363093f0d7b5abae57d42f9c2a65f822658e93629fb0bd028f3a2fc895ef"
+      "oracle_sha256": "9cbc363093f0d7b5abae57d42f9c2a65f822658e93629fb0bd028f3a2fc895ef",
+      "width": 100,
+      "height": 100
     },
     {
-      "id": "svg-text-anchor-end",
-      "source": "svg-text-anchor-end.svg",
-      "source_sha256": "d047a81c451c7faafb677558bfc953572a9d4251c6c79aa0034520c136ec2ea8",
-      "oracle": "chromium/svg-text-anchor-end.png",
-      "oracle_sha256": "b94018fc32c4f229e4f26919f6db0ba2256e1fc8a339611bfad01dac93ffd92f"
-    },
-    {
-      "id": "svg-text-whitespace-collapse",
-      "source": "svg-text-whitespace-collapse.svg",
-      "source_sha256": "675bc1bb6642df5a33382235ff81e895cb884af8fe6658a9cc07a96dda5eb769",
-      "oracle": "chromium/svg-text-whitespace-collapse.png",
-      "oracle_sha256": "7dfca4d41e5423b26f26eacfd52724baaf79ac6ec3f0c86372813247ad897f8b"
+      "id": "svg-text-em-box",
+      "source": "svg-text-em-box.svg",
+      "source_sha256": "3d463bebb38e1abfbaf0dea5614d7f173e4a87f098db4a89d1ed28a33ee46605",
+      "oracle": "chromium/svg-text-em-box.png",
+      "oracle_sha256": "6b69103543523c11599830b91b3678054424b217a2dccad1ad804fb261891230",
+      "width": 100,
+      "height": 100
     },
     {
       "id": "svg-text-fill-color",
       "source": "svg-text-fill-color.svg",
       "source_sha256": "5ee5158e8f982c4b6b9c1575878a2e936e5ce7807bce529697aa41be19f2c404",
       "oracle": "chromium/svg-text-fill-color.png",
-      "oracle_sha256": "2594d29f0bde45c6702157b2db9a3ceb319cc3c16214540bab595add3d5b6df6"
+      "oracle_sha256": "2594d29f0bde45c6702157b2db9a3ceb319cc3c16214540bab595add3d5b6df6",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-final-ctm-cancel",
+      "source": "svg-text-final-ctm-cancel.svg",
+      "source_sha256": "3efab5ff3993014632c869c92a9deda604327c2069031588a418cbd28919f45f",
+      "oracle": "chromium/svg-text-final-ctm-cancel.png",
+      "oracle_sha256": "23330139f564fe6e11d0a1b5623343f8211887ac4008ce105b177249f3548228",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-final-integer-ctm",
+      "source": "svg-text-final-integer-ctm.svg",
+      "source_sha256": "c3be57cd07a9d364ace2263fe15b4aab21508dd175268e5eeb3eb10a2e4ff05f",
+      "oracle": "chromium/svg-text-final-integer-ctm.png",
+      "oracle_sha256": "e639ed31bfbf40ce7274891fdd29ebd8b4f343295eb7b093a5f4be95d9cd23e9",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-font-size-cascade",
+      "source": "svg-text-font-size-cascade.svg",
+      "source_sha256": "0496c431682a53816e553d88883a3a479c7096687832eb9449193251ae6bc9b5",
+      "oracle": "chromium/svg-text-font-size-cascade.png",
+      "oracle_sha256": "9f22eaf85472ac914146f533e73acb6de1222bf20ea766639dce32c565df6590",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-space-advance",
+      "source": "svg-text-space-advance.svg",
+      "source_sha256": "3b358d29c23e7ea167e6b42f5576a748b63c1c15c80d89400fb1ad8c889786fe",
+      "oracle": "chromium/svg-text-space-advance.png",
+      "oracle_sha256": "7dfca4d41e5423b26f26eacfd52724baaf79ac6ec3f0c86372813247ad897f8b",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-whitespace-collapse",
+      "source": "svg-text-whitespace-collapse.svg",
+      "source_sha256": "675bc1bb6642df5a33382235ff81e895cb884af8fe6658a9cc07a96dda5eb769",
+      "oracle": "chromium/svg-text-whitespace-collapse.png",
+      "oracle_sha256": "7dfca4d41e5423b26f26eacfd52724baaf79ac6ec3f0c86372813247ad897f8b",
+      "width": 100,
+      "height": 100
     }
   ]
 }

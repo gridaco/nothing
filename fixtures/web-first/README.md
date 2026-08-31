@@ -15,9 +15,13 @@ work: [docs/wg/consolidation/web-first.md](../../docs/wg/consolidation/web-first
 defines it, and `fixtures/test-svg/` and `fixtures/test-html/` hold the **legacy**
 renderer's corpora, which is the distinction this directory name carries.
 
-Every cell here is a closed enumeration in `primitives.json` with a committed
-Chromium oracle beside it, and the gate is byte equality: what the corpus admits
-is exactly what the engine renders pixel-for-pixel.
+Every root primitive here is a closed enumeration in `primitives.json` with a
+committed Chromium oracle beside it. Text follows the ratified corpus-growth
+law in its own closed [nine-cell suite](./text/README.md). The current evidence
+estate is 1,051 primitive cells plus 16 sampled frames, nine exact text cells,
+and 204 named refusal rows. The gate is byte equality: what each corpus admits
+is exactly what the engine renders pixel-for-pixel, except only the primitive
+rows carrying an explicit measured tolerance block.
 
 | File | Role |
 | --- | --- |
@@ -381,19 +385,21 @@ elsewhere in this table.
 ## Tooling
 
 The loop's per-rung commands live in this directory's `justfile` (`just -l`):
-`bake` (create missing oracles, verify every existing one pixel-for-pixel),
-`gate` (the engine reftest over every cell — byte-exact except the declared
-tolerance rows), `status` (regenerate
+`bake` (create missing primitive oracles, verify every existing one
+pixel-for-pixel), `gate` (primitive pixels, exact text pixels/contracts, and
+the named refusal register), `text-bake` / `text-gate` (the focused text
+twins), `status` (regenerate
 [STATUS.md](./STATUS.md)), `add <id> <source> [entry]` (register a fixture with
 a sorted manifest entry, defaulting to `standalone-svg` and accepting
-`html-inline-svg`, while refusing overwrites), and `probe <script>` (run a
-scratch probe).
+`html-inline-svg`, while refusing overwrites), `text-add <id> <source>` (the
+same never-overwrite registration for the dedicated 100×100 text suite), and
+`probe <script>` (run a scratch probe).
 
 The Chromium capture posture lives in **one module**,
-[`chromium_capture.ts`](./chromium_capture.ts), imported by both the baker and
+[`chromium_capture.ts`](./chromium_capture.ts), imported by both bakers and
 [`probe_harness.ts`](./probe_harness.ts) — so a probe measures under exactly
 the conditions the cells bake under, and the posture cannot silently drift:
-`oracle-bake.json` records the module's sha256 and the Rust gate refuses a
+each `oracle-bake.json` records the module's sha256 and the Rust gates refuse a
 stale one. Probe *matrices* stay scratch and are never committed; a probe is a
 question asked once, and what it proves lands as cells and README rows, not as
 a shadow corpus. The pre-landing verification ritual is the saved

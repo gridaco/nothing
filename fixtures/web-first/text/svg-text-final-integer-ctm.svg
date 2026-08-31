@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="-5 0 100 100" preserveAspectRatio="none">
+  <defs>
+    <text id="instance" x="60" y="60" font-family="Ahem" font-size="15" fill="#7c3aed" style="-webkit-font-smoothing:none">X</text>
+  </defs>
+  <text x="0" y="60" transform="translate(5 0)" font-family="Ahem" font-size="15" fill="#111827" style="-webkit-font-smoothing:none">X</text>
+  <g transform="translate(5 0)">
+    <text x="20" y="60" font-family="Ahem" font-size="15" fill="#dc2626" style="-webkit-font-smoothing:none">X</text>
+  </g>
+  <text x="40" y="60" font-family="Ahem" font-size="15" fill="#16a34a" style="-webkit-font-smoothing:none">X</text>
+  <use href="#instance" x="5"/>
+</svg>

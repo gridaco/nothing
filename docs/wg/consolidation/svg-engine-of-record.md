@@ -84,20 +84,24 @@ from the dated addenda below:
   and tangent orientation, marker unit/viewBox/reference mapping, hard marker
   viewport clips, solid/context-solid source programs, `<use>` clients, and
   client transform/opacity/clip/mask/filter composition;
-  one declared-font, single-run `<text>` profile; viewBox-only root sizing with
-  the full `preserveAspectRatio` grammar; and one exact-time
+  one declared-font, single-run `<text>` profile, with direct invariant
+  number/`px` size sources and a final identity-linear, integer-translation
+  device mapping after root, ancestor, and instance composition; viewBox-only
+  root sizing with the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`, including a client
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,051 Chromium-baked primitive cells plus 16 sampled frames.
+- **The corpus** is 1,051 Chromium-baked primitive cells plus 16 sampled frames,
+  with a separate nine-cell exact Ahem text suite under the ratified text
+  corpus-growth law.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 197 rows.
+  register has 204 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -4557,3 +4561,88 @@ separate fact returned the complete 1,051-cell gate to green. The former
 line-coverage refusal graduates, moving the named register from 198 to 197
 rows. The sixteen sampled frames and 453-cell filter estate are unchanged. No
 conformance score was produced, and no FLIP record, rule, or baseline changed.
+
+## Rung: SVG text authored-source and final-device safety fence (2026-08-31)
+
+The verdict is SAFETY SPLIT: T1 of the
+[text epic](https://github.com/gridaco/nothing/issues/69) is complete, but no
+checklist row closes. The existing one-face, one-run text profile remains a
+proving slice. This rung removes silent wrong pixels at its inputs and final
+mapping before the profile grows to real-font geometry; it does not claim the
+full `<text>`, `font-size`, font, baseline, spacing, writing-mode, decoration,
+or transform grammar.
+
+The first crux was lost size provenance. A computed `font-size` did not state
+the environment or arithmetic that produced it. At the pinned cascade,
+viewport units are resolved against a fixed 1280×720 device rather than the SVG
+viewport, font-metric units use placeholder metrics rather than the declared
+face, and the value is quantized before the text profile reads it. Chromium
+reaches its used value through the document's own viewport and font
+environment. Both strict and best-effort admission therefore emitted clean but
+wrong text for valid authored sources.
+
+The widened quantization bucket is the smallest witness. Authored `5119px`
+became the computed `5120px`, passed the former integer-multiple-of-five check,
+and changed 149 pixels at maximum channel delta 255 against Chromium. The same
+149-pixel difference reproduced through percentage, `em`, and absolute-unit
+sources resolving to 5119. Viewport-, container-, and font-metric-relative
+sources exposed a second systemic class: the `3.125vw` ingress family reached
+1,591 wrong pixels at delta 255; stylesheet `vmin`, mixed `calc()`/`vw`, `2ex`,
+`2ch`, and `25cqw` witnesses changed 391, 398, 624, 1,200, and 225 pixels. Each
+candidate was captured twice in Chromium 149.0.7827.55 and rendered through
+both actual command admissions (measured, not celled).
+
+The admitted source contract is now intentionally narrow. A size must be a
+direct finite non-negative unitless presentation value or `px` value whose
+binary32 value survives the pinned cascade's quantizer unchanged and is an
+integer multiple of five. `inherit` and `unset` may transparently select the
+same proved ancestor profile. Percentages, wider units, CSS math, custom
+properties, escaped spellings, shorthands, and wider CSS-wide behavior refuse
+by text-specific source name. This is a one-way patrol around the one cascade:
+it never computes a replacement value and adds no matcher.
+
+The second crux was the domain boundary. The ratified Ahem method promises
+integral glyph-box edges in final device space, but the previous gate checked
+only local position, size, and anchor. Fractional translation through the text,
+a group, or `<use>` changed 40 pixels at maximum delta 128. A 1.1 scale changed
+44 pixels at delta 103, a 45-degree rotation 107 at delta 255, and a skew 40 at
+delta 64. The safety contract now judges the completely composed mapping after
+root `viewBox`, ancestors, the text itself, and instance placement. Its first
+profile admits an identity linear part plus integer device translation.
+Authored scale or fractional translation that cancels exactly is admitted,
+because the final mapping—not syntax—is the promise (measured, not celled
+except for the positive cells below).
+
+The required shorthand audit found a third leak beside size. The v0 run reads
+family, size, position, anchor, fill, and the admitted effect envelope, but
+other browser-consumed text and font declarations were computing and then
+disappearing. Chromium's italic `font` shorthand changed 68 pixels,
+`letter-spacing` 200, vertical writing mode 1,520, and dominant baseline 320,
+all at maximum delta 255. Direct, inherited-ancestor, and stylesheet ingresses
+now refuse at the affected text node. The scan is deliberately conservative
+when selector attribution is unavailable and likewise supplies no cascade
+value (measured, not celled).
+
+Three new Chromium cells carry the admitted half, all exact-byte and repeated:
+the direct/inline/stylesheet/inherited size-source crossing; integer root,
+text, group, and `<use>` translations; and final-CTM scale/fractional-
+translation cancellation. The dedicated text suite moves from six to nine
+cells and now hash-pins its closed enumeration, baker, the one shared Chromium
+capture module, every source, and every oracle. Its add/bake/gate commands
+refuse overwrites and are also included in the comprehensive fixture gate.
+
+Seven focused unsupported-corpus rows carry size basis, direct-source
+quantization, variable/escape provenance, final mapping, and unconsumed
+layout/shorthand semantics. Strict refuses on the text; best effort removes
+that run and declares the same stable reason at its structural path. The named
+register moves from 197 to 204 rows. The primitive corpus remains 1,051 cells
+plus 16 sampled frames and the filter estate remains 453 cells.
+
+Gate sensitivity was proved by temporarily bypassing the final-mapping fence.
+`just gate` then accepted a fractional-translation frame and failed the
+committed numeric-domain contract loudly. Restoring the fence returned all
+primitive cells, nine text cells, and 204 refusal rows to green. The next text
+checkpoint is the real-font artifact-geometry gate described by the ratified
+[text-oracle method](./text-oracle.md); it does not depend on ambient font
+discovery. No conformance score was produced, and no FLIP record, rule, or
+baseline changed.
