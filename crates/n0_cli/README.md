@@ -559,7 +559,7 @@ cargo run -p n0_cli --bin n0 -- \
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
   cells. The complete primitive corpus contains 1,051 Chromium-baked cells plus
   16 sampled frames; the dedicated exact text suite contains nine cells, and
-  the named refusal register has 204 rows. `feFlood`, `feComposite`,
+  the named refusal register has 206 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -958,8 +958,9 @@ cargo run -p n0_cli --bin n0 -- \
   profile — one style run of printable ASCII, horizontal and
   left-to-right, no wrapping and no fallback — and its glyph outlines lower
   to the contract's ordinary path facts, so no font identity crosses into
-  the resolved frame. `x`, `y`, and the `text-anchor` attribute
-  (`start`/`middle`/`end`) place the run; `font-family` and `font-size`
+  the resolved frame. `x`, `y`, and a direct `text-anchor` attribute
+  (`start`/`middle`/`end`) place the run; inherited ancestor spellings refuse
+  until anchor has one computed route. `font-family` and `font-size`
   come from the one cascade, where an author rule beats the presentation
   attribute exactly as Chromium measured. Until the source environment is
   carried more widely, `font-size` admits only a direct finite non-negative
@@ -981,7 +982,8 @@ cargo run -p n0_cli --bin n0 -- \
   snaps everything else by a rasterizer-internal rule, and this refuses by
   name instead of codifying it. What refuses by name: the CSS spelling of
   `text-anchor` (Chromium consumes it from the cascade, the pinned Stylo
-  build has no such longhand — a silent drop before the rung), a generic
+  build has no such longhand — a silent drop before the rung), inherited
+  `text-anchor` presentation attributes, a generic
   family (which names no declared font), `<tspan>` and any other element
   child, `dx`/`dy`/`rotate` lists, `textLength`, font shorthands and unconsumed
   font variants, decorations, letter and word spacing, baselines, writing mode

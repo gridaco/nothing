@@ -98,9 +98,13 @@ text/group/`<use>` translations changed 40 pixels at delta 128; a 1.1 scale,
 45-degree rotation, and skew changed 44/103, 107/255, and 40/64. The same audit
 found ignored text semantics: italic `font` shorthand changed 68 pixels,
 `letter-spacing` 200, vertical writing mode 1,520, and dominant baseline 320,
-all at delta 255. These are scratch measurements, **not cells**; seven registered
-unsupported-corpus rows guard their source classes. The three admitted cells
-above carry only the exact positive branches.
+all at delta 255. A post-review probe found two more silent source legs: a
+quoted `/*` string hid a later `5119px` declaration and reproduced the
+149-pixel/delta-255 quantization error, while inherited `text-anchor="end"`
+silently became `start` and changed 1,400 pixels at delta 255. These are scratch
+measurements, **not cells**; nine registered unsupported-corpus rows guard their
+source classes. The three admitted cells above carry only the exact positive
+branches.
 
 Temporarily bypassing the final-CTM patrol made `just gate` accept the
 fractional-translation frame and fail loudly in the committed text contract.

@@ -1187,10 +1187,10 @@ const TEXT_CASCADE_PROPERTIES_NOT_CONSUMED: &[&str] = &[
 ];
 
 /// Presentation attributes that may inherit or otherwise alter a descendant
-/// text run. The direct `<text>` spelling is already guarded by
-/// [`TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED`]; this companion list closes the
-/// ancestor route, where a generic container patrol cannot know that a later
-/// descendant is text.
+/// text run. A direct `<text>` spelling is either consumed (`text-anchor`) or
+/// guarded by [`TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED`]; this companion list
+/// closes only the ancestor route, where a generic container patrol cannot
+/// know that a later descendant is text.
 const TEXT_ANCESTOR_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "alignment-baseline",
     "baseline-shift",
@@ -1205,6 +1205,7 @@ const TEXT_ANCESTOR_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "glyph-orientation-horizontal",
     "glyph-orientation-vertical",
     "letter-spacing",
+    "text-anchor",
     "text-decoration",
     "text-rendering",
     "unicode-bidi",
@@ -1657,6 +1658,23 @@ fn text_font_size_source_refusal(value: &str, allow_unitless: bool) -> Option<St
 /// matching: when a visible text run exists, over-refusing an unrelated rule
 /// is safer than letting a matching rule silently reshape it.
 fn text_css_source_refusal(css: &str) -> Option<String> {
+    // This patrol is intentionally a classifier, not a second CSS parser. An
+    // escape can hide a property name or value token, and a comment opener in
+    // quoted text is data to the CSS tokenizer but would fool the coarse
+    // comment stripper below into deleting later declarations. Reject both
+    // ambiguous source shapes before scanning; every direction is one-way.
+    if css.contains('\\') {
+        return Some(
+            "text CSS carries an escape whose property and value identities this patrol cannot prove"
+                .to_string(),
+        );
+    }
+    if (css.contains('\'') || css.contains('"')) && (css.contains("/*") || css.contains("*/")) {
+        return Some(
+            "text CSS mixes quoted text and CSS comment delimiters, which this source patrol cannot classify"
+                .to_string(),
+        );
+    }
     let css = strip_css_comments(css);
     for chunk in css.split([';', '{', '}']) {
         let Some((name, value)) = chunk.split_once(':') else {
@@ -1693,9 +1711,10 @@ fn patrol_text_authored_semantics(el: HtmlElement<'_>) -> Result<(), CompileErro
         {
             return Err(CompileError::UnsupportedStyle(format!("<text> {reason}")));
         }
-        if let Some(attribute) = TEXT_ANCESTOR_ATTRIBUTES_NOT_CONSUMED
-            .iter()
-            .find(|attribute| get_attr(element, attribute).is_some())
+        if element.node_id() != el.node_id()
+            && let Some(attribute) = TEXT_ANCESTOR_ATTRIBUTES_NOT_CONSUMED
+                .iter()
+                .find(|attribute| get_attr(element, attribute).is_some())
         {
             return Err(CompileError::UnsupportedStyle(format!(
                 "text layout presentation attribute {attribute} in the ancestor chain is not carried by the v0 text oracle"

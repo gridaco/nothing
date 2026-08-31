@@ -895,6 +895,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     // rather than reaching for an ambient face, so there is no tofu and no
     // machine-local pixel anywhere on this path.
     (
+        "svg-text-anchor-inherited",
+        DeclaredByBestEffort,
+        "text-anchor",
+    ),
+    (
         "svg-text-css-layout",
         DeclaredByBestEffort,
         "letter-spacing",
@@ -909,6 +914,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "svg-text-font-size-basis",
         DeclaredByBestEffort,
         "font-size basis",
+    ),
+    (
+        "svg-text-font-size-comment-string",
+        DeclaredByBestEffort,
+        "quoted text and CSS comment delimiters",
     ),
     (
         "svg-text-font-size-escape",

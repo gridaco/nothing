@@ -711,7 +711,9 @@ excluded.
 > narrowly proved CSS `font-size` source profile: direct finite non-negative
 > `px` declarations that survive the pinned Stylo quantizer unchanged and are
 > integer multiples of five, including inline style, author-sheet precedence,
-> and transparent inheritance. The full listed grammar remains open:
+> and transparent inheritance. The separate SVG presentation-attribute route
+> additionally admits unitless numbers; non-zero unitless CSS declarations are
+> not CSS `font-size` values. The full listed grammar remains open:
 > percentages, wider units, math, variables, escapes, CSS-wide behavior, and
 > shorthand interaction are guarded source families rather than supported
 > values. The `font` shorthand and every represented font fact the v0 run does
@@ -1925,9 +1927,12 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > authored `5119px` formerly became `5120px` in pinned Stylo and changed 149
 > Chromium pixels at maximum channel delta 255 while passing the old local
 > multiple-of-five check. Viewport/container/font-metric bases and hidden
-> source spellings exposed further silent differences. Seven new refusal rows
-> quarantine those classes, final non-integer/non-identity CTMs, and
-> unconsumed text CSS in both admissions. The register moves from 197 to 204;
+> source spellings exposed further silent differences. A quoted CSS comment
+> opener later reproduced the 149-pixel alias, and inherited `text-anchor`
+> silently selected `start` instead of Chromium's `end`, changing 1,400 pixels
+> at delta 255. Nine new refusal rows quarantine those classes, final
+> non-integer/non-identity CTMs, inherited anchor, and unconsumed text CSS in
+> both admissions. The register moves from 197 to 206;
 > the primitive corpus remains 1,051 cells plus 16 sampled frames, and the
 > separate text suite moves from six to nine exact cells. The full SVG
 > presentation-attribute grammar remains open, so no font/text row ticks.

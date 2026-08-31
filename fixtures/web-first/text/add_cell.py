@@ -35,8 +35,11 @@ def main() -> None:
         sys.exit("refused: dimensions must be positive")
 
     body = sys.stdin.read() if args.source == "-" else Path(args.source).read_text()
-    if "<svg" not in body or "<text" not in body:
-        sys.exit("refused: a text cell needs both <svg> and <text>")
+    root_end = body.find(">")
+    if root_end < 0 or "<svg" not in body[:root_end]:
+        sys.exit("refused: a text cell must open with an <svg> root element")
+    if "<text" not in body[root_end + 1 :]:
+        sys.exit("refused: a text cell needs a <text> descendant")
     if "@font-face" in body or "data:font" in body:
         sys.exit("refused: the font is the declared bake environment, not fixture bytes")
     if not body.endswith("\n"):

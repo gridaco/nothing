@@ -101,7 +101,7 @@ from the dated addenda below:
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 204 rows.
+  register has 206 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -4592,6 +4592,14 @@ sources exposed a second systemic class: the `3.125vw` ingress family reached
 candidate was captured twice in Chromium 149.0.7827.55 and rendered through
 both actual command admissions (measured, not celled).
 
+A post-review source audit found the same quantization error hidden after a
+custom-property string containing the literal `/*`. Chromium treats the opener
+as string data and then applies the later `font-size: 5119px`; the coarse patrol
+formerly erased the tail as if it were a comment, so both admissions again
+painted the `5120px` result. The witness changed 149 pixels at maximum delta
+255. Text CSS now conservatively refuses escapes and any quoted/comment-
+delimiter mixture before the one-way declaration scan (measured, not celled).
+
 The admitted source contract is now intentionally narrow. A size must be a
 direct finite non-negative unitless presentation value or `px` value whose
 binary32 value survives the pinned cascade's quantizer unchanged and is an
@@ -4623,6 +4631,14 @@ now refuse at the affected text node. The scan is deliberately conservative
 when selector attribution is unavailable and likewise supplies no cascade
 value (measured, not celled).
 
+The same audit closed the anchor-inheritance leg. A direct `text-anchor`
+attribute is consumed by the v0 run, but the pinned cascade has no corresponding
+longhand. Chromium therefore inherited `text-anchor="end"` from an ancestor
+while this compiler silently used `start`, changing 1,400 pixels at maximum
+delta 255. Ancestor presentation attributes now refuse at the text node; direct
+attributes remain admitted, and CSS declarations retain their existing
+missing-longhand patrol (measured, not celled).
+
 Three new Chromium cells carry the admitted half, all exact-byte and repeated:
 the direct/inline/stylesheet/inherited size-source crossing; integer root,
 text, group, and `<use>` translations; and final-CTM scale/fractional-
@@ -4631,18 +4647,21 @@ cells and now hash-pins its closed enumeration, baker, the one shared Chromium
 capture module, every source, and every oracle. Its add/bake/gate commands
 refuse overwrites and are also included in the comprehensive fixture gate.
 
-Seven focused unsupported-corpus rows carry size basis, direct-source
-quantization, variable/escape provenance, final mapping, and unconsumed
-layout/shorthand semantics. Strict refuses on the text; best effort removes
-that run and declares the same stable reason at its structural path. The named
-register moves from 197 to 204 rows. The primitive corpus remains 1,051 cells
-plus 16 sampled frames and the filter estate remains 453 cells.
+Nine focused unsupported-corpus rows carry size basis, direct-source
+quantization, quoted-comment/escape provenance, final mapping, inherited
+anchor, and unconsumed layout/shorthand semantics. Strict refuses on the text;
+best effort removes that run and declares the same stable reason at its
+structural path. The named register moves from 197 to 206 rows. The primitive
+corpus remains 1,051 cells plus 16 sampled frames and the filter estate remains
+453 cells.
 
-Gate sensitivity was proved by temporarily bypassing the final-mapping fence.
-`just gate` then accepted a fractional-translation frame and failed the
-committed numeric-domain contract loudly. Restoring the fence returned all
-primitive cells, nine text cells, and 204 refusal rows to green. The next text
-checkpoint is the real-font artifact-geometry gate described by the ratified
+Gate sensitivity was proved in two passes. Temporarily bypassing the
+final-mapping fence made `just gate` accept a fractional-translation frame and
+fail the committed numeric-domain contract loudly. Independently bypassing the
+quoted-comment and ancestor-attribute guards failed their focused source
+contracts. Restoring all three fences returned every primitive cell, nine text
+cells, and 206 refusal rows to green. The next text checkpoint is the real-font
+artifact-geometry gate described by the ratified
 [text-oracle method](./text-oracle.md); it does not depend on ambient font
 discovery. No conformance score was produced, and no FLIP record, rule, or
 baseline changed.

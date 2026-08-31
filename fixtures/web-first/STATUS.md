@@ -1080,7 +1080,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (204)
+## The refusal register (206)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -1276,10 +1276,12 @@ its row into the cells above.
 | `svg-stroke-width-percentage-precision-alias` | declared | skipped svg/path[1]: unsupported stroke value "stroke-width percentage precision alias loses Chromium used-value provenance" |
 | `svg-stroke-width-var` | declared | declaration ignored at svg/style[1]: a stylesheet declares a stroke-width through var(), an indirection this patrol cannot follow; elements it matches may render at the wrong width |
 | `svg-switch` | declared | skipped svg/switch[1]: unsupported element <switch> |
+| `svg-text-anchor-inherited` | declared | skipped svg/g[1]/text[1]: unsupported computed style: text layout presentation attribute text-anchor in the ancestor chain is not carried by the v0 text oracle |
 | `svg-text-css-layout` | declared | skipped svg/text[1]: unsupported computed style: <text> text layout property letter-spacing is represented or browser-consumed but not carried by the v0 text oracle |
 | `svg-text-final-ctm` | declared | skipped svg/text[1]: unsupported computed style: text final CTM AffineTransform { matrix: [[1.0, 0.0, 0.5], [0.0, 1.0, 0.0]] } is outside the admitted numeric domain; rung A admits only identity linear mapping with integer device translation |
 | `svg-text-font-shorthand` | declared | skipped svg/text[1]: unsupported computed style: <text> text layout property font is represented or browser-consumed but not carried by the v0 text oracle |
 | `svg-text-font-size-basis` | declared | skipped svg/text[1]: unsupported computed style: <text> authored font-size basis uses vw, which this cascade cannot resolve against the SVG text environment |
+| `svg-text-font-size-comment-string` | declared | skipped svg/text[1]: unsupported computed style: <text> text CSS mixes quoted text and CSS comment delimiters, which this source patrol cannot classify |
 | `svg-text-font-size-escape` | declared | skipped svg/text[1]: unsupported computed style: <text> authored font-size carries a CSS escape whose source spelling this text patrol cannot prove |
 | `svg-text-font-size-source` | declared | skipped svg/text[1]: unsupported computed style: <text> authored font-size "5119px" changes under Stylo font-size quantization before the numeric-domain check |
 | `svg-text-font-size-var` | declared | skipped svg/text[1]: unsupported computed style: <text> authored font-size resolves through var(), whose source provenance this text patrol cannot follow |

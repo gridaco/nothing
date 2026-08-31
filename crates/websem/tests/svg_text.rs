@@ -367,6 +367,14 @@ fn authored_font_size_sources_are_guarded_before_shaping() {
             r##"<text x="10" y="60" style="font:20px Ahem" fill="#000">X</text>"##,
             "text layout property font",
         ),
+        (
+            r##"<text x="-5070" y="4096" font-family="Ahem" fill="#000" style="--sentinel:'/*';font-size:5119px">X</text>"##,
+            "quoted text and CSS comment delimiters",
+        ),
+        (
+            r##"<text x="-5070" y="4096" font-family="Ahem" fill="#000" style="font-\73 ize:5119px">X</text>"##,
+            "font-\\73 ize",
+        ),
     ] {
         let source = svg(body);
         let error = compile(&source).expect_err("unproved font-size source must refuse");
@@ -432,6 +440,10 @@ fn unconsumed_text_layout_css_refuses_at_the_text_node() {
         (
             r##"<g style="dominant-baseline:middle"><text x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X</text></g>"##,
             "dominant-baseline",
+        ),
+        (
+            r##"<g text-anchor="end"><text x="90" y="60" font-family="Ahem" font-size="20" fill="#000">XXX</text></g>"##,
+            "text-anchor",
         ),
     ] {
         let source = svg(body);

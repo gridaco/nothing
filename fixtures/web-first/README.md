@@ -19,7 +19,7 @@ Every root primitive here is a closed enumeration in `primitives.json` with a
 committed Chromium oracle beside it. Text follows the ratified corpus-growth
 law in its own closed [nine-cell suite](./text/README.md). The current evidence
 estate is 1,051 primitive cells plus 16 sampled frames, nine exact text cells,
-and 204 named refusal rows. The gate is byte equality: what each corpus admits
+and 206 named refusal rows. The gate is byte equality: what each corpus admits
 is exactly what the engine renders pixel-for-pixel, except only the primitive
 rows carrying an explicit measured tolerance block.
 
