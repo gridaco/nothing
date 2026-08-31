@@ -6540,6 +6540,7 @@ dependencies = [
  "math2",
  "n0",
  "rframe",
+ "rustybuzz",
  "serde",
  "serde_json",
  "sha2",

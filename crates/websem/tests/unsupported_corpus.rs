@@ -16,6 +16,9 @@
 //! attributable and best-effort declares it by name at a stable path. There is
 //! no third outcome, and a fixture that started rendering would land in it.
 
+#[path = "support/fixture_fonts.rs"]
+mod fixture_fonts;
+
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -932,6 +935,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     ),
     ("svg-text-font-size-var", DeclaredByBestEffort, "var()"),
     (
+        "svg-text-geometry-grid",
+        DeclaredByBestEffort,
+        "Chromium SVG text query",
+    ),
+    (
         "svg-text-undeclared-font",
         DeclaredByBestEffort,
         "not in the declared environment",
@@ -992,9 +1000,13 @@ fn every_unsupported_fixture_departs_by_name_in_both_admissions() {
         let source = fs::read_to_string(corpus_root().join(format!("{id}.svg")))
             .unwrap_or_else(|error| panic!("{id}: read: {error}"));
 
-        let strict = SvgFrameSource::from_standalone_svg(source.as_str(), viewport())
-            .err()
-            .unwrap_or_else(|| panic!("{id}: strict must refuse an unsupported fixture"));
+        let strict = SvgFrameSource::from_standalone_svg_with_fonts(
+            source.as_str(),
+            viewport(),
+            fixture_fonts::unsupported_environment(id),
+        )
+        .err()
+        .unwrap_or_else(|| panic!("{id}: strict must refuse an unsupported fixture"));
         assert!(
             strict.to_string().contains(named),
             "{id}: the strict refusal must name {named:?}; got {strict}"
@@ -1002,21 +1014,27 @@ fn every_unsupported_fixture_departs_by_name_in_both_admissions() {
 
         match departure {
             BothRefuse => {
-                let best =
-                    SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport())
-                        .err()
-                        .unwrap_or_else(|| {
-                            panic!("{id}: a document-level contract refuses in both admissions")
-                        });
+                let best = SvgFrameSource::from_standalone_svg_best_effort_with_fonts(
+                    source.as_str(),
+                    viewport(),
+                    fixture_fonts::unsupported_environment(id),
+                )
+                .err()
+                .unwrap_or_else(|| {
+                    panic!("{id}: a document-level contract refuses in both admissions")
+                });
                 assert!(
                     best.to_string().contains(named),
                     "{id}: the best-effort refusal must name {named:?}; got {best}"
                 );
             }
             DeclaredByBestEffort => {
-                let best =
-                    SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport())
-                        .unwrap_or_else(|error| panic!("{id}: best-effort compiles: {error}"));
+                let best = SvgFrameSource::from_standalone_svg_best_effort_with_fonts(
+                    source.as_str(),
+                    viewport(),
+                    fixture_fonts::unsupported_environment(id),
+                )
+                .unwrap_or_else(|error| panic!("{id}: best-effort compiles: {error}"));
                 let declared: Vec<&websem::Degradation> = best
                     .degradations()
                     .iter()

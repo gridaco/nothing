@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "kind": "chromium-svg-text-geometry-oracle",
+  "browser_version": "149.0.7827.55",
+  "suite": "cases.json",
+  "suite_sha256": "751b945bf5d084c633071bc9a1dfc46e38dc9154f4449ec26b18c6afc42c5c9c",
+  "bake_script": "bake_chromium.ts",
+  "bake_script_sha256": "c77d4d047d93357958382b64d52eafb6fb03311c699233e7c34ead4e306b3196",
+  "capture_module": "../../chromium_capture.ts",
+  "capture_module_sha256": "c66ee93e4f96d4f5c169254181d7cda14bb4254e07d65f64dec7f32f5bdcb296",
+  "font": {
+    "family": "Allerta",
+    "sha256": "16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b",
+    "face_index": 0,
+    "license_sha256": "f81e6bb77d9f3f302d6264545b8abcd09dda0827fb4b62cf811ed59d6fd3a968",
+    "declaration": "inline @font-face injected by the shared capture module"
+  },
+  "capture_policy": {
+    "viewport": "the fixture's declared size as the initial viewport",
+    "device_scale_factor": 1,
+    "javascript": "enabled only for harness-owned SVGTextContentElement measurement; fixtures contain no script",
+    "network": "aborted",
+    "index_unit": "UTF-16 code unit, per SVGTextContentElement",
+    "apis": [
+      "getNumberOfChars",
+      "getComputedTextLength",
+      "getSubStringLength",
+      "getStartPositionOfChar",
+      "getEndPositionOfChar",
+      "getExtentOfChar",
+      "getRotationOfChar"
+    ],
+    "comparison": "JSON number -> IEEE-754 binary64; artifact binary32 promoted to binary64; exact equality, no tolerance",
+    "fresh_measurements_per_case": 2
+  },
+  "records": [
+    {
+      "id": "svg-text-allerta-geometry",
+      "source": "svg-text-allerta-geometry.svg",
+      "source_sha256": "efe59a9377fd45559ab9cd5299b55a9e0a2b15b841bf85030a0309d619a4078e",
+      "oracle": "chromium/svg-text-allerta-geometry.json",
+      "oracle_sha256": "5bdd572e763f87fae10cccfc9b5e5cb3ad57a41ee8bcbd10c3a05c2d7af4a385",
+      "width": 1200,
+      "height": 500
+    }
+  ]
+}

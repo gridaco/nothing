@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "font": {
+    "family": "Allerta",
+    "path": "../../../fonts/Allerta/Allerta-Regular.ttf",
+    "sha256": "16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b",
+    "face_index": 0,
+    "license": "../../../fonts/Allerta/OFL.txt",
+    "license_sha256": "f81e6bb77d9f3f302d6264545b8abcd09dda0827fb4b62cf811ed59d6fd3a968"
+  },
+  "cases": [
+    {
+      "id": "svg-text-allerta-geometry",
+      "source": "svg-text-allerta-geometry.svg",
+      "oracle": "chromium/svg-text-allerta-geometry.json",
+      "width": 1200,
+      "height": 500,
+      "text": "Hxi",
+      "x": "4300",
+      "y": "4080",
+      "text_anchor": "middle",
+      "font_family": "Allerta",
+      "font_size": "5120",
+      "fill": "#111827",
+      "font_facts": {
+        "units_per_em": 1024,
+        "glyphs": [
+          {
+            "source_utf8_byte": 0,
+            "source_utf16_index": 0,
+            "scalar": "H",
+            "glyph_id": 42,
+            "cluster": 0
+          },
+          {
+            "source_utf8_byte": 1,
+            "source_utf16_index": 1,
+            "scalar": "x",
+            "glyph_id": 88,
+            "cluster": 1
+          },
+          {
+            "source_utf8_byte": 2,
+            "source_utf16_index": 2,
+            "scalar": "i",
+            "glyph_id": 73,
+            "cluster": 2
+          }
+        ],
+        "ink_bounds": {
+          "x": 470.0,
+          "y": -4080.0,
+          "width": 7765.0,
+          "height": 4080.0
+        }
+      }
+    }
+  ]
+}

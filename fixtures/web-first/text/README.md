@@ -1,15 +1,19 @@
 # The text cell suite
 
-Chromium-baked cells for the `<text>` slice on the SVG engine of record
-(`websem → rframe → n0`), gated byte-exact by
-[`crates/websem/tests/svg_text.rs`](../../../crates/websem/tests/svg_text.rs).
+Chromium-baked evidence for the `<text>` slice on the SVG engine of record
+(`websem → rframe → n0`). Nine Ahem cells are gated byte-exact by
+[`crates/websem/tests/svg_text.rs`](../../../crates/websem/tests/svg_text.rs);
+one real-font artifact witness is gated numerically, before rasterization, by
+[`crates/websem/tests/svg_text_geometry.rs`](../../../crates/websem/tests/svg_text_geometry.rs).
 The method these cells enforce is the ratified
 [text-oracle brief](../../../docs/wg/consolidation/text-oracle.md); this file
 states only how the suite is shaped.
 
-The suite currently has **nine** cells. Its manifest is a closed enumeration:
-the Rust gate rejects an unlisted SVG, duplicate source row, stale suite or
-baker hash, stale shared-capture hash, changed source, or changed oracle.
+The pixel suite currently has **nine** cells. The separate Rung-B geometry
+suite under [`geometry/`](./geometry/) has **one** witness. Both manifests are
+closed enumerations: the Rust gates reject an unlisted SVG, duplicate source
+row, stale suite or baker hash, stale shared-capture hash, changed source, or
+changed oracle.
 
 Text lives in its own suite rather than the primitive root, per the brief's
 corpus-growth law: the root is closed to text, probes are never committed,
@@ -47,7 +51,7 @@ both recorded verbatim in `oracle-bake.json`:
 | comparison | full RGBA, byte-exact — no tolerance is admissible here |
 | repeats | two captures per cell, byte-equal required |
 
-The baker imports the same hash-pinned
+Both bakers import the same hash-pinned
 [`chromium_capture.ts`](../chromium_capture.ts) module as scratch probes and
 the primitive baker. Text adds only its declared-font injection; it does not
 carry a second browser launch, context, viewport, network, or screenshot
@@ -111,6 +115,75 @@ fractional-translation frame and fail loudly in the committed text contract.
 Restoring the patrol returns primitive cells, all nine text cells, and the
 closed refusal register to green.
 
+## T2 real-font artifact geometry
+
+Rung B makes a different claim from the exact Ahem cells. Chromium's standard
+SVG text-query APIs grade the resolved run and character-cell geometry; they
+do not grade real-font pixels. Engine pixels are required only to be
+deterministic, non-empty for the witness, and identical between strict and
+best-effort admission. No real-font Chromium raster is an oracle here.
+
+The first witness uses the existing redistributable
+[`Allerta-Regular.ttf`](../../fonts/Allerta/Allerta-Regular.ttf), face index 0:
+16,248 bytes, SHA-256
+`16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b`, under
+the [SIL Open Font License 1.1](../../fonts/Allerta/OFL.txt) whose bytes are
+independently hash-pinned in `geometry/cases.json`. The source is the one LTR
+run `Hxi` at 5120px, middle-anchored so its 8600px advance starts at zero.
+
+Chromium 149.0.7827.55 directly reports total and substring length 8600;
+character advances 3745, 3400, and 1455; starts at 0, 3745, and 7145; baseline
+4080; and a logical character-cell top/height of -1205/6545. The immutable
+artifact matches every reported number exactly after promoting its binary32
+facts to binary64. Source indices in the browser record are UTF-16 code-unit
+indices, while artifact clusters are UTF-8 byte offsets; printable ASCII makes
+the mapping 0/1/2 on both sides.
+
+Chromium exposes no glyph identifier or outline-ink box. Those are therefore
+not described as browser measurements: the gate checks separately against the
+same pinned font bytes that glyphs `H`, `x`, and `i` are cmap ids 42, 88, and
+73, that the face has 1024 units per em, and that the shaped outline union is
+`(470, -4080, 7765, 4080)`. The resulting frame path has the corresponding
+translated bounds `(470, 0, 7765, 4080)`; no font fact crosses `rframe`.
+
+The numeric boundary is two-dimensional. Blink's SVG query projection
+encloses horizontal character boundaries on a 1/64 CSS-pixel grid and exposes
+vertical cells through integral fixed ascent/descent metrics. Scratch probes
+at 80, 85, 1000, and 5120px found both divergence classes: 80px preserves the
+horizontal values but not the vertical metrics, 85px and 1000px diverge on
+both, and 5120px is exact on both (measured, not celled except for the 5120px
+witness). At 1000px, for example, the artifact's first advance is
+731.4453125 while Chromium reports 731.453125 after enclosing it to 1/64, and
+the artifact ascent is 1032.2265625 while the character cell uses 1032.
+A separate Bungee 50px probe isolates the other leg: ascent/descent are already
+the integral 51/15, while the artifact's first 37.95 advance is exposed by
+Chromium as 37.953125. Both actual command admissions reach the 1/64 refusal
+(measured, not celled); the hash-pinned font is a negative-only gate identity,
+not a second positive oracle.
+
+That formerly admissible 1000px route now refuses by the stable
+`Chromium SVG text query` reason in strict admission and skips/degrades the
+same text node in best effort. Its refusal row is committed as
+`svg-text-geometry-grid`. A supporting scratch raster comparison found 8,310
+differing pixels at maximum channel delta 170 against Chromium before the
+guard; this is evidence of the unsafe route, not a real-font pixel-fidelity
+claim. Separate `fi` and `AV` probes in this selected face found no second
+shaping class (measured, not celled); ligature, kerning, offset, and broader
+cluster behavior remain the next text rung.
+
+Gate sensitivity is direct. Temporarily bypassing the query-geometry admission
+let both negative runs lower; `just gate` passed the unrelated 1,051 primitive
+cells and nine Ahem cells, then failed loudly in both the vertical-only Allerta
+80px and horizontal-only Bungee 50px contract tests. Restoring the admission
+returned the complete gate, including all 207 named refusal rows, to green.
+Independently changing the committed run length by exactly 1/64 made the
+exact-number comparison fail (`8600` versus `8600.015625`), and restoration
+returned it green. Re-registering the existing id/source was refused as
+immutable. Scratch source mutations remained discriminating: `Hxi` to `HxW`
+changed 715,311 Chromium pixels and middle to start anchoring changed 715,768,
+both at maximum channel delta 255 (measured, not celled and not used as a
+real-font pixel oracle).
+
 ## Tooling
 
 Run from `fixtures/web-first/`:
@@ -118,14 +191,19 @@ Run from `fixtures/web-first/`:
 ```sh
 just text-add <svg-text-id> <scratch-source>
 just text-bake
+just text-geometry-add <svg-text-id> <scratch-source> <scratch-font-facts>
+just text-geometry-bake
 just text-gate
 ```
 
 `text-add` refuses an existing source or manifest row and never writes an
 oracle. `text-bake` creates only missing oracles, verifies every existing one
 pixel-for-pixel, and refreshes hash provenance. `text-gate` is the focused
-exact-byte Rust gate; the broader `just gate` also runs it and the refusal
-register.
+Rust gate for both the exact pixels and artifact geometry; the broader
+`just gate` also runs it and the refusal register. `text-geometry-add` likewise
+refuses an existing source or oracle path, while `text-geometry-bake` creates
+only a missing JSON oracle and requires every existing numeric record to remain
+byte-identical.
 
 ## Re-baking
 

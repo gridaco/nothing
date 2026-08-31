@@ -1827,6 +1827,17 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > shaping, positioning, font selection, and text layout remain outside the
 > profile, so the `<text>` row stays open.
 
+> **2026-09-01 real-font geometry checkpoint:** Rung B now has one committed
+> Allerta artifact witness. Chromium's SVG text-query APIs grade total and
+> per-character advance, start/end, logical extent, baseline, rotation, and
+> middle-anchor placement by exact number; glyph ids, clusters, units-per-em,
+> and outline ink are separately pinned to the exact font bytes because the
+> browser APIs do not expose them. A 1000px control proves the browser's 1/64
+> horizontal enclosure and integral vertical-metric projection would change
+> the artifact, so that class now refuses by stable name in both admissions;
+> the named register moves from 206 to 207. Real-font pixels make no Chromium
+> claim, wider shaping remains open, and no element row ticks.
+
 
 ### SVG presentation attributes
 
@@ -1936,6 +1947,13 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > the primitive corpus remains 1,051 cells plus 16 sampled frames, and the
 > separate text suite moves from six to nine exact cells. The full SVG
 > presentation-attribute grammar remains open, so no font/text row ticks.
+
+> **2026-09-01 real-font geometry checkpoint:** the new one-witness numeric
+> gate validates one exact face/run only. It adds no family selection,
+> fallback, style/weight/stretch, wider `font-size` source grammar, or font
+> property admission. The Ahem pixel suite remains nine exact cells, the
+> separate Allerta geometry suite has one exact-number witness, and every
+> broad font row stays open.
 
 - [ ] `glyph-orientation-horizontal`
 - [ ] `glyph-orientation-vertical`

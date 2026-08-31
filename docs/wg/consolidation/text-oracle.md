@@ -54,9 +54,9 @@ construct enters the corpus only under a rung that can actually grade it.
 | **B — geometry oracle** | Chromium's SVG text measurement APIs (`getExtentOfChar`, `getComputedTextLength`, …) captured under the bake posture grade the *resolved artifact's geometry* for real fonts; pixels are governed by the engine's own laws (reuse ≡ fresh), not graded against Chromium | Shaping facts with real fonts: cluster extents, advances, anchoring | Any pixel claim |
 | **C — thresholded raster** | Perceptual/threshold pixel comparison | — | **Parked.** Requires an owner decision adjacent to FLIP; never lands as a score. |
 
-Rung A is the only rung text-0 asks to ratify. Rung B is named now so the
-real-font milestone (text-3+) has a destination; it is not exercised. Rung C
-exists so nobody reinvents it informally.
+Rung A was the only rung text-0 asked the owner to activate. Rung B was then
+exercised on 2026-09-01 by the real-font geometry addendum below. Rung C exists
+so nobody reinvents it informally; it remains parked.
 
 ## The probe record
 
@@ -252,5 +252,70 @@ Ratifying this brief decides:
    artifact; refuses font discovery, paint, clocks, and estimates — with an
    architecture test forbidding ambient font access.
 
-What this brief does **not** decide: the D-M shaped-text join, rung C, and any
-real-font method detail beyond naming rung B as its destination.
+What the original ratification did **not** decide: the D-M shaped-text join,
+rung C, and any real-font method detail beyond naming rung B as its
+destination. D-M later closed low; the following evidence addendum records the
+first execution of B without reopening either decision.
+
+## Rung-B evidence addendum — real-font artifact geometry (2026-09-01)
+
+The verdict is EXERCISED for one exact real face and one horizontal LTR run.
+This is an evidence checkpoint, not completion of `<text>` or any broad font,
+shaping, or text-layout grammar.
+
+The selected identity is the redistributable Allerta Regular face, index 0,
+16,248 bytes, SHA-256
+`16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b`, under
+the SIL Open Font License 1.1. The committed witness uses `Hxi` at 5120 CSS
+pixels with middle anchoring. That size is evidence-driven: it makes both
+normalization stages below exact, rather than rounding the record until it
+looks equal.
+
+The evidence keeps direct browser facts and pinned-font facts separate.
+Chromium's standard SVG text APIs directly report the run length, substring
+lengths, character starts, ends, extents, rotations, anchor placement, and
+source character indexing. Those APIs index source text in UTF-16 code units.
+They expose neither glyph identifiers nor outline-ink bounds. Glyph identity,
+units-per-em, UTF-8 cluster mapping, and ink bounds are therefore verified
+independently against the exact declared font bytes and are never described as
+Chromium measurements. Printable ASCII makes the witness's UTF-8 and UTF-16
+positions both 0/1/2; later repertoires may not assume that coincidence.
+
+The comparison is exact and representation-aware. A browser JSON number is an
+IEEE-754 binary64 value; each artifact binary32 number is promoted to binary64
+and compared for equality. There is no decimal pre-rounding, epsilon, or image
+threshold. For the committed witness Chromium reports total advance 8600,
+individual advances 3745/3400/1455, character starts 0/3745/7145, baseline
+4080, and character-cell top/height -1205/6545. The artifact states those
+browser-visible facts exactly. Its separate font-derived record names glyphs
+42/88/73, 1024 units per em, clusters 0/1/2, and outline union
+`(470, -4080, 7765, 4080)`.
+
+Measurement found two normalization stages at the browser boundary. Horizontal
+character cells enclose their start and end on a 1/64 CSS-pixel fixed grid;
+vertical cells expose integral fixed ascent and descent. Probes at 80, 85,
+1000, and 5120 pixels separated them: 80 preserves horizontal geometry but not
+the vertical metrics, 85 and 1000 differ on both, and 5120 is exact on both
+(measured, not celled except for the 5120 witness). At 1000, the artifact's
+first advance is 731.4453125 while Chromium exposes 731.453125, and the
+artifact ascent is 1032.2265625 while Chromium's character cell uses 1032.
+A separate Bungee 50px probe isolates the horizontal stage: its ascent and
+descent are already integral at 51/15, while the artifact's first 37.95
+advance is exposed as 37.953125 (measured, not celled). That face is a
+negative-only boundary witness, not a second positive geometry oracle.
+
+The method does not normalize the artifact to those values. Geometry that
+would change at either projection departs by a stable text-specific name before
+rasterization: strict refuses, while best effort skips and declares the text
+node. That boundary is conservative until a later oracle version deliberately
+owns the normalization.
+The selected face's sampled `fi` and `AV` runs exposed no second shaping class
+(measured, not celled); ligature, kerning, nonzero-offset, and wider cluster
+semantics remain outside this checkpoint.
+
+Real-font pixels remain outside the claim. The engine raster is guarded for
+determinism, non-empty realization, and identity between its admission
+policies, but it is never compared with Chromium and receives no tolerance.
+The resolved font and glyph identity still disappear before the shared frame;
+Rung B requires no new shared render fact. The complete evidence record and
+tooling live in the [text fixture estate](../../../fixtures/web-first/text/README.md).

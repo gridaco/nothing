@@ -6,7 +6,7 @@
   "platform": "darwin-arm64",
   "node_version": "v24.19.0",
   "bake_script_sha256": "379bf2870d5a48e9f25d9c2d7cbab05c36d7ff6b46afcaa43ef25ae548e8dde1",
-  "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
+  "capture_module_sha256": "c66ee93e4f96d4f5c169254181d7cda14bb4254e07d65f64dec7f32f5bdcb296",
   "suite": "cases.json",
   "suite_sha256": "746a803ebef3848ca06c591b3f74c9657fd83af8f355249cbce0bdba55d080ef",
   "capture": {

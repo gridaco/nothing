@@ -5,9 +5,9 @@
   "suite": "cases.json",
   "suite_sha256": "e759912cc352c3277f4a5b5c5a37cc19e8860e3146ede5291276473f5c634aff",
   "bake_script": "bake_chromium.ts",
-  "bake_script_sha256": "d4bb830561512c5df8f9a85004a8ae4d83a95a3089514877b7ddc7e9608a79c2",
+  "bake_script_sha256": "9999ad1e574d2e00fedf09fb8b43dc44202a45f46cc010482ac8b26e11202571",
   "capture_module": "../chromium_capture.ts",
-  "capture_module_sha256": "15ba5c3156f3ed0bfd0f32b6ad773e1d228c0f678396db08c8de1d972cf5bced",
+  "capture_module_sha256": "c66ee93e4f96d4f5c169254181d7cda14bb4254e07d65f64dec7f32f5bdcb296",
   "font": {
     "family": "Ahem",
     "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
