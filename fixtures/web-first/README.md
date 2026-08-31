@@ -17,14 +17,18 @@ renderer's corpora, which is the distinction this directory name carries.
 
 Every root primitive here is a closed enumeration in `primitives.json` with a
 committed Chromium oracle beside it. Text follows the ratified corpus-growth
-law in its own closed [nine-cell suite](./text/README.md). The current evidence
-estate is 1,051 primitive cells plus 16 sampled frames, nine exact text cells,
-and 206 named refusal rows. The gate is byte equality: what each corpus admits
-is exactly what the engine renders pixel-for-pixel, except only the primitive
-rows carrying an explicit measured tolerance block.
+law in its own closed [text estate](./text/README.md): nine exact Ahem cells and
+one exact-number real-font artifact-geometry witness. The current evidence
+estate is 1,051 primitive cells plus 16 sampled frames, those ten text
+witnesses, and 207 named refusal rows. Pixel cells use byte equality: what each
+corpus admits is exactly what the engine renders pixel-for-pixel, except only
+the primitive rows carrying an explicit measured tolerance block. The
+real-font witness grades geometry before rasterization and makes no Chromium
+pixel claim.
 
 | File | Role |
 | --- | --- |
+| `text/` | The closed text estate: nine exact Ahem pixel cells plus one Allerta artifact-geometry witness; see [`text/README.md`](./text/README.md). |
 | `html-inline-svg-currentcolor-rect.html` | HTML whose `<style> .mark { color:#16a34a }` cascades to a `<rect class="mark">` inside inline `<svg>`. |
 | `svg-currentcolor-rect.svg` | The equivalent standalone SVG (carries `color` via an inline `style`). Renders identically. |
 | `svg-viewbox-uniform-offset-rect.svg` | A non-zero-origin `viewBox` with uniform 2× viewport mapping — the first supported non-identity viewport case. |
@@ -386,17 +390,19 @@ elsewhere in this table.
 
 The loop's per-rung commands live in this directory's `justfile` (`just -l`):
 `bake` (create missing primitive oracles, verify every existing one
-pixel-for-pixel), `gate` (primitive pixels, exact text pixels/contracts, and
-the named refusal register), `text-bake` / `text-gate` (the focused text
-twins), `status` (regenerate
+pixel-for-pixel), `gate` (primitive pixels, exact text pixels, text artifact
+geometry, and the named refusal register), `text-bake` / `text-geometry-bake`
+/ `text-gate` (the focused text tools), `status` (regenerate
 [STATUS.md](./STATUS.md)), `add <id> <source> [entry]` (register a fixture with
 a sorted manifest entry, defaulting to `standalone-svg` and accepting
 `html-inline-svg`, while refusing overwrites), `text-add <id> <source>` (the
-same never-overwrite registration for the dedicated 100×100 text suite), and
-`probe <script>` (run a scratch probe).
+same never-overwrite registration for the dedicated 100×100 pixel suite),
+`text-geometry-add <id> <source> <facts>` (register one real-font numeric
+witness without an oracle overwrite), and `probe <script>` (run a scratch
+probe).
 
 The Chromium capture posture lives in **one module**,
-[`chromium_capture.ts`](./chromium_capture.ts), imported by both bakers and
+[`chromium_capture.ts`](./chromium_capture.ts), imported by all three bakers and
 [`probe_harness.ts`](./probe_harness.ts) — so a probe measures under exactly
 the conditions the cells bake under, and the posture cannot silently drift:
 each `oracle-bake.json` records the module's sha256 and the Rust gates refuse a

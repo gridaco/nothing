@@ -23,14 +23,24 @@ probe file:
 text-bake:
     {{node_env}} pnpm -C {{justfile_directory()}}/../../packages/grida-reftest exec tsx {{justfile_directory()}}/text/bake_chromium.ts
 
+# Bake/verify real-font artifact geometry through Chromium's SVG text DOM
+# measurement APIs. These JSON oracles make no browser-pixel claim.
+text-geometry-bake:
+    {{node_env}} pnpm -C {{justfile_directory()}}/../../packages/grida-reftest exec tsx {{justfile_directory()}}/text/geometry/bake_chromium.ts
+
 # The exact Ahem text gate through websem → rframe → n0.
 text-gate:
     {{cargo_env}} cargo test -p websem --test svg_text
+    {{cargo_env}} cargo test -p websem --test svg_text_geometry
 
 # Register one deterministic-font text cell without overwriting any source or
 # oracle. The default text canvas is 100x100.
 text-add id source:
     python3 {{justfile_directory()}}/text/add_cell.py {{id}} --source {{source}}
+
+# Register one real-font geometry witness plus its pinned-font fact record.
+text-geometry-add id source facts:
+    python3 {{justfile_directory()}}/text/geometry/add_case.py {{id}} --source {{source}} --facts {{facts}}
 
 # The engine gate over every committed cell and named refusal. Primitive rows
 # are byte-exact except where their declared tolerance blocks carry measured
@@ -38,6 +48,7 @@ text-add id source:
 gate:
     {{cargo_env}} cargo test -p websem --test reftest_oracle
     {{cargo_env}} cargo test -p websem --test svg_text
+    {{cargo_env}} cargo test -p websem --test svg_text_geometry
     {{cargo_env}} cargo test -p websem --test unsupported_corpus
 
 # Regenerate STATUS.md and its freshness gate.

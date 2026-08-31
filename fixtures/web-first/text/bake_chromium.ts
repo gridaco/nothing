@@ -29,6 +29,7 @@ import { PNG } from "pngjs";
 
 import {
   captureFirstSvg,
+  declareFontInSvg,
   deterministicContext,
   launchDeterministicChromium,
 } from "../chromium_capture";
@@ -55,20 +56,6 @@ const CAPTURE_MODULE = "../chromium_capture.ts";
 
 function sha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
-}
-
-/**
- * Declare the pinned face to the document, exactly as the host declares it
- * to the engine. The rule is injected as the root `<svg>`'s first child so
- * the committed source stays font-free.
- */
-function withFontDeclared(source: string, family: string, fontDataUrl: string): string {
-  const rule = `<style>@font-face{font-family:"${family}";src:url(${fontDataUrl});}</style>`;
-  const rootEnd = source.indexOf(">");
-  if (rootEnd < 0 || !source.slice(0, rootEnd).includes("<svg")) {
-    throw new Error("fixture must open with an <svg> root element");
-  }
-  return source.slice(0, rootEnd + 1) + rule + source.slice(rootEnd + 1);
 }
 
 function assertSamePixels(existing: Buffer, fresh: Buffer, id: string): void {
@@ -118,8 +105,6 @@ async function main(): Promise<void> {
         `${suite.font.path} (${fontDigest})`,
     );
   }
-  const fontDataUrl = `data:font/ttf;base64,${fontBytes.toString("base64")}`;
-
   const scriptBytes = await readFile(SCRIPT_PATH);
   const captureBytes = await readFile(join(DIR, CAPTURE_MODULE));
   const browser = await launchDeterministicChromium();
@@ -131,10 +116,10 @@ async function main(): Promise<void> {
     for (const fixture of suite.cases) {
       const sourcePath = join(DIR, fixture.source);
       const sourceBytes = await readFile(sourcePath);
-      const declared = withFontDeclared(
+      const declared = declareFontInSvg(
         sourceBytes.toString("utf8"),
         suite.font.family,
-        fontDataUrl,
+        fontBytes,
       );
 
       const page = await context.newPage();

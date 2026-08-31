@@ -29,6 +29,8 @@ import {
   captureFirstSvg,
   deterministicContext,
   launchDeterministicChromium,
+  measureOnlySvgText,
+  type SvgTextGeometry,
 } from "./chromium_capture";
 
 export interface ProbeComparison {
@@ -114,4 +116,59 @@ export async function runProbeMatrix(matrix: ProbeMatrix): Promise<void> {
 
   await context.close();
   await browser.close();
+}
+
+export interface TextGeometryProbeMatrix {
+  /** id -> standalone SVG source with its exact font declared inline. */
+  probes: Record<string, string>;
+  /** Where exact JSON measurements are written (scratch space). */
+  outDir: string;
+  width: number;
+  height: number;
+}
+
+/**
+ * Measure SVG text geometry twice per source and require exact structural
+ * equality. The shared capture module owns navigation, context posture, and
+ * the measurement API calls, so a scratch probe and committed bake cannot
+ * silently become two Chromium instruments.
+ */
+export async function runTextGeometryProbe(
+  matrix: TextGeometryProbeMatrix,
+): Promise<Record<string, SvgTextGeometry>> {
+  await mkdir(matrix.outDir, { recursive: true });
+  const browser = await launchDeterministicChromium();
+  console.log(`chromium ${browser.version()}`);
+  const context = await deterministicContext(browser, {
+    javaScriptEnabled: true,
+  });
+  const results: Record<string, SvgTextGeometry> = {};
+  try {
+    for (const [id, source] of Object.entries(matrix.probes)) {
+      const page = await context.newPage();
+      const capture = {
+        media: "image/svg+xml" as const,
+        source: Buffer.from(source),
+        width: matrix.width,
+        height: matrix.height,
+        label: id,
+      };
+      const first = await measureOnlySvgText(page, capture);
+      const second = await measureOnlySvgText(page, capture);
+      await page.close();
+      if (JSON.stringify(first) !== JSON.stringify(second)) {
+        throw new Error(`${id}: text geometry is not deterministic`);
+      }
+      results[id] = first;
+      await writeFile(
+        join(matrix.outDir, `${id}.json`),
+        `${JSON.stringify(first, null, 2)}\n`,
+      );
+      console.log(`${id}: ${JSON.stringify(first)}`);
+    }
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+  return results;
 }

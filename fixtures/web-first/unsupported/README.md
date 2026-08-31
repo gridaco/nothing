@@ -60,6 +60,7 @@ The scannable, generated view of this register (beside the baked cells) is
 | `svg-text-font-size-comment-string.svg` | Refuse CSS that mixes quoted text and comment delimiters before a coarse authored-source scan can misclassify it. Chromium treats a quoted `/*` as string data and applies the later `5119px`; the former patrol erased the tail, admitted Stylo's `5120px`, and changed 149 pixels at maximum delta 255 in both admissions (measured, not celled). |
 | `svg-text-font-size-source.svg` | Refuse a direct size changed by pinned Stylo quantization before the local numeric check. Authored `5119px` became computed `5120px` and changed 149 Chromium pixels at maximum channel delta 255 while both admissions formerly rendered without a declaration (measured, not celled). |
 | `svg-text-final-ctm.svg` | Enforce the numeric domain on the composed local-to-device mapping, after root `viewBox`, ancestors, the text transform, and `<use>` placement. A fractional translation formerly changed 40 pixels at maximum delta 128 while both admissions rendered silently; non-identity linear maps share the stable final-CTM refusal (measured, not celled). |
+| `svg-text-geometry-grid.svg` | Refuse a real-font artifact whose geometry Chromium's SVG text-query projection would normalize differently. Blink encloses horizontal character boundaries on a 1/64 CSS-pixel grid and exposes vertical cells through integral fixed ascent/descent metrics; the 1000px Allerta witness misses both grids (731.4453125 artifact advance versus 731.453125 measured character width, and 1032.2265625 artifact ascent versus 1032 in the browser cell). Strict refuses and best effort skips/degrades the same text node by the stable `Chromium SVG text query` reason (measured, not celled as a positive case). |
 | `svg-text-css-layout.svg` · `svg-text-font-shorthand.svg` | Refuse cascaded text/font semantics the v0 single-run artifact does not carry. The direct, ancestor, and stylesheet routes are text-scoped and conservative: the one Stylo cascade still owns admitted values, while this patrol supplies no matcher. Chromium's italic shorthand and letter-spacing witnesses changed 68 and 200 pixels at maximum delta 255 before the guard (measured, not celled). |
 | `svg-text-undeclared-font.svg` | Text is admitted only against the rung's one declared font identity. An undeclared family refuses at the text element instead of silently substituting different glyph metrics. |
 | `svg-text-tspan.svg` | `<tspan>` retains its own named text-residue refusal: the admitted text run is one direct text-node sequence, so nested positioning and styling cannot be silently flattened into it. |
@@ -237,5 +238,6 @@ coordinate split adds eight coordinate rows and one zero-area gradient row,
 and its opacity audit adds one line-coverage row, taking that rung's register
 to 198. The opacity structural-pass recovery later graduates that row, leaving
 197. The text safety fence adds nine focused size-source, final-mapping,
-inherited-anchor, and unconsumed-layout rows, taking the current register to
-206.)
+inherited-anchor, and unconsumed-layout rows, taking the register to 206. The
+real-font artifact-geometry rung adds the query-grid patrol, taking the current
+register to 207.)

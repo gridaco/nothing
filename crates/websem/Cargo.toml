@@ -57,6 +57,9 @@ skia-safe = { version = "=0.99.0", features = [
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"
+# The rung-B geometry gate checks the recorded glyph ids directly against the
+# pinned face's cmap before comparing browser-visible geometry.
+rustybuzz = "=0.20.1"
 
 [lints]
 workspace = true

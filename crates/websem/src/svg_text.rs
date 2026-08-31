@@ -9,7 +9,9 @@
 //! font identity crosses into `rframe`.
 
 use rframe::{FillRule, PathCommand, PathData};
-use textlayout::{AttributedText, Environment, OutlineSink, ResolveError, Style};
+use textlayout::{
+    AttributedText, Environment, OutlineSink, ResolveError, ResolvedTextLayout, Style,
+};
 
 /// SVG2 §11.1 `text-anchor`: where the resolved run sits relative to the
 /// element's authored position.
@@ -170,6 +172,43 @@ fn admit_numeric_domain(x: f32, y: f32, font_size: f32, start_x: f32) -> Result<
     Ok(())
 }
 
+/// Admit only resolved geometry that Chromium's SVG text-query projection
+/// leaves unchanged.
+///
+/// Blink carries horizontal character boundaries through a 1/64 fixed-point
+/// `LayoutUnit` and builds each queried cell by flooring its start and
+/// ceiling its end. It exposes vertical character cells through fixed
+/// integer ascent/descent metrics. If this artifact falls between either
+/// grid, the DOM geometry Chromium reports is not the artifact we would
+/// lower. That route refuses until a later oracle version deliberately owns
+/// the normalization; the patrol never changes a glyph position.
+fn admit_chromium_query_geometry(layout: &ResolvedTextLayout) -> Result<(), TextError> {
+    const QUERY_GRID: f32 = 64.0;
+    let on_query_grid = |value: f32| {
+        let scaled = value * QUERY_GRID;
+        value.is_finite() && scaled.is_finite() && scaled.fract() == 0.0
+    };
+    let integral = |value: f32| value.is_finite() && value.fract() == 0.0;
+
+    let metrics = layout.metrics();
+    if !integral(metrics.ascent) || !integral(metrics.descent) {
+        return Err(TextError::OutsideNumericDomain(format!(
+            "Chromium SVG text query metrics would round ascent/descent ({}, {}) to its integer fixed-metric grid",
+            metrics.ascent, metrics.descent
+        )));
+    }
+    for (index, glyph) in layout.glyphs().iter().enumerate() {
+        let end = glyph.x + glyph.advance;
+        if !on_query_grid(glyph.x) || !on_query_grid(end) {
+            return Err(TextError::OutsideNumericDomain(format!(
+                "glyph {index} boundaries ({}, {end}) do not lie on Chromium's 1/64 SVG text query grid",
+                glyph.x
+            )));
+        }
+    }
+    Ok(())
+}
+
 /// Resolve one `<text>` run and lower its glyphs to the resolved contract's
 /// path vocabulary, in the element's local space.
 ///
@@ -196,6 +235,7 @@ pub(crate) fn resolve_text_path(
 
     let start_x = anchor.start_x(x, layout.advance());
     admit_numeric_domain(x, y, font_size, start_x)?;
+    admit_chromium_query_geometry(&layout)?;
 
     let mut sink = PathSink {
         origin_x: start_x,

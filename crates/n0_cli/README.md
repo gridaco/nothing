@@ -35,6 +35,13 @@ cargo run -p n0_cli --bin n0 -- \
   fixtures/web-first/text/svg-text-em-box.svg /tmp/text.png 100x100 \
   --font Ahem=fixtures/web-first/fonts/ahem.ttf@sha256:b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448
 
+# real-font Rung B: artifact geometry is graded exactly before rasterization;
+# this render makes no Chromium real-font pixel claim
+cargo run -p n0_cli --bin n0 -- \
+  fixtures/web-first/text/geometry/svg-text-allerta-geometry.svg \
+  /tmp/text-allerta.png 1200x500 \
+  --font Allerta=fixtures/fonts/Allerta/Allerta-Regular.ttf@sha256:16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b
+
 # dev harness: refuse on the first beyond-slice construct instead of
 # rendering best-effort with declared degradations (the default)
 cargo run -p n0_cli --bin n0 -- \
@@ -558,8 +565,9 @@ cargo run -p n0_cli --bin n0 -- \
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
   cells. The complete primitive corpus contains 1,051 Chromium-baked cells plus
-  16 sampled frames; the dedicated exact text suite contains nine cells, and
-  the named refusal register has 206 rows. `feFlood`, `feComposite`,
+  16 sampled frames; the text estate contains nine exact Ahem pixel cells and
+  one exact-number Allerta artifact-geometry witness, and the named refusal
+  register has 207 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -980,7 +988,23 @@ cargo run -p n0_cli --bin n0 -- \
   cancel exactly are admitted; any non-identity or fractional final mapping
   refuses. Chromium
   snaps everything else by a rasterizer-internal rule, and this refuses by
-  name instead of codifying it. What refuses by name: the CSS spelling of
+  name instead of codifying it. Real-font Rung B adds an independent
+  pre-raster geometry boundary. Chromium exposes each horizontal SVG
+  character cell after enclosing its start/end on a 1/64 CSS-pixel grid and
+  exposes vertical cells through integral fixed ascent/descent metrics. A run
+  is admitted only when every resolved glyph boundary already lies on that
+  grid and both metrics are already integral; the compiler never changes the
+  artifact to imitate the query. A pinned Allerta `Hxi` witness at 5120px
+  matches Chromium's total advance, per-character starts/ends/extents,
+  baseline, and anchor placement exactly. Glyph ids, clusters, units-per-em,
+  and outline bounds are checked separately against the same pinned font bytes
+  because browser text-query APIs do not expose those facts. The 1000px
+  control misses both query grids: strict refuses by stable
+  `Chromium SVG text query` name, while best effort skips and declares that
+  text node. Real-font
+  pixels are checked only for engine determinism and admission identity; no
+  Chromium raster claim or tolerance is made, and no text fact crosses
+  `rframe`. What refuses by name: the CSS spelling of
   `text-anchor` (Chromium consumes it from the cascade, the pinned Stylo
   build has no such longhand — a silent drop before the rung), inherited
   `text-anchor` presentation attributes, a generic

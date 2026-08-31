@@ -1080,7 +1080,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (206)
+## The refusal register (207)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -1285,6 +1285,7 @@ its row into the cells above.
 | `svg-text-font-size-escape` | declared | skipped svg/text[1]: unsupported computed style: <text> authored font-size carries a CSS escape whose source spelling this text patrol cannot prove |
 | `svg-text-font-size-source` | declared | skipped svg/text[1]: unsupported computed style: <text> authored font-size "5119px" changes under Stylo font-size quantization before the numeric-domain check |
 | `svg-text-font-size-var` | declared | skipped svg/text[1]: unsupported computed style: <text> authored font-size resolves through var(), whose source provenance this text patrol cannot follow |
+| `svg-text-geometry-grid` | declared | skipped svg/text[1]: unsupported computed style: text geometry is outside the admitted numeric domain: Chromium SVG text query metrics would round ascent/descent (1032.2266, 246.09375) to its integer fixed-metric grid |
 | `svg-text-tspan` | declared | skipped svg/text[1]: unsupported element <tspan> |
 | `svg-text-undeclared-font` | declared | skipped svg/text[1]: unsupported computed style: text resolution refused: font family "Undeclared" is not in the declared environment |
 | `svg-use-authored-children` | declared | skipped svg/use[1]: unsupported <use>: it has authored element children, which Chromium replaces with the shadow content |

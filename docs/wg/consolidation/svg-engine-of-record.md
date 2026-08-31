@@ -85,23 +85,25 @@ from the dated addenda below:
   viewport clips, solid/context-solid source programs, `<use>` clients, and
   client transform/opacity/clip/mask/filter composition;
   one declared-font, single-run `<text>` profile, with direct invariant
-  number/`px` size sources and a final identity-linear, integer-translation
-  device mapping after root, ancestor, and instance composition; viewBox-only
+  number/`px` size sources, a final identity-linear, integer-translation
+  device mapping after root, ancestor, and instance composition, and one
+  real-font artifact-geometry witness graded exactly before rasterization;
+  viewBox-only
   root sizing with the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`, including a client
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
 - **The corpus** is 1,051 Chromium-baked primitive cells plus 16 sampled frames,
-  with a separate nine-cell exact Ahem text suite under the ratified text
-  corpus-growth law.
+  with a separate nine-cell exact Ahem text suite and one exact-number Allerta
+  artifact-geometry witness under the ratified text corpus-growth law.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 206 rows.
+  register has 207 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -4665,3 +4667,72 @@ artifact-geometry gate described by the ratified
 [text-oracle method](./text-oracle.md); it does not depend on ambient font
 discovery. No conformance score was produced, and no FLIP record, rule, or
 baseline changed.
+
+## Rung: SVG real-font artifact geometry (2026-09-01)
+
+The verdict is T2 EXERCISED, with no checklist closure. One exact declared
+real face and one horizontal LTR run now reach the Rung-B geometry gate from
+the [text-oracle method](./text-oracle.md). This checkpoint grades the resolved
+artifact before outline rasterization. It does not claim Chromium-identical
+real-font pixels, wider shaping, family selection, fallback, or any complete
+font/text grammar.
+
+The selected identity is Allerta Regular, face index 0, 16,248 bytes, pinned by
+SHA-256 under the SIL Open Font License 1.1. Its committed `Hxi` witness uses a
+5120px size and middle anchor. Chromium 149.0.7827.55 directly exposes total
+and substring advance 8600, character advances 3745/3400/1455, starts
+0/3745/7145, baseline 4080, and logical cell top/height -1205/6545. Every
+browser-visible number equals the artifact's corresponding binary32 fact after
+exact promotion to binary64; no rounding or tolerance intervenes.
+
+The direct browser record is deliberately narrower than the complete artifact.
+SVG text queries index source text in UTF-16 code units and expose no glyph id
+or outline-ink box. The gate therefore records those as separate pinned-font
+facts: 1024 units per em, direct-map glyph ids 42/88/73, UTF-8 clusters 0/1/2,
+and outline union `(470, -4080, 7765, 4080)`. Printable ASCII makes the two
+source index spaces coincide for this witness only. The resolved font identity
+and glyphs still lower away before the shared frame; no text or resource fact
+was added there.
+
+The probe found two browser normalization stages that a clean render had
+hidden. Horizontal SVG character cells enclose their boundaries on a 1/64
+CSS-pixel fixed grid; vertical cells expose integral fixed ascent/descent
+metrics. At 1000px the artifact's first advance is 731.4453125 while Chromium
+reports 731.453125, and its ascent is 1032.2265625 while the browser cell uses
+1032. The 80px probe separates the vertical stage from an already-exact
+horizontal stage; 85px and 1000px differ on both; 5120px is exact on both
+(measured, not celled except for the committed 5120px witness).
+A separate Bungee 50px probe makes ascent/descent integral at 51/15 while its
+first artifact advance 37.95 is exposed as 37.953125, independently guarding
+the horizontal stage (measured, not celled; negative-only).
+
+The producer does not copy Chromium's projection back into the artifact.
+Every glyph start/end must already lie on the 1/64 grid and both metrics must
+already be integral, or the text node leaves by the stable
+`Chromium SVG text query` reason. The 1000px route is now a registered refusal:
+strict stops there, while best effort skips and declares that same node. Before
+the guard, both admissions rendered it cleanly; a supporting scratch raster
+comparison differed from Chromium at 8,310 pixels with maximum channel delta
+170 (measured, not celled and not promoted into a browser-pixel claim).
+
+No second class appeared in the selected face's sampled `fi` and `AV` runs
+(measured, not celled). That does not generalize them: ligatures, kerning,
+nonzero offsets, wider clusters, non-ASCII repertoire, and multi-run text are
+the next shaping work. Engine pixels for the committed witness are guarded
+only for deterministic repetition, non-empty realization, and strict/best
+identity.
+
+Gate sensitivity was proved at the producer boundary. Temporarily bypassing
+the query-geometry admission allowed both isolated negative runs to lower. The
+full gate passed the unrelated primitive and Ahem estates, then failed loudly
+on both the vertical-only Allerta 80px and horizontal-only Bungee 50px
+contracts. Restoring the boundary returned the complete gate and refusal
+register to green. Independently changing the recorded run length by exactly
+1/64 failed the exact numeric gate, and attempting to register the same
+geometry identity again refused rather than replacing its source or oracle.
+
+The primitive corpus remains 1,051 Chromium-baked cells plus 16 sampled
+frames. The exact Ahem suite remains nine cells; the new Allerta suite carries
+one exact-number geometry witness. One query-grid refusal moves the named
+register from 206 to 207. No conformance score was produced, and no FLIP
+record, rule, or baseline changed.

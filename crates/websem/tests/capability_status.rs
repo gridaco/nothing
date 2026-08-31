@@ -14,6 +14,9 @@
 //! UPDATE_CAPABILITY_STATUS=1 cargo test -p websem --test capability_status
 //! ```
 
+#[path = "support/fixture_fonts.rs"]
+mod fixture_fonts;
+
 use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -147,10 +150,18 @@ fn generate() -> String {
     for id in &refusals {
         let source = fs::read_to_string(root.join("unsupported").join(format!("{id}.svg")))
             .unwrap_or_else(|error| panic!("{id}: read: {error}"));
-        let strict = SvgFrameSource::from_standalone_svg(source.as_str(), viewport())
-            .err()
-            .unwrap_or_else(|| panic!("{id}: an unsupported fixture must refuse under strict"));
-        match SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport()) {
+        let strict = SvgFrameSource::from_standalone_svg_with_fonts(
+            source.as_str(),
+            viewport(),
+            fixture_fonts::unsupported_environment(id),
+        )
+        .err()
+        .unwrap_or_else(|| panic!("{id}: an unsupported fixture must refuse under strict"));
+        match SvgFrameSource::from_standalone_svg_best_effort_with_fonts(
+            source.as_str(),
+            viewport(),
+            fixture_fonts::unsupported_environment(id),
+        ) {
             Err(_) => {
                 writeln!(
                     out,
