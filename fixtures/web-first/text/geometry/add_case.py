@@ -10,6 +10,7 @@ ids/source mappings, and outline ink bounds.
 """
 
 import argparse
+import fcntl
 import json
 import math
 import re
@@ -45,7 +46,9 @@ def main() -> None:
     if not ID_PATTERN.fullmatch(args.id):
         sys.exit(f"refused: {args.id!r} is not an svg-text-* kebab-case id")
 
-    suite = json.loads(MANIFEST.read_text())
+    manifest_file = MANIFEST.open("r+", encoding="utf-8")
+    fcntl.flock(manifest_file.fileno(), fcntl.LOCK_EX)
+    suite = json.load(manifest_file)
     source = Path(args.source).read_text()
     if "<!DOCTYPE" in source or "<script" in source or "@font-face" in source:
         sys.exit("refused: geometry sources contain no doctype, script, or font bytes")
@@ -168,8 +171,15 @@ def main() -> None:
 
     suite["cases"].append(case)
     suite["cases"].sort(key=lambda row: row["id"])
-    fixture.write_text(source)
-    MANIFEST.write_text(json.dumps(suite, indent=2) + "\n")
+    with fixture.open("x", encoding="utf-8") as fixture_file:
+        fixture_file.write(source)
+    manifest_file.seek(0)
+    json.dump(suite, manifest_file, indent=2)
+    manifest_file.write("\n")
+    manifest_file.truncate()
+    manifest_file.flush()
+    fcntl.flock(manifest_file.fileno(), fcntl.LOCK_UN)
+    manifest_file.close()
     print(f"added {args.id}; run `just text-geometry-bake`")
 
 
