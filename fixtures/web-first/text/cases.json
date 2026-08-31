@@ -7,16 +7,9 @@
   },
   "cases": [
     {
-      "id": "svg-text-em-box",
-      "source": "svg-text-em-box.svg",
-      "oracle": "chromium/svg-text-em-box.png",
-      "width": 100,
-      "height": 100
-    },
-    {
-      "id": "svg-text-space-advance",
-      "source": "svg-text-space-advance.svg",
-      "oracle": "chromium/svg-text-space-advance.png",
+      "id": "svg-text-anchor-end",
+      "source": "svg-text-anchor-end.svg",
+      "oracle": "chromium/svg-text-anchor-end.png",
       "width": 100,
       "height": 100
     },
@@ -28,16 +21,9 @@
       "height": 100
     },
     {
-      "id": "svg-text-anchor-end",
-      "source": "svg-text-anchor-end.svg",
-      "oracle": "chromium/svg-text-anchor-end.png",
-      "width": 100,
-      "height": 100
-    },
-    {
-      "id": "svg-text-whitespace-collapse",
-      "source": "svg-text-whitespace-collapse.svg",
-      "oracle": "chromium/svg-text-whitespace-collapse.png",
+      "id": "svg-text-em-box",
+      "source": "svg-text-em-box.svg",
+      "oracle": "chromium/svg-text-em-box.png",
       "width": 100,
       "height": 100
     },
@@ -45,6 +31,41 @@
       "id": "svg-text-fill-color",
       "source": "svg-text-fill-color.svg",
       "oracle": "chromium/svg-text-fill-color.png",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-final-ctm-cancel",
+      "source": "svg-text-final-ctm-cancel.svg",
+      "oracle": "chromium/svg-text-final-ctm-cancel.png",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-final-integer-ctm",
+      "source": "svg-text-final-integer-ctm.svg",
+      "oracle": "chromium/svg-text-final-integer-ctm.png",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-font-size-cascade",
+      "source": "svg-text-font-size-cascade.svg",
+      "oracle": "chromium/svg-text-font-size-cascade.png",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-space-advance",
+      "source": "svg-text-space-advance.svg",
+      "oracle": "chromium/svg-text-space-advance.png",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-whitespace-collapse",
+      "source": "svg-text-whitespace-collapse.svg",
+      "oracle": "chromium/svg-text-whitespace-collapse.png",
       "width": 100,
       "height": 100
     }

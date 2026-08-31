@@ -9,11 +9,13 @@
 
 mod support;
 
+use std::collections::BTreeSet;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use serde::Deserialize;
-use websem::{CompileError, InitialViewport, SvgFrameSource};
+use websem::{CompileError, DegradationAction, InitialViewport, SvgFrameSource};
 
 fn fixture_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/web-first/text")
@@ -29,6 +31,7 @@ struct Suite {
 #[derive(Deserialize)]
 struct SuiteFont {
     family: String,
+    path: String,
     sha256: String,
 }
 
@@ -41,12 +44,47 @@ struct SuiteCase {
     height: i32,
 }
 
+#[derive(Deserialize)]
+struct BakeManifest {
+    schema_version: u32,
+    suite: String,
+    suite_sha256: String,
+    bake_script: String,
+    bake_script_sha256: String,
+    capture_module: String,
+    capture_module_sha256: String,
+    records: Vec<BakeRecord>,
+}
+
+#[derive(Deserialize)]
+struct BakeRecord {
+    id: String,
+    source: String,
+    source_sha256: String,
+    oracle: String,
+    oracle_sha256: String,
+    width: i32,
+    height: i32,
+}
+
 fn suite() -> Suite {
     let bytes = std::fs::read(fixture_root().join("cases.json")).expect("text suite manifest");
     let suite: Suite = serde_json::from_slice(&bytes).expect("well-formed text suite");
     assert_eq!(suite.schema_version, 1);
     assert!(!suite.cases.is_empty());
     suite
+}
+
+fn read_json<T: for<'de> Deserialize<'de>>(path: &Path) -> T {
+    let bytes = fs::read(path).unwrap_or_else(|error| panic!("read {}: {error}", path.display()));
+    serde_json::from_slice(&bytes)
+        .unwrap_or_else(|error| panic!("parse {}: {error}", path.display()))
+}
+
+fn sha256_file(path: &Path) -> String {
+    use sha2::{Digest, Sha256};
+    let bytes = fs::read(path).unwrap_or_else(|error| panic!("read {}: {error}", path.display()));
+    format!("{:x}", Sha256::digest(bytes))
 }
 
 const AHEM_BYTES: &[u8] = include_bytes!("../../../fixtures/web-first/fonts/ahem.ttf");
@@ -76,6 +114,14 @@ fn compile(source: &str) -> Result<rframe::Frame, CompileError> {
         ahem_environment(),
     )
     .map(|source| source.base_frame())
+}
+
+fn compile_best(source: &str) -> Result<SvgFrameSource, CompileError> {
+    SvgFrameSource::from_standalone_svg_best_effort_with_fonts(
+        source,
+        InitialViewport::new(100.0, 100.0),
+        ahem_environment(),
+    )
 }
 
 fn svg(body: &str) -> String {
@@ -265,6 +311,296 @@ fn an_author_rule_selects_the_family() {
     assert_eq!(frame.nodes().len(), 1);
 }
 
+/// The computed font-size is not sufficient provenance for text. The pinned
+/// cascade resolves viewport and metric units against a different environment,
+/// and quantizes large values before the old numeric check sees them. Every
+/// such authored route now refuses before shaping rather than emitting the
+/// probe's silent wrong pixels.
+#[test]
+fn authored_font_size_sources_are_guarded_before_shaping() {
+    for (body, expected) in [
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="3.125vw" fill="#000">X</text>"##,
+            "font-size basis",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" style="font-size:3.125vw" fill="#000">X</text>"##,
+            "font-size basis",
+        ),
+        (
+            r##"<style>text { font-size: 3.125vw }</style><text x="10" y="60" font-family="Ahem" fill="#000">X</text>"##,
+            "font-size basis",
+        ),
+        (
+            r##"<g font-size="2ex"><text x="10" y="60" font-family="Ahem" font-size="inherit" fill="#000">X</text></g>"##,
+            "font-size basis",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" style="--s:20px;font-size:var(--s)" fill="#000">X</text>"##,
+            "var()",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20\70 x" fill="#000">X</text>"##,
+            "CSS escape",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="125%" fill="#000">X</text>"##,
+            "direct number/px source profile",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="1em" fill="#000">X</text>"##,
+            "direct number/px source profile",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="calc(10px + 10px)" fill="#000">X</text>"##,
+            "direct number/px source profile",
+        ),
+        (
+            r##"<text x="-5070" y="4096" font-family="Ahem" font-size="5119px" fill="#000">X</text>"##,
+            "Stylo font-size quantization",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="1e-50px" fill="#000">X</text>"##,
+            "loses decimal provenance",
+        ),
+        (
+            r##"<text x="10" y="60" style="font:20px Ahem" fill="#000">X</text>"##,
+            "text layout property font",
+        ),
+        (
+            r##"<text x="-5070" y="4096" font-family="Ahem" fill="#000" style="--sentinel:'/*';font-size:5119px">X</text>"##,
+            "quoted text and CSS comment delimiters",
+        ),
+        (
+            r##"<text x="-5070" y="4096" font-family="Ahem" fill="#000" style="font-\73 ize:5119px">X</text>"##,
+            "font-\\73 ize",
+        ),
+    ] {
+        let source = svg(body);
+        let error = compile(&source).expect_err("unproved font-size source must refuse");
+        assert!(
+            error.to_string().contains(expected),
+            "expected {expected:?}, got {error}"
+        );
+
+        let best = compile_best(&source).expect("best effort declares and skips the text");
+        assert!(best.base_frame().nodes().is_empty());
+        assert!(
+            best.degradations().iter().any(|degradation| {
+                degradation.path().ends_with("/text[1]") && degradation.reason().contains(expected)
+            }),
+            "expected best effort to declare {expected:?} for {body}; got {:?}",
+            best.degradations()
+        );
+    }
+}
+
+/// The narrow source profile still reaches the one cascade through every
+/// ingress it claims: direct number/px values, author precedence, and exact
+/// inheritance all resolve to the same glyph geometry.
+#[test]
+fn direct_font_size_sources_remain_admitted_across_the_cascade() {
+    for body in [
+        r##"<text x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X</text>"##,
+        r##"<text x="10" y="60" font-family="Ahem" style="font-size:20px" fill="#000">X</text>"##,
+        r##"<style>text { font-size: 20px }</style><text x="10" y="60" font-family="Ahem" font-size="35" fill="#000">X</text>"##,
+        r##"<g font-size="20px"><text x="10" y="60" font-family="Ahem" font-size="inherit" fill="#000">X</text></g>"##,
+    ] {
+        let frame = compile(&svg(body)).expect("direct source profile is admitted");
+        let bounds = frame.nodes()[0].bounds;
+        assert_eq!(
+            (bounds.x, bounds.y, bounds.width, bounds.height),
+            (10.0, 44.0, 20.0, 20.0)
+        );
+    }
+}
+
+/// Text semantics represented by Stylo but absent from oracle v0 must not
+/// become defaults silently. This includes the font shorthand and inherited
+/// declarations from ancestors, not only direct presentation attributes.
+#[test]
+fn unconsumed_text_layout_css_refuses_at_the_text_node() {
+    for (body, expected) in [
+        (
+            r##"<text x="10" y="60" style="font:italic 20px Ahem" fill="#000">X</text>"##,
+            "font",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20" style="letter-spacing:5px" fill="#000">XX</text>"##,
+            "letter-spacing",
+        ),
+        (
+            r##"<style>text { writing-mode: vertical-rl }</style><text x="20" y="20" font-family="Ahem" font-size="20" fill="#000">XX</text>"##,
+            "writing-mode",
+        ),
+        (
+            r##"<g font-weight="bold"><text x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X</text></g>"##,
+            "font-weight",
+        ),
+        (
+            r##"<g style="dominant-baseline:middle"><text x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X</text></g>"##,
+            "dominant-baseline",
+        ),
+        (
+            r##"<g text-anchor="end"><text x="90" y="60" font-family="Ahem" font-size="20" fill="#000">XXX</text></g>"##,
+            "text-anchor",
+        ),
+    ] {
+        let source = svg(body);
+        let error = compile(&source).expect_err("unconsumed text layout must refuse");
+        assert!(
+            error.to_string().contains(expected),
+            "expected {expected:?}, got {error}"
+        );
+        let best = compile_best(&source).expect("best effort declares and skips the text");
+        assert!(best.degradations().iter().any(|degradation| {
+            degradation.path().ends_with("/text[1]") && degradation.reason().contains(expected)
+        }));
+    }
+}
+
+/// Rung A is a final-device promise. Identity linear mappings plus integer
+/// translation are admitted after composing text, groups, viewBox, and use;
+/// fractional translation and every non-identity linear map refuse even when
+/// a sampled Ahem box happened to raster exactly.
+#[test]
+fn the_numeric_domain_is_enforced_on_the_final_ctm() {
+    for source in [
+        svg(r##"<text x="10" y="60" transform="translate(5)" font-family="Ahem" font-size="20" fill="#000">X</text>"##),
+        svg(r##"<g transform="translate(5)"><text x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X</text></g>"##),
+        svg(r##"<g transform="scale(2)"><text x="10" y="60" transform="scale(.5)" font-family="Ahem" font-size="20" fill="#000">X</text></g>"##),
+        svg(r##"<g transform="translate(.5)"><text x="10" y="60" transform="translate(-.5)" font-family="Ahem" font-size="20" fill="#000">X</text></g>"##),
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="-5 0 100 100" preserveAspectRatio="none"><text x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X</text></svg>"##.to_string(),
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><defs><text id="t" x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X</text></defs><use href="#t" x="5"/></svg>"##.to_string(),
+    ] {
+        compile(&source).expect("the composed final CTM is an integer translation");
+    }
+
+    for source in [
+        svg(r##"<text x="10" y="60" transform="translate(.5)" font-family="Ahem" font-size="20" fill="#000">X</text>"##),
+        svg(r##"<g transform="scale(2)"><text x="5" y="30" font-family="Ahem" font-size="10" fill="#000">X</text></g>"##),
+        svg(r##"<text x="10" y="60" transform="matrix(0 1 -1 0 100 0)" font-family="Ahem" font-size="20" fill="#000">X</text>"##),
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 50 50" preserveAspectRatio="none"><text x="5" y="30" font-family="Ahem" font-size="10" fill="#000">X</text></svg>"##.to_string(),
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><defs><text id="t" x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X</text></defs><use href="#t" x=".5"/></svg>"##.to_string(),
+    ] {
+        let error = compile(&source).expect_err("final CTM is outside rung A");
+        let message = error.to_string();
+        assert!(message.contains("text final CTM") && message.contains("numeric domain"), "{message}");
+        let best = compile_best(&source).expect("best effort declares and skips the text");
+        assert!(best.degradations().iter().any(|degradation| {
+            !degradation.path().is_empty()
+                && degradation.reason().contains("text final CTM")
+        }));
+    }
+}
+
+/// The manifest is the complete text corpus, not a convenient subset. A new
+/// source cannot bypass review by appearing beside it without a case row, and
+/// duplicate rows cannot make the apparent cell count larger than the gate.
+#[test]
+fn text_suite_enumerates_every_svg_input() {
+    let root = fixture_root();
+    let suite = suite();
+    let disk: BTreeSet<String> = fs::read_dir(&root)
+        .expect("read text fixture root")
+        .filter_map(Result::ok)
+        .filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_file()))
+        .filter_map(|entry| {
+            let path = entry.path();
+            (path.extension().and_then(|ext| ext.to_str()) == Some("svg"))
+                .then(|| entry.file_name().to_string_lossy().into_owned())
+        })
+        .collect();
+    let declared: BTreeSet<String> = suite
+        .cases
+        .iter()
+        .map(|fixture| fixture.source.clone())
+        .collect();
+    let ids: BTreeSet<&str> = suite
+        .cases
+        .iter()
+        .map(|fixture| fixture.id.as_str())
+        .collect();
+    let oracles: BTreeSet<&str> = suite
+        .cases
+        .iter()
+        .map(|fixture| fixture.oracle.as_str())
+        .collect();
+
+    assert_eq!(
+        declared, disk,
+        "every text SVG input must be enumerated exactly once"
+    );
+    assert_eq!(
+        suite.cases.len(),
+        declared.len(),
+        "text source entries must be unique"
+    );
+    assert_eq!(suite.cases.len(), ids.len(), "text ids must be unique");
+    assert_eq!(
+        suite.cases.len(),
+        oracles.len(),
+        "text oracle entries must be unique"
+    );
+    assert!(
+        suite.cases.windows(2).all(|pair| pair[0].id < pair[1].id),
+        "text cases must remain sorted by id"
+    );
+}
+
+/// Hash-pin every input to the bake: suite, baker, the one shared capture
+/// posture, fixture bytes, and oracle bytes. Editing any part without a fresh
+/// deterministic Chromium verification therefore fails the Rust gate.
+#[test]
+fn text_oracle_provenance_is_current() {
+    let root = fixture_root();
+    let suite = suite();
+    let manifest: BakeManifest = read_json(&root.join("oracle-bake.json"));
+
+    assert_eq!(manifest.schema_version, 1, "unsupported text bake schema");
+    assert_eq!(manifest.suite, "cases.json");
+    assert_eq!(manifest.bake_script, "bake_chromium.ts");
+    assert_eq!(manifest.capture_module, "../chromium_capture.ts");
+    assert_eq!(
+        manifest.suite_sha256,
+        sha256_file(&root.join(&manifest.suite)),
+        "text suite changed without rebaking Chromium provenance"
+    );
+    assert_eq!(
+        manifest.bake_script_sha256,
+        sha256_file(&root.join(&manifest.bake_script)),
+        "text baker changed without refreshing provenance"
+    );
+    assert_eq!(
+        manifest.capture_module_sha256,
+        sha256_file(&root.join(&manifest.capture_module)),
+        "shared Chromium capture posture changed without refreshing text provenance"
+    );
+    assert_eq!(manifest.records.len(), suite.cases.len());
+
+    for (fixture, record) in suite.cases.iter().zip(&manifest.records) {
+        assert_eq!(record.id, fixture.id);
+        assert_eq!(record.source, fixture.source);
+        assert_eq!(record.oracle, fixture.oracle);
+        assert_eq!(
+            (record.width, record.height),
+            (fixture.width, fixture.height)
+        );
+        assert_eq!(
+            record.source_sha256,
+            sha256_file(&root.join(&fixture.source)),
+            "{} source changed without rebaking provenance",
+            fixture.id
+        );
+        assert_eq!(
+            record.oracle_sha256,
+            sha256_file(&root.join(&fixture.oracle)),
+            "{} oracle changed without rebaking provenance",
+            fixture.id
+        );
+    }
+}
+
 /// The rung's pixel law: the resolved run rasters byte-identically to the
 /// Chromium capture, and does so deterministically.
 #[test]
@@ -276,6 +612,24 @@ fn admitted_runs_match_the_chromium_oracle() {
         let source = std::fs::read_to_string(root.join(&case.source)).expect("fixture source");
         let frame = compile(&source).expect("admitted cell");
         let rendered = support::render_through_n0(&frame, case.width, case.height);
+        let best = compile_best(&source).expect("best effort admits the same text cell");
+        let substantive: Vec<_> = best
+            .degradations()
+            .iter()
+            .filter(|degradation| degradation.action() != DegradationAction::SamplesAsBase)
+            .collect();
+        if !substantive.is_empty() {
+            divergences.push(format!(
+                "{}: best effort declared an admitted cell: {:?}",
+                case.id, substantive
+            ));
+            continue;
+        }
+        let best_rendered = support::render_through_n0(&best.base_frame(), case.width, case.height);
+        if best_rendered != rendered {
+            divergences.push(format!("{}: strict and best-effort pixels differ", case.id));
+            continue;
+        }
         let again = support::render_through_n0(&frame, case.width, case.height);
         if rendered != again {
             divergences.push(format!("{}: render is not deterministic", case.id));
@@ -317,6 +671,7 @@ fn the_declared_font_identity_is_verified() {
         "the constant this test declares to the engine must be the same digest"
     );
     assert_eq!(suite.font.family, "Ahem");
+    assert_eq!(suite.font.path, "../fonts/ahem.ttf");
 }
 
 fn hex_bytes(hex: &str) -> [u8; 32] {
