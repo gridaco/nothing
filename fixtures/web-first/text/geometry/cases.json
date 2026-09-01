@@ -54,6 +54,45 @@
           "height": 4080.0
         }
       }
+    },
+    {
+      "id": "svg-text-allerta-kerning",
+      "source": "svg-text-allerta-kerning.svg",
+      "oracle": "chromium/svg-text-allerta-kerning.json",
+      "width": 5000,
+      "height": 500,
+      "text": "ff",
+      "x": "0",
+      "y": "3905",
+      "text_anchor": "start",
+      "font_family": "Allerta",
+      "font_size": "5120",
+      "fill": "#111827",
+      "font_facts": {
+        "units_per_em": 1024,
+        "glyphs": [
+          {
+            "source_utf8_byte": 0,
+            "source_utf16_index": 0,
+            "scalar": "f",
+            "glyph_id": 70,
+            "cluster": 0
+          },
+          {
+            "source_utf8_byte": 1,
+            "source_utf16_index": 1,
+            "scalar": "f",
+            "glyph_id": 70,
+            "cluster": 1
+          }
+        ],
+        "ink_bounds": {
+          "x": 275.0,
+          "y": -3905.0,
+          "width": 4190.0,
+          "height": 3905.0
+        }
+      }
     }
   ]
 }

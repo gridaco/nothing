@@ -566,8 +566,8 @@ cargo run -p n0_cli --bin n0 -- \
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
   cells. The complete primitive corpus contains 1,051 Chromium-baked cells plus
   16 sampled frames; the text estate contains nine exact Ahem pixel cells and
-  one exact-number Allerta artifact-geometry witness, and the named refusal
-  register has 207 rows. `feFlood`, `feComposite`,
+  two exact-number Allerta artifact-geometry witnesses, and the named refusal
+  register has 208 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -962,9 +962,10 @@ cargo run -p n0_cli --bin n0 -- \
   declared refuses by name; there is no system fallback, no ambient face,
   and therefore no machine-local pixel anywhere on this path. Inside that
   environment one run resolves once through
-  [the text oracle](../../docs/wg/feat-paragraph/text-layout.md) at its v0
-  profile — one style run of printable ASCII, horizontal and
-  left-to-right, no wrapping and no fallback — and its glyph outlines lower
+  [the text oracle](../../docs/wg/feat-paragraph/text-layout.md) at its v1
+  profile — one style run of printable ASCII, horizontal and left-to-right,
+  one source scalar and one glyph per shaping cluster, no wrapping and no
+  fallback — and its glyph outlines lower
   to the contract's ordinary path facts, so no font identity crosses into
   the resolved frame. `x`, `y`, and a direct `text-anchor` attribute
   (`start`/`middle`/`end`) place the run; inherited ancestor spellings refuse
@@ -992,13 +993,22 @@ cargo run -p n0_cli --bin n0 -- \
   pre-raster geometry boundary. Chromium exposes each horizontal SVG
   character cell after enclosing its start/end on a 1/64 CSS-pixel grid and
   exposes vertical cells through integral fixed ascent/descent metrics. A run
-  is admitted only when every resolved glyph boundary already lies on that
-  grid and both metrics are already integral; the compiler never changes the
-  artifact to imitate the query. A pinned Allerta `Hxi` witness at 5120px
+  is admitted only when every direct cluster's glyph boundary already lies on
+  that grid and both metrics are already integral; the compiler never changes
+  the artifact to imitate the query. A pinned Allerta `Hxi` witness at 5120px
   matches Chromium's total advance, per-character starts/ends/extents,
   baseline, and anchor placement exactly. Glyph ids, clusters, units-per-em,
   and outline bounds are checked separately against the same pinned font bytes
-  because browser text-query APIs do not expose those facts. The 1000px
+  because browser text-query APIs do not expose those facts. A second Allerta
+  `ff` witness carries default pair positioning exactly: Chromium and the
+  artifact agree on advances 2330/2355 and total advance 4685. Separately,
+  the pinned font bytes grade glyph ids 70/70 and outline bounds, while oracle
+  v1 records every cluster's source UTF-8 range, source UTF-16 range, and glyph
+  range explicitly. A merged or decomposed
+  cluster refuses by stable `shaping cluster mapping` name before lowering;
+  PT Serif `fi` is the committed negative witness, because Chromium exposes
+  two addressable character segments while shaping produces one ligature
+  glyph. The 1000px
   control misses both query grids: strict refuses by stable
   `Chromium SVG text query` name, while best effort skips and declares that
   text node. Real-font
@@ -1012,7 +1022,8 @@ cargo run -p n0_cli --bin n0 -- \
   child, `dx`/`dy`/`rotate` lists, `textLength`, font shorthands and unconsumed
   font variants, decorations, letter and word spacing, baselines, writing mode
   and direction, stroke on text, a colour or
-  bitmap face, and any character outside the v0 repertoire. The inline-HTML
+  bitmap face, a cluster that is not one source scalar to one glyph, and any
+  character outside the v1 repertoire. The inline-HTML
   entry declares no fonts, so its `<text>` refuses there.
   `display: none` and `visibility` are consumed from the one cascade
   (attribute and CSS spellings alike): a pruned or hidden element renders

@@ -6,10 +6,12 @@
 
 use std::sync::Arc;
 
-use crate::artifact::{BoundsBox, LineMetrics, PlacedGlyph, ResolvedFace, ResolvedTextLayout};
+use crate::artifact::{
+    BoundsBox, LineMetrics, PlacedGlyph, ResolvedFace, ResolvedTextLayout, ShapingCluster,
+};
 use crate::environment::Environment;
 
-/// The complete layout-affecting style of the one run oracle v0 admits.
+/// The complete layout-affecting style of the one run oracle v1 admits.
 #[derive(Clone, Debug)]
 pub struct Style {
     /// Family name resolved against the environment's declared manifest —
@@ -19,7 +21,7 @@ pub struct Style {
     pub size: f32,
 }
 
-/// Attributed source at the v0 profile: one string under one complete style.
+/// Attributed source at the v1 profile: one string under one complete style.
 /// The authoring layer owns document-level transformations — whitespace
 /// collapsing, entity expansion — and hands resolution the post-transform
 /// text; resolution never rewrites what it is given.
@@ -41,25 +43,37 @@ pub enum ResolveError {
     UnknownFamily { family: String },
     /// The environment's bytes for this family do not parse as a face.
     UnparseableFace { family: String },
-    /// The face defines glyphs the v0 outline projection cannot honestly
+    /// The face defines glyphs the v1 outline projection cannot honestly
     /// realize — color or bitmap glyph tables whose ink is not the outline.
     /// Streaming a monochrome placeholder for a color emoji is a silently
     /// wrong pixel, so the face refuses whole; color faces arrive as a new
     /// oracle version.
     UnsupportedFaceFormat { family: String },
-    /// The character is outside oracle v0's admitted repertoire. The profile
+    /// The character is outside oracle v1's admitted repertoire. The profile
     /// is an explicit admit-list — printable ASCII — because everything
     /// beyond it (a bidi control, a strong right-to-left letter, a line or
     /// paragraph separator, a default-ignorable the shaper would silently
-    /// substitute) has semantics v0 does not implement, and shaping it
+    /// substitute) has semantics v1 does not implement, and shaping it
     /// anyway would be approximation. The profile widens by oracle version;
     /// until then the refusal names the byte.
     UnsupportedCharacter { byte_index: usize, character: char },
-    /// The resolved face has no glyph for this cluster. v0 permits no
+    /// The resolved face has no glyph for this cluster. v1 permits no
     /// missing-glyph policy: no tofu, no substitution — a refusal naming
     /// the source position.
     MissingGlyph { byte_index: usize, character: char },
-    /// Shaping produced placement the v0 profile has no semantics for — a
+    /// Shaping merged multiple source scalars into one cluster or split one
+    /// scalar into multiple glyphs. Oracle v1 carries explicit source and
+    /// glyph spans, but deliberately admits only one-to-one clusters until a
+    /// later version also owns caret positions inside an inseparable glyph
+    /// set. Painting while pretending the source mapping stayed one-to-one
+    /// would poison every geometry-sensitive consumer.
+    UnsupportedClusterMapping {
+        source_utf8_start: usize,
+        source_utf8_end: usize,
+        glyph_start: usize,
+        glyph_end: usize,
+    },
+    /// Shaping produced placement the v1 profile has no semantics for — a
     /// glyph offset (mark attachment, positioning feature), a vertical pen
     /// advance, or a negative advance. Dropping any of them would be
     /// silently mispositioned ink, so the run refuses; richer placement
@@ -96,7 +110,7 @@ impl std::fmt::Display for ResolveError {
                 character,
             } => write!(
                 f,
-                "character {character:?} at byte {byte_index} is outside the printable-ASCII v0 profile"
+                "character {character:?} at byte {byte_index} is outside the printable-ASCII v1 profile"
             ),
             ResolveError::MissingGlyph {
                 byte_index,
@@ -104,6 +118,15 @@ impl std::fmt::Display for ResolveError {
             } => write!(
                 f,
                 "no glyph for {character:?} at byte {byte_index} in the resolved face"
+            ),
+            ResolveError::UnsupportedClusterMapping {
+                source_utf8_start,
+                source_utf8_end,
+                glyph_start,
+                glyph_end,
+            } => write!(
+                f,
+                "shaping cluster mapping source bytes {source_utf8_start}..{source_utf8_end} to glyphs {glyph_start}..{glyph_end} is outside textlayout-v1's one-source-scalar/one-glyph profile"
             ),
             ResolveError::UnsupportedShaping { byte_index } => write!(
                 f,
@@ -116,7 +139,7 @@ impl std::fmt::Display for ResolveError {
 impl std::error::Error for ResolveError {}
 
 /// Glyph tables whose ink is not the glyph outline. A face carrying any of
-/// them refuses whole: v0's projection is outlines, and realizing a color
+/// them refuses whole: v1's projection is outlines, and realizing a color
 /// glyph as its monochrome fallback outline is a wrong pixel, not a policy.
 const NON_OUTLINE_GLYPH_TABLES: [&[u8; 4]; 5] = [b"COLR", b"CBDT", b"CBLC", b"sbix", b"SVG "];
 
@@ -133,7 +156,7 @@ pub fn resolve(
 
     // The profile guard is the resolver's property, not an accident of any
     // font's coverage: an explicit admit-list, checked before shaping so the
-    // refusal names the source byte. Printable ASCII is the whole v0
+    // refusal names the source byte. Printable ASCII is the whole v1
     // repertoire — everything else (bidi controls and strong RTL, Zl/Zp
     // separators, default-ignorables the shaper would substitute unasked)
     // refuses here rather than shaping approximately.
@@ -189,17 +212,23 @@ pub fn resolve(
     let mut buffer = rustybuzz::UnicodeBuffer::new();
     buffer.push_str(&text.text);
     buffer.set_direction(rustybuzz::Direction::LeftToRight);
+    // Pin the cluster policy as part of the oracle identity instead of
+    // inheriting rustybuzz's current default. Level 0 is the behavior v0
+    // shipped and the T3 probes measured; v1 makes that fact explicit.
+    buffer.set_cluster_level(rustybuzz::BufferClusterLevel::MonotoneGraphemes);
     let shaped = rustybuzz::shape(&face, &[], buffer);
+    let clusters = one_to_one_clusters(&text.text, shaped.glyph_infos())?;
 
     let mut glyphs = Vec::with_capacity(shaped.len());
     let mut pen_x = 0.0f32;
-    for (info, pos) in shaped
+    for (glyph_index, (info, pos)) in shaped
         .glyph_infos()
         .iter()
         .zip(shaped.glyph_positions().iter())
+        .enumerate()
     {
         let byte_index = info.cluster as usize;
-        // Glyph 0 is .notdef: the face cannot render this cluster, and v0
+        // Glyph 0 is .notdef: the face cannot render this cluster, and v1
         // has no permitted replacement policy.
         if info.glyph_id == 0 {
             let character = text.text[byte_index..]
@@ -211,7 +240,7 @@ pub fn resolve(
                 character,
             });
         }
-        // v0's profile has offsets, vertical advances, and backward pens in
+        // v1's profile has offsets, vertical advances, and backward pens in
         // no place. Dropping any of them would be silently mispositioned
         // ink; each refuses instead.
         if pos.x_offset != 0 || pos.y_offset != 0 || pos.y_advance != 0 || pos.x_advance < 0 {
@@ -225,7 +254,9 @@ pub fn resolve(
             glyph_id,
             x: pen_x,
             advance: pos.x_advance as f32 * scale,
-            cluster: info.cluster,
+            // `one_to_one_clusters` proved one cluster per glyph in this
+            // same order before any placement entered the artifact.
+            cluster_index: glyph_index,
         });
         pen_x += pos.x_advance as f32 * scale;
     }
@@ -242,11 +273,88 @@ pub fn resolve(
         resolved_face,
         size,
         metrics,
+        clusters,
         glyphs,
         pen_x,
         ink_bounds,
         Arc::clone(&resource.bytes),
     ))
+}
+
+/// Build the complete UTF-8/UTF-16/glyph association and enforce oracle v1's
+/// direct-cluster profile. The shaper's monotone LTR guarantee lets the next
+/// distinct cluster start close the current source span; every boundary is
+/// nevertheless validated before it enters the artifact.
+fn one_to_one_clusters(
+    source: &str,
+    infos: &[rustybuzz::GlyphInfo],
+) -> Result<Vec<ShapingCluster>, ResolveError> {
+    if source.is_empty() {
+        if infos.is_empty() {
+            return Ok(Vec::new());
+        }
+        return Err(ResolveError::UnsupportedShaping { byte_index: 0 });
+    }
+    if infos.is_empty() {
+        return Err(ResolveError::UnsupportedClusterMapping {
+            source_utf8_start: 0,
+            source_utf8_end: source.len(),
+            glyph_start: 0,
+            glyph_end: 0,
+        });
+    }
+
+    let mut clusters = Vec::new();
+    let mut glyph_start = 0;
+    let mut source_utf16_start = 0;
+    while glyph_start < infos.len() {
+        let source_utf8_start = infos[glyph_start].cluster as usize;
+        let mut glyph_end = glyph_start + 1;
+        while glyph_end < infos.len() && infos[glyph_end].cluster == infos[glyph_start].cluster {
+            glyph_end += 1;
+        }
+        let source_utf8_end = if glyph_end < infos.len() {
+            infos[glyph_end].cluster as usize
+        } else {
+            source.len()
+        };
+
+        let follows_previous = if let Some(previous) = clusters.last() {
+            let previous: &ShapingCluster = previous;
+            previous.source_utf8().end == source_utf8_start
+        } else {
+            source_utf8_start == 0
+        };
+        let valid_source_range = source_utf8_start < source_utf8_end
+            && source_utf8_end <= source.len()
+            && source.is_char_boundary(source_utf8_start)
+            && source.is_char_boundary(source_utf8_end)
+            && follows_previous;
+        if !valid_source_range {
+            return Err(ResolveError::UnsupportedShaping {
+                byte_index: source_utf8_start.min(source.len()),
+            });
+        }
+
+        let source_slice = &source[source_utf8_start..source_utf8_end];
+        if source_slice.chars().count() != 1 || glyph_end - glyph_start != 1 {
+            return Err(ResolveError::UnsupportedClusterMapping {
+                source_utf8_start,
+                source_utf8_end,
+                glyph_start,
+                glyph_end,
+            });
+        }
+        let source_utf16_end = source_utf16_start + source_slice.encode_utf16().count();
+        clusters.push(ShapingCluster::new(
+            source_utf8_start..source_utf8_end,
+            source_utf16_start..source_utf16_end,
+            glyph_start..glyph_end,
+        ));
+        glyph_start = glyph_end;
+        source_utf16_start = source_utf16_end;
+    }
+    Ok(clusters)
 }
 
 /// The tight union of glyph bounding boxes in local y-down px. Uses the

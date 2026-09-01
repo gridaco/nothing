@@ -415,7 +415,7 @@ fn direct_font_size_sources_remain_admitted_across_the_cascade() {
     }
 }
 
-/// Text semantics represented by Stylo but absent from oracle v0 must not
+/// Text semantics represented by Stylo but absent from oracle v1 must not
 /// become defaults silently. This includes the font shorthand and inherited
 /// declarations from ancestors, not only direct presentation attributes.
 #[test]

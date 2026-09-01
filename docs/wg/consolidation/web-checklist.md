@@ -1834,9 +1834,25 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > and outline ink are separately pinned to the exact font bytes because the
 > browser APIs do not expose them. A 1000px control proves the browser's 1/64
 > horizontal enclosure and integral vertical-metric projection would change
-> the artifact, so that class now refuses by stable name in both admissions;
+> the artifact, so strict refuses that class while best effort skips the text
+> node and records the same stable degradation;
 > the named register moves from 206 to 207. Real-font pixels make no Chromium
 > claim, wider shaping remains open, and no element row ticks.
+
+> **2026-09-01 cluster-mapping checkpoint:** T3 now states every admitted
+> shaping cluster as one source scalar, one UTF-16 addressable character, and
+> one glyph. A second exact Allerta witness proves default pair positioning:
+> `ff` advances 2330/2355 for a total 4685, while the feature-disabled probe
+> is 2355/2355 and 4710 (measured, not celled except for the default witness).
+> PT Serif `fi` exposes the split that remains outside the profile: shaping
+> produces one 3000-unit ligature glyph, while Chromium exposes two
+> 1500-unit character segments. Strict now refuses that many-to-one class;
+> best effort compiles, skips the text node, and records the same stable
+> degradation instead of painting with an unstated source map;
+> the named register moves from 207 to 208. Ligatures, decompositions,
+> internal caret stops, combining marks, wider repertoire, and authored font
+> features remain open. The checkpoint closes no CSS, SVG element, or SVG
+> presentation row.
 
 
 ### SVG presentation attributes
