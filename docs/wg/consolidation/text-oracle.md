@@ -382,3 +382,50 @@ Ligatures, decompositions, nonzero offsets, combining marks, non-ASCII
 repertoire, script/language/feature inputs, and multiple runs remain outside
 this checkpoint. Real-font pixels remain outside the Chromium oracle claim,
 and no shared render-contract fact is added.
+
+## T3b evidence addendum — precomposed Latin source mappings (2026-09-01)
+
+The verdict is ADMIT/SPLIT, with no checklist closure. Oracle v2 widens the
+source repertoire from printable ASCII by exactly 53 precomposed Latin-1
+letters: U+00C0–00C5, U+00C7–00CF, U+00D1–00D6, U+00D9–00DD,
+U+00E0–00E5, U+00E7–00EF, U+00F1–00F6, U+00F9–00FD, and U+00FF. Every
+member has a canonical decomposition to one ASCII Latin base plus one
+combining mark. This source property, not the selected face's coverage,
+defines the admit-list; neighboring non-decomposable Latin-1 letters remain
+outside it.
+
+The exact positive witness places every member between ASCII `A` and `Z` in
+the pinned Allerta face at 5120px. Chromium exposes 55 addressable characters,
+all direct, at total advance 171785. Pinned-font facts independently grade the
+55 glyph identities and outline union `(315, -5285, 171085, 6545)`. The
+source ranges make the purpose of the witness explicit: the run is 108 UTF-8
+bytes but 55 UTF-16 units. The first precomposed member occupies bytes `1..3`
+and units `1..2`; the final ASCII sentinel occupies bytes `107..108` and units
+`54..55`. Every browser-visible character cell is exact, without decimal
+rounding or tolerance. Real-font pixels keep only the engine-law checks and
+remain outside the Chromium claim.
+
+Chromium paints precomposed `AéZ` and decomposed `Ae` + U+0301 + `Z`
+identically in this face, while the unaccented control differs at 256 pixels
+with maximum delta 255. The two accented sources are not the same geometry
+contract: browser queries expose three addressable characters for the former
+and four for the latter, with the combining mark sharing its base's segment.
+These source-form facts are measured, not celled. Resolution therefore
+preserves source spelling and performs no normalization. The precomposed
+source admits; the decomposed sequence leaves through a new
+registered v2-repertoire refusal in strict and best-effort paths. Combining
+marks and nonzero offsets remain their own shaping checkpoint.
+
+The defect exposed by the new coordinate split was not in shaping or paint.
+The artifact already retained scalar-aligned UTF-8 and UTF-16 ranges, but one
+consumer treated the byte length of a UTF-8 range as source-scalar
+cardinality. Printable ASCII had made that assumption observationally true.
+The corrected law validates one scalar in the recorded source slice. Restoring
+the old byte test deliberately makes the complete gate fail on bytes `1..3`;
+restoring the scalar law returns it green.
+
+The exact Ahem estate remains nine cells. The real-font geometry estate now
+has three Allerta witnesses, and the named refusal register has 209 rows.
+Non-decomposable Latin letters, combining marks and offsets, merged clusters
+and internal caret stops, wider Unicode, script/language/feature inputs, and
+multiple runs remain open. No shared render-contract fact is added.

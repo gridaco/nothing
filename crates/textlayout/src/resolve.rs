@@ -11,7 +11,7 @@ use crate::artifact::{
 };
 use crate::environment::Environment;
 
-/// The complete layout-affecting style of the one run oracle v1 admits.
+/// The complete layout-affecting style of the one run oracle v2 admits.
 #[derive(Clone, Debug)]
 pub struct Style {
     /// Family name resolved against the environment's declared manifest —
@@ -21,7 +21,7 @@ pub struct Style {
     pub size: f32,
 }
 
-/// Attributed source at the v1 profile: one string under one complete style.
+/// Attributed source at the v2 profile: one string under one complete style.
 /// The authoring layer owns document-level transformations — whitespace
 /// collapsing, entity expansion — and hands resolution the post-transform
 /// text; resolution never rewrites what it is given.
@@ -43,26 +43,26 @@ pub enum ResolveError {
     UnknownFamily { family: String },
     /// The environment's bytes for this family do not parse as a face.
     UnparseableFace { family: String },
-    /// The face defines glyphs the v1 outline projection cannot honestly
+    /// The face defines glyphs the v2 outline projection cannot honestly
     /// realize — color or bitmap glyph tables whose ink is not the outline.
     /// Streaming a monochrome placeholder for a color emoji is a silently
     /// wrong pixel, so the face refuses whole; color faces arrive as a new
     /// oracle version.
     UnsupportedFaceFormat { family: String },
-    /// The character is outside oracle v1's admitted repertoire. The profile
-    /// is an explicit admit-list — printable ASCII — because everything
-    /// beyond it (a bidi control, a strong right-to-left letter, a line or
-    /// paragraph separator, a default-ignorable the shaper would silently
-    /// substitute) has semantics v1 does not implement, and shaping it
-    /// anyway would be approximation. The profile widens by oracle version;
-    /// until then the refusal names the byte.
+    /// The character is outside oracle v2's admitted repertoire. The profile
+    /// is an explicit admit-list — printable ASCII plus the canonical
+    /// precomposed Latin-1 letters whose decomposition is one ASCII Latin
+    /// base and one combining mark. Combining sequences, non-decomposable
+    /// Latin-1 letters, bidi controls, strong right-to-left letters,
+    /// separators, and default-ignorables remain outside it. The profile
+    /// widens by oracle version; until then the refusal names the byte.
     UnsupportedCharacter { byte_index: usize, character: char },
-    /// The resolved face has no glyph for this cluster. v1 permits no
+    /// The resolved face has no glyph for this cluster. v2 permits no
     /// missing-glyph policy: no tofu, no substitution — a refusal naming
     /// the source position.
     MissingGlyph { byte_index: usize, character: char },
     /// Shaping merged multiple source scalars into one cluster or split one
-    /// scalar into multiple glyphs. Oracle v1 carries explicit source and
+    /// scalar into multiple glyphs. Oracle v2 carries explicit source and
     /// glyph spans, but deliberately admits only one-to-one clusters until a
     /// later version also owns caret positions inside an inseparable glyph
     /// set. Painting while pretending the source mapping stayed one-to-one
@@ -73,7 +73,7 @@ pub enum ResolveError {
         glyph_start: usize,
         glyph_end: usize,
     },
-    /// Shaping produced placement the v1 profile has no semantics for — a
+    /// Shaping produced placement the v2 profile has no semantics for — a
     /// glyph offset (mark attachment, positioning feature), a vertical pen
     /// advance, or a negative advance. Dropping any of them would be
     /// silently mispositioned ink, so the run refuses; richer placement
@@ -110,7 +110,7 @@ impl std::fmt::Display for ResolveError {
                 character,
             } => write!(
                 f,
-                "character {character:?} at byte {byte_index} is outside the printable-ASCII v1 profile"
+                "character {character:?} at byte {byte_index} is outside textlayout-v2's admitted printable-ASCII plus canonical precomposed Latin-1 repertoire"
             ),
             ResolveError::MissingGlyph {
                 byte_index,
@@ -126,7 +126,7 @@ impl std::fmt::Display for ResolveError {
                 glyph_end,
             } => write!(
                 f,
-                "shaping cluster mapping source bytes {source_utf8_start}..{source_utf8_end} to glyphs {glyph_start}..{glyph_end} is outside textlayout-v1's one-source-scalar/one-glyph profile"
+                "shaping cluster mapping source bytes {source_utf8_start}..{source_utf8_end} to glyphs {glyph_start}..{glyph_end} is outside textlayout-v2's one-source-scalar/one-glyph profile"
             ),
             ResolveError::UnsupportedShaping { byte_index } => write!(
                 f,
@@ -139,7 +139,7 @@ impl std::fmt::Display for ResolveError {
 impl std::error::Error for ResolveError {}
 
 /// Glyph tables whose ink is not the glyph outline. A face carrying any of
-/// them refuses whole: v1's projection is outlines, and realizing a color
+/// them refuses whole: v2's projection is outlines, and realizing a color
 /// glyph as its monochrome fallback outline is a wrong pixel, not a policy.
 const NON_OUTLINE_GLYPH_TABLES: [&[u8; 4]; 5] = [b"COLR", b"CBDT", b"CBLC", b"sbix", b"SVG "];
 
@@ -156,12 +156,13 @@ pub fn resolve(
 
     // The profile guard is the resolver's property, not an accident of any
     // font's coverage: an explicit admit-list, checked before shaping so the
-    // refusal names the source byte. Printable ASCII is the whole v1
-    // repertoire — everything else (bidi controls and strong RTL, Zl/Zp
-    // separators, default-ignorables the shaper would substitute unasked)
-    // refuses here rather than shaping approximately.
+    // refusal names the source byte. The v2 repertoire is printable ASCII
+    // plus the canonical precomposed Latin-1 letters whose decomposition is
+    // exactly one ASCII Latin base and one combining mark. Source spelling
+    // matters: combining sequences and every other scalar still refuse here
+    // rather than being normalized or shaped approximately.
     for (byte_index, character) in text.text.char_indices() {
-        if !matches!(character, ' '..='~') {
+        if !is_admitted_character(character) {
             return Err(ResolveError::UnsupportedCharacter {
                 byte_index,
                 character,
@@ -214,7 +215,7 @@ pub fn resolve(
     buffer.set_direction(rustybuzz::Direction::LeftToRight);
     // Pin the cluster policy as part of the oracle identity instead of
     // inheriting rustybuzz's current default. Level 0 is the behavior v0
-    // shipped and the T3 probes measured; v1 makes that fact explicit.
+    // shipped and the T3 probes measured; v2 keeps that fact explicit.
     buffer.set_cluster_level(rustybuzz::BufferClusterLevel::MonotoneGraphemes);
     let shaped = rustybuzz::shape(&face, &[], buffer);
     let clusters = one_to_one_clusters(&text.text, shaped.glyph_infos())?;
@@ -228,7 +229,7 @@ pub fn resolve(
         .enumerate()
     {
         let byte_index = info.cluster as usize;
-        // Glyph 0 is .notdef: the face cannot render this cluster, and v1
+        // Glyph 0 is .notdef: the face cannot render this cluster, and v2
         // has no permitted replacement policy.
         if info.glyph_id == 0 {
             let character = text.text[byte_index..]
@@ -240,7 +241,7 @@ pub fn resolve(
                 character,
             });
         }
-        // v1's profile has offsets, vertical advances, and backward pens in
+        // v2's profile has offsets, vertical advances, and backward pens in
         // no place. Dropping any of them would be silently mispositioned
         // ink; each refuses instead.
         if pos.x_offset != 0 || pos.y_offset != 0 || pos.y_advance != 0 || pos.x_advance < 0 {
@@ -281,7 +282,7 @@ pub fn resolve(
     ))
 }
 
-/// Build the complete UTF-8/UTF-16/glyph association and enforce oracle v1's
+/// Build the complete UTF-8/UTF-16/glyph association and enforce oracle v2's
 /// direct-cluster profile. The shaper's monotone LTR guarantee lets the next
 /// distinct cluster start close the current source span; every boundary is
 /// nevertheless validated before it enters the artifact.
@@ -355,6 +356,28 @@ fn one_to_one_clusters(
         source_utf16_start = source_utf16_end;
     }
     Ok(clusters)
+}
+
+/// Oracle v2's complete source-scalar admit-list.
+///
+/// The Latin-1 ranges are deliberately discontinuous: every admitted member
+/// has a canonical two-scalar decomposition to an ASCII Latin base plus one
+/// combining mark. Letters without that decomposition (`Æ`, `Ð`, `Ø`, `Þ`,
+/// `ß` and lowercase peers) are not smuggled in by block membership.
+fn is_admitted_character(character: char) -> bool {
+    matches!(
+        character,
+        ' '..='~'
+            | '\u{00C0}'..='\u{00C5}'
+            | '\u{00C7}'..='\u{00CF}'
+            | '\u{00D1}'..='\u{00D6}'
+            | '\u{00D9}'..='\u{00DD}'
+            | '\u{00E0}'..='\u{00E5}'
+            | '\u{00E7}'..='\u{00EF}'
+            | '\u{00F1}'..='\u{00F6}'
+            | '\u{00F9}'..='\u{00FD}'
+            | '\u{00FF}'
+    )
 }
 
 /// The tight union of glyph bounding boxes in local y-down px. Uses the

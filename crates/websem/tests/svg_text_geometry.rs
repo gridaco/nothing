@@ -29,6 +29,22 @@ fn fixture_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/web-first/text/geometry")
 }
 
+fn is_textlayout_v2_scalar(character: char) -> bool {
+    matches!(
+        character,
+        ' '..='~'
+            | '\u{00C0}'..='\u{00C5}'
+            | '\u{00C7}'..='\u{00CF}'
+            | '\u{00D1}'..='\u{00D6}'
+            | '\u{00D9}'..='\u{00DD}'
+            | '\u{00E0}'..='\u{00E5}'
+            | '\u{00E7}'..='\u{00EF}'
+            | '\u{00F1}'..='\u{00F6}'
+            | '\u{00F9}'..='\u{00FD}'
+            | '\u{00FF}'
+    )
+}
+
 #[derive(Deserialize)]
 struct Suite {
     schema_version: u32,
@@ -391,6 +407,9 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
             other => panic!("unrecognized anchor {other}"),
         };
         let metrics = layout.metrics();
+        let source_scalars: Vec<(usize, char)> = case.text.char_indices().collect();
+        assert_eq!(source_scalars.len(), case.font_facts.glyphs.len());
+        let mut source_utf16_index = 0;
         for (index, (((glyph, cluster), fact), character)) in layout
             .glyphs()
             .iter()
@@ -401,18 +420,25 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
         {
             let scalar = fact.scalar.chars().next().expect("one scalar fact");
             assert_eq!(fact.scalar.chars().count(), 1);
-            assert!(scalar.is_ascii() && !scalar.is_ascii_control());
+            let (source_utf8_byte, source_scalar) = source_scalars[index];
+            assert_eq!(scalar, source_scalar);
+            assert!(is_textlayout_v2_scalar(scalar));
             assert_eq!(u32::from(scalar), character.utf16_code_unit);
-            assert_eq!(fact.source_utf8_byte as usize, index);
-            assert_eq!(fact.source_utf16_index as usize, index);
+            assert_eq!(fact.source_utf8_byte as usize, source_utf8_byte);
+            assert_eq!(fact.source_utf16_index as usize, source_utf16_index);
             assert_eq!(fact.source_utf8_byte, fact.cluster);
             assert_eq!(glyph.cluster_index, index);
-            assert_eq!(cluster.source_utf8(), index..index + 1);
-            assert_eq!(cluster.source_utf16(), index..index + 1);
+            assert_eq!(
+                cluster.source_utf8(),
+                source_utf8_byte..source_utf8_byte + scalar.len_utf8()
+            );
+            assert_eq!(
+                cluster.source_utf16(),
+                source_utf16_index..source_utf16_index + scalar.len_utf16()
+            );
             assert_eq!(cluster.glyphs(), index..index + 1);
             assert_eq!(cluster.source_utf8().start as u32, fact.cluster);
             assert_eq!(glyph.glyph_id, fact.glyph_id);
-            assert_eq!(fact.source_utf16_index, fact.source_utf8_byte);
             assert_eq!(
                 face.glyph_index(scalar).expect("direct cmap glyph").0,
                 fact.glyph_id,
@@ -453,6 +479,17 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
                 character.extent.height,
             );
             assert_eq!(character.rotation, 0.0);
+            source_utf16_index += scalar.len_utf16();
+        }
+        assert_eq!(source_utf16_index, case.text.encode_utf16().count());
+        if case.id == "svg-text-allerta-latin-precomposed" {
+            assert!(
+                case.font_facts
+                    .glyphs
+                    .iter()
+                    .any(|fact| fact.source_utf8_byte != fact.source_utf16_index),
+                "the Latin witness must expose the UTF-8/UTF-16 coordinate split"
+            );
         }
 
         let ink = layout.ink_bounds().expect("real face has outline ink");

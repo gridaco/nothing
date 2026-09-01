@@ -24,6 +24,24 @@ SVG_NS = "http://www.w3.org/2000/svg"
 ID_PATTERN = re.compile(r"^svg-text-[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
+def admitted_scalar(character: str) -> bool:
+    codepoint = ord(character)
+    return " " <= character <= "~" or any(
+        start <= codepoint <= end
+        for start, end in (
+            (0x00C0, 0x00C5),
+            (0x00C7, 0x00CF),
+            (0x00D1, 0x00D6),
+            (0x00D9, 0x00DD),
+            (0x00E0, 0x00E5),
+            (0x00E7, 0x00EF),
+            (0x00F1, 0x00F6),
+            (0x00F9, 0x00FD),
+            (0x00FF, 0x00FF),
+        )
+    )
+
+
 def canonical(case: dict) -> str:
     return (
         f'<svg xmlns="{SVG_NS}" width="{case["width"]}" height="{case["height"]}">\n'
@@ -66,8 +84,9 @@ def main() -> None:
     if set(text.attrib) != required or list(text):
         sys.exit("refused: the one text run has only the canonical attributes and no children")
     content = text.text or ""
-    if not content or any(not (" " <= character <= "~") for character in content):
-        sys.exit("refused: the rung-B witness is non-empty printable ASCII")
+    scalars = list(content)
+    if not scalars or any(not admitted_scalar(character) for character in scalars):
+        sys.exit("refused: the rung-B witness must stay inside textlayout-v2's exact repertoire")
     if " ".join(content.split()) != content:
         sys.exit("refused: source text must already be in canonical collapsed-space form")
     if text.attrib["font-family"] != suite["font"]["family"]:
@@ -105,16 +124,18 @@ def main() -> None:
         or not 1 <= units_per_em <= 65535
     ):
         sys.exit("refused: units_per_em must be a positive 16-bit integer")
-    if not isinstance(facts["glyphs"], list) or len(facts["glyphs"]) != len(content):
-        sys.exit("refused: rung B requires one direct cmap glyph fact per ASCII byte")
-    for index, (character, glyph) in enumerate(zip(content, facts["glyphs"])):
+    if not isinstance(facts["glyphs"], list) or len(facts["glyphs"]) != len(scalars):
+        sys.exit("refused: rung B requires one direct cmap glyph fact per source scalar")
+    source_utf8_byte = 0
+    source_utf16_index = 0
+    for index, (character, glyph) in enumerate(zip(scalars, facts["glyphs"])):
         glyph_id = glyph.get("glyph_id") if isinstance(glyph, dict) else None
         expected = {
-            "source_utf8_byte": index,
-            "source_utf16_index": index,
+            "source_utf8_byte": source_utf8_byte,
+            "source_utf16_index": source_utf16_index,
             "scalar": character,
             "glyph_id": glyph_id,
-            "cluster": index,
+            "cluster": source_utf8_byte,
         }
         if (
             glyph != expected
@@ -123,6 +144,8 @@ def main() -> None:
             or not 1 <= glyph_id <= 65535
         ):
             sys.exit(f"refused: glyph fact {index} is not the direct source mapping")
+        source_utf8_byte += len(character.encode("utf-8"))
+        source_utf16_index += len(character.encode("utf-16-le")) // 2
     ink_bounds = facts["ink_bounds"]
     if not isinstance(ink_bounds, dict) or set(ink_bounds) != {
         "x",

@@ -1,4 +1,4 @@
-//! Oracle v1 against measured ground truth.
+//! Oracle v2 against measured ground truth.
 //!
 //! The numbers here are not derived from this crate: they were measured from
 //! the pinned Ahem bytes (fixtures/web-first/fonts/ahem.ttf) and verified
@@ -28,6 +28,11 @@ const PT_SERIF: &str = concat!(
 /// Tests exercise resolution, not host-side digest verification, so the key
 /// is a stand-in identity the artifact must nonetheless carry through.
 const TEST_KEY: FontKey = FontKey::new([0xAB; 32]);
+
+/// Every Latin-1 letter whose canonical decomposition is exactly one ASCII
+/// Latin base plus one combining mark. This is the complete v2 extension;
+/// block neighbors are tested as refusals below.
+const PRECOMPOSED_LATIN_1: &str = "ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ";
 
 fn ahem_environment() -> Environment {
     let bytes: Arc<[u8]> = std::fs::read(AHEM).expect("pinned Ahem bytes").into();
@@ -63,7 +68,7 @@ fn ahem(text: &str, size: f32) -> AttributedText {
 fn x_at_50_resolves_the_measured_em_box() {
     let layout = resolve(&ahem("X", 50.0), &ahem_environment()).unwrap();
 
-    assert_eq!(textlayout::ORACLE_VERSION, "textlayout-v1");
+    assert_eq!(textlayout::ORACLE_VERSION, "textlayout-v2");
     assert_eq!(layout.oracle_version(), textlayout::ORACLE_VERSION);
     assert_eq!(layout.face().key, TEST_KEY);
     assert_eq!(layout.face().units_per_em, 1000);
@@ -209,7 +214,7 @@ fn default_pair_kerning_preserves_direct_cluster_mapping() {
         },
         &fixture_environment(ALLERTA, "Allerta"),
     )
-    .expect("one-to-one kerning is inside oracle v1");
+    .expect("one-to-one kerning is inside oracle v2");
 
     assert_eq!(layout.advance(), 4685.0);
     assert_eq!(layout.glyphs().len(), 2);
@@ -252,6 +257,71 @@ fn merged_ligature_cluster_refuses_before_it_can_poison_source_geometry() {
 }
 
 #[test]
+fn precomposed_latin_carries_distinct_utf8_and_utf16_source_ranges() {
+    let source = format!("A{PRECOMPOSED_LATIN_1}Z");
+    assert_eq!(PRECOMPOSED_LATIN_1.chars().count(), 53);
+    assert_eq!(PRECOMPOSED_LATIN_1.len(), 106);
+
+    let layout = resolve(
+        &AttributedText {
+            text: source.clone(),
+            style: Style {
+                family: "Allerta".to_string(),
+                size: 5120.0,
+            },
+        },
+        &fixture_environment(ALLERTA, "Allerta"),
+    )
+    .expect("every measured precomposed Latin-1 member is direct in Allerta");
+
+    // Chromium 149 measured these exact advances at 5120px. `hb-shape`
+    // against the same pinned bytes independently reported the same glyph
+    // identities, placements, and UTF-8 clusters.
+    let expected_glyph_ids = [
+        35, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 119, 120,
+        121, 122, 123, 124, 126, 127, 128, 129, 130, 133, 134, 135, 136, 137, 138, 139, 140, 141,
+        142, 143, 144, 145, 146, 147, 149, 150, 151, 152, 153, 154, 156, 157, 158, 159, 160, 162,
+        60,
+    ];
+    let expected_advances = [
+        3795.0, 3795.0, 3795.0, 3795.0, 3795.0, 3795.0, 3795.0, 3355.0, 3140.0, 3140.0, 3140.0,
+        3140.0, 1540.0, 1540.0, 1540.0, 1540.0, 3580.0, 3840.0, 3840.0, 3840.0, 3840.0, 3840.0,
+        3685.0, 3685.0, 3685.0, 3685.0, 3275.0, 3000.0, 3000.0, 3000.0, 3000.0, 3000.0, 3000.0,
+        2925.0, 3320.0, 3320.0, 3320.0, 3320.0, 1455.0, 1455.0, 1455.0, 1455.0, 3170.0, 3310.0,
+        3310.0, 3310.0, 3310.0, 3310.0, 3165.0, 3165.0, 3165.0, 3165.0, 3360.0, 3360.0, 3225.0,
+    ];
+    assert_eq!(layout.glyphs().len(), source.chars().count());
+    assert_eq!(layout.clusters().len(), source.chars().count());
+    assert_eq!(layout.advance(), 171785.0);
+
+    let mut utf16_start = 0;
+    let mut pen_x = 0.0;
+    for (index, (source_utf8_start, scalar)) in source.char_indices().enumerate() {
+        let source_utf8_end = source_utf8_start + scalar.len_utf8();
+        let source_utf16_end = utf16_start + scalar.len_utf16();
+        let cluster = &layout.clusters()[index];
+        let glyph = &layout.glyphs()[index];
+
+        assert_eq!(cluster.source_utf8(), source_utf8_start..source_utf8_end);
+        assert_eq!(cluster.source_utf16(), utf16_start..source_utf16_end);
+        assert_eq!(cluster.glyphs(), index..index + 1);
+        assert_eq!(glyph.cluster_index, index);
+        assert_eq!(glyph.glyph_id, expected_glyph_ids[index]);
+        assert_eq!(glyph.x, pen_x);
+        assert_eq!(glyph.advance, expected_advances[index]);
+
+        utf16_start = source_utf16_end;
+        pen_x += glyph.advance;
+    }
+    assert_eq!(utf16_start, 55);
+    assert_eq!(pen_x, layout.advance());
+    assert_eq!(layout.clusters()[1].source_utf8(), 1..3);
+    assert_eq!(layout.clusters()[1].source_utf16(), 1..2);
+    assert_eq!(layout.clusters()[54].source_utf8(), 107..108);
+    assert_eq!(layout.clusters()[54].source_utf16(), 54..55);
+}
+
+#[test]
 fn undeclared_family_refuses_by_name() {
     let err = resolve(&ahem("X", 20.0), &Environment::default()).unwrap_err();
     assert_eq!(
@@ -276,6 +346,21 @@ fn the_profile_is_the_resolvers_property_not_the_fonts() {
         ("X\u{200B}Y", 1, '\u{200B}'),
         ("X\u{00AD}Y", 1, '\u{00AD}'),
         ("X\u{1F600}", 1, '\u{1F600}'),
+        ("X\u{00A0}Y", 1, '\u{00A0}'),
+        ("X\u{00AA}Y", 1, '\u{00AA}'),
+        ("X\u{00C6}Y", 1, '\u{00C6}'),
+        ("X\u{00D0}Y", 1, '\u{00D0}'),
+        ("X\u{00D7}Y", 1, '\u{00D7}'),
+        ("X\u{00D8}Y", 1, '\u{00D8}'),
+        ("X\u{00DE}Y", 1, '\u{00DE}'),
+        ("X\u{00DF}Y", 1, '\u{00DF}'),
+        ("X\u{00E6}Y", 1, '\u{00E6}'),
+        ("X\u{00F0}Y", 1, '\u{00F0}'),
+        ("X\u{00F7}Y", 1, '\u{00F7}'),
+        ("X\u{00F8}Y", 1, '\u{00F8}'),
+        ("X\u{00FE}Y", 1, '\u{00FE}'),
+        ("Ae\u{0301}Z", 2, '\u{0301}'),
+        ("X\u{0100}Y", 1, '\u{0100}'),
     ] {
         let err = resolve(&ahem(text, 20.0), &ahem_environment()).unwrap_err();
         assert_eq!(
@@ -289,9 +374,10 @@ fn the_profile_is_the_resolvers_property_not_the_fonts() {
     }
 }
 
-// MissingGlyph is unreachable through Ahem at the v1 profile — Ahem covers
-// all of printable ASCII — so its pin arrives with the first environment
-// font that does not, rather than pretending a reachable test exists today.
+// MissingGlyph is unreachable through the current fixture identities: Ahem
+// covers printable ASCII and Allerta covers the admitted Latin extension.
+// Its pin arrives with the first declared environment whose admitted scalar
+// lacks a glyph, rather than pretending a reachable test exists today.
 
 #[test]
 fn invalid_sizes_refuse() {

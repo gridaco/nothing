@@ -1115,7 +1115,7 @@ const TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "font",
 ];
 
-/// Cascaded text facts the v1 text oracle does not consume.
+/// Cascaded text facts the v2 text oracle does not consume.
 ///
 /// Unlike [`CASCADE_PROPERTIES_NOT_REPRESENTED`], most of these longhands do
 /// exist in the pinned Stylo build. That makes them more dangerous, not less:
@@ -1689,7 +1689,7 @@ fn text_css_source_refusal(css: &str) -> Option<String> {
         }
         if TEXT_CASCADE_PROPERTIES_NOT_CONSUMED.contains(&name.as_str()) {
             return Some(format!(
-                "text layout property {name} is represented or browser-consumed but not carried by the v1 text oracle"
+                "text layout property {name} is represented or browser-consumed but not carried by the v2 text oracle"
             ));
         }
     }
@@ -1717,7 +1717,7 @@ fn patrol_text_authored_semantics(el: HtmlElement<'_>) -> Result<(), CompileErro
                 .find(|attribute| get_attr(element, attribute).is_some())
         {
             return Err(CompileError::UnsupportedStyle(format!(
-                "text layout presentation attribute {attribute} in the ancestor chain is not carried by the v1 text oracle"
+                "text layout presentation attribute {attribute} in the ancestor chain is not carried by the v2 text oracle"
             )));
         }
         if let Some(style) = get_attr(element, "style")
