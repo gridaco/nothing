@@ -128,7 +128,8 @@ def main() -> None:
         sys.exit("refused: rung B requires one direct cmap glyph fact per source scalar")
     source_utf8_byte = 0
     source_utf16_index = 0
-    for index, (character, glyph) in enumerate(zip(scalars, facts["glyphs"])):
+    for index, character in enumerate(scalars):
+        glyph = facts["glyphs"][index]
         glyph_id = glyph.get("glyph_id") if isinstance(glyph, dict) else None
         expected = {
             "source_utf8_byte": source_utf8_byte,
