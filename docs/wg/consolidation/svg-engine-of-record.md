@@ -4748,8 +4748,10 @@ glyph. This makes default horizontal pair positioning gradeable without
 claiming ligature or caret semantics the artifact cannot yet state.
 
 The exact positive witness is Allerta `ff` at 5120px. Chromium and the
-artifact both report direct glyphs 70/70, advances 2330/2355, starts 0/2330,
-total advance 4685, and outline union `(275, -3905, 4190, 3905)`. A browser
+artifact agree on character advances 2330/2355, starts 0/2330, and total
+advance 4685. Separately, the pinned font bytes grade glyphs 70/70 and outline
+union `(275, -3905, 4190, 3905)`, while the artifact states their direct
+source/glyph ranges. A browser
 `font-kerning:none` control reports 2355/2355 and 4710 total, and its 120px
 raster differs from default at 353 pixels with maximum delta 206 (measured,
 not celled). The default geometry is committed as the second exact-number

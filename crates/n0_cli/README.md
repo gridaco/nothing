@@ -994,16 +994,17 @@ cargo run -p n0_cli --bin n0 -- \
   character cell after enclosing its start/end on a 1/64 CSS-pixel grid and
   exposes vertical cells through integral fixed ascent/descent metrics. A run
   is admitted only when every direct cluster's glyph boundary already lies on
-  that grid and both metrics are already integral; the compiler never changes the
-  artifact to imitate the query. A pinned Allerta `Hxi` witness at 5120px
+  that grid and both metrics are already integral; the compiler never changes
+  the artifact to imitate the query. A pinned Allerta `Hxi` witness at 5120px
   matches Chromium's total advance, per-character starts/ends/extents,
   baseline, and anchor placement exactly. Glyph ids, clusters, units-per-em,
   and outline bounds are checked separately against the same pinned font bytes
   because browser text-query APIs do not expose those facts. A second Allerta
-  `ff` witness carries default pair positioning exactly: the artifact and
-  Chromium agree on direct UTF-8/UTF-16/glyph ranges, advances 2330/2355, and
-  total advance 4685. Oracle v1 records every cluster's source UTF-8 range,
-  source UTF-16 range, and glyph range explicitly. A merged or decomposed
+  `ff` witness carries default pair positioning exactly: Chromium and the
+  artifact agree on advances 2330/2355 and total advance 4685. Separately,
+  the pinned font bytes grade glyph ids 70/70 and outline bounds, while oracle
+  v1 records every cluster's source UTF-8 range, source UTF-16 range, and glyph
+  range explicitly. A merged or decomposed
   cluster refuses by stable `shaping cluster mapping` name before lowering;
   PT Serif `fi` is the committed negative witness, because Chromium exposes
   two addressable character segments while shaping produces one ligature

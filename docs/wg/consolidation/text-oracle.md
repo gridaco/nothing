@@ -338,9 +338,10 @@ ASCII makes the two source ranges numerically equal today, but that equality
 is no longer an implicit consumer assumption.
 
 The positive witness is Allerta Regular `ff` at 5120px. Chromium and the
-artifact agree exactly on glyph identifiers 70/70, direct clusters 0/1,
-character advances 2330/2355, starts 0/2330, total advance 4685, and outline
-union `(275, -3905, 4190, 3905)`. A feature-disabled browser control reports
+artifact agree exactly on character advances 2330/2355, starts 0/2330, and
+total advance 4685. Separately, the pinned font bytes grade glyph identifiers
+70/70 and outline union `(275, -3905, 4190, 3905)`, while the artifact states
+their direct source/glyph ranges. A feature-disabled browser control reports
 2355/2355 and total 4710, establishing that the 25-unit first-character
 reduction is default pair positioning (measured, not celled). Its 120px
 default/control raster pair differs at 353 pixels with maximum channel delta

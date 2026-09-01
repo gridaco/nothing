@@ -195,9 +195,10 @@ Printable ASCII still makes the two source ranges numerically equal, but no
 consumer may infer one coordinate space from the other.
 
 The second Allerta witness is the run `ff` at 5120px. Chromium and the
-artifact agree exactly on glyph ids 70/70, clusters 0/1, total advance 4685,
-character advances 2330/2355, starts 0/2330, and the outline union
-`(275, -3905, 4190, 3905)`. The first 25-unit reduction is default OpenType
+artifact agree exactly on total advance 4685, character advances 2330/2355,
+and starts 0/2330. Separately, the pinned font bytes grade glyph ids 70/70 and
+the outline union `(275, -3905, 4190, 3905)`, while the artifact states direct
+UTF-8, UTF-16, and glyph ranges. The first 25-unit reduction is default OpenType
 pair positioning: a scratch `font-kerning:none` control measures 4710 total
 and 2355 for each character. At 120px the default/control Chromium rasters
 differ at 353 pixels with maximum channel delta 206 (measured, not celled;
