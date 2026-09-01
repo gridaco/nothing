@@ -566,8 +566,8 @@ cargo run -p n0_cli --bin n0 -- \
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
   cells. The complete primitive corpus contains 1,051 Chromium-baked cells plus
   16 sampled frames; the text estate contains nine exact Ahem pixel cells and
-  two exact-number Allerta artifact-geometry witnesses, and the named refusal
-  register has 208 rows. `feFlood`, `feComposite`,
+  three exact-number Allerta artifact-geometry witnesses, and the named refusal
+  register has 209 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -962,10 +962,12 @@ cargo run -p n0_cli --bin n0 -- \
   declared refuses by name; there is no system fallback, no ambient face,
   and therefore no machine-local pixel anywhere on this path. Inside that
   environment one run resolves once through
-  [the text oracle](../../docs/wg/feat-paragraph/text-layout.md) at its v1
-  profile — one style run of printable ASCII, horizontal and left-to-right,
-  one source scalar and one glyph per shaping cluster, no wrapping and no
-  fallback — and its glyph outlines lower
+  [the text oracle](../../docs/wg/feat-paragraph/text-layout.md) at its v2
+  profile — one style run of printable ASCII plus exactly the 53 canonical
+  precomposed Latin-1 letters in U+00C0–00C5, U+00C7–00CF, U+00D1–00D6,
+  U+00D9–00DD, U+00E0–00E5, U+00E7–00EF, U+00F1–00F6, U+00F9–00FD, and
+  U+00FF; horizontal and left-to-right; one source scalar and one glyph per
+  shaping cluster; no wrapping and no fallback — and its glyph outlines lower
   to the contract's ordinary path facts, so no font identity crosses into
   the resolved frame. `x`, `y`, and a direct `text-anchor` attribute
   (`start`/`middle`/`end`) place the run; inherited ancestor spellings refuse
@@ -1002,13 +1004,19 @@ cargo run -p n0_cli --bin n0 -- \
   because browser text-query APIs do not expose those facts. A second Allerta
   `ff` witness carries default pair positioning exactly: Chromium and the
   artifact agree on advances 2330/2355 and total advance 4685. Separately,
-  the pinned font bytes grade glyph ids 70/70 and outline bounds, while oracle
-  v1 records every cluster's source UTF-8 range, source UTF-16 range, and glyph
-  range explicitly. A merged or decomposed
+  the pinned font bytes grade glyph ids 70/70 and outline bounds, while the
+  oracle records every cluster's source UTF-8 range, source UTF-16 range, and
+  glyph range explicitly. A third Allerta witness contains every admitted
+  precomposed Latin letter between ASCII sentinels. Chromium reports 55
+  addressable characters and total advance 171785; the artifact records 108
+  UTF-8 bytes versus 55 UTF-16 units, including `À` at bytes `1..3` and UTF-16
+  units `1..2`, and `Z` at bytes `107..108` and units `54..55`. A merged
   cluster refuses by stable `shaping cluster mapping` name before lowering;
   PT Serif `fi` is the committed negative witness, because Chromium exposes
   two addressable character segments while shaping produces one ligature
-  glyph. The 1000px
+  glyph. A decomposed combining sequence remains outside the explicit v2
+  repertoire without source normalization; strict refuses and best effort
+  skips it at the text node. The 1000px
   control misses both query grids: strict refuses by stable
   `Chromium SVG text query` name, while best effort skips and declares that
   text node. Real-font
@@ -1023,7 +1031,7 @@ cargo run -p n0_cli --bin n0 -- \
   font variants, decorations, letter and word spacing, baselines, writing mode
   and direction, stroke on text, a colour or
   bitmap face, a cluster that is not one source scalar to one glyph, and any
-  character outside the v1 repertoire. The inline-HTML
+  character outside the v2 repertoire. The inline-HTML
   entry declares no fonts, so its `<text>` refuses there.
   `display: none` and `visibility` are consumed from the one cascade
   (attribute and CSS spellings alike): a pruned or hidden element renders

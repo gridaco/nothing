@@ -3,7 +3,7 @@
   "kind": "chromium-svg-text-geometry-oracle",
   "browser_version": "149.0.7827.55",
   "suite": "cases.json",
-  "suite_sha256": "8c5d32689a63b50a33596176e2cb167d0b40338a5c8aaf46469f1079f3ca3fa8",
+  "suite_sha256": "87435a452051b83d38e08b21eff841dfdc33b2cfbdb31d5095da6b02826b38cf",
   "bake_script": "bake_chromium.ts",
   "bake_script_sha256": "c77d4d047d93357958382b64d52eafb6fb03311c699233e7c34ead4e306b3196",
   "capture_module": "../../chromium_capture.ts",
@@ -49,6 +49,15 @@
       "source_sha256": "5402e206b2e9ed3cc2d1dc0d46271e5f4739348d096703ea3c598364aa7fb319",
       "oracle": "chromium/svg-text-allerta-kerning.json",
       "oracle_sha256": "7ae0a1b9d1eecaace690b470b9048cf9e09285156097bdb8c6c426bbcb42609f",
+      "width": 5000,
+      "height": 500
+    },
+    {
+      "id": "svg-text-allerta-latin-precomposed",
+      "source": "svg-text-allerta-latin-precomposed.svg",
+      "source_sha256": "d4c2d0fe75abe4a6157e5166435a49ec74256d1a158b84f6bff03306b773534b",
+      "oracle": "chromium/svg-text-allerta-latin-precomposed.json",
+      "oracle_sha256": "0964d7ee84817639ef78166a41cb43045f872759eb602920dad03bc259deaae5",
       "width": 5000,
       "height": 500
     }

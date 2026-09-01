@@ -36,7 +36,7 @@ pub struct ResolvedFace {
 /// Line metrics in local px: distances from the baseline, both positive
 /// (ascent reaches up, descent reaches down).
 ///
-/// Oracle v1's metric policy is the face's `hhea` ascent/descent as the
+/// Oracle v2's metric policy is the face's `hhea` ascent/descent as the
 /// parser reports them; line gap (leading) is a declared deferral, arriving
 /// as a field when a consumer first needs line stacking. For the pinned gate
 /// font every metric table agrees, which is why the gate can hold before the
@@ -47,13 +47,13 @@ pub struct LineMetrics {
     pub descent: f32,
 }
 
-/// One shaping cluster's complete source/glyph cardinality at oracle v1.
+/// One shaping cluster's complete source/glyph cardinality at oracle v2.
 ///
 /// The source has two coordinate spaces on purpose. HarfBuzz clusters are
 /// seeded from UTF-8 byte offsets, while Web text APIs address UTF-16 code
-/// units. Printable ASCII makes those ranges numerically equal today; the
-/// artifact states both so no consumer can turn that temporary equality into
-/// an unwritten contract.
+/// units. Oracle v2's precomposed Latin witness makes those ranges diverge;
+/// the artifact states both so no consumer can confuse either coordinate
+/// space with scalar indices.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ShapingCluster {
     source_utf8: Range<usize>,
@@ -118,7 +118,7 @@ pub trait OutlineSink {
     fn close(&mut self);
 }
 
-/// The immutable resolved text layout at oracle v1: one style run of
+/// The immutable resolved text layout at oracle v2: one style run of
 /// horizontal left-to-right text, already shaped, measured, and mapped.
 ///
 /// Consumers project, they do not re-resolve: painting realizes the recorded
@@ -189,14 +189,14 @@ impl ResolvedTextLayout {
         self.metrics
     }
 
-    /// Shaping clusters in logical order. Oracle v1's admitted LTR profile
+    /// Shaping clusters in logical order. Oracle v2's admitted LTR profile
     /// also makes this visual order; consumers must not assume that of a
     /// later bidi-capable version.
     pub fn clusters(&self) -> &[ShapingCluster] {
         &self.clusters
     }
 
-    /// The placed glyphs in visual order — which at oracle v1 is also
+    /// The placed glyphs in visual order — which at oracle v2 is also
     /// logical order, a fact of the LTR single-run profile rather than an
     /// assumption a consumer may carry to later versions.
     pub fn glyphs(&self) -> &[PlacedGlyph] {

@@ -1,0 +1,1061 @@
+{
+  "schema_version": 1,
+  "kind": "chromium-svg-text-geometry",
+  "measurement": {
+    "text_content": "AÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿZ",
+    "computed_font_family": "Allerta",
+    "computed_font_size": "5120px",
+    "computed_text_anchor": "start",
+    "font_ready": true,
+    "number_of_chars": 55,
+    "computed_text_length": 171785,
+    "substring_length": 171785,
+    "characters": [
+      {
+        "utf16_code_unit": 65,
+        "substring_length": 3795,
+        "start": {
+          "x": 0,
+          "y": 3680
+        },
+        "end": {
+          "x": 3795,
+          "y": 3680
+        },
+        "extent": {
+          "x": 0,
+          "y": -1605,
+          "width": 3795,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 192,
+        "substring_length": 3795,
+        "start": {
+          "x": 3795,
+          "y": 3680
+        },
+        "end": {
+          "x": 7590,
+          "y": 3680
+        },
+        "extent": {
+          "x": 3795,
+          "y": -1605,
+          "width": 3795,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 193,
+        "substring_length": 3795,
+        "start": {
+          "x": 7590,
+          "y": 3680
+        },
+        "end": {
+          "x": 11385,
+          "y": 3680
+        },
+        "extent": {
+          "x": 7590,
+          "y": -1605,
+          "width": 3795,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 194,
+        "substring_length": 3795,
+        "start": {
+          "x": 11385,
+          "y": 3680
+        },
+        "end": {
+          "x": 15180,
+          "y": 3680
+        },
+        "extent": {
+          "x": 11385,
+          "y": -1605,
+          "width": 3795,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 195,
+        "substring_length": 3795,
+        "start": {
+          "x": 15180,
+          "y": 3680
+        },
+        "end": {
+          "x": 18975,
+          "y": 3680
+        },
+        "extent": {
+          "x": 15180,
+          "y": -1605,
+          "width": 3795,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 196,
+        "substring_length": 3795,
+        "start": {
+          "x": 18975,
+          "y": 3680
+        },
+        "end": {
+          "x": 22770,
+          "y": 3680
+        },
+        "extent": {
+          "x": 18975,
+          "y": -1605,
+          "width": 3795,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 197,
+        "substring_length": 3795,
+        "start": {
+          "x": 22770,
+          "y": 3680
+        },
+        "end": {
+          "x": 26565,
+          "y": 3680
+        },
+        "extent": {
+          "x": 22770,
+          "y": -1605,
+          "width": 3795,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 199,
+        "substring_length": 3355,
+        "start": {
+          "x": 26565,
+          "y": 3680
+        },
+        "end": {
+          "x": 29920,
+          "y": 3680
+        },
+        "extent": {
+          "x": 26565,
+          "y": -1605,
+          "width": 3355,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 200,
+        "substring_length": 3140,
+        "start": {
+          "x": 29920,
+          "y": 3680
+        },
+        "end": {
+          "x": 33060,
+          "y": 3680
+        },
+        "extent": {
+          "x": 29920,
+          "y": -1605,
+          "width": 3140,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 201,
+        "substring_length": 3140,
+        "start": {
+          "x": 33060,
+          "y": 3680
+        },
+        "end": {
+          "x": 36200,
+          "y": 3680
+        },
+        "extent": {
+          "x": 33060,
+          "y": -1605,
+          "width": 3140,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 202,
+        "substring_length": 3140,
+        "start": {
+          "x": 36200,
+          "y": 3680
+        },
+        "end": {
+          "x": 39340,
+          "y": 3680
+        },
+        "extent": {
+          "x": 36200,
+          "y": -1605,
+          "width": 3140,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 203,
+        "substring_length": 3140,
+        "start": {
+          "x": 39340,
+          "y": 3680
+        },
+        "end": {
+          "x": 42480,
+          "y": 3680
+        },
+        "extent": {
+          "x": 39340,
+          "y": -1605,
+          "width": 3140,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 204,
+        "substring_length": 1540,
+        "start": {
+          "x": 42480,
+          "y": 3680
+        },
+        "end": {
+          "x": 44020,
+          "y": 3680
+        },
+        "extent": {
+          "x": 42480,
+          "y": -1605,
+          "width": 1540,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 205,
+        "substring_length": 1540,
+        "start": {
+          "x": 44020,
+          "y": 3680
+        },
+        "end": {
+          "x": 45560,
+          "y": 3680
+        },
+        "extent": {
+          "x": 44020,
+          "y": -1605,
+          "width": 1540,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 206,
+        "substring_length": 1540,
+        "start": {
+          "x": 45560,
+          "y": 3680
+        },
+        "end": {
+          "x": 47100,
+          "y": 3680
+        },
+        "extent": {
+          "x": 45560,
+          "y": -1605,
+          "width": 1540,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 207,
+        "substring_length": 1540,
+        "start": {
+          "x": 47100,
+          "y": 3680
+        },
+        "end": {
+          "x": 48640,
+          "y": 3680
+        },
+        "extent": {
+          "x": 47100,
+          "y": -1605,
+          "width": 1540,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 209,
+        "substring_length": 3580,
+        "start": {
+          "x": 48640,
+          "y": 3680
+        },
+        "end": {
+          "x": 52220,
+          "y": 3680
+        },
+        "extent": {
+          "x": 48640,
+          "y": -1605,
+          "width": 3580,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 210,
+        "substring_length": 3840,
+        "start": {
+          "x": 52220,
+          "y": 3680
+        },
+        "end": {
+          "x": 56060,
+          "y": 3680
+        },
+        "extent": {
+          "x": 52220,
+          "y": -1605,
+          "width": 3840,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 211,
+        "substring_length": 3840,
+        "start": {
+          "x": 56060,
+          "y": 3680
+        },
+        "end": {
+          "x": 59900,
+          "y": 3680
+        },
+        "extent": {
+          "x": 56060,
+          "y": -1605,
+          "width": 3840,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 212,
+        "substring_length": 3840,
+        "start": {
+          "x": 59900,
+          "y": 3680
+        },
+        "end": {
+          "x": 63740,
+          "y": 3680
+        },
+        "extent": {
+          "x": 59900,
+          "y": -1605,
+          "width": 3840,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 213,
+        "substring_length": 3840,
+        "start": {
+          "x": 63740,
+          "y": 3680
+        },
+        "end": {
+          "x": 67580,
+          "y": 3680
+        },
+        "extent": {
+          "x": 63740,
+          "y": -1605,
+          "width": 3840,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 214,
+        "substring_length": 3840,
+        "start": {
+          "x": 67580,
+          "y": 3680
+        },
+        "end": {
+          "x": 71420,
+          "y": 3680
+        },
+        "extent": {
+          "x": 67580,
+          "y": -1605,
+          "width": 3840,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 217,
+        "substring_length": 3685,
+        "start": {
+          "x": 71420,
+          "y": 3680
+        },
+        "end": {
+          "x": 75105,
+          "y": 3680
+        },
+        "extent": {
+          "x": 71420,
+          "y": -1605,
+          "width": 3685,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 218,
+        "substring_length": 3685,
+        "start": {
+          "x": 75105,
+          "y": 3680
+        },
+        "end": {
+          "x": 78790,
+          "y": 3680
+        },
+        "extent": {
+          "x": 75105,
+          "y": -1605,
+          "width": 3685,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 219,
+        "substring_length": 3685,
+        "start": {
+          "x": 78790,
+          "y": 3680
+        },
+        "end": {
+          "x": 82475,
+          "y": 3680
+        },
+        "extent": {
+          "x": 78790,
+          "y": -1605,
+          "width": 3685,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 220,
+        "substring_length": 3685,
+        "start": {
+          "x": 82475,
+          "y": 3680
+        },
+        "end": {
+          "x": 86160,
+          "y": 3680
+        },
+        "extent": {
+          "x": 82475,
+          "y": -1605,
+          "width": 3685,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 221,
+        "substring_length": 3275,
+        "start": {
+          "x": 86160,
+          "y": 3680
+        },
+        "end": {
+          "x": 89435,
+          "y": 3680
+        },
+        "extent": {
+          "x": 86160,
+          "y": -1605,
+          "width": 3275,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 224,
+        "substring_length": 3000,
+        "start": {
+          "x": 89435,
+          "y": 3680
+        },
+        "end": {
+          "x": 92435,
+          "y": 3680
+        },
+        "extent": {
+          "x": 89435,
+          "y": -1605,
+          "width": 3000,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 225,
+        "substring_length": 3000,
+        "start": {
+          "x": 92435,
+          "y": 3680
+        },
+        "end": {
+          "x": 95435,
+          "y": 3680
+        },
+        "extent": {
+          "x": 92435,
+          "y": -1605,
+          "width": 3000,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 226,
+        "substring_length": 3000,
+        "start": {
+          "x": 95435,
+          "y": 3680
+        },
+        "end": {
+          "x": 98435,
+          "y": 3680
+        },
+        "extent": {
+          "x": 95435,
+          "y": -1605,
+          "width": 3000,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 227,
+        "substring_length": 3000,
+        "start": {
+          "x": 98435,
+          "y": 3680
+        },
+        "end": {
+          "x": 101435,
+          "y": 3680
+        },
+        "extent": {
+          "x": 98435,
+          "y": -1605,
+          "width": 3000,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 228,
+        "substring_length": 3000,
+        "start": {
+          "x": 101435,
+          "y": 3680
+        },
+        "end": {
+          "x": 104435,
+          "y": 3680
+        },
+        "extent": {
+          "x": 101435,
+          "y": -1605,
+          "width": 3000,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 229,
+        "substring_length": 3000,
+        "start": {
+          "x": 104435,
+          "y": 3680
+        },
+        "end": {
+          "x": 107435,
+          "y": 3680
+        },
+        "extent": {
+          "x": 104435,
+          "y": -1605,
+          "width": 3000,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 231,
+        "substring_length": 2925,
+        "start": {
+          "x": 107435,
+          "y": 3680
+        },
+        "end": {
+          "x": 110360,
+          "y": 3680
+        },
+        "extent": {
+          "x": 107435,
+          "y": -1605,
+          "width": 2925,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 232,
+        "substring_length": 3320,
+        "start": {
+          "x": 110360,
+          "y": 3680
+        },
+        "end": {
+          "x": 113680,
+          "y": 3680
+        },
+        "extent": {
+          "x": 110360,
+          "y": -1605,
+          "width": 3320,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 233,
+        "substring_length": 3320,
+        "start": {
+          "x": 113680,
+          "y": 3680
+        },
+        "end": {
+          "x": 117000,
+          "y": 3680
+        },
+        "extent": {
+          "x": 113680,
+          "y": -1605,
+          "width": 3320,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 234,
+        "substring_length": 3320,
+        "start": {
+          "x": 117000,
+          "y": 3680
+        },
+        "end": {
+          "x": 120320,
+          "y": 3680
+        },
+        "extent": {
+          "x": 117000,
+          "y": -1605,
+          "width": 3320,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 235,
+        "substring_length": 3320,
+        "start": {
+          "x": 120320,
+          "y": 3680
+        },
+        "end": {
+          "x": 123640,
+          "y": 3680
+        },
+        "extent": {
+          "x": 120320,
+          "y": -1605,
+          "width": 3320,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 236,
+        "substring_length": 1455,
+        "start": {
+          "x": 123640,
+          "y": 3680
+        },
+        "end": {
+          "x": 125095,
+          "y": 3680
+        },
+        "extent": {
+          "x": 123640,
+          "y": -1605,
+          "width": 1455,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 237,
+        "substring_length": 1455,
+        "start": {
+          "x": 125095,
+          "y": 3680
+        },
+        "end": {
+          "x": 126550,
+          "y": 3680
+        },
+        "extent": {
+          "x": 125095,
+          "y": -1605,
+          "width": 1455,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 238,
+        "substring_length": 1455,
+        "start": {
+          "x": 126550,
+          "y": 3680
+        },
+        "end": {
+          "x": 128005,
+          "y": 3680
+        },
+        "extent": {
+          "x": 126550,
+          "y": -1605,
+          "width": 1455,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 239,
+        "substring_length": 1455,
+        "start": {
+          "x": 128005,
+          "y": 3680
+        },
+        "end": {
+          "x": 129460,
+          "y": 3680
+        },
+        "extent": {
+          "x": 128005,
+          "y": -1605,
+          "width": 1455,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 241,
+        "substring_length": 3170,
+        "start": {
+          "x": 129460,
+          "y": 3680
+        },
+        "end": {
+          "x": 132630,
+          "y": 3680
+        },
+        "extent": {
+          "x": 129460,
+          "y": -1605,
+          "width": 3170,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 242,
+        "substring_length": 3310,
+        "start": {
+          "x": 132630,
+          "y": 3680
+        },
+        "end": {
+          "x": 135940,
+          "y": 3680
+        },
+        "extent": {
+          "x": 132630,
+          "y": -1605,
+          "width": 3310,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 243,
+        "substring_length": 3310,
+        "start": {
+          "x": 135940,
+          "y": 3680
+        },
+        "end": {
+          "x": 139250,
+          "y": 3680
+        },
+        "extent": {
+          "x": 135940,
+          "y": -1605,
+          "width": 3310,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 244,
+        "substring_length": 3310,
+        "start": {
+          "x": 139250,
+          "y": 3680
+        },
+        "end": {
+          "x": 142560,
+          "y": 3680
+        },
+        "extent": {
+          "x": 139250,
+          "y": -1605,
+          "width": 3310,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 245,
+        "substring_length": 3310,
+        "start": {
+          "x": 142560,
+          "y": 3680
+        },
+        "end": {
+          "x": 145870,
+          "y": 3680
+        },
+        "extent": {
+          "x": 142560,
+          "y": -1605,
+          "width": 3310,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 246,
+        "substring_length": 3310,
+        "start": {
+          "x": 145870,
+          "y": 3680
+        },
+        "end": {
+          "x": 149180,
+          "y": 3680
+        },
+        "extent": {
+          "x": 145870,
+          "y": -1605,
+          "width": 3310,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 249,
+        "substring_length": 3165,
+        "start": {
+          "x": 149180,
+          "y": 3680
+        },
+        "end": {
+          "x": 152345,
+          "y": 3680
+        },
+        "extent": {
+          "x": 149180,
+          "y": -1605,
+          "width": 3165,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 250,
+        "substring_length": 3165,
+        "start": {
+          "x": 152345,
+          "y": 3680
+        },
+        "end": {
+          "x": 155510,
+          "y": 3680
+        },
+        "extent": {
+          "x": 152345,
+          "y": -1605,
+          "width": 3165,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 251,
+        "substring_length": 3165,
+        "start": {
+          "x": 155510,
+          "y": 3680
+        },
+        "end": {
+          "x": 158675,
+          "y": 3680
+        },
+        "extent": {
+          "x": 155510,
+          "y": -1605,
+          "width": 3165,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 252,
+        "substring_length": 3165,
+        "start": {
+          "x": 158675,
+          "y": 3680
+        },
+        "end": {
+          "x": 161840,
+          "y": 3680
+        },
+        "extent": {
+          "x": 158675,
+          "y": -1605,
+          "width": 3165,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 253,
+        "substring_length": 3360,
+        "start": {
+          "x": 161840,
+          "y": 3680
+        },
+        "end": {
+          "x": 165200,
+          "y": 3680
+        },
+        "extent": {
+          "x": 161840,
+          "y": -1605,
+          "width": 3360,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 255,
+        "substring_length": 3360,
+        "start": {
+          "x": 165200,
+          "y": 3680
+        },
+        "end": {
+          "x": 168560,
+          "y": 3680
+        },
+        "extent": {
+          "x": 165200,
+          "y": -1605,
+          "width": 3360,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 90,
+        "substring_length": 3225,
+        "start": {
+          "x": 168560,
+          "y": 3680
+        },
+        "end": {
+          "x": 171785,
+          "y": 3680
+        },
+        "extent": {
+          "x": 168560,
+          "y": -1605,
+          "width": 3225,
+          "height": 6545
+        },
+        "rotation": 0
+      }
+    ]
+  }
+}

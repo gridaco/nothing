@@ -1854,6 +1854,25 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > features remain open. The checkpoint closes no CSS, SVG element, or SVG
 > presentation row.
 
+> **2026-09-01 precomposed-Latin checkpoint:** T3b advances the text oracle
+> to v2 and admits exactly 53 precomposed Latin-1 letters: U+00C0–00C5,
+> U+00C7–00CF, U+00D1–00D6, U+00D9–00DD, U+00E0–00E5, U+00E7–00EF,
+> U+00F1–00F6, U+00F9–00FD, and U+00FF. Each has a canonical decomposition
+> to one ASCII Latin base plus one combining mark; neighboring Latin-1
+> letters without that decomposition remain outside the admit-list. One
+> exact Allerta geometry witness carries every member between ASCII sentinels
+> and makes the source-coordinate split load-bearing: 108 UTF-8 bytes map to
+> 55 UTF-16 units, with Chromium and the artifact agreeing on all 55
+> character cells and total advance 171785. Chromium paints precomposed `é`
+> and decomposed `e` + U+0301 identically but exposes three versus four
+> addressable characters in the `A…Z` probe (measured, not celled). The
+> decomposed spelling therefore remains a registered source-repertoire refusal
+> rather than being normalized;
+> the named register moves from 208 to 209. Combining marks, offsets,
+> non-decomposable Latin letters, wider Unicode, internal carets, and every
+> complete font/text grammar remain open. No CSS, SVG element, or SVG
+> presentation row ticks.
+
 
 ### SVG presentation attributes
 

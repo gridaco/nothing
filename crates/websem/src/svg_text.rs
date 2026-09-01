@@ -201,7 +201,11 @@ fn admit_chromium_query_geometry(layout: &ResolvedTextLayout) -> Result<(), Text
         let source_utf8 = cluster.source_utf8();
         let source_utf16 = cluster.source_utf16();
         let glyph_range = cluster.glyphs();
-        if source_utf8.clone().count() != 1
+        let source_scalar_count = layout
+            .source()
+            .get(source_utf8.clone())
+            .map(|source| source.chars().count());
+        if source_scalar_count != Some(1)
             || source_utf16.clone().count() != 1
             || glyph_range.clone().count() != 1
         {

@@ -234,11 +234,59 @@ failed because strict unexpectedly accepted it. Restoring shaping and both
 fences returned the complete primitive, text, geometry, and 208-row refusal
 gate to green.
 
-The text estate is now nine exact Ahem cells plus two exact-number Allerta
-geometry witnesses. The named refusal register has 208 rows. This checkpoint
-does not admit ligatures, decompositions, nonzero offsets, combining marks,
-non-ASCII repertoire, authored feature controls, or multiple runs, and closes
-no checklist row.
+At this T3a checkpoint the text estate was nine exact Ahem cells plus two
+exact-number Allerta geometry witnesses, and the named refusal register had
+208 rows. It did not admit ligatures, decompositions, nonzero offsets,
+combining marks, non-ASCII repertoire, authored feature controls, or multiple
+runs, and closed no checklist row.
+
+## T3b bounded precomposed Latin repertoire
+
+Oracle v2 extends the source admit-list by exactly 53 Latin-1 letters:
+U+00C0–00C5, U+00C7–00CF, U+00D1–00D6, U+00D9–00DD, U+00E0–00E5,
+U+00E7–00EF, U+00F1–00F6, U+00F9–00FD, and U+00FF. Every member has a
+canonical decomposition to one ASCII Latin base plus one combining mark.
+That property defines the set; the font's broader coverage does not. `Æ`,
+`Ð`, `Ø`, `Þ`, `ß` and their lowercase peers, combining sequences, and all
+wider Unicode remain refused.
+
+The third exact-number Allerta witness is
+`AÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿZ`
+at 5120px. Chromium 149.0.7827.55 reports 55 addressable characters and total
+advance 171785. The pinned face independently grades all 55 direct glyph
+identities and outline union `(315, -5285, 171085, 6545)`. Most importantly,
+the artifact records 108 UTF-8 bytes and 55 UTF-16 units: `À` occupies bytes
+`1..3` but units `1..2`, while the final `Z` occupies bytes `107..108` but
+units `54..55`. Every Chromium character advance, start, end, logical extent,
+and rotation is compared exactly. Engine pixels retain only the existing
+determinism, non-empty, and strict-equals-best claims.
+
+The source-form boundary was measured separately. Chromium paints `AéZ` and
+`Ae` + U+0301 + `Z` identically, while `AeZ` differs from either accented
+spelling at 256 pixels with maximum delta 255. Its text-query API reports
+three addressable characters for the precomposed spelling and four for the
+decomposed spelling; the combining mark shares the base character's start,
+end, and substring length (measured, not celled). Resolution therefore never
+normalizes authored text. The precomposed run now renders through both CLI
+admissions with byte-identical outputs; the decomposed run refuses in strict
+mode and is skipped at `svg/text[1]` in best effort by the stable v2 repertoire
+reason.
+The committed `svg-text-combining-sequence` row guards that split.
+
+The hidden defect was a coordinate-space equality that printable ASCII had
+made look structural: the browser-facing admission counted bytes in a UTF-8
+cluster range and called a one-byte range one source scalar. The artifact
+already carried correct scalar-aligned UTF-8 and UTF-16 spans. The admission
+now verifies one scalar from the recorded source slice instead. Deliberately
+restoring the byte-count assumption made `just gate` fail loudly on the new
+witness at source bytes `1..3`; restoring the scalar check returned the whole
+gate green.
+
+The text estate is now nine exact Ahem cells plus three exact-number Allerta
+geometry witnesses. The named refusal register has 209 rows. No checklist row
+closes: combining marks and offsets, merged clusters and carets,
+non-decomposable Latin letters, wider repertoire, feature inputs, multiple
+runs, and every complete text/font grammar remain separate work.
 
 ## Tooling
 

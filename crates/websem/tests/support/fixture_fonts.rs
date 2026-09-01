@@ -15,7 +15,7 @@ const PT_SERIF_SHA256: [u8; 32] = [
 
 pub(crate) fn unsupported_environment(id: &str) -> textlayout::Environment {
     let resource = match id {
-        "svg-text-geometry-grid" => textlayout::FontResource {
+        "svg-text-combining-sequence" | "svg-text-geometry-grid" => textlayout::FontResource {
             key: textlayout::FontKey::new(ALLERTA_SHA256),
             family: "Allerta".to_string(),
             face_index: 0,

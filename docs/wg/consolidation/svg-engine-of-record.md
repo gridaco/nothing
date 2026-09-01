@@ -84,10 +84,11 @@ from the dated addenda below:
   and tangent orientation, marker unit/viewBox/reference mapping, hard marker
   viewport clips, solid/context-solid source programs, `<use>` clients, and
   client transform/opacity/clip/mask/filter composition;
-  one declared-font, single-run `<text>` profile, with direct invariant
+  one declared-font, single-run `<text>` profile over printable ASCII and the
+  53 canonical precomposed Latin-1 letters, with direct invariant
   number/`px` size sources, a final identity-linear, integer-translation
   device mapping after root, ancestor, and instance composition, explicit
-  one-source-scalar/one-glyph cluster maps, default pair positioning, and two
+  one-source-scalar/one-glyph cluster maps, default pair positioning, and three
   real-font artifact-geometry witnesses graded exactly before rasterization;
   viewBox-only
   root sizing with the full `preserveAspectRatio` grammar; and one exact-time
@@ -96,7 +97,7 @@ from the dated addenda below:
   composition.
   `crates/n0_cli/README.md` is the statement of record.
 - **The corpus** is 1,051 Chromium-baked primitive cells plus 16 sampled frames,
-  with a separate nine-cell exact Ahem text suite and two exact-number Allerta
+  with a separate nine-cell exact Ahem text suite and three exact-number Allerta
   artifact-geometry witnesses under the ratified text corpus-growth law.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
@@ -104,7 +105,7 @@ from the dated addenda below:
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 208 rows.
+  register has 209 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -4791,3 +4792,48 @@ from 207 to 208. Ligatures, decompositions, offsets, combining marks,
 non-ASCII repertoire, feature inputs, multiple runs, and every complete text
 row remain open. No conformance score was produced, and no FLIP record, rule,
 or baseline changed.
+
+## Rung: SVG text precomposed Latin source mappings (2026-09-01)
+
+The verdict is T3b ADMIT/SPLIT, with no checklist closure. The text oracle
+advances to v2 and admits exactly 53 precomposed Latin-1 letters in addition
+to printable ASCII: U+00C0–00C5, U+00C7–00CF, U+00D1–00D6,
+U+00D9–00DD, U+00E0–00E5, U+00E7–00EF, U+00F1–00F6,
+U+00F9–00FD, and U+00FF. Each has a canonical decomposition to one ASCII
+Latin base plus one combining mark. The repertoire is defined independently
+of font coverage; non-decomposable neighbors remain outside it.
+
+The third exact-number Allerta witness contains every admitted member between
+ASCII sentinels at 5120px. Chromium reports 55 addressable characters and
+total advance 171785. The exact font facts grade all 55 direct glyphs and
+outline union `(315, -5285, 171085, 6545)`. Its source map is the crux: 108
+UTF-8 bytes correspond to 55 UTF-16 units. `À` occupies bytes `1..3` and
+units `1..2`; the final `Z` occupies bytes `107..108` and units `54..55`.
+Every reported character advance, start, end, extent, and rotation agrees
+exactly. The actual CLI renders the precomposed run in both policies with
+byte-identical outputs; as in all Rung-B evidence, those engine pixels are not
+a Chromium real-font raster claim.
+
+The adjacent source spelling remains split. Chromium paints `AéZ` and
+decomposed `Ae` + U+0301 + `Z` identically, but exposes three versus four
+addressable source characters; the combining mark shares the base's geometry.
+These source-form facts are measured, not celled. Normalizing the source would
+therefore destroy a browser-visible mapping. The decomposed spelling remains a
+registered refusal under the stable v2 repertoire reason: strict stops and best
+effort skips the same text node.
+
+Printable ASCII had hidden one consumer defect by making bytes, UTF-16 units,
+and source scalars numerically equal. The artifact's two source ranges were
+already correct; the browser-facing admission incorrectly used UTF-8 range
+length as scalar cardinality. It now proves one scalar from the recorded
+source itself. Reinstating the old byte assumption made `just gate` fail
+loudly on the new witness at bytes `1..3`; restoring the scalar check returned
+the complete gate to green.
+
+The primitive corpus remains 1,051 Chromium-baked cells plus 16 sampled
+frames. The exact Ahem suite remains nine cells; the Allerta geometry suite
+now has three witnesses. One decomposed-sequence refusal moves the named
+register from 208 to 209. Combining marks and offsets, non-decomposable Latin,
+merged clusters and internal caret stops, wider Unicode, feature inputs,
+multiple runs, and every complete text row remain open. No conformance score
+was produced, and no FLIP record, rule, or baseline changed.

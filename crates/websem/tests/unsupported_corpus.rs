@@ -908,6 +908,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "shaping cluster mapping",
     ),
     (
+        "svg-text-combining-sequence",
+        DeclaredByBestEffort,
+        "outside textlayout-v2's admitted",
+    ),
+    (
         "svg-text-css-layout",
         DeclaredByBestEffort,
         "letter-spacing",
