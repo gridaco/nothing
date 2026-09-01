@@ -903,6 +903,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "text-anchor",
     ),
     (
+        "svg-text-cluster-mapping",
+        DeclaredByBestEffort,
+        "shaping cluster mapping",
+    ),
+    (
         "svg-text-css-layout",
         DeclaredByBestEffort,
         "letter-spacing",

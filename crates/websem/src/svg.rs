@@ -1115,7 +1115,7 @@ const TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "font",
 ];
 
-/// Cascaded text facts the v0 text oracle does not consume.
+/// Cascaded text facts the v1 text oracle does not consume.
 ///
 /// Unlike [`CASCADE_PROPERTIES_NOT_REPRESENTED`], most of these longhands do
 /// exist in the pinned Stylo build. That makes them more dangerous, not less:
@@ -1578,7 +1578,7 @@ fn pinned_stylo_font_size_quantization(size: f32) -> f32 {
     d - t
 }
 
-/// Why one authored font-size source is outside the v0 text source profile.
+/// Why one authored font-size source is outside the v1 text source profile.
 ///
 /// The computed longhand is not enough evidence: its environment is pinned
 /// to a 1280×720 device and placeholder font metrics, and Stylo quantizes the
@@ -1689,7 +1689,7 @@ fn text_css_source_refusal(css: &str) -> Option<String> {
         }
         if TEXT_CASCADE_PROPERTIES_NOT_CONSUMED.contains(&name.as_str()) {
             return Some(format!(
-                "text layout property {name} is represented or browser-consumed but not carried by the v0 text oracle"
+                "text layout property {name} is represented or browser-consumed but not carried by the v1 text oracle"
             ));
         }
     }
@@ -1717,7 +1717,7 @@ fn patrol_text_authored_semantics(el: HtmlElement<'_>) -> Result<(), CompileErro
                 .find(|attribute| get_attr(element, attribute).is_some())
         {
             return Err(CompileError::UnsupportedStyle(format!(
-                "text layout presentation attribute {attribute} in the ancestor chain is not carried by the v0 text oracle"
+                "text layout presentation attribute {attribute} in the ancestor chain is not carried by the v1 text oracle"
             )));
         }
         if let Some(style) = get_attr(element, "style")
@@ -10049,7 +10049,7 @@ fn compile_text(
     // The cascade's family list is a preference order; the environment
     // answers exact declared names only, so the first entry is the request
     // and a miss refuses by name rather than walking to a second candidate
-    // (v0 has no fallback).
+    // (v1 has no fallback).
     // The environment answers exact declared names only, so a generic
     // keyword (`serif`, `monospace`, … — including the initial value a
     // document that names no family computes to) selects nothing. It refuses

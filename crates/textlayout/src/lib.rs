@@ -7,11 +7,12 @@
 //!
 //! ```text
 //! attributed text + explicit font environment
-//!     -> resolved text layout | typed resolution failure     (oracle v0)
+//!     -> resolved text layout | typed resolution failure     (oracle v1)
 //! ```
 //!
-//! **Oracle v0 resolves one style run of printable-ASCII, horizontal,
-//! left-to-right text with no wrapping, no fallback, and no synthesis.**
+//! **Oracle v1 resolves one style run of printable-ASCII, horizontal,
+//! left-to-right text with one source scalar and one glyph per shaping
+//! cluster, no wrapping, no fallback, and no synthesis.**
 //! The repertoire is an explicit admit-list enforced by the resolver
 //! itself — never an accident of a font's coverage — and everything outside
 //! the profile is a typed refusal, not an approximation. Coverage grows by
@@ -48,6 +49,7 @@ mod resolve;
 
 pub use artifact::{
     BoundsBox, LineMetrics, OutlineSink, PlacedGlyph, ResolvedFace, ResolvedTextLayout,
+    ShapingCluster,
 };
 pub use environment::{Environment, FontKey, FontResource};
 pub use resolve::{AttributedText, ResolveError, Style, resolve};
@@ -59,4 +61,4 @@ pub use resolve::{AttributedText, ResolveError, Style, resolve};
 /// the manifest pins the shaper exactly — requires a new version. A resolved
 /// artifact records the version that produced it; "latest" is not a durable
 /// identity.
-pub const ORACLE_VERSION: &str = "textlayout-v0";
+pub const ORACLE_VERSION: &str = "textlayout-v1";

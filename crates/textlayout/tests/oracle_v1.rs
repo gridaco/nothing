@@ -1,4 +1,4 @@
-//! Oracle v0 against measured ground truth.
+//! Oracle v1 against measured ground truth.
 //!
 //! The numbers here are not derived from this crate: they were measured from
 //! the pinned Ahem bytes (fixtures/web-first/fonts/ahem.ttf) and verified
@@ -16,6 +16,14 @@ const AHEM: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../fixtures/web-first/fonts/ahem.ttf"
 );
+const ALLERTA: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../fixtures/fonts/Allerta/Allerta-Regular.ttf"
+);
+const PT_SERIF: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../fixtures/fonts/PT_Serif/PTSerif-Regular.ttf"
+);
 
 /// Tests exercise resolution, not host-side digest verification, so the key
 /// is a stand-in identity the artifact must nonetheless carry through.
@@ -26,6 +34,16 @@ fn ahem_environment() -> Environment {
     Environment::new(vec![FontResource {
         key: TEST_KEY,
         family: "Ahem".to_string(),
+        face_index: 0,
+        bytes,
+    }])
+}
+
+fn fixture_environment(path: &str, family: &str) -> Environment {
+    let bytes: Arc<[u8]> = std::fs::read(path).expect("fixture font bytes").into();
+    Environment::new(vec![FontResource {
+        key: TEST_KEY,
+        family: family.to_string(),
         face_index: 0,
         bytes,
     }])
@@ -45,6 +63,7 @@ fn ahem(text: &str, size: f32) -> AttributedText {
 fn x_at_50_resolves_the_measured_em_box() {
     let layout = resolve(&ahem("X", 50.0), &ahem_environment()).unwrap();
 
+    assert_eq!(textlayout::ORACLE_VERSION, "textlayout-v1");
     assert_eq!(layout.oracle_version(), textlayout::ORACLE_VERSION);
     assert_eq!(layout.face().key, TEST_KEY);
     assert_eq!(layout.face().units_per_em, 1000);
@@ -55,7 +74,11 @@ fn x_at_50_resolves_the_measured_em_box() {
     assert_eq!(glyphs[0].glyph_id, 58);
     assert_eq!(glyphs[0].x, 0.0);
     assert_eq!(glyphs[0].advance, 50.0);
-    assert_eq!(glyphs[0].cluster, 0);
+    assert_eq!(glyphs[0].cluster_index, 0);
+    assert_eq!(layout.clusters().len(), 1);
+    assert_eq!(layout.clusters()[0].source_utf8(), 0..1);
+    assert_eq!(layout.clusters()[0].source_utf16(), 0..1);
+    assert_eq!(layout.clusters()[0].glyphs(), 0..1);
     assert_eq!(layout.advance(), 50.0);
 
     // Ahem: ascent 800, descent -200, every metric policy agreeing.
@@ -92,8 +115,20 @@ fn space_advances_without_ink() {
     );
     assert_eq!(layout.advance(), 60.0);
     assert_eq!(
-        glyphs.iter().map(|g| g.cluster).collect::<Vec<_>>(),
+        glyphs.iter().map(|g| g.cluster_index).collect::<Vec<_>>(),
         vec![0, 1, 2]
+    );
+    assert_eq!(
+        layout
+            .clusters()
+            .iter()
+            .map(|cluster| (
+                cluster.source_utf8(),
+                cluster.source_utf16(),
+                cluster.glyphs()
+            ))
+            .collect::<Vec<_>>(),
+        vec![(0..1, 0..1, 0..1), (1..2, 1..2, 1..2), (2..3, 2..3, 2..3)]
     );
 
     // Ink spans both boxes; the space contributes advance only.
@@ -145,6 +180,7 @@ fn resolution_is_deterministic() {
     let first = resolve(&text, &env).unwrap();
     let second = resolve(&text, &env).unwrap();
     assert_eq!(first.glyphs(), second.glyphs());
+    assert_eq!(first.clusters(), second.clusters());
     assert_eq!(first.advance(), second.advance());
     assert_eq!(first.ink_bounds(), second.ink_bounds());
     assert_eq!(first.metrics(), second.metrics());
@@ -154,10 +190,65 @@ fn resolution_is_deterministic() {
 fn empty_text_resolves_to_metrics_without_glyphs() {
     let layout = resolve(&ahem("", 20.0), &ahem_environment()).unwrap();
     assert!(layout.glyphs().is_empty());
+    assert!(layout.clusters().is_empty());
     assert_eq!(layout.advance(), 0.0);
     assert!(layout.ink_bounds().is_none());
     // The empty run still carries the line's typographic extent.
     assert_eq!(layout.logical_bounds().height, 20.0);
+}
+
+#[test]
+fn default_pair_kerning_preserves_direct_cluster_mapping() {
+    let layout = resolve(
+        &AttributedText {
+            text: "ff".to_string(),
+            style: Style {
+                family: "Allerta".to_string(),
+                size: 5120.0,
+            },
+        },
+        &fixture_environment(ALLERTA, "Allerta"),
+    )
+    .expect("one-to-one kerning is inside oracle v1");
+
+    assert_eq!(layout.advance(), 4685.0);
+    assert_eq!(layout.glyphs().len(), 2);
+    assert_eq!(layout.clusters().len(), 2);
+    assert_eq!(layout.glyphs()[0].glyph_id, 70);
+    assert_eq!(layout.glyphs()[0].advance, 2330.0);
+    assert_eq!(layout.glyphs()[1].glyph_id, 70);
+    assert_eq!(layout.glyphs()[1].advance, 2355.0);
+    assert_eq!(layout.clusters()[0].source_utf8(), 0..1);
+    assert_eq!(layout.clusters()[0].source_utf16(), 0..1);
+    assert_eq!(layout.clusters()[0].glyphs(), 0..1);
+    assert_eq!(layout.clusters()[1].source_utf8(), 1..2);
+    assert_eq!(layout.clusters()[1].source_utf16(), 1..2);
+    assert_eq!(layout.clusters()[1].glyphs(), 1..2);
+}
+
+#[test]
+fn merged_ligature_cluster_refuses_before_it_can_poison_source_geometry() {
+    let error = resolve(
+        &AttributedText {
+            text: "fi".to_string(),
+            style: Style {
+                family: "PT Serif".to_string(),
+                size: 5000.0,
+            },
+        },
+        &fixture_environment(PT_SERIF, "PT Serif"),
+    )
+    .expect_err("one ligature glyph cannot masquerade as two source characters");
+
+    assert_eq!(
+        error,
+        ResolveError::UnsupportedClusterMapping {
+            source_utf8_start: 0,
+            source_utf8_end: 2,
+            glyph_start: 0,
+            glyph_end: 1,
+        }
+    );
 }
 
 #[test]
@@ -198,7 +289,7 @@ fn the_profile_is_the_resolvers_property_not_the_fonts() {
     }
 }
 
-// MissingGlyph is unreachable through Ahem at the v0 profile — Ahem covers
+// MissingGlyph is unreachable through Ahem at the v1 profile — Ahem covers
 // all of printable ASCII — so its pin arrives with the first environment
 // font that does not, rather than pretending a reachable test exists today.
 

@@ -3,14 +3,14 @@
 Chromium-baked evidence for the `<text>` slice on the SVG engine of record
 (`websem → rframe → n0`). Nine Ahem cells are gated byte-exact by
 [`crates/websem/tests/svg_text.rs`](../../../crates/websem/tests/svg_text.rs);
-one real-font artifact witness is gated numerically, before rasterization, by
+two real-font artifact witnesses are gated numerically, before rasterization, by
 [`crates/websem/tests/svg_text_geometry.rs`](../../../crates/websem/tests/svg_text_geometry.rs).
 The method these cells enforce is the ratified
 [text-oracle brief](../../../docs/wg/consolidation/text-oracle.md); this file
 states only how the suite is shaped.
 
 The pixel suite currently has **nine** cells. The separate Rung-B geometry
-suite under [`geometry/`](./geometry/) has **one** witness. Both manifests are
+suite under [`geometry/`](./geometry/) has **two** witnesses. Both manifests are
 closed enumerations: the Rust gates reject an unlisted SVG, duplicate source
 row, stale suite or baker hash, stale shared-capture hash, changed source, or
 changed oracle.
@@ -167,9 +167,10 @@ same text node in best effort. Its refusal row is committed as
 `svg-text-geometry-grid`. A supporting scratch raster comparison found 8,310
 differing pixels at maximum channel delta 170 against Chromium before the
 guard; this is evidence of the unsafe route, not a real-font pixel-fidelity
-claim. Separate `fi` and `AV` probes in this selected face found no second
-shaping class (measured, not celled); ligature, kerning, offset, and broader
-cluster behavior remain the next text rung.
+claim. The T2 samples `fi` and `AV` happened not to exercise either ligature
+substitution or pair positioning in this face (measured, not celled). T3
+therefore starts from explicit cluster/source mapping rather than generalizing
+those two strings.
 
 Gate sensitivity is direct. Temporarily bypassing the query-geometry admission
 let both negative runs lower; `just gate` passed the unrelated 1,051 primitive
@@ -183,6 +184,60 @@ immutable. Scratch source mutations remained discriminating: `Hxi` to `HxW`
 changed 715,311 Chromium pixels and middle to start anchoring changed 715,768,
 both at maximum channel delta 255 (measured, not celled and not used as a
 real-font pixel oracle).
+
+## T3 direct cluster mapping and default kerning
+
+Oracle v1 makes shaping cardinality a stated artifact fact. Each admitted
+cluster records its source UTF-8 byte range, source UTF-16 code-unit range,
+and placed-glyph range; each glyph points back to that cluster. The shaping
+policy explicitly fixes monotone-grapheme clustering for this LTR profile.
+Printable ASCII still makes the two source ranges numerically equal, but no
+consumer may infer one coordinate space from the other.
+
+The second Allerta witness is the run `ff` at 5120px. Chromium and the
+artifact agree exactly on glyph ids 70/70, clusters 0/1, total advance 4685,
+character advances 2330/2355, starts 0/2330, and the outline union
+`(275, -3905, 4190, 3905)`. The first 25-unit reduction is default OpenType
+pair positioning: a scratch `font-kerning:none` control measures 4710 total
+and 2355 for each character. At 120px the default/control Chromium rasters
+differ at 353 pixels with maximum channel delta 206 (measured, not celled;
+real-font pixels remain outside the oracle claim). Disabling kerning through
+CSS is not admitted by this rung: authored `font-kerning` retains the existing
+unconsumed-property refusal.
+
+A PT Serif `fi` probe exposes the adjacent unsafe class. The pinned shaper
+forms one glyph (id 715) with advance 3000 and source-cluster start 0.
+Chromium still exposes two addressable UTF-16 characters, assigning each a
+1500-unit query segment. With standard ligatures disabled it instead exposes
+two glyph advances 1710/1505 and total 3215; the 120px default/control rasters
+differ at 1,259 pixels with maximum delta 255 (measured, not celled).
+Before this rung, both actual CLI admissions accepted and painted the merged
+cluster without an artifact fact capable of stating the two browser character
+segments. The defect was contractual, not a painter error: the immediate
+cause was a lone cluster-start integer, and the systemic cause was an artifact
+with no source/glyph spans or internal-caret policy.
+
+Merged and decomposed clusters now leave before lowering by the stable
+`shaping cluster mapping` reason. Strict refuses the run; best effort skips
+the same text node and declares the same reason. The committed PT Serif
+refusal and the direct resolver/producer patrols hold that boundary. This is a
+deliberate over-refusal until a later oracle version can state caret stops and
+browser character geometry inside an inseparable glyph set.
+
+Gate sensitivity was proved on both legs. Temporarily disabling default
+`kern` shaping left the primitive and Ahem estates green, then failed the new
+exact-number witness loudly at artifact total 4710 versus Chromium 4685.
+Independently bypassing both direct-cluster fences recreated the former silent
+route: PT Serif `fi` lowered to one path, and the focused producer contract
+failed because strict unexpectedly accepted it. Restoring shaping and both
+fences returned the complete primitive, text, geometry, and 208-row refusal
+gate to green.
+
+The text estate is now nine exact Ahem cells plus two exact-number Allerta
+geometry witnesses. The named refusal register has 208 rows. This checkpoint
+does not admit ligatures, decompositions, nonzero offsets, combining marks,
+non-ASCII repertoire, authored feature controls, or multiple runs, and closes
+no checklist row.
 
 ## Tooling
 

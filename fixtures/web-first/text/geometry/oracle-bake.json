@@ -3,7 +3,7 @@
   "kind": "chromium-svg-text-geometry-oracle",
   "browser_version": "149.0.7827.55",
   "suite": "cases.json",
-  "suite_sha256": "751b945bf5d084c633071bc9a1dfc46e38dc9154f4449ec26b18c6afc42c5c9c",
+  "suite_sha256": "8c5d32689a63b50a33596176e2cb167d0b40338a5c8aaf46469f1079f3ca3fa8",
   "bake_script": "bake_chromium.ts",
   "bake_script_sha256": "c77d4d047d93357958382b64d52eafb6fb03311c699233e7c34ead4e306b3196",
   "capture_module": "../../chromium_capture.ts",
@@ -41,6 +41,15 @@
       "oracle": "chromium/svg-text-allerta-geometry.json",
       "oracle_sha256": "5bdd572e763f87fae10cccfc9b5e5cb3ad57a41ee8bcbd10c3a05c2d7af4a385",
       "width": 1200,
+      "height": 500
+    },
+    {
+      "id": "svg-text-allerta-kerning",
+      "source": "svg-text-allerta-kerning.svg",
+      "source_sha256": "5402e206b2e9ed3cc2d1dc0d46271e5f4739348d096703ea3c598364aa7fb319",
+      "oracle": "chromium/svg-text-allerta-kerning.json",
+      "oracle_sha256": "7ae0a1b9d1eecaace690b470b9048cf9e09285156097bdb8c6c426bbcb42609f",
+      "width": 5000,
       "height": 500
     }
   ]

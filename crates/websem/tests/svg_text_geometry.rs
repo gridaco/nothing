@@ -1,8 +1,10 @@
-//! Rung-B SVG text: real-font artifact geometry, before outline rasterization.
+//! Rung-B/T3 SVG text: real-font artifact geometry and direct cluster mapping,
+//! before outline rasterization.
 //!
 //! Chromium directly grades the SVG character-cell facts it exposes. Glyph
-//! ids, clusters, and ink bounds are separately pinned to the exact font
-//! bytes because the browser API exposes no glyph identifier or outline.
+//! ids, cluster source/glyph spans, and ink bounds are separately pinned to
+//! the exact font bytes because the browser API exposes no glyph identifier
+//! or outline.
 //! Engine pixels are tested only for their own determinism and admission
 //! identity; this suite makes no Chromium real-font pixel claim.
 
@@ -19,6 +21,9 @@ use websem::{DegradationAction, InitialViewport, SvgFrameSource};
 
 const BUNGEE_BYTES: &[u8] = include_bytes!("../../../fixtures/fonts/Bungee/Bungee-Regular.ttf");
 const BUNGEE_SHA256: &str = "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc";
+const PT_SERIF_BYTES: &[u8] =
+    include_bytes!("../../../fixtures/fonts/PT_Serif/PTSerif-Regular.ttf");
+const PT_SERIF_SHA256: &str = "13d9f82f41fcd7d2813dc0a44a9639dec0c1e9a922ab96c7de8dec467c3dec55";
 
 fn fixture_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/web-first/text/geometry")
@@ -206,6 +211,17 @@ fn bungee_environment() -> textlayout::Environment {
     }])
 }
 
+fn pt_serif_environment() -> textlayout::Environment {
+    let digest = Sha256::digest(PT_SERIF_BYTES);
+    assert_eq!(format!("{digest:x}"), PT_SERIF_SHA256);
+    textlayout::Environment::new(vec![textlayout::FontResource {
+        key: textlayout::FontKey::new(digest.into()),
+        family: "PT Serif".to_string(),
+        face_index: 0,
+        bytes: Arc::from(PT_SERIF_BYTES),
+    }])
+}
+
 fn canonical_source(case: &SuiteCase) -> String {
     format!(
         "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}\" height=\"{}\">\n  \
@@ -354,6 +370,7 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
         assert_eq!(layout.source(), case.text);
         assert_eq!(layout.font_size(), font_size);
         assert_eq!(layout.glyphs().len(), case.font_facts.glyphs.len());
+        assert_eq!(layout.clusters().len(), case.font_facts.glyphs.len());
         assert_eq!(measured.number_of_chars, case.font_facts.glyphs.len());
         assert_eq!(measured.characters.len(), case.font_facts.glyphs.len());
         exact(
@@ -374,9 +391,10 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
             other => panic!("unrecognized anchor {other}"),
         };
         let metrics = layout.metrics();
-        for (index, ((glyph, fact), character)) in layout
+        for (index, (((glyph, cluster), fact), character)) in layout
             .glyphs()
             .iter()
+            .zip(layout.clusters())
             .zip(&case.font_facts.glyphs)
             .zip(&measured.characters)
             .enumerate()
@@ -388,7 +406,11 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
             assert_eq!(fact.source_utf8_byte as usize, index);
             assert_eq!(fact.source_utf16_index as usize, index);
             assert_eq!(fact.source_utf8_byte, fact.cluster);
-            assert_eq!(glyph.cluster, fact.cluster);
+            assert_eq!(glyph.cluster_index, index);
+            assert_eq!(cluster.source_utf8(), index..index + 1);
+            assert_eq!(cluster.source_utf16(), index..index + 1);
+            assert_eq!(cluster.glyphs(), index..index + 1);
+            assert_eq!(cluster.source_utf8().start as u32, fact.cluster);
             assert_eq!(glyph.glyph_id, fact.glyph_id);
             assert_eq!(fact.source_utf16_index, fact.source_utf8_byte);
             assert_eq!(
@@ -555,5 +577,28 @@ fn horizontal_query_grid_refuses_when_vertical_metrics_are_integral() {
     assert!(best.base_frame().nodes().is_empty());
     assert!(best.degradations().iter().any(|item| {
         item.path().ends_with("/text[1]") && item.reason().contains("1/64 SVG text query grid")
+    }));
+}
+
+#[test]
+fn merged_ligature_cluster_refuses_in_both_admissions_before_lowering() {
+    let source = r##"<svg xmlns="http://www.w3.org/2000/svg" width="5000" height="4100"><text x="0" y="4000" text-anchor="start" font-family="PT Serif" font-size="5000" fill="#000">fi</text></svg>"##;
+    let strict = SvgFrameSource::from_standalone_svg_with_fonts(
+        source,
+        InitialViewport::new(5000.0, 4100.0),
+        pt_serif_environment(),
+    )
+    .expect_err("a merged source cluster must not lower silently");
+    assert!(strict.to_string().contains("shaping cluster mapping"));
+
+    let best = SvgFrameSource::from_standalone_svg_best_effort_with_fonts(
+        source,
+        InitialViewport::new(5000.0, 4100.0),
+        pt_serif_environment(),
+    )
+    .expect("best effort declares and skips the run");
+    assert!(best.base_frame().nodes().is_empty());
+    assert!(best.degradations().iter().any(|item| {
+        item.path().ends_with("/text[1]") && item.reason().contains("shaping cluster mapping")
     }));
 }

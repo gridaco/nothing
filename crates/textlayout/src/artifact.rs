@@ -7,6 +7,7 @@
 //! not part of text resolution). Font units are y-up; the flip happens
 //! exactly once, inside this crate, so no consumer ever re-derives it.
 
+use std::ops::Range;
 use std::sync::Arc;
 
 use crate::ORACLE_VERSION;
@@ -35,7 +36,7 @@ pub struct ResolvedFace {
 /// Line metrics in local px: distances from the baseline, both positive
 /// (ascent reaches up, descent reaches down).
 ///
-/// Oracle v0's metric policy is the face's `hhea` ascent/descent as the
+/// Oracle v1's metric policy is the face's `hhea` ascent/descent as the
 /// parser reports them; line gap (leading) is a declared deferral, arriving
 /// as a field when a consumer first needs line stacking. For the pinned gate
 /// font every metric table agrees, which is why the gate can hold before the
@@ -44,6 +45,49 @@ pub struct ResolvedFace {
 pub struct LineMetrics {
     pub ascent: f32,
     pub descent: f32,
+}
+
+/// One shaping cluster's complete source/glyph cardinality at oracle v1.
+///
+/// The source has two coordinate spaces on purpose. HarfBuzz clusters are
+/// seeded from UTF-8 byte offsets, while Web text APIs address UTF-16 code
+/// units. Printable ASCII makes those ranges numerically equal today; the
+/// artifact states both so no consumer can turn that temporary equality into
+/// an unwritten contract.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ShapingCluster {
+    source_utf8: Range<usize>,
+    source_utf16: Range<usize>,
+    glyphs: Range<usize>,
+}
+
+impl ShapingCluster {
+    pub(crate) fn new(
+        source_utf8: Range<usize>,
+        source_utf16: Range<usize>,
+        glyphs: Range<usize>,
+    ) -> Self {
+        Self {
+            source_utf8,
+            source_utf16,
+            glyphs,
+        }
+    }
+
+    /// Covered source bytes, on UTF-8 scalar boundaries.
+    pub fn source_utf8(&self) -> Range<usize> {
+        self.source_utf8.clone()
+    }
+
+    /// Covered source UTF-16 code units.
+    pub fn source_utf16(&self) -> Range<usize> {
+        self.source_utf16.clone()
+    }
+
+    /// Contiguous placed-glyph indices belonging to this cluster.
+    pub fn glyphs(&self) -> Range<usize> {
+        self.glyphs.clone()
+    }
 }
 
 /// One positioned glyph: identity, placement, and its mapping back to the
@@ -57,9 +101,9 @@ pub struct PlacedGlyph {
     /// This glyph's advance, in local px. The next pen position is
     /// `x + advance`; fractional advances are preserved.
     pub advance: f32,
-    /// UTF-8 byte offset into the source text of the cluster this glyph
-    /// renders — shaping's mapping, not a per-`char` guess.
-    pub cluster: u32,
+    /// Index into [`ResolvedTextLayout::clusters`]. This is an explicit
+    /// association, not a source-offset guess reconstructed by a consumer.
+    pub cluster_index: usize,
 }
 
 /// Receives one glyph's outline in the artifact's local y-down px space,
@@ -74,7 +118,7 @@ pub trait OutlineSink {
     fn close(&mut self);
 }
 
-/// The immutable resolved text layout at oracle v0: one style run of
+/// The immutable resolved text layout at oracle v1: one style run of
 /// horizontal left-to-right text, already shaped, measured, and mapped.
 ///
 /// Consumers project, they do not re-resolve: painting realizes the recorded
@@ -87,6 +131,7 @@ pub struct ResolvedTextLayout {
     face: ResolvedFace,
     font_size: f32,
     metrics: LineMetrics,
+    clusters: Vec<ShapingCluster>,
     glyphs: Vec<PlacedGlyph>,
     advance: f32,
     ink_bounds: Option<BoundsBox>,
@@ -102,6 +147,7 @@ impl ResolvedTextLayout {
         face: ResolvedFace,
         font_size: f32,
         metrics: LineMetrics,
+        clusters: Vec<ShapingCluster>,
         glyphs: Vec<PlacedGlyph>,
         advance: f32,
         ink_bounds: Option<BoundsBox>,
@@ -113,6 +159,7 @@ impl ResolvedTextLayout {
             face,
             font_size,
             metrics,
+            clusters,
             glyphs,
             advance,
             ink_bounds,
@@ -142,7 +189,14 @@ impl ResolvedTextLayout {
         self.metrics
     }
 
-    /// The placed glyphs in visual order — which at oracle v0 is also
+    /// Shaping clusters in logical order. Oracle v1's admitted LTR profile
+    /// also makes this visual order; consumers must not assume that of a
+    /// later bidi-capable version.
+    pub fn clusters(&self) -> &[ShapingCluster] {
+        &self.clusters
+    }
+
+    /// The placed glyphs in visual order — which at oracle v1 is also
     /// logical order, a fact of the LTR single-run profile rather than an
     /// assumption a consumer may carry to later versions.
     pub fn glyphs(&self) -> &[PlacedGlyph] {
@@ -187,7 +241,7 @@ impl ResolvedTextLayout {
     /// If `index` is out of range, like any slice index.
     ///
     /// Answers from the retained resolved bytes — re-parsing the face per
-    /// query is deliberate v0 policy: the reuse structure exists (the bytes
+    /// query is deliberate v1 policy: the reuse structure exists (the bytes
     /// and identity are pinned here), and a memo arrives only measured,
     /// with its `*_matches_fresh` law.
     pub fn outline(&self, index: usize, sink: &mut dyn OutlineSink) -> bool {
@@ -218,6 +272,7 @@ impl std::fmt::Debug for ResolvedTextLayout {
             .field("face", &self.face)
             .field("font_size", &self.font_size)
             .field("metrics", &self.metrics)
+            .field("clusters", &self.clusters)
             .field("glyphs", &self.glyphs)
             .field("advance", &self.advance)
             .field("ink_bounds", &self.ink_bounds)

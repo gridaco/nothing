@@ -319,3 +319,65 @@ policies, but it is never compared with Chromium and receives no tolerance.
 The resolved font and glyph identity still disappear before the shared frame;
 Rung B requires no new shared render fact. The complete evidence record and
 tooling live in the [text fixture estate](../../../fixtures/web-first/text/README.md).
+
+## T3 evidence addendum — direct clusters and pair positioning (2026-09-01)
+
+The verdict is ADMIT/SPLIT, with no checklist closure. The oracle advances to
+v1 by making source/glyph cardinality explicit and admits default horizontal
+pair positioning only while each cluster remains one source scalar to one
+glyph. Merged and decomposed clusters split into a named refusal until the
+artifact also owns caret positions inside inseparable glyph sets.
+
+This boundary follows the two coordinate systems already exposed by Rung B.
+The shaper receives monotonically increasing UTF-8 byte offsets and preserves
+monotone clusters for this horizontal left-to-right profile. SVG text-query
+APIs instead address source UTF-16 code units. Oracle v1 therefore records,
+for every admitted cluster, its UTF-8 source range, UTF-16 source range, and
+contiguous glyph range; every glyph maps back to one such cluster. Printable
+ASCII makes the two source ranges numerically equal today, but that equality
+is no longer an implicit consumer assumption.
+
+The positive witness is Allerta Regular `ff` at 5120px. Chromium and the
+artifact agree exactly on glyph identifiers 70/70, direct clusters 0/1,
+character advances 2330/2355, starts 0/2330, total advance 4685, and outline
+union `(275, -3905, 4190, 3905)`. A feature-disabled browser control reports
+2355/2355 and total 4710, establishing that the 25-unit first-character
+reduction is default pair positioning (measured, not celled). Its 120px
+default/control raster pair differs at 353 pixels with maximum channel delta
+206 (measured, not celled and not a real-font pixel-oracle claim).
+
+The split witness is PT Serif `fi` at 5000px. Default shaping produces one
+glyph, identifier 715, with one source-cluster start and total advance 3000.
+Chromium nevertheless reports two addressable characters and divides that
+advance into two 1500-unit query cells. Disabling standard ligatures produces
+two advances 1710/1505 and total 3215; the corresponding 120px raster pair
+differs at 1,259 pixels with maximum delta 255 (measured, not celled). SVG 2
+permits a user agent either to forbid a caret inside an inseparable glyph set
+or allocate portions of its area to the represented characters. The measured
+browser takes the latter route here; a lone cluster-start offset cannot state
+that decision.
+
+The prior route admitted and painted the ligature in both policies. Its
+presentation was a clean render, its proximate cause was that shaping's
+default substitution reached an artifact carrying only one start offset, and
+its systemic cause was a source-mapping contract with no ranges or internal
+caret policy. The correction is therefore at the oracle boundary rather than
+in rasterization: a non-direct source/glyph cardinality leaves by the stable
+`shaping cluster mapping` reason before any frame fact exists. Strict refuses;
+best effort skips and declares the same text node. This over-refusal is
+deliberate until a later oracle version can state and grade the missing caret
+geometry.
+
+Sensitivity is guarded independently on both sides of the split. Disabling
+default pair positioning changes the committed Allerta artifact total from
+4685 to 4710 and fails the exact browser comparison. Bypassing both
+source-cardinality boundaries lets the PT Serif ligature lower and fails the
+contract that strict admission must refuse it. Restoring both returns the
+complete primitive, text, geometry, and refusal gate to green.
+
+The exact Ahem estate remains nine cells. The real-font geometry estate now
+has two Allerta witnesses, and the named refusal register has 208 rows.
+Ligatures, decompositions, nonzero offsets, combining marks, non-ASCII
+repertoire, script/language/feature inputs, and multiple runs remain outside
+this checkpoint. Real-font pixels remain outside the Chromium oracle claim,
+and no shared render-contract fact is added.

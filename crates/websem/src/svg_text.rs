@@ -197,11 +197,34 @@ fn admit_chromium_query_geometry(layout: &ResolvedTextLayout) -> Result<(), Text
             metrics.ascent, metrics.descent
         )));
     }
-    for (index, glyph) in layout.glyphs().iter().enumerate() {
+    for (cluster_index, cluster) in layout.clusters().iter().enumerate() {
+        let source_utf8 = cluster.source_utf8();
+        let source_utf16 = cluster.source_utf16();
+        let glyph_range = cluster.glyphs();
+        if source_utf8.clone().count() != 1
+            || source_utf16.clone().count() != 1
+            || glyph_range.clone().count() != 1
+        {
+            return Err(TextError::OutsideNumericDomain(format!(
+                "Chromium SVG text query cluster mapping is not direct for source bytes {source_utf8:?}, UTF-16 units {source_utf16:?}, and glyphs {glyph_range:?}"
+            )));
+        }
+        let glyph_index = glyph_range.start;
+        let glyph = layout.glyphs().get(glyph_index).ok_or_else(|| {
+            TextError::OutsideNumericDomain(format!(
+                "Chromium SVG text query cluster {cluster_index} names missing glyph {glyph_index}"
+            ))
+        })?;
+        if glyph.cluster_index != cluster_index {
+            return Err(TextError::OutsideNumericDomain(format!(
+                "Chromium SVG text query glyph {glyph_index} maps to cluster {} instead of {cluster_index}",
+                glyph.cluster_index
+            )));
+        }
         let end = glyph.x + glyph.advance;
         if !on_query_grid(glyph.x) || !on_query_grid(end) {
             return Err(TextError::OutsideNumericDomain(format!(
-                "glyph {index} boundaries ({}, {end}) do not lie on Chromium's 1/64 SVG text query grid",
+                "glyph {glyph_index} boundaries ({}, {end}) do not lie on Chromium's 1/64 SVG text query grid",
                 glyph.x
             )));
         }

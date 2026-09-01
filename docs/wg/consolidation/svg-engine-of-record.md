@@ -86,8 +86,9 @@ from the dated addenda below:
   client transform/opacity/clip/mask/filter composition;
   one declared-font, single-run `<text>` profile, with direct invariant
   number/`px` size sources, a final identity-linear, integer-translation
-  device mapping after root, ancestor, and instance composition, and one
-  real-font artifact-geometry witness graded exactly before rasterization;
+  device mapping after root, ancestor, and instance composition, explicit
+  one-source-scalar/one-glyph cluster maps, default pair positioning, and two
+  real-font artifact-geometry witnesses graded exactly before rasterization;
   viewBox-only
   root sizing with the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`, including a client
@@ -95,15 +96,15 @@ from the dated addenda below:
   composition.
   `crates/n0_cli/README.md` is the statement of record.
 - **The corpus** is 1,051 Chromium-baked primitive cells plus 16 sampled frames,
-  with a separate nine-cell exact Ahem text suite and one exact-number Allerta
-  artifact-geometry witness under the ratified text corpus-growth law.
+  with a separate nine-cell exact Ahem text suite and two exact-number Allerta
+  artifact-geometry witnesses under the ratified text corpus-growth law.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 207 rows.
+  register has 208 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -4736,3 +4737,55 @@ frames. The exact Ahem suite remains nine cells; the new Allerta suite carries
 one exact-number geometry witness. One query-grid refusal moves the named
 register from 206 to 207. No conformance score was produced, and no FLIP
 record, rule, or baseline changed.
+
+## Rung: SVG text direct cluster mapping and default kerning (2026-09-01)
+
+The verdict is T3 ADMIT/SPLIT, with no checklist closure. The single-run text
+oracle advances to v1: every admitted shaping cluster states its source UTF-8
+range, source UTF-16 range, and glyph range, and every glyph maps back to that
+cluster. The admitted cardinality remains exactly one source scalar and one
+glyph. This makes default horizontal pair positioning gradeable without
+claiming ligature or caret semantics the artifact cannot yet state.
+
+The exact positive witness is Allerta `ff` at 5120px. Chromium and the
+artifact both report direct glyphs 70/70, advances 2330/2355, starts 0/2330,
+total advance 4685, and outline union `(275, -3905, 4190, 3905)`. A browser
+`font-kerning:none` control reports 2355/2355 and 4710 total, and its 120px
+raster differs from default at 353 pixels with maximum delta 206 (measured,
+not celled). The default geometry is committed as the second exact-number
+Allerta witness; authored feature-control properties remain their existing
+named refusals.
+
+PT Serif `fi` establishes the split. Default shaping produces one glyph,
+identifier 715, at total advance 3000, but Chromium exposes two addressable
+source characters with 1500-unit query segments. With standard ligatures
+disabled Chromium instead exposes advances 1710/1505 and total 3215; the
+120px raster pair differs at 1,259 pixels with maximum delta 255 (measured,
+not celled). Before the rung, strict and best effort both painted the merged
+cluster without an artifact fact capable of stating those source segments.
+It now leaves before lowering by the stable `shaping cluster mapping` reason:
+strict refuses and best effort skips and declares the same text node.
+
+The defect's etiology crosses the artifact contract, not the painter. Default
+OpenType substitution was already active; the old artifact retained only a
+cluster-start integer, and the browser-facing geometry gate inspected glyph
+boundaries without proving source/glyph cardinality. Explicit ranges repair
+the direct case, while the absence of an internal-caret policy keeps merged
+or decomposed clusters quarantined. No font or text identity enters the
+shared frame; admitted outlines still lower to ordinary path facts.
+
+Gate sensitivity was proved twice. Disabling default pair positioning kept
+the primitive and Ahem estates green, then failed the exact Allerta witness at
+artifact total 4710 versus Chromium 4685. Independently bypassing both
+direct-cluster boundaries recreated the prior admission: PT Serif `fi`
+lowered as one path and the focused contract failed because strict rendering
+accepted it. Restoring shaping and both boundaries returned every primitive
+cell, nine Ahem cells, two Allerta witnesses, and 208 refusal rows to green.
+
+The primitive corpus remains 1,051 Chromium-baked cells plus 16 sampled
+frames. The exact Ahem suite remains nine cells; the Allerta geometry suite
+now has two witnesses. One merged-cluster refusal moves the named register
+from 207 to 208. Ligatures, decompositions, offsets, combining marks,
+non-ASCII repertoire, feature inputs, multiple runs, and every complete text
+row remain open. No conformance score was produced, and no FLIP record, rule,
+or baseline changed.
