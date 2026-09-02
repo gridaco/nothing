@@ -6,7 +6,10 @@ Usage:
 
 The source must use the suite's canonical one-run shape. `facts` records the
 font-derived evidence Chromium cannot expose: units-per-em, complete cluster
-and glyph placement mappings, and outline ink bounds.
+and glyph placement mappings, and outline ink bounds. New cases require the v2
+placed-glyph fact shape. The manifest's immutable pre-T3c cases retain their
+legacy direct-scalar shape; this command neither creates nor migrates that
+historical form.
 """
 
 import argparse

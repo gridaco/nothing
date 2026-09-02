@@ -299,14 +299,19 @@ unlisted marks remain outside the source grammar; a permitted mark missing
 from the declared face refuses at the mark's own byte instead of selecting
 tofu or an ambient fallback.
 
-The geometry manifest now carries multiple exact font identities and a v2
-font-fact shape. Every cluster records UTF-8, UTF-16, scalar, and glyph ranges;
-every placed glyph records pen x, x/y offset, advance, and cluster index. A
-direct cluster remains one scalar and one glyph. A permitted base-plus-mark
-cluster is two source scalars and either one composed glyph or two glyphs; the
-second glyph in the latter form has zero advance and owns any displacement.
-Every UTF-16 unit in either form is checked against Chromium's complete shared
-cluster cell.
+The geometry manifest now carries multiple exact font identities. Its suite
+schema is v2, but the three immutable pre-T3c cases retain their historical
+direct-scalar `font_facts` shape; the three T3c cases use the v2 placed-glyph
+shape. The Rust gate verifies both shapes. The baker recaptures every case from
+the same hash-pinned mixed manifest without rewriting its facts, while
+`text-geometry-add` accepts only v2 facts for every new case and never migrates
+existing evidence. In v2, every cluster records UTF-8, UTF-16, scalar, and
+glyph ranges; every placed glyph records pen x, x/y offset, advance, and
+cluster index. A direct cluster remains one scalar and one glyph. A permitted
+base-plus-mark cluster is two source scalars and either one composed glyph or
+two glyphs; the second glyph in the latter form has zero advance and owns any
+displacement. Every UTF-16 unit in either form is checked against Chromium's
+complete shared cluster cell.
 
 | Witness | Discriminating branch |
 | --- | --- |
