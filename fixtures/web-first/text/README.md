@@ -409,9 +409,10 @@ oracle. `text-bake` creates only missing oracles, verifies every existing one
 pixel-for-pixel, and refreshes hash provenance. `text-gate` is the focused
 Rust gate for both the exact pixels and artifact geometry; the broader
 `just gate` also runs it and the refusal register. `text-geometry-add` likewise
-refuses an existing source or oracle path, while `text-geometry-bake` creates
-only a missing JSON oracle and requires every existing numeric record to remain
-byte-identical.
+refuses an existing source or oracle path and accepts only canonical opaque
+six-digit `#RRGGBB` fills on the text and its flat tspans.
+`text-geometry-bake` creates only a missing JSON oracle and requires every
+existing numeric record to remain byte-identical.
 
 ## Re-baking
 

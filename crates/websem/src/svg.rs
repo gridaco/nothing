@@ -5454,12 +5454,17 @@ impl<'a> ChildWalk<'a> {
                     .all(|node| node.transform == first.transform),
                 "one leaf's resolved nodes share one local-to-frame mapping"
             );
-            let boxes: Vec<_> = outcome
-                .nodes
-                .iter()
-                .map(|node| node.geometry.local_box())
-                .collect();
-            self.resolve_clip(el, first.transform, Some(math2::union(&boxes)))?
+            let target_box = if outcome.nodes.len() == 1 {
+                first.geometry.local_box()
+            } else {
+                let boxes: Vec<_> = outcome
+                    .nodes
+                    .iter()
+                    .map(|node| node.geometry.local_box())
+                    .collect();
+                math2::union(&boxes)
+            };
+            self.resolve_clip(el, first.transform, Some(target_box))?
         } else {
             None
         };

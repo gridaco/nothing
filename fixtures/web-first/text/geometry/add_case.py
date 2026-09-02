@@ -28,6 +28,7 @@ DIR = Path(__file__).resolve().parent
 MANIFEST = DIR / "cases.json"
 SVG_NS = "http://www.w3.org/2000/svg"
 ID_PATTERN = re.compile(r"^svg-text-[a-z0-9]+(?:-[a-z0-9]+)*$")
+OPAQUE_HEX_COLOR_PATTERN = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
 def direct_scalar(character: str) -> bool:
@@ -122,6 +123,8 @@ def main() -> None:
     required = {"x", "y", "text-anchor", "font-family", "font-size", "fill"}
     if set(text.attrib) != required:
         sys.exit("refused: the text element has only the canonical attributes")
+    if not OPAQUE_HEX_COLOR_PATTERN.fullmatch(text.attrib["fill"]):
+        sys.exit("refused: geometry text fill must be an opaque #RRGGBB solid")
 
     fragments = []
     has_tspan = False
@@ -142,6 +145,8 @@ def main() -> None:
             sys.exit(
                 "refused: text children are flat <tspan> elements carrying exactly one fill attribute"
             )
+        if not OPAQUE_HEX_COLOR_PATTERN.fullmatch(child.attrib["fill"]):
+            sys.exit("refused: geometry tspan fill must be an opaque #RRGGBB solid")
         has_tspan = True
         append_fragment(child.text, "tspan", child.attrib["fill"])
         append_fragment(child.tail, "text")

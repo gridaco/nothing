@@ -154,6 +154,19 @@ fn object_bounding_box_and_chains_are_resolved_before_the_frame() {
         &Geometry::Rect(Rectangle::from_xywh(0.25, 0.2, 0.5, 0.6))
     );
 
+    let far_object_box = admit_both(&document(
+        r##"  <clipPath id="c" clipPathUnits="objectBoundingBox">
+    <rect width="1" height="1"/>
+  </clipPath>
+  <rect x="33554428" y="10" width="1" height="2" fill="#16a34a" clip-path="url(#c)"/>"##,
+    ));
+    let far_geometry = &clips(&far_object_box)[0].layers()[0].geometries()[0];
+    assert_eq!(
+        far_geometry.transform(),
+        AffineTransform::from_acebdf(1.0, 0.0, 33_554_428.0, 0.0, 2.0, 10.0),
+        "one target box must not lose its small extent to union rounding"
+    );
+
     let chained = admit_both(&document(
         r##"  <clipPath id="a"><rect x="8" y="16" width="48" height="32"/></clipPath>
   <clipPath id="b" clip-path="url(#a)"><rect x="16" y="8" width="32" height="48"/></clipPath>

@@ -861,9 +861,15 @@ fn real_font_pixels_obey_only_the_engine_laws() {
             .collect();
         assert!(substantive.is_empty(), "{}: {substantive:?}", case.id);
 
-        let expected_nodes = usize::from(case.source_runs.is_empty())
-            + if case.source_runs.is_empty() { 0 } else { 2 };
-        assert_eq!(strict.nodes().len(), expected_nodes);
+        // Plain text lowers to one path. The current Allerta source-run
+        // witness declares exactly two distinct paints, so it lowers to two.
+        let expected_nodes = if case.source_runs.is_empty() { 1 } else { 2 };
+        assert_eq!(
+            strict.nodes().len(),
+            expected_nodes,
+            "{}: projected node count",
+            case.id
+        );
         for node in strict.nodes() {
             let Geometry::Path(path) = &node.geometry else {
                 panic!("{}: text must lower to path geometry", case.id)
