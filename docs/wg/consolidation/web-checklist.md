@@ -1903,6 +1903,30 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > Allerta and two Bungee). The complete `<text>` and `<tspan>` grammars remain
 > open, so no CSS, SVG element, or SVG presentation row ticks.
 
+> **2026-09-03 positioned-chunk checkpoint:** T4b admits complete unitless SVG
+> number lists on flat direct `<tspan>` `x`/`y`/`dx`/`dy` attributes inside the
+> existing integral text-geometry domain. Every consumed `x` or `y` starts an
+> independently shaped and independently anchored chunk; `dx` and `dy` move
+> typographic characters without splitting shaping, and a relative value on
+> the admitted combining scalar carries to the next character. The exact
+> Allerta witness reports total advance 13585, breaks the first `ff` pair to
+> 2355 at the absolute boundary, preserves 2330/2355 inside the second chunk,
+> and places the later characters at Chromium's exact 5000, 8330, 10685, and
+> 15005 starts. One Ahem cell crosses per-chunk middle anchoring, omitted and
+> multiple list members, both relative axes, paint ownership, integer
+> transforms, canonical whitespace, and a `<use>` instance. Repeated absolute
+> values, excess members, negative positions, a y-only chunk, and the
+> percentage axis bases were also measured in Chromium, not celled.
+> Length/percentage/function values, malformed lists, fractional geometry,
+> discarded-whitespace indexing, an absolute reset inside a combining
+> cluster, parent position lists, `rotate`, and `textLength` remain named
+> refusals. The text estate is now eleven exact Ahem cells plus eight exact
+> geometry witnesses (six Allerta and two Bungee), and three added focused
+> rows move the named register from 214 to 217. Removing first-character `dx`
+> consumption made `just gate` fail the Ahem oracle by 550 exact pixels before
+> restoration. The full `<text>`, `<tspan>`, and four presentation-attribute
+> grammars remain open, so no row ticks.
+
 
 ### SVG presentation attributes
 
@@ -2123,6 +2147,12 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > `<image>`/`<pattern>`/`<mask>` elements remain declared gaps. Units, CSS math,
 > `var()`, and CSS-wide values retain their own unchecked rows.
 
+> **2026-09-03 text split:** flat direct `<tspan>` x/y now carry complete
+> unitless SVG-number lists inside the text rung's finite integral domain.
+> Every consumed member starts a shaping and anchor chunk. The shared rows
+> stay open for parent text lists, wider length/percentage/value grammar,
+> inherited and nested text, and all other listed element applicability.
+
 
 ### SVG attributes
 
@@ -2210,6 +2240,13 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `download`
 - [ ] `dx`
 - [ ] `dy`
+
+> **2026-09-03 text split:** flat direct `<tspan>` dx/dy now carry complete
+> unitless SVG-number lists inside the finite integral text domain. Members
+> shift typographic characters without splitting shaping; a member assigned
+> to the admitted combining scalar carries to the next character. The rows
+> stay open for parent lists, wider value grammar, advanced text axes, and
+> their filter/other applicability.
 - [x] `edgeMode`
 
 > **2026-08-27 close:** the complete case-sensitive `duplicate | wrap | none`

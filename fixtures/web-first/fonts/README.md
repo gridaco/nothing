@@ -27,7 +27,7 @@ Chromium and deliberately makes no browser-pixel claim.
 Bungee first entered as a negative Rung-B boundary identity: its 50px metrics
 are integral while its glyph boundaries miss Chromium's 1/64 query grid, so it
 still guards that horizontal refusal independently from Allerta's
-vertical-metric case. Oracle v3 also uses the same exact bytes for two positive
+vertical-metric case. Oracle v4 also uses the same exact bytes for two positive
 1000px geometry witnesses. Its U+0301 and U+030B glyphs remain separate from
 ASCII `x`, advance by zero, and carry the measured attachment offsets needed
 to prove both artifact axes. This is a two-mark admit-list, not general font or

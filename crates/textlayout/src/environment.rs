@@ -72,7 +72,7 @@ impl Environment {
         Self { fonts }
     }
 
-    /// Exact, case-sensitive family match — oracle v3 has no fallback list,
+    /// Exact, case-sensitive family match — oracle v4 has no fallback list,
     /// no aliasing, and no synthesis. First declaration wins so a manifest
     /// is order-deterministic.
     pub(crate) fn find(&self, family: &str) -> Option<&FontResource> {

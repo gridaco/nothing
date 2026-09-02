@@ -3,7 +3,7 @@
   "kind": "chromium-svg-text-oracle",
   "browser_version": "149.0.7827.55",
   "suite": "cases.json",
-  "suite_sha256": "2e2549ec2cd743b1a2f974de5dd8122066608dcb39757fdf4a9d1d1a6e17b790",
+  "suite_sha256": "cd5b2bce1c0c913bab41bf3c4d14aabedcd39d5ba3866651032ea1739239c21f",
   "bake_script": "bake_chromium.ts",
   "bake_script_sha256": "9999ad1e574d2e00fedf09fb8b43dc44202a45f46cc010482ac8b26e11202571",
   "capture_module": "../chromium_capture.ts",
@@ -83,6 +83,15 @@
       "source_sha256": "0496c431682a53816e553d88883a3a479c7096687832eb9449193251ae6bc9b5",
       "oracle": "chromium/svg-text-font-size-cascade.png",
       "oracle_sha256": "9f22eaf85472ac914146f533e73acb6de1222bf20ea766639dce32c565df6590",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-positioned-chunks",
+      "source": "svg-text-positioned-chunks.svg",
+      "source_sha256": "bd0d30bc83bf5e15f694befa33b1b7edebbed8cd3c794febb31245c64f0e1eaf",
+      "oracle": "chromium/svg-text-positioned-chunks.png",
+      "oracle_sha256": "5dd3a3ccace2678c99d8da247e58bebde92aa505408acd28fb98a6d907b9014e",
       "width": 100,
       "height": 100
     },

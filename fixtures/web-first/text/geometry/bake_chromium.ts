@@ -57,7 +57,7 @@ function sha256(bytes: Uint8Array): string {
 async function main(): Promise<void> {
   const suiteBytes = await readFile(SUITE_PATH);
   const suite = JSON.parse(suiteBytes.toString("utf8")) as Suite;
-  if (suite.schema_version !== 3 || suite.fonts.length === 0 || suite.cases.length === 0) {
+  if (suite.schema_version !== 4 || suite.fonts.length === 0 || suite.cases.length === 0) {
     throw new Error("unsupported or empty text geometry suite");
   }
   let previous = "";
@@ -177,7 +177,7 @@ async function main(): Promise<void> {
   }
 
   const manifest = {
-    schema_version: 3,
+    schema_version: 4,
     kind: "chromium-svg-text-geometry-oracle",
     browser_version: browserVersion,
     suite: "cases.json",

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <rect width="100" height="100" fill="#fff"/>
+  <g transform="translate(2 3)"><text x="20" y="17" text-anchor="middle" font-family="Ahem" font-size="10" fill="#2563eb" style="-webkit-font-smoothing:none">XX<tspan x="60" y="27" fill="#dc2626">XX</tspan></text></g>
+  <text x="5" y="50" font-family="Ahem" font-size="10" fill="#2563eb" style="-webkit-font-smoothing:none">X<tspan dx="0 5 10" dy="0 10 -5" fill="#16a34a">XXX</tspan>X</text>
+  <defs><text id="t" x="5" y="75" font-family="Ahem" font-size="10" fill="#2563eb" style="-webkit-font-smoothing:none">X<tspan x="35" dx="5" fill="#dc2626">X</tspan></text></defs>
+  <use href="#t" x="10" y="5"/>
+  <text x="5" y="95" font-family="Ahem" font-size="5" fill="#2563eb" style="-webkit-font-smoothing:none">X <tspan dx="0 5" fill="#dc2626">X X</tspan></text>
+</svg>

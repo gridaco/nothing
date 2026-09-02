@@ -7,18 +7,22 @@
 //!
 //! ```text
 //! attributed text + explicit font environment
-//!     -> resolved text layout | typed resolution failure     (oracle v3)
+//!     -> resolved text layout | typed resolution failure     (oracle v4)
 //! ```
 //!
-//! **Oracle v3 resolves one layout-affecting style over printable-ASCII plus
+//! **Oracle v4 resolves one layout-affecting style over printable-ASCII plus
 //! the canonical precomposed Latin-1 letters whose decomposition is one ASCII
 //! Latin base and one combining mark, plus one U+0301 or U+030B after an ASCII
 //! Latin base. Complete source-run coverage may carry opaque caller tags;
 //! those boundaries do not split shaping, and every cluster and glyph keeps
-//! the tag covering the cluster's first source scalar. It is horizontal and
+//! the tag covering the cluster's first source scalar. Explicit complete
+//! shaping chunks may split the source into independent shaping operations;
+//! their resolved records retain global source/cluster/glyph ranges, a
+//! canonical local origin, and local advance. It is horizontal and
 //! left-to-right; a cluster is either one direct scalar/glyph or one
 //! base-plus-mark composing to one glyph or attaching one zero-advance glyph
-//! with explicit x/y offsets. There is no wrapping, fallback, or synthesis.**
+//! with explicit x/y offsets. There is no wrapping, authored placement,
+//! anchoring, fallback, or synthesis.**
 //! The repertoire is an explicit admit-list enforced by the resolver
 //! itself — never an accident of a font's coverage — and everything outside
 //! the profile is a typed refusal, not an approximation. Coverage grows by
@@ -55,12 +59,14 @@ mod resolve;
 mod source;
 
 pub use artifact::{
-    BoundsBox, LineMetrics, OutlineSink, PlacedGlyph, ResolvedFace, ResolvedTextLayout,
-    ShapingCluster,
+    BoundsBox, LineMetrics, OutlineSink, PlacedGlyph, ResolvedFace, ResolvedShapingChunk,
+    ResolvedTextLayout, ShapingCluster,
 };
 pub use environment::{Environment, FontKey, FontResource};
 pub use resolve::{AttributedText, ResolveError, Style, resolve};
-pub use source::{SourceRun, SourceRunCoverageError, SourceRunTag};
+pub use source::{
+    ShapingChunk, ShapingChunkCoverageError, SourceRun, SourceRunCoverageError, SourceRunTag,
+};
 
 /// The complete geometry-producing policy this crate currently implements.
 ///
@@ -70,8 +76,8 @@ pub use source::{SourceRun, SourceRunCoverageError, SourceRunTag};
 /// artifact records the version that produced it; "latest" is not a durable
 /// identity.
 ///
-/// Opaque source-run tags are metadata, not geometry-producing policy. They
-/// therefore do not advance v3: the whole source is still sent through the
-/// pinned shaper once, and the existing glyph, position, metric, cluster, and
-/// bound answer is unchanged.
-pub const ORACLE_VERSION: &str = "textlayout-v3";
+/// Opaque source-run tags remain metadata. Explicit shaping chunks are
+/// geometry-producing policy: each chunk is shaped independently, which can
+/// change glyph positioning at its boundaries. That new input and its
+/// globally mapped resolved chunk records advance the oracle from v3 to v4.
+pub const ORACLE_VERSION: &str = "textlayout-v4";

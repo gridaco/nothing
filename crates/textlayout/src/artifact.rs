@@ -37,7 +37,7 @@ pub struct ResolvedFace {
 /// Line metrics in local px: distances from the baseline, both positive
 /// (ascent reaches up, descent reaches down).
 ///
-/// Oracle v3 retains the face's `hhea` ascent/descent metric policy as the
+/// Oracle v4 retains the face's `hhea` ascent/descent metric policy as the
 /// parser reports them; line gap (leading) is a declared deferral, arriving
 /// as a field when a consumer first needs line stacking. For the pinned gate
 /// font every metric table agrees, which is why the gate can hold before the
@@ -48,7 +48,7 @@ pub struct LineMetrics {
     pub descent: f32,
 }
 
-/// One shaping cluster's complete source/glyph cardinality at oracle v3.
+/// One shaping cluster's complete source/glyph cardinality at oracle v4.
 ///
 /// The source has three coordinate spaces on purpose. HarfBuzz clusters are
 /// seeded from UTF-8 byte offsets, Web text APIs address UTF-16 code units,
@@ -109,13 +109,92 @@ impl ShapingCluster {
     }
 }
 
+/// One independently resolved shaping chunk in the artifact's canonical
+/// local coordinate space.
+///
+/// Source, cluster, and glyph ranges use the artifact's global indices. The
+/// chunk's glyphs were shaped together and no shaping interaction crosses
+/// either boundary. Chunks are concatenated by advance only to keep every
+/// glyph, outline, and bound in one coherent local coordinate system;
+/// authored placement remains an external projection.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ResolvedShapingChunk {
+    source_utf8: Range<usize>,
+    source_utf16: Range<usize>,
+    source_scalars: Range<usize>,
+    clusters: Range<usize>,
+    glyphs: Range<usize>,
+    origin_x: f32,
+    advance: f32,
+}
+
+impl ResolvedShapingChunk {
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new(
+        source_utf8: Range<usize>,
+        source_utf16: Range<usize>,
+        source_scalars: Range<usize>,
+        clusters: Range<usize>,
+        glyphs: Range<usize>,
+        origin_x: f32,
+        advance: f32,
+    ) -> Self {
+        Self {
+            source_utf8,
+            source_utf16,
+            source_scalars,
+            clusters,
+            glyphs,
+            origin_x,
+            advance,
+        }
+    }
+
+    /// Covered source bytes, on UTF-8 scalar boundaries.
+    pub fn source_utf8(&self) -> Range<usize> {
+        self.source_utf8.clone()
+    }
+
+    /// Covered source UTF-16 code units, globally indexed in the artifact.
+    pub fn source_utf16(&self) -> Range<usize> {
+        self.source_utf16.clone()
+    }
+
+    /// Covered source Unicode-scalar indices, globally indexed.
+    pub fn source_scalars(&self) -> Range<usize> {
+        self.source_scalars.clone()
+    }
+
+    /// Contiguous global cluster indices produced by this shaping operation.
+    pub fn clusters(&self) -> Range<usize> {
+        self.clusters.clone()
+    }
+
+    /// Contiguous global placed-glyph indices produced by this operation.
+    pub fn glyphs(&self) -> Range<usize> {
+        self.glyphs.clone()
+    }
+
+    /// This chunk's canonical baseline origin in the artifact's local x axis.
+    /// It is the sum of preceding chunk advances, not authored placement.
+    pub fn origin_x(&self) -> f32 {
+        self.origin_x
+    }
+
+    /// This independently shaped chunk's local advance.
+    pub fn advance(&self) -> f32 {
+        self.advance
+    }
+}
+
 /// One positioned glyph: identity, placement, and its mapping back to the
 /// source cluster that produced it.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PlacedGlyph {
     /// Glyph identifier in the resolved face's space.
     pub glyph_id: u16,
-    /// Pen x of this glyph's origin, in local px from the run origin.
+    /// Pen x of this glyph's origin in the artifact's canonical local space.
+    /// For a later shaping chunk this includes that chunk's canonical origin.
     pub x: f32,
     /// Shaper-provided displacement from the pen in local x-right px.
     /// This does not alter the pen advance or cluster's logical cell.
@@ -153,8 +232,9 @@ pub trait OutlineSink {
     fn close(&mut self);
 }
 
-/// The immutable resolved text layout at oracle v3: one style run of
-/// horizontal left-to-right text, already shaped, measured, and mapped.
+/// The immutable resolved text layout at oracle v4: one style run of
+/// horizontal left-to-right text, already shaped in explicit chunks,
+/// measured, and mapped.
 ///
 /// Consumers project, they do not re-resolve: painting realizes the recorded
 /// glyphs, measurement reads the recorded bounds, and any layout-affecting
@@ -167,6 +247,7 @@ pub struct ResolvedTextLayout {
     face: ResolvedFace,
     font_size: f32,
     metrics: LineMetrics,
+    shaping_chunks: Vec<ResolvedShapingChunk>,
     clusters: Vec<ShapingCluster>,
     glyphs: Vec<PlacedGlyph>,
     advance: f32,
@@ -184,6 +265,7 @@ impl ResolvedTextLayout {
         face: ResolvedFace,
         font_size: f32,
         metrics: LineMetrics,
+        shaping_chunks: Vec<ResolvedShapingChunk>,
         clusters: Vec<ShapingCluster>,
         glyphs: Vec<PlacedGlyph>,
         advance: f32,
@@ -197,6 +279,7 @@ impl ResolvedTextLayout {
             face,
             font_size,
             metrics,
+            shaping_chunks,
             clusters,
             glyphs,
             advance,
@@ -232,14 +315,20 @@ impl ResolvedTextLayout {
         self.metrics
     }
 
-    /// Shaping clusters in logical order. Oracle v3's admitted LTR profile
+    /// Independently shaped chunks in source order. Their source, cluster,
+    /// and glyph ranges are complete global partitions of this artifact.
+    pub fn shaping_chunks(&self) -> &[ResolvedShapingChunk] {
+        &self.shaping_chunks
+    }
+
+    /// Shaping clusters in logical order. Oracle v4's admitted LTR profile
     /// also makes this visual order; consumers must not assume that of a
     /// later bidi-capable version.
     pub fn clusters(&self) -> &[ShapingCluster] {
         &self.clusters
     }
 
-    /// The placed glyphs in visual order — which at oracle v3 is also
+    /// The placed glyphs in visual order — which at oracle v4 is also
     /// logical order, a fact of the LTR single-run profile rather than an
     /// assumption a consumer may carry to later versions.
     pub fn glyphs(&self) -> &[PlacedGlyph] {
@@ -259,15 +348,16 @@ impl ResolvedTextLayout {
             .filter_map(move |(index, glyph)| (glyph.source_run_tag == tag).then_some(index))
     }
 
-    /// The run's total advance in local px. An anchor policy (SVG
-    /// `text-anchor`) is a *projection* of this recorded measurement by the
-    /// document layer that owns the anchor point — not a re-measurement.
+    /// The sum of all independently shaped chunk advances in local px.
+    /// Per-chunk anchoring or placement is a projection of the corresponding
+    /// [`ResolvedShapingChunk`] measurement, not a re-measurement.
     pub fn advance(&self) -> f32 {
         self.advance
     }
 
-    /// Typographic extents: the advance run crossed with ascent/descent.
-    /// Present even where no ink is (an all-spaces run has logical extent).
+    /// Typographic extents of the canonical advance-concatenated chunks,
+    /// crossed with ascent/descent. Present even where no ink is (an
+    /// all-spaces chunk has logical extent).
     pub fn logical_bounds(&self) -> BoundsBox {
         BoundsBox {
             x: 0.0,
@@ -277,8 +367,9 @@ impl ResolvedTextLayout {
         }
     }
 
-    /// The tight union of glyph outline extents, before any paint effect.
-    /// `None` when the run draws nothing (spaces advance without ink).
+    /// The tight union of glyph outline extents in the canonical
+    /// advance-concatenated coordinate space, before any paint effect. `None`
+    /// when the chunks draw nothing (spaces advance without ink).
     pub fn ink_bounds(&self) -> Option<BoundsBox> {
         self.ink_bounds
     }
@@ -343,6 +434,7 @@ impl std::fmt::Debug for ResolvedTextLayout {
             .field("face", &self.face)
             .field("font_size", &self.font_size)
             .field("metrics", &self.metrics)
+            .field("shaping_chunks", &self.shaping_chunks)
             .field("clusters", &self.clusters)
             .field("glyphs", &self.glyphs)
             .field("advance", &self.advance)

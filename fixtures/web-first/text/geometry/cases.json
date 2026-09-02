@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "fonts": [
     {
       "family": "Allerta",
@@ -619,6 +619,278 @@
           "height": 6545
         }
       }
+    },
+    {
+      "id": "svg-text-allerta-positioned-combining",
+      "source": "svg-text-allerta-positioned-combining.svg",
+      "oracle": "chromium/svg-text-allerta-positioned-combining.json",
+      "width": 5000,
+      "height": 500,
+      "text": "fffe\u0301Z",
+      "x": "0",
+      "y": "4080",
+      "text_anchor": "start",
+      "font_family": "Allerta",
+      "font_size": "5120",
+      "fill": "#111827",
+      "font_facts": {
+        "schema_version": 4,
+        "units_per_em": 1024,
+        "source_runs": [
+          {
+            "source_utf8": [
+              0,
+              1
+            ],
+            "tag": 0
+          },
+          {
+            "source_utf8": [
+              1,
+              2
+            ],
+            "tag": 1
+          },
+          {
+            "source_utf8": [
+              2,
+              7
+            ],
+            "tag": 2
+          }
+        ],
+        "shaping_chunks": [
+          {
+            "source_utf8": [
+              0,
+              1
+            ],
+            "source_utf16": [
+              0,
+              1
+            ],
+            "source_scalars": [
+              0,
+              1
+            ],
+            "clusters": [
+              0,
+              1
+            ],
+            "glyphs": [
+              0,
+              1
+            ],
+            "origin_x": 0,
+            "advance": 2355
+          },
+          {
+            "source_utf8": [
+              1,
+              7
+            ],
+            "source_utf16": [
+              1,
+              6
+            ],
+            "source_scalars": [
+              1,
+              6
+            ],
+            "clusters": [
+              1,
+              5
+            ],
+            "glyphs": [
+              1,
+              5
+            ],
+            "origin_x": 2355,
+            "advance": 11230
+          }
+        ],
+        "clusters": [
+          {
+            "source_utf8": [
+              0,
+              1
+            ],
+            "source_utf16": [
+              0,
+              1
+            ],
+            "source_scalars": [
+              0,
+              1
+            ],
+            "glyphs": [
+              0,
+              1
+            ],
+            "source_run_tag": 0
+          },
+          {
+            "source_utf8": [
+              1,
+              2
+            ],
+            "source_utf16": [
+              1,
+              2
+            ],
+            "source_scalars": [
+              1,
+              2
+            ],
+            "glyphs": [
+              1,
+              2
+            ],
+            "source_run_tag": 1
+          },
+          {
+            "source_utf8": [
+              2,
+              3
+            ],
+            "source_utf16": [
+              2,
+              3
+            ],
+            "source_scalars": [
+              2,
+              3
+            ],
+            "glyphs": [
+              2,
+              3
+            ],
+            "source_run_tag": 2
+          },
+          {
+            "source_utf8": [
+              3,
+              6
+            ],
+            "source_utf16": [
+              3,
+              5
+            ],
+            "source_scalars": [
+              3,
+              5
+            ],
+            "glyphs": [
+              3,
+              4
+            ],
+            "source_run_tag": 2
+          },
+          {
+            "source_utf8": [
+              6,
+              7
+            ],
+            "source_utf16": [
+              5,
+              6
+            ],
+            "source_scalars": [
+              5,
+              6
+            ],
+            "glyphs": [
+              4,
+              5
+            ],
+            "source_run_tag": 2
+          }
+        ],
+        "glyphs": [
+          {
+            "glyph_id": 70,
+            "cluster_index": 0,
+            "x": 0,
+            "offset_x": 0,
+            "offset_y": 0,
+            "advance": 2355,
+            "source_run_tag": 0
+          },
+          {
+            "glyph_id": 70,
+            "cluster_index": 1,
+            "x": 2355,
+            "offset_x": 0,
+            "offset_y": 0,
+            "advance": 2330,
+            "source_run_tag": 1
+          },
+          {
+            "glyph_id": 70,
+            "cluster_index": 2,
+            "x": 4685,
+            "offset_x": 0,
+            "offset_y": 0,
+            "advance": 2355,
+            "source_run_tag": 2
+          },
+          {
+            "glyph_id": 141,
+            "cluster_index": 3,
+            "x": 7040,
+            "offset_x": 0,
+            "offset_y": 0,
+            "advance": 3320,
+            "source_run_tag": 2
+          },
+          {
+            "glyph_id": 60,
+            "cluster_index": 4,
+            "x": 10360,
+            "offset_x": 0,
+            "offset_y": 0,
+            "advance": 3225,
+            "source_run_tag": 2
+          }
+        ],
+        "ink_bounds": {
+          "x": 275,
+          "y": -3905,
+          "width": 12925,
+          "height": 3925
+        }
+      },
+      "source_runs": [
+        {
+          "source_utf8": [
+            0,
+            1
+          ],
+          "owner": "text",
+          "fill": null,
+          "tag": 0
+        },
+        {
+          "source_utf8": [
+            1,
+            2
+          ],
+          "owner": "tspan",
+          "fill": "#dc2626",
+          "x": "5000",
+          "tag": 1
+        },
+        {
+          "source_utf8": [
+            2,
+            7
+          ],
+          "owner": "tspan",
+          "fill": "#2563eb",
+          "dx": "1000 0 1000 0",
+          "tag": 2
+        }
+      ]
     },
     {
       "id": "svg-text-allerta-tspan-kerning",

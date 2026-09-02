@@ -34,7 +34,7 @@ fn fixture_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/web-first/text/geometry")
 }
 
-fn is_textlayout_v3_direct_scalar(character: char) -> bool {
+fn is_textlayout_direct_scalar(character: char) -> bool {
     matches!(
         character,
         ' '..='~'
@@ -92,6 +92,14 @@ struct CaseSourceRun {
     tag: u32,
     owner: String,
     fill: Option<String>,
+    #[serde(default)]
+    x: Option<String>,
+    #[serde(default)]
+    y: Option<String>,
+    #[serde(default)]
+    dx: Option<String>,
+    #[serde(default)]
+    dy: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -104,6 +112,8 @@ struct FontFacts {
     clusters: Option<Vec<ClusterFact>>,
     #[serde(default)]
     source_runs: Option<Vec<FontSourceRun>>,
+    #[serde(default)]
+    shaping_chunks: Option<Vec<ShapingChunkFact>>,
     ink_bounds: NumberRect,
 }
 
@@ -111,6 +121,17 @@ struct FontFacts {
 struct FontSourceRun {
     source_utf8: [usize; 2],
     tag: u32,
+}
+
+#[derive(Deserialize)]
+struct ShapingChunkFact {
+    source_utf8: [usize; 2],
+    source_utf16: [usize; 2],
+    source_scalars: [usize; 2],
+    clusters: [usize; 2],
+    glyphs: [usize; 2],
+    origin_x: f64,
+    advance: f64,
 }
 
 #[derive(Deserialize)]
@@ -239,7 +260,7 @@ fn read_json<T: for<'de> Deserialize<'de>>(path: &Path) -> T {
 
 fn suite() -> Suite {
     let suite: Suite = read_json(&fixture_root().join("cases.json"));
-    assert_eq!(suite.schema_version, 3);
+    assert_eq!(suite.schema_version, 4);
     assert!(!suite.fonts.is_empty());
     assert!(!suite.cases.is_empty());
     suite
@@ -332,10 +353,23 @@ fn canonical_source(case: &SuiteCase) -> String {
                         assert!(run.fill.is_none());
                         fragment.to_string()
                     }
-                    "tspan" => format!(
-                        "<tspan fill=\"{}\">{fragment}</tspan>",
-                        run.fill.as_deref().expect("tspan source run carries fill")
-                    ),
+                    "tspan" => {
+                        let mut attributes = String::new();
+                        for (name, value) in [
+                            ("x", run.x.as_deref()),
+                            ("y", run.y.as_deref()),
+                            ("dx", run.dx.as_deref()),
+                            ("dy", run.dy.as_deref()),
+                        ] {
+                            if let Some(value) = value {
+                                attributes.push_str(&format!(" {name}=\"{value}\""));
+                            }
+                        }
+                        format!(
+                            "<tspan{attributes} fill=\"{}\">{fragment}</tspan>",
+                            run.fill.as_deref().expect("tspan source run carries fill")
+                        )
+                    }
                     other => panic!("unsupported source-run owner {other}"),
                 }
             })
@@ -362,7 +396,7 @@ fn attributed_text(case: &SuiteCase, font_size: f32) -> textlayout::AttributedTe
         family: case.font_family.clone(),
         size: font_size,
     };
-    if case.source_runs.is_empty() {
+    let attributed = if case.source_runs.is_empty() {
         textlayout::AttributedText::single_source_run(
             case.text.clone(),
             style,
@@ -382,7 +416,176 @@ fn attributed_text(case: &SuiteCase, font_size: f32) -> textlayout::AttributedTe
                 })
                 .collect(),
         )
+    };
+    attributed.with_shaping_chunks(
+        shaping_chunks_from_source(case)
+            .into_iter()
+            .map(textlayout::ShapingChunk::new)
+            .collect(),
+    )
+}
+
+fn list_len(source: &str) -> usize {
+    source.split_ascii_whitespace().count()
+}
+
+fn shaping_chunks_from_source(case: &SuiteCase) -> Vec<std::ops::Range<usize>> {
+    let mut boundaries = vec![0usize];
+    for run in &case.source_runs {
+        let fragment = case
+            .text
+            .get(run.source_utf8[0]..run.source_utf8[1])
+            .expect("source-run ranges are UTF-8 boundaries");
+        for list in [run.x.as_deref(), run.y.as_deref()].into_iter().flatten() {
+            boundaries.extend(
+                fragment
+                    .char_indices()
+                    .take(list_len(list))
+                    .map(|(offset, _)| run.source_utf8[0] + offset),
+            );
+        }
     }
+    boundaries.push(case.text.len());
+    boundaries.sort_unstable();
+    boundaries.dedup();
+    boundaries
+        .windows(2)
+        .filter_map(|pair| (pair[0] < pair[1]).then_some(pair[0]..pair[1]))
+        .collect()
+}
+
+#[derive(Clone, Copy, Default)]
+struct AuthoredPosition {
+    x: Option<f32>,
+    y: Option<f32>,
+    dx: Option<f32>,
+    dy: Option<f32>,
+}
+
+fn parse_position_list(source: &str) -> Vec<f32> {
+    source
+        .split_ascii_whitespace()
+        .map(|value| parse_number("position-list member", value))
+        .collect()
+}
+
+fn authored_positions(case: &SuiteCase) -> Vec<AuthoredPosition> {
+    let scalar_starts = case
+        .text
+        .char_indices()
+        .map(|(byte, _)| byte)
+        .collect::<Vec<_>>();
+    let mut positions = vec![AuthoredPosition::default(); scalar_starts.len()];
+    for run in &case.source_runs {
+        let start = scalar_starts
+            .iter()
+            .position(|byte| *byte == run.source_utf8[0])
+            .expect("source run starts on a scalar boundary");
+        let scalar_count = case.text[run.source_utf8[0]..run.source_utf8[1]]
+            .chars()
+            .count();
+        for (name, list) in [
+            ("x", run.x.as_deref()),
+            ("y", run.y.as_deref()),
+            ("dx", run.dx.as_deref()),
+            ("dy", run.dy.as_deref()),
+        ] {
+            let Some(list) = list else { continue };
+            for (local, value) in parse_position_list(list)
+                .into_iter()
+                .take(scalar_count)
+                .enumerate()
+            {
+                let position = &mut positions[start + local];
+                match name {
+                    "x" => position.x = Some(value),
+                    "y" => position.y = Some(value),
+                    "dx" => position.dx = Some(value),
+                    "dy" => position.dy = Some(value),
+                    _ => unreachable!(),
+                }
+            }
+        }
+    }
+    positions
+}
+
+#[derive(Clone, Copy)]
+struct ClusterPlacement {
+    x: f32,
+    y: f32,
+    advance: f32,
+}
+
+fn cluster_placements(
+    case: &SuiteCase,
+    layout: &textlayout::ResolvedTextLayout,
+    x: f32,
+    y: f32,
+) -> Vec<ClusterPlacement> {
+    let positions = authored_positions(case);
+    let mut placed = vec![
+        ClusterPlacement {
+            x: 0.0,
+            y: 0.0,
+            advance: 0.0,
+        };
+        layout.clusters().len()
+    ];
+    let mut current_x = x;
+    let mut current_y = y;
+    let mut pending_dx = 0.0;
+    let mut pending_dy = 0.0;
+    for chunk in layout.shaping_chunks() {
+        let clusters = chunk.clusters();
+        for cluster_index in clusters.clone() {
+            let cluster = &layout.clusters()[cluster_index];
+            let scalars = cluster.source_scalars();
+            let first = positions[scalars.start];
+            if let Some(value) = first.x {
+                current_x = value;
+            }
+            if let Some(value) = first.y {
+                current_y = value;
+            }
+            current_x += pending_dx + first.dx.unwrap_or(0.0);
+            current_y += pending_dy + first.dy.unwrap_or(0.0);
+            pending_dx = 0.0;
+            pending_dy = 0.0;
+            for position in &positions[scalars.start + 1..scalars.end] {
+                assert!(position.x.is_none() && position.y.is_none());
+                pending_dx += position.dx.unwrap_or(0.0);
+                pending_dy += position.dy.unwrap_or(0.0);
+            }
+            let advance = layout.glyphs()[cluster.glyphs()]
+                .iter()
+                .map(|glyph| glyph.advance)
+                .sum();
+            placed[cluster_index] = ClusterPlacement {
+                x: current_x,
+                y: current_y,
+                advance,
+            };
+            current_x += advance;
+        }
+        let alignment = placed[clusters.start].x;
+        let mut min = f32::INFINITY;
+        let mut max = f32::NEG_INFINITY;
+        for placement in &placed[clusters.clone()] {
+            min = min.min(placement.x).min(placement.x + placement.advance);
+            max = max.max(placement.x).max(placement.x + placement.advance);
+        }
+        let shift = match case.text_anchor.as_str() {
+            "start" => alignment - min,
+            "middle" => alignment - (min + max) / 2.0,
+            "end" => alignment - max,
+            other => panic!("unrecognized anchor {other}"),
+        };
+        for placement in &mut placed[clusters] {
+            placement.x += shift;
+        }
+    }
+    placed
 }
 
 fn exact(label: &str, artifact: f32, chromium: f64) {
@@ -483,7 +686,7 @@ fn geometry_suite_is_closed_and_hash_pinned() {
     let root = fixture_root();
     let suite = suite();
     let manifest: BakeManifest = read_json(&root.join("oracle-bake.json"));
-    assert_eq!(manifest.schema_version, 3);
+    assert_eq!(manifest.schema_version, 4);
     assert_eq!(manifest.kind, "chromium-svg-text-geometry-oracle");
     assert_eq!(manifest.browser_version, "149.0.7827.55");
     assert_eq!(manifest.suite, "cases.json");
@@ -608,17 +811,13 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
             measured.substring_length,
         );
 
-        let anchor_start = match case.text_anchor.as_str() {
-            "start" => x,
-            "middle" => x - layout.advance() / 2.0,
-            "end" => x - layout.advance(),
-            other => panic!("unrecognized anchor {other}"),
-        };
+        let placements = cluster_placements(case, &layout, x, y);
         let metrics = layout.metrics();
         match case.font_facts.schema_version {
             None => {
                 assert!(case.font_facts.clusters.is_none());
                 assert!(case.font_facts.source_runs.is_none());
+                assert!(case.font_facts.shaping_chunks.is_none());
                 assert_eq!(layout.clusters().len(), case.font_facts.glyphs.len());
                 let source_scalars: Vec<(usize, char)> = case.text.char_indices().collect();
                 assert_eq!(source_scalars.len(), case.font_facts.glyphs.len());
@@ -637,7 +836,7 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
                     assert_eq!(fact.scalar.chars().count(), 1);
                     let (source_utf8_byte, source_scalar) = source_scalars[index];
                     assert_eq!(scalar, source_scalar);
-                    assert!(is_textlayout_v3_direct_scalar(scalar));
+                    assert!(is_textlayout_direct_scalar(scalar));
                     assert_eq!(fact.source_utf8_byte as usize, source_utf8_byte);
                     assert_eq!(fact.source_utf16_index as usize, source_utf16_index);
                     assert_eq!(fact.source_utf8_byte, fact.cluster);
@@ -664,7 +863,7 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
                 }
                 assert_eq!(source_utf16_index, source_utf16.len());
             }
-            Some(version @ (2 | 3)) => {
+            Some(version @ (2 | 3 | 4)) => {
                 let facts = case
                     .font_facts
                     .clusters
@@ -685,7 +884,7 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
                         fact.source_scalars[0]..fact.source_scalars[1]
                     );
                     assert_eq!(cluster.glyphs(), fact.glyphs[0]..fact.glyphs[1]);
-                    if version == 3 {
+                    if version >= 3 {
                         assert_eq!(
                             cluster.source_run_tag().value(),
                             fact.source_run_tag
@@ -705,7 +904,7 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
                     exact("glyph x offset", glyph.offset_x, fact.offset_x);
                     exact("glyph y offset", glyph.offset_y, fact.offset_y);
                     exact("glyph advance", glyph.advance, fact.advance);
-                    if version == 3 {
+                    if version >= 3 {
                         assert_eq!(
                             glyph.source_run_tag().value(),
                             fact.source_run_tag
@@ -715,7 +914,7 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
                         assert!(fact.source_run_tag.is_none());
                     }
                 }
-                if version == 3 {
+                if version >= 3 {
                     let source_runs = case
                         .font_facts
                         .source_runs
@@ -732,6 +931,34 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
                 } else {
                     assert!(case.font_facts.source_runs.is_none());
                 }
+                if version == 4 {
+                    let chunks = case
+                        .font_facts
+                        .shaping_chunks
+                        .as_ref()
+                        .expect("v4 facts carry shaping chunks");
+                    assert_eq!(layout.shaping_chunks().len(), chunks.len());
+                    for (resolved, fact) in layout.shaping_chunks().iter().zip(chunks) {
+                        assert_eq!(
+                            resolved.source_utf8(),
+                            fact.source_utf8[0]..fact.source_utf8[1]
+                        );
+                        assert_eq!(
+                            resolved.source_utf16(),
+                            fact.source_utf16[0]..fact.source_utf16[1]
+                        );
+                        assert_eq!(
+                            resolved.source_scalars(),
+                            fact.source_scalars[0]..fact.source_scalars[1]
+                        );
+                        assert_eq!(resolved.clusters(), fact.clusters[0]..fact.clusters[1]);
+                        assert_eq!(resolved.glyphs(), fact.glyphs[0]..fact.glyphs[1]);
+                        exact("shaping chunk origin", resolved.origin_x(), fact.origin_x);
+                        exact("shaping chunk advance", resolved.advance(), fact.advance);
+                    }
+                } else {
+                    assert!(case.font_facts.shaping_chunks.is_none());
+                }
             }
             other => panic!("unsupported font-fact schema {other:?}"),
         }
@@ -740,8 +967,9 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
         // typographic/shaping cluster reports that cluster's complete cell.
         for (cluster_index, cluster) in layout.clusters().iter().enumerate() {
             let glyphs = &layout.glyphs()[cluster.glyphs()];
-            let cluster_x = glyphs[0].x;
             let cluster_advance: f32 = glyphs.iter().map(|glyph| glyph.advance).sum();
+            let placement = placements[cluster_index];
+            assert_eq!(placement.advance, cluster_advance);
             for character_index in cluster.source_utf16() {
                 let character = &measured.characters[character_index];
                 assert_eq!(
@@ -754,24 +982,20 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
                     cluster_advance,
                     character.substring_length,
                 );
-                exact(
-                    "character cluster start x",
-                    anchor_start + cluster_x,
-                    character.start.x,
-                );
-                exact("character baseline y", y, character.start.y);
+                exact("character cluster start x", placement.x, character.start.x);
+                exact("character baseline y", placement.y, character.start.y);
                 exact(
                     "character cluster end x",
-                    anchor_start + cluster_x + cluster_advance,
+                    placement.x + cluster_advance,
                     character.end.x,
                 );
-                exact("character end y", y, character.end.y);
+                exact("character end y", placement.y, character.end.y);
+                exact("character cell x", placement.x, character.extent.x);
                 exact(
-                    "character cell x",
-                    anchor_start + cluster_x,
-                    character.extent.x,
+                    "character cell y",
+                    placement.y - metrics.ascent,
+                    character.extent.y,
                 );
-                exact("character cell y", y - metrics.ascent, character.extent.y);
                 exact(
                     "character cell width",
                     cluster_advance,
@@ -812,6 +1036,13 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
                 layout.glyphs()[0].source_run_tag(),
                 layout.glyphs()[1].source_run_tag()
             );
+        } else if case.id == "svg-text-allerta-positioned-combining" {
+            assert_eq!(layout.shaping_chunks().len(), 2);
+            assert_eq!(layout.shaping_chunks()[0].advance(), 2355.0);
+            assert_eq!(layout.shaping_chunks()[1].advance(), 11230.0);
+            assert_eq!(placements[1].x, 5000.0);
+            assert_eq!(placements[2].x, 8330.0);
+            assert_eq!(placements[4].x, 15005.0);
         }
 
         let ink = layout.ink_bounds().expect("real face has outline ink");
@@ -861,9 +1092,13 @@ fn real_font_pixels_obey_only_the_engine_laws() {
             .collect();
         assert!(substantive.is_empty(), "{}: {substantive:?}", case.id);
 
-        // Plain text lowers to one path. The current Allerta source-run
-        // witness declares exactly two distinct paints, so it lowers to two.
-        let expected_nodes = if case.source_runs.is_empty() { 1 } else { 2 };
+        // One node is emitted for every contiguous source-tag span that owns
+        // outline glyphs. Positioning changes geometry but not ownership.
+        let expected_nodes = 1 + layout
+            .glyphs()
+            .windows(2)
+            .filter(|pair| pair[0].source_run_tag() != pair[1].source_run_tag())
+            .count();
         assert_eq!(
             strict.nodes().len(),
             expected_nodes,
@@ -1009,7 +1244,7 @@ fn combining_profile_boundaries_refuse_at_the_same_text_node_in_both_admissions(
         "Ax\u{0300}Z",
         "Bungee",
         bungee_environment(),
-        "outside textlayout-v3's admitted",
+        "outside textlayout-v4's admitted",
     );
     for source in [
         "\u{0301}AX",

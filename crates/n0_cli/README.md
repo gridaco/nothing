@@ -565,9 +565,9 @@ cargo run -p n0_cli --bin n0 -- \
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
   cells. The complete primitive corpus contains 1,051 Chromium-baked cells plus
-  16 sampled frames; the text estate contains ten exact Ahem pixel cells and
-  seven exact-number artifact-geometry witnesses (five Allerta and two
-  Bungee), and the named refusal register has 214 rows. `feFlood`, `feComposite`,
+  16 sampled frames; the text estate contains eleven exact Ahem pixel cells and
+  eight exact-number artifact-geometry witnesses (six Allerta and two
+  Bungee), and the named refusal register has 217 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -962,7 +962,7 @@ cargo run -p n0_cli --bin n0 -- \
   declared refuses by name; there is no system fallback, no ambient face,
   and therefore no machine-local pixel anywhere on this path. Inside that
   environment one text source resolves once through
-  [the text oracle](../../docs/wg/feat-paragraph/text-layout.md) at its v3
+  [the text oracle](../../docs/wg/feat-paragraph/text-layout.md) at its v4
   profile — one shaping-style run of printable ASCII plus exactly the 53 canonical
   precomposed Latin-1 letters in U+00C0–00C5, U+00C7–00CF, U+00D1–00D6,
   U+00D9–00DD, U+00E0–00E5, U+00E7–00EF, U+00F1–00F6, U+00F9–00FD, and
@@ -972,14 +972,20 @@ cargo run -p n0_cli --bin n0 -- \
   source scalars and either one composed glyph or two glyphs with a
   zero-advance displaced mark; no wrapping and no fallback. Direct character
   data may be partitioned by flat direct `<tspan>` children that preserve the
-  same resolved face, size, position, direction, opacity, and effect profile
-  and select only an opaque solid fill. Whitespace collapses once across the
-  complete subtree, the complete string shapes once, and source-run tags
-  assign each complete cluster to the run owning its first scalar. The glyph
-  outlines then lower by paint run to the contract's ordinary path facts, so
-  no font or run identity crosses into the resolved frame. `x`, `y`, and a direct `text-anchor` attribute
-  (`start`/`middle`/`end`) place the run; inherited ancestor spellings refuse
-  until anchor has one computed route. `font-family` and `font-size`
+  same resolved face, size, direction, opacity, and effect profile and select
+  only an opaque solid fill. A child may also carry complete unitless
+  `x`/`y`/`dx`/`dy` number lists whose consumed values stay finite and
+  integral. Whitespace collapses once across the complete subtree. Each
+  consumed child `x` or `y` starts an explicit shaping and anchor chunk;
+  `dx`/`dy` shift typographic characters without splitting shaping, including
+  carrying a middle combining-scalar shift to the next character. Source-run
+  tags assign each complete cluster to the paint run owning its first scalar.
+  The glyph outlines then lower by paint run to the contract's ordinary path
+  facts, so no font, run, or chunk identity crosses into the resolved frame.
+  Parent `x`, `y`, and a direct `text-anchor` attribute
+  (`start`/`middle`/`end`) place the source and anchor every chunk; inherited
+  ancestor spellings refuse until anchor has one computed route.
+  `font-family` and `font-size`
   come from the one cascade, where an author rule beats the presentation
   attribute exactly as Chromium measured. Until the source environment is
   carried more widely, `font-size` admits only a direct finite non-negative
@@ -1030,9 +1036,14 @@ cargo run -p n0_cli --bin n0 -- \
   every glyph records pen position, displacement, advance, and cluster owner.
   A fifth Allerta witness puts the second `f` of the exact 2330/2355 pair in a
   differently painted `<tspan>` and still totals 4685, proving that a paint
-  boundary does not create a second shaping call. The ten-cell Ahem suite
-  separately makes per-run paint, global whitespace collapse, and one parent
-  anchor byte-exact.
+  boundary does not create a second shaping call. A sixth resolves
+  `fffe` + U+0301 + `Z` in two explicit chunks: the absolute boundary changes
+  the first `f` advance to 2355, the second chunk retains the 2330/2355 pair,
+  and Chromium and the projection agree on total 13585 and positioned starts
+  5000, 8330, 10685, and 15005. The last start proves that a relative shift on
+  the combining scalar carries to the next character. The eleven-cell Ahem
+  suite separately makes per-run paint, list placement, per-chunk anchoring,
+  transforms, and `<use>` byte-exact.
   Malformed or unlisted combining sequences and a mark missing from the exact
   face refuse at the text node in both admissions. The 1000px
   control misses both query grids: strict refuses by stable
@@ -1044,14 +1055,16 @@ cargo run -p n0_cli --bin n0 -- \
   `text-anchor` (Chromium consumes it from the cascade, the pinned Stylo
   build has no such longhand — a silent drop before the rung), inherited
   `text-anchor` presentation attributes, a generic
-  family (which names no declared font), nested or positioned `<tspan>`
-  content, child shaping-style changes, non-opaque/wider child paint and
-  child/parent effects, any other element child, `dx`/`dy`/`rotate` lists,
-  `textLength`, font shorthands and unconsumed
+  family (which names no declared font), nested `<tspan>` content, child
+  shaping-style changes, non-opaque/wider child paint and child/parent
+  effects, any other element child, parent position lists, child position
+  units/percentages/functions, malformed or fractional child lists,
+  positioned non-canonical whitespace, an absolute reset inside a combining
+  cluster, `rotate`, `textLength`, font shorthands and unconsumed
   font variants, decorations, letter and word spacing, baselines, writing mode
   and direction, stroke on text, a colour or
   bitmap face, a cluster outside the direct-or-one-mark cardinality, malformed
-  combining placement, a missing mark glyph, and any character outside the v3
+  combining placement, a missing mark glyph, and any character outside the v4
   repertoire. The inline-HTML
   entry declares no fonts, so its `<text>` refuses there.
   `display: none` and `visibility` are consumed from the one cascade
