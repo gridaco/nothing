@@ -5,13 +5,14 @@ Usage:
     python3 add_case.py <id> --source <svg> --facts <json>
 
 The source must use the suite's canonical text shape. It may contain direct
-text only, or direct text plus flat paint-only `<tspan fill="…">` children.
+text only, or direct text plus flat paint/position `<tspan>` children.
 `facts` records the font-derived evidence Chromium cannot expose:
 units-per-em, complete source-run/cluster/glyph placement mappings, and outline
-ink bounds. Flat tspans require v3 facts with explicit run tags; new direct
-text cases retain the v2 placed-glyph shape. The manifest's immutable pre-T3c
-cases retain their legacy direct-scalar shape; this command neither creates
-nor migrates that historical form.
+ink bounds. Flat paint-only tspans require v3 facts with explicit run tags;
+positioned tspans require those source-run facts plus v4 shaping chunks. New
+direct text cases retain the v2 placed-glyph shape. The manifest's immutable
+pre-T3c cases retain their legacy direct-scalar shape; this command neither
+creates nor migrates that historical form.
 """
 
 import argparse
@@ -29,6 +30,9 @@ MANIFEST = DIR / "cases.json"
 SVG_NS = "http://www.w3.org/2000/svg"
 ID_PATTERN = re.compile(r"^svg-text-[a-z0-9]+(?:-[a-z0-9]+)*$")
 OPAQUE_HEX_COLOR_PATTERN = re.compile(r"^#[0-9a-fA-F]{6}$")
+POSITION_LIST_PATTERN = re.compile(
+    r"^-?(?:0|[1-9][0-9]*)(?: -?(?:0|[1-9][0-9]*))*$"
+)
 
 
 def direct_scalar(character: str) -> bool:
@@ -77,7 +81,14 @@ def canonical(case: dict) -> str:
             if run["owner"] == "text":
                 fragments.append(fragment)
             else:
-                fragments.append(f'<tspan fill="{run["fill"]}">{fragment}</tspan>')
+                positioning = "".join(
+                    f' {name}="{run[name]}"'
+                    for name in ("x", "y", "dx", "dy")
+                    if name in run
+                )
+                fragments.append(
+                    f'<tspan{positioning} fill="{run["fill"]}">{fragment}</tspan>'
+                )
         markup = "".join(fragments)
     else:
         markup = case["text"]
@@ -105,7 +116,7 @@ def main() -> None:
     manifest_file = MANIFEST.open("r+", encoding="utf-8")
     fcntl.flock(manifest_file.fileno(), fcntl.LOCK_EX)
     suite = json.load(manifest_file)
-    if suite.get("schema_version") != 3:
+    if suite.get("schema_version") != 4:
         sys.exit("refused: unsupported geometry suite schema")
     source = Path(args.source).read_text()
     if "<!DOCTYPE" in source or "<script" in source or "@font-face" in source:
@@ -128,33 +139,52 @@ def main() -> None:
 
     fragments = []
     has_tspan = False
+    has_positioning = False
 
     def append_fragment(
-        value: Optional[str], owner: str, fill: Optional[str] = None
+        value: Optional[str],
+        owner: str,
+        fill: Optional[str] = None,
+        positioning: Optional[dict[str, str]] = None,
     ) -> None:
         if value:
-            fragments.append({"text": value, "owner": owner, "fill": fill})
+            fragment = {"text": value, "owner": owner, "fill": fill}
+            if positioning:
+                fragment.update(positioning)
+            fragments.append(fragment)
 
     append_fragment(text.text, "text")
     for child in list(text):
         if (
             child.tag != f"{{{SVG_NS}}}tspan"
-            or set(child.attrib) != {"fill"}
+            or "fill" not in child.attrib
+            or not set(child.attrib) <= {"fill", "x", "y", "dx", "dy"}
             or list(child)
         ):
             sys.exit(
-                "refused: text children are flat <tspan> elements carrying exactly one fill attribute"
+                "refused: text children are flat <tspan> elements carrying fill and optional x/y/dx/dy"
             )
         if not OPAQUE_HEX_COLOR_PATTERN.fullmatch(child.attrib["fill"]):
             sys.exit("refused: geometry tspan fill must be an opaque #RRGGBB solid")
+        positioning = {
+            name: child.attrib[name]
+            for name in ("x", "y", "dx", "dy")
+            if name in child.attrib
+        }
+        for name, value in positioning.items():
+            if not POSITION_LIST_PATTERN.fullmatch(value):
+                sys.exit(
+                    f"refused: geometry tspan {name} must be a canonical space-separated integral number list"
+                )
         has_tspan = True
-        append_fragment(child.text, "tspan", child.attrib["fill"])
+        has_positioning = has_positioning or bool(positioning)
+        append_fragment(child.text, "tspan", child.attrib["fill"], positioning)
         append_fragment(child.tail, "text")
 
     content = "".join(fragment["text"] for fragment in fragments)
     scalars = list(content)
     if not scalars or not admitted_source(scalars):
-        sys.exit("refused: the witness must stay inside textlayout-v3's exact repertoire")
+        sys.exit("refused: the witness must stay inside textlayout-v4's exact repertoire")
     if " ".join(content.split()) != content:
         sys.exit("refused: source text must already be in canonical collapsed-space form")
     families = {font["family"] for font in suite["fonts"]}
@@ -189,11 +219,13 @@ def main() -> None:
     }
     if has_tspan:
         required_fact_fields.add("source_runs")
+    if has_positioning:
+        required_fact_fields.add("shaping_chunks")
     if not isinstance(facts, dict) or set(facts) != required_fact_fields:
         sys.exit(
             f"refused: facts must name exactly {sorted(required_fact_fields)}"
         )
-    expected_fact_schema = 3 if has_tspan else 2
+    expected_fact_schema = 4 if has_positioning else 3 if has_tspan else 2
     if facts["schema_version"] != expected_fact_schema:
         sys.exit(f"refused: this geometry source requires fact schema {expected_fact_schema}")
     units_per_em = facts["units_per_em"]
@@ -227,6 +259,11 @@ def main() -> None:
                 "source_utf8": [source_byte, end],
                 "owner": fragment["owner"],
                 "fill": fragment["fill"],
+                **{
+                    name: fragment[name]
+                    for name in ("x", "y", "dx", "dy")
+                    if name in fragment
+                },
             }
         )
         source_byte = end
@@ -234,7 +271,9 @@ def main() -> None:
     if has_tspan:
         supplied_runs = facts["source_runs"]
         if not isinstance(supplied_runs, list) or len(supplied_runs) != len(parsed_source_runs):
-            sys.exit("refused: v3 source-run facts must match every non-empty source fragment")
+            sys.exit(
+                "refused: source-run facts must match every non-empty source fragment"
+            )
         for run_index, (parsed, supplied) in enumerate(zip(parsed_source_runs, supplied_runs)):
             if (
                 not isinstance(supplied, dict)
@@ -308,7 +347,9 @@ def main() -> None:
             and glyph_count in {1, 2}
         )
         if not direct and not one_mark:
-            sys.exit(f"refused: cluster fact {cluster_index} is outside the v3 cardinality")
+            sys.exit(
+                f"refused: cluster fact {cluster_index} is outside the v4 cardinality"
+            )
         if has_tspan and cluster["source_run_tag"] != tag_at(cluster["source_utf8"][0]):
             sys.exit(
                 f"refused: cluster fact {cluster_index} does not carry its first scalar's source-run tag"
@@ -363,10 +404,95 @@ def main() -> None:
         else:
             valid_offset = glyph["advance"] == 0
         if not valid_offset:
-            sys.exit(f"refused: glyph fact {glyph_index} is outside v3 mark placement")
+            sys.exit(f"refused: glyph fact {glyph_index} is outside v4 mark placement")
         if has_tspan and glyph["source_run_tag"] != clusters[cluster_index]["source_run_tag"]:
             sys.exit(f"refused: glyph fact {glyph_index} disagrees with its cluster's source-run tag")
         pen_x += glyph["advance"]
+
+    if has_positioning:
+        boundaries = {0, len(content.encode("utf-8"))}
+        for fragment in parsed_source_runs:
+            fragment_bytes = content.encode("utf-8")[
+                fragment["source_utf8"][0] : fragment["source_utf8"][1]
+            ]
+            fragment_text = fragment_bytes.decode("utf-8")
+            fragment_offsets = []
+            offset = 0
+            for character in fragment_text:
+                fragment_offsets.append(fragment["source_utf8"][0] + offset)
+                offset += len(character.encode("utf-8"))
+            for name in ("x", "y"):
+                if name in fragment:
+                    boundaries.update(
+                        fragment_offsets[: len(fragment[name].split(" "))]
+                    )
+        expected_source_chunks = [
+            [start, end]
+            for start, end in zip(
+                sorted(boundaries), sorted(boundaries)[1:], strict=False
+            )
+            if start < end
+        ]
+        shaping_chunks = facts["shaping_chunks"]
+        if (
+            not isinstance(shaping_chunks, list)
+            or len(shaping_chunks) != len(expected_source_chunks)
+        ):
+            sys.exit(
+                "refused: v4 shaping chunks must match every consumed x/y boundary"
+            )
+        cluster_starts = [cluster["source_utf8"][0] for cluster in clusters]
+        cluster_starts.append(len(content.encode("utf-8")))
+        canonical_origin = 0
+        for chunk_index, (chunk, expected_source) in enumerate(
+            zip(shaping_chunks, expected_source_chunks, strict=True)
+        ):
+            fields = {
+                "source_utf8",
+                "source_utf16",
+                "source_scalars",
+                "clusters",
+                "glyphs",
+                "origin_x",
+                "advance",
+            }
+            if not isinstance(chunk, dict) or set(chunk) != fields:
+                sys.exit(f"refused: shaping chunk fact {chunk_index} has the wrong fields")
+            if chunk["source_utf8"] != expected_source:
+                sys.exit(
+                    f"refused: shaping chunk fact {chunk_index} disagrees with authored x/y boundaries"
+                )
+            try:
+                scalar_start = utf8_offsets.index(expected_source[0])
+                scalar_end = utf8_offsets.index(expected_source[1])
+                cluster_start = cluster_starts.index(expected_source[0])
+                cluster_end = cluster_starts.index(expected_source[1])
+            except ValueError:
+                sys.exit(
+                    f"refused: shaping chunk fact {chunk_index} splits a scalar or shaping cluster"
+                )
+            glyph_start = clusters[cluster_start]["glyphs"][0]
+            glyph_end = clusters[cluster_end - 1]["glyphs"][1]
+            advance = sum(
+                glyph["advance"] for glyph in glyphs[glyph_start:glyph_end]
+            )
+            expected = {
+                "source_utf8": expected_source,
+                "source_utf16": [utf16_offsets[scalar_start], utf16_offsets[scalar_end]],
+                "source_scalars": [scalar_start, scalar_end],
+                "clusters": [cluster_start, cluster_end],
+                "glyphs": [glyph_start, glyph_end],
+                "origin_x": canonical_origin,
+                "advance": advance,
+            }
+            if chunk != expected:
+                sys.exit(
+                    f"refused: shaping chunk fact {chunk_index} does not match the pinned artifact partition"
+                )
+            canonical_origin += advance
+    elif "shaping_chunks" in facts:
+        sys.exit("refused: only positioned v4 facts carry shaping_chunks")
+
     ink_bounds = facts["ink_bounds"]
     if not isinstance(ink_bounds, dict) or set(ink_bounds) != {
         "x",

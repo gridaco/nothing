@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "kind": "chromium-svg-text-geometry",
+  "measurement": {
+    "text_content": "ffféZ",
+    "computed_font_family": "Allerta",
+    "computed_font_size": "5120px",
+    "computed_text_anchor": "start",
+    "font_ready": true,
+    "number_of_chars": 6,
+    "computed_text_length": 13585,
+    "substring_length": 13585,
+    "characters": [
+      {
+        "utf16_code_unit": 102,
+        "substring_length": 2355,
+        "start": {
+          "x": 0,
+          "y": 4080
+        },
+        "end": {
+          "x": 2355,
+          "y": 4080
+        },
+        "extent": {
+          "x": 0,
+          "y": -1205,
+          "width": 2355,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 102,
+        "substring_length": 2330,
+        "start": {
+          "x": 5000,
+          "y": 4080
+        },
+        "end": {
+          "x": 7330,
+          "y": 4080
+        },
+        "extent": {
+          "x": 5000,
+          "y": -1205,
+          "width": 2330,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 102,
+        "substring_length": 2355,
+        "start": {
+          "x": 8330,
+          "y": 4080
+        },
+        "end": {
+          "x": 10685,
+          "y": 4080
+        },
+        "extent": {
+          "x": 8330,
+          "y": -1205,
+          "width": 2355,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 101,
+        "substring_length": 3320,
+        "start": {
+          "x": 10685,
+          "y": 4080
+        },
+        "end": {
+          "x": 14005,
+          "y": 4080
+        },
+        "extent": {
+          "x": 10685,
+          "y": -1205,
+          "width": 3320,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 769,
+        "substring_length": 3320,
+        "start": {
+          "x": 10685,
+          "y": 4080
+        },
+        "end": {
+          "x": 14005,
+          "y": 4080
+        },
+        "extent": {
+          "x": 10685,
+          "y": -1205,
+          "width": 3320,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 90,
+        "substring_length": 3225,
+        "start": {
+          "x": 15005,
+          "y": 4080
+        },
+        "end": {
+          "x": 18230,
+          "y": 4080
+        },
+        "extent": {
+          "x": 15005,
+          "y": -1205,
+          "width": 3225,
+          "height": 6545
+        },
+        "rotation": 0
+      }
+    ]
+  }
+}

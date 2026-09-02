@@ -268,9 +268,9 @@ fn beyond_slice_text_constructs_refuse_by_name() {
             "stroke on <text>",
         ),
         (
-            // Outside textlayout-v3's explicit repertoire.
+            // Outside textlayout-v4's explicit repertoire.
             r##"<text x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X&#x5D0;</text>"##,
-            "outside textlayout-v3's admitted",
+            "outside textlayout-v4's admitted",
         ),
     ] {
         let error = compile(&svg(body)).expect_err("outside the admitted text slice");
@@ -348,19 +348,81 @@ fn inherited_and_same_paint_tspans_are_frame_transparent() {
     assert_eq!(partitioned, flat);
 }
 
-/// T4a is intentionally narrower than the `<tspan>` element. Every position,
-/// shaping, nested-content, effect, and non-opaque-paint branch stays a named
-/// transaction at the parent text path in both admissions.
+/// Absolute lists split both shaping and anchoring; relative lists move each
+/// later typographic character without splitting shaping. These exact Ahem
+/// boxes are the source/contract witness behind the T4b Chromium pixel cell.
 #[test]
-fn tspan_boundaries_outside_t4a_refuse_transactionally() {
+fn positioned_tspan_lists_split_chunks_and_move_typographic_characters() {
+    let frame = compile(&svg(
+        r##"<g transform="translate(2 3)"><text x="20" y="17" text-anchor="middle" font-family="Ahem" font-size="10" fill="#2563eb">XX<tspan x="60" y="27" fill="#dc2626">XX</tspan></text></g>
+<text x="5" y="50" font-family="Ahem" font-size="10" fill="#2563eb">X<tspan dx="0 5 10" dy="0 10 -5" fill="#16a34a">XXX</tspan>X</text>"##,
+    ))
+    .expect("complete integral unitless position lists are inside T4b");
+    let nodes = frame.nodes();
+    assert_eq!(nodes.len(), 5);
+    let actual = nodes
+        .iter()
+        .map(|node| {
+            let color = node
+                .paints
+                .iter()
+                .next()
+                .and_then(cg::Paint::solid_color)
+                .expect("T4b retains T4a's direct solid paint boundary");
+            (
+                node.bounds.x,
+                node.bounds.y,
+                node.bounds.width,
+                node.bounds.height,
+                color.r,
+                color.g,
+                color.b,
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        actual,
+        vec![
+            (12.0, 12.0, 20.0, 10.0, 0x25, 0x63, 0xeb),
+            (52.0, 22.0, 20.0, 10.0, 0xdc, 0x26, 0x26),
+            (5.0, 42.0, 10.0, 10.0, 0x25, 0x63, 0xeb),
+            (15.0, 42.0, 45.0, 20.0, 0x16, 0xa3, 0x4a),
+            (60.0, 47.0, 10.0, 10.0, 0x25, 0x63, 0xeb),
+        ]
+    );
+}
+
+/// T4b is still intentionally narrower than the complete `<tspan>`
+/// positioning grammar. Every unconsumed value family, ambiguous character
+/// mapping, shaping change, nested-content branch, effect, and non-opaque
+/// paint stays a named transaction at the parent text path in both
+/// admissions.
+#[test]
+fn tspan_boundaries_outside_t4b_refuse_transactionally() {
     for (body, expected) in [
         (
-            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan x="20">X</tspan></text>"##,
-            "x",
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan x="20px">X</tspan></text>"##,
+            "complete unitless SVG-number-list grammar",
         ),
         (
-            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan dy="5">X</tspan></text>"##,
-            "dy",
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan y="50%">X</tspan></text>"##,
+            "complete unitless SVG-number-list grammar",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan dx="1,,2">XX</tspan></text>"##,
+            "malformed lists remain refused",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan dx="0 5"> X</tspan></text>"##,
+            "canonical collapsed-space form",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan x="20 30">e&#x301;</tspan></text>"##,
+            "absolute <tspan> positioning at combining mark",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan dx="0.5">X</tspan></text>"##,
+            "finite integral text-geometry domain",
         ),
         (
             r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan rotate="10">X</tspan></text>"##,
@@ -400,7 +462,7 @@ fn tspan_boundaries_outside_t4a_refuse_transactionally() {
         ),
     ] {
         let source = svg(body);
-        let error = compile(&source).expect_err("branch is outside T4a");
+        let error = compile(&source).expect_err("branch is outside T4b");
         assert!(
             error.to_string().contains(expected),
             "expected {expected:?}, got {error}"
@@ -546,7 +608,7 @@ fn direct_font_size_sources_remain_admitted_across_the_cascade() {
     }
 }
 
-/// Text semantics represented by Stylo but absent from oracle v3 must not
+/// Text semantics represented by Stylo but absent from oracle v4 must not
 /// become defaults silently. This includes the font shorthand and inherited
 /// declarations from ancestors, not only direct presentation attributes.
 #[test]

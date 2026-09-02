@@ -1,16 +1,16 @@
 # The text cell suite
 
 Chromium-baked evidence for the `<text>` slice on the SVG engine of record
-(`websem → rframe → n0`). Ten Ahem cells are gated byte-exact by
+(`websem → rframe → n0`). Eleven Ahem cells are gated byte-exact by
 [`crates/websem/tests/svg_text.rs`](../../../crates/websem/tests/svg_text.rs);
-seven real-font artifact witnesses are gated numerically, before rasterization, by
+eight real-font artifact witnesses are gated numerically, before rasterization, by
 [`crates/websem/tests/svg_text_geometry.rs`](../../../crates/websem/tests/svg_text_geometry.rs).
 The method these cells enforce is the ratified
 [text-oracle brief](../../../docs/wg/consolidation/text-oracle.md); this file
 states only how the suite is shaped.
 
-The pixel suite currently has **ten** cells. The separate Rung-B geometry
-suite under [`geometry/`](./geometry/) has **seven** witnesses: five Allerta and
+The pixel suite currently has **eleven** cells. The separate Rung-B geometry
+suite under [`geometry/`](./geometry/) has **eight** witnesses: six Allerta and
 two Bungee. Both manifests are closed enumerations: the Rust gates reject an
 unlisted SVG, duplicate source row, undeclared or changed font identity, stale
 suite or baker hash, stale shared-capture hash, changed source, or changed
@@ -300,12 +300,13 @@ from the declared face refuses at the mark's own byte instead of selecting
 tofu or an ambient fallback.
 
 The geometry manifest now carries multiple exact font identities. Its suite
-schema is v3, but the three immutable pre-T3c cases retain their historical
+schema is v4, but the three immutable pre-T3c cases retain their historical
 direct-scalar `font_facts` shape and the three T3c cases retain the v2
 placed-glyph shape. The Rust gate verifies every historical shape. The baker
 recaptures every case from the same hash-pinned mixed manifest without
 rewriting its facts. New direct-text cases use v2 facts; a flat paint-only
-`<tspan>` source uses v3 source-run facts. Neither path migrates existing
+`<tspan>` source uses v3 source-run facts, and a positioned source uses v4
+source-run plus shaping-chunk facts. None of these paths migrates existing
 evidence. In v2, every cluster records UTF-8, UTF-16, scalar, and
 glyph ranges; every placed glyph records pen x, x/y offset, advance, and
 cluster index. A direct cluster remains one scalar and one glyph. A permitted
@@ -392,6 +393,44 @@ geometry witnesses (five Allerta and two Bungee). Replacing one broad refusal
 with four focused rows moves the named register from 211 to 214. The complete
 `<text>` and `<tspan>` grammars remain open; no checklist row closes.
 
+## T4b positioned chunks
+
+Oracle v4 adds an explicit complete shaping-chunk partition to the same source
+artifact. Each chunk shapes independently and records global UTF-8, UTF-16,
+scalar, cluster, and glyph ranges, plus its canonical origin and advance.
+Source-run tags remain paint metadata and do not create chunks. The SVG
+producer maps consumed child `x`/`y` members to chunk boundaries and applies
+the parent anchor to each chunk; child `dx`/`dy` members shift typographic
+characters without reshaping them.
+
+| Witness | Discriminating branch |
+| --- | --- |
+| `svg-text-positioned-chunks.svg` | One exact 100×100 Ahem cell crosses x/y resets, per-chunk middle anchoring, dx/dy lists, omitted list members, parent/child paint, integer translation, canonical whitespace, and `<use>`. Its independent path construction is pixel-identical in Chromium. |
+| `svg-text-allerta-positioned-combining.svg` | At 5120px, an absolute boundary splits `ff`: the first chunk advances 2355, while the second retains the 2330/2355 pair and advances 11230, for total 13585. Chromium and the projection agree on starts 0, 5000, 8330, 10685/10685, and 15005. The shared 10685 base/mark cell and shifted 15005 `Z` prove that `dx=1000` on the combining scalar carries to the next typographic character rather than moving or splitting the cluster. |
+
+Repeated x values overlap characters and create separate chunks; a y-only
+value creates a new chunk at the prior unanchored current x; negative
+positions remain valid; excess list members are inert; and percentages use
+the width basis for x/dx and height basis for y/dy (measured, not celled).
+Absolute x/y boundaries break Allerta kerning, while dx preserves it. The
+committed parser is limited to unitless SVG numbers and the existing finite
+integral geometry domain; it uses the Blink-ordered number route rather than a
+raw float parse.
+
+Three added unsupported sources guard length/percentage/function and malformed
+value grammar, indexing whose ownership changes under whitespace collapse,
+and an absolute boundary inside a combining cluster. Fractional positions,
+parent lists, inherited positioning, `rotate`, `textLength`, wider shaping,
+paint/effects, and nested children remain named boundaries. Temporarily
+dropping first-character dx consumption changed 550 Ahem pixels and made both
+the focused contract and full `just gate` fail. Restoration returned all
+gates to green.
+
+The estate is now eleven exact Ahem cells plus eight exact-number real-font
+geometry witnesses (six Allerta and two Bungee). The named refusal register
+has 217 rows. The complete `<text>`, `<tspan>`, `x`, `y`, `dx`, and `dy`
+grammars remain open; no checklist row closes.
+
 ## Tooling
 
 Run from `fixtures/web-first/`:
@@ -410,7 +449,9 @@ pixel-for-pixel, and refreshes hash provenance. `text-gate` is the focused
 Rust gate for both the exact pixels and artifact geometry; the broader
 `just gate` also runs it and the refusal register. `text-geometry-add` likewise
 refuses an existing source or oracle path and accepts only canonical opaque
-six-digit `#RRGGBB` fills on the text and its flat tspans.
+six-digit `#RRGGBB` fills on the text and its flat tspans. A positioned tspan
+may additionally carry canonical space-separated integral `x`/`y`/`dx`/`dy`
+lists and must supply v4 shaping-chunk facts.
 `text-geometry-bake` creates only a missing JSON oracle and requires every
 existing numeric record to remain byte-identical.
 

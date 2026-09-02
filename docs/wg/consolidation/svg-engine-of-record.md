@@ -4967,3 +4967,68 @@ from 211 to 214. Positioning, shaping-style runs, opacity/effects, wider paints,
 nested content, font selection, and the complete `<text>` and `<tspan>`
 grammars remain open. No shared render-contract fact was added, no conformance
 score was produced, and no FLIP record, rule, or baseline changed.
+
+## Rung: SVG text positioned chunks (2026-09-03)
+
+The verdict is T4b ADMIT/SPLIT, with no checklist closure. Flat direct
+`<tspan>` children may now carry `x`, `y`, `dx`, and `dy` as complete unitless
+SVG number lists when every consumed value remains inside the existing finite
+integral text-geometry domain. Each consumed absolute `x` or `y` starts a new
+text chunk. That boundary suppresses shaping interactions across it and
+receives its own parent `text-anchor` adjustment. Relative `dx` and `dy`
+values alter the current text position but preserve the shaping chunk. Missing
+list members leave later characters on the current position; excess members
+are inert.
+
+Chromium measurements distinguish the two routes. Allerta `ff` is 2330/2355
+and 4685 total when shaped together, but `f<tspan x="…">f</tspan>` is
+2355/2355 and 4710 total. Replacing the absolute reset with `dx` keeps the
+4685 total. An exact Ahem construction independently reproduces per-chunk
+middle anchoring, x/y resets, dx/dy lists, an integer transform, and a `<use>`
+instance at zero differing pixels. Repeated absolute values, y-only chunks,
+negative positions, excess members, and percentage axis bases were also
+measured in Chromium, not celled.
+
+The text oracle advances to v4 because shaping segmentation can change glyph
+geometry. Its input carries a complete ordered partition of the exact UTF-8
+source into shaping chunks. Its immutable result records each chunk's global
+UTF-8, UTF-16, scalar, cluster, and glyph ranges, canonical local origin, and
+advance. Invalid chunk coverage refuses by a typed reason before font work.
+Authored x/y placement, relative offsets, and SVG anchoring remain producer
+semantics outside the oracle. The resolved artifact concatenates chunks only
+in canonical advance space; `websem` projects their authored positions while
+lowering outlines. No glyph, font, text, or chunk fact crosses `rframe`.
+
+The eighth exact-number geometry witness combines the hard branches in one
+pinned Allerta source. The source `fffe` + U+0301 + `Z` resolves into chunks
+`0..1` and `1..7` bytes with canonical advances 2355 and 11230, total 13585.
+Chromium places the absolute child at x=5000, the later relatively shifted
+`f` at 8330, `e` and its mark at 10685, and `Z` at 15005. The `dx` assigned to
+the combining scalar is therefore carried to the next typographic character;
+it does not split or move the base cluster. Browser query geometry and pinned
+font glyph/chunk facts agree exactly. The actual CLI renders both this witness
+and the Ahem cell successfully through strict and best-effort admission.
+
+The admitted list parser uses the existing Blink-ordered SVG-number route, so
+the raw Rust float normalization alias cannot enter this geometry. Valid
+lengths and percentages, CSS functions, fractional values, malformed lists,
+position lists whose ownership changes under whitespace collapse, and an
+absolute reset aimed inside an admitted combining cluster all retain focused
+stable refusals. Parent `<text>` lists, inherited positioning, `rotate`,
+`textLength`, nested spans, wider shaping styles, and wider paint/effects stay
+separate. Strict stops and best effort skips and declares the same parent text
+node for every refusal.
+
+Gate sensitivity was proved by temporarily dropping the first scalar's `dx`
+from position accumulation. `just gate` failed both the exact source/contract
+box assertion and the committed Ahem oracle, which changed by 550 pixels.
+Restoring the addition returned all primitive, text, geometry, and refusal
+gates to green.
+
+The primitive corpus remains 1,051 Chromium-baked cells plus 16 sampled
+frames. The exact Ahem estate moves from ten to eleven cells; the real-font
+geometry estate moves from seven to eight witnesses (six Allerta and two
+Bungee); and three added position-specific refusals move the named register
+from 214 to 217. The complete `<text>`, `<tspan>`, and position-attribute
+grammars remain open. No shared render-contract fact was added, no conformance
+score was produced, and no FLIP record, rule, or baseline changed.

@@ -17,10 +17,10 @@ renderer's corpora, which is the distinction this directory name carries.
 
 Every root primitive here is a closed enumeration in `primitives.json` with a
 committed Chromium oracle beside it. Text follows the ratified corpus-growth
-law in its own closed [text estate](./text/README.md): ten exact Ahem cells and
-seven exact-number real-font artifact-geometry witnesses. The current evidence
-estate is 1,051 primitive cells plus 16 sampled frames, those seventeen text
-witnesses, and 214 named refusal rows. Pixel cells use byte equality: what each
+law in its own closed [text estate](./text/README.md): eleven exact Ahem cells and
+eight exact-number real-font artifact-geometry witnesses. The current evidence
+estate is 1,051 primitive cells plus 16 sampled frames, those nineteen text
+witnesses, and 217 named refusal rows. Pixel cells use byte equality: what each
 corpus admits is exactly what the engine renders pixel-for-pixel, except only
 the primitive rows carrying an explicit measured tolerance block. The
 real-font witness grades geometry before rasterization and makes no Chromium
@@ -28,8 +28,9 @@ pixel claim.
 
 | File | Role |
 | --- | --- |
-| `text/` | The closed text estate: ten exact Ahem pixel cells plus seven artifact-geometry witnesses (five Allerta, two Bungee); see [`text/README.md`](./text/README.md). |
-| `text/svg-text-tspan-paint-ownership.svg` · `text/geometry/svg-text-allerta-tspan-kerning.svg` | T4a's bounded flat `<tspan>` split. The Ahem cell makes parent/child opaque solid fills, inherited paint, whitespace collapse across wrapper boundaries, and one parent anchor byte-exact. The Allerta `ff` geometry witness keeps Chromium's 2330/2355 advances and 4685 total across a paint boundary; shaping the fragments independently would total 4710. Bungee scratch probes establish whole-cluster ownership by the run containing the cluster's first scalar (measured, not celled). Replacing every run paint with the parent changes 1,600px/Δ197, and anchoring the runs independently changes 1,200px/Δ218. Nominal advances and parent-only paint each made `just gate` fail before restoration. Four focused refusal rows retain positioned, shaping-changing, wider-paint/effect, and nested children. No checklist row closes. |
+| `text/` | The closed text estate: eleven exact Ahem pixel cells plus eight artifact-geometry witnesses (six Allerta, two Bungee); see [`text/README.md`](./text/README.md). |
+| `text/svg-text-tspan-paint-ownership.svg` · `text/geometry/svg-text-allerta-tspan-kerning.svg` | T4a's bounded flat `<tspan>` split. The Ahem cell makes parent/child opaque solid fills, inherited paint, whitespace collapse across wrapper boundaries, and one parent anchor byte-exact. The Allerta `ff` geometry witness keeps Chromium's 2330/2355 advances and 4685 total across a paint boundary; shaping the fragments independently would total 4710. Bungee scratch probes establish whole-cluster ownership by the run containing the cluster's first scalar (measured, not celled). Replacing every run paint with the parent changes 1,600px/Δ197, and anchoring the runs independently changes 1,200px/Δ218. Nominal advances and parent-only paint each made `just gate` fail before restoration. Four focused refusal rows retained positioned, shaping-changing, wider-paint/effect, and nested children at that checkpoint. No checklist row closed. |
+| `text/svg-text-positioned-chunks.svg` · `text/geometry/svg-text-allerta-positioned-combining.svg` | T4b's bounded positioned-chunk split. The exact Ahem cell crosses x/y chunk resets, per-chunk middle anchoring, dx/dy lists, omitted members, paint ownership, integer transforms, canonical whitespace, and `<use>`. The Allerta witness distinguishes an absolute shaping split (first `f` advance 2355) from preserved in-chunk kerning (2330/2355), and proves that a `dx` on the combining scalar carries to the following `Z`; Chromium and the projection agree exactly on total 13585 and starts 5000, 8330, 10685, and 15005. Repeated/negative positions, y-only chunks, excess members, and percentage bases are measured, not celled. Three new focused refusal rows retain wider value grammar, whitespace-index ambiguity, and an absolute split inside a combining cluster; parent lists, `rotate`, and `textLength` remain separate. Dropping first-character `dx` made the gate fail by 550 exact Ahem pixels before restoration. No checklist row closes. |
 | `html-inline-svg-currentcolor-rect.html` | HTML whose `<style> .mark { color:#16a34a }` cascades to a `<rect class="mark">` inside inline `<svg>`. |
 | `svg-currentcolor-rect.svg` | The equivalent standalone SVG (carries `color` via an inline `style`). Renders identically. |
 | `svg-viewbox-uniform-offset-rect.svg` | A non-zero-origin `viewBox` with uniform 2× viewport mapping — the first supported non-identity viewport case. |
@@ -400,7 +401,9 @@ a sorted manifest entry, defaulting to `standalone-svg` and accepting
 same never-overwrite registration for the dedicated 100×100 pixel suite),
 `text-geometry-add <id> <source> <facts>` (register one real-font numeric
 witness without an oracle overwrite; flat paint-only `<tspan>` sources require
-the v3 source-run and cluster/glyph tag facts), and `probe <script>` (run a
+v3 source-run facts, and positioned sources additionally require v4
+shaping-chunk facts),
+and `probe <script>` (run a
 scratch probe).
 
 The Chromium capture posture lives in **one module**,

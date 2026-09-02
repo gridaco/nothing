@@ -45,6 +45,35 @@ impl Anchor {
             Anchor::End => x - advance,
         }
     }
+
+    /// SVG2's per-chunk horizontal shift. `alignment` is the first
+    /// typographic character's current position after its own `dx`; `min`
+    /// and `max` include every character origin and advance in the chunk.
+    fn chunk_shift(self, alignment: f32, min: f32, max: f32) -> f32 {
+        match self {
+            Anchor::Start => alignment - min,
+            Anchor::Middle => alignment - (min + max) / 2.0,
+            Anchor::End => alignment - max,
+        }
+    }
+}
+
+/// The resolved SVG positioning values assigned to one post-collapse Unicode
+/// scalar. Absolute coordinates retain presence separately from zero because
+/// every specified `x` or `y` starts a new shaping/anchor chunk; relative
+/// coordinates default to no shift and never create a chunk.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub(crate) struct ScalarPosition {
+    pub(crate) x: Option<f32>,
+    pub(crate) y: Option<f32>,
+    pub(crate) dx: Option<f32>,
+    pub(crate) dy: Option<f32>,
+}
+
+impl ScalarPosition {
+    pub(crate) const fn starts_chunk(self) -> bool {
+        self.x.is_some() || self.y.is_some()
+    }
 }
 
 /// XML/SVG whitespace collapsing under the default `xml:space="default"`.
@@ -358,33 +387,143 @@ pub(crate) struct TaggedPath {
     pub(crate) path: PathData,
 }
 
-/// Resolve one explicitly attributed text source once, then project its
-/// stable source-run associations into painter-ready outline paths.
+#[derive(Clone, Copy, Debug)]
+struct ClusterPlacement {
+    x: f32,
+    y: f32,
+    advance: f32,
+}
+
+/// Resolve one explicitly chunked source, apply SVG's horizontal `x`/`y` and
+/// `dx`/`dy` positioning model, anchor every absolute-position chunk once,
+/// then project source-run ownership into painter-ready outlines.
 ///
-/// A tag transition may not cause another shaping call. Combining-mark
-/// glyphs inherit their cluster's tag from `textlayout`, so a source boundary
-/// inside one cluster cannot split or lose the mark during projection.
-pub(crate) fn resolve_tagged_text_paths(
+/// Shaping and placement stay deliberately separate. `textlayout` owns which
+/// interactions cross a declared chunk boundary; this document layer owns
+/// authored current positions and anchoring. Relative offsets on a later
+/// scalar of one shaping cluster are carried to the next typographic
+/// character, matching SVG2 and the committed Chromium geometry witness.
+pub(crate) fn resolve_positioned_tagged_text_paths(
     attributed: AttributedText,
+    positions: &[ScalarPosition],
     x: f32,
     y: f32,
     anchor: Anchor,
     fonts: &Environment,
 ) -> Result<Vec<TaggedPath>, TextError> {
+    let source_scalar_count = attributed.text().chars().count();
+    if positions.len() != source_scalar_count {
+        return Err(TextError::OutsideNumericDomain(format!(
+            "position map has {} scalars for a {source_scalar_count}-scalar source",
+            positions.len()
+        )));
+    }
     let layout = textlayout::resolve(&attributed, fonts).map_err(TextError::Resolve)?;
-    let start_x = anchor.start_x(x, layout.advance());
-    admit_numeric_domain(x, y, layout.font_size(), start_x)?;
     admit_chromium_query_geometry(&layout)?;
+    if layout.clusters().is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut placed = vec![
+        ClusterPlacement {
+            x: 0.0,
+            y: 0.0,
+            advance: 0.0,
+        };
+        layout.clusters().len()
+    ];
+    let mut current_x = x;
+    let mut current_y = y;
+    let mut pending_dx = 0.0f32;
+    let mut pending_dy = 0.0f32;
+
+    for chunk in layout.shaping_chunks() {
+        let cluster_range = chunk.clusters();
+        if cluster_range.is_empty() {
+            return Err(TextError::OutsideNumericDomain(format!(
+                "shaping chunk {:?} resolves to no cluster",
+                chunk.source_utf8()
+            )));
+        }
+        for cluster_index in cluster_range.clone() {
+            let cluster = &layout.clusters()[cluster_index];
+            let scalar_range = cluster.source_scalars();
+            let first = positions[scalar_range.start];
+            if let Some(absolute_x) = first.x {
+                current_x = absolute_x;
+            }
+            if let Some(absolute_y) = first.y {
+                current_y = absolute_y;
+            }
+            current_x += pending_dx + first.dx.unwrap_or(0.0);
+            current_y += pending_dy + first.dy.unwrap_or(0.0);
+            pending_dx = 0.0;
+            pending_dy = 0.0;
+            for position in &positions[scalar_range.start + 1..scalar_range.end] {
+                if position.starts_chunk() {
+                    return Err(TextError::OutsideNumericDomain(format!(
+                        "an absolute position targets a middle scalar in source range {:?}",
+                        cluster.source_utf8()
+                    )));
+                }
+                pending_dx += position.dx.unwrap_or(0.0);
+                pending_dy += position.dy.unwrap_or(0.0);
+            }
+            let glyphs = &layout.glyphs()[cluster.glyphs()];
+            let advance = glyphs.iter().map(|glyph| glyph.advance).sum::<f32>();
+            if !current_x.is_finite()
+                || !current_y.is_finite()
+                || !pending_dx.is_finite()
+                || !pending_dy.is_finite()
+                || !advance.is_finite()
+            {
+                return Err(TextError::OutsideNumericDomain(
+                    "position-list accumulation left the finite frame domain".to_string(),
+                ));
+            }
+            placed[cluster_index] = ClusterPlacement {
+                x: current_x,
+                y: current_y,
+                advance,
+            };
+            current_x += advance;
+            if !current_x.is_finite() {
+                return Err(TextError::OutsideNumericDomain(
+                    "positioned text advance left the finite frame domain".to_string(),
+                ));
+            }
+        }
+
+        let first = cluster_range.start;
+        let alignment = placed[first].x;
+        let mut min = f32::INFINITY;
+        let mut max = f32::NEG_INFINITY;
+        for placement in &placed[cluster_range.clone()] {
+            min = min.min(placement.x).min(placement.x + placement.advance);
+            max = max.max(placement.x).max(placement.x + placement.advance);
+        }
+        let shift = anchor.chunk_shift(alignment, min, max);
+        if !shift.is_finite() {
+            return Err(TextError::OutsideNumericDomain(
+                "positioned text anchoring left the finite frame domain".to_string(),
+            ));
+        }
+        for placement in &mut placed[cluster_range] {
+            placement.x += shift;
+            admit_numeric_domain(placement.x, placement.y, layout.font_size(), placement.x)?;
+        }
+    }
 
     let mut projected = Vec::new();
     let mut current_tag = None;
     let mut sink = PathSink {
-        origin_x: start_x,
-        origin_y: y,
+        origin_x: 0.0,
+        origin_y: 0.0,
         commands: Vec::new(),
     };
     for index in 0..layout.glyphs().len() {
-        let tag = layout.glyphs()[index].source_run_tag();
+        let glyph = &layout.glyphs()[index];
+        let tag = glyph.source_run_tag();
         if current_tag.is_some_and(|current| current != tag) && !sink.commands.is_empty() {
             let path = PathData::new(std::mem::take(&mut sink.commands), FillRule::NonZero)
                 .map_err(|error| TextError::OutsideNumericDomain(error.to_string()))?;
@@ -394,6 +533,11 @@ pub(crate) fn resolve_tagged_text_paths(
             });
         }
         current_tag = Some(tag);
+        let cluster_index = glyph.cluster_index;
+        let cluster = &layout.clusters()[cluster_index];
+        let canonical_cluster_x = layout.glyphs()[cluster.glyphs().start].x;
+        sink.origin_x = placed[cluster_index].x - canonical_cluster_x;
+        sink.origin_y = placed[cluster_index].y;
         layout.outline(index, &mut sink);
     }
     if let Some(tag) = current_tag

@@ -1115,7 +1115,7 @@ const TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "font",
 ];
 
-/// Cascaded text facts the v3 text oracle does not consume.
+/// Cascaded text facts the v4 text oracle does not consume.
 ///
 /// Unlike [`CASCADE_PROPERTIES_NOT_REPRESENTED`], most of these longhands do
 /// exist in the pinned Stylo build. That makes them more dangerous, not less:
@@ -1689,7 +1689,7 @@ fn text_css_source_refusal(css: &str) -> Option<String> {
         }
         if TEXT_CASCADE_PROPERTIES_NOT_CONSUMED.contains(&name.as_str()) {
             return Some(format!(
-                "text layout property {name} is represented or browser-consumed but not carried by the v3 text oracle"
+                "text layout property {name} is represented or browser-consumed but not carried by the v4 text oracle"
             ));
         }
     }
@@ -1717,7 +1717,7 @@ fn patrol_text_authored_semantics(el: HtmlElement<'_>) -> Result<(), CompileErro
                 .find(|attribute| get_attr(element, attribute).is_some())
         {
             return Err(CompileError::UnsupportedStyle(format!(
-                "text layout presentation attribute {attribute} in the ancestor chain is not carried by the v3 text oracle"
+                "text layout presentation attribute {attribute} in the ancestor chain is not carried by the v4 text oracle"
             )));
         }
         if let Some(style) = get_attr(element, "style")
@@ -9967,17 +9967,29 @@ fn compile_shape(
     })
 }
 
-/// Rendering attributes that turn a `<tspan>` into more than T4a's
-/// same-position, paint-only source partition. Most are otherwise admitted on
-/// a shape or on the parent `<text>`, so the child needs its own patrol.
+/// Rendering attributes that turn a `<tspan>` into more than T4b's flat,
+/// same-face, positioned source partition. `x`, `y`, `dx`, and `dy` are
+/// consumed separately; everything here remains a child-local refusal even
+/// where a shape or the parent `<text>` admits the same spelling.
 const TSPAN_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
-    "x",
-    "y",
-    "dx",
-    "dy",
     "rotate",
     "textLength",
     "lengthAdjust",
+    "xml:space",
+    "writing-mode",
+    "direction",
+    "unicode-bidi",
+    "letter-spacing",
+    "word-spacing",
+    "text-decoration",
+    "dominant-baseline",
+    "alignment-baseline",
+    "baseline-shift",
+    "font-weight",
+    "font-style",
+    "font-stretch",
+    "font-variant",
+    "font",
     "transform",
     "text-anchor",
     "opacity",
@@ -10004,8 +10016,10 @@ const TSPAN_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
 struct TextSubtree<'d> {
     content: String,
     ranges: Vec<crate::svg_text::TaggedRange<usize>>,
+    scalar_owners: Vec<usize>,
     owners: Vec<HtmlElement<'d>>,
     has_tspan: bool,
+    whitespace_was_canonical: bool,
 }
 
 fn collect_text_subtree<'d>(el: HtmlElement<'d>) -> Result<TextSubtree<'d>, CompileError> {
@@ -10047,12 +10061,127 @@ fn collect_text_subtree<'d>(el: HtmlElement<'d>) -> Result<TextSubtree<'d>, Comp
             _ => {}
         }
     }
+    let raw_content: String = fragments.iter().map(|(text, _)| *text).collect();
     let (content, ranges) = crate::svg_text::collapse_whitespace_tagged(&fragments);
+    let scalar_owners = ranges
+        .iter()
+        .flat_map(|range| {
+            content[range.source_utf8.clone()]
+                .chars()
+                .map(move |_| range.tag)
+        })
+        .collect::<Vec<_>>();
+    debug_assert_eq!(scalar_owners.len(), content.chars().count());
     Ok(TextSubtree {
+        whitespace_was_canonical: raw_content == content,
         content,
         ranges,
+        scalar_owners,
         owners,
         has_tspan,
+    })
+}
+
+/// T4b's document-side projection input. Position values index the exact
+/// post-collapse scalar stream; shaping chunks are complete UTF-8 coverage
+/// and split only where a consumed absolute coordinate starts one.
+struct TspanPositioning {
+    scalars: Vec<crate::svg_text::ScalarPosition>,
+    shaping_chunks: Vec<std::ops::Range<usize>>,
+}
+
+/// Parse one T4b `<tspan>` positioning attribute as a complete unitless SVG
+/// number list. The ordered parser is the same Blink-shaped decimal route
+/// used by the path vocabulary, so no raw Rust `f32` alias can enter this
+/// geometry. Length units and percentages remain focused refusals until their
+/// own font/viewport basis rung; malformed lists over-refuse rather than
+/// silently falling back to the absent value Chromium uses.
+fn tspan_position_list(
+    owner: HtmlElement<'_>,
+    name: &str,
+) -> Result<Option<Vec<f32>>, CompileError> {
+    let Some(raw) = get_attr(owner, name) else {
+        return Ok(None);
+    };
+    crate::svg_number_list::parse(&raw)
+        .map(Some)
+        .ok_or_else(|| {
+            CompileError::UnsupportedStyle(format!(
+                "<tspan> {name}={raw:?} is outside T4b's complete unitless SVG-number-list grammar; length units, percentages, and malformed lists remain refused"
+            ))
+        })
+}
+
+fn collect_tspan_positioning(subtree: &TextSubtree<'_>) -> Result<TspanPositioning, CompileError> {
+    let mut scalars = vec![crate::svg_text::ScalarPosition::default(); subtree.scalar_owners.len()];
+    let mut any_consumed = false;
+
+    for (owner_index, owner) in subtree.owners.iter().copied().enumerate().skip(1) {
+        let owner_scalars = subtree
+            .scalar_owners
+            .iter()
+            .enumerate()
+            .filter_map(|(scalar_index, owner)| (*owner == owner_index).then_some(scalar_index))
+            .collect::<Vec<_>>();
+        for name in ["x", "y", "dx", "dy"] {
+            let Some(values) = tspan_position_list(owner, name)? else {
+                continue;
+            };
+            for (scalar_index, value) in owner_scalars.iter().copied().zip(values) {
+                if !value.is_finite()
+                    || value.fract() != 0.0
+                    || !(-WEB_USED_LENGTH_MAX..=WEB_USED_LENGTH_MAX).contains(&value)
+                {
+                    return Err(CompileError::UnsupportedStyle(format!(
+                        "positioned <tspan> {name} value {value} is outside T4b's finite integral text-geometry domain"
+                    )));
+                }
+                let position = &mut scalars[scalar_index];
+                match name {
+                    "x" => position.x = Some(value),
+                    "y" => position.y = Some(value),
+                    "dx" => position.dx = Some(value),
+                    "dy" => position.dy = Some(value),
+                    _ => unreachable!("the position attribute set is closed"),
+                }
+                any_consumed = true;
+            }
+        }
+    }
+
+    if any_consumed && !subtree.whitespace_was_canonical {
+        return Err(CompileError::UnsupportedStyle(
+            "positioned <tspan> text must already be in canonical collapsed-space form; list ownership across discarded whitespace remains outside T4b"
+                .to_string(),
+        ));
+    }
+
+    let scalar_offsets = subtree.content.char_indices().collect::<Vec<_>>();
+    for (scalar_index, &(byte_index, character)) in scalar_offsets.iter().enumerate() {
+        if matches!(character, '\u{0301}' | '\u{030b}') && scalars[scalar_index].starts_chunk() {
+            return Err(CompileError::UnsupportedStyle(format!(
+                "absolute <tspan> positioning at combining mark {character:?} (source byte {byte_index}) needs middle-character chunk transfer and remains outside T4b"
+            )));
+        }
+    }
+
+    let mut boundaries = vec![0usize];
+    boundaries.extend(
+        scalar_offsets
+            .iter()
+            .enumerate()
+            .skip(1)
+            .filter_map(|(index, (byte, _))| scalars[index].starts_chunk().then_some(*byte)),
+    );
+    boundaries.push(subtree.content.len());
+    let shaping_chunks = boundaries
+        .windows(2)
+        .filter_map(|pair| (pair[0] < pair[1]).then_some(pair[0]..pair[1]))
+        .collect();
+
+    Ok(TspanPositioning {
+        scalars,
+        shaping_chunks,
     })
 }
 
@@ -10099,11 +10228,8 @@ fn tspan_paint_selection<'d>(
     bases: PercentBases,
 ) -> Result<PaintStack, CompileError> {
     if is_tspan {
-        // The ordinary text patrol and this rung's child-only patrol are
-        // intentionally separate: the former closes shaping properties; the
-        // latter closes position resets and effects that are valid on the
-        // parent but outside this direct paint partition.
-        patrol_rendering_attributes(owner, "tspan", TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+        // The child patrol keeps every unconsumed shaping, axis, and effect
+        // spelling transactional while T4b consumes its four position lists.
         patrol_rendering_attributes(owner, "tspan", TSPAN_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
         patrol_style_attribute(owner, "tspan")?;
         if let Some(value) = get_attr(owner, "font-size")
@@ -10222,6 +10348,7 @@ fn compile_tspan_text(
     replay_opacity: f32,
     fonts: &textlayout::Environment,
 ) -> Result<Option<ShapeOutcome>, CompileError> {
+    let positioning = collect_tspan_positioning(&subtree)?;
     let mut owner_paints = Vec::with_capacity(subtree.owners.len());
     for (index, owner) in subtree.owners.iter().copied().enumerate() {
         owner_paints.push(tspan_paint_selection(
@@ -10288,9 +10415,23 @@ fn compile_tspan_text(
             size: font_size,
         },
         source_runs,
+    )
+    .with_shaping_chunks(
+        positioning
+            .shaping_chunks
+            .into_iter()
+            .map(textlayout::ShapingChunk::new)
+            .collect(),
     );
-    let paths = crate::svg_text::resolve_tagged_text_paths(attributed, x, y, anchor, fonts)
-        .map_err(|error| CompileError::UnsupportedStyle(error.to_string()))?;
+    let paths = crate::svg_text::resolve_positioned_tagged_text_paths(
+        attributed,
+        &positioning.scalars,
+        x,
+        y,
+        anchor,
+        fonts,
+    )
+    .map_err(|error| CompileError::UnsupportedStyle(error.to_string()))?;
     if paths.is_empty() {
         return Ok(None);
     }
@@ -10434,7 +10575,7 @@ fn compile_text(
     };
 
     // The cascade's family list is a preference order; the first exact name
-    // is the v3 request and a generic or miss refuses rather than falling back.
+    // is the v4 request and a generic or miss refuses rather than falling back.
     let (family, font_size) = text_family_and_size(el)?;
 
     if subtree.has_tspan {

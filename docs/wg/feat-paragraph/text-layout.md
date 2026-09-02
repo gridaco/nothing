@@ -97,11 +97,12 @@ baselines, mappings, and base bounds are already fixed before rasterization.
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | **Source text**            | The exact Unicode content presented to resolution, addressed by UTF-8 byte offsets at Unicode-scalar boundaries.               |
 | **Shaping text**           | The derived character sequence presented to shaping after any explicit source transformation, with a mapping back to source.   |
-| **Attributed text**        | Source text plus complete, non-overlapping style coverage and stable associations to any paint-only run data.                  |
+| **Attributed text**        | Source text plus complete style coverage, paint-only associations, and any explicit shaping-chunk partition.                  |
 | **Paragraph intent**       | Direction, writing mode, alignment, spacing, wrapping, line limit, truncation, and other line-level choices.                   |
 | **Resolution environment** | The complete external facts needed to resolve text, including exact font resources, fallback policy, language data, and scale. |
 | **Text oracle**            | The versioned shaping, segmentation, bidirectional, breaking, metrics, and numeric policy that turns the inputs into geometry. |
 | **Shaping cluster**        | A unit emitted by shaping that relates a shaping-text range to zero or more positioned glyphs and back to authored source.     |
+| **Shaping chunk**          | A complete source span shaped independently because authored semantics forbid shaping interaction across one of its boundaries. |
 | **Caret stop**             | A legal editing boundary with a visual position and affinity; it is not assumed to exist at every UTF-8 or glyph boundary.     |
 | **Logical bounds**         | Typographic layout extents, including advances and line boxes even where no ink is drawn.                                      |
 | **Ink bounds**             | The tight base drawing extents of resolved glyphs and layout-owned marks before node paints, strokes, filters, or effects.     |
@@ -127,7 +128,8 @@ The attributed source supplies:
 2. complete style coverage of that string;
 3. character-boundary run ranges in UTF-8 byte coordinates; and
 4. any explicit language, script, direction, or shaping overrides attached to
-   those ranges.
+   those ranges; and
+5. any explicit shaping-chunk boundaries required by the authored language.
 
 For non-empty text, style ranges are ordered, contiguous, non-overlapping, and
 cover the complete source string. An empty string carries a complete default
@@ -150,6 +152,16 @@ fragments independently. The minimal horizontal profile assigns the complete
 cluster to the association owning its first source scalar. A later oracle may
 choose a different explicit ownership policy, but it must version and expose
 that choice rather than infer it during paint.
+
+Shaping chunks are geometry-producing input, not paint metadata. When present,
+they form an ordered, non-empty, scalar-boundary-aligned, gapless,
+non-overlapping partition of the complete non-empty source; empty source has
+no chunk. Each chunk is shaped independently, so no kerning, substitution, or
+cluster may cross its boundary. A malformed partition fails before font work.
+An authored paint boundary does not imply a shaping boundary, and an authored
+positioning boundary may imply one without changing paint. The authoring
+language owns that mapping; the text resolver neither invents nor removes a
+boundary.
 
 Authored source is not Unicode-normalized by default. If a source feature
 transforms text before shaping—for example case transformation—the
@@ -245,6 +257,13 @@ cluster still has unambiguous paint ownership. Otherwise that boundary is a
 declared shaping boundary. This boundary policy is part of the oracle version
 and its cache identity; it cannot vary between measurement and painting.
 
+Every resolved shaping chunk records complete source, cluster, and glyph
+ranges together with its advance and a canonical local origin. Those origins
+concatenate chunk advances only to give the immutable artifact one coherent
+coordinate system. Authored-language placement and anchoring may project the
+chunks elsewhere, but that projection must consume the recorded geometry and
+must not reshape them.
+
 Each shaped run records the exact resolved face and shaping state. Glyph
 identifiers are meaningful only together with that face identity. Consumers
 must not reinterpret glyph identifiers against another version of a font.
@@ -334,7 +353,10 @@ contains the following information.
 - effective size, axes, features, synthesis, script, language, and direction;
 - glyph identifiers in paint order;
 - per-glyph positions, advances, offsets, and base ink bounds; and
-- stable associations back to effective source style and paint selection.
+- stable associations back to effective source style and paint selection;
+  and
+- explicit shaping chunks with complete source/cluster/glyph ranges,
+  canonical origins, and advances.
 
 ### Clusters and UTF-8 mapping
 
@@ -380,12 +402,14 @@ A complete result satisfies all of these conditions:
    accidental gaps or overlap. Their authored-source mapping may be
    many-to-many only when an explicit transformation requires it; synthetic
    clusters are labeled separately.
-4. Font identity and effective shaping state are complete for every glyph.
-5. Line, cluster, caret, logical-bound, and ink-bound geometry share one local
+4. Shaping chunks partition the represented source and its clusters and
+   glyphs exactly; no shaping interaction crosses a chunk boundary.
+5. Font identity and effective shaping state are complete for every glyph.
+6. Line, chunk, cluster, caret, logical-bound, and ink-bound geometry share one local
    coordinate space.
-6. The environment and oracle recorded by the artifact are exactly those used
+7. The environment and oracle recorded by the artifact are exactly those used
    to produce it.
-7. No resource remains pending and no fallback decision remains implicit.
+8. No resource remains pending and no fallback decision remains implicit.
 
 ## One result, many consumers
 

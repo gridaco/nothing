@@ -1,4 +1,4 @@
-//! Oracle v3 against measured ground truth.
+//! Oracle v4 against measured ground truth.
 //!
 //! The numbers here are not derived from this crate: they were measured from
 //! the pinned Ahem bytes (fixtures/web-first/fonts/ahem.ttf) and verified
@@ -9,8 +9,8 @@
 use std::sync::Arc;
 
 use textlayout::{
-    AttributedText, Environment, FontKey, FontResource, OutlineSink, ResolveError, SourceRun,
-    SourceRunCoverageError, SourceRunTag, Style, resolve,
+    AttributedText, Environment, FontKey, FontResource, OutlineSink, ResolveError, ShapingChunk,
+    ShapingChunkCoverageError, SourceRun, SourceRunCoverageError, SourceRunTag, Style, resolve,
 };
 
 const AHEM: &str = concat!(
@@ -34,6 +34,10 @@ const PT_SERIF: &str = concat!(
 /// is a stand-in identity the artifact must nonetheless carry through.
 const TEST_KEY: FontKey = FontKey::new([0xAB; 32]);
 const DEFAULT_SOURCE_RUN: SourceRunTag = SourceRunTag::new(0);
+
+fn unchecked_range(start: usize, end: usize) -> std::ops::Range<usize> {
+    std::ops::Range { start, end }
+}
 
 /// Every Latin-1 letter whose canonical decomposition is exactly one ASCII
 /// Latin base plus one combining mark. This is retained from v2;
@@ -79,13 +83,21 @@ fn attributed(text: &str, family: &str, size: f32) -> AttributedText {
 fn x_at_50_resolves_the_measured_em_box() {
     let layout = resolve(&ahem("X", 50.0), &ahem_environment()).unwrap();
 
-    assert_eq!(textlayout::ORACLE_VERSION, "textlayout-v3");
+    assert_eq!(textlayout::ORACLE_VERSION, "textlayout-v4");
     assert_eq!(layout.oracle_version(), textlayout::ORACLE_VERSION);
     assert_eq!(layout.face().key, TEST_KEY);
     assert_eq!(layout.face().units_per_em, 1000);
     assert_eq!(layout.source_runs().len(), 1);
     assert_eq!(layout.source_runs()[0].source_utf8(), 0..1);
     assert_eq!(layout.source_runs()[0].tag(), DEFAULT_SOURCE_RUN);
+    assert_eq!(layout.shaping_chunks().len(), 1);
+    assert_eq!(layout.shaping_chunks()[0].source_utf8(), 0..1);
+    assert_eq!(layout.shaping_chunks()[0].source_utf16(), 0..1);
+    assert_eq!(layout.shaping_chunks()[0].source_scalars(), 0..1);
+    assert_eq!(layout.shaping_chunks()[0].clusters(), 0..1);
+    assert_eq!(layout.shaping_chunks()[0].glyphs(), 0..1);
+    assert_eq!(layout.shaping_chunks()[0].origin_x(), 0.0);
+    assert_eq!(layout.shaping_chunks()[0].advance(), 50.0);
 
     // Measured: 'X' is glyph 58, advance 1000 font units.
     let glyphs = layout.glyphs();
@@ -207,17 +219,34 @@ fn resolution_is_deterministic() {
     let text = ahem("X X", 20.0);
     let first = resolve(&text, &env).unwrap();
     let second = resolve(&text, &env).unwrap();
+    let explicit_whole_source = resolve(
+        &text
+            .clone()
+            .with_shaping_chunks(vec![ShapingChunk::new(0..text.text().len())]),
+        &env,
+    )
+    .unwrap();
     assert_eq!(first.glyphs(), second.glyphs());
     assert_eq!(first.clusters(), second.clusters());
+    assert_eq!(first.shaping_chunks(), second.shaping_chunks());
     assert_eq!(first.advance(), second.advance());
     assert_eq!(first.ink_bounds(), second.ink_bounds());
     assert_eq!(first.metrics(), second.metrics());
+    assert_eq!(first.glyphs(), explicit_whole_source.glyphs());
+    assert_eq!(first.clusters(), explicit_whole_source.clusters());
+    assert_eq!(
+        first.shaping_chunks(),
+        explicit_whole_source.shaping_chunks()
+    );
+    assert_eq!(first.advance(), explicit_whole_source.advance());
+    assert_eq!(first.ink_bounds(), explicit_whole_source.ink_bounds());
 }
 
 #[test]
 fn empty_text_resolves_to_metrics_without_glyphs() {
     let layout = resolve(&ahem("", 20.0), &ahem_environment()).unwrap();
     assert!(layout.source_runs().is_empty());
+    assert!(layout.shaping_chunks().is_empty());
     assert!(layout.glyphs().is_empty());
     assert!(layout.clusters().is_empty());
     assert_eq!(layout.advance(), 0.0);
@@ -232,7 +261,7 @@ fn default_pair_kerning_preserves_direct_cluster_mapping() {
         &attributed("ff", "Allerta", 5120.0),
         &fixture_environment(ALLERTA, "Allerta"),
     )
-    .expect("one-to-one kerning remains inside oracle v3");
+    .expect("one-to-one kerning remains inside oracle v4");
 
     assert_eq!(layout.advance(), 4685.0);
     assert_eq!(layout.glyphs().len(), 2);
@@ -249,6 +278,82 @@ fn default_pair_kerning_preserves_direct_cluster_mapping() {
     assert_eq!(layout.clusters()[1].source_utf16(), 1..2);
     assert_eq!(layout.clusters()[1].source_scalars(), 1..2);
     assert_eq!(layout.clusters()[1].glyphs(), 1..2);
+    assert_eq!(layout.shaping_chunks().len(), 1);
+    let chunk = &layout.shaping_chunks()[0];
+    assert_eq!(chunk.source_utf8(), 0..2);
+    assert_eq!(chunk.source_utf16(), 0..2);
+    assert_eq!(chunk.source_scalars(), 0..2);
+    assert_eq!(chunk.clusters(), 0..2);
+    assert_eq!(chunk.glyphs(), 0..2);
+    assert_eq!(chunk.origin_x(), 0.0);
+    assert_eq!(chunk.advance(), 4685.0);
+}
+
+#[test]
+fn explicit_chunks_suppress_cross_boundary_kerning_and_keep_global_mappings() {
+    let first = SourceRunTag::new(40);
+    let second = SourceRunTag::new(41);
+    let layout = resolve(
+        &AttributedText::new(
+            "ff".to_string(),
+            Style {
+                family: "Allerta".to_string(),
+                size: 5120.0,
+            },
+            vec![SourceRun::new(0..1, first), SourceRun::new(1..2, second)],
+        )
+        .with_shaping_chunks(vec![ShapingChunk::new(0..1), ShapingChunk::new(1..2)]),
+        &fixture_environment(ALLERTA, "Allerta"),
+    )
+    .expect("two complete chunks shape independently");
+
+    // The one-chunk control above is 2330 + 2355 = 4685. Independent
+    // one-scalar operations suppress pair positioning at the boundary.
+    assert_eq!(layout.advance(), 4710.0);
+    assert_eq!(layout.glyphs().len(), 2);
+    assert_eq!(layout.glyphs()[0].glyph_id, 70);
+    assert_eq!(layout.glyphs()[0].x, 0.0);
+    assert_eq!(layout.glyphs()[0].advance, 2355.0);
+    assert_eq!(layout.glyphs()[0].source_run_tag(), first);
+    assert_eq!(layout.glyphs()[1].glyph_id, 70);
+    assert_eq!(layout.glyphs()[1].x, 2355.0);
+    assert_eq!(layout.glyphs()[1].advance, 2355.0);
+    assert_eq!(layout.glyphs()[1].source_run_tag(), second);
+    assert_eq!(layout.clusters()[0].source_run_tag(), first);
+    assert_eq!(layout.clusters()[1].source_run_tag(), second);
+    assert_eq!(
+        layout
+            .glyph_indices_for_source_run(first)
+            .collect::<Vec<_>>(),
+        vec![0]
+    );
+    assert_eq!(
+        layout
+            .glyph_indices_for_source_run(second)
+            .collect::<Vec<_>>(),
+        vec![1]
+    );
+
+    let chunks = layout.shaping_chunks();
+    assert_eq!(chunks.len(), 2);
+    assert_eq!(chunks[0].source_utf8(), 0..1);
+    assert_eq!(chunks[0].source_utf16(), 0..1);
+    assert_eq!(chunks[0].source_scalars(), 0..1);
+    assert_eq!(chunks[0].clusters(), 0..1);
+    assert_eq!(chunks[0].glyphs(), 0..1);
+    assert_eq!(chunks[0].origin_x(), 0.0);
+    assert_eq!(chunks[0].advance(), 2355.0);
+    assert_eq!(chunks[1].source_utf8(), 1..2);
+    assert_eq!(chunks[1].source_utf16(), 1..2);
+    assert_eq!(chunks[1].source_scalars(), 1..2);
+    assert_eq!(chunks[1].clusters(), 1..2);
+    assert_eq!(chunks[1].glyphs(), 1..2);
+    assert_eq!(chunks[1].origin_x(), 2355.0);
+    assert_eq!(chunks[1].advance(), 2355.0);
+    assert_eq!(
+        chunks.iter().map(|chunk| chunk.advance()).sum::<f32>(),
+        4710.0
+    );
 }
 
 #[test]
@@ -271,7 +376,7 @@ fn allerta_source_run_boundary_preserves_one_shaping_result_and_maps_glyphs() {
     // Chromium 149 and the pinned shaper agree on this one-call result. If
     // each source run were shaped independently, the first advance would be
     // 2355 instead of the measured kerned 2330.
-    assert_eq!(layout.oracle_version(), "textlayout-v3");
+    assert_eq!(layout.oracle_version(), "textlayout-v4");
     assert_eq!(layout.advance(), 4685.0);
     assert_eq!(layout.glyphs().len(), 2);
     assert_eq!(layout.glyphs()[0].glyph_id, 70);
@@ -388,12 +493,56 @@ fn precomposed_latin_carries_distinct_utf8_and_utf16_source_ranges() {
 }
 
 #[test]
+fn chunk_records_promote_multibyte_source_coordinates_to_global_indices() {
+    let layout = resolve(
+        &attributed("AéZ", "Allerta", 5120.0).with_shaping_chunks(vec![
+            ShapingChunk::new(0..1),
+            ShapingChunk::new(1..3),
+            ShapingChunk::new(3..4),
+        ]),
+        &fixture_environment(ALLERTA, "Allerta"),
+    )
+    .expect("scalar-aligned multibyte chunks resolve");
+
+    let chunks = layout.shaping_chunks();
+    assert_eq!(chunks.len(), 3);
+    assert_eq!(chunks[0].source_utf8(), 0..1);
+    assert_eq!(chunks[0].source_utf16(), 0..1);
+    assert_eq!(chunks[0].source_scalars(), 0..1);
+    assert_eq!(chunks[0].clusters(), 0..1);
+    assert_eq!(chunks[0].glyphs(), 0..1);
+    assert_eq!(chunks[1].source_utf8(), 1..3);
+    assert_eq!(chunks[1].source_utf16(), 1..2);
+    assert_eq!(chunks[1].source_scalars(), 1..2);
+    assert_eq!(chunks[1].clusters(), 1..2);
+    assert_eq!(chunks[1].glyphs(), 1..2);
+    assert_eq!(chunks[2].source_utf8(), 3..4);
+    assert_eq!(chunks[2].source_utf16(), 2..3);
+    assert_eq!(chunks[2].source_scalars(), 2..3);
+    assert_eq!(chunks[2].clusters(), 2..3);
+    assert_eq!(chunks[2].glyphs(), 2..3);
+
+    assert_eq!(layout.clusters()[0].source_utf8(), 0..1);
+    assert_eq!(layout.clusters()[1].source_utf8(), 1..3);
+    assert_eq!(layout.clusters()[2].source_utf8(), 3..4);
+    assert_eq!(chunks[1].origin_x(), chunks[0].advance());
+    assert_eq!(
+        chunks[2].origin_x(),
+        chunks[0].advance() + chunks[1].advance()
+    );
+    assert_eq!(
+        layout.advance(),
+        chunks.iter().map(|chunk| chunk.advance()).sum::<f32>()
+    );
+}
+
+#[test]
 fn decomposed_acute_composes_without_rewriting_source_coordinates() {
     let layout = resolve(
         &attributed("Ae\u{0301}Z", "Allerta", 5120.0),
         &fixture_environment(ALLERTA, "Allerta"),
     )
-    .expect("the measured decomposed acute composes inside oracle v3");
+    .expect("the measured decomposed acute composes inside oracle v4");
 
     assert_eq!(layout.source(), "Ae\u{0301}Z");
     assert_eq!(layout.advance(), 10340.0);
@@ -576,6 +725,74 @@ fn bungee_cluster_crossing_a_source_run_uses_the_first_scalar_tag() {
 }
 
 #[test]
+fn chunks_may_surround_but_not_split_an_admitted_combining_cluster() {
+    let prefix = SourceRunTag::new(50);
+    let base = SourceRunTag::new(51);
+    let mark = SourceRunTag::new(52);
+    let suffix = SourceRunTag::new(53);
+    let attributed = AttributedText::new(
+        "Ax\u{0301}Z".to_string(),
+        Style {
+            family: "Bungee".to_string(),
+            size: 1000.0,
+        },
+        vec![
+            SourceRun::new(0..1, prefix),
+            SourceRun::new(1..2, base),
+            SourceRun::new(2..4, mark),
+            SourceRun::new(4..5, suffix),
+        ],
+    );
+    let environment = fixture_environment(BUNGEE, "Bungee");
+    let layout = resolve(
+        &attributed.clone().with_shaping_chunks(vec![
+            ShapingChunk::new(0..1),
+            ShapingChunk::new(1..4),
+            ShapingChunk::new(4..5),
+        ]),
+        &environment,
+    )
+    .expect("boundaries around a complete base-plus-mark cluster are valid");
+
+    assert_eq!(layout.advance(), 2127.0);
+    assert_eq!(layout.shaping_chunks().len(), 3);
+    assert_eq!(layout.shaping_chunks()[0].clusters(), 0..1);
+    assert_eq!(layout.shaping_chunks()[0].glyphs(), 0..1);
+    assert_eq!(layout.shaping_chunks()[1].source_utf8(), 1..4);
+    assert_eq!(layout.shaping_chunks()[1].source_utf16(), 1..3);
+    assert_eq!(layout.shaping_chunks()[1].source_scalars(), 1..3);
+    assert_eq!(layout.shaping_chunks()[1].clusters(), 1..2);
+    assert_eq!(layout.shaping_chunks()[1].glyphs(), 1..3);
+    assert_eq!(layout.shaping_chunks()[1].origin_x(), 730.0);
+    assert_eq!(layout.shaping_chunks()[1].advance(), 737.0);
+    assert_eq!(layout.shaping_chunks()[2].clusters(), 2..3);
+    assert_eq!(layout.shaping_chunks()[2].glyphs(), 3..4);
+    assert_eq!(layout.clusters()[1].source_run_tag(), base);
+    assert_eq!(layout.glyphs()[1].source_run_tag(), base);
+    assert_eq!(layout.glyphs()[2].source_run_tag(), base);
+    assert!(layout.glyph_indices_for_source_run(mark).next().is_none());
+
+    let error = resolve(
+        &attributed.with_shaping_chunks(vec![
+            ShapingChunk::new(0..2),
+            ShapingChunk::new(2..4),
+            ShapingChunk::new(4..5),
+        ]),
+        &environment,
+    )
+    .expect_err("a boundary inside the admitted base-plus-mark cluster must refuse");
+    assert_eq!(
+        error,
+        ResolveError::UnsupportedClusterMapping {
+            source_utf8_start: 2,
+            source_utf8_end: 4,
+            glyph_start: 2,
+            glyph_end: 3,
+        }
+    );
+}
+
+#[test]
 fn missing_combining_glyph_names_the_mark_not_its_base() {
     let error = resolve(&ahem("Ax\u{0301}Z", 1000.0), &ahem_environment())
         .expect_err("Ahem has no attachable acute for x");
@@ -615,7 +832,7 @@ fn malformed_source_run_coverage_refuses_by_typed_reason_before_font_work() {
         SourceRunCoverageError::Missing { source_len: 2 }
     );
     assert_eq!(
-        coverage_error("AB", vec![SourceRun::new(1..0, tag)]),
+        coverage_error("AB", vec![SourceRun::new(unchecked_range(1, 0), tag)]),
         SourceRunCoverageError::Reversed {
             run_index: 0,
             start: 1,
@@ -670,6 +887,97 @@ fn malformed_source_run_coverage_refuses_by_typed_reason_before_font_work() {
     assert_eq!(
         coverage_error("ABC", vec![SourceRun::new(0..1, tag)]),
         SourceRunCoverageError::Incomplete {
+            covered_end: 1,
+            source_len: 3,
+        }
+    );
+}
+
+#[test]
+fn malformed_shaping_chunk_coverage_refuses_by_typed_reason_before_font_work() {
+    let coverage_error = |source: &str, chunks: Vec<ShapingChunk>| {
+        let error = resolve(
+            &AttributedText::single_source_run(
+                source.to_string(),
+                Style {
+                    family: "deliberately undeclared".to_string(),
+                    size: 20.0,
+                },
+                DEFAULT_SOURCE_RUN,
+            )
+            .with_shaping_chunks(chunks),
+            &Environment::default(),
+        )
+        .expect_err("invalid shaping chunks must refuse before font lookup or shaping");
+        match error {
+            ResolveError::InvalidShapingChunkCoverage(reason) => reason,
+            other => panic!("expected shaping-chunk coverage error, got {other:?}"),
+        }
+    };
+
+    assert_eq!(
+        coverage_error("AB", vec![]),
+        ShapingChunkCoverageError::Missing { source_len: 2 }
+    );
+    assert_eq!(
+        coverage_error("AB", vec![ShapingChunk::new(unchecked_range(1, 0))]),
+        ShapingChunkCoverageError::Reversed {
+            chunk_index: 0,
+            start: 1,
+            end: 0,
+        }
+    );
+    assert_eq!(
+        coverage_error("AB", vec![ShapingChunk::new(0..0)]),
+        ShapingChunkCoverageError::Empty {
+            chunk_index: 0,
+            byte_index: 0,
+        }
+    );
+    assert_eq!(
+        coverage_error("AB", vec![ShapingChunk::new(0..3)]),
+        ShapingChunkCoverageError::OutOfBounds {
+            chunk_index: 0,
+            start: 0,
+            end: 3,
+            source_len: 2,
+        }
+    );
+    assert_eq!(
+        coverage_error(
+            "AéZ",
+            vec![ShapingChunk::new(0..2), ShapingChunk::new(2..4)],
+        ),
+        ShapingChunkCoverageError::NotScalarBoundary {
+            chunk_index: 0,
+            byte_index: 2,
+        }
+    );
+    assert_eq!(
+        coverage_error(
+            "ABC",
+            vec![ShapingChunk::new(0..1), ShapingChunk::new(2..3)],
+        ),
+        ShapingChunkCoverageError::Gap {
+            chunk_index: 1,
+            expected_start: 1,
+            actual_start: 2,
+        }
+    );
+    assert_eq!(
+        coverage_error(
+            "ABC",
+            vec![ShapingChunk::new(0..2), ShapingChunk::new(1..3)],
+        ),
+        ShapingChunkCoverageError::Overlap {
+            chunk_index: 1,
+            previous_end: 2,
+            actual_start: 1,
+        }
+    );
+    assert_eq!(
+        coverage_error("ABC", vec![ShapingChunk::new(0..1)]),
+        ShapingChunkCoverageError::Incomplete {
             covered_end: 1,
             source_len: 3,
         }

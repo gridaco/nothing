@@ -546,3 +546,47 @@ focused rows moves the named register from 211 to 214. Positioning, shaping
 style, wider paint/effects, nesting, font selection, and the complete
 `<text>`/`<tspan>` grammars remain open. No shared render-contract fact is
 added, no conformance score is produced, and no FLIP record changes.
+
+## T4b evidence addendum — positioned chunks (2026-09-03)
+
+The verdict is ADMIT/SPLIT, with no checklist closure. Chromium establishes
+two distinct operations inside one SVG text source: a consumed `<tspan>` `x`
+or `y` value begins a new shaping and anchor chunk, while `dx` and `dy` alter
+character placement without breaking shaping. Allerta `ff` totals 4710 across
+an absolute reset and 4685 across a relative shift. Parent `text-anchor`
+applies once to every absolute chunk. Omitted members preserve the running
+position, and excess members are inert.
+
+This geometry-producing distinction advances the text oracle to v4. The
+producer supplies explicit shaping chunks as a complete ordered UTF-8
+partition. Resolution shapes each partition independently and returns global
+UTF-8, UTF-16, scalar, cluster, and glyph ranges plus canonical origin and
+advance for every chunk. Coverage errors are typed and occur before font
+selection. Source-run tags remain orthogonal metadata: a paint boundary may
+cross a shaping chunk without creating one, while an absolute-position
+boundary creates a chunk even when paint stays equal. Authored placement and
+anchoring remain outside the oracle result, and no text fact enters `rframe`.
+
+The exact Allerta witness resolves `fffe` + U+0301 + `Z` into byte chunks
+`0..1` and `1..7`, with advances 2355 and 11230 and total 13585. Chromium and
+the projection agree on starts 0, 5000, 8330, 10685/10685, and 15005. The
+shared 10685 position is the base/mark character cell; a `dx=1000` assigned
+to that middle combining scalar carries to `Z` rather than moving or splitting
+the cluster. The exact Ahem cell separately grades the final outline pixels
+for x/y resets, dx/dy lists, chunk anchoring, paint ownership, an integer
+transform, canonical whitespace, and `<use>`.
+
+Repeated absolute values, y-only chunks, negative positions, excess list
+members, and percentage axis bases are measured, not celled. T4b admits only
+complete unitless lists whose consumed values stay integral. Length and
+percentage units, malformed lists, fractional positions, indexing across
+discarded whitespace, and absolute positioning inside a combining cluster
+remain stable refusals, as do parent lists, inherited positioning, `rotate`,
+`textLength`, wider styles, effects, and nested text.
+
+Removing first-character `dx` consumption made the complete gate fail the
+Ahem oracle by 550 pixels; restoration returned it to green. The estate is now
+eleven exact Ahem cells plus eight exact-number geometry witnesses (six
+Allerta and two Bungee), and the named refusal register has 217 rows. The
+complete text grammars remain open. No Chromium real-font raster claim,
+conformance score, shared frame text fact, or FLIP change is made.

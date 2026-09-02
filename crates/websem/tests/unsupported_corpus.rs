@@ -920,7 +920,7 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     (
         "svg-text-combining-unlisted-mark",
         DeclaredByBestEffort,
-        "outside textlayout-v3's admitted",
+        "outside textlayout-v4's admitted",
     ),
     (
         "svg-text-css-layout",
@@ -975,9 +975,24 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "opacity must remain 1",
     ),
     (
+        "svg-text-tspan-position-combining",
+        DeclaredByBestEffort,
+        "absolute <tspan> positioning at combining mark",
+    ),
+    (
+        "svg-text-tspan-position-value-grammar",
+        DeclaredByBestEffort,
+        "complete unitless SVG-number-list grammar",
+    ),
+    (
+        "svg-text-tspan-position-whitespace",
+        DeclaredByBestEffort,
+        "canonical collapsed-space form",
+    ),
+    (
         "svg-text-tspan-positioning",
         DeclaredByBestEffort,
-        "attribute x",
+        "attribute rotate",
     ),
     (
         "svg-text-tspan-shaping-style",

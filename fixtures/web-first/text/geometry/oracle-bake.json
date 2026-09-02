@@ -1,11 +1,11 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "kind": "chromium-svg-text-geometry-oracle",
   "browser_version": "149.0.7827.55",
   "suite": "cases.json",
-  "suite_sha256": "083bd35a6c69cd02483bb459805b98b25c09b8ad572ef908d5018366c9d64dda",
+  "suite_sha256": "35bbfaa3463069a3bd5e6b8b8925f9935871c1ae53d42e9aefc9e84e4acae4f5",
   "bake_script": "bake_chromium.ts",
-  "bake_script_sha256": "0f60e1a49bbee88f8352ae4b458aa024aac7b2fce1fb1716b2860c8477fe99ec",
+  "bake_script_sha256": "5fea5d17db32b7c04c1b2375d4d467db71094c8b128ffda97a86426655e3db09",
   "capture_module": "../../chromium_capture.ts",
   "capture_module_sha256": "c66ee93e4f96d4f5c169254181d7cda14bb4254e07d65f64dec7f32f5bdcb296",
   "fonts": [
@@ -79,6 +79,16 @@
       "source_sha256": "d4c2d0fe75abe4a6157e5166435a49ec74256d1a158b84f6bff03306b773534b",
       "oracle": "chromium/svg-text-allerta-latin-precomposed.json",
       "oracle_sha256": "0964d7ee84817639ef78166a41cb43045f872759eb602920dad03bc259deaae5",
+      "width": 5000,
+      "height": 500,
+      "font_family": "Allerta"
+    },
+    {
+      "id": "svg-text-allerta-positioned-combining",
+      "source": "svg-text-allerta-positioned-combining.svg",
+      "source_sha256": "64323f665b87cf3456f2d5041aa70f645879d27a67b712f474aeccc81ce94d22",
+      "oracle": "chromium/svg-text-allerta-positioned-combining.json",
+      "oracle_sha256": "301340f6ef6f3b118c0606cf10fd9592a940cd82deb0af935bd6e5bc50c5df39",
       "width": 5000,
       "height": 500,
       "font_family": "Allerta"
