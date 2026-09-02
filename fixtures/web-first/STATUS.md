@@ -1080,7 +1080,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (211)
+## The refusal register (214)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -1290,7 +1290,10 @@ its row into the cells above.
 | `svg-text-font-size-source` | declared | skipped svg/text[1]: unsupported computed style: <text> authored font-size "5119px" changes under Stylo font-size quantization before the numeric-domain check |
 | `svg-text-font-size-var` | declared | skipped svg/text[1]: unsupported computed style: <text> authored font-size resolves through var(), whose source provenance this text patrol cannot follow |
 | `svg-text-geometry-grid` | declared | skipped svg/text[1]: unsupported computed style: text geometry is outside the admitted numeric domain: Chromium SVG text query metrics would round ascent/descent (1032.2266, 246.09375) to its integer fixed-metric grid |
-| `svg-text-tspan` | declared | skipped svg/text[1]: unsupported element <tspan> |
+| `svg-text-tspan-nested` | declared | skipped svg/text[1]: unsupported computed style: nested <tspan> inside <tspan> is outside the direct-child T4a slice; skipped svg/text[2]: unsupported computed style: unsupported <textPath> child inside <text>; T4a admits direct <tspan> text only |
+| `svg-text-tspan-paint-boundary` | declared | skipped svg/text[1]: unsupported computed style: paint-only <tspan> opacity must remain 1; child compositing is outside T4a; skipped svg/text[2]: unsupported fill value "paint-only <tspan> runs require one opaque direct solid fill; transparent fills and fill opacity remain outside T4a"; skipped svg/text[3]: unsupported fill value "paint-only <tspan> runs require a direct solid fill; none, context paint, and paint servers remain outside T4a"; skipped svg/text[4]: unsupported rendering attribute stroke on <tspan> (not yet consumed); skipped svg/text[5]: unsupported computed style: <text> opacity over paint-only <tspan> runs is outside T4a |
+| `svg-text-tspan-positioning` | declared | skipped svg/text[1]: unsupported rendering attribute x on <tspan> (not yet consumed); skipped svg/text[2]: unsupported rendering attribute y on <tspan> (not yet consumed); skipped svg/text[3]: unsupported rendering attribute dx on <tspan> (not yet consumed); skipped svg/text[4]: unsupported rendering attribute rotate on <tspan> (not yet consumed); skipped svg/text[5]: unsupported rendering attribute textLength on <tspan> (not yet consumed) |
+| `svg-text-tspan-shaping-style` | declared | skipped svg/text[1]: unsupported computed style: paint-only <tspan> resolves font "Ahem" at 15px, but its parent run resolves "Ahem" at 10px; skipped svg/text[2]: unsupported computed style: paint-only <tspan> resolves font "Other" at 10px, but its parent run resolves "Ahem" at 10px; skipped svg/text[3]: unsupported rendering attribute letter-spacing on <tspan> (not yet consumed) |
 | `svg-text-undeclared-font` | declared | skipped svg/text[1]: unsupported computed style: text resolution refused: font family "Undeclared" is not in the declared environment |
 | `svg-use-authored-children` | declared | skipped svg/use[1]: unsupported <use>: it has authored element children, which Chromium replaces with the shadow content |
 | `svg-use-external` | declared | skipped svg/use[1]: unsupported <use>: its reference is not a same-document fragment, and external resources are not resolved |

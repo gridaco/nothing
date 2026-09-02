@@ -84,14 +84,16 @@ from the dated addenda below:
   and tangent orientation, marker unit/viewBox/reference mapping, hard marker
   viewport clips, solid/context-solid source programs, `<use>` clients, and
   client transform/opacity/clip/mask/filter composition;
-  one declared-font, single-run `<text>` profile over printable ASCII, the
-  53 canonical precomposed Latin-1 letters, and U+0301/U+030B only as one mark
-  after an ASCII Latin letter, with direct invariant number/`px` size sources,
+  one declared-font `<text>` profile over printable ASCII, the 53 canonical
+  precomposed Latin-1 letters, and U+0301/U+030B only as one mark after an
+  ASCII Latin letter, optionally partitioned by flat direct paint-only
+  `<tspan>` source runs while retaining one whitespace, shaping, and anchor
+  continuum, with direct invariant number/`px` size sources,
   a final identity-linear, integer-translation device mapping after root,
   ancestor, and instance composition, explicit UTF-8/UTF-16/scalar/glyph
   cluster maps, default pair positioning, bounded composed or zero-advance
-  displaced-mark clusters, and six real-font artifact-geometry witnesses
-  graded exactly before rasterization;
+  displaced-mark clusters, opaque solid per-run fill projection, and seven
+  real-font artifact-geometry witnesses graded exactly before rasterization;
   viewBox-only
   root sizing with the full `preserveAspectRatio` grammar; and one exact-time
   `<animate attributeName="x">` on a top-level `<rect>`, including a client
@@ -99,8 +101,8 @@ from the dated addenda below:
   composition.
   `crates/n0_cli/README.md` is the statement of record.
 - **The corpus** is 1,051 Chromium-baked primitive cells plus 16 sampled frames,
-  with a separate nine-cell exact Ahem text suite and six exact-number
-  artifact-geometry witnesses (four Allerta and two Bungee) under the ratified
+  with a separate ten-cell exact Ahem text suite and seven exact-number
+  artifact-geometry witnesses (five Allerta and two Bungee) under the ratified
   text corpus-growth law.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
@@ -108,7 +110,7 @@ from the dated addenda below:
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 211 rows.
+  register has 214 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -4908,3 +4910,60 @@ one broad refusal with three bounded rows moves the named register from 209 to
 Unicode and shaping controls, multiple runs, and every complete font/text row
 remain open. No shared render-contract fact was added, no conformance score
 was produced, and no FLIP record, rule, or baseline changed.
+
+## Rung: SVG text paint-only source runs (2026-09-03)
+
+The verdict is T4a ADMIT/SPLIT, with no checklist closure. A `<text>` may now
+contain direct character data and flat direct `<tspan>` children when every
+child preserves the same resolved face, size, direction, position, and effect
+envelope and changes only an opaque solid fill. SVG whitespace collapses once
+across the complete subtree, the complete resulting string shapes once, and
+`text-anchor` applies once. The compiler then projects tagged glyph ranges to
+ordinary path nodes carrying the owning run's paint. Equal paints are
+canonicalized across wrapper boundaries. No text, font, run, or authored-tree
+fact crosses `rframe`.
+
+`textlayout` now accepts exact, ordered, scalar-boundary UTF-8 source-run
+coverage and returns a typed error for missing, empty, reversed, overlapping,
+gapped, out-of-bounds, incomplete, or split-scalar coverage before font work.
+Run tags are opaque producer metadata. Every cluster and glyph receives the
+tag of the cluster's first source scalar; a run boundary inside a cluster does
+not split shaping. Because these facts do not alter glyph identity or geometry,
+the oracle remains `textlayout-v3`.
+
+The seventh exact-number geometry witness is Allerta `ff` at 5120px with the
+second `f` inside a differently painted `<tspan>`. Chromium and the artifact
+still agree on advances 2330/2355 and total 4685. Shaping the runs separately
+would produce 2355/2355 and total 4710, so the witness distinguishes one
+continuum from two plausible local shapes. Bungee `Ax` + U+0301 + `Z` probes
+the harder ownership edge: a boundary before the mark does not break its
+cluster, a mark-only `<tspan>` changes no pixels, and painting the base's run
+recolors the attached mark (measured, not celled). This is the measured
+first-scalar ownership rule carried by the artifact tags.
+
+One exact Ahem pixel cell crosses parent text, inherited and explicit child
+paint, global whitespace collapse, and middle anchoring. Replacing every run
+paint with the parent's paint changes exactly 1,600 pixels at maximum channel
+delta 197; independently anchoring the visible runs changes 1,200 pixels at
+maximum delta 218. At an off-grid Allerta 1000px size, otherwise identical
+same-paint wrapper boundaries can move Chromium query geometry by 1/64 and
+change 2,752 raster pixels. That route remains covered by the existing
+`Chromium SVG text query` refusal and is measured, not celled.
+
+The former blanket `<tspan>` refusal is replaced by four focused rows for
+position resets/lists, shaping-style changes, non-opaque or wider paint and
+effects, and nested child content. Strict refuses and best effort skips and
+declares the complete parent text node for each. Temporarily replacing shaped
+advances with nominal per-glyph advances made `just gate` fail at artifact
+total 4710 versus Chromium 4685. Independently routing every projected range
+through the parent paint made the Ahem contract fail by 1,600 exact pixels.
+Restoring both semantics returned the complete gate to green.
+
+The primitive corpus remains 1,051 Chromium-baked cells plus 16 sampled
+frames. The exact Ahem estate moves from nine to ten cells, the real-font
+geometry estate from six to seven witnesses (five Allerta and two Bungee),
+and replacing one broad refusal with four focused rows moves the named register
+from 211 to 214. Positioning, shaping-style runs, opacity/effects, wider paints,
+nested content, font selection, and the complete `<text>` and `<tspan>`
+grammars remain open. No shared render-contract fact was added, no conformance
+score was produced, and no FLIP record, rule, or baseline changed.

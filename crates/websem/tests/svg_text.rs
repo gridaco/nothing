@@ -260,10 +260,6 @@ fn beyond_slice_text_constructs_refuse_by_name() {
             "textLength",
         ),
         (
-            r##"<text x="10" y="60" font-family="Ahem" font-size="20" fill="#000"><tspan>X</tspan></text>"##,
-            "tspan",
-        ),
-        (
             r##"<text x="10" y="60" font-family="Ahem" font-size="20" text-anchor="centre" fill="#000">X</text>"##,
             "text-anchor",
         ),
@@ -282,6 +278,141 @@ fn beyond_slice_text_constructs_refuse_by_name() {
         assert!(
             message.contains(expected),
             "expected {expected:?} in the refusal, got: {message}"
+        );
+    }
+}
+
+/// A paint-only child partitions one resolved outline stream. Its boundaries
+/// neither reshape nor restart the anchor; only the associated solid paint
+/// changes. These exact boxes are the Ahem witness used by the Chromium pixel
+/// cell, expressed here at the source/contract seam.
+#[test]
+fn paint_only_tspans_shape_and_anchor_once_then_project_run_paints() {
+    let frame = compile(&svg(
+        r##"<text x="10" y="20" font-family="Ahem" font-size="20" fill="#2563eb">X<tspan fill="#dc2626">X</tspan>X</text>
+<text x="50" y="45" text-anchor="middle" font-family="Ahem" font-size="20" fill="#2563eb"><tspan fill="inherit">X</tspan><tspan fill="#dc2626">X</tspan><tspan fill="#2563eb">X</tspan></text>
+<text x="10" y="70" font-family="Ahem" font-size="20" fill="#2563eb">X <tspan fill="#dc2626"> X </tspan> X</text>
+<text x="10" y="95" font-family="Ahem" font-size="20" fill="#2563eb"><tspan>X</tspan><tspan fill="#dc2626">X</tspan><tspan>X</tspan></text>"##,
+    ))
+    .expect("same-face opaque solid paint runs are inside T4a");
+    let nodes = frame.nodes();
+    assert_eq!(nodes.len(), 12);
+
+    let actual = nodes
+        .iter()
+        .map(|node| {
+            let color = node
+                .paints
+                .iter()
+                .next()
+                .and_then(cg::Paint::solid_color)
+                .expect("T4a emits one solid paint");
+            (node.bounds.x, node.bounds.y, color.r, color.g, color.b)
+        })
+        .collect::<Vec<_>>();
+    let blue = (0x25, 0x63, 0xeb);
+    let red = (0xdc, 0x26, 0x26);
+    assert_eq!(
+        actual,
+        vec![
+            (10.0, 4.0, blue.0, blue.1, blue.2),
+            (30.0, 4.0, red.0, red.1, red.2),
+            (50.0, 4.0, blue.0, blue.1, blue.2),
+            // The complete 60px chunk is anchored once at x=50.
+            (20.0, 29.0, blue.0, blue.1, blue.2),
+            (40.0, 29.0, red.0, red.1, red.2),
+            (60.0, 29.0, blue.0, blue.1, blue.2),
+            // Whitespace collapses across the subtree before shaping.
+            (10.0, 54.0, blue.0, blue.1, blue.2),
+            (50.0, 54.0, red.0, red.1, red.2),
+            (90.0, 54.0, blue.0, blue.1, blue.2),
+            (10.0, 79.0, blue.0, blue.1, blue.2),
+            (30.0, 79.0, red.0, red.1, red.2),
+            (50.0, 79.0, blue.0, blue.1, blue.2),
+        ]
+    );
+}
+
+/// An element boundary whose computed paint does not change is metadata-only:
+/// it canonicalizes away and produces the exact flat-text frame.
+#[test]
+fn inherited_and_same_paint_tspans_are_frame_transparent() {
+    let flat = compile(&svg(
+        r##"<text x="10" y="60" font-family="Ahem" font-size="20" fill="#2563eb">X X X</text>"##,
+    ))
+    .expect("flat run");
+    let partitioned = compile(&svg(
+        r##"<text x="10" y="60" font-family="Ahem" font-size="20" fill="#2563eb">X <tspan fill="inherit"> X </tspan> <tspan fill="#2563eb">X</tspan></text>"##,
+    ))
+    .expect("same-paint child boundaries");
+    assert_eq!(partitioned, flat);
+}
+
+/// T4a is intentionally narrower than the `<tspan>` element. Every position,
+/// shaping, nested-content, effect, and non-opaque-paint branch stays a named
+/// transaction at the parent text path in both admissions.
+#[test]
+fn tspan_boundaries_outside_t4a_refuse_transactionally() {
+    for (body, expected) in [
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan x="20">X</tspan></text>"##,
+            "x",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan dy="5">X</tspan></text>"##,
+            "dy",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan rotate="10">X</tspan></text>"##,
+            "rotate",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan textLength="40">X</tspan></text>"##,
+            "textLength",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan><tspan>X</tspan></tspan></text>"##,
+            "nested <tspan>",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><textPath href="#p">X</textPath></text>"##,
+            "unsupported <textPath>",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan font-size="25">X</tspan></text>"##,
+            "parent run resolves",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan style="opacity:.5">X</tspan></text>"##,
+            "opacity must remain 1",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan fill="rgba(0,0,0,.5)">X</tspan></text>"##,
+            "opaque direct solid fill",
+        ),
+        (
+            r##"<defs><linearGradient id="g"><stop stop-color="red"/></linearGradient></defs><text x="10" y="60" font-family="Ahem" font-size="20"><tspan fill="url(#g)">X</tspan></text>"##,
+            "direct solid fill",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20" opacity=".5"><tspan fill="red">X</tspan></text>"##,
+            "<text> opacity",
+        ),
+    ] {
+        let source = svg(body);
+        let error = compile(&source).expect_err("branch is outside T4a");
+        assert!(
+            error.to_string().contains(expected),
+            "expected {expected:?}, got {error}"
+        );
+        let best = compile_best(&source).expect("best effort declares and skips the whole text");
+        assert!(best.base_frame().nodes().is_empty());
+        assert!(
+            best.degradations().iter().any(|degradation| {
+                degradation.path().ends_with("/text[1]") && degradation.reason().contains(expected)
+            }),
+            "expected {expected:?} at the parent text path; got {:?}",
+            best.degradations()
         );
     }
 }

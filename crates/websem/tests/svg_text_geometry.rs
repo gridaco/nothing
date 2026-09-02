@@ -81,7 +81,17 @@ struct SuiteCase {
     font_family: String,
     font_size: String,
     fill: String,
+    #[serde(default)]
+    source_runs: Vec<CaseSourceRun>,
     font_facts: FontFacts,
+}
+
+#[derive(Deserialize)]
+struct CaseSourceRun {
+    source_utf8: [usize; 2],
+    tag: u32,
+    owner: String,
+    fill: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -92,7 +102,15 @@ struct FontFacts {
     glyphs: Vec<GlyphFact>,
     #[serde(default)]
     clusters: Option<Vec<ClusterFact>>,
+    #[serde(default)]
+    source_runs: Option<Vec<FontSourceRun>>,
     ink_bounds: NumberRect,
+}
+
+#[derive(Deserialize)]
+struct FontSourceRun {
+    source_utf8: [usize; 2],
+    tag: u32,
 }
 
 #[derive(Deserialize)]
@@ -119,6 +137,8 @@ struct PlacedGlyphFact {
     offset_x: f64,
     offset_y: f64,
     advance: f64,
+    #[serde(default)]
+    source_run_tag: Option<u32>,
 }
 
 #[derive(Deserialize)]
@@ -127,6 +147,8 @@ struct ClusterFact {
     source_utf16: [usize; 2],
     source_scalars: [usize; 2],
     glyphs: [usize; 2],
+    #[serde(default)]
+    source_run_tag: Option<u32>,
 }
 
 #[derive(Deserialize)]
@@ -217,7 +239,7 @@ fn read_json<T: for<'de> Deserialize<'de>>(path: &Path) -> T {
 
 fn suite() -> Suite {
     let suite: Suite = read_json(&fixture_root().join("cases.json"));
-    assert_eq!(suite.schema_version, 2);
+    assert_eq!(suite.schema_version, 3);
     assert!(!suite.fonts.is_empty());
     assert!(!suite.cases.is_empty());
     suite
@@ -295,6 +317,30 @@ fn pt_serif_environment() -> textlayout::Environment {
 }
 
 fn canonical_source(case: &SuiteCase) -> String {
+    let markup = if case.source_runs.is_empty() {
+        case.text.clone()
+    } else {
+        case.source_runs
+            .iter()
+            .map(|run| {
+                let fragment = case
+                    .text
+                    .get(run.source_utf8[0]..run.source_utf8[1])
+                    .expect("source-run ranges are UTF-8 boundaries");
+                match run.owner.as_str() {
+                    "text" => {
+                        assert!(run.fill.is_none());
+                        fragment.to_string()
+                    }
+                    "tspan" => format!(
+                        "<tspan fill=\"{}\">{fragment}</tspan>",
+                        run.fill.as_deref().expect("tspan source run carries fill")
+                    ),
+                    other => panic!("unsupported source-run owner {other}"),
+                }
+            })
+            .collect()
+    };
     format!(
         "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}\" height=\"{}\">\n  \
          <text x=\"{}\" y=\"{}\" text-anchor=\"{}\" font-family=\"{}\" \
@@ -307,8 +353,36 @@ fn canonical_source(case: &SuiteCase) -> String {
         case.font_family,
         case.font_size,
         case.fill,
-        case.text
+        markup
     )
+}
+
+fn attributed_text(case: &SuiteCase, font_size: f32) -> textlayout::AttributedText {
+    let style = textlayout::Style {
+        family: case.font_family.clone(),
+        size: font_size,
+    };
+    if case.source_runs.is_empty() {
+        textlayout::AttributedText::single_source_run(
+            case.text.clone(),
+            style,
+            textlayout::SourceRunTag::new(0),
+        )
+    } else {
+        textlayout::AttributedText::new(
+            case.text.clone(),
+            style,
+            case.source_runs
+                .iter()
+                .map(|run| {
+                    textlayout::SourceRun::new(
+                        run.source_utf8[0]..run.source_utf8[1],
+                        textlayout::SourceRunTag::new(run.tag),
+                    )
+                })
+                .collect(),
+        )
+    }
 }
 
 fn exact(label: &str, artifact: f32, chromium: f64) {
@@ -409,7 +483,7 @@ fn geometry_suite_is_closed_and_hash_pinned() {
     let root = fixture_root();
     let suite = suite();
     let manifest: BakeManifest = read_json(&root.join("oracle-bake.json"));
-    assert_eq!(manifest.schema_version, 2);
+    assert_eq!(manifest.schema_version, 3);
     assert_eq!(manifest.kind, "chromium-svg-text-geometry-oracle");
     assert_eq!(manifest.browser_version, "149.0.7827.55");
     assert_eq!(manifest.suite, "cases.json");
@@ -509,17 +583,8 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
         let font_size = parse_number("font-size", &case.font_size);
         let x = parse_number("x", &case.x);
         let y = parse_number("y", &case.y);
-        let layout = textlayout::resolve(
-            &textlayout::AttributedText {
-                text: case.text.clone(),
-                style: textlayout::Style {
-                    family: case.font_family.clone(),
-                    size: font_size,
-                },
-            },
-            &environment,
-        )
-        .expect("rung-B artifact resolves");
+        let layout = textlayout::resolve(&attributed_text(case, font_size), &environment)
+            .expect("rung-B artifact resolves");
         assert_eq!(
             layout.face().key,
             textlayout::FontKey::new(hex_bytes(&font.sha256))
@@ -553,6 +618,7 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
         match case.font_facts.schema_version {
             None => {
                 assert!(case.font_facts.clusters.is_none());
+                assert!(case.font_facts.source_runs.is_none());
                 assert_eq!(layout.clusters().len(), case.font_facts.glyphs.len());
                 let source_scalars: Vec<(usize, char)> = case.text.char_indices().collect();
                 assert_eq!(source_scalars.len(), case.font_facts.glyphs.len());
@@ -598,7 +664,7 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
                 }
                 assert_eq!(source_utf16_index, source_utf16.len());
             }
-            Some(2) => {
+            Some(version @ (2 | 3)) => {
                 let facts = case
                     .font_facts
                     .clusters
@@ -619,6 +685,15 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
                         fact.source_scalars[0]..fact.source_scalars[1]
                     );
                     assert_eq!(cluster.glyphs(), fact.glyphs[0]..fact.glyphs[1]);
+                    if version == 3 {
+                        assert_eq!(
+                            cluster.source_run_tag().value(),
+                            fact.source_run_tag
+                                .expect("v3 cluster carries source-run tag")
+                        );
+                    } else {
+                        assert!(fact.source_run_tag.is_none());
+                    }
                 }
                 for (glyph, fact) in layout.glyphs().iter().zip(&case.font_facts.glyphs) {
                     let GlyphFact::Placed(fact) = fact else {
@@ -630,6 +705,32 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
                     exact("glyph x offset", glyph.offset_x, fact.offset_x);
                     exact("glyph y offset", glyph.offset_y, fact.offset_y);
                     exact("glyph advance", glyph.advance, fact.advance);
+                    if version == 3 {
+                        assert_eq!(
+                            glyph.source_run_tag().value(),
+                            fact.source_run_tag
+                                .expect("v3 glyph carries source-run tag")
+                        );
+                    } else {
+                        assert!(fact.source_run_tag.is_none());
+                    }
+                }
+                if version == 3 {
+                    let source_runs = case
+                        .font_facts
+                        .source_runs
+                        .as_ref()
+                        .expect("v3 facts carry source runs");
+                    assert_eq!(layout.source_runs().len(), source_runs.len());
+                    for (resolved, fact) in layout.source_runs().iter().zip(source_runs) {
+                        assert_eq!(
+                            resolved.source_utf8(),
+                            fact.source_utf8[0]..fact.source_utf8[1]
+                        );
+                        assert_eq!(resolved.tag().value(), fact.tag);
+                    }
+                } else {
+                    assert!(case.font_facts.source_runs.is_none());
                 }
             }
             other => panic!("unsupported font-fact schema {other:?}"),
@@ -701,6 +802,16 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
         } else if case.id == "svg-text-bungee-double-acute-offset" {
             assert_ne!(layout.glyphs()[2].offset_x, 0.0);
             assert_ne!(layout.glyphs()[2].offset_y, 0.0);
+        } else if case.id == "svg-text-allerta-tspan-kerning" {
+            // If the source runs were shaped independently, the first
+            // advance would be 2355 rather than Chromium's exact 2330.
+            assert_eq!(layout.glyphs()[0].advance, 2330.0);
+            assert_eq!(layout.glyphs()[1].advance, 2355.0);
+            assert_eq!(layout.advance(), 4685.0);
+            assert_ne!(
+                layout.glyphs()[0].source_run_tag(),
+                layout.glyphs()[1].source_run_tag()
+            );
         }
 
         let ink = layout.ink_bounds().expect("real face has outline ink");
@@ -727,17 +838,8 @@ fn real_font_pixels_obey_only_the_engine_laws() {
         let environment = environment(font, &bytes);
         let source = std::fs::read_to_string(fixture_root().join(&case.source)).unwrap();
         let font_size = parse_number("font-size", &case.font_size);
-        let layout = textlayout::resolve(
-            &textlayout::AttributedText {
-                text: case.text.clone(),
-                style: textlayout::Style {
-                    family: case.font_family.clone(),
-                    size: font_size,
-                },
-            },
-            &environment,
-        )
-        .expect("rung-B artifact resolves for frame projection");
+        let layout = textlayout::resolve(&attributed_text(case, font_size), &environment)
+            .expect("rung-B artifact resolves for frame projection");
         assert!(layout.ink_bounds().is_some());
         let strict = SvgFrameSource::from_standalone_svg_with_fonts(
             source.as_str(),
@@ -759,17 +861,26 @@ fn real_font_pixels_obey_only_the_engine_laws() {
             .collect();
         assert!(substantive.is_empty(), "{}: {substantive:?}", case.id);
 
-        assert_eq!(strict.nodes().len(), 1);
-        let node = &strict.nodes()[0];
-        let Geometry::Path(path) = &node.geometry else {
-            panic!("{}: text must lower to path geometry", case.id)
-        };
+        // Plain text lowers to one path. The current Allerta source-run
+        // witness declares exactly two distinct paints, so it lowers to two.
+        let expected_nodes = if case.source_runs.is_empty() { 1 } else { 2 };
         assert_eq!(
-            node.bounds,
-            path.local_bounds(),
-            "{}: the identity-mapped node must state its exact lowered path bounds",
+            strict.nodes().len(),
+            expected_nodes,
+            "{}: projected node count",
             case.id
         );
+        for node in strict.nodes() {
+            let Geometry::Path(path) = &node.geometry else {
+                panic!("{}: text must lower to path geometry", case.id)
+            };
+            assert_eq!(
+                node.bounds,
+                path.local_bounds(),
+                "{}: the identity-mapped node must state its exact lowered path bounds",
+                case.id
+            );
+        }
         let first = support::render_through_n0(&strict, case.width, case.height);
         let again = support::render_through_n0(&strict, case.width, case.height);
         let best_pixels = support::render_through_n0(&best.base_frame(), case.width, case.height);
@@ -781,6 +892,43 @@ fn real_font_pixels_obey_only_the_engine_laws() {
             case.id
         );
     }
+}
+
+/// Chromium assigns every glyph in a cluster crossing a paint boundary to
+/// the run that owns the cluster's first source scalar. The producer records
+/// that association; the Web projection must neither drop the attached mark
+/// nor recolor it from a mark-only child.
+#[test]
+fn a_tspan_boundary_inside_a_combining_cluster_uses_first_scalar_paint() {
+    let source = |body: &str| {
+        format!(
+            r##"<svg xmlns="http://www.w3.org/2000/svg" width="3000" height="1500"><text x="100" y="1150" text-anchor="start" font-family="Bungee" font-size="1000" fill="#111827">{body}</text></svg>"##
+        )
+    };
+    let compile = |body: &str| {
+        SvgFrameSource::from_standalone_svg_with_fonts(
+            source(body),
+            InitialViewport::new(3000.0, 1500.0),
+            bungee_environment(),
+        )
+        .unwrap_or_else(|error| panic!("cluster paint witness must compile: {error}"))
+        .base_frame()
+    };
+
+    let base_child = compile(r##"A<tspan fill="#dc2626">x</tspan>&#x301;Z"##);
+    let whole_cluster_child = compile(r##"A<tspan fill="#dc2626">x&#x301;</tspan>Z"##);
+    assert_eq!(
+        base_child, whole_cluster_child,
+        "a boundary before the mark cannot change its geometry or paint"
+    );
+    assert_eq!(base_child.nodes().len(), 3);
+
+    let mark_only_child = compile(r##"Ax<tspan fill="#dc2626">&#x301;</tspan>Z"##);
+    let flat_parent = compile(r##"Ax&#x301;Z"##);
+    assert_eq!(
+        mark_only_child, flat_parent,
+        "the mark-only run owns no glyph when its cluster begins in the parent"
+    );
 }
 
 #[test]

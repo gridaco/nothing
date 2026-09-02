@@ -1,0 +1,1 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><path id="p" d="M4 20H60"/><text x="4" y="20" font-family="Ahem" font-size="10"><tspan><tspan>X</tspan></tspan></text><text x="4" y="40" font-family="Ahem" font-size="10"><textPath href="#p">X</textPath></text></svg>

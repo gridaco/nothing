@@ -565,9 +565,9 @@ cargo run -p n0_cli --bin n0 -- \
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
   cells. The complete primitive corpus contains 1,051 Chromium-baked cells plus
-  16 sampled frames; the text estate contains nine exact Ahem pixel cells and
-  six exact-number artifact-geometry witnesses (four Allerta and two Bungee),
-  and the named refusal register has 211 rows. `feFlood`, `feComposite`,
+  16 sampled frames; the text estate contains ten exact Ahem pixel cells and
+  seven exact-number artifact-geometry witnesses (five Allerta and two
+  Bungee), and the named refusal register has 214 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -961,18 +961,23 @@ cargo run -p n0_cli --bin n0 -- \
   producing a silently different one. A `<text>` run whose family was never
   declared refuses by name; there is no system fallback, no ambient face,
   and therefore no machine-local pixel anywhere on this path. Inside that
-  environment one run resolves once through
+  environment one text source resolves once through
   [the text oracle](../../docs/wg/feat-paragraph/text-layout.md) at its v3
-  profile — one style run of printable ASCII plus exactly the 53 canonical
+  profile — one shaping-style run of printable ASCII plus exactly the 53 canonical
   precomposed Latin-1 letters in U+00C0–00C5, U+00C7–00CF, U+00D1–00D6,
   U+00D9–00DD, U+00E0–00E5, U+00E7–00EF, U+00F1–00F6, U+00F9–00FD, and
   U+00FF, plus U+0301 or U+030B only as the sole mark immediately after one
   ASCII Latin letter; horizontal and left-to-right; direct clusters remain one
   source scalar and one glyph, while an admitted base-plus-mark cluster is two
   source scalars and either one composed glyph or two glyphs with a
-  zero-advance displaced mark; no wrapping and no fallback — and its glyph
-  outlines lower to the contract's ordinary path facts, so no font identity
-  crosses into the resolved frame. `x`, `y`, and a direct `text-anchor` attribute
+  zero-advance displaced mark; no wrapping and no fallback. Direct character
+  data may be partitioned by flat direct `<tspan>` children that preserve the
+  same resolved face, size, position, direction, opacity, and effect profile
+  and select only an opaque solid fill. Whitespace collapses once across the
+  complete subtree, the complete string shapes once, and source-run tags
+  assign each complete cluster to the run owning its first scalar. The glyph
+  outlines then lower by paint run to the contract's ordinary path facts, so
+  no font or run identity crosses into the resolved frame. `x`, `y`, and a direct `text-anchor` attribute
   (`start`/`middle`/`end`) place the run; inherited ancestor spellings refuse
   until anchor has one computed route. `font-family` and `font-size`
   come from the one cascade, where an author rule beats the presentation
@@ -1023,6 +1028,11 @@ cargo run -p n0_cli --bin n0 -- \
   a separate zero-advance mark glyph with x offset -369 and, for U+030B, local
   y offset -7. Every cluster records UTF-8, UTF-16, scalar, and glyph ranges;
   every glyph records pen position, displacement, advance, and cluster owner.
+  A fifth Allerta witness puts the second `f` of the exact 2330/2355 pair in a
+  differently painted `<tspan>` and still totals 4685, proving that a paint
+  boundary does not create a second shaping call. The ten-cell Ahem suite
+  separately makes per-run paint, global whitespace collapse, and one parent
+  anchor byte-exact.
   Malformed or unlisted combining sequences and a mark missing from the exact
   face refuse at the text node in both admissions. The 1000px
   control misses both query grids: strict refuses by stable
@@ -1034,8 +1044,10 @@ cargo run -p n0_cli --bin n0 -- \
   `text-anchor` (Chromium consumes it from the cascade, the pinned Stylo
   build has no such longhand — a silent drop before the rung), inherited
   `text-anchor` presentation attributes, a generic
-  family (which names no declared font), `<tspan>` and any other element
-  child, `dx`/`dy`/`rotate` lists, `textLength`, font shorthands and unconsumed
+  family (which names no declared font), nested or positioned `<tspan>`
+  content, child shaping-style changes, non-opaque/wider child paint and
+  child/parent effects, any other element child, `dx`/`dy`/`rotate` lists,
+  `textLength`, font shorthands and unconsumed
   font variants, decorations, letter and word spacing, baselines, writing mode
   and direction, stroke on text, a colour or
   bitmap face, a cluster outside the direct-or-one-mark cardinality, malformed

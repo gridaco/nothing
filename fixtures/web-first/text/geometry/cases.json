@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "fonts": [
     {
       "family": "Allerta",
@@ -619,6 +619,126 @@
           "height": 6545
         }
       }
+    },
+    {
+      "id": "svg-text-allerta-tspan-kerning",
+      "source": "svg-text-allerta-tspan-kerning.svg",
+      "oracle": "chromium/svg-text-allerta-tspan-kerning.json",
+      "width": 5000,
+      "height": 500,
+      "text": "ff",
+      "x": "0",
+      "y": "3905",
+      "text_anchor": "start",
+      "font_family": "Allerta",
+      "font_size": "5120",
+      "fill": "#111827",
+      "font_facts": {
+        "schema_version": 3,
+        "units_per_em": 1024,
+        "source_runs": [
+          {
+            "source_utf8": [
+              0,
+              1
+            ],
+            "tag": 0
+          },
+          {
+            "source_utf8": [
+              1,
+              2
+            ],
+            "tag": 1
+          }
+        ],
+        "clusters": [
+          {
+            "source_utf8": [
+              0,
+              1
+            ],
+            "source_utf16": [
+              0,
+              1
+            ],
+            "source_scalars": [
+              0,
+              1
+            ],
+            "glyphs": [
+              0,
+              1
+            ],
+            "source_run_tag": 0
+          },
+          {
+            "source_utf8": [
+              1,
+              2
+            ],
+            "source_utf16": [
+              1,
+              2
+            ],
+            "source_scalars": [
+              1,
+              2
+            ],
+            "glyphs": [
+              1,
+              2
+            ],
+            "source_run_tag": 1
+          }
+        ],
+        "glyphs": [
+          {
+            "glyph_id": 70,
+            "cluster_index": 0,
+            "x": 0,
+            "offset_x": 0,
+            "offset_y": 0,
+            "advance": 2330,
+            "source_run_tag": 0
+          },
+          {
+            "glyph_id": 70,
+            "cluster_index": 1,
+            "x": 2330,
+            "offset_x": 0,
+            "offset_y": 0,
+            "advance": 2355,
+            "source_run_tag": 1
+          }
+        ],
+        "ink_bounds": {
+          "x": 275,
+          "y": -3905,
+          "width": 4190,
+          "height": 3905
+        }
+      },
+      "source_runs": [
+        {
+          "source_utf8": [
+            0,
+            1
+          ],
+          "owner": "text",
+          "fill": null,
+          "tag": 0
+        },
+        {
+          "source_utf8": [
+            1,
+            2
+          ],
+          "owner": "tspan",
+          "fill": "#dc2626",
+          "tag": 1
+        }
+      ]
     },
     {
       "id": "svg-text-bungee-acute-offset",

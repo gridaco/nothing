@@ -65,7 +65,7 @@ The scannable, generated view of this register (beside the baked cells) is
 | `svg-text-geometry-grid.svg` | Refuse a real-font artifact whose geometry Chromium's SVG text-query projection would normalize differently. Blink encloses horizontal character boundaries on a 1/64 CSS-pixel grid and exposes vertical cells through integral fixed ascent/descent metrics; the 1000px Allerta witness misses both grids (731.4453125 artifact advance versus 731.453125 measured character width, and 1032.2265625 artifact ascent versus 1032 in the browser cell). Strict refuses and best effort skips/degrades the same text node by the stable `Chromium SVG text query` reason (measured, not celled as a positive case). |
 | `svg-text-css-layout.svg` · `svg-text-font-shorthand.svg` | Refuse cascaded text/font semantics the v2 single-run artifact does not carry. The direct, ancestor, and stylesheet routes are text-scoped and conservative: the one Stylo cascade still owns admitted values, while this patrol supplies no matcher. Chromium's italic shorthand and letter-spacing witnesses changed 68 and 200 pixels at maximum delta 255 before the guard (measured, not celled). |
 | `svg-text-undeclared-font.svg` | Text is admitted only against the rung's one declared font identity. An undeclared family refuses at the text element instead of silently substituting different glyph metrics. |
-| `svg-text-tspan.svg` | `<tspan>` retains its own named text-residue refusal: the admitted text run is one direct text-node sequence, so nested positioning and styling cannot be silently flattened into it. |
+| `svg-text-tspan-positioning.svg` · `svg-text-tspan-shaping-style.svg` · `svg-text-tspan-paint-boundary.svg` · `svg-text-tspan-nested.svg` | T4a graduates the former blanket `<tspan>` refusal only for flat same-face, no-position-reset, opaque-solid paint partitions shaped as one source. Position lists and resets, shaping-affecting style changes, child/parent opacity and wider paint, and nested text content each retain a focused stable refusal at the parent text path. |
 | `svg-use-stylesheet.svg` | Author CSS and `<use>` refuse together: the measured shadow boundary scopes selector matching to the cloned subtree alone — no ancestor outside it participates, not even through descendant combinators — and the one flattened tree cannot express that scoping. The shadow-matching rung earns it. (`<use>` and `<defs>` themselves graduated with the use/defs rung; the presentation-attribute slice is baked.) |
 | `svg-use-external.svg` | An external reference refuses by name: the engine is declared resource-free, and Chromium with a network would render the target — silence would be a wrong pixel. |
 | `svg-use-authored-children.svg` | Authored element children of a `<use>` refuse by name: Chromium renders the shadow content in their place, and this slice refuses rather than models that replacement. |
@@ -242,4 +242,8 @@ to 198. The opacity structural-pass recovery later graduates that row, leaving
 197. The text safety fence adds nine focused size-source, final-mapping,
 inherited-anchor, and unconsumed-layout rows, taking the register to 206. The
 real-font artifact-geometry rung adds the query-grid patrol, taking the current
-register to 207.)
+register to 207. T3a adds the merged-cluster patrol (208); T3b adds the
+decomposed-source patrol (209); T3c replaces that broad row with malformed,
+missing-glyph, and unlisted-mark rows (211). T4a replaces the blanket
+`<tspan>` row with four focused positioning, shaping-style, paint/effect, and
+nested-content rows, taking the current register to 214.)

@@ -9,8 +9,9 @@
 //! font identity crosses into `rframe`.
 
 use rframe::{FillRule, PathCommand, PathData};
+use std::ops::Range;
 use textlayout::{
-    AttributedText, Environment, OutlineSink, ResolveError, ResolvedTextLayout, Style,
+    AttributedText, Environment, OutlineSink, ResolveError, ResolvedTextLayout, SourceRunTag, Style,
 };
 
 /// SVG2 §11.1 `text-anchor`: where the resolved run sits relative to the
@@ -69,6 +70,68 @@ pub(crate) fn collapse_whitespace(raw: &str) -> String {
         out.push(character);
     }
     out
+}
+
+/// One range in the collapsed source and the document-owned selection that
+/// supplied it. The tag is intentionally generic: this stage knows source
+/// ownership, not paint or shaping.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct TaggedRange<T> {
+    pub(crate) source_utf8: Range<usize>,
+    pub(crate) tag: T,
+}
+
+/// Collapse a sequence of DOM text fragments as one SVG text subtree while
+/// retaining complete ownership of the resulting UTF-8 bytes.
+///
+/// Inline element boundaries are ignored for whitespace processing. A
+/// surviving collapsed space keeps the tag of the first whitespace scalar in
+/// its run; spaces have no outline, so this deterministic choice cannot alter
+/// paint ownership. Adjacent output carrying the same tag is canonicalized to
+/// one range.
+pub(crate) fn collapse_whitespace_tagged<T: Copy + Eq>(
+    fragments: &[(&str, T)],
+) -> (String, Vec<TaggedRange<T>>) {
+    fn push<T: Copy + Eq>(
+        out: &mut String,
+        ranges: &mut Vec<TaggedRange<T>>,
+        character: char,
+        tag: T,
+    ) {
+        let start = out.len();
+        out.push(character);
+        let end = out.len();
+        if let Some(last) = ranges.last_mut()
+            && last.tag == tag
+            && last.source_utf8.end == start
+        {
+            last.source_utf8.end = end;
+        } else {
+            ranges.push(TaggedRange {
+                source_utf8: start..end,
+                tag,
+            });
+        }
+    }
+
+    let mut out = String::new();
+    let mut ranges = Vec::new();
+    let mut pending_space = None;
+    for &(fragment, tag) in fragments {
+        for character in fragment.chars() {
+            if matches!(character, ' ' | '\t' | '\n' | '\r') {
+                if !out.is_empty() && pending_space.is_none() {
+                    pending_space = Some(tag);
+                }
+                continue;
+            }
+            if let Some(space_tag) = pending_space.take() {
+                push(&mut out, &mut ranges, ' ', space_tag);
+            }
+            push(&mut out, &mut ranges, character, tag);
+        }
+    }
+    (out, ranges)
 }
 
 /// Why a `<text>` element is outside the admitted text slice.
@@ -254,13 +317,14 @@ pub(crate) fn resolve_text_path(
     anchor: Anchor,
     fonts: &Environment,
 ) -> Result<Option<PathData>, TextError> {
-    let attributed = AttributedText {
-        text: text.to_string(),
-        style: Style {
+    let attributed = AttributedText::single_source_run(
+        text.to_string(),
+        Style {
             family: family.to_string(),
             size: font_size,
         },
-    };
+        SourceRunTag::new(0),
+    );
     let layout = textlayout::resolve(&attributed, fonts).map_err(TextError::Resolve)?;
 
     let start_x = anchor.start_x(x, layout.advance());
@@ -285,6 +349,63 @@ pub(crate) fn resolve_text_path(
         .map_err(|error| TextError::OutsideNumericDomain(error.to_string()))
 }
 
+/// One contiguous sequence of glyphs that the resolved artifact associates
+/// with the same opaque caller tag. The path is already placed at the text
+/// element's anchored baseline origin; only the source-side paint remains for
+/// `svg.rs` to attach.
+pub(crate) struct TaggedPath {
+    pub(crate) tag: SourceRunTag,
+    pub(crate) path: PathData,
+}
+
+/// Resolve one explicitly attributed text source once, then project its
+/// stable source-run associations into painter-ready outline paths.
+///
+/// A tag transition may not cause another shaping call. Combining-mark
+/// glyphs inherit their cluster's tag from `textlayout`, so a source boundary
+/// inside one cluster cannot split or lose the mark during projection.
+pub(crate) fn resolve_tagged_text_paths(
+    attributed: AttributedText,
+    x: f32,
+    y: f32,
+    anchor: Anchor,
+    fonts: &Environment,
+) -> Result<Vec<TaggedPath>, TextError> {
+    let layout = textlayout::resolve(&attributed, fonts).map_err(TextError::Resolve)?;
+    let start_x = anchor.start_x(x, layout.advance());
+    admit_numeric_domain(x, y, layout.font_size(), start_x)?;
+    admit_chromium_query_geometry(&layout)?;
+
+    let mut projected = Vec::new();
+    let mut current_tag = None;
+    let mut sink = PathSink {
+        origin_x: start_x,
+        origin_y: y,
+        commands: Vec::new(),
+    };
+    for index in 0..layout.glyphs().len() {
+        let tag = layout.glyphs()[index].source_run_tag();
+        if current_tag.is_some_and(|current| current != tag) && !sink.commands.is_empty() {
+            let path = PathData::new(std::mem::take(&mut sink.commands), FillRule::NonZero)
+                .map_err(|error| TextError::OutsideNumericDomain(error.to_string()))?;
+            projected.push(TaggedPath {
+                tag: current_tag.expect("a transition has a prior tag"),
+                path,
+            });
+        }
+        current_tag = Some(tag);
+        layout.outline(index, &mut sink);
+    }
+    if let Some(tag) = current_tag
+        && !sink.commands.is_empty()
+    {
+        let path = PathData::new(sink.commands, FillRule::NonZero)
+            .map_err(|error| TextError::OutsideNumericDomain(error.to_string()))?;
+        projected.push(TaggedPath { tag, path });
+    }
+    Ok(projected)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -300,6 +421,42 @@ mod tests {
         assert_eq!(collapse_whitespace("X\r\nX"), "X X");
         assert_eq!(collapse_whitespace("   "), "");
         assert_eq!(collapse_whitespace(""), "");
+    }
+
+    #[test]
+    fn tagged_whitespace_collapses_across_fragment_boundaries() {
+        let (text, ranges) = collapse_whitespace_tagged(&[("  A  ", 0), ("  X ", 1), (" Z  ", 0)]);
+        assert_eq!(text, "A X Z");
+        assert_eq!(
+            ranges,
+            vec![
+                TaggedRange {
+                    source_utf8: 0..2,
+                    tag: 0,
+                },
+                TaggedRange {
+                    source_utf8: 2..4,
+                    tag: 1,
+                },
+                TaggedRange {
+                    source_utf8: 4..5,
+                    tag: 0,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn tagged_fragments_with_one_owner_canonicalize_to_one_range() {
+        let (text, ranges) = collapse_whitespace_tagged(&[("A", 7), ("", 9), (" B", 7)]);
+        assert_eq!(text, "A B");
+        assert_eq!(
+            ranges,
+            vec![TaggedRange {
+                source_utf8: 0..3,
+                tag: 7,
+            }]
+        );
     }
 
     #[test]

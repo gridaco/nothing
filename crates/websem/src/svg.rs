@@ -5441,12 +5441,30 @@ impl<'a> ChildWalk<'a> {
         )?;
         let clip = if marker_selected {
             marker_client_clip
-        } else if let Some(node) = compilation
+        } else if let Some(outcome) = compilation
             .outcome
             .as_ref()
-            .and_then(|outcome| outcome.node.as_ref())
+            .filter(|outcome| !outcome.nodes.is_empty())
         {
-            self.resolve_clip(el, node.transform, Some(node.geometry.local_box()))?
+            let first = &outcome.nodes[0];
+            debug_assert!(
+                outcome
+                    .nodes
+                    .iter()
+                    .all(|node| node.transform == first.transform),
+                "one leaf's resolved nodes share one local-to-frame mapping"
+            );
+            let target_box = if outcome.nodes.len() == 1 {
+                first.geometry.local_box()
+            } else {
+                let boxes: Vec<_> = outcome
+                    .nodes
+                    .iter()
+                    .map(|node| node.geometry.local_box())
+                    .collect();
+                math2::union(&boxes)
+            };
+            self.resolve_clip(el, first.transform, Some(target_box))?
         } else {
             None
         };
@@ -5463,18 +5481,17 @@ impl<'a> ChildWalk<'a> {
                     // element opacity a refusal until this rung.
                     let scope = scope_item(&mut self.next_id, opacity);
                     self.items.push(scope);
-                    self.items.push(FrameItem::Node(
-                        outcome.node.expect("a scoped shape has a visible node"),
-                    ));
+                    debug_assert!(!outcome.nodes.is_empty());
+                    self.items
+                        .extend(outcome.nodes.into_iter().map(FrameItem::Node));
                     self.items.push(FrameItem::ScopeEnd);
                     facts.draws = 0;
                     facts.opacity_passes = 0;
                     facts.has_scope = true;
                 }
                 None => {
-                    if let Some(node) = outcome.node {
-                        self.items.push(FrameItem::Node(node));
-                    }
+                    self.items
+                        .extend(outcome.nodes.into_iter().map(FrameItem::Node));
                 }
             }
         }
@@ -9950,6 +9967,392 @@ fn compile_shape(
     })
 }
 
+/// Rendering attributes that turn a `<tspan>` into more than T4a's
+/// same-position, paint-only source partition. Most are otherwise admitted on
+/// a shape or on the parent `<text>`, so the child needs its own patrol.
+const TSPAN_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
+    "x",
+    "y",
+    "dx",
+    "dy",
+    "rotate",
+    "textLength",
+    "lengthAdjust",
+    "transform",
+    "text-anchor",
+    "opacity",
+    "fill-opacity",
+    "display",
+    "visibility",
+    "clip-path",
+    "mask",
+    "filter",
+    "stroke",
+    "stroke-width",
+    "stroke-opacity",
+    "stroke-linecap",
+    "stroke-linejoin",
+    "stroke-miterlimit",
+    "stroke-dasharray",
+    "stroke-dashoffset",
+];
+
+/// One collapsed `<text>` subtree. `owners[0]` is the parent `<text>`; every
+/// later owner is one direct `<tspan>`. Tagged byte ranges cover `content`
+/// exactly and preserve DOM paint ownership without making the whitespace
+/// stage know what paint means.
+struct TextSubtree<'d> {
+    content: String,
+    ranges: Vec<crate::svg_text::TaggedRange<usize>>,
+    owners: Vec<HtmlElement<'d>>,
+    has_tspan: bool,
+}
+
+fn collect_text_subtree<'d>(el: HtmlElement<'d>) -> Result<TextSubtree<'d>, CompileError> {
+    let mut owners = vec![el];
+    let mut fragments = Vec::<(&str, usize)>::new();
+    let mut has_tspan = false;
+    for child_id in &el.dom_node().children {
+        match &el.dom().node(*child_id).data {
+            DemoNodeData::Text(text) => fragments.push((text, 0)),
+            DemoNodeData::Element(_) => {
+                let child = el
+                    .element(*child_id)
+                    .expect("an element DOM child has an element handle");
+                let tag = child.local_name_string();
+                if tag != "tspan" {
+                    return Err(CompileError::UnsupportedStyle(format!(
+                        "unsupported <{tag}> child inside <text>; T4a admits direct <tspan> text only"
+                    )));
+                }
+                has_tspan = true;
+                let owner = owners.len();
+                owners.push(child);
+                for nested_id in &child.dom_node().children {
+                    match &child.dom().node(*nested_id).data {
+                        DemoNodeData::Text(text) => fragments.push((text, owner)),
+                        DemoNodeData::Element(_) => {
+                            let nested = child
+                                .element(*nested_id)
+                                .expect("an element DOM child has an element handle");
+                            return Err(CompileError::UnsupportedStyle(format!(
+                                "nested <{}> inside <tspan> is outside the direct-child T4a slice",
+                                nested.local_name_string()
+                            )));
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    let (content, ranges) = crate::svg_text::collapse_whitespace_tagged(&fragments);
+    Ok(TextSubtree {
+        content,
+        ranges,
+        owners,
+        has_tspan,
+    })
+}
+
+fn text_family_and_size(el: HtmlElement<'_>) -> Result<(String, f32), CompileError> {
+    let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
+    let style: &ComputedValues = data.styles.primary();
+    let font_size = style.clone_font_size().used_size().px();
+    let family = match style.clone_font_family().families.iter().next() {
+        Some(style::values::computed::font::SingleFontFamily::FamilyName(name)) => {
+            name.name.to_string()
+        }
+        Some(style::values::computed::font::SingleFontFamily::Generic(_)) | None => {
+            drop(data);
+            return Err(CompileError::UnsupportedStyle(
+                "<text> resolves to a generic font family, which names no font in the declared \
+                 environment — a family is declared by exact name or the run refuses"
+                    .to_string(),
+            ));
+        }
+    };
+    drop(data);
+    Ok((family, font_size))
+}
+
+/// One document-side paint selection carried by a source-run tag. The tag's
+/// integer is its index in the selection table; `textlayout` never sees or
+/// interprets either the element or the paint.
+struct TextPaintSelection<'d> {
+    owner: HtmlElement<'d>,
+    paints: PaintStack,
+}
+
+#[allow(clippy::too_many_arguments)]
+fn tspan_paint_selection<'d>(
+    owner: HtmlElement<'d>,
+    is_tspan: bool,
+    parent_family: &str,
+    parent_font_size: f32,
+    servers: &PaintServers<'d>,
+    patterns: &PatternCompiler<'d>,
+    active_patterns: &[NodeId],
+    paint_contexts: &[PaintContext<'d>],
+    context_paint_transform: AffineTransform,
+    bases: PercentBases,
+) -> Result<PaintStack, CompileError> {
+    if is_tspan {
+        // The ordinary text patrol and this rung's child-only patrol are
+        // intentionally separate: the former closes shaping properties; the
+        // latter closes position resets and effects that are valid on the
+        // parent but outside this direct paint partition.
+        patrol_rendering_attributes(owner, "tspan", TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+        patrol_rendering_attributes(owner, "tspan", TSPAN_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
+        patrol_style_attribute(owner, "tspan")?;
+        if let Some(value) = get_attr(owner, "font-size")
+            && let Some(reason) = text_font_size_source_refusal(&value, true)
+        {
+            return Err(CompileError::UnsupportedStyle(format!("<tspan> {reason}")));
+        }
+        if let Some(style) = get_attr(owner, "style")
+            && let Some(reason) = text_css_source_refusal(&style)
+        {
+            return Err(CompileError::UnsupportedStyle(format!("<tspan> {reason}")));
+        }
+        let patrol = patrol_computed_style(owner, false)?;
+        if patrol.disposition != RenderDisposition::Renders {
+            return Err(CompileError::UnsupportedStyle(
+                "paint-only <tspan> must participate visibly; display and visibility changes are outside T4a"
+                    .to_string(),
+            ));
+        }
+        if patrol.opacity != 1.0 {
+            return Err(CompileError::UnsupportedStyle(
+                "paint-only <tspan> opacity must remain 1; child compositing is outside T4a"
+                    .to_string(),
+            ));
+        }
+        if element_has_computed_transform(owner)? {
+            return Err(CompileError::UnsupportedStyle(
+                "paint-only <tspan> transform must remain none".to_string(),
+            ));
+        }
+        let (family, font_size) = text_family_and_size(owner)?;
+        if family != parent_family || font_size.to_bits() != parent_font_size.to_bits() {
+            return Err(CompileError::UnsupportedStyle(format!(
+                "paint-only <tspan> resolves font {family:?} at {font_size}px, but its parent run resolves {parent_family:?} at {parent_font_size}px"
+            )));
+        }
+        if resolve_stroke(
+            owner,
+            "tspan",
+            None,
+            servers,
+            patterns,
+            active_patterns,
+            paint_contexts,
+            Rectangle::from_xywh(0.0, 0.0, 1.0, 1.0),
+            context_paint_transform,
+            bases,
+            1.0,
+        )?
+        .stroke
+        .is_some()
+        {
+            return Err(CompileError::UnsupportedStroke(
+                "stroke on paint-only <tspan> is outside T4a".to_string(),
+            ));
+        }
+    }
+
+    // T4a admits paint ownership, not text paint-server geometry or alpha
+    // ordering. Check the computed kind as well as the resolved stack so a
+    // degenerate gradient that happens to become one solid cannot sneak into
+    // the direct-solid claim.
+    let computed = computed_paint(owner, PaintProperty::Fill)?;
+    if !matches!(computed.kind, SVGPaintKind::Color(_)) {
+        return Err(CompileError::UnsupportedFill(
+            "paint-only <tspan> runs require a direct solid fill; none, context paint, and paint servers remain outside T4a"
+                .to_string(),
+        ));
+    }
+    let fill = resolve_fill(
+        owner,
+        servers,
+        patterns,
+        active_patterns,
+        paint_contexts,
+        Rectangle::from_xywh(0.0, 0.0, 1.0, 1.0),
+        context_paint_transform,
+        bases,
+        1.0,
+    )?;
+    let opaque_solid = fill.opacity_pass
+        && fill.paints.pattern().is_none()
+        && fill.paints.len() == 1
+        && fill.paints.alpha_factor() == PaintAlphaFactor::IDENTITY
+        && fill
+            .paints
+            .iter()
+            .next()
+            .and_then(cg::Paint::solid_color)
+            .is_some_and(|color| color.a == 255);
+    if !opaque_solid {
+        return Err(CompileError::UnsupportedFill(
+            "paint-only <tspan> runs require one opaque direct solid fill; transparent fills and fill opacity remain outside T4a"
+                .to_string(),
+        ));
+    }
+    Ok(fill.paints)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn compile_tspan_text(
+    subtree: TextSubtree<'_>,
+    family: String,
+    font_size: f32,
+    x: f32,
+    y: f32,
+    anchor: crate::svg_text::Anchor,
+    viewport: AffineTransform,
+    context_paint_transform: AffineTransform,
+    next_id: &mut u64,
+    servers: &PaintServers<'_>,
+    patterns: &PatternCompiler<'_>,
+    active_patterns: &[NodeId],
+    paint_contexts: &[PaintContext<'_>],
+    bases: PercentBases,
+    replay_opacity: f32,
+    fonts: &textlayout::Environment,
+) -> Result<Option<ShapeOutcome>, CompileError> {
+    let mut owner_paints = Vec::with_capacity(subtree.owners.len());
+    for (index, owner) in subtree.owners.iter().copied().enumerate() {
+        owner_paints.push(tspan_paint_selection(
+            owner,
+            index != 0,
+            &family,
+            font_size,
+            servers,
+            patterns,
+            active_patterns,
+            paint_contexts,
+            context_paint_transform,
+            bases,
+        )?);
+    }
+
+    // Equal resolved paints share one opaque tag even across distinct DOM
+    // owners. Source coverage remains exact; only an irrelevant wrapper
+    // boundary disappears. This keeps a same-paint <tspan> byte-equivalent to
+    // flat text while unlike paints retain painter order.
+    let mut selections = Vec::<TextPaintSelection<'_>>::new();
+    let mut tagged_ranges = Vec::<(std::ops::Range<usize>, usize)>::new();
+    for range in subtree.ranges {
+        let owner = subtree.owners[range.tag];
+        let paints = &owner_paints[range.tag];
+        let selection = selections
+            .iter()
+            .position(|selection| selection.paints == *paints)
+            .unwrap_or_else(|| {
+                selections.push(TextPaintSelection {
+                    owner,
+                    paints: paints.clone(),
+                });
+                selections.len() - 1
+            });
+        if let Some((prior, prior_selection)) = tagged_ranges.last_mut()
+            && *prior_selection == selection
+            && prior.end == range.source_utf8.start
+        {
+            prior.end = range.source_utf8.end;
+        } else {
+            tagged_ranges.push((range.source_utf8, selection));
+        }
+    }
+    let source_runs = tagged_ranges
+        .into_iter()
+        .map(|(source_utf8, selection)| {
+            let tag = u32::try_from(selection).map_err(|_| {
+                CompileError::UnsupportedStyle(
+                    "paint-only <tspan> selection count exceeds the source-run tag domain"
+                        .to_string(),
+                )
+            })?;
+            Ok(textlayout::SourceRun::new(
+                source_utf8,
+                textlayout::SourceRunTag::new(tag),
+            ))
+        })
+        .collect::<Result<Vec<_>, CompileError>>()?;
+    let attributed = textlayout::AttributedText::new(
+        subtree.content,
+        textlayout::Style {
+            family,
+            size: font_size,
+        },
+        source_runs,
+    );
+    let paths = crate::svg_text::resolve_tagged_text_paths(attributed, x, y, anchor, fonts)
+        .map_err(|error| CompileError::UnsupportedStyle(error.to_string()))?;
+    if paths.is_empty() {
+        return Ok(None);
+    }
+
+    if replay_opacity == 0.0 {
+        return Ok(Some(ShapeOutcome {
+            nodes: Vec::new(),
+            draws: 0,
+            opacity_passes: 0,
+            scope_opacity: None,
+            has_opacity: true,
+            has_geometry: true,
+            transformed: false,
+        }));
+    }
+    let one_pass_fold = (replay_opacity < 1.0 && paths.len() == 1).then_some(replay_opacity);
+    let scope_opacity = (replay_opacity < 1.0 && paths.len() > 1).then_some(replay_opacity);
+    let opacity_passes = paths.len();
+    let mut nodes = Vec::with_capacity(paths.len());
+    for tagged in paths {
+        let selection = selections
+            .get(tagged.tag.value() as usize)
+            .expect("textlayout returns only supplied source-run tags");
+        let rect = tagged.path.local_bounds();
+        let paints = if let Some(opacity) = one_pass_fold {
+            resolve_fill(
+                selection.owner,
+                servers,
+                patterns,
+                active_patterns,
+                paint_contexts,
+                rect,
+                context_paint_transform,
+                bases,
+                opacity,
+            )?
+            .paints
+        } else {
+            selection.paints.clone()
+        };
+        let visual_id = *next_id + 1;
+        *next_id += 1;
+        nodes.push(FrameNode {
+            owner: VisualRef::new(Identity::new(visual_id), Provenance::new(visual_id)),
+            transform: viewport,
+            geometry: Geometry::Path(Arc::new(tagged.path)),
+            bounds: math2::rect_transform(rect, &viewport),
+            paints,
+            stroke: None,
+        });
+    }
+    Ok(Some(ShapeOutcome {
+        draws: nodes.len(),
+        nodes,
+        opacity_passes,
+        scope_opacity,
+        has_opacity: replay_opacity < 1.0,
+        has_geometry: true,
+        transformed: false,
+    }))
+}
+
 /// Compile one `<text>` element: the document's run, resolved once by the
 /// text oracle and lowered as the resolved contract's path facts.
 ///
@@ -10010,24 +10413,11 @@ fn compile_text(
         ));
     }
 
-    // Only element children were walked, so the run's characters are read
-    // here — the same DOM-children read the `<style>` patrol performs, and
-    // for the same reason: a comment can split character data in two.
-    let mut raw = String::new();
-    for child_id in &el.dom_node().children {
-        match &el.dom().node(*child_id).data {
-            DemoNodeData::Text(text) => raw.push_str(text),
-            // An element child is `<tspan>`, `<textPath>`, `<a>`, … — every
-            // one re-positions or re-styles part of the run, none admitted.
-            DemoNodeData::Element(child) => {
-                return Err(CompileError::UnsupportedElement(
-                    child.name.local.to_string(),
-                ));
-            }
-            _ => {}
-        }
-    }
-    let content = crate::svg_text::collapse_whitespace(&raw);
+    // Character data and direct `<tspan>` text form one whitespace and
+    // shaping continuum. Comments split DOM text nodes but contribute no
+    // source; nested elements remain transactional refusals.
+    let subtree = collect_text_subtree(el)?;
+    let content = &subtree.content;
     if !content.is_empty() {
         patrol_text_final_ctm(viewport)?;
     }
@@ -10043,36 +10433,38 @@ fn compile_text(
         None => crate::svg_text::Anchor::Start,
     };
 
-    let data = el.borrow_data().expect("styled element");
-    let style: &ComputedValues = data.styles.primary();
-    let font_size = style.clone_font_size().used_size().px();
-    // The cascade's family list is a preference order; the environment
-    // answers exact declared names only, so the first entry is the request
-    // and a miss refuses by name rather than walking to a second candidate
-    // (v1 has no fallback).
-    // The environment answers exact declared names only, so a generic
-    // keyword (`serif`, `monospace`, … — including the initial value a
-    // document that names no family computes to) selects nothing. It refuses
-    // here rather than reaching the oracle as an empty name, so the
-    // diagnostic says what is actually wrong with the document.
-    let family = match style.clone_font_family().families.iter().next() {
-        Some(style::values::computed::font::SingleFontFamily::FamilyName(name)) => {
-            name.name.to_string()
-        }
-        Some(style::values::computed::font::SingleFontFamily::Generic(_)) | None => {
-            drop(data);
+    // The cascade's family list is a preference order; the first exact name
+    // is the v3 request and a generic or miss refuses rather than falling back.
+    let (family, font_size) = text_family_and_size(el)?;
+
+    if subtree.has_tspan {
+        if patrol.opacity != 1.0 {
             return Err(CompileError::UnsupportedStyle(
-                "<text> resolves to a generic font family, which names no font in the declared \
-                 environment — a family is declared by exact name or the run refuses"
-                    .to_string(),
+                "<text> opacity over paint-only <tspan> runs is outside T4a".to_string(),
             ));
         }
-    };
-    drop(data);
+        return compile_tspan_text(
+            subtree,
+            family,
+            font_size,
+            x,
+            y,
+            anchor,
+            viewport,
+            context_paint_transform,
+            next_id,
+            servers,
+            patterns,
+            active_patterns,
+            paint_contexts,
+            bases,
+            replay_opacity,
+            fonts,
+        );
+    }
 
-    let path =
-        crate::svg_text::resolve_text_path(&content, &family, font_size, x, y, anchor, fonts)
-            .map_err(|error| CompileError::UnsupportedStyle(error.to_string()))?;
+    let path = crate::svg_text::resolve_text_path(content, &family, font_size, x, y, anchor, fonts)
+        .map_err(|error| CompileError::UnsupportedStyle(error.to_string()))?;
     let Some(path) = path else {
         // A run that resolves to no ink is an admitted nothing, not a node.
         return Ok(None);
@@ -10626,10 +11018,13 @@ struct ShapeCompilation {
 }
 
 struct ShapeOutcome {
-    /// The resolved geometry node. Paintless geometry remains an empty node
-    /// because context-paint and singular-transform consumers still need its
-    /// box; zero element opacity is the one route that removes it visually.
-    node: Option<FrameNode>,
+    /// The resolved geometry nodes. Ordinary shapes emit one. A source leaf
+    /// may emit several painter-adjacent nodes only when one source-level
+    /// geometry resolution assigns disjoint paint ownership (SVG text runs).
+    /// Paintless geometry remains an empty-painted node because context-paint
+    /// and singular-transform consumers still need its box; zero element
+    /// opacity is the one route that removes it visually.
+    nodes: Vec<FrameNode>,
     /// Visible paint passes the node draws (fill + stroke).
     draws: usize,
     /// Structural paint passes Chromium's element-opacity fold observes.
@@ -10744,7 +11139,7 @@ fn shape_node(
         // geometry even when no paint is selected. It contributes no visual
         // node, but it remains a fold barrier for an enclosing opacity.
         return Ok(ShapeOutcome {
-            node: None,
+            nodes: Vec::new(),
             draws: 0,
             opacity_passes: 0,
             scope_opacity: None,
@@ -10803,22 +11198,22 @@ fn shape_node(
             .map_err(|reason| CompileError::UnsupportedStroke(reason.to_string()))?;
     }
 
-    let node = if opacity > 0.0 || !has_geometry {
+    let nodes = if opacity > 0.0 || !has_geometry {
         let visual_id = *next_id + 1;
         *next_id += 1;
-        Some(FrameNode {
+        vec![FrameNode {
             owner: VisualRef::new(Identity::new(visual_id), Provenance::new(visual_id)),
             transform: viewport,
             geometry,
             bounds: math2::rect_transform(rect, &viewport),
             paints,
             stroke,
-        })
+        }]
     } else {
-        None
+        Vec::new()
     };
     Ok(ShapeOutcome {
-        node,
+        nodes,
         draws,
         opacity_passes,
         scope_opacity,
