@@ -1,4 +1,4 @@
-//! Oracle v2 against measured ground truth.
+//! Oracle v3 against measured ground truth.
 //!
 //! The numbers here are not derived from this crate: they were measured from
 //! the pinned Ahem bytes (fixtures/web-first/fonts/ahem.ttf) and verified
@@ -20,6 +20,10 @@ const ALLERTA: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../fixtures/fonts/Allerta/Allerta-Regular.ttf"
 );
+const BUNGEE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../fixtures/fonts/Bungee/Bungee-Regular.ttf"
+);
 const PT_SERIF: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../fixtures/fonts/PT_Serif/PTSerif-Regular.ttf"
@@ -30,7 +34,7 @@ const PT_SERIF: &str = concat!(
 const TEST_KEY: FontKey = FontKey::new([0xAB; 32]);
 
 /// Every Latin-1 letter whose canonical decomposition is exactly one ASCII
-/// Latin base plus one combining mark. This is the complete v2 extension;
+/// Latin base plus one combining mark. This is retained from v2;
 /// block neighbors are tested as refusals below.
 const PRECOMPOSED_LATIN_1: &str = "ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿ";
 
@@ -68,7 +72,7 @@ fn ahem(text: &str, size: f32) -> AttributedText {
 fn x_at_50_resolves_the_measured_em_box() {
     let layout = resolve(&ahem("X", 50.0), &ahem_environment()).unwrap();
 
-    assert_eq!(textlayout::ORACLE_VERSION, "textlayout-v2");
+    assert_eq!(textlayout::ORACLE_VERSION, "textlayout-v3");
     assert_eq!(layout.oracle_version(), textlayout::ORACLE_VERSION);
     assert_eq!(layout.face().key, TEST_KEY);
     assert_eq!(layout.face().units_per_em, 1000);
@@ -78,11 +82,13 @@ fn x_at_50_resolves_the_measured_em_box() {
     assert_eq!(glyphs.len(), 1);
     assert_eq!(glyphs[0].glyph_id, 58);
     assert_eq!(glyphs[0].x, 0.0);
+    assert_eq!((glyphs[0].offset_x, glyphs[0].offset_y), (0.0, 0.0));
     assert_eq!(glyphs[0].advance, 50.0);
     assert_eq!(glyphs[0].cluster_index, 0);
     assert_eq!(layout.clusters().len(), 1);
     assert_eq!(layout.clusters()[0].source_utf8(), 0..1);
     assert_eq!(layout.clusters()[0].source_utf16(), 0..1);
+    assert_eq!(layout.clusters()[0].source_scalars(), 0..1);
     assert_eq!(layout.clusters()[0].glyphs(), 0..1);
     assert_eq!(layout.advance(), 50.0);
 
@@ -130,10 +136,15 @@ fn space_advances_without_ink() {
             .map(|cluster| (
                 cluster.source_utf8(),
                 cluster.source_utf16(),
+                cluster.source_scalars(),
                 cluster.glyphs()
             ))
             .collect::<Vec<_>>(),
-        vec![(0..1, 0..1, 0..1), (1..2, 1..2, 1..2), (2..3, 2..3, 2..3)]
+        vec![
+            (0..1, 0..1, 0..1, 0..1),
+            (1..2, 1..2, 1..2, 1..2),
+            (2..3, 2..3, 2..3, 2..3)
+        ]
     );
 
     // Ink spans both boxes; the space contributes advance only.
@@ -214,7 +225,7 @@ fn default_pair_kerning_preserves_direct_cluster_mapping() {
         },
         &fixture_environment(ALLERTA, "Allerta"),
     )
-    .expect("one-to-one kerning is inside oracle v2");
+    .expect("one-to-one kerning remains inside oracle v3");
 
     assert_eq!(layout.advance(), 4685.0);
     assert_eq!(layout.glyphs().len(), 2);
@@ -225,9 +236,11 @@ fn default_pair_kerning_preserves_direct_cluster_mapping() {
     assert_eq!(layout.glyphs()[1].advance, 2355.0);
     assert_eq!(layout.clusters()[0].source_utf8(), 0..1);
     assert_eq!(layout.clusters()[0].source_utf16(), 0..1);
+    assert_eq!(layout.clusters()[0].source_scalars(), 0..1);
     assert_eq!(layout.clusters()[0].glyphs(), 0..1);
     assert_eq!(layout.clusters()[1].source_utf8(), 1..2);
     assert_eq!(layout.clusters()[1].source_utf16(), 1..2);
+    assert_eq!(layout.clusters()[1].source_scalars(), 1..2);
     assert_eq!(layout.clusters()[1].glyphs(), 1..2);
 }
 
@@ -304,6 +317,7 @@ fn precomposed_latin_carries_distinct_utf8_and_utf16_source_ranges() {
 
         assert_eq!(cluster.source_utf8(), source_utf8_start..source_utf8_end);
         assert_eq!(cluster.source_utf16(), utf16_start..source_utf16_end);
+        assert_eq!(cluster.source_scalars(), index..index + 1);
         assert_eq!(cluster.glyphs(), index..index + 1);
         assert_eq!(glyph.cluster_index, index);
         assert_eq!(glyph.glyph_id, expected_glyph_ids[index]);
@@ -319,6 +333,197 @@ fn precomposed_latin_carries_distinct_utf8_and_utf16_source_ranges() {
     assert_eq!(layout.clusters()[1].source_utf16(), 1..2);
     assert_eq!(layout.clusters()[54].source_utf8(), 107..108);
     assert_eq!(layout.clusters()[54].source_utf16(), 54..55);
+}
+
+#[test]
+fn decomposed_acute_composes_without_rewriting_source_coordinates() {
+    let layout = resolve(
+        &AttributedText {
+            text: "Ae\u{0301}Z".to_string(),
+            style: Style {
+                family: "Allerta".to_string(),
+                size: 5120.0,
+            },
+        },
+        &fixture_environment(ALLERTA, "Allerta"),
+    )
+    .expect("the measured decomposed acute composes inside oracle v3");
+
+    assert_eq!(layout.source(), "Ae\u{0301}Z");
+    assert_eq!(layout.advance(), 10340.0);
+    assert_eq!(layout.glyphs().len(), 3);
+    assert_eq!(layout.clusters().len(), 3);
+    assert_eq!(layout.clusters()[0].source_utf8(), 0..1);
+    assert_eq!(layout.clusters()[0].source_utf16(), 0..1);
+    assert_eq!(layout.clusters()[0].source_scalars(), 0..1);
+    assert_eq!(layout.clusters()[0].glyphs(), 0..1);
+    assert_eq!(layout.clusters()[1].source_utf8(), 1..4);
+    assert_eq!(layout.clusters()[1].source_utf16(), 1..3);
+    assert_eq!(layout.clusters()[1].source_scalars(), 1..3);
+    assert_eq!(layout.clusters()[1].glyphs(), 1..2);
+    assert_eq!(layout.clusters()[2].source_utf8(), 4..5);
+    assert_eq!(layout.clusters()[2].source_utf16(), 3..4);
+    assert_eq!(layout.clusters()[2].source_scalars(), 3..4);
+    assert_eq!(layout.clusters()[2].glyphs(), 2..3);
+    assert_eq!(
+        layout
+            .glyphs()
+            .iter()
+            .map(|glyph| (
+                glyph.glyph_id,
+                glyph.x,
+                glyph.offset_x,
+                glyph.offset_y,
+                glyph.advance,
+                glyph.cluster_index,
+            ))
+            .collect::<Vec<_>>(),
+        vec![
+            (35, 0.0, 0.0, 0.0, 3795.0, 0),
+            (141, 3795.0, 0.0, 0.0, 3320.0, 1),
+            (60, 7115.0, 0.0, 0.0, 3225.0, 2),
+        ]
+    );
+    let ink = layout.ink_bounds().unwrap();
+    assert_eq!(
+        (ink.x, ink.y, ink.width, ink.height),
+        (315.0, -3885.0, 9640.0, 3905.0)
+    );
+}
+
+#[test]
+fn attached_marks_carry_pen_independent_x_and_y_offsets() {
+    let environment = fixture_environment(BUNGEE, "Bungee");
+    let resolve_mark = |mark| {
+        resolve(
+            &AttributedText {
+                text: format!("Ax{mark}Z"),
+                style: Style {
+                    family: "Bungee".to_string(),
+                    size: 1000.0,
+                },
+            },
+            &environment,
+        )
+        .expect("the measured Bungee attachment resolves")
+    };
+
+    let acute = resolve_mark('\u{0301}');
+    assert_eq!(acute.source(), "Ax\u{0301}Z");
+    assert_eq!(acute.advance(), 2127.0);
+    assert_eq!(acute.glyphs().len(), 4);
+    assert_eq!(acute.clusters().len(), 3);
+    assert_eq!(acute.clusters()[1].source_utf8(), 1..4);
+    assert_eq!(acute.clusters()[1].source_utf16(), 1..3);
+    assert_eq!(acute.clusters()[1].source_scalars(), 1..3);
+    assert_eq!(acute.clusters()[1].glyphs(), 1..3);
+    assert_eq!(
+        acute
+            .glyphs()
+            .iter()
+            .map(|glyph| (
+                glyph.glyph_id,
+                glyph.x,
+                glyph.offset_x,
+                glyph.offset_y,
+                glyph.advance,
+                glyph.cluster_index,
+            ))
+            .collect::<Vec<_>>(),
+        vec![
+            (2, 0.0, 0.0, 0.0, 730.0, 0),
+            (773, 730.0, 0.0, 0.0, 737.0, 1),
+            (975, 1467.0, -369.0, 0.0, 0.0, 1),
+            (110, 1467.0, 0.0, 0.0, 660.0, 2),
+        ]
+    );
+    let ink = acute.ink_bounds().unwrap();
+    assert_eq!(
+        (ink.x, ink.y, ink.width, ink.height),
+        (54.0, -961.3902, 2027.0, 961.3902)
+    );
+
+    let double_acute = resolve_mark('\u{030B}');
+    let mark = double_acute.glyphs()[2];
+    assert_eq!(
+        (
+            mark.glyph_id,
+            mark.x,
+            mark.offset_x,
+            mark.offset_y,
+            mark.advance,
+            mark.cluster_index,
+        ),
+        (984, 1467.0, -369.0, -7.0, 0.0, 1)
+    );
+    let ink = double_acute.ink_bounds().unwrap();
+    assert_eq!(
+        (ink.x, ink.y, ink.width, ink.height),
+        (54.0, -1044.0, 2027.0, 1044.0)
+    );
+}
+
+#[test]
+fn missing_combining_glyph_names_the_mark_not_its_base() {
+    let error = resolve(&ahem("Ax\u{0301}Z", 1000.0), &ahem_environment())
+        .expect_err("Ahem has no attachable acute for x");
+    assert_eq!(
+        error,
+        ResolveError::MissingGlyph {
+            byte_index: 2,
+            character: '\u{0301}',
+        }
+    );
+}
+
+#[test]
+fn malformed_and_unadmitted_mark_sequences_refuse_before_shaping() {
+    let environment = fixture_environment(BUNGEE, "Bungee");
+    for (source, byte_index, character) in [
+        ("\u{0301}AX", 0, '\u{0301}'),
+        ("Ax\u{0301}\u{0301}Z", 4, '\u{0301}'),
+        ("A1\u{0301}Z", 2, '\u{0301}'),
+        ("Aé\u{0301}Z", 3, '\u{0301}'),
+    ] {
+        let error = resolve(
+            &AttributedText {
+                text: source.to_string(),
+                style: Style {
+                    family: "Bungee".to_string(),
+                    size: 1000.0,
+                },
+            },
+            &environment,
+        )
+        .expect_err("malformed combining sequence must refuse");
+        assert_eq!(
+            error,
+            ResolveError::UnsupportedCombiningSequence {
+                byte_index,
+                character,
+            },
+            "{source:?}"
+        );
+    }
+
+    let error = resolve(
+        &AttributedText {
+            text: "Ax\u{0300}Z".to_string(),
+            style: Style {
+                family: "Bungee".to_string(),
+                size: 1000.0,
+            },
+        },
+        &environment,
+    )
+    .expect_err("an unlisted combining mark stays outside the repertoire");
+    assert_eq!(
+        error,
+        ResolveError::UnsupportedCharacter {
+            byte_index: 2,
+            character: '\u{0300}',
+        }
+    );
 }
 
 #[test]
@@ -359,7 +564,7 @@ fn the_profile_is_the_resolvers_property_not_the_fonts() {
         ("X\u{00F7}Y", 1, '\u{00F7}'),
         ("X\u{00F8}Y", 1, '\u{00F8}'),
         ("X\u{00FE}Y", 1, '\u{00FE}'),
-        ("Ae\u{0301}Z", 2, '\u{0301}'),
+        ("Ae\u{0300}Z", 2, '\u{0300}'),
         ("X\u{0100}Y", 1, '\u{0100}'),
     ] {
         let err = resolve(&ahem(text, 20.0), &ahem_environment()).unwrap_err();
@@ -374,10 +579,9 @@ fn the_profile_is_the_resolvers_property_not_the_fonts() {
     }
 }
 
-// MissingGlyph is unreachable through the current fixture identities: Ahem
+// The missing combining-mark path is pinned above. A direct-scalar missing
+// glyph remains unreachable through the current fixture identities: Ahem
 // covers printable ASCII and Allerta covers the admitted Latin extension.
-// Its pin arrives with the first declared environment whose admitted scalar
-// lacks a glyph, rather than pretending a reachable test exists today.
 
 #[test]
 fn invalid_sizes_refuse() {

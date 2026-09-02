@@ -566,8 +566,8 @@ cargo run -p n0_cli --bin n0 -- \
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
   cells. The complete primitive corpus contains 1,051 Chromium-baked cells plus
   16 sampled frames; the text estate contains nine exact Ahem pixel cells and
-  three exact-number Allerta artifact-geometry witnesses, and the named refusal
-  register has 209 rows. `feFlood`, `feComposite`,
+  six exact-number artifact-geometry witnesses (four Allerta and two Bungee),
+  and the named refusal register has 211 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -962,14 +962,17 @@ cargo run -p n0_cli --bin n0 -- \
   declared refuses by name; there is no system fallback, no ambient face,
   and therefore no machine-local pixel anywhere on this path. Inside that
   environment one run resolves once through
-  [the text oracle](../../docs/wg/feat-paragraph/text-layout.md) at its v2
+  [the text oracle](../../docs/wg/feat-paragraph/text-layout.md) at its v3
   profile — one style run of printable ASCII plus exactly the 53 canonical
   precomposed Latin-1 letters in U+00C0–00C5, U+00C7–00CF, U+00D1–00D6,
   U+00D9–00DD, U+00E0–00E5, U+00E7–00EF, U+00F1–00F6, U+00F9–00FD, and
-  U+00FF; horizontal and left-to-right; one source scalar and one glyph per
-  shaping cluster; no wrapping and no fallback — and its glyph outlines lower
-  to the contract's ordinary path facts, so no font identity crosses into
-  the resolved frame. `x`, `y`, and a direct `text-anchor` attribute
+  U+00FF, plus U+0301 or U+030B only as the sole mark immediately after one
+  ASCII Latin letter; horizontal and left-to-right; direct clusters remain one
+  source scalar and one glyph, while an admitted base-plus-mark cluster is two
+  source scalars and either one composed glyph or two glyphs with a
+  zero-advance displaced mark; no wrapping and no fallback — and its glyph
+  outlines lower to the contract's ordinary path facts, so no font identity
+  crosses into the resolved frame. `x`, `y`, and a direct `text-anchor` attribute
   (`start`/`middle`/`end`) place the run; inherited ancestor spellings refuse
   until anchor has one computed route. `font-family` and `font-size`
   come from the one cascade, where an author rule beats the presentation
@@ -995,7 +998,7 @@ cargo run -p n0_cli --bin n0 -- \
   pre-raster geometry boundary. Chromium exposes each horizontal SVG
   character cell after enclosing its start/end on a 1/64 CSS-pixel grid and
   exposes vertical cells through integral fixed ascent/descent metrics. A run
-  is admitted only when every direct cluster's glyph boundary already lies on
+  is admitted only when every cluster's logical boundary already lies on
   that grid and both metrics are already integral; the compiler never changes
   the artifact to imitate the query. A pinned Allerta `Hxi` witness at 5120px
   matches Chromium's total advance, per-character starts/ends/extents,
@@ -1014,9 +1017,14 @@ cargo run -p n0_cli --bin n0 -- \
   cluster refuses by stable `shaping cluster mapping` name before lowering;
   PT Serif `fi` is the committed negative witness, because Chromium exposes
   two addressable character segments while shaping produces one ligature
-  glyph. A decomposed combining sequence remains outside the explicit v2
-  repertoire without source normalization; strict refuses and best effort
-  skips it at the text node. The 1000px
+  glyph. A fourth Allerta witness admits decomposed `Ae` + U+0301 + `Z`
+  without normalization: the two source units share Chromium's 3320-unit
+  base cluster while shaping composes one glyph. Two Bungee witnesses retain
+  a separate zero-advance mark glyph with x offset -369 and, for U+030B, local
+  y offset -7. Every cluster records UTF-8, UTF-16, scalar, and glyph ranges;
+  every glyph records pen position, displacement, advance, and cluster owner.
+  Malformed or unlisted combining sequences and a mark missing from the exact
+  face refuse at the text node in both admissions. The 1000px
   control misses both query grids: strict refuses by stable
   `Chromium SVG text query` name, while best effort skips and declares that
   text node. Real-font
@@ -1030,8 +1038,9 @@ cargo run -p n0_cli --bin n0 -- \
   child, `dx`/`dy`/`rotate` lists, `textLength`, font shorthands and unconsumed
   font variants, decorations, letter and word spacing, baselines, writing mode
   and direction, stroke on text, a colour or
-  bitmap face, a cluster that is not one source scalar to one glyph, and any
-  character outside the v2 repertoire. The inline-HTML
+  bitmap face, a cluster outside the direct-or-one-mark cardinality, malformed
+  combining placement, a missing mark glyph, and any character outside the v3
+  repertoire. The inline-HTML
   entry declares no fonts, so its `<text>` refuses there.
   `display: none` and `visibility` are consumed from the one cascade
   (attribute and CSS spellings alike): a pruned or hidden element renders

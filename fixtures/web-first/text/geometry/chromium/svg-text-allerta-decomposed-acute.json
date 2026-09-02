@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "kind": "chromium-svg-text-geometry",
+  "measurement": {
+    "text_content": "AéZ",
+    "computed_font_family": "Allerta",
+    "computed_font_size": "5120px",
+    "computed_text_anchor": "start",
+    "font_ready": true,
+    "number_of_chars": 4,
+    "computed_text_length": 10340,
+    "substring_length": 10340,
+    "characters": [
+      {
+        "utf16_code_unit": 65,
+        "substring_length": 3795,
+        "start": {
+          "x": 0,
+          "y": 4080
+        },
+        "end": {
+          "x": 3795,
+          "y": 4080
+        },
+        "extent": {
+          "x": 0,
+          "y": -1205,
+          "width": 3795,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 101,
+        "substring_length": 3320,
+        "start": {
+          "x": 3795,
+          "y": 4080
+        },
+        "end": {
+          "x": 7115,
+          "y": 4080
+        },
+        "extent": {
+          "x": 3795,
+          "y": -1205,
+          "width": 3320,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 769,
+        "substring_length": 3320,
+        "start": {
+          "x": 3795,
+          "y": 4080
+        },
+        "end": {
+          "x": 7115,
+          "y": 4080
+        },
+        "extent": {
+          "x": 3795,
+          "y": -1205,
+          "width": 3320,
+          "height": 6545
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 90,
+        "substring_length": 3225,
+        "start": {
+          "x": 7115,
+          "y": 4080
+        },
+        "end": {
+          "x": 10340,
+          "y": 4080
+        },
+        "extent": {
+          "x": 7115,
+          "y": -1205,
+          "width": 3225,
+          "height": 6545
+        },
+        "rotation": 0
+      }
+    ]
+  }
+}

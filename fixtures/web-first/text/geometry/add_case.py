@@ -5,8 +5,11 @@ Usage:
     python3 add_case.py <id> --source <svg> --facts <json>
 
 The source must use the suite's canonical one-run shape. `facts` records the
-font-derived evidence Chromium cannot expose: units-per-em, direct cmap glyph
-ids/source mappings, and outline ink bounds.
+font-derived evidence Chromium cannot expose: units-per-em, complete cluster
+and glyph placement mappings, and outline ink bounds. New cases require the v2
+placed-glyph fact shape. The manifest's immutable pre-T3c cases retain their
+legacy direct-scalar shape; this command neither creates nor migrates that
+historical form.
 """
 
 import argparse
@@ -24,7 +27,7 @@ SVG_NS = "http://www.w3.org/2000/svg"
 ID_PATTERN = re.compile(r"^svg-text-[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
-def admitted_scalar(character: str) -> bool:
+def direct_scalar(character: str) -> bool:
     codepoint = ord(character)
     return " " <= character <= "~" or any(
         start <= codepoint <= end
@@ -40,6 +43,24 @@ def admitted_scalar(character: str) -> bool:
             (0x00FF, 0x00FF),
         )
     )
+
+
+def admitted_mark(character: str) -> bool:
+    return character in {"\u0301", "\u030b"}
+
+
+def admitted_source(scalars: list[str]) -> bool:
+    previous = None
+    for character in scalars:
+        if direct_scalar(character):
+            previous = character
+        elif admitted_mark(character):
+            if previous is None or not previous.isascii() or not previous.isalpha():
+                return False
+            previous = character
+        else:
+            return False
+    return True
 
 
 def canonical(case: dict) -> str:
@@ -67,6 +88,8 @@ def main() -> None:
     manifest_file = MANIFEST.open("r+", encoding="utf-8")
     fcntl.flock(manifest_file.fileno(), fcntl.LOCK_EX)
     suite = json.load(manifest_file)
+    if suite.get("schema_version") != 2:
+        sys.exit("refused: unsupported geometry suite schema")
     source = Path(args.source).read_text()
     if "<!DOCTYPE" in source or "<script" in source or "@font-face" in source:
         sys.exit("refused: geometry sources contain no doctype, script, or font bytes")
@@ -85,12 +108,13 @@ def main() -> None:
         sys.exit("refused: the one text run has only the canonical attributes and no children")
     content = text.text or ""
     scalars = list(content)
-    if not scalars or any(not admitted_scalar(character) for character in scalars):
-        sys.exit("refused: the rung-B witness must stay inside textlayout-v2's exact repertoire")
+    if not scalars or not admitted_source(scalars):
+        sys.exit("refused: the witness must stay inside textlayout-v3's exact repertoire")
     if " ".join(content.split()) != content:
         sys.exit("refused: source text must already be in canonical collapsed-space form")
-    if text.attrib["font-family"] != suite["font"]["family"]:
-        sys.exit("refused: the source must request the suite's exact family")
+    families = {font["family"] for font in suite["fonts"]}
+    if text.attrib["font-family"] not in families:
+        sys.exit("refused: the source must request one exact suite family")
     if text.attrib["text-anchor"] not in {"start", "middle", "end"}:
         sys.exit("refused: text-anchor must be start, middle, or end")
 
@@ -112,11 +136,17 @@ def main() -> None:
 
     facts = json.loads(Path(args.facts).read_text())
     if not isinstance(facts, dict) or set(facts) != {
+        "schema_version",
         "units_per_em",
+        "clusters",
         "glyphs",
         "ink_bounds",
     }:
-        sys.exit("refused: facts must name units_per_em, glyphs, and ink_bounds")
+        sys.exit(
+            "refused: facts must name schema_version, units_per_em, clusters, glyphs, and ink_bounds"
+        )
+    if facts["schema_version"] != 2:
+        sys.exit("refused: new geometry facts must use schema version 2")
     units_per_em = facts["units_per_em"]
     if (
         not isinstance(units_per_em, int)
@@ -124,29 +154,123 @@ def main() -> None:
         or not 1 <= units_per_em <= 65535
     ):
         sys.exit("refused: units_per_em must be a positive 16-bit integer")
-    if not isinstance(facts["glyphs"], list) or len(facts["glyphs"]) != len(scalars):
-        sys.exit("refused: rung B requires one direct cmap glyph fact per source scalar")
-    source_utf8_byte = 0
-    source_utf16_index = 0
-    for index, character in enumerate(scalars):
-        glyph = facts["glyphs"][index]
-        glyph_id = glyph.get("glyph_id") if isinstance(glyph, dict) else None
-        expected = {
-            "source_utf8_byte": source_utf8_byte,
-            "source_utf16_index": source_utf16_index,
-            "scalar": character,
-            "glyph_id": glyph_id,
-            "cluster": source_utf8_byte,
-        }
+    clusters = facts["clusters"]
+    glyphs = facts["glyphs"]
+    if not isinstance(clusters, list) or not clusters:
+        sys.exit("refused: facts require at least one shaping cluster")
+    if not isinstance(glyphs, list) or not glyphs:
+        sys.exit("refused: facts require at least one placed glyph")
+
+    utf8_offsets = [0]
+    utf16_offsets = [0]
+    for character in scalars:
+        utf8_offsets.append(utf8_offsets[-1] + len(character.encode("utf-8")))
+        utf16_offsets.append(
+            utf16_offsets[-1] + len(character.encode("utf-16-le")) // 2
+        )
+
+    expected_scalar = 0
+    expected_glyph = 0
+    glyph_clusters = [None] * len(glyphs)
+    for cluster_index, cluster in enumerate(clusters):
+        if not isinstance(cluster, dict) or set(cluster) != {
+            "source_utf8",
+            "source_utf16",
+            "source_scalars",
+            "glyphs",
+        }:
+            sys.exit(f"refused: cluster fact {cluster_index} has the wrong fields")
+        ranges = [
+            cluster["source_utf8"],
+            cluster["source_utf16"],
+            cluster["source_scalars"],
+            cluster["glyphs"],
+        ]
+        if any(
+            not isinstance(span, list)
+            or len(span) != 2
+            or any(not isinstance(value, int) or isinstance(value, bool) for value in span)
+            or span[0] >= span[1]
+            for span in ranges
+        ):
+            sys.exit(f"refused: cluster fact {cluster_index} has an invalid range")
+        scalar_start, scalar_end = cluster["source_scalars"]
+        glyph_start, glyph_end = cluster["glyphs"]
         if (
-            glyph != expected
-            or not isinstance(glyph_id, int)
+            scalar_start != expected_scalar
+            or glyph_start != expected_glyph
+            or scalar_end > len(scalars)
+            or glyph_end > len(glyphs)
+            or cluster["source_utf8"] != [utf8_offsets[scalar_start], utf8_offsets[scalar_end]]
+            or cluster["source_utf16"]
+            != [utf16_offsets[scalar_start], utf16_offsets[scalar_end]]
+        ):
+            sys.exit(f"refused: cluster fact {cluster_index} does not cover source contiguously")
+        cluster_scalars = scalars[scalar_start:scalar_end]
+        glyph_count = glyph_end - glyph_start
+        direct = (
+            len(cluster_scalars) == 1
+            and direct_scalar(cluster_scalars[0])
+            and glyph_count == 1
+        )
+        one_mark = (
+            len(cluster_scalars) == 2
+            and cluster_scalars[0].isascii()
+            and cluster_scalars[0].isalpha()
+            and admitted_mark(cluster_scalars[1])
+            and glyph_count in {1, 2}
+        )
+        if not direct and not one_mark:
+            sys.exit(f"refused: cluster fact {cluster_index} is outside the v3 cardinality")
+        for glyph_index in range(glyph_start, glyph_end):
+            glyph_clusters[glyph_index] = cluster_index
+        expected_scalar = scalar_end
+        expected_glyph = glyph_end
+    if expected_scalar != len(scalars) or expected_glyph != len(glyphs):
+        sys.exit("refused: cluster facts do not cover the whole source and glyph stream")
+
+    pen_x = 0
+    for glyph_index, glyph in enumerate(glyphs):
+        if not isinstance(glyph, dict) or set(glyph) != {
+            "glyph_id",
+            "cluster_index",
+            "x",
+            "offset_x",
+            "offset_y",
+            "advance",
+        }:
+            sys.exit(f"refused: glyph fact {glyph_index} has the wrong fields")
+        glyph_id = glyph["glyph_id"]
+        cluster_index = glyph["cluster_index"]
+        placement = [glyph["x"], glyph["offset_x"], glyph["offset_y"], glyph["advance"]]
+        if (
+            not isinstance(glyph_id, int)
             or isinstance(glyph_id, bool)
             or not 1 <= glyph_id <= 65535
+            or not isinstance(cluster_index, int)
+            or isinstance(cluster_index, bool)
+            or cluster_index != glyph_clusters[glyph_index]
+            or any(
+                not isinstance(value, (int, float))
+                or isinstance(value, bool)
+                or not math.isfinite(value)
+                for value in placement
+            )
+            or glyph["advance"] < 0
+            or glyph["x"] != pen_x
         ):
-            sys.exit(f"refused: glyph fact {index} is not the direct source mapping")
-        source_utf8_byte += len(character.encode("utf-8"))
-        source_utf16_index += len(character.encode("utf-16-le")) // 2
+            sys.exit(f"refused: glyph fact {glyph_index} has invalid identity or placement")
+        cluster_glyphs = clusters[cluster_index]["glyphs"]
+        glyph_in_cluster = glyph_index - cluster_glyphs[0]
+        if cluster_glyphs[1] - cluster_glyphs[0] == 1:
+            valid_offset = glyph["offset_x"] == 0 and glyph["offset_y"] == 0
+        elif glyph_in_cluster == 0:
+            valid_offset = glyph["offset_x"] == 0 and glyph["offset_y"] == 0
+        else:
+            valid_offset = glyph["advance"] == 0
+        if not valid_offset:
+            sys.exit(f"refused: glyph fact {glyph_index} is outside v3 mark placement")
+        pen_x += glyph["advance"]
     ink_bounds = facts["ink_bounds"]
     if not isinstance(ink_bounds, dict) or set(ink_bounds) != {
         "x",

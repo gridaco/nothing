@@ -272,9 +272,9 @@ fn beyond_slice_text_constructs_refuse_by_name() {
             "stroke on <text>",
         ),
         (
-            // Outside textlayout-v2's explicit repertoire.
+            // Outside textlayout-v3's explicit repertoire.
             r##"<text x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X&#x5D0;</text>"##,
-            "outside textlayout-v2's admitted",
+            "outside textlayout-v3's admitted",
         ),
     ] {
         let error = compile(&svg(body)).expect_err("outside the admitted text slice");
@@ -415,7 +415,7 @@ fn direct_font_size_sources_remain_admitted_across_the_cascade() {
     }
 }
 
-/// Text semantics represented by Stylo but absent from oracle v2 must not
+/// Text semantics represented by Stylo but absent from oracle v3 must not
 /// become defaults silently. This includes the font shorthand and inherited
 /// declarations from ancestors, not only direct presentation attributes.
 #[test]

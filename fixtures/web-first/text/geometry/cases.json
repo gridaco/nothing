@@ -1,14 +1,130 @@
 {
-  "schema_version": 1,
-  "font": {
-    "family": "Allerta",
-    "path": "../../../fonts/Allerta/Allerta-Regular.ttf",
-    "sha256": "16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b",
-    "face_index": 0,
-    "license": "../../../fonts/Allerta/OFL.txt",
-    "license_sha256": "f81e6bb77d9f3f302d6264545b8abcd09dda0827fb4b62cf811ed59d6fd3a968"
-  },
+  "schema_version": 2,
+  "fonts": [
+    {
+      "family": "Allerta",
+      "path": "../../../fonts/Allerta/Allerta-Regular.ttf",
+      "sha256": "16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b",
+      "face_index": 0,
+      "license": "../../../fonts/Allerta/OFL.txt",
+      "license_sha256": "f81e6bb77d9f3f302d6264545b8abcd09dda0827fb4b62cf811ed59d6fd3a968"
+    },
+    {
+      "family": "Bungee",
+      "path": "../../../fonts/Bungee/Bungee-Regular.ttf",
+      "sha256": "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc",
+      "face_index": 0,
+      "license": "../../../fonts/Bungee/OFL.txt",
+      "license_sha256": "d5787a50dde5be6c6daecab9ed459939b1bc37cff0d0e00257eaf1ec2cf4c16c"
+    }
+  ],
   "cases": [
+    {
+      "id": "svg-text-allerta-decomposed-acute",
+      "source": "svg-text-allerta-decomposed-acute.svg",
+      "oracle": "chromium/svg-text-allerta-decomposed-acute.json",
+      "width": 5000,
+      "height": 500,
+      "text": "Ae\u0301Z",
+      "x": "0",
+      "y": "4080",
+      "text_anchor": "start",
+      "font_family": "Allerta",
+      "font_size": "5120",
+      "fill": "#111827",
+      "font_facts": {
+        "schema_version": 2,
+        "units_per_em": 1024,
+        "clusters": [
+          {
+            "source_utf8": [
+              0,
+              1
+            ],
+            "source_utf16": [
+              0,
+              1
+            ],
+            "source_scalars": [
+              0,
+              1
+            ],
+            "glyphs": [
+              0,
+              1
+            ]
+          },
+          {
+            "source_utf8": [
+              1,
+              4
+            ],
+            "source_utf16": [
+              1,
+              3
+            ],
+            "source_scalars": [
+              1,
+              3
+            ],
+            "glyphs": [
+              1,
+              2
+            ]
+          },
+          {
+            "source_utf8": [
+              4,
+              5
+            ],
+            "source_utf16": [
+              3,
+              4
+            ],
+            "source_scalars": [
+              3,
+              4
+            ],
+            "glyphs": [
+              2,
+              3
+            ]
+          }
+        ],
+        "glyphs": [
+          {
+            "glyph_id": 35,
+            "cluster_index": 0,
+            "x": 0,
+            "offset_x": 0,
+            "offset_y": 0,
+            "advance": 3795
+          },
+          {
+            "glyph_id": 141,
+            "cluster_index": 1,
+            "x": 3795,
+            "offset_x": 0,
+            "offset_y": 0,
+            "advance": 3320
+          },
+          {
+            "glyph_id": 60,
+            "cluster_index": 2,
+            "x": 7115,
+            "offset_x": 0,
+            "offset_y": 0,
+            "advance": 3225
+          }
+        ],
+        "ink_bounds": {
+          "x": 315,
+          "y": -3885,
+          "width": 9640,
+          "height": 3905
+        }
+      }
+    },
     {
       "id": "svg-text-allerta-geometry",
       "source": "svg-text-allerta-geometry.svg",
@@ -501,6 +617,234 @@
           "y": -5285,
           "width": 171085,
           "height": 6545
+        }
+      }
+    },
+    {
+      "id": "svg-text-bungee-acute-offset",
+      "source": "svg-text-bungee-acute-offset.svg",
+      "oracle": "chromium/svg-text-bungee-acute-offset.json",
+      "width": 3000,
+      "height": 1500,
+      "text": "Ax\u0301Z",
+      "x": "100",
+      "y": "1150",
+      "text_anchor": "start",
+      "font_family": "Bungee",
+      "font_size": "1000",
+      "fill": "#111827",
+      "font_facts": {
+        "schema_version": 2,
+        "units_per_em": 1000,
+        "clusters": [
+          {
+            "source_utf8": [
+              0,
+              1
+            ],
+            "source_utf16": [
+              0,
+              1
+            ],
+            "source_scalars": [
+              0,
+              1
+            ],
+            "glyphs": [
+              0,
+              1
+            ]
+          },
+          {
+            "source_utf8": [
+              1,
+              4
+            ],
+            "source_utf16": [
+              1,
+              3
+            ],
+            "source_scalars": [
+              1,
+              3
+            ],
+            "glyphs": [
+              1,
+              3
+            ]
+          },
+          {
+            "source_utf8": [
+              4,
+              5
+            ],
+            "source_utf16": [
+              3,
+              4
+            ],
+            "source_scalars": [
+              3,
+              4
+            ],
+            "glyphs": [
+              3,
+              4
+            ]
+          }
+        ],
+        "glyphs": [
+          {
+            "glyph_id": 2,
+            "cluster_index": 0,
+            "x": 0,
+            "offset_x": 0,
+            "offset_y": 0,
+            "advance": 730
+          },
+          {
+            "glyph_id": 773,
+            "cluster_index": 1,
+            "x": 730,
+            "offset_x": 0,
+            "offset_y": 0,
+            "advance": 737
+          },
+          {
+            "glyph_id": 975,
+            "cluster_index": 1,
+            "x": 1467,
+            "offset_x": -369,
+            "offset_y": 0,
+            "advance": 0
+          },
+          {
+            "glyph_id": 110,
+            "cluster_index": 2,
+            "x": 1467,
+            "offset_x": 0,
+            "offset_y": 0,
+            "advance": 660
+          }
+        ],
+        "ink_bounds": {
+          "x": 54,
+          "y": -961.39019775390625,
+          "width": 2027,
+          "height": 961.39019775390625
+        }
+      }
+    },
+    {
+      "id": "svg-text-bungee-double-acute-offset",
+      "source": "svg-text-bungee-double-acute-offset.svg",
+      "oracle": "chromium/svg-text-bungee-double-acute-offset.json",
+      "width": 3000,
+      "height": 1500,
+      "text": "Ax\u030bZ",
+      "x": "100",
+      "y": "1150",
+      "text_anchor": "start",
+      "font_family": "Bungee",
+      "font_size": "1000",
+      "fill": "#111827",
+      "font_facts": {
+        "schema_version": 2,
+        "units_per_em": 1000,
+        "clusters": [
+          {
+            "source_utf8": [
+              0,
+              1
+            ],
+            "source_utf16": [
+              0,
+              1
+            ],
+            "source_scalars": [
+              0,
+              1
+            ],
+            "glyphs": [
+              0,
+              1
+            ]
+          },
+          {
+            "source_utf8": [
+              1,
+              4
+            ],
+            "source_utf16": [
+              1,
+              3
+            ],
+            "source_scalars": [
+              1,
+              3
+            ],
+            "glyphs": [
+              1,
+              3
+            ]
+          },
+          {
+            "source_utf8": [
+              4,
+              5
+            ],
+            "source_utf16": [
+              3,
+              4
+            ],
+            "source_scalars": [
+              3,
+              4
+            ],
+            "glyphs": [
+              3,
+              4
+            ]
+          }
+        ],
+        "glyphs": [
+          {
+            "glyph_id": 2,
+            "cluster_index": 0,
+            "x": 0,
+            "offset_x": 0,
+            "offset_y": 0,
+            "advance": 730
+          },
+          {
+            "glyph_id": 773,
+            "cluster_index": 1,
+            "x": 730,
+            "offset_x": 0,
+            "offset_y": 0,
+            "advance": 737
+          },
+          {
+            "glyph_id": 984,
+            "cluster_index": 1,
+            "x": 1467,
+            "offset_x": -369,
+            "offset_y": -7,
+            "advance": 0
+          },
+          {
+            "glyph_id": 110,
+            "cluster_index": 2,
+            "x": 1467,
+            "offset_x": 0,
+            "offset_y": 0,
+            "advance": 660
+          }
+        ],
+        "ink_bounds": {
+          "x": 54,
+          "y": -1044,
+          "width": 2027,
+          "height": 1044
         }
       }
     }

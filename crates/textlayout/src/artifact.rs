@@ -36,7 +36,7 @@ pub struct ResolvedFace {
 /// Line metrics in local px: distances from the baseline, both positive
 /// (ascent reaches up, descent reaches down).
 ///
-/// Oracle v2's metric policy is the face's `hhea` ascent/descent as the
+/// Oracle v3 retains the face's `hhea` ascent/descent metric policy as the
 /// parser reports them; line gap (leading) is a declared deferral, arriving
 /// as a field when a consumer first needs line stacking. For the pinned gate
 /// font every metric table agrees, which is why the gate can hold before the
@@ -47,17 +47,18 @@ pub struct LineMetrics {
     pub descent: f32,
 }
 
-/// One shaping cluster's complete source/glyph cardinality at oracle v2.
+/// One shaping cluster's complete source/glyph cardinality at oracle v3.
 ///
-/// The source has two coordinate spaces on purpose. HarfBuzz clusters are
-/// seeded from UTF-8 byte offsets, while Web text APIs address UTF-16 code
-/// units. Oracle v2's precomposed Latin witness makes those ranges diverge;
-/// the artifact states both so no consumer can confuse either coordinate
-/// space with scalar indices.
+/// The source has three coordinate spaces on purpose. HarfBuzz clusters are
+/// seeded from UTF-8 byte offsets, Web text APIs address UTF-16 code units,
+/// and source grammar is stated in Unicode scalars. Precomposed and
+/// decomposed Latin make those ranges diverge; the artifact states all three
+/// so no consumer can confuse one with another.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ShapingCluster {
     source_utf8: Range<usize>,
     source_utf16: Range<usize>,
+    source_scalars: Range<usize>,
     glyphs: Range<usize>,
 }
 
@@ -65,11 +66,13 @@ impl ShapingCluster {
     pub(crate) fn new(
         source_utf8: Range<usize>,
         source_utf16: Range<usize>,
+        source_scalars: Range<usize>,
         glyphs: Range<usize>,
     ) -> Self {
         Self {
             source_utf8,
             source_utf16,
+            source_scalars,
             glyphs,
         }
     }
@@ -84,6 +87,12 @@ impl ShapingCluster {
         self.source_utf16.clone()
     }
 
+    /// Covered source Unicode-scalar indices. Kept distinct from both byte
+    /// and UTF-16 coordinates: combining text makes all three differ.
+    pub fn source_scalars(&self) -> Range<usize> {
+        self.source_scalars.clone()
+    }
+
     /// Contiguous placed-glyph indices belonging to this cluster.
     pub fn glyphs(&self) -> Range<usize> {
         self.glyphs.clone()
@@ -91,13 +100,19 @@ impl ShapingCluster {
 }
 
 /// One positioned glyph: identity, placement, and its mapping back to the
-/// source bytes that produced it.
+/// source cluster that produced it.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PlacedGlyph {
     /// Glyph identifier in the resolved face's space.
     pub glyph_id: u16,
     /// Pen x of this glyph's origin, in local px from the run origin.
     pub x: f32,
+    /// Shaper-provided displacement from the pen in local x-right px.
+    /// This does not alter the pen advance or cluster's logical cell.
+    pub offset_x: f32,
+    /// Shaper-provided displacement from the baseline in local y-down px.
+    /// Font/shaper y-up placement is flipped exactly once on admission.
+    pub offset_y: f32,
     /// This glyph's advance, in local px. The next pen position is
     /// `x + advance`; fractional advances are preserved.
     pub advance: f32,
@@ -107,7 +122,7 @@ pub struct PlacedGlyph {
 }
 
 /// Receives one glyph's outline in the artifact's local y-down px space,
-/// positioned at the glyph's pen origin on the baseline. The vocabulary
+/// positioned at the glyph's pen origin plus shaping offset. The vocabulary
 /// mirrors what shaping can produce (TrueType quadratics, CFF cubics);
 /// consumers translate into their own path types.
 pub trait OutlineSink {
@@ -118,7 +133,7 @@ pub trait OutlineSink {
     fn close(&mut self);
 }
 
-/// The immutable resolved text layout at oracle v2: one style run of
+/// The immutable resolved text layout at oracle v3: one style run of
 /// horizontal left-to-right text, already shaped, measured, and mapped.
 ///
 /// Consumers project, they do not re-resolve: painting realizes the recorded
@@ -189,14 +204,14 @@ impl ResolvedTextLayout {
         self.metrics
     }
 
-    /// Shaping clusters in logical order. Oracle v2's admitted LTR profile
+    /// Shaping clusters in logical order. Oracle v3's admitted LTR profile
     /// also makes this visual order; consumers must not assume that of a
     /// later bidi-capable version.
     pub fn clusters(&self) -> &[ShapingCluster] {
         &self.clusters
     }
 
-    /// The placed glyphs in visual order — which at oracle v2 is also
+    /// The placed glyphs in visual order — which at oracle v3 is also
     /// logical order, a fact of the LTR single-run profile rather than an
     /// assumption a consumer may carry to later versions.
     pub fn glyphs(&self) -> &[PlacedGlyph] {
@@ -228,7 +243,8 @@ impl ResolvedTextLayout {
     }
 
     /// Stream the outline of the glyph at `index` in [`Self::glyphs`] into
-    /// `sink`, positioned at its recorded pen origin, in local y-down px.
+    /// `sink`, positioned at its recorded pen origin plus shaping offset, in
+    /// local y-down px.
     /// Returns `false` for a glyph with no outline (the space): it
     /// contributes advance, not geometry, and a consumer emits nothing.
     ///
@@ -252,14 +268,27 @@ impl ResolvedTextLayout {
             unreachable!("resolved font bytes stopped parsing");
         };
         let scale = self.font_size / f32::from(self.face.units_per_em);
-        let mut flip = FlipSink {
-            sink,
-            pen_x: glyph.x,
-            scale,
-        };
-        face.outline_glyph(rustybuzz::ttf_parser::GlyphId(glyph.glyph_id), &mut flip)
-            .is_some()
+        stream_glyph_outline(&face, glyph, scale, sink)
     }
+}
+
+/// Stream one placed glyph through the single font-unit → artifact-space
+/// mapping. Resolution uses this same route to derive tight ink bounds, so
+/// bounds and realized paths cannot disagree about offsets or the y flip.
+pub(crate) fn stream_glyph_outline(
+    face: &rustybuzz::ttf_parser::Face<'_>,
+    glyph: &PlacedGlyph,
+    scale: f32,
+    sink: &mut dyn OutlineSink,
+) -> bool {
+    let mut flip = FlipSink {
+        sink,
+        origin_x: glyph.x + glyph.offset_x,
+        origin_y: glyph.offset_y,
+        scale,
+    };
+    face.outline_glyph(rustybuzz::ttf_parser::GlyphId(glyph.glyph_id), &mut flip)
+        .is_some()
 }
 
 impl std::fmt::Debug for ResolvedTextLayout {
@@ -281,16 +310,20 @@ impl std::fmt::Debug for ResolvedTextLayout {
 }
 
 /// Maps y-up font units onto the artifact's y-down local px space:
-/// `x' = pen + x·s`, `y' = −y·s`. The one home of the flip.
+/// `x' = pen + dx + x·s`, `y' = −dy − y·s`. The one home of the flip.
 struct FlipSink<'a> {
     sink: &'a mut dyn OutlineSink,
-    pen_x: f32,
+    origin_x: f32,
+    origin_y: f32,
     scale: f32,
 }
 
 impl FlipSink<'_> {
     fn map(&self, x: f32, y: f32) -> (f32, f32) {
-        (self.pen_x + x * self.scale, -y * self.scale)
+        (
+            self.origin_x + x * self.scale,
+            self.origin_y - y * self.scale,
+        )
     }
 }
 

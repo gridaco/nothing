@@ -18,9 +18,9 @@ renderer's corpora, which is the distinction this directory name carries.
 Every root primitive here is a closed enumeration in `primitives.json` with a
 committed Chromium oracle beside it. Text follows the ratified corpus-growth
 law in its own closed [text estate](./text/README.md): nine exact Ahem cells and
-three exact-number real-font artifact-geometry witnesses. The current evidence
-estate is 1,051 primitive cells plus 16 sampled frames, those twelve text
-witnesses, and 209 named refusal rows. Pixel cells use byte equality: what each
+six exact-number real-font artifact-geometry witnesses. The current evidence
+estate is 1,051 primitive cells plus 16 sampled frames, those fifteen text
+witnesses, and 211 named refusal rows. Pixel cells use byte equality: what each
 corpus admits is exactly what the engine renders pixel-for-pixel, except only
 the primitive rows carrying an explicit measured tolerance block. The
 real-font witness grades geometry before rasterization and makes no Chromium
@@ -28,7 +28,7 @@ pixel claim.
 
 | File | Role |
 | --- | --- |
-| `text/` | The closed text estate: nine exact Ahem pixel cells plus three Allerta artifact-geometry witnesses; see [`text/README.md`](./text/README.md). |
+| `text/` | The closed text estate: nine exact Ahem pixel cells plus six artifact-geometry witnesses (four Allerta, two Bungee); see [`text/README.md`](./text/README.md). |
 | `html-inline-svg-currentcolor-rect.html` | HTML whose `<style> .mark { color:#16a34a }` cascades to a `<rect class="mark">` inside inline `<svg>`. |
 | `svg-currentcolor-rect.svg` | The equivalent standalone SVG (carries `color` via an inline `style`). Renders identically. |
 | `svg-viewbox-uniform-offset-rect.svg` | A non-zero-origin `viewBox` with uniform 2× viewport mapping — the first supported non-identity viewport case. |

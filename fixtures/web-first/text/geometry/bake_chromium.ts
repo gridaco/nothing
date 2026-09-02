@@ -29,16 +29,18 @@ interface Case {
   font_size: string;
 }
 
+interface SuiteFont {
+  family: string;
+  path: string;
+  sha256: string;
+  face_index: number;
+  license: string;
+  license_sha256: string;
+}
+
 interface Suite {
   schema_version: number;
-  font: {
-    family: string;
-    path: string;
-    sha256: string;
-    face_index: number;
-    license: string;
-    license_sha256: string;
-  };
+  fonts: SuiteFont[];
   cases: Case[];
 }
 
@@ -55,11 +57,8 @@ function sha256(bytes: Uint8Array): string {
 async function main(): Promise<void> {
   const suiteBytes = await readFile(SUITE_PATH);
   const suite = JSON.parse(suiteBytes.toString("utf8")) as Suite;
-  if (suite.schema_version !== 1 || suite.cases.length === 0) {
+  if (suite.schema_version !== 2 || suite.fonts.length === 0 || suite.cases.length === 0) {
     throw new Error("unsupported or empty text geometry suite");
-  }
-  if (suite.font.face_index !== 0) {
-    throw new Error("the inline @font-face geometry baker admits face index 0 only");
   }
   let previous = "";
   const identities = new Set<string>();
@@ -76,14 +75,25 @@ async function main(): Promise<void> {
     previous = fixture.id;
   }
 
-  const fontBytes = await readFile(join(DIR, suite.font.path));
-  const fontDigest = sha256(fontBytes);
-  if (fontDigest !== suite.font.sha256) {
-    throw new Error(`declared font digest does not match ${suite.font.path}`);
-  }
-  const licenseBytes = await readFile(join(DIR, suite.font.license));
-  if (sha256(licenseBytes) !== suite.font.license_sha256) {
-    throw new Error(`declared license digest does not match ${suite.font.license}`);
+  const fontBytes = new Map<string, Buffer>();
+  let previousFamily = "";
+  for (const font of suite.fonts) {
+    if (font.family <= previousFamily || fontBytes.has(font.family)) {
+      throw new Error("geometry fonts must have unique families in sorted order");
+    }
+    if (font.face_index !== 0) {
+      throw new Error("the inline @font-face geometry baker admits face index 0 only");
+    }
+    const bytes = await readFile(join(DIR, font.path));
+    if (sha256(bytes) !== font.sha256) {
+      throw new Error(`declared font digest does not match ${font.path}`);
+    }
+    const licenseBytes = await readFile(join(DIR, font.license));
+    if (sha256(licenseBytes) !== font.license_sha256) {
+      throw new Error(`declared license digest does not match ${font.license}`);
+    }
+    fontBytes.set(font.family, bytes);
+    previousFamily = font.family;
   }
 
   const scriptBytes = await readFile(SCRIPT_PATH);
@@ -96,13 +106,17 @@ async function main(): Promise<void> {
   const records: unknown[] = [];
   try {
     for (const fixture of suite.cases) {
+      const bytes = fontBytes.get(fixture.font_family);
+      if (!bytes) {
+        throw new Error(`${fixture.id}: undeclared font family ${fixture.font_family}`);
+      }
       const sourcePath = join(DIR, fixture.source);
       const sourceBytes = await readFile(sourcePath);
       const source = sourceBytes.toString("utf8");
       if (source.includes("<script") || source.includes("@font-face")) {
         throw new Error(`${fixture.id}: fixture carries executable code or font bytes`);
       }
-      const declared = declareFontInSvg(source, suite.font.family, fontBytes);
+      const declared = declareFontInSvg(source, fixture.font_family, bytes);
       const page = await context.newPage();
       const capture = {
         media: "image/svg+xml" as const,
@@ -120,7 +134,7 @@ async function main(): Promise<void> {
       if (
         !first.font_ready ||
         first.text_content !== fixture.text ||
-        first.computed_font_family !== suite.font.family ||
+        first.computed_font_family !== fixture.font_family ||
         first.computed_font_size !== `${fixture.font_size}px` ||
         first.computed_text_anchor !== fixture.text_anchor
       ) {
@@ -154,6 +168,7 @@ async function main(): Promise<void> {
         oracle_sha256: sha256(await readFile(oraclePath)),
         width: fixture.width,
         height: fixture.height,
+        font_family: fixture.font_family,
       });
     }
   } finally {
@@ -162,7 +177,7 @@ async function main(): Promise<void> {
   }
 
   const manifest = {
-    schema_version: 1,
+    schema_version: 2,
     kind: "chromium-svg-text-geometry-oracle",
     browser_version: browserVersion,
     suite: "cases.json",
@@ -171,13 +186,13 @@ async function main(): Promise<void> {
     bake_script_sha256: sha256(scriptBytes),
     capture_module: CAPTURE_MODULE,
     capture_module_sha256: sha256(captureBytes),
-    font: {
-      family: suite.font.family,
-      sha256: suite.font.sha256,
-      face_index: suite.font.face_index,
-      license_sha256: suite.font.license_sha256,
+    fonts: suite.fonts.map((font) => ({
+      family: font.family,
+      sha256: font.sha256,
+      face_index: font.face_index,
+      license_sha256: font.license_sha256,
       declaration: "inline @font-face injected by the shared capture module",
-    },
+    })),
     capture_policy: {
       viewport: "the fixture's declared size as the initial viewport",
       device_scale_factor: 1,

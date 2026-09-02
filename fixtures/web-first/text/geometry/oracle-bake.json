@@ -1,20 +1,29 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "kind": "chromium-svg-text-geometry-oracle",
   "browser_version": "149.0.7827.55",
   "suite": "cases.json",
-  "suite_sha256": "87435a452051b83d38e08b21eff841dfdc33b2cfbdb31d5095da6b02826b38cf",
+  "suite_sha256": "3553c62dec36e062512263cece8410c146192b4cc4a3469befe68b67187b6723",
   "bake_script": "bake_chromium.ts",
-  "bake_script_sha256": "c77d4d047d93357958382b64d52eafb6fb03311c699233e7c34ead4e306b3196",
+  "bake_script_sha256": "2d7502ccec79cbf8a7597f934e851c0866ca62699a85fd0035894710a0be95f6",
   "capture_module": "../../chromium_capture.ts",
   "capture_module_sha256": "c66ee93e4f96d4f5c169254181d7cda14bb4254e07d65f64dec7f32f5bdcb296",
-  "font": {
-    "family": "Allerta",
-    "sha256": "16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b",
-    "face_index": 0,
-    "license_sha256": "f81e6bb77d9f3f302d6264545b8abcd09dda0827fb4b62cf811ed59d6fd3a968",
-    "declaration": "inline @font-face injected by the shared capture module"
-  },
+  "fonts": [
+    {
+      "family": "Allerta",
+      "sha256": "16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b",
+      "face_index": 0,
+      "license_sha256": "f81e6bb77d9f3f302d6264545b8abcd09dda0827fb4b62cf811ed59d6fd3a968",
+      "declaration": "inline @font-face injected by the shared capture module"
+    },
+    {
+      "family": "Bungee",
+      "sha256": "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc",
+      "face_index": 0,
+      "license_sha256": "d5787a50dde5be6c6daecab9ed459939b1bc37cff0d0e00257eaf1ec2cf4c16c",
+      "declaration": "inline @font-face injected by the shared capture module"
+    }
+  ],
   "capture_policy": {
     "viewport": "the fixture's declared size as the initial viewport",
     "device_scale_factor": 1,
@@ -35,13 +44,24 @@
   },
   "records": [
     {
+      "id": "svg-text-allerta-decomposed-acute",
+      "source": "svg-text-allerta-decomposed-acute.svg",
+      "source_sha256": "b06c9aa98a526d8d9cba623be06402141e480b7c9cb777c87abadaf8f7308bc2",
+      "oracle": "chromium/svg-text-allerta-decomposed-acute.json",
+      "oracle_sha256": "a55cf11c040a5d20a78515ae188a0426f8d4d479d0dde0e500c153d048b4d7b6",
+      "width": 5000,
+      "height": 500,
+      "font_family": "Allerta"
+    },
+    {
       "id": "svg-text-allerta-geometry",
       "source": "svg-text-allerta-geometry.svg",
       "source_sha256": "efe59a9377fd45559ab9cd5299b55a9e0a2b15b841bf85030a0309d619a4078e",
       "oracle": "chromium/svg-text-allerta-geometry.json",
       "oracle_sha256": "5bdd572e763f87fae10cccfc9b5e5cb3ad57a41ee8bcbd10c3a05c2d7af4a385",
       "width": 1200,
-      "height": 500
+      "height": 500,
+      "font_family": "Allerta"
     },
     {
       "id": "svg-text-allerta-kerning",
@@ -50,7 +70,8 @@
       "oracle": "chromium/svg-text-allerta-kerning.json",
       "oracle_sha256": "7ae0a1b9d1eecaace690b470b9048cf9e09285156097bdb8c6c426bbcb42609f",
       "width": 5000,
-      "height": 500
+      "height": 500,
+      "font_family": "Allerta"
     },
     {
       "id": "svg-text-allerta-latin-precomposed",
@@ -59,7 +80,28 @@
       "oracle": "chromium/svg-text-allerta-latin-precomposed.json",
       "oracle_sha256": "0964d7ee84817639ef78166a41cb43045f872759eb602920dad03bc259deaae5",
       "width": 5000,
-      "height": 500
+      "height": 500,
+      "font_family": "Allerta"
+    },
+    {
+      "id": "svg-text-bungee-acute-offset",
+      "source": "svg-text-bungee-acute-offset.svg",
+      "source_sha256": "34a0d4968544dad22cbd158a1112f7cbb58327b4390c609d58e3141e647f1d81",
+      "oracle": "chromium/svg-text-bungee-acute-offset.json",
+      "oracle_sha256": "8bc24a4505c19bfb27fd404953bccf401e297c25bbed7f4e1574f16651fbf217",
+      "width": 3000,
+      "height": 1500,
+      "font_family": "Bungee"
+    },
+    {
+      "id": "svg-text-bungee-double-acute-offset",
+      "source": "svg-text-bungee-double-acute-offset.svg",
+      "source_sha256": "7d4c4f3cc994a1b433de3b407f909d708abd8bc53f0a54161fd7cd7cfa273474",
+      "oracle": "chromium/svg-text-bungee-double-acute-offset.json",
+      "oracle_sha256": "c96906a2d87314ac9d3dfa66c6a32e15a9c0a4d598357086af121aec32749c56",
+      "width": 3000,
+      "height": 1500,
+      "font_family": "Bungee"
     }
   ]
 }

@@ -1873,6 +1873,20 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > complete font/text grammar remain open. No CSS, SVG element, or SVG
 > presentation row ticks.
 
+> **2026-09-02 combining-cluster checkpoint:** T3c advances the text oracle
+> to v3 and admits U+0301/U+030B only as one mark immediately after an ASCII
+> Latin letter. One Allerta witness proves the composed-glyph branch while
+> preserving separate source scalars and shared Chromium character geometry;
+> two Bungee witnesses prove a separate zero-advance mark glyph with x offset
+> -369 and, for U+030B, local y offset -7. The artifact now records source
+> scalar ranges and placed-glyph offsets, and derives tight bounds from the
+> same curve stream painting consumes. Leading, repeated, non-letter-attached,
+> missing-glyph, and unlisted-mark routes refuse by three bounded rows. The
+> real-font geometry estate moves from three to six witnesses and the named
+> register from 209 to 211. General combining text, ligature carets, fallback,
+> wider Unicode/shaping controls, multiple runs, and the complete `<text>`
+> grammar remain open. No CSS, SVG element, or SVG presentation row ticks.
+
 
 ### SVG presentation attributes
 
