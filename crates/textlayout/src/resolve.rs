@@ -11,6 +11,9 @@ use crate::artifact::{
     ShapingCluster, stream_glyph_outline,
 };
 use crate::environment::Environment;
+use crate::source::{
+    SourceRun, SourceRunCoverageError, SourceRunTag, source_run_tag_at, validate_source_runs,
+};
 
 /// The complete layout-affecting style of the one run oracle v3 admits.
 #[derive(Clone, Debug)]
@@ -22,20 +25,65 @@ pub struct Style {
     pub size: f32,
 }
 
-/// Attributed source at the v3 profile: one string under one complete style.
+/// Attributed source at the v3 profile: one string under one complete
+/// layout-affecting style, plus complete source-run coverage carrying opaque
+/// caller tags.
+///
 /// The authoring layer owns document-level transformations — whitespace
 /// collapsing, entity expansion — and hands resolution the post-transform
-/// text; resolution never rewrites what it is given.
+/// text; resolution never rewrites what it is given. Source-run boundaries
+/// are metadata-only and do not split the one shaping operation.
 #[derive(Clone, Debug)]
 pub struct AttributedText {
-    pub text: String,
-    pub style: Style,
+    text: String,
+    style: Style,
+    source_runs: Vec<SourceRun>,
+}
+
+impl AttributedText {
+    /// Construct attributed text with explicit complete source-run coverage.
+    /// Validity is decided by [`resolve`], which returns a typed coverage
+    /// error before doing font work or shaping.
+    pub fn new(text: String, style: Style, source_runs: Vec<SourceRun>) -> Self {
+        Self {
+            text,
+            style,
+            source_runs,
+        }
+    }
+
+    /// The explicit one-selection spelling. Non-empty text receives one run
+    /// over the complete source; empty text receives the only valid empty
+    /// coverage. No implicit tag exists.
+    pub fn single_source_run(text: String, style: Style, tag: SourceRunTag) -> Self {
+        let source_runs = if text.is_empty() {
+            Vec::new()
+        } else {
+            vec![SourceRun::new(0..text.len(), tag)]
+        };
+        Self::new(text, style, source_runs)
+    }
+
+    pub fn text(&self) -> &str {
+        &self.text
+    }
+
+    pub const fn style(&self) -> &Style {
+        &self.style
+    }
+
+    pub fn source_runs(&self) -> &[SourceRun] {
+        &self.source_runs
+    }
 }
 
 /// Why resolution refused. Typed, named, and carrying the byte position
 /// where one exists — a consumer surfaces these at a stable node path.
 #[derive(Clone, Debug, PartialEq)]
 pub enum ResolveError {
+    /// Source-run coverage is not an exact ordered partition of the source
+    /// on UTF-8 scalar boundaries.
+    InvalidSourceRunCoverage(SourceRunCoverageError),
     /// `size` is not a finite positive number.
     InvalidFontSize { size: f32 },
     /// The declared family is not in the environment's manifest. There is
@@ -87,6 +135,7 @@ pub enum ResolveError {
 impl std::fmt::Display for ResolveError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            ResolveError::InvalidSourceRunCoverage(error) => error.fmt(f),
             ResolveError::InvalidFontSize { size } => {
                 write!(f, "font-size {size} is not a finite positive length")
             }
@@ -159,6 +208,11 @@ pub fn resolve(
     text: &AttributedText,
     env: &Environment,
 ) -> Result<ResolvedTextLayout, ResolveError> {
+    // Source coverage is contract input, validated before font lookup or the
+    // one shaping call. Nothing repairs a gap or guesses a missing tag.
+    validate_source_runs(&text.text, &text.source_runs)
+        .map_err(ResolveError::InvalidSourceRunCoverage)?;
+
     let size = text.style.size;
     if !size.is_finite() || size <= 0.0 {
         return Err(ResolveError::InvalidFontSize { size });
@@ -217,7 +271,7 @@ pub fn resolve(
     // shipped and the T3 probes measured; v3 keeps that fact explicit.
     buffer.set_cluster_level(rustybuzz::BufferClusterLevel::MonotoneGraphemes);
     let shaped = rustybuzz::shape(&face, &[], buffer);
-    let clusters = admitted_clusters(&text.text, shaped.glyph_infos())?;
+    let clusters = admitted_clusters(&text.text, &text.source_runs, shaped.glyph_infos())?;
 
     let mut glyphs = Vec::with_capacity(shaped.len());
     let mut pen_x = 0.0f32;
@@ -308,6 +362,7 @@ pub fn resolve(
             offset_y,
             advance,
             cluster_index,
+            source_run_tag: cluster.source_run_tag(),
         });
         pen_x = next_pen_x;
     }
@@ -321,6 +376,7 @@ pub fn resolve(
 
     Ok(ResolvedTextLayout::new(
         text.text.clone(),
+        text.source_runs.clone(),
         resolved_face,
         size,
         metrics,
@@ -339,6 +395,7 @@ pub fn resolve(
 /// artifact.
 fn admitted_clusters(
     source: &str,
+    source_runs: &[SourceRun],
     infos: &[rustybuzz::GlyphInfo],
 ) -> Result<Vec<ShapingCluster>, ResolveError> {
     if source.is_empty() {
@@ -414,6 +471,7 @@ fn admitted_clusters(
             source_utf16_start..source_utf16_end,
             source_scalar_start..source_scalar_end,
             glyph_start..glyph_end,
+            source_run_tag_at(source_runs, source_utf8_start),
         ));
         glyph_start = glyph_end;
         source_utf16_start = source_utf16_end;

@@ -147,10 +147,12 @@ land on an integer device coordinate after the full CTM, so integer local
 inputs qualify only under a transform that preserves them — the slice admits
 `<text>` under identity and integer-translation CTMs first, and a scaling,
 rotating, or fractional transform above a text node refuses by name like any
-other out-of-domain number. Which *constructs* are admitted (single run, LTR;
-no `tspan`, `dx`/`dy`/`rotate` lists, `direction`, `textLength`, …) is owned
-by the slice's statement of record per standing practice; rung A's pipeline
-claim gates the admitted slice, not all of SVG text.
+other out-of-domain number. At ratification the admitted constructs were one
+LTR run with no `tspan`, `dx`/`dy`/`rotate` lists, `direction`, or `textLength`;
+the dated evidence addenda below advance only explicitly measured splits. The
+slice's statement of record owns the current construct boundary per standing
+practice. Rung A's pipeline claim gates that admitted slice, not all of SVG
+text.
 
 Everything outside the domain **refuses by name at a stable node path** — the
 standing law, now applied to numbers. Chromium's snapping behavior is a
@@ -502,4 +504,45 @@ refusal with three bounded rows moves the named register from 209 to 211.
 Ligatures and internal carets, general combining sequences, font fallback,
 wider Unicode, script/language/feature inputs, multiple runs, and every
 complete font/text grammar remain open. No shared render-contract fact is
+added, no conformance score is produced, and no FLIP record changes.
+
+## T4a evidence addendum — paint-only source runs (2026-09-03)
+
+The verdict is ADMIT/SPLIT, with no checklist closure. Flat direct `<tspan>`
+children may partition one `<text>` source only by opaque solid fill while
+preserving the resolved face, size, direction, position, and effect envelope.
+Whitespace collapse, shaping, and anchoring happen once over the complete
+source. The producer then projects the resulting glyphs into ordinary path
+nodes selected by opaque source-run tags; no text/run fact enters `rframe`.
+
+The artifact validates exact ordered UTF-8 source-run coverage at Unicode
+scalar boundaries before font work. Every cluster and glyph carries the tag
+of the cluster's first source scalar, including when an authored run boundary
+falls inside a combining cluster. This association is metadata only and does
+not alter geometry, so the oracle remains v3.
+
+The committed Allerta `ff` witness crosses a child paint boundary and retains
+Chromium's exact 2330/2355 advances and 4685 total; independently shaping the
+two runs would produce 2355/2355 and 4710. Bungee probes establish that a
+mark-only child does not recolor an attached mark, while a child owning the
+base recolors the whole cluster (measured, not celled). The exact Ahem cell
+crosses parent/child paints, inherited paint, whitespace, and middle anchor.
+Replacing every child paint with the parent changes 1,600 pixels at maximum
+channel delta 197; anchoring runs independently changes 1,200 pixels at delta
+218. An off-grid Allerta 1000px same-paint wrapper changes query geometry by
+1/64 and 2,752 raster pixels, but that source is already refused by the
+ratified query-grid boundary (measured, not celled).
+
+Four focused rows replace the blanket child refusal: positioning and lists,
+shaping-style changes, non-opaque/wider paint and effects, and nested content.
+Both admissions stop at the same parent text node. Sensitivity was proved at
+both seams: nominal per-glyph advances failed the geometry gate at 4710 versus
+4685, and parent-paint-only projection failed the Ahem oracle by exactly 1,600
+pixels. Restoring both returned the complete gate to green.
+
+The text estate is now ten exact Ahem cells plus seven exact-number geometry
+witnesses (five Allerta and two Bungee). Replacing one broad refusal with four
+focused rows moves the named register from 211 to 214. Positioning, shaping
+style, wider paint/effects, nesting, font selection, and the complete
+`<text>`/`<tspan>` grammars remain open. No shared render-contract fact is
 added, no conformance score is produced, and no FLIP record changes.

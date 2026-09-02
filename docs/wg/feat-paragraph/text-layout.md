@@ -140,6 +140,16 @@ when exposed. Paint-only values may remain associated with source ranges, but
 they do not change shaping or invalidate layout unless their semantics alter
 geometry.
 
+Source-run coverage is validated before font selection or shaping: ranges are
+ordered, non-empty, scalar-boundary-aligned, non-overlapping, and exactly cover
+the source. Paint-only associations are opaque to resolution. The artifact
+carries each cluster's association to its glyphs; a boundary inside one
+shaping cluster never licenses a consumer to reshape the fragments
+independently. The minimal horizontal profile assigns the complete cluster to
+the association owning its first source scalar. A later oracle may choose a
+different explicit ownership policy, but it must version and expose that
+choice rather than infer it during paint.
+
 Authored source is not Unicode-normalized by default. If a source feature
 transforms text before shaping—for example case transformation—the
 transformation policy is an explicit input and the result retains a complete
@@ -420,6 +430,9 @@ including:
 
 Paint-only changes need not invalidate the geometry artifact. A cache that
 also stores painted output must key that output on the paint state separately.
+Adding opaque paint associations without changing source text, shaping inputs,
+or resolved geometry does not by itself require a new oracle version; changing
+their cluster-ownership semantics does.
 The arrival or replacement of a font resource creates a new environment
 identity and a new resolved artifact; a supposedly immutable result is never
 patched in place by a late font swap.

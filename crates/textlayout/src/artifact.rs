@@ -12,6 +12,7 @@ use std::sync::Arc;
 
 use crate::ORACLE_VERSION;
 use crate::environment::FontKey;
+use crate::source::{SourceRun, SourceRunTag};
 
 /// An axis-aligned box in the artifact's local space. Deliberately this
 /// crate's own four floats: the artifact depends on no geometry vocabulary,
@@ -60,6 +61,7 @@ pub struct ShapingCluster {
     source_utf16: Range<usize>,
     source_scalars: Range<usize>,
     glyphs: Range<usize>,
+    source_run_tag: SourceRunTag,
 }
 
 impl ShapingCluster {
@@ -68,12 +70,14 @@ impl ShapingCluster {
         source_utf16: Range<usize>,
         source_scalars: Range<usize>,
         glyphs: Range<usize>,
+        source_run_tag: SourceRunTag,
     ) -> Self {
         Self {
             source_utf8,
             source_utf16,
             source_scalars,
             glyphs,
+            source_run_tag,
         }
     }
 
@@ -97,6 +101,12 @@ impl ShapingCluster {
     pub fn glyphs(&self) -> Range<usize> {
         self.glyphs.clone()
     }
+
+    /// The opaque source-run tag covering this cluster's first authored
+    /// scalar. A source-run boundary inside the cluster never splits it.
+    pub const fn source_run_tag(&self) -> SourceRunTag {
+        self.source_run_tag
+    }
 }
 
 /// One positioned glyph: identity, placement, and its mapping back to the
@@ -119,6 +129,16 @@ pub struct PlacedGlyph {
     /// Index into [`ResolvedTextLayout::clusters`]. This is an explicit
     /// association, not a source-offset guess reconstructed by a consumer.
     pub cluster_index: usize,
+    /// The same immutable source-run association as the glyph's cluster.
+    /// Private so callers cannot construct a glyph whose two associations
+    /// disagree; use [`Self::source_run_tag`] to inspect it.
+    pub(crate) source_run_tag: SourceRunTag,
+}
+
+impl PlacedGlyph {
+    pub const fn source_run_tag(&self) -> SourceRunTag {
+        self.source_run_tag
+    }
 }
 
 /// Receives one glyph's outline in the artifact's local y-down px space,
@@ -143,6 +163,7 @@ pub trait OutlineSink {
 pub struct ResolvedTextLayout {
     oracle_version: &'static str,
     source: String,
+    source_runs: Vec<SourceRun>,
     face: ResolvedFace,
     font_size: f32,
     metrics: LineMetrics,
@@ -159,6 +180,7 @@ impl ResolvedTextLayout {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         source: String,
+        source_runs: Vec<SourceRun>,
         face: ResolvedFace,
         font_size: f32,
         metrics: LineMetrics,
@@ -171,6 +193,7 @@ impl ResolvedTextLayout {
         Self {
             oracle_version: ORACLE_VERSION,
             source,
+            source_runs,
             face,
             font_size,
             metrics,
@@ -190,6 +213,11 @@ impl ResolvedTextLayout {
     /// The exact source text this resolution shaped.
     pub fn source(&self) -> &str {
         &self.source
+    }
+
+    /// The exact validated source-run coverage supplied to resolution.
+    pub fn source_runs(&self) -> &[SourceRun] {
+        &self.source_runs
     }
 
     pub fn face(&self) -> &ResolvedFace {
@@ -216,6 +244,19 @@ impl ResolvedTextLayout {
     /// assumption a consumer may carry to later versions.
     pub fn glyphs(&self) -> &[PlacedGlyph] {
         &self.glyphs
+    }
+
+    /// Placed-glyph indices associated with `tag`, in this artifact's glyph
+    /// order. A source run wholly inside a cluster may intentionally own no
+    /// glyphs: the cluster belongs to the tag covering its first scalar.
+    pub fn glyph_indices_for_source_run(
+        &self,
+        tag: SourceRunTag,
+    ) -> impl Iterator<Item = usize> + '_ {
+        self.glyphs
+            .iter()
+            .enumerate()
+            .filter_map(move |(index, glyph)| (glyph.source_run_tag == tag).then_some(index))
     }
 
     /// The run's total advance in local px. An anchor policy (SVG
@@ -298,6 +339,7 @@ impl std::fmt::Debug for ResolvedTextLayout {
         f.debug_struct("ResolvedTextLayout")
             .field("oracle_version", &self.oracle_version)
             .field("source", &self.source)
+            .field("source_runs", &self.source_runs)
             .field("face", &self.face)
             .field("font_size", &self.font_size)
             .field("metrics", &self.metrics)

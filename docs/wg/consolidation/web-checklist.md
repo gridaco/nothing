@@ -1887,6 +1887,22 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > wider Unicode/shaping controls, multiple runs, and the complete `<text>`
 > grammar remain open. No CSS, SVG element, or SVG presentation row ticks.
 
+> **2026-09-03 paint-only source-run checkpoint:** T4a admits flat direct
+> `<tspan>` children only when they preserve one resolved face, size,
+> position, direction, and effect envelope and partition the source by opaque
+> solid fill. Whitespace collapses once across the subtree, the complete
+> string shapes once, and the parent anchor applies once; opaque source-run
+> tags then project the shaped glyphs to ordinary painted paths. The seventh
+> exact geometry witness keeps Allerta `ff` at Chromium's 2330/2355 advances
+> and 4685 total across a paint boundary; independent shaping would total
+> 4710. One new exact Ahem cell makes child paint, global whitespace, and
+> one-anchor behavior visible. Position resets/lists, shaping-style changes,
+> opacity/effects and wider paint, and nested child content remain four
+> focused stable refusals, moving the named register from 211 to 214. The
+> text estate is now ten Ahem cells plus seven exact geometry witnesses (five
+> Allerta and two Bungee). The complete `<text>` and `<tspan>` grammars remain
+> open, so no CSS, SVG element, or SVG presentation row ticks.
+
 
 ### SVG presentation attributes
 

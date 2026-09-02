@@ -10,13 +10,15 @@
 //!     -> resolved text layout | typed resolution failure     (oracle v3)
 //! ```
 //!
-//! **Oracle v3 resolves one style run of printable-ASCII plus the canonical
-//! precomposed Latin-1 letters whose decomposition is one ASCII Latin base
-//! and one combining mark, plus one U+0301 or U+030B after an ASCII Latin
-//! base. It is horizontal and left-to-right; a cluster is either one direct
-//! scalar/glyph or one base-plus-mark composing to one glyph or attaching one
-//! zero-advance glyph with explicit x/y offsets. There is no wrapping,
-//! fallback, or synthesis.**
+//! **Oracle v3 resolves one layout-affecting style over printable-ASCII plus
+//! the canonical precomposed Latin-1 letters whose decomposition is one ASCII
+//! Latin base and one combining mark, plus one U+0301 or U+030B after an ASCII
+//! Latin base. Complete source-run coverage may carry opaque caller tags;
+//! those boundaries do not split shaping, and every cluster and glyph keeps
+//! the tag covering the cluster's first source scalar. It is horizontal and
+//! left-to-right; a cluster is either one direct scalar/glyph or one
+//! base-plus-mark composing to one glyph or attaching one zero-advance glyph
+//! with explicit x/y offsets. There is no wrapping, fallback, or synthesis.**
 //! The repertoire is an explicit admit-list enforced by the resolver
 //! itself — never an accident of a font's coverage — and everything outside
 //! the profile is a typed refusal, not an approximation. Coverage grows by
@@ -50,6 +52,7 @@
 mod artifact;
 mod environment;
 mod resolve;
+mod source;
 
 pub use artifact::{
     BoundsBox, LineMetrics, OutlineSink, PlacedGlyph, ResolvedFace, ResolvedTextLayout,
@@ -57,6 +60,7 @@ pub use artifact::{
 };
 pub use environment::{Environment, FontKey, FontResource};
 pub use resolve::{AttributedText, ResolveError, Style, resolve};
+pub use source::{SourceRun, SourceRunCoverageError, SourceRunTag};
 
 /// The complete geometry-producing policy this crate currently implements.
 ///
@@ -65,4 +69,9 @@ pub use resolve::{AttributedText, ResolveError, Style, resolve};
 /// the manifest pins the shaper exactly — requires a new version. A resolved
 /// artifact records the version that produced it; "latest" is not a durable
 /// identity.
+///
+/// Opaque source-run tags are metadata, not geometry-producing policy. They
+/// therefore do not advance v3: the whole source is still sent through the
+/// pinned shaper once, and the existing glyph, position, metric, cluster, and
+/// bound answer is unchanged.
 pub const ORACLE_VERSION: &str = "textlayout-v3";

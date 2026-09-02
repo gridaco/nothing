@@ -215,13 +215,14 @@ fn web_environment() -> textlayout::Environment {
 
 fn web_layout(text: &str) -> textlayout::ResolvedTextLayout {
     textlayout::resolve(
-        &textlayout::AttributedText {
-            text: text.to_string(),
-            style: textlayout::Style {
+        &textlayout::AttributedText::single_source_run(
+            text.to_string(),
+            textlayout::Style {
                 family: "Ahem".to_string(),
                 size: FONT_SIZE,
             },
-        },
+            textlayout::SourceRunTag::new(0),
+        ),
         &web_environment(),
     )
     .expect("the overlapping run is inside the v0 profile")
@@ -795,13 +796,14 @@ fn beyond_the_overlap_the_second_producer_still_does_not_exist() {
     assert_eq!(layout.lines.len(), 2, "n0 resolves the two-line source");
 
     let error = textlayout::resolve(
-        &textlayout::AttributedText {
-            text: "A\nB".to_string(),
-            style: textlayout::Style {
+        &textlayout::AttributedText::single_source_run(
+            "A\nB".to_string(),
+            textlayout::Style {
                 family: "Ahem".to_string(),
                 size: FONT_SIZE,
             },
-        },
+            textlayout::SourceRunTag::new(0),
+        ),
         &web_environment(),
     )
     .expect_err("the Web producer refuses the same source by profile");

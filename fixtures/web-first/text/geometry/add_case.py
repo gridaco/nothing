@@ -4,12 +4,14 @@
 Usage:
     python3 add_case.py <id> --source <svg> --facts <json>
 
-The source must use the suite's canonical one-run shape. `facts` records the
-font-derived evidence Chromium cannot expose: units-per-em, complete cluster
-and glyph placement mappings, and outline ink bounds. New cases require the v2
-placed-glyph fact shape. The manifest's immutable pre-T3c cases retain their
-legacy direct-scalar shape; this command neither creates nor migrates that
-historical form.
+The source must use the suite's canonical text shape. It may contain direct
+text only, or direct text plus flat paint-only `<tspan fill="…">` children.
+`facts` records the font-derived evidence Chromium cannot expose:
+units-per-em, complete source-run/cluster/glyph placement mappings, and outline
+ink bounds. Flat tspans require v3 facts with explicit run tags; new direct
+text cases retain the v2 placed-glyph shape. The manifest's immutable pre-T3c
+cases retain their legacy direct-scalar shape; this command neither creates
+nor migrates that historical form.
 """
 
 import argparse
@@ -20,6 +22,7 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from typing import Optional
 
 DIR = Path(__file__).resolve().parent
 MANIFEST = DIR / "cases.json"
@@ -64,13 +67,26 @@ def admitted_source(scalars: list[str]) -> bool:
 
 
 def canonical(case: dict) -> str:
+    if case.get("source_runs"):
+        content_bytes = case["text"].encode("utf-8")
+        fragments = []
+        for run in case["source_runs"]:
+            start, end = run["source_utf8"]
+            fragment = content_bytes[start:end].decode("utf-8")
+            if run["owner"] == "text":
+                fragments.append(fragment)
+            else:
+                fragments.append(f'<tspan fill="{run["fill"]}">{fragment}</tspan>')
+        markup = "".join(fragments)
+    else:
+        markup = case["text"]
     return (
         f'<svg xmlns="{SVG_NS}" width="{case["width"]}" height="{case["height"]}">\n'
         f'  <text x="{case["x"]}" y="{case["y"]}" '
         f'text-anchor="{case["text_anchor"]}" '
         f'font-family="{case["font_family"]}" '
         f'font-size="{case["font_size"]}" fill="{case["fill"]}">'
-        f'{case["text"]}</text>\n'
+        f'{markup}</text>\n'
         "</svg>\n"
     )
 
@@ -88,7 +104,7 @@ def main() -> None:
     manifest_file = MANIFEST.open("r+", encoding="utf-8")
     fcntl.flock(manifest_file.fileno(), fcntl.LOCK_EX)
     suite = json.load(manifest_file)
-    if suite.get("schema_version") != 2:
+    if suite.get("schema_version") != 3:
         sys.exit("refused: unsupported geometry suite schema")
     source = Path(args.source).read_text()
     if "<!DOCTYPE" in source or "<script" in source or "@font-face" in source:
@@ -104,9 +120,33 @@ def main() -> None:
         sys.exit("refused: expected exactly one direct <text> child")
     text = children[0]
     required = {"x", "y", "text-anchor", "font-family", "font-size", "fill"}
-    if set(text.attrib) != required or list(text):
-        sys.exit("refused: the one text run has only the canonical attributes and no children")
-    content = text.text or ""
+    if set(text.attrib) != required:
+        sys.exit("refused: the text element has only the canonical attributes")
+
+    fragments = []
+    has_tspan = False
+
+    def append_fragment(
+        value: Optional[str], owner: str, fill: Optional[str] = None
+    ) -> None:
+        if value:
+            fragments.append({"text": value, "owner": owner, "fill": fill})
+
+    append_fragment(text.text, "text")
+    for child in list(text):
+        if (
+            child.tag != f"{{{SVG_NS}}}tspan"
+            or set(child.attrib) != {"fill"}
+            or list(child)
+        ):
+            sys.exit(
+                "refused: text children are flat <tspan> elements carrying exactly one fill attribute"
+            )
+        has_tspan = True
+        append_fragment(child.text, "tspan", child.attrib["fill"])
+        append_fragment(child.tail, "text")
+
+    content = "".join(fragment["text"] for fragment in fragments)
     scalars = list(content)
     if not scalars or not admitted_source(scalars):
         sys.exit("refused: the witness must stay inside textlayout-v3's exact repertoire")
@@ -135,18 +175,22 @@ def main() -> None:
         sys.exit("refused: dimensions and finite font size must be positive")
 
     facts = json.loads(Path(args.facts).read_text())
-    if not isinstance(facts, dict) or set(facts) != {
+    required_fact_fields = {
         "schema_version",
         "units_per_em",
         "clusters",
         "glyphs",
         "ink_bounds",
-    }:
+    }
+    if has_tspan:
+        required_fact_fields.add("source_runs")
+    if not isinstance(facts, dict) or set(facts) != required_fact_fields:
         sys.exit(
-            "refused: facts must name schema_version, units_per_em, clusters, glyphs, and ink_bounds"
+            f"refused: facts must name exactly {sorted(required_fact_fields)}"
         )
-    if facts["schema_version"] != 2:
-        sys.exit("refused: new geometry facts must use schema version 2")
+    expected_fact_schema = 3 if has_tspan else 2
+    if facts["schema_version"] != expected_fact_schema:
+        sys.exit(f"refused: this geometry source requires fact schema {expected_fact_schema}")
     units_per_em = facts["units_per_em"]
     if (
         not isinstance(units_per_em, int)
@@ -169,16 +213,54 @@ def main() -> None:
             utf16_offsets[-1] + len(character.encode("utf-16-le")) // 2
         )
 
+    parsed_source_runs = []
+    source_byte = 0
+    for fragment in fragments:
+        end = source_byte + len(fragment["text"].encode("utf-8"))
+        parsed_source_runs.append(
+            {
+                "source_utf8": [source_byte, end],
+                "owner": fragment["owner"],
+                "fill": fragment["fill"],
+            }
+        )
+        source_byte = end
+    source_runs = []
+    if has_tspan:
+        supplied_runs = facts["source_runs"]
+        if not isinstance(supplied_runs, list) or len(supplied_runs) != len(parsed_source_runs):
+            sys.exit("refused: v3 source-run facts must match every non-empty source fragment")
+        for run_index, (parsed, supplied) in enumerate(zip(parsed_source_runs, supplied_runs)):
+            if (
+                not isinstance(supplied, dict)
+                or set(supplied) != {"source_utf8", "tag"}
+                or supplied["source_utf8"] != parsed["source_utf8"]
+                or not isinstance(supplied["tag"], int)
+                or isinstance(supplied["tag"], bool)
+                or not 0 <= supplied["tag"] <= 0xFFFFFFFF
+            ):
+                sys.exit(f"refused: source-run fact {run_index} does not match the source")
+            source_runs.append({**parsed, "tag": supplied["tag"]})
+
+    def tag_at(byte_index: int) -> int:
+        for run in source_runs:
+            if run["source_utf8"][0] <= byte_index < run["source_utf8"][1]:
+                return run["tag"]
+        raise AssertionError("validated source runs cover every source byte")
+
     expected_scalar = 0
     expected_glyph = 0
     glyph_clusters = [None] * len(glyphs)
     for cluster_index, cluster in enumerate(clusters):
-        if not isinstance(cluster, dict) or set(cluster) != {
+        cluster_fields = {
             "source_utf8",
             "source_utf16",
             "source_scalars",
             "glyphs",
-        }:
+        }
+        if has_tspan:
+            cluster_fields.add("source_run_tag")
+        if not isinstance(cluster, dict) or set(cluster) != cluster_fields:
             sys.exit(f"refused: cluster fact {cluster_index} has the wrong fields")
         ranges = [
             cluster["source_utf8"],
@@ -222,6 +304,10 @@ def main() -> None:
         )
         if not direct and not one_mark:
             sys.exit(f"refused: cluster fact {cluster_index} is outside the v3 cardinality")
+        if has_tspan and cluster["source_run_tag"] != tag_at(cluster["source_utf8"][0]):
+            sys.exit(
+                f"refused: cluster fact {cluster_index} does not carry its first scalar's source-run tag"
+            )
         for glyph_index in range(glyph_start, glyph_end):
             glyph_clusters[glyph_index] = cluster_index
         expected_scalar = scalar_end
@@ -231,14 +317,17 @@ def main() -> None:
 
     pen_x = 0
     for glyph_index, glyph in enumerate(glyphs):
-        if not isinstance(glyph, dict) or set(glyph) != {
+        glyph_fields = {
             "glyph_id",
             "cluster_index",
             "x",
             "offset_x",
             "offset_y",
             "advance",
-        }:
+        }
+        if has_tspan:
+            glyph_fields.add("source_run_tag")
+        if not isinstance(glyph, dict) or set(glyph) != glyph_fields:
             sys.exit(f"refused: glyph fact {glyph_index} has the wrong fields")
         glyph_id = glyph["glyph_id"]
         cluster_index = glyph["cluster_index"]
@@ -270,6 +359,8 @@ def main() -> None:
             valid_offset = glyph["advance"] == 0
         if not valid_offset:
             sys.exit(f"refused: glyph fact {glyph_index} is outside v3 mark placement")
+        if has_tspan and glyph["source_run_tag"] != clusters[cluster_index]["source_run_tag"]:
+            sys.exit(f"refused: glyph fact {glyph_index} disagrees with its cluster's source-run tag")
         pen_x += glyph["advance"]
     ink_bounds = facts["ink_bounds"]
     if not isinstance(ink_bounds, dict) or set(ink_bounds) != {
@@ -302,6 +393,8 @@ def main() -> None:
         "fill": text.attrib["fill"],
         "font_facts": facts,
     }
+    if has_tspan:
+        case["source_runs"] = source_runs
     if source != canonical(case):
         sys.exit("refused: source bytes are not in the canonical geometry-fixture shape")
 

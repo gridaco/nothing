@@ -3,7 +3,7 @@
   "kind": "chromium-svg-text-oracle",
   "browser_version": "149.0.7827.55",
   "suite": "cases.json",
-  "suite_sha256": "e759912cc352c3277f4a5b5c5a37cc19e8860e3146ede5291276473f5c634aff",
+  "suite_sha256": "2e2549ec2cd743b1a2f974de5dd8122066608dcb39757fdf4a9d1d1a6e17b790",
   "bake_script": "bake_chromium.ts",
   "bake_script_sha256": "9999ad1e574d2e00fedf09fb8b43dc44202a45f46cc010482ac8b26e11202571",
   "capture_module": "../chromium_capture.ts",
@@ -92,6 +92,15 @@
       "source_sha256": "3b358d29c23e7ea167e6b42f5576a748b63c1c15c80d89400fb1ad8c889786fe",
       "oracle": "chromium/svg-text-space-advance.png",
       "oracle_sha256": "7dfca4d41e5423b26f26eacfd52724baaf79ac6ec3f0c86372813247ad897f8b",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-tspan-paint-ownership",
+      "source": "svg-text-tspan-paint-ownership.svg",
+      "source_sha256": "58e7bb12f125ea9ad9c364058e85323fba8aa5bf7cf321dc46ea3e83d50526cd",
+      "oracle": "chromium/svg-text-tspan-paint-ownership.png",
+      "oracle_sha256": "45be105b85bb943a14c329cbfd869d772fbe2e4cdfb2881e135c796542b93a1a",
       "width": 100,
       "height": 100
     },

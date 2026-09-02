@@ -9,7 +9,8 @@
 use std::sync::Arc;
 
 use textlayout::{
-    AttributedText, Environment, FontKey, FontResource, OutlineSink, ResolveError, Style, resolve,
+    AttributedText, Environment, FontKey, FontResource, OutlineSink, ResolveError, SourceRun,
+    SourceRunCoverageError, SourceRunTag, Style, resolve,
 };
 
 const AHEM: &str = concat!(
@@ -32,6 +33,7 @@ const PT_SERIF: &str = concat!(
 /// Tests exercise resolution, not host-side digest verification, so the key
 /// is a stand-in identity the artifact must nonetheless carry through.
 const TEST_KEY: FontKey = FontKey::new([0xAB; 32]);
+const DEFAULT_SOURCE_RUN: SourceRunTag = SourceRunTag::new(0);
 
 /// Every Latin-1 letter whose canonical decomposition is exactly one ASCII
 /// Latin base plus one combining mark. This is retained from v2;
@@ -59,13 +61,18 @@ fn fixture_environment(path: &str, family: &str) -> Environment {
 }
 
 fn ahem(text: &str, size: f32) -> AttributedText {
-    AttributedText {
-        text: text.to_string(),
-        style: Style {
-            family: "Ahem".to_string(),
+    attributed(text, "Ahem", size)
+}
+
+fn attributed(text: &str, family: &str, size: f32) -> AttributedText {
+    AttributedText::single_source_run(
+        text.to_string(),
+        Style {
+            family: family.to_string(),
             size,
         },
-    }
+        DEFAULT_SOURCE_RUN,
+    )
 }
 
 #[test]
@@ -76,6 +83,9 @@ fn x_at_50_resolves_the_measured_em_box() {
     assert_eq!(layout.oracle_version(), textlayout::ORACLE_VERSION);
     assert_eq!(layout.face().key, TEST_KEY);
     assert_eq!(layout.face().units_per_em, 1000);
+    assert_eq!(layout.source_runs().len(), 1);
+    assert_eq!(layout.source_runs()[0].source_utf8(), 0..1);
+    assert_eq!(layout.source_runs()[0].tag(), DEFAULT_SOURCE_RUN);
 
     // Measured: 'X' is glyph 58, advance 1000 font units.
     let glyphs = layout.glyphs();
@@ -90,6 +100,8 @@ fn x_at_50_resolves_the_measured_em_box() {
     assert_eq!(layout.clusters()[0].source_utf16(), 0..1);
     assert_eq!(layout.clusters()[0].source_scalars(), 0..1);
     assert_eq!(layout.clusters()[0].glyphs(), 0..1);
+    assert_eq!(layout.clusters()[0].source_run_tag(), DEFAULT_SOURCE_RUN);
+    assert_eq!(glyphs[0].source_run_tag(), DEFAULT_SOURCE_RUN);
     assert_eq!(layout.advance(), 50.0);
 
     // Ahem: ascent 800, descent -200, every metric policy agreeing.
@@ -205,6 +217,7 @@ fn resolution_is_deterministic() {
 #[test]
 fn empty_text_resolves_to_metrics_without_glyphs() {
     let layout = resolve(&ahem("", 20.0), &ahem_environment()).unwrap();
+    assert!(layout.source_runs().is_empty());
     assert!(layout.glyphs().is_empty());
     assert!(layout.clusters().is_empty());
     assert_eq!(layout.advance(), 0.0);
@@ -216,13 +229,7 @@ fn empty_text_resolves_to_metrics_without_glyphs() {
 #[test]
 fn default_pair_kerning_preserves_direct_cluster_mapping() {
     let layout = resolve(
-        &AttributedText {
-            text: "ff".to_string(),
-            style: Style {
-                family: "Allerta".to_string(),
-                size: 5120.0,
-            },
-        },
+        &attributed("ff", "Allerta", 5120.0),
         &fixture_environment(ALLERTA, "Allerta"),
     )
     .expect("one-to-one kerning remains inside oracle v3");
@@ -245,15 +252,59 @@ fn default_pair_kerning_preserves_direct_cluster_mapping() {
 }
 
 #[test]
+fn allerta_source_run_boundary_preserves_one_shaping_result_and_maps_glyphs() {
+    let first = SourceRunTag::new(10);
+    let second = SourceRunTag::new(11);
+    let layout = resolve(
+        &AttributedText::new(
+            "ff".to_string(),
+            Style {
+                family: "Allerta".to_string(),
+                size: 5120.0,
+            },
+            vec![SourceRun::new(0..1, first), SourceRun::new(1..2, second)],
+        ),
+        &fixture_environment(ALLERTA, "Allerta"),
+    )
+    .expect("a metadata-only source boundary must not split shaping");
+
+    // Chromium 149 and the pinned shaper agree on this one-call result. If
+    // each source run were shaped independently, the first advance would be
+    // 2355 instead of the measured kerned 2330.
+    assert_eq!(layout.oracle_version(), "textlayout-v3");
+    assert_eq!(layout.advance(), 4685.0);
+    assert_eq!(layout.glyphs().len(), 2);
+    assert_eq!(layout.glyphs()[0].glyph_id, 70);
+    assert_eq!(layout.glyphs()[0].advance, 2330.0);
+    assert_eq!(layout.glyphs()[1].glyph_id, 70);
+    assert_eq!(layout.glyphs()[1].advance, 2355.0);
+
+    assert_eq!(layout.source_runs()[0].source_utf8(), 0..1);
+    assert_eq!(layout.source_runs()[0].tag(), first);
+    assert_eq!(layout.source_runs()[1].source_utf8(), 1..2);
+    assert_eq!(layout.source_runs()[1].tag(), second);
+    assert_eq!(layout.clusters()[0].source_run_tag(), first);
+    assert_eq!(layout.clusters()[1].source_run_tag(), second);
+    assert_eq!(layout.glyphs()[0].source_run_tag(), first);
+    assert_eq!(layout.glyphs()[1].source_run_tag(), second);
+    assert_eq!(
+        layout
+            .glyph_indices_for_source_run(first)
+            .collect::<Vec<_>>(),
+        vec![0]
+    );
+    assert_eq!(
+        layout
+            .glyph_indices_for_source_run(second)
+            .collect::<Vec<_>>(),
+        vec![1]
+    );
+}
+
+#[test]
 fn merged_ligature_cluster_refuses_before_it_can_poison_source_geometry() {
     let error = resolve(
-        &AttributedText {
-            text: "fi".to_string(),
-            style: Style {
-                family: "PT Serif".to_string(),
-                size: 5000.0,
-            },
-        },
+        &attributed("fi", "PT Serif", 5000.0),
         &fixture_environment(PT_SERIF, "PT Serif"),
     )
     .expect_err("one ligature glyph cannot masquerade as two source characters");
@@ -276,13 +327,14 @@ fn precomposed_latin_carries_distinct_utf8_and_utf16_source_ranges() {
     assert_eq!(PRECOMPOSED_LATIN_1.len(), 106);
 
     let layout = resolve(
-        &AttributedText {
-            text: source.clone(),
-            style: Style {
+        &AttributedText::single_source_run(
+            source.clone(),
+            Style {
                 family: "Allerta".to_string(),
                 size: 5120.0,
             },
-        },
+            DEFAULT_SOURCE_RUN,
+        ),
         &fixture_environment(ALLERTA, "Allerta"),
     )
     .expect("every measured precomposed Latin-1 member is direct in Allerta");
@@ -338,13 +390,7 @@ fn precomposed_latin_carries_distinct_utf8_and_utf16_source_ranges() {
 #[test]
 fn decomposed_acute_composes_without_rewriting_source_coordinates() {
     let layout = resolve(
-        &AttributedText {
-            text: "Ae\u{0301}Z".to_string(),
-            style: Style {
-                family: "Allerta".to_string(),
-                size: 5120.0,
-            },
-        },
+        &attributed("Ae\u{0301}Z", "Allerta", 5120.0),
         &fixture_environment(ALLERTA, "Allerta"),
     )
     .expect("the measured decomposed acute composes inside oracle v3");
@@ -396,13 +442,14 @@ fn attached_marks_carry_pen_independent_x_and_y_offsets() {
     let environment = fixture_environment(BUNGEE, "Bungee");
     let resolve_mark = |mark| {
         resolve(
-            &AttributedText {
-                text: format!("Ax{mark}Z"),
-                style: Style {
+            &AttributedText::single_source_run(
+                format!("Ax{mark}Z"),
+                Style {
                     family: "Bungee".to_string(),
                     size: 1000.0,
                 },
-            },
+                DEFAULT_SOURCE_RUN,
+            ),
             &environment,
         )
         .expect("the measured Bungee attachment resolves")
@@ -464,6 +511,71 @@ fn attached_marks_carry_pen_independent_x_and_y_offsets() {
 }
 
 #[test]
+fn bungee_cluster_crossing_a_source_run_uses_the_first_scalar_tag() {
+    let prefix = SourceRunTag::new(20);
+    let base = SourceRunTag::new(21);
+    let mark = SourceRunTag::new(22);
+    let suffix = SourceRunTag::new(23);
+    let layout = resolve(
+        &AttributedText::new(
+            "Ax\u{0301}Z".to_string(),
+            Style {
+                family: "Bungee".to_string(),
+                size: 1000.0,
+            },
+            vec![
+                SourceRun::new(0..1, prefix),
+                SourceRun::new(1..2, base),
+                SourceRun::new(2..4, mark),
+                SourceRun::new(4..5, suffix),
+            ],
+        ),
+        &fixture_environment(BUNGEE, "Bungee"),
+    )
+    .expect("a run boundary inside the measured base-plus-mark cluster is transparent");
+
+    // The measured Bungee answer is one two-glyph cluster over x + U+0301.
+    // Both placed glyphs belong to the tag covering the cluster's first
+    // scalar; the mark-only source run intentionally owns no glyph.
+    assert_eq!(layout.advance(), 2127.0);
+    assert_eq!(layout.clusters().len(), 3);
+    assert_eq!(layout.glyphs().len(), 4);
+    assert_eq!(layout.clusters()[1].source_utf8(), 1..4);
+    assert_eq!(layout.clusters()[1].glyphs(), 1..3);
+    assert_eq!(layout.clusters()[1].source_run_tag(), base);
+    assert_eq!(layout.glyphs()[1].source_run_tag(), base);
+    assert_eq!(layout.glyphs()[2].source_run_tag(), base);
+    assert_eq!(
+        layout
+            .glyph_indices_for_source_run(base)
+            .collect::<Vec<_>>(),
+        vec![1, 2]
+    );
+    assert!(layout.glyph_indices_for_source_run(mark).next().is_none());
+
+    assert_eq!(
+        layout
+            .glyphs()
+            .iter()
+            .map(|glyph| (
+                glyph.glyph_id,
+                glyph.x,
+                glyph.offset_x,
+                glyph.offset_y,
+                glyph.advance,
+                glyph.cluster_index,
+            ))
+            .collect::<Vec<_>>(),
+        vec![
+            (2, 0.0, 0.0, 0.0, 730.0, 0),
+            (773, 730.0, 0.0, 0.0, 737.0, 1),
+            (975, 1467.0, -369.0, 0.0, 0.0, 1),
+            (110, 1467.0, 0.0, 0.0, 660.0, 2),
+        ]
+    );
+}
+
+#[test]
 fn missing_combining_glyph_names_the_mark_not_its_base() {
     let error = resolve(&ahem("Ax\u{0301}Z", 1000.0), &ahem_environment())
         .expect_err("Ahem has no attachable acute for x");
@@ -477,6 +589,94 @@ fn missing_combining_glyph_names_the_mark_not_its_base() {
 }
 
 #[test]
+fn malformed_source_run_coverage_refuses_by_typed_reason_before_font_work() {
+    let tag = SourceRunTag::new(30);
+    let coverage_error = |source: &str, runs: Vec<SourceRun>| {
+        let error = resolve(
+            &AttributedText::new(
+                source.to_string(),
+                Style {
+                    family: "deliberately undeclared".to_string(),
+                    size: 20.0,
+                },
+                runs,
+            ),
+            &Environment::default(),
+        )
+        .expect_err("invalid coverage must refuse before font lookup or shaping");
+        match error {
+            ResolveError::InvalidSourceRunCoverage(reason) => reason,
+            other => panic!("expected source-run coverage error, got {other:?}"),
+        }
+    };
+
+    assert_eq!(
+        coverage_error("AB", vec![]),
+        SourceRunCoverageError::Missing { source_len: 2 }
+    );
+    assert_eq!(
+        coverage_error("AB", vec![SourceRun::new(1..0, tag)]),
+        SourceRunCoverageError::Reversed {
+            run_index: 0,
+            start: 1,
+            end: 0,
+        }
+    );
+    assert_eq!(
+        coverage_error("AB", vec![SourceRun::new(0..0, tag)]),
+        SourceRunCoverageError::Empty {
+            run_index: 0,
+            byte_index: 0,
+        }
+    );
+    assert_eq!(
+        coverage_error("AB", vec![SourceRun::new(0..3, tag)]),
+        SourceRunCoverageError::OutOfBounds {
+            run_index: 0,
+            start: 0,
+            end: 3,
+            source_len: 2,
+        }
+    );
+    assert_eq!(
+        coverage_error("AéZ", vec![SourceRun::new(0..2, tag)]),
+        SourceRunCoverageError::NotScalarBoundary {
+            run_index: 0,
+            byte_index: 2,
+        }
+    );
+    assert_eq!(
+        coverage_error(
+            "ABC",
+            vec![SourceRun::new(0..1, tag), SourceRun::new(2..3, tag)],
+        ),
+        SourceRunCoverageError::Gap {
+            run_index: 1,
+            expected_start: 1,
+            actual_start: 2,
+        }
+    );
+    assert_eq!(
+        coverage_error(
+            "ABC",
+            vec![SourceRun::new(0..2, tag), SourceRun::new(1..3, tag)],
+        ),
+        SourceRunCoverageError::Overlap {
+            run_index: 1,
+            previous_end: 2,
+            actual_start: 1,
+        }
+    );
+    assert_eq!(
+        coverage_error("ABC", vec![SourceRun::new(0..1, tag)]),
+        SourceRunCoverageError::Incomplete {
+            covered_end: 1,
+            source_len: 3,
+        }
+    );
+}
+
+#[test]
 fn malformed_and_unadmitted_mark_sequences_refuse_before_shaping() {
     let environment = fixture_environment(BUNGEE, "Bungee");
     for (source, byte_index, character) in [
@@ -485,17 +685,8 @@ fn malformed_and_unadmitted_mark_sequences_refuse_before_shaping() {
         ("A1\u{0301}Z", 2, '\u{0301}'),
         ("Aé\u{0301}Z", 3, '\u{0301}'),
     ] {
-        let error = resolve(
-            &AttributedText {
-                text: source.to_string(),
-                style: Style {
-                    family: "Bungee".to_string(),
-                    size: 1000.0,
-                },
-            },
-            &environment,
-        )
-        .expect_err("malformed combining sequence must refuse");
+        let error = resolve(&attributed(source, "Bungee", 1000.0), &environment)
+            .expect_err("malformed combining sequence must refuse");
         assert_eq!(
             error,
             ResolveError::UnsupportedCombiningSequence {
@@ -506,17 +697,8 @@ fn malformed_and_unadmitted_mark_sequences_refuse_before_shaping() {
         );
     }
 
-    let error = resolve(
-        &AttributedText {
-            text: "Ax\u{0300}Z".to_string(),
-            style: Style {
-                family: "Bungee".to_string(),
-                size: 1000.0,
-            },
-        },
-        &environment,
-    )
-    .expect_err("an unlisted combining mark stays outside the repertoire");
+    let error = resolve(&attributed("Ax\u{0300}Z", "Bungee", 1000.0), &environment)
+        .expect_err("an unlisted combining mark stays outside the repertoire");
     assert_eq!(
         error,
         ResolveError::UnsupportedCharacter {

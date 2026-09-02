@@ -1,16 +1,16 @@
 # The text cell suite
 
 Chromium-baked evidence for the `<text>` slice on the SVG engine of record
-(`websem → rframe → n0`). Nine Ahem cells are gated byte-exact by
+(`websem → rframe → n0`). Ten Ahem cells are gated byte-exact by
 [`crates/websem/tests/svg_text.rs`](../../../crates/websem/tests/svg_text.rs);
-six real-font artifact witnesses are gated numerically, before rasterization, by
+seven real-font artifact witnesses are gated numerically, before rasterization, by
 [`crates/websem/tests/svg_text_geometry.rs`](../../../crates/websem/tests/svg_text_geometry.rs).
 The method these cells enforce is the ratified
 [text-oracle brief](../../../docs/wg/consolidation/text-oracle.md); this file
 states only how the suite is shaped.
 
-The pixel suite currently has **nine** cells. The separate Rung-B geometry
-suite under [`geometry/`](./geometry/) has **six** witnesses: four Allerta and
+The pixel suite currently has **ten** cells. The separate Rung-B geometry
+suite under [`geometry/`](./geometry/) has **seven** witnesses: five Allerta and
 two Bungee. Both manifests are closed enumerations: the Rust gates reject an
 unlisted SVG, duplicate source row, undeclared or changed font identity, stale
 suite or baker hash, stale shared-capture hash, changed source, or changed
@@ -300,12 +300,13 @@ from the declared face refuses at the mark's own byte instead of selecting
 tofu or an ambient fallback.
 
 The geometry manifest now carries multiple exact font identities. Its suite
-schema is v2, but the three immutable pre-T3c cases retain their historical
-direct-scalar `font_facts` shape; the three T3c cases use the v2 placed-glyph
-shape. The Rust gate verifies both shapes. The baker recaptures every case from
-the same hash-pinned mixed manifest without rewriting its facts, while
-`text-geometry-add` accepts only v2 facts for every new case and never migrates
-existing evidence. In v2, every cluster records UTF-8, UTF-16, scalar, and
+schema is v3, but the three immutable pre-T3c cases retain their historical
+direct-scalar `font_facts` shape and the three T3c cases retain the v2
+placed-glyph shape. The Rust gate verifies every historical shape. The baker
+recaptures every case from the same hash-pinned mixed manifest without
+rewriting its facts. New direct-text cases use v2 facts; a flat paint-only
+`<tspan>` source uses v3 source-run facts. Neither path migrates existing
+evidence. In v2, every cluster records UTF-8, UTF-16, scalar, and
 glyph ranges; every placed glyph records pen x, x/y offset, advance, and
 cluster index. A direct cluster remains one scalar and one glyph. A permitted
 base-plus-mark cluster is two source scalars and either one composed glyph or
@@ -349,6 +350,47 @@ CLI under both policies with byte-identical outputs, and attempting to add an
 existing geometry source/oracle is refused. The estate is now nine exact Ahem
 cells plus six exact-number real-font geometry witnesses; the named refusal
 register has 211 rows. No checklist row closes.
+
+## T4a paint-only source runs
+
+A `<text>` may now mix direct character data with flat direct `<tspan>`
+children when the children preserve one face, size, position, direction, and
+effect envelope and change only an opaque solid fill. Whitespace collapses
+once across the complete subtree, the resulting source shapes once, and the
+parent anchor applies once. The shaped artifact carries opaque source-run tags
+to clusters and glyphs; the producer interprets those tags as paints while
+lowering ordinary paths. No text or run fact crosses `rframe`.
+
+The v3 fact shape records exact, complete UTF-8 source-run coverage and a run
+tag on every cluster and glyph. Coverage must be ordered, non-empty,
+scalar-boundary-aligned, gapless, non-overlapping, and complete. If a run
+boundary falls inside a combining cluster, all glyphs use the tag of its first
+source scalar. This metadata does not alter shaping geometry, so the resolver
+remains `textlayout-v3`.
+
+| Witness | Discriminating branch |
+| --- | --- |
+| `svg-text-tspan-paint-ownership.svg` | One exact 100×100 Ahem cell crosses parent text, explicit and inherited child fills, whitespace around wrapper boundaries, and middle anchoring. Replacing every child paint with the parent differs at exactly 1,600 pixels with maximum channel delta 197; independently anchoring the runs differs at 1,200 pixels with delta 218. |
+| `svg-text-allerta-tspan-kerning.svg` | At 5120px, the two `f` scalars belong to different paint runs but Chromium and the artifact retain advances 2330/2355 and total 4685. Independent shaping would produce 2355/2355 and 4710. |
+
+Bungee `Ax` + U+0301 + `Z` probes the boundary-inside-cluster rule. A
+mark-only `<tspan>` changes no pixels, while placing the base in the child
+recolors its attached mark; no boundary breaks shaping (measured, not celled).
+An off-grid Allerta 1000px same-paint wrapper can move query geometry by 1/64
+and change 2,752 raster pixels. The existing `Chromium SVG text query` refusal
+already excludes that route, so this remains measured, not celled.
+
+The former blanket `<tspan>` row is replaced by four focused unsupported
+sources: positioning/lists, shaping-style changes, non-opaque or wider paint
+and effects, and nested content. Both admissions stop at the parent text node.
+Gate sensitivity was proved independently at both seams: nominal per-glyph
+advances failed at 4710 versus 4685, and parent-only paint failed the Ahem
+oracle by exactly 1,600 pixels. Restoration returned `just gate` to green.
+
+The estate is now ten exact Ahem cells plus seven exact-number real-font
+geometry witnesses (five Allerta and two Bungee). Replacing one broad refusal
+with four focused rows moves the named register from 211 to 214. The complete
+`<text>` and `<tspan>` grammars remain open; no checklist row closes.
 
 ## Tooling
 

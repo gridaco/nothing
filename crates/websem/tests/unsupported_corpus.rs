@@ -964,7 +964,26 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "not in the declared environment",
     ),
-    ("svg-text-tspan", DeclaredByBestEffort, "tspan"),
+    (
+        "svg-text-tspan-nested",
+        DeclaredByBestEffort,
+        "nested <tspan>",
+    ),
+    (
+        "svg-text-tspan-paint-boundary",
+        DeclaredByBestEffort,
+        "opacity must remain 1",
+    ),
+    (
+        "svg-text-tspan-positioning",
+        DeclaredByBestEffort,
+        "attribute x",
+    ),
+    (
+        "svg-text-tspan-shaping-style",
+        DeclaredByBestEffort,
+        "parent run resolves",
+    ),
     // The use/defs rung's residue: `<use>` itself graduated (its fixture
     // is a baked cell), and the named refusals that remain each hold a row.
     (
