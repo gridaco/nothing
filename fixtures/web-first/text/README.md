@@ -3,17 +3,18 @@
 Chromium-baked evidence for the `<text>` slice on the SVG engine of record
 (`websem → rframe → n0`). Nine Ahem cells are gated byte-exact by
 [`crates/websem/tests/svg_text.rs`](../../../crates/websem/tests/svg_text.rs);
-two real-font artifact witnesses are gated numerically, before rasterization, by
+six real-font artifact witnesses are gated numerically, before rasterization, by
 [`crates/websem/tests/svg_text_geometry.rs`](../../../crates/websem/tests/svg_text_geometry.rs).
 The method these cells enforce is the ratified
 [text-oracle brief](../../../docs/wg/consolidation/text-oracle.md); this file
 states only how the suite is shaped.
 
 The pixel suite currently has **nine** cells. The separate Rung-B geometry
-suite under [`geometry/`](./geometry/) has **two** witnesses. Both manifests are
-closed enumerations: the Rust gates reject an unlisted SVG, duplicate source
-row, stale suite or baker hash, stale shared-capture hash, changed source, or
-changed oracle.
+suite under [`geometry/`](./geometry/) has **six** witnesses: four Allerta and
+two Bungee. Both manifests are closed enumerations: the Rust gates reject an
+unlisted SVG, duplicate source row, undeclared or changed font identity, stale
+suite or baker hash, stale shared-capture hash, changed source, or changed
+oracle.
 
 Text lives in its own suite rather than the primitive root, per the brief's
 corpus-growth law: the root is closed to text, probes are never committed,
@@ -168,7 +169,9 @@ same text node in best effort. Its refusal row is committed as
 differing pixels at maximum channel delta 170 against Chromium before the
 guard; this is evidence of the unsafe route, not a real-font pixel-fidelity
 claim. The T2 samples `fi` and `AV` happened not to exercise either ligature
-substitution or pair positioning in this face (measured, not celled). T3
+substitution or pair positioning in this face (measured, not celled). At this
+checkpoint the hash-pinned Bungee face was a negative-only gate identity; T3c
+below reuses the same bytes for positive offset witnesses. T3
 therefore starts from explicit cluster/source mapping rather than generalizing
 those two strings.
 
@@ -267,11 +270,10 @@ spelling at 256 pixels with maximum delta 255. Its text-query API reports
 three addressable characters for the precomposed spelling and four for the
 decomposed spelling; the combining mark shares the base character's start,
 end, and substring length (measured, not celled). Resolution therefore never
-normalizes authored text. The precomposed run now renders through both CLI
-admissions with byte-identical outputs; the decomposed run refuses in strict
-mode and is skipped at `svg/text[1]` in best effort by the stable v2 repertoire
-reason.
-The committed `svg-text-combining-sequence` row guards that split.
+normalizes authored text. At the T3b checkpoint the precomposed run rendered
+through both CLI admissions with byte-identical outputs while the decomposed
+run refused by the stable v2 repertoire reason. The T3c checkpoint below
+supersedes that broad refusal with a bounded combining grammar.
 
 The hidden defect was a coordinate-space equality that printable ASCII had
 made look structural: the browser-facing admission counted bytes in a UTF-8
@@ -282,11 +284,66 @@ restoring the byte-count assumption made `just gate` fail loudly on the new
 witness at source bytes `1..3`; restoring the scalar check returned the whole
 gate green.
 
-The text estate is now nine exact Ahem cells plus three exact-number Allerta
-geometry witnesses. The named refusal register has 209 rows. No checklist row
-closes: combining marks and offsets, merged clusters and carets,
-non-decomposable Latin letters, wider repertoire, feature inputs, multiple
-runs, and every complete text/font grammar remain separate work.
+At this T3b checkpoint the text estate was nine exact Ahem cells plus three
+exact-number Allerta geometry witnesses, and the named refusal register had
+209 rows. No checklist row closed: combining marks and offsets, merged clusters
+and carets, non-decomposable Latin letters, wider repertoire, feature inputs,
+multiple runs, and every complete text/font grammar remain separate work.
+
+## T3c combining clusters and glyph offsets
+
+Oracle v3 adds exactly U+0301 and U+030B when one is the sole combining mark
+immediately after an ASCII Latin letter. It does not infer general combining
+support from those two cases. Leading, repeated, non-letter-attached, and
+unlisted marks remain outside the source grammar; a permitted mark missing
+from the declared face refuses at the mark's own byte instead of selecting
+tofu or an ambient fallback.
+
+The geometry manifest now carries multiple exact font identities and a v2
+font-fact shape. Every cluster records UTF-8, UTF-16, scalar, and glyph ranges;
+every placed glyph records pen x, x/y offset, advance, and cluster index. A
+direct cluster remains one scalar and one glyph. A permitted base-plus-mark
+cluster is two source scalars and either one composed glyph or two glyphs; the
+second glyph in the latter form has zero advance and owns any displacement.
+Every UTF-16 unit in either form is checked against Chromium's complete shared
+cluster cell.
+
+| Witness | Discriminating branch |
+| --- | --- |
+| `svg-text-allerta-decomposed-acute.svg` | At 5120px, `Ae` + U+0301 + `Z` shapes to three glyphs without rewriting four source scalars. Chromium and the artifact agree on total 10340; `e` and the mark each expose start 3795, end 7115, and length 3320. The cluster records bytes `1..4`, UTF-16 units `1..3`, scalars `1..3`, and glyphs `1..2`. |
+| `svg-text-bungee-acute-offset.svg` | At 1000px, the mark remains a separate glyph at pen 1467, x offset -369, local y offset 0, and zero advance. Chromium exposes both `x` and mark over the shared 737-unit cell; total advance is 2127. |
+| `svg-text-bungee-double-acute-offset.svg` | The same attached branch uses U+030B and adds a nonzero y-up shaper displacement, recorded exactly once as local y-down offset -7. |
+
+Scratch Chromium rasters prove the placement is material without becoming
+real-font pixel oracles. Disabling mark attachment changes 3,488 pixels for
+U+0301 and 4,441 for U+030B, both at maximum delta 255; changing U+0301 to
+U+030B changes 1,800 pixels at delta 255. Stacking a second U+0301 and disabling
+mark-to-mark placement changes 2,087 pixels at delta 255. Allerta's composed
+and decomposed spellings are byte-identical, while deleting the accent changes
+256 pixels at delta 255 (measured, not celled).
+
+The first exact outline projection exposed a pre-existing bounds defect. The
+font's stored Bungee acute box reported local top/height -965/965, but the
+quadratic path's actual extrema are
+-961.39019775390625/961.39019775390625. `textlayout` now derives ink bounds
+from the same offset- and y-flip-aware outline stream it exposes to lowering,
+solving quadratic and cubic extrema. The gate compares those bounds with the
+streamed local `PathData` exactly; no tolerance was introduced.
+
+The former `svg-text-combining-sequence` row is replaced by
+`svg-text-combining-malformed`, `svg-text-combining-missing-glyph`, and
+`svg-text-combining-unlisted-mark`. Focused contracts additionally exercise
+leading, repeated, digit-attached, precomposed-letter-attached, missing-glyph,
+and unlisted-mark sources in strict and best-effort admission at the same
+`svg/text[1]` path.
+
+Gate sensitivity was proved by temporarily zeroing every shaped x offset. The
+full gate failed on the committed Bungee fact at `0` versus `-369`; restoring
+the offset returned it to green. All three sources render through the actual
+CLI under both policies with byte-identical outputs, and attempting to add an
+existing geometry source/oracle is refused. The estate is now nine exact Ahem
+cells plus six exact-number real-font geometry witnesses; the named refusal
+register has 211 rows. No checklist row closes.
 
 ## Tooling
 

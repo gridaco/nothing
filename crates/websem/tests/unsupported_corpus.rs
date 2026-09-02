@@ -908,9 +908,19 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "shaping cluster mapping",
     ),
     (
-        "svg-text-combining-sequence",
+        "svg-text-combining-malformed",
         DeclaredByBestEffort,
-        "outside textlayout-v2's admitted",
+        "sole admitted mark",
+    ),
+    (
+        "svg-text-combining-missing-glyph",
+        DeclaredByBestEffort,
+        "no glyph for",
+    ),
+    (
+        "svg-text-combining-unlisted-mark",
+        DeclaredByBestEffort,
+        "outside textlayout-v3's admitted",
     ),
     (
         "svg-text-css-layout",

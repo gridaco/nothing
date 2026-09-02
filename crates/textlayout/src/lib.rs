@@ -7,14 +7,16 @@
 //!
 //! ```text
 //! attributed text + explicit font environment
-//!     -> resolved text layout | typed resolution failure     (oracle v2)
+//!     -> resolved text layout | typed resolution failure     (oracle v3)
 //! ```
 //!
-//! **Oracle v2 resolves one style run of printable-ASCII plus the canonical
+//! **Oracle v3 resolves one style run of printable-ASCII plus the canonical
 //! precomposed Latin-1 letters whose decomposition is one ASCII Latin base
-//! and one combining mark, horizontal and left-to-right, with one source
-//! scalar and one glyph per shaping cluster, no wrapping, no fallback, and
-//! no synthesis.**
+//! and one combining mark, plus one U+0301 or U+030B after an ASCII Latin
+//! base. It is horizontal and left-to-right; a cluster is either one direct
+//! scalar/glyph or one base-plus-mark composing to one glyph or attaching one
+//! zero-advance glyph with explicit x/y offsets. There is no wrapping,
+//! fallback, or synthesis.**
 //! The repertoire is an explicit admit-list enforced by the resolver
 //! itself — never an accident of a font's coverage — and everything outside
 //! the profile is a typed refusal, not an approximation. Coverage grows by
@@ -63,4 +65,4 @@ pub use resolve::{AttributedText, ResolveError, Style, resolve};
 /// the manifest pins the shaper exactly — requires a new version. A resolved
 /// artifact records the version that produced it; "latest" is not a durable
 /// identity.
-pub const ORACLE_VERSION: &str = "textlayout-v2";
+pub const ORACLE_VERSION: &str = "textlayout-v3";

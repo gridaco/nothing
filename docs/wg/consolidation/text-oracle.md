@@ -301,8 +301,9 @@ first advance is 731.4453125 while Chromium exposes 731.453125, and the
 artifact ascent is 1032.2265625 while Chromium's character cell uses 1032.
 A separate Bungee 50px probe isolates the horizontal stage: its ascent and
 descent are already integral at 51/15, while the artifact's first 37.95
-advance is exposed as 37.953125 (measured, not celled). That face is a
-negative-only boundary witness, not a second positive geometry oracle.
+advance is exposed as 37.953125 (measured, not celled). At this checkpoint
+that face is a negative-only boundary witness; T3c later reuses the same exact
+identity for positive offset geometry.
 
 The method does not normalize the artifact to those values. Geometry that
 would change at either projection departs by a stable text-specific name before
@@ -412,9 +413,9 @@ contract: browser queries expose three addressable characters for the former
 and four for the latter, with the combining mark sharing its base's segment.
 These source-form facts are measured, not celled. Resolution therefore
 preserves source spelling and performs no normalization. The precomposed
-source admits; the decomposed sequence leaves through a new
-registered v2-repertoire refusal in strict and best-effort paths. Combining
-marks and nonzero offsets remain their own shaping checkpoint.
+source admits; at this checkpoint the decomposed sequence leaves through a new
+registered v2-repertoire refusal in strict and best-effort paths. T3c below
+supersedes that broad refusal with a bounded two-mark grammar.
 
 The defect exposed by the new coordinate split was not in shaping or paint.
 The artifact already retained scalar-aligned UTF-8 and UTF-16 ranges, but one
@@ -429,3 +430,76 @@ has three Allerta witnesses, and the named refusal register has 209 rows.
 Non-decomposable Latin letters, combining marks and offsets, merged clusters
 and internal caret stops, wider Unicode, script/language/feature inputs, and
 multiple runs remain open. No shared render-contract fact is added.
+
+## T3c evidence addendum — combining clusters and glyph offsets (2026-09-02)
+
+The verdict is ADMIT/SPLIT, with no checklist closure. Oracle v3 admits one
+bounded decomposed grammar in addition to v2: U+0301 COMBINING ACUTE ACCENT or
+U+030B COMBINING DOUBLE ACUTE ACCENT may appear as the sole mark immediately
+after one ASCII Latin letter. Leading marks, repeated marks, marks after a
+non-letter or precomposed letter, every other combining scalar, and any
+missing-glyph/fallback route remain typed refusals. Resolution preserves the
+authored source and never normalizes it.
+
+The artifact now states the cardinality and placement needed by that grammar.
+Each cluster records source UTF-8, UTF-16, and scalar ranges plus its glyph
+range. A direct cluster remains one scalar to one glyph. An admitted
+base-plus-mark cluster is exactly two source scalars and either one composed
+glyph or two glyphs; in the two-glyph form the second glyph has zero advance
+and may carry the shaper's x/y displacement. The y-up shaping displacement is
+converted once into the artifact's y-down local space. Every UTF-16 unit in
+one cluster projects to the same complete Chromium character cell, matching
+SVG's source-addressable query surface without inventing a caret inside a
+glyph.
+
+The composed positive witness is Allerta `Ae` + U+0301 + `Z` at 5120px.
+Chromium and the artifact agree exactly on total advance 10340. The `e` and
+mark are separate source scalars and UTF-16 units but both report start 3795,
+end 7115, and length 3320; shaping composes them into glyph 141. The artifact
+retains cluster source bytes `1..4`, UTF-16 units `1..3`, scalars `1..3`, and
+glyphs `1..2`. Chromium's raster is byte-identical to precomposed `AéZ`, while
+the unaccented control differs by 256 pixels at maximum channel delta 255
+(measured, not celled; real-font pixels are not this oracle).
+
+Two Bungee witnesses exercise attached glyphs at 1000px. Both `Ax` + mark +
+`Z` runs have total advance 2127; Chromium exposes the `x` and its mark as two
+addressable units sharing the 737-unit cell from 830 to 1567. The pinned font
+facts place the mark at pen 1467 with x offset -369 and zero advance. U+0301
+has local y offset 0; U+030B has local y offset -7, proving both placement
+axes. Disabling mark attachment changes 3,488 pixels for U+0301 and 4,441 for
+U+030B, both at maximum delta 255; substituting U+030B for U+0301 changes 1,800
+pixels at delta 255. Stacking a second U+0301 and disabling mark-to-mark
+placement changes 2,087 pixels at delta 255 (measured, not celled and not a
+Chromium real-font pixel claim).
+
+The new bounds check exposed a pre-existing artifact defect before landing.
+The resolver called the font's stored glyph box a tight ink box, but that box
+may enclose quadratic control points the outline never reaches. On the Bungee
+acute witness it reported local top/height -965/965 while the streamed path's
+actual extrema are -961.39019775390625/961.39019775390625. Bounds now consume
+the same mapped outline stream as painting and solve both quadratic and cubic
+Bézier extrema locally, preserving textlayout's Rustybuzz-only dependency
+perimeter. Synthetic curve laws and every real-font witness require artifact
+bounds to equal the streamed local path exactly.
+
+The former all-combining refusal graduates. Three narrower register rows now
+guard malformed admitted sequences, an admitted mark missing from the exact
+declared face, and marks outside the two-scalar vocabulary. Strict refuses;
+best effort skips and declares the same `svg/text[1]` node. PT Serif `fi`
+continues to hold the merged-ligature/internal-caret boundary independently.
+
+Sensitivity is direct. Temporarily replacing every shaped x offset with zero
+left the primitive and Ahem gates green, then failed the committed Bungee fact
+at `0` versus `-369`. Restoring the offset returned `just gate` to green. All
+three committed sources also render through the actual CLI in strict and
+best-effort modes with byte-identical policy outputs, and re-registering an
+existing geometry id/source is refused as immutable.
+
+The primitive corpus remains 1,051 Chromium-baked cells plus 16 sampled
+frames. The exact Ahem estate remains nine cells. The real-font geometry
+estate now has six witnesses: four Allerta and two Bungee. Replacing one broad
+refusal with three bounded rows moves the named register from 209 to 211.
+Ligatures and internal carets, general combining sequences, font fallback,
+wider Unicode, script/language/feature inputs, multiple runs, and every
+complete font/text grammar remain open. No shared render-contract fact is
+added, no conformance score is produced, and no FLIP record changes.

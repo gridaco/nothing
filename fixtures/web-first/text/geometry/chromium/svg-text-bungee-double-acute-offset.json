@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "kind": "chromium-svg-text-geometry",
+  "measurement": {
+    "text_content": "Ax̋Z",
+    "computed_font_family": "Bungee",
+    "computed_font_size": "1000px",
+    "computed_text_anchor": "start",
+    "font_ready": true,
+    "number_of_chars": 4,
+    "computed_text_length": 2127,
+    "substring_length": 2127,
+    "characters": [
+      {
+        "utf16_code_unit": 65,
+        "substring_length": 730,
+        "start": {
+          "x": 100,
+          "y": 1150
+        },
+        "end": {
+          "x": 830,
+          "y": 1150
+        },
+        "extent": {
+          "x": 100,
+          "y": 130,
+          "width": 730,
+          "height": 1320
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 120,
+        "substring_length": 737,
+        "start": {
+          "x": 830,
+          "y": 1150
+        },
+        "end": {
+          "x": 1567,
+          "y": 1150
+        },
+        "extent": {
+          "x": 830,
+          "y": 130,
+          "width": 737,
+          "height": 1320
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 779,
+        "substring_length": 737,
+        "start": {
+          "x": 830,
+          "y": 1150
+        },
+        "end": {
+          "x": 1567,
+          "y": 1150
+        },
+        "extent": {
+          "x": 830,
+          "y": 130,
+          "width": 737,
+          "height": 1320
+        },
+        "rotation": 0
+      },
+      {
+        "utf16_code_unit": 90,
+        "substring_length": 660,
+        "start": {
+          "x": 1567,
+          "y": 1150
+        },
+        "end": {
+          "x": 2227,
+          "y": 1150
+        },
+        "extent": {
+          "x": 1567,
+          "y": 130,
+          "width": 660,
+          "height": 1320
+        },
+        "rotation": 0
+      }
+    ]
+  }
+}

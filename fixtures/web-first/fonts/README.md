@@ -24,11 +24,14 @@ font fixtures, so the text suite references those exact bytes instead of
 copying them. Its geometry oracle compares resolved artifact numbers with
 Chromium and deliberately makes no browser-pixel claim.
 
-Bungee is a negative-only Rung-B boundary identity. Its 50px metrics are
-integral while its glyph boundaries miss Chromium's 1/64 query grid, so it
-guards that horizontal refusal independently from Allerta's vertical-metric
-case. It is not a positive geometry oracle or a widening of the admitted
-repertoire.
+Bungee first entered as a negative Rung-B boundary identity: its 50px metrics
+are integral while its glyph boundaries miss Chromium's 1/64 query grid, so it
+still guards that horizontal refusal independently from Allerta's
+vertical-metric case. Oracle v3 also uses the same exact bytes for two positive
+1000px geometry witnesses. Its U+0301 and U+030B glyphs remain separate from
+ASCII `x`, advance by zero, and carry the measured attachment offsets needed
+to prove both artifact axes. This is a two-mark admit-list, not general font or
+Unicode coverage.
 
 This directory grows only when a rung's admitted slice requires a new pinned
 identity, and never holds a corpus: breadth suites live untracked under
