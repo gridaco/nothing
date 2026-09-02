@@ -401,7 +401,8 @@ a sorted manifest entry, defaulting to `standalone-svg` and accepting
 same never-overwrite registration for the dedicated 100×100 pixel suite),
 `text-geometry-add <id> <source> <facts>` (register one real-font numeric
 witness without an oracle overwrite; flat paint-only `<tspan>` sources require
-v3 source-run facts, and positioned sources require v4 shaping-chunk facts),
+v3 source-run facts, and positioned sources additionally require v4
+shaping-chunk facts),
 and `probe <script>` (run a
 scratch probe).
 

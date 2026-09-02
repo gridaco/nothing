@@ -9,10 +9,10 @@ text only, or direct text plus flat paint/position `<tspan>` children.
 `facts` records the font-derived evidence Chromium cannot expose:
 units-per-em, complete source-run/cluster/glyph placement mappings, and outline
 ink bounds. Flat paint-only tspans require v3 facts with explicit run tags;
-positioned tspans require v4 facts with explicit shaping chunks. New direct
-text cases retain the v2 placed-glyph shape. The manifest's immutable pre-T3c
-cases retain their legacy direct-scalar shape; this command neither creates
-nor migrates that historical form.
+positioned tspans require those source-run facts plus v4 shaping chunks. New
+direct text cases retain the v2 placed-glyph shape. The manifest's immutable
+pre-T3c cases retain their legacy direct-scalar shape; this command neither
+creates nor migrates that historical form.
 """
 
 import argparse
@@ -428,7 +428,9 @@ def main() -> None:
                     )
         expected_source_chunks = [
             [start, end]
-            for start, end in zip(sorted(boundaries), sorted(boundaries)[1:])
+            for start, end in zip(
+                sorted(boundaries), sorted(boundaries)[1:], strict=False
+            )
             if start < end
         ]
         shaping_chunks = facts["shaping_chunks"]
@@ -443,7 +445,7 @@ def main() -> None:
         cluster_starts.append(len(content.encode("utf-8")))
         canonical_origin = 0
         for chunk_index, (chunk, expected_source) in enumerate(
-            zip(shaping_chunks, expected_source_chunks)
+            zip(shaping_chunks, expected_source_chunks, strict=True)
         ):
             fields = {
                 "source_utf8",

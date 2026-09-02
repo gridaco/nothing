@@ -322,10 +322,12 @@ pub fn resolve(
             chunk_source,
             &text.source_runs,
             shaped.glyph_infos(),
-            source_utf8.start,
-            source_utf16_start,
-            source_scalar_start,
-            glyph_start,
+            ChunkOffsets {
+                source_utf8: source_utf8.start,
+                source_utf16: source_utf16_start,
+                source_scalars: source_scalar_start,
+                glyphs: glyph_start,
+            },
         )?);
         let cluster_end = clusters.len();
 
@@ -470,35 +472,40 @@ pub fn resolve(
     ))
 }
 
+/// The global coordinate bases for one chunk-local shaping result.
+#[derive(Clone, Copy)]
+struct ChunkOffsets {
+    source_utf8: usize,
+    source_utf16: usize,
+    source_scalars: usize,
+    glyphs: usize,
+}
+
 /// Build the complete UTF-8/UTF-16/scalar/glyph association and enforce
 /// oracle v4's direct-or-one-mark cluster profile for one independently
 /// shaped chunk. The shaper reports chunk-local byte and glyph positions;
 /// this function promotes every coordinate into the artifact's global index
 /// spaces before publishing it.
-#[allow(clippy::too_many_arguments)]
 fn admitted_clusters(
     source: &str,
     source_runs: &[SourceRun],
     infos: &[rustybuzz::GlyphInfo],
-    source_utf8_offset: usize,
-    source_utf16_offset: usize,
-    source_scalar_offset: usize,
-    glyph_offset: usize,
+    offsets: ChunkOffsets,
 ) -> Result<Vec<ShapingCluster>, ResolveError> {
     if source.is_empty() {
         if infos.is_empty() {
             return Ok(Vec::new());
         }
         return Err(ResolveError::UnsupportedShaping {
-            byte_index: source_utf8_offset,
+            byte_index: offsets.source_utf8,
         });
     }
     if infos.is_empty() {
         return Err(ResolveError::UnsupportedClusterMapping {
-            source_utf8_start: source_utf8_offset,
-            source_utf8_end: source_utf8_offset + source.len(),
-            glyph_start: glyph_offset,
-            glyph_end: glyph_offset,
+            source_utf8_start: offsets.source_utf8,
+            source_utf8_end: offsets.source_utf8 + source.len(),
+            glyph_start: offsets.glyphs,
+            glyph_end: offsets.glyphs,
         });
     }
 
@@ -528,7 +535,7 @@ fn admitted_clusters(
             && local_source_utf8_start == expected_source_utf8_start;
         if !valid_source_range {
             return Err(ResolveError::UnsupportedShaping {
-                byte_index: source_utf8_offset + local_source_utf8_start.min(source.len()),
+                byte_index: offsets.source_utf8 + local_source_utf8_start.min(source.len()),
             });
         }
 
@@ -542,10 +549,10 @@ fn admitted_clusters(
             && source_characters[0].is_ascii_alphabetic()
             && is_admitted_mark(source_characters[1])
             && matches!(glyph_count, 1 | 2);
-        let source_utf8_start = source_utf8_offset + local_source_utf8_start;
-        let source_utf8_end = source_utf8_offset + local_source_utf8_end;
-        let glyph_start = glyph_offset + local_glyph_start;
-        let glyph_end = glyph_offset + local_glyph_end;
+        let source_utf8_start = offsets.source_utf8 + local_source_utf8_start;
+        let source_utf8_end = offsets.source_utf8 + local_source_utf8_end;
+        let glyph_start = offsets.glyphs + local_glyph_start;
+        let glyph_end = offsets.glyphs + local_glyph_end;
         if !direct && !one_mark {
             return Err(ResolveError::UnsupportedClusterMapping {
                 source_utf8_start,
@@ -558,10 +565,10 @@ fn admitted_clusters(
         let local_source_scalar_end = local_source_scalar_start + source_characters.len();
         clusters.push(ShapingCluster::new(
             source_utf8_start..source_utf8_end,
-            source_utf16_offset + local_source_utf16_start
-                ..source_utf16_offset + local_source_utf16_end,
-            source_scalar_offset + local_source_scalar_start
-                ..source_scalar_offset + local_source_scalar_end,
+            offsets.source_utf16 + local_source_utf16_start
+                ..offsets.source_utf16 + local_source_utf16_end,
+            offsets.source_scalars + local_source_scalar_start
+                ..offsets.source_scalars + local_source_scalar_end,
             glyph_start..glyph_end,
             source_run_tag_at(source_runs, source_utf8_start),
         ));
