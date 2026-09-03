@@ -46,17 +46,48 @@ export interface SvgCapture {
   label: string;
 }
 
+/** CSS face facts supplied alongside one exact font identity. */
+export interface FontFaceDescriptors {
+  weight: string;
+  style: string;
+  stretch: string;
+}
+
+const DEFAULT_FONT_FACE_DESCRIPTORS: FontFaceDescriptors = {
+  weight: "400",
+  style: "normal",
+  stretch: "100%",
+};
+
+function safeFontFaceDescriptor(name: string, value: string): string {
+  const allowed =
+    name === "weight"
+      ? /^(?:[1-9][0-9]{0,2}|1000)$/
+      : name === "style"
+        ? /^(?:normal|italic)$/
+        : /^(?:50|62\.5|75|87\.5|100|112\.5|125|150|200)%$/;
+  if (!allowed.test(value)) {
+    throw new Error(`font ${name} ${JSON.stringify(value)} is not safely declarable`);
+  }
+  return value;
+}
+
 /** Declare one exact font identity without putting font bytes in the fixture. */
 export function declareFontInSvg(
   source: string,
   family: string,
   fontBytes: Uint8Array,
+  descriptors: Partial<FontFaceDescriptors> = {},
 ): string {
   if (!/^[A-Za-z0-9 _-]+$/.test(family)) {
     throw new Error(`font family ${JSON.stringify(family)} is not safely declarable`);
   }
+  const face = { ...DEFAULT_FONT_FACE_DESCRIPTORS, ...descriptors };
+  const weight = safeFontFaceDescriptor("weight", face.weight);
+  const style = safeFontFaceDescriptor("style", face.style);
+  const stretch = safeFontFaceDescriptor("stretch", face.stretch);
   const fontDataUrl = `data:font/ttf;base64,${Buffer.from(fontBytes).toString("base64")}`;
-  const rule = `<style>@font-face{font-family:${JSON.stringify(family)};src:url(${fontDataUrl})}</style>`;
+  const rule = `<style>@font-face{font-family:${JSON.stringify(family)};src:url(${fontDataUrl});font-weight:${weight};font-style:${style};font-stretch:${stretch}}</style>`;
   const rootEnd = source.indexOf(">");
   if (rootEnd < 0 || !source.slice(0, rootEnd).includes("<svg")) {
     throw new Error("fixture must open with an <svg> root element");

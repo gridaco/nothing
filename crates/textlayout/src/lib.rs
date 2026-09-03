@@ -7,10 +7,10 @@
 //!
 //! ```text
 //! attributed text + explicit font environment
-//!     -> resolved text layout | typed resolution failure     (oracle v5)
+//!     -> resolved text layout | typed resolution failure     (oracle v6)
 //! ```
 //!
-//! **Oracle v5 resolves one layout-affecting style over printable-ASCII plus
+//! **Oracle v6 resolves one layout-affecting style over printable-ASCII plus
 //! the canonical precomposed Latin-1 letters whose decomposition is one ASCII
 //! Latin base and one combining mark, plus one U+0301 or U+030B after an ASCII
 //! Latin base. Complete source-run coverage may carry opaque caller tags;
@@ -23,9 +23,10 @@
 //! base-plus-mark composing to one glyph or attaching one zero-advance glyph
 //! with explicit x/y offsets. There is no wrapping, authored placement,
 //! anchoring, glyph fallback, or synthesis. Its ordered font-family request
-//! selects the first unique named resource under Chromium's measured BMP
-//! simple-fold comparison; a reached generic, duplicate match, or exhausted
-//! list is a typed refusal.**
+//! selects within the first named family that has declared resources under
+//! Chromium's measured BMP simple-fold comparison. Selection requires one
+//! exact static weight/stretch/style tuple; a reached generic, exact miss,
+//! exact-tuple tie, or exhausted list is a typed refusal.**
 //! The repertoire is an explicit admit-list enforced by the resolver
 //! itself — never an accident of a font's coverage — and everything outside
 //! the profile is a typed refusal, not an approximation. Coverage grows by
@@ -58,6 +59,7 @@
 
 mod artifact;
 mod environment;
+mod face_descriptor;
 mod resolve;
 mod source;
 
@@ -66,6 +68,9 @@ pub use artifact::{
     ResolvedTextLayout, ShapingCluster,
 };
 pub use environment::{Environment, FontKey, FontResource};
+pub use face_descriptor::{
+    FontStretch, FontStyle, FontWeight, InvalidFontWeight, StaticFaceDescriptor,
+};
 pub use resolve::{AttributedText, FontFamily, ResolveError, Style, resolve};
 pub use source::{
     ShapingChunk, ShapingChunkCoverageError, SourceRun, SourceRunCoverageError, SourceRunTag,
@@ -83,5 +88,7 @@ pub use source::{
 /// geometry-producing policy: each chunk is shaped independently, which can
 /// change glyph positioning at its boundaries; those records advanced v3 to
 /// v4. Ordered declared-family selection can change the exact face and glyph
-/// identity, so its pinned BMP simple-fold policy advances v4 to v5.
-pub const ORACLE_VERSION: &str = "textlayout-v5";
+/// identity, so its pinned BMP simple-fold policy advanced v4 to v5. Exact
+/// static same-family descriptor selection can change face and glyph identity,
+/// so it advances v5 to v6.
+pub const ORACLE_VERSION: &str = "textlayout-v6";

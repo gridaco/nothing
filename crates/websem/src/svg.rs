@@ -129,7 +129,10 @@ use crate::svg_paint_server::{
 use crate::svg_transform::{TransformRefusal, computed_transform_to_affine};
 use style::properties::ComputedValues;
 use style::thread_state::{self, ThreadState};
-use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
+use style::values::computed::font::{
+    FontStretch as StyloFontStretch, FontStyle as StyloFontStyle, GenericFontFamily,
+    SingleFontFamily,
+};
 use style::values::computed::{Length, SVGOpacity, SVGPaint, Size};
 use style::values::generics::basic_shape::FillRule as StyloFillRule;
 use style::values::generics::svg::{SVGLength, SVGPaintKind, SVGStrokeDashArray};
@@ -1109,14 +1112,11 @@ const TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "dominant-baseline",
     "alignment-baseline",
     "baseline-shift",
-    "font-weight",
-    "font-style",
-    "font-stretch",
     "font-variant",
     "font",
 ];
 
-/// Cascaded text facts the v5 text oracle does not consume.
+/// Cascaded text facts the text oracle does not consume.
 ///
 /// Unlike [`CASCADE_PROPERTIES_NOT_REPRESENTED`], most of these longhands do
 /// exist in the pinned Stylo build. That makes them more dangerous, not less:
@@ -1138,8 +1138,6 @@ const TEXT_CASCADE_PROPERTIES_NOT_CONSUMED: &[&str] = &[
     "font-optical-sizing",
     "font-palette",
     "font-size-adjust",
-    "font-stretch",
-    "font-style",
     "font-synthesis",
     "font-synthesis-position",
     "font-synthesis-small-caps",
@@ -1154,7 +1152,6 @@ const TEXT_CASCADE_PROPERTIES_NOT_CONSUMED: &[&str] = &[
     "font-variant-numeric",
     "font-variant-position",
     "font-variation-settings",
-    "font-weight",
     "glyph-orientation-horizontal",
     "glyph-orientation-vertical",
     "letter-spacing",
@@ -1199,10 +1196,7 @@ const TEXT_ANCESTOR_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "dominant-baseline",
     "font",
     "font-size-adjust",
-    "font-stretch",
-    "font-style",
     "font-variant",
-    "font-weight",
     "glyph-orientation-horizontal",
     "glyph-orientation-vertical",
     "letter-spacing",
@@ -1654,6 +1648,164 @@ fn text_font_size_source_refusal(value: &str, allow_unitless: bool) -> Option<St
     None
 }
 
+const TEXT_FACE_DESCRIPTOR_PROPERTIES: [&str; 3] = ["font-weight", "font-style", "font-stretch"];
+
+fn text_face_descriptor_source_refusal(property: &str, value: &str) -> Option<String> {
+    let without_comments = strip_css_comments(value);
+    let source = trim_svg_whitespace(&without_comments);
+    let source = match source.rsplit_once('!') {
+        Some((value, important))
+            if trim_svg_whitespace(important).eq_ignore_ascii_case("important") =>
+        {
+            trim_svg_whitespace(value)
+        }
+        _ => source,
+    };
+    let lower = source.to_ascii_lowercase();
+    if matches!(
+        lower.as_str(),
+        "inherit" | "initial" | "unset" | "revert" | "revert-layer"
+    ) {
+        return None;
+    }
+
+    match property {
+        "font-weight" => {
+            if matches!(lower.as_str(), "normal" | "bold" | "bolder" | "lighter") {
+                return None;
+            }
+            if !source.is_empty()
+                && source.bytes().all(|byte| byte.is_ascii_digit())
+                && source
+                    .parse::<u16>()
+                    .is_ok_and(|weight| (1..=1000).contains(&weight))
+            {
+                return None;
+            }
+            Some(format!(
+                "authored font-weight source {source:?} is outside T5b's integral static face-descriptor profile"
+            ))
+        }
+        "font-style" => {
+            if matches!(lower.as_str(), "normal" | "italic") {
+                return None;
+            }
+            Some(format!(
+                "authored font-style source {source:?} is outside T5b's normal/italic static face-descriptor profile"
+            ))
+        }
+        "font-stretch" => {
+            if matches!(
+                lower.as_str(),
+                "ultra-condensed"
+                    | "extra-condensed"
+                    | "condensed"
+                    | "semi-condensed"
+                    | "normal"
+                    | "semi-expanded"
+                    | "expanded"
+                    | "extra-expanded"
+                    | "ultra-expanded"
+                    | "50%"
+                    | "62.5%"
+                    | "75%"
+                    | "87.5%"
+                    | "100%"
+                    | "112.5%"
+                    | "125%"
+                    | "150%"
+                    | "200%"
+            ) {
+                return None;
+            }
+            Some(format!(
+                "authored font-stretch source {source:?} crosses T5b's source-precision boundary and is outside its nine exact static face-descriptor points"
+            ))
+        }
+        _ => None,
+    }
+}
+
+fn patrol_text_face_descriptor_attributes(
+    element: HtmlElement<'_>,
+    element_name: &str,
+) -> Result<(), CompileError> {
+    for property in TEXT_FACE_DESCRIPTOR_PROPERTIES {
+        if let Some(value) = get_attr(element, property)
+            && let Some(reason) = text_face_descriptor_source_refusal(property, &value)
+        {
+            return Err(CompileError::UnsupportedStyle(format!(
+                "<{element_name}> {reason}"
+            )));
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod text_face_descriptor_source_tests {
+    use super::text_face_descriptor_source_refusal;
+
+    #[test]
+    fn exact_static_descriptor_sources_are_the_only_admitted_profile() {
+        for (property, values) in [
+            (
+                "font-weight",
+                &["1", "400", "1000", "normal", "bold", "bolder", "lighter"][..],
+            ),
+            (
+                "font-style",
+                &["normal", "italic", "INITIAL", "inherit"][..],
+            ),
+            (
+                "font-stretch",
+                &[
+                    "ultra-condensed",
+                    "condensed",
+                    "normal",
+                    "ultra-expanded",
+                    "62.5%",
+                    "75%",
+                    "112.5%",
+                    "200%",
+                ][..],
+            ),
+        ] {
+            for value in values {
+                assert_eq!(
+                    text_face_descriptor_source_refusal(property, value),
+                    None,
+                    "{property}: {value}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn wider_numeric_function_and_oblique_sources_refuse_before_the_cascade_bucket() {
+        for (property, values) in [
+            (
+                "font-weight",
+                &["0", "1001", "400.5", "4e2", "calc(700)", "var(--w)"][..],
+            ),
+            ("font-style", &["oblique", "oblique 23deg", "var(--s)"][..]),
+            (
+                "font-stretch",
+                &["74.999%", "80%", "calc(75%)", "var(--s)"][..],
+            ),
+        ] {
+            for value in values {
+                let reason = text_face_descriptor_source_refusal(property, value)
+                    .unwrap_or_else(|| panic!("{property}: {value} must refuse"));
+                assert!(
+                    reason.contains(property) && reason.contains("face-descriptor"),
+                    "{property}: {value}: {reason}"
+                );
+            }
+        }
+    }
+}
+
 /// First text-layout declaration in a CSS fragment that this source profile
 /// cannot honor. A style sheet is deliberately scanned without selector
 /// matching: when a visible text run exists, over-refusing an unrelated rule
@@ -1688,9 +1840,15 @@ fn text_css_source_refusal(css: &str) -> Option<String> {
             }
             continue;
         }
+        if TEXT_FACE_DESCRIPTOR_PROPERTIES.contains(&name.as_str()) {
+            if let Some(reason) = text_face_descriptor_source_refusal(&name, value) {
+                return Some(reason);
+            }
+            continue;
+        }
         if TEXT_CASCADE_PROPERTIES_NOT_CONSUMED.contains(&name.as_str()) {
             return Some(format!(
-                "text layout property {name} is represented or browser-consumed but not carried by the v5 text oracle"
+                "text layout property {name} is represented or browser-consumed but not carried by the current text oracle"
             ));
         }
     }
@@ -1707,6 +1865,7 @@ fn patrol_text_authored_semantics(el: HtmlElement<'_>) -> Result<(), CompileErro
     let mut root = el;
     let mut ancestor = Some(el);
     while let Some(element) = ancestor {
+        patrol_text_face_descriptor_attributes(element, "text")?;
         if let Some(value) = get_attr(element, "font-size")
             && let Some(reason) = text_font_size_source_refusal(&value, true)
         {
@@ -1718,7 +1877,7 @@ fn patrol_text_authored_semantics(el: HtmlElement<'_>) -> Result<(), CompileErro
                 .find(|attribute| get_attr(element, attribute).is_some())
         {
             return Err(CompileError::UnsupportedStyle(format!(
-                "text layout presentation attribute {attribute} in the ancestor chain is not carried by the v5 text oracle"
+                "text layout presentation attribute {attribute} in the ancestor chain is not carried by the current text oracle"
             )));
         }
         if let Some(style) = get_attr(element, "style")
@@ -2526,7 +2685,8 @@ fn measure_leaf_geometry(
         // Text geometry depends on the declared oracle; re-use it only when
         // it can be resolved without changing any paint fact.
         "text" => {
-            let (families, font_size) = text_family_and_size(el)?;
+            patrol_text_authored_semantics(el)?;
+            let request = text_font_request(el)?;
             let mut raw = String::new();
             for child_id in &el.dom_node().children {
                 match &el.dom().node(*child_id).data {
@@ -2542,7 +2702,14 @@ fn measure_leaf_geometry(
                 .and_then(|value| crate::svg_text::Anchor::parse(&value))
                 .unwrap_or(crate::svg_text::Anchor::Start);
             let Some(path) = crate::svg_text::resolve_text_path(
-                &content, families, font_size, x, y, anchor, fonts,
+                &content,
+                request.families,
+                request.face_descriptor,
+                request.size,
+                x,
+                y,
+                anchor,
+                fonts,
             )
             .map_err(|error| CompileError::UnsupportedStyle(error.to_string()))?
             else {
@@ -9975,9 +10142,6 @@ const TSPAN_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "dominant-baseline",
     "alignment-baseline",
     "baseline-shift",
-    "font-weight",
-    "font-style",
-    "font-stretch",
     "font-variant",
     "font",
     "transform",
@@ -10175,14 +10339,19 @@ fn collect_tspan_positioning(subtree: &TextSubtree<'_>) -> Result<TspanPositioni
     })
 }
 
-fn text_family_and_size(
-    el: HtmlElement<'_>,
-) -> Result<(Vec<textlayout::FontFamily>, f32), CompileError> {
+struct TextFontRequest {
+    families: Vec<textlayout::FontFamily>,
+    face_descriptor: textlayout::StaticFaceDescriptor,
+    size: f32,
+}
+
+fn text_font_request(el: HtmlElement<'_>) -> Result<TextFontRequest, CompileError> {
     let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     let style: &ComputedValues = data.styles.primary();
-    let font_size = style.clone_font_size().used_size().px();
-    let families = style
-        .clone_font_family()
+    let font = style.get_font();
+    let size = font.font_size.used_size().px();
+    let families = font
+        .font_family
         .families
         .iter()
         .map(|family| match family {
@@ -10194,8 +10363,48 @@ fn text_family_and_size(
             }
         })
         .collect();
+    let computed_weight = font.font_weight.value();
+    if !computed_weight.is_finite() || computed_weight.fract() != 0.0 {
+        return Err(CompileError::UnsupportedStyle(format!(
+            "computed font-weight {computed_weight} is outside T5b's integral static face-descriptor profile"
+        )));
+    }
+    let weight = textlayout::FontWeight::new(computed_weight as u16).map_err(|error| {
+        CompileError::UnsupportedStyle(format!(
+            "computed {error}; T5b carries only exact static face descriptors"
+        ))
+    })?;
+    let stretch = match font.font_stretch {
+        StyloFontStretch::ULTRA_CONDENSED => textlayout::FontStretch::UltraCondensed,
+        StyloFontStretch::EXTRA_CONDENSED => textlayout::FontStretch::ExtraCondensed,
+        StyloFontStretch::CONDENSED => textlayout::FontStretch::Condensed,
+        StyloFontStretch::SEMI_CONDENSED => textlayout::FontStretch::SemiCondensed,
+        StyloFontStretch::NORMAL => textlayout::FontStretch::Normal,
+        StyloFontStretch::SEMI_EXPANDED => textlayout::FontStretch::SemiExpanded,
+        StyloFontStretch::EXPANDED => textlayout::FontStretch::Expanded,
+        StyloFontStretch::EXTRA_EXPANDED => textlayout::FontStretch::ExtraExpanded,
+        StyloFontStretch::ULTRA_EXPANDED => textlayout::FontStretch::UltraExpanded,
+        value => {
+            return Err(CompileError::UnsupportedStyle(format!(
+                "computed font-stretch {value:?} is outside T5b's nine exact static face-descriptor points"
+            )));
+        }
+    };
+    let face_style = match font.font_style {
+        StyloFontStyle::NORMAL => textlayout::FontStyle::Normal,
+        StyloFontStyle::ITALIC => textlayout::FontStyle::Italic,
+        value => {
+            return Err(CompileError::UnsupportedStyle(format!(
+                "computed font-style {value:?} is outside T5b's normal/italic static face-descriptor profile"
+            )));
+        }
+    };
     drop(data);
-    Ok((families, font_size))
+    Ok(TextFontRequest {
+        families,
+        face_descriptor: textlayout::StaticFaceDescriptor::new(weight, stretch, face_style),
+        size,
+    })
 }
 
 fn generic_font_family_name(family: GenericFontFamily) -> &'static str {
@@ -10223,6 +10432,7 @@ fn tspan_paint_selection<'d>(
     owner: HtmlElement<'d>,
     is_tspan: bool,
     parent_families: &[textlayout::FontFamily],
+    parent_face_descriptor: textlayout::StaticFaceDescriptor,
     parent_font_size: f32,
     servers: &PaintServers<'d>,
     patterns: &PatternCompiler<'d>,
@@ -10236,6 +10446,7 @@ fn tspan_paint_selection<'d>(
         // spelling transactional while T4b consumes its four position lists.
         patrol_rendering_attributes(owner, "tspan", TSPAN_RENDERING_ATTRIBUTES_NOT_CONSUMED)?;
         patrol_style_attribute(owner, "tspan")?;
+        patrol_text_face_descriptor_attributes(owner, "tspan")?;
         if let Some(value) = get_attr(owner, "font-size")
             && let Some(reason) = text_font_size_source_refusal(&value, true)
         {
@@ -10264,10 +10475,14 @@ fn tspan_paint_selection<'d>(
                 "paint-only <tspan> transform must remain none".to_string(),
             ));
         }
-        let (families, font_size) = text_family_and_size(owner)?;
-        if families != parent_families || font_size.to_bits() != parent_font_size.to_bits() {
+        let request = text_font_request(owner)?;
+        if request.families != parent_families
+            || request.face_descriptor != parent_face_descriptor
+            || request.size.to_bits() != parent_font_size.to_bits()
+        {
             return Err(CompileError::UnsupportedStyle(format!(
-                "paint-only <tspan> resolves font families {families:?} at {font_size}px, but its parent run resolves {parent_families:?} at {parent_font_size}px"
+                "paint-only <tspan> resolves font families {:?}, face {:?}, at {}px, but its parent run resolves {parent_families:?}, face {parent_face_descriptor:?}, at {parent_font_size}px",
+                request.families, request.face_descriptor, request.size
             )));
         }
         if resolve_stroke(
@@ -10337,6 +10552,7 @@ fn tspan_paint_selection<'d>(
 fn compile_tspan_text(
     subtree: TextSubtree<'_>,
     families: Vec<textlayout::FontFamily>,
+    face_descriptor: textlayout::StaticFaceDescriptor,
     font_size: f32,
     x: f32,
     y: f32,
@@ -10359,6 +10575,7 @@ fn compile_tspan_text(
             owner,
             index != 0,
             &families,
+            face_descriptor,
             font_size,
             servers,
             patterns,
@@ -10416,6 +10633,7 @@ fn compile_tspan_text(
         subtree.content,
         textlayout::Style {
             families,
+            face_descriptor,
             size: font_size,
         },
         source_runs,
@@ -10580,7 +10798,7 @@ fn compile_text(
 
     // Preserve the complete computed preference order. `textlayout` owns
     // declared-environment selection and the typed generic/miss boundaries.
-    let (families, font_size) = text_family_and_size(el)?;
+    let request = text_font_request(el)?;
 
     if subtree.has_tspan {
         if patrol.opacity != 1.0 {
@@ -10590,8 +10808,9 @@ fn compile_text(
         }
         return compile_tspan_text(
             subtree,
-            families,
-            font_size,
+            request.families,
+            request.face_descriptor,
+            request.size,
             x,
             y,
             anchor,
@@ -10608,9 +10827,17 @@ fn compile_text(
         );
     }
 
-    let path =
-        crate::svg_text::resolve_text_path(content, families, font_size, x, y, anchor, fonts)
-            .map_err(|error| CompileError::UnsupportedStyle(error.to_string()))?;
+    let path = crate::svg_text::resolve_text_path(
+        content,
+        request.families,
+        request.face_descriptor,
+        request.size,
+        x,
+        y,
+        anchor,
+        fonts,
+    )
+    .map_err(|error| CompileError::UnsupportedStyle(error.to_string()))?;
     let Some(path) = path else {
         // A run that resolves to no ink is an admitted nothing, not a node.
         return Ok(None);

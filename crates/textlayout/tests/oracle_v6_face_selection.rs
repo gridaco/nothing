@@ -1,4 +1,4 @@
-//! Oracle v5 ordered declared-family selection.
+//! Oracle v6 ordered family and exact static face selection.
 //!
 //! These tests use only attributed text and explicit font resources. They
 //! prove selection and refusal before any caller-specific projection exists.
@@ -6,8 +6,8 @@
 use std::sync::Arc;
 
 use textlayout::{
-    AttributedText, Environment, FontFamily, FontKey, FontResource, ResolveError, SourceRunTag,
-    Style, resolve,
+    AttributedText, Environment, FontFamily, FontKey, FontResource, FontStretch, FontStyle,
+    FontWeight, ResolveError, SourceRunTag, StaticFaceDescriptor, Style, resolve,
 };
 
 const AHEM: &str = concat!(
@@ -28,33 +28,97 @@ const ALLERTA_KEY: FontKey = FontKey::new([0xB2; 32]);
 const BUNGEE_KEY: FontKey = FontKey::new([0xC3; 32]);
 const SOURCE_RUN: SourceRunTag = SourceRunTag::new(0);
 
-fn resource(path: &str, family: &str, key: FontKey) -> FontResource {
+fn descriptor(weight: u16, stretch: FontStretch, style: FontStyle) -> StaticFaceDescriptor {
+    StaticFaceDescriptor::new(
+        FontWeight::new(weight).expect("test weight is representable"),
+        stretch,
+        style,
+    )
+}
+
+fn resource_with_descriptor(
+    path: &str,
+    family: &str,
+    key: FontKey,
+    face_descriptor: StaticFaceDescriptor,
+) -> FontResource {
     let bytes: Arc<[u8]> = std::fs::read(path).expect("fixture font bytes").into();
     FontResource {
         key,
         family: family.to_string(),
+        face_descriptor,
         face_index: 0,
         bytes,
     }
 }
 
-fn attributed(source: &str, families: Vec<FontFamily>) -> AttributedText {
+fn resource(path: &str, family: &str, key: FontKey) -> FontResource {
+    resource_with_descriptor(path, family, key, StaticFaceDescriptor::NORMAL)
+}
+
+fn attributed_with_descriptor(
+    source: &str,
+    families: Vec<FontFamily>,
+    face_descriptor: StaticFaceDescriptor,
+) -> AttributedText {
     AttributedText::single_source_run(
         source.to_string(),
         Style {
             families,
+            face_descriptor,
             size: 20.0,
         },
         SOURCE_RUN,
     )
 }
 
+fn attributed(source: &str, families: Vec<FontFamily>) -> AttributedText {
+    attributed_with_descriptor(source, families, StaticFaceDescriptor::NORMAL)
+}
+
 fn named(names: &[&str]) -> Vec<FontFamily> {
     names.iter().map(|name| FontFamily::named(*name)).collect()
 }
 
+fn assert_selection_ignores_environment_order(
+    first: FontResource,
+    second: FontResource,
+    requested: StaticFaceDescriptor,
+    expected_key: FontKey,
+) {
+    let orders = [vec![first.clone(), second.clone()], vec![second, first]];
+
+    for environment_resources in orders {
+        let layout = resolve(
+            &attributed_with_descriptor("X", named(&["Exact"]), requested),
+            &Environment::new(environment_resources),
+        )
+        .expect("one exact tuple selects independently of environment order");
+        assert_eq!(layout.face().key, expected_key);
+    }
+}
+
 #[test]
-fn request_order_not_environment_order_selects_the_exact_face() {
+fn each_descriptor_component_and_the_complete_tuple_select_exactly() {
+    let cases = [
+        descriptor(700, FontStretch::Normal, FontStyle::Normal),
+        descriptor(400, FontStretch::SemiExpanded, FontStyle::Normal),
+        descriptor(400, FontStretch::Normal, FontStyle::Italic),
+        descriptor(700, FontStretch::Expanded, FontStyle::Italic),
+    ];
+
+    for requested in cases {
+        assert_selection_ignores_environment_order(
+            resource(AHEM, "Exact", AHEM_KEY),
+            resource_with_descriptor(ALLERTA, "Exact", ALLERTA_KEY, requested),
+            requested,
+            ALLERTA_KEY,
+        );
+    }
+}
+
+#[test]
+fn request_order_not_environment_order_selects_the_first_reached_family() {
     let environment = Environment::new(vec![
         resource(ALLERTA, "Allerta", ALLERTA_KEY),
         resource(AHEM, "Ahem", AHEM_KEY),
@@ -70,7 +134,7 @@ fn request_order_not_environment_order_selects_the_exact_face() {
     assert_eq!(ahem_first.advance(), 20.0);
     assert_eq!(allerta_first.face().key, ALLERTA_KEY);
     assert_ne!(allerta_first.advance(), ahem_first.advance());
-    assert_eq!(ahem_first.oracle_version(), "textlayout-v5");
+    assert_eq!(ahem_first.oracle_version(), "textlayout-v6");
     assert_eq!(ahem_first.oracle_version(), textlayout::ORACLE_VERSION);
 }
 
@@ -84,6 +148,108 @@ fn unavailable_named_family_falls_through_to_the_next_request() {
     .expect("only an unavailable named candidate falls through");
 
     assert_eq!(layout.face().key, AHEM_KEY);
+}
+
+#[test]
+fn reached_family_exact_miss_does_not_try_a_later_family() {
+    let requested = descriptor(700, FontStretch::Normal, FontStyle::Normal);
+    let environment = Environment::new(vec![
+        resource(AHEM, "Reached", AHEM_KEY),
+        resource_with_descriptor(BUNGEE, "Later", BUNGEE_KEY, requested),
+    ]);
+
+    let error = resolve(
+        &attributed_with_descriptor("X", named(&["Reached", "Later"]), requested),
+        &environment,
+    )
+    .expect_err("a reached family is final even when its descriptor misses");
+
+    assert_eq!(
+        error,
+        ResolveError::NoExactFace {
+            candidate_index: 0,
+            family: "Reached".to_string(),
+            requested,
+            family_resources: 1,
+        }
+    );
+}
+
+#[test]
+fn exact_tuple_ties_refuse_independently_of_environment_order() {
+    let requested = StaticFaceDescriptor::NORMAL;
+    let first = resource(AHEM, "Tied", AHEM_KEY);
+    let second = resource(ALLERTA, "tIED", ALLERTA_KEY);
+    let nonmatching = resource_with_descriptor(
+        BUNGEE,
+        "TIED",
+        BUNGEE_KEY,
+        descriptor(400, FontStretch::Normal, FontStyle::Italic),
+    );
+    let expected = ResolveError::AmbiguousFace {
+        candidate_index: 0,
+        family: "Tied".to_string(),
+        requested,
+        matching_resources: 2,
+    };
+
+    for resources in [
+        vec![first.clone(), nonmatching.clone(), second.clone()],
+        vec![second, nonmatching, first],
+    ] {
+        let error = resolve(
+            &attributed_with_descriptor("X", named(&["Tied"]), requested),
+            &Environment::new(resources),
+        )
+        .expect_err("two exact tuples cannot inherit environment order");
+        let diagnostic = error.to_string();
+        assert!(
+            diagnostic.contains("ambiguous"),
+            "the stable ambiguity reason must remain classifiable"
+        );
+        assert!(
+            diagnostic.contains("matches 2 declared resources"),
+            "the registered resource-count reason must remain stable"
+        );
+        assert_eq!(error, expected);
+    }
+}
+
+#[test]
+fn normal_default_tuple_preserves_one_face_resolution() {
+    let environment = Environment::new(vec![resource(AHEM, "Ahem", AHEM_KEY)]);
+    let layout = resolve(&attributed("X", named(&["Ahem"])), &environment)
+        .expect("one normal request and resource retain one-face behavior");
+
+    assert_eq!(layout.face().key, AHEM_KEY);
+    assert_eq!(layout.face().face_index, 0);
+    assert_eq!(layout.advance(), 20.0);
+}
+
+#[test]
+fn static_descriptor_domain_is_finite_and_lossless() {
+    assert_eq!(FontWeight::MIN.value(), 1);
+    assert_eq!(FontWeight::MAX.value(), 1000);
+    assert_eq!(FontWeight::new(0).unwrap_err().value(), 0);
+    assert_eq!(FontWeight::new(1001).unwrap_err().value(), 1001);
+
+    let stretches = [
+        FontStretch::UltraCondensed,
+        FontStretch::ExtraCondensed,
+        FontStretch::Condensed,
+        FontStretch::SemiCondensed,
+        FontStretch::Normal,
+        FontStretch::SemiExpanded,
+        FontStretch::Expanded,
+        FontStretch::ExtraExpanded,
+        FontStretch::UltraExpanded,
+    ];
+    for stretch in stretches {
+        let exact = StaticFaceDescriptor::new(FontWeight::MIN, stretch, FontStyle::Italic);
+        assert_eq!(exact.weight(), FontWeight::MIN);
+        assert_eq!(exact.stretch(), stretch);
+        assert_eq!(exact.style(), FontStyle::Italic);
+    }
 }
 
 #[test]
@@ -157,10 +323,7 @@ fn named_generic_spelling_and_generic_policy_are_distinct() {
 
 #[test]
 fn incomplete_family_selection_refuses_by_typed_reason() {
-    let environment = Environment::new(vec![
-        resource(AHEM, "Duplicate", AHEM_KEY),
-        resource(ALLERTA, "dUPLICATE", ALLERTA_KEY),
-    ]);
+    let environment = Environment::new(vec![resource(AHEM, "Available", AHEM_KEY)]);
 
     let empty = resolve(&attributed("X", Vec::new()), &environment)
         .expect_err("an empty request cannot select a face");
@@ -172,17 +335,6 @@ fn incomplete_family_selection_refuses_by_typed_reason() {
         absent,
         ResolveError::NoMatchingFamily {
             families: vec!["First".to_string(), "Second".to_string()],
-        }
-    );
-
-    let ambiguous = resolve(&attributed("X", named(&["DUPLICATE"])), &environment)
-        .expect_err("manifest order cannot choose between duplicate matches");
-    assert_eq!(
-        ambiguous,
-        ResolveError::AmbiguousFamily {
-            candidate_index: 0,
-            family: "DUPLICATE".to_string(),
-            matching_resources: 2,
         }
     );
 }
@@ -205,7 +357,7 @@ fn a_successful_earlier_match_makes_every_later_candidate_inert() {
         ),
         &environment,
     )
-    .expect("selection is complete after the first unique named match");
+    .expect("selection is complete after the first unique exact match");
 
     assert_eq!(layout.face().key, AHEM_KEY);
 }

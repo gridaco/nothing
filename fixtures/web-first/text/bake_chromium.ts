@@ -31,6 +31,7 @@ import {
   captureFirstSvg,
   declareFontInSvg,
   deterministicContext,
+  type FontFaceDescriptors,
   launchDeterministicChromium,
 } from "../chromium_capture";
 
@@ -44,7 +45,7 @@ interface Case {
 
 interface Suite {
   schema_version: number;
-  fonts: { family: string; path: string; sha256: string }[];
+  fonts: ({ family: string; path: string; sha256: string } & FontFaceDescriptors)[];
   cases: Case[];
 }
 
@@ -70,18 +71,24 @@ async function main(): Promise<void> {
   const suiteBytes = await readFile(SUITE_PATH);
   const suite = JSON.parse(suiteBytes.toString("utf8")) as Suite;
   if (
-    suite.schema_version !== 2 ||
+    suite.schema_version !== 3 ||
     suite.fonts.length === 0 ||
     suite.cases.length === 0
   ) {
     throw new Error("unsupported or empty text suite");
   }
-  const fontFamilies = new Set<string>();
+  const fontFaces = new Set<string>();
   for (const font of suite.fonts) {
-    if (fontFamilies.has(font.family)) {
-      throw new Error(`duplicate declared font family ${JSON.stringify(font.family)}`);
+    const face = JSON.stringify([
+      font.family.toLowerCase(),
+      font.weight,
+      font.style,
+      font.stretch,
+    ]);
+    if (fontFaces.has(face)) {
+      throw new Error(`duplicate declared font face ${face}`);
     }
-    fontFamilies.add(font.family);
+    fontFaces.add(face);
   }
   const ids = new Set<string>();
   const sources = new Set<string>();
@@ -140,6 +147,11 @@ async function main(): Promise<void> {
           declared,
           suite.fonts[index].family,
           fontBytes[index],
+          {
+            weight: suite.fonts[index].weight,
+            style: suite.fonts[index].style,
+            stretch: suite.fonts[index].stretch,
+          },
         );
       }
 
@@ -191,7 +203,7 @@ async function main(): Promise<void> {
   }
 
   const manifest = {
-    schema_version: 2,
+    schema_version: 3,
     kind: "chromium-svg-text-oracle",
     browser_version: browserVersion,
     suite: "cases.json",
@@ -203,6 +215,9 @@ async function main(): Promise<void> {
     fonts: suite.fonts.map((font) => ({
       family: font.family,
       sha256: font.sha256,
+      weight: font.weight,
+      style: font.style,
+      stretch: font.stretch,
       declaration: "inline @font-face injected as the root svg's first child",
     })),
     capture_policy: {

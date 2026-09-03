@@ -37,10 +37,11 @@
 //! non-PNG output remain outside the admitted host contract.
 //!
 //! Text resolves against fonts the host declares, never an ambient one:
-//! `--font FAMILY=PATH@sha256:HEX` (repeatable) names the exact bytes a
-//! family means, and the host verifies them before any pixel. A `<text>`
-//! run whose family was not declared refuses by name — there is no system
-//! fallback to render a machine-local pixel from.
+//! `--font FAMILY=PATH@sha256:HEX[;weight=N][;style=normal|italic][;stretch=POINT]`
+//! (repeatable) names exact bytes and optional exact static face facts; the
+//! host verifies them before any pixel. A `<text>` run whose family or exact
+//! face was not declared refuses by name — there is no system fallback,
+//! nearest-face guess, or synthetic posture to render a machine-local pixel.
 //!
 //! Usage:
 //!   cargo run -p n0_cli --bin n0 -- <input.svg|input.html> <out.png> <WxH>
@@ -48,7 +49,7 @@
 //!   cargo run -p n0_cli --bin n0 -- <input.svg|input.html> <out.png> <WxH> --time-ns <i64>
 //!   ... any form plus --strict (refuse beyond-slice) or --best-effort (the
 //!   explicit spelling of the default), and any number of
-//!   --font FAMILY=PATH@sha256:HEX
+//!   --font FAMILY=PATH@sha256:HEX[;weight=N][;style=normal|italic][;stretch=POINT]
 //!
 //! Examples:
 //!   cargo run -p n0_cli --bin n0 -- \
@@ -101,7 +102,7 @@ fn main() -> ExitCode {
              n0 <input.svg|input.html> <out.png> <WxH> --time-ns <signed-nanoseconds>\n\
              any form may add --strict (refuse beyond-slice constructs)\n\
              or --best-effort (declare and render; the default),\n\
-             and any number of --font FAMILY=PATH@sha256:HEX"
+             and any number of --font FAMILY=PATH@sha256:HEX[;weight=N][;style=normal|italic][;stretch=POINT]"
         );
         return ExitCode::from(2);
     }
@@ -224,7 +225,10 @@ fn parse_render_options(
         }
     }
     if expecting_font {
-        return Err("--font needs a FAMILY=PATH@sha256:HEX declaration".to_string());
+        return Err(
+            "--font needs a FAMILY=PATH@sha256:HEX[;weight=N][;style=normal|italic][;stretch=POINT] declaration"
+                .to_string(),
+        );
     }
     let policy = parse_frame_policy(&policy_args)?;
     Ok((
@@ -540,6 +544,64 @@ mod tests {
             raster.pixels, oracle.pixels,
             "the host's text render is the Chromium oracle, byte for byte"
         );
+    }
+
+    #[test]
+    fn declared_face_descriptors_render_the_same_family_chromium_cell() {
+        const AHEM_DIGEST: &str =
+            "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448";
+        const BUNGEE_DIGEST: &str =
+            "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc";
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let source = std::fs::read_to_string(
+            root.join("fixtures/web-first/text/svg-text-face-descriptor-selection.svg"),
+        )
+        .expect("read the exact descriptor cell");
+        let ahem = root.join("fixtures/web-first/fonts/ahem.ttf");
+        let bungee = root.join("fixtures/fonts/Bungee/Bungee-Regular.ttf");
+        let specs = [
+            format!("Weight={}@sha256:{BUNGEE_DIGEST}", bungee.display()),
+            format!("Weight={}@sha256:{AHEM_DIGEST};weight=700", ahem.display()),
+            format!("Style={}@sha256:{BUNGEE_DIGEST}", bungee.display()),
+            format!("Style={}@sha256:{AHEM_DIGEST};style=italic", ahem.display()),
+            format!("Stretch={}@sha256:{BUNGEE_DIGEST}", bungee.display()),
+            format!(
+                "Stretch={}@sha256:{AHEM_DIGEST};stretch=condensed",
+                ahem.display()
+            ),
+            format!("Triple={}@sha256:{BUNGEE_DIGEST}", bungee.display()),
+            format!(
+                "Triple={}@sha256:{AHEM_DIGEST};weight=700;style=italic;stretch=75%",
+                ahem.display()
+            ),
+        ];
+        let declarations = specs
+            .iter()
+            .map(|spec| fonts::parse_declaration(spec).expect("static face declaration"))
+            .collect::<Vec<_>>();
+        let environment = fonts::load_environment(&declarations).expect("all pinned faces verify");
+        let (png, degradations) = render_source_to_png(
+            &source,
+            SourceKind::Svg,
+            100,
+            100,
+            FramePolicy::Base,
+            Admission::Strict,
+            environment,
+        )
+        .expect("every request has one exact declared face");
+        assert!(degradations.is_empty());
+
+        let raster = decode_png(&png).expect("decode the descriptor render");
+        let oracle =
+            decode_png(
+                &std::fs::read(root.join(
+                    "fixtures/web-first/text/chromium/svg-text-face-descriptor-selection.png",
+                ))
+                .expect("read the committed descriptor oracle"),
+            )
+            .expect("decode the descriptor oracle");
+        assert_eq!(raster.pixels, oracle.pixels);
     }
 
     /// The strict admission keeps the refusal harness: inputs the retired

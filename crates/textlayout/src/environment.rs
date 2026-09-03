@@ -14,6 +14,8 @@ use std::sync::Arc;
 
 use regex_syntax::hir::{ClassUnicode, ClassUnicodeRange};
 
+use crate::face_descriptor::StaticFaceDescriptor;
+
 /// Declared content identity of one font resource: the SHA-256 digest of its
 /// exact bytes, as stated by the host that loaded them. Opaque to this crate
 /// and carried into every resolved artifact.
@@ -49,7 +51,8 @@ impl std::fmt::Debug for FontKey {
 }
 
 /// One declared font: verified identity, the exact bytes, the face index for
-/// collections, and the family name the environment answers to.
+/// collections, the family name the environment answers to, and its complete
+/// static face descriptor.
 ///
 /// The declared family is part of the manifest, not metadata read from the
 /// font — the environment answers exactly the names its host declared, so a
@@ -58,6 +61,7 @@ impl std::fmt::Debug for FontKey {
 pub struct FontResource {
     pub key: FontKey,
     pub family: String,
+    pub face_descriptor: StaticFaceDescriptor,
     pub face_index: u32,
     pub bytes: Arc<[u8]>,
 }
@@ -71,8 +75,9 @@ pub struct Environment {
 
 pub(crate) enum FamilyMatch<'a> {
     None,
+    NoExactFace { family_resources: usize },
     Unique(&'a FontResource),
-    Ambiguous { matching_resources: usize },
+    AmbiguousExact { matching_resources: usize },
 }
 
 impl Environment {
@@ -80,28 +85,43 @@ impl Environment {
         Self { fonts }
     }
 
-    /// Every resource whose declared family matches `family` under oracle
-    /// v5's measured declared-family comparison.
+    /// Select within one declared family under oracle v6's exact static face
+    /// policy and measured declared-family comparison.
     ///
-    /// Exact equality and the complete measured Unicode 17 BMP simple-fold
-    /// table are admitted. The resolver consumes the complete result so
-    /// duplicate declarations cannot silently inherit manifest order.
-    pub(crate) fn match_family(&self, family: &str) -> FamilyMatch<'_> {
-        let mut first_match = None;
+    /// Any family resource makes the candidate a reached boundary. Exactly
+    /// one complete descriptor match selects; zero is an exact miss and more
+    /// than one is an ambiguity. The complete manifest is examined before an
+    /// answer, so environment vector order never breaks a tuple tie.
+    pub(crate) fn match_face(
+        &self,
+        family: &str,
+        requested: StaticFaceDescriptor,
+    ) -> FamilyMatch<'_> {
+        let mut first_exact_match = None;
+        let mut family_resources = 0;
         let mut matching_resources = 0;
         for font in &self.fonts {
             if family_names_match(family, &font.family) {
-                matching_resources += 1;
-                first_match.get_or_insert(font);
+                family_resources += 1;
+                if font.face_descriptor == requested {
+                    matching_resources += 1;
+                    first_exact_match.get_or_insert(font);
+                }
             }
         }
 
-        if matching_resources > 1 {
-            return FamilyMatch::Ambiguous { matching_resources };
+        if family_resources == 0 {
+            return FamilyMatch::None;
         }
-        match first_match {
+        if matching_resources == 0 {
+            return FamilyMatch::NoExactFace { family_resources };
+        }
+        if matching_resources > 1 {
+            return FamilyMatch::AmbiguousExact { matching_resources };
+        }
+        match first_exact_match {
             Some(resource) => FamilyMatch::Unique(resource),
-            None => FamilyMatch::None,
+            None => unreachable!("one exact resource was counted but not retained"),
         }
     }
 
@@ -110,7 +130,7 @@ impl Environment {
     }
 }
 
-/// The explicitly measured declared-family comparison at oracle v5.
+/// The explicitly measured declared-family comparison retained by oracle v6.
 ///
 /// Exact equality is checked first, including supplementary scalars. For
 /// unequal strings, each scalar must have one peer in the same Unicode 17

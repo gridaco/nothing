@@ -1,7 +1,7 @@
 # The text cell suite
 
 Chromium-baked evidence for the `<text>` slice on the SVG engine of record
-(`websem → rframe → n0`). Twelve exact text cells are gated byte-exact by
+(`websem → rframe → n0`). Thirteen exact text cells are gated byte-exact by
 [`crates/websem/tests/svg_text.rs`](../../../crates/websem/tests/svg_text.rs);
 eight real-font artifact witnesses are gated numerically, before rasterization, by
 [`crates/websem/tests/svg_text_geometry.rs`](../../../crates/websem/tests/svg_text_geometry.rs).
@@ -9,7 +9,7 @@ The method these cells enforce is the ratified
 [text-oracle brief](../../../docs/wg/consolidation/text-oracle.md); this file
 states only how the suite is shaped.
 
-The pixel suite currently has **twelve** cells. The separate Rung-B geometry
+The pixel suite currently has **thirteen** cells. The separate Rung-B geometry
 suite under [`geometry/`](./geometry/) has **eight** witnesses: six Allerta and
 two Bungee. Both manifests are closed enumerations: the Rust gates reject an
 unlisted SVG, duplicate source row, undeclared or changed font identity, stale
@@ -47,7 +47,7 @@ both recorded verbatim in `oracle-bake.json`:
 | deviceScaleFactor | 1 |
 | JavaScript | disabled |
 | network | every route aborted |
-| font declaration | every pinned face injected as an inline `@font-face`, awaited ready before capture |
+| font declaration | every pinned face and its exact weight/style/stretch tuple injected as an inline `@font-face`, awaited ready before capture |
 | raster posture | `-webkit-font-smoothing: none` on each text element, carried by the fixture |
 | comparison | full RGBA, byte-exact — no tolerance is admissible here |
 | repeats | two captures per cell, byte-equal required |
@@ -477,6 +477,64 @@ select Ahem, with Bungee serving as a discriminating alternate in the declared
 environment. The named refusal register has 220 rows. Generic mapping,
 same-family descriptors, synthesis, missing-glyph fallback, and the complete
 `font-family` grammars remain open; no checklist row closes.
+
+## T5b exact static face descriptors
+
+Oracle v6 makes every attributed request and declared font resource carry one
+complete static `(weight, stretch, style)` tuple. Weight is an exact integer
+from 1 through 1000, stretch is one of the nine CSS keyword points, and style
+is `normal` or `italic`. In the first named family with declared resources,
+exactly one equal tuple selects. No equal tuple and more than one equal tuple
+are typed terminal failures; neither may fall through or inherit environment
+vector order. Missing families retain T5a fallthrough. The selected content
+key and face index remain the artifact identity.
+
+Chromium 149 measurements establish the split around that contract. Face
+matching orders stretch, then style, then weight and searches weight/stretch
+directionally when an exact tuple is absent. That nearest-face route is
+inseparable from synthetic bold or oblique: requesting weight 700 or italic
+from a lone normal Ahem face changes 164 or 272 pixels at maximum channel
+delta 255, while `font-synthesis: none` returns to the unsynthesized control
+(measured, not celled). Equal effective descriptor tuples are stylesheet
+source-order-sensitive, including `italic` versus `oblique 14deg` and
+`normal` versus `oblique 0deg` (measured, not celled); an explicit resource
+manifest has no such CSS ordering contract.
+
+The numeric source boundary is also observable. Blink's descriptor values use
+signed quarter units and truncate during conversion, while pinned Stylo uses a
+1/64 representation and rounds. Authored `font-stretch:74.999%` therefore
+selects a declared 74% Bungee face in Chromium, while a computed-only 75%
+route would select Ahem; the controls differ by 1,062 pixels at maximum delta
+255 (measured, not celled). Fractional `font-weight:400.5` and exact
+`font-style:oblique 23deg` declarations are independently live in Chromium
+(measured, not celled). Source patrols refuse those wider grammars before
+their provenance can be erased.
+
+One exact 100×100 cell declares Bungee first and Ahem second under each of the
+`Weight`, `Style`, `Stretch`, and `Triple` families. Six weight branches, four
+style branches, five stretch branches, and one complete tuple all select Ahem
+through presentation attributes, inline style, author-rule precedence,
+inheritance, numeric/keyword aliases, and `bolder`. The cell is exact to an
+independent all-Ahem Chromium construction. Mutating any one branch back to
+the normal tuple changes 69 pixels at maximum channel delta 255 (measured
+control, not an additional cell). The actual strict `n0` command also renders
+the committed cell at zero differing pixels and zero maximum channel delta
+against the Chromium oracle.
+
+Four registered sources guard fractional weight, oblique angle, the
+stretch-source precision alias, and a reached family with no exact face.
+Strict refuses and best effort skips and declares the same text node.
+Temporarily mapping computed italic to the normal tuple let all 1,051
+primitive cells pass, then made the exact text gate fail loudly at this cell's
+numeric-domain contract. Restoring the mapping returned every primitive,
+text, geometry, and refusal gate to green.
+
+The estate is now thirteen exact text cells plus eight exact-number real-font
+geometry witnesses (six Allerta and two Bungee). The named refusal register
+has 224 rows. Fractional weights, arbitrary stretch percentages, oblique
+angles, descriptor ranges, directional nearest-face matching, synthesis,
+variable axes, and the complete `font-weight`, `font-style`, and
+`font-stretch` grammars remain open; no checklist row closes.
 
 ## Tooling
 

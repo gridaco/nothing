@@ -1,15 +1,85 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "fonts": [
     {
       "family": "Bungee",
       "path": "../../fonts/Bungee/Bungee-Regular.ttf",
-      "sha256": "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc"
+      "sha256": "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "100%"
     },
     {
       "family": "Ahem",
       "path": "../fonts/ahem.ttf",
-      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448"
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "100%"
+    },
+    {
+      "family": "Weight",
+      "path": "../../fonts/Bungee/Bungee-Regular.ttf",
+      "sha256": "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "100%"
+    },
+    {
+      "family": "Weight",
+      "path": "../fonts/ahem.ttf",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "700",
+      "style": "normal",
+      "stretch": "100%"
+    },
+    {
+      "family": "Style",
+      "path": "../../fonts/Bungee/Bungee-Regular.ttf",
+      "sha256": "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "100%"
+    },
+    {
+      "family": "Style",
+      "path": "../fonts/ahem.ttf",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "400",
+      "style": "italic",
+      "stretch": "100%"
+    },
+    {
+      "family": "Stretch",
+      "path": "../../fonts/Bungee/Bungee-Regular.ttf",
+      "sha256": "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "100%"
+    },
+    {
+      "family": "Stretch",
+      "path": "../fonts/ahem.ttf",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "75%"
+    },
+    {
+      "family": "Triple",
+      "path": "../../fonts/Bungee/Bungee-Regular.ttf",
+      "sha256": "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "100%"
+    },
+    {
+      "family": "Triple",
+      "path": "../fonts/ahem.ttf",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "700",
+      "style": "italic",
+      "stretch": "75%"
     }
   ],
   "cases": [
@@ -31,6 +101,13 @@
       "id": "svg-text-em-box",
       "source": "svg-text-em-box.svg",
       "oracle": "chromium/svg-text-em-box.png",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-face-descriptor-selection",
+      "source": "svg-text-face-descriptor-selection.svg",
+      "oracle": "chromium/svg-text-face-descriptor-selection.png",
       "width": 100,
       "height": 100
     },

@@ -84,8 +84,9 @@ from the dated addenda below:
   and tangent orientation, marker unit/viewBox/reference mapping, hard marker
   viewport clips, solid/context-solid source programs, `<use>` clients, and
   client transform/opacity/clip/mask/filter composition;
-  one `<text>` profile whose ordered named-family request selects among exact
-  host-declared font resources, over printable ASCII, the 53 canonical
+  one `<text>` profile whose ordered named-family and exact static
+  weight/stretch/style request selects among exact host-declared font
+  resources, over printable ASCII, the 53 canonical
   precomposed Latin-1 letters, and U+0301/U+030B only as one mark after an
   ASCII Latin letter, optionally partitioned by flat direct paint-only
   `<tspan>` source runs while retaining one whitespace, shaping, and anchor
@@ -102,8 +103,8 @@ from the dated addenda below:
   composition.
   `crates/n0_cli/README.md` is the statement of record.
 - **The corpus** is 1,051 Chromium-baked primitive cells plus 16 sampled frames,
-  with a separate twelve-cell exact text suite whose current cells select Ahem
-  under a two-resource environment, and eight exact-number artifact-geometry
+  with a separate thirteen-cell exact text suite whose current cells select
+  hash-pinned Ahem bytes from explicit family/face environments, and eight exact-number artifact-geometry
   witnesses (six Allerta and two Bungee) under the ratified text corpus-growth
   law.
   All byte-exact except seven curved cells carrying a declared, geometrically
@@ -112,7 +113,7 @@ from the dated addenda below:
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 220 rows.
+  register has 224 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -5086,3 +5087,72 @@ Bungee), and the named refusal register moves from 217 to 220. Both
 `font-family` rows, `<text>`, and the complete text grammar remain open. No
 shared render-contract fact was added, no conformance score was produced, and
 no FLIP record, rule, or baseline changed.
+
+## Rung: SVG text exact static face descriptors (2026-09-03)
+
+The verdict is T5b ADMIT/SPLIT, with no checklist closure. Every text request
+and declared resource now carries one complete static face descriptor. The
+producer's finite typed profile is an integral weight from 1 through 1000, one
+of the nine CSS stretch points, and `normal` or `italic` style. The first named
+family containing resources is a terminal family boundary: exactly one equal
+tuple selects, while no equal tuple and an exact-tuple tie are typed failures.
+An absent family may still fall through. Environment vector order never breaks
+a tie, and the selected verified key and face index remain artifact identity.
+This geometry-producing choice advances the producer to `textlayout-v6`.
+
+The Web consumer admits the same bounded profile through one Stylo cascade.
+`font-weight`, `font-style`, and `font-stretch` presentation attributes are
+presentation hints below author CSS, just like their property twins; inline,
+stylesheet, inherited, keyword/numeric, relative-weight, and complete-tuple
+branches are exact-celled. The host declaration grammar adds optional,
+order-independent `weight`, `style`, and `stretch` facts after the verified
+font digest, defaulting omitted fields to `400`/`normal`/`100%`. Malformed,
+duplicate, unknown, and wider host facts refuse before an environment exists.
+No second matcher was added around Stylo, and no descriptor fact crosses
+`rframe`.
+
+Chromium 149 measurements bound what is intentionally not generalized. Face
+matching orders stretch, style, then weight and uses directional searches
+when no exact tuple exists. That route is coupled to synthesis: a lone normal
+Ahem face requested at weight 700 or italic differs from its unsynthesized
+control by 164 or 272 pixels at maximum channel delta 255; disabling synthesis
+returns to the control (measured, not celled). Equal effective tuples choose
+by stylesheet source order, including `italic` versus `oblique 14deg` and
+`normal` versus `oblique 0deg` (measured, not celled). Neither policy can be
+invented from an explicit host manifest.
+
+Source precision creates an independent patrol. Blink's font-selection values
+use signed fixed point with two fractional bits and truncate conversion; the
+pinned Stylo values use 1/64 and round. Authored `font-stretch:74.999%` selects
+a declared 74% Bungee face in Chromium, while the computed 75% bucket would
+select Ahem, differing by 1,062 pixels at maximum delta 255 (measured, not
+celled). Chromium also honors exact `font-weight:400.5` and
+`font-style:oblique 23deg` faces (measured, not celled). Four registered rows
+therefore guard fractional weight, oblique angle, stretch source precision,
+and a reached family with no exact tuple in strict and best-effort admission.
+
+One new exact 100×100 cell declares distinguishable normal and exact faces in
+four same-name families. Six weight, four style, five stretch, and one complete
+tuple branch must select Ahem through presentation attributes, inline style,
+author-rule precedence, inheritance, aliases, and relative weight. The source
+is exact to an independent all-Ahem Chromium construction; mutating any one
+branch to the normal tuple changes 69 pixels at maximum channel delta 255
+(measured control, not another cell). The actual strict CLI render is exact to
+the committed oracle at zero differing pixels and zero maximum delta.
+
+Gate sensitivity was proved by temporarily mapping computed italic to the
+normal tuple. `just gate` passed all 1,051 primitive cells, then failed the new
+text cell loudly at its numeric-domain contract before a wrong pixel could be
+accepted. Restoring the mapping returned every primitive, text, geometry, and
+refusal gate to green.
+
+The primitive corpus remains 1,051 Chromium-baked cells plus 16 sampled
+frames. The exact text estate moves from twelve to thirteen cells, the
+exact-number geometry estate remains eight witnesses (six Allerta and two
+Bungee), and four focused rows move the named refusal register from 220 to
+224. Fractional weights, arbitrary stretch percentages, oblique angles,
+descriptor ranges, nearest-face matching, synthesis, variation, and the
+complete CSS-property and SVG presentation-attribute grammars remain open, so
+none of the six descriptor rows ticks. No shared render-contract fact was
+added, no conformance score was produced, and no FLIP record, rule, or baseline
+changed.
