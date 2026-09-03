@@ -537,8 +537,8 @@ fn a_beyond_slice_descendant_is_its_own_declared_hole() {
     // font in a declared environment — and that is the hole it declares.
     assert_eq!(
         best.degradations()[0].reason(),
-        "unsupported computed style: <text> resolves to a generic font family, which names no \
-         font in the declared environment — a family is declared by exact name or the run refuses"
+        "unsupported computed style: text resolution refused: generic font family \"serif\" at \
+         candidate 0 has no declared mapping"
     );
 }
 

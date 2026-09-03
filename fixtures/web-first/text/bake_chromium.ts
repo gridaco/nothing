@@ -2,14 +2,14 @@
 /**
  * Bake the committed Chromium oracles for the `<text>` cell suite.
  *
- * The fixture is the document; the font is the environment. Each source is
- * captured with the pinned face declared inline as an `@font-face`, which is
- * the same identity the engine receives as a `textlayout::Environment` — so
- * neither side reads a font ambiently, and the committed `.svg` carries no
- * font bytes. See this directory's README.
+ * The fixture is the document; the fonts are the environment. Each source is
+ * captured with every pinned face declared inline as an `@font-face`, which
+ * are the same identities the engine receives as a `textlayout::Environment`
+ * — so neither side reads a font ambiently, and the committed `.svg` carries
+ * no font bytes. See this directory's README.
  *
- * The font is verified against the digest `cases.json` declares before any
- * capture: a font that is not the pinned identity must never silently become
+ * Every font is verified against the digest `cases.json` declares before any
+ * capture: a font that is not a pinned identity must never silently become
  * the baseline.
  *
  * Existing oracle pixels are verification-only: a differing image fails
@@ -44,7 +44,7 @@ interface Case {
 
 interface Suite {
   schema_version: number;
-  font: { family: string; path: string; sha256: string };
+  fonts: { family: string; path: string; sha256: string }[];
   cases: Case[];
 }
 
@@ -69,8 +69,19 @@ function assertSamePixels(existing: Buffer, fresh: Buffer, id: string): void {
 async function main(): Promise<void> {
   const suiteBytes = await readFile(SUITE_PATH);
   const suite = JSON.parse(suiteBytes.toString("utf8")) as Suite;
-  if (suite.schema_version !== 1 || suite.cases.length === 0) {
+  if (
+    suite.schema_version !== 2 ||
+    suite.fonts.length === 0 ||
+    suite.cases.length === 0
+  ) {
     throw new Error("unsupported or empty text suite");
+  }
+  const fontFamilies = new Set<string>();
+  for (const font of suite.fonts) {
+    if (fontFamilies.has(font.family)) {
+      throw new Error(`duplicate declared font family ${JSON.stringify(font.family)}`);
+    }
+    fontFamilies.add(font.family);
   }
   const ids = new Set<string>();
   const sources = new Set<string>();
@@ -96,14 +107,18 @@ async function main(): Promise<void> {
     previousId = fixture.id;
   }
 
-  // The font is an identity, not a path: verify before any capture.
-  const fontBytes = await readFile(join(DIR, suite.font.path));
-  const fontDigest = sha256(fontBytes);
-  if (fontDigest !== suite.font.sha256) {
-    throw new Error(
-      `declared font digest ${suite.font.sha256} does not match the bytes at ` +
-        `${suite.font.path} (${fontDigest})`,
-    );
+  // A font is an identity, not a path: verify every resource before capture.
+  const fontBytes: Uint8Array[] = [];
+  for (const font of suite.fonts) {
+    const bytes = await readFile(join(DIR, font.path));
+    const digest = sha256(bytes);
+    if (digest !== font.sha256) {
+      throw new Error(
+        `declared font digest ${font.sha256} does not match the bytes at ` +
+          `${font.path} (${digest})`,
+      );
+    }
+    fontBytes.push(bytes);
   }
   const scriptBytes = await readFile(SCRIPT_PATH);
   const captureBytes = await readFile(join(DIR, CAPTURE_MODULE));
@@ -116,11 +131,17 @@ async function main(): Promise<void> {
     for (const fixture of suite.cases) {
       const sourcePath = join(DIR, fixture.source);
       const sourceBytes = await readFile(sourcePath);
-      const declared = declareFontInSvg(
-        sourceBytes.toString("utf8"),
-        suite.font.family,
-        fontBytes,
-      );
+      let declared = sourceBytes.toString("utf8");
+      // declareFontInSvg inserts first. Walk backwards so stylesheet source
+      // order mirrors the engine environment even though unique family names
+      // make that order semantically inert.
+      for (let index = suite.fonts.length - 1; index >= 0; index -= 1) {
+        declared = declareFontInSvg(
+          declared,
+          suite.fonts[index].family,
+          fontBytes[index],
+        );
+      }
 
       const page = await context.newPage();
       const capture = {
@@ -170,7 +191,7 @@ async function main(): Promise<void> {
   }
 
   const manifest = {
-    schema_version: 1,
+    schema_version: 2,
     kind: "chromium-svg-text-oracle",
     browser_version: browserVersion,
     suite: "cases.json",
@@ -179,11 +200,11 @@ async function main(): Promise<void> {
     bake_script_sha256: sha256(scriptBytes),
     capture_module: CAPTURE_MODULE,
     capture_module_sha256: sha256(captureBytes),
-    font: {
-      family: suite.font.family,
-      sha256: suite.font.sha256,
+    fonts: suite.fonts.map((font) => ({
+      family: font.family,
+      sha256: font.sha256,
       declaration: "inline @font-face injected as the root svg's first child",
-    },
+    })),
     capture_policy: {
       viewport: "the fixture's declared size as the initial viewport",
       device_scale_factor: 1,

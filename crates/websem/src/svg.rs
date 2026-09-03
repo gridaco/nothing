@@ -129,6 +129,7 @@ use crate::svg_paint_server::{
 use crate::svg_transform::{TransformRefusal, computed_transform_to_affine};
 use style::properties::ComputedValues;
 use style::thread_state::{self, ThreadState};
+use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
 use style::values::computed::{Length, SVGOpacity, SVGPaint, Size};
 use style::values::generics::basic_shape::FillRule as StyloFillRule;
 use style::values::generics::svg::{SVGLength, SVGPaintKind, SVGStrokeDashArray};
@@ -1115,7 +1116,7 @@ const TEXT_RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "font",
 ];
 
-/// Cascaded text facts the v4 text oracle does not consume.
+/// Cascaded text facts the v5 text oracle does not consume.
 ///
 /// Unlike [`CASCADE_PROPERTIES_NOT_REPRESENTED`], most of these longhands do
 /// exist in the pinned Stylo build. That makes them more dangerous, not less:
@@ -1689,7 +1690,7 @@ fn text_css_source_refusal(css: &str) -> Option<String> {
         }
         if TEXT_CASCADE_PROPERTIES_NOT_CONSUMED.contains(&name.as_str()) {
             return Some(format!(
-                "text layout property {name} is represented or browser-consumed but not carried by the v4 text oracle"
+                "text layout property {name} is represented or browser-consumed but not carried by the v5 text oracle"
             ));
         }
     }
@@ -1717,7 +1718,7 @@ fn patrol_text_authored_semantics(el: HtmlElement<'_>) -> Result<(), CompileErro
                 .find(|attribute| get_attr(element, attribute).is_some())
         {
             return Err(CompileError::UnsupportedStyle(format!(
-                "text layout presentation attribute {attribute} in the ancestor chain is not carried by the v4 text oracle"
+                "text layout presentation attribute {attribute} in the ancestor chain is not carried by the v5 text oracle"
             )));
         }
         if let Some(style) = get_attr(element, "style")
@@ -2525,18 +2526,7 @@ fn measure_leaf_geometry(
         // Text geometry depends on the declared oracle; re-use it only when
         // it can be resolved without changing any paint fact.
         "text" => {
-            let Some(data) = el.borrow_data() else {
-                return Err(CompileError::MissingComputedStyle);
-            };
-            let style: &ComputedValues = data.styles.primary();
-            let font_size = style.clone_font_size().used_size().px();
-            let family = match style.clone_font_family().families.iter().next() {
-                Some(style::values::computed::font::SingleFontFamily::FamilyName(name)) => {
-                    name.name.to_string()
-                }
-                _ => return Ok(MeasuredGeometry::Unknown),
-            };
-            drop(data);
+            let (families, font_size) = text_family_and_size(el)?;
             let mut raw = String::new();
             for child_id in &el.dom_node().children {
                 match &el.dom().node(*child_id).data {
@@ -2552,7 +2542,7 @@ fn measure_leaf_geometry(
                 .and_then(|value| crate::svg_text::Anchor::parse(&value))
                 .unwrap_or(crate::svg_text::Anchor::Start);
             let Some(path) = crate::svg_text::resolve_text_path(
-                &content, &family, font_size, x, y, anchor, fonts,
+                &content, families, font_size, x, y, anchor, fonts,
             )
             .map_err(|error| CompileError::UnsupportedStyle(error.to_string()))?
             else {
@@ -10185,25 +10175,39 @@ fn collect_tspan_positioning(subtree: &TextSubtree<'_>) -> Result<TspanPositioni
     })
 }
 
-fn text_family_and_size(el: HtmlElement<'_>) -> Result<(String, f32), CompileError> {
+fn text_family_and_size(
+    el: HtmlElement<'_>,
+) -> Result<(Vec<textlayout::FontFamily>, f32), CompileError> {
     let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     let style: &ComputedValues = data.styles.primary();
     let font_size = style.clone_font_size().used_size().px();
-    let family = match style.clone_font_family().families.iter().next() {
-        Some(style::values::computed::font::SingleFontFamily::FamilyName(name)) => {
-            name.name.to_string()
-        }
-        Some(style::values::computed::font::SingleFontFamily::Generic(_)) | None => {
-            drop(data);
-            return Err(CompileError::UnsupportedStyle(
-                "<text> resolves to a generic font family, which names no font in the declared \
-                 environment — a family is declared by exact name or the run refuses"
-                    .to_string(),
-            ));
-        }
-    };
+    let families = style
+        .clone_font_family()
+        .families
+        .iter()
+        .map(|family| match family {
+            SingleFontFamily::FamilyName(name) => {
+                textlayout::FontFamily::named(name.name.to_string())
+            }
+            SingleFontFamily::Generic(generic) => {
+                textlayout::FontFamily::generic(generic_font_family_name(*generic))
+            }
+        })
+        .collect();
     drop(data);
-    Ok((family, font_size))
+    Ok((families, font_size))
+}
+
+fn generic_font_family_name(family: GenericFontFamily) -> &'static str {
+    match family {
+        GenericFontFamily::None => "none",
+        GenericFontFamily::Serif => "serif",
+        GenericFontFamily::SansSerif => "sans-serif",
+        GenericFontFamily::Monospace => "monospace",
+        GenericFontFamily::Cursive => "cursive",
+        GenericFontFamily::Fantasy => "fantasy",
+        GenericFontFamily::SystemUi => "system-ui",
+    }
 }
 
 /// One document-side paint selection carried by a source-run tag. The tag's
@@ -10218,7 +10222,7 @@ struct TextPaintSelection<'d> {
 fn tspan_paint_selection<'d>(
     owner: HtmlElement<'d>,
     is_tspan: bool,
-    parent_family: &str,
+    parent_families: &[textlayout::FontFamily],
     parent_font_size: f32,
     servers: &PaintServers<'d>,
     patterns: &PatternCompiler<'d>,
@@ -10260,10 +10264,10 @@ fn tspan_paint_selection<'d>(
                 "paint-only <tspan> transform must remain none".to_string(),
             ));
         }
-        let (family, font_size) = text_family_and_size(owner)?;
-        if family != parent_family || font_size.to_bits() != parent_font_size.to_bits() {
+        let (families, font_size) = text_family_and_size(owner)?;
+        if families != parent_families || font_size.to_bits() != parent_font_size.to_bits() {
             return Err(CompileError::UnsupportedStyle(format!(
-                "paint-only <tspan> resolves font {family:?} at {font_size}px, but its parent run resolves {parent_family:?} at {parent_font_size}px"
+                "paint-only <tspan> resolves font families {families:?} at {font_size}px, but its parent run resolves {parent_families:?} at {parent_font_size}px"
             )));
         }
         if resolve_stroke(
@@ -10332,7 +10336,7 @@ fn tspan_paint_selection<'d>(
 #[allow(clippy::too_many_arguments)]
 fn compile_tspan_text(
     subtree: TextSubtree<'_>,
-    family: String,
+    families: Vec<textlayout::FontFamily>,
     font_size: f32,
     x: f32,
     y: f32,
@@ -10354,7 +10358,7 @@ fn compile_tspan_text(
         owner_paints.push(tspan_paint_selection(
             owner,
             index != 0,
-            &family,
+            &families,
             font_size,
             servers,
             patterns,
@@ -10411,7 +10415,7 @@ fn compile_tspan_text(
     let attributed = textlayout::AttributedText::new(
         subtree.content,
         textlayout::Style {
-            family,
+            families,
             size: font_size,
         },
         source_runs,
@@ -10574,9 +10578,9 @@ fn compile_text(
         None => crate::svg_text::Anchor::Start,
     };
 
-    // The cascade's family list is a preference order; the first exact name
-    // is the v4 request and a generic or miss refuses rather than falling back.
-    let (family, font_size) = text_family_and_size(el)?;
+    // Preserve the complete computed preference order. `textlayout` owns
+    // declared-environment selection and the typed generic/miss boundaries.
+    let (families, font_size) = text_family_and_size(el)?;
 
     if subtree.has_tspan {
         if patrol.opacity != 1.0 {
@@ -10586,7 +10590,7 @@ fn compile_text(
         }
         return compile_tspan_text(
             subtree,
-            family,
+            families,
             font_size,
             x,
             y,
@@ -10604,8 +10608,9 @@ fn compile_text(
         );
     }
 
-    let path = crate::svg_text::resolve_text_path(content, &family, font_size, x, y, anchor, fonts)
-        .map_err(|error| CompileError::UnsupportedStyle(error.to_string()))?;
+    let path =
+        crate::svg_text::resolve_text_path(content, families, font_size, x, y, anchor, fonts)
+            .map_err(|error| CompileError::UnsupportedStyle(error.to_string()))?;
     let Some(path) = path else {
         // A run that resolves to no ink is an admitted nothing, not a node.
         return Ok(None);

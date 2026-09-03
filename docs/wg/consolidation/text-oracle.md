@@ -590,3 +590,67 @@ eleven exact Ahem cells plus eight exact-number geometry witnesses (six
 Allerta and two Bungee), and the named refusal register has 217 rows. The
 complete text grammars remain open. No Chromium real-font raster claim,
 conformance score, shared frame text fact, or FLIP change is made.
+
+## T5a evidence addendum — ordered declared-family selection (2026-09-03)
+
+The verdict is ADMIT/SPLIT, with no checklist closure. A computed
+`font-family` list now reaches the text oracle intact. Resolution selects the
+first named candidate with one matching resource in the explicit host
+environment; an absent name continues to the next candidate. Request order,
+not environment order, decides. The selected resource's verified content key
+and face index remain the artifact identity. No font discovery or resource I/O
+enters the producer.
+
+Chromium 149 measurements establish the bounded comparison policy. ASCII case,
+BMP one-scalar simple folds, quoted names, unquoted multi-identifier names, and
+CSS escapes select the same declared family. There is no normalization,
+multi-scalar expansion, or supplementary-plane case folding: `Maße` does not
+match `MASSE`, composed and decomposed family names do not match, and the
+Deseret case pair does not match. Chromium's Unicode 17 table adds exactly
+three BMP C/S pairs to the pinned Unicode 16 table — U+A7CE/U+A7CF,
+U+A7D2/U+A7D3, and U+A7D4/U+A7D5 — and all three matched in the browser
+(measured, not celled). A quoted `"serif"` is a name; an unquoted `serif` is a
+generic boundary. Two same-family faces with otherwise equal declarations are
+stylesheet-source-order-sensitive in Chromium (measured, not celled), but the
+host environment has no CSS descriptor/source-order contract, so the oracle
+does not invent one from vector order.
+
+Those semantics advance the producer to `textlayout-v5`. Named and generic
+candidates are distinct input variants. Exact match or the pinned Unicode 17
+BMP simple-fold comparison may select a resource; a reached generic, an empty
+or exhausted request, and a name matching multiple resources are typed
+failures. Selection completes before shaping. If the selected face lacks a
+glyph, the existing `MissingGlyph` failure remains final: T5a never retries a
+later family and therefore does not pretend to implement cluster fallback.
+
+One 100×100 exact cell carries ten Ahem-selecting branches under a two-resource
+environment whose order is Bungee then Ahem: presentation-attribute, inline
+style, stylesheet, inherited and `unset` lists; missing-name fallthrough;
+ASCII case; quoting; a CSS escape; an unreached later generic; and an unreached
+generic after one missing name. The independent all-Ahem construction is
+pixel-identical in Chromium. Ahem and Bungee controls differ by 783 pixels at
+maximum channel delta 238, so selecting environment order cannot pass
+(control measurements, not additional cells).
+
+Three registered rows guard the unimplemented policy boundaries. A reached
+generic refuses by its candidate and name; two resources declared as `Duo`
+refuse as an ambiguity; and `Ahem, Bungee` over `Ax` + U+0301 + `Z` refuses the
+missing Ahem mark even though Bungee can shape it. Strict refuses and best
+effort skips and declares the same text node. The pre-existing undeclared-name
+row now reports the complete exhausted request.
+
+Gate sensitivity was proved by temporarily truncating the computed list to its
+first candidate. All 1,051 primitive cells stayed green, then the new exact
+text cell failed loudly on the first `Missing` name. Restoring the complete
+list returned every primitive, text, geometry, and refusal gate to green.
+
+The primitive corpus remains 1,051 Chromium-baked cells plus 16 sampled
+frames. The exact text estate moves from eleven to twelve cells; all currently
+select Ahem, while the declared environment now includes Bungee as a
+discriminating alternative. The exact-number geometry estate remains eight
+witnesses (six Allerta and two Bungee), and three focused rows move the named
+register from 217 to 220. Generic mapping, same-family descriptor selection,
+synthesis, missing-glyph fallback, wider shaping styles, and the complete
+`font-family` grammars remain open. No CSS-font, SVG element, or SVG
+presentation row ticks; no conformance score, shared-frame text fact, or FLIP
+record changes.

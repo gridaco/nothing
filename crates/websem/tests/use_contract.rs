@@ -339,7 +339,7 @@ fn a_beyond_slice_clone_is_its_own_declared_hole() {
     assert_eq!(skipped.len(), 1);
     assert_eq!(skipped[0].path(), "svg/use[1]/g[1]/text[1]");
     assert!(
-        skipped[0].reason().contains("<text>"),
+        skipped[0].reason().contains("generic font family"),
         "{}",
         skipped[0].reason()
     );

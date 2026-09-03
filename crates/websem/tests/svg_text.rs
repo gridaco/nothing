@@ -24,7 +24,7 @@ fn fixture_root() -> PathBuf {
 #[derive(Deserialize)]
 struct Suite {
     schema_version: u32,
-    font: SuiteFont,
+    fonts: Vec<SuiteFont>,
     cases: Vec<SuiteCase>,
 }
 
@@ -53,7 +53,14 @@ struct BakeManifest {
     bake_script_sha256: String,
     capture_module: String,
     capture_module_sha256: String,
+    fonts: Vec<BakeFont>,
     records: Vec<BakeRecord>,
+}
+
+#[derive(Deserialize)]
+struct BakeFont {
+    family: String,
+    sha256: String,
 }
 
 #[derive(Deserialize)]
@@ -70,7 +77,8 @@ struct BakeRecord {
 fn suite() -> Suite {
     let bytes = std::fs::read(fixture_root().join("cases.json")).expect("text suite manifest");
     let suite: Suite = serde_json::from_slice(&bytes).expect("well-formed text suite");
-    assert_eq!(suite.schema_version, 1);
+    assert_eq!(suite.schema_version, 2);
+    assert!(!suite.fonts.is_empty());
     assert!(!suite.cases.is_empty());
     suite
 }
@@ -88,6 +96,7 @@ fn sha256_file(path: &Path) -> String {
 }
 
 const AHEM_BYTES: &[u8] = include_bytes!("../../../fixtures/web-first/fonts/ahem.ttf");
+const BUNGEE_BYTES: &[u8] = include_bytes!("../../../fixtures/fonts/Bungee/Bungee-Regular.ttf");
 
 /// The pinned gate font's digest, as recorded in
 /// `fixtures/web-first/fonts/README.md`. Verified here because this test is
@@ -97,21 +106,36 @@ const AHEM_SHA256: [u8; 32] = [
     0xb7, 0x19, 0xec, 0xb3, 0x1c, 0x5b, 0x21, 0xfc, 0x57, 0x3c, 0x03, 0xf6, 0x42, 0x1c, 0x74, 0xac,
     0x63, 0xc2, 0x71, 0xa5, 0xa3, 0xff, 0x84, 0x1e, 0x34, 0xf9, 0x70, 0x5f, 0xb9, 0x4b, 0x84, 0x48,
 ];
+const BUNGEE_SHA256: [u8; 32] = [
+    0xb9, 0x0c, 0x3c, 0xa4, 0x43, 0x71, 0x3b, 0x07, 0x0c, 0xb1, 0xde, 0xc6, 0xa3, 0xbb, 0x1e, 0xf7,
+    0x57, 0x2c, 0x2b, 0x56, 0x5c, 0x43, 0x1d, 0x9a, 0x85, 0xd7, 0x4b, 0xbf, 0xa0, 0x7e, 0x24, 0xcc,
+];
 
-fn ahem_environment() -> textlayout::Environment {
-    textlayout::Environment::new(vec![textlayout::FontResource {
-        key: textlayout::FontKey::new(AHEM_SHA256),
-        family: "Ahem".to_string(),
-        face_index: 0,
-        bytes: Arc::from(AHEM_BYTES),
-    }])
+fn text_environment() -> textlayout::Environment {
+    textlayout::Environment::new(vec![
+        // Environment order intentionally opposes every existing Ahem
+        // request. Selection must follow the computed family list, not this
+        // manifest's resource order.
+        textlayout::FontResource {
+            key: textlayout::FontKey::new(BUNGEE_SHA256),
+            family: "Bungee".to_string(),
+            face_index: 0,
+            bytes: Arc::from(BUNGEE_BYTES),
+        },
+        textlayout::FontResource {
+            key: textlayout::FontKey::new(AHEM_SHA256),
+            family: "Ahem".to_string(),
+            face_index: 0,
+            bytes: Arc::from(AHEM_BYTES),
+        },
+    ])
 }
 
 fn compile(source: &str) -> Result<rframe::Frame, CompileError> {
     SvgFrameSource::from_standalone_svg_with_fonts(
         source,
         InitialViewport::new(100.0, 100.0),
-        ahem_environment(),
+        text_environment(),
     )
     .map(|source| source.base_frame())
 }
@@ -120,7 +144,7 @@ fn compile_best(source: &str) -> Result<SvgFrameSource, CompileError> {
     SvgFrameSource::from_standalone_svg_best_effort_with_fonts(
         source,
         InitialViewport::new(100.0, 100.0),
-        ahem_environment(),
+        text_environment(),
     )
 }
 
@@ -209,7 +233,8 @@ fn an_undeclared_font_refuses_by_name() {
     .expect_err("an empty environment resolves no text");
     let message = error.to_string();
     assert!(
-        message.contains("Ahem") && message.contains("not in the declared environment"),
+        message.contains("Ahem")
+            && message.contains("no requested font family is in the declared environment"),
         "the refusal must name the family: {message}"
     );
 }
@@ -268,9 +293,9 @@ fn beyond_slice_text_constructs_refuse_by_name() {
             "stroke on <text>",
         ),
         (
-            // Outside textlayout-v4's explicit repertoire.
+            // Outside textlayout-v5's explicit repertoire.
             r##"<text x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X&#x5D0;</text>"##,
-            "outside textlayout-v4's admitted",
+            "outside textlayout-v5's admitted",
         ),
     ] {
         let error = compile(&svg(body)).expect_err("outside the admitted text slice");
@@ -608,7 +633,7 @@ fn direct_font_size_sources_remain_admitted_across_the_cascade() {
     }
 }
 
-/// Text semantics represented by Stylo but absent from oracle v4 must not
+/// Text semantics represented by Stylo but absent from oracle v5 must not
 /// become defaults silently. This includes the font shorthand and inherited
 /// declarations from ancestors, not only direct presentation attributes.
 #[test]
@@ -750,7 +775,7 @@ fn text_oracle_provenance_is_current() {
     let suite = suite();
     let manifest: BakeManifest = read_json(&root.join("oracle-bake.json"));
 
-    assert_eq!(manifest.schema_version, 1, "unsupported text bake schema");
+    assert_eq!(manifest.schema_version, 2, "unsupported text bake schema");
     assert_eq!(manifest.suite, "cases.json");
     assert_eq!(manifest.bake_script, "bake_chromium.ts");
     assert_eq!(manifest.capture_module, "../chromium_capture.ts");
@@ -770,6 +795,11 @@ fn text_oracle_provenance_is_current() {
         "shared Chromium capture posture changed without refreshing text provenance"
     );
     assert_eq!(manifest.records.len(), suite.cases.len());
+    assert_eq!(manifest.fonts.len(), suite.fonts.len());
+    for (font, recorded) in suite.fonts.iter().zip(&manifest.fonts) {
+        assert_eq!(recorded.family, font.family);
+        assert_eq!(recorded.sha256, font.sha256);
+    }
 
     for (fixture, record) in suite.cases.iter().zip(&manifest.records) {
         assert_eq!(record.id, fixture.id);
@@ -846,25 +876,40 @@ fn admitted_runs_match_the_chromium_oracle() {
     assert!(divergences.is_empty(), "{}", divergences.join("\n"));
 }
 
-/// The suite's font declaration is an identity the host verifies, not a path
+/// The suite's font declarations are identities the host verifies, not paths
 /// it trusts: this test is the host for the Rust-side gate, so the bytes it
 /// declares must be the bytes the manifest names.
 #[test]
-fn the_declared_font_identity_is_verified() {
+fn the_declared_font_identities_are_verified() {
     use sha2::{Digest, Sha256};
     let suite = suite();
-    let digest = format!("{:x}", Sha256::digest(AHEM_BYTES));
-    assert_eq!(
-        digest, suite.font.sha256,
-        "the gate font is not the pinned identity"
-    );
-    assert_eq!(
-        hex_bytes(&digest),
-        AHEM_SHA256,
-        "the constant this test declares to the engine must be the same digest"
-    );
-    assert_eq!(suite.font.family, "Ahem");
-    assert_eq!(suite.font.path, "../fonts/ahem.ttf");
+    assert_eq!(suite.fonts.len(), 2);
+    for (font, bytes, expected_digest, expected_family, expected_path) in [
+        (
+            &suite.fonts[0],
+            BUNGEE_BYTES,
+            BUNGEE_SHA256,
+            "Bungee",
+            "../../fonts/Bungee/Bungee-Regular.ttf",
+        ),
+        (
+            &suite.fonts[1],
+            AHEM_BYTES,
+            AHEM_SHA256,
+            "Ahem",
+            "../fonts/ahem.ttf",
+        ),
+    ] {
+        let digest = format!("{:x}", Sha256::digest(bytes));
+        assert_eq!(digest, font.sha256, "gate font is not the pinned identity");
+        assert_eq!(
+            hex_bytes(&digest),
+            expected_digest,
+            "the constant declared to the engine must be the same digest"
+        );
+        assert_eq!(font.family, expected_family);
+        assert_eq!(font.path, expected_path);
+    }
 }
 
 fn hex_bytes(hex: &str) -> [u8; 32] {

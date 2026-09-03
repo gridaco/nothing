@@ -5590,6 +5590,7 @@ dependencies = [
 name = "textlayout"
 version = "0.0.0"
 dependencies = [
+ "regex-syntax",
  "rustybuzz",
 ]
 

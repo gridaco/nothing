@@ -169,9 +169,8 @@ fn beyond_slice_children_skip_by_name_and_admitted_children_render() {
             // The text rung admitted `<text>`; this fixture declares no
             // family, so the run computes to the generic initial and names
             // that hole instead of reaching for an ambient face.
-            "unsupported computed style: <text> resolves to a generic font family, which names \
-             no font in the declared environment — a family is declared by exact name or the \
-             run refuses",
+            "unsupported computed style: text resolution refused: generic font family \"serif\" \
+             at candidate 0 has no declared mapping",
         )],
         "each skip names its construct at its stable path"
     );

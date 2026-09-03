@@ -28,7 +28,7 @@ text-bake:
 text-geometry-bake:
     {{node_env}} pnpm -C {{justfile_directory()}}/../../packages/grida-reftest exec tsx {{justfile_directory()}}/text/geometry/bake_chromium.ts
 
-# The exact Ahem text gate through websem → rframe → n0.
+# The exact declared-font text gate through websem → rframe → n0.
 text-gate:
     {{cargo_env}} cargo test -p websem --test svg_text
     {{cargo_env}} cargo test -p websem --test svg_text_geometry

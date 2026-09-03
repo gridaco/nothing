@@ -2,7 +2,7 @@
 name = "textlayout"
 version = "0.0.0"
 edition = "2024"
-description = "PROVISIONAL, INTERNAL, BREAKABLE. The Web family's text resolution oracle: attributed text + a declared font environment -> one immutable resolved text layout, or a typed refusal. Implements the minimal profile of docs/wg/feat-paragraph/text-layout.md at oracle v4."
+description = "PROVISIONAL, INTERNAL, BREAKABLE. The Web family's text resolution oracle: attributed text + a declared font environment -> one immutable resolved text layout, or a typed refusal. Implements the minimal profile of docs/wg/feat-paragraph/text-layout.md at oracle v5."
 license.workspace = true
 repository.workspace = true
 publish = false
@@ -14,6 +14,12 @@ publish = false
 # the coordinate is the one the workspace lock already carries via vendored
 # usvg, and the oracle version was measured against it.
 rustybuzz = "=0.20.1"
+# Unicode 16's generated simple-fold equivalence table. Only that table is
+# enabled; environment.rs carries the three measured Unicode 17 BMP additions.
+# Exact pinning keeps family selection stable under one oracle version.
+regex-syntax = { version = "=0.8.11", default-features = false, features = [
+  "unicode-case",
+] }
 
 [lints]
 workspace = true

@@ -33,6 +33,14 @@ ASCII `x`, advance by zero, and carry the measured attachment offsets needed
 to prove both artifact axes. This is a two-mark admit-list, not general font or
 Unicode coverage.
 
+Oracle v5 additionally declares Bungee beside Ahem in the exact text pixel
+suite, ahead of Ahem in environment order. The current positive cells still
+select Ahem by their computed requests; Bungee is the distinct alternate that
+makes accidental environment-order selection visible. It also proves the
+negative fallback boundary: Bungee can shape `Ax` + U+0301 + `Z`, but a request
+for `Ahem, Bungee` must retain Ahem's missing-glyph refusal until cluster-safe
+fallback is implemented.
+
 This directory grows only when a rung's admitted slice requires a new pinned
 identity, and never holds a corpus: breadth suites live untracked under
 `fixtures/local/`.

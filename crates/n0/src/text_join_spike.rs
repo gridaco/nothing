@@ -218,7 +218,7 @@ fn web_layout(text: &str) -> textlayout::ResolvedTextLayout {
         &textlayout::AttributedText::single_source_run(
             text.to_string(),
             textlayout::Style {
-                family: "Ahem".to_string(),
+                families: vec![textlayout::FontFamily::named("Ahem")],
                 size: FONT_SIZE,
             },
             textlayout::SourceRunTag::new(0),
@@ -799,7 +799,7 @@ fn beyond_the_overlap_the_second_producer_still_does_not_exist() {
         &textlayout::AttributedText::single_source_run(
             "A\nB".to_string(),
             textlayout::Style {
-                family: "Ahem".to_string(),
+                families: vec![textlayout::FontFamily::named("Ahem")],
                 size: FONT_SIZE,
             },
             textlayout::SourceRunTag::new(0),

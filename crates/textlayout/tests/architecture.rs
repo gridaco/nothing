@@ -11,13 +11,13 @@ use std::path::Path;
 /// Growing it is a decision, not a convenience — state the refusal the new
 /// edge does not violate.
 #[test]
-fn dependency_perimeter_is_exactly_rustybuzz() {
+fn dependency_perimeter_is_exactly_the_pinned_oracle_tables() {
     let manifest = fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml")).unwrap();
 
     let mut in_dependency_section = false;
     let mut deps = Vec::new();
-    for line in manifest.lines() {
-        let line = line.trim();
+    for raw_line in manifest.lines() {
+        let line = raw_line.trim();
         if line.starts_with('[') {
             // Any section whose header names dependencies counts:
             // [dependencies], [dev-dependencies], [build-dependencies],
@@ -28,13 +28,17 @@ fn dependency_perimeter_is_exactly_rustybuzz() {
         if !in_dependency_section || line.is_empty() || line.starts_with('#') {
             continue;
         }
-        if let Some(name) = line.split(['=', ' ']).next() {
-            deps.push(name.to_string());
+        // Formatter-wrapped arrays and inline tables are indented continuations,
+        // not additional dependency declarations.
+        if raw_line.len() == raw_line.trim_start().len()
+            && let Some((name, _)) = line.split_once('=')
+        {
+            deps.push(name.trim().to_string());
         }
     }
     assert_eq!(
         deps,
-        vec!["rustybuzz".to_string()],
+        vec!["rustybuzz".to_string(), "regex-syntax".to_string()],
         "textlayout's dependency perimeter changed; every edge must be a decision"
     );
 
