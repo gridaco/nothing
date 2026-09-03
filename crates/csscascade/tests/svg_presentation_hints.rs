@@ -34,6 +34,7 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
     #clip-style-attr-beats-rule { clip-path: url(#rule-clip); }
     #clip-webkit-alias { -webkit-clip-path: url(#vendor-clip); }
     #family-rule-beats-hint { font-family: monospace; }
+    #face-rule-beats-hint { font-weight: 700; font-style: italic; font-stretch: 75%; }
     #pattern-rule-beats-hint { transform: translate(30px, 0px); }
   </style>
   <rect id="hint-only" fill="#16a34a" width="8" height="8"/>
@@ -95,6 +96,10 @@ const STANDALONE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" 
   <text id="family-rule-beats-hint" font-family="Ahem">X</text>
   <text id="family-invalid-hint" font-family="">X</text>
   <g font-family="Ahem"><text id="family-inherited">X</text></g>
+  <text id="face-hint" font-weight="700" font-style="italic" font-stretch="75%">X</text>
+  <text id="face-rule-beats-hint" font-weight="400" font-style="normal" font-stretch="100%">X</text>
+  <text id="face-invalid-hint" font-weight="heavy" font-style="slanted" font-stretch="wide">X</text>
+  <g font-weight="700" font-style="italic" font-stretch="75%"><text id="face-inherited">X</text></g>
   <linearGradient id="gradient-transform-hint" gradientTransform="translate(10 10)"/>
   <linearGradient id="gradient-plain-transform-inert" transform="translate(10 10)"/>
   <pattern id="pattern-transform-hint" patternTransform="translate(10 10)"/>
@@ -242,6 +247,9 @@ fn standalone_svg_presentation_hints_enter_below_author_rules() {
         ("stroke-miterlimit", LonghandId::StrokeMiterlimit),
         ("font-size", LonghandId::FontSize),
         ("font-family", LonghandId::FontFamily),
+        ("font-weight", LonghandId::FontWeight),
+        ("font-style", LonghandId::FontStyle),
+        ("font-stretch", LonghandId::FontStretch),
         ("display", LonghandId::Display),
         ("visibility", LonghandId::Visibility),
         ("fill-opacity", LonghandId::FillOpacity),
@@ -277,6 +285,23 @@ fn standalone_svg_presentation_hints_enter_below_author_rules() {
         property(root, "family-inherited", LonghandId::FontFamily),
         "Ahem",
         "font-family inherits from the group carrying the hint"
+    );
+    for id in ["face-hint", "face-rule-beats-hint", "face-inherited"] {
+        assert_eq!(property(root, id, LonghandId::FontWeight), "700");
+        assert_eq!(property(root, id, LonghandId::FontStyle), "italic");
+        assert_eq!(property(root, id, LonghandId::FontStretch), "75%");
+    }
+    assert_eq!(
+        property(root, "face-invalid-hint", LonghandId::FontWeight),
+        "400"
+    );
+    assert_eq!(
+        property(root, "face-invalid-hint", LonghandId::FontStyle),
+        "normal"
+    );
+    assert_eq!(
+        property(root, "face-invalid-hint", LonghandId::FontStretch),
+        "100%"
     );
     // `font-size` is admitted for its *basis*, not because anything paints it:
     // it is what an `em` length resolves against, and Chromium treats it as a
@@ -457,10 +482,12 @@ fn standalone_svg_presentation_hints_enter_below_author_rules() {
 fn inline_html_svg_presentation_hints_behave_identically() {
     thread_state::initialize(ThreadState::LAYOUT);
     let html = r##"<!doctype html>
-<html><head><style>#ruled { fill: #2563eb; }</style></head><body>
+<html><head><style>#ruled { fill: #2563eb; } #face-ruled { font-weight: 700; }</style></head><body>
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">
   <rect id="plain" fill="#16a34a" width="8" height="8"/>
   <rect id="ruled" fill="#16a34a" width="8" height="8"/>
+  <text id="face-plain" font-weight="700" font-style="italic" font-stretch="75%">X</text>
+  <text id="face-ruled" font-weight="400">X</text>
 </svg></body></html>"##;
     let dom = DemoDom::parse_from_bytes(html.as_bytes()).expect("parse HTML");
     let mut session = DocumentSession::new(dom);
@@ -474,6 +501,13 @@ fn inline_html_svg_presentation_hints_behave_identically() {
         "rgb(37, 99, 235)",
         "the surrounding HTML document's author rules beat the hint"
     );
+    assert_eq!(property(root, "face-plain", LonghandId::FontWeight), "700");
+    assert_eq!(
+        property(root, "face-plain", LonghandId::FontStyle),
+        "italic"
+    );
+    assert_eq!(property(root, "face-plain", LonghandId::FontStretch), "75%");
+    assert_eq!(property(root, "face-ruled", LonghandId::FontWeight), "700");
 }
 
 #[test]

@@ -728,6 +728,17 @@ excluded.
 > is a bounded selection checkpoint, not the complete CSS grammar, so
 > `font-family` stays open.
 
+> **2026-09-03 exact-face split:** T5b carries one complete static
+> weight/stretch/style tuple through the same cascade and selects one exact
+> host-declared face inside the first reached named family. The exact cell
+> covers six weight, four style, five stretch, and one full-tuple branch across
+> inline CSS, author sheets, inheritance, numeric/keyword aliases, and relative
+> weight. Fractional weights, arbitrary stretch percentages, oblique angles,
+> descriptor ranges, directional nearest-face matching, synthesis, and
+> variation remain named boundaries. The listed standard-track grammars are
+> therefore incomplete: `font-weight`, `font-style`, and `font-stretch` all
+> stay open independently of their SVG attribute twins.
+
 
 ### CSS text
 
@@ -2078,6 +2089,18 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > both ingresses. Generic policy, same-family face descriptors, synthesis, and
 > missing-glyph fallback remain outside it, so the presentation-attribute
 > `font-family` row stays open independently from its CSS-property twin.
+
+> **2026-09-03 exact-face split:** the three presentation attributes now enter
+> below author CSS through the same Stylo longhands as their property twins.
+> Direct, overridden, inherited, keyword/numeric, relative-weight, and exact
+> full-tuple branches are Chromium-celled. Authored fractional weight, oblique
+> angle, arbitrary stretch percentage, and a reached family without an exact
+> tuple refuse by stable name in both admissions; nearest-face matching and
+> synthesis remain outside the producer contract. The text estate moves to
+> thirteen exact cells and the refusal register to 224 rows. Because those
+> valid grammar and policy branches remain, the SVG `font-weight`,
+> `font-style`, and `font-stretch` rows stay unchecked separately from the CSS
+> rows.
 
 - [ ] `glyph-orientation-horizontal`
 - [ ] `glyph-orientation-vertical`

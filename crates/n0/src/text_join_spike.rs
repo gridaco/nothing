@@ -208,6 +208,7 @@ fn web_environment() -> textlayout::Environment {
     textlayout::Environment::new(vec![textlayout::FontResource {
         key: textlayout::FontKey::new(ahem_digest()),
         family: "Ahem".to_string(),
+        face_descriptor: textlayout::StaticFaceDescriptor::NORMAL,
         face_index: 0,
         bytes: Arc::from(AHEM),
     }])
@@ -219,6 +220,7 @@ fn web_layout(text: &str) -> textlayout::ResolvedTextLayout {
             text.to_string(),
             textlayout::Style {
                 families: vec![textlayout::FontFamily::named("Ahem")],
+                face_descriptor: textlayout::StaticFaceDescriptor::NORMAL,
                 size: FONT_SIZE,
             },
             textlayout::SourceRunTag::new(0),
@@ -800,6 +802,7 @@ fn beyond_the_overlap_the_second_producer_still_does_not_exist() {
             "A\nB".to_string(),
             textlayout::Style {
                 families: vec![textlayout::FontFamily::named("Ahem")],
+                face_descriptor: textlayout::StaticFaceDescriptor::NORMAL,
                 size: FONT_SIZE,
             },
             textlayout::SourceRunTag::new(0),

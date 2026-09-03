@@ -3,7 +3,7 @@
   "kind": "chromium-primitive-suite",
   "browser_version": "149.0.7827.55",
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
-  "capture_module_sha256": "c66ee93e4f96d4f5c169254181d7cda14bb4254e07d65f64dec7f32f5bdcb296",
+  "capture_module_sha256": "069296201718c43d29efe356fbea893781b73250dca51de3b6d47468d74027b0",
   "suite": "primitives.json",
   "suite_sha256": "fbc3448488f375d0123fb42ba249bc6bda3dd17ba099d3ea18517f90cc0bd086",
   "capture": {

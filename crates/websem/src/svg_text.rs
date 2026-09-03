@@ -340,6 +340,7 @@ fn admit_chromium_query_geometry(layout: &ResolvedTextLayout) -> Result<(), Text
 pub(crate) fn resolve_text_path(
     text: &str,
     families: Vec<textlayout::FontFamily>,
+    face_descriptor: textlayout::StaticFaceDescriptor,
     font_size: f32,
     x: f32,
     y: f32,
@@ -350,6 +351,7 @@ pub(crate) fn resolve_text_path(
         text.to_string(),
         Style {
             families,
+            face_descriptor,
             size: font_size,
         },
         SourceRunTag::new(0),

@@ -299,6 +299,7 @@ fn environment(font: &SuiteFont, bytes: &Arc<[u8]>) -> textlayout::Environment {
     textlayout::Environment::new(vec![textlayout::FontResource {
         key: textlayout::FontKey::new(hex_bytes(&font.sha256)),
         family: font.family.clone(),
+        face_descriptor: textlayout::StaticFaceDescriptor::NORMAL,
         face_index: font.face_index,
         bytes: Arc::clone(bytes),
     }])
@@ -310,6 +311,7 @@ fn bungee_environment() -> textlayout::Environment {
     textlayout::Environment::new(vec![textlayout::FontResource {
         key: textlayout::FontKey::new(digest.into()),
         family: "Bungee".to_string(),
+        face_descriptor: textlayout::StaticFaceDescriptor::NORMAL,
         face_index: 0,
         bytes: Arc::from(BUNGEE_BYTES),
     }])
@@ -321,6 +323,7 @@ fn ahem_environment() -> textlayout::Environment {
     textlayout::Environment::new(vec![textlayout::FontResource {
         key: textlayout::FontKey::new(digest.into()),
         family: "Ahem".to_string(),
+        face_descriptor: textlayout::StaticFaceDescriptor::NORMAL,
         face_index: 0,
         bytes: Arc::from(AHEM_BYTES),
     }])
@@ -332,6 +335,7 @@ fn pt_serif_environment() -> textlayout::Environment {
     textlayout::Environment::new(vec![textlayout::FontResource {
         key: textlayout::FontKey::new(digest.into()),
         family: "PT Serif".to_string(),
+        face_descriptor: textlayout::StaticFaceDescriptor::NORMAL,
         face_index: 0,
         bytes: Arc::from(PT_SERIF_BYTES),
     }])
@@ -394,6 +398,7 @@ fn canonical_source(case: &SuiteCase) -> String {
 fn attributed_text(case: &SuiteCase, font_size: f32) -> textlayout::AttributedText {
     let style = textlayout::Style {
         families: vec![textlayout::FontFamily::named(case.font_family.clone())],
+        face_descriptor: textlayout::StaticFaceDescriptor::NORMAL,
         size: font_size,
     };
     let attributed = if case.source_runs.is_empty() {
@@ -1244,7 +1249,7 @@ fn combining_profile_boundaries_refuse_at_the_same_text_node_in_both_admissions(
         "Ax\u{0300}Z",
         "Bungee",
         bungee_environment(),
-        "outside textlayout-v5's admitted",
+        "outside textlayout-v6's admitted",
     );
     for source in [
         "\u{0301}AX",

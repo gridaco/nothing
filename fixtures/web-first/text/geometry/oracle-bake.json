@@ -7,7 +7,7 @@
   "bake_script": "bake_chromium.ts",
   "bake_script_sha256": "5fea5d17db32b7c04c1b2375d4d467db71094c8b128ffda97a86426655e3db09",
   "capture_module": "../../chromium_capture.ts",
-  "capture_module_sha256": "c66ee93e4f96d4f5c169254181d7cda14bb4254e07d65f64dec7f32f5bdcb296",
+  "capture_module_sha256": "069296201718c43d29efe356fbea893781b73250dca51de3b6d47468d74027b0",
   "fonts": [
     {
       "family": "Allerta",

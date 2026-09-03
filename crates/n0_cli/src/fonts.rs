@@ -1,4 +1,5 @@
-//! The host's font declarations: `--font FAMILY=PATH@sha256:HEX`.
+//! The host's font declarations:
+//! `--font FAMILY=PATH@sha256:HEX[;weight=N][;style=normal|italic][;stretch=POINT]`.
 //!
 //! A family name is not a font identity — the same name resolves to
 //! different bytes on different machines — so a declaration carries the
@@ -23,18 +24,21 @@ pub(crate) struct FontDeclaration {
     pub(crate) path: String,
     /// Lowercase hex SHA-256 of the bytes this declaration means.
     pub(crate) digest: String,
+    pub(crate) face_descriptor: textlayout::StaticFaceDescriptor,
 }
 
-/// Parse one `FAMILY=PATH@sha256:HEX`.
+/// Parse one hash-pinned font resource plus its optional exact static face
+/// facts. Omitted facts are the normal 400/100% tuple.
 ///
-/// The family is everything before the first `=`, the digest everything
-/// after the last `@sha256:` — so a path may contain `=` and `@`, and only
-/// the exact digest marker terminates it.
+/// The family is everything before the first `=`, and the digest is the first
+/// 64 characters after the last `@sha256:`. Any remaining bytes are the
+/// semicolon-prefixed descriptor list, so a path may contain `=` and `@` and
+/// only the exact digest marker terminates it.
 pub(crate) fn parse_declaration(spec: &str) -> Result<FontDeclaration, String> {
     const MARKER: &str = "@sha256:";
     let Some((family, rest)) = spec.split_once('=') else {
         return Err(format!(
-            "font declaration {spec:?} must look like FAMILY=PATH@sha256:HEX"
+            "font declaration {spec:?} must look like FAMILY=PATH@sha256:HEX[;weight=N][;style=normal|italic][;stretch=POINT]"
         ));
     };
     if family.is_empty() {
@@ -47,19 +51,114 @@ pub(crate) fn parse_declaration(spec: &str) -> Result<FontDeclaration, String> {
         ));
     };
     let path = &rest[..marker_at];
-    let digest = &rest[marker_at + MARKER.len()..];
+    let declaration = &rest[marker_at + MARKER.len()..];
     if path.is_empty() {
         return Err(format!("font declaration {spec:?} names no path"));
     }
-    if digest.len() != 64 || !digest.bytes().all(|b| b.is_ascii_hexdigit()) {
+    if declaration.len() < 64 {
+        return Err(format!(
+            "font declaration {spec:?} carries {declaration:?}, which is not a 64-character hex SHA-256"
+        ));
+    }
+    let (digest, descriptor_suffix) = declaration.split_at(64);
+    if !digest.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err(format!(
             "font declaration {spec:?} carries {digest:?}, which is not a 64-character hex SHA-256"
         ));
     }
+    let face_descriptor = parse_face_descriptor(spec, descriptor_suffix)?;
     Ok(FontDeclaration {
         family: family.to_string(),
         path: path.to_string(),
         digest: digest.to_ascii_lowercase(),
+        face_descriptor,
+    })
+}
+
+fn parse_face_descriptor(
+    spec: &str,
+    suffix: &str,
+) -> Result<textlayout::StaticFaceDescriptor, String> {
+    if suffix.is_empty() {
+        return Ok(textlayout::StaticFaceDescriptor::NORMAL);
+    }
+    let Some(descriptors) = suffix.strip_prefix(';') else {
+        return Err(format!(
+            "font declaration {spec:?} has bytes after its 64-character SHA-256 without a ';' descriptor separator"
+        ));
+    };
+    if descriptors.is_empty() {
+        return Err(format!(
+            "font declaration {spec:?} has an empty face descriptor"
+        ));
+    }
+
+    let mut weight = None;
+    let mut style = None;
+    let mut stretch = None;
+    for field in descriptors.split(';') {
+        let Some((name, value)) = field.split_once('=') else {
+            return Err(format!(
+                "font declaration {spec:?} has malformed face descriptor {field:?}"
+            ));
+        };
+        match name {
+            "weight" if weight.is_none() => {
+                let value = value.parse::<u16>().map_err(|_| {
+                    format!("font declaration {spec:?} has invalid static weight {value:?}")
+                })?;
+                weight = Some(textlayout::FontWeight::new(value).map_err(|error| {
+                    format!("font declaration {spec:?} has invalid static {error}")
+                })?);
+            }
+            "style" if style.is_none() => {
+                style = Some(match value {
+                    "normal" => textlayout::FontStyle::Normal,
+                    "italic" => textlayout::FontStyle::Italic,
+                    _ => {
+                        return Err(format!(
+                            "font declaration {spec:?} has unsupported static style {value:?}; expected normal or italic"
+                        ));
+                    }
+                });
+            }
+            "stretch" if stretch.is_none() => {
+                stretch = Some(parse_stretch(value).ok_or_else(|| {
+                    format!("font declaration {spec:?} has unsupported static stretch {value:?}")
+                })?);
+            }
+            "weight" | "style" | "stretch" => {
+                return Err(format!(
+                    "font declaration {spec:?} repeats face descriptor {name:?}"
+                ));
+            }
+            _ => {
+                return Err(format!(
+                    "font declaration {spec:?} has unknown face descriptor {name:?}"
+                ));
+            }
+        }
+    }
+
+    Ok(textlayout::StaticFaceDescriptor::new(
+        weight.unwrap_or(textlayout::FontWeight::NORMAL),
+        stretch.unwrap_or(textlayout::FontStretch::Normal),
+        style.unwrap_or(textlayout::FontStyle::Normal),
+    ))
+}
+
+fn parse_stretch(value: &str) -> Option<textlayout::FontStretch> {
+    Some(match value {
+        "ultra-condensed" | "50%" => textlayout::FontStretch::UltraCondensed,
+        "extra-condensed" | "62.5%" => textlayout::FontStretch::ExtraCondensed,
+        "condensed" | "75%" => textlayout::FontStretch::Condensed,
+        "semi-condensed" | "87.5%" => textlayout::FontStretch::SemiCondensed,
+        "normal" | "100%" => textlayout::FontStretch::Normal,
+        "semi-expanded" | "112.5%" => textlayout::FontStretch::SemiExpanded,
+        "expanded" | "125%" => textlayout::FontStretch::Expanded,
+        "extra-expanded" | "150%" => textlayout::FontStretch::ExtraExpanded,
+        "ultra-expanded" | "200%" => textlayout::FontStretch::UltraExpanded,
+        _ => return None,
     })
 }
 
@@ -90,6 +189,7 @@ pub(crate) fn load_environment(
         resources.push(textlayout::FontResource {
             key: textlayout::FontKey::new(digest),
             family: declaration.family.clone(),
+            face_descriptor: declaration.face_descriptor,
             face_index: 0,
             bytes: Arc::from(bytes),
         });
@@ -112,6 +212,7 @@ mod tests {
                 family: "Ahem".to_string(),
                 path: "fixtures/ahem.ttf".to_string(),
                 digest: HEX.to_string(),
+                face_descriptor: textlayout::StaticFaceDescriptor::NORMAL,
             }
         );
     }
@@ -124,6 +225,49 @@ mod tests {
             parse_declaration(&format!("My Font=/tmp/a=b@1/font.ttf@sha256:{HEX}")).unwrap();
         assert_eq!(parsed.family, "My Font");
         assert_eq!(parsed.path, "/tmp/a=b@1/font.ttf");
+    }
+
+    #[test]
+    fn exact_static_face_descriptors_parse_without_order_or_hidden_defaults() {
+        let parsed = parse_declaration(&format!(
+            "Face=f.ttf@sha256:{HEX};style=italic;stretch=75%;weight=700"
+        ))
+        .unwrap();
+        assert_eq!(
+            parsed.face_descriptor,
+            textlayout::StaticFaceDescriptor::new(
+                textlayout::FontWeight::new(700).unwrap(),
+                textlayout::FontStretch::Condensed,
+                textlayout::FontStyle::Italic,
+            )
+        );
+
+        let keyword =
+            parse_declaration(&format!("Face=f.ttf@sha256:{HEX};stretch=condensed")).unwrap();
+        assert_eq!(
+            keyword.face_descriptor,
+            textlayout::StaticFaceDescriptor::new(
+                textlayout::FontWeight::NORMAL,
+                textlayout::FontStretch::Condensed,
+                textlayout::FontStyle::Normal,
+            )
+        );
+    }
+
+    #[test]
+    fn malformed_or_wider_face_descriptors_refuse_at_the_host_boundary() {
+        for suffix in [
+            ";weight=0",
+            ";weight=400.5",
+            ";style=oblique",
+            ";stretch=80%",
+            ";weight=700;weight=400",
+            ";axis=wght",
+            ";",
+        ] {
+            let spec = format!("Face=f.ttf@sha256:{HEX}{suffix}");
+            assert!(parse_declaration(&spec).is_err(), "{spec}");
+        }
     }
 
     #[test]
@@ -162,6 +306,7 @@ mod tests {
             family: "Ahem".to_string(),
             path: path.clone(),
             digest: HEX.to_string(),
+            face_descriptor: textlayout::StaticFaceDescriptor::NORMAL,
         }])
         .expect("the pinned bytes match their recorded digest");
         assert_eq!(environment.fonts().len(), 1);
@@ -172,6 +317,7 @@ mod tests {
             family: "Ahem".to_string(),
             path,
             digest: wrong,
+            face_descriptor: textlayout::StaticFaceDescriptor::NORMAL,
         }])
         .expect_err("a font that is not the declared identity must refuse before rendering");
         assert!(error.contains("is not the declared identity"));

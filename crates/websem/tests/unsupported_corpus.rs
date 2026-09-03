@@ -920,12 +920,32 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     (
         "svg-text-combining-unlisted-mark",
         DeclaredByBestEffort,
-        "outside textlayout-v5's admitted",
+        "outside textlayout-v6's admitted",
     ),
     (
         "svg-text-css-layout",
         DeclaredByBestEffort,
         "letter-spacing",
+    ),
+    (
+        "svg-text-face-descriptor-fractional-weight",
+        DeclaredByBestEffort,
+        "font-weight source",
+    ),
+    (
+        "svg-text-face-descriptor-oblique",
+        DeclaredByBestEffort,
+        "font-style source",
+    ),
+    (
+        "svg-text-face-descriptor-source-precision",
+        DeclaredByBestEffort,
+        "source-precision boundary",
+    ),
+    (
+        "svg-text-face-descriptor-unmatched",
+        DeclaredByBestEffort,
+        "no exact static face",
     ),
     (
         "svg-text-family-ambiguous",

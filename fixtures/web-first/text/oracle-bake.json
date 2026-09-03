@@ -1,22 +1,92 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "kind": "chromium-svg-text-oracle",
   "browser_version": "149.0.7827.55",
   "suite": "cases.json",
-  "suite_sha256": "e16bd36eab38a7d5cd23b53bb44ae33c1f84f0145c7a8415da81ed5157703b0d",
+  "suite_sha256": "c5d20eab9093b8c19c54fc9d798ae7d635c4eda458bc8e1675a2ec2117bad37b",
   "bake_script": "bake_chromium.ts",
-  "bake_script_sha256": "72bae5f6c4f2b3309eee729fafeee017c86b78f98acb2f96206986cc29735c7b",
+  "bake_script_sha256": "68641aec21b145063734882a09041bed826eb12e84e2e50629b6ceaa01176aff",
   "capture_module": "../chromium_capture.ts",
-  "capture_module_sha256": "c66ee93e4f96d4f5c169254181d7cda14bb4254e07d65f64dec7f32f5bdcb296",
+  "capture_module_sha256": "069296201718c43d29efe356fbea893781b73250dca51de3b6d47468d74027b0",
   "fonts": [
     {
       "family": "Bungee",
       "sha256": "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "100%",
       "declaration": "inline @font-face injected as the root svg's first child"
     },
     {
       "family": "Ahem",
       "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "100%",
+      "declaration": "inline @font-face injected as the root svg's first child"
+    },
+    {
+      "family": "Weight",
+      "sha256": "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "100%",
+      "declaration": "inline @font-face injected as the root svg's first child"
+    },
+    {
+      "family": "Weight",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "700",
+      "style": "normal",
+      "stretch": "100%",
+      "declaration": "inline @font-face injected as the root svg's first child"
+    },
+    {
+      "family": "Style",
+      "sha256": "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "100%",
+      "declaration": "inline @font-face injected as the root svg's first child"
+    },
+    {
+      "family": "Style",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "400",
+      "style": "italic",
+      "stretch": "100%",
+      "declaration": "inline @font-face injected as the root svg's first child"
+    },
+    {
+      "family": "Stretch",
+      "sha256": "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "100%",
+      "declaration": "inline @font-face injected as the root svg's first child"
+    },
+    {
+      "family": "Stretch",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "75%",
+      "declaration": "inline @font-face injected as the root svg's first child"
+    },
+    {
+      "family": "Triple",
+      "sha256": "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "100%",
+      "declaration": "inline @font-face injected as the root svg's first child"
+    },
+    {
+      "family": "Triple",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "700",
+      "style": "italic",
+      "stretch": "75%",
       "declaration": "inline @font-face injected as the root svg's first child"
     }
   ],
@@ -54,6 +124,15 @@
       "source_sha256": "3d463bebb38e1abfbaf0dea5614d7f173e4a87f098db4a89d1ed28a33ee46605",
       "oracle": "chromium/svg-text-em-box.png",
       "oracle_sha256": "6b69103543523c11599830b91b3678054424b217a2dccad1ad804fb261891230",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-face-descriptor-selection",
+      "source": "svg-text-face-descriptor-selection.svg",
+      "source_sha256": "a4c2414c3c6540a9889f4611de43b5465f1148b1c4e5a52a187bb83ae2f67a71",
+      "oracle": "chromium/svg-text-face-descriptor-selection.png",
+      "oracle_sha256": "042a01ea80c109a94c278be75c9858c6c085bb0ed26e24f00113611c6e45165f",
       "width": 100,
       "height": 100
     },

@@ -33,6 +33,9 @@ struct SuiteFont {
     family: String,
     path: String,
     sha256: String,
+    weight: String,
+    style: String,
+    stretch: String,
 }
 
 #[derive(Deserialize)]
@@ -61,6 +64,9 @@ struct BakeManifest {
 struct BakeFont {
     family: String,
     sha256: String,
+    weight: String,
+    style: String,
+    stretch: String,
 }
 
 #[derive(Deserialize)]
@@ -77,7 +83,7 @@ struct BakeRecord {
 fn suite() -> Suite {
     let bytes = std::fs::read(fixture_root().join("cases.json")).expect("text suite manifest");
     let suite: Suite = serde_json::from_slice(&bytes).expect("well-formed text suite");
-    assert_eq!(suite.schema_version, 2);
+    assert_eq!(suite.schema_version, 3);
     assert!(!suite.fonts.is_empty());
     assert!(!suite.cases.is_empty());
     suite
@@ -112,23 +118,62 @@ const BUNGEE_SHA256: [u8; 32] = [
 ];
 
 fn text_environment() -> textlayout::Environment {
-    textlayout::Environment::new(vec![
-        // Environment order intentionally opposes every existing Ahem
-        // request. Selection must follow the computed family list, not this
-        // manifest's resource order.
-        textlayout::FontResource {
-            key: textlayout::FontKey::new(BUNGEE_SHA256),
-            family: "Bungee".to_string(),
-            face_index: 0,
-            bytes: Arc::from(BUNGEE_BYTES),
-        },
-        textlayout::FontResource {
-            key: textlayout::FontKey::new(AHEM_SHA256),
-            family: "Ahem".to_string(),
-            face_index: 0,
-            bytes: Arc::from(AHEM_BYTES),
-        },
-    ])
+    let suite = suite();
+    textlayout::Environment::new(
+        suite
+            .fonts
+            .iter()
+            .map(|font| {
+                let (bytes, digest) = pinned_font(font);
+                textlayout::FontResource {
+                    key: textlayout::FontKey::new(digest),
+                    family: font.family.clone(),
+                    face_descriptor: suite_face_descriptor(font),
+                    face_index: 0,
+                    bytes: Arc::from(bytes),
+                }
+            })
+            .collect(),
+    )
+}
+
+fn pinned_font(font: &SuiteFont) -> (&'static [u8], [u8; 32]) {
+    match font.sha256.as_str() {
+        "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448" => {
+            (AHEM_BYTES, AHEM_SHA256)
+        }
+        "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc" => {
+            (BUNGEE_BYTES, BUNGEE_SHA256)
+        }
+        digest => panic!("text suite names an unpinned font identity {digest}"),
+    }
+}
+
+fn suite_face_descriptor(font: &SuiteFont) -> textlayout::StaticFaceDescriptor {
+    let weight = font
+        .weight
+        .parse::<u16>()
+        .ok()
+        .and_then(|value| textlayout::FontWeight::new(value).ok())
+        .unwrap_or_else(|| panic!("invalid static font weight {}", font.weight));
+    let style = match font.style.as_str() {
+        "normal" => textlayout::FontStyle::Normal,
+        "italic" => textlayout::FontStyle::Italic,
+        other => panic!("invalid static font style {other}"),
+    };
+    let stretch = match font.stretch.as_str() {
+        "50%" => textlayout::FontStretch::UltraCondensed,
+        "62.5%" => textlayout::FontStretch::ExtraCondensed,
+        "75%" => textlayout::FontStretch::Condensed,
+        "87.5%" => textlayout::FontStretch::SemiCondensed,
+        "100%" => textlayout::FontStretch::Normal,
+        "112.5%" => textlayout::FontStretch::SemiExpanded,
+        "125%" => textlayout::FontStretch::Expanded,
+        "150%" => textlayout::FontStretch::ExtraExpanded,
+        "200%" => textlayout::FontStretch::UltraExpanded,
+        other => panic!("invalid static font stretch {other}"),
+    };
+    textlayout::StaticFaceDescriptor::new(weight, stretch, style)
 }
 
 fn compile(source: &str) -> Result<rframe::Frame, CompileError> {
@@ -293,9 +338,9 @@ fn beyond_slice_text_constructs_refuse_by_name() {
             "stroke on <text>",
         ),
         (
-            // Outside textlayout-v5's explicit repertoire.
+            // Outside textlayout-v6's explicit repertoire.
             r##"<text x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X&#x5D0;</text>"##,
-            "outside textlayout-v5's admitted",
+            "outside textlayout-v6's admitted",
         ),
     ] {
         let error = compile(&svg(body)).expect_err("outside the admitted text slice");
@@ -470,6 +515,10 @@ fn tspan_boundaries_outside_t4b_refuse_transactionally() {
             "parent run resolves",
         ),
         (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan font-weight="700">X</tspan></text>"##,
+            "parent run resolves",
+        ),
+        (
             r##"<text x="10" y="60" font-family="Ahem" font-size="20"><tspan style="opacity:.5">X</tspan></text>"##,
             "opacity must remain 1",
         ),
@@ -633,7 +682,7 @@ fn direct_font_size_sources_remain_admitted_across_the_cascade() {
     }
 }
 
-/// Text semantics represented by Stylo but absent from oracle v5 must not
+/// Text semantics represented by Stylo but absent from the current oracle must not
 /// become defaults silently. This includes the font shorthand and inherited
 /// declarations from ancestors, not only direct presentation attributes.
 #[test]
@@ -653,7 +702,7 @@ fn unconsumed_text_layout_css_refuses_at_the_text_node() {
         ),
         (
             r##"<g font-weight="bold"><text x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X</text></g>"##,
-            "font-weight",
+            "no exact static face",
         ),
         (
             r##"<g style="dominant-baseline:middle"><text x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X</text></g>"##,
@@ -775,7 +824,7 @@ fn text_oracle_provenance_is_current() {
     let suite = suite();
     let manifest: BakeManifest = read_json(&root.join("oracle-bake.json"));
 
-    assert_eq!(manifest.schema_version, 2, "unsupported text bake schema");
+    assert_eq!(manifest.schema_version, 3, "unsupported text bake schema");
     assert_eq!(manifest.suite, "cases.json");
     assert_eq!(manifest.bake_script, "bake_chromium.ts");
     assert_eq!(manifest.capture_module, "../chromium_capture.ts");
@@ -799,6 +848,9 @@ fn text_oracle_provenance_is_current() {
     for (font, recorded) in suite.fonts.iter().zip(&manifest.fonts) {
         assert_eq!(recorded.family, font.family);
         assert_eq!(recorded.sha256, font.sha256);
+        assert_eq!(recorded.weight, font.weight);
+        assert_eq!(recorded.style, font.style);
+        assert_eq!(recorded.stretch, font.stretch);
     }
 
     for (fixture, record) in suite.cases.iter().zip(&manifest.records) {
@@ -883,23 +935,9 @@ fn admitted_runs_match_the_chromium_oracle() {
 fn the_declared_font_identities_are_verified() {
     use sha2::{Digest, Sha256};
     let suite = suite();
-    assert_eq!(suite.fonts.len(), 2);
-    for (font, bytes, expected_digest, expected_family, expected_path) in [
-        (
-            &suite.fonts[0],
-            BUNGEE_BYTES,
-            BUNGEE_SHA256,
-            "Bungee",
-            "../../fonts/Bungee/Bungee-Regular.ttf",
-        ),
-        (
-            &suite.fonts[1],
-            AHEM_BYTES,
-            AHEM_SHA256,
-            "Ahem",
-            "../fonts/ahem.ttf",
-        ),
-    ] {
+    assert_eq!(suite.fonts.len(), 10);
+    for font in &suite.fonts {
+        let (bytes, expected_digest) = pinned_font(font);
         let digest = format!("{:x}", Sha256::digest(bytes));
         assert_eq!(digest, font.sha256, "gate font is not the pinned identity");
         assert_eq!(
@@ -907,8 +945,13 @@ fn the_declared_font_identities_are_verified() {
             expected_digest,
             "the constant declared to the engine must be the same digest"
         );
-        assert_eq!(font.family, expected_family);
+        let expected_path = if expected_digest == AHEM_SHA256 {
+            "../fonts/ahem.ttf"
+        } else {
+            "../../fonts/Bungee/Bungee-Regular.ttf"
+        };
         assert_eq!(font.path, expected_path);
+        let _ = suite_face_descriptor(font);
     }
 }
 

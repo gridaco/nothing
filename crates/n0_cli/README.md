@@ -573,9 +573,9 @@ cargo run -p n0_cli --bin n0 -- \
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
   cells. The complete primitive corpus contains 1,051 Chromium-baked cells plus
-  16 sampled frames; the text estate contains twelve exact text pixel cells and
+  16 sampled frames; the text estate contains thirteen exact text pixel cells and
   eight exact-number artifact-geometry witnesses (six Allerta and two
-  Bungee), and the named refusal register has 220 rows. `feFlood`, `feComposite`,
+  Bungee), and the named refusal register has 224 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -963,17 +963,28 @@ cargo run -p n0_cli --bin n0 -- \
   the wider source, cascade, grammar, dynamics, and external-I/O surface.
   `<text>` is consumed (the text rung), and its font environment is the
   host's: text resolves only against fonts declared with
-  `--font FAMILY=PATH@sha256:HEX` (repeatable), whose bytes are **verified
-  against the declared digest before any pixel exists** — a family name is
-  not a font identity, and a mismatch refuses the render rather than
-  producing a silently different one. A `<text>` run carries its complete
-  computed ordered family list into the declared environment. The first unique
-  named match wins in request order; unavailable names fall through under the
-  measured Unicode 17 BMP simple-fold comparison. An exhausted list, a reached
-  generic, or an ambiguous same-name declaration refuses by name. There is no
-  system fallback, no ambient face, and therefore no machine-local pixel
-  anywhere on this path. Inside that environment one text source resolves once
-  through [the text oracle](../../docs/wg/feat-paragraph/text-layout.md) at its v5
+  `--font FAMILY=PATH@sha256:HEX[;weight=N][;style=normal|italic][;stretch=POINT]`
+  (repeatable), whose bytes are **verified against the declared digest before
+  any pixel exists**. Descriptor fields are optional and order-independent;
+  omitted fields mean the complete `400`/`normal`/`100%` tuple. Weight is an
+  integer from 1 through 1000, style is `normal` or `italic`, and stretch is
+  `ultra-condensed`, `extra-condensed`, `condensed`, `semi-condensed`, `normal`,
+  `semi-expanded`, `expanded`, `extra-expanded`, or `ultra-expanded`; their
+  canonical `50%`, `62.5%`, `75%`, `87.5%`, `100%`, `112.5%`, `125%`, `150%`,
+  and `200%` spellings are aliases. Shell callers quote a declaration carrying
+  `;`. Unknown, repeated, malformed, or wider fields refuse at the host
+  boundary. A family name is not a font identity, and a mismatch refuses the
+  render rather than producing a silently different one. A `<text>` run
+  carries its complete computed ordered family list and exact static face
+  request into the declared environment. Unavailable names fall through under
+  the measured Unicode 17 BMP simple-fold comparison. The first named family
+  with resources is a boundary: exactly one equal weight/stretch/style tuple
+  selects; no equal tuple or a tuple tie refuses without falling through or
+  taking environment order. An exhausted list or reached generic also refuses
+  by name. There is no system fallback, ambient face, nearest-face guess, or
+  synthetic posture, and therefore no machine-local pixel anywhere on this
+  path. Inside that environment one text source resolves once through
+  [the text oracle](../../docs/wg/feat-paragraph/text-layout.md) at its v6
   profile — one shaping-style run of printable ASCII plus exactly the 53 canonical
   precomposed Latin-1 letters in U+00C0–00C5, U+00C7–00CF, U+00D1–00D6,
   U+00D9–00DD, U+00E0–00E5, U+00E7–00EF, U+00F1–00F6, U+00F9–00FD, and
@@ -998,11 +1009,13 @@ cargo run -p n0_cli --bin n0 -- \
   Parent `x`, `y`, and a direct `text-anchor` attribute
   (`start`/`middle`/`end`) place the source and anchor every chunk; inherited
   ancestor spellings refuse until anchor has one computed route.
-  `font-family` and `font-size` come from the one cascade, where an author rule
-  beats the presentation attribute exactly as Chromium measured. Family lists
-  retain quoted-name versus generic classification, CSS escapes, inheritance,
-  and source order through that route; environment resource order never
-  replaces request order. Until the source environment is
+  `font-family`, `font-size`, `font-weight`, `font-style`, and `font-stretch`
+  come from the one cascade, where an author rule beats the presentation
+  attribute exactly as Chromium measured. Family lists retain quoted-name
+  versus generic classification, CSS escapes, inheritance, and source order;
+  face descriptors retain exact presentation, inline, stylesheet, and
+  inherited selection through their bounded static profile. Environment
+  resource order never replaces request or tuple identity. Until the source environment is
   carried more widely, `font-size` admits only a direct finite non-negative
   unitless presentation value or `px` value that survives the pinned Stylo
   quantizer unchanged and is an integer multiple of five; `inherit`/`unset`
@@ -1056,9 +1069,14 @@ cargo run -p n0_cli --bin n0 -- \
   the first `f` advance to 2355, the second chunk retains the 2330/2355 pair,
   and Chromium and the projection agree on total 13585 and positioned starts
   5000, 8330, 10685, and 15005. The last start proves that a relative shift on
-  the combining scalar carries to the next character. The twelve-cell exact
+  the combining scalar carries to the next character. The thirteen-cell exact
   suite separately makes per-run paint, list placement, per-chunk anchoring,
-  transforms, `<use>`, and ten ordered-family-selection branches byte-exact.
+  transforms, `<use>`, ten ordered-family-selection branches, and sixteen exact
+  face-descriptor branches byte-exact. The descriptor cell covers numeric and
+  keyword weight, relative weight, normal/italic style, all three cascade
+  ingresses, inheritance, keyword/percentage stretch aliases, and one complete
+  tuple. Its actual strict CLI render has zero differing pixels and zero
+  maximum channel delta against the committed Chromium oracle.
   Malformed or unlisted combining sequences and a mark missing from the exact
   face refuse at the text node in both admissions. The 1000px
   control misses both query grids: strict refuses by stable
@@ -1070,7 +1088,9 @@ cargo run -p n0_cli --bin n0 -- \
   `text-anchor` (Chromium consumes it from the cascade, the pinned Stylo
   build has no such longhand — a silent drop before the rung), inherited
   `text-anchor` presentation attributes, generic-family mapping, ambiguous
-  same-family declarations, exhausted named-family lists, nested `<tspan>`
+  exact same-family tuples, reached families with no exact tuple, fractional
+  font weights, arbitrary stretch percentages, oblique angles, nearest-face
+  matching and synthesis, exhausted named-family lists, nested `<tspan>`
   content, child shaping-style changes, non-opaque/wider child paint and child/parent
   effects, any other element child, parent position lists, child position
   units/percentages/functions, malformed or fractional child lists,
@@ -1080,7 +1100,7 @@ cargo run -p n0_cli --bin n0 -- \
   and direction, stroke on text, a colour or
   bitmap face, a cluster outside the direct-or-one-mark cardinality, malformed
   combining placement, a missing glyph (without family-list retry), and any
-  character outside the v5 repertoire. The inline-HTML
+  character outside the v6 repertoire. The inline-HTML
   entry declares no fonts, so its `<text>` refuses there.
   `display: none` and `visibility` are consumed from the one cascade
   (attribute and CSS spellings alike): a pruned or hidden element renders

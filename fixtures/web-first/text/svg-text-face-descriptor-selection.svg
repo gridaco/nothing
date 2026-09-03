@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <style>
+    .weight-sheet { font-weight: 700 }
+    .style-sheet { font-style: italic }
+    .stretch-sheet { font-stretch: 75% }
+  </style>
+  <text x="5" y="22" font-family="Weight" font-size="10" font-weight="700" style="-webkit-font-smoothing:none" fill="#111827">X</text>
+  <text x="17" y="22" font-family="Weight" font-size="10" font-weight="bold" style="-webkit-font-smoothing:none" fill="#111827">X</text>
+  <text x="29" y="22" font-family="Weight" font-size="10" style="font-weight:700;-webkit-font-smoothing:none" fill="#111827">X</text>
+  <text x="41" y="22" class="weight-sheet" font-family="Weight" font-size="10" font-weight="400" style="-webkit-font-smoothing:none" fill="#111827">X</text>
+  <g font-weight="700">
+    <text x="53" y="22" font-family="Weight" font-size="10" style="-webkit-font-smoothing:none" fill="#111827">X</text>
+  </g>
+  <g font-weight="400">
+    <text x="65" y="22" font-family="Weight" font-size="10" style="font-weight:bolder;-webkit-font-smoothing:none" fill="#111827">X</text>
+  </g>
+  <text x="77" y="22" font-family="Style" font-size="10" font-style="italic" style="-webkit-font-smoothing:none" fill="#111827">X</text>
+  <text x="89" y="22" font-family="Style" font-size="10" style="font-style:italic;-webkit-font-smoothing:none" fill="#111827">X</text>
+  <text x="5" y="62" class="style-sheet" font-family="Style" font-size="10" font-style="normal" style="-webkit-font-smoothing:none" fill="#111827">X</text>
+  <g font-style="italic">
+    <text x="17" y="62" font-family="Style" font-size="10" style="-webkit-font-smoothing:none" fill="#111827">X</text>
+  </g>
+  <text x="29" y="62" font-family="Stretch" font-size="10" font-stretch="condensed" style="-webkit-font-smoothing:none" fill="#111827">X</text>
+  <text x="41" y="62" font-family="Stretch" font-size="10" font-stretch="75%" style="-webkit-font-smoothing:none" fill="#111827">X</text>
+  <text x="53" y="62" font-family="Stretch" font-size="10" style="font-stretch:75%;-webkit-font-smoothing:none" fill="#111827">X</text>
+  <text x="65" y="62" class="stretch-sheet" font-family="Stretch" font-size="10" font-stretch="normal" style="-webkit-font-smoothing:none" fill="#111827">X</text>
+  <g font-stretch="75%">
+    <text x="77" y="62" font-family="Stretch" font-size="10" style="-webkit-font-smoothing:none" fill="#111827">X</text>
+  </g>
+  <text x="89" y="62" font-family="Triple" font-size="10" font-weight="700" font-style="italic" font-stretch="75%" style="-webkit-font-smoothing:none" fill="#111827">X</text>
+</svg>

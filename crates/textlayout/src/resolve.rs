@@ -11,6 +11,7 @@ use crate::artifact::{
     ResolvedTextLayout, ShapingCluster, stream_glyph_outline,
 };
 use crate::environment::{Environment, FamilyMatch, FontResource};
+use crate::face_descriptor::StaticFaceDescriptor;
 use crate::source::{
     ShapingChunk, ShapingChunkCoverageError, SourceRun, SourceRunCoverageError, SourceRunTag,
     source_run_tag_at, validate_shaping_chunks, validate_source_runs,
@@ -51,18 +52,21 @@ impl FontFamily {
     }
 }
 
-/// The complete layout-affecting style of the one run oracle v5 admits.
+/// The complete layout-affecting style of the one run oracle v6 admits.
 #[derive(Clone, Debug)]
 pub struct Style {
     /// Ordered family candidates resolved against the declared environment.
-    /// Selection stops at the first unambiguous named match or the first
-    /// generic boundary; missing glyphs never restart this list.
+    /// Traversal stops at the first named family with resources or the first
+    /// generic boundary. An exact descriptor miss cannot fall through, and
+    /// missing glyphs never restart this list.
     pub families: Vec<FontFamily>,
+    /// Complete exact static descriptor requested within the reached family.
+    pub face_descriptor: StaticFaceDescriptor,
     /// Font size in local px. Finite and positive, validated.
     pub size: f32,
 }
 
-/// Attributed source at the v5 profile: one string under one complete
+/// Attributed source at the v6 profile: one string under one complete
 /// layout-affecting style, complete source-run coverage carrying opaque caller
 /// tags, and a complete shaping-chunk partition.
 ///
@@ -156,32 +160,44 @@ pub enum ResolveError {
     /// resource. There is no ambient fallback; the exact requested names are
     /// retained for diagnostics.
     NoMatchingFamily { families: Vec<String> },
-    /// A generic candidate was reached before an unambiguous named match.
+    /// A generic candidate was reached before an exact face was selected.
     /// Generic mapping is host policy and is absent from this environment.
     UnmappedGenericFamily {
         /// Zero-based position in [`Style::families`].
         candidate_index: usize,
         family: String,
     },
-    /// More than one resource answers to the reached named candidate under
-    /// the v5 family comparison. Descriptor and declaration-order selection
-    /// are not admitted, so manifest vector order cannot break the tie.
-    AmbiguousFamily {
+    /// The reached named family has resources, but none has the complete exact
+    /// requested static descriptor. A reached family never masquerades as
+    /// unavailable and falls through to a later candidate.
+    NoExactFace {
         /// Zero-based position in [`Style::families`].
         candidate_index: usize,
         family: String,
-        /// Number of environment resources in the matching equivalence class.
+        requested: StaticFaceDescriptor,
+        /// Number of resources inside the reached family.
+        family_resources: usize,
+    },
+    /// More than one resource in the reached named family has the complete
+    /// exact requested descriptor. Environment vector order cannot break the
+    /// tie.
+    AmbiguousFace {
+        /// Zero-based position in [`Style::families`].
+        candidate_index: usize,
+        family: String,
+        requested: StaticFaceDescriptor,
+        /// Number of resources carrying the exact requested tuple.
         matching_resources: usize,
     },
     /// The environment's bytes for this family do not parse as a face.
     UnparseableFace { family: String },
-    /// The face defines glyphs the v5 outline projection cannot honestly
+    /// The face defines glyphs the v6 outline projection cannot honestly
     /// realize — color or bitmap glyph tables whose ink is not the outline.
     /// Streaming a monochrome placeholder for a color emoji is a silently
     /// wrong pixel, so the face refuses whole; color faces arrive as a new
     /// oracle version.
     UnsupportedFaceFormat { family: String },
-    /// The character is outside oracle v5's admitted repertoire. The profile
+    /// The character is outside oracle v6's admitted repertoire. The profile
     /// is an explicit admit-list — printable ASCII plus the canonical
     /// precomposed Latin-1 letters whose decomposition is one ASCII Latin
     /// base and one combining mark, plus the two explicitly admitted
@@ -194,11 +210,11 @@ pub enum ResolveError {
     /// Latin base. Leading, repeated, and non-letter-attached marks are a
     /// different shaping grammar and refuse before font behavior can decide.
     UnsupportedCombiningSequence { byte_index: usize, character: char },
-    /// The resolved face has no glyph for this cluster. v5 permits no
+    /// The resolved face has no glyph for this cluster. v6 permits no
     /// missing-glyph policy: no tofu, no substitution — a refusal naming
     /// the source position.
     MissingGlyph { byte_index: usize, character: char },
-    /// Shaping produced cardinality outside oracle v5's direct or bounded
+    /// Shaping produced cardinality outside oracle v6's direct or bounded
     /// combining clusters. Direct clusters remain one scalar/one glyph; an
     /// admitted base-plus-mark cluster may compose to one glyph or attach one
     /// mark glyph. Every other merge or split still refuses.
@@ -208,7 +224,7 @@ pub enum ResolveError {
         glyph_start: usize,
         glyph_end: usize,
     },
-    /// Shaping produced placement the v5 profile has no semantics for — an
+    /// Shaping produced placement the v6 profile has no semantics for — an
     /// offset outside its one admitted mark glyph, a vertical pen advance,
     /// a spacing mark, or a negative advance. Dropping any of them would be
     /// silently mispositioned ink, so the run refuses.
@@ -244,13 +260,23 @@ impl std::fmt::Display for ResolveError {
                 f,
                 "generic font family \"{family}\" at candidate {candidate_index} has no declared mapping"
             ),
-            ResolveError::AmbiguousFamily {
+            ResolveError::NoExactFace {
                 candidate_index,
                 family,
+                requested,
+                family_resources,
+            } => write!(
+                f,
+                "font family \"{family}\" at candidate {candidate_index} has {family_resources} declared resources but no exact static face for {requested:?}"
+            ),
+            ResolveError::AmbiguousFace {
+                candidate_index,
+                family,
+                requested,
                 matching_resources,
             } => write!(
                 f,
-                "font family \"{family}\" at candidate {candidate_index} matches {matching_resources} declared resources"
+                "font family \"{family}\" at candidate {candidate_index} is ambiguous: requested exact static face {requested:?} matches {matching_resources} declared resources"
             ),
             ResolveError::UnparseableFace { family } => {
                 write!(
@@ -269,7 +295,7 @@ impl std::fmt::Display for ResolveError {
                 character,
             } => write!(
                 f,
-                "character {character:?} at byte {byte_index} is outside textlayout-v5's admitted printable-ASCII, canonical precomposed Latin-1, and bounded combining-mark repertoire"
+                "character {character:?} at byte {byte_index} is outside textlayout-v6's admitted printable-ASCII, canonical precomposed Latin-1, and bounded combining-mark repertoire"
             ),
             ResolveError::UnsupportedCombiningSequence {
                 byte_index,
@@ -292,7 +318,7 @@ impl std::fmt::Display for ResolveError {
                 glyph_end,
             } => write!(
                 f,
-                "shaping cluster mapping source bytes {source_utf8_start}..{source_utf8_end} to glyphs {glyph_start}..{glyph_end} is outside textlayout-v5's direct-or-one-mark profile"
+                "shaping cluster mapping source bytes {source_utf8_start}..{source_utf8_end} to glyphs {glyph_start}..{glyph_end} is outside textlayout-v6's direct-or-one-mark profile"
             ),
             ResolveError::UnsupportedShaping { byte_index } => write!(
                 f,
@@ -305,7 +331,7 @@ impl std::fmt::Display for ResolveError {
 impl std::error::Error for ResolveError {}
 
 /// Glyph tables whose ink is not the glyph outline. A face carrying any of
-/// them refuses whole: v5's projection is outlines, and realizing a color
+/// them refuses whole: v6's projection is outlines, and realizing a color
 /// glyph as its monochrome fallback outline is a wrong pixel, not a policy.
 const NON_OUTLINE_GLYPH_TABLES: [&[u8; 4]; 5] = [b"COLR", b"CBDT", b"CBLC", b"sbix", b"SVG "];
 
@@ -329,11 +355,11 @@ pub fn resolve(
     }
 
     // The profile guard is the resolver's property, not an accident of any
-    // font's coverage. Source spelling matters: v5 admits two marks only in
+    // font's coverage. Source spelling matters: v6 admits two marks only in
     // one exact base-plus-mark grammar and never normalizes authored text.
     validate_repertoire(&text.text)?;
 
-    let resource = select_family(&text.style.families, env)?;
+    let resource = select_face(&text.style.families, text.style.face_descriptor, env)?;
     let face =
         rustybuzz::Face::from_slice(&resource.bytes, resource.face_index).ok_or_else(|| {
             ResolveError::UnparseableFace {
@@ -389,7 +415,7 @@ pub fn resolve(
         buffer.set_direction(rustybuzz::Direction::LeftToRight);
         // Pin the cluster policy as part of the oracle identity instead of
         // inheriting rustybuzz's current default. Level 0 is the behavior v0
-        // shipped and the T3 probes measured; v5 keeps that fact explicit.
+        // shipped and the T3 probes measured; v6 keeps that fact explicit.
         buffer.set_cluster_level(rustybuzz::BufferClusterLevel::MonotoneGraphemes);
         let shaped = rustybuzz::shape(&face, &[], buffer);
         clusters.extend(admitted_clusters(
@@ -425,7 +451,7 @@ pub fn resolve(
             let cluster_glyph_count = cluster_glyphs.len();
             let cluster_scalar_count = cluster.source_scalars().len();
 
-            // Glyph 0 is .notdef: the face cannot render this cluster, and v5
+            // Glyph 0 is .notdef: the face cannot render this cluster, and v6
             // has no permitted replacement policy.
             if info.glyph_id == 0 {
                 let source_range = cluster.source_utf8();
@@ -452,7 +478,7 @@ pub fn resolve(
             }
 
             // A direct or composed cluster has one glyph at the pen. The
-            // only richer placement v5 admits is the second glyph of one
+            // only richer placement v6 admits is the second glyph of one
             // two-scalar, two-glyph base-plus-mark cluster: it may carry x/y
             // offsets but must consume no advance of its own.
             let valid_placement = if cluster_glyph_count == 1 {
@@ -548,11 +574,13 @@ pub fn resolve(
 
 /// Resolve one complete ordered request before parsing or shaping a face.
 ///
-/// A unique named match is final. A reached generic or ambiguity is also
-/// final. Only an unavailable named candidate falls through, and glyph
-/// coverage is deliberately not part of this decision.
-fn select_family<'a>(
+/// A unique exact face in the first reached named family is final. An exact
+/// miss, tuple tie, or reached generic is also final. Only an unavailable
+/// named candidate falls through, and glyph coverage is deliberately not part
+/// of this decision.
+fn select_face<'a>(
     families: &[FontFamily],
+    requested: StaticFaceDescriptor,
     env: &'a Environment,
 ) -> Result<&'a FontResource, ResolveError> {
     if families.is_empty() {
@@ -569,13 +597,22 @@ fn select_family<'a>(
         };
         requested_names.push(family.clone());
 
-        match env.match_family(family) {
+        match env.match_face(family, requested) {
             FamilyMatch::None => continue,
-            FamilyMatch::Unique(resource) => return Ok(resource),
-            FamilyMatch::Ambiguous { matching_resources } => {
-                return Err(ResolveError::AmbiguousFamily {
+            FamilyMatch::NoExactFace { family_resources } => {
+                return Err(ResolveError::NoExactFace {
                     candidate_index,
                     family: family.clone(),
+                    requested,
+                    family_resources,
+                });
+            }
+            FamilyMatch::Unique(resource) => return Ok(resource),
+            FamilyMatch::AmbiguousExact { matching_resources } => {
+                return Err(ResolveError::AmbiguousFace {
+                    candidate_index,
+                    family: family.clone(),
+                    requested,
                     matching_resources,
                 });
             }
@@ -597,7 +634,7 @@ struct ChunkOffsets {
 }
 
 /// Build the complete UTF-8/UTF-16/scalar/glyph association and enforce
-/// oracle v5's direct-or-one-mark cluster profile for one independently
+/// oracle v6's direct-or-one-mark cluster profile for one independently
 /// shaped chunk. The shaper reports chunk-local byte and glyph positions;
 /// this function promotes every coordinate into the artifact's global index
 /// spaces before publishing it.
@@ -695,7 +732,7 @@ fn admitted_clusters(
     Ok(clusters)
 }
 
-/// Validate oracle v5's complete source grammar before font selection.
+/// Validate oracle v6's complete source grammar before font selection.
 fn validate_repertoire(source: &str) -> Result<(), ResolveError> {
     let mut previous = None;
     for (byte_index, character) in source.char_indices() {
@@ -721,7 +758,7 @@ fn validate_repertoire(source: &str) -> Result<(), ResolveError> {
     Ok(())
 }
 
-/// Oracle v5's directly admitted source scalars.
+/// Oracle v6's directly admitted source scalars.
 ///
 /// The Latin-1 ranges are deliberately discontinuous: every admitted member
 /// has a canonical two-scalar decomposition to an ASCII Latin base plus one
@@ -743,7 +780,7 @@ fn is_direct_character(character: char) -> bool {
     )
 }
 
-/// The complete decomposed-mark vocabulary at v5. U+0301 proves the common
+/// The complete decomposed-mark vocabulary at v6. U+0301 proves the common
 /// composed and attached branches; U+030B is the second measured class whose
 /// Bungee attachment has nonzero displacement on both axes.
 fn is_admitted_mark(character: char) -> bool {

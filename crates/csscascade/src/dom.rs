@@ -738,6 +738,12 @@ fn admitted_svg_presentation_property(local: &str) -> Option<LonghandId> {
         // family). The consumer matches the computed family against its
         // declared font environment — a name is not a font identity.
         "font-family" => Some(LonghandId::FontFamily),
+        // T5b's exact declared-face facts. All three longhands exist in this
+        // pinned Servo build, so SVG spellings join the same typed cascade as
+        // CSS declarations; websem consumes only its guarded static subset.
+        "font-weight" => Some(LonghandId::FontWeight),
+        "font-style" => Some(LonghandId::FontStyle),
+        "font-stretch" => Some(LonghandId::FontStretch),
         // The visibility rung's pair. Both are SVG2 presentation attributes
         // whose author-rule precedence is measured (a stylesheet
         // `visibility: visible` overrides `visibility="hidden"` in

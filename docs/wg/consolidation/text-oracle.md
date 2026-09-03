@@ -654,3 +654,65 @@ synthesis, missing-glyph fallback, wider shaping styles, and the complete
 `font-family` grammars remain open. No CSS-font, SVG element, or SVG
 presentation row ticks; no conformance score, shared-frame text fact, or FLIP
 record changes.
+
+## T5b evidence addendum — exact static face descriptors (2026-09-03)
+
+The verdict is ADMIT/SPLIT, with no checklist closure. Oracle v6 makes each
+attributed request and each declared resource carry one complete exact static
+descriptor. Weight is an integer from 1 through 1000, stretch is one of the
+nine CSS keyword points, and style is `normal` or `italic`. The first named
+family with any declared resource is a boundary: one equal tuple selects; no
+equal tuple or more than one equal tuple is a typed terminal failure. Only an
+absent family falls through. The producer parses no CSS, performs no rounding,
+nearest search, or synthesis, and never treats manifest vector order as source
+order. The selected key and face index remain immutable artifact identity.
+
+Chromium 149 measurements establish why the split stops there. Full face
+matching orders stretch, style, then weight and uses directional searches.
+When no exact face exists, that choice can trigger synthetic bold or oblique:
+a lone normal Ahem face requested at 700 or italic differs from its
+unsynthesized control by 164 or 272 pixels at maximum channel delta 255, while
+`font-synthesis:none` returns to that control (measured, not celled). Equal
+effective tuples are stylesheet-source-order-sensitive, including
+`italic`/`oblique 14deg` and `normal`/`oblique 0deg` pairs (measured, not
+celled). Those policies are not facts an explicit font-resource manifest can
+silently invent.
+
+The source representations also disagree at a visible boundary. Blink stores
+font-selection values in signed quarter units and truncates conversion; pinned
+Stylo stores weight/stretch at 1/64 and rounds. Chromium therefore selects a
+declared 74% Bungee face for authored `font-stretch:74.999%`, while a
+computed-only 75% request would select Ahem; those controls differ by 1,062
+pixels at maximum delta 255 (measured, not celled). Exact fractional weight
+`400.5` and oblique angle `23deg` faces are also live Chromium branches
+(measured, not celled). The Web producer patrols authored descriptor sources
+before these distinctions can disappear.
+
+`font-weight`, `font-style`, and `font-stretch` now enter through the one
+Stylo cascade in both CSS and SVG presentation-attribute spellings. A single
+100×100 exact cell covers six weight, four style, five stretch, and one full
+tuple branch across direct attributes, inline style, author-rule precedence,
+inheritance, numeric/keyword aliases, and relative weight. Four same-family
+resource pairs place normal Bungee before the requested Ahem tuple. Every
+branch is exact to an independent all-Ahem Chromium construction, and mutating
+any one request to the normal tuple changes 69 pixels at maximum channel delta
+255 (measured control, not another cell). The actual strict CLI render is
+exact at zero differing pixels and zero maximum delta.
+
+Four focused refusals guard fractional weight, oblique angle, stretch source
+precision, and a reached family with no exact tuple in both admissions. The
+host's hash-pinned declaration surface carries the same optional typed facts,
+with the normal tuple as an explicit default and strict parsing before an
+environment exists. Temporarily mapping computed italic to normal let every
+primitive cell pass and then made the new text cell fail loudly at its numeric
+contract. Restoration returned the complete gate to green.
+
+The primitive corpus remains 1,051 Chromium-baked cells plus 16 sampled
+frames. The exact text estate moves from twelve to thirteen cells; all select
+the hash-pinned Ahem bytes through explicit family and descriptor requests.
+The exact-number geometry estate remains eight witnesses (six Allerta and two
+Bungee), and four rows move the named register from 220 to 224. Fractional
+weights, arbitrary stretch percentages, oblique angles, descriptor ranges,
+nearest-face matching, synthesis, variation, generic mapping, fallback, and
+the complete font grammars remain open. No CSS-font or SVG presentation row
+ticks; no conformance score, shared-frame text fact, or FLIP record changes.
