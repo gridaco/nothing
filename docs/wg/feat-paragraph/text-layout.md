@@ -250,6 +250,23 @@ content during copy, editing, or accessibility traversal.
 
 ### Font selection and shaping
 
+Font selection consumes an ordered list whose entries retain their parsed
+kind. A named family and a generic family with the same spelling are not the
+same candidate: named families match declared resources, while generics enter
+an environment mapping policy. The oracle version identifies the exact family
+comparison rule and its Unicode-data version, including whether comparison
+normalizes or expands source scalars. A consumer must not preselect one name,
+discard generics, or substitute its own platform comparison before invoking
+resolution.
+
+One candidate may match more than one declared resource. Weight, width,
+posture, descriptor range, source order, and synthesis must resolve that set
+under an explicit policy; absent such a policy, ambiguity is a resolution
+failure rather than permission to take manifest order. Once one exact face is
+selected, missing-glyph fallback is a separate cluster policy. It must not
+silently restart the original family list unless the oracle explicitly defines
+that fallback operation and records its result.
+
 Font fallback is resolved at the smallest source unit the oracle can shape
 correctly; it is not required to follow authored run boundaries. A paint-only
 run boundary may remain transparent to shaping only when every resulting

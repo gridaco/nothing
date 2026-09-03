@@ -339,7 +339,7 @@ fn admit_chromium_query_geometry(layout: &ResolvedTextLayout) -> Result<(), Text
 /// as a zero-extent rect is not.
 pub(crate) fn resolve_text_path(
     text: &str,
-    family: &str,
+    families: Vec<textlayout::FontFamily>,
     font_size: f32,
     x: f32,
     y: f32,
@@ -349,7 +349,7 @@ pub(crate) fn resolve_text_path(
     let attributed = AttributedText::single_source_run(
         text.to_string(),
         Style {
-            family: family.to_string(),
+            families,
             size: font_size,
         },
         SourceRunTag::new(0),

@@ -393,7 +393,7 @@ fn canonical_source(case: &SuiteCase) -> String {
 
 fn attributed_text(case: &SuiteCase, font_size: f32) -> textlayout::AttributedText {
     let style = textlayout::Style {
-        family: case.font_family.clone(),
+        families: vec![textlayout::FontFamily::named(case.font_family.clone())],
         size: font_size,
     };
     let attributed = if case.source_runs.is_empty() {
@@ -1244,7 +1244,7 @@ fn combining_profile_boundaries_refuse_at_the_same_text_node_in_both_admissions(
         "Ax\u{0300}Z",
         "Bungee",
         bungee_environment(),
-        "outside textlayout-v4's admitted",
+        "outside textlayout-v5's admitted",
     );
     for source in [
         "\u{0301}AX",

@@ -894,9 +894,9 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     // The text rung's residue: `<text>` itself graduated (its fixtures are
     // baked cells in `fixtures/web-first/text/`), and what remains refused
     // holds a row. The hermetic default is the load-bearing one — a run
-    // whose family is not in the declared font environment refuses by name
-    // rather than reaching for an ambient face, so there is no tofu and no
-    // machine-local pixel anywhere on this path.
+    // whose ordered request cannot resolve in the declared font environment
+    // refuses by name rather than reaching for an ambient face, so there is
+    // no tofu and no machine-local pixel anywhere on this path.
     (
         "svg-text-anchor-inherited",
         DeclaredByBestEffort,
@@ -920,12 +920,27 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     (
         "svg-text-combining-unlisted-mark",
         DeclaredByBestEffort,
-        "outside textlayout-v4's admitted",
+        "outside textlayout-v5's admitted",
     ),
     (
         "svg-text-css-layout",
         DeclaredByBestEffort,
         "letter-spacing",
+    ),
+    (
+        "svg-text-family-ambiguous",
+        DeclaredByBestEffort,
+        "matches 2 declared resources",
+    ),
+    (
+        "svg-text-family-generic",
+        DeclaredByBestEffort,
+        "generic font family \"serif\" at candidate 1 has no declared mapping",
+    ),
+    (
+        "svg-text-family-missing-glyph-fallback",
+        DeclaredByBestEffort,
+        "no glyph for",
     ),
     ("svg-text-final-ctm", DeclaredByBestEffort, "text final CTM"),
     (
@@ -962,7 +977,7 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     (
         "svg-text-undeclared-font",
         DeclaredByBestEffort,
-        "not in the declared environment",
+        "no requested font family is in the declared environment",
     ),
     (
         "svg-text-tspan-nested",

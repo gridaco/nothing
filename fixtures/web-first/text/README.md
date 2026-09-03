@@ -1,7 +1,7 @@
 # The text cell suite
 
 Chromium-baked evidence for the `<text>` slice on the SVG engine of record
-(`websem → rframe → n0`). Eleven Ahem cells are gated byte-exact by
+(`websem → rframe → n0`). Twelve exact text cells are gated byte-exact by
 [`crates/websem/tests/svg_text.rs`](../../../crates/websem/tests/svg_text.rs);
 eight real-font artifact witnesses are gated numerically, before rasterization, by
 [`crates/websem/tests/svg_text_geometry.rs`](../../../crates/websem/tests/svg_text_geometry.rs).
@@ -9,7 +9,7 @@ The method these cells enforce is the ratified
 [text-oracle brief](../../../docs/wg/consolidation/text-oracle.md); this file
 states only how the suite is shaped.
 
-The pixel suite currently has **eleven** cells. The separate Rung-B geometry
+The pixel suite currently has **twelve** cells. The separate Rung-B geometry
 suite under [`geometry/`](./geometry/) has **eight** witnesses: six Allerta and
 two Bungee. Both manifests are closed enumerations: the Rust gates reject an
 unlisted SVG, duplicate source row, undeclared or changed font identity, stale
@@ -21,20 +21,20 @@ corpus-growth law: the root is closed to text, probes are never committed,
 and the tracked set is a gate — one cell per admitted construct — not
 coverage.
 
-## The font is the environment, not the document
+## The fonts are the environment, not the document
 
-A fixture here is **the document**. The font is a **declared input of the
+A fixture here is **the document**. Each font is a **declared input of the
 render**, exactly as it is for the engine: `websem` receives it as a
 `textlayout::Environment` of exact bytes the host has verified, and the baker
-declares the same identity to Chromium by injecting an `@font-face` whose
-source is the pinned font, inline, at capture time.
+declares the same identities to Chromium by injecting one `@font-face` per
+pinned resource, inline, at capture time.
 
 So the committed `.svg` carries no font bytes. That is deliberate — one font
 copy per cell would be a second corpus, and the fonts directory
 [grows per identity only](../fonts/README.md) — and it keeps the two sides
 symmetric: both the engine and the oracle render the same document under a
 declared environment neither reads ambiently. Opening a fixture directly in a
-browser therefore shows fallback glyphs, not Ahem's boxes.
+browser therefore shows ambient fallback glyphs, not the declared faces.
 
 ## Bake posture
 
@@ -47,14 +47,14 @@ both recorded verbatim in `oracle-bake.json`:
 | deviceScaleFactor | 1 |
 | JavaScript | disabled |
 | network | every route aborted |
-| font declaration | the pinned face injected as an inline `@font-face`, awaited ready before capture |
+| font declaration | every pinned face injected as an inline `@font-face`, awaited ready before capture |
 | raster posture | `-webkit-font-smoothing: none` on each text element, carried by the fixture |
 | comparison | full RGBA, byte-exact — no tolerance is admissible here |
 | repeats | two captures per cell, byte-equal required |
 
 Both bakers import the same hash-pinned
 [`chromium_capture.ts`](../chromium_capture.ts) module as scratch probes and
-the primitive baker. Text adds only its declared-font injection; it does not
+the primitive baker. Text adds only its declared-font injections; it does not
 carry a second browser launch, context, viewport, network, or screenshot
 posture.
 
@@ -430,6 +430,53 @@ The estate is now eleven exact Ahem cells plus eight exact-number real-font
 geometry witnesses (six Allerta and two Bungee). The named refusal register
 has 217 rows. The complete `<text>`, `<tspan>`, `x`, `y`, `dx`, and `dy`
 grammars remain open; no checklist row closes.
+
+## T5a ordered declared-family selection
+
+Oracle v5 moves the ordered family request into `textlayout`. Each candidate
+is already classified as a named or generic family by the document cascade.
+The first named candidate matching exactly one declared resource wins;
+unavailable names continue. Request order is authoritative and the artifact
+retains the selected resource's exact key and face index. A reached generic,
+an exhausted list, or more than one matching resource is a typed failure. A
+missing glyph in the selected face does not retry the list: glyph fallback is
+a later checkpoint.
+
+Chromium 149's declared-family comparison is exact or one-scalar Unicode 17
+BMP simple folding. ASCII case and representative Å/å, sigma/final-sigma,
+Kelvin/k, and long-s/s pairs match. `Maße`/`MASSE`, composed/decomposed names,
+and supplementary Deseret case pairs do not (measured, not celled). The three
+Unicode 17 BMP additions absent from the pinned Unicode 16 table —
+U+A7CE/U+A7CF, U+A7D2/U+A7D3, and U+A7D4/U+A7D5 — each match in Chromium and
+are explicit in the producer (measured, not celled). Quoted `"serif"` remains a
+named family while unquoted `serif` is generic. Duplicate same-family
+`@font-face` rules with equal descriptors resolve by stylesheet source order
+in Chromium (measured, not celled); the host manifest does not carry that CSS
+ordering contract, so duplicate matches refuse.
+
+The exact suite now declares Bungee first and Ahem second. That order is
+deliberately opposite every existing Ahem request. The new cell adds ten
+branches that all resolve Ahem: presentation, inline CSS, stylesheet,
+inheritance, `unset`, missing-name fallthrough, ASCII case, quoted syntax, a
+CSS escape, and a generic after an already successful named match. Its
+independent all-Ahem construction is Chromium-pixel-identical. Ahem and Bungee
+controls differ by 783 pixels at maximum channel delta 238 (measured, not
+separate cells), so selecting the first environment resource cannot pass.
+
+Three unsupported sources guard reached generic mapping, a `Duo` name that
+matches two resources, and `Ahem, Bungee` retaining Ahem's missing-mark failure
+instead of retrying Bungee. Strict refuses and best effort skips and declares
+the same text path. Temporarily truncating the computed list to one candidate
+left all 1,051 primitive cells green, then made `just gate` fail the new cell
+on its leading `Missing` name. Restoration returned the complete gate to
+green.
+
+The estate is now twelve exact text cells plus eight exact-number real-font
+geometry witnesses (six Allerta and two Bungee). All exact cells currently
+select Ahem, with Bungee serving as a discriminating alternate in the declared
+environment. The named refusal register has 220 rows. Generic mapping,
+same-family descriptors, synthesis, missing-glyph fallback, and the complete
+`font-family` grammars remain open; no checklist row closes.
 
 ## Tooling
 

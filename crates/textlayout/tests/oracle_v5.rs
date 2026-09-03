@@ -1,4 +1,4 @@
-//! Oracle v4 against measured ground truth.
+//! Oracle v5 geometry against measured ground truth.
 //!
 //! The numbers here are not derived from this crate: they were measured from
 //! the pinned Ahem bytes (fixtures/web-first/fonts/ahem.ttf) and verified
@@ -9,8 +9,9 @@
 use std::sync::Arc;
 
 use textlayout::{
-    AttributedText, Environment, FontKey, FontResource, OutlineSink, ResolveError, ShapingChunk,
-    ShapingChunkCoverageError, SourceRun, SourceRunCoverageError, SourceRunTag, Style, resolve,
+    AttributedText, Environment, FontFamily, FontKey, FontResource, OutlineSink, ResolveError,
+    ShapingChunk, ShapingChunkCoverageError, SourceRun, SourceRunCoverageError, SourceRunTag,
+    Style, resolve,
 };
 
 const AHEM: &str = concat!(
@@ -72,7 +73,7 @@ fn attributed(text: &str, family: &str, size: f32) -> AttributedText {
     AttributedText::single_source_run(
         text.to_string(),
         Style {
-            family: family.to_string(),
+            families: vec![FontFamily::named(family)],
             size,
         },
         DEFAULT_SOURCE_RUN,
@@ -83,7 +84,7 @@ fn attributed(text: &str, family: &str, size: f32) -> AttributedText {
 fn x_at_50_resolves_the_measured_em_box() {
     let layout = resolve(&ahem("X", 50.0), &ahem_environment()).unwrap();
 
-    assert_eq!(textlayout::ORACLE_VERSION, "textlayout-v4");
+    assert_eq!(textlayout::ORACLE_VERSION, "textlayout-v5");
     assert_eq!(layout.oracle_version(), textlayout::ORACLE_VERSION);
     assert_eq!(layout.face().key, TEST_KEY);
     assert_eq!(layout.face().units_per_em, 1000);
@@ -261,7 +262,7 @@ fn default_pair_kerning_preserves_direct_cluster_mapping() {
         &attributed("ff", "Allerta", 5120.0),
         &fixture_environment(ALLERTA, "Allerta"),
     )
-    .expect("one-to-one kerning remains inside oracle v4");
+    .expect("one-to-one kerning remains inside oracle v5");
 
     assert_eq!(layout.advance(), 4685.0);
     assert_eq!(layout.glyphs().len(), 2);
@@ -297,7 +298,7 @@ fn explicit_chunks_suppress_cross_boundary_kerning_and_keep_global_mappings() {
         &AttributedText::new(
             "ff".to_string(),
             Style {
-                family: "Allerta".to_string(),
+                families: vec![FontFamily::named("Allerta")],
                 size: 5120.0,
             },
             vec![SourceRun::new(0..1, first), SourceRun::new(1..2, second)],
@@ -364,7 +365,7 @@ fn allerta_source_run_boundary_preserves_one_shaping_result_and_maps_glyphs() {
         &AttributedText::new(
             "ff".to_string(),
             Style {
-                family: "Allerta".to_string(),
+                families: vec![FontFamily::named("Allerta")],
                 size: 5120.0,
             },
             vec![SourceRun::new(0..1, first), SourceRun::new(1..2, second)],
@@ -376,7 +377,7 @@ fn allerta_source_run_boundary_preserves_one_shaping_result_and_maps_glyphs() {
     // Chromium 149 and the pinned shaper agree on this one-call result. If
     // each source run were shaped independently, the first advance would be
     // 2355 instead of the measured kerned 2330.
-    assert_eq!(layout.oracle_version(), "textlayout-v4");
+    assert_eq!(layout.oracle_version(), "textlayout-v5");
     assert_eq!(layout.advance(), 4685.0);
     assert_eq!(layout.glyphs().len(), 2);
     assert_eq!(layout.glyphs()[0].glyph_id, 70);
@@ -435,7 +436,7 @@ fn precomposed_latin_carries_distinct_utf8_and_utf16_source_ranges() {
         &AttributedText::single_source_run(
             source.clone(),
             Style {
-                family: "Allerta".to_string(),
+                families: vec![FontFamily::named("Allerta")],
                 size: 5120.0,
             },
             DEFAULT_SOURCE_RUN,
@@ -542,7 +543,7 @@ fn decomposed_acute_composes_without_rewriting_source_coordinates() {
         &attributed("Ae\u{0301}Z", "Allerta", 5120.0),
         &fixture_environment(ALLERTA, "Allerta"),
     )
-    .expect("the measured decomposed acute composes inside oracle v4");
+    .expect("the measured decomposed acute composes inside oracle v5");
 
     assert_eq!(layout.source(), "Ae\u{0301}Z");
     assert_eq!(layout.advance(), 10340.0);
@@ -594,7 +595,7 @@ fn attached_marks_carry_pen_independent_x_and_y_offsets() {
             &AttributedText::single_source_run(
                 format!("Ax{mark}Z"),
                 Style {
-                    family: "Bungee".to_string(),
+                    families: vec![FontFamily::named("Bungee")],
                     size: 1000.0,
                 },
                 DEFAULT_SOURCE_RUN,
@@ -669,7 +670,7 @@ fn bungee_cluster_crossing_a_source_run_uses_the_first_scalar_tag() {
         &AttributedText::new(
             "Ax\u{0301}Z".to_string(),
             Style {
-                family: "Bungee".to_string(),
+                families: vec![FontFamily::named("Bungee")],
                 size: 1000.0,
             },
             vec![
@@ -733,7 +734,7 @@ fn chunks_may_surround_but_not_split_an_admitted_combining_cluster() {
     let attributed = AttributedText::new(
         "Ax\u{0301}Z".to_string(),
         Style {
-            family: "Bungee".to_string(),
+            families: vec![FontFamily::named("Bungee")],
             size: 1000.0,
         },
         vec![
@@ -813,7 +814,7 @@ fn malformed_source_run_coverage_refuses_by_typed_reason_before_font_work() {
             &AttributedText::new(
                 source.to_string(),
                 Style {
-                    family: "deliberately undeclared".to_string(),
+                    families: vec![FontFamily::named("deliberately undeclared")],
                     size: 20.0,
                 },
                 runs,
@@ -900,7 +901,7 @@ fn malformed_shaping_chunk_coverage_refuses_by_typed_reason_before_font_work() {
             &AttributedText::single_source_run(
                 source.to_string(),
                 Style {
-                    family: "deliberately undeclared".to_string(),
+                    families: vec![FontFamily::named("deliberately undeclared")],
                     size: 20.0,
                 },
                 DEFAULT_SOURCE_RUN,
@@ -1017,12 +1018,12 @@ fn malformed_and_unadmitted_mark_sequences_refuse_before_shaping() {
 }
 
 #[test]
-fn undeclared_family_refuses_by_name() {
+fn undeclared_family_list_refuses_by_names() {
     let err = resolve(&ahem("X", 20.0), &Environment::default()).unwrap_err();
     assert_eq!(
         err,
-        ResolveError::UnknownFamily {
-            family: "Ahem".to_string()
+        ResolveError::NoMatchingFamily {
+            families: vec!["Ahem".to_string()]
         }
     );
 }

@@ -24,6 +24,41 @@ const BUNGEE_SHA256: [u8; 32] = [
 ];
 
 pub(crate) fn unsupported_environment(id: &str) -> textlayout::Environment {
+    if id == "svg-text-family-ambiguous" {
+        return textlayout::Environment::new(vec![
+            textlayout::FontResource {
+                key: textlayout::FontKey::new(AHEM_SHA256),
+                family: "Duo".to_string(),
+                face_index: 0,
+                bytes: std::sync::Arc::from(AHEM_BYTES),
+            },
+            textlayout::FontResource {
+                key: textlayout::FontKey::new(BUNGEE_SHA256),
+                family: "Duo".to_string(),
+                face_index: 0,
+                bytes: std::sync::Arc::from(BUNGEE_BYTES),
+            },
+        ]);
+    }
+    if matches!(
+        id,
+        "svg-text-family-generic" | "svg-text-family-missing-glyph-fallback"
+    ) {
+        return textlayout::Environment::new(vec![
+            textlayout::FontResource {
+                key: textlayout::FontKey::new(AHEM_SHA256),
+                family: "Ahem".to_string(),
+                face_index: 0,
+                bytes: std::sync::Arc::from(AHEM_BYTES),
+            },
+            textlayout::FontResource {
+                key: textlayout::FontKey::new(BUNGEE_SHA256),
+                family: "Bungee".to_string(),
+                face_index: 0,
+                bytes: std::sync::Arc::from(BUNGEE_BYTES),
+            },
+        ]);
+    }
     let resource = match id {
         "svg-text-combining-missing-glyph" => textlayout::FontResource {
             key: textlayout::FontKey::new(AHEM_SHA256),

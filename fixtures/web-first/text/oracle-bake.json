@@ -1,18 +1,25 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "kind": "chromium-svg-text-oracle",
   "browser_version": "149.0.7827.55",
   "suite": "cases.json",
-  "suite_sha256": "cd5b2bce1c0c913bab41bf3c4d14aabedcd39d5ba3866651032ea1739239c21f",
+  "suite_sha256": "e16bd36eab38a7d5cd23b53bb44ae33c1f84f0145c7a8415da81ed5157703b0d",
   "bake_script": "bake_chromium.ts",
-  "bake_script_sha256": "9999ad1e574d2e00fedf09fb8b43dc44202a45f46cc010482ac8b26e11202571",
+  "bake_script_sha256": "72bae5f6c4f2b3309eee729fafeee017c86b78f98acb2f96206986cc29735c7b",
   "capture_module": "../chromium_capture.ts",
   "capture_module_sha256": "c66ee93e4f96d4f5c169254181d7cda14bb4254e07d65f64dec7f32f5bdcb296",
-  "font": {
-    "family": "Ahem",
-    "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
-    "declaration": "inline @font-face injected as the root svg's first child"
-  },
+  "fonts": [
+    {
+      "family": "Bungee",
+      "sha256": "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc",
+      "declaration": "inline @font-face injected as the root svg's first child"
+    },
+    {
+      "family": "Ahem",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "declaration": "inline @font-face injected as the root svg's first child"
+    }
+  ],
   "capture_policy": {
     "viewport": "the fixture's declared size as the initial viewport",
     "device_scale_factor": 1,
@@ -47,6 +54,15 @@
       "source_sha256": "3d463bebb38e1abfbaf0dea5614d7f173e4a87f098db4a89d1ed28a33ee46605",
       "oracle": "chromium/svg-text-em-box.png",
       "oracle_sha256": "6b69103543523c11599830b91b3678054424b217a2dccad1ad804fb261891230",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-family-list-selection",
+      "source": "svg-text-family-list-selection.svg",
+      "source_sha256": "5283e1e69a4bf7fb171bca568e8d2e286bf55bdb29f3d2e48c587a08c1ec429d",
+      "oracle": "chromium/svg-text-family-list-selection.png",
+      "oracle_sha256": "703da9adee12f999af2fe87c8a527b03648db12f3188bd5322b005af52c01058",
       "width": 100,
       "height": 100
     },

@@ -7,10 +7,10 @@
 //!
 //! ```text
 //! attributed text + explicit font environment
-//!     -> resolved text layout | typed resolution failure     (oracle v4)
+//!     -> resolved text layout | typed resolution failure     (oracle v5)
 //! ```
 //!
-//! **Oracle v4 resolves one layout-affecting style over printable-ASCII plus
+//! **Oracle v5 resolves one layout-affecting style over printable-ASCII plus
 //! the canonical precomposed Latin-1 letters whose decomposition is one ASCII
 //! Latin base and one combining mark, plus one U+0301 or U+030B after an ASCII
 //! Latin base. Complete source-run coverage may carry opaque caller tags;
@@ -22,7 +22,10 @@
 //! left-to-right; a cluster is either one direct scalar/glyph or one
 //! base-plus-mark composing to one glyph or attaching one zero-advance glyph
 //! with explicit x/y offsets. There is no wrapping, authored placement,
-//! anchoring, fallback, or synthesis.**
+//! anchoring, glyph fallback, or synthesis. Its ordered font-family request
+//! selects the first unique named resource under Chromium's measured BMP
+//! simple-fold comparison; a reached generic, duplicate match, or exhausted
+//! list is a typed refusal.**
 //! The repertoire is an explicit admit-list enforced by the resolver
 //! itself — never an accident of a font's coverage — and everything outside
 //! the profile is a typed refusal, not an approximation. Coverage grows by
@@ -63,7 +66,7 @@ pub use artifact::{
     ResolvedTextLayout, ShapingCluster,
 };
 pub use environment::{Environment, FontKey, FontResource};
-pub use resolve::{AttributedText, ResolveError, Style, resolve};
+pub use resolve::{AttributedText, FontFamily, ResolveError, Style, resolve};
 pub use source::{
     ShapingChunk, ShapingChunkCoverageError, SourceRun, SourceRunCoverageError, SourceRunTag,
 };
@@ -78,6 +81,7 @@ pub use source::{
 ///
 /// Opaque source-run tags remain metadata. Explicit shaping chunks are
 /// geometry-producing policy: each chunk is shaped independently, which can
-/// change glyph positioning at its boundaries. That new input and its
-/// globally mapped resolved chunk records advance the oracle from v3 to v4.
-pub const ORACLE_VERSION: &str = "textlayout-v4";
+/// change glyph positioning at its boundaries; those records advanced v3 to
+/// v4. Ordered declared-family selection can change the exact face and glyph
+/// identity, so its pinned BMP simple-fold policy advances v4 to v5.
+pub const ORACLE_VERSION: &str = "textlayout-v5";

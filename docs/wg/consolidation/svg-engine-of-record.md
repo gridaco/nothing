@@ -84,7 +84,8 @@ from the dated addenda below:
   and tangent orientation, marker unit/viewBox/reference mapping, hard marker
   viewport clips, solid/context-solid source programs, `<use>` clients, and
   client transform/opacity/clip/mask/filter composition;
-  one declared-font `<text>` profile over printable ASCII, the 53 canonical
+  one `<text>` profile whose ordered named-family request selects among exact
+  host-declared font resources, over printable ASCII, the 53 canonical
   precomposed Latin-1 letters, and U+0301/U+030B only as one mark after an
   ASCII Latin letter, optionally partitioned by flat direct paint-only
   `<tspan>` source runs while retaining one whitespace, shaping, and anchor
@@ -92,7 +93,7 @@ from the dated addenda below:
   a final identity-linear, integer-translation device mapping after root,
   ancestor, and instance composition, explicit UTF-8/UTF-16/scalar/glyph
   cluster maps, default pair positioning, bounded composed or zero-advance
-  displaced-mark clusters, opaque solid per-run fill projection, and seven
+  displaced-mark clusters, opaque solid per-run fill projection, and eight
   real-font artifact-geometry witnesses graded exactly before rasterization;
   viewBox-only
   root sizing with the full `preserveAspectRatio` grammar; and one exact-time
@@ -101,16 +102,17 @@ from the dated addenda below:
   composition.
   `crates/n0_cli/README.md` is the statement of record.
 - **The corpus** is 1,051 Chromium-baked primitive cells plus 16 sampled frames,
-  with a separate ten-cell exact Ahem text suite and seven exact-number
-  artifact-geometry witnesses (five Allerta and two Bungee) under the ratified
-  text corpus-growth law.
+  with a separate twelve-cell exact text suite whose current cells select Ahem
+  under a two-resource environment, and eight exact-number artifact-geometry
+  witnesses (six Allerta and two Bungee) under the ratified text corpus-growth
+  law.
   All byte-exact except seven curved cells carrying a declared, geometrically
   confined tolerance (the native-oval/conic boundary) and four gradient cells
   carrying a declared one-code-value ramp-quantization tolerance (one pixel
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 214 rows.
+  register has 220 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -5032,3 +5034,55 @@ Bungee); and three added position-specific refusals move the named register
 from 214 to 217. The complete `<text>`, `<tspan>`, and position-attribute
 grammars remain open. No shared render-contract fact was added, no conformance
 score was produced, and no FLIP record, rule, or baseline changed.
+
+## Rung: SVG text ordered declared-family selection (2026-09-03)
+
+The verdict is T5a ADMIT/SPLIT, with no checklist closure. `websem` now
+preserves the complete computed `font-family` order from Stylo and hands its
+named/generic distinction to `textlayout`. The producer selects the first
+unique named match in request order against exact host-declared resources;
+missing names fall through. The chosen content key and face index remain the
+resolved artifact identity. Text geometry used for effect bounds goes through
+the same selection, so measuring and painting cannot choose different faces.
+
+Chromium 149 measurements bound the matching rule. Exact names, ASCII case,
+one-scalar BMP simple folds, quoted and unquoted names, and CSS escapes match;
+names are not normalized, multi-scalar folds do not expand, and supplementary
+case pairs do not fold. Chromium carries the three Unicode 17 BMP simple-fold
+additions absent from the dependency's Unicode 16 table; all three were probed
+directly and are explicit in the producer (measured, not celled). Quoted
+`"serif"` remains a name, while unquoted `serif` is a generic. Chromium chooses
+between otherwise equal same-family faces by stylesheet source order
+(measured, not celled); the current host manifest carries no such descriptor
+or source-order contract, so an ambiguous name refuses rather than inheriting
+vector order.
+
+This selection policy advances the producer to `textlayout-v5`. A reached
+generic, an empty or exhausted list, and a name matching multiple resources
+are typed failures. Selection completes before shaping: a glyph missing from
+the chosen face remains `MissingGlyph` and never retries a later candidate.
+That separates this rung from cluster-safe fallback, synthesis, and
+weight/style/stretch/variation selection.
+
+One new exact 100×100 cell runs under Bungee-then-Ahem environment order and
+must select Ahem through ten branches: presentation attribute, inline style,
+stylesheet, inheritance, `unset`, missing-name fallthrough, ASCII case,
+quoting, CSS escape, and a later unreached generic. The construction is exact
+to an independent all-Ahem Chromium control; direct Ahem/Bungee controls differ
+by 783 pixels at maximum channel delta 238 (control measurements, not extra
+cells). Three new refusal rows guard a reached generic, an ambiguous `Duo`
+declaration, and the rule that a missing Ahem mark does not fall through to
+Bungee. Strict refuses and best effort declares the same text node.
+
+Gate sensitivity was proved by temporarily truncating the computed list to its
+first candidate. `just gate` kept all 1,051 primitive cells green and then
+failed the new exact text cell on its leading `Missing` candidate. Restoring
+the full list returned every gate to green.
+
+The primitive corpus remains 1,051 Chromium-baked cells plus 16 sampled
+frames. The exact text estate moves from eleven to twelve cells, the
+exact-number geometry estate remains eight witnesses (six Allerta and two
+Bungee), and the named refusal register moves from 217 to 220. Both
+`font-family` rows, `<text>`, and the complete text grammar remain open. No
+shared render-contract fact was added, no conformance score was produced, and
+no FLIP record, rule, or baseline changed.

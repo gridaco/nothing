@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <style>.sheet { font-family: Missing, Ahem, Bungee; }</style>
+  <text x="5" y="15" font-family="Missing, Ahem, Bungee" font-size="10" fill="#111827" style="-webkit-font-smoothing:none">XX</text>
+  <text x="55" y="15" font-family="Bungee" font-size="10" fill="#dc2626" style="font-family:Missing, Ahem, Bungee;-webkit-font-smoothing:none">XX</text>
+  <text class="sheet" x="5" y="35" font-family="Bungee" font-size="10" fill="#16a34a" style="-webkit-font-smoothing:none">XX</text>
+  <text x="55" y="35" font-family="aHeM, Bungee" font-size="10" fill="#2563eb" style="-webkit-font-smoothing:none">XX</text>
+  <text x="5" y="55" font-family="'Ahem', Bungee" font-size="10" fill="#7c3aed" style="-webkit-font-smoothing:none">XX</text>
+  <text x="55" y="55" font-family="Ah\65 m, Bungee" font-size="10" fill="#c2410c" style="-webkit-font-smoothing:none">XX</text>
+  <g font-family="Missing, Ahem, Bungee">
+    <text x="5" y="75" font-family="inherit" font-size="10" fill="#0891b2" style="-webkit-font-smoothing:none">XX</text>
+    <text x="55" y="75" font-family="unset" font-size="10" fill="#be123c" style="-webkit-font-smoothing:none">XX</text>
+  </g>
+  <text x="5" y="95" font-family="Ahem, serif" font-size="10" fill="#4d7c0f" style="-webkit-font-smoothing:none">XX</text>
+  <text x="55" y="95" font-family="Missing, Ahem, serif" font-size="10" fill="#a16207" style="-webkit-font-smoothing:none">XX</text>
+</svg>

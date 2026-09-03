@@ -184,7 +184,7 @@ def main() -> None:
     content = "".join(fragment["text"] for fragment in fragments)
     scalars = list(content)
     if not scalars or not admitted_source(scalars):
-        sys.exit("refused: the witness must stay inside textlayout-v4's exact repertoire")
+        sys.exit("refused: the witness must stay inside textlayout-v5's exact repertoire")
     if " ".join(content.split()) != content:
         sys.exit("refused: source text must already be in canonical collapsed-space form")
     families = {font["family"] for font in suite["fonts"]}

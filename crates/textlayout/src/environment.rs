@@ -12,6 +12,8 @@
 
 use std::sync::Arc;
 
+use regex_syntax::hir::{ClassUnicode, ClassUnicodeRange};
+
 /// Declared content identity of one font resource: the SHA-256 digest of its
 /// exact bytes, as stated by the host that loaded them. Opaque to this crate
 /// and carried into every resolved artifact.
@@ -67,19 +69,126 @@ pub struct Environment {
     fonts: Vec<FontResource>,
 }
 
+pub(crate) enum FamilyMatch<'a> {
+    None,
+    Unique(&'a FontResource),
+    Ambiguous { matching_resources: usize },
+}
+
 impl Environment {
     pub fn new(fonts: Vec<FontResource>) -> Self {
         Self { fonts }
     }
 
-    /// Exact, case-sensitive family match — oracle v4 has no fallback list,
-    /// no aliasing, and no synthesis. First declaration wins so a manifest
-    /// is order-deterministic.
-    pub(crate) fn find(&self, family: &str) -> Option<&FontResource> {
-        self.fonts.iter().find(|font| font.family == family)
+    /// Every resource whose declared family matches `family` under oracle
+    /// v5's measured declared-family comparison.
+    ///
+    /// Exact equality and the complete measured Unicode 17 BMP simple-fold
+    /// table are admitted. The resolver consumes the complete result so
+    /// duplicate declarations cannot silently inherit manifest order.
+    pub(crate) fn match_family(&self, family: &str) -> FamilyMatch<'_> {
+        let mut first_match = None;
+        let mut matching_resources = 0;
+        for font in &self.fonts {
+            if family_names_match(family, &font.family) {
+                matching_resources += 1;
+                first_match.get_or_insert(font);
+            }
+        }
+
+        if matching_resources > 1 {
+            return FamilyMatch::Ambiguous { matching_resources };
+        }
+        match first_match {
+            Some(resource) => FamilyMatch::Unique(resource),
+            None => FamilyMatch::None,
+        }
     }
 
     pub fn fonts(&self) -> &[FontResource] {
         &self.fonts
+    }
+}
+
+/// The explicitly measured declared-family comparison at oracle v5.
+///
+/// Exact equality is checked first, including supplementary scalars. For
+/// unequal strings, each scalar must have one peer in the same Unicode 17
+/// simple-fold class and both must be in the BMP. `regex-syntax` 0.8.11 pins
+/// Unicode 16; Unicode 17 added exactly three BMP C/S pairs and changed or
+/// removed none, so the measured additions live explicitly beside the table.
+/// No scalar expansion, supplementary folding, or normalization occurs.
+fn family_names_match(left: &str, right: &str) -> bool {
+    if left == right {
+        return true;
+    }
+    if left.chars().count() != right.chars().count() {
+        return false;
+    }
+
+    for (left, right) in left.chars().zip(right.chars()) {
+        if left == right {
+            continue;
+        }
+        if u32::from(left) > u32::from(u16::MAX) || u32::from(right) > u32::from(u16::MAX) {
+            return false;
+        }
+        if !unicode_17_bmp_simple_fold_eq(left, right) {
+            return false;
+        }
+    }
+    true
+}
+
+fn unicode_17_bmp_simple_fold_eq(left: char, right: char) -> bool {
+    if matches!(
+        (left, right),
+        ('\u{A7CE}', '\u{A7CF}')
+            | ('\u{A7CF}', '\u{A7CE}')
+            | ('\u{A7D2}', '\u{A7D3}')
+            | ('\u{A7D3}', '\u{A7D2}')
+            | ('\u{A7D4}', '\u{A7D5}')
+            | ('\u{A7D5}', '\u{A7D4}')
+    ) {
+        return true;
+    }
+
+    let mut class = ClassUnicode::new([ClassUnicodeRange::new(left, left)]);
+    class.case_fold_simple();
+    class
+        .ranges()
+        .iter()
+        .any(|range| range.start() <= right && right <= range.end())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::family_names_match;
+
+    #[test]
+    fn family_matching_has_the_measured_bmp_simple_fold_boundary() {
+        for (left, right) in [
+            ("Å", "å"),
+            ("Σ", "ς"),
+            ("K", "k"),
+            ("ſ", "s"),
+            ("\u{A7CE}", "\u{A7CF}"),
+            ("\u{A7D2}", "\u{A7D3}"),
+            ("\u{A7D4}", "\u{A7D5}"),
+        ] {
+            assert!(
+                family_names_match(left, right),
+                "{left:?} must match {right:?}"
+            );
+            assert!(
+                family_names_match(right, left),
+                "{right:?} must match {left:?}"
+            );
+        }
+
+        assert!(!family_names_match("Maße", "MASSE"));
+        assert!(!family_names_match("𐐀", "𐐨"));
+        assert!(!family_names_match("Åhem", "A\u{030A}hem"));
+        assert!(family_names_match("𐐀", "𐐀"));
     }
 }

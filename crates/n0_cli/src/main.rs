@@ -500,9 +500,9 @@ mod tests {
         )
         .expect("best-effort renders the admitted subset");
         assert!(
-            degradations
-                .iter()
-                .any(|d| d.reason().contains("not in the declared environment")),
+            degradations.iter().any(|d| d
+                .reason()
+                .contains("no requested font family is in the declared environment")),
             "an undeclared family is a named hole, never an ambient face"
         );
 

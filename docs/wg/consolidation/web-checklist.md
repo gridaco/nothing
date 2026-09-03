@@ -719,6 +719,15 @@ excluded.
 > values. The `font` shorthand and every represented font fact the v0 run does
 > not carry refuse by stable text-specific name. No CSS-font row ticks.
 
+> **2026-09-03 family-list split:** T5a preserves the computed ordered family
+> list across presentation, inline-style, stylesheet, and inherited ingress,
+> then selects the first unique named match from exact host-declared resources.
+> Missing names fall through; request order beats environment order; ASCII and
+> measured BMP simple case folds match. Generic mapping, same-family descriptor
+> selection, synthesis, and missing-glyph fallback remain typed refusals. This
+> is a bounded selection checkpoint, not the complete CSS grammar, so
+> `font-family` stays open.
+
 
 ### CSS text
 
@@ -1927,6 +1936,25 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > restoration. The full `<text>`, `<tspan>`, and four presentation-attribute
 > grammars remain open, so no row ticks.
 
+> **2026-09-03 ordered-family checkpoint:** T5a advances the oracle to
+> `textlayout-v5` and carries the complete computed family order into one
+> declared-resource selection. An absent named family continues; the first
+> unique named match wins by request order, under exact or measured Unicode 17
+> BMP simple-fold comparison. Quoted names remain names, while an unquoted
+> generic is a policy boundary. The new exact cell runs ten Ahem-selecting
+> branches under opposing Bungee-then-Ahem environment order and covers
+> presentation, inline CSS, stylesheet, inheritance, `unset`, case, quoting,
+> CSS escape, missing-name fallthrough, and a later inert generic. Its
+> all-Ahem control is Chromium-exact; direct Ahem/Bungee controls differ by
+> 783 pixels at maximum delta 238 (measured controls, not additional cells).
+> Three stable rows guard reached generic mapping, same-name ambiguity, and
+> the rule that a missing glyph never retries the list. The exact text estate
+> is now twelve cells, the eight exact-number geometry witnesses are unchanged,
+> and the refusal register moves from 217 to 220. Truncating the computed list
+> to one candidate made `just gate` fail this new cell before restoration.
+> Generic mapping, descriptor selection, synthesis, cluster fallback, and the
+> complete `<text>` and `font-family` grammars remain open; no row ticks.
+
 
 ### SVG presentation attributes
 
@@ -2043,6 +2071,13 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > property admission. The Ahem pixel suite remains nine exact cells, the
 > separate Allerta geometry suite has one exact-number witness, and every
 > broad font row stays open.
+
+> **2026-09-03 family-list split:** the SVG presentation hint and its CSS
+> declaration twin now feed one computed ordered list into the same T5a
+> selection contract. The admitted named-family slice is exact-celled across
+> both ingresses. Generic policy, same-family face descriptors, synthesis, and
+> missing-glyph fallback remain outside it, so the presentation-attribute
+> `font-family` row stays open independently from its CSS-property twin.
 
 - [ ] `glyph-orientation-horizontal`
 - [ ] `glyph-orientation-vertical`

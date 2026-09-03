@@ -35,6 +35,14 @@ cargo run -p n0_cli --bin n0 -- \
   fixtures/web-first/text/svg-text-em-box.svg /tmp/text.png 100x100 \
   --font Ahem=fixtures/web-first/fonts/ahem.ttf@sha256:b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448
 
+# ordered declared-family selection: resource order is Bungee then Ahem, but
+# each computed request in this cell deliberately selects Ahem
+cargo run -p n0_cli --bin n0 -- \
+  fixtures/web-first/text/svg-text-family-list-selection.svg \
+  target/text-family-list.png 100x100 \
+  --font Bungee=fixtures/fonts/Bungee/Bungee-Regular.ttf@sha256:b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc \
+  --font Ahem=fixtures/web-first/fonts/ahem.ttf@sha256:b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448
+
 # real-font Rung B: artifact geometry is graded exactly before rasterization;
 # this render makes no Chromium real-font pixel claim
 cargo run -p n0_cli --bin n0 -- \
@@ -565,9 +573,9 @@ cargo run -p n0_cli --bin n0 -- \
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
   cells. The complete primitive corpus contains 1,051 Chromium-baked cells plus
-  16 sampled frames; the text estate contains eleven exact Ahem pixel cells and
+  16 sampled frames; the text estate contains twelve exact text pixel cells and
   eight exact-number artifact-geometry witnesses (six Allerta and two
-  Bungee), and the named refusal register has 217 rows. `feFlood`, `feComposite`,
+  Bungee), and the named refusal register has 220 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -958,11 +966,14 @@ cargo run -p n0_cli --bin n0 -- \
   `--font FAMILY=PATH@sha256:HEX` (repeatable), whose bytes are **verified
   against the declared digest before any pixel exists** — a family name is
   not a font identity, and a mismatch refuses the render rather than
-  producing a silently different one. A `<text>` run whose family was never
-  declared refuses by name; there is no system fallback, no ambient face,
-  and therefore no machine-local pixel anywhere on this path. Inside that
-  environment one text source resolves once through
-  [the text oracle](../../docs/wg/feat-paragraph/text-layout.md) at its v4
+  producing a silently different one. A `<text>` run carries its complete
+  computed ordered family list into the declared environment. The first unique
+  named match wins in request order; unavailable names fall through under the
+  measured Unicode 17 BMP simple-fold comparison. An exhausted list, a reached
+  generic, or an ambiguous same-name declaration refuses by name. There is no
+  system fallback, no ambient face, and therefore no machine-local pixel
+  anywhere on this path. Inside that environment one text source resolves once
+  through [the text oracle](../../docs/wg/feat-paragraph/text-layout.md) at its v5
   profile — one shaping-style run of printable ASCII plus exactly the 53 canonical
   precomposed Latin-1 letters in U+00C0–00C5, U+00C7–00CF, U+00D1–00D6,
   U+00D9–00DD, U+00E0–00E5, U+00E7–00EF, U+00F1–00F6, U+00F9–00FD, and
@@ -970,8 +981,10 @@ cargo run -p n0_cli --bin n0 -- \
   ASCII Latin letter; horizontal and left-to-right; direct clusters remain one
   source scalar and one glyph, while an admitted base-plus-mark cluster is two
   source scalars and either one composed glyph or two glyphs with a
-  zero-advance displaced mark; no wrapping and no fallback. Direct character
-  data may be partitioned by flat direct `<tspan>` children that preserve the
+  zero-advance displaced mark; no wrapping, synthesis, or glyph fallback. Once
+  a face is selected, a missing glyph refuses without retrying later families.
+  Direct character data may be partitioned by flat direct `<tspan>` children
+  that preserve the
   same resolved face, size, direction, opacity, and effect profile and select
   only an opaque solid fill. A child may also carry complete unitless
   `x`/`y`/`dx`/`dy` number lists whose consumed values stay finite and
@@ -985,9 +998,11 @@ cargo run -p n0_cli --bin n0 -- \
   Parent `x`, `y`, and a direct `text-anchor` attribute
   (`start`/`middle`/`end`) place the source and anchor every chunk; inherited
   ancestor spellings refuse until anchor has one computed route.
-  `font-family` and `font-size`
-  come from the one cascade, where an author rule beats the presentation
-  attribute exactly as Chromium measured. Until the source environment is
+  `font-family` and `font-size` come from the one cascade, where an author rule
+  beats the presentation attribute exactly as Chromium measured. Family lists
+  retain quoted-name versus generic classification, CSS escapes, inheritance,
+  and source order through that route; environment resource order never
+  replaces request order. Until the source environment is
   carried more widely, `font-size` admits only a direct finite non-negative
   unitless presentation value or `px` value that survives the pinned Stylo
   quantizer unchanged and is an integer multiple of five; `inherit`/`unset`
@@ -1041,9 +1056,9 @@ cargo run -p n0_cli --bin n0 -- \
   the first `f` advance to 2355, the second chunk retains the 2330/2355 pair,
   and Chromium and the projection agree on total 13585 and positioned starts
   5000, 8330, 10685, and 15005. The last start proves that a relative shift on
-  the combining scalar carries to the next character. The eleven-cell Ahem
+  the combining scalar carries to the next character. The twelve-cell exact
   suite separately makes per-run paint, list placement, per-chunk anchoring,
-  transforms, and `<use>` byte-exact.
+  transforms, `<use>`, and ten ordered-family-selection branches byte-exact.
   Malformed or unlisted combining sequences and a mark missing from the exact
   face refuse at the text node in both admissions. The 1000px
   control misses both query grids: strict refuses by stable
@@ -1054,9 +1069,9 @@ cargo run -p n0_cli --bin n0 -- \
   `rframe`. What refuses by name: the CSS spelling of
   `text-anchor` (Chromium consumes it from the cascade, the pinned Stylo
   build has no such longhand — a silent drop before the rung), inherited
-  `text-anchor` presentation attributes, a generic
-  family (which names no declared font), nested `<tspan>` content, child
-  shaping-style changes, non-opaque/wider child paint and child/parent
+  `text-anchor` presentation attributes, generic-family mapping, ambiguous
+  same-family declarations, exhausted named-family lists, nested `<tspan>`
+  content, child shaping-style changes, non-opaque/wider child paint and child/parent
   effects, any other element child, parent position lists, child position
   units/percentages/functions, malformed or fractional child lists,
   positioned non-canonical whitespace, an absolute reset inside a combining
@@ -1064,8 +1079,8 @@ cargo run -p n0_cli --bin n0 -- \
   font variants, decorations, letter and word spacing, baselines, writing mode
   and direction, stroke on text, a colour or
   bitmap face, a cluster outside the direct-or-one-mark cardinality, malformed
-  combining placement, a missing mark glyph, and any character outside the v4
-  repertoire. The inline-HTML
+  combining placement, a missing glyph (without family-list retry), and any
+  character outside the v5 repertoire. The inline-HTML
   entry declares no fonts, so its `<text>` refuses there.
   `display: none` and `visibility` are consumed from the one cascade
   (attribute and CSS spellings alike): a pruned or hidden element renders
