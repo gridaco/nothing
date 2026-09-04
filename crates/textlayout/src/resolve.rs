@@ -4,13 +4,14 @@
 //! environment always produce the same artifact; nothing ambient — no
 //! locale, no clock, no system font — can reach in.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::artifact::{
     BoundsBox, LineMetrics, OutlineSink, PlacedGlyph, ResolvedFace, ResolvedFaceRun,
     ResolvedShapingChunk, ResolvedTextLayout, ShapingCluster, stream_glyph_outline,
 };
-use crate::environment::{Environment, FamilyMatch, FontResource};
+use crate::environment::{Environment, FamilyMatch, FontKey, FontResource};
 use crate::face_descriptor::{FontStyle, StaticFaceDescriptor};
 use crate::source::{
     ShapingChunk, ShapingChunkCoverageError, SourceRun, SourceRunCoverageError, SourceRunTag,
@@ -378,13 +379,17 @@ pub fn resolve(
     // per-cluster glyph fallback. Chromium's SVG query cells retain those
     // primary metrics even when every outline comes from a later family.
     let primary = select_primary_face(&text.style.families, text.style.face_descriptor, env)?;
-    let primary_face = parse_face(primary.resource, &primary.family)?;
-    let primary_scale = size / f32::from(primary_face.units_per_em);
-    let metrics = LineMetrics {
-        ascent: f32::from(primary_face.face.ascender()) * primary_scale,
-        // ttf-parser reports descent as a negative distance; the artifact
-        // states it as a positive reach below the baseline.
-        descent: f32::from(-primary_face.face.descender()) * primary_scale,
+    let mut parsed_faces = ParsedFaceCache::default();
+    let primary_parsed_face = parsed_faces.get_or_parse(primary.resource, &primary.family)?;
+    let metrics = {
+        let primary_face = parsed_faces.get(primary_parsed_face);
+        let primary_scale = size / f32::from(primary_face.units_per_em);
+        LineMetrics {
+            ascent: f32::from(primary_face.face.ascender()) * primary_scale,
+            // ttf-parser reports descent as a negative distance; the artifact
+            // states it as a positive reach below the baseline.
+            descent: f32::from(-primary_face.face.descender()) * primary_scale,
+        }
     };
 
     // The first pass uses the primary face only as a grapheme-boundary
@@ -400,7 +405,7 @@ pub fn resolve(
     for chunk in &text.shaping_chunks {
         let source_utf8 = chunk.source_utf8();
         let chunk_source = &text.text[source_utf8.clone()];
-        let shaped = shape_ltr(&primary_face.face, chunk_source);
+        let shaped = shape_ltr(&parsed_faces.get(primary_parsed_face).face, chunk_source);
         let provisional = admitted_clusters(
             chunk_source,
             &text.source_runs,
@@ -426,7 +431,7 @@ pub fn resolve(
     let primary_resolved_face = ResolvedFace {
         key: primary.resource.key,
         face_index: primary.resource.face_index,
-        units_per_em: primary_face.units_per_em,
+        units_per_em: parsed_faces.get(primary_parsed_face).units_per_em,
     };
     let mut faces = vec![primary_resolved_face];
     let mut font_bytes = vec![Arc::clone(&primary.resource.bytes)];
@@ -458,7 +463,8 @@ pub fn resolve(
                 env,
                 &text.text,
                 cluster_source_utf8.clone(),
-                &primary_face.face,
+                &mut parsed_faces,
+                primary_parsed_face,
             )?;
             if let Some(last) = planned_runs.last_mut()
                 && same_face_resource(last.candidate.resource, candidate.resource)
@@ -474,7 +480,9 @@ pub fn resolve(
         }
 
         for planned in planned_runs {
-            let parsed = parse_face(planned.candidate.resource, &planned.candidate.family)?;
+            let parsed_face =
+                parsed_faces.get_or_parse(planned.candidate.resource, &planned.candidate.family)?;
+            let parsed = parsed_faces.get(parsed_face);
             let resolved_face_index = register_face(
                 planned.candidate.resource,
                 parsed.units_per_em,
@@ -521,7 +529,7 @@ pub fn resolve(
                     return Err(missing_glyph_error(
                         &text.text,
                         cluster.source_utf8(),
-                        &primary_face.face,
+                        &parsed_faces.get(primary_parsed_face).face,
                     ));
                 }
                 validate_glyph_placement(cluster, glyph_index, position, byte_index)?;
@@ -595,7 +603,7 @@ pub fn resolve(
     if text.text.is_empty() {
         reject_required_synthesis(&primary)?;
     }
-    let ink_bounds = ink_union(&faces, &font_bytes, &glyphs, size);
+    let ink_bounds = ink_union(&parsed_faces, &faces, &glyphs, size);
 
     Ok(ResolvedTextLayout::new(
         text.text.clone(),
@@ -627,6 +635,40 @@ struct SelectedCandidate<'a> {
 struct ParsedFace<'a> {
     face: rustybuzz::Face<'a>,
     units_per_em: u16,
+}
+
+#[derive(Default)]
+struct ParsedFaceCache<'a> {
+    by_identity: HashMap<(FontKey, u32), usize>,
+    faces: Vec<ParsedFace<'a>>,
+}
+
+impl<'a> ParsedFaceCache<'a> {
+    fn get_or_parse(
+        &mut self,
+        resource: &'a FontResource,
+        family: &str,
+    ) -> Result<usize, ResolveError> {
+        let identity = (resource.key, resource.face_index);
+        if let Some(index) = self.by_identity.get(&identity).copied() {
+            return Ok(index);
+        }
+        let parsed = parse_face(resource, family)?;
+        let index = self.faces.len();
+        self.faces.push(parsed);
+        self.by_identity.insert(identity, index);
+        Ok(index)
+    }
+
+    fn get(&self, index: usize) -> &ParsedFace<'a> {
+        &self.faces[index]
+    }
+
+    fn get_by_identity(&self, key: FontKey, face_index: u32) -> Option<&ParsedFace<'a>> {
+        self.by_identity
+            .get(&(key, face_index))
+            .map(|index| &self.faces[*index])
+    }
 }
 
 struct PlannedFaceRun<'a> {
@@ -698,7 +740,8 @@ fn select_face_for_cluster<'a>(
     env: &'a Environment,
     source: &str,
     source_utf8: std::ops::Range<usize>,
-    primary_face: &rustybuzz::Face<'_>,
+    parsed_faces: &mut ParsedFaceCache<'a>,
+    primary_parsed_face: usize,
 ) -> Result<SelectedCandidate<'a>, ResolveError> {
     for (candidate_index, family_candidate) in families.iter().enumerate() {
         let FontFamily::Named(family) = family_candidate else {
@@ -724,7 +767,8 @@ fn select_face_for_cluster<'a>(
             FamilyMatch::Unique { resource, selected } => {
                 let candidate =
                     selected_candidate(candidate_index, family, resource, requested, selected);
-                let parsed = parse_face(resource, family)?;
+                let parsed_face = parsed_faces.get_or_parse(resource, family)?;
+                let parsed = parsed_faces.get(parsed_face);
                 let shaped = shape_ltr(&parsed.face, &source[source_utf8.clone()]);
                 let complete = !shaped.glyph_infos().is_empty()
                     && shaped.glyph_infos().iter().all(|info| info.glyph_id != 0);
@@ -736,7 +780,11 @@ fn select_face_for_cluster<'a>(
             }
         }
     }
-    Err(missing_glyph_error(source, source_utf8, primary_face))
+    Err(missing_glyph_error(
+        source,
+        source_utf8,
+        &parsed_faces.get(primary_parsed_face).face,
+    ))
 }
 
 fn selected_candidate<'a>(
@@ -1065,22 +1113,20 @@ fn is_admitted_mark(character: char) -> bool {
 /// measure the exact mapped outline stream that consumers receive instead of
 /// trusting that enclosing metadata.
 fn ink_union(
+    parsed_faces: &ParsedFaceCache<'_>,
     faces: &[ResolvedFace],
-    font_bytes: &[Arc<[u8]>],
     glyphs: &[PlacedGlyph],
     font_size: f32,
 ) -> Option<BoundsBox> {
     let mut union: Option<(f32, f32, f32, f32)> = None;
     for glyph in glyphs {
         let resolved_face = &faces[glyph.resolved_face_index];
-        let face = rustybuzz::ttf_parser::Face::parse(
-            font_bytes[glyph.resolved_face_index].as_ref(),
-            resolved_face.face_index,
-        )
-        .expect("every retained resolved face parsed before artifact construction");
+        let parsed = parsed_faces
+            .get_by_identity(resolved_face.key, resolved_face.face_index)
+            .expect("every retained resolved face is cached before artifact construction");
         let scale = font_size / f32::from(resolved_face.units_per_em);
         let mut sink = TightBoundsSink::default();
-        if !stream_glyph_outline(&face, glyph, scale, &mut sink) {
+        if !stream_glyph_outline(parsed.face.as_ref(), glyph, scale, &mut sink) {
             continue; // no ink: advance only
         }
         let Some((x0, y0, x1, y1)) = sink.bounds else {
