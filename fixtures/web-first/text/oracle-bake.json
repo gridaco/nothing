@@ -3,7 +3,7 @@
   "kind": "chromium-svg-text-oracle",
   "browser_version": "149.0.7827.55",
   "suite": "cases.json",
-  "suite_sha256": "18964d17fff4973d4361c4c54b5acef86dcbf85bf6dd37ae28ace807b3847470",
+  "suite_sha256": "905b58553165094b232a312b2f6e2aed87edc68c6e681d34fef5f7038008906a",
   "bake_script": "bake_chromium.ts",
   "bake_script_sha256": "68641aec21b145063734882a09041bed826eb12e84e2e50629b6ceaa01176aff",
   "capture_module": "../chromium_capture.ts",
@@ -20,6 +20,14 @@
     {
       "family": "Ahem",
       "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "100%",
+      "declaration": "inline @font-face injected as the root svg's first child"
+    },
+    {
+      "family": "Ahem Acute Gap",
+      "sha256": "5c5bae141120698a28040408774fecffbdae863791d7df870fc05c7f52daf12d",
       "weight": "400",
       "style": "normal",
       "stretch": "100%",
@@ -278,6 +286,15 @@
       "source_sha256": "5283e1e69a4bf7fb171bca568e8d2e286bf55bdb29f3d2e48c587a08c1ec429d",
       "oracle": "chromium/svg-text-family-list-selection.png",
       "oracle_sha256": "703da9adee12f999af2fe87c8a527b03648db12f3188bd5322b005af52c01058",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-family-missing-glyph-fallback",
+      "source": "svg-text-family-missing-glyph-fallback.svg",
+      "source_sha256": "58e6aa93ec36e1e586e398245b455675051b4d6cdeaa2c5dde8b0979f0ae27bf",
+      "oracle": "chromium/svg-text-family-missing-glyph-fallback.png",
+      "oracle_sha256": "a9b212e7b604cc82e0f5591e1780fd0c585510996f62733cdd0d78ad090d85e0",
       "width": 100,
       "height": 100
     },

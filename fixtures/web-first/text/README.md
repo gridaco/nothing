@@ -582,6 +582,66 @@ arbitrary stretch percentages, oblique angles, descriptor ranges, synthesis,
 variable axes, and the complete `font-weight`, `font-style`, and
 `font-stretch` grammars remain open; no checklist row closes.
 
+## T6 cluster-safe declared-family fallback
+
+Oracle v8 resolves fallback once per complete admitted shaping cluster. The
+first available statically matched face remains the primary metrics face,
+independent of glyph coverage. For each cluster, the ordered family list is
+walked again; every reached named family performs the same static
+stretch/style/weight match, and only that one winning face is asked to shape
+the complete cluster. A result is accepted only when every glyph id is
+nonzero. A base and its combining mark therefore move together, and another
+face in the same family is never searched as a glyph fallback. Adjacent
+clusters choosing the same face are shaped together so pair positioning and
+other admitted interactions are not lost. The artifact records the primary
+face, every used face and contiguous face run, and each glyph's exact face;
+no such identity crosses `rframe` after outlines lower to ordinary paths.
+
+Chromium 149 measurements establish the branch independently. Ahem's missing
+`x` + U+0301 cluster followed by Bungee is pixel-identical to Bungee-only and
+differs from Ahem-only by 631px/Δ255. Canonical `A` + U+0301 remains in Ahem
+and differs from Bungee by 1,114px/Δ255. An apostrophe missing from Ahem lands
+exactly on Bungee. A two-face family followed by another family proves that
+fallback advances by family rather than searching another face in the same
+family, and non-exact fallback families repeat nearest-face matching. A source
+whose every outline falls back still uses the first available face's vertical
+metrics. This complete real-Ahem/Bungee probe bank is measured, not celled;
+the derived-font exact cell below is the committed evidence. Browser
+`document.fonts.check()` results varied across equivalent probes and are also
+measured, not celled, and are not treated as geometry evidence.
+
+The exact `svg-text-family-missing-glyph-fallback.svg` cell adds one
+hash-pinned Ahem derivative whose cmap makes primary and fallback selection
+visible without changing the integer Ahem lattice. Its branches cover the
+presentation attribute, inline style, inheritance and `unset`, canonical
+composition, precomposed and decomposed fallback, paint-only `<tspan>`
+ownership, positioned chunks, an integer transform, and `<use>`. The complete
+cell is exact to an independent explicit-face Chromium construction. Both the
+strict and best-effort CLI renders decode to zero differing pixels and zero
+maximum channel delta against the committed oracle. Replacing fallback with
+the primary face changes 700 pixels at maximum channel delta 247 (measured
+control, not another cell).
+
+The old declared-family fallback refusal graduates. Its neighboring patrols
+are strengthened instead of weakened: one source reaches a generic only after
+a real cluster miss; one reaches a fallback face that would require synthetic
+weight; and one reaches the real-font SVG query-grid boundary after fallback.
+An exhausted declared list still reports `MissingGlyph` at the first missing
+source scalar. Strict and best effort stop or declare at the same text node.
+
+For the required sensitivity proof, the first incomplete face was temporarily
+made terminal, recreating the pre-T6 behavior. All 1,051 primitive cells
+remained green, then `just gate` failed loudly on the new exact text cell at
+the missing cluster. Restoring family-list continuation returned the complete
+primitive, text-pixel, text-geometry, and refusal gate to green.
+
+The estate is now fifteen exact text cells plus eight exact-number real-font
+geometry witnesses (six Allerta and two Bungee). Graduating one refusal moves
+the named register from 224 to 223. Generic and system fallback, partial
+cluster splitting, wider repertoire and shaping controls, synthesis, dynamic
+font/resource loading, and the complete font grammars remain open; no
+checklist row closes.
+
 ## Tooling
 
 Run from `fixtures/web-first/`:

@@ -237,7 +237,7 @@ fn candidate_from_web(layout: &textlayout::ResolvedTextLayout) -> CandidateShape
     CandidateShapedRun {
         key: CandidateFontKey {
             digest: ahem_digest(),
-            face_index: layout.face().face_index,
+            face_index: layout.primary_face().face_index,
             variations: Vec::new(),
         },
         font_size: layout.font_size(),

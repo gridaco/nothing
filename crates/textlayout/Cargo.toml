@@ -2,7 +2,7 @@
 name = "textlayout"
 version = "0.0.0"
 edition = "2024"
-description = "PROVISIONAL, INTERNAL, BREAKABLE. The Web family's text resolution oracle: attributed text + a declared font environment -> one immutable resolved text layout, or a typed refusal. Implements the minimal profile of docs/wg/feat-paragraph/text-layout.md at oracle v7."
+description = "PROVISIONAL, INTERNAL, BREAKABLE. The Web family's text resolution oracle: attributed text + a declared font environment -> one immutable resolved text layout, or a typed refusal. Implements the minimal profile of docs/wg/feat-paragraph/text-layout.md at oracle v8."
 license.workspace = true
 repository.workspace = true
 publish = false

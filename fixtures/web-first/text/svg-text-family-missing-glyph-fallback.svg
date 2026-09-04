@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <rect width="100" height="100" fill="#ffffff"/>
+
+  <text x="2" y="14" font-family="'Ahem Acute Gap', Ahem" font-size="10" fill="#111827" style="-webkit-font-smoothing:none">AA&#x301;X</text>
+  <text x="52" y="14" font-family="Bungee" font-size="10" fill="#dc2626" style="font-family:'Ahem Acute Gap',Ahem;-webkit-font-smoothing:none">AA&#x301;X</text>
+
+  <g font-family="'Ahem Acute Gap', Ahem">
+    <text x="2" y="32" font-family="unset" font-size="10" fill="#16a34a" style="-webkit-font-smoothing:none">AA&#x301;X</text>
+    <text x="52" y="32" font-family="inherit" font-size="10" fill="#2563eb" style="-webkit-font-smoothing:none">AA&#x301;X</text>
+  </g>
+
+  <text x="2" y="50" font-family="Ahem, Bungee" font-size="10" fill="#7c3aed" style="-webkit-font-smoothing:none">A&#x301;X</text>
+  <text x="27" y="50" font-family="'Ahem Acute Gap', Ahem" font-size="10" fill="#c2410c" style="-webkit-font-smoothing:none">&#xC1;X</text>
+  <text x="52" y="50" font-family="'Ahem Acute Gap', Ahem" font-size="10" fill="#0891b2" style="-webkit-font-smoothing:none">AA&#x301;X</text>
+
+  <text x="2" y="68" font-family="'Ahem Acute Gap', Ahem" font-size="10" fill="#be123c" style="-webkit-font-smoothing:none">&#xC1;A&#x301;X</text>
+  <text x="52" y="68" font-family="'Ahem Acute Gap', Ahem" font-size="10" fill="#2563eb" style="-webkit-font-smoothing:none">A<tspan fill="#dc2626">A&#x301;</tspan>X</text>
+
+  <text x="2" y="86" font-family="'Ahem Acute Gap', Ahem" font-size="10" fill="#4d7c0f" style="-webkit-font-smoothing:none">A<tspan x="17" y="86" fill="#a16207">A&#x301;</tspan>X</text>
+  <defs><text id="fallback-instance" x="50" y="84" font-family="'Ahem Acute Gap', Ahem" font-size="10" fill="#4338ca" style="-webkit-font-smoothing:none">AA&#x301;X</text></defs>
+  <g transform="translate(1 0)"><use href="#fallback-instance" x="1" y="2"/></g>
+</svg>

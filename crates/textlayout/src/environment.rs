@@ -90,15 +90,18 @@ impl Environment {
         Self { fonts }
     }
 
-    /// Select within one declared family under oracle v7's static CSS Fonts
+    /// Select within one declared family under oracle v8's static CSS Fonts
     /// matching policy and measured declared-family comparison.
     ///
-    /// Any family resource makes the candidate a reached boundary. Matching
-    /// narrows the complete family lexicographically by stretch, style, then
-    /// weight. Exactly one resource at the winning complete descriptor
-    /// selects; more than one is an ambiguity. The complete manifest is
-    /// examined before an answer, so environment vector order never becomes
-    /// stylesheet source order and never breaks a winning-tuple tie.
+    /// Any family resource makes the candidate a reached matching set.
+    /// Matching narrows the complete family lexicographically by stretch,
+    /// style, then weight. Exactly one resource at the winning complete
+    /// descriptor selects; more than one is an ambiguity. The caller may
+    /// advance to another family when that one winner cannot shape a complete
+    /// cluster, but never searches another descriptor in this family. The
+    /// complete manifest is examined before an answer, so environment vector
+    /// order never becomes stylesheet source order and never breaks a
+    /// winning-tuple tie.
     pub(crate) fn match_face(
         &self,
         family: &str,
@@ -287,7 +290,7 @@ fn select_weight(available: impl Iterator<Item = FontWeight>, requested: FontWei
     FontWeight::new(selected).expect("selected a declared representable static weight")
 }
 
-/// The explicitly measured declared-family comparison retained by oracle v7.
+/// The explicitly measured declared-family comparison retained by oracle v8.
 ///
 /// Exact equality is checked first, including supplementary scalars. For
 /// unequal strings, each scalar must have one peer in the same Unicode 17

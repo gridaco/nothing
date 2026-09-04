@@ -39,11 +39,13 @@
 //! Text resolves against fonts the host declares, never an ambient one:
 //! `--font FAMILY=PATH@sha256:HEX[;weight=N][;style=normal|italic][;stretch=POINT]`
 //! (repeatable) names exact bytes and optional exact static face facts; the
-//! host verifies them before any pixel. A `<text>` run selects the static
-//! nearest face inside its first reached declared family; a missing family,
-//! winning-tuple tie, or match that requires synthetic weight/style refuses
-//! by name. There is no system fallback, manifest-order guess, or synthetic
-//! posture to render a machine-local pixel.
+//! host verifies them before any pixel. The first available static match owns
+//! vertical metrics; each complete text cluster then selects the first
+//! declared family whose one matched face can shape it. Missing families and
+//! incomplete faces fall through. A reached generic, winning-tuple tie,
+//! exhausted list, or supporting face that requires synthetic weight/style
+//! refuses by name. There is no system fallback, manifest-order guess, or
+//! synthetic posture to render a machine-local pixel.
 //!
 //! Usage:
 //!   cargo run -p n0_cli --bin n0 -- <input.svg|input.html> <out.png> <WxH>
@@ -739,6 +741,64 @@ mod tests {
             .expect("read the committed nearest-face oracle"),
         )
         .expect("decode the nearest-face oracle");
+        assert_eq!(raster.pixels, oracle.pixels);
+    }
+
+    #[test]
+    fn declared_cluster_fallback_renders_the_chromium_cell() {
+        const AHEM_GAP_DIGEST: &str =
+            "5c5bae141120698a28040408774fecffbdae863791d7df870fc05c7f52daf12d";
+        const AHEM_DIGEST: &str =
+            "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448";
+        const BUNGEE_DIGEST: &str =
+            "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc";
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let source = std::fs::read_to_string(
+            root.join("fixtures/web-first/text/svg-text-family-missing-glyph-fallback.svg"),
+        )
+        .expect("read the cluster-fallback cell");
+        let specs = [
+            format!(
+                "Ahem Acute Gap={}@sha256:{AHEM_GAP_DIGEST}",
+                root.join("fixtures/web-first/fonts/ahem-a-acute-gap.ttf")
+                    .display()
+            ),
+            format!(
+                "Ahem={}@sha256:{AHEM_DIGEST}",
+                root.join("fixtures/web-first/fonts/ahem.ttf").display()
+            ),
+            format!(
+                "Bungee={}@sha256:{BUNGEE_DIGEST}",
+                root.join("fixtures/fonts/Bungee/Bungee-Regular.ttf")
+                    .display()
+            ),
+        ];
+        let declarations = specs
+            .iter()
+            .map(|spec| fonts::parse_declaration(spec).expect("fallback font declaration"))
+            .collect::<Vec<_>>();
+        let environment =
+            fonts::load_environment(&declarations).expect("all fallback font bytes verify");
+        let (png, degradations) = render_source_to_png(
+            &source,
+            SourceKind::Svg,
+            100,
+            100,
+            FramePolicy::Base,
+            Admission::Strict,
+            environment,
+        )
+        .expect("every admitted cluster selects one complete declared face");
+        assert!(degradations.is_empty());
+
+        let raster = decode_png(&png).expect("decode the cluster-fallback render");
+        let oracle = decode_png(
+            &std::fs::read(root.join(
+                "fixtures/web-first/text/chromium/svg-text-family-missing-glyph-fallback.png",
+            ))
+            .expect("read the committed cluster-fallback oracle"),
+        )
+        .expect("decode the cluster-fallback oracle");
         assert_eq!(raster.pixels, oracle.pixels);
     }
 

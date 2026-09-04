@@ -573,9 +573,9 @@ cargo run -p n0_cli --bin n0 -- \
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
   cells. The complete primitive corpus contains 1,051 Chromium-baked cells plus
-  16 sampled frames; the text estate contains fourteen exact text pixel cells and
+  16 sampled frames; the text estate contains fifteen exact text pixel cells and
   eight exact-number artifact-geometry witnesses (six Allerta and two
-  Bungee), and the named refusal register has 224 rows. `feFlood`, `feComposite`,
+  Bungee), and the named refusal register has 223 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -977,17 +977,21 @@ cargo run -p n0_cli --bin n0 -- \
   render rather than producing a silently different one. A `<text>` run
   carries its complete computed ordered family list and static face
   request into the declared environment. Unavailable names fall through under
-  the measured Unicode 17 BMP simple-fold comparison. The first named family
-  with resources is a boundary: the complete family narrows by stretch, then
-  style, then weight under Chromium's measured directional static search. One
-  resource at the winning tuple selects; a winning-tuple tie refuses without
-  falling through or taking environment order. If that winner would require
-  synthetic weight or style, resolution refuses before shaping. An exhausted
-  list or reached generic also refuses by name. There is no system fallback,
-  ambient face, manifest-order guess, or backend synthetic posture, and
-  therefore no machine-local pixel anywhere on this path. Inside that
+  the measured Unicode 17 BMP simple-fold comparison. The first available
+  named face supplies vertical metrics independently of glyph coverage. Each
+  complete admitted cluster then walks the list from the start. Every reached
+  named family narrows by stretch, then style, then weight under Chromium's
+  measured directional static search, and its one winner shapes the complete
+  cluster. A result containing any missing glyph advances to the next family;
+  another descriptor in the same family is never searched as fallback. A
+  winning-tuple tie and a reached generic are terminal typed boundaries. If
+  the face that can shape the cluster would require synthetic weight or style,
+  resolution refuses before accepting it. Exhausting the declared list
+  reports the first missing source scalar by name. There is no system
+  fallback, ambient face, manifest-order guess, or backend synthetic posture,
+  and therefore no machine-local pixel anywhere on this path. Inside that
   environment one text source resolves once through
-  [the text oracle](../../docs/wg/feat-paragraph/text-layout.md) at its v7
+  [the text oracle](../../docs/wg/feat-paragraph/text-layout.md) at its v8
   profile — one shaping-style run of printable ASCII plus exactly the 53 canonical
   precomposed Latin-1 letters in U+00C0–00C5, U+00C7–00CF, U+00D1–00D6,
   U+00D9–00DD, U+00E0–00E5, U+00E7–00EF, U+00F1–00F6, U+00F9–00FD, and
@@ -995,8 +999,13 @@ cargo run -p n0_cli --bin n0 -- \
   ASCII Latin letter; horizontal and left-to-right; direct clusters remain one
   source scalar and one glyph, while an admitted base-plus-mark cluster is two
   source scalars and either one composed glyph or two glyphs with a
-  zero-advance displaced mark; no wrapping, synthesis, or glyph fallback. Once
-  a face is selected, a missing glyph refuses without retrying later families.
+  zero-advance displaced mark; no wrapping or synthesis. Fallback is by
+  complete cluster across declared families only: a base never separates from
+  its mark, canonical composition is tested by shaping rather than scalar cmap
+  membership, and adjacent clusters selecting the same exact resource shape as
+  one face run. The artifact retains the primary metrics face, every used face
+  and contiguous face run, and each glyph's face identity until all outlines
+  lower to source-neutral paths.
   Direct character data may be partitioned by flat direct `<tspan>` children
   that preserve the
   same resolved face, size, direction, opacity, and effect profile and select
@@ -1065,7 +1074,8 @@ cargo run -p n0_cli --bin n0 -- \
   base cluster while shaping composes one glyph. Two Bungee witnesses retain
   a separate zero-advance mark glyph with x offset -369 and, for U+030B, local
   y offset -7. Every cluster records UTF-8, UTF-16, scalar, and glyph ranges;
-  every glyph records pen position, displacement, advance, and cluster owner.
+  every glyph records pen position, displacement, advance, cluster owner, and
+  resolved face identity.
   A fifth Allerta witness puts the second `f` of the exact 2330/2355 pair in a
   differently painted `<tspan>` and still totals 4685, proving that a paint
   boundary does not create a second shaping call. A sixth resolves
@@ -1073,7 +1083,7 @@ cargo run -p n0_cli --bin n0 -- \
   the first `f` advance to 2355, the second chunk retains the 2330/2355 pair,
   and Chromium and the projection agree on total 13585 and positioned starts
   5000, 8330, 10685, and 15005. The last start proves that a relative shift on
-  the combining scalar carries to the next character. The fourteen-cell exact
+  the combining scalar carries to the next character. The fifteen-cell exact
   suite separately makes per-run paint, list placement, per-chunk anchoring,
   transforms, `<use>`, ten ordered-family-selection branches, and sixteen exact
   face-descriptor branches plus sixteen static-nearest branches byte-exact.
@@ -1085,7 +1095,13 @@ cargo run -p n0_cli --bin n0 -- \
   cell covers both stretch directions, all three weight search regions, axis
   order, real-style fallback, and the reached-family boundary through the
   same cascade ingresses; all sixteen branches select pinned Ahem and are
-  byte-exact to Chromium.
+  byte-exact to Chromium. The T6 cell adds presentation, inline, inherited,
+  canonical-composition, precomposed/decomposed fallback, paint-run,
+  positioned-chunk, transform, and `<use>` branches against one hash-pinned
+  Ahem derivative. It is exact to an explicit-face Chromium construction and
+  both actual admissions; replacing fallback with the primary face changes
+  700 pixels at maximum channel delta 247 (measured control, not another
+  cell).
   Malformed or unlisted combining sequences and a mark missing from the
   selected face refuse at the text node in both admissions. The 1000px
   control misses both query grids: strict refuses by stable
@@ -1107,10 +1123,10 @@ cargo run -p n0_cli --bin n0 -- \
   cluster, `rotate`, `textLength`, font shorthands and unconsumed
   font variants, decorations, letter and word spacing, baselines, writing mode
   and direction, stroke on text, a colour or
-  bitmap face, a selected face requiring synthetic weight or style, a cluster
+  bitmap face, a supporting face requiring synthetic weight or style, a cluster
   outside the direct-or-one-mark cardinality, malformed
-  combining placement, a missing glyph (without family-list retry), and any
-  character outside the v7 repertoire. The inline-HTML
+  combining placement, a cluster missing from every declared family, generic
+  or system fallback, and any character outside the v8 repertoire. The inline-HTML
   entry declares no fonts, so its `<text>` refuses there.
   `display: none` and `visibility` are consumed from the one cascade
   (attribute and CSS spellings alike): a pruned or hidden element renders

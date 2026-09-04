@@ -7,8 +7,8 @@
 use std::sync::Arc;
 
 use crate::artifact::{
-    BoundsBox, LineMetrics, OutlineSink, PlacedGlyph, ResolvedFace, ResolvedShapingChunk,
-    ResolvedTextLayout, ShapingCluster, stream_glyph_outline,
+    BoundsBox, LineMetrics, OutlineSink, PlacedGlyph, ResolvedFace, ResolvedFaceRun,
+    ResolvedShapingChunk, ResolvedTextLayout, ShapingCluster, stream_glyph_outline,
 };
 use crate::environment::{Environment, FamilyMatch, FontResource};
 use crate::face_descriptor::{FontStyle, StaticFaceDescriptor};
@@ -52,13 +52,14 @@ impl FontFamily {
     }
 }
 
-/// The complete layout-affecting style of the one run oracle v7 admits.
+/// The complete layout-affecting style of the one run oracle v8 admits.
 #[derive(Clone, Debug)]
 pub struct Style {
     /// Ordered family candidates resolved against the declared environment.
-    /// Traversal stops at the first named family with resources or the first
-    /// generic boundary. A winning-tuple tie or synthesis requirement cannot
-    /// fall through, and missing glyphs never restart this list.
+    /// Each source cluster traverses this list independently. An unavailable
+    /// name falls through; a matched face without the complete cluster moves
+    /// to the next family. A reached generic, winning-tuple tie, or synthesis
+    /// requirement on a face that would actually be used is terminal.
     pub families: Vec<FontFamily>,
     /// Complete exact static descriptor requested within the reached family.
     pub face_descriptor: StaticFaceDescriptor,
@@ -66,7 +67,7 @@ pub struct Style {
     pub size: f32,
 }
 
-/// Attributed source at the v7 profile: one string under one complete
+/// Attributed source at the v8 profile: one string under one complete
 /// layout-affecting style, complete source-run coverage carrying opaque caller
 /// tags, and a complete shaping-chunk partition.
 ///
@@ -194,13 +195,13 @@ pub enum ResolveError {
     },
     /// The environment's bytes for this family do not parse as a face.
     UnparseableFace { family: String },
-    /// The face defines glyphs the v7 outline projection cannot honestly
+    /// The face defines glyphs the v8 outline projection cannot honestly
     /// realize — color or bitmap glyph tables whose ink is not the outline.
     /// Streaming a monochrome placeholder for a color emoji is a silently
     /// wrong pixel, so the face refuses whole; color faces arrive as a new
     /// oracle version.
     UnsupportedFaceFormat { family: String },
-    /// The character is outside oracle v7's admitted repertoire. The profile
+    /// The character is outside oracle v8's admitted repertoire. The profile
     /// is an explicit admit-list — printable ASCII plus the canonical
     /// precomposed Latin-1 letters whose decomposition is one ASCII Latin
     /// base and one combining mark, plus the two explicitly admitted
@@ -213,11 +214,11 @@ pub enum ResolveError {
     /// Latin base. Leading, repeated, and non-letter-attached marks are a
     /// different shaping grammar and refuse before font behavior can decide.
     UnsupportedCombiningSequence { byte_index: usize, character: char },
-    /// The resolved face has no glyph for this cluster. v7 permits no
-    /// missing-glyph policy: no tofu, no substitution — a refusal naming
-    /// the source position.
+    /// No statically matched declared face can shape the complete cluster.
+    /// Oracle v8 performs no installed/system fallback and never splits a
+    /// base from its mark; the refusal names the first missing source scalar.
     MissingGlyph { byte_index: usize, character: char },
-    /// Shaping produced cardinality outside oracle v7's direct or bounded
+    /// Shaping produced cardinality outside oracle v8's direct or bounded
     /// combining clusters. Direct clusters remain one scalar/one glyph; an
     /// admitted base-plus-mark cluster may compose to one glyph or attach one
     /// mark glyph. Every other merge or split still refuses.
@@ -227,7 +228,7 @@ pub enum ResolveError {
         glyph_start: usize,
         glyph_end: usize,
     },
-    /// Shaping produced placement the v7 profile has no semantics for — an
+    /// Shaping produced placement the v8 profile has no semantics for — an
     /// offset outside its one admitted mark glyph, a vertical pen advance,
     /// a spacing mark, or a negative advance. Dropping any of them would be
     /// silently mispositioned ink, so the run refuses.
@@ -309,7 +310,7 @@ impl std::fmt::Display for ResolveError {
                 character,
             } => write!(
                 f,
-                "character {character:?} at byte {byte_index} is outside textlayout-v7's admitted printable-ASCII, canonical precomposed Latin-1, and bounded combining-mark repertoire"
+                "character {character:?} at byte {byte_index} is outside textlayout-v8's admitted printable-ASCII, canonical precomposed Latin-1, and bounded combining-mark repertoire"
             ),
             ResolveError::UnsupportedCombiningSequence {
                 byte_index,
@@ -323,7 +324,7 @@ impl std::fmt::Display for ResolveError {
                 character,
             } => write!(
                 f,
-                "no glyph for {character:?} at byte {byte_index} in the resolved face"
+                "no declared face can shape the complete cluster containing {character:?} at byte {byte_index}"
             ),
             ResolveError::UnsupportedClusterMapping {
                 source_utf8_start,
@@ -332,7 +333,7 @@ impl std::fmt::Display for ResolveError {
                 glyph_end,
             } => write!(
                 f,
-                "shaping cluster mapping source bytes {source_utf8_start}..{source_utf8_end} to glyphs {glyph_start}..{glyph_end} is outside textlayout-v7's direct-or-one-mark profile"
+                "shaping cluster mapping source bytes {source_utf8_start}..{source_utf8_end} to glyphs {glyph_start}..{glyph_end} is outside textlayout-v8's direct-or-one-mark profile"
             ),
             ResolveError::UnsupportedShaping { byte_index } => write!(
                 f,
@@ -345,7 +346,7 @@ impl std::fmt::Display for ResolveError {
 impl std::error::Error for ResolveError {}
 
 /// Glyph tables whose ink is not the glyph outline. A face carrying any of
-/// them refuses whole: v7's projection is outlines, and realizing a color
+/// them refuses whole: v8's projection is outlines, and realizing a color
 /// glyph as its monochrome fallback outline is a wrong pixel, not a policy.
 const NON_OUTLINE_GLYPH_TABLES: [&[u8; 4]; 5] = [b"COLR", b"CBDT", b"CBLC", b"sbix", b"SVG "];
 
@@ -369,234 +370,278 @@ pub fn resolve(
     }
 
     // The profile guard is the resolver's property, not an accident of any
-    // font's coverage. Source spelling matters: v7 admits two marks only in
+    // font's coverage. Source spelling matters: v8 admits two marks only in
     // one exact base-plus-mark grammar and never normalizes authored text.
     validate_repertoire(&text.text)?;
 
-    let resource = select_face(&text.style.families, text.style.face_descriptor, env)?;
-    let face =
-        rustybuzz::Face::from_slice(&resource.bytes, resource.face_index).ok_or_else(|| {
-            ResolveError::UnparseableFace {
-                family: resource.family.clone(),
-            }
-        })?;
-
-    // Raw table presence, deliberately independent of which tables the
-    // parser was compiled to interpret.
-    for tag in NON_OUTLINE_GLYPH_TABLES {
-        if face
-            .raw_face()
-            .table(rustybuzz::ttf_parser::Tag::from_bytes(tag))
-            .is_some()
-        {
-            return Err(ResolveError::UnsupportedFaceFormat {
-                family: resource.family.clone(),
-            });
-        }
-    }
-
-    // rustybuzz reports upem as an i32 (the HarfBuzz convention); the value
-    // is a 16-bit font quantity, so a face outside that range is malformed.
-    let units_per_em =
-        u16::try_from(face.units_per_em()).map_err(|_| ResolveError::UnparseableFace {
-            family: resource.family.clone(),
-        })?;
-    let scale = size / f32::from(units_per_em);
+    // CSS keeps one "first available font" for metrics independently from
+    // per-cluster glyph fallback. Chromium's SVG query cells retain those
+    // primary metrics even when every outline comes from a later family.
+    let primary = select_primary_face(&text.style.families, text.style.face_descriptor, env)?;
+    let primary_face = parse_face(primary.resource, &primary.family)?;
+    let primary_scale = size / f32::from(primary_face.units_per_em);
     let metrics = LineMetrics {
-        ascent: f32::from(face.ascender()) * scale,
+        ascent: f32::from(primary_face.face.ascender()) * primary_scale,
         // ttf-parser reports descent as a negative distance; the artifact
         // states it as a positive reach below the baseline.
-        descent: f32::from(-face.descender()) * scale,
+        descent: f32::from(-primary_face.face.descender()) * primary_scale,
     };
 
-    let mut resolved_chunks = Vec::with_capacity(text.shaping_chunks.len());
-    let mut clusters = Vec::new();
-    let mut glyphs = Vec::new();
-    let mut layout_pen_x = 0.0f32;
-    let mut source_utf16_start = 0usize;
-    let mut source_scalar_start = 0usize;
-
+    // The first pass uses the primary face only as a grapheme-boundary
+    // instrument. MonotoneGraphemes gives the exact cluster cuts v8 retains
+    // admitted, including canonical composition and base-plus-mark grouping;
+    // .notdef is intentionally allowed here because fallback owns it below.
+    // This pass also preserves the old typed refusal for an authored shaping
+    // chunk that begins inside a combining cluster.
+    let mut source_clusters_by_chunk = Vec::with_capacity(text.shaping_chunks.len());
+    let mut probe_glyph_start = 0usize;
+    let mut probe_utf16_start = 0usize;
+    let mut probe_scalar_start = 0usize;
     for chunk in &text.shaping_chunks {
         let source_utf8 = chunk.source_utf8();
         let chunk_source = &text.text[source_utf8.clone()];
-        let source_utf16_end = source_utf16_start + chunk_source.encode_utf16().count();
-        let source_scalar_end = source_scalar_start + chunk_source.chars().count();
-        let cluster_start = clusters.len();
-        let glyph_start = glyphs.len();
-
-        let mut buffer = rustybuzz::UnicodeBuffer::new();
-        buffer.push_str(chunk_source);
-        buffer.set_direction(rustybuzz::Direction::LeftToRight);
-        // Pin the cluster policy as part of the oracle identity instead of
-        // inheriting rustybuzz's current default. Level 0 is the behavior v0
-        // shipped and the T3 probes measured; v7 keeps that fact explicit.
-        buffer.set_cluster_level(rustybuzz::BufferClusterLevel::MonotoneGraphemes);
-        let shaped = rustybuzz::shape(&face, &[], buffer);
-        clusters.extend(admitted_clusters(
+        let shaped = shape_ltr(&primary_face.face, chunk_source);
+        let provisional = admitted_clusters(
             chunk_source,
             &text.source_runs,
             shaped.glyph_infos(),
             ChunkOffsets {
                 source_utf8: source_utf8.start,
-                source_utf16: source_utf16_start,
-                source_scalars: source_scalar_start,
-                glyphs: glyph_start,
+                source_utf16: probe_utf16_start,
+                source_scalars: probe_scalar_start,
+                glyphs: probe_glyph_start,
             },
-        )?);
-        let cluster_end = clusters.len();
+        )?;
+        source_clusters_by_chunk.push(
+            provisional
+                .iter()
+                .map(ShapingCluster::source_utf8)
+                .collect::<Vec<_>>(),
+        );
+        probe_glyph_start += shaped.glyph_infos().len();
+        probe_utf16_start += chunk_source.encode_utf16().count();
+        probe_scalar_start += chunk_source.chars().count();
+    }
 
+    let primary_resolved_face = ResolvedFace {
+        key: primary.resource.key,
+        face_index: primary.resource.face_index,
+        units_per_em: primary_face.units_per_em,
+    };
+    let mut faces = vec![primary_resolved_face];
+    let mut font_bytes = vec![Arc::clone(&primary.resource.bytes)];
+    let mut resolved_chunks = Vec::with_capacity(text.shaping_chunks.len());
+    let mut face_runs = Vec::new();
+    let mut clusters = Vec::new();
+    let mut glyphs = Vec::new();
+    let mut layout_pen_x = 0.0f32;
+    for (chunk, source_cluster_ranges) in text
+        .shaping_chunks
+        .iter()
+        .zip(source_clusters_by_chunk.iter())
+    {
+        let source_utf8 = chunk.source_utf8();
+        let chunk_source = &text.text[source_utf8.clone()];
+        let source_utf16_start = text.text[..source_utf8.start].encode_utf16().count();
+        let source_utf16_end = source_utf16_start + chunk_source.encode_utf16().count();
+        let source_scalar_start = text.text[..source_utf8.start].chars().count();
+        let source_scalar_end = source_scalar_start + chunk_source.chars().count();
+        let cluster_start = clusters.len();
+        let glyph_start = glyphs.len();
         let chunk_origin_x = layout_pen_x;
-        let mut chunk_pen_x = 0.0f32;
-        let mut cluster_index = cluster_start;
-        for (local_glyph_index, (info, pos)) in shaped
-            .glyph_infos()
-            .iter()
-            .zip(shaped.glyph_positions().iter())
-            .enumerate()
-        {
-            let glyph_index = glyph_start + local_glyph_index;
-            let byte_index = source_utf8.start + info.cluster as usize;
-            while glyph_index >= clusters[cluster_index].glyphs().end {
-                cluster_index += 1;
-            }
-            let cluster = &clusters[cluster_index];
-            let cluster_glyphs = cluster.glyphs();
-            let glyph_in_cluster = glyph_index - cluster_glyphs.start;
-            let cluster_glyph_count = cluster_glyphs.len();
-            let cluster_scalar_count = cluster.source_scalars().len();
-
-            // Glyph 0 is .notdef: the face cannot render this cluster, and v7
-            // has no permitted replacement policy.
-            if info.glyph_id == 0 {
-                let source_range = cluster.source_utf8();
-                let (byte_index, character) = text.text[source_range.clone()]
-                    .char_indices()
-                    .find_map(|(relative, character)| {
-                        face.glyph_index(character)
-                            .is_none()
-                            .then_some((source_range.start + relative, character))
-                    })
-                    .unwrap_or_else(|| {
-                        (
-                            source_range.start,
-                            text.text[source_range]
-                                .chars()
-                                .next()
-                                .unwrap_or(char::REPLACEMENT_CHARACTER),
-                        )
-                    });
-                return Err(ResolveError::MissingGlyph {
-                    byte_index,
-                    character,
+        let chunk_face_run_start = face_runs.len();
+        let mut planned_runs: Vec<PlannedFaceRun<'_>> = Vec::new();
+        for cluster_source_utf8 in source_cluster_ranges {
+            let candidate = select_face_for_cluster(
+                &text.style.families,
+                text.style.face_descriptor,
+                env,
+                &text.text,
+                cluster_source_utf8.clone(),
+                &primary_face.face,
+            )?;
+            if let Some(last) = planned_runs.last_mut()
+                && same_face_resource(last.candidate.resource, candidate.resource)
+                && last.source_utf8.end == cluster_source_utf8.start
+            {
+                last.source_utf8.end = cluster_source_utf8.end;
+            } else {
+                planned_runs.push(PlannedFaceRun {
+                    source_utf8: cluster_source_utf8.clone(),
+                    candidate,
                 });
             }
+        }
 
-            // A direct or composed cluster has one glyph at the pen. The
-            // only richer placement v7 admits is the second glyph of one
-            // two-scalar, two-glyph base-plus-mark cluster: it may carry x/y
-            // offsets but must consume no advance of its own.
-            let valid_placement = if cluster_glyph_count == 1 {
-                pos.x_offset == 0 && pos.y_offset == 0 && pos.y_advance == 0 && pos.x_advance >= 0
-            } else if cluster_scalar_count == 2 && cluster_glyph_count == 2 {
-                if glyph_in_cluster == 0 {
-                    pos.x_offset == 0
-                        && pos.y_offset == 0
-                        && pos.y_advance == 0
-                        && pos.x_advance >= 0
-                } else {
-                    pos.x_advance == 0 && pos.y_advance == 0
-                }
-            } else {
-                false
-            };
-            if !valid_placement {
-                return Err(ResolveError::UnsupportedShaping { byte_index });
-            }
-            // Glyph ids originate from the face's 16-bit space; a wider
-            // value is shaping output the profile cannot state.
-            let glyph_id = u16::try_from(info.glyph_id)
-                .map_err(|_| ResolveError::UnsupportedShaping { byte_index })?;
-            let advance = pos.x_advance as f32 * scale;
-            let offset_x = pos.x_offset as f32 * scale;
-            // HarfBuzz/font coordinates are y-up; the artifact is y-down.
-            let offset_y = -(pos.y_offset as f32) * scale;
-            let glyph_x = chunk_origin_x + chunk_pen_x;
-            if !glyph_x.is_finite()
-                || !advance.is_finite()
-                || !offset_x.is_finite()
-                || !offset_y.is_finite()
+        for planned in planned_runs {
+            let parsed = parse_face(planned.candidate.resource, &planned.candidate.family)?;
+            let resolved_face_index = register_face(
+                planned.candidate.resource,
+                parsed.units_per_em,
+                &mut faces,
+                &mut font_bytes,
+            );
+            let run_source = &text.text[planned.source_utf8.clone()];
+            let shaped = shape_ltr(&parsed.face, run_source);
+            let run_cluster_start = clusters.len();
+            let run_glyph_start = glyphs.len();
+            let run_source_utf16_start = text.text[..planned.source_utf8.start]
+                .encode_utf16()
+                .count();
+            let run_source_scalar_start = text.text[..planned.source_utf8.start].chars().count();
+            clusters.extend(admitted_clusters(
+                run_source,
+                &text.source_runs,
+                shaped.glyph_infos(),
+                ChunkOffsets {
+                    source_utf8: planned.source_utf8.start,
+                    source_utf16: run_source_utf16_start,
+                    source_scalars: run_source_scalar_start,
+                    glyphs: run_glyph_start,
+                },
+            )?);
+            let run_cluster_end = clusters.len();
+            let run_origin_x = layout_pen_x;
+            let mut run_pen_x = 0.0f32;
+            let scale = size / f32::from(parsed.units_per_em);
+            let mut cluster_index = run_cluster_start;
+            for (local_glyph_index, (info, position)) in shaped
+                .glyph_infos()
+                .iter()
+                .zip(shaped.glyph_positions().iter())
+                .enumerate()
             {
-                return Err(ResolveError::UnsupportedShaping { byte_index });
+                let glyph_index = run_glyph_start + local_glyph_index;
+                let byte_index = planned.source_utf8.start + info.cluster as usize;
+                while glyph_index >= clusters[cluster_index].glyphs().end {
+                    cluster_index += 1;
+                }
+                let cluster = &clusters[cluster_index];
+                if info.glyph_id == 0 {
+                    return Err(missing_glyph_error(
+                        &text.text,
+                        cluster.source_utf8(),
+                        &primary_face.face,
+                    ));
+                }
+                validate_glyph_placement(cluster, glyph_index, position, byte_index)?;
+                let glyph_id = u16::try_from(info.glyph_id)
+                    .map_err(|_| ResolveError::UnsupportedShaping { byte_index })?;
+                let advance = position.x_advance as f32 * scale;
+                let offset_x = position.x_offset as f32 * scale;
+                // HarfBuzz/font coordinates are y-up; artifact y is down.
+                let offset_y = -(position.y_offset as f32) * scale;
+                let glyph_x = run_origin_x + run_pen_x;
+                if !glyph_x.is_finite()
+                    || !advance.is_finite()
+                    || !offset_x.is_finite()
+                    || !offset_y.is_finite()
+                {
+                    return Err(ResolveError::UnsupportedShaping { byte_index });
+                }
+                let next_run_pen_x = run_pen_x + advance;
+                if !next_run_pen_x.is_finite() {
+                    return Err(ResolveError::UnsupportedShaping { byte_index });
+                }
+                glyphs.push(PlacedGlyph {
+                    glyph_id,
+                    resolved_face_index,
+                    x: glyph_x,
+                    offset_x,
+                    offset_y,
+                    advance,
+                    cluster_index,
+                    source_run_tag: cluster.source_run_tag(),
+                });
+                run_pen_x = next_run_pen_x;
             }
-            let next_chunk_pen_x = chunk_pen_x + advance;
-            if !next_chunk_pen_x.is_finite() {
-                return Err(ResolveError::UnsupportedShaping { byte_index });
+            let next_layout_pen_x = run_origin_x + run_pen_x;
+            if !next_layout_pen_x.is_finite() {
+                return Err(ResolveError::UnsupportedShaping {
+                    byte_index: planned.source_utf8.start,
+                });
             }
-            glyphs.push(PlacedGlyph {
-                glyph_id,
-                x: glyph_x,
-                offset_x,
-                offset_y,
-                advance,
-                cluster_index,
-                source_run_tag: cluster.source_run_tag(),
-            });
-            chunk_pen_x = next_chunk_pen_x;
+            let run_source_utf16_end = run_source_utf16_start + run_source.encode_utf16().count();
+            let run_source_scalar_end = run_source_scalar_start + run_source.chars().count();
+            face_runs.push(ResolvedFaceRun::new(
+                planned.source_utf8,
+                run_source_utf16_start..run_source_utf16_end,
+                run_source_scalar_start..run_source_scalar_end,
+                run_cluster_start..run_cluster_end,
+                run_glyph_start..glyphs.len(),
+                resolved_face_index,
+                run_origin_x,
+                run_pen_x,
+            ));
+            layout_pen_x = next_layout_pen_x;
         }
 
-        let next_layout_pen_x = chunk_origin_x + chunk_pen_x;
-        if !next_layout_pen_x.is_finite() {
-            return Err(ResolveError::UnsupportedShaping {
-                byte_index: source_utf8.start,
-            });
-        }
+        let cluster_end = clusters.len();
         resolved_chunks.push(ResolvedShapingChunk::new(
             source_utf8,
             source_utf16_start..source_utf16_end,
             source_scalar_start..source_scalar_end,
             cluster_start..cluster_end,
             glyph_start..glyphs.len(),
+            chunk_face_run_start..face_runs.len(),
             chunk_origin_x,
-            chunk_pen_x,
+            layout_pen_x - chunk_origin_x,
         ));
-        layout_pen_x = next_layout_pen_x;
-        source_utf16_start = source_utf16_end;
-        source_scalar_start = source_scalar_end;
     }
 
-    let resolved_face = ResolvedFace {
-        key: resource.key,
-        face_index: resource.face_index,
-        units_per_em,
-    };
-    let ink_bounds = ink_union(&face, &glyphs, scale);
+    // Preserve v8's selection refusal for an empty source: no cluster exists
+    // to trigger it, but the requested primary face still cannot truthfully be
+    // described as realizable under this oracle.
+    if text.text.is_empty() {
+        reject_required_synthesis(&primary)?;
+    }
+    let ink_bounds = ink_union(&faces, &font_bytes, &glyphs, size);
 
     Ok(ResolvedTextLayout::new(
         text.text.clone(),
         text.source_runs.clone(),
-        resolved_face,
+        faces,
         size,
         metrics,
         resolved_chunks,
+        face_runs,
         clusters,
         glyphs,
         layout_pen_x,
         ink_bounds,
-        Arc::clone(&resource.bytes),
+        font_bytes,
     ))
 }
 
-/// Resolve one complete ordered request before parsing or shaping a face.
-///
-/// One unique nearest face in the first reached named family is final. A
-/// winning-tuple tie, required synthetic face, or reached generic is also
-/// final. Only an unavailable named candidate falls through, and glyph
-/// coverage is deliberately not part of this decision.
-fn select_face<'a>(
+#[derive(Clone)]
+struct SelectedCandidate<'a> {
+    candidate_index: usize,
+    family: String,
+    resource: &'a FontResource,
+    requested: StaticFaceDescriptor,
+    selected: StaticFaceDescriptor,
+    synthetic_weight: bool,
+    synthetic_style: bool,
+}
+
+struct ParsedFace<'a> {
+    face: rustybuzz::Face<'a>,
+    units_per_em: u16,
+}
+
+struct PlannedFaceRun<'a> {
+    source_utf8: std::ops::Range<usize>,
+    candidate: SelectedCandidate<'a>,
+}
+
+/// Resolve the first available font independently from glyph coverage. CSS
+/// uses this identity for metrics; it is not permission to draw a missing
+/// cluster with that face.
+fn select_primary_face<'a>(
     families: &[FontFamily],
     requested: StaticFaceDescriptor,
     env: &'a Environment,
-) -> Result<&'a FontResource, ResolveError> {
+) -> Result<SelectedCandidate<'a>, ResolveError> {
     if families.is_empty() {
         return Err(ResolveError::EmptyFamilyList);
     }
@@ -614,21 +659,13 @@ fn select_face<'a>(
         match env.match_face(family, requested) {
             FamilyMatch::None => continue,
             FamilyMatch::Unique { resource, selected } => {
-                let synthetic_weight =
-                    requested.weight().value() >= 600 && selected.weight().value() < 600;
-                let synthetic_style =
-                    requested.style() == FontStyle::Italic && selected.style() == FontStyle::Normal;
-                if synthetic_weight || synthetic_style {
-                    return Err(ResolveError::SyntheticFaceRequired {
-                        candidate_index,
-                        family: family.clone(),
-                        requested,
-                        selected,
-                        synthetic_weight,
-                        synthetic_style,
-                    });
-                }
-                return Ok(resource);
+                return Ok(selected_candidate(
+                    candidate_index,
+                    family,
+                    resource,
+                    requested,
+                    selected,
+                ));
             }
             FamilyMatch::AmbiguousWinner {
                 selected,
@@ -650,6 +687,214 @@ fn select_face<'a>(
     })
 }
 
+/// Select the first statically matched face that shapes one complete admitted
+/// cluster. Coverage is established by the same pinned shaper, not cmap
+/// membership: canonical `A` + U+0301 may shape as A-acute even when U+0301
+/// itself has no cmap entry. A failed face advances the family list, never the
+/// descriptor choices inside that family.
+fn select_face_for_cluster<'a>(
+    families: &[FontFamily],
+    requested: StaticFaceDescriptor,
+    env: &'a Environment,
+    source: &str,
+    source_utf8: std::ops::Range<usize>,
+    primary_face: &rustybuzz::Face<'_>,
+) -> Result<SelectedCandidate<'a>, ResolveError> {
+    for (candidate_index, family_candidate) in families.iter().enumerate() {
+        let FontFamily::Named(family) = family_candidate else {
+            return Err(ResolveError::UnmappedGenericFamily {
+                candidate_index,
+                family: family_candidate.name().to_string(),
+            });
+        };
+        match env.match_face(family, requested) {
+            FamilyMatch::None => continue,
+            FamilyMatch::AmbiguousWinner {
+                selected,
+                matching_resources,
+            } => {
+                return Err(ResolveError::AmbiguousFace {
+                    candidate_index,
+                    family: family.clone(),
+                    requested,
+                    selected,
+                    matching_resources,
+                });
+            }
+            FamilyMatch::Unique { resource, selected } => {
+                let candidate =
+                    selected_candidate(candidate_index, family, resource, requested, selected);
+                let parsed = parse_face(resource, family)?;
+                let shaped = shape_ltr(&parsed.face, &source[source_utf8.clone()]);
+                let complete = !shaped.glyph_infos().is_empty()
+                    && shaped.glyph_infos().iter().all(|info| info.glyph_id != 0);
+                if !complete {
+                    continue;
+                }
+                reject_required_synthesis(&candidate)?;
+                return Ok(candidate);
+            }
+        }
+    }
+    Err(missing_glyph_error(source, source_utf8, primary_face))
+}
+
+fn selected_candidate<'a>(
+    candidate_index: usize,
+    family: &str,
+    resource: &'a FontResource,
+    requested: StaticFaceDescriptor,
+    selected: StaticFaceDescriptor,
+) -> SelectedCandidate<'a> {
+    SelectedCandidate {
+        candidate_index,
+        family: family.to_string(),
+        resource,
+        requested,
+        selected,
+        synthetic_weight: requested.weight().value() >= 600 && selected.weight().value() < 600,
+        synthetic_style: requested.style() == FontStyle::Italic
+            && selected.style() == FontStyle::Normal,
+    }
+}
+
+fn reject_required_synthesis(candidate: &SelectedCandidate<'_>) -> Result<(), ResolveError> {
+    if !candidate.synthetic_weight && !candidate.synthetic_style {
+        return Ok(());
+    }
+    Err(ResolveError::SyntheticFaceRequired {
+        candidate_index: candidate.candidate_index,
+        family: candidate.family.clone(),
+        requested: candidate.requested,
+        selected: candidate.selected,
+        synthetic_weight: candidate.synthetic_weight,
+        synthetic_style: candidate.synthetic_style,
+    })
+}
+
+fn same_face_resource(left: &FontResource, right: &FontResource) -> bool {
+    left.key == right.key && left.face_index == right.face_index
+}
+
+fn parse_face<'a>(
+    resource: &'a FontResource,
+    family: &str,
+) -> Result<ParsedFace<'a>, ResolveError> {
+    let face = rustybuzz::Face::from_slice(resource.bytes.as_ref(), resource.face_index)
+        .ok_or_else(|| ResolveError::UnparseableFace {
+            family: family.to_string(),
+        })?;
+    for tag in NON_OUTLINE_GLYPH_TABLES {
+        if face
+            .raw_face()
+            .table(rustybuzz::ttf_parser::Tag::from_bytes(tag))
+            .is_some()
+        {
+            return Err(ResolveError::UnsupportedFaceFormat {
+                family: family.to_string(),
+            });
+        }
+    }
+    let units_per_em =
+        u16::try_from(face.units_per_em()).map_err(|_| ResolveError::UnparseableFace {
+            family: family.to_string(),
+        })?;
+    Ok(ParsedFace { face, units_per_em })
+}
+
+fn shape_ltr(face: &rustybuzz::Face<'_>, source: &str) -> rustybuzz::GlyphBuffer {
+    let mut buffer = rustybuzz::UnicodeBuffer::new();
+    buffer.push_str(source);
+    buffer.set_direction(rustybuzz::Direction::LeftToRight);
+    // Pin the cluster policy instead of inheriting rustybuzz's default.
+    buffer.set_cluster_level(rustybuzz::BufferClusterLevel::MonotoneGraphemes);
+    rustybuzz::shape(face, &[], buffer)
+}
+
+fn register_face(
+    resource: &FontResource,
+    units_per_em: u16,
+    faces: &mut Vec<ResolvedFace>,
+    font_bytes: &mut Vec<Arc<[u8]>>,
+) -> usize {
+    if let Some(index) = faces
+        .iter()
+        .position(|face| face.key == resource.key && face.face_index == resource.face_index)
+    {
+        return index;
+    }
+    let index = faces.len();
+    faces.push(ResolvedFace {
+        key: resource.key,
+        face_index: resource.face_index,
+        units_per_em,
+    });
+    font_bytes.push(Arc::clone(&resource.bytes));
+    index
+}
+
+fn validate_glyph_placement(
+    cluster: &ShapingCluster,
+    glyph_index: usize,
+    position: &rustybuzz::GlyphPosition,
+    byte_index: usize,
+) -> Result<(), ResolveError> {
+    let cluster_glyphs = cluster.glyphs();
+    let glyph_in_cluster = glyph_index - cluster_glyphs.start;
+    let cluster_glyph_count = cluster_glyphs.len();
+    let cluster_scalar_count = cluster.source_scalars().len();
+    let valid = if cluster_glyph_count == 1 {
+        position.x_offset == 0
+            && position.y_offset == 0
+            && position.y_advance == 0
+            && position.x_advance >= 0
+    } else if cluster_scalar_count == 2 && cluster_glyph_count == 2 {
+        if glyph_in_cluster == 0 {
+            position.x_offset == 0
+                && position.y_offset == 0
+                && position.y_advance == 0
+                && position.x_advance >= 0
+        } else {
+            position.x_advance == 0 && position.y_advance == 0
+        }
+    } else {
+        false
+    };
+    if valid {
+        Ok(())
+    } else {
+        Err(ResolveError::UnsupportedShaping { byte_index })
+    }
+}
+
+fn missing_glyph_error(
+    source: &str,
+    source_utf8: std::ops::Range<usize>,
+    primary_face: &rustybuzz::Face<'_>,
+) -> ResolveError {
+    let (byte_index, character) = source[source_utf8.clone()]
+        .char_indices()
+        .find_map(|(relative, character)| {
+            primary_face
+                .glyph_index(character)
+                .is_none()
+                .then_some((source_utf8.start + relative, character))
+        })
+        .unwrap_or_else(|| {
+            (
+                source_utf8.start,
+                source[source_utf8]
+                    .chars()
+                    .next()
+                    .unwrap_or(char::REPLACEMENT_CHARACTER),
+            )
+        });
+    ResolveError::MissingGlyph {
+        byte_index,
+        character,
+    }
+}
+
 /// The global coordinate bases for one chunk-local shaping result.
 #[derive(Clone, Copy)]
 struct ChunkOffsets {
@@ -660,7 +905,7 @@ struct ChunkOffsets {
 }
 
 /// Build the complete UTF-8/UTF-16/scalar/glyph association and enforce
-/// oracle v7's direct-or-one-mark cluster profile for one independently
+/// oracle v8's direct-or-one-mark cluster profile for one independently
 /// shaped chunk. The shaper reports chunk-local byte and glyph positions;
 /// this function promotes every coordinate into the artifact's global index
 /// spaces before publishing it.
@@ -758,7 +1003,7 @@ fn admitted_clusters(
     Ok(clusters)
 }
 
-/// Validate oracle v7's complete source grammar before font selection.
+/// Validate oracle v8's complete source grammar before font selection.
 fn validate_repertoire(source: &str) -> Result<(), ResolveError> {
     let mut previous = None;
     for (byte_index, character) in source.char_indices() {
@@ -784,7 +1029,7 @@ fn validate_repertoire(source: &str) -> Result<(), ResolveError> {
     Ok(())
 }
 
-/// Oracle v7's directly admitted source scalars.
+/// Oracle v8's directly admitted source scalars.
 ///
 /// The Latin-1 ranges are deliberately discontinuous: every admitted member
 /// has a canonical two-scalar decomposition to an ASCII Latin base plus one
@@ -806,7 +1051,7 @@ fn is_direct_character(character: char) -> bool {
     )
 }
 
-/// The complete decomposed-mark vocabulary at v7. U+0301 proves the common
+/// The complete decomposed-mark vocabulary at v8. U+0301 proves the common
 /// composed and attached branches; U+030B is the second measured class whose
 /// Bungee attachment has nonzero displacement on both axes.
 fn is_admitted_mark(character: char) -> bool {
@@ -819,11 +1064,23 @@ fn is_admitted_mark(character: char) -> bool {
 /// the curve never reaches. The artifact promises painted-path bounds, so
 /// measure the exact mapped outline stream that consumers receive instead of
 /// trusting that enclosing metadata.
-fn ink_union(face: &rustybuzz::Face<'_>, glyphs: &[PlacedGlyph], scale: f32) -> Option<BoundsBox> {
+fn ink_union(
+    faces: &[ResolvedFace],
+    font_bytes: &[Arc<[u8]>],
+    glyphs: &[PlacedGlyph],
+    font_size: f32,
+) -> Option<BoundsBox> {
     let mut union: Option<(f32, f32, f32, f32)> = None;
     for glyph in glyphs {
+        let resolved_face = &faces[glyph.resolved_face_index];
+        let face = rustybuzz::ttf_parser::Face::parse(
+            font_bytes[glyph.resolved_face_index].as_ref(),
+            resolved_face.face_index,
+        )
+        .expect("every retained resolved face parsed before artifact construction");
+        let scale = font_size / f32::from(resolved_face.units_per_em);
         let mut sink = TightBoundsSink::default();
-        if !stream_glyph_outline(face.as_ref(), glyph, scale, &mut sink) {
+        if !stream_glyph_outline(&face, glyph, scale, &mut sink) {
             continue; // no ink: advance only
         }
         let Some((x0, y0, x1, y1)) = sink.bounds else {

@@ -739,6 +739,17 @@ excluded.
 > therefore incomplete: `font-weight`, `font-style`, and `font-stretch` all
 > stay open independently of their SVG attribute twins.
 
+> **2026-09-04 cluster-fallback split:** T6 walks the computed ordered family
+> list once per complete admitted shaping cluster. Each reached named family
+> repeats static nearest-face matching; a face is accepted only when it shapes
+> the complete cluster without a missing glyph. A miss advances to the next
+> family, never another descriptor in the same family, and a base never splits
+> from its combining mark. One exact cell crosses presentation, inline, and
+> inherited family ingress plus source-run, positioned-chunk, transform, and
+> `<use>` consumers. Generic/system fallback, synthesis, wider repertoire and
+> shaping controls, dynamic font loading, and the complete listed grammar
+> remain open, so `font-family` and every descriptor row stay unchecked.
+
 
 ### CSS text
 
@@ -1966,6 +1977,20 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > Generic mapping, descriptor selection, synthesis, cluster fallback, and the
 > complete `<text>` and `font-family` grammars remain open; no row ticks.
 
+> **2026-09-04 cluster-fallback checkpoint:** T6 advances the oracle to
+> `textlayout-v8`. The first available face keeps the run's vertical metrics;
+> each complete cluster may select a later declared family, and adjacent
+> clusters using the same exact resource shape together. The artifact records
+> face runs and per-glyph face identity until every outline lowers to an
+> ordinary path; no text or font fact crosses the resolved frame. The new
+> exact cell covers canonical composition, precomposed and decomposed
+> fallback, paint-only `<tspan>` ownership, positioned chunks, transforms, and
+> `<use>`. The text estate moves to fifteen exact cells plus eight geometry
+> witnesses, and graduating the old family-fallback patrol moves the named
+> register from 224 to 223. Generic/system fallback, partial-cluster splitting,
+> synthesis, wider text content and shaping controls, and dynamic resources
+> remain open, so `<text>` and `<tspan>` stay unchecked.
+
 
 ### SVG presentation attributes
 
@@ -2116,6 +2141,16 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > register remains 224 rows. Fractional weights, arbitrary stretch values,
 > oblique angles, descriptor ranges, synthesis, and variation remain open;
 > none of the six font descriptor rows ticks.
+
+> **2026-09-04 cluster-fallback split:** the presentation hint and its CSS
+> declaration twin now carry the same ordered named-family list into
+> per-complete-cluster fallback. Whole-cluster shaping distinguishes canonical
+> composition from a real miss; each later family repeats the static face
+> match, and the first available face remains the primary metrics face. The
+> exact cell crosses direct, inline, inherited, and `unset` ingress. A reached
+> generic, installed/system fallback, synthesis, partial-cluster splitting,
+> wider family grammar, and dynamic loading remain named boundaries. The SVG
+> `font-family` row therefore stays open independently from its CSS twin.
 
 - [ ] `glyph-orientation-horizontal`
 - [ ] `glyph-orientation-vertical`

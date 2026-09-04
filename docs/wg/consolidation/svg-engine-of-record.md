@@ -85,13 +85,15 @@ from the dated addenda below:
   viewport clips, solid/context-solid source programs, `<use>` clients, and
   client transform/opacity/clip/mask/filter composition;
   one `<text>` profile whose ordered named-family and static
-  weight/stretch/style request selects a nearest host-declared font resource
-  by the measured stretch/style/weight search, refusing any winner that needs
-  synthetic weight or style, over printable ASCII, the 53 canonical
+  weight/stretch/style request keeps a primary metrics face and selects the
+  first host-declared face that shapes each complete cluster, repeating the
+  measured stretch/style/weight match per family and refusing a supporting
+  face that needs synthetic weight or style, over printable ASCII, the 53 canonical
   precomposed Latin-1 letters, and U+0301/U+030B only as one mark after an
   ASCII Latin letter, optionally partitioned by flat direct paint-only
-  `<tspan>` source runs while retaining one whitespace, shaping, and anchor
-  continuum, with direct invariant number/`px` size sources,
+  `<tspan>` source runs while retaining one whitespace and anchor continuum;
+  complete child position lists and fallback face changes form explicit
+  shaping runs, with direct invariant number/`px` size sources,
   a final identity-linear, integer-translation device mapping after root,
   ancestor, and instance composition, explicit UTF-8/UTF-16/scalar/glyph
   cluster maps, default pair positioning, bounded composed or zero-advance
@@ -104,8 +106,9 @@ from the dated addenda below:
   composition.
   `crates/n0_cli/README.md` is the statement of record.
 - **The corpus** is 1,051 Chromium-baked primitive cells plus 16 sampled frames,
-  with a separate fourteen-cell exact text suite whose current cells select
-  hash-pinned Ahem bytes from explicit family/face environments, and eight exact-number artifact-geometry
+  with a separate fifteen-cell exact text suite whose current cells select
+  hash-pinned Ahem and Ahem-derived bytes from explicit family/face
+  environments, and eight exact-number artifact-geometry
   witnesses (six Allerta and two Bungee) under the ratified text corpus-growth
   law.
   All byte-exact except seven curved cells carrying a declared, geometrically
@@ -114,7 +117,7 @@ from the dated addenda below:
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 224 rows.
+  register has 223 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -5219,3 +5222,65 @@ percentages, oblique angles, descriptor ranges, synthesis, variation, generic
 mapping, fallback, and the complete font grammars remain open. No CSS-font or
 SVG presentation row ticks, no shared render-contract fact was added, no
 conformance score was produced, and no FLIP record, rule, or baseline changed.
+
+## Rung: SVG text cluster-safe declared-family fallback (2026-09-04)
+
+The verdict is T6 ADMIT/SPLIT, with no checklist closure. The first available
+statically matched face remains the primary metrics face, but no longer owns
+every glyph by implication. Each complete admitted shaping cluster walks the
+computed family list from the start. A reached named family repeats the T5c
+static match and asks only its one winner to shape the whole cluster. The face
+selects only when every shaped glyph is present; otherwise the next family is
+tried. This is family fallback, never a search through other descriptors in
+the same family, and a base-plus-mark cluster cannot split across faces.
+
+Chromium 149 measurement establishes the semantics independently. Ahem's
+missing `x` + U+0301 cluster followed by Bungee is exact to Bungee-only and
+differs from Ahem-only by 631 pixels at maximum channel delta 255. Canonical
+`A` + U+0301 remains in Ahem and differs from Bungee by 1,114 pixels at
+maximum delta 255. Ahem's missing apostrophe falls exactly to Bungee. Separate
+probes establish family-not-face advancement, nearest matching repeated in a
+fallback family, and primary vertical metrics retained when all outlines use a
+later face. This complete real-Ahem/Bungee probe bank is measured, not celled;
+the derived-font exact cell below is the committed evidence. Those results
+require whole-cluster shaping as the coverage test; scalar cmap membership
+would reject canonical composition incorrectly.
+
+The producer advances to `textlayout-v8`. Its immutable artifact records the
+primary face, every used face, contiguous face-run ranges, and each glyph's
+exact face identity. Adjacent clusters selecting the same resource are shaped
+together, so fallback segmentation does not erase admitted shaping
+interactions. The Web consumer lowers each glyph through its recorded face to
+ordinary source-neutral path facts. The resolved frame gains no font, text,
+family, fallback, or resource identity, preserving the low text join and the
+resource-free render contract.
+
+One new exact cell uses a content-hashed Ahem derivative to expose face choice
+while retaining the binary Ahem lattice. Presentation and inline declarations,
+inheritance and `unset`, canonical composition, precomposed and decomposed
+fallback, paint-run ownership, positioned chunks, an integer transform, and
+`<use>` all cross the same route. The Chromium oracle is exact to an
+independent explicit-face construction and both actual admissions decode to
+zero differing pixels and zero maximum channel delta. Replacing fallback with
+the primary face changes 700 pixels at maximum delta 247 (measured control,
+not another cell).
+
+The former declared-family fallback refusal graduates. An exhausted list still
+reports the stable missing-glyph failure. A reached generic remains terminal;
+a supporting fallback face that requires synthetic weight or style refuses
+before acceptance; and real-font fallback still crosses the existing SVG
+query-grid patrol. Strict refuses transactionally and best effort skips and
+declares the same text node. Generic/system fallback, partial-cluster splitting,
+synthesis, wider repertoire and shaping controls, and dynamic font/resource
+loading remain outside this rung.
+
+Gate sensitivity was proved by temporarily making the first incomplete face
+terminal. All 1,051 primitive cells stayed green, then `just gate` failed the
+new exact text cell loudly. Restoration returned every primitive, text-pixel,
+text-geometry, and refusal gate to green. The primitive corpus remains 1,051
+Chromium-baked cells plus 16 sampled frames. The exact text estate moves from
+fourteen to fifteen cells; the exact-number geometry estate remains eight
+witnesses (six Allerta and two Bungee); and graduating one patrol moves the
+named refusal register from 224 to 223 rows. The complete `<text>` and
+`font-family` surfaces remain open. No checklist row ticks, no conformance
+score was produced, and no FLIP record, rule, or baseline changed.

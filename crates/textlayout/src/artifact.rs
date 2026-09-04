@@ -25,8 +25,9 @@ pub struct BoundsBox {
     pub height: f32,
 }
 
-/// The face one resolution actually used, by verified identity — glyph ids
-/// in this artifact are meaningful only together with this face.
+/// One face a resolution actually used, by verified identity — glyph ids in
+/// this artifact are meaningful only together with one entry in the resolved
+/// face table.
 #[derive(Clone, Debug)]
 pub struct ResolvedFace {
     pub key: FontKey,
@@ -37,7 +38,7 @@ pub struct ResolvedFace {
 /// Line metrics in local px: distances from the baseline, both positive
 /// (ascent reaches up, descent reaches down).
 ///
-/// Oracle v7 retains the face's `hhea` ascent/descent metric policy as the
+/// Oracle v8 retains the primary face's `hhea` ascent/descent metric policy as the
 /// parser reports them; line gap (leading) is a declared deferral, arriving
 /// as a field when a consumer first needs line stacking. For the pinned gate
 /// font every metric table agrees, which is why the gate can hold before the
@@ -48,7 +49,7 @@ pub struct LineMetrics {
     pub descent: f32,
 }
 
-/// One shaping cluster's complete source/glyph cardinality at oracle v7.
+/// One shaping cluster's complete source/glyph cardinality at oracle v8.
 ///
 /// The source has three coordinate spaces on purpose. HarfBuzz clusters are
 /// seeded from UTF-8 byte offsets, Web text APIs address UTF-16 code units,
@@ -109,14 +110,16 @@ impl ShapingCluster {
     }
 }
 
-/// One independently resolved shaping chunk in the artifact's canonical
-/// local coordinate space.
+/// One author-declared shaping chunk in the artifact's canonical local
+/// coordinate space.
 ///
 /// Source, cluster, and glyph ranges use the artifact's global indices. The
-/// chunk's glyphs were shaped together and no shaping interaction crosses
-/// either boundary. Chunks are concatenated by advance only to keep every
-/// glyph, outline, and bound in one coherent local coordinate system;
-/// authored placement remains an external projection.
+/// No shaping interaction crosses either chunk boundary. Font fallback may
+/// partition the interior into independently shaped [`ResolvedFaceRun`]s;
+/// those runs are complete and ordered inside this envelope. Chunks are
+/// concatenated by advance only to keep every glyph, outline, and bound in one
+/// coherent local coordinate system; authored placement remains an external
+/// projection.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ResolvedShapingChunk {
     source_utf8: Range<usize>,
@@ -124,6 +127,7 @@ pub struct ResolvedShapingChunk {
     source_scalars: Range<usize>,
     clusters: Range<usize>,
     glyphs: Range<usize>,
+    face_runs: Range<usize>,
     origin_x: f32,
     advance: f32,
 }
@@ -136,6 +140,7 @@ impl ResolvedShapingChunk {
         source_scalars: Range<usize>,
         clusters: Range<usize>,
         glyphs: Range<usize>,
+        face_runs: Range<usize>,
         origin_x: f32,
         advance: f32,
     ) -> Self {
@@ -145,6 +150,7 @@ impl ResolvedShapingChunk {
             source_scalars,
             clusters,
             glyphs,
+            face_runs,
             origin_x,
             advance,
         }
@@ -175,6 +181,11 @@ impl ResolvedShapingChunk {
         self.glyphs.clone()
     }
 
+    /// Contiguous resolved face-run indices inside this authored chunk.
+    pub fn face_runs(&self) -> Range<usize> {
+        self.face_runs.clone()
+    }
+
     /// This chunk's canonical baseline origin in the artifact's local x axis.
     /// It is the sum of preceding chunk advances, not authored placement.
     pub fn origin_x(&self) -> f32 {
@@ -187,12 +198,93 @@ impl ResolvedShapingChunk {
     }
 }
 
+/// One contiguous source range shaped with one selected resolved face.
+///
+/// Face runs are the exact cuts introduced by cluster-safe fallback. They are
+/// always contained by one [`ResolvedShapingChunk`], cover complete shaping
+/// clusters, and form a complete ordered partition of that chunk. Adjacent
+/// clusters selecting the same declared resource coalesce into one run so
+/// same-face shaping interactions are retained.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ResolvedFaceRun {
+    source_utf8: Range<usize>,
+    source_utf16: Range<usize>,
+    source_scalars: Range<usize>,
+    clusters: Range<usize>,
+    glyphs: Range<usize>,
+    resolved_face_index: usize,
+    origin_x: f32,
+    advance: f32,
+}
+
+impl ResolvedFaceRun {
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new(
+        source_utf8: Range<usize>,
+        source_utf16: Range<usize>,
+        source_scalars: Range<usize>,
+        clusters: Range<usize>,
+        glyphs: Range<usize>,
+        resolved_face_index: usize,
+        origin_x: f32,
+        advance: f32,
+    ) -> Self {
+        Self {
+            source_utf8,
+            source_utf16,
+            source_scalars,
+            clusters,
+            glyphs,
+            resolved_face_index,
+            origin_x,
+            advance,
+        }
+    }
+
+    pub fn source_utf8(&self) -> Range<usize> {
+        self.source_utf8.clone()
+    }
+
+    pub fn source_utf16(&self) -> Range<usize> {
+        self.source_utf16.clone()
+    }
+
+    pub fn source_scalars(&self) -> Range<usize> {
+        self.source_scalars.clone()
+    }
+
+    pub fn clusters(&self) -> Range<usize> {
+        self.clusters.clone()
+    }
+
+    pub fn glyphs(&self) -> Range<usize> {
+        self.glyphs.clone()
+    }
+
+    /// Index into [`ResolvedTextLayout::faces`].
+    pub const fn resolved_face_index(&self) -> usize {
+        self.resolved_face_index
+    }
+
+    pub fn origin_x(&self) -> f32 {
+        self.origin_x
+    }
+
+    pub fn advance(&self) -> f32 {
+        self.advance
+    }
+}
+
 /// One positioned glyph: identity, placement, and its mapping back to the
 /// source cluster that produced it.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PlacedGlyph {
-    /// Glyph identifier in the resolved face's space.
+    /// Glyph identifier in the selected resolved face's space.
     pub glyph_id: u16,
+    /// Index into [`ResolvedTextLayout::faces`]. This association is part of
+    /// glyph identity: equal numeric glyph ids in two faces need not mean the
+    /// same outline.
+    pub resolved_face_index: usize,
     /// Pen x of this glyph's origin in the artifact's canonical local space.
     /// For a later shaping chunk this includes that chunk's canonical origin.
     pub x: f32,
@@ -232,7 +324,7 @@ pub trait OutlineSink {
     fn close(&mut self);
 }
 
-/// The immutable resolved text layout at oracle v7: one style run of
+/// The immutable resolved text layout at oracle v8: one style run of
 /// horizontal left-to-right text, already shaped in explicit chunks,
 /// measured, and mapped.
 ///
@@ -244,17 +336,20 @@ pub struct ResolvedTextLayout {
     oracle_version: &'static str,
     source: String,
     source_runs: Vec<SourceRun>,
-    face: ResolvedFace,
+    /// Complete face identities used by the artifact. Entry zero is the
+    /// primary metrics face; later entries were reached by glyph fallback.
+    faces: Vec<ResolvedFace>,
     font_size: f32,
     metrics: LineMetrics,
     shaping_chunks: Vec<ResolvedShapingChunk>,
+    face_runs: Vec<ResolvedFaceRun>,
     clusters: Vec<ShapingCluster>,
     glyphs: Vec<PlacedGlyph>,
     advance: f32,
     ink_bounds: Option<BoundsBox>,
-    /// The exact bytes of the resolved face, retained so outline queries
-    /// answer from the same identity that shaped — never from a second load.
-    font_bytes: Arc<[u8]>,
+    /// Exact bytes parallel to `faces`, retained so outline queries answer
+    /// from the same identities that shaped — never from a second load.
+    font_bytes: Vec<Arc<[u8]>>,
 }
 
 impl ResolvedTextLayout {
@@ -262,24 +357,26 @@ impl ResolvedTextLayout {
     pub(crate) fn new(
         source: String,
         source_runs: Vec<SourceRun>,
-        face: ResolvedFace,
+        faces: Vec<ResolvedFace>,
         font_size: f32,
         metrics: LineMetrics,
         shaping_chunks: Vec<ResolvedShapingChunk>,
+        face_runs: Vec<ResolvedFaceRun>,
         clusters: Vec<ShapingCluster>,
         glyphs: Vec<PlacedGlyph>,
         advance: f32,
         ink_bounds: Option<BoundsBox>,
-        font_bytes: Arc<[u8]>,
+        font_bytes: Vec<Arc<[u8]>>,
     ) -> Self {
         Self {
             oracle_version: ORACLE_VERSION,
             source,
             source_runs,
-            face,
+            faces,
             font_size,
             metrics,
             shaping_chunks,
+            face_runs,
             clusters,
             glyphs,
             advance,
@@ -303,8 +400,16 @@ impl ResolvedTextLayout {
         &self.source_runs
     }
 
-    pub fn face(&self) -> &ResolvedFace {
-        &self.face
+    /// The first available matched face. Its metrics govern the SVG text
+    /// character cells even when later faces supply some or all outlines.
+    pub fn primary_face(&self) -> &ResolvedFace {
+        &self.faces[0]
+    }
+
+    /// Complete resolved face table. Entry zero is always
+    /// [`Self::primary_face`].
+    pub fn faces(&self) -> &[ResolvedFace] {
+        &self.faces
     }
 
     pub fn font_size(&self) -> f32 {
@@ -321,14 +426,19 @@ impl ResolvedTextLayout {
         &self.shaping_chunks
     }
 
-    /// Shaping clusters in logical order. Oracle v7's admitted LTR profile
+    /// Complete ordered fallback cuts across all authored shaping chunks.
+    pub fn face_runs(&self) -> &[ResolvedFaceRun] {
+        &self.face_runs
+    }
+
+    /// Shaping clusters in logical order. Oracle v8's admitted LTR profile
     /// also makes this visual order; consumers must not assume that of a
     /// later bidi-capable version.
     pub fn clusters(&self) -> &[ShapingCluster] {
         &self.clusters
     }
 
-    /// The placed glyphs in visual order — which at oracle v7 is also
+    /// The placed glyphs in visual order — which at oracle v8 is also
     /// logical order, a fact of the LTR single-run profile rather than an
     /// assumption a consumer may carry to later versions.
     pub fn glyphs(&self) -> &[PlacedGlyph] {
@@ -381,8 +491,8 @@ impl ResolvedTextLayout {
     /// contributes advance, not geometry, and a consumer emits nothing.
     ///
     /// Index-based on purpose: glyph identifiers are meaningful only with
-    /// this artifact's face, so only placements this resolution recorded can
-    /// be realized — a glyph from another layout has no route in.
+    /// the glyph's recorded resolved face, so only placements this resolution
+    /// recorded can be realized — a glyph from another layout has no route in.
     ///
     /// # Panics
     ///
@@ -394,12 +504,13 @@ impl ResolvedTextLayout {
     /// with its `*_matches_fresh` law.
     pub fn outline(&self, index: usize, sink: &mut dyn OutlineSink) -> bool {
         let glyph = &self.glyphs[index];
-        let Ok(face) = rustybuzz::ttf_parser::Face::parse(&self.font_bytes, self.face.face_index)
-        else {
-            // The face parsed at resolution; bytes are immutable since.
+        let resolved_face = &self.faces[glyph.resolved_face_index];
+        let bytes = &self.font_bytes[glyph.resolved_face_index];
+        let Ok(face) = rustybuzz::ttf_parser::Face::parse(bytes, resolved_face.face_index) else {
+            // Every face parsed at resolution; bytes are immutable since.
             unreachable!("resolved font bytes stopped parsing");
         };
-        let scale = self.font_size / f32::from(self.face.units_per_em);
+        let scale = self.font_size / f32::from(resolved_face.units_per_em);
         stream_glyph_outline(&face, glyph, scale, sink)
     }
 }
@@ -431,10 +542,11 @@ impl std::fmt::Debug for ResolvedTextLayout {
             .field("oracle_version", &self.oracle_version)
             .field("source", &self.source)
             .field("source_runs", &self.source_runs)
-            .field("face", &self.face)
+            .field("faces", &self.faces)
             .field("font_size", &self.font_size)
             .field("metrics", &self.metrics)
             .field("shaping_chunks", &self.shaping_chunks)
+            .field("face_runs", &self.face_runs)
             .field("clusters", &self.clusters)
             .field("glyphs", &self.glyphs)
             .field("advance", &self.advance)
