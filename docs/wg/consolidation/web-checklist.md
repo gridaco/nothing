@@ -1839,7 +1839,39 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `<set>`
 - [x] `<stop>`
 - [ ] `<style>`
-- [ ] `<svg>`
+- [x] `<svg>`
+
+> **2026-09-05 close/split:** the outer SVG root and a direct static non-root
+> `<svg>` now carry the element's viewport-establishing role. Twenty-seven new
+> exact Chromium cells cover omitted `x`/`y`, omitted and explicit-`auto`
+> 100% extents, zero/negative no-paint extents, signed placement, the complete
+> admitted `viewBox`/`preserveAspectRatio` mapping, non-commuting parent/own/
+> placement/content transforms, and nearest-viewport axis/diagonal percentage
+> bases through geometry, stroke, gradients, patterns, clips, masks, filters,
+> markers, and `<use>`. Nested levels, a viewport inside an ordinary referenced
+> group, visibility restoration, and both source entries are exact. Non-root
+> overflow gets its scoped UA `hidden` default through the one Stylo cascade;
+> presentation, inline, and stylesheet values can open or clip it, and its
+> fractional rectangle uses ordinary antialiased clip coverage. The measured
+> spatial split is descendant effects → viewport clip → the viewport element's
+> own filter; the already-established same-element filter/mask/opacity/
+> `clip-path` order remains outside that source clip.
+>
+> The old blanket nested-element refusal graduates, moving the corpus from
+> 1,051 to 1,078 primitive cells plus the unchanged 16 sampled frames and the
+> named register moves from 223 to 226 rows. A new direct
+> `<use>`-to-`<svg>` patrol replaces the graduated row after measurement
+> exposed a 2,880-pixel silent instance-sizing error; three further rows keep
+> nested viewports from silently widening the independently open pattern,
+> mask, and marker source programs. Replacing the child `viewBox` bases with
+> the parent bases made ten new cells fail by 15–800 pixels, up to maximum
+> channel delta 233; restoration returned the complete gate to byte-exact
+> green. No tolerance was added. Shared geometry token, value-type,
+> precision/range, CSS sizing, root-host sizing, and animation gaps keep
+> `x`/`y`/`width`/`height`, `viewBox`, and `overflow` open. A `<use>` whose
+> referenced root is `<svg>` or `<symbol>` is the separate instance-viewport
+> contract and keeps those element rows independent; the HTML `<svg>` row
+> likewise stays open for host layout.
 - [ ] `<switch>`
 - [ ] `<symbol>`
 - [ ] `<text>`

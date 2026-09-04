@@ -842,6 +842,45 @@ fn svg_presentation_hints(
             }
             continue;
         }
+        // `overflow` is one presentation attribute for the two physical
+        // longhands. Keep both in the presentation-hint block so author CSS
+        // sees the ordinary cascade and computed-axis coupling; the SVG
+        // compiler consumes overflow-x for a nested viewport exactly as
+        // Blink does. Other SVG seats still keep their own attribute patrols.
+        if attr.name.local.as_ref() == "overflow" {
+            let mut overflow_x = SourcePropertyDeclaration::default();
+            let mut overflow_y = SourcePropertyDeclaration::default();
+            if parse_one_declaration_into(
+                &mut overflow_x,
+                PropertyId::NonCustom(LonghandId::OverflowX.into()),
+                &attr.value,
+                Origin::Author,
+                &url_data,
+                None,
+                ParsingMode::DEFAULT,
+                StyleQuirksMode::NoQuirks,
+                CssRuleType::Style,
+            )
+            .is_ok()
+                && parse_one_declaration_into(
+                    &mut overflow_y,
+                    PropertyId::NonCustom(LonghandId::OverflowY.into()),
+                    &attr.value,
+                    Origin::Author,
+                    &url_data,
+                    None,
+                    ParsingMode::DEFAULT,
+                    StyleQuirksMode::NoQuirks,
+                    CssRuleType::Style,
+                )
+                .is_ok()
+            {
+                block.extend(overflow_x.drain(), Importance::Normal);
+                block.extend(overflow_y.drain(), Importance::Normal);
+                parsed_any = true;
+            }
+            continue;
+        }
         let Some(longhand) = admitted_svg_presentation_property(attr.name.local.as_ref()) else {
             continue;
         };

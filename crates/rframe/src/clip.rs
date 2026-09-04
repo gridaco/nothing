@@ -31,9 +31,11 @@ pub const MAX_CLIP_LAYERS: usize = 64;
 
 /// Raster edge policy for a resolved geometric clip.
 ///
-/// Ordinary SVG `clip-path` coverage is anti-aliased. Viewport clips are hard
-/// pixel masks in Chromium, including after an affine mapping; carrying that
-/// distinction here avoids smuggling source vocabulary into the consumer.
+/// Ordinary SVG `clip-path` coverage is anti-aliased. Chromium's marker
+/// viewport clip is a hard pixel mask, including after an affine mapping,
+/// while a direct nested `<svg>` viewport uses the ordinary antialiased mode.
+/// Carrying the edge decision here avoids smuggling source vocabulary into
+/// the consumer.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ClipEdgeMode {
     #[default]

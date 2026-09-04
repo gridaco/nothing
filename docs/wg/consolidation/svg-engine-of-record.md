@@ -57,6 +57,10 @@ from the dated addenda below:
   `transform` grammar in both spellings (the attribute is a
   presentation hint of the CSS `transform` property, and `gradientTransform`
   is that attribute on gradient elements);
+  direct static non-root `<svg>` viewports, with parent-space placement,
+  `viewBox` mapping, nearest-viewport percentage bases, the scoped computed
+  overflow default/cascade, antialiased viewport clips, nested levels, and
+  descendant-versus-own effect ordering resolved before the frame;
   `<use>`/`<defs>` same-document references (the id-resolution table);
   geometric same-document `clip-path` resources in the bounded path strategy
   (direct geometry/`<use>` unions, chained intersections, both
@@ -105,7 +109,7 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,051 Chromium-baked primitive cells plus 16 sampled frames,
+- **The corpus** is 1,078 Chromium-baked primitive cells plus 16 sampled frames,
   with a separate fifteen-cell exact text suite whose current cells select
   hash-pinned Ahem and Ahem-derived bytes from explicit family/face
   environments, and eight exact-number artifact-geometry
@@ -117,7 +121,7 @@ from the dated addenda below:
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 223 rows.
+  register has 226 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -1167,7 +1171,8 @@ see each other's history); indirect cycles beyond the measured shapes hit
 a depth budget and refuse loudly as expansion overflow, as do external
 references and authored element children — each a register row with a
 fixture. `<symbol>` targets surface the symbol element at the clone's own
-path and refuse like the nested viewport they are.
+path and refused beside the then-unadmitted nested viewport; their
+instance-sized viewport contract remains separate after NV1.
 
 Twenty cells baked byte-exact (corpus 119 → 139, the largest single rung
 yet). The refusal register moved one row out (`svg-use` graduates) and
@@ -5284,3 +5289,75 @@ witnesses (six Allerta and two Bungee); and graduating one patrol moves the
 named refusal register from 224 to 223 rows. The complete `<text>` and
 `font-family` surfaces remain open. No checklist row ticks, no conformance
 score was produced, and no FLIP record, rule, or baseline changed.
+
+## Rung: SVG direct nested viewport (2026-09-05)
+
+The verdict is NV1 CLOSE/SPLIT. The SVG `<svg>` element row closes for its
+direct static root and non-root viewport-establishing role; the HTML `<svg>`
+row and the shared `x`, `y`, `width`, `height`, `viewBox`, and `overflow` rows
+stay open for their wider host, element, grammar, cascade, and animation
+applicability. `<symbol>` and a `<use>` whose referenced root establishes an
+instance viewport remain separate element contracts.
+
+The implementation stays above the resolved-frame boundary. One producer-side
+resolver turns a direct non-root `<svg>` into parent-space placement, a
+`viewBox` content transform, immutable nearest-viewport percentage bases, and
+a render disposition. The recursive compiler, bounds prepasses, paint servers,
+clips, masks, filters, markers, and use expansion now receive the current bases
+explicitly instead of reading one root-fixed value. Descendants lower to the
+same ordinary nodes and generic scope facts as before. The only new scoped
+fact is an existing antialiased rectangular `ClipPath`; no SVG element,
+viewport, DOM node, source token, URL, or backend object entered `rframe` or
+`n0`.
+
+Chromium 149 measurement established the order and defaults before code.
+Missing `x`/`y` use zero; missing and explicit-`auto` extents use 100% of the
+parent viewport; zero or negative extents suppress only that subtree; and
+signed positions remain valid. Composition is parent transform → the nested
+element's computed transform → `x`/`y` placement → `viewBox`. Descendants then
+use the child's x/y axes and normalized diagonal, while the viewport element's
+own percentage transform uses its parent basis. The non-root UA default is
+`overflow:hidden`; Blink's computed overflow-x makes `hidden`, `clip`, and
+`scroll` clip, while `visible` and `auto` open the viewport. A fractional edge
+is identical to ordinary antialiased geometric clipping, not the independently
+measured hard marker viewport. Descendant effects are inside that clip and the
+viewport element's own filter wraps it; the established same-element filter/
+mask/opacity/`clip-path` order remains outside that source clip.
+
+Twenty-seven new Chromium-baked cells carry omitted/default/invalid geometry,
+transform order, child-basis propagation through geometry, radii, stroke,
+gradients, patterns, clips, masks, filters, markers and `<use>`, overflow
+cascade and edge coverage, own-versus-child filter order, bounded nesting,
+visibility restoration, a viewport inside a referenced group, and parity
+between the standalone and inline-HTML entries. Every candidate also rendered
+through both actual CLI admissions during the scratch matrix; after the
+implementation every admitted candidate was pixel-exact and the two admissions
+were frame-identical.
+
+The law pass discovered one additional silent boundary before close. Chromium
+makes `<use width="32" height="16">` of an `<svg viewBox>` identical to a
+direct 32×16 nested viewport. The generic walk treated those use-site
+dimensions as inert in both admissions, changing 2,880 pixels at maximum
+channel delta 233. A new `svg-use-svg-viewport` row now refuses that direct
+target before clone traversal; `<use>` of an ordinary group that contains a
+nested viewport remains exact. Three context-specific patrols also preserve
+the independently open pattern-, mask-, and marker-source programs; their
+simple direct nested-viewport probes were exact, but do not establish those
+programs' wider clipping, effect, nesting, and precision contracts. The old
+blanket nested-`<svg>` refusal graduates, so these four narrower additions move
+the register from 223 to 226 rows. Direct units, CSS math,
+custom-property and CSS-wide values, comments, source-number provenance,
+used-range edges, competing CSS geometry, root-host sizing, and viewport
+dynamics retain their existing narrower patrols and own checklist rows.
+Chromium's direct-inner-viewport CSS geometry drop is measured, not celled;
+the engine conservatively refuses those declarations rather than discarding
+them silently.
+
+Gate sensitivity was proved by temporarily replacing mapped child `viewBox`
+bases with the parent bases. Ten new cells failed loudly by 15–800 pixels, up
+to maximum channel delta 233. Restoring the child bases returned the complete
+primitive, text-pixel, text-geometry, provenance, and refusal gate to green.
+The primitive corpus moves from 1,051 to 1,078 exact Chromium cells plus the
+unchanged 16 sampled frames; the named register moves to 226 rows. No
+tolerance was added, no conformance score was produced, and no FLIP record,
+rule, or baseline changed.

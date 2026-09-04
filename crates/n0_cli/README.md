@@ -148,6 +148,40 @@ cargo run -p n0_cli --bin n0 -- \
   retains its own element/resource refusal; pattern tile and mask-region
   geometry are admitted only by their separately bounded slices below, so this
   rect evidence does not close the generic `x`/`y`/`width`/`height` rows.
+  A direct non-root `<svg>` now establishes its own static viewport. Missing
+  `x`/`y` use zero; missing or explicit-`auto` dimensions use 100% of the
+  nearest parent viewport; zero and negative extents paint no subtree; and the
+  complete already-admitted `viewBox`/`preserveAspectRatio` mapper establishes
+  descendant user space. The measured composition order is parent transform,
+  the nested element's computed transform, `x`/`y` placement, then `viewBox`.
+  Descendant geometry, stroke, gradient, pattern, clip, mask, filter, marker,
+  and ordinary `<use>` percentage consumers all receive that nearest
+  viewport's independent axes and normalized diagonal. The nested element's
+  own percentage transform still uses its parent viewport.
+  Non-root `<svg>` gets SVG's scoped `overflow:hidden` user-agent default in
+  the one Stylo cascade. Presentation, inline, and stylesheet declarations
+  select the computed overflow; `hidden`, `clip`, and `scroll` clip while
+  `visible` and `auto` leave the viewport open. The resolved clip is an
+  ordinary antialiased rectangle. Descendant effects are inside it; the
+  viewport element's own filter is outside it, and the established
+  same-element filter/mask/opacity/`clip-path` order remains around that source
+  clip. Twenty-seven exact Chromium cells carry defaults,
+  mappings, all affected consumer families, effects, nesting, a viewport in a
+  referenced group, and standalone/inline entry parity. No viewport, DOM, or
+  source token crosses `rframe`.
+  Direct units, CSS math/custom properties/CSS-wide values, comments, numeric
+  provenance/range edges, and competing CSS geometry remain the existing
+  named geometry/value refusals. Chromium currently ignores CSS
+  `x`/`y`/`width`/`height` for direct inner-viewport used geometry (measured,
+  not celled), but this slice over-refuses that ingress instead of silently
+  dropping it. A `<use>` whose referenced root is `<svg>` remains a separate
+  instance-sized viewport refusal: Chromium honors the use-site dimensions,
+  and treating them as inert changes 2,880 pixels at maximum delta 233
+  (measured, not celled). Nested viewports inside pattern, mask, and marker
+  sources likewise retain those resource elements' own transactional source-
+  program refusals; their simple measured controls are exact, but do not grant
+  the wider source contracts. `<symbol>`, root host sizing, viewport animation,
+  and the shared geometry/overflow attribute rows remain independent work.
   `transform` is consumed in both spellings: the attribute is a presentation
   attribute of the one CSS `transform` property (CSS Transforms L1 §7),
   entering the cascade at hint level, so author CSS beats it —
@@ -173,8 +207,8 @@ cargo run -p n0_cli --bin n0 -- \
   an ancestor reference. What refuses by name: a document with any author
   stylesheet (the measured shadow boundary scopes selectors to the cloned
   subtree, which the flattened tree cannot express), an external
-  reference, authored element children, a `<symbol>`/nested-`<svg>`
-  target, and reference chains beyond the expansion budget.
+  reference, authored element children, an instance-viewport `<svg>` or
+  `<symbol>` target, and reference chains beyond the expansion budget.
   Geometric `clip-path` is consumed on admitted non-root SVG targets. The
   presentation attribute is a hint for the pinned cascade's typed property,
   so inline style and stylesheet declarations beat it, an invalid declaration
@@ -572,10 +606,10 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete primitive corpus contains 1,051 Chromium-baked cells plus
+  cells. The complete primitive corpus contains 1,078 Chromium-baked cells plus
   16 sampled frames; the text estate contains fifteen exact text pixel cells and
   eight exact-number artifact-geometry witnesses (six Allerta and two
-  Bungee), and the named refusal register has 223 rows. `feFlood`, `feComposite`,
+  Bungee), and the named refusal register has 226 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,

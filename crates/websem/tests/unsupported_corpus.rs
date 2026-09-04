@@ -614,6 +614,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     ("svg-marker-source-text", DeclaredByBestEffort, "a <text>"),
     ("svg-marker-source-use", DeclaredByBestEffort, "a <use>"),
     (
+        "svg-marker-source-viewport",
+        DeclaredByBestEffort,
+        "nested <svg> viewport inside a used marker source",
+    ),
+    (
         "svg-marker-width-calc",
         DeclaredByBestEffort,
         "markerWidth uses calc()",
@@ -659,6 +664,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "source-side cascade effect is not represented",
     ),
+    (
+        "svg-mask-source-viewport",
+        DeclaredByBestEffort,
+        "nested <svg> viewport inside a mask source",
+    ),
     ("svg-mask-root", BothRefuse, "root <svg>"),
     (
         "svg-mask-transform-precision",
@@ -680,11 +690,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "svg-mask-var",
         DeclaredByBestEffort,
         "mask presentation attribute uses var()",
-    ),
-    (
-        "svg-nested-svg",
-        DeclaredByBestEffort,
-        "unsupported element <svg>",
     ),
     (
         "svg-path-css-d-property",
@@ -770,6 +775,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "svg-pattern-source-unsupported",
         DeclaredByBestEffort,
         "source cannot compile completely",
+    ),
+    (
+        "svg-pattern-source-viewport",
+        DeclaredByBestEffort,
+        "nested <svg> viewport outside the admitted pattern-source program",
     ),
     (
         "svg-pattern-tile-phase-precision",
@@ -1042,6 +1052,11 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "same-document fragment",
     ),
     ("svg-use-stylesheet", DeclaredByBestEffort, "author CSS"),
+    (
+        "svg-use-svg-viewport",
+        DeclaredByBestEffort,
+        "instance-sized viewport",
+    ),
     (
         "svg-use-symbol",
         DeclaredByBestEffort,
