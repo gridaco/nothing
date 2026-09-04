@@ -13386,7 +13386,6 @@ fn resolve_stroke(
     bases: PercentBases,
     extra_opacity: f32,
 ) -> Result<StrokeResolution, CompileError> {
-    let vector_effect_space = resolve_vector_effect_space(el)?;
     let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     let style: &ComputedValues = data.styles.primary();
 
@@ -13620,6 +13619,12 @@ fn resolve_stroke(
 
     // The cascade's non-negative types make a rejection here unreachable from a
     // document, so it would be this compiler's bug — named, never painted.
+    // Resolve construction space only after proving that this element owns a
+    // drawable stroke. An unsupported substitution function is inert when
+    // there is no stroke to construct; markerUnits="strokeWidth" performs its
+    // own resolution above because markers remain meaningful without stroke
+    // paint.
+    let vector_effect_space = resolve_vector_effect_space(el)?;
     let stroke = Stroke::new_with_dash(paints, width, cap, join, miter_limit, dash)
         .map_err(|error| CompileError::UnsupportedStroke(error.to_string()))?
         .map(|stroke| stroke.with_space(vector_effect_space));

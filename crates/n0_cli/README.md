@@ -607,7 +607,7 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete primitive corpus contains 1,126 Chromium-baked cells plus
+  cells. The complete primitive corpus contains 1,127 Chromium-baked cells plus
   16 sampled frames; the text estate contains fifteen exact text pixel cells and
   eight exact-number artifact-geometry witnesses (six Allerta and two
   Bungee), and the named refusal register has 230 rows. `feFlood`, `feComposite`,
@@ -679,13 +679,15 @@ cargo run -p n0_cli --bin n0 -- \
   Blink's RMS affine scale; `userSpaceOnUse` remains independent. Exact-linear
   identity mappings retain the established local f32 execution order, while
   a zero, non-finite, underflowed, or overflowed f32 determinant suppresses
-  both the frame-space stroke and its stroke-width marker. Forty-seven exact
-  Chromium cells guard the slice. Direct `var()`, `env()` fallback, typed
-  `attr()`, and experimental `if()` forms remain stable function-named
-  refusals, and authored CSS `vector-effect` remains a separate stable property
-  refusal because the pinned Stylo build has no corresponding longhand; no
-  second matcher is added. Graphics elements outside this admitted slice keep
-  their own element-level refusals.
+  both the frame-space stroke and its stroke-width marker. Forty-eight exact
+  Chromium cells guard the slice, including the rule that a substitution
+  function is inert when no drawable stroke exists. Marker scaling resolves
+  the same attribute on its separate live path. Direct `var()`, `env()`
+  fallback, typed `attr()`, and experimental `if()` forms remain stable
+  function-named refusals, and authored CSS `vector-effect` remains a separate
+  stable property refusal because the pinned Stylo build has no corresponding
+  longhand; no second matcher is added. Graphics elements outside this admitted
+  slice keep their own element-level refusals.
   `stroke-dasharray` is consumed in both spellings from that same cascade:
   numbers/lengths/percentages, comma or whitespace separators, CSS math,
   odd-list repetition, inheritance through containers and `<use>`, and

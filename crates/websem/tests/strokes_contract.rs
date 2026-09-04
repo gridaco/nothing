@@ -1018,6 +1018,37 @@ fn vector_effect_attribute_functions_refuse_by_name_in_both_policies() {
     }
 }
 
+/// A substitution function matters only when construction space can affect
+/// pixels. Chromium 149 keeps a fill-only shape and a zero-width stroke exact
+/// to their controls; inspecting the function before those stroke exits made
+/// best effort skip both otherwise valid fills (measured: 1,024 pixels at
+/// maximum channel delta 233). Marker scaling resolves the attribute on its
+/// separate live path, even when the client's stroke paint is `none`.
+#[test]
+fn vector_effect_functions_are_inert_without_a_drawable_stroke() {
+    let source = document(
+        r##"  <rect x="4" y="8" width="12" height="16" transform="scale(2)" fill="#16a34a" vector-effect="var(--missing, non-scaling-stroke)"/>
+  <rect x="20" y="8" width="10" height="16" fill="#2563eb" stroke="#000" stroke-width="0" vector-effect="var(--missing, non-scaling-stroke)"/>"##,
+    );
+    let frame = admit_both(&source);
+    assert_eq!(frame.nodes().len(), 2);
+    assert!(frame.nodes().iter().all(|node| node.stroke.is_none()));
+    let pixels = render_through_n0(&frame, 64, 64);
+    assert_eq!(at(&pixels, 16, 32), [0x16, 0xa3, 0x4a, 255]);
+    assert_eq!(at(&pixels, 24, 16), [0x25, 0x63, 0xeb, 255]);
+
+    let marker = document(
+        r##"  <defs><marker id="m" markerUnits="strokeWidth" markerWidth="2" markerHeight="2" refX="1" refY="1"><rect width="2" height="2" fill="#000"/></marker></defs>
+  <path d="M8 16H24" transform="scale(2)" fill="none" stroke="none" stroke-width="8" marker-end="url(#m)" vector-effect="var(--missing, non-scaling-stroke)"/>"##,
+    );
+    let error = refusal(&marker);
+    assert!(
+        matches!(&error, CompileError::UnsupportedStroke(reason)
+            if reason.contains("vector-effect presentation attribute uses var()")),
+        "the live marker branch still refuses the hidden member: {error}"
+    );
+}
+
 /// Paint ordering still refuses through either spelling. The CSS property
 /// twin of the now-admitted direct `vector-effect` attribute also remains
 /// quarantined because this Stylo build exposes no computed longhand.

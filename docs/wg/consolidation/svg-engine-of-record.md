@@ -111,7 +111,7 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,126 Chromium-baked primitive cells plus 16 sampled frames,
+- **The corpus** is 1,127 Chromium-baked primitive cells plus 16 sampled frames,
   with a separate fifteen-cell exact text suite whose current cells select
   hash-pinned Ahem and Ahem-derived bytes from explicit family/face
   environments, and eight exact-number artifact-geometry
@@ -5436,7 +5436,19 @@ module early-exploration draft work; under the checklist header it does not
 raise the standard-track grammar bar, but the named refusal still prevents a
 silent pixel.
 
-Forty-seven new exact Chromium cells cover token grammar and browser drops,
+Hosted review then found one avoidable over-refusal in that patrol. It ran
+before the stroke resolver had proved that a stroke would be constructed.
+Pinned Chromium makes a fill-only shape and a zero-width stroke carrying a
+live `var()` fallback exact to controls. The old strict path refused, while
+best effort skipped the otherwise valid fills and differed by 1,024 pixels at
+maximum channel delta 233. Construction-space resolution now follows the
+no-paint, zero-width, and empty-paint exits. The separate marker consumer still
+resolves it when marker scaling is live: with stroke paint `none`, ordinary and
+non-scaling `markerUnits="strokeWidth"` differ by 768 pixels at delta 255, and
+the `var()` form equals the non-scaling result (measured, not celled).
+`svg-vector-effect-inert-function` commits the two inert stroke branches.
+
+Forty-eight new exact Chromium cells cover token grammar and browser drops,
 CSS-wide behavior and applicability, both source entries, `<use>`, every
 admitted geometry, curves and zero-length caps, dash/phase/`pathLength`,
 computed stroke lengths, general and nested transforms, root and nested
@@ -5452,8 +5464,10 @@ ordinary local stroking failed forty new cells, up to maximum channel delta
 translation cell by 288 pixels at delta 255. Widening the determinant
 classifier failed the stroke and marker boundary cells by 120 and 248 pixels,
 at deltas 255 and 218. Restoring each law returned the complete fixture gate
-to green. Replacing the former broad vector-effect patrol with four direct
-function rows and the CSS-property row moves the named refusal register from
-226 to 230. The primitive corpus moves from 1,079 to 1,126 exact Chromium cells
-plus the unchanged 16 sampled frames. No conformance score was produced, and
-no FLIP record, rule, or baseline changed.
+to green. Moving the function patrol back ahead of the no-stroke exits made
+the review-added inert-function cell fail at strict admission; restoring the
+ordering regated the complete corpus. Replacing the former broad vector-effect
+patrol with four direct function rows and the CSS-property row moves the named
+refusal register from 226 to 230. The primitive corpus moves from 1,079 to 1,127
+exact Chromium cells plus the unchanged 16 sampled frames. No conformance score
+was produced, and no FLIP record, rule, or baseline changed.

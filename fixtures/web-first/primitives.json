@@ -8793,6 +8793,14 @@
       "height": 64
     },
     {
+      "id": "svg-vector-effect-inert-function",
+      "source": "svg-vector-effect-inert-function.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-inert-function.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-vector-effect-large-quarter-turn",
       "source": "svg-vector-effect-large-quarter-turn.svg",
       "entry": "standalone-svg",

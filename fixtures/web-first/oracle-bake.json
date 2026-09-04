@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "069296201718c43d29efe356fbea893781b73250dca51de3b6d47468d74027b0",
   "suite": "primitives.json",
-  "suite_sha256": "acdc85f80fa4263a4056e47a2726be3c3656ad2566492460b4e5dbd6f3b8dda4",
+  "suite_sha256": "51e5b49c419c78a8e0fbf0fcd37bceeb6d8aaf57421e996bd99c17ce912165ab",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -9781,6 +9781,15 @@
       "source_sha256": "55b78a702edfa59934ddde78adff83930bef6578d6f06ee57badf68bf1f134a0",
       "oracle": "chromium/svg-vector-effect-group-applicability.png",
       "oracle_sha256": "2c97c6ee9aff9c0f3ce4ed3abe9109bf31381fdbfc519b17583384d8c9a8d7cb",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-inert-function",
+      "source": "svg-vector-effect-inert-function.svg",
+      "source_sha256": "aade6e7d7850fd8d4a6941086da72826ac56a566bc2378258f96e149532b8fff",
+      "oracle": "chromium/svg-vector-effect-inert-function.png",
+      "oracle_sha256": "48188d916ce96e4fd6edb992d753b4e5f3c776175fe8e3e30647fb1e6ba946dd",
       "width": 64,
       "height": 64
     },

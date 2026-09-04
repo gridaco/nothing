@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (1126)
+## Chromium-baked cells (1127)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -1113,6 +1113,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-vector-effect-dash-pathlength.svg" title="svg-vector-effect-dash-pathlength (standalone-svg)"><img src="./chromium/svg-vector-effect-dash-pathlength.png" width="56" alt="svg-vector-effect-dash-pathlength"></a>
 <a href="./svg-vector-effect-filter-opacity.svg" title="svg-vector-effect-filter-opacity (standalone-svg)"><img src="./chromium/svg-vector-effect-filter-opacity.png" width="56" alt="svg-vector-effect-filter-opacity"></a>
 <a href="./svg-vector-effect-group-applicability.svg" title="svg-vector-effect-group-applicability (standalone-svg)"><img src="./chromium/svg-vector-effect-group-applicability.png" width="56" alt="svg-vector-effect-group-applicability"></a>
+<a href="./svg-vector-effect-inert-function.svg" title="svg-vector-effect-inert-function (standalone-svg)"><img src="./chromium/svg-vector-effect-inert-function.png" width="56" alt="svg-vector-effect-inert-function"></a>
 <a href="./svg-vector-effect-large-quarter-turn.svg" title="svg-vector-effect-large-quarter-turn (standalone-svg)"><img src="./chromium/svg-vector-effect-large-quarter-turn.png" width="56" alt="svg-vector-effect-large-quarter-turn"></a>
 <a href="./svg-vector-effect-large-reflection.svg" title="svg-vector-effect-large-reflection (standalone-svg)"><img src="./chromium/svg-vector-effect-large-reflection.png" width="56" alt="svg-vector-effect-large-reflection"></a>
 <a href="./svg-vector-effect-large-viewbox-translation.svg" title="svg-vector-effect-large-viewbox-translation (standalone-svg)"><img src="./chromium/svg-vector-effect-large-viewbox-translation.png" width="56" alt="svg-vector-effect-large-viewbox-translation"></a>

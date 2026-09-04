@@ -2277,7 +2277,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `unicode-bidi`
 - [x] `vector-effect`
 
-> **2026-09-05 close/split:** forty-seven exact Chromium cells carry the
+> **2026-09-05 close/split:** forty-eight exact Chromium cells carry the
 > complete standard-track direct-attribute grammar. `none` and missing select
 > ordinary local stroking; `non-scaling-stroke` transforms the centerline to
 > frame space before applying one nominal circular pen. Whitespace, comments,
@@ -2299,7 +2299,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > feature with ordinary stroking failed forty cells up to delta 255; removing
 > the translation route failed its cell by 288 pixels; widening determinant
 > classification failed the stroke and marker cells by 120 and 248 pixels.
-> Restoration returned all 1,126 primitive cells plus 16 sampled frames to
+> Restoration returned all 1,127 primitive cells plus 16 sampled frames to
 > green. A final function patrol found that Chromium resolves direct `var()`
 > fallback, custom `env()` fallback, typed `attr()`, and `if()` to the live
 > member; the former raw parse silently painted `none`, differing by 512
@@ -2313,7 +2313,13 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > property row moves the refusal register from 226 to 230. Graphics elements
 > outside the admitted slice retain their own
 > unchecked element rows; every admitted stroke-bearing geometry route is
-> covered here. No tolerance was added.
+> covered here. Hosted review found that the function patrol initially ran
+> before proving a drawable stroke: Chromium keeps fill-only and zero-width
+> cases exact, while old best effort skipped 1,024 valid pixels at delta 233
+> and strict admission refused. The call now follows the no-stroke exits and a
+> dedicated cell guards that ordering. The separate marker consumer still
+> resolves the attribute when marker scaling is live (measured, not celled).
+> No tolerance was added.
 - [x] `visibility`
 - [ ] `white-space`
 - [ ] `width`
