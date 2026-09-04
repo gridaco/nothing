@@ -24,8 +24,8 @@ use std::sync::OnceLock;
 use style::context::QuirksMode as StyleQuirksMode;
 use style::data::ElementDataWrapper;
 use style::properties::{
-    Importance, LonghandId, PropertyId, SourcePropertyDeclaration, parse_one_declaration_into,
-    parse_style_attribute,
+    Importance, LonghandId, PropertyId, ShorthandId, SourcePropertyDeclaration,
+    parse_one_declaration_into, parse_style_attribute,
 };
 use style::servo_arc::Arc;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
@@ -848,11 +848,10 @@ fn svg_presentation_hints(
         // compiler consumes overflow-x for a nested viewport exactly as
         // Blink does. Other SVG seats still keep their own attribute patrols.
         if attr.name.local.as_ref() == "overflow" {
-            let mut overflow_x = SourcePropertyDeclaration::default();
-            let mut overflow_y = SourcePropertyDeclaration::default();
+            let mut overflow = SourcePropertyDeclaration::default();
             if parse_one_declaration_into(
-                &mut overflow_x,
-                PropertyId::NonCustom(LonghandId::OverflowX.into()),
+                &mut overflow,
+                PropertyId::NonCustom(ShorthandId::Overflow.into()),
                 &attr.value,
                 Origin::Author,
                 &url_data,
@@ -862,21 +861,8 @@ fn svg_presentation_hints(
                 CssRuleType::Style,
             )
             .is_ok()
-                && parse_one_declaration_into(
-                    &mut overflow_y,
-                    PropertyId::NonCustom(LonghandId::OverflowY.into()),
-                    &attr.value,
-                    Origin::Author,
-                    &url_data,
-                    None,
-                    ParsingMode::DEFAULT,
-                    StyleQuirksMode::NoQuirks,
-                    CssRuleType::Style,
-                )
-                .is_ok()
             {
-                block.extend(overflow_x.drain(), Importance::Normal);
-                block.extend(overflow_y.drain(), Importance::Normal);
+                block.extend(overflow.drain(), Importance::Normal);
                 parsed_any = true;
             }
             continue;

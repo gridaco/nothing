@@ -125,9 +125,11 @@ observable beyond the class diagram:
   transforms on the nested element itself use the parent viewport; descendant
   percentages switch to the child's user-space axes and normalized diagonal.
 - A non-root `<svg>` starts with the SVG user-agent `overflow:hidden` rule.
-  Blink's coupled computed axes make overflow-x `hidden`, `clip`, or `scroll`
-  clip, while `visible` or `auto` leave it open. A fractional viewport edge is
-  byte-identical to an antialiased geometric clip, not a hard pixel mask.
+  The presentation attribute takes the CSS shorthand's one- or two-value
+  grammar. Blink's coupled computed axes make overflow-x `hidden`, `clip`, or
+  `scroll` clip, while `visible` or `auto` leave it open. A fractional viewport
+  edge is byte-identical to an antialiased geometric clip, not a hard pixel
+  mask.
 - Descendant effects paint before the viewport clip, while a filter on the
   nested `<svg>` itself wraps that clip. Its remaining same-element mask,
   opacity, and authored-clip order follows the ordinary SVG effect stack.

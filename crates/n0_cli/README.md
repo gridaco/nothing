@@ -159,13 +159,14 @@ cargo run -p n0_cli --bin n0 -- \
   viewport's independent axes and normalized diagonal. The nested element's
   own percentage transform still uses its parent viewport.
   Non-root `<svg>` gets SVG's scoped `overflow:hidden` user-agent default in
-  the one Stylo cascade. Presentation, inline, and stylesheet declarations
-  select the computed overflow; `hidden`, `clip`, and `scroll` clip while
+  the one Stylo cascade. Presentation (including the two-value shorthand),
+  inline, and stylesheet declarations select the computed overflow; `hidden`,
+  `clip`, and `scroll` clip while
   `visible` and `auto` leave the viewport open. The resolved clip is an
   ordinary antialiased rectangle. Descendant effects are inside it; the
   viewport element's own filter is outside it, and the established
   same-element filter/mask/opacity/`clip-path` order remains around that source
-  clip. Twenty-seven exact Chromium cells carry defaults,
+  clip. Twenty-eight exact Chromium cells carry defaults,
   mappings, all affected consumer families, effects, nesting, a viewport in a
   referenced group, and standalone/inline entry parity. No viewport, DOM, or
   source token crosses `rframe`.
@@ -606,7 +607,7 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete primitive corpus contains 1,078 Chromium-baked cells plus
+  cells. The complete primitive corpus contains 1,079 Chromium-baked cells plus
   16 sampled frames; the text estate contains fifteen exact text pixel cells and
   eight exact-number artifact-geometry witnesses (six Allerta and two
   Bungee), and the named refusal register has 226 rows. `feFlood`, `feComposite`,

@@ -5671,6 +5671,14 @@
       "height": 64
     },
     {
+      "id": "svg-nested-viewport-overflow-attribute-pair",
+      "source": "svg-nested-viewport-overflow-attribute-pair.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-nested-viewport-overflow-attribute-pair.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-nested-viewport-overflow-axis",
       "source": "svg-nested-viewport-overflow-axis.svg",
       "entry": "standalone-svg",

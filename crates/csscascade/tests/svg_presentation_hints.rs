@@ -520,6 +520,8 @@ fn nested_svg_overflow_uses_ua_default_and_one_author_cascade() {
   <svg id="ruled" overflow="hidden"/>
   <svg id="inline" overflow="hidden" style="overflow:visible"/>
   <svg id="invalid" overflow="bogus"/>
+  <svg id="hint-pair" overflow="visible hidden"/>
+  <svg id="hint-pair-reversed" overflow="hidden visible"/>
   <svg id="axis"/>
 </svg>"##;
     let dom = DemoDom::parse_xml_from_bytes(source.as_bytes()).expect("parse standalone SVG");
@@ -541,6 +543,16 @@ fn nested_svg_overflow_uses_ua_default_and_one_author_cascade() {
     assert_eq!(overflow("inline", LonghandId::OverflowY), "visible");
     assert_eq!(overflow("invalid", LonghandId::OverflowX), "hidden");
     assert_eq!(overflow("invalid", LonghandId::OverflowY), "hidden");
+    assert_eq!(overflow("hint-pair", LonghandId::OverflowX), "auto");
+    assert_eq!(overflow("hint-pair", LonghandId::OverflowY), "hidden");
+    assert_eq!(
+        overflow("hint-pair-reversed", LonghandId::OverflowX),
+        "hidden"
+    );
+    assert_eq!(
+        overflow("hint-pair-reversed", LonghandId::OverflowY),
+        "auto"
+    );
     // CSS Overflow couples a visible axis to auto when the other axis clips.
     // Blink's SVG viewport clip then consults overflow-x only.
     assert_eq!(overflow("axis", LonghandId::OverflowX), "auto");

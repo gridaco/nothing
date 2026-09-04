@@ -1842,7 +1842,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [x] `<svg>`
 
 > **2026-09-05 close/split:** the outer SVG root and a direct static non-root
-> `<svg>` now carry the element's viewport-establishing role. Twenty-seven new
+> `<svg>` now carry the element's viewport-establishing role. Twenty-eight new
 > exact Chromium cells cover omitted `x`/`y`, omitted and explicit-`auto`
 > 100% extents, zero/negative no-paint extents, signed placement, the complete
 > admitted `viewBox`/`preserveAspectRatio` mapping, non-commuting parent/own/
@@ -1851,14 +1851,15 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > markers, and `<use>`. Nested levels, a viewport inside an ordinary referenced
 > group, visibility restoration, and both source entries are exact. Non-root
 > overflow gets its scoped UA `hidden` default through the one Stylo cascade;
-> presentation, inline, and stylesheet values can open or clip it, and its
+> one- or two-value presentation, inline, and stylesheet values can open or
+> clip it, and its
 > fractional rectangle uses ordinary antialiased clip coverage. The measured
 > spatial split is descendant effects → viewport clip → the viewport element's
 > own filter; the already-established same-element filter/mask/opacity/
 > `clip-path` order remains outside that source clip.
 >
 > The old blanket nested-element refusal graduates, moving the corpus from
-> 1,051 to 1,078 primitive cells plus the unchanged 16 sampled frames and the
+> 1,051 to 1,079 primitive cells plus the unchanged 16 sampled frames and the
 > named register moves from 223 to 226 rows. A new direct
 > `<use>`-to-`<svg>` patrol replaces the graduated row after measurement
 > exposed a 2,880-pixel silent instance-sizing error; three further rows keep
@@ -1866,7 +1867,9 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > mask, and marker source programs. Replacing the child `viewBox` bases with
 > the parent bases made ten new cells fail by 15–800 pixels, up to maximum
 > channel delta 233; restoration returned the complete gate to byte-exact
-> green. No tolerance was added. Shared geometry token, value-type,
+> green. Replacing the two-value Stylo shorthand parse with the former
+> longhand parse also made its dedicated cell fail by 768 pixels at delta 233;
+> restoration regated green. No tolerance was added. Shared geometry token, value-type,
 > precision/range, CSS sizing, root-host sizing, and animation gaps keep
 > `x`/`y`/`width`/`height`, `viewBox`, and `overflow` open. A `<use>` whose
 > referenced root is `<svg>` or `<symbol>` is the separate instance-viewport

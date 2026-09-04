@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "069296201718c43d29efe356fbea893781b73250dca51de3b6d47468d74027b0",
   "suite": "primitives.json",
-  "suite_sha256": "e2ff9b19144d35a8567e73507b878e98bdcefbc2493b2b7bb1bb20b19fd15e88",
+  "suite_sha256": "16e1e70bca9b18db72693142eaa6c7d11951cda13ff3b29e73869b80cba1acc6",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -6289,6 +6289,15 @@
       "source_sha256": "0bafd9ed35751ffdf87683051b04d19fa506854a8d710188980403fd8bd32d52",
       "oracle": "chromium/svg-nested-viewport-negative-extent.png",
       "oracle_sha256": "ad8b67ce699a372e47fde24d57efeb7a872a5bd79e0b4de1c56615ef29927220",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-overflow-attribute-pair",
+      "source": "svg-nested-viewport-overflow-attribute-pair.svg",
+      "source_sha256": "1df3418bba3dad05777353676c36bd30ebf1539c6c32ea06d254b5fcf56742a1",
+      "oracle": "chromium/svg-nested-viewport-overflow-attribute-pair.png",
+      "oracle_sha256": "173b81ef1926c613e7a78552c09357e10c0bac7e36968b2d6e339a6e0a40251d",
       "width": 64,
       "height": 64
     },

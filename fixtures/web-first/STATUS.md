@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (1078)
+## Chromium-baked cells (1079)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -725,6 +725,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-nested-viewport-marker-basis.svg" title="svg-nested-viewport-marker-basis (standalone-svg)"><img src="./chromium/svg-nested-viewport-marker-basis.png" width="56" alt="svg-nested-viewport-marker-basis"></a>
 <a href="./svg-nested-viewport-mask-basis.svg" title="svg-nested-viewport-mask-basis (standalone-svg)"><img src="./chromium/svg-nested-viewport-mask-basis.png" width="56" alt="svg-nested-viewport-mask-basis"></a>
 <a href="./svg-nested-viewport-negative-extent.svg" title="svg-nested-viewport-negative-extent (standalone-svg)"><img src="./chromium/svg-nested-viewport-negative-extent.png" width="56" alt="svg-nested-viewport-negative-extent"></a>
+<a href="./svg-nested-viewport-overflow-attribute-pair.svg" title="svg-nested-viewport-overflow-attribute-pair (standalone-svg)"><img src="./chromium/svg-nested-viewport-overflow-attribute-pair.png" width="56" alt="svg-nested-viewport-overflow-attribute-pair"></a>
 <a href="./svg-nested-viewport-overflow-axis.svg" title="svg-nested-viewport-overflow-axis (standalone-svg)"><img src="./chromium/svg-nested-viewport-overflow-axis.png" width="56" alt="svg-nested-viewport-overflow-axis"></a>
 <a href="./svg-nested-viewport-overflow-cascade.svg" title="svg-nested-viewport-overflow-cascade (standalone-svg)"><img src="./chromium/svg-nested-viewport-overflow-cascade.png" width="56" alt="svg-nested-viewport-overflow-cascade"></a>
 <a href="./svg-nested-viewport-overflow-default.svg" title="svg-nested-viewport-overflow-default (standalone-svg)"><img src="./chromium/svg-nested-viewport-overflow-default.png" width="56" alt="svg-nested-viewport-overflow-default"></a>

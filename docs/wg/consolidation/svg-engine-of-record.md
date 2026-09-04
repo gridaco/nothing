@@ -109,7 +109,7 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,078 Chromium-baked primitive cells plus 16 sampled frames,
+- **The corpus** is 1,079 Chromium-baked primitive cells plus 16 sampled frames,
   with a separate fifteen-cell exact text suite whose current cells select
   hash-pinned Ahem and Ahem-derived bytes from explicit family/face
   environments, and eight exact-number artifact-geometry
@@ -5317,14 +5317,15 @@ signed positions remain valid. Composition is parent transform → the nested
 element's computed transform → `x`/`y` placement → `viewBox`. Descendants then
 use the child's x/y axes and normalized diagonal, while the viewport element's
 own percentage transform uses its parent basis. The non-root UA default is
-`overflow:hidden`; Blink's computed overflow-x makes `hidden`, `clip`, and
+`overflow:hidden`; the one- or two-value presentation shorthand enters the
+same cascade, and Blink's computed overflow-x makes `hidden`, `clip`, and
 `scroll` clip, while `visible` and `auto` open the viewport. A fractional edge
 is identical to ordinary antialiased geometric clipping, not the independently
 measured hard marker viewport. Descendant effects are inside that clip and the
 viewport element's own filter wraps it; the established same-element filter/
 mask/opacity/`clip-path` order remains outside that source clip.
 
-Twenty-seven new Chromium-baked cells carry omitted/default/invalid geometry,
+Twenty-eight new Chromium-baked cells carry omitted/default/invalid geometry,
 transform order, child-basis propagation through geometry, radii, stroke,
 gradients, patterns, clips, masks, filters, markers and `<use>`, overflow
 cascade and edge coverage, own-versus-child filter order, bounded nesting,
@@ -5356,8 +5357,11 @@ them silently.
 Gate sensitivity was proved by temporarily replacing mapped child `viewBox`
 bases with the parent bases. Ten new cells failed loudly by 15–800 pixels, up
 to maximum channel delta 233. Restoring the child bases returned the complete
-primitive, text-pixel, text-geometry, provenance, and refusal gate to green.
-The primitive corpus moves from 1,051 to 1,078 exact Chromium cells plus the
+primitive, text-pixel, text-geometry, provenance, and refusal gate to green. A
+second mutation replaced the review-added Stylo overflow shorthand parse with
+the former longhand parse; its dedicated cell failed by 768 pixels at maximum
+delta 233, and restoration again returned the complete gate to green.
+The primitive corpus moves from 1,051 to 1,079 exact Chromium cells plus the
 unchanged 16 sampled frames; the named register moves to 226 rows. No
 tolerance was added, no conformance score was produced, and no FLIP record,
 rule, or baseline changed.
