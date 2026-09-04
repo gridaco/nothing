@@ -15,9 +15,10 @@
 //! Shapes: `<rect>`, `<circle>`, `<ellipse>`, `<path>`, `<line>`, `<polygon>`
 //! and `<polyline>`, each with a solid or gradient `fill` and `stroke`
 //! (`stroke-width`, `-linecap`, `-linejoin`, `-miterlimit`, and `fill-rule`
-//! on a path). Containers: `<g>`, `<a>`, `<use>`/`<defs>` and the whole
-//! `transform` grammar, flattened into a per-node affine rather than
-//! represented — except element `opacity` (the group-scope rung), which
+//! on a path). Containers: `<g>`, `<a>`, `<use>`/`<defs>`, direct non-root
+//! `<svg>` viewports, and the whole `transform` grammar, flattened into
+//! per-node affines and ordinary resolved scopes rather than represented —
+//! except element `opacity` (the group-scope rung), which
 //! resolves on a lone opacity pass as either a solid-paint fold or a post-paint alpha
 //! factor, and otherwise emits a real [`rframe::Scope`] by the measured rule.
 //! Root sizing follows SVG2 §8.2: explicit
@@ -25,7 +26,10 @@
 //! of the host-established [`InitialViewport`] (standalone entry only — the
 //! inline HTML entry refuses until CSS replaced-element sizing is
 //! implemented); `viewBox` maps user units into the viewport under the full
-//! `preserveAspectRatio` grammar. Time: one retained exact-time
+//! `preserveAspectRatio` grammar. A direct non-root `<svg>` resolves its own
+//! placement, mapping, nearest percentage bases, and computed overflow clip
+//! entirely on the producer side; no viewport object crosses `rframe`. Time:
+//! one retained exact-time
 //! `<animate attributeName="x">` on a top-level `<rect>`.
 //!
 //! Everything outside that list departs by name. [`CompileError`] makes the
@@ -71,7 +75,7 @@
 //! | departures | [`CompileError`], [`Degradation`], and every `patrol_*` — the attribute tables, the cascaded-property reads, the stylesheet scans, the unit patrol |
 //! | shapes | `compile_rect`/`_circle`/`_ellipse`/`_path`/`_line` and `shape_node` |
 //! | paint | `resolve_fill`, `resolve_stroke`, `resolve_fill_rule`, and the admitted colour and paint-server surface |
-//! | viewport | [`InitialViewport`], `parse_viewbox`, the `preserveAspectRatio` grammar and its viewport mapping |
+//! | viewport | [`InitialViewport`], root/nested `viewBox`, nearest percentage bases, the `preserveAspectRatio` grammar and viewport mappings |
 //!
 //! Two conversions *are* separate files, because they are value-in/value-out
 //! and owe the compiler nothing: `svg_path` for the `d` grammar and
@@ -136,6 +140,7 @@ use style::values::computed::font::{
 use style::values::computed::{Length, SVGOpacity, SVGPaint, Size};
 use style::values::generics::basic_shape::FillRule as StyloFillRule;
 use style::values::generics::svg::{SVGLength, SVGPaintKind, SVGStrokeDashArray};
+use style::values::specified::box_::Overflow as StyloOverflow;
 
 use cg::{CGColor, CGColor32F};
 use math2::Rectangle;
@@ -386,12 +391,13 @@ pub enum CompileError {
     /// A `<use>` this slice must refuse by name rather than walk: an
     /// external reference (the engine is declared resource-free, and
     /// Chromium with a network would render the target), authored element
-    /// children (Chromium renders the shadow content in their place), an
+    /// children (Chromium renders the shadow content in their place), a
+    /// referenced `<svg>` root whose viewport is sized by the `<use>`, an
     /// expansion overflow (an indirect reference cycle or pathological
-    /// fan-out beyond the measured shapes), or a document carrying author
-    /// CSS (the measured shadow boundary scopes selector matching to the
-    /// cloned subtree alone, which the one flattened tree cannot express —
-    /// the shadow-matching rung's earned work).
+    /// fan-out beyond the measured shapes), or a document carrying author CSS
+    /// (the measured shadow boundary scopes selector matching to the cloned
+    /// subtree alone, which the one flattened tree cannot express — the
+    /// shadow-matching rung's earned work).
     UnsupportedUse(String),
     /// Container nesting deeper than the compiler descends. A recursive
     /// walk cannot honor unbounded depth, so the limit is explicit rather
@@ -981,6 +987,30 @@ fn subtree_contains_script(el: HtmlElement<'_>) -> bool {
         while let Some(c) = child {
             stack.push(c);
             child = c.next_element_sibling();
+        }
+    }
+    false
+}
+
+/// Whether a resource source subtree contains a viewport-establishing SVG.
+/// Resource programs own separate completeness and raster-profile contracts;
+/// admitting direct document viewports must not widen those programs through
+/// their shared child compiler.
+fn subtree_contains_nested_svg(el: HtmlElement<'_>) -> bool {
+    let mut stack = Vec::new();
+    let mut child = el.first_element_child();
+    while let Some(next) = child {
+        stack.push(next);
+        child = next.next_element_sibling();
+    }
+    while let Some(element) = stack.pop() {
+        if element.local_name_string() == "svg" {
+            return true;
+        }
+        let mut child = element.first_element_child();
+        while let Some(next) = child {
+            stack.push(next);
+            child = next.next_element_sibling();
         }
     }
     false
@@ -2155,10 +2185,21 @@ fn patrol_rendering_attributes(
     element_name: &str,
     extra: &[&str],
 ) -> Result<(), CompileError> {
+    patrol_rendering_attributes_except(element, element_name, extra, &[])
+}
+
+fn patrol_rendering_attributes_except(
+    element: HtmlElement<'_>,
+    element_name: &str,
+    extra: &[&str],
+    admitted: &[&str],
+) -> Result<(), CompileError> {
     if let DemoNodeData::Element(e) = &element.dom_node().data {
         for a in &e.attrs {
             let local = a.name.local.as_ref();
-            if RENDERING_ATTRIBUTES_NOT_CONSUMED.contains(&local) || extra.contains(&local) {
+            if (RENDERING_ATTRIBUTES_NOT_CONSUMED.contains(&local) || extra.contains(&local))
+                && !admitted.contains(&local)
+            {
                 return Err(CompileError::UnsupportedAttribute {
                     element: element_name.to_string(),
                     attr: local.to_string(),
@@ -2398,6 +2439,24 @@ fn measure_use_boxes_in_subtree(
                 Err(_) => None,
             };
             boxes.insert(el.node_id(), measured);
+        } else if tag == "svg" {
+            // A nested viewport changes the percentage basis for every use
+            // below it. Failure remains owned by the viewport's compiler
+            // position; this indexing prepass never promotes it to a
+            // document-level error.
+            if let Ok(viewport) = nested_viewport_geometry(el, values, bases)
+                && viewport.renders
+            {
+                let _ = measure_use_boxes_in_subtree(
+                    el,
+                    values,
+                    viewport.child_bases,
+                    fonts,
+                    override_skips,
+                    boxes,
+                    depth + 1,
+                );
+            }
         } else {
             // A nested use is indexed independently. An unrelated malformed
             // or unsupported subtree cannot make a context-free document fail
@@ -2494,7 +2553,32 @@ fn measure_effect_boxes_in_subtree(
             continue;
         }
 
-        let measured = if matches!(tag.as_str(), "g" | "a" | "use") {
+        let nested_viewport = if tag == "svg" {
+            nested_viewport_geometry(el, values, bases).ok()
+        } else {
+            None
+        };
+        let measured = if let Some(viewport) = nested_viewport {
+            if viewport.renders {
+                let mut scratch_use_boxes = HashMap::new();
+                measure_subtree_geometry(
+                    el,
+                    values,
+                    viewport.child_bases,
+                    fonts,
+                    override_skips,
+                    &mut scratch_use_boxes,
+                    AffineTransform::identity(),
+                    depth + 1,
+                )
+            } else {
+                Ok(MeasuredGeometry::Empty)
+            }
+        } else if tag == "svg" {
+            Err(CompileError::UnsupportedSizing(
+                "nested <svg> geometry could not be measured".to_string(),
+            ))
+        } else if matches!(tag.as_str(), "g" | "a" | "use") {
             let mut scratch_use_boxes = HashMap::new();
             measure_subtree_geometry(
                 el,
@@ -2514,11 +2598,12 @@ fn measure_effect_boxes_in_subtree(
             measured.ok().and_then(MeasuredGeometry::reference_box),
         );
 
-        if matches!(tag.as_str(), "g" | "a" | "use") {
+        if matches!(tag.as_str(), "g" | "a" | "use" | "svg") {
+            let child_bases = nested_viewport.map_or(bases, |viewport| viewport.child_bases);
             let _ = measure_effect_boxes_in_subtree(
                 el,
                 values,
-                bases,
+                child_bases,
                 fonts,
                 override_skips,
                 effect_boxes,
@@ -2603,6 +2688,29 @@ fn measure_subtree_geometry(
             )?;
             boxes.insert(el.node_id(), local.reference_box());
             local.transformed(use_space.compose(&child_space))
+        } else if tag == "svg" {
+            let viewport = nested_viewport_geometry(el, values, bases)?;
+            if !viewport.renders {
+                MeasuredGeometry::Empty
+            } else {
+                let element_space = compose_element_transform(el, transform, "svg", bases)?;
+                let placement =
+                    AffineTransform::from_acebdf(1.0, 0.0, viewport.x, 0.0, 1.0, viewport.y);
+                let content_space = element_space
+                    .compose(&placement)
+                    .compose(&viewport.content_mapping);
+                measure_subtree_geometry(
+                    el,
+                    values,
+                    viewport.child_bases,
+                    fonts,
+                    override_skips,
+                    boxes,
+                    AffineTransform::identity(),
+                    depth + 1,
+                )?
+                .transformed(content_space)
+            }
         } else {
             let own = compose_element_transform(el, transform, &tag, bases)?;
             measure_leaf_geometry(el, values, bases, fonts)?.transformed(own)
@@ -2790,10 +2898,10 @@ fn patrol_computed_style(
     })
 }
 
-/// The percentage bases of the one viewport (SVG2 §7.10): a shape
-/// geometry percentage resolves against the viewport's user-unit extent —
-/// the `viewBox` when one maps the viewport, the root's own extent
-/// otherwise — with x-axis lengths against its width, y-axis lengths
+/// The percentage bases of the nearest viewport (SVG2 §7.10): a shape
+/// geometry percentage resolves against that viewport's user-unit extent —
+/// its `viewBox` when one maps the viewport, its own extent otherwise — with
+/// x-axis lengths against its width, y-axis lengths
 /// against its height, and the "other" lengths (a radius, a stroke width)
 /// against the normalized diagonal `sqrt(w² + h²)/√2` (measured: `10%` on
 /// a 64x64 viewport paints 6.4 units). Root sizing percentages stay a
@@ -2818,6 +2926,147 @@ impl PercentBases {
             _ => self.diagonal(),
         }
     }
+}
+
+/// Producer-side facts for one direct non-root `<svg>` viewport. Nothing in
+/// this structure crosses `rframe`: source geometry, the nearest percentage
+/// bases, and `viewBox` have all disappeared by the time child items enter the
+/// resolved frame.
+#[derive(Debug, Clone, Copy)]
+struct NestedViewportGeometry {
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    content_mapping: AffineTransform,
+    child_bases: PercentBases,
+    renders: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum NestedViewBox {
+    None,
+    Degenerate,
+    Mapped((f32, f32, f32, f32)),
+}
+
+fn nested_viewport_geometry(
+    svg: HtmlElement<'_>,
+    values: &EffectiveValues,
+    parent_bases: PercentBases,
+) -> Result<NestedViewportGeometry, CompileError> {
+    let x = geometry_attr_f32(svg, "x", values, parent_bases)?.unwrap_or(0.0);
+    let y = geometry_attr_f32(svg, "y", values, parent_bases)?.unwrap_or(0.0);
+    let width = nested_viewport_extent(svg, "width", values, parent_bases)?;
+    let height = nested_viewport_extent(svg, "height", values, parent_bases)?;
+
+    // Chromium validates preserveAspectRatio even when no viewBox ultimately
+    // contributes a mapping. Keep that grammar ownership aligned with the
+    // outer viewport route.
+    let par = match get_attr(svg, "preserveAspectRatio") {
+        Some(value) => parse_preserve_aspect_ratio(&value)?,
+        None => PreserveAspectRatio::default(),
+    };
+    let view_box = match get_attr(svg, "viewBox") {
+        Some(value) => parse_nested_viewbox(&value)?,
+        None => NestedViewBox::None,
+    };
+    let (content_mapping, child_bases, mapped_renders) = match view_box {
+        NestedViewBox::Mapped(view_box) => (
+            viewbox_to_viewport_transform((width, height), view_box, par),
+            PercentBases {
+                width: view_box.2,
+                height: view_box.3,
+            },
+            true,
+        ),
+        NestedViewBox::None => (
+            AffineTransform::identity(),
+            PercentBases { width, height },
+            true,
+        ),
+        NestedViewBox::Degenerate => (
+            AffineTransform::identity(),
+            PercentBases { width, height },
+            false,
+        ),
+    };
+    Ok(NestedViewportGeometry {
+        x,
+        y,
+        width,
+        height,
+        content_mapping,
+        child_bases,
+        // A negative inner extent is an element-geometry error in SVG: the
+        // viewport paints nothing, but it does not invalidate the document or
+        // its siblings. Zero has the same no-render result.
+        renders: width > 0.0 && height > 0.0 && mapped_renders,
+    })
+}
+
+/// Missing and explicit `auto` extents both use 100% of the nearest viewport.
+/// Other valid-but-unadmitted CSS length spellings continue through the
+/// geometry parser's named refusal; their grammar has its own checklist rows.
+fn nested_viewport_extent(
+    svg: HtmlElement<'_>,
+    name: &str,
+    values: &EffectiveValues,
+    parent_bases: PercentBases,
+) -> Result<f32, CompileError> {
+    if values.scalar(svg.node_id(), name).is_none() {
+        match get_attr(svg, name) {
+            None => return Ok(parent_bases.axis(name)),
+            Some(value) if trim_svg_whitespace(&value).eq_ignore_ascii_case("auto") => {
+                return Ok(parent_bases.axis(name));
+            }
+            Some(_) => {}
+        }
+    }
+    geometry_attr_f32(svg, name, values, parent_bases)?.ok_or_else(|| {
+        CompileError::UnsupportedSizing(format!(
+            "nested <svg> {name} did not resolve to a viewport extent"
+        ))
+    })
+}
+
+fn nested_viewport_overflow_clips(svg: HtmlElement<'_>) -> Result<bool, CompileError> {
+    let data = svg
+        .borrow_data()
+        .ok_or(CompileError::MissingComputedStyle)?;
+    Ok(matches!(
+        data.styles.primary().get_box().overflow_x,
+        StyloOverflow::Hidden | StyloOverflow::Clip | StyloOverflow::Scroll
+    ))
+}
+
+fn nested_viewport_clip(
+    viewport_to_frame: AffineTransform,
+    width: f32,
+    height: f32,
+) -> Result<ClipPath, CompileError> {
+    let geometry = ClipGeometry::new(
+        viewport_to_frame,
+        Geometry::Rect(Rectangle::from_xywh(0.0, 0.0, width, height)),
+    )
+    .map_err(|error| {
+        CompileError::UnsupportedSizing(format!(
+            "nested <svg> viewport clip cannot enter the resolved frame: {error}"
+        ))
+    })?;
+    let layer = ClipLayer::new(Arc::<[ClipGeometry]>::from([geometry])).map_err(|error| {
+        CompileError::UnsupportedSizing(format!(
+            "nested <svg> viewport clip cannot enter the resolved frame: {error}"
+        ))
+    })?;
+    // The fractional-edge probe is byte-identical to ordinary SVG clip-path
+    // coverage. This is deliberately the default antialiased mode, not the
+    // marker viewport's independently measured hard edge.
+    ClipPath::new(Arc::<[ClipLayer]>::from([layer])).map_err(|error| {
+        CompileError::UnsupportedSizing(format!(
+            "nested <svg> viewport clip cannot enter the resolved frame: {error}"
+        ))
+    })
 }
 
 /// First `<svg>` element in document order.
@@ -3007,7 +3256,6 @@ fn compile_svg_element(
     let has_author_css = document_has_author_css(svg);
     let patterns = PatternCompiler {
         values,
-        root_bases: bases,
         override_skips,
         has_author_css,
         servers: &servers,
@@ -3023,7 +3271,6 @@ fn compile_svg_element(
     } = measure_geometry(svg, values, bases, fonts, override_skips)?;
     let mut walk = ChildWalk {
         values,
-        bases,
         mode,
         degradations,
         override_skips,
@@ -3051,7 +3298,7 @@ fn compile_svg_element(
         if depth > MAX_CONTAINER_DEPTH {
             return Err(CompileError::ContainerTooDeep(MAX_CONTAINER_DEPTH));
         }
-        walk.compile_children(svg, viewport, "svg", depth, 1.0)?;
+        walk.compile_children(svg, viewport, bases, "svg", depth, 1.0)?;
     }
     let ChildWalk {
         mut items,
@@ -3173,7 +3420,6 @@ enum PatternResolution {
 /// compiled tile can escape.
 struct PatternCompiler<'a> {
     values: &'a EffectiveValues,
-    root_bases: PercentBases,
     override_skips: &'a HashMap<NodeId, String>,
     has_author_css: bool,
     servers: &'a PaintServers<'a>,
@@ -3192,6 +3438,7 @@ impl<'a> PatternCompiler<'a> {
         first: HtmlElement<'a>,
         reference_box: Rectangle,
         owner_to_destination: AffineTransform,
+        bases: PercentBases,
         paint_opacity: f32,
         active_patterns: &[NodeId],
     ) -> Result<PatternResolution, String> {
@@ -3257,22 +3504,10 @@ impl<'a> PatternCompiler<'a> {
             resolve_pattern_units(&chain, "patternUnits", PatternUnits::ObjectBoundingBox);
         let content_units =
             resolve_pattern_units(&chain, "patternContentUnits", PatternUnits::UserSpaceOnUse);
-        let x = pattern_length(&chain, "x", pattern_units, reference_box, self.root_bases)?;
-        let y = pattern_length(&chain, "y", pattern_units, reference_box, self.root_bases)?;
-        let width = pattern_length(
-            &chain,
-            "width",
-            pattern_units,
-            reference_box,
-            self.root_bases,
-        )?;
-        let height = pattern_length(
-            &chain,
-            "height",
-            pattern_units,
-            reference_box,
-            self.root_bases,
-        )?;
+        let x = pattern_length(&chain, "x", pattern_units, reference_box, bases)?;
+        let y = pattern_length(&chain, "y", pattern_units, reference_box, bases)?;
+        let width = pattern_length(&chain, "width", pattern_units, reference_box, bases)?;
+        let height = pattern_length(&chain, "height", pattern_units, reference_box, bases)?;
         if !(width > 0.0 && height > 0.0) {
             return Ok(PatternResolution::Invalid);
         }
@@ -3330,7 +3565,7 @@ impl<'a> PatternCompiler<'a> {
                 // No viewBox establishes a tile-local origin. Chromium keeps
                 // user-space content in the referencing element's current
                 // coordinate system; tile x/y changes phase independently.
-                PatternUnits::UserSpaceOnUse => (AffineTransform::identity(), self.root_bases),
+                PatternUnits::UserSpaceOnUse => (AffineTransform::identity(), bases),
                 // Object-box content maps the normalized coordinates by the
                 // box extents only. Its origin likewise remains independent
                 // from the pattern tile's x/y phase.
@@ -3478,6 +3713,11 @@ impl<'a> PatternCompiler<'a> {
         active_patterns: &[NodeId],
         pattern_id: NodeId,
     ) -> Result<FrameItems, String> {
+        if subtree_contains_nested_svg(content_owner) {
+            return Err(format!(
+                "pattern #{fragment} source contains a nested <svg> viewport outside the admitted pattern-source program"
+            ));
+        }
         let GeometryMeasurements {
             use_boxes,
             effect_boxes,
@@ -3494,7 +3734,6 @@ impl<'a> PatternCompiler<'a> {
         source_active_patterns.push(pattern_id);
         let mut walk = ChildWalk {
             values: self.values,
-            bases: source_bases,
             mode: CompileMode::Strict,
             degradations: &mut degradations,
             override_skips: self.override_skips,
@@ -3520,6 +3759,7 @@ impl<'a> PatternCompiler<'a> {
         walk.compile_children(
             content_owner,
             content_to_tile,
+            source_bases,
             &format!("pattern-source(#{fragment})"),
             0,
             1.0,
@@ -3698,7 +3938,7 @@ fn pattern_length(
     name: &str,
     units: PatternUnits,
     reference_box: Rectangle,
-    root_bases: PercentBases,
+    viewport_bases: PercentBases,
 ) -> Result<f32, String> {
     let Some(text) = pattern_chain_attr(chain, name) else {
         return Ok(0.0);
@@ -3781,7 +4021,7 @@ fn pattern_length(
         (PatternUnits::ObjectBoundingBox, true) => resolve_geometry_percentage(parsed, axis),
         (PatternUnits::UserSpaceOnUse, false) => parsed,
         (PatternUnits::UserSpaceOnUse, true) => {
-            resolve_geometry_percentage(parsed, root_bases.axis(name))
+            resolve_geometry_percentage(parsed, viewport_bases.axis(name))
         }
     };
     if !resolved.is_finite() {
@@ -4113,7 +4353,7 @@ mod marker_resource {
 
     pub(super) fn viewport(
         marker: HtmlElement<'_>,
-        root_bases: PercentBases,
+        viewport_bases: PercentBases,
         has_author_css: bool,
     ) -> Result<Viewport, CompileError> {
         patrol_marker_root(marker, has_author_css)?;
@@ -4123,10 +4363,10 @@ mod marker_resource {
             // Case-sensitive enum; an invalid value selects the initial.
             _ => Units::StrokeWidth,
         };
-        let width = length(marker, "markerWidth", root_bases.width, 3.0)?;
-        let height = length(marker, "markerHeight", root_bases.height, 3.0)?;
-        let ref_x = length(marker, "refX", root_bases.width, 0.0)?;
-        let ref_y = length(marker, "refY", root_bases.height, 0.0)?;
+        let width = length(marker, "markerWidth", viewport_bases.width, 3.0)?;
+        let height = length(marker, "markerHeight", viewport_bases.height, 3.0)?;
+        let ref_x = length(marker, "refX", viewport_bases.width, 0.0)?;
+        let ref_y = length(marker, "refY", viewport_bases.height, 0.0)?;
         let orient = orient(marker)?;
         let view_box = view_box(marker);
         let preserve_aspect_ratio = match get_attr(marker, "preserveAspectRatio") {
@@ -4440,6 +4680,12 @@ mod marker_resource {
                         .to_string(),
                 ));
             }
+            if tag == "svg" {
+                return Err(CompileError::UnsupportedMarker(
+                    "a nested <svg> viewport inside a used marker source is outside the admitted marker-source program"
+                        .to_string(),
+                ));
+            }
             if matches!(
                 tag.as_str(),
                 "use"
@@ -4521,9 +4767,6 @@ mod marker_resource {
 /// `mix-blend-mode` and `isolation` remain patrol refusals.
 struct ChildWalk<'a> {
     values: &'a EffectiveValues,
-    /// The one viewport's percentage bases (SVG2 §7.10), fixed at the
-    /// root: no nested viewport is admitted, so every shape shares them.
-    bases: PercentBases,
     mode: CompileMode,
     degradations: &'a mut Vec<Degradation>,
     /// Targets of load-active authored-state overrides, best-effort only —
@@ -4611,6 +4854,7 @@ impl<'a> ChildWalk<'a> {
         element: HtmlElement<'a>,
         target_to_frame: AffineTransform,
         target_box: Option<Rectangle>,
+        bases: PercentBases,
     ) -> Result<Option<ClipPath>, CompileError> {
         clip_path::resolve(
             self.clips,
@@ -4618,7 +4862,7 @@ impl<'a> ChildWalk<'a> {
             target_to_frame,
             target_box,
             self.values,
-            self.bases,
+            bases,
             self.has_author_css,
             self.override_skips,
         )
@@ -4629,13 +4873,14 @@ impl<'a> ChildWalk<'a> {
         element: HtmlElement<'a>,
         target_to_frame: AffineTransform,
         target_box: Option<Rectangle>,
+        bases: PercentBases,
     ) -> Result<Option<mask_resource::Invocation<'a>>, CompileError> {
         mask_resource::resolve(
             self.masks,
             element,
             target_to_frame,
             target_box,
-            self.bases,
+            bases,
             self.override_skips,
             &self.active_masks,
         )
@@ -4646,13 +4891,14 @@ impl<'a> ChildWalk<'a> {
         element: HtmlElement<'a>,
         target_to_frame: AffineTransform,
         target_box: Option<Rectangle>,
+        bases: PercentBases,
     ) -> Result<filter_resource::Resolution, CompileError> {
         filter_resource::resolve(
             self.filters,
             element,
             target_to_frame,
             target_box,
-            self.bases,
+            bases,
             self.override_skips,
             self.servers,
             &self.paint_contexts,
@@ -4704,6 +4950,12 @@ impl<'a> ChildWalk<'a> {
         if facts.draws == 0 && !facts.has_scope {
             return Ok(facts);
         }
+        if subtree_contains_nested_svg(invocation.element) {
+            return Err(CompileError::UnsupportedMask(
+                "a nested <svg> viewport inside a mask source is outside the admitted mask-source program"
+                    .to_string(),
+            ));
+        }
 
         let source_next_id = self.next_id;
         let degradation_checkpoint = self.degradations.len();
@@ -4726,6 +4978,7 @@ impl<'a> ChildWalk<'a> {
         let source_result = self.compile_children(
             invocation.element,
             invocation.content_to_frame,
+            invocation.source_bases,
             &source_path,
             depth + 1,
             1.0,
@@ -4838,6 +5091,7 @@ impl<'a> ChildWalk<'a> {
         &mut self,
         parent: HtmlElement<'a>,
         transform: AffineTransform,
+        bases: PercentBases,
         parent_path: &str,
         depth: usize,
         replay_opacity: f32,
@@ -4942,11 +5196,21 @@ impl<'a> ChildWalk<'a> {
             // one container compiler and its patrols. `<use>` is a
             // container whose children are its expanded shadow content.
             let result = if tag == "g" || tag == "a" {
-                self.compile_container(c, transform, &path, depth, &tag, replay_opacity)
+                self.compile_container(c, transform, bases, &path, depth, &tag, replay_opacity)
+            } else if tag == "svg" {
+                self.compile_nested_viewport(c, transform, bases, &path, depth, replay_opacity)
             } else if tag == "use" {
-                self.compile_use(c, transform, &path, depth, replay_opacity)
+                self.compile_use(c, transform, bases, &path, depth, replay_opacity)
             } else {
-                self.compile_leaf(c, transform, &path, depth, depth == 0, replay_opacity)
+                self.compile_leaf(
+                    c,
+                    transform,
+                    bases,
+                    &path,
+                    depth,
+                    depth == 0,
+                    replay_opacity,
+                )
             };
             match result {
                 Ok(child_facts) => facts.absorb(child_facts),
@@ -4979,6 +5243,7 @@ impl<'a> ChildWalk<'a> {
         &mut self,
         el: HtmlElement<'a>,
         transform: AffineTransform,
+        bases: PercentBases,
         path: &str,
         depth: usize,
         element: &str,
@@ -5001,25 +5266,26 @@ impl<'a> ChildWalk<'a> {
             RenderDisposition::Renders | RenderDisposition::HiddenPaint => {}
         }
         let own_transformed = element_has_computed_transform(el)?;
-        let transform = compose_element_transform(el, transform, element, self.bases)?;
+        let transform = compose_element_transform(el, transform, element, bases)?;
         let target_box = self
             .effect_boxes
             .get(&el.node_id())
             .copied()
             .unwrap_or(None);
-        let clip = self.resolve_clip(el, transform, target_box)?;
-        let filter = match self.resolve_filter(el, transform, target_box)? {
+        let clip = self.resolve_clip(el, transform, target_box, bases)?;
+        let filter = match self.resolve_filter(el, transform, target_box, bases)? {
             filter_resource::Resolution::None => None,
             filter_resource::Resolution::Hide => return Ok(SpanFacts::default()),
             filter_resource::Resolution::Apply(filter) => Some(filter),
         };
-        let mask = self.resolve_mask(el, transform, target_box)?;
+        let mask = self.resolve_mask(el, transform, target_box, bases)?;
         let checkpoint = self.items.len();
         let previous_context_paint_transform = self.context_paint_transform;
         self.context_paint_transform =
-            compose_element_transform(el, previous_context_paint_transform, element, self.bases)?;
+            compose_element_transform(el, previous_context_paint_transform, element, bases)?;
         let facts = if filter.is_some() || mask.is_some() {
-            let facts = self.compile_children(el, transform, path, depth + 1, replay_opacity);
+            let facts =
+                self.compile_children(el, transform, bases, path, depth + 1, replay_opacity);
             facts.and_then(|mut facts| {
                 if let Some(filter) = filter {
                     facts = self.wrap_span_with_filter(checkpoint, facts, filter);
@@ -5031,10 +5297,12 @@ impl<'a> ChildWalk<'a> {
             self.compile_span_with_opacity(
                 el,
                 transform,
+                bases,
                 path,
                 depth,
                 patrol.opacity,
                 replay_opacity,
+                None,
             )
         };
         self.context_paint_transform = previous_context_paint_transform;
@@ -5044,6 +5312,117 @@ impl<'a> ChildWalk<'a> {
         let facts = self.wrap_span_with_clip(checkpoint, facts?, clip);
         Ok(SpanFacts {
             transformed: facts.transformed || own_transformed,
+            ..facts
+        })
+    }
+
+    /// Compile a direct non-root `<svg>` as a bounded child viewport.
+    ///
+    /// The viewport remains entirely producer-side: descendants receive the
+    /// mapped local-to-frame transform and nearest percentage bases, while
+    /// `rframe` receives only ordinary nodes and (for clipping overflow) one
+    /// antialiased rectangular clip. Chromium's measured filter split is
+    /// load-bearing: descendant effects are inside the viewport clip, while
+    /// the nested `<svg>` element's own filter is outside it. The established
+    /// same-element filter/mask/opacity/clip order then stays outside that
+    /// source clip.
+    fn compile_nested_viewport(
+        &mut self,
+        el: HtmlElement<'a>,
+        parent_transform: AffineTransform,
+        parent_bases: PercentBases,
+        path: &str,
+        depth: usize,
+        replay_opacity: f32,
+    ) -> Result<SpanFacts, CompileError> {
+        if depth >= MAX_CONTAINER_DEPTH {
+            return Err(CompileError::ContainerTooDeep(MAX_CONTAINER_DEPTH));
+        }
+        patrol_rendering_attributes_except(el, "svg", &[], &["overflow"])?;
+        patrol_style_attribute(el, "svg")?;
+        // Inner width/height CSS declarations compute in this Stylo build but
+        // current Blink intentionally excludes them from the viewport's used
+        // geometry. Keep that source-provenance split named until the shared
+        // sizing row owns it; direct attributes are resolved below.
+        let patrol = patrol_computed_style(el, true)?;
+        if patrol.disposition == RenderDisposition::PrunedSubtree {
+            return Ok(SpanFacts::default());
+        }
+
+        let viewport = nested_viewport_geometry(el, self.values, parent_bases)?;
+        if !viewport.renders {
+            return Ok(SpanFacts::default());
+        }
+        let own_transformed = element_has_computed_transform(el)?;
+        let element_to_frame =
+            compose_element_transform(el, parent_transform, "svg", parent_bases)?;
+        let placement = AffineTransform::from_acebdf(1.0, 0.0, viewport.x, 0.0, 1.0, viewport.y);
+        let viewport_to_frame = element_to_frame.compose(&placement);
+        let content_to_frame = viewport_to_frame.compose(&viewport.content_mapping);
+
+        let target_box = self
+            .effect_boxes
+            .get(&el.node_id())
+            .copied()
+            .unwrap_or(None);
+        let authored_clip =
+            self.resolve_clip(el, content_to_frame, target_box, viewport.child_bases)?;
+        let filter =
+            match self.resolve_filter(el, content_to_frame, target_box, viewport.child_bases)? {
+                filter_resource::Resolution::None => None,
+                filter_resource::Resolution::Hide => return Ok(SpanFacts::default()),
+                filter_resource::Resolution::Apply(filter) => Some(filter),
+            };
+        let mask = self.resolve_mask(el, content_to_frame, target_box, viewport.child_bases)?;
+        let viewport_clip = nested_viewport_overflow_clips(el)?
+            .then(|| nested_viewport_clip(viewport_to_frame, viewport.width, viewport.height))
+            .transpose()?;
+
+        let checkpoint = self.items.len();
+        let previous_context_paint_transform = self.context_paint_transform;
+        let context_element_to_frame =
+            compose_element_transform(el, previous_context_paint_transform, "svg", parent_bases)?;
+        self.context_paint_transform = context_element_to_frame
+            .compose(&placement)
+            .compose(&viewport.content_mapping);
+
+        let facts = if filter.is_some() || mask.is_some() {
+            let facts = self.compile_children(
+                el,
+                content_to_frame,
+                viewport.child_bases,
+                path,
+                depth + 1,
+                replay_opacity,
+            );
+            facts.and_then(|mut facts| {
+                facts = self.wrap_span_with_clip(checkpoint, facts, viewport_clip);
+                if let Some(filter) = filter {
+                    facts = self.wrap_span_with_filter(checkpoint, facts, filter);
+                }
+                facts = self.wrap_span_with_mask(checkpoint, facts, mask, path, depth)?;
+                Ok(self.wrap_masked_span_with_opacity(checkpoint, facts, patrol.opacity))
+            })
+        } else {
+            self.compile_span_with_opacity(
+                el,
+                content_to_frame,
+                viewport.child_bases,
+                path,
+                depth,
+                patrol.opacity,
+                replay_opacity,
+                viewport_clip,
+            )
+        };
+        self.context_paint_transform = previous_context_paint_transform;
+
+        let facts = self.wrap_span_with_clip(checkpoint, facts?, authored_clip);
+        let viewport_mapping_is_identity = viewport.x == 0.0
+            && viewport.y == 0.0
+            && viewport.content_mapping == AffineTransform::identity();
+        Ok(SpanFacts {
+            transformed: facts.transformed || own_transformed || !viewport_mapping_is_identity,
             ..facts
         })
     }
@@ -5061,13 +5440,17 @@ impl<'a> ChildWalk<'a> {
         &mut self,
         el: HtmlElement<'a>,
         transform: AffineTransform,
+        bases: PercentBases,
         path: &str,
         depth: usize,
         own_opacity: f32,
         replay_opacity: f32,
+        source_clip: Option<ClipPath>,
     ) -> Result<SpanFacts, CompileError> {
         let checkpoint = (self.items.len(), self.next_id, self.degradations.len());
-        let mut facts = self.compile_children(el, transform, path, depth + 1, replay_opacity)?;
+        let mut facts =
+            self.compile_children(el, transform, bases, path, depth + 1, replay_opacity)?;
+        facts = self.wrap_span_with_clip(checkpoint.0, facts, source_clip);
         let has_subject =
             facts.has_geometry || facts.opacity_passes > 0 || facts.has_scope || facts.has_opacity;
         if own_opacity < 1.0 && has_subject {
@@ -5097,6 +5480,7 @@ impl<'a> ChildWalk<'a> {
                 facts = self.compile_children(
                     el,
                     transform,
+                    bases,
                     path,
                     depth + 1,
                     replay_opacity * own_opacity,
@@ -5131,8 +5515,8 @@ impl<'a> ChildWalk<'a> {
     /// - `x`/`y` append a translate *inside* the element's own transform
     ///   (SVG2 §5.6.2 — "appended to the right-side of the transformation
     ///   list"); `width`/`height` are inert for every admitted target
-    ///   (they only size `<svg>`/`<symbol>` targets, which refuse as
-    ///   unsupported elements when the clone surfaces them).
+    ///   (they only size `<svg>`/`<symbol>` targets, whose instance-viewport
+    ///   contract remains a separate named refusal).
     /// - An unresolved or cyclic reference expanded to nothing, and this
     ///   walk paints the same nothing Chromium paints — no declaration,
     ///   because nothing degrades.
@@ -5146,6 +5530,7 @@ impl<'a> ChildWalk<'a> {
         &mut self,
         el: HtmlElement<'a>,
         transform: AffineTransform,
+        bases: PercentBases,
         path: &str,
         depth: usize,
         replay_opacity: f32,
@@ -5185,18 +5570,26 @@ impl<'a> ChildWalk<'a> {
                     .to_string(),
             ));
         }
+        if el
+            .first_element_child()
+            .is_some_and(|target| target.local_name_string() == "svg")
+        {
+            return Err(CompileError::UnsupportedUse(
+                "its referenced <svg> root needs the instance-sized viewport contract".to_string(),
+            ));
+        }
         let patrol = patrol_computed_style(el, false)?;
         match patrol.disposition {
             RenderDisposition::PrunedSubtree => return Ok(SpanFacts::default()),
             RenderDisposition::Renders | RenderDisposition::HiddenPaint => {}
         }
         let own_transformed = element_has_computed_transform(el)?;
-        let context_transform = compose_element_transform(el, transform, "use", self.bases)?;
+        let context_transform = compose_element_transform(el, transform, "use", bases)?;
         let previous_context_paint_transform = self.context_paint_transform;
         let context_paint_transform =
-            compose_element_transform(el, previous_context_paint_transform, "use", self.bases)?;
-        let x = geometry_attr_f32(el, "x", self.values, self.bases)?.unwrap_or(0.0);
-        let y = geometry_attr_f32(el, "y", self.values, self.bases)?.unwrap_or(0.0);
+            compose_element_transform(el, previous_context_paint_transform, "use", bases)?;
+        let x = geometry_attr_f32(el, "x", self.values, bases)?.unwrap_or(0.0);
+        let y = geometry_attr_f32(el, "y", self.values, bases)?.unwrap_or(0.0);
         let transform =
             context_transform.compose(&AffineTransform::from_acebdf(1.0, 0.0, x, 0.0, 1.0, y));
         let reference_box = self
@@ -5208,13 +5601,13 @@ impl<'a> ChildWalk<'a> {
             // from being indexed; treating that as empty would silently turn
             // its context gradient into no paint.
             .unwrap_or(None);
-        let clip = self.resolve_clip(el, transform, reference_box)?;
-        let filter = match self.resolve_filter(el, transform, reference_box)? {
+        let clip = self.resolve_clip(el, transform, reference_box, bases)?;
+        let filter = match self.resolve_filter(el, transform, reference_box, bases)? {
             filter_resource::Resolution::None => None,
             filter_resource::Resolution::Hide => return Ok(SpanFacts::default()),
             filter_resource::Resolution::Apply(filter) => Some(filter),
         };
-        let mask = self.resolve_mask(el, transform, reference_box)?;
+        let mask = self.resolve_mask(el, transform, reference_box, bases)?;
         let checkpoint = self.items.len();
         self.paint_contexts.push(PaintContext {
             element: el,
@@ -5223,7 +5616,8 @@ impl<'a> ChildWalk<'a> {
         });
         self.context_paint_transform = context_paint_transform;
         let facts = if filter.is_some() || mask.is_some() {
-            let facts = self.compile_children(el, transform, path, depth + 1, replay_opacity);
+            let facts =
+                self.compile_children(el, transform, bases, path, depth + 1, replay_opacity);
             facts.and_then(|mut facts| {
                 if let Some(filter) = filter {
                     facts = self.wrap_span_with_filter(checkpoint, facts, filter);
@@ -5235,10 +5629,12 @@ impl<'a> ChildWalk<'a> {
             self.compile_span_with_opacity(
                 el,
                 transform,
+                bases,
                 path,
                 depth,
                 patrol.opacity,
                 replay_opacity,
+                None,
             )
         };
         self.context_paint_transform = previous_context_paint_transform;
@@ -5261,6 +5657,7 @@ impl<'a> ChildWalk<'a> {
         client_to_frame: AffineTransform,
         client_context_to_frame: AffineTransform,
         client_box: Option<Rectangle>,
+        bases: PercentBases,
         references: &marker_resource::References,
         positions: &[crate::svg_path::MarkerPosition],
         path: &str,
@@ -5273,6 +5670,7 @@ impl<'a> ChildWalk<'a> {
             client_to_frame,
             client_context_to_frame,
             client_box,
+            bases,
             references,
             positions,
             path,
@@ -5292,6 +5690,7 @@ impl<'a> ChildWalk<'a> {
         client_to_frame: AffineTransform,
         client_context_to_frame: AffineTransform,
         client_box: Option<Rectangle>,
+        bases: PercentBases,
         references: &marker_resource::References,
         positions: &[crate::svg_path::MarkerPosition],
         path: &str,
@@ -5324,7 +5723,7 @@ impl<'a> ChildWalk<'a> {
                     "nested marker source reaches url(#{fragment}); bounded nested marker composition is a later rung"
                 )));
             }
-            let viewport = marker_resource::viewport(marker, self.bases, self.has_author_css)?;
+            let viewport = marker_resource::viewport(marker, bases, self.has_author_css)?;
             if !(viewport.width > 0.0 && viewport.height > 0.0)
                 || viewport.view_box == marker_resource::ViewBox::Degenerate
             {
@@ -5333,7 +5732,7 @@ impl<'a> ChildWalk<'a> {
             let marker_scale = match viewport.units {
                 marker_resource::Units::UserSpaceOnUse => 1.0,
                 marker_resource::Units::StrokeWidth => {
-                    resolve_stroke_width(client, &client.local_name_string(), self.bases)?
+                    resolve_stroke_width(client, &client.local_name_string(), bases)?
                 }
             };
             if marker_scale == 0.0 {
@@ -5465,7 +5864,6 @@ impl<'a> ChildWalk<'a> {
         active_markers.push(marker.node_id());
         let mut walk = ChildWalk {
             values: self.values,
-            bases: source_bases,
             mode: CompileMode::Strict,
             degradations: &mut degradations,
             override_skips: self.override_skips,
@@ -5495,6 +5893,7 @@ impl<'a> ChildWalk<'a> {
         walk.compile_children(
             marker,
             content_to_frame,
+            source_bases,
             &format!("{target_path}/marker-source(#{fragment})"),
             depth + 1,
             1.0,
@@ -5527,6 +5926,7 @@ impl<'a> ChildWalk<'a> {
         &mut self,
         el: HtmlElement<'a>,
         transform: AffineTransform,
+        bases: PercentBases,
         path: &str,
         depth: usize,
         top_level: bool,
@@ -5546,15 +5946,15 @@ impl<'a> ChildWalk<'a> {
             marker_resource::References::default()
         };
         let marker_syntax_present = !marker_references.is_empty();
-        let target_to_frame = compose_element_transform(el, transform, &tag, self.bases)?;
+        let target_to_frame = compose_element_transform(el, transform, &tag, bases)?;
         let client_context_to_frame =
-            compose_element_transform(el, self.context_paint_transform, &tag, self.bases)?;
+            compose_element_transform(el, self.context_paint_transform, &tag, bases)?;
         let target_box = self
             .effect_boxes
             .get(&el.node_id())
             .copied()
             .unwrap_or(None);
-        let filter = match self.resolve_filter(el, target_to_frame, target_box)? {
+        let filter = match self.resolve_filter(el, target_to_frame, target_box, bases)? {
             filter_resource::Resolution::None => None,
             filter_resource::Resolution::Hide => {
                 if top_level {
@@ -5564,14 +5964,14 @@ impl<'a> ChildWalk<'a> {
             }
             filter_resource::Resolution::Apply(filter) => Some(filter),
         };
-        let mask = self.resolve_mask(el, target_to_frame, target_box)?;
+        let mask = self.resolve_mask(el, target_to_frame, target_box, bases)?;
         let marker_projection =
-            prepare_marker_projection(el, &tag, self.values, self.bases, marker_syntax_present)?;
+            prepare_marker_projection(el, &tag, self.values, bases, marker_syntax_present)?;
         let marker_selected = self
             .markers
             .has_selected_resource(&marker_references, &marker_projection.positions)?;
         let marker_client_clip = if marker_selected {
-            self.resolve_clip(el, target_to_frame, target_box)?
+            self.resolve_clip(el, target_to_frame, target_box, bases)?
         } else {
             None
         };
@@ -5590,7 +5990,7 @@ impl<'a> ChildWalk<'a> {
             self.patterns,
             &self.active_patterns,
             &self.paint_contexts,
-            self.bases,
+            bases,
             mask.is_some() || filter.is_some() || marker_selected,
             replay_opacity,
             self.fonts,
@@ -5621,7 +6021,7 @@ impl<'a> ChildWalk<'a> {
                     .collect();
                 math2::union(&boxes)
             };
-            self.resolve_clip(el, first.transform, Some(target_box))?
+            self.resolve_clip(el, first.transform, Some(target_box), bases)?
         } else {
             None
         };
@@ -5657,6 +6057,7 @@ impl<'a> ChildWalk<'a> {
             target_to_frame,
             client_context_to_frame,
             target_box,
+            bases,
             &marker_references,
             &compilation.marker_positions,
             path,
@@ -9628,6 +10029,7 @@ mod mask_resource {
         pub(super) mode: MaskMode,
         pub(super) region: ClipPath,
         pub(super) content_to_frame: AffineTransform,
+        pub(super) source_bases: PercentBases,
     }
 
     /// Resolve one target attribute. Missing, invalid, and wrong-kind
@@ -9754,6 +10156,7 @@ mod mask_resource {
             mode: mask_mode(element)?,
             region,
             content_to_frame,
+            source_bases: bases,
         }))
     }
 
@@ -12075,6 +12478,7 @@ fn resolve_paint_server_stack(
                     first,
                     reference_box,
                     owner_to_destination,
+                    bases,
                     paint_opacity,
                     active_patterns,
                 )
@@ -13129,6 +13533,27 @@ fn to_u8(component: f32) -> u8 {
 }
 
 fn parse_viewbox(v: &str) -> Result<(f32, f32, f32, f32), CompileError> {
+    let parts = parse_viewbox_numbers(v)?;
+    if parts[2] <= 0.0 || parts[3] <= 0.0 {
+        return Err(CompileError::BadViewBox(v.to_string()));
+    }
+    Ok((parts[0], parts[1], parts[2], parts[3]))
+}
+
+fn parse_nested_viewbox(v: &str) -> Result<NestedViewBox, CompileError> {
+    let parts = parse_viewbox_numbers(v)?;
+    if parts[2] < 0.0 || parts[3] < 0.0 {
+        return Err(CompileError::BadViewBox(v.to_string()));
+    }
+    if parts[2] == 0.0 || parts[3] == 0.0 {
+        return Ok(NestedViewBox::Degenerate);
+    }
+    Ok(NestedViewBox::Mapped((
+        parts[0], parts[1], parts[2], parts[3],
+    )))
+}
+
+fn parse_viewbox_numbers(v: &str) -> Result<[f32; 4], CompileError> {
     // Support the explicit proving-shell grammar: four finite numbers
     // separated by ASCII whitespace and/or one comma. Empty comma groups are
     // malformed; reject them instead of filtering repeated/trailing commas.
@@ -13158,10 +13583,7 @@ fn parse_viewbox(v: &str) -> Result<(f32, f32, f32, f32), CompileError> {
         }
         parts[index] = value;
     }
-    if parts[2] <= 0.0 || parts[3] <= 0.0 {
-        return Err(CompileError::BadViewBox(v.to_string()));
-    }
-    Ok((parts[0], parts[1], parts[2], parts[3]))
+    Ok(parts)
 }
 
 /// The `preserveAspectRatio` fit mode: how the viewBox scales into the

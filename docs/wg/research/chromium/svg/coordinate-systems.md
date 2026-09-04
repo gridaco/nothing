@@ -112,6 +112,37 @@ paired with `meet` (fit fully, letterbox) or `slice` (fill fully, crop).
 
 Default: `xMidYMid meet`.
 
+## Direct nested viewport measurements
+
+A deterministic Chromium 149 matrix makes several nested-viewport details
+observable beyond the class diagram:
+
+- Omitted `x`/`y` use zero. Omitted or explicit-`auto` `width`/`height` use
+  100% of the parent viewport. Zero and negative extents paint no descendant
+  content, while negative positions remain valid.
+- The effective mapping order is ancestor transform, the nested `<svg>`'s own
+  computed transform, `x`/`y` placement, then `viewBox` mapping. Percentage
+  transforms on the nested element itself use the parent viewport; descendant
+  percentages switch to the child's user-space axes and normalized diagonal.
+- A non-root `<svg>` starts with the SVG user-agent `overflow:hidden` rule.
+  The presentation attribute takes the CSS shorthand's one- or two-value
+  grammar. Blink's coupled computed axes make overflow-x `hidden`, `clip`, or
+  `scroll` clip, while `visible` or `auto` leave it open. A fractional viewport
+  edge is byte-identical to an antialiased geometric clip, not a hard pixel
+  mask.
+- Descendant effects paint before the viewport clip, while a filter on the
+  nested `<svg>` itself wraps that clip. Its remaining same-element mask,
+  opacity, and authored-clip order follows the ordinary SVG effect stack.
+- In this browser build, authored CSS `x`/`y`/`width`/`height` values can
+  compute on a direct inner `<svg>` without changing its used viewport
+  geometry. The corresponding presentation attributes do change it.
+- `<use>` targeting an `<svg>` is a distinct path: use-site `width` and
+  `height` establish the instance viewport. A 32×16 use instance was
+  byte-identical to the same direct nested viewport and differed from an
+  omitted-size instance by 2,880 pixels at maximum channel delta 233.
+
+These are measured rendering facts, not conclusions drawn only from API names.
+
 ## `LocalToSVGParentTransform()`
 
 Every `LayoutSVGModelObject` carries an `AffineTransform` mapping its own

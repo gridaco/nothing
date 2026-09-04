@@ -77,6 +77,11 @@ col { display: table-column; }
 li { display: list-item; }
 img, video, canvas, svg { display: inline; }
 
+/* SVG2's initial overflow is visible, but an inner viewport has a scoped UA
+   default of hidden. Every direct or indirect nested SVG is an SVG descendant;
+   the outermost SVG is not. */
+svg svg { overflow: hidden; }
+
 /* ---- margins ---- */
 body { margin: 8px; }
 p, dl, multicol { margin-block: 1em; }

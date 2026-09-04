@@ -1,0 +1,1 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><defs><filter id="blur" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3"/></filter></defs><rect width="64" height="64" fill="#ffffff"/><svg x="16" y="16" width="16" height="16" overflow="hidden"><rect x="2" y="2" width="12" height="12" filter="url(#blur)" fill="#16a34a"/></svg></svg>

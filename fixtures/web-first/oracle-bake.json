@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "069296201718c43d29efe356fbea893781b73250dca51de3b6d47468d74027b0",
   "suite": "primitives.json",
-  "suite_sha256": "fbc3448488f375d0123fb42ba249bc6bda3dd17ba099d3ea18517f90cc0bd086",
+  "suite_sha256": "16e1e70bca9b18db72693142eaa6c7d11951cda13ff3b29e73869b80cba1acc6",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -34,6 +34,15 @@
       "source_sha256": "26c6bf984d4b5c91e113a48de9930c44451ce106cb6e6cca18f4c44c612eaffb",
       "oracle": "chromium/html-inline-svg-currentcolor-rect.png",
       "oracle_sha256": "6f4bc09437add7d83beb4429ffec5327b45c94ae909eab27f1225d6f82451d29",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "html-inline-svg-nested-viewport",
+      "source": "html-inline-svg-nested-viewport.html",
+      "source_sha256": "6a4c3d5684d54735dfe2fa6147822427c891de8e312528b82e7cd76490298031",
+      "oracle": "chromium/html-inline-svg-nested-viewport.png",
+      "oracle_sha256": "42fd30c0b4a78fc1e27d6cd5336c420453cd81f1a69f044bfbe90818da273fe2",
       "width": 64,
       "height": 64
     },
@@ -6172,6 +6181,249 @@
       "source_sha256": "b6faf5d3e51c9a9df0319d61f7f867f117a146bbfe0ebfd6a312ba03c89b8f7b",
       "oracle": "chromium/svg-mask-use-instance.png",
       "oracle_sha256": "107970959e47052477f84ff73bb249cb44c745e90e623122c6b7a0f16255590d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-svg",
+      "source": "svg-nested-svg.svg",
+      "source_sha256": "6406699c75b8e994e92139c7f09bed3b6b8fbbe73b00151bedd7269cfb3c7019",
+      "oracle": "chromium/svg-nested-svg.png",
+      "oracle_sha256": "937a884b7a56ff8fba3a91b347e821175be159cdc8a6b1450e6cd66de1e64e97",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-auto-extents",
+      "source": "svg-nested-viewport-auto-extents.svg",
+      "source_sha256": "b7e488ac4ece0322350b73ec35e1a25950fb304dc7e4abc6bbc4ddcd083b7365",
+      "oracle": "chromium/svg-nested-viewport-auto-extents.png",
+      "oracle_sha256": "2ed071ab746287c2bc919e0504b86959d699bafb5cebb83e7fc3a81fb72b56c8",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-child-filter-order",
+      "source": "svg-nested-viewport-child-filter-order.svg",
+      "source_sha256": "be379d991ed7fa60465ff58c79b967c6d7b68916206792012c22a75126c35d20",
+      "oracle": "chromium/svg-nested-viewport-child-filter-order.png",
+      "oracle_sha256": "ece5c756a4df10c0c28c1fef2ae9607d90966a9d7e411acba7e3b13df5f92413",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-clip-basis",
+      "source": "svg-nested-viewport-clip-basis.svg",
+      "source_sha256": "805814335e201f0e7cadeec5dd53a673baded74e505cdc56d4263d6220a4beeb",
+      "oracle": "chromium/svg-nested-viewport-clip-basis.png",
+      "oracle_sha256": "194c9cdd09867538cc40471bdef1f10a491f82952bf4dbf7676875131d180b30",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-defaults",
+      "source": "svg-nested-viewport-defaults.svg",
+      "source_sha256": "998d4392143f55102b8c73647dba055e26c1e02f7e3fdaa9a9033842bce535e2",
+      "oracle": "chromium/svg-nested-viewport-defaults.png",
+      "oracle_sha256": "6f4bc09437add7d83beb4429ffec5327b45c94ae909eab27f1225d6f82451d29",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-edge-aa",
+      "source": "svg-nested-viewport-edge-aa.svg",
+      "source_sha256": "f9a99975825afb6d64e5f46e8ef6a49ee78cf77bd3d76ff1631eb45ad883f669",
+      "oracle": "chromium/svg-nested-viewport-edge-aa.png",
+      "oracle_sha256": "a80d976720c13a0b0c485d70a0a66362d918d9b9e0e4e9d2cd5052b55d246824",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-filter-basis",
+      "source": "svg-nested-viewport-filter-basis.svg",
+      "source_sha256": "c5f0574b97d1a34a72384ad62a6dce41523f2e54e8c257c78774ac8fb3ef84bd",
+      "oracle": "chromium/svg-nested-viewport-filter-basis.png",
+      "oracle_sha256": "1c899088b7eb0ad5da42dd62076ab04adfe7111fa0592142191f0a102494131b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-geometry-bases",
+      "source": "svg-nested-viewport-geometry-bases.svg",
+      "source_sha256": "573eca7c09f6075772b6a98c3c6df373a11b1da47937d32e5684af9dac9abbb2",
+      "oracle": "chromium/svg-nested-viewport-geometry-bases.png",
+      "oracle_sha256": "e800e3abe4e48953ccdfb9babf57211c8b7dc3f4a5125cf21c19eaaa82f5d8bb",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-gradient-basis",
+      "source": "svg-nested-viewport-gradient-basis.svg",
+      "source_sha256": "e9ce02a3a3075107e5869d74dd3515cc6d9ad5c24eb3219d7df0a012c82492c2",
+      "oracle": "chromium/svg-nested-viewport-gradient-basis.png",
+      "oracle_sha256": "0ad159ca0006ba7e18a49b14bfd3e24fcabb08717aa74d25a95470576bf49f04",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-marker-basis",
+      "source": "svg-nested-viewport-marker-basis.svg",
+      "source_sha256": "b45b77392be17e8e36b3af03e38277f1f21197c807074bdeaef7c6d142bd4447",
+      "oracle": "chromium/svg-nested-viewport-marker-basis.png",
+      "oracle_sha256": "12844cbda2b88fd3b0632d86c8a7aeab0b9083c8a3119c6fe2e2c5fc7e5064f3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-mask-basis",
+      "source": "svg-nested-viewport-mask-basis.svg",
+      "source_sha256": "47a43129d8e401242ce9832f7fe85dd5c9f476334069e48ebdc16455ee23bf5c",
+      "oracle": "chromium/svg-nested-viewport-mask-basis.png",
+      "oracle_sha256": "e73d53a2e11847fd1dd4bd8939618d709e58cd7d36f1865d0fe390fc32559954",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-negative-extent",
+      "source": "svg-nested-viewport-negative-extent.svg",
+      "source_sha256": "0bafd9ed35751ffdf87683051b04d19fa506854a8d710188980403fd8bd32d52",
+      "oracle": "chromium/svg-nested-viewport-negative-extent.png",
+      "oracle_sha256": "ad8b67ce699a372e47fde24d57efeb7a872a5bd79e0b4de1c56615ef29927220",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-overflow-attribute-pair",
+      "source": "svg-nested-viewport-overflow-attribute-pair.svg",
+      "source_sha256": "1df3418bba3dad05777353676c36bd30ebf1539c6c32ea06d254b5fcf56742a1",
+      "oracle": "chromium/svg-nested-viewport-overflow-attribute-pair.png",
+      "oracle_sha256": "173b81ef1926c613e7a78552c09357e10c0bac7e36968b2d6e339a6e0a40251d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-overflow-axis",
+      "source": "svg-nested-viewport-overflow-axis.svg",
+      "source_sha256": "ea5807a55f36fcbe6f73521ab4027bb4a7e1c2b24072c6a7b2d1a95890b4003f",
+      "oracle": "chromium/svg-nested-viewport-overflow-axis.png",
+      "oracle_sha256": "7a2614a920da41ba58523dad85d896a3c001735737518a440eaa6f598c8ef8b3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-overflow-cascade",
+      "source": "svg-nested-viewport-overflow-cascade.svg",
+      "source_sha256": "f106a36deecd02c1032f09c48cb2a8e7810628eb02f904e8976fb7b979c5f373",
+      "oracle": "chromium/svg-nested-viewport-overflow-cascade.png",
+      "oracle_sha256": "7a2614a920da41ba58523dad85d896a3c001735737518a440eaa6f598c8ef8b3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-overflow-default",
+      "source": "svg-nested-viewport-overflow-default.svg",
+      "source_sha256": "d1facb3ac491f795720a3ec0b82c4a3adabf4f2d5ba46aac198c3d9b0c627c2e",
+      "oracle": "chromium/svg-nested-viewport-overflow-default.png",
+      "oracle_sha256": "bd91dc27c105d2e64e29f83d599f71db05395afd224a32a411c7ce051c0a7d5c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-own-filter-order",
+      "source": "svg-nested-viewport-own-filter-order.svg",
+      "source_sha256": "99f258eac11e177b868260486f269b045f11f33a690477b3c027cf05bed2dea7",
+      "oracle": "chromium/svg-nested-viewport-own-filter-order.png",
+      "oracle_sha256": "81d64f31ecd3df733ef1e5185266805e0497246a9c7d0dcdde3fd064da46da79",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-pattern-basis",
+      "source": "svg-nested-viewport-pattern-basis.svg",
+      "source_sha256": "e5267cf994fc253dd81bb1f96664e24d5a40605b84fe9194c6a5d6b9152bb51f",
+      "oracle": "chromium/svg-nested-viewport-pattern-basis.png",
+      "oracle_sha256": "bdc7787d93997f87976c116c12dcfdf1a87d2ac4631ce89dc65e9eadd74309ec",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-radius-basis",
+      "source": "svg-nested-viewport-radius-basis.svg",
+      "source_sha256": "a8dc19a004f918699fff02eb85458d710e951a9647e2f24c7ec6d87f022ac550",
+      "oracle": "chromium/svg-nested-viewport-radius-basis.png",
+      "oracle_sha256": "24de6ede3f00fd3dc50aa97630722bdc22d2574cad0bf0edb670c1c920abe8ca",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-stroke-basis",
+      "source": "svg-nested-viewport-stroke-basis.svg",
+      "source_sha256": "9253b70721c4f164154a004c2b8b4abf95e3b4970b068f36b533302d27edb290",
+      "oracle": "chromium/svg-nested-viewport-stroke-basis.png",
+      "oracle_sha256": "8d30ae99e4ade9c85d0a19d9d5d3851971485f2f70427cc8d1d50a633f21ad8e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-transform-order",
+      "source": "svg-nested-viewport-transform-order.svg",
+      "source_sha256": "b8eb138670446d42b9f33e7f94533807be643fec0928c1ce86a531bca3ac46fb",
+      "oracle": "chromium/svg-nested-viewport-transform-order.png",
+      "oracle_sha256": "f167a9495b713f8ee44291827066b1f7d22612dfe6a26566bb8b56491647af98",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-transform-percent-basis",
+      "source": "svg-nested-viewport-transform-percent-basis.svg",
+      "source_sha256": "d23522a3623ebc340ca98e61597dfd256f56b73f7ed0ed981fac617591e85247",
+      "oracle": "chromium/svg-nested-viewport-transform-percent-basis.png",
+      "oracle_sha256": "1c5519e1799a79ca012bfc6af108157a709690e5742c09c3792e92cb532c80fc",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-two-level",
+      "source": "svg-nested-viewport-two-level.svg",
+      "source_sha256": "f8f10a067bfe19f04edf11741c6482f074158d8ba9bce45fa962d44b58bd2966",
+      "oracle": "chromium/svg-nested-viewport-two-level.png",
+      "oracle_sha256": "1c899088b7eb0ad5da42dd62076ab04adfe7111fa0592142191f0a102494131b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-use-basis",
+      "source": "svg-nested-viewport-use-basis.svg",
+      "source_sha256": "afcf0fe8bd447de216762f6cafe41f0392cf1c04d1ac4a521c7f17edf9e5ca06",
+      "oracle": "chromium/svg-nested-viewport-use-basis.png",
+      "oracle_sha256": "d09d7c4b7e74b8ff91bf107ac3e88bdd3c649d161b37079cb231ad75ef14d5dd",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-use-contained",
+      "source": "svg-nested-viewport-use-contained.svg",
+      "source_sha256": "f4c521c652bac095f0d842a236d21f9b6249bee5f4e3c939dd849feeedef29c3",
+      "oracle": "chromium/svg-nested-viewport-use-contained.png",
+      "oracle_sha256": "46f98524ee9d4962dc15bcdaf7608dd611cd712d3695f518ee43fc140167b588",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-visibility-restore",
+      "source": "svg-nested-viewport-visibility-restore.svg",
+      "source_sha256": "9fe7988475fb1d1c34f130839a4ff4fc0a52c8e0dcc3fbbc17097864fa03288d",
+      "oracle": "chromium/svg-nested-viewport-visibility-restore.png",
+      "oracle_sha256": "bf4b2d8a7fcbb12482bac175f728bf1d4225e3f7a76a4bfa54cc5fd15b23f964",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-nested-viewport-zero-extent",
+      "source": "svg-nested-viewport-zero-extent.svg",
+      "source_sha256": "cc3c1dff67a2d9d20111aaf7b41f0de8b017ecb4a4bdee5d137c0d7edaa627ca",
+      "oracle": "chromium/svg-nested-viewport-zero-extent.png",
+      "oracle_sha256": "ad8b67ce699a372e47fde24d57efeb7a872a5bd79e0b4de1c56615ef29927220",
       "width": 64,
       "height": 64
     },

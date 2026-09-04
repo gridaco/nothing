@@ -24,8 +24,8 @@ use std::sync::OnceLock;
 use style::context::QuirksMode as StyleQuirksMode;
 use style::data::ElementDataWrapper;
 use style::properties::{
-    Importance, LonghandId, PropertyId, SourcePropertyDeclaration, parse_one_declaration_into,
-    parse_style_attribute,
+    Importance, LonghandId, PropertyId, ShorthandId, SourcePropertyDeclaration,
+    parse_one_declaration_into, parse_style_attribute,
 };
 use style::servo_arc::Arc;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
@@ -839,6 +839,31 @@ fn svg_presentation_hints(
                     // failure here is a rewrite bug, never author input.
                     debug_assert!(false, "rewritten transform must parse: {css}");
                 }
+            }
+            continue;
+        }
+        // `overflow` is one presentation attribute for the two physical
+        // longhands. Keep both in the presentation-hint block so author CSS
+        // sees the ordinary cascade and computed-axis coupling; the SVG
+        // compiler consumes overflow-x for a nested viewport exactly as
+        // Blink does. Other SVG seats still keep their own attribute patrols.
+        if attr.name.local.as_ref() == "overflow" {
+            let mut overflow = SourcePropertyDeclaration::default();
+            if parse_one_declaration_into(
+                &mut overflow,
+                PropertyId::NonCustom(ShorthandId::Overflow.into()),
+                &attr.value,
+                Origin::Author,
+                &url_data,
+                None,
+                ParsingMode::DEFAULT,
+                StyleQuirksMode::NoQuirks,
+                CssRuleType::Style,
+            )
+            .is_ok()
+            {
+                block.extend(overflow.drain(), Importance::Normal);
+                parsed_any = true;
             }
             continue;
         }
