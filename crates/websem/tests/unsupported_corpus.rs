@@ -915,12 +915,12 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     (
         "svg-text-combining-missing-glyph",
         DeclaredByBestEffort,
-        "no glyph for",
+        "no declared face can shape the complete cluster",
     ),
     (
         "svg-text-combining-unlisted-mark",
         DeclaredByBestEffort,
-        "outside textlayout-v7's admitted",
+        "outside textlayout-v8's admitted",
     ),
     (
         "svg-text-css-layout",
@@ -957,11 +957,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "generic font family \"serif\" at candidate 1 has no declared mapping",
     ),
-    (
-        "svg-text-family-missing-glyph-fallback",
-        DeclaredByBestEffort,
-        "no glyph for",
-    ),
     ("svg-text-final-ctm", DeclaredByBestEffort, "text final CTM"),
     (
         "svg-text-font-shorthand",
@@ -992,7 +987,7 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     (
         "svg-text-geometry-grid",
         DeclaredByBestEffort,
-        "Chromium SVG text query",
+        "SVG text query grid",
     ),
     (
         "svg-text-undeclared-font",

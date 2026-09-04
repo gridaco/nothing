@@ -102,6 +102,8 @@ fn sha256_file(path: &Path) -> String {
 }
 
 const AHEM_BYTES: &[u8] = include_bytes!("../../../fixtures/web-first/fonts/ahem.ttf");
+const AHEM_ACUTE_GAP_BYTES: &[u8] =
+    include_bytes!("../../../fixtures/web-first/fonts/ahem-a-acute-gap.ttf");
 const ALLERTA_BYTES: &[u8] = include_bytes!("../../../fixtures/fonts/Allerta/Allerta-Regular.ttf");
 const BUNGEE_BYTES: &[u8] = include_bytes!("../../../fixtures/fonts/Bungee/Bungee-Regular.ttf");
 
@@ -112,6 +114,10 @@ const BUNGEE_BYTES: &[u8] = include_bytes!("../../../fixtures/fonts/Bungee/Bunge
 const AHEM_SHA256: [u8; 32] = [
     0xb7, 0x19, 0xec, 0xb3, 0x1c, 0x5b, 0x21, 0xfc, 0x57, 0x3c, 0x03, 0xf6, 0x42, 0x1c, 0x74, 0xac,
     0x63, 0xc2, 0x71, 0xa5, 0xa3, 0xff, 0x84, 0x1e, 0x34, 0xf9, 0x70, 0x5f, 0xb9, 0x4b, 0x84, 0x48,
+];
+const AHEM_ACUTE_GAP_SHA256: [u8; 32] = [
+    0x5c, 0x5b, 0xae, 0x14, 0x11, 0x20, 0x69, 0x8a, 0x28, 0x04, 0x04, 0x08, 0x77, 0x4f, 0xec, 0xff,
+    0xbd, 0xae, 0x86, 0x37, 0x91, 0xd7, 0xdf, 0x87, 0x0f, 0xc0, 0x5c, 0x7f, 0x52, 0xda, 0xf1, 0x2d,
 ];
 const BUNGEE_SHA256: [u8; 32] = [
     0xb9, 0x0c, 0x3c, 0xa4, 0x43, 0x71, 0x3b, 0x07, 0x0c, 0xb1, 0xde, 0xc6, 0xa3, 0xbb, 0x1e, 0xf7,
@@ -149,6 +155,9 @@ fn pinned_font(font: &SuiteFont) -> (&'static [u8], [u8; 32]) {
         }
         "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448" => {
             (AHEM_BYTES, AHEM_SHA256)
+        }
+        "5c5bae141120698a28040408774fecffbdae863791d7df870fc05c7f52daf12d" => {
+            (AHEM_ACUTE_GAP_BYTES, AHEM_ACUTE_GAP_SHA256)
         }
         "b90c3ca443713b070cb1dec6a3bb1ef7572c2b565c431d9a85d74bbfa07e24cc" => {
             (BUNGEE_BYTES, BUNGEE_SHA256)
@@ -346,9 +355,9 @@ fn beyond_slice_text_constructs_refuse_by_name() {
             "stroke on <text>",
         ),
         (
-            // Outside textlayout-v7's explicit repertoire.
+            // Outside textlayout-v8's explicit repertoire.
             r##"<text x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X&#x5D0;</text>"##,
-            "outside textlayout-v7's admitted",
+            "outside textlayout-v8's admitted",
         ),
     ] {
         let error = compile(&svg(body)).expect_err("outside the admitted text slice");
@@ -755,7 +764,8 @@ fn nearest_face_synthesis_refuses_before_shaping_or_pixels() {
         ),
     ] {
         let source = svg(body);
-        let error = compile(&source).expect_err("synthetic realization remains outside T5c");
+        let error =
+            compile(&source).expect_err("synthetic realization remains outside the profile");
         assert!(
             error.to_string().contains(expected),
             "expected {expected:?}, got {error}"
@@ -978,7 +988,7 @@ fn admitted_runs_match_the_chromium_oracle() {
 fn the_declared_font_identities_are_verified() {
     use sha2::{Digest, Sha256};
     let suite = suite();
-    assert_eq!(suite.fonts.len(), 27);
+    assert_eq!(suite.fonts.len(), 28);
     for font in &suite.fonts {
         let (bytes, expected_digest) = pinned_font(font);
         let digest = format!("{:x}", Sha256::digest(bytes));
@@ -988,7 +998,9 @@ fn the_declared_font_identities_are_verified() {
             expected_digest,
             "the constant declared to the engine must be the same digest"
         );
-        let expected_path = if expected_digest == AHEM_SHA256 {
+        let expected_path = if expected_digest == AHEM_ACUTE_GAP_SHA256 {
+            "../fonts/ahem-a-acute-gap.ttf"
+        } else if expected_digest == AHEM_SHA256 {
             "../fonts/ahem.ttf"
         } else if expected_digest == ALLERTA_SHA256 {
             "../../fonts/Allerta/Allerta-Regular.ttf"

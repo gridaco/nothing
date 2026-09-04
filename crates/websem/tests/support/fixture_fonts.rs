@@ -44,9 +44,7 @@ pub(crate) fn unsupported_environment(id: &str) -> textlayout::Environment {
     }
     if matches!(
         id,
-        "svg-text-face-synthesis-required"
-            | "svg-text-family-generic"
-            | "svg-text-family-missing-glyph-fallback"
+        "svg-text-face-synthesis-required" | "svg-text-family-generic"
     ) {
         return textlayout::Environment::new(vec![
             textlayout::FontResource {
@@ -62,6 +60,31 @@ pub(crate) fn unsupported_environment(id: &str) -> textlayout::Environment {
                 face_descriptor: textlayout::StaticFaceDescriptor::NORMAL,
                 face_index: 0,
                 bytes: std::sync::Arc::from(BUNGEE_BYTES),
+            },
+        ]);
+    }
+    if id == "svg-text-geometry-grid" {
+        return textlayout::Environment::new(vec![
+            textlayout::FontResource {
+                key: textlayout::FontKey::new(AHEM_SHA256),
+                family: "Ahem".to_string(),
+                face_descriptor: textlayout::StaticFaceDescriptor::NORMAL,
+                face_index: 0,
+                bytes: std::sync::Arc::from(AHEM_BYTES),
+            },
+            textlayout::FontResource {
+                key: textlayout::FontKey::new(BUNGEE_SHA256),
+                family: "Bungee".to_string(),
+                face_descriptor: textlayout::StaticFaceDescriptor::NORMAL,
+                face_index: 0,
+                bytes: std::sync::Arc::from(BUNGEE_BYTES),
+            },
+            textlayout::FontResource {
+                key: textlayout::FontKey::new(ALLERTA_SHA256),
+                family: "Allerta".to_string(),
+                face_descriptor: textlayout::StaticFaceDescriptor::NORMAL,
+                face_index: 0,
+                bytes: std::sync::Arc::from(ALLERTA_BYTES),
             },
         ]);
     }
@@ -82,13 +105,6 @@ pub(crate) fn unsupported_environment(id: &str) -> textlayout::Environment {
                 bytes: std::sync::Arc::from(BUNGEE_BYTES),
             }
         }
-        "svg-text-geometry-grid" => textlayout::FontResource {
-            key: textlayout::FontKey::new(ALLERTA_SHA256),
-            family: "Allerta".to_string(),
-            face_descriptor: textlayout::StaticFaceDescriptor::NORMAL,
-            face_index: 0,
-            bytes: std::sync::Arc::from(ALLERTA_BYTES),
-        },
         "svg-text-cluster-mapping" => textlayout::FontResource {
             key: textlayout::FontKey::new(PT_SERIF_SHA256),
             family: "PT Serif".to_string(),

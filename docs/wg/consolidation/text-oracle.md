@@ -769,3 +769,69 @@ percentages, oblique angles, descriptor ranges, synthesis, variation, generic
 mapping, glyph fallback, and the complete font grammars remain open. No
 CSS-font or SVG presentation row ticks; no conformance score, shared-frame
 text fact, or FLIP record changes.
+
+## T6 evidence addendum — cluster-safe declared-family fallback (2026-09-04)
+
+The verdict is ADMIT/SPLIT, with no checklist closure. Oracle v8 makes glyph
+fallback a per-cluster decision over the already computed ordered family list.
+The first available statically matched face remains the primary face and owns
+the run's vertical metrics independently of coverage. Each complete admitted
+cluster then starts at the beginning of the list. Every reached named family
+performs the same stretch/style/weight match as T5c, and only its one static
+winner is shaped. The cluster selects that face only when every produced glyph
+is present; otherwise selection advances to the next family. It never searches
+a second descriptor within the same family and never separates a base from
+its combining mark.
+
+Coverage is consequently a shaping fact, not a scalar-cmap guess. Chromium
+keeps canonical `A` + U+0301 in Ahem even though the mark alone has no mapping,
+while Ahem's genuinely missing `x` + U+0301 cluster followed by Bungee is
+pixel-identical to Bungee-only and differs from Ahem-only by 631 pixels at
+maximum channel delta 255. The canonical Ahem and Bungee controls differ by
+1,114 pixels at maximum delta 255. An Ahem-missing apostrophe is exactly
+Bungee. Separate controls establish that a miss advances to the next family,
+not another face in the same family; each later family repeats nearest-face
+matching; and the primary face retains vertical metrics even when every
+outline comes from fallback. This complete real-Ahem/Bungee probe bank is
+measured, not celled; the derived-font exact cell below is the committed
+evidence. Browser `document.fonts.check()` was not stable across equivalent
+probes, is measured, not celled, and is not used as geometry evidence.
+
+The immutable artifact now states a nonempty face table whose first entry is
+the primary metrics face, contiguous face runs with complete source, cluster,
+and glyph ranges, and one exact face index on every glyph. Adjacent clusters
+that select the same exact resource shape together, preserving admitted pair
+positioning. Consumers still receive only outline geometry: no face, run,
+font, fallback, or text fact crosses the shared render contract.
+
+One new 100×100 exact cell uses a hash-pinned public-domain Ahem derivative
+whose deliberately narrowed cmap makes face identity visible on the integer
+lattice. It crosses presentation and inline declarations, inheritance and
+`unset`, canonical composition, precomposed and decomposed fallback,
+paint-only source runs, positioned chunks, an integer transform, and `<use>`.
+The committed Chromium result is exact to an independent explicit-face
+construction. Both actual CLI admissions decode to zero differing pixels and
+zero maximum channel delta. Replacing the fallback result with the primary
+face changes 700 pixels at maximum delta 247 (measured control, not another
+cell).
+
+The former declared-family missing-glyph patrol therefore graduates. An
+exhausted declared list still returns the stable missing-glyph failure at the
+first missing source scalar. Existing sources now separately prove a generic
+reached after a real cluster miss, synthesis required by the supporting
+fallback face, and the real-font SVG query-grid boundary after fallback.
+Strict and best effort stop or declare at the same text node. Generic and
+installed-font mapping, partial-cluster splitting, synthesis, wider repertoire
+and shaping controls, and dynamic font or resource loading remain outside the
+profile.
+
+Gate sensitivity was proved by temporarily restoring the pre-T6 terminal miss
+at the first incomplete face. All 1,051 primitive cells remained green, then
+the complete `just gate` failed loudly on the new text cell. Restoring
+family-list continuation returned the primitive, text-pixel, text-geometry,
+and refusal gates to green. The primitive corpus remains 1,051
+Chromium-baked cells plus 16 sampled frames. The exact text estate moves from
+fourteen to fifteen cells, the eight geometry witnesses remain unchanged, and
+the named register moves from 224 to 223 rows. The full `font-family` and
+`<text>` grammars remain open. No CSS-font or SVG presentation row ticks; no
+conformance score, shared-frame text fact, or FLIP record changes.

@@ -794,11 +794,14 @@ fn resolved_artifacts_match_chromium_geometry_exactly() {
         let layout = textlayout::resolve(&attributed_text(case, font_size), &environment)
             .expect("rung-B artifact resolves");
         assert_eq!(
-            layout.face().key,
+            layout.primary_face().key,
             textlayout::FontKey::new(hex_bytes(&font.sha256))
         );
-        assert_eq!(layout.face().face_index, font.face_index);
-        assert_eq!(layout.face().units_per_em, case.font_facts.units_per_em);
+        assert_eq!(layout.primary_face().face_index, font.face_index);
+        assert_eq!(
+            layout.primary_face().units_per_em,
+            case.font_facts.units_per_em
+        );
         assert_eq!(layout.source(), case.text);
         assert_eq!(layout.font_size(), font_size);
         assert_eq!(layout.glyphs().len(), case.font_facts.glyphs.len());
@@ -1249,7 +1252,7 @@ fn combining_profile_boundaries_refuse_at_the_same_text_node_in_both_admissions(
         "Ax\u{0300}Z",
         "Bungee",
         bungee_environment(),
-        "outside textlayout-v7's admitted",
+        "outside textlayout-v8's admitted",
     );
     for source in [
         "\u{0301}AX",
@@ -1268,6 +1271,6 @@ fn combining_profile_boundaries_refuse_at_the_same_text_node_in_both_admissions(
         "Ax\u{0301}Z",
         "Ahem",
         ahem_environment(),
-        "no glyph for '\\u{301}' at byte 2",
+        "no declared face can shape the complete cluster containing '\\u{301}' at byte 2",
     );
 }

@@ -1,4 +1,5 @@
-//! Oracle v7 ordered-family and static nearest-face selection.
+//! Oracle v8 ordered-family selection, static nearest-face matching, and
+//! cluster-safe fallback.
 //!
 //! These tests use only attributed text and explicit font resources. They
 //! prove selection and refusal before any caller-specific projection exists.
@@ -94,7 +95,7 @@ fn assert_selection_ignores_environment_order(
             &Environment::new(environment_resources),
         )
         .expect("one exact tuple selects independently of environment order");
-        assert_eq!(layout.face().key, expected_key);
+        assert_eq!(layout.primary_face().key, expected_key);
     }
 }
 
@@ -106,7 +107,7 @@ fn selected_key(
         &attributed_with_descriptor("X", named(&["Nearest"]), requested),
         &Environment::new(resources),
     )
-    .map(|layout| layout.face().key)
+    .map(|layout| layout.primary_face().key)
 }
 
 #[test]
@@ -239,12 +240,12 @@ fn request_order_not_environment_order_selects_the_first_reached_family() {
     let allerta_first = resolve(&attributed("X", named(&["Allerta", "Ahem"])), &environment)
         .expect("reversing only the request selects the other face");
 
-    assert_eq!(ahem_first.face().key, AHEM_KEY);
-    assert_eq!(ahem_first.face().face_index, 0);
+    assert_eq!(ahem_first.primary_face().key, AHEM_KEY);
+    assert_eq!(ahem_first.primary_face().face_index, 0);
     assert_eq!(ahem_first.advance(), 20.0);
-    assert_eq!(allerta_first.face().key, ALLERTA_KEY);
+    assert_eq!(allerta_first.primary_face().key, ALLERTA_KEY);
     assert_ne!(allerta_first.advance(), ahem_first.advance());
-    assert_eq!(ahem_first.oracle_version(), "textlayout-v7");
+    assert_eq!(ahem_first.oracle_version(), "textlayout-v8");
     assert_eq!(ahem_first.oracle_version(), textlayout::ORACLE_VERSION);
 }
 
@@ -257,7 +258,7 @@ fn unavailable_named_family_falls_through_to_the_next_request() {
     )
     .expect("only an unavailable named candidate falls through");
 
-    assert_eq!(layout.face().key, AHEM_KEY);
+    assert_eq!(layout.primary_face().key, AHEM_KEY);
 }
 
 #[test]
@@ -421,8 +422,8 @@ fn normal_default_tuple_preserves_one_face_resolution() {
     let layout = resolve(&attributed("X", named(&["Ahem"])), &environment)
         .expect("one normal request and resource retain one-face behavior");
 
-    assert_eq!(layout.face().key, AHEM_KEY);
-    assert_eq!(layout.face().face_index, 0);
+    assert_eq!(layout.primary_face().key, AHEM_KEY);
+    assert_eq!(layout.primary_face().face_index, 0);
     assert_eq!(layout.advance(), 20.0);
 }
 
@@ -467,7 +468,11 @@ fn bmp_simple_fold_pairs_select_while_expansion_supplementary_and_normalization_
             let environment = Environment::new(vec![resource(AHEM, declared, AHEM_KEY)]);
             let layout = resolve(&attributed("X", named(&[requested])), &environment)
                 .expect("a representative BMP simple-fold equivalent must select");
-            assert_eq!(layout.face().key, AHEM_KEY, "{declared:?} / {requested:?}");
+            assert_eq!(
+                layout.primary_face().key,
+                AHEM_KEY,
+                "{declared:?} / {requested:?}"
+            );
         }
     }
 
@@ -482,7 +487,7 @@ fn bmp_simple_fold_pairs_select_while_expansion_supplementary_and_normalization_
         )
         .expect("a non-matching named candidate must fall through");
         assert_eq!(
-            layout.face().key,
+            layout.primary_face().key,
             BUNGEE_KEY,
             "{declared:?} / {requested:?}"
         );
@@ -491,7 +496,7 @@ fn bmp_simple_fold_pairs_select_while_expansion_supplementary_and_normalization_
     let exact_supplementary = Environment::new(vec![resource(AHEM, "𐐀", AHEM_KEY)]);
     let layout = resolve(&attributed("X", named(&["𐐀"])), &exact_supplementary)
         .expect("exact equality remains valid for every scalar");
-    assert_eq!(layout.face().key, AHEM_KEY);
+    assert_eq!(layout.primary_face().key, AHEM_KEY);
 }
 
 #[test]
@@ -502,7 +507,7 @@ fn named_generic_spelling_and_generic_policy_are_distinct() {
         &environment,
     )
     .expect("a named family whose spelling is generic-like remains a name");
-    assert_eq!(named_layout.face().key, AHEM_KEY);
+    assert_eq!(named_layout.primary_face().key, AHEM_KEY);
 
     let error = resolve(
         &attributed(
@@ -559,29 +564,246 @@ fn a_successful_earlier_match_makes_every_later_candidate_inert() {
     )
     .expect("selection is complete after the first unique exact match");
 
-    assert_eq!(layout.face().key, AHEM_KEY);
+    assert_eq!(layout.primary_face().key, AHEM_KEY);
 }
 
 #[test]
-fn a_missing_glyph_in_the_selected_face_does_not_retry_the_family_list() {
+fn a_missing_cluster_retries_later_families_and_records_exact_face_runs() {
     let environment = Environment::new(vec![
         resource(AHEM, "First", AHEM_KEY),
         resource(BUNGEE, "Second", BUNGEE_KEY),
     ]);
     let source = "Ax\u{0301}Z";
 
-    resolve(&attributed(source, named(&["Second"])), &environment)
-        .expect("the later face proves it can shape the admitted source");
-    let error = resolve(
+    let layout = resolve(
         &attributed(source, named(&["First", "Second"])),
         &environment,
     )
-    .expect_err("glyph coverage cannot restart an already completed selection");
+    .expect("a complete cluster missing from the first face falls back whole");
+
+    assert_eq!(layout.primary_face().key, AHEM_KEY);
+    assert_eq!(
+        layout
+            .faces()
+            .iter()
+            .map(|face| face.key)
+            .collect::<Vec<_>>(),
+        vec![AHEM_KEY, BUNGEE_KEY]
+    );
+    assert_eq!(layout.face_runs().len(), 3);
+    assert_eq!(layout.face_runs()[0].source_utf8(), 0..1);
+    assert_eq!(layout.face_runs()[0].source_utf16(), 0..1);
+    assert_eq!(layout.face_runs()[0].source_scalars(), 0..1);
+    assert_eq!(layout.face_runs()[0].clusters(), 0..1);
+    assert_eq!(layout.face_runs()[0].glyphs(), 0..1);
+    assert_eq!(layout.face_runs()[0].resolved_face_index(), 0);
+    assert_eq!(layout.face_runs()[0].origin_x(), 0.0);
+    assert_eq!(layout.face_runs()[0].advance(), 20.0);
+    assert_eq!(layout.face_runs()[1].source_utf8(), 1..4);
+    assert_eq!(layout.face_runs()[1].source_utf16(), 1..3);
+    assert_eq!(layout.face_runs()[1].source_scalars(), 1..3);
+    assert_eq!(layout.face_runs()[1].clusters(), 1..2);
+    assert_eq!(layout.face_runs()[1].glyphs(), 1..3);
+    assert_eq!(layout.face_runs()[1].resolved_face_index(), 1);
+    assert_eq!(layout.face_runs()[1].origin_x(), 20.0);
+    assert_eq!(layout.face_runs()[2].source_utf8(), 4..5);
+    assert_eq!(layout.face_runs()[2].source_utf16(), 3..4);
+    assert_eq!(layout.face_runs()[2].source_scalars(), 3..4);
+    assert_eq!(layout.face_runs()[2].clusters(), 2..3);
+    assert_eq!(layout.face_runs()[2].glyphs(), 3..4);
+    assert_eq!(layout.face_runs()[2].resolved_face_index(), 0);
+    assert_eq!(
+        layout.face_runs()[2].origin_x(),
+        20.0 + layout.face_runs()[1].advance()
+    );
+    assert_eq!(layout.face_runs()[2].advance(), 20.0);
+    assert_eq!(
+        layout
+            .glyphs()
+            .iter()
+            .map(|glyph| glyph.resolved_face_index)
+            .collect::<Vec<_>>(),
+        vec![0, 1, 1, 0]
+    );
+    assert_eq!(layout.shaping_chunks()[0].face_runs(), 0..3);
+    assert_eq!(layout.shaping_chunks()[0].clusters(), 0..3);
+    assert_eq!(layout.shaping_chunks()[0].glyphs(), 0..4);
+    assert_eq!(
+        layout.shaping_chunks()[0].advance(),
+        layout.face_runs().iter().map(|run| run.advance()).sum()
+    );
+}
+
+#[test]
+fn adjacent_clusters_using_one_fallback_face_coalesce_into_one_shaping_run() {
+    let environment = Environment::new(vec![
+        resource(AHEM, "Primary", AHEM_KEY),
+        resource(BUNGEE, "Fallback", BUNGEE_KEY),
+    ]);
+    let layout = resolve(
+        &attributed("''", named(&["Primary", "Fallback"])),
+        &environment,
+    )
+    .expect("adjacent fallback clusters retain one same-face shaping run");
+
+    assert_eq!(layout.primary_face().key, AHEM_KEY);
+    assert_eq!(layout.face_runs().len(), 1);
+    assert_eq!(layout.face_runs()[0].source_utf8(), 0..2);
+    assert_eq!(layout.face_runs()[0].clusters(), 0..2);
+    assert_eq!(layout.face_runs()[0].glyphs(), 0..2);
+    assert_eq!(layout.face_runs()[0].resolved_face_index(), 1);
+    assert_eq!(layout.shaping_chunks()[0].face_runs(), 0..1);
+}
+
+#[test]
+fn canonical_composition_keeps_the_complete_cluster_in_the_primary_face() {
+    let environment = Environment::new(vec![
+        resource(AHEM, "First", AHEM_KEY),
+        resource(BUNGEE, "Second", BUNGEE_KEY),
+    ]);
+    let layout = resolve(
+        &attributed("A\u{0301}", named(&["First", "Second"])),
+        &environment,
+    )
+    .expect("the shaper proves canonical composition without cmap-per-scalar guessing");
+
+    assert_eq!(layout.faces().len(), 1);
+    assert_eq!(layout.primary_face().key, AHEM_KEY);
+    assert_eq!(layout.face_runs().len(), 1);
+    assert_eq!(layout.face_runs()[0].source_utf8(), 0..3);
+    assert_eq!(layout.clusters().len(), 1);
+    assert_eq!(layout.clusters()[0].source_scalars(), 0..2);
+    assert_eq!(layout.glyphs().len(), 1);
+    assert_eq!(layout.glyphs()[0].resolved_face_index, 0);
+}
+
+#[test]
+fn fallback_does_not_search_another_face_inside_the_reached_family() {
+    let bold = descriptor(700, FontStretch::Normal, FontStyle::Normal);
+    let environment = Environment::new(vec![
+        resource(AHEM, "Family", AHEM_KEY),
+        resource_with_descriptor(BUNGEE, "Family", BUNGEE_KEY, bold),
+        resource(BUNGEE, "Later", BUNGEE_KEY),
+    ]);
+    let layout = resolve(&attributed("'", named(&["Family", "Later"])), &environment)
+        .expect("a missing glyph advances the family list, not the family's face list");
+
+    assert_eq!(layout.primary_face().key, AHEM_KEY);
+    assert_eq!(layout.glyphs()[0].resolved_face_index, 1);
+    assert_eq!(layout.faces()[1].key, BUNGEE_KEY);
+    assert_eq!(layout.face_runs()[0].resolved_face_index(), 1);
+}
+
+#[test]
+fn each_fallback_family_repeats_static_nearest_face_matching() {
+    let requested = descriptor(350, FontStretch::Normal, FontStyle::Normal);
+    let environment = Environment::new(vec![
+        resource_with_descriptor(AHEM, "Primary", AHEM_KEY, requested),
+        resource_with_descriptor(
+            BUNGEE,
+            "Fallback",
+            BUNGEE_KEY,
+            descriptor(300, FontStretch::Normal, FontStyle::Normal),
+        ),
+        resource_with_descriptor(
+            ALLERTA,
+            "Fallback",
+            ALLERTA_KEY,
+            descriptor(400, FontStretch::Normal, FontStyle::Normal),
+        ),
+    ]);
+    let layout = resolve(
+        &attributed_with_descriptor("'", named(&["Primary", "Fallback"]), requested),
+        &environment,
+    )
+    .expect("the fallback family repeats the measured 350 -> 300 weight search");
+
+    assert_eq!(layout.primary_face().key, AHEM_KEY);
+    assert_eq!(layout.faces()[1].key, BUNGEE_KEY);
+    assert_eq!(layout.glyphs()[0].resolved_face_index, 1);
+}
+
+#[test]
+fn fallback_keeps_primary_metrics_when_every_outline_uses_a_later_face() {
+    let environment = Environment::new(vec![
+        resource(AHEM, "Primary", AHEM_KEY),
+        resource(BUNGEE, "Fallback", BUNGEE_KEY),
+    ]);
+    let layout = resolve(
+        &attributed("'", named(&["Primary", "Fallback"])),
+        &environment,
+    )
+    .expect("the later face supplies ink while the primary face supplies metrics");
+    let fallback_only = resolve(&attributed("'", named(&["Fallback"])), &environment)
+        .expect("the explicit fallback face is an independent geometry control");
+
+    assert_eq!(layout.primary_face().key, AHEM_KEY);
+    assert_eq!(
+        (layout.metrics().ascent, layout.metrics().descent),
+        (16.0, 4.0)
+    );
+    assert_eq!(layout.glyphs()[0].resolved_face_index, 1);
+    assert_eq!(layout.faces()[1].key, BUNGEE_KEY);
+    assert_eq!(layout.advance(), fallback_only.advance());
+    assert_eq!(layout.ink_bounds(), fallback_only.ink_bounds());
+    assert_ne!(layout.metrics(), fallback_only.metrics());
+}
+
+#[test]
+fn reached_generic_and_required_fallback_synthesis_remain_typed_boundaries() {
+    let normal_environment = Environment::new(vec![
+        resource(AHEM, "Primary", AHEM_KEY),
+        resource(BUNGEE, "Fallback", BUNGEE_KEY),
+    ]);
+    let generic = resolve(
+        &attributed(
+            "'",
+            vec![FontFamily::named("Primary"), FontFamily::generic("serif")],
+        ),
+        &normal_environment,
+    )
+    .expect_err("a reached generic remains an undeclared external policy boundary");
+    assert_eq!(
+        generic,
+        ResolveError::UnmappedGenericFamily {
+            candidate_index: 1,
+            family: "serif".to_string(),
+        }
+    );
+
+    let bold = descriptor(700, FontStretch::Normal, FontStyle::Normal);
+    let synthesis_environment = Environment::new(vec![
+        resource_with_descriptor(AHEM, "Primary", AHEM_KEY, bold),
+        resource(BUNGEE, "Fallback", BUNGEE_KEY),
+    ]);
+    let synthesis = resolve(
+        &attributed_with_descriptor("'", named(&["Primary", "Fallback"]), bold),
+        &synthesis_environment,
+    )
+    .expect_err("a fallback outline cannot silently synthesize bold");
+    assert_eq!(
+        synthesis,
+        ResolveError::SyntheticFaceRequired {
+            candidate_index: 1,
+            family: "Fallback".to_string(),
+            requested: bold,
+            selected: StaticFaceDescriptor::NORMAL,
+            synthetic_weight: true,
+            synthetic_style: false,
+        }
+    );
+}
+
+#[test]
+fn exhausting_declared_faces_refuses_the_first_missing_scalar_by_name() {
+    let environment = Environment::new(vec![resource(AHEM, "Only", AHEM_KEY)]);
+    let error = resolve(&attributed("x\u{0301}", named(&["Only"])), &environment)
+        .expect_err("partial-cluster tofu is forbidden");
 
     assert_eq!(
         error,
         ResolveError::MissingGlyph {
-            byte_index: 2,
+            byte_index: 1,
             character: '\u{0301}',
         }
     );

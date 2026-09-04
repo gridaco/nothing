@@ -1,4 +1,4 @@
-//! Oracle v7 geometry against measured ground truth.
+//! Oracle v8 geometry and artifact identity against measured ground truth.
 //!
 //! The numbers here are not derived from this crate: they were measured from
 //! the pinned Ahem bytes (fixtures/web-first/fonts/ahem.ttf) and verified
@@ -87,10 +87,10 @@ fn attributed(text: &str, family: &str, size: f32) -> AttributedText {
 fn x_at_50_resolves_the_measured_em_box() {
     let layout = resolve(&ahem("X", 50.0), &ahem_environment()).unwrap();
 
-    assert_eq!(textlayout::ORACLE_VERSION, "textlayout-v7");
+    assert_eq!(textlayout::ORACLE_VERSION, "textlayout-v8");
     assert_eq!(layout.oracle_version(), textlayout::ORACLE_VERSION);
-    assert_eq!(layout.face().key, TEST_KEY);
-    assert_eq!(layout.face().units_per_em, 1000);
+    assert_eq!(layout.primary_face().key, TEST_KEY);
+    assert_eq!(layout.primary_face().units_per_em, 1000);
     assert_eq!(layout.source_runs().len(), 1);
     assert_eq!(layout.source_runs()[0].source_utf8(), 0..1);
     assert_eq!(layout.source_runs()[0].tag(), DEFAULT_SOURCE_RUN);
@@ -265,7 +265,7 @@ fn default_pair_kerning_preserves_direct_cluster_mapping() {
         &attributed("ff", "Allerta", 5120.0),
         &fixture_environment(ALLERTA, "Allerta"),
     )
-    .expect("one-to-one kerning remains inside oracle v7");
+    .expect("one-to-one kerning remains inside oracle v8");
 
     assert_eq!(layout.advance(), 4685.0);
     assert_eq!(layout.glyphs().len(), 2);
@@ -382,7 +382,7 @@ fn allerta_source_run_boundary_preserves_one_shaping_result_and_maps_glyphs() {
     // Chromium 149 and the pinned shaper agree on this one-call result. If
     // each source run were shaped independently, the first advance would be
     // 2355 instead of the measured kerned 2330.
-    assert_eq!(layout.oracle_version(), "textlayout-v7");
+    assert_eq!(layout.oracle_version(), "textlayout-v8");
     assert_eq!(layout.advance(), 4685.0);
     assert_eq!(layout.glyphs().len(), 2);
     assert_eq!(layout.glyphs()[0].glyph_id, 70);
@@ -549,7 +549,7 @@ fn decomposed_acute_composes_without_rewriting_source_coordinates() {
         &attributed("Ae\u{0301}Z", "Allerta", 5120.0),
         &fixture_environment(ALLERTA, "Allerta"),
     )
-    .expect("the measured decomposed acute composes inside oracle v7");
+    .expect("the measured decomposed acute composes inside oracle v8");
 
     assert_eq!(layout.source(), "Ae\u{0301}Z");
     assert_eq!(layout.advance(), 10340.0);

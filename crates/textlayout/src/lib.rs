@@ -7,10 +7,10 @@
 //!
 //! ```text
 //! attributed text + explicit font environment
-//!     -> resolved text layout | typed resolution failure     (oracle v7)
+//!     -> resolved text layout | typed resolution failure     (oracle v8)
 //! ```
 //!
-//! **Oracle v7 resolves one layout-affecting style over printable-ASCII plus
+//! **Oracle v8 resolves one layout-affecting style over printable-ASCII plus
 //! the canonical precomposed Latin-1 letters whose decomposition is one ASCII
 //! Latin base and one combining mark, plus one U+0301 or U+030B after an ASCII
 //! Latin base. Complete source-run coverage may carry opaque caller tags;
@@ -22,12 +22,17 @@
 //! left-to-right; a cluster is either one direct scalar/glyph or one
 //! base-plus-mark composing to one glyph or attaching one zero-advance glyph
 //! with explicit x/y offsets. There is no wrapping, authored placement,
-//! anchoring, glyph fallback, or synthesis. Its ordered font-family request
-//! selects within the first named family that has declared resources under
-//! Chromium's measured BMP simple-fold comparison. Static face matching is
-//! the measured CSS Fonts lexicographic stretch/style/weight search; a
-//! reached generic, winning-tuple tie, synthesis requirement, or exhausted
-//! list is a typed refusal.**
+//! anchoring or synthesis. For each admitted direct or base-plus-mark cluster,
+//! its ordered font-family request selects the first named family whose one
+//! statically matched face shapes that complete cluster. Canonical composition
+//! therefore stays in an earlier face while a genuinely missing mark moves
+//! with its base. Adjacent clusters selecting one resource shape as one face
+//! run; the artifact records a primary metrics face, every used face/run, and
+//! each glyph's exact face identity. Static face matching remains the measured
+//! CSS Fonts lexicographic stretch/style/weight search; another face in the
+//! same family is never a glyph fallback. A reached generic, winning-tuple
+//! tie, required synthesis, exhausted list, or partial-cluster-only result is
+//! a typed refusal.**
 //! The repertoire is an explicit admit-list enforced by the resolver
 //! itself — never an accident of a font's coverage — and everything outside
 //! the profile is a typed refusal, not an approximation. Coverage grows by
@@ -65,8 +70,8 @@ mod resolve;
 mod source;
 
 pub use artifact::{
-    BoundsBox, LineMetrics, OutlineSink, PlacedGlyph, ResolvedFace, ResolvedShapingChunk,
-    ResolvedTextLayout, ShapingCluster,
+    BoundsBox, LineMetrics, OutlineSink, PlacedGlyph, ResolvedFace, ResolvedFaceRun,
+    ResolvedShapingChunk, ResolvedTextLayout, ShapingCluster,
 };
 pub use environment::{Environment, FontKey, FontResource};
 pub use face_descriptor::{
@@ -94,4 +99,6 @@ pub use source::{
 /// so it advances v5 to v6. Directional nearest-face selection can turn a v6
 /// exact miss into a concrete face and therefore advances v6 to v7; synthetic
 /// realization remains a typed boundary and does not enter the artifact.
-pub const ORACLE_VERSION: &str = "textlayout-v7";
+/// Cluster-safe fallback changes both shaping segmentation and glyph identity,
+/// so the primary/per-glyph multi-face artifact advances v7 to v8.
+pub const ORACLE_VERSION: &str = "textlayout-v8";

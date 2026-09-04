@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
   <rect width="64" height="64" fill="#ffffff"/>
-  <text x="8" y="40" font-family="Missing, serif, Ahem" font-size="20" fill="#111827">XX</text>
+  <text x="4" y="22" font-family="Ahem, serif, Bungee" font-size="20" fill="#111827">x&#x301;</text>
+  <text x="8" y="50" font-family="Missing, serif, Ahem" font-size="10" fill="#2563eb">XX</text>
 </svg>
