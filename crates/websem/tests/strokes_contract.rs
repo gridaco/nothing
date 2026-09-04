@@ -1,13 +1,12 @@
 //! The stroke contract: what the one SVG compiler consumes for a stroke, how
 //! it resolves, and what still refuses by name.
 //!
-//! A Web stroke is centred on its geometry, its width is a length in the same
-//! space the geometry lives in, and everything about it — the paint, the width
-//! with its units, the cap and join keywords, the miter limit — arrives as a
-//! typed value from the one cascade. So inheritance through a `<g>`, SVG2
-//! precedence, unit resolution and CSS keyword case-insensitivity are the
-//! cascade's behaviour and not this compiler's, and the laws below pin the
-//! resolved facts plus the refusals that keep the unconsumed half honest.
+//! A Web stroke is centred on its geometry. Its paint, width, cap, join, miter
+//! limit, dash, and construction space arrive as resolved facts; the consumer
+//! never recovers their meaning from source syntax. So inheritance through a
+//! `<g>`, SVG2 precedence, unit resolution and CSS keyword case-insensitivity
+//! are producer behaviour, and the laws below pin the resolved facts plus the
+//! refusals that keep the unconsumed half honest.
 //!
 //! Every pixel claim here was measured in Chromium 149 first; the corpus bakes
 //! them (`fixtures/web-first/svg-stroke-*.svg`, 114 of 115 byte-exact — only
@@ -17,7 +16,7 @@
 #[allow(dead_code)]
 mod support;
 
-use rframe::{Geometry, PathCommand, StrokeCap, StrokeJoin};
+use rframe::{Geometry, PathCommand, StrokeCap, StrokeJoin, StrokeSpace};
 use support::render_through_n0;
 use websem::{CompileError, DegradationAction, InitialViewport, SvgFrameSource};
 
@@ -915,23 +914,121 @@ fn line_endpoint_css_value_families_refuse_by_exact_attribute() {
 
 // ─── what still refuses ──────────────────────────────────────────────────
 
-/// The stroke properties this slice does not consume refuse by name through
-/// both authored spellings. Dasharray and the guarded dashoffset capability
-/// have left this list; paint ordering and non-scaling geometry have not.
+/// The direct presentation attribute resolves one source-neutral stroke-space
+/// fact. CSS tokenization supplies comments, case folding, and escapes even
+/// though the pinned cascade has no computed `vector-effect` longhand.
 #[test]
-fn the_unconsumed_stroke_properties_refuse_by_name() {
-    for attr in [
-        r##"paint-order="stroke""##,
-        r##"vector-effect="non-scaling-stroke""##,
+fn direct_vector_effect_resolves_the_stroke_construction_space() {
+    for (value, expected) in [
+        ("none", StrokeSpace::Local),
+        ("initial", StrokeSpace::Local),
+        ("unset", StrokeSpace::Local),
+        ("revert", StrokeSpace::Local),
+        ("revert-layer", StrokeSpace::Local),
+        ("unknown", StrokeSpace::Local),
+        ("non-scaling-stroke trailing", StrokeSpace::Local),
+        (" non-scaling-stroke ", StrokeSpace::Frame),
+        ("NON-SCALING-STROKE", StrokeSpace::Frame),
+        ("/**/non-scaling-stroke/**/", StrokeSpace::Frame),
+        (r"non-scaling-str\6f ke", StrokeSpace::Frame),
     ] {
-        let source = stroked_rect(&format!(r##"stroke-width="8" {attr}"##));
-        assert!(
-            matches!(refusal(&source), CompileError::UnsupportedAttribute { .. }),
-            "{attr} must refuse by name"
+        let source = stroked_rect(&format!(r##"stroke-width="8" vector-effect="{value}""##));
+        assert_eq!(
+            stroke_of(&admit_both(&source), 0).space(),
+            expected,
+            "{value:?}"
         );
     }
-    // The same values through a stylesheet, where only a computed-level read or
-    // the CSS-name patrol can catch them.
+
+    let inherited = admit_both(&document(
+        r##"  <g vector-effect="non-scaling-stroke">
+    <rect x="16" y="16" width="32" height="32" fill="none" stroke="#000" stroke-width="8" vector-effect="inherit"/>
+  </g>"##,
+    ));
+    assert_eq!(stroke_of(&inherited, 0).space(), StrokeSpace::Frame);
+}
+
+/// Chromium drops the SVG 2 at-risk members rather than applying a partial
+/// vector effect. Carry the initial `none` result; never reinterpret one as
+/// non-scaling-stroke merely because it appears in the same listed grammar.
+#[test]
+fn chromium_dropped_vector_effect_members_resolve_to_none() {
+    for value in [
+        "non-scaling-size",
+        "non-rotation",
+        "fixed-position",
+        "non-scaling-size non-rotation fixed-position",
+        "non-scaling-stroke non-scaling-stroke",
+        "non-scaling-stroke viewport",
+        "non-scaling-stroke screen",
+    ] {
+        let source = stroked_rect(&format!(r##"stroke-width="8" vector-effect="{value}""##));
+        assert_eq!(
+            stroke_of(&admit_both(&source), 0).space(),
+            StrokeSpace::Local,
+            "Chromium-dropped {value:?}"
+        );
+    }
+}
+
+/// Presentation-attribute substitution functions can hide a live keyword
+/// from this raw-attribute route. Chromium resolves `var()`, `env()` fallback,
+/// typed `attr()`, and `if()` to non-scaling-stroke in the measured cases.
+/// Both policies name each function instead of silently painting the initial
+/// value. The patrol is deliberately function-generic so a later substitution
+/// function cannot become the same wrong pixel unnoticed.
+#[test]
+fn vector_effect_attribute_functions_refuse_by_name_in_both_policies() {
+    for (function, attributes) in [
+        (
+            "var()",
+            r##"stroke-width="8" vector-effect="var(--ve)" style="--ve: non-scaling-stroke""##,
+        ),
+        (
+            "env()",
+            r##"stroke-width="8" vector-effect="env(--missing-ve, non-scaling-stroke)""##,
+        ),
+        (
+            "attr()",
+            r##"stroke-width="8" data-ve="non-scaling-stroke" vector-effect="attr(data-ve type(&lt;custom-ident&gt;), none)""##,
+        ),
+        (
+            "if()",
+            r##"stroke-width="8" style="--ve-on: yes" vector-effect="if(style(--ve-on): non-scaling-stroke; else: none)""##,
+        ),
+    ] {
+        let source = stroked_rect(attributes);
+        let error = refusal(&source);
+        assert!(
+            matches!(&error, CompileError::UnsupportedStroke(reason)
+                if reason.contains("vector-effect presentation attribute")
+                    && reason.contains(function)),
+            "{function}: unexpected strict refusal: {error}"
+        );
+        let best =
+            SvgFrameSource::from_standalone_svg_best_effort(source.as_str(), viewport(64.0, 64.0))
+                .expect("best effort compiles the remaining document");
+        let skipped: Vec<_> = best
+            .degradations()
+            .iter()
+            .filter(|d| d.action() == DegradationAction::Skipped)
+            .collect();
+        assert_eq!(skipped.len(), 1, "{function}");
+        assert_eq!(skipped[0].reason(), error.to_string(), "{function}");
+    }
+}
+
+/// Paint ordering still refuses through either spelling. The CSS property
+/// twin of the now-admitted direct `vector-effect` attribute also remains
+/// quarantined because this Stylo build exposes no computed longhand.
+#[test]
+fn unrepresented_stroke_properties_refuse_by_name() {
+    let source = stroked_rect(r##"stroke-width="8" paint-order="stroke""##);
+    assert!(
+        matches!(refusal(&source), CompileError::UnsupportedAttribute { .. }),
+        "paint-order attribute must refuse by name"
+    );
+
     for css in ["paint-order: stroke", "vector-effect: non-scaling-stroke"] {
         let source = document(&format!(
             r##"  <style>rect {{ stroke: #000; stroke-width: 8; {css} }}</style>

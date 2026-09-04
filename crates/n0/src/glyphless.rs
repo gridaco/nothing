@@ -36,7 +36,7 @@ use crate::drawlist::{
     ResolvedFilterConvolveEdgeMode, ResolvedFilterDisplacementChannel, ResolvedFilterInput,
     ResolvedFilterLightSource, ResolvedFilterMorphology, ResolvedFilterNode,
     ResolvedFilterPrimitive, ResolvedFilterTurbulenceKind, ResolvedMaskMode, ResolvedPattern,
-    ResolvedPatternGeometry, StrokeDashPhase,
+    ResolvedPatternGeometry, StrokeDashPhase, StrokeSpace,
 };
 use crate::frame::FrameExecutionError;
 use crate::paint::PaintCtx;
@@ -621,15 +621,29 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
             }
             Geometry::Path(_) => to_affine(node.transform),
         };
-        // A stroke paints outside the geometry, so the covered area — what the
-        // damage policy repaints — is the local geometry inflated by the
-        // stroke's own reach, mapped through the same transform. Reach is a
-        // wide derived fact: project it in f64, then intersect with the frame
-        // clip before encoding the finite bounded RectF used by damage. Paint
-        // reference boxes above deliberately remain the geometry's own box.
+        // A stroke paints outside the geometry, so coverage — what the damage
+        // policy repaints — includes its checked reach. Local-space reach is
+        // inflated before projection; frame-space reach is inflated around
+        // the already-projected centerline bounds. Both routes intersect with
+        // the frame clip before encoding the finite RectF used by damage.
+        // Paint reference boxes above deliberately remain the geometry's box.
         let coverage = match (&node.stroke, node.paints.is_empty()) {
             (None, true) => None,
             (None, false) => bounded_geometry_coverage(node.bounds, resolved.bounds),
+            (Some(stroke), _)
+                if stroke.space() == rframe::StrokeSpace::Frame
+                    && !transform_has_identity_linear_part(&node.transform) =>
+            {
+                if frame_stroke_transform_is_unusable(&node.transform) {
+                    if node.paints.is_empty() {
+                        None
+                    } else {
+                        bounded_geometry_coverage(node.bounds, resolved.bounds)
+                    }
+                } else {
+                    bounded_frame_stroke_coverage(node.bounds, stroke.outset(), resolved.bounds)
+                }
+            }
             (Some(stroke), _) => {
                 let box_world = matches!(&node.geometry, Geometry::Rect(_) | Geometry::Ellipse(_))
                     .then_some(&box_world);
@@ -699,6 +713,14 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         // other in the same private drawlist, which is why a stroke needs no
         // group scope.
         if let Some(stroke) = &node.stroke {
+            // Blink cannot project a frame-space stroke outline back through a
+            // singular local-to-frame map. The stroke is therefore the exact
+            // nothing; an independent fill, if any, already emitted above.
+            if stroke.space() == rframe::StrokeSpace::Frame
+                && frame_stroke_transform_is_unusable(&node.transform)
+            {
+                continue;
+            }
             let stroke_pattern = stroke
                 .paints()
                 .pattern()
@@ -717,7 +739,8 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                 && rect.width > 0.0
                 && rect.height > 0.0
                 && stroke.dash().is_some();
-            let (stroke, dash_phase, post_paint_opacity) = compile_stroke(stroke, unit_offset);
+            let (stroke, space, dash_phase, post_paint_opacity) =
+                compile_stroke(stroke, unit_offset);
             if let Some(pattern) = stroke_pattern {
                 items.push(Item {
                     node: owner,
@@ -726,6 +749,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                         geometry: compile_pattern_geometry(&node.geometry),
                         pattern,
                         stroke,
+                        space,
                         dash_phase,
                         post_paint_opacity,
                     },
@@ -739,6 +763,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                     corner_radius: RectangularCornerRadius::default(),
                     corner_smoothing: CornerSmoothing::default(),
                     stroke,
+                    space,
                     dash_phase,
                     post_paint_opacity,
                 },
@@ -748,6 +773,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                     w,
                     h,
                     stroke,
+                    space,
                     dash_phase,
                     post_paint_opacity,
                 },
@@ -755,6 +781,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                     w,
                     h,
                     stroke,
+                    space,
                     dash_phase,
                     post_paint_opacity,
                 },
@@ -763,6 +790,7 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                     h,
                     path: Arc::clone(path.as_ref().expect("path geometry compiled its stream")),
                     stroke,
+                    space,
                     dash_phase,
                     post_paint_opacity,
                 },
@@ -1145,13 +1173,14 @@ fn compile_filter(filter: &rframe::Filter) -> ResolvedFilter {
 /// alignment, so the projection names it rather than relying on a default.
 /// Width is uniform because a Web stroke has one width. A checked dash cycle
 /// crosses unchanged: its intervals are already even, finite, non-negative,
-/// positive-sum local-space distances, so the private painter has nothing to
-/// parse or resolve again. Its paired canonical phase crosses as the same
-/// scalar; normalization remains the contract producer's responsibility.
+/// positive-sum distances in the stroke's declared construction space, so the
+/// private painter has nothing to parse or resolve again. Its paired canonical
+/// phase crosses as the same scalar; normalization remains the contract
+/// producer's responsibility.
 fn compile_stroke(
     stroke: &rframe::Stroke,
     unit_offset: Option<(f32, f32)>,
-) -> (Stroke, StrokeDashPhase, PostPaintOpacity) {
+) -> (Stroke, StrokeSpace, StrokeDashPhase, PostPaintOpacity) {
     let dash = stroke.dash();
     let material = Stroke {
         paints: compile_paints(stroke.paints(), unit_offset),
@@ -1173,8 +1202,28 @@ fn compile_stroke(
     let phase = dash.map_or(StrokeDashPhase::ZERO, |dash| {
         StrokeDashPhase::from_canonical(dash.phase())
     });
+    let space = match stroke.space() {
+        rframe::StrokeSpace::Local => StrokeSpace::Local,
+        rframe::StrokeSpace::Frame => StrokeSpace::Frame,
+    };
     let post_paint_opacity = PostPaintOpacity::from_resolved(stroke.paints().alpha_factor().get());
-    (material, phase, post_paint_opacity)
+    (material, space, phase, post_paint_opacity)
+}
+
+fn transform_has_identity_linear_part(transform: &math2::transform::AffineTransform) -> bool {
+    let [[a, c, _], [b, d, _]] = transform.matrix;
+    a == 1.0 && b == 0.0 && c == 0.0 && d == 1.0
+}
+
+/// Blink and Skia suppress non-scaling-stroke when the f32 affine cannot
+/// supply a finite nonzero determinant to the backend path projection. This
+/// intentionally includes mathematical transforms whose determinant
+/// underflows or overflows f32; Chromium paints no stroke for both measured
+/// classes, while widening the centerline would paint a silent extra dot.
+fn frame_stroke_transform_is_unusable(transform: &math2::transform::AffineTransform) -> bool {
+    let [[a, c, _], [b, d, _]] = transform.matrix;
+    let determinant = a * d - b * c;
+    determinant == 0.0 || !determinant.is_finite()
 }
 
 fn validate_rect(rect: math2::Rectangle) -> Result<(), ()> {
@@ -1574,6 +1623,17 @@ fn bounded_stroke_coverage(
     Some(rectf_covering_bounded(clipped, frame_bounds))
 }
 
+fn bounded_frame_stroke_coverage(
+    geometry_bounds: math2::Rectangle,
+    outset: f64,
+    frame_bounds: math2::Rectangle,
+) -> Option<n0_model::math::RectF> {
+    let clipped = WideRect::from_rectangle(geometry_bounds)
+        .inflated(outset)
+        .intersection(WideRect::from_rectangle(frame_bounds))?;
+    Some(rectf_covering_bounded(clipped, frame_bounds))
+}
+
 fn bounded_union_rectf(
     a: n0_model::math::RectF,
     b: n0_model::math::RectF,
@@ -1956,6 +2016,24 @@ mod tests {
                 | ItemKind::OvalStroke { dash_phase, .. }
                 | ItemKind::AbsoluteDashedOvalStroke { dash_phase, .. }
                 | ItemKind::PathStroke { dash_phase, .. } => Some(*dash_phase),
+                _ => None,
+            })
+            .expect("test product has one stroke item")
+    }
+
+    fn private_stroke_space(product: &FrameProduct) -> StrokeSpace {
+        product
+            .drawlist
+            .items
+            .iter()
+            .find_map(|item| match &item.kind {
+                ItemKind::PatternStroke { space, .. }
+                | ItemKind::RectStroke { space, .. }
+                | ItemKind::OvalStroke { space, .. }
+                | ItemKind::AbsoluteDashedOvalStroke { space, .. }
+                | ItemKind::LineStroke { space, .. }
+                | ItemKind::PathStroke { space, .. }
+                | ItemKind::TextStroke { space, .. } => Some(*space),
                 _ => None,
             })
             .expect("test product has one stroke item")
@@ -2398,6 +2476,188 @@ mod tests {
         assert_eq!(
             private_dash_phase(&product).value().to_bits(),
             9.25f32.to_bits()
+        );
+    }
+
+    /// The frame contract states the construction space directly. The private
+    /// drawlist preserves it, coverage expands after centerline projection,
+    /// and rasterization is identical to an explicitly transformed centerline
+    /// stroked at the same nominal width.
+    #[test]
+    fn frame_space_stroke_projects_without_recovering_meaning_from_transform() {
+        let geometry = Geometry::Rect(Rectangle::from_xywh(8.0, 8.0, 8.0, 8.0));
+        let transform = AffineTransform::from_acebdf(2.0, 0.0, 0.0, 0.0, 0.5, 0.0);
+        let stroke = checked_stroke(
+            4.0,
+            rframe::StrokeCap::Butt,
+            rframe::StrokeJoin::Bevel,
+            1.0,
+            None,
+        )
+        .with_space(rframe::StrokeSpace::Frame);
+        let projected = compile(frame_of(FrameItems::from_nodes(vec![stroked_node(
+            RECT_OWNER,
+            geometry,
+            transform,
+            stroke.clone(),
+        )])))
+        .expect("frame-space stroke compiles");
+
+        assert_eq!(private_stroke_space(&projected), StrokeSpace::Frame);
+        let coverage = coverage_for(&projected, RECT_OWNER).expect("stroke has coverage");
+        let wide = WideRect::from_rectf(coverage);
+        assert!(wide.left <= 14.0 && wide.left > 13.9);
+        assert!(wide.top <= 2.0 && wide.top > 1.9);
+        assert!(wide.right >= 34.0 && wide.right < 34.1);
+        assert!(wide.bottom >= 10.0 && wide.bottom < 10.1);
+        assert_finite_bounded_coverage(coverage, projected.resolved.bounds);
+
+        let manual = compile(frame_of(FrameItems::from_nodes(vec![stroked_node(
+            RECT_OWNER,
+            Geometry::Rect(Rectangle::from_xywh(16.0, 4.0, 16.0, 4.0)),
+            AffineTransform::identity(),
+            stroke.with_space(rframe::StrokeSpace::Local),
+        )])))
+        .expect("manual transformed-centerline control compiles");
+        let ctx = PaintCtx::new(None);
+        assert_eq!(
+            projected
+                .raster_to_bytes(&AffineTransform::identity(), 64, 48, &ctx)
+                .expect("frame-space raster"),
+            manual
+                .raster_to_bytes(&AffineTransform::identity(), 64, 48, &ctx)
+                .expect("manual raster")
+        );
+    }
+
+    #[test]
+    fn translation_only_frame_space_stroke_keeps_the_local_f32_draw_order() {
+        let path = rframe::PathData::new(
+            vec![
+                rframe::PathCommand::MoveTo {
+                    x: 100_000_008.0,
+                    y: 100_000_016.0,
+                },
+                rframe::PathCommand::LineTo {
+                    x: 100_000_048.0,
+                    y: 100_000_016.0,
+                },
+                rframe::PathCommand::LineTo {
+                    x: 100_000_048.0,
+                    y: 100_000_040.0,
+                },
+            ],
+            rframe::FillRule::NonZero,
+        )
+        .expect("large translated path is valid");
+        let transform =
+            AffineTransform::from_acebdf(1.0, 0.0, -100_000_000.0, 0.0, 1.0, -100_000_000.0);
+        let local = checked_stroke(
+            4.0,
+            rframe::StrokeCap::Round,
+            rframe::StrokeJoin::Round,
+            1.0,
+            None,
+        );
+        let scene = |space| {
+            compile(frame_of(FrameItems::from_nodes(vec![stroked_node(
+                RECT_OWNER,
+                Geometry::Path(Arc::new(path.clone())),
+                transform,
+                local.clone().with_space(space),
+            )])))
+            .expect("translated stroke compiles")
+        };
+        let ordinary = scene(rframe::StrokeSpace::Local);
+        let non_scaling = scene(rframe::StrokeSpace::Frame);
+        assert_eq!(private_stroke_space(&non_scaling), StrokeSpace::Frame);
+        let ctx = PaintCtx::new(None);
+        assert_eq!(
+            non_scaling
+                .raster_to_bytes(&AffineTransform::identity(), 64, 48, &ctx)
+                .expect("frame-space translation raster"),
+            ordinary
+                .raster_to_bytes(&AffineTransform::identity(), 64, 48, &ctx)
+                .expect("ordinary translation raster"),
+            "translation is an equivalent local execution, including f32 cancellation order"
+        );
+    }
+
+    #[test]
+    fn backend_unusable_frame_space_affines_suppress_the_stroke() {
+        let path = rframe::PathData::new(
+            vec![
+                rframe::PathCommand::MoveTo { x: 0.0, y: 0.0 },
+                rframe::PathCommand::LineTo { x: 0.0, y: 0.0 },
+            ],
+            rframe::FillRule::NonZero,
+        )
+        .expect("zero-length path is valid");
+        for scale in [1.0e-30, 1.0e30] {
+            let transform = AffineTransform::from_acebdf(scale, 0.0, 32.0, 0.0, scale, 24.0);
+            let stroke = checked_stroke(
+                8.0,
+                rframe::StrokeCap::Round,
+                rframe::StrokeJoin::Round,
+                1.0,
+                None,
+            )
+            .with_space(rframe::StrokeSpace::Frame);
+            let product = compile(frame_of(FrameItems::from_nodes(vec![stroked_node(
+                RECT_OWNER,
+                Geometry::Path(Arc::new(path.clone())),
+                transform,
+                stroke,
+            )])))
+            .expect("backend-unusable frame affine resolves to no stroke");
+            assert_eq!(coverage_for(&product, RECT_OWNER), None, "scale={scale}");
+            assert!(
+                product.drawlist.items.iter().all(|item| !matches!(
+                    item.kind,
+                    ItemKind::PathStroke { .. } | ItemKind::PatternStroke { .. }
+                )),
+                "scale={scale} must emit no stroke item"
+            );
+        }
+    }
+
+    #[test]
+    fn singular_frame_space_stroke_is_exact_nothing_but_fill_survives() {
+        let geometry = Geometry::Rect(Rectangle::from_xywh(8.0, 8.0, 8.0, 8.0));
+        let transform = AffineTransform::from_acebdf(0.0, 0.0, 24.0, 0.0, 1.0, 0.0);
+        let stroke = checked_stroke(
+            4.0,
+            rframe::StrokeCap::Round,
+            rframe::StrokeJoin::Round,
+            1.0,
+            None,
+        )
+        .with_space(rframe::StrokeSpace::Frame);
+        let mut node = stroked_node(RECT_OWNER, geometry, transform, stroke);
+        node.paints = PaintStack::solid(CGColor::BLACK);
+        let product = compile(frame_of(FrameItems::from_nodes(vec![node])))
+            .expect("singular frame-space stroke does not poison its fill");
+
+        assert!(
+            product.drawlist.items.iter().all(|item| !matches!(
+                item.kind,
+                ItemKind::PatternStroke { .. }
+                    | ItemKind::RectStroke { .. }
+                    | ItemKind::OvalStroke { .. }
+                    | ItemKind::AbsoluteDashedOvalStroke { .. }
+                    | ItemKind::LineStroke { .. }
+                    | ItemKind::PathStroke { .. }
+                    | ItemKind::TextStroke { .. }
+            )),
+            "the singular stroke emits no private paint item"
+        );
+        assert!(
+            product
+                .drawlist
+                .items
+                .iter()
+                .any(|item| matches!(item.kind, ItemKind::RectFill { .. })),
+            "the independent fill remains"
         );
     }
 

@@ -34,6 +34,14 @@
       "height": 64
     },
     {
+      "id": "html-inline-svg-vector-effect",
+      "source": "html-inline-svg-vector-effect.html",
+      "entry": "html-inline-svg",
+      "oracle": "chromium/html-inline-svg-vector-effect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "html-webpage-mockup",
       "source": "html-webpage-mockup.html",
       "entry": "html-inline-svg",
@@ -8685,6 +8693,374 @@
       "source": "svg-use-xy.svg",
       "entry": "standalone-svg",
       "oracle": "chromium/svg-use-xy.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-ancestor-transform",
+      "source": "svg-vector-effect-ancestor-transform.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-ancestor-transform.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-backend-determinant",
+      "source": "svg-vector-effect-backend-determinant.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-backend-determinant.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-basic",
+      "source": "svg-vector-effect-basic.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-basic.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-browser-dropped-grammar",
+      "source": "svg-vector-effect-browser-dropped-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-browser-dropped-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-circle",
+      "source": "svg-vector-effect-circle.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-circle.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-clip",
+      "source": "svg-vector-effect-clip.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-clip.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-computed-stroke-values",
+      "source": "svg-vector-effect-computed-stroke-values.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-computed-stroke-values.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-css-wide-inherit",
+      "source": "svg-vector-effect-css-wide-inherit.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-css-wide-inherit.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-currentcolor",
+      "source": "svg-vector-effect-currentcolor.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-currentcolor.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-dash-pathlength",
+      "source": "svg-vector-effect-dash-pathlength.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-dash-pathlength.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-filter-opacity",
+      "source": "svg-vector-effect-filter-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-filter-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-group-applicability",
+      "source": "svg-vector-effect-group-applicability.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-group-applicability.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-large-quarter-turn",
+      "source": "svg-vector-effect-large-quarter-turn.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-large-quarter-turn.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-large-reflection",
+      "source": "svg-vector-effect-large-reflection.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-large-reflection.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-large-viewbox-translation",
+      "source": "svg-vector-effect-large-viewbox-translation.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-large-viewbox-translation.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-link-applicability",
+      "source": "svg-vector-effect-link-applicability.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-link-applicability.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-marker-backend-determinant",
+      "source": "svg-vector-effect-marker-backend-determinant.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-marker-backend-determinant.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-marker-content",
+      "source": "svg-vector-effect-marker-content.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-marker-content.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-marker-fixed-angle",
+      "source": "svg-vector-effect-marker-fixed-angle.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-marker-fixed-angle.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-marker-reflection",
+      "source": "svg-vector-effect-marker-reflection.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-marker-reflection.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-marker-rms-auto",
+      "source": "svg-vector-effect-marker-rms-auto.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-marker-rms-auto.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-marker-stroke-width",
+      "source": "svg-vector-effect-marker-stroke-width.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-marker-stroke-width.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-marker-user-space",
+      "source": "svg-vector-effect-marker-user-space.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-marker-user-space.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-mask-source",
+      "source": "svg-vector-effect-mask-source.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-mask-source.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-mask-target",
+      "source": "svg-vector-effect-mask-target.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-mask-target.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-nested-viewbox",
+      "source": "svg-vector-effect-nested-viewbox.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-nested-viewbox.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-no-stroke",
+      "source": "svg-vector-effect-no-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-no-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-nonuniform-transform",
+      "source": "svg-vector-effect-nonuniform-transform.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-nonuniform-transform.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-object-gradient",
+      "source": "svg-vector-effect-object-gradient.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-object-gradient.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-object-pattern",
+      "source": "svg-vector-effect-object-pattern.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-object-pattern.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-path-vocabulary",
+      "source": "svg-vector-effect-path-vocabulary.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-path-vocabulary.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-pattern-content",
+      "source": "svg-vector-effect-pattern-content.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-pattern-content.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-reflect-transform",
+      "source": "svg-vector-effect-reflect-transform.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-reflect-transform.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-root-applicability",
+      "source": "svg-vector-effect-root-applicability.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-root-applicability.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-root-viewbox-down",
+      "source": "svg-vector-effect-root-viewbox-down.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-root-viewbox-down.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-root-viewbox-up",
+      "source": "svg-vector-effect-root-viewbox-up.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-root-viewbox-up.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-rotate-transform",
+      "source": "svg-vector-effect-rotate-transform.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-rotate-transform.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-rounded-rect",
+      "source": "svg-vector-effect-rounded-rect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-rounded-rect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-shape-elements",
+      "source": "svg-vector-effect-shape-elements.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-shape-elements.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-skew-transform",
+      "source": "svg-vector-effect-skew-transform.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-skew-transform.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-token-grammar",
+      "source": "svg-vector-effect-token-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-token-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-use-element",
+      "source": "svg-vector-effect-use-element.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-use-element.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-use-target",
+      "source": "svg-vector-effect-use-target.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-use-target.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-user-gradient",
+      "source": "svg-vector-effect-user-gradient.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-user-gradient.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-user-pattern",
+      "source": "svg-vector-effect-user-pattern.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-user-pattern.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-zero-length-caps",
+      "source": "svg-vector-effect-zero-length-caps.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-vector-effect-zero-length-caps.png",
       "width": 64,
       "height": 64
     },

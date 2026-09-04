@@ -607,10 +607,10 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete primitive corpus contains 1,079 Chromium-baked cells plus
+  cells. The complete primitive corpus contains 1,126 Chromium-baked cells plus
   16 sampled frames; the text estate contains fifteen exact text pixel cells and
   eight exact-number artifact-geometry witnesses (six Allerta and two
-  Bungee), and the named refusal register has 226 rows. `feFlood`, `feComposite`,
+  Bungee), and the named refusal register has 230 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -665,6 +665,27 @@ cargo run -p n0_cli --bin n0 -- \
   indirection and CSS escapes — all refuse by name. The SVG2-only
   join values `miter-clip` and `arcs` drop as invalid declarations exactly
   as Chromium drops them (measured, celled) — an agreement, not a hole.
+  The direct `vector-effect` presentation attribute carries the complete
+  standard-track grammar. `none` retains ordinary local-space stroking;
+  `non-scaling-stroke` maps the centerline into frame space before applying
+  the nominal width as one circular pen. Chromium 149 drops the at-risk
+  `non-scaling-size`, `non-rotation`, `fixed-position`, combination,
+  `viewport`, and `screen` members to `none`, and those drops are baked.
+  The source-neutral resolved stroke records only `Local | Frame`
+  construction space. Frame construction reaches every admitted geometry,
+  dash and `pathLength` route, affine and viewport mapping, paint server,
+  clip/mask/filter/opacity composition, pattern/mask/marker source program,
+  `<use>` target, and marker-unit branch. `markerUnits="strokeWidth"` follows
+  Blink's RMS affine scale; `userSpaceOnUse` remains independent. Exact-linear
+  identity mappings retain the established local f32 execution order, while
+  a zero, non-finite, underflowed, or overflowed f32 determinant suppresses
+  both the frame-space stroke and its stroke-width marker. Forty-seven exact
+  Chromium cells guard the slice. Direct `var()`, `env()` fallback, typed
+  `attr()`, and experimental `if()` forms remain stable function-named
+  refusals, and authored CSS `vector-effect` remains a separate stable property
+  refusal because the pinned Stylo build has no corresponding longhand; no
+  second matcher is added. Graphics elements outside this admitted slice keep
+  their own element-level refusals.
   `stroke-dasharray` is consumed in both spellings from that same cascade:
   numbers/lengths/percentages, comma or whitespace separators, CSS math,
   odd-list repetition, inheritance through containers and `<use>`, and
