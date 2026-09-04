@@ -39,7 +39,7 @@ use crate::drawlist::{
     ResolvedFilterColorSpace, ResolvedFilterComposite, ResolvedFilterConvolveEdgeMode,
     ResolvedFilterDisplacementChannel, ResolvedFilterInput, ResolvedFilterLightSource,
     ResolvedFilterMorphology, ResolvedFilterPrimitive, ResolvedFilterTurbulenceKind,
-    ResolvedMaskMode, ResolvedPattern, ResolvedPatternGeometry, StrokeDashPhase,
+    ResolvedMaskMode, ResolvedPattern, ResolvedPatternGeometry, StrokeDashPhase, StrokeSpace,
 };
 
 /// The gradient family whose local matrix could not be represented by the
@@ -639,6 +639,41 @@ fn paint_box_matrix(paint_box: PaintBox, transform: &Affine) -> Matrix {
     matrix
 }
 
+/// Map an existing local paint coordinate system into the coordinates in
+/// which geometry is submitted to the canvas. Identity deliberately performs
+/// no matrix write so every ordinary draw retains its established f32 route.
+fn mapped_paint_box_matrix(
+    paint_box: PaintBox,
+    transform: &Affine,
+    paint_to_canvas: &Affine,
+) -> Matrix {
+    let mut matrix = paint_box_matrix(paint_box, transform);
+    if *paint_to_canvas != Affine::IDENTITY {
+        // SkMatrix::postConcat is `other * self`: unit -> paint box -> model
+        // paint transform -> frame, matching the transformed centerline.
+        matrix.post_concat(&skia_matrix(paint_to_canvas));
+    }
+    matrix
+}
+
+/// Translation does not change stroke construction. Keeping that exact case
+/// on the established local draw route avoids an otherwise observable f32
+/// cancellation when large source coordinates meet an opposite translation.
+/// The resolved contract remains frame-space; this is only an equivalent
+/// backend execution route.
+fn effective_stroke_space(space: StrokeSpace, world: &Affine) -> StrokeSpace {
+    if space == StrokeSpace::Frame
+        && world.a == 1.0
+        && world.b == 0.0
+        && world.c == 0.0
+        && world.d == 1.0
+    {
+        StrokeSpace::Local
+    } else {
+        space
+    }
+}
+
 fn gradient_transform(model: &ModelPaint) -> Option<(GradientKind, &Affine)> {
     match model {
         ModelPaint::LinearGradient(gradient) => Some((GradientKind::Linear, &gradient.transform)),
@@ -655,6 +690,7 @@ fn preflight_paints<K: Copy>(
     context: PaintUseContext,
     paints: &Paints,
     paint_box: PaintBox,
+    paint_to_canvas: &Affine,
 ) -> Result<(), GradientPreflightError<K>> {
     for (visible_paint_index, model) in paints.iter().enumerate() {
         let Some((gradient, transform)) = gradient_transform(model) else {
@@ -670,7 +706,10 @@ fn preflight_paints<K: Copy>(
                 reason: GradientPreflightReason::InvalidPaint(error),
             });
         }
-        if paint_box_matrix(paint_box, transform).invert().is_none() {
+        if mapped_paint_box_matrix(paint_box, transform, paint_to_canvas)
+            .invert()
+            .is_none()
+        {
             return Err(GradientPreflightError {
                 node,
                 gradient,
@@ -681,11 +720,17 @@ fn preflight_paints<K: Copy>(
             });
         }
         let shader_exists = match model {
-            ModelPaint::LinearGradient(model) => linear_gradient_shader(model, paint_box).is_some(),
-            ModelPaint::RadialGradient(model) => radial_gradient_shader(model, paint_box).is_some(),
-            ModelPaint::SweepGradient(model) => sweep_gradient_shader(model, paint_box).is_some(),
+            ModelPaint::LinearGradient(model) => {
+                linear_gradient_shader_mapped(model, paint_box, paint_to_canvas).is_some()
+            }
+            ModelPaint::RadialGradient(model) => {
+                radial_gradient_shader_mapped(model, paint_box, paint_to_canvas).is_some()
+            }
+            ModelPaint::SweepGradient(model) => {
+                sweep_gradient_shader_mapped(model, paint_box, paint_to_canvas).is_some()
+            }
             ModelPaint::DiamondGradient(model) => {
-                diamond_gradient_shader(model, paint_box).is_some()
+                diamond_gradient_shader_mapped(model, paint_box, paint_to_canvas).is_some()
             }
             ModelPaint::Solid(_) | ModelPaint::Image(_) => unreachable!(),
         };
@@ -721,6 +766,7 @@ pub(crate) fn preflight_gradients<K: Copy>(
                 PaintUseContext::Fill,
                 paints,
                 PaintBox::from_size(*w, *h),
+                &Affine::IDENTITY,
             )?,
             ItemKind::TextFill {
                 layout,
@@ -742,39 +788,86 @@ pub(crate) fn preflight_gradients<K: Copy>(
                         },
                         run_paints,
                         paint_box,
+                        &Affine::IDENTITY,
                     )?;
                 }
             }
-            ItemKind::RectStroke { w, h, stroke, .. }
-            | ItemKind::OvalStroke { w, h, stroke, .. }
-            | ItemKind::PathStroke { w, h, stroke, .. } => preflight_paints(
-                item.node,
-                draw_item,
-                PaintUseContext::Stroke,
-                &stroke.paints,
-                PaintBox::from_size(*w, *h),
-            )?,
+            ItemKind::RectStroke {
+                w,
+                h,
+                stroke,
+                space,
+                ..
+            }
+            | ItemKind::OvalStroke {
+                w,
+                h,
+                stroke,
+                space,
+                ..
+            }
+            | ItemKind::PathStroke {
+                w,
+                h,
+                stroke,
+                space,
+                ..
+            } => {
+                let paint_to_canvas = match effective_stroke_space(*space, &item.world) {
+                    StrokeSpace::Local => &Affine::IDENTITY,
+                    StrokeSpace::Frame => &item.world,
+                };
+                preflight_paints(
+                    item.node,
+                    draw_item,
+                    PaintUseContext::Stroke,
+                    &stroke.paints,
+                    PaintBox::from_size(*w, *h),
+                    paint_to_canvas,
+                )?;
+            }
             ItemKind::AbsoluteDashedOvalStroke {
-                x, y, w, h, stroke, ..
-            } => preflight_paints(
-                item.node,
-                draw_item,
-                PaintUseContext::Stroke,
-                &stroke.paints,
-                PaintBox::from_xywh(*x, *y, *w, *h),
-            )?,
+                x,
+                y,
+                w,
+                h,
+                stroke,
+                space,
+                ..
+            } => {
+                let paint_to_canvas = match effective_stroke_space(*space, &item.world) {
+                    StrokeSpace::Local => &Affine::IDENTITY,
+                    StrokeSpace::Frame => &item.world,
+                };
+                preflight_paints(
+                    item.node,
+                    draw_item,
+                    PaintUseContext::Stroke,
+                    &stroke.paints,
+                    PaintBox::from_xywh(*x, *y, *w, *h),
+                    paint_to_canvas,
+                )?;
+            }
             ItemKind::LineStroke {
                 paint_w,
                 paint_h,
                 stroke,
+                space,
                 ..
-            } => preflight_paints(
-                item.node,
-                draw_item,
-                PaintUseContext::Stroke,
-                &stroke.paints,
-                PaintBox::from_size(*paint_w, *paint_h),
-            )?,
+            } => {
+                let paint_to_canvas = match effective_stroke_space(*space, &item.world) {
+                    StrokeSpace::Local => &Affine::IDENTITY,
+                    StrokeSpace::Frame => &item.world,
+                };
+                preflight_paints(
+                    item.node,
+                    draw_item,
+                    PaintUseContext::Stroke,
+                    &stroke.paints,
+                    PaintBox::from_size(*paint_w, *paint_h),
+                    paint_to_canvas,
+                )?;
+            }
             ItemKind::TextStroke {
                 layout,
                 paint_w,
@@ -789,6 +882,7 @@ pub(crate) fn preflight_gradients<K: Copy>(
                         PaintUseContext::Stroke,
                         &stroke.paints,
                         PaintBox::from_size(*paint_w, *paint_h),
+                        &Affine::IDENTITY,
                     )?;
                 }
             }
@@ -830,6 +924,7 @@ fn preflight_image_paints(
     context: PaintUseContext,
     paints: &Paints,
     paint_box: PaintBox,
+    paint_to_canvas: &Affine,
     view: &Affine,
     ctx: &PaintCtx,
 ) -> Result<(), ImagePreflightError> {
@@ -874,7 +969,7 @@ fn preflight_image_paints(
         {
             return Err(fail(ImagePreflightReason::TotalMatrixNotInvertible));
         }
-        if image_shader(model, paint_box, ctx).is_none() {
+        if image_shader_mapped(model, paint_box, ctx, paint_to_canvas).is_none() {
             return Err(fail(ImagePreflightReason::ShaderConstructionFailed));
         }
     }
@@ -899,6 +994,7 @@ pub(crate) fn preflight_images(
                 PaintUseContext::Fill,
                 paints,
                 PaintBox::from_size(*w, *h),
+                &Affine::IDENTITY,
                 view,
                 ctx,
             )?,
@@ -920,48 +1016,95 @@ pub(crate) fn preflight_images(
                             },
                             run_paints,
                             paint_box,
+                            &Affine::IDENTITY,
                             view,
                             ctx,
                         )?;
                     }
                 }
             }
-            ItemKind::RectStroke { w, h, stroke, .. }
-            | ItemKind::OvalStroke { w, h, stroke, .. }
-            | ItemKind::PathStroke { w, h, stroke, .. } => preflight_image_paints(
-                item,
-                draw_item,
-                PaintUseContext::Stroke,
-                &stroke.paints,
-                PaintBox::from_size(*w, *h),
-                view,
-                ctx,
-            )?,
+            ItemKind::RectStroke {
+                w,
+                h,
+                stroke,
+                space,
+                ..
+            }
+            | ItemKind::OvalStroke {
+                w,
+                h,
+                stroke,
+                space,
+                ..
+            }
+            | ItemKind::PathStroke {
+                w,
+                h,
+                stroke,
+                space,
+                ..
+            } => {
+                let paint_to_canvas = match effective_stroke_space(*space, &item.world) {
+                    StrokeSpace::Local => &Affine::IDENTITY,
+                    StrokeSpace::Frame => &item.world,
+                };
+                preflight_image_paints(
+                    item,
+                    draw_item,
+                    PaintUseContext::Stroke,
+                    &stroke.paints,
+                    PaintBox::from_size(*w, *h),
+                    paint_to_canvas,
+                    view,
+                    ctx,
+                )?;
+            }
             ItemKind::AbsoluteDashedOvalStroke {
-                x, y, w, h, stroke, ..
-            } => preflight_image_paints(
-                item,
-                draw_item,
-                PaintUseContext::Stroke,
-                &stroke.paints,
-                PaintBox::from_xywh(*x, *y, *w, *h),
-                view,
-                ctx,
-            )?,
+                x,
+                y,
+                w,
+                h,
+                stroke,
+                space,
+                ..
+            } => {
+                let paint_to_canvas = match effective_stroke_space(*space, &item.world) {
+                    StrokeSpace::Local => &Affine::IDENTITY,
+                    StrokeSpace::Frame => &item.world,
+                };
+                preflight_image_paints(
+                    item,
+                    draw_item,
+                    PaintUseContext::Stroke,
+                    &stroke.paints,
+                    PaintBox::from_xywh(*x, *y, *w, *h),
+                    paint_to_canvas,
+                    view,
+                    ctx,
+                )?;
+            }
             ItemKind::LineStroke {
                 paint_w,
                 paint_h,
                 stroke,
+                space,
                 ..
-            } => preflight_image_paints(
-                item,
-                draw_item,
-                PaintUseContext::Stroke,
-                &stroke.paints,
-                PaintBox::from_size(*paint_w, *paint_h),
-                view,
-                ctx,
-            )?,
+            } => {
+                let paint_to_canvas = match effective_stroke_space(*space, &item.world) {
+                    StrokeSpace::Local => &Affine::IDENTITY,
+                    StrokeSpace::Frame => &item.world,
+                };
+                preflight_image_paints(
+                    item,
+                    draw_item,
+                    PaintUseContext::Stroke,
+                    &stroke.paints,
+                    PaintBox::from_size(*paint_w, *paint_h),
+                    paint_to_canvas,
+                    view,
+                    ctx,
+                )?;
+            }
             ItemKind::TextStroke {
                 layout,
                 paint_w,
@@ -976,6 +1119,7 @@ pub(crate) fn preflight_images(
                         PaintUseContext::Stroke,
                         &stroke.paints,
                         PaintBox::from_size(*paint_w, *paint_h),
+                        &Affine::IDENTITY,
                         view,
                         ctx,
                     )?;
@@ -1010,30 +1154,46 @@ fn alignment_uv(alignment: Alignment) -> (f32, f32) {
     )
 }
 
-fn linear_gradient_shader(paint: &LinearGradientPaint, paint_box: PaintBox) -> Option<Shader> {
+fn linear_gradient_shader_mapped(
+    paint: &LinearGradientPaint,
+    paint_box: PaintBox,
+    paint_to_canvas: &Affine,
+) -> Option<Shader> {
     let (colors, positions) = gradient_stops(&paint.stops);
     let from = alignment_uv(paint.xy1);
     let to = alignment_uv(paint.xy2);
     let stops = gradient(&colors, &positions, sk_tile_mode(paint.tile_mode));
-    let matrix = paint_box_matrix(paint_box, &paint.transform);
+    let matrix = mapped_paint_box_matrix(paint_box, &paint.transform, paint_to_canvas);
     shaders::linear_gradient((from, to), &stops, Some(&matrix))
 }
 
-fn radial_gradient_shader(paint: &RadialGradientPaint, paint_box: PaintBox) -> Option<Shader> {
+fn radial_gradient_shader_mapped(
+    paint: &RadialGradientPaint,
+    paint_box: PaintBox,
+    paint_to_canvas: &Affine,
+) -> Option<Shader> {
     let (colors, positions) = gradient_stops(&paint.stops);
     let stops = gradient(&colors, &positions, sk_tile_mode(paint.tile_mode));
-    let matrix = paint_box_matrix(paint_box, &paint.transform);
+    let matrix = mapped_paint_box_matrix(paint_box, &paint.transform, paint_to_canvas);
     shaders::radial_gradient(((0.5, 0.5), 0.5), &stops, Some(&matrix))
 }
 
-fn sweep_gradient_shader(paint: &SweepGradientPaint, paint_box: PaintBox) -> Option<Shader> {
+fn sweep_gradient_shader_mapped(
+    paint: &SweepGradientPaint,
+    paint_box: PaintBox,
+    paint_to_canvas: &Affine,
+) -> Option<Shader> {
     let (colors, positions) = gradient_stops(&paint.stops);
     let stops = gradient(&colors, &positions, skia_safe::TileMode::Clamp);
-    let matrix = paint_box_matrix(paint_box, &paint.transform);
+    let matrix = mapped_paint_box_matrix(paint_box, &paint.transform, paint_to_canvas);
     shaders::sweep_gradient((0.5, 0.5), (0.0, 360.0), &stops, Some(&matrix))
 }
 
-fn diamond_gradient_shader(paint: &DiamondGradientPaint, paint_box: PaintBox) -> Option<Shader> {
+fn diamond_gradient_shader_mapped(
+    paint: &DiamondGradientPaint,
+    paint_box: PaintBox,
+    paint_to_canvas: &Affine,
+) -> Option<Shader> {
     let (colors, positions) = gradient_stops(&paint.stops);
     let stops = gradient(&colors, &positions, skia_safe::TileMode::Clamp);
     let ramp = shaders::linear_gradient(((0.0, 0.0), (1.0, 0.0)), &stops, None)?;
@@ -1047,7 +1207,7 @@ fn diamond_gradient_shader(paint: &DiamondGradientPaint, paint_box: PaintBox) ->
         }
     "#;
     let effect = skia_safe::RuntimeEffect::make_for_shader(SKSL, None).ok()?;
-    let matrix = paint_box_matrix(paint_box, &paint.transform);
+    let matrix = mapped_paint_box_matrix(paint_box, &paint.transform, paint_to_canvas);
     effect.make_shader(Data::new_copy(&[]), &[ramp.into()], Some(&matrix))
 }
 
@@ -1073,7 +1233,12 @@ fn image_fit_matrix(image: &Image, paint_box: PaintBox, fit: BoxFit) -> Matrix {
     Matrix::new_all(sx, 0.0, tx, 0.0, sy, ty, 0.0, 0.0, 1.0)
 }
 
-fn image_shader(paint: &ImagePaint, paint_box: PaintBox, ctx: &PaintCtx) -> Option<Shader> {
+fn image_shader_mapped(
+    paint: &ImagePaint,
+    paint_box: PaintBox,
+    ctx: &PaintCtx,
+    paint_to_canvas: &Affine,
+) -> Option<Shader> {
     if paint.quarter_turns != 0
         || paint.alignment != n0_model::model::Alignment::CENTER
         || paint.filters != ImageFilters::default()
@@ -1087,7 +1252,10 @@ fn image_shader(paint: &ImagePaint, paint_box: PaintBox, ctx: &PaintCtx) -> Opti
         ResourceRef::Rid(rid) | ResourceRef::Hash(rid) => rid,
     };
     let image = ctx.image(rid)?;
-    let matrix = image_fit_matrix(image, paint_box, fit);
+    let mut matrix = image_fit_matrix(image, paint_box, fit);
+    if *paint_to_canvas != Affine::IDENTITY {
+        matrix.post_concat(&skia_matrix(paint_to_canvas));
+    }
     let sampling = SamplingOptions::from(CubicResampler::mitchell());
     let shader = image.to_shader(
         Some((skia_safe::TileMode::Decal, skia_safe::TileMode::Decal)),
@@ -1101,16 +1269,24 @@ fn image_shader(paint: &ImagePaint, paint_box: PaintBox, ctx: &PaintCtx) -> Opti
 /// repeating shader. The nested list starts with its own hard frame clip, so
 /// content outside `(0, 0, width, height)` cannot leak into a neighbouring
 /// tile before repetition.
-fn pattern_shader(pattern: &ResolvedPattern, ctx: &PaintCtx) -> Option<Shader> {
+fn pattern_shader_mapped(
+    pattern: &ResolvedPattern,
+    ctx: &PaintCtx,
+    paint_to_canvas: &Affine,
+) -> Option<Shader> {
     let tile = Rect::from_wh(pattern.width, pattern.height);
     let mut recorder = PictureRecorder::new();
     let canvas = recorder.begin_recording(tile, false);
     execute_unchecked(canvas, &pattern.program, &Affine::IDENTITY, ctx);
     let picture = recorder.finish_recording_as_picture(Some(&tile))?;
+    let mut matrix = skia_matrix(&pattern.transform);
+    if *paint_to_canvas != Affine::IDENTITY {
+        matrix.post_concat(&skia_matrix(paint_to_canvas));
+    }
     Some(picture.to_shader(
         Some((skia_safe::TileMode::Repeat, skia_safe::TileMode::Repeat)),
         FilterMode::Linear,
-        Some(&skia_matrix(&pattern.transform)),
+        Some(&matrix),
         Some(&tile),
     ))
 }
@@ -1120,9 +1296,18 @@ fn pattern_paint(
     post_paint_opacity: PostPaintOpacity,
     ctx: &PaintCtx,
 ) -> Option<Paint> {
+    pattern_paint_mapped(pattern, post_paint_opacity, ctx, &Affine::IDENTITY)
+}
+
+fn pattern_paint_mapped(
+    pattern: &ResolvedPattern,
+    post_paint_opacity: PostPaintOpacity,
+    ctx: &PaintCtx,
+    paint_to_canvas: &Affine,
+) -> Option<Paint> {
     let mut paint = Paint::default();
     paint.set_anti_alias(true);
-    paint.set_shader(pattern_shader(pattern, ctx)?);
+    paint.set_shader(pattern_shader_mapped(pattern, ctx, paint_to_canvas)?);
     // Pattern paint opacity follows the same byte-alpha materialization as a
     // gradient shader. A one-draw element-opacity fold then multiplies that
     // materialized alpha without another quantization.
@@ -1142,8 +1327,26 @@ fn pattern_stroke_paint(
     post_paint_opacity: PostPaintOpacity,
     ctx: &PaintCtx,
 ) -> Option<Paint> {
+    pattern_stroke_paint_mapped(
+        pattern,
+        stroke,
+        dash_phase,
+        post_paint_opacity,
+        ctx,
+        &Affine::IDENTITY,
+    )
+}
+
+fn pattern_stroke_paint_mapped(
+    pattern: &ResolvedPattern,
+    stroke: &Stroke,
+    dash_phase: StrokeDashPhase,
+    post_paint_opacity: PostPaintOpacity,
+    ctx: &PaintCtx,
+    paint_to_canvas: &Affine,
+) -> Option<Paint> {
     let width = uniform_stroke_width(stroke)?;
-    let mut paint = pattern_paint(pattern, post_paint_opacity, ctx)?;
+    let mut paint = pattern_paint_mapped(pattern, post_paint_opacity, ctx, paint_to_canvas)?;
     paint.set_style(PaintStyle::Stroke);
     paint.set_stroke_width(width);
     paint.set_stroke_cap(sk_stroke_cap(stroke.cap));
@@ -1158,11 +1361,11 @@ fn pattern_stroke_paint(
     Some(paint)
 }
 
-fn preflight_pattern(pattern: &ResolvedPattern, ctx: &PaintCtx) -> bool {
+fn preflight_pattern(pattern: &ResolvedPattern, ctx: &PaintCtx, paint_to_canvas: &Affine) -> bool {
     if preflight_patterns(&pattern.program, ctx).is_err() {
         return false;
     }
-    pattern_shader(pattern, ctx).is_some()
+    pattern_shader_mapped(pattern, ctx, paint_to_canvas).is_some()
 }
 
 /// Prove every nested picture/repeat shader before the first target draw.
@@ -1173,13 +1376,18 @@ pub(crate) fn preflight_patterns<K>(
     ctx: &PaintCtx,
 ) -> Result<(), PatternPreflightError> {
     for (draw_item, item) in list.items.iter().enumerate() {
-        let pattern = match &item.kind {
-            ItemKind::PatternFill { pattern, .. } | ItemKind::PatternStroke { pattern, .. } => {
-                pattern
-            }
+        let (pattern, paint_to_canvas) = match &item.kind {
+            ItemKind::PatternFill { pattern, .. } => (pattern, &Affine::IDENTITY),
+            ItemKind::PatternStroke { pattern, space, .. } => (
+                pattern,
+                match effective_stroke_space(*space, &item.world) {
+                    StrokeSpace::Local => &Affine::IDENTITY,
+                    StrokeSpace::Frame => &item.world,
+                },
+            ),
             _ => continue,
         };
-        if !preflight_pattern(pattern, ctx) {
+        if !preflight_pattern(pattern, ctx, paint_to_canvas) {
             return Err(PatternPreflightError { draw_item });
         }
     }
@@ -1194,6 +1402,16 @@ fn sk_paint(
     paint_box: PaintBox,
     ctx: &PaintCtx,
     post_paint_opacity: PostPaintOpacity,
+) -> Option<Paint> {
+    sk_paint_mapped(model, paint_box, ctx, post_paint_opacity, &Affine::IDENTITY)
+}
+
+fn sk_paint_mapped(
+    model: &ModelPaint,
+    paint_box: PaintBox,
+    ctx: &PaintCtx,
+    post_paint_opacity: PostPaintOpacity,
+    paint_to_canvas: &Affine,
 ) -> Option<Paint> {
     let mut paint = Paint::default();
     paint.set_anti_alias(true);
@@ -1217,30 +1435,30 @@ fn sk_paint(
         }
         ModelPaint::LinearGradient(model) => {
             paint.set_shader(
-                linear_gradient_shader(model, paint_box)
+                linear_gradient_shader_mapped(model, paint_box, paint_to_canvas)
                     .expect("preflighted linear gradient shader construction failed"),
             );
         }
         ModelPaint::RadialGradient(model) => {
             paint.set_shader(
-                radial_gradient_shader(model, paint_box)
+                radial_gradient_shader_mapped(model, paint_box, paint_to_canvas)
                     .expect("preflighted radial gradient shader construction failed"),
             );
         }
         ModelPaint::SweepGradient(model) => {
             paint.set_shader(
-                sweep_gradient_shader(model, paint_box)
+                sweep_gradient_shader_mapped(model, paint_box, paint_to_canvas)
                     .expect("preflighted sweep gradient shader construction failed"),
             );
         }
         ModelPaint::DiamondGradient(model) => {
             paint.set_shader(
-                diamond_gradient_shader(model, paint_box)
+                diamond_gradient_shader_mapped(model, paint_box, paint_to_canvas)
                     .expect("preflighted diamond gradient shader construction failed"),
             );
         }
         ModelPaint::Image(model) => {
-            paint.set_shader(image_shader(model, paint_box, ctx)?);
+            paint.set_shader(image_shader_mapped(model, paint_box, ctx, paint_to_canvas)?);
         }
     }
     // Solids store opacity in their RGBA8 color. An image's opacity stays the
@@ -3727,8 +3945,28 @@ fn native_stroke_paint(
     paint_box: PaintBox,
     ctx: &PaintCtx,
 ) -> Option<Paint> {
+    native_stroke_paint_mapped(
+        model,
+        stroke,
+        dash_phase,
+        post_paint_opacity,
+        paint_box,
+        ctx,
+        &Affine::IDENTITY,
+    )
+}
+
+fn native_stroke_paint_mapped(
+    model: &ModelPaint,
+    stroke: &Stroke,
+    dash_phase: StrokeDashPhase,
+    post_paint_opacity: PostPaintOpacity,
+    paint_box: PaintBox,
+    ctx: &PaintCtx,
+    paint_to_canvas: &Affine,
+) -> Option<Paint> {
     let width = uniform_stroke_width(stroke)?;
-    let mut paint = sk_paint(model, paint_box, ctx, post_paint_opacity)?;
+    let mut paint = sk_paint_mapped(model, paint_box, ctx, post_paint_opacity, paint_to_canvas)?;
     paint.set_style(PaintStyle::Stroke);
     paint.set_stroke_width(width);
     paint.set_stroke_cap(sk_stroke_cap(stroke.cap));
@@ -3763,6 +4001,62 @@ fn draw_native_centered_stroke(
             draw(&paint);
         }
     }
+}
+
+fn draw_native_centered_stroke_mapped(
+    stroke: &Stroke,
+    dash_phase: StrokeDashPhase,
+    post_paint_opacity: PostPaintOpacity,
+    paint_box: PaintBox,
+    ctx: &PaintCtx,
+    paint_to_canvas: &Affine,
+    mut draw: impl FnMut(&Paint),
+) {
+    for model in stroke.paints.iter() {
+        if let Some(paint) = native_stroke_paint_mapped(
+            model,
+            stroke,
+            dash_phase,
+            post_paint_opacity,
+            paint_box,
+            ctx,
+            paint_to_canvas,
+        ) {
+            draw(&paint);
+        }
+    }
+}
+
+/// Draw one centerline already expressed in item-local coordinates. A
+/// frame-space stroke maps that centerline before dashing/widening while its
+/// paint mapping follows the same local-to-frame transform. The host view is
+/// deliberately left outside this operation.
+#[allow(clippy::too_many_arguments)]
+fn draw_frame_space_stroke(
+    canvas: &Canvas,
+    view: &Affine,
+    world: &Affine,
+    source: &Path,
+    stroke: &Stroke,
+    dash_phase: StrokeDashPhase,
+    post_paint_opacity: PostPaintOpacity,
+    paint_box: PaintBox,
+    ctx: &PaintCtx,
+) {
+    let transformed = source.make_transform(&skia_matrix(world));
+    with_local_transform(canvas, view, &Affine::IDENTITY, || {
+        draw_native_centered_stroke_mapped(
+            stroke,
+            dash_phase,
+            post_paint_opacity,
+            paint_box,
+            ctx,
+            world,
+            |paint| {
+                canvas.draw_path(&transformed, paint);
+            },
+        );
+    });
 }
 
 #[derive(Default)]
@@ -4029,42 +4323,83 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 geometry,
                 pattern,
                 stroke,
+                space,
                 dash_phase,
                 post_paint_opacity,
             } => {
-                with_local_transform(canvas, view, &item.world, || {
-                    debug_assert_eq!(stroke.align, StrokeAlign::Center);
-                    let adjusted = match geometry {
-                        ResolvedPatternGeometry::Oval { w, h, .. } if *w > 0.0 && *h > 0.0 => {
-                            stroke_cap_for_closed_contours(stroke)
-                        }
-                        ResolvedPatternGeometry::Path(path)
-                            if path.all_contours_closed && !any_contour_may_be_degenerate(path) =>
-                        {
-                            stroke_cap_for_closed_contours(stroke)
-                        }
-                        _ => stroke.clone(),
-                    };
-                    let paint = pattern_stroke_paint(
-                        pattern,
-                        &adjusted,
-                        *dash_phase,
-                        *post_paint_opacity,
-                        ctx,
-                    )
-                    .expect("preflighted pattern stroke shader construction failed");
-                    match geometry {
-                        ResolvedPatternGeometry::Rect { x, y, w, h } => {
-                            canvas.draw_rect(Rect::from_xywh(*x, *y, *w, *h), &paint);
-                        }
-                        ResolvedPatternGeometry::Oval { x, y, w, h } => {
-                            canvas.draw_oval(Rect::from_xywh(*x, *y, *w, *h), &paint);
-                        }
-                        ResolvedPatternGeometry::Path(path) => {
-                            canvas.draw_path(&backend_path(path), &paint);
-                        }
+                debug_assert_eq!(stroke.align, StrokeAlign::Center);
+                let adjusted = match geometry {
+                    ResolvedPatternGeometry::Oval { w, h, .. } if *w > 0.0 && *h > 0.0 => {
+                        stroke_cap_for_closed_contours(stroke)
                     }
-                });
+                    ResolvedPatternGeometry::Path(path)
+                        if path.all_contours_closed && !any_contour_may_be_degenerate(path) =>
+                    {
+                        stroke_cap_for_closed_contours(stroke)
+                    }
+                    _ => stroke.clone(),
+                };
+                match effective_stroke_space(*space, &item.world) {
+                    StrokeSpace::Local => {
+                        with_local_transform(canvas, view, &item.world, || {
+                            let paint = pattern_stroke_paint(
+                                pattern,
+                                &adjusted,
+                                *dash_phase,
+                                *post_paint_opacity,
+                                ctx,
+                            )
+                            .expect("preflighted pattern stroke shader construction failed");
+                            match geometry {
+                                ResolvedPatternGeometry::Rect { x, y, w, h } => {
+                                    canvas.draw_rect(Rect::from_xywh(*x, *y, *w, *h), &paint);
+                                }
+                                ResolvedPatternGeometry::Oval { x, y, w, h } => {
+                                    canvas.draw_oval(Rect::from_xywh(*x, *y, *w, *h), &paint);
+                                }
+                                ResolvedPatternGeometry::Path(path) => {
+                                    canvas.draw_path(&backend_path(path), &paint);
+                                }
+                            }
+                        });
+                    }
+                    StrokeSpace::Frame => {
+                        let source = match geometry {
+                            ResolvedPatternGeometry::Rect { x, y, w, h } => {
+                                let mut builder = PathBuilder::new();
+                                builder.add_rect(
+                                    Rect::from_xywh(*x, *y, *w, *h),
+                                    Some(PathDirection::CW),
+                                    Some(0),
+                                );
+                                builder.snapshot()
+                            }
+                            ResolvedPatternGeometry::Oval { x, y, w, h } => {
+                                let mut builder = PathBuilder::new();
+                                builder.add_oval(
+                                    Rect::from_xywh(*x, *y, *w, *h),
+                                    Some(PathDirection::CW),
+                                    Some(1),
+                                );
+                                builder.snapshot()
+                            }
+                            ResolvedPatternGeometry::Path(path) => backend_path(path),
+                        };
+                        let transformed = source.make_transform(&skia_matrix(&item.world));
+                        with_local_transform(canvas, view, &Affine::IDENTITY, || {
+                            let paint = pattern_stroke_paint_mapped(
+                                pattern,
+                                &adjusted,
+                                *dash_phase,
+                                *post_paint_opacity,
+                                ctx,
+                                &item.world,
+                            )
+                            .expect("preflighted pattern stroke shader construction failed");
+                            canvas.draw_path(&transformed, &paint);
+                        });
+                    }
+                }
             }
             ItemKind::RectFill {
                 w,
@@ -4168,27 +4503,125 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 corner_radius,
                 corner_smoothing,
                 stroke,
+                space,
                 dash_phase,
                 post_paint_opacity,
             } => {
-                with_local_transform(canvas, view, &item.world, || {
-                    let paint_box = PaintBox::from_size(*w, *h);
-                    match stroke.width.normalized() {
-                        StrokeWidth::None => {}
-                        StrokeWidth::Rectangular(widths) => draw_rectangular_stroke(
+                let paint_box = PaintBox::from_size(*w, *h);
+                match effective_stroke_space(*space, &item.world) {
+                    StrokeSpace::Local => {
+                        with_local_transform(canvas, view, &item.world, || {
+                            match stroke.width.normalized() {
+                                StrokeWidth::None => {}
+                                StrokeWidth::Rectangular(widths) => draw_rectangular_stroke(
+                                    canvas,
+                                    *w,
+                                    *h,
+                                    corner_radius,
+                                    widths,
+                                    stroke,
+                                    *dash_phase,
+                                    *post_paint_opacity,
+                                    paint_box,
+                                    ctx,
+                                ),
+                                StrokeWidth::Uniform(_) => {
+                                    if corner_radius.is_zero()
+                                        && stroke.align == StrokeAlign::Center
+                                    {
+                                        draw_native_centered_stroke(
+                                            stroke,
+                                            *dash_phase,
+                                            *post_paint_opacity,
+                                            paint_box,
+                                            ctx,
+                                            |paint| {
+                                                canvas.draw_rect(Rect::from_wh(*w, *h), paint);
+                                            },
+                                        );
+                                    } else {
+                                        let path = rounded_rect_path(
+                                            *w,
+                                            *h,
+                                            corner_radius,
+                                            corner_smoothing.value(),
+                                        );
+                                        if stroke.align == StrokeAlign::Center {
+                                            draw_native_centered_stroke(
+                                                stroke,
+                                                *dash_phase,
+                                                *post_paint_opacity,
+                                                paint_box,
+                                                ctx,
+                                                |paint| {
+                                                    canvas.draw_path(&path, paint);
+                                                },
+                                            );
+                                        } else {
+                                            draw_stroke(
+                                                canvas,
+                                                &path,
+                                                stroke,
+                                                *dash_phase,
+                                                *post_paint_opacity,
+                                                paint_box,
+                                                ctx,
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                    StrokeSpace::Frame => {
+                        debug_assert_eq!(stroke.align, StrokeAlign::Center);
+                        debug_assert!(matches!(stroke.width.normalized(), StrokeWidth::Uniform(_)));
+                        let source = if corner_radius.is_zero() {
+                            let mut builder = PathBuilder::new();
+                            builder.add_rect(
+                                Rect::from_wh(*w, *h),
+                                Some(PathDirection::CW),
+                                Some(0),
+                            );
+                            builder.snapshot()
+                        } else {
+                            rounded_rect_path(*w, *h, corner_radius, corner_smoothing.value())
+                        };
+                        draw_frame_space_stroke(
                             canvas,
-                            *w,
-                            *h,
-                            corner_radius,
-                            widths,
+                            view,
+                            &item.world,
+                            &source,
                             stroke,
                             *dash_phase,
                             *post_paint_opacity,
                             paint_box,
                             ctx,
-                        ),
-                        StrokeWidth::Uniform(_) => {
-                            if corner_radius.is_zero() && stroke.align == StrokeAlign::Center {
+                        );
+                    }
+                }
+            }
+            ItemKind::OvalStroke {
+                w,
+                h,
+                stroke,
+                space,
+                dash_phase,
+                post_paint_opacity,
+            } => {
+                let paint_box = PaintBox::from_size(*w, *h);
+                // A solid oval is one closed contour, so its cap is inert;
+                // a dashed oval keeps the authored cap because every dash has
+                // ends. A zero-axis oval instead degenerates to a segment.
+                let stroke = if *w > 0.0 && *h > 0.0 {
+                    &stroke_cap_for_closed_contours(stroke)
+                } else {
+                    stroke
+                };
+                match effective_stroke_space(*space, &item.world) {
+                    StrokeSpace::Local => {
+                        with_local_transform(canvas, view, &item.world, || {
+                            if stroke.align == StrokeAlign::Center {
                                 draw_native_centered_stroke(
                                     stroke,
                                     *dash_phase,
@@ -4196,87 +4629,34 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                                     paint_box,
                                     ctx,
                                     |paint| {
-                                        canvas.draw_rect(Rect::from_wh(*w, *h), paint);
+                                        canvas.draw_oval(Rect::from_wh(*w, *h), paint);
                                     },
                                 );
                             } else {
-                                let path = rounded_rect_path(
-                                    *w,
-                                    *h,
-                                    corner_radius,
-                                    corner_smoothing.value(),
+                                draw_stroke(
+                                    canvas,
+                                    &oval_path(*w, *h),
+                                    stroke,
+                                    *dash_phase,
+                                    *post_paint_opacity,
+                                    paint_box,
+                                    ctx,
                                 );
-                                if stroke.align == StrokeAlign::Center {
-                                    draw_native_centered_stroke(
-                                        stroke,
-                                        *dash_phase,
-                                        *post_paint_opacity,
-                                        paint_box,
-                                        ctx,
-                                        |paint| {
-                                            canvas.draw_path(&path, paint);
-                                        },
-                                    );
-                                } else {
-                                    draw_stroke(
-                                        canvas,
-                                        &path,
-                                        stroke,
-                                        *dash_phase,
-                                        *post_paint_opacity,
-                                        paint_box,
-                                        ctx,
-                                    );
-                                }
                             }
-                        }
+                        });
                     }
-                });
-            }
-            ItemKind::OvalStroke {
-                w,
-                h,
-                stroke,
-                dash_phase,
-                post_paint_opacity,
-            } => {
-                with_local_transform(canvas, view, &item.world, || {
-                    let paint_box = PaintBox::from_size(*w, *h);
-                    // A solid oval is one closed contour, so its cap is inert;
-                    // a dashed oval keeps the authored cap because every dash
-                    // has ends. See [`stroke_cap_for_closed_contours`], which
-                    // also carries the thin-solid normalization this arm needs
-                    // where the rect arm does not. An oval with no extent is
-                    // the other exception: it degenerates to a segment whose
-                    // ends the cap is the only thing that renders.
-                    let stroke = if *w > 0.0 && *h > 0.0 {
-                        &stroke_cap_for_closed_contours(stroke)
-                    } else {
-                        stroke
-                    };
-                    if stroke.align == StrokeAlign::Center {
-                        draw_native_centered_stroke(
-                            stroke,
-                            *dash_phase,
-                            *post_paint_opacity,
-                            paint_box,
-                            ctx,
-                            |paint| {
-                                canvas.draw_oval(Rect::from_wh(*w, *h), paint);
-                            },
-                        );
-                    } else {
-                        draw_stroke(
-                            canvas,
-                            &oval_path(*w, *h),
-                            stroke,
-                            *dash_phase,
-                            *post_paint_opacity,
-                            paint_box,
-                            ctx,
-                        );
-                    }
-                });
+                    StrokeSpace::Frame => draw_frame_space_stroke(
+                        canvas,
+                        view,
+                        &item.world,
+                        &oval_path(*w, *h),
+                        stroke,
+                        *dash_phase,
+                        *post_paint_opacity,
+                        paint_box,
+                        ctx,
+                    ),
+                }
             }
             ItemKind::AbsoluteDashedOvalStroke {
                 x,
@@ -4284,28 +4664,52 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 w,
                 h,
                 stroke,
+                space,
                 dash_phase,
                 post_paint_opacity,
             } => {
-                with_local_transform(canvas, view, &item.world, || {
-                    let paint_box = PaintBox::from_xywh(*x, *y, *w, *h);
-                    let stroke = if *w > 0.0 && *h > 0.0 {
-                        &stroke_cap_for_closed_contours(stroke)
-                    } else {
-                        stroke
-                    };
-                    debug_assert_eq!(stroke.align, StrokeAlign::Center);
-                    draw_native_centered_stroke(
-                        stroke,
-                        *dash_phase,
-                        *post_paint_opacity,
-                        paint_box,
-                        ctx,
-                        |paint| {
-                            canvas.draw_oval(Rect::from_xywh(*x, *y, *w, *h), paint);
-                        },
-                    );
-                });
+                let paint_box = PaintBox::from_xywh(*x, *y, *w, *h);
+                let stroke = if *w > 0.0 && *h > 0.0 {
+                    &stroke_cap_for_closed_contours(stroke)
+                } else {
+                    stroke
+                };
+                debug_assert_eq!(stroke.align, StrokeAlign::Center);
+                match effective_stroke_space(*space, &item.world) {
+                    StrokeSpace::Local => {
+                        with_local_transform(canvas, view, &item.world, || {
+                            draw_native_centered_stroke(
+                                stroke,
+                                *dash_phase,
+                                *post_paint_opacity,
+                                paint_box,
+                                ctx,
+                                |paint| {
+                                    canvas.draw_oval(Rect::from_xywh(*x, *y, *w, *h), paint);
+                                },
+                            );
+                        });
+                    }
+                    StrokeSpace::Frame => {
+                        let mut builder = PathBuilder::new();
+                        builder.add_oval(
+                            Rect::from_xywh(*x, *y, *w, *h),
+                            Some(PathDirection::CW),
+                            Some(1),
+                        );
+                        draw_frame_space_stroke(
+                            canvas,
+                            view,
+                            &item.world,
+                            &builder.snapshot(),
+                            stroke,
+                            *dash_phase,
+                            *post_paint_opacity,
+                            paint_box,
+                            ctx,
+                        );
+                    }
+                }
             }
             ItemKind::LineStroke {
                 x1,
@@ -4315,95 +4719,122 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 paint_w,
                 paint_h,
                 stroke,
+                space,
                 dash_phase,
                 post_paint_opacity,
             } => {
-                with_local_transform(canvas, view, &item.world, || {
-                    let paint_box = PaintBox::from_size(*paint_w, *paint_h);
-                    if stroke.align == StrokeAlign::Center {
-                        draw_native_centered_stroke(
-                            stroke,
-                            *dash_phase,
-                            *post_paint_opacity,
-                            paint_box,
-                            ctx,
-                            |paint| {
-                                canvas.draw_line((*x1, *y1), (*x2, *y2), paint);
-                            },
-                        );
-                    } else {
-                        draw_stroke(
-                            canvas,
-                            &line_path(*x1, *y1, *x2, *y2),
-                            stroke,
-                            *dash_phase,
-                            *post_paint_opacity,
-                            paint_box,
-                            ctx,
-                        );
+                let paint_box = PaintBox::from_size(*paint_w, *paint_h);
+                match effective_stroke_space(*space, &item.world) {
+                    StrokeSpace::Local => {
+                        with_local_transform(canvas, view, &item.world, || {
+                            if stroke.align == StrokeAlign::Center {
+                                draw_native_centered_stroke(
+                                    stroke,
+                                    *dash_phase,
+                                    *post_paint_opacity,
+                                    paint_box,
+                                    ctx,
+                                    |paint| {
+                                        canvas.draw_line((*x1, *y1), (*x2, *y2), paint);
+                                    },
+                                );
+                            } else {
+                                draw_stroke(
+                                    canvas,
+                                    &line_path(*x1, *y1, *x2, *y2),
+                                    stroke,
+                                    *dash_phase,
+                                    *post_paint_opacity,
+                                    paint_box,
+                                    ctx,
+                                );
+                            }
+                        });
                     }
-                });
+                    StrokeSpace::Frame => draw_frame_space_stroke(
+                        canvas,
+                        view,
+                        &item.world,
+                        &line_path(*x1, *y1, *x2, *y2),
+                        stroke,
+                        *dash_phase,
+                        *post_paint_opacity,
+                        paint_box,
+                        ctx,
+                    ),
+                }
             }
             ItemKind::PathStroke {
                 w,
                 h,
                 path,
                 stroke,
+                space,
                 dash_phase,
                 post_paint_opacity,
             } => {
-                with_local_transform(canvas, view, &item.world, || {
-                    let paint_box = PaintBox::from_size(*w, *h);
-                    let geometry = backend_path(path);
-                    if stroke.align != StrokeAlign::Center {
-                        draw_stroke(
-                            canvas,
-                            &geometry,
-                            stroke,
-                            *dash_phase,
-                            *post_paint_opacity,
-                            paint_box,
-                            ctx,
-                        );
-                        return;
+                let paint_box = PaintBox::from_size(*w, *h);
+                let geometry = backend_path(path);
+                // One draw, so one composite pass. A solid closed contour's
+                // cap is inert; a dashed path keeps its authored cap.
+                let adjusted = if path.all_contours_closed && !any_contour_may_be_degenerate(path) {
+                    stroke_cap_for_closed_contours(stroke)
+                } else {
+                    stroke.clone()
+                };
+                match effective_stroke_space(*space, &item.world) {
+                    StrokeSpace::Local => {
+                        with_local_transform(canvas, view, &item.world, || {
+                            if adjusted.align != StrokeAlign::Center {
+                                draw_stroke(
+                                    canvas,
+                                    &geometry,
+                                    &adjusted,
+                                    *dash_phase,
+                                    *post_paint_opacity,
+                                    paint_box,
+                                    ctx,
+                                );
+                            } else {
+                                draw_native_centered_stroke(
+                                    &adjusted,
+                                    *dash_phase,
+                                    *post_paint_opacity,
+                                    paint_box,
+                                    ctx,
+                                    |paint| {
+                                        canvas.draw_path(&geometry, paint);
+                                    },
+                                );
+                            }
+                        });
                     }
-                    // One draw, so one composite pass. The cap a solid closed
-                    // contour is stroked with is the *only* thing that varies
-                    // here; a dashed path keeps its authored cap. The solid
-                    // normalization can vary per path because
-                    // `all_contours_closed` is a property of the whole
-                    // artifact — a path that mixes open and closed contours
-                    // under a non-butt cap refuses upstream rather than
-                    // arriving here to be guessed at.
-                    let stroke = if path.all_contours_closed && !any_contour_may_be_degenerate(path)
-                    {
-                        &stroke_cap_for_closed_contours(stroke)
-                    } else {
-                        stroke
-                    };
-                    draw_native_centered_stroke(
-                        stroke,
+                    StrokeSpace::Frame => draw_frame_space_stroke(
+                        canvas,
+                        view,
+                        &item.world,
+                        &geometry,
+                        &adjusted,
                         *dash_phase,
                         *post_paint_opacity,
                         paint_box,
                         ctx,
-                        |paint| {
-                            canvas.draw_path(&geometry, paint);
-                        },
-                    );
-                });
+                    ),
+                }
             }
             ItemKind::TextStroke {
                 layout,
                 paint_w,
                 paint_h,
                 stroke,
+                space,
                 dash_phase,
                 post_paint_opacity,
             } => {
                 if layout.glyph_runs.is_empty() {
                     continue;
                 }
+                debug_assert_eq!(*space, StrokeSpace::Local);
                 with_local_transform(canvas, view, &item.world, || {
                     let paint_box = PaintBox::from_size(*paint_w, *paint_h);
                     if stroke.align == StrokeAlign::Center {

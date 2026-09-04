@@ -1,8 +1,8 @@
 //! The resolved stroke — a second painted fact per node, beside the fill.
 //!
 //! A stroke is carried, not derived: the producer resolves the paint, the width
-//! in the node's local space, the three shapes a corner or an end can take, and
-//! an optional dash pattern, and the consumer paints exactly that.
+//! in one declared construction space, the three shapes a corner or an end can
+//! take, and an optional dash pattern, and the consumer paints exactly that.
 //!
 //! **Centred, with no alignment field.** A Web stroke straddles its geometry:
 //! half the width falls inside the outline and half outside. That is the only
@@ -10,11 +10,13 @@
 //! an inside- or outside-aligned stroke would grow this type when a producer
 //! that needs it arrives.
 //!
-//! **In local space.** The width is a length in the same space as the geometry,
-//! so the node's transform scales it — including non-uniformly, which turns the
-//! pen elliptical. That is what a browser does (measured: `scale(2,1)` on a
-//! stroked rect yields a stroke twice as wide horizontally as vertically), and
-//! it follows from transforming the stroke *outline* rather than the width.
+//! **Construction space is explicit.** An ordinary stroke is widened and
+//! dashed in the geometry's local space before the node transform, so a
+//! non-uniform transform turns its pen elliptical. A frame-space stroke first
+//! maps the centerline through the node transform, then applies the same scalar
+//! width, dash intervals, and phase in resolved frame coordinates. The host
+//! view remains downstream of both meanings; this contract never bakes a
+//! camera into a frame.
 //!
 //! **An invisible stroke is not a stroke.** Construction *resolves* a width or
 //! a paint stack that cannot paint to `Ok(None)` — not an error, because
@@ -27,6 +29,22 @@
 //! remain present.
 
 use crate::frame::{PaintAlphaFactor, PaintStack};
+
+/// The coordinate system in which a stroke is dashed and widened.
+///
+/// This is a source-neutral resolved fact. It names neither SVG syntax nor a
+/// backend strategy: any producer may require a stroke whose construction is
+/// fixed before or after the node's local-to-frame mapping.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum StrokeSpace {
+    /// Construct the stroke around local geometry, then apply the node
+    /// transform to the complete outline.
+    #[default]
+    Local,
+    /// Apply the node transform to the centerline, then construct the stroke
+    /// in resolved frame coordinates. A later host view still applies.
+    Frame,
+}
 
 /// The shape of a stroked contour's open ends.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -62,7 +80,7 @@ pub enum StrokeDashIntervalsError {
     /// A resolved cycle contains complete painted-gap pairs. Repetition of an
     /// odd authored list belongs to the producer and has already happened.
     OddIntervalCount { count: usize },
-    /// Every interval is a finite local-space distance.
+    /// Every interval is a finite distance in its stroke's construction space.
     NonFiniteInterval { index: usize },
     /// Every interval is non-negative. Zero-length intervals remain
     /// meaningful under round and square caps.
@@ -100,11 +118,11 @@ impl std::error::Error for StrokeDashIntervalsError {}
 
 /// One checked stroke dash interval cycle.
 ///
-/// The immutable intervals are local-space path distances before the node
-/// transform. They alternate painted, unpainted, painted, unpainted, beginning
-/// with paint, and the cycle restarts at the beginning of every contour. A
-/// present cycle is non-empty and even-length; every interval is finite and
-/// non-negative; and their `f32` sum is finite and positive.
+/// The immutable intervals are path distances in their owning stroke's
+/// declared construction space. They alternate painted, unpainted, painted,
+/// unpainted, beginning with paint, and the cycle restarts at the beginning of
+/// every contour. A present cycle is non-empty and even-length; every interval
+/// is finite and non-negative; and their `f32` sum is finite and positive.
 ///
 /// Source syntax does not cross this type. A producer has already resolved
 /// units, percentages, and odd-list repetition. This type deliberately owns
@@ -153,7 +171,7 @@ impl StrokeDashIntervals {
         }))
     }
 
-    /// The alternating painted and unpainted local-space distances.
+    /// The alternating painted and unpainted construction-space distances.
     #[must_use]
     pub fn as_slice(&self) -> &[f32] {
         &self.intervals
@@ -173,8 +191,8 @@ impl StrokeDashIntervals {
 /// Why a checked dash cycle cannot be paired with one resolved phase.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StrokeDashError {
-    /// A resolved local-space phase must be finite before it can be reduced
-    /// into the finite cycle.
+    /// A resolved construction-space phase must be finite before it can be
+    /// reduced into the finite cycle.
     NonFinitePhase,
 }
 
@@ -192,10 +210,10 @@ impl std::error::Error for StrokeDashError {}
 
 /// One checked, source-neutral stroke dash pattern.
 ///
-/// The intervals and phase are local-space path distances before the node
-/// transform. At contour distance `s`, the alternating cycle is observed at
-/// `s + phase`: a positive phase advances into the cycle. The same phase
-/// restarts at the beginning of every contour.
+/// The intervals and phase are path distances in their owning stroke's
+/// declared construction space. At contour distance `s`, the alternating
+/// cycle is observed at `s + phase`: a positive phase advances into the cycle.
+/// The same phase restarts at the beginning of every contour.
 ///
 /// Construction is the sole normalization owner. It reduces every finite
 /// phase modulo the positive cycle length into the canonical half-open range
@@ -210,7 +228,7 @@ pub struct StrokeDash {
 }
 
 impl StrokeDash {
-    /// Pair a checked positive cycle with one finite local-space phase.
+    /// Pair a checked positive cycle with one finite construction-space phase.
     pub fn new(intervals: StrokeDashIntervals, phase: f32) -> Result<Self, StrokeDashError> {
         if !phase.is_finite() {
             return Err(StrokeDashError::NonFinitePhase);
@@ -243,7 +261,7 @@ impl StrokeDash {
         &self.intervals
     }
 
-    /// The canonical local-space phase in `[0, cycle_length)`.
+    /// The canonical construction-space phase in `[0, cycle_length)`.
     #[must_use]
     pub const fn phase(&self) -> f32 {
         self.phase
@@ -281,6 +299,7 @@ impl std::error::Error for StrokeError {}
 pub struct Stroke {
     paints: PaintStack,
     width: f32,
+    space: StrokeSpace,
     cap: StrokeCap,
     join: StrokeJoin,
     miter_limit: f32,
@@ -333,8 +352,8 @@ impl Stroke {
     /// when nothing would be painted.
     ///
     /// Dash absence states a solid stroke. A present value pairs a checked
-    /// positive interval cycle with its canonical local-space phase, so phase
-    /// cannot exist without a cycle.
+    /// positive interval cycle with its canonical construction-space phase, so
+    /// phase cannot exist without a cycle.
     pub fn new_with_dash(
         paints: PaintStack,
         width: f32,
@@ -362,6 +381,7 @@ impl Stroke {
         Ok(Some(Self {
             paints,
             width,
+            space: StrokeSpace::Local,
             cap,
             join,
             miter_limit,
@@ -376,17 +396,33 @@ impl Stroke {
 
     /// Attach the factor applied after every stroke-paint entry's own alpha.
     ///
-    /// This changes only the stroke's [`PaintStack`]; width, cap, join, miter
-    /// limit, and dash remain exactly as resolved. A zero factor normalizes
-    /// the paint stack away, so the complete stroke becomes `None` rather than
-    /// retain an invisible stroke that violates this type's invariant.
+    /// This changes only the stroke's [`PaintStack`]; width, construction
+    /// space, cap, join, miter limit, and dash remain exactly as resolved. A
+    /// zero factor normalizes the paint stack away, so the complete stroke
+    /// becomes `None` rather than retain an invisible stroke that violates this
+    /// type's invariant.
     #[must_use]
     pub fn with_paint_alpha_factor(mut self, alpha_factor: PaintAlphaFactor) -> Option<Self> {
         self.paints = self.paints.with_alpha_factor(alpha_factor);
         (!self.paints.is_empty()).then_some(self)
     }
 
-    /// The stroke width, in the node's local space.
+    /// Select the coordinate system in which this stroke is dashed and
+    /// widened. Construction defaults to [`StrokeSpace::Local`].
+    #[must_use]
+    pub fn with_space(mut self, space: StrokeSpace) -> Self {
+        self.space = space;
+        self
+    }
+
+    /// The coordinate system in which width, dash intervals, and phase are
+    /// consumed around the centerline.
+    #[must_use]
+    pub const fn space(&self) -> StrokeSpace {
+        self.space
+    }
+
+    /// The stroke width, in the stroke's declared construction space.
     #[must_use]
     pub const fn width(&self) -> f32 {
         self.width
@@ -425,9 +461,10 @@ impl Stroke {
         }
     }
 
-    /// How far the stroke can reach outside the geometry it follows, in local
-    /// space. Consumers need this to know what a stroked node covers: the
-    /// node's `bounds` is its *geometry*, and ink lies outside it.
+    /// How far the stroke can reach outside the geometry it follows, in its
+    /// declared construction space. Consumers need this to know what a stroked
+    /// node covers: the node's `bounds` is its *geometry*, and ink lies outside
+    /// it.
     ///
     /// Two independent reaches, whichever is larger — a corner and an end are
     /// different places and either can be the farthest:
@@ -541,6 +578,36 @@ mod tests {
 
         let zero = PaintAlphaFactor::new(0.0).expect("checked zero");
         assert_eq!(original.with_paint_alpha_factor(zero), None);
+    }
+
+    #[test]
+    fn construction_space_defaults_local_and_changes_no_other_stroke_fact() {
+        let intervals = StrokeDashIntervals::new(vec![3.0, 2.0])
+            .expect("valid intervals")
+            .expect("positive cycle");
+        let dash = StrokeDash::new(intervals, -7.0).expect("finite phase");
+        let local = Stroke::new_with_dash(
+            black(),
+            8.0,
+            StrokeCap::Square,
+            StrokeJoin::Bevel,
+            2.5,
+            Some(dash),
+        )
+        .expect("valid stroke")
+        .expect("visible stroke");
+        assert_eq!(local.space(), StrokeSpace::Local);
+
+        let frame = local.clone().with_space(StrokeSpace::Frame);
+        let mut expected = local.clone();
+        expected.space = StrokeSpace::Frame;
+        assert_eq!(frame, expected);
+        assert_eq!(frame.space(), StrokeSpace::Frame);
+        assert_eq!(
+            local.space(),
+            StrokeSpace::Local,
+            "the builder is persistent"
+        );
     }
 
     #[test]

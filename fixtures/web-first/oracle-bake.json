@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "069296201718c43d29efe356fbea893781b73250dca51de3b6d47468d74027b0",
   "suite": "primitives.json",
-  "suite_sha256": "16e1e70bca9b18db72693142eaa6c7d11951cda13ff3b29e73869b80cba1acc6",
+  "suite_sha256": "51e5b49c419c78a8e0fbf0fcd37bceeb6d8aaf57421e996bd99c17ce912165ab",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -52,6 +52,15 @@
       "source_sha256": "e01dc21e24bcb30e8af1cf9ab43f8d5613c56242cba00b06759d04f7ea7eacba",
       "oracle": "chromium/html-inline-svg-pattern.png",
       "oracle_sha256": "0ac29fe0ee43f998a4dc30d0ee0d4764013d4cb7833cf17f4d6df15ef617cf8c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "html-inline-svg-vector-effect",
+      "source": "html-inline-svg-vector-effect.html",
+      "source_sha256": "ec1c0a018912518c948a453544128efbb1dd33aba1c6fc614df787f1d2c70764",
+      "oracle": "chromium/html-inline-svg-vector-effect.png",
+      "oracle_sha256": "73d2abaaf6de678790857eb4d21d641434d5164d4357ffd27fb8a6a38fa4f583",
       "width": 64,
       "height": 64
     },
@@ -9664,6 +9673,429 @@
       "source_sha256": "b2f5dae025e52f8e598bf4d3f48db12b96221a4c210a039d789577bb7db52276",
       "oracle": "chromium/svg-use-xy.png",
       "oracle_sha256": "c15596e9337ea3da65c9a1b25355f84e502b7d065508b56ccefa5ccde0f7edf6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-ancestor-transform",
+      "source": "svg-vector-effect-ancestor-transform.svg",
+      "source_sha256": "6c8dca00487c68eb7d441234390003e75b5e95550a3fa96d541165514c2a9fcb",
+      "oracle": "chromium/svg-vector-effect-ancestor-transform.png",
+      "oracle_sha256": "11452350ddeaea765cff86162d8f1ad1019675299dac06b83743f261016f3c1a",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-backend-determinant",
+      "source": "svg-vector-effect-backend-determinant.svg",
+      "source_sha256": "75c0a5a14b411e8281c23a546c313466d35568fae88710365f124ae32da4341c",
+      "oracle": "chromium/svg-vector-effect-backend-determinant.png",
+      "oracle_sha256": "8818c342b6b753835b57d7dfc798ce392db7fb28871efc5e6b8b32e7bc659429",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-basic",
+      "source": "svg-vector-effect-basic.svg",
+      "source_sha256": "af83df23d4e4d01be9f5222e0fca0a74da7c77bf4e790d2eb1de8894ce054a5e",
+      "oracle": "chromium/svg-vector-effect-basic.png",
+      "oracle_sha256": "73d2abaaf6de678790857eb4d21d641434d5164d4357ffd27fb8a6a38fa4f583",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-browser-dropped-grammar",
+      "source": "svg-vector-effect-browser-dropped-grammar.svg",
+      "source_sha256": "c89fdf124c1021516509379185faa54092e348632938f3c287e1f451f9ef4da8",
+      "oracle": "chromium/svg-vector-effect-browser-dropped-grammar.png",
+      "oracle_sha256": "439a5f0f7418587d0a8ac2bf5e33c755c1258db1220a02280366836fdc2ff2e1",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-circle",
+      "source": "svg-vector-effect-circle.svg",
+      "source_sha256": "8512604d12d9d68bd331d625d223f768dd8f5128275340127638ffe53e1cb045",
+      "oracle": "chromium/svg-vector-effect-circle.png",
+      "oracle_sha256": "4fefb0fca48159765bfdb461b7c844c51b87298a159ad418a5eeaa598da9f5df",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-clip",
+      "source": "svg-vector-effect-clip.svg",
+      "source_sha256": "4ad917682ebd7e6ffddca0592a249003543b25e504b5754d761a0d12b9a80d9b",
+      "oracle": "chromium/svg-vector-effect-clip.png",
+      "oracle_sha256": "46b7512ea23a785a8ce4c7e26c6669f1171653d5da13d333be2a2a32a15a21f8",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-computed-stroke-values",
+      "source": "svg-vector-effect-computed-stroke-values.svg",
+      "source_sha256": "5a1986efe7a72a0fd9be77661c4f47a9e6fac5d9c796a9fc7e07bf8e1cce13ed",
+      "oracle": "chromium/svg-vector-effect-computed-stroke-values.png",
+      "oracle_sha256": "ab952e5aaede4f58475cadcc8c96911ad040dd388a00c3902d55f816ec1d46f0",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-css-wide-inherit",
+      "source": "svg-vector-effect-css-wide-inherit.svg",
+      "source_sha256": "c66f30e193405406b3326388822900b062a901c6555ed833664a4c212eb100f9",
+      "oracle": "chromium/svg-vector-effect-css-wide-inherit.png",
+      "oracle_sha256": "9a395714bfa5c59c67e779f252b6e9ed9812e53410f7994db4955c21ac3f6a75",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-currentcolor",
+      "source": "svg-vector-effect-currentcolor.svg",
+      "source_sha256": "dc94905f00ea13c160df78db06ef955e89a36e447f7f39c12cdf9eedcd482af9",
+      "oracle": "chromium/svg-vector-effect-currentcolor.png",
+      "oracle_sha256": "237c4424619b6ebed2c004a84090ce68fdf7d188910a57d4564be6470249bfae",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-dash-pathlength",
+      "source": "svg-vector-effect-dash-pathlength.svg",
+      "source_sha256": "f1f7624def8ebb53cd18c8ae12bf5259e4e8ece6ded8592aa7aa42d75018f9cb",
+      "oracle": "chromium/svg-vector-effect-dash-pathlength.png",
+      "oracle_sha256": "871e4131e457af15bd387f5979c49bc8a2a106f21b001332a86394b76c60cb9e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-filter-opacity",
+      "source": "svg-vector-effect-filter-opacity.svg",
+      "source_sha256": "7bf402f45869ba5c91d44a892b3eb39ed8dfc74b7b500d406b30c0d5725990f9",
+      "oracle": "chromium/svg-vector-effect-filter-opacity.png",
+      "oracle_sha256": "2d9410313ad26b53ef1b29c13d1ab89b755efd9461f0f499501e21f8ff2093be",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-group-applicability",
+      "source": "svg-vector-effect-group-applicability.svg",
+      "source_sha256": "55b78a702edfa59934ddde78adff83930bef6578d6f06ee57badf68bf1f134a0",
+      "oracle": "chromium/svg-vector-effect-group-applicability.png",
+      "oracle_sha256": "2c97c6ee9aff9c0f3ce4ed3abe9109bf31381fdbfc519b17583384d8c9a8d7cb",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-inert-function",
+      "source": "svg-vector-effect-inert-function.svg",
+      "source_sha256": "aade6e7d7850fd8d4a6941086da72826ac56a566bc2378258f96e149532b8fff",
+      "oracle": "chromium/svg-vector-effect-inert-function.png",
+      "oracle_sha256": "48188d916ce96e4fd6edb992d753b4e5f3c776175fe8e3e30647fb1e6ba946dd",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-large-quarter-turn",
+      "source": "svg-vector-effect-large-quarter-turn.svg",
+      "source_sha256": "f0e9ebe8b8905f1c63727a9e8c082062494efad87b4dac923617b321be7c3f87",
+      "oracle": "chromium/svg-vector-effect-large-quarter-turn.png",
+      "oracle_sha256": "e6ef99915ec7c83ce8f6eab147476a27411f02ad05c481f3b61c95163d2b54c1",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-large-reflection",
+      "source": "svg-vector-effect-large-reflection.svg",
+      "source_sha256": "7259375515ac89f74c0da144cf3c1427d69299243c7035338f8258d582d5d410",
+      "oracle": "chromium/svg-vector-effect-large-reflection.png",
+      "oracle_sha256": "9f740ac1b5183a4832d905ffda11e27efeed38bf7e59b415da0d48e582c338c8",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-large-viewbox-translation",
+      "source": "svg-vector-effect-large-viewbox-translation.svg",
+      "source_sha256": "c1192dd183e92a48e3e6b5af8212feef2722f613185907873795667af65c0d71",
+      "oracle": "chromium/svg-vector-effect-large-viewbox-translation.png",
+      "oracle_sha256": "4f852cfe622067e2872424c8add5d3977db6b7d6ad84a6329f288f6d7da566fa",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-link-applicability",
+      "source": "svg-vector-effect-link-applicability.svg",
+      "source_sha256": "525f4d183f5e46114506a9f8fc5d1c1c92533e4d2a75a097269f4aba1e73863b",
+      "oracle": "chromium/svg-vector-effect-link-applicability.png",
+      "oracle_sha256": "2c97c6ee9aff9c0f3ce4ed3abe9109bf31381fdbfc519b17583384d8c9a8d7cb",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-marker-backend-determinant",
+      "source": "svg-vector-effect-marker-backend-determinant.svg",
+      "source_sha256": "2e2ebf9daa21d3ed5e19d1c9115fffdc2d67a195a26f8efa1f0a89a52853a518",
+      "oracle": "chromium/svg-vector-effect-marker-backend-determinant.png",
+      "oracle_sha256": "740b5698e360e76b82ba357a209aabb05517481ff154c697c9b6451f5827f16a",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-marker-content",
+      "source": "svg-vector-effect-marker-content.svg",
+      "source_sha256": "9c564893da7dd5e5b1429175664ab964dda8675b4e95874b45181cc96f8ca9a0",
+      "oracle": "chromium/svg-vector-effect-marker-content.png",
+      "oracle_sha256": "a6f843066e76a38fe1e860fb7716bad9e823c74fbeb847450ce3b6712ea02919",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-marker-fixed-angle",
+      "source": "svg-vector-effect-marker-fixed-angle.svg",
+      "source_sha256": "ab1205a6b25a76fd5ff2041a2030d7cb25faafe20142f2c33917cbcfefc88624",
+      "oracle": "chromium/svg-vector-effect-marker-fixed-angle.png",
+      "oracle_sha256": "8ec33bbc9fd288f77e9968bc9e5fbfc02451bc32862b2afa8d9c3e1d59c28b53",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-marker-reflection",
+      "source": "svg-vector-effect-marker-reflection.svg",
+      "source_sha256": "1e4cb10ae678c7d322403f6f063630a6e498cc2183cf7237ffc4a96b03f61b55",
+      "oracle": "chromium/svg-vector-effect-marker-reflection.png",
+      "oracle_sha256": "8b90366f323038a9d1fb43327233c20962ceae2ffd2c199c4e6a9a53719e53cc",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-marker-rms-auto",
+      "source": "svg-vector-effect-marker-rms-auto.svg",
+      "source_sha256": "130c4b5d408e78c4b51fb95bf9063f095f0a96a3040df4b757d7b718a335ed21",
+      "oracle": "chromium/svg-vector-effect-marker-rms-auto.png",
+      "oracle_sha256": "3248492423f300d672064c0d8d95afbdaa78ac1c563abaa1334cd9ae07c3f43c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-marker-stroke-width",
+      "source": "svg-vector-effect-marker-stroke-width.svg",
+      "source_sha256": "1356040d1f5f826d669c999f290b1407aaee904d7c0e17c0d22bc5dcf097d494",
+      "oracle": "chromium/svg-vector-effect-marker-stroke-width.png",
+      "oracle_sha256": "08e39a385ca232f459a7c4483d53ddfafa658ac1b6888515a8b653941e59c7d4",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-marker-user-space",
+      "source": "svg-vector-effect-marker-user-space.svg",
+      "source_sha256": "4169b9fa297413ef822abb7531c304888358bbd51627d33f8ddf354a1534aa49",
+      "oracle": "chromium/svg-vector-effect-marker-user-space.png",
+      "oracle_sha256": "fa359463b627a06cf7a4b0f8fd0fe3c5276c0103f74a16ef139568a1a0b843ef",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-mask-source",
+      "source": "svg-vector-effect-mask-source.svg",
+      "source_sha256": "ec22fe8e5bd8bf777712f271491215237a0d5512e176566bf2de53f3cbb6deac",
+      "oracle": "chromium/svg-vector-effect-mask-source.png",
+      "oracle_sha256": "237c4424619b6ebed2c004a84090ce68fdf7d188910a57d4564be6470249bfae",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-mask-target",
+      "source": "svg-vector-effect-mask-target.svg",
+      "source_sha256": "362b8832905dc9293a0e327f7d0a4bb95c89ca8fb09cb628ec8ba6c9520b9693",
+      "oracle": "chromium/svg-vector-effect-mask-target.png",
+      "oracle_sha256": "70d85ff803bf834e1cb2d68412e96fa07e29465b6a3734d748e5944d023a1e3f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-nested-viewbox",
+      "source": "svg-vector-effect-nested-viewbox.svg",
+      "source_sha256": "0b5393cadba1c9d72f8b768ceb020bec0882da2d36996ce7306f073cf77bb24c",
+      "oracle": "chromium/svg-vector-effect-nested-viewbox.png",
+      "oracle_sha256": "f492498246ae6c264aa3f6d350da375014eb3c52ecb293de79c9c7346f0fdf2e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-no-stroke",
+      "source": "svg-vector-effect-no-stroke.svg",
+      "source_sha256": "08bed18f41fc742d6d96fb9ba70c3b0356d4df382f4409458e624718799ae1b3",
+      "oracle": "chromium/svg-vector-effect-no-stroke.png",
+      "oracle_sha256": "173b81ef1926c613e7a78552c09357e10c0bac7e36968b2d6e339a6e0a40251d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-nonuniform-transform",
+      "source": "svg-vector-effect-nonuniform-transform.svg",
+      "source_sha256": "47048f60f61c17b94437d8e82c8b2a493bc1ab407b7e1f8abe6a61690f9ac489",
+      "oracle": "chromium/svg-vector-effect-nonuniform-transform.png",
+      "oracle_sha256": "8bb60f152207fdb11b3a0707c106cbbf97e11862fd8a413a1ca17e737e9b8416",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-object-gradient",
+      "source": "svg-vector-effect-object-gradient.svg",
+      "source_sha256": "33daa0c411b94c0fe8cac745d6888d5e6fb6c45d674debb4ae074551f8c5eecc",
+      "oracle": "chromium/svg-vector-effect-object-gradient.png",
+      "oracle_sha256": "8082e699d3597aab6249ad6e117aab0f67a9ba1029f633d06fbdbaee105907fd",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-object-pattern",
+      "source": "svg-vector-effect-object-pattern.svg",
+      "source_sha256": "fb9bfc81a9a67843b9c7048dc0fcf73e0ee6775a3e365ba0181bb86cbe959e21",
+      "oracle": "chromium/svg-vector-effect-object-pattern.png",
+      "oracle_sha256": "e0b902ad5e13a30ceaed1e94df7d7ab936884ef7ff5671cb47d387c918f85a2e",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-path-vocabulary",
+      "source": "svg-vector-effect-path-vocabulary.svg",
+      "source_sha256": "1cf94ae62fb141e51be58b61a3b22c6d58f7db8184db618bb1eaf17d6a0262aa",
+      "oracle": "chromium/svg-vector-effect-path-vocabulary.png",
+      "oracle_sha256": "be5fb1e4773ba6e7f68ff03cf7531df4160d01fdb3ba8a93c22ec41d3f239814",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-pattern-content",
+      "source": "svg-vector-effect-pattern-content.svg",
+      "source_sha256": "bfd5e238c188857fdd1d818c2afeb1b3e552d4ad8b7e16e9ce51493b6c46027b",
+      "oracle": "chromium/svg-vector-effect-pattern-content.png",
+      "oracle_sha256": "277971a9c9a8d4c0a9ad5149757822fff149dca6503e129599deed61249a97b8",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-reflect-transform",
+      "source": "svg-vector-effect-reflect-transform.svg",
+      "source_sha256": "b30f1bf4b52bd004b350905742b066a202e4fad5982aee3cec1f4532a29a3965",
+      "oracle": "chromium/svg-vector-effect-reflect-transform.png",
+      "oracle_sha256": "7162ac99ddde7321b2285a838619718d14f17ee8a45dc6d8adb9eca5024eb9f0",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-root-applicability",
+      "source": "svg-vector-effect-root-applicability.svg",
+      "source_sha256": "1146a665022d970974bcf5be31505f46abfffe2e3d730be2d3d6b2876070ded2",
+      "oracle": "chromium/svg-vector-effect-root-applicability.png",
+      "oracle_sha256": "2c97c6ee9aff9c0f3ce4ed3abe9109bf31381fdbfc519b17583384d8c9a8d7cb",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-root-viewbox-down",
+      "source": "svg-vector-effect-root-viewbox-down.svg",
+      "source_sha256": "b80d4223f131832bebbc65202d8333088b7cbaabddb82591d9866491c709ddd8",
+      "oracle": "chromium/svg-vector-effect-root-viewbox-down.png",
+      "oracle_sha256": "2c97c6ee9aff9c0f3ce4ed3abe9109bf31381fdbfc519b17583384d8c9a8d7cb",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-root-viewbox-up",
+      "source": "svg-vector-effect-root-viewbox-up.svg",
+      "source_sha256": "dea283c45db6dd806e4d7836764f706698507ae5ef5d3403143c6c28d7eac459",
+      "oracle": "chromium/svg-vector-effect-root-viewbox-up.png",
+      "oracle_sha256": "73d2abaaf6de678790857eb4d21d641434d5164d4357ffd27fb8a6a38fa4f583",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-rotate-transform",
+      "source": "svg-vector-effect-rotate-transform.svg",
+      "source_sha256": "2b6fd94d2adfee69094ab215ab9ec35d2fa225b33e840a1712cf542d6083f339",
+      "oracle": "chromium/svg-vector-effect-rotate-transform.png",
+      "oracle_sha256": "1e2656f3ae6f85772208e251790d14ba4dff3fcdc7bcaa52f8bc865ef2ef3ee1",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-rounded-rect",
+      "source": "svg-vector-effect-rounded-rect.svg",
+      "source_sha256": "14e53b4a074cce2a799241025760c05ef05e60fc363ebec65d46dd21dfae4bb8",
+      "oracle": "chromium/svg-vector-effect-rounded-rect.png",
+      "oracle_sha256": "72df7993a1a92fdab274e1110e9ea922867cf6d77d8ef6cdb828278951e6f03f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-shape-elements",
+      "source": "svg-vector-effect-shape-elements.svg",
+      "source_sha256": "4f9876bd2a2a143abde77ca7fa8f19b6edac1d1c5475b4a8a1be86c6cd8853a3",
+      "oracle": "chromium/svg-vector-effect-shape-elements.png",
+      "oracle_sha256": "5a45038b73370030ec6ee019090f6ff2eb82300dae09a3d283b4619204e59664",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-skew-transform",
+      "source": "svg-vector-effect-skew-transform.svg",
+      "source_sha256": "463bc0b9d822c884b9d5dbb7b90cb76e14186a2cf2719f8e1667eb7a9936187c",
+      "oracle": "chromium/svg-vector-effect-skew-transform.png",
+      "oracle_sha256": "d6df7c01a9495bfe7eb575c6821b4ac4fa98f190b3597ae01f2016edfa3d0155",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-token-grammar",
+      "source": "svg-vector-effect-token-grammar.svg",
+      "source_sha256": "dc8c6e76226cebd5654eaac49a4dd99675a6b665a764f12f3fc8ea4986f314a4",
+      "oracle": "chromium/svg-vector-effect-token-grammar.png",
+      "oracle_sha256": "51d16aa4c8303bc0d7dcc0fb924187e073cc63c8d7071be8c29a93edc849e86c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-use-element",
+      "source": "svg-vector-effect-use-element.svg",
+      "source_sha256": "9338eb013ddc1e250c50da71efc7bc5d525eabd0d310137f739b61c2dd783443",
+      "oracle": "chromium/svg-vector-effect-use-element.png",
+      "oracle_sha256": "2c97c6ee9aff9c0f3ce4ed3abe9109bf31381fdbfc519b17583384d8c9a8d7cb",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-use-target",
+      "source": "svg-vector-effect-use-target.svg",
+      "source_sha256": "c34b8a2dbfb29df23528b749b718e53ee85116df76895632f4075d8d533b077b",
+      "oracle": "chromium/svg-vector-effect-use-target.png",
+      "oracle_sha256": "73d2abaaf6de678790857eb4d21d641434d5164d4357ffd27fb8a6a38fa4f583",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-user-gradient",
+      "source": "svg-vector-effect-user-gradient.svg",
+      "source_sha256": "6170da5e0bec86536db98db4e41ea7225b626a651fd954fdaf92110aa07cac72",
+      "oracle": "chromium/svg-vector-effect-user-gradient.png",
+      "oracle_sha256": "570d358a4d1e6b1beb6426eb89a09297bf2ccbf5371679d2de591a796a39027c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-user-pattern",
+      "source": "svg-vector-effect-user-pattern.svg",
+      "source_sha256": "5b549ad13e44099b7d6cee81967f62c73be2cf76856b4a6d6526528c8ced413f",
+      "oracle": "chromium/svg-vector-effect-user-pattern.png",
+      "oracle_sha256": "f07e575ebdd7624c1b61671866063c57c202d50d8ef0a0626b83d4dfc930f3e6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-vector-effect-zero-length-caps",
+      "source": "svg-vector-effect-zero-length-caps.svg",
+      "source_sha256": "62df07b5c50379ae919fa5453a27ea7b1dc60f99376c2332345b0075900ece77",
+      "oracle": "chromium/svg-vector-effect-zero-length-caps.png",
+      "oracle_sha256": "191ea9073f2d7becd68ac65eef74d6c62ad8c82e5f4a8591f1e478691b9b9c90",
       "width": 64,
       "height": 64
     },

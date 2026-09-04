@@ -40,5 +40,5 @@ pub use path::{FillRule, PathCommand, PathData, PathDataError};
 pub use scope::{Scope, ScopeEffect, ScopeOpacity, ScopeOpacityError};
 pub use stroke::{
     Stroke, StrokeCap, StrokeDash, StrokeDashError, StrokeDashIntervals, StrokeDashIntervalsError,
-    StrokeError, StrokeJoin,
+    StrokeError, StrokeJoin, StrokeSpace,
 };

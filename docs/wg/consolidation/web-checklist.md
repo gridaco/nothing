@@ -1105,6 +1105,12 @@ excluded.
 - [ ] `text-rendering`
 - [ ] `text-anchor`
 - [ ] `vector-effect`
+
+> **2026-09-05 attribute/property split:** the CSS property remains open at
+> the pinned Stylo cap: this build has no Servo `vector-effect` longhand, and
+> authored inline or stylesheet declarations refuse by stable property name
+> instead of entering a second matcher. The direct presentation-attribute
+> spelling is an independent row and closes below.
 - [ ] `stop-color`
 - [ ] `stop-opacity`
 
@@ -2269,7 +2275,51 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `transform`
 - [ ] `transform-origin`
 - [ ] `unicode-bidi`
-- [ ] `vector-effect`
+- [x] `vector-effect`
+
+> **2026-09-05 close/split:** forty-eight exact Chromium cells carry the
+> complete standard-track direct-attribute grammar. `none` and missing select
+> ordinary local stroking; `non-scaling-stroke` transforms the centerline to
+> frame space before applying one nominal circular pen. Whitespace, comments,
+> case-insensitive and escaped identifiers, CSS-wide values, explicit
+> inheritance, non-inheritance, invalid fallback, applicability, `<use>`, all
+> admitted geometry and dash routes, root/nested `viewBox`, general affine
+> transforms, paint servers, clips, masks, filters, opacity, marker content,
+> and both marker-unit systems are Chromium-baked. Chromium 149 drops the
+> at-risk `non-scaling-size`, `non-rotation`, `fixed-position`, combination,
+> `viewport`, and `screen` members to the initial result; the drop is celled
+> under the gridaco/nothing#77 precedent.
+>
+> The checked resolved fact is source-neutral stroke construction space.
+> Two probe-discovered precision laws are permanent cells: exact-translation
+> mappings retain the established local f32 execution order, while singular
+> and mathematically invertible mappings whose determinant is zero, non-finite,
+> underflows, or overflows in f32 suppress the non-scaling stroke and its
+> `markerUnits="strokeWidth"` marker exactly as Blink/Skia do. Replacing the
+> feature with ordinary stroking failed forty cells up to delta 255; removing
+> the translation route failed its cell by 288 pixels; widening determinant
+> classification failed the stroke and marker cells by 120 and 248 pixels.
+> Restoration returned all 1,127 primitive cells plus 16 sampled frames to
+> green. A final function patrol found that Chromium resolves direct `var()`
+> fallback, custom `env()` fallback, typed `attr()`, and `if()` to the live
+> member; the former raw parse silently painted `none`, differing by 512
+> pixels at delta 255 for each case (measured, not celled). A generic
+> function-name patrol now refuses those in both policies. `var()`, `env()`,
+> and `attr()` retain their own unchecked function rows. `if()` belongs to
+> [CSS Values 5](https://www.w3.org/TR/css-values-5/), which declares itself
+> early-exploration draft work, so it does not raise the standard-track bar
+> under this checklist's header rule. The CSS property twin above remains
+> open. Replacing one broad patrol with four direct-function rows and the
+> property row moves the refusal register from 226 to 230. Graphics elements
+> outside the admitted slice retain their own
+> unchecked element rows; every admitted stroke-bearing geometry route is
+> covered here. Hosted review found that the function patrol initially ran
+> before proving a drawable stroke: Chromium keeps fill-only and zero-width
+> cases exact, while old best effort skipped 1,024 valid pixels at delta 233
+> and strict admission refused. The call now follows the no-stroke exits and a
+> dedicated cell guards that ordering. The separate marker consumer still
+> resolves the attribute when marker scaling is live (measured, not celled).
+> No tolerance was added.
 - [x] `visibility`
 - [ ] `white-space`
 - [ ] `width`

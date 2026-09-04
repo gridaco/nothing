@@ -880,11 +880,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "stroke-width in",
     ),
     (
-        "svg-stroke-vector-effect",
-        DeclaredByBestEffort,
-        "vector-effect",
-    ),
-    (
         "svg-stroke-width-calc-mixed",
         DeclaredByBestEffort,
         "mixing lengths and percentages",
@@ -1061,6 +1056,31 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "svg-use-symbol",
         DeclaredByBestEffort,
         "unsupported element <symbol>",
+    ),
+    (
+        "svg-vector-effect-attribute-attr",
+        DeclaredByBestEffort,
+        "vector-effect presentation attribute uses attr()",
+    ),
+    (
+        "svg-vector-effect-attribute-env",
+        DeclaredByBestEffort,
+        "vector-effect presentation attribute uses env()",
+    ),
+    (
+        "svg-vector-effect-attribute-if",
+        DeclaredByBestEffort,
+        "vector-effect presentation attribute uses if()",
+    ),
+    (
+        "svg-vector-effect-attribute-var",
+        DeclaredByBestEffort,
+        "vector-effect presentation attribute uses var()",
+    ),
+    (
+        "svg-vector-effect-css-property",
+        DeclaredByBestEffort,
+        "vector-effect",
     ),
     ("svg-viewbox-invalid-token", BothRefuse, "viewBox"),
     ("svg-viewbox-repeated-comma", BothRefuse, "viewBox"),

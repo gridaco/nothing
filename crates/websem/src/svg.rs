@@ -152,7 +152,7 @@ use rframe::{
     FilterTurbulenceKind, Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry,
     Identity, MAX_FILTER_CONVOLVE_KERNEL_VALUES, Mask, MaskMode, PaintAlphaFactor, PaintStack,
     PathData, PatternPaint, Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap,
-    StrokeDash, StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, VisualRef,
+    StrokeDash, StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, StrokeSpace, VisualRef,
 };
 use std::sync::Arc;
 
@@ -1112,7 +1112,6 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     "image-rendering",
     "color-rendering",
     "color-interpolation",
-    "vector-effect",
     "requiredFeatures",
     "requiredExtensions",
     "systemLanguage",
@@ -5732,7 +5731,19 @@ impl<'a> ChildWalk<'a> {
             let marker_scale = match viewport.units {
                 marker_resource::Units::UserSpaceOnUse => 1.0,
                 marker_resource::Units::StrokeWidth => {
-                    resolve_stroke_width(client, &client.local_name_string(), bases)?
+                    let width = resolve_stroke_width(client, &client.local_name_string(), bases)?;
+                    if resolve_vector_effect_space(client)? == StrokeSpace::Frame {
+                        // Blink keeps the ordinary marker placement transform,
+                        // including its anisotropy and orientation, but divides
+                        // the `strokeWidth` marker scale by the RMS scale of the
+                        // non-scaling-stroke transform. This is deliberately
+                        // not the frame-space stroke painter's circular-pen
+                        // rule; Chromium exposes the distinct marker formula
+                        // even when the client stroke itself is transparent.
+                        non_scaling_stroke_marker_width(width, client_to_frame)
+                    } else {
+                        width
+                    }
                 }
             };
             if marker_scale == 0.0 {
@@ -13235,6 +13246,124 @@ struct StrokeResolution {
     opacity_pass: bool,
 }
 
+/// Blink's `markerUnits="strokeWidth"` scale for a non-scaling-stroke client.
+///
+/// The affine values have already crossed the resolved f32 contract. Blink
+/// suppresses the marker when that backend matrix cannot supply a finite,
+/// nonzero f32 determinant; only the RMS accumulation widens to f64 before the
+/// returned scale re-enters Blink's f32 fact.
+fn non_scaling_stroke_marker_width(width: f32, transform: AffineTransform) -> f32 {
+    let [[a, c, _], [b, d, _]] = transform.matrix;
+    let determinant = a * d - b * c;
+    if determinant == 0.0 || !determinant.is_finite() {
+        return 0.0;
+    }
+    let sum = f64::from(a) * f64::from(a)
+        + f64::from(b) * f64::from(b)
+        + f64::from(c) * f64::from(c)
+        + f64::from(d) * f64::from(d);
+    let scale = (sum / 2.0).sqrt() as f32;
+    if scale > 0.0 && scale.is_finite() {
+        width / scale
+    } else {
+        0.0
+    }
+}
+
+#[cfg(test)]
+mod vector_effect_marker_tests {
+    use super::*;
+
+    #[test]
+    fn marker_stroke_width_uses_blinks_rms_affine_scale() {
+        assert_eq!(
+            non_scaling_stroke_marker_width(
+                8.0,
+                AffineTransform::from_acebdf(2.0, 0.0, 0.0, 0.0, 2.0, 0.0),
+            ),
+            4.0
+        );
+        assert_eq!(
+            non_scaling_stroke_marker_width(
+                8.0,
+                AffineTransform::from_acebdf(0.0, -1.0, 0.0, 1.0, 0.0, 0.0),
+            ),
+            8.0,
+            "a rotation has unit RMS scale"
+        );
+        let non_uniform = non_scaling_stroke_marker_width(
+            8.0,
+            AffineTransform::from_acebdf(2.0, 0.0, 0.0, 0.0, 1.0, 0.0),
+        );
+        assert_eq!(non_uniform, 8.0 / 2.5_f32.sqrt());
+    }
+
+    #[test]
+    fn marker_stroke_width_suppresses_backend_unusable_maps() {
+        for transform in [
+            AffineTransform::from_acebdf(1.0, 2.0, 0.0, 2.0, 4.0, 0.0),
+            AffineTransform::from_acebdf(1.0e-30, 0.0, 0.0, 0.0, 1.0e-30, 0.0),
+            AffineTransform::from_acebdf(1.0e30, 0.0, 0.0, 0.0, 1.0e30, 0.0),
+        ] {
+            assert_eq!(non_scaling_stroke_marker_width(8.0, transform), 0.0);
+        }
+    }
+}
+
+/// Resolve the direct `vector-effect` presentation hint at the Stylo boundary.
+///
+/// The pinned cascade has no Servo `vector-effect` longhand, so there is no
+/// computed value to read and no honest matcher to add around it. Authored CSS
+/// stays in [`CASCADE_PROPERTIES_NOT_REPRESENTED`]; this function owns only the
+/// direct attribute spelling. The property is not inherited, but an explicit
+/// `inherit` exposes the direct parent computed value, so a missing or invalid
+/// parent hint stops at the initial local-space member rather than skipping to
+/// a more distant ancestor.
+fn resolve_vector_effect_space(element: HtmlElement<'_>) -> Result<StrokeSpace, CompileError> {
+    use cssparser::{Parser, ParserInput, Token};
+
+    let mut candidate = Some(element);
+    while let Some(current) = candidate {
+        let Some(raw) = get_attr(current, "vector-effect") else {
+            return Ok(StrokeSpace::Local);
+        };
+        let mut input = ParserInput::new(&raw);
+        let mut parser = Parser::new(&mut input);
+        let parsed: Result<_, cssparser::ParseError<'_, ()>> =
+            parser.parse_entirely(|input| input.expect_ident_cloned().map_err(Into::into));
+        if let Ok(ident) = parsed {
+            match ident.to_ascii_lowercase().as_str() {
+                "non-scaling-stroke" => return Ok(StrokeSpace::Frame),
+                "inherit" => {
+                    candidate = current.traversal_parent();
+                    continue;
+                }
+                // `none` is the initial member. `unset` therefore selects it
+                // for this non-inherited property; the two revert spellings
+                // remove the presentation hint and reach the same result.
+                "none" | "initial" | "unset" | "revert" | "revert-layer" => {
+                    return Ok(StrokeSpace::Local);
+                }
+                // Chromium 149 drops malformed identifiers and every tested
+                // draft/at-risk grammar member to the initial `none` result.
+                _ => return Ok(StrokeSpace::Local),
+            }
+        }
+
+        let mut input = ParserInput::new(&raw);
+        let mut parser = Parser::new(&mut input);
+        if let Ok(Token::Function(name)) = parser.next() {
+            let name = name.as_ref().to_ascii_lowercase();
+            return Err(CompileError::UnsupportedStroke(format!(
+                "vector-effect presentation attribute uses {name}(), whose computed result is not represented at this Stylo pin"
+            )));
+        }
+        // Every other malformed value contributes no presentation hint.
+        return Ok(StrokeSpace::Local);
+    }
+    Ok(StrokeSpace::Local)
+}
+
 impl StrokeResolution {
     fn none() -> Self {
         Self {
@@ -13490,8 +13619,15 @@ fn resolve_stroke(
 
     // The cascade's non-negative types make a rejection here unreachable from a
     // document, so it would be this compiler's bug — named, never painted.
+    // Resolve construction space only after proving that this element owns a
+    // drawable stroke. An unsupported substitution function is inert when
+    // there is no stroke to construct; markerUnits="strokeWidth" performs its
+    // own resolution above because markers remain meaningful without stroke
+    // paint.
+    let vector_effect_space = resolve_vector_effect_space(el)?;
     let stroke = Stroke::new_with_dash(paints, width, cap, join, miter_limit, dash)
-        .map_err(|error| CompileError::UnsupportedStroke(error.to_string()))?;
+        .map_err(|error| CompileError::UnsupportedStroke(error.to_string()))?
+        .map(|stroke| stroke.with_space(vector_effect_space));
     Ok(StrokeResolution {
         stroke,
         opacity_pass: true,

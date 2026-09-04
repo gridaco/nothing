@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <style>rect { vector-effect: non-scaling-stroke }</style>
+  <rect x="8" y="8" width="16" height="16" transform="scale(2)" fill="none" stroke="#000000" stroke-width="4"/>
+</svg>

@@ -49,9 +49,11 @@ from the dated addenda below:
   including
   `context-fill`/`context-stroke` selected through same-document use instances
   and fully resolved before the frame; with
-  centred stroke geometry, the closed cap/join family, opacity, and resolved
-  dash patterns with a checked cycle, signed local-space phase, and
-  `pathLength` source calibration;
+  centred local- or frame-space stroke construction, including the direct
+  `vector-effect="non-scaling-stroke"` presentation hint, the closed cap/join
+  family, opacity, and resolved dash patterns with a checked cycle, signed
+  phase in the selected construction space, and `pathLength` source
+  calibration;
   `<g>` and `<a>` containers, visibility, isolated element/group/root opacity,
   and HTML-ancestor opacity around the selected inline SVG; the whole
   `transform` grammar in both spellings (the attribute is a
@@ -109,7 +111,7 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,079 Chromium-baked primitive cells plus 16 sampled frames,
+- **The corpus** is 1,127 Chromium-baked primitive cells plus 16 sampled frames,
   with a separate fifteen-cell exact text suite whose current cells select
   hash-pinned Ahem and Ahem-derived bytes from explicit family/face
   environments, and eight exact-number artifact-geometry
@@ -121,7 +123,7 @@ from the dated addenda below:
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 226 rows.
+  register has 230 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -5365,3 +5367,107 @@ The primitive corpus moves from 1,051 to 1,079 exact Chromium cells plus the
 unchanged 16 sampled frames; the named register moves to 226 rows. No
 tolerance was added, no conformance score was produced, and no FLIP record,
 rule, or baseline changed.
+
+## Rung: SVG direct `vector-effect` presentation attribute (2026-09-05)
+
+The verdict is VE1 CLOSE/SPLIT. The direct SVG presentation-attribute row
+closes at the complete standard-track
+[`vector-effect` grammar](https://www.w3.org/TR/SVG2/coords.html#VectorEffects).
+The CSS property row stays open: the pinned Stylo revision has no Servo
+`vector-effect` longhand, so inline and stylesheet declarations retain a
+stable property refusal instead of acquiring a matcher beside the cascade.
+Direct substitution functions remain independently tracked function gaps.
+This is the same attribute/property and own-row split ratified by
+gridaco/nothing#75, #80, #92, and #94. Graphics elements outside the admitted
+slice remain bounded by their own unchecked element rows; every admitted
+stroke-bearing geometry route is included here.
+
+Chromium 149.0.7827.55 was measured first through the shared pinned capture
+module. Missing and `none` are ordinary local stroking.
+`non-scaling-stroke` transforms the centerline into frame space and then
+applies the nominal width as one circular pen. Whitespace, CSS comments,
+ASCII-insensitive case, and an escaped identifier are exact aliases. The
+property is not inherited, but explicit `inherit` takes the direct parent's
+computed value; the other CSS-wide spellings reach the initial result. A
+use-site spelling is inert in current Chromium, while a spelling on referenced
+geometry stays active through the instance transform. Chromium drops the
+at-risk `non-scaling-size`, `non-rotation`, `fixed-position`, combination,
+repeated-member, `viewport`, and `screen` forms to the initial result. Those
+valid listed drops are committed evidence under the gridaco/nothing#77
+precedent, not an engine invention.
+
+The implementation adds one checked source-neutral fact to the resolved
+stroke: `StrokeSpace::Local | Frame`. `websem` owns the direct-attribute parse
+because no computed longhand exists at this pin; no SVG syntax crosses the
+contract. `n0` projects frame-space geometry before dash and stroke
+construction, maps gradient/image/pattern paint coordinates through the same
+affine, computes conservative frame coverage from transformed geometry plus
+the nominal pen, and otherwise reuses the existing native stroke operations.
+Ordinary local strokes keep their old route. Dash lengths and phase are
+nominal frame distances after `pathLength` has calibrated them in the original
+local metric. Marker expansion remains producer-side:
+`markerUnits="userSpaceOnUse"` is independent, while
+`markerUnits="strokeWidth"` divides the client width by Blink's root-mean-
+square affine scale and retains ordinary marker anisotropy and orientation.
+
+The scratch law pass found two silent pixel defects before close. First,
+explicitly transforming a large source-space centerline changed f32
+cancellation under a pure translation, although translation cannot alter
+stroke construction. Frame strokes whose linear map is exactly identity now
+take the equivalent established local execution route; exact reflection and
+quarter-turn deliberately do not. Second, classifying invertibility in f64
+painted an extra stroke dot and marker for mathematically invertible matrices
+whose determinant underflows or overflows f32. Chromium and the pinned backend
+suppress those alongside singular maps. Stroke projection and stroke-width
+marker scaling therefore share the finite, nonzero f32-determinant boundary.
+Focused unit laws guard both causes.
+
+The final independent LAW pass found three more silent ingress classes before
+landing. Chromium resolves a custom `env()` fallback and typed `attr()` to
+`non-scaling-stroke`; it also resolves a true CSS `if()` style-query branch to
+that member. The old raw parser treated each function as invalid and painted
+the initial `none`, differing from Chromium by 512 pixels at maximum channel
+delta 255 in every case (measured, not celled). Together with the already
+measured live `var()` route, a function-generic patrol now refuses by exact
+function name in strict and best-effort modes. `var()`, `env()`, and `attr()`
+retain their own unchecked checklist rows. `if()` is defined by
+[CSS Values 5](https://www.w3.org/TR/css-values-5/), whose status declares the
+module early-exploration draft work; under the checklist header it does not
+raise the standard-track grammar bar, but the named refusal still prevents a
+silent pixel.
+
+Hosted review then found one avoidable over-refusal in that patrol. It ran
+before the stroke resolver had proved that a stroke would be constructed.
+Pinned Chromium makes a fill-only shape and a zero-width stroke carrying a
+live `var()` fallback exact to controls. The old strict path refused, while
+best effort skipped the otherwise valid fills and differed by 1,024 pixels at
+maximum channel delta 233. Construction-space resolution now follows the
+no-paint, zero-width, and empty-paint exits. The separate marker consumer still
+resolves it when marker scaling is live: with stroke paint `none`, ordinary and
+non-scaling `markerUnits="strokeWidth"` differ by 768 pixels at delta 255, and
+the `var()` form equals the non-scaling result (measured, not celled).
+`svg-vector-effect-inert-function` commits the two inert stroke branches.
+
+Forty-eight new exact Chromium cells cover token grammar and browser drops,
+CSS-wide behavior and applicability, both source entries, `<use>`, every
+admitted geometry, curves and zero-length caps, dash/phase/`pathLength`,
+computed stroke lengths, general and nested transforms, root and nested
+`viewBox`, the two precision boundaries, all admitted paint-server classes,
+clip/mask/filter/opacity composition, pattern/mask/marker source programs,
+and marker units/orientation. Every source was rendered through strict and
+best-effort `n0` during the scratch audit; every admitted result was exact.
+No tolerance was added.
+
+Gate sensitivity was proved three ways. Replacing frame construction with
+ordinary local stroking failed forty new cells, up to maximum channel delta
+255. Removing the identity-linear execution route failed the large-viewBox
+translation cell by 288 pixels at delta 255. Widening the determinant
+classifier failed the stroke and marker boundary cells by 120 and 248 pixels,
+at deltas 255 and 218. Restoring each law returned the complete fixture gate
+to green. Moving the function patrol back ahead of the no-stroke exits made
+the review-added inert-function cell fail at strict admission; restoring the
+ordering regated the complete corpus. Replacing the former broad vector-effect
+patrol with four direct function rows and the CSS-property row moves the named
+refusal register from 226 to 230. The primitive corpus moves from 1,079 to 1,127
+exact Chromium cells plus the unchanged 16 sampled frames. No conformance score
+was produced, and no FLIP record, rule, or baseline changed.

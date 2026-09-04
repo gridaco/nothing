@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (1079)
+## Chromium-baked cells (1127)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -32,6 +32,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./html-inline-svg-currentcolor-rect.html" title="html-inline-svg-currentcolor-rect (html-inline-svg)"><img src="./chromium/html-inline-svg-currentcolor-rect.png" width="56" alt="html-inline-svg-currentcolor-rect"></a>
 <a href="./html-inline-svg-nested-viewport.html" title="html-inline-svg-nested-viewport (html-inline-svg)"><img src="./chromium/html-inline-svg-nested-viewport.png" width="56" alt="html-inline-svg-nested-viewport"></a>
 <a href="./html-inline-svg-pattern.html" title="html-inline-svg-pattern (html-inline-svg)"><img src="./chromium/html-inline-svg-pattern.png" width="56" alt="html-inline-svg-pattern"></a>
+<a href="./html-inline-svg-vector-effect.html" title="html-inline-svg-vector-effect (html-inline-svg)"><img src="./chromium/html-inline-svg-vector-effect.png" width="56" alt="html-inline-svg-vector-effect"></a>
 <a href="./html-webpage-mockup.html" title="html-webpage-mockup (html-inline-svg)"><img src="./chromium/html-webpage-mockup.png" width="56" alt="html-webpage-mockup"></a>
 <a href="./svg-anchor-container.svg" title="svg-anchor-container (standalone-svg)"><img src="./chromium/svg-anchor-container.png" width="56" alt="svg-anchor-container"></a>
 <a href="./svg-circle-defaults-clip.svg" title="svg-circle-defaults-clip (standalone-svg)"><img src="./chromium/svg-circle-defaults-clip.png" width="56" alt="svg-circle-defaults-clip"></a>
@@ -1100,6 +1101,53 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-use-wh-inert.svg" title="svg-use-wh-inert (standalone-svg)"><img src="./chromium/svg-use-wh-inert.png" width="56" alt="svg-use-wh-inert"></a>
 <a href="./svg-use-xlink-href.svg" title="svg-use-xlink-href (standalone-svg)"><img src="./chromium/svg-use-xlink-href.png" width="56" alt="svg-use-xlink-href"></a>
 <a href="./svg-use-xy.svg" title="svg-use-xy (standalone-svg)"><img src="./chromium/svg-use-xy.png" width="56" alt="svg-use-xy"></a>
+<a href="./svg-vector-effect-ancestor-transform.svg" title="svg-vector-effect-ancestor-transform (standalone-svg)"><img src="./chromium/svg-vector-effect-ancestor-transform.png" width="56" alt="svg-vector-effect-ancestor-transform"></a>
+<a href="./svg-vector-effect-backend-determinant.svg" title="svg-vector-effect-backend-determinant (standalone-svg)"><img src="./chromium/svg-vector-effect-backend-determinant.png" width="56" alt="svg-vector-effect-backend-determinant"></a>
+<a href="./svg-vector-effect-basic.svg" title="svg-vector-effect-basic (standalone-svg)"><img src="./chromium/svg-vector-effect-basic.png" width="56" alt="svg-vector-effect-basic"></a>
+<a href="./svg-vector-effect-browser-dropped-grammar.svg" title="svg-vector-effect-browser-dropped-grammar (standalone-svg)"><img src="./chromium/svg-vector-effect-browser-dropped-grammar.png" width="56" alt="svg-vector-effect-browser-dropped-grammar"></a>
+<a href="./svg-vector-effect-circle.svg" title="svg-vector-effect-circle (standalone-svg)"><img src="./chromium/svg-vector-effect-circle.png" width="56" alt="svg-vector-effect-circle"></a>
+<a href="./svg-vector-effect-clip.svg" title="svg-vector-effect-clip (standalone-svg)"><img src="./chromium/svg-vector-effect-clip.png" width="56" alt="svg-vector-effect-clip"></a>
+<a href="./svg-vector-effect-computed-stroke-values.svg" title="svg-vector-effect-computed-stroke-values (standalone-svg)"><img src="./chromium/svg-vector-effect-computed-stroke-values.png" width="56" alt="svg-vector-effect-computed-stroke-values"></a>
+<a href="./svg-vector-effect-css-wide-inherit.svg" title="svg-vector-effect-css-wide-inherit (standalone-svg)"><img src="./chromium/svg-vector-effect-css-wide-inherit.png" width="56" alt="svg-vector-effect-css-wide-inherit"></a>
+<a href="./svg-vector-effect-currentcolor.svg" title="svg-vector-effect-currentcolor (standalone-svg)"><img src="./chromium/svg-vector-effect-currentcolor.png" width="56" alt="svg-vector-effect-currentcolor"></a>
+<a href="./svg-vector-effect-dash-pathlength.svg" title="svg-vector-effect-dash-pathlength (standalone-svg)"><img src="./chromium/svg-vector-effect-dash-pathlength.png" width="56" alt="svg-vector-effect-dash-pathlength"></a>
+<a href="./svg-vector-effect-filter-opacity.svg" title="svg-vector-effect-filter-opacity (standalone-svg)"><img src="./chromium/svg-vector-effect-filter-opacity.png" width="56" alt="svg-vector-effect-filter-opacity"></a>
+<a href="./svg-vector-effect-group-applicability.svg" title="svg-vector-effect-group-applicability (standalone-svg)"><img src="./chromium/svg-vector-effect-group-applicability.png" width="56" alt="svg-vector-effect-group-applicability"></a>
+<a href="./svg-vector-effect-inert-function.svg" title="svg-vector-effect-inert-function (standalone-svg)"><img src="./chromium/svg-vector-effect-inert-function.png" width="56" alt="svg-vector-effect-inert-function"></a>
+<a href="./svg-vector-effect-large-quarter-turn.svg" title="svg-vector-effect-large-quarter-turn (standalone-svg)"><img src="./chromium/svg-vector-effect-large-quarter-turn.png" width="56" alt="svg-vector-effect-large-quarter-turn"></a>
+<a href="./svg-vector-effect-large-reflection.svg" title="svg-vector-effect-large-reflection (standalone-svg)"><img src="./chromium/svg-vector-effect-large-reflection.png" width="56" alt="svg-vector-effect-large-reflection"></a>
+<a href="./svg-vector-effect-large-viewbox-translation.svg" title="svg-vector-effect-large-viewbox-translation (standalone-svg)"><img src="./chromium/svg-vector-effect-large-viewbox-translation.png" width="56" alt="svg-vector-effect-large-viewbox-translation"></a>
+<a href="./svg-vector-effect-link-applicability.svg" title="svg-vector-effect-link-applicability (standalone-svg)"><img src="./chromium/svg-vector-effect-link-applicability.png" width="56" alt="svg-vector-effect-link-applicability"></a>
+<a href="./svg-vector-effect-marker-backend-determinant.svg" title="svg-vector-effect-marker-backend-determinant (standalone-svg)"><img src="./chromium/svg-vector-effect-marker-backend-determinant.png" width="56" alt="svg-vector-effect-marker-backend-determinant"></a>
+<a href="./svg-vector-effect-marker-content.svg" title="svg-vector-effect-marker-content (standalone-svg)"><img src="./chromium/svg-vector-effect-marker-content.png" width="56" alt="svg-vector-effect-marker-content"></a>
+<a href="./svg-vector-effect-marker-fixed-angle.svg" title="svg-vector-effect-marker-fixed-angle (standalone-svg)"><img src="./chromium/svg-vector-effect-marker-fixed-angle.png" width="56" alt="svg-vector-effect-marker-fixed-angle"></a>
+<a href="./svg-vector-effect-marker-reflection.svg" title="svg-vector-effect-marker-reflection (standalone-svg)"><img src="./chromium/svg-vector-effect-marker-reflection.png" width="56" alt="svg-vector-effect-marker-reflection"></a>
+<a href="./svg-vector-effect-marker-rms-auto.svg" title="svg-vector-effect-marker-rms-auto (standalone-svg)"><img src="./chromium/svg-vector-effect-marker-rms-auto.png" width="56" alt="svg-vector-effect-marker-rms-auto"></a>
+<a href="./svg-vector-effect-marker-stroke-width.svg" title="svg-vector-effect-marker-stroke-width (standalone-svg)"><img src="./chromium/svg-vector-effect-marker-stroke-width.png" width="56" alt="svg-vector-effect-marker-stroke-width"></a>
+<a href="./svg-vector-effect-marker-user-space.svg" title="svg-vector-effect-marker-user-space (standalone-svg)"><img src="./chromium/svg-vector-effect-marker-user-space.png" width="56" alt="svg-vector-effect-marker-user-space"></a>
+<a href="./svg-vector-effect-mask-source.svg" title="svg-vector-effect-mask-source (standalone-svg)"><img src="./chromium/svg-vector-effect-mask-source.png" width="56" alt="svg-vector-effect-mask-source"></a>
+<a href="./svg-vector-effect-mask-target.svg" title="svg-vector-effect-mask-target (standalone-svg)"><img src="./chromium/svg-vector-effect-mask-target.png" width="56" alt="svg-vector-effect-mask-target"></a>
+<a href="./svg-vector-effect-nested-viewbox.svg" title="svg-vector-effect-nested-viewbox (standalone-svg)"><img src="./chromium/svg-vector-effect-nested-viewbox.png" width="56" alt="svg-vector-effect-nested-viewbox"></a>
+<a href="./svg-vector-effect-no-stroke.svg" title="svg-vector-effect-no-stroke (standalone-svg)"><img src="./chromium/svg-vector-effect-no-stroke.png" width="56" alt="svg-vector-effect-no-stroke"></a>
+<a href="./svg-vector-effect-nonuniform-transform.svg" title="svg-vector-effect-nonuniform-transform (standalone-svg)"><img src="./chromium/svg-vector-effect-nonuniform-transform.png" width="56" alt="svg-vector-effect-nonuniform-transform"></a>
+<a href="./svg-vector-effect-object-gradient.svg" title="svg-vector-effect-object-gradient (standalone-svg)"><img src="./chromium/svg-vector-effect-object-gradient.png" width="56" alt="svg-vector-effect-object-gradient"></a>
+<a href="./svg-vector-effect-object-pattern.svg" title="svg-vector-effect-object-pattern (standalone-svg)"><img src="./chromium/svg-vector-effect-object-pattern.png" width="56" alt="svg-vector-effect-object-pattern"></a>
+<a href="./svg-vector-effect-path-vocabulary.svg" title="svg-vector-effect-path-vocabulary (standalone-svg)"><img src="./chromium/svg-vector-effect-path-vocabulary.png" width="56" alt="svg-vector-effect-path-vocabulary"></a>
+<a href="./svg-vector-effect-pattern-content.svg" title="svg-vector-effect-pattern-content (standalone-svg)"><img src="./chromium/svg-vector-effect-pattern-content.png" width="56" alt="svg-vector-effect-pattern-content"></a>
+<a href="./svg-vector-effect-reflect-transform.svg" title="svg-vector-effect-reflect-transform (standalone-svg)"><img src="./chromium/svg-vector-effect-reflect-transform.png" width="56" alt="svg-vector-effect-reflect-transform"></a>
+<a href="./svg-vector-effect-root-applicability.svg" title="svg-vector-effect-root-applicability (standalone-svg)"><img src="./chromium/svg-vector-effect-root-applicability.png" width="56" alt="svg-vector-effect-root-applicability"></a>
+<a href="./svg-vector-effect-root-viewbox-down.svg" title="svg-vector-effect-root-viewbox-down (standalone-svg)"><img src="./chromium/svg-vector-effect-root-viewbox-down.png" width="56" alt="svg-vector-effect-root-viewbox-down"></a>
+<a href="./svg-vector-effect-root-viewbox-up.svg" title="svg-vector-effect-root-viewbox-up (standalone-svg)"><img src="./chromium/svg-vector-effect-root-viewbox-up.png" width="56" alt="svg-vector-effect-root-viewbox-up"></a>
+<a href="./svg-vector-effect-rotate-transform.svg" title="svg-vector-effect-rotate-transform (standalone-svg)"><img src="./chromium/svg-vector-effect-rotate-transform.png" width="56" alt="svg-vector-effect-rotate-transform"></a>
+<a href="./svg-vector-effect-rounded-rect.svg" title="svg-vector-effect-rounded-rect (standalone-svg)"><img src="./chromium/svg-vector-effect-rounded-rect.png" width="56" alt="svg-vector-effect-rounded-rect"></a>
+<a href="./svg-vector-effect-shape-elements.svg" title="svg-vector-effect-shape-elements (standalone-svg)"><img src="./chromium/svg-vector-effect-shape-elements.png" width="56" alt="svg-vector-effect-shape-elements"></a>
+<a href="./svg-vector-effect-skew-transform.svg" title="svg-vector-effect-skew-transform (standalone-svg)"><img src="./chromium/svg-vector-effect-skew-transform.png" width="56" alt="svg-vector-effect-skew-transform"></a>
+<a href="./svg-vector-effect-token-grammar.svg" title="svg-vector-effect-token-grammar (standalone-svg)"><img src="./chromium/svg-vector-effect-token-grammar.png" width="56" alt="svg-vector-effect-token-grammar"></a>
+<a href="./svg-vector-effect-use-element.svg" title="svg-vector-effect-use-element (standalone-svg)"><img src="./chromium/svg-vector-effect-use-element.png" width="56" alt="svg-vector-effect-use-element"></a>
+<a href="./svg-vector-effect-use-target.svg" title="svg-vector-effect-use-target (standalone-svg)"><img src="./chromium/svg-vector-effect-use-target.png" width="56" alt="svg-vector-effect-use-target"></a>
+<a href="./svg-vector-effect-user-gradient.svg" title="svg-vector-effect-user-gradient (standalone-svg)"><img src="./chromium/svg-vector-effect-user-gradient.png" width="56" alt="svg-vector-effect-user-gradient"></a>
+<a href="./svg-vector-effect-user-pattern.svg" title="svg-vector-effect-user-pattern (standalone-svg)"><img src="./chromium/svg-vector-effect-user-pattern.png" width="56" alt="svg-vector-effect-user-pattern"></a>
+<a href="./svg-vector-effect-zero-length-caps.svg" title="svg-vector-effect-zero-length-caps (standalone-svg)"><img src="./chromium/svg-vector-effect-zero-length-caps.png" width="56" alt="svg-vector-effect-zero-length-caps"></a>
 <a href="./svg-viewbox-only-sizing-rect.svg" title="svg-viewbox-only-sizing-rect (standalone-svg)"><img src="./chromium/svg-viewbox-only-sizing-rect.png" width="56" alt="svg-viewbox-only-sizing-rect"></a>
 <a href="./svg-viewbox-unequal-default.svg" title="svg-viewbox-unequal-default (standalone-svg)"><img src="./chromium/svg-viewbox-unequal-default.png" width="56" alt="svg-viewbox-unequal-default"></a>
 <a href="./svg-viewbox-uniform-offset-rect.svg" title="svg-viewbox-uniform-offset-rect (standalone-svg)"><img src="./chromium/svg-viewbox-uniform-offset-rect.png" width="56" alt="svg-viewbox-uniform-offset-rect"></a>
@@ -1108,7 +1156,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (226)
+## The refusal register (230)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -1300,7 +1348,6 @@ its row into the cells above.
 | `svg-stroke-dashoffset-var` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dashoffset on <path> resolves through var(), an indirection this patrol cannot follow" |
 | `svg-stroke-paint-order` | declared | skipped svg/rect[1]: unsupported rendering attribute paint-order on <rect> (not yet consumed) |
 | `svg-stroke-sheet-unit-width` | declared | declaration ignored at svg/style[1]: a stylesheet declares a stroke-width in ex, which needs a basis this cascade does not have; elements it matches render at the wrong width |
-| `svg-stroke-vector-effect` | declared | skipped svg/g[1]/rect[1]: unsupported rendering attribute vector-effect on <rect> (not yet consumed) |
 | `svg-stroke-width-calc-mixed` | declared | skipped svg/rect[1]: unsupported stroke value "a calc() stroke-width mixing lengths and percentages is not consumed" |
 | `svg-stroke-width-font-basis` | declared | skipped svg/rect[1]: unsupported stroke value "a stroke-width in em on <rect> under an authored font-size carrying vw needs a basis this cascade does not have" |
 | `svg-stroke-width-percentage-precision-alias` | declared | skipped svg/path[1]: unsupported stroke value "stroke-width percentage precision alias loses Chromium used-value provenance" |
@@ -1339,6 +1386,11 @@ its row into the cells above.
 | `svg-use-stylesheet` | declared | skipped svg/use[1]: unsupported <use>: the document carries author CSS, and shadow-scoped selector matching is not yet consumed (selectors must match inside the cloned subtree alone — measured) |
 | `svg-use-svg-viewport` | declared | skipped svg/use[1]: unsupported <use>: its referenced <svg> root needs the instance-sized viewport contract |
 | `svg-use-symbol` | declared | skipped svg/symbol[1]: unsupported element <symbol>; skipped svg/use[1]/symbol[1]: unsupported element <symbol> |
+| `svg-vector-effect-attribute-attr` | declared | skipped svg/rect[1]: unsupported stroke value "vector-effect presentation attribute uses attr(), whose computed result is not represented at this Stylo pin" |
+| `svg-vector-effect-attribute-env` | declared | skipped svg/rect[1]: unsupported stroke value "vector-effect presentation attribute uses env(), whose computed result is not represented at this Stylo pin" |
+| `svg-vector-effect-attribute-if` | declared | skipped svg/rect[1]: unsupported stroke value "vector-effect presentation attribute uses if(), whose computed result is not represented at this Stylo pin" |
+| `svg-vector-effect-attribute-var` | declared | skipped svg/rect[1]: unsupported stroke value "vector-effect presentation attribute uses var(), whose computed result is not represented at this Stylo pin" |
+| `svg-vector-effect-css-property` | declared | declaration ignored at svg/style[1]: a stylesheet declares vector-effect, which this cascade does not represent; elements it matches render without it |
 | `svg-viewbox-invalid-token` | **both refuse** | viewBox "0 0 invalid 64 64" is invalid |
 | `svg-viewbox-repeated-comma` | **both refuse** | viewBox "0 0,,64 64" is invalid |
 | `svg-viewbox-trailing-comma` | **both refuse** | viewBox "0 0 64 64," is invalid |

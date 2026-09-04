@@ -299,10 +299,21 @@ impl StrokeDashPhase {
         Self(value)
     }
 
-    /// The local-space offset into the paired dash interval cycle.
+    /// The offset into the paired dash interval cycle, in the stroke's
+    /// declared construction space.
     pub const fn value(self) -> f32 {
         self.0
     }
+}
+
+/// Private projection of the resolved coordinate system in which a stroke is
+/// dashed and widened. The source-neutral contract owns the meaning; this enum
+/// only keeps the painter from recovering it from transforms.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum StrokeSpace {
+    #[default]
+    Local,
+    Frame,
 }
 
 /// One checked alpha stage applied after each paint's intrinsic alpha has
@@ -448,6 +459,7 @@ pub enum ItemKind {
         geometry: ResolvedPatternGeometry,
         pattern: Arc<ResolvedPattern>,
         stroke: Stroke,
+        space: StrokeSpace,
         dash_phase: StrokeDashPhase,
         post_paint_opacity: PostPaintOpacity,
     },
@@ -485,6 +497,7 @@ pub enum ItemKind {
         corner_radius: RectangularCornerRadius,
         corner_smoothing: CornerSmoothing,
         stroke: Stroke,
+        space: StrokeSpace,
         dash_phase: StrokeDashPhase,
         post_paint_opacity: PostPaintOpacity,
     },
@@ -492,6 +505,7 @@ pub enum ItemKind {
         w: f32,
         h: f32,
         stroke: Stroke,
+        space: StrokeSpace,
         dash_phase: StrokeDashPhase,
         post_paint_opacity: PostPaintOpacity,
     },
@@ -504,6 +518,7 @@ pub enum ItemKind {
         w: f32,
         h: f32,
         stroke: Stroke,
+        space: StrokeSpace,
         dash_phase: StrokeDashPhase,
         post_paint_opacity: PostPaintOpacity,
     },
@@ -515,6 +530,7 @@ pub enum ItemKind {
         paint_w: f32,
         paint_h: f32,
         stroke: Stroke,
+        space: StrokeSpace,
         dash_phase: StrokeDashPhase,
         post_paint_opacity: PostPaintOpacity,
     },
@@ -523,6 +539,7 @@ pub enum ItemKind {
         h: f32,
         path: Arc<ResolvedPathArtifact>,
         stroke: Stroke,
+        space: StrokeSpace,
         dash_phase: StrokeDashPhase,
         post_paint_opacity: PostPaintOpacity,
     },
@@ -531,6 +548,7 @@ pub enum ItemKind {
         paint_w: f32,
         paint_h: f32,
         stroke: Stroke,
+        space: StrokeSpace,
         dash_phase: StrokeDashPhase,
         post_paint_opacity: PostPaintOpacity,
     },
@@ -980,6 +998,7 @@ fn emit<V: DrawValues + ?Sized>(
                     corner_radius: values.corner_radius(id),
                     corner_smoothing,
                     stroke,
+                    space: StrokeSpace::Local,
                     dash_phase: StrokeDashPhase::ZERO,
                     post_paint_opacity: PostPaintOpacity::IDENTITY,
                 },
@@ -989,6 +1008,7 @@ fn emit<V: DrawValues + ?Sized>(
                     w: b.w,
                     h: b.h,
                     stroke,
+                    space: StrokeSpace::Local,
                     dash_phase: StrokeDashPhase::ZERO,
                     post_paint_opacity: PostPaintOpacity::IDENTITY,
                 },
@@ -1002,6 +1022,7 @@ fn emit<V: DrawValues + ?Sized>(
                     paint_w: b.w,
                     paint_h: b.h,
                     stroke,
+                    space: StrokeSpace::Local,
                     dash_phase: StrokeDashPhase::ZERO,
                     post_paint_opacity: PostPaintOpacity::IDENTITY,
                 },
@@ -1012,6 +1033,7 @@ fn emit<V: DrawValues + ?Sized>(
                     h: b.h,
                     path: Arc::clone(resolved.resolved_path_of(id)),
                     stroke,
+                    space: StrokeSpace::Local,
                     dash_phase: StrokeDashPhase::ZERO,
                     post_paint_opacity: PostPaintOpacity::IDENTITY,
                 },
@@ -1023,6 +1045,7 @@ fn emit<V: DrawValues + ?Sized>(
                     paint_w: b.w,
                     paint_h: b.h,
                     stroke,
+                    space: StrokeSpace::Local,
                     dash_phase: StrokeDashPhase::ZERO,
                     post_paint_opacity: PostPaintOpacity::IDENTITY,
                 },
