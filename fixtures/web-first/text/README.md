@@ -1,7 +1,7 @@
 # The text cell suite
 
 Chromium-baked evidence for the `<text>` slice on the SVG engine of record
-(`websem → rframe → n0`). Thirteen exact text cells are gated byte-exact by
+(`websem → rframe → n0`). Fourteen exact text cells are gated byte-exact by
 [`crates/websem/tests/svg_text.rs`](../../../crates/websem/tests/svg_text.rs);
 eight real-font artifact witnesses are gated numerically, before rasterization, by
 [`crates/websem/tests/svg_text_geometry.rs`](../../../crates/websem/tests/svg_text_geometry.rs).
@@ -9,7 +9,7 @@ The method these cells enforce is the ratified
 [text-oracle brief](../../../docs/wg/consolidation/text-oracle.md); this file
 states only how the suite is shaped.
 
-The pixel suite currently has **thirteen** cells. The separate Rung-B geometry
+The pixel suite currently has **fourteen** cells. The separate Rung-B geometry
 suite under [`geometry/`](./geometry/) has **eight** witnesses: six Allerta and
 two Bungee. Both manifests are closed enumerations: the Rust gates reject an
 unlisted SVG, duplicate source row, undeclared or changed font identity, stale
@@ -533,6 +533,52 @@ The estate is now thirteen exact text cells plus eight exact-number real-font
 geometry witnesses (six Allerta and two Bungee). The named refusal register
 has 224 rows. Fractional weights, arbitrary stretch percentages, oblique
 angles, descriptor ranges, directional nearest-face matching, synthesis,
+variable axes, and the complete `font-weight`, `font-style`, and
+`font-stretch` grammars remain open; no checklist row closes.
+
+## T5c static nearest-face selection
+
+Oracle v7 completes deterministic static choice inside the first reached
+named family. It narrows the complete resource set by stretch, then style,
+then weight. At or below normal stretch the narrower side is searched first;
+above normal the wider side is searched first. Weight retains its distinct
+below-400, 400-through-500, and above-500 orders. One resource at the winning
+complete tuple selects; a winning-tuple tie remains an ambiguity because the
+manifest has no stylesheet source-order fact and vector order cannot replace
+one.
+
+The exact `svg-text-nearest-face-selection.svg` cell has sixteen branches:
+four stretch searches, eight weight searches across every region and seam,
+two axis-order cases, one real-style fallback, and one first-reached-family
+boundary. Presentation attributes, inline declarations, author rules, and
+inheritance all feed the same policy. Every winner is Ahem. The committed
+oracle is exact to an independent all-Ahem Chromium construction and to the
+strict CLI render. Mutating each losing resource in turn changes 85 pixels at
+maximum channel delta 255; adding a normal face to the style-fallback family
+does the same (measured controls, not separate cells).
+
+For the required sensitivity proof, the 400–500 weight region temporarily
+searched above 500 before below the request. Every primitive cell stayed
+green, then `just gate` selected the Allerta loser and refused the new cell at
+the text geometry boundary. Restoring the measured order returned the full
+gate to green.
+
+Static choice does not silently imply synthesis. Chromium's synthetic weight
+differs from the unsynthesized control by 184px/Δ255 at 30px, where one
+stroke-and-fill construction happens to match, but is pixel-identical to the
+control at 20px. A `-0.25` outline shear for synthetic italic misses 60 fringe
+pixels at Δ96, and the best nearby tested shear still misses 54 pixels. Those
+measurements do not establish one platform-independent outline operation;
+using a live backend font flag would violate the low text join. A selected
+face that needs synthetic weight, style, or both therefore refuses before
+shaping. The replacement `svg-text-face-synthesis-required.svg` source guards
+all three reasons in strict and best-effort admission. The outline-calibration
+results are measured, not celled.
+
+The estate is now fourteen exact text cells plus eight exact-number real-font
+geometry witnesses (six Allerta and two Bungee). Replacing the former
+exact-miss row leaves the named refusal register at 224. Fractional weights,
+arbitrary stretch percentages, oblique angles, descriptor ranges, synthesis,
 variable axes, and the complete `font-weight`, `font-style`, and
 `font-stretch` grammars remain open; no checklist row closes.
 

@@ -1,8 +1,9 @@
 //! The finite static face facts admitted by this oracle.
 //!
 //! These types carry already-decided values. They do not parse source syntax,
-//! round numeric inputs, search for a nearby face, or describe variable-font
-//! state. A request and a resource compare by exact tuple equality.
+//! round numeric inputs, or describe variable-font state. The environment
+//! orders their exact field values during static matching; tuple equality
+//! identifies the resource or resources at the winner.
 
 /// One exact static font weight in the inclusive range 1 through 1000.
 ///
@@ -81,10 +82,10 @@ pub enum FontStyle {
     Italic,
 }
 
-/// The complete exact tuple used for static same-family face selection.
+/// The complete tuple used for static same-family face selection.
 ///
 /// Every request and every declared resource supplies all three fields. There
-/// is no partial match and no normalization between tuples.
+/// is no missing field and no normalization between tuples.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct StaticFaceDescriptor {
     weight: FontWeight,

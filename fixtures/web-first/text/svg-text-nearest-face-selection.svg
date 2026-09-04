@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <style>
+    .stretch-edge { font-stretch: ultra-condensed; }
+    .weight-middle { font-weight: 450; }
+    .axis-style { font-stretch: normal; font-style: italic; font-weight: 400; }
+  </style>
+  <text x="5" y="20" font-family="NearestStretch" font-size="10" font-stretch="condensed" fill="#111827" style="-webkit-font-smoothing:none">X</text>
+  <text x="20" y="20" font-family="NearestStretch" font-size="10" fill="#dc2626" style="font-stretch:112.5%;-webkit-font-smoothing:none">X</text>
+  <text class="stretch-edge" x="35" y="20" font-family="NearestStretch" font-size="10" fill="#16a34a" style="-webkit-font-smoothing:none">X</text>
+  <g font-stretch="ultra-expanded"><text x="50" y="20" font-family="NearestStretch" font-size="10" font-stretch="inherit" fill="#2563eb" style="-webkit-font-smoothing:none">X</text></g>
+  <text x="65" y="20" font-family="NearestWeight" font-size="10" font-weight="350" fill="#7c3aed" style="-webkit-font-smoothing:none">X</text>
+  <text x="80" y="20" font-family="NearestWeight" font-size="10" fill="#c2410c" style="font-weight:400;-webkit-font-smoothing:none">X</text>
+
+  <text class="weight-middle" x="5" y="50" font-family="NearestWeight" font-size="10" fill="#0891b2" style="-webkit-font-smoothing:none">X</text>
+  <g font-weight="500"><text x="20" y="50" font-family="NearestWeight" font-size="10" font-weight="inherit" fill="#be123c" style="-webkit-font-smoothing:none">X</text></g>
+  <text x="35" y="50" font-family="NearestWeight" font-size="10" font-weight="600" fill="#4d7c0f" style="-webkit-font-smoothing:none">X</text>
+  <text x="50" y="50" font-family="NearestWeight" font-size="10" fill="#a16207" style="font-weight:700;-webkit-font-smoothing:none">X</text>
+  <text x="65" y="50" font-family="NearestWeight" font-size="10" font-weight="200" fill="#0f766e" style="-webkit-font-smoothing:none">X</text>
+  <text x="80" y="50" font-family="NearestWeight" font-size="10" font-weight="900" fill="#b91c1c" style="-webkit-font-smoothing:none">X</text>
+
+  <text x="5" y="80" font-family="NearestAxis" font-size="10" font-stretch="condensed" font-style="italic" font-weight="400" fill="#4338ca" style="-webkit-font-smoothing:none">X</text>
+  <text class="axis-style" x="20" y="80" font-family="NearestAxis" font-size="10" fill="#15803d" style="-webkit-font-smoothing:none">X</text>
+  <text x="35" y="80" font-family="NearestStyleFallback" font-size="10" font-style="normal" fill="#9f1239" style="-webkit-font-smoothing:none">X</text>
+  <text x="50" y="80" font-family="NearestFirst, NearestLater" font-size="10" font-weight="350" fill="#0369a1" style="-webkit-font-smoothing:none">X</text>
+</svg>

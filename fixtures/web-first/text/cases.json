@@ -80,6 +80,142 @@
       "weight": "700",
       "style": "italic",
       "stretch": "75%"
+    },
+    {
+      "family": "NearestWeight",
+      "path": "../../fonts/Allerta/Allerta-Regular.ttf",
+      "sha256": "16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b",
+      "weight": "375",
+      "style": "normal",
+      "stretch": "100%"
+    },
+    {
+      "family": "NearestWeight",
+      "path": "../fonts/ahem.ttf",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "300",
+      "style": "normal",
+      "stretch": "100%"
+    },
+    {
+      "family": "NearestWeight",
+      "path": "../fonts/ahem.ttf",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "475",
+      "style": "normal",
+      "stretch": "100%"
+    },
+    {
+      "family": "NearestWeight",
+      "path": "../../fonts/Allerta/Allerta-Regular.ttf",
+      "sha256": "16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b",
+      "weight": "550",
+      "style": "normal",
+      "stretch": "100%"
+    },
+    {
+      "family": "NearestWeight",
+      "path": "../fonts/ahem.ttf",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "650",
+      "style": "normal",
+      "stretch": "100%"
+    },
+    {
+      "family": "NearestWeight",
+      "path": "../../fonts/Allerta/Allerta-Regular.ttf",
+      "sha256": "16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b",
+      "weight": "675",
+      "style": "normal",
+      "stretch": "100%"
+    },
+    {
+      "family": "NearestWeight",
+      "path": "../fonts/ahem.ttf",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "750",
+      "style": "normal",
+      "stretch": "100%"
+    },
+    {
+      "family": "NearestStretch",
+      "path": "../../fonts/Allerta/Allerta-Regular.ttf",
+      "sha256": "16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "87.5%"
+    },
+    {
+      "family": "NearestStretch",
+      "path": "../fonts/ahem.ttf",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "62.5%"
+    },
+    {
+      "family": "NearestStretch",
+      "path": "../../fonts/Allerta/Allerta-Regular.ttf",
+      "sha256": "16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "100%"
+    },
+    {
+      "family": "NearestStretch",
+      "path": "../fonts/ahem.ttf",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "125%"
+    },
+    {
+      "family": "NearestAxis",
+      "path": "../../fonts/Allerta/Allerta-Regular.ttf",
+      "sha256": "16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b",
+      "weight": "400",
+      "style": "normal",
+      "stretch": "100%"
+    },
+    {
+      "family": "NearestAxis",
+      "path": "../fonts/ahem.ttf",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "300",
+      "style": "italic",
+      "stretch": "75%"
+    },
+    {
+      "family": "NearestAxis",
+      "path": "../fonts/ahem.ttf",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "300",
+      "style": "italic",
+      "stretch": "100%"
+    },
+    {
+      "family": "NearestStyleFallback",
+      "path": "../fonts/ahem.ttf",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "400",
+      "style": "italic",
+      "stretch": "100%"
+    },
+    {
+      "family": "NearestFirst",
+      "path": "../fonts/ahem.ttf",
+      "sha256": "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448",
+      "weight": "300",
+      "style": "normal",
+      "stretch": "100%"
+    },
+    {
+      "family": "NearestLater",
+      "path": "../../fonts/Allerta/Allerta-Regular.ttf",
+      "sha256": "16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b",
+      "weight": "350",
+      "style": "normal",
+      "stretch": "100%"
     }
   ],
   "cases": [
@@ -143,6 +279,13 @@
       "id": "svg-text-font-size-cascade",
       "source": "svg-text-font-size-cascade.svg",
       "oracle": "chromium/svg-text-font-size-cascade.png",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "svg-text-nearest-face-selection",
+      "source": "svg-text-nearest-face-selection.svg",
+      "oracle": "chromium/svg-text-nearest-face-selection.png",
       "width": 100,
       "height": 100
     },

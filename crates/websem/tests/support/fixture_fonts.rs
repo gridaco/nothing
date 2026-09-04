@@ -44,7 +44,7 @@ pub(crate) fn unsupported_environment(id: &str) -> textlayout::Environment {
     }
     if matches!(
         id,
-        "svg-text-face-descriptor-unmatched"
+        "svg-text-face-synthesis-required"
             | "svg-text-family-generic"
             | "svg-text-family-missing-glyph-fallback"
     ) {

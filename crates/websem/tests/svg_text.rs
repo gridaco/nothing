@@ -102,6 +102,7 @@ fn sha256_file(path: &Path) -> String {
 }
 
 const AHEM_BYTES: &[u8] = include_bytes!("../../../fixtures/web-first/fonts/ahem.ttf");
+const ALLERTA_BYTES: &[u8] = include_bytes!("../../../fixtures/fonts/Allerta/Allerta-Regular.ttf");
 const BUNGEE_BYTES: &[u8] = include_bytes!("../../../fixtures/fonts/Bungee/Bungee-Regular.ttf");
 
 /// The pinned gate font's digest, as recorded in
@@ -115,6 +116,10 @@ const AHEM_SHA256: [u8; 32] = [
 const BUNGEE_SHA256: [u8; 32] = [
     0xb9, 0x0c, 0x3c, 0xa4, 0x43, 0x71, 0x3b, 0x07, 0x0c, 0xb1, 0xde, 0xc6, 0xa3, 0xbb, 0x1e, 0xf7,
     0x57, 0x2c, 0x2b, 0x56, 0x5c, 0x43, 0x1d, 0x9a, 0x85, 0xd7, 0x4b, 0xbf, 0xa0, 0x7e, 0x24, 0xcc,
+];
+const ALLERTA_SHA256: [u8; 32] = [
+    0x16, 0xd6, 0x91, 0x52, 0x27, 0xc7, 0x56, 0x07, 0x25, 0xc0, 0x37, 0xc9, 0xc9, 0x31, 0x63, 0xcb,
+    0xa5, 0x36, 0x7c, 0x3e, 0xf4, 0xcf, 0x2e, 0xc1, 0x2b, 0xf4, 0x0b, 0x9e, 0xb2, 0x98, 0x4a, 0x6b,
 ];
 
 fn text_environment() -> textlayout::Environment {
@@ -139,6 +144,9 @@ fn text_environment() -> textlayout::Environment {
 
 fn pinned_font(font: &SuiteFont) -> (&'static [u8], [u8; 32]) {
     match font.sha256.as_str() {
+        "16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b" => {
+            (ALLERTA_BYTES, ALLERTA_SHA256)
+        }
         "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448" => {
             (AHEM_BYTES, AHEM_SHA256)
         }
@@ -338,9 +346,9 @@ fn beyond_slice_text_constructs_refuse_by_name() {
             "stroke on <text>",
         ),
         (
-            // Outside textlayout-v6's explicit repertoire.
+            // Outside textlayout-v7's explicit repertoire.
             r##"<text x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X&#x5D0;</text>"##,
-            "outside textlayout-v6's admitted",
+            "outside textlayout-v7's admitted",
         ),
     ] {
         let error = compile(&svg(body)).expect_err("outside the admitted text slice");
@@ -702,7 +710,7 @@ fn unconsumed_text_layout_css_refuses_at_the_text_node() {
         ),
         (
             r##"<g font-weight="bold"><text x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X</text></g>"##,
-            "no exact static face",
+            "requires unsupported synthetic weight",
         ),
         (
             r##"<g style="dominant-baseline:middle"><text x="10" y="60" font-family="Ahem" font-size="20" fill="#000">X</text></g>"##,
@@ -720,6 +728,41 @@ fn unconsumed_text_layout_css_refuses_at_the_text_node() {
             "expected {expected:?}, got {error}"
         );
         let best = compile_best(&source).expect("best effort declares and skips the text");
+        assert!(best.degradations().iter().any(|degradation| {
+            degradation.path().ends_with("/text[1]") && degradation.reason().contains(expected)
+        }));
+    }
+}
+
+/// T5c completes static nearest-face choice but does not let the selected
+/// face cross into backend-dependent fake-bold or fake-italic realization.
+/// Each coupled synthesis dimension remains a stable transaction at the text
+/// node in both admissions.
+#[test]
+fn nearest_face_synthesis_refuses_before_shaping_or_pixels() {
+    for (body, expected) in [
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20" font-weight="700" fill="#000">X</text>"##,
+            "unsupported synthetic weight",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20" font-style="italic" fill="#000">X</text>"##,
+            "unsupported synthetic style",
+        ),
+        (
+            r##"<text x="10" y="60" font-family="Ahem" font-size="20" font-weight="700" font-style="italic" fill="#000">X</text>"##,
+            "unsupported synthetic weight and style",
+        ),
+    ] {
+        let source = svg(body);
+        let error = compile(&source).expect_err("synthetic realization remains outside T5c");
+        assert!(
+            error.to_string().contains(expected),
+            "expected {expected:?}, got {error}"
+        );
+
+        let best = compile_best(&source).expect("best effort declares and skips the text");
+        assert!(best.base_frame().nodes().is_empty());
         assert!(best.degradations().iter().any(|degradation| {
             degradation.path().ends_with("/text[1]") && degradation.reason().contains(expected)
         }));
@@ -935,7 +978,7 @@ fn admitted_runs_match_the_chromium_oracle() {
 fn the_declared_font_identities_are_verified() {
     use sha2::{Digest, Sha256};
     let suite = suite();
-    assert_eq!(suite.fonts.len(), 10);
+    assert_eq!(suite.fonts.len(), 27);
     for font in &suite.fonts {
         let (bytes, expected_digest) = pinned_font(font);
         let digest = format!("{:x}", Sha256::digest(bytes));
@@ -947,6 +990,8 @@ fn the_declared_font_identities_are_verified() {
         );
         let expected_path = if expected_digest == AHEM_SHA256 {
             "../fonts/ahem.ttf"
+        } else if expected_digest == ALLERTA_SHA256 {
+            "../../fonts/Allerta/Allerta-Regular.ttf"
         } else {
             "../../fonts/Bungee/Bungee-Regular.ttf"
         };

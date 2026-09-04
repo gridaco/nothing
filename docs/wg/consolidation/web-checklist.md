@@ -2102,6 +2102,21 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > `font-style`, and `font-stretch` rows stay unchecked separately from the CSS
 > rows.
 
+> **2026-09-04 static-nearest-face split:** the first reached named family now
+> applies Chromium's measured static stretch, then style, then weight search.
+> A sixteen-branch cell covers both stretch directions, all three weight
+> regions, axis precedence, style fallback, cascade ingresses, inheritance,
+> and the reached-family boundary. Every branch selects the independently
+> pinned Ahem control. A winning-tuple tie still refuses because the host
+> manifest has no stylesheet source-order fact. A selected face requiring
+> synthetic weight, style, or both refuses before shaping: the shared outline
+> path has no platform-invariant realization, and a backend font flag would
+> violate the low text join. The exact text estate moves to fourteen cells;
+> the former exact-miss patrol narrows to synthesis-required, so the named
+> register remains 224 rows. Fractional weights, arbitrary stretch values,
+> oblique angles, descriptor ranges, synthesis, and variation remain open;
+> none of the six font descriptor rows ticks.
+
 - [ ] `glyph-orientation-horizontal`
 - [ ] `glyph-orientation-vertical`
 - [ ] `height`

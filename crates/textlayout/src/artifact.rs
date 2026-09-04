@@ -37,7 +37,7 @@ pub struct ResolvedFace {
 /// Line metrics in local px: distances from the baseline, both positive
 /// (ascent reaches up, descent reaches down).
 ///
-/// Oracle v6 retains the face's `hhea` ascent/descent metric policy as the
+/// Oracle v7 retains the face's `hhea` ascent/descent metric policy as the
 /// parser reports them; line gap (leading) is a declared deferral, arriving
 /// as a field when a consumer first needs line stacking. For the pinned gate
 /// font every metric table agrees, which is why the gate can hold before the
@@ -48,7 +48,7 @@ pub struct LineMetrics {
     pub descent: f32,
 }
 
-/// One shaping cluster's complete source/glyph cardinality at oracle v6.
+/// One shaping cluster's complete source/glyph cardinality at oracle v7.
 ///
 /// The source has three coordinate spaces on purpose. HarfBuzz clusters are
 /// seeded from UTF-8 byte offsets, Web text APIs address UTF-16 code units,
@@ -232,7 +232,7 @@ pub trait OutlineSink {
     fn close(&mut self);
 }
 
-/// The immutable resolved text layout at oracle v6: one style run of
+/// The immutable resolved text layout at oracle v7: one style run of
 /// horizontal left-to-right text, already shaped in explicit chunks,
 /// measured, and mapped.
 ///
@@ -321,14 +321,14 @@ impl ResolvedTextLayout {
         &self.shaping_chunks
     }
 
-    /// Shaping clusters in logical order. Oracle v6's admitted LTR profile
+    /// Shaping clusters in logical order. Oracle v7's admitted LTR profile
     /// also makes this visual order; consumers must not assume that of a
     /// later bidi-capable version.
     pub fn clusters(&self) -> &[ShapingCluster] {
         &self.clusters
     }
 
-    /// The placed glyphs in visual order — which at oracle v6 is also
+    /// The placed glyphs in visual order — which at oracle v7 is also
     /// logical order, a fact of the LTR single-run profile rather than an
     /// assumption a consumer may carry to later versions.
     pub fn glyphs(&self) -> &[PlacedGlyph] {

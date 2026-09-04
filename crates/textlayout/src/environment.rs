@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 use regex_syntax::hir::{ClassUnicode, ClassUnicodeRange};
 
-use crate::face_descriptor::StaticFaceDescriptor;
+use crate::face_descriptor::{FontStretch, FontStyle, FontWeight, StaticFaceDescriptor};
 
 /// Declared content identity of one font resource: the SHA-256 digest of its
 /// exact bytes, as stated by the host that loaded them. Opaque to this crate
@@ -75,9 +75,14 @@ pub struct Environment {
 
 pub(crate) enum FamilyMatch<'a> {
     None,
-    NoExactFace { family_resources: usize },
-    Unique(&'a FontResource),
-    AmbiguousExact { matching_resources: usize },
+    Unique {
+        resource: &'a FontResource,
+        selected: StaticFaceDescriptor,
+    },
+    AmbiguousWinner {
+        selected: StaticFaceDescriptor,
+        matching_resources: usize,
+    },
 }
 
 impl Environment {
@@ -85,43 +90,70 @@ impl Environment {
         Self { fonts }
     }
 
-    /// Select within one declared family under oracle v6's exact static face
-    /// policy and measured declared-family comparison.
+    /// Select within one declared family under oracle v7's static CSS Fonts
+    /// matching policy and measured declared-family comparison.
     ///
-    /// Any family resource makes the candidate a reached boundary. Exactly
-    /// one complete descriptor match selects; zero is an exact miss and more
-    /// than one is an ambiguity. The complete manifest is examined before an
-    /// answer, so environment vector order never breaks a tuple tie.
+    /// Any family resource makes the candidate a reached boundary. Matching
+    /// narrows the complete family lexicographically by stretch, style, then
+    /// weight. Exactly one resource at the winning complete descriptor
+    /// selects; more than one is an ambiguity. The complete manifest is
+    /// examined before an answer, so environment vector order never becomes
+    /// stylesheet source order and never breaks a winning-tuple tie.
     pub(crate) fn match_face(
         &self,
         family: &str,
         requested: StaticFaceDescriptor,
     ) -> FamilyMatch<'_> {
-        let mut first_exact_match = None;
-        let mut family_resources = 0;
-        let mut matching_resources = 0;
-        for font in &self.fonts {
-            if family_names_match(family, &font.family) {
-                family_resources += 1;
-                if font.face_descriptor == requested {
-                    matching_resources += 1;
-                    first_exact_match.get_or_insert(font);
-                }
-            }
-        }
-
-        if family_resources == 0 {
+        let family_resources = self
+            .fonts
+            .iter()
+            .filter(|font| family_names_match(family, &font.family))
+            .collect::<Vec<_>>();
+        if family_resources.is_empty() {
             return FamilyMatch::None;
         }
-        if matching_resources == 0 {
-            return FamilyMatch::NoExactFace { family_resources };
-        }
+
+        let stretch = select_stretch(
+            family_resources
+                .iter()
+                .map(|resource| resource.face_descriptor.stretch()),
+            requested.stretch(),
+        );
+        let style = select_style(
+            family_resources
+                .iter()
+                .filter(|resource| resource.face_descriptor.stretch() == stretch)
+                .map(|resource| resource.face_descriptor.style()),
+            requested.style(),
+        );
+        let weight = select_weight(
+            family_resources
+                .iter()
+                .filter(|resource| {
+                    resource.face_descriptor.stretch() == stretch
+                        && resource.face_descriptor.style() == style
+                })
+                .map(|resource| resource.face_descriptor.weight()),
+            requested.weight(),
+        );
+        let selected = StaticFaceDescriptor::new(weight, stretch, style);
+
+        let mut matching = family_resources
+            .into_iter()
+            .filter(|resource| resource.face_descriptor == selected);
+        let first = matching
+            .next()
+            .expect("each matching axis selected a descriptor carried by one resource");
+        let matching_resources = 1 + matching.count();
         if matching_resources > 1 {
-            return FamilyMatch::AmbiguousExact { matching_resources };
+            return FamilyMatch::AmbiguousWinner {
+                selected,
+                matching_resources,
+            };
         }
-        match first_exact_match {
-            Some(resource) => FamilyMatch::Unique(resource),
-            None => unreachable!("one exact resource was counted but not retained"),
+        FamilyMatch::Unique {
+            resource: first,
+            selected,
         }
     }
 
@@ -130,7 +162,132 @@ impl Environment {
     }
 }
 
-/// The explicitly measured declared-family comparison retained by oracle v6.
+/// CSS Fonts' width search over the finite nine-point static profile. Below
+/// and at normal, the condensed side wins before the expanded side; above
+/// normal, that direction reverses. An exact point therefore wins naturally.
+fn select_stretch(
+    available: impl Iterator<Item = FontStretch>,
+    requested: FontStretch,
+) -> FontStretch {
+    let requested_rank = stretch_rank(requested);
+    let available = available.collect::<Vec<_>>();
+    let selected = if requested_rank <= stretch_rank(FontStretch::Normal) {
+        available
+            .iter()
+            .copied()
+            .filter(|stretch| stretch_rank(*stretch) <= requested_rank)
+            .max_by_key(|stretch| stretch_rank(*stretch))
+            .or_else(|| {
+                available
+                    .iter()
+                    .copied()
+                    .filter(|stretch| stretch_rank(*stretch) > requested_rank)
+                    .min_by_key(|stretch| stretch_rank(*stretch))
+            })
+    } else {
+        available
+            .iter()
+            .copied()
+            .filter(|stretch| stretch_rank(*stretch) >= requested_rank)
+            .min_by_key(|stretch| stretch_rank(*stretch))
+            .or_else(|| {
+                available
+                    .iter()
+                    .copied()
+                    .filter(|stretch| stretch_rank(*stretch) < requested_rank)
+                    .max_by_key(|stretch| stretch_rank(*stretch))
+            })
+    };
+    selected.expect("a reached family has at least one stretch")
+}
+
+fn stretch_rank(stretch: FontStretch) -> u8 {
+    match stretch {
+        FontStretch::UltraCondensed => 0,
+        FontStretch::ExtraCondensed => 1,
+        FontStretch::Condensed => 2,
+        FontStretch::SemiCondensed => 3,
+        FontStretch::Normal => 4,
+        FontStretch::SemiExpanded => 5,
+        FontStretch::Expanded => 6,
+        FontStretch::ExtraExpanded => 7,
+        FontStretch::UltraExpanded => 8,
+    }
+}
+
+/// The finite profile has only upright and italic faces. CSS style matching
+/// prefers the requested class and falls back to the other class only when it
+/// is absent after stretch matching.
+fn select_style(available: impl Iterator<Item = FontStyle>, requested: FontStyle) -> FontStyle {
+    let available = available.collect::<Vec<_>>();
+    if available.contains(&requested) {
+        requested
+    } else {
+        match requested {
+            FontStyle::Normal => FontStyle::Italic,
+            FontStyle::Italic => FontStyle::Normal,
+        }
+    }
+}
+
+/// CSS Fonts' three-region static weight search. The 400..=500 interval is
+/// intentionally asymmetric: search upward only through 500, then below the
+/// request, then above 500.
+fn select_weight(available: impl Iterator<Item = FontWeight>, requested: FontWeight) -> FontWeight {
+    let requested = requested.value();
+    let available = available.map(FontWeight::value).collect::<Vec<_>>();
+    let selected = if requested < 400 {
+        available
+            .iter()
+            .copied()
+            .filter(|weight| *weight <= requested)
+            .max()
+            .or_else(|| {
+                available
+                    .iter()
+                    .copied()
+                    .filter(|weight| *weight > requested)
+                    .min()
+            })
+    } else if requested <= 500 {
+        available
+            .iter()
+            .copied()
+            .filter(|weight| *weight >= requested && *weight <= 500)
+            .min()
+            .or_else(|| {
+                available
+                    .iter()
+                    .copied()
+                    .filter(|weight| *weight < requested)
+                    .max()
+            })
+            .or_else(|| {
+                available
+                    .iter()
+                    .copied()
+                    .filter(|weight| *weight > 500)
+                    .min()
+            })
+    } else {
+        available
+            .iter()
+            .copied()
+            .filter(|weight| *weight >= requested)
+            .min()
+            .or_else(|| {
+                available
+                    .iter()
+                    .copied()
+                    .filter(|weight| *weight < requested)
+                    .max()
+            })
+    }
+    .expect("stretch/style filtering retains at least one weight");
+    FontWeight::new(selected).expect("selected a declared representable static weight")
+}
+
+/// The explicitly measured declared-family comparison retained by oracle v7.
 ///
 /// Exact equality is checked first, including supplementary scalars. For
 /// unequal strings, each scalar must have one peer in the same Unicode 17

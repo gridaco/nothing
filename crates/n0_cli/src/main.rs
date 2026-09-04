@@ -39,9 +39,11 @@
 //! Text resolves against fonts the host declares, never an ambient one:
 //! `--font FAMILY=PATH@sha256:HEX[;weight=N][;style=normal|italic][;stretch=POINT]`
 //! (repeatable) names exact bytes and optional exact static face facts; the
-//! host verifies them before any pixel. A `<text>` run whose family or exact
-//! face was not declared refuses by name — there is no system fallback,
-//! nearest-face guess, or synthetic posture to render a machine-local pixel.
+//! host verifies them before any pixel. A `<text>` run selects the static
+//! nearest face inside its first reached declared family; a missing family,
+//! winning-tuple tie, or match that requires synthetic weight/style refuses
+//! by name. There is no system fallback, manifest-order guess, or synthetic
+//! posture to render a machine-local pixel.
 //!
 //! Usage:
 //!   cargo run -p n0_cli --bin n0 -- <input.svg|input.html> <out.png> <WxH>
@@ -601,6 +603,142 @@ mod tests {
                 .expect("read the committed descriptor oracle"),
             )
             .expect("decode the descriptor oracle");
+        assert_eq!(raster.pixels, oracle.pixels);
+    }
+
+    #[test]
+    fn declared_nearest_faces_render_the_chromium_selection_cell() {
+        const AHEM_DIGEST: &str =
+            "b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448";
+        const ALLERTA_DIGEST: &str =
+            "16d6915227c7560725c037c9c93163cba5367c3ef4cf2ec12bf40b9eb2984a6b";
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let source = std::fs::read_to_string(
+            root.join("fixtures/web-first/text/svg-text-nearest-face-selection.svg"),
+        )
+        .expect("read the static nearest-face cell");
+        let ahem = root.join("fixtures/web-first/fonts/ahem.ttf");
+        let allerta = root.join("fixtures/fonts/Allerta/Allerta-Regular.ttf");
+        let faces = [
+            (
+                "NearestWeight",
+                &allerta,
+                ALLERTA_DIGEST,
+                "375",
+                "normal",
+                "100%",
+            ),
+            ("NearestWeight", &ahem, AHEM_DIGEST, "300", "normal", "100%"),
+            ("NearestWeight", &ahem, AHEM_DIGEST, "475", "normal", "100%"),
+            (
+                "NearestWeight",
+                &allerta,
+                ALLERTA_DIGEST,
+                "550",
+                "normal",
+                "100%",
+            ),
+            ("NearestWeight", &ahem, AHEM_DIGEST, "650", "normal", "100%"),
+            (
+                "NearestWeight",
+                &allerta,
+                ALLERTA_DIGEST,
+                "675",
+                "normal",
+                "100%",
+            ),
+            ("NearestWeight", &ahem, AHEM_DIGEST, "750", "normal", "100%"),
+            (
+                "NearestStretch",
+                &allerta,
+                ALLERTA_DIGEST,
+                "400",
+                "normal",
+                "87.5%",
+            ),
+            (
+                "NearestStretch",
+                &ahem,
+                AHEM_DIGEST,
+                "400",
+                "normal",
+                "62.5%",
+            ),
+            (
+                "NearestStretch",
+                &allerta,
+                ALLERTA_DIGEST,
+                "400",
+                "normal",
+                "100%",
+            ),
+            (
+                "NearestStretch",
+                &ahem,
+                AHEM_DIGEST,
+                "400",
+                "normal",
+                "125%",
+            ),
+            (
+                "NearestAxis",
+                &allerta,
+                ALLERTA_DIGEST,
+                "400",
+                "normal",
+                "100%",
+            ),
+            ("NearestAxis", &ahem, AHEM_DIGEST, "300", "italic", "75%"),
+            ("NearestAxis", &ahem, AHEM_DIGEST, "300", "italic", "100%"),
+            (
+                "NearestStyleFallback",
+                &ahem,
+                AHEM_DIGEST,
+                "400",
+                "italic",
+                "100%",
+            ),
+            ("NearestFirst", &ahem, AHEM_DIGEST, "300", "normal", "100%"),
+            (
+                "NearestLater",
+                &allerta,
+                ALLERTA_DIGEST,
+                "350",
+                "normal",
+                "100%",
+            ),
+        ];
+        let declarations = faces
+            .iter()
+            .map(|(family, path, digest, weight, style, stretch)| {
+                fonts::parse_declaration(&format!(
+                    "{family}={}@sha256:{digest};weight={weight};style={style};stretch={stretch}",
+                    path.display()
+                ))
+                .expect("static nearest-face declaration")
+            })
+            .collect::<Vec<_>>();
+        let environment = fonts::load_environment(&declarations).expect("all pinned faces verify");
+        let (png, degradations) = render_source_to_png(
+            &source,
+            SourceKind::Svg,
+            100,
+            100,
+            FramePolicy::Base,
+            Admission::Strict,
+            environment,
+        )
+        .expect("every request has one non-synthetic static nearest face");
+        assert!(degradations.is_empty());
+
+        let raster = decode_png(&png).expect("decode the nearest-face render");
+        let oracle = decode_png(
+            &std::fs::read(
+                root.join("fixtures/web-first/text/chromium/svg-text-nearest-face-selection.png"),
+            )
+            .expect("read the committed nearest-face oracle"),
+        )
+        .expect("decode the nearest-face oracle");
         assert_eq!(raster.pixels, oracle.pixels);
     }
 

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#e5e7eb"/>
+  <text x="4" y="18" font-family="Ahem" font-size="10" font-weight="700" fill="#111827">X</text>
+  <text x="24" y="38" font-family="Ahem" font-size="10" font-style="italic" fill="#111827">X</text>
+  <text x="44" y="58" font-family="Ahem" font-size="10" font-weight="700" font-style="italic" fill="#111827">X</text>
+</svg>

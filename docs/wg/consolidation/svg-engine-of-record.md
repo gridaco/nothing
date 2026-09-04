@@ -84,9 +84,10 @@ from the dated addenda below:
   and tangent orientation, marker unit/viewBox/reference mapping, hard marker
   viewport clips, solid/context-solid source programs, `<use>` clients, and
   client transform/opacity/clip/mask/filter composition;
-  one `<text>` profile whose ordered named-family and exact static
-  weight/stretch/style request selects among exact host-declared font
-  resources, over printable ASCII, the 53 canonical
+  one `<text>` profile whose ordered named-family and static
+  weight/stretch/style request selects a nearest host-declared font resource
+  by the measured stretch/style/weight search, refusing any winner that needs
+  synthetic weight or style, over printable ASCII, the 53 canonical
   precomposed Latin-1 letters, and U+0301/U+030B only as one mark after an
   ASCII Latin letter, optionally partitioned by flat direct paint-only
   `<tspan>` source runs while retaining one whitespace, shaping, and anchor
@@ -103,7 +104,7 @@ from the dated addenda below:
   composition.
   `crates/n0_cli/README.md` is the statement of record.
 - **The corpus** is 1,051 Chromium-baked primitive cells plus 16 sampled frames,
-  with a separate thirteen-cell exact text suite whose current cells select
+  with a separate fourteen-cell exact text suite whose current cells select
   hash-pinned Ahem bytes from explicit family/face environments, and eight exact-number artifact-geometry
   witnesses (six Allerta and two Bungee) under the ratified text corpus-growth
   law.
@@ -5156,3 +5157,65 @@ complete CSS-property and SVG presentation-attribute grammars remain open, so
 none of the six descriptor rows ticks. No shared render-contract fact was
 added, no conformance score was produced, and no FLIP record, rule, or baseline
 changed.
+
+## Rung: SVG text static nearest-face selection (2026-09-04)
+
+The verdict is T5c ADMIT/SPLIT, with no checklist closure. The first named
+family containing declared resources remains a terminal family boundary, but
+an exact tuple is no longer required. Oracle v7 selects the static winner by
+the measured CSS Fonts axis order: stretch, then style, then weight. Stretch
+searches toward narrower faces first at or below normal and toward wider faces
+first above normal. Weight uses the three directional regions below 400,
+400–500 inclusive, and above 500. The complete family manifest participates
+in each narrowing step, so vector order cannot alter the result. More than one
+resource at the winning tuple remains a typed ambiguity because the host does
+not carry stylesheet source order.
+
+Selection and synthesis are separate facts. Chromium 149 measurements show
+that the winner can require synthetic bold, synthetic italic, or both. The
+platform-independent outline artifact cannot reproduce that operation as one
+stable geometry rule: at 30px synthetic weight differs from the unsynthesized
+control by 184 pixels at maximum channel delta 255 and a stroke-and-fill
+construction happens to match, while at 20px the same browser decision is
+pixel-identical to the control. A `-0.25` outline shear for synthetic italic
+misses Chromium by 60 fringe pixels at maximum delta 96, and the best nearby
+shear tested still misses 54 pixels. Passing live backend font synthesis flags
+would move meaning below the deliberately low text join. Oracle v7 therefore
+refuses before shaping when a request of weight 600 or above selects a face
+below 600, or when italic selects a normal face. A normal request selecting a
+real italic face and a heavy request selecting a real heavy face remain
+ordinary static selections. The outline-calibration results are measured, not
+celled.
+
+One new exact 100×100 cell carries sixteen independently discriminating
+branches. Four cover both stretch directions and exhausted-side fallback;
+eight cover the three weight regions and their seams; two prove stretch before
+style and style before weight; one proves real-style fallback; and one proves
+that a nearest winner in the first reached family prevents exact matching in a
+later family. Presentation attributes, inline declarations, author rules, and
+inheritance all feed that same selection. Each winner is the pinned Ahem face
+and the whole cell is exact to an independent all-Ahem Chromium construction.
+Mutating any one losing face into the selected branch changes 85 pixels at
+maximum channel delta 255; adding a normal face to the style-fallback family
+does the same (measured controls, not extra cells). The actual strict CLI
+render is byte-exact to the committed Chromium oracle.
+
+Gate sensitivity was proved by temporarily searching above 500 before below
+the request in the 400–500 weight region. All 1,051 primitive cells remained
+green, then `just gate` selected the cell's Allerta loser and failed loudly at
+the text geometry boundary. Restoring the specified order returned the full
+primitive, text-pixel, text-geometry, and refusal gate to green.
+
+The former no-exact-face refusal has narrowed to one committed source carrying
+synthetic weight, style, and combined requests. Strict admission refuses the
+complete render and best effort skips and declares each text node by the same
+stable synthesis reason. The existing winning-tuple ambiguity row continues
+to guard equal candidates. The primitive corpus remains 1,051 Chromium-baked
+cells plus 16 sampled frames. The exact text estate moves from thirteen to
+fourteen cells; the exact-number geometry estate remains eight witnesses (six
+Allerta and two Bungee); replacing the exact-miss patrol leaves the named
+refusal register at 224 rows. Fractional weights, arbitrary stretch
+percentages, oblique angles, descriptor ranges, synthesis, variation, generic
+mapping, fallback, and the complete font grammars remain open. No CSS-font or
+SVG presentation row ticks, no shared render-contract fact was added, no
+conformance score was produced, and no FLIP record, rule, or baseline changed.

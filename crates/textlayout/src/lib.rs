@@ -7,10 +7,10 @@
 //!
 //! ```text
 //! attributed text + explicit font environment
-//!     -> resolved text layout | typed resolution failure     (oracle v6)
+//!     -> resolved text layout | typed resolution failure     (oracle v7)
 //! ```
 //!
-//! **Oracle v6 resolves one layout-affecting style over printable-ASCII plus
+//! **Oracle v7 resolves one layout-affecting style over printable-ASCII plus
 //! the canonical precomposed Latin-1 letters whose decomposition is one ASCII
 //! Latin base and one combining mark, plus one U+0301 or U+030B after an ASCII
 //! Latin base. Complete source-run coverage may carry opaque caller tags;
@@ -24,9 +24,10 @@
 //! with explicit x/y offsets. There is no wrapping, authored placement,
 //! anchoring, glyph fallback, or synthesis. Its ordered font-family request
 //! selects within the first named family that has declared resources under
-//! Chromium's measured BMP simple-fold comparison. Selection requires one
-//! exact static weight/stretch/style tuple; a reached generic, exact miss,
-//! exact-tuple tie, or exhausted list is a typed refusal.**
+//! Chromium's measured BMP simple-fold comparison. Static face matching is
+//! the measured CSS Fonts lexicographic stretch/style/weight search; a
+//! reached generic, winning-tuple tie, synthesis requirement, or exhausted
+//! list is a typed refusal.**
 //! The repertoire is an explicit admit-list enforced by the resolver
 //! itself — never an accident of a font's coverage — and everything outside
 //! the profile is a typed refusal, not an approximation. Coverage grows by
@@ -90,5 +91,7 @@ pub use source::{
 /// v4. Ordered declared-family selection can change the exact face and glyph
 /// identity, so its pinned BMP simple-fold policy advanced v4 to v5. Exact
 /// static same-family descriptor selection can change face and glyph identity,
-/// so it advances v5 to v6.
-pub const ORACLE_VERSION: &str = "textlayout-v6";
+/// so it advances v5 to v6. Directional nearest-face selection can turn a v6
+/// exact miss into a concrete face and therefore advances v6 to v7; synthetic
+/// realization remains a typed boundary and does not enter the artifact.
+pub const ORACLE_VERSION: &str = "textlayout-v7";

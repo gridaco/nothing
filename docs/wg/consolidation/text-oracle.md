@@ -716,3 +716,56 @@ weights, arbitrary stretch percentages, oblique angles, descriptor ranges,
 nearest-face matching, synthesis, variation, generic mapping, fallback, and
 the complete font grammars remain open. No CSS-font or SVG presentation row
 ticks; no conformance score, shared-frame text fact, or FLIP record changes.
+
+## T5c evidence addendum — static nearest-face selection (2026-09-04)
+
+The verdict is ADMIT/SPLIT, with no checklist closure. Oracle v7 replaces the
+exact-only family result with deterministic static matching inside the first
+reached named family. It narrows the complete resource set lexicographically
+by stretch, style, then weight. At or below normal stretch it searches the
+narrower side first; above normal it searches the wider side first. Weight
+uses the distinct below-400, 400-through-500, and above-500 search orders. A
+single resource at the winning complete tuple selects. A winning-tuple tie
+remains a typed terminal ambiguity: the explicit environment has no CSS
+stylesheet source-order fact, and manifest vector order cannot invent one.
+
+Chromium measurement also separates selection from realization. A request at
+weight 600 or above whose winner is below 600 requires synthetic weight; an
+italic request whose winner is normal requires synthetic style. At 30px the
+measured synthetic-weight raster differs from no synthesis by 184 pixels at
+maximum channel delta 255 and one stroke construction happens to reproduce
+it, but at 20px the browser raster is identical to the unsynthesized control.
+For synthetic italic, a `-0.25` outline shear misses 60 fringe pixels at
+maximum delta 96 and the best nearby tested shear still misses 54 pixels.
+Those results do not define one platform-independent outline operation. Live
+backend flags would instead make renderer policy part of text meaning, against
+the low text join. The resolver therefore reports `SyntheticFaceRequired`
+before parsing or shaping the selected face, naming weight, style, or both.
+The outline-calibration results are measured, not celled.
+
+The positive 100×100 cell has sixteen branches: four stretch searches, eight
+weight searches across all regions and seams, two axis-order cases, one real
+style fallback, and one first-reached-family boundary. The sources cross
+presentation attributes, inline style, author rules, and inheritance. Every
+winner is pinned Ahem, and the committed cell is Chromium-pixel-identical to
+an independent all-Ahem construction and to the actual strict CLI render.
+Each losing-face mutation changes 85 pixels at maximum channel delta 255;
+injecting a normal face into the style-fallback family changes the same 85
+pixels (measured controls, not extra cells).
+
+Temporarily reversing the second and third searches in the 400–500 weight
+region left every primitive cell green, then made `just gate` select the
+Allerta loser and refuse at the text geometry boundary. Restoring the measured
+order returned the complete primitive, text-pixel, text-geometry, and refusal
+gate to green.
+
+The old exact-miss negative source is replaced by one synthesis source whose
+three text nodes require synthetic weight, style, and both. Strict and best
+effort stop at the same stable text paths. The primitive corpus remains 1,051
+Chromium-baked cells plus 16 sampled frames. The exact text estate moves from
+thirteen to fourteen cells, the eight geometry witnesses remain unchanged,
+and the named register remains 224 rows. Fractional weights, arbitrary stretch
+percentages, oblique angles, descriptor ranges, synthesis, variation, generic
+mapping, glyph fallback, and the complete font grammars remain open. No
+CSS-font or SVG presentation row ticks; no conformance score, shared-frame
+text fact, or FLIP record changes.
