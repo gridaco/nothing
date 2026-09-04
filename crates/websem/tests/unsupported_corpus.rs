@@ -920,7 +920,7 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     (
         "svg-text-combining-unlisted-mark",
         DeclaredByBestEffort,
-        "outside textlayout-v6's admitted",
+        "outside textlayout-v7's admitted",
     ),
     (
         "svg-text-css-layout",
@@ -943,9 +943,9 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "source-precision boundary",
     ),
     (
-        "svg-text-face-descriptor-unmatched",
+        "svg-text-face-synthesis-required",
         DeclaredByBestEffort,
-        "no exact static face",
+        "requires unsupported synthetic",
     ),
     (
         "svg-text-family-ambiguous",

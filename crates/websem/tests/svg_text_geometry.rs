@@ -1249,7 +1249,7 @@ fn combining_profile_boundaries_refuse_at_the_same_text_node_in_both_admissions(
         "Ax\u{0300}Z",
         "Bungee",
         bungee_environment(),
-        "outside textlayout-v6's admitted",
+        "outside textlayout-v7's admitted",
     );
     for source in [
         "\u{0301}AX",

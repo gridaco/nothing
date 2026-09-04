@@ -1,4 +1,4 @@
-//! Oracle v6 ordered family and exact static face selection.
+//! Oracle v7 ordered-family and static nearest-face selection.
 //!
 //! These tests use only attributed text and explicit font resources. They
 //! prove selection and refusal before any caller-specific projection exists.
@@ -98,6 +98,17 @@ fn assert_selection_ignores_environment_order(
     }
 }
 
+fn selected_key(
+    resources: Vec<FontResource>,
+    requested: StaticFaceDescriptor,
+) -> Result<FontKey, ResolveError> {
+    resolve(
+        &attributed_with_descriptor("X", named(&["Nearest"]), requested),
+        &Environment::new(resources),
+    )
+    .map(|layout| layout.face().key)
+}
+
 #[test]
 fn each_descriptor_component_and_the_complete_tuple_select_exactly() {
     let cases = [
@@ -118,6 +129,105 @@ fn each_descriptor_component_and_the_complete_tuple_select_exactly() {
 }
 
 #[test]
+fn stretch_search_changes_direction_at_normal() {
+    let below = descriptor(400, FontStretch::ExtraCondensed, FontStyle::Normal);
+    let above = descriptor(400, FontStretch::SemiCondensed, FontStyle::Normal);
+    let resources = vec![
+        resource_with_descriptor(AHEM, "Nearest", AHEM_KEY, below),
+        resource_with_descriptor(BUNGEE, "Nearest", BUNGEE_KEY, above),
+    ];
+    assert_eq!(
+        selected_key(
+            resources,
+            descriptor(400, FontStretch::Condensed, FontStyle::Normal)
+        ),
+        Ok(AHEM_KEY),
+        "at/below normal searches the condensed side first"
+    );
+
+    let below = descriptor(400, FontStretch::Normal, FontStyle::Normal);
+    let above = descriptor(400, FontStretch::Expanded, FontStyle::Normal);
+    let resources = vec![
+        resource_with_descriptor(AHEM, "Nearest", AHEM_KEY, below),
+        resource_with_descriptor(BUNGEE, "Nearest", BUNGEE_KEY, above),
+    ];
+    assert_eq!(
+        selected_key(
+            resources,
+            descriptor(400, FontStretch::SemiExpanded, FontStyle::Normal)
+        ),
+        Ok(BUNGEE_KEY),
+        "above normal searches the expanded side first"
+    );
+}
+
+#[test]
+fn weight_search_preserves_all_three_regions_and_the_400_500_seam() {
+    for (requested, lower, upper, expected) in [
+        (350, 300, 400, AHEM_KEY),
+        (400, 300, 500, BUNGEE_KEY),
+        (450, 400, 500, BUNGEE_KEY),
+        (500, 400, 600, AHEM_KEY),
+        (600, 500, 700, BUNGEE_KEY),
+        (700, 600, 800, BUNGEE_KEY),
+    ] {
+        let resources = vec![
+            resource_with_descriptor(
+                AHEM,
+                "Nearest",
+                AHEM_KEY,
+                descriptor(lower, FontStretch::Normal, FontStyle::Normal),
+            ),
+            resource_with_descriptor(
+                BUNGEE,
+                "Nearest",
+                BUNGEE_KEY,
+                descriptor(upper, FontStretch::Normal, FontStyle::Normal),
+            ),
+        ];
+        assert_eq!(
+            selected_key(
+                resources,
+                descriptor(requested, FontStretch::Normal, FontStyle::Normal)
+            ),
+            Ok(expected),
+            "directional winner for requested weight {requested}"
+        );
+    }
+}
+
+#[test]
+fn matching_is_lexicographic_stretch_then_style_then_weight() {
+    let stretch_winner = descriptor(300, FontStretch::Condensed, FontStyle::Italic);
+    let later_axis_winner = descriptor(400, FontStretch::Normal, FontStyle::Normal);
+    assert_eq!(
+        selected_key(
+            vec![
+                resource_with_descriptor(AHEM, "Nearest", AHEM_KEY, stretch_winner),
+                resource_with_descriptor(BUNGEE, "Nearest", BUNGEE_KEY, later_axis_winner),
+            ],
+            descriptor(400, FontStretch::Condensed, FontStyle::Italic),
+        ),
+        Ok(AHEM_KEY),
+        "stretch filters the family before style and weight"
+    );
+
+    let style_winner = descriptor(300, FontStretch::Normal, FontStyle::Italic);
+    let weight_winner = descriptor(400, FontStretch::Normal, FontStyle::Normal);
+    assert_eq!(
+        selected_key(
+            vec![
+                resource_with_descriptor(AHEM, "Nearest", AHEM_KEY, style_winner),
+                resource_with_descriptor(BUNGEE, "Nearest", BUNGEE_KEY, weight_winner),
+            ],
+            descriptor(400, FontStretch::Normal, FontStyle::Italic),
+        ),
+        Ok(AHEM_KEY),
+        "style filters the stretch winners before weight"
+    );
+}
+
+#[test]
 fn request_order_not_environment_order_selects_the_first_reached_family() {
     let environment = Environment::new(vec![
         resource(ALLERTA, "Allerta", ALLERTA_KEY),
@@ -134,7 +244,7 @@ fn request_order_not_environment_order_selects_the_first_reached_family() {
     assert_eq!(ahem_first.advance(), 20.0);
     assert_eq!(allerta_first.face().key, ALLERTA_KEY);
     assert_ne!(allerta_first.advance(), ahem_first.advance());
-    assert_eq!(ahem_first.oracle_version(), "textlayout-v6");
+    assert_eq!(ahem_first.oracle_version(), "textlayout-v7");
     assert_eq!(ahem_first.oracle_version(), textlayout::ORACLE_VERSION);
 }
 
@@ -151,7 +261,7 @@ fn unavailable_named_family_falls_through_to_the_next_request() {
 }
 
 #[test]
-fn reached_family_exact_miss_does_not_try_a_later_family() {
+fn reached_family_that_requires_synthesis_does_not_try_a_later_family() {
     let requested = descriptor(700, FontStretch::Normal, FontStyle::Normal);
     let environment = Environment::new(vec![
         resource(AHEM, "Reached", AHEM_KEY),
@@ -162,16 +272,75 @@ fn reached_family_exact_miss_does_not_try_a_later_family() {
         &attributed_with_descriptor("X", named(&["Reached", "Later"]), requested),
         &environment,
     )
-    .expect_err("a reached family is final even when its descriptor misses");
+    .expect_err("a reached family is final even when its winner needs synthesis");
 
     assert_eq!(
         error,
-        ResolveError::NoExactFace {
+        ResolveError::SyntheticFaceRequired {
             candidate_index: 0,
             family: "Reached".to_string(),
             requested,
-            family_resources: 1,
+            selected: StaticFaceDescriptor::NORMAL,
+            synthetic_weight: true,
+            synthetic_style: false,
         }
+    );
+}
+
+#[test]
+fn synthesis_is_a_typed_boundary_after_selection() {
+    for (requested, selected, synthetic_weight, synthetic_style) in [
+        (
+            descriptor(700, FontStretch::Normal, FontStyle::Normal),
+            descriptor(400, FontStretch::Normal, FontStyle::Normal),
+            true,
+            false,
+        ),
+        (
+            descriptor(400, FontStretch::Normal, FontStyle::Italic),
+            descriptor(400, FontStretch::Normal, FontStyle::Normal),
+            false,
+            true,
+        ),
+        (
+            descriptor(700, FontStretch::Normal, FontStyle::Italic),
+            descriptor(400, FontStretch::Normal, FontStyle::Normal),
+            true,
+            true,
+        ),
+    ] {
+        let error = selected_key(
+            vec![resource_with_descriptor(
+                AHEM, "Nearest", AHEM_KEY, selected,
+            )],
+            requested,
+        )
+        .expect_err("the outline profile cannot realize synthetic faces");
+        assert_eq!(
+            error,
+            ResolveError::SyntheticFaceRequired {
+                candidate_index: 0,
+                family: "Nearest".to_string(),
+                requested,
+                selected,
+                synthetic_weight,
+                synthetic_style,
+            }
+        );
+    }
+
+    assert_eq!(
+        selected_key(
+            vec![resource_with_descriptor(
+                AHEM,
+                "Nearest",
+                AHEM_KEY,
+                descriptor(600, FontStretch::Normal, FontStyle::Normal),
+            )],
+            descriptor(900, FontStretch::Normal, FontStyle::Normal),
+        ),
+        Ok(AHEM_KEY),
+        "a selected declared weight at 600 suppresses synthetic bold"
     );
 }
 
@@ -190,6 +359,7 @@ fn exact_tuple_ties_refuse_independently_of_environment_order() {
         candidate_index: 0,
         family: "Tied".to_string(),
         requested,
+        selected: requested,
         matching_resources: 2,
     };
 
@@ -212,6 +382,36 @@ fn exact_tuple_ties_refuse_independently_of_environment_order() {
             "the registered resource-count reason must remain stable"
         );
         assert_eq!(error, expected);
+    }
+}
+
+#[test]
+fn nearest_winning_tuple_ties_refuse_independently_of_environment_order() {
+    let requested = descriptor(350, FontStretch::Normal, FontStyle::Normal);
+    let selected = descriptor(300, FontStretch::Normal, FontStyle::Normal);
+    let first = resource_with_descriptor(AHEM, "Nearest", AHEM_KEY, selected);
+    let second = resource_with_descriptor(ALLERTA, "nEAREST", ALLERTA_KEY, selected);
+    let other = resource_with_descriptor(
+        BUNGEE,
+        "NEAREST",
+        BUNGEE_KEY,
+        descriptor(400, FontStretch::Normal, FontStyle::Normal),
+    );
+
+    for resources in [
+        vec![first.clone(), other.clone(), second.clone()],
+        vec![second, other, first],
+    ] {
+        assert_eq!(
+            selected_key(resources, requested),
+            Err(ResolveError::AmbiguousFace {
+                candidate_index: 0,
+                family: "Nearest".to_string(),
+                requested,
+                selected,
+                matching_resources: 2,
+            })
+        );
     }
 }
 

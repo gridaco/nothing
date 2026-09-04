@@ -41,6 +41,12 @@ negative fallback boundary: Bungee can shape `Ax` + U+0301 + `Z`, but a request
 for `Ahem, Bungee` must retain Ahem's missing-glyph refusal until cluster-safe
 fallback is implemented.
 
+Oracle v7 also declares aliases of the same pinned Allerta and Ahem bytes at
+distinct static face tuples. Allerta is the visible losing face and Ahem the
+selected face in the nearest-matching cell. Reusing the identities keeps the
+test about stretch/style/weight choice rather than introducing another font;
+each alias still states its complete tuple explicitly in the closed manifest.
+
 This directory grows only when a rung's admitted slice requires a new pinned
 identity, and never holds a corpus: breadth suites live untracked under
 `fixtures/local/`.
