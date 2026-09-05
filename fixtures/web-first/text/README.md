@@ -1,7 +1,7 @@
 # The text cell suite
 
 Chromium-baked evidence for the `<text>` slice on the SVG engine of record
-(`websem → rframe → n0`). Fourteen exact text cells are gated byte-exact by
+(`websem → rframe → n0`). Sixteen exact text cells are gated byte-exact by
 [`crates/websem/tests/svg_text.rs`](../../../crates/websem/tests/svg_text.rs);
 eight real-font artifact witnesses are gated numerically, before rasterization, by
 [`crates/websem/tests/svg_text_geometry.rs`](../../../crates/websem/tests/svg_text_geometry.rs).
@@ -9,7 +9,7 @@ The method these cells enforce is the ratified
 [text-oracle brief](../../../docs/wg/consolidation/text-oracle.md); this file
 states only how the suite is shaped.
 
-The pixel suite currently has **fourteen** cells. The separate Rung-B geometry
+The pixel suite currently has **sixteen** cells. The separate Rung-B geometry
 suite under [`geometry/`](./geometry/) has **eight** witnesses: six Allerta and
 two Bungee. Both manifests are closed enumerations: the Rust gates reject an
 unlisted SVG, duplicate source row, undeclared or changed font identity, stale
@@ -635,12 +635,26 @@ remained green, then `just gate` failed loudly on the new exact text cell at
 the missing cluster. Restoring family-list continuation returned the complete
 primitive, text-pixel, text-geometry, and refusal gate to green.
 
-The estate is now fifteen exact text cells plus eight exact-number real-font
+The estate at T6 was fifteen exact text cells plus eight exact-number real-font
 geometry witnesses (six Allerta and two Bungee). Graduating one refusal moves
 the named register from 224 to 223. Generic and system fallback, partial
 cluster splitting, wider repertoire and shaping controls, synthesis, dynamic
 font/resource loading, and the complete font grammars remain open; no
 checklist row closes.
+
+## Direct paint-order inert evidence
+
+`svg-text-paint-order-inert.svg` adds the presentation attribute without
+widening the paused text contract. One fill-only `<text>` inherits
+`paint-order="stroke"`; one paint-only `<tspan>` carries the same value
+directly. With no drawable text stroke or marker operation, ordering cannot
+change either result. The cell is byte-exact to Chromium under the pinned Ahem
+environment and renders identically through strict and best-effort admission.
+The direct `paint-order` row closes from the wider primitive grammar and
+operation evidence; stroked text, text markers, and wider text paint/effects
+remain owned by their existing unchecked text rows. The current text estate is
+sixteen exact pixel cells plus the unchanged eight geometry witnesses; the
+project-wide refusal register has 234 rows.
 
 ## Tooling
 

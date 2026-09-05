@@ -1049,17 +1049,11 @@ fn vector_effect_functions_are_inert_without_a_drawable_stroke() {
     );
 }
 
-/// Paint ordering still refuses through either spelling. The CSS property
-/// twin of the now-admitted direct `vector-effect` attribute also remains
-/// quarantined because this Stylo build exposes no computed longhand.
+/// CSS stroke-adjacent properties whose Stylo longhands are unavailable stay
+/// quarantined. Direct `paint-order` is covered by `paint_order_contract`;
+/// only its CSS property twin belongs here now.
 #[test]
 fn unrepresented_stroke_properties_refuse_by_name() {
-    let source = stroked_rect(r##"stroke-width="8" paint-order="stroke""##);
-    assert!(
-        matches!(refusal(&source), CompileError::UnsupportedAttribute { .. }),
-        "paint-order attribute must refuse by name"
-    );
-
     for css in ["paint-order: stroke", "vector-effect: non-scaling-stroke"] {
         let source = document(&format!(
             r##"  <style>rect {{ stroke: #000; stroke-width: 8; {css} }}</style>

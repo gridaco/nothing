@@ -607,10 +607,10 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete primitive corpus contains 1,127 Chromium-baked cells plus
-  16 sampled frames; the text estate contains fifteen exact text pixel cells and
+  cells. The complete primitive corpus contains 1,157 Chromium-baked cells plus
+  16 sampled frames; the text estate contains sixteen exact text pixel cells and
   eight exact-number artifact-geometry witnesses (six Allerta and two
-  Bungee), and the named refusal register has 230 rows. `feFlood`, `feComposite`,
+  Bungee), and the named refusal register has 234 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -688,6 +688,24 @@ cargo run -p n0_cli --bin n0 -- \
   stable property refusal because the pinned Stylo build has no corresponding
   longhand; no second matcher is added. Graphics elements outside this admitted
   slice keep their own element-level refusals.
+  The direct `paint-order` presentation attribute carries the complete
+  `normal | [ fill || stroke || markers ]` grammar. Omitted members append in
+  normal fill/stroke/markers order; comments, escapes, case, whitespace,
+  invalid fallback, inheritance, CSS-wide values, and all six normalized
+  permutations follow Chromium. Every admitted geometry route, `<use>`,
+  marker/pattern/mask source content, context paint, transform and
+  non-scaling stroke, paint server, and client effect receives the same
+  ordering. Default-normalized leaves retain one established shape node;
+  non-default leaves become independently owned fill/stroke frame facts with
+  common source provenance around one already-resolved marker span. All
+  client effects enclose the complete contiguous span, and a source failure
+  removes the whole client transaction. Thirty primitive/HTML cells and
+  one pinned-Ahem fill-only text cell are byte-exact. Direct `var()`, `env()`,
+  typed `attr()`, and experimental `if()` refuse by exact function name
+  wherever they occur in the top-level value, and only when at least two
+  effective operations make order visible. The CSS property
+  remains a separate stable refusal because the pinned Stylo build has no
+  corresponding longhand; no matcher is added.
   `stroke-dasharray` is consumed in both spellings from that same cascade:
   numbers/lengths/percentages, comma or whitespace separators, CSS math,
   odd-list repetition, inheritance through containers and `<use>`, and
@@ -1141,7 +1159,7 @@ cargo run -p n0_cli --bin n0 -- \
   the first `f` advance to 2355, the second chunk retains the 2330/2355 pair,
   and Chromium and the projection agree on total 13585 and positioned starts
   5000, 8330, 10685, and 15005. The last start proves that a relative shift on
-  the combining scalar carries to the next character. The fifteen-cell exact
+  the combining scalar carries to the next character. The sixteen-cell exact
   suite separately makes per-run paint, list placement, per-chunk anchoring,
   transforms, `<use>`, ten ordered-family-selection branches, and sixteen exact
   face-descriptor branches plus sixteen static-nearest branches byte-exact.

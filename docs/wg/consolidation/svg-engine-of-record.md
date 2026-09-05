@@ -54,6 +54,9 @@ from the dated addenda below:
   family, opacity, and resolved dash patterns with a checked cycle, signed
   phase in the selected construction space, and `pathLength` source
   calibration;
+  direct inherited `paint-order` presentation attributes across the admitted
+  geometry, instance, resource-source, paint, and effect routes, normalized to
+  one source-neutral fill/stroke/marker item order before the frame closes;
   `<g>` and `<a>` containers, visibility, isolated element/group/root opacity,
   and HTML-ancestor opacity around the selected inline SVG; the whole
   `transform` grammar in both spellings (the attribute is a
@@ -111,8 +114,8 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,127 Chromium-baked primitive cells plus 16 sampled frames,
-  with a separate fifteen-cell exact text suite whose current cells select
+- **The corpus** is 1,157 Chromium-baked primitive cells plus 16 sampled frames,
+  with a separate sixteen-cell exact text suite whose current cells select
   hash-pinned Ahem and Ahem-derived bytes from explicit family/face
   environments, and eight exact-number artifact-geometry
   witnesses (six Allerta and two Bungee) under the ratified text corpus-growth
@@ -123,7 +126,7 @@ from the dated addenda below:
   against Chromium's Skia; 18 knife-edge pixels between this engine's own
   macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
   restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 230 rows.
+  register has 234 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -5471,3 +5474,110 @@ patrol with four direct function rows and the CSS-property row moves the named
 refusal register from 226 to 230. The primitive corpus moves from 1,079 to 1,127
 exact Chromium cells plus the unchanged 16 sampled frames. No conformance score
 was produced, and no FLIP record, rule, or baseline changed.
+
+## Rung: SVG direct `paint-order` presentation attribute (2026-09-05)
+
+The verdict is PO1 CLOSE/SPLIT. The direct SVG presentation-attribute row
+closes at the complete standard-track
+[`paint-order` grammar](https://www.w3.org/TR/SVG2/painting.html#PaintOrder):
+`normal | [ fill || stroke || markers ]`. Omitted operations append in normal
+fill, stroke, markers order, so every valid value normalizes to one of six
+permutations. The CSS-property row stays open because the pinned Stylo revision
+has no Servo `paint-order` longhand; authored inline and stylesheet declarations
+keep a stable property refusal rather than acquiring a matcher beside the
+cascade. This repeats the attribute/property and own-row split ratified by
+gridaco/nothing#75, #80, #92, and #94.
+
+Chromium 149.0.7827.55 was measured first through the shared hash-pinned capture
+module. Missing and `normal`, every one-, two-, and three-member spelling,
+ASCII-insensitive case, CSS escapes, comments, and whitespace all follow the
+six normalized orders. Empty, duplicate, comma-separated, unknown,
+`normal`-plus-member, trailing-residue, and overlong forms are invalid
+declarations. The property inherits: an invalid child exposes its parent;
+`initial` resets to normal, while `inherit`, `unset`, `revert`, and
+`revert-layer` under the measured author-hint construction expose the parent.
+All six orders are pairwise pixel-distinct in the three-operation witness; the
+closest pair differs by 22 pixels at maximum channel delta 198. These are probe
+measurements; the committed grammar atlas is the durable evidence.
+
+The implementation remains producer-side. A CSS-token parser consumes only the
+direct presentation attribute and an SVG-namespace-bounded ancestor walk
+resolves inheritance. The default-normalized route preserves the established
+single shape node. A non-default route resolves geometry, fill, stroke, and
+selected markers once, then lowers fill and stroke to independently owned
+ordinary frame nodes with one common source provenance and moves the already
+compiled marker span into the requested position. The client's opacity,
+filter, mask, and clip close around one contiguous ordered span, and a marker
+source error rolls the complete client back. No SVG token, paint-order enum,
+marker reference, or source resource enters `rframe` or `n0`.
+
+Twenty-nine new standalone cells and one inline-HTML cell cover the complete
+token grammar, invalid and CSS-wide inheritance, all six orders, absent and
+empty channels, marker-middle and line-end-marker overlap, all seven admitted
+geometry elements,
+group/link/root/nested-SVG inheritance, child override, three `<use>` routes,
+marker/pattern/mask source programs, context paints, transforms and
+`vector-effect`, solid/currentColor/gradient/pattern paints, opacity, filter,
+clip, mask, nested viewports, and the HTML namespace boundary. One additional
+pinned-Ahem text cell proves that direct `paint-order` is inert on the admitted
+fill-only `<text>`/paint-only `<tspan>` profile. Every cell is byte-exact to
+Chromium in both actual admissions; no tolerance was added.
+
+Chromium also resolves direct `var()`, custom `env()` fallback, typed `attr()`,
+and CSS `if()` to live non-default orders. The manual LAW pass found that each
+function may contribute a suffix after an ordinary member: all four
+`stroke <function>` probes equal `stroke markers` in Chromium, while the first
+implementation silently selected normal in both admissions, changing 816
+pixels at maximum channel delta 161 (measured, not celled). The patrol now
+scans the complete top-level token stream. This raw route cannot evaluate those
+substitutions without the absent longhand, so each function has a focused
+stable refusal whenever at least two effective operations can reorder.
+Fill-only, stroke-only, zero-width or transparent channels, an empty or
+zero-viewport selected marker, an unselected marker kind, and a line's empty
+fill remain admitted. A one-segment open path is pixel-inert in Chromium but
+is conservatively refused because arbitrary path fillability is not re-derived
+(measured, not celled); the independent `var()` row carries that over-refusal.
+`var()`, `env()`, and `attr()` retain their own unchecked checklist rows.
+`if()` is early-exploration CSS Values 5 work and therefore does not raise the
+checklist's standard-track grammar bar. Replacing the old broad
+`svg-stroke-paint-order` patrol with those four function rows and the CSS twin
+moves the named register from 230 to 234.
+
+The manual REPRO pass also tested a marker operation whose only visible output
+comes from a transparent-source `feFlood`. Chromium's markers-first and normal
+orders differ by 112 pixels at maximum channel delta 197; at `(44, 25)` the
+pair is blue `[37, 99, 235, 255]` versus red `[220, 38, 38, 255]` (measured,
+not celled). That branch never enters the admitted marker program: the existing
+`svg-marker-source-opacity` patrol refuses its source filter transactionally in
+strict mode and skips the same complete client by name in best effort. It
+therefore remains marker-source effect work rather than silently broadening
+this rung.
+
+One scratch effect combination exposed no new paint-order defect. A circular
+clip plus luminance-mask source differed from Chromium at the same three core
+coordinates and alpha deltas as the already declared native-circle
+antialiasing boundary; the circular clip propagated its own existing boundary
+ring. Straight-edged controls isolate the ordering and effect composition and
+are committed byte-exact. The curved combination remains measured, not celled,
+and no tolerance or unrelated issue record changed.
+
+Gate sensitivity was proved across the semantic seams. Forcing every value to
+normal failed 27 named cells; the largest failure changed 2,017 pixels and the
+maximum channel delta was 214. Moving markers to the end failed eight cells;
+the dedicated marker-middle witness changed 45 pixels at delta 197 and the
+line-end-marker witness changed 92 pixels at delta 197. Dropping
+the deferred client-opacity envelope changed `svg-paint-order-opacity` by
+1,936 pixels at delta 104. Reusing the fill identity for the stroke fragment
+failed the focused owner law immediately with duplicate `Identity(1)`, before
+rasterization. Finally, resolving substitution functions before proving two
+live operations made `svg-paint-order-inert-functions` fail at strict
+admission. Restoring each mutation returned the complete fixture gate to
+green.
+
+The primitive corpus moves from 1,127 to 1,157 exact Chromium cells plus the
+unchanged 16 sampled frames. The exact text-pixel estate moves from fifteen to
+sixteen cells; its eight exact-number geometry witnesses are unchanged. The
+named refusal register moves from 230 to 234. The CSS-property twin, dynamic
+substitutions, wider text painting, external resources, and animation remain
+their own work. No conformance score was produced, and no FLIP record, rule,
+or baseline changed.

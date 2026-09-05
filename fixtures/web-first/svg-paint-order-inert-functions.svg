@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs>
+    <marker id="empty" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8"/>
+    <marker id="zero" markerUnits="userSpaceOnUse" markerWidth="0" markerHeight="8"><rect width="8" height="8" fill="#dc2626"/></marker>
+  </defs>
+  <rect width="64" height="64" fill="#ffffff"/>
+  <rect x="3" y="3" width="14" height="14" fill="#16a34a" stroke="none" paint-order="var(--po, stroke)"/>
+  <rect x="24" y="3" width="14" height="14" fill="none" stroke="#2563eb" stroke-width="5" paint-order="env(--missing-po, markers)"/>
+  <line x1="46" y1="10" x2="61" y2="10" fill="#16a34a" stroke="#2563eb" stroke-width="6" opacity=".55" data-po="stroke" paint-order="attr(data-po type(&lt;custom-ident&gt;), normal)"/>
+  <rect x="3" y="25" width="14" height="14" fill="#16a34a" stroke="none" style="--po-on:yes" paint-order="if(style(--po-on): stroke; else: normal)"/>
+  <rect x="24" y="25" width="14" height="14" fill="#16a34a" stroke="#2563eb" stroke-width="0" paint-order="var(--po, stroke)"/>
+  <rect x="46" y="25" width="14" height="14" fill="transparent" stroke="#2563eb" stroke-width="5" paint-order="env(--missing-po, stroke)"/>
+  <path d="M3 54H17" fill="#16a34a" stroke="none" marker-end="url(#empty)" paint-order="var(--po, markers)"/>
+  <path d="M24 54H38" fill="#16a34a" stroke="none" marker-end="url(#zero)" paint-order="env(--missing-po, markers)"/>
+  <path d="M46 54H60" fill="#16a34a" stroke="none" marker-mid="url(#zero)" data-po="markers" paint-order="attr(data-po type(&lt;custom-ident&gt;), normal)"/>
+</svg>

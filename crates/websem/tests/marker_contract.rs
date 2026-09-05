@@ -262,11 +262,10 @@ fn rejected_source_is_one_transaction_in_strict_and_best_effort() {
 }
 
 #[test]
-fn resource_root_rendering_declarations_refuse_before_inheritance_is_lost() {
+fn unrepresented_resource_root_rendering_declarations_refuse_before_inheritance_is_lost() {
     for marker_declaration in [
         r##"shape-rendering="crispEdges""##,
         r##"style="shape-rendering:crispEdges""##,
-        r##"paint-order="stroke fill""##,
         r##"style="paint-order:stroke fill""##,
     ] {
         let source = document(&format!(
@@ -307,7 +306,7 @@ fn position_and_source_fanout_limits_refuse_before_partial_paint() {
         path.push_str(&format!("L{} {}", index % 64, (index / 64) % 64));
     }
     let too_many_positions = document(&format!(
-        r##"{}<path d="{path}" fill="none" stroke="#2563eb" marker-end="url(#m)"/>"##,
+        r##"{}<path d="{path}" fill="none" stroke="#2563eb" marker-end="url(#m)" paint-order="markers"/>"##,
         arrow(r##"<circle cx="5" cy="5" r="2" fill="#e11d48"/>"##)
     ));
     assert_skipped_by_marker(&too_many_positions, "authored positions");
@@ -322,7 +321,7 @@ fn position_and_source_fanout_limits_refuse_before_partial_paint() {
         })
         .collect::<String>();
     let too_many_source_items = document(&format!(
-        r##"{}<line x1="8" y1="32" x2="56" y2="32" stroke="#2563eb" marker-end="url(#m)"/>"##,
+        r##"{}<line x1="8" y1="32" x2="56" y2="32" stroke="#2563eb" marker-end="url(#m)" paint-order="markers"/>"##,
         arrow(&source_nodes)
     ));
     assert_skipped_by_marker(&too_many_source_items, "source emits 65 frame items");

@@ -1099,6 +1099,13 @@ excluded.
 > bare `marker` attribute is inert and has its own drop cell.
 
 - [ ] `paint-order`
+
+> **2026-09-05 attribute/property split:** the CSS property remains open at
+> the pinned Stylo cap. This build has no Servo `paint-order` longhand, and
+> authored inline or stylesheet declarations refuse by stable property name
+> instead of entering a matcher beside the cascade. The direct SVG
+> presentation-attribute spelling is an independent row and closes below.
+
 - [x] `path-length`
 - [ ] `color-interpolation`
 - [ ] `shape-rendering`
@@ -2252,7 +2259,23 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > is now 1,051 primitive cells plus 16 sampled frames, and the named refusal
 > register has 197 rows. No new tolerance is used.
 - [ ] `overflow`
-- [ ] `paint-order`
+- [x] `paint-order`
+
+> **2026-09-05 close:** the direct presentation attribute carries
+> `normal | [ fill || stroke || markers ]`, including omitted-member
+> completion, token aliases, invalid fallback, inheritance, CSS-wide values,
+> all six operation orders, every admitted geometry and resource-source
+> route, `<use>`, transforms, paint servers, and client effects. Thirty
+> new primitive/HTML cells and one pinned-font fill-only text cell are
+> Chromium-gated. Live `var()`, `env()`, `attr()`, and experimental `if()`
+> substitutions refuse by exact function name only when ordering can affect
+> at least two paint operations. The independently listed `var()`/`env()`/
+> `attr()` rows carry those standard-track gaps; `if()` is experimental and
+> does not raise this checklist's bar. The CSS-property twin remains open above.
+> The complete corpus is now 1,157 primitive cells plus 16 sampled frames,
+> the text pixel estate has 16 cells, and the named refusal register has 234
+> rows. No tolerance was added.
+
 - [ ] `pointer-events`
 - [ ] `r`
 - [x] `rx`

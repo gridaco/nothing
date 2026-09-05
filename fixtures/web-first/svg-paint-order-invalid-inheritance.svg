@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <g paint-order="stroke" fill="#16a34a" stroke="#2563eb" stroke-width="4">
+    <rect x="4" y="4" width="12" height="12" paint-order=""/>
+    <rect x="26" y="4" width="12" height="12" paint-order="   "/>
+    <rect x="48" y="4" width="12" height="12" paint-order="markers, stroke"/>
+    <rect x="4" y="26" width="12" height="12" paint-order="markers markers"/>
+    <rect x="26" y="26" width="12" height="12" paint-order="normal stroke"/>
+    <rect x="48" y="26" width="12" height="12" paint-order="banana"/>
+    <rect x="4" y="48" width="12" height="12" paint-order="markers stroke banana"/>
+    <rect x="26" y="48" width="12" height="12" paint-order="fill stroke markers fill"/>
+    <rect x="48" y="48" width="12" height="12" paint-order="marker\0 s stroke"/>
+  </g>
+</svg>

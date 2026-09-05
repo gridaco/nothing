@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "069296201718c43d29efe356fbea893781b73250dca51de3b6d47468d74027b0",
   "suite": "primitives.json",
-  "suite_sha256": "51e5b49c419c78a8e0fbf0fcd37bceeb6d8aaf57421e996bd99c17ce912165ab",
+  "suite_sha256": "fdd8b6dec491334a09867d0913c75861e2812a6e2cea161b244e4fdd26c5bca2",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -43,6 +43,15 @@
       "source_sha256": "6a4c3d5684d54735dfe2fa6147822427c891de8e312528b82e7cd76490298031",
       "oracle": "chromium/html-inline-svg-nested-viewport.png",
       "oracle_sha256": "42fd30c0b4a78fc1e27d6cd5336c420453cd81f1a69f044bfbe90818da273fe2",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "html-inline-svg-paint-order",
+      "source": "html-inline-svg-paint-order.html",
+      "source_sha256": "159a55ae6c2c48d705e818699fc3bdb13ba61043dcad6173dbc10adc2f1d1a21",
+      "oracle": "chromium/html-inline-svg-paint-order.png",
+      "oracle_sha256": "5ecce704fe9de6a92ee34f2531046635bc0885b8b2c3768b1254b93c88f977af",
       "width": 64,
       "height": 64
     },
@@ -6622,6 +6631,267 @@
       "source_sha256": "1feb09a84a3813d0ed2a7a92d1322c32ff674bdf86dccd25c16d2b43dc2e3e21",
       "oracle": "chromium/svg-opacity-zero-sibling.png",
       "oracle_sha256": "4394a5d18f78bd87df257f041d72b1558f721313e57b5553a921c21ffef6dca9",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-child-override",
+      "source": "svg-paint-order-child-override.svg",
+      "source_sha256": "bd724c748fedc0bcf78a01961c8262addea90a0641a605a39e157b09fe2a9a4f",
+      "oracle": "chromium/svg-paint-order-child-override.png",
+      "oracle_sha256": "c981d827f5c7cb152369c37a40c95dde5b8e2ccf465a2ab238da58c8da1a5a6d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-clip",
+      "source": "svg-paint-order-clip.svg",
+      "source_sha256": "f9df364440575a073523378cd3831f809ee72127bbfe306036403a10317e845b",
+      "oracle": "chromium/svg-paint-order-clip.png",
+      "oracle_sha256": "98f28fed1216803ed8181ac43ca9892a931a15a271c038d8890f0d6212285f40",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-complete-grammar",
+      "source": "svg-paint-order-complete-grammar.svg",
+      "source_sha256": "cec5f6914b91aba90a47164a786b7fbb9cd7d1deeaa856bcfdc29a622a7b16c1",
+      "oracle": "chromium/svg-paint-order-complete-grammar.png",
+      "oracle_sha256": "63a3e0bf4402cad03d692e6b7c4048d0b19db8e9f790550e3b12715ff517796b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-context-paints",
+      "source": "svg-paint-order-context-paints.svg",
+      "source_sha256": "f7097c77c6aa444664149710f97f342411b4c5f2e61766e8b100c866a13b3ebf",
+      "oracle": "chromium/svg-paint-order-context-paints.png",
+      "oracle_sha256": "9ade571808ada6e964d2e8d411d300cbe4367b1f1112f0a9ee5afe63c579372c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-css-wide-inheritance",
+      "source": "svg-paint-order-css-wide-inheritance.svg",
+      "source_sha256": "7bb901b723d6141a7edb29f8307f32bc4d2e8b050b000430a702274ef00721b4",
+      "oracle": "chromium/svg-paint-order-css-wide-inheritance.png",
+      "oracle_sha256": "15e7d14eba1b4a42d3252c1d0de1d8b1929b44b2b6748473a472dc5e3d0a5e31",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-currentcolor-alpha",
+      "source": "svg-paint-order-currentcolor-alpha.svg",
+      "source_sha256": "63523d4ca31b01ad8dae3ed7dd05be5c83427af413658eadd65b7ac1275c60ae",
+      "oracle": "chromium/svg-paint-order-currentcolor-alpha.png",
+      "oracle_sha256": "d8917daea9a5e856327d2c5b3f68ec76553da363b3fec330766479ffabd55133",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-filter",
+      "source": "svg-paint-order-filter.svg",
+      "source_sha256": "cd912c21f44eb4fb899109cb1cfa1ec79bf5ba987e572cd0265a1bccecb755d6",
+      "oracle": "chromium/svg-paint-order-filter.png",
+      "oracle_sha256": "97ccbe53a8305668632bb2112b5a62e951aefb96d531706460b1d2f7f328dcbc",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-gradient",
+      "source": "svg-paint-order-gradient.svg",
+      "source_sha256": "abd491e6abca9d66a529e3a58ebc6f834c825c0c5295b82ba56894f07869b492",
+      "oracle": "chromium/svg-paint-order-gradient.png",
+      "oracle_sha256": "45af02a4913dbf7e541c85b1dfbce4700f0bad399d4141f57733d5c852498d27",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-group-inherited",
+      "source": "svg-paint-order-group-inherited.svg",
+      "source_sha256": "098adfbfd59efb46196a22f6c768a1b747880a190e0b87f999bce0fe6bb6c662",
+      "oracle": "chromium/svg-paint-order-group-inherited.png",
+      "oracle_sha256": "c24a250e2a6c3c253a0525d4a34ad12406d2d649e6fbf1d7841ac317e408ed69",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-inert-functions",
+      "source": "svg-paint-order-inert-functions.svg",
+      "source_sha256": "038e65bea39c5fb1111598bc2fe3c78db4a41a4b644039a39bfd12781617872b",
+      "oracle": "chromium/svg-paint-order-inert-functions.png",
+      "oracle_sha256": "d8fec14ede85d80ea9d4997a35ef9147311da7e4caba7aef71af4b248f182f27",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-invalid-inheritance",
+      "source": "svg-paint-order-invalid-inheritance.svg",
+      "source_sha256": "7b41376873d19bb63cfa8bafd4e56f8dc7c5c4fea925d07c7ae8c8104ac446a6",
+      "oracle": "chromium/svg-paint-order-invalid-inheritance.png",
+      "oracle_sha256": "602189bf5021b1a4fc3ac6a01df9776e371e9164fc82b34158717e7898caedf3",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-line-marker",
+      "source": "svg-paint-order-line-marker.svg",
+      "source_sha256": "b5ee3d87dbac43e80d0dec634bbbf726c93adfde071d2de6f9f92013657d17e7",
+      "oracle": "chromium/svg-paint-order-line-marker.png",
+      "oracle_sha256": "ec206afc8aa204c1fe93e3edb1769229930a0f6d26d177d7548b2700cd990e83",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-link-inherited",
+      "source": "svg-paint-order-link-inherited.svg",
+      "source_sha256": "79fecad262100c9a0aec79ec89a37dcad069493e33c3c10c1f60aa5527380b4b",
+      "oracle": "chromium/svg-paint-order-link-inherited.png",
+      "oracle_sha256": "c24a250e2a6c3c253a0525d4a34ad12406d2d649e6fbf1d7841ac317e408ed69",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-marker-middle",
+      "source": "svg-paint-order-marker-middle.svg",
+      "source_sha256": "6b781c1abeb0ece86479ce5e9804fa25bebfe5ab7893ff1ca1f917b5c8add104",
+      "oracle": "chromium/svg-paint-order-marker-middle.png",
+      "oracle_sha256": "fb2942910c22d0538be58d0664da3a7df0707e7a93fa7f118b25a743f1363115",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-marker-source",
+      "source": "svg-paint-order-marker-source.svg",
+      "source_sha256": "f7a5e7232a90aa27472ce632cf2526233663f99ff8b3664d8793e08dfe6b6de0",
+      "oracle": "chromium/svg-paint-order-marker-source.png",
+      "oracle_sha256": "0ec98d384bf36648c09178e7bed7709c0529af825b2192a5ba55bd7344014694",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-mask",
+      "source": "svg-paint-order-mask.svg",
+      "source_sha256": "ce976447ce5b044a8c3825bb62b5f12c63b9f70c906c601c85d294aefcccf2db",
+      "oracle": "chromium/svg-paint-order-mask.png",
+      "oracle_sha256": "1cd261bc2ccb520bf7685f7fa96c0be2e6e3042bfa97a3364fc9b00934595029",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-mask-source",
+      "source": "svg-paint-order-mask-source.svg",
+      "source_sha256": "1f62545a35b637ff13a1f5d02edbf1350d2fd76e6d6ab95eb1a28f378e969c95",
+      "oracle": "chromium/svg-paint-order-mask-source.png",
+      "oracle_sha256": "d5b5aed6463390cd81feacf1ada1eaa56847f2043c953f73c86e5a17d9fda275",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-nested-inherited",
+      "source": "svg-paint-order-nested-inherited.svg",
+      "source_sha256": "888538829cfac4d9fb8db9b2219ad942bc405fd83182609b024eadb5cf11d0a6",
+      "oracle": "chromium/svg-paint-order-nested-inherited.png",
+      "oracle_sha256": "c24a250e2a6c3c253a0525d4a34ad12406d2d649e6fbf1d7841ac317e408ed69",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-nested-viewport",
+      "source": "svg-paint-order-nested-viewport.svg",
+      "source_sha256": "4960601041282103c682c44c4337acc484ee22a1e2b894571f56fbf7a043e7cb",
+      "oracle": "chromium/svg-paint-order-nested-viewport.png",
+      "oracle_sha256": "c981d827f5c7cb152369c37a40c95dde5b8e2ccf465a2ab238da58c8da1a5a6d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-opacity",
+      "source": "svg-paint-order-opacity.svg",
+      "source_sha256": "d81b3fdb9ab9434cf33530ab1099dc2b265843b727c4bf4e1b2e7f7b6f200f55",
+      "oracle": "chromium/svg-paint-order-opacity.png",
+      "oracle_sha256": "144693e5b4ccd98bc66d5de0b9841935ebfdf0166bab2adad0237f1d3b59a7ad",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-pattern-paint",
+      "source": "svg-paint-order-pattern-paint.svg",
+      "source_sha256": "6e540942c117b9b3035fee437be62b02f49a1aa589f7debf5bd08e93f464a467",
+      "oracle": "chromium/svg-paint-order-pattern-paint.png",
+      "oracle_sha256": "ce3d2511caf57d05736b2d1f1252f1236ec9959cea601086826f52b2c24a2549",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-pattern-source",
+      "source": "svg-paint-order-pattern-source.svg",
+      "source_sha256": "7eaa4ce7ae6f392b07511e13fff30871635a892053356e2e7ba1011eba239109",
+      "oracle": "chromium/svg-paint-order-pattern-source.png",
+      "oracle_sha256": "928d65d9f91ab898c16b2d4543f8ff76b48af11108fccc1184c7bd60d66f4df2",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-root-inherited",
+      "source": "svg-paint-order-root-inherited.svg",
+      "source_sha256": "661321ed4c6b59f6b2b4d3cefc719c96e79ef3eace2766fc8067eed2ae54cdc3",
+      "oracle": "chromium/svg-paint-order-root-inherited.png",
+      "oracle_sha256": "c24a250e2a6c3c253a0525d4a34ad12406d2d649e6fbf1d7841ac317e408ed69",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-shape-elements",
+      "source": "svg-paint-order-shape-elements.svg",
+      "source_sha256": "03d8abf3e5d407e77bb56a86a3c5c49302eafbdabc49c6d55c62677582d5d02d",
+      "oracle": "chromium/svg-paint-order-shape-elements.png",
+      "oracle_sha256": "bd3602682a269d7b899b2a3a9ccf0fd2dc435306e3e8b3d789ab0d6805c285cb",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-token-grammar",
+      "source": "svg-paint-order-token-grammar.svg",
+      "source_sha256": "8fbab28aa0adfe296b4770a3a55fce85a2ae5bbb42c3441860c9fe71fcf154e9",
+      "oracle": "chromium/svg-paint-order-token-grammar.png",
+      "oracle_sha256": "1c42f99b25008f65a7fd1594888730c648492effb781626ae5bfa1b0edeee3c8",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-transform-vector-effect",
+      "source": "svg-paint-order-transform-vector-effect.svg",
+      "source_sha256": "5836979d19591c93ca01632bc35bd854a9a5aeb238dfc341d6f4b8b8a414ea41",
+      "oracle": "chromium/svg-paint-order-transform-vector-effect.png",
+      "oracle_sha256": "e9350696f760bd8a43d29c096e1381b2b45cb6e7b468e2afebcd40e77e3a0e70",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-use-inherited",
+      "source": "svg-paint-order-use-inherited.svg",
+      "source_sha256": "fc6acaa163265abf8304d7991ade1281653c6448e48e6b09f7e1cb1973915962",
+      "oracle": "chromium/svg-paint-order-use-inherited.png",
+      "oracle_sha256": "c24a250e2a6c3c253a0525d4a34ad12406d2d649e6fbf1d7841ac317e408ed69",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-use-target",
+      "source": "svg-paint-order-use-target.svg",
+      "source_sha256": "0f93515585212e5785baf39ed5f6c5cd3f2629f1f719056f89e08c32b9839772",
+      "oracle": "chromium/svg-paint-order-use-target.png",
+      "oracle_sha256": "c24a250e2a6c3c253a0525d4a34ad12406d2d649e6fbf1d7841ac317e408ed69",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-use-transformed",
+      "source": "svg-paint-order-use-transformed.svg",
+      "source_sha256": "7f488af4325704b1110f8f8af11e7f363d131892d0f59d4bc5690bb23c061baf",
+      "oracle": "chromium/svg-paint-order-use-transformed.png",
+      "oracle_sha256": "0f7d70b749eccd41f2dbaafdb9d8518f6a6c7d7767c7d506e9017616570c9d3d",
       "width": 64,
       "height": 64
     },
