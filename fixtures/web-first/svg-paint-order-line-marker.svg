@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs>
+    <marker id="m" markerUnits="userSpaceOnUse" markerWidth="18" markerHeight="18" refX="9" refY="9" orient="0"><circle cx="9" cy="9" r="8" fill="#dc2626"/></marker>
+  </defs>
+  <rect width="64" height="64" fill="#ffffff"/>
+  <line x1="8" y1="32" x2="56" y2="32" stroke="#2563eb" stroke-width="12" marker-end="url(#m)" paint-order="markers"/>
+</svg>

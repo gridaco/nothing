@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <g paint-order="stroke" fill="#16a34a" stroke="#2563eb" stroke-width="6">
+    <rect x="4" y="5" width="14" height="20" paint-order="inherit"/>
+    <rect x="25" y="5" width="14" height="20" paint-order="unset"/>
+    <rect x="46" y="5" width="14" height="20" paint-order="revert"/>
+    <rect x="12" y="38" width="14" height="20" paint-order="revert-layer"/>
+    <rect x="38" y="38" width="14" height="20" paint-order="initial"/>
+  </g>
+</svg>

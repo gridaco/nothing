@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" fill="#ffffff"/>
+  <g fill="#16a34a" stroke="#2563eb" stroke-width="5">
+    <rect x="4" y="5" width="14" height="20" paint-order="markers stroke"/>
+    <rect x="25" y="5" width="14" height="20" paint-order="  markers stroke  "/>
+    <rect x="46" y="5" width="14" height="20" paint-order="/**/markers/**/stroke/**/"/>
+    <rect x="4" y="39" width="14" height="20" paint-order="MARKERS STROKE"/>
+    <rect x="25" y="39" width="14" height="20" paint-order="mar\6b ers str\6f ke"/>
+    <rect x="46" y="39" width="14" height="20" paint-order="
+markers stroke
+"/>
+  </g>
+</svg>

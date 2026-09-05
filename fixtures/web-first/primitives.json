@@ -26,6 +26,14 @@
       "height": 64
     },
     {
+      "id": "html-inline-svg-paint-order",
+      "source": "html-inline-svg-paint-order.html",
+      "entry": "html-inline-svg",
+      "oracle": "chromium/html-inline-svg-paint-order.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "html-inline-svg-pattern",
       "source": "html-inline-svg-pattern.html",
       "entry": "html-inline-svg",
@@ -5968,6 +5976,238 @@
       "source": "svg-opacity-zero-sibling.svg",
       "entry": "standalone-svg",
       "oracle": "chromium/svg-opacity-zero-sibling.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-child-override",
+      "source": "svg-paint-order-child-override.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-child-override.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-clip",
+      "source": "svg-paint-order-clip.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-clip.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-complete-grammar",
+      "source": "svg-paint-order-complete-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-complete-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-context-paints",
+      "source": "svg-paint-order-context-paints.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-context-paints.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-css-wide-inheritance",
+      "source": "svg-paint-order-css-wide-inheritance.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-css-wide-inheritance.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-currentcolor-alpha",
+      "source": "svg-paint-order-currentcolor-alpha.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-currentcolor-alpha.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-filter",
+      "source": "svg-paint-order-filter.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-filter.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-gradient",
+      "source": "svg-paint-order-gradient.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-gradient.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-group-inherited",
+      "source": "svg-paint-order-group-inherited.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-group-inherited.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-inert-functions",
+      "source": "svg-paint-order-inert-functions.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-inert-functions.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-invalid-inheritance",
+      "source": "svg-paint-order-invalid-inheritance.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-invalid-inheritance.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-line-marker",
+      "source": "svg-paint-order-line-marker.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-line-marker.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-link-inherited",
+      "source": "svg-paint-order-link-inherited.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-link-inherited.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-marker-middle",
+      "source": "svg-paint-order-marker-middle.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-marker-middle.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-marker-source",
+      "source": "svg-paint-order-marker-source.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-marker-source.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-mask",
+      "source": "svg-paint-order-mask.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-mask.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-mask-source",
+      "source": "svg-paint-order-mask-source.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-mask-source.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-nested-inherited",
+      "source": "svg-paint-order-nested-inherited.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-nested-inherited.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-nested-viewport",
+      "source": "svg-paint-order-nested-viewport.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-nested-viewport.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-opacity",
+      "source": "svg-paint-order-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-pattern-paint",
+      "source": "svg-paint-order-pattern-paint.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-pattern-paint.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-pattern-source",
+      "source": "svg-paint-order-pattern-source.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-pattern-source.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-root-inherited",
+      "source": "svg-paint-order-root-inherited.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-root-inherited.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-shape-elements",
+      "source": "svg-paint-order-shape-elements.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-shape-elements.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-token-grammar",
+      "source": "svg-paint-order-token-grammar.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-token-grammar.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-transform-vector-effect",
+      "source": "svg-paint-order-transform-vector-effect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-transform-vector-effect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-use-inherited",
+      "source": "svg-paint-order-use-inherited.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-use-inherited.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-use-target",
+      "source": "svg-paint-order-use-target.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-use-target.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-paint-order-use-transformed",
+      "source": "svg-paint-order-use-transformed.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-paint-order-use-transformed.png",
       "width": 64,
       "height": 64
     },

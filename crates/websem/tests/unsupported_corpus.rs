@@ -697,6 +697,31 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "declares d",
     ),
     (
+        "svg-paint-order-attribute-attr",
+        DeclaredByBestEffort,
+        "paint-order presentation attribute uses attr()",
+    ),
+    (
+        "svg-paint-order-attribute-env",
+        DeclaredByBestEffort,
+        "paint-order presentation attribute uses env()",
+    ),
+    (
+        "svg-paint-order-attribute-if",
+        DeclaredByBestEffort,
+        "paint-order presentation attribute uses if()",
+    ),
+    (
+        "svg-paint-order-attribute-var",
+        DeclaredByBestEffort,
+        "paint-order presentation attribute uses var()",
+    ),
+    (
+        "svg-paint-order-css-property",
+        DeclaredByBestEffort,
+        "paint-order",
+    ),
+    (
         "svg-pattern-affine-precision",
         DeclaredByBestEffort,
         "picture-shader affine precision boundary",
@@ -869,11 +894,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "stroke-dashoffset in",
     ),
     ("svg-stroke-dashoffset-var", DeclaredByBestEffort, "var()"),
-    (
-        "svg-stroke-paint-order",
-        DeclaredByBestEffort,
-        "paint-order",
-    ),
     (
         "svg-stroke-sheet-unit-width",
         DeclaredByBestEffort,

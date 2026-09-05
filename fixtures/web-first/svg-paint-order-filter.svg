@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs>
+    <marker id="m" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" refX="7" refY="7" orient="0"><circle cx="7" cy="7" r="6" fill="#dc2626"/></marker>
+    <filter id="f" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <rect width="64" height="64" fill="#ffffff"/>
+  <path d="M16 16H48V48H16Z" fill="#16a34a" stroke="#2563eb" stroke-width="12" marker-start="url(#m)" marker-mid="url(#m)" marker-end="url(#m)" paint-order="fill markers stroke" filter="url(#f)"/>
+</svg>

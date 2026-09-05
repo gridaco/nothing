@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs>
+    <marker id="m" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" refX="7" refY="7" orient="0"><circle cx="7" cy="7" r="6" fill="#dc2626"/></marker>
+    <mask id="mask" mask-type="alpha" maskUnits="userSpaceOnUse" x="4" y="4" width="56" height="56"><rect x="4" y="4" width="42" height="56" fill="#ffffff"/></mask>
+  </defs>
+  <rect width="64" height="64" fill="#ffffff"/>
+  <path d="M12 12H52V52H12Z" fill="#16a34a" stroke="#2563eb" stroke-width="12" marker-start="url(#m)" marker-mid="url(#m)" marker-end="url(#m)" paint-order="fill markers stroke" mask="url(#mask)"/>
+</svg>

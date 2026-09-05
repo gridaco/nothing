@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (1127)
+## Chromium-baked cells (1157)
 
 Each renders byte-exact against its committed Chromium oracle
 (seven curved cells and four gradient ramps carry a declared, bounded
@@ -31,6 +31,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./html-inline-svg-ancestor-opacity.html" title="html-inline-svg-ancestor-opacity (html-inline-svg)"><img src="./chromium/html-inline-svg-ancestor-opacity.png" width="56" alt="html-inline-svg-ancestor-opacity"></a>
 <a href="./html-inline-svg-currentcolor-rect.html" title="html-inline-svg-currentcolor-rect (html-inline-svg)"><img src="./chromium/html-inline-svg-currentcolor-rect.png" width="56" alt="html-inline-svg-currentcolor-rect"></a>
 <a href="./html-inline-svg-nested-viewport.html" title="html-inline-svg-nested-viewport (html-inline-svg)"><img src="./chromium/html-inline-svg-nested-viewport.png" width="56" alt="html-inline-svg-nested-viewport"></a>
+<a href="./html-inline-svg-paint-order.html" title="html-inline-svg-paint-order (html-inline-svg)"><img src="./chromium/html-inline-svg-paint-order.png" width="56" alt="html-inline-svg-paint-order"></a>
 <a href="./html-inline-svg-pattern.html" title="html-inline-svg-pattern (html-inline-svg)"><img src="./chromium/html-inline-svg-pattern.png" width="56" alt="html-inline-svg-pattern"></a>
 <a href="./html-inline-svg-vector-effect.html" title="html-inline-svg-vector-effect (html-inline-svg)"><img src="./chromium/html-inline-svg-vector-effect.png" width="56" alt="html-inline-svg-vector-effect"></a>
 <a href="./html-webpage-mockup.html" title="html-webpage-mockup (html-inline-svg)"><img src="./chromium/html-webpage-mockup.png" width="56" alt="html-webpage-mockup"></a>
@@ -762,6 +763,35 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-opacity-translucent-overlap.svg" title="svg-opacity-translucent-overlap (standalone-svg)"><img src="./chromium/svg-opacity-translucent-overlap.png" width="56" alt="svg-opacity-translucent-overlap"></a>
 <a href="./svg-opacity-use-compound.svg" title="svg-opacity-use-compound (standalone-svg)"><img src="./chromium/svg-opacity-use-compound.png" width="56" alt="svg-opacity-use-compound"></a>
 <a href="./svg-opacity-zero-sibling.svg" title="svg-opacity-zero-sibling (standalone-svg)"><img src="./chromium/svg-opacity-zero-sibling.png" width="56" alt="svg-opacity-zero-sibling"></a>
+<a href="./svg-paint-order-child-override.svg" title="svg-paint-order-child-override (standalone-svg)"><img src="./chromium/svg-paint-order-child-override.png" width="56" alt="svg-paint-order-child-override"></a>
+<a href="./svg-paint-order-clip.svg" title="svg-paint-order-clip (standalone-svg)"><img src="./chromium/svg-paint-order-clip.png" width="56" alt="svg-paint-order-clip"></a>
+<a href="./svg-paint-order-complete-grammar.svg" title="svg-paint-order-complete-grammar (standalone-svg)"><img src="./chromium/svg-paint-order-complete-grammar.png" width="56" alt="svg-paint-order-complete-grammar"></a>
+<a href="./svg-paint-order-context-paints.svg" title="svg-paint-order-context-paints (standalone-svg)"><img src="./chromium/svg-paint-order-context-paints.png" width="56" alt="svg-paint-order-context-paints"></a>
+<a href="./svg-paint-order-css-wide-inheritance.svg" title="svg-paint-order-css-wide-inheritance (standalone-svg)"><img src="./chromium/svg-paint-order-css-wide-inheritance.png" width="56" alt="svg-paint-order-css-wide-inheritance"></a>
+<a href="./svg-paint-order-currentcolor-alpha.svg" title="svg-paint-order-currentcolor-alpha (standalone-svg)"><img src="./chromium/svg-paint-order-currentcolor-alpha.png" width="56" alt="svg-paint-order-currentcolor-alpha"></a>
+<a href="./svg-paint-order-filter.svg" title="svg-paint-order-filter (standalone-svg)"><img src="./chromium/svg-paint-order-filter.png" width="56" alt="svg-paint-order-filter"></a>
+<a href="./svg-paint-order-gradient.svg" title="svg-paint-order-gradient (standalone-svg)"><img src="./chromium/svg-paint-order-gradient.png" width="56" alt="svg-paint-order-gradient"></a>
+<a href="./svg-paint-order-group-inherited.svg" title="svg-paint-order-group-inherited (standalone-svg)"><img src="./chromium/svg-paint-order-group-inherited.png" width="56" alt="svg-paint-order-group-inherited"></a>
+<a href="./svg-paint-order-inert-functions.svg" title="svg-paint-order-inert-functions (standalone-svg)"><img src="./chromium/svg-paint-order-inert-functions.png" width="56" alt="svg-paint-order-inert-functions"></a>
+<a href="./svg-paint-order-invalid-inheritance.svg" title="svg-paint-order-invalid-inheritance (standalone-svg)"><img src="./chromium/svg-paint-order-invalid-inheritance.png" width="56" alt="svg-paint-order-invalid-inheritance"></a>
+<a href="./svg-paint-order-line-marker.svg" title="svg-paint-order-line-marker (standalone-svg)"><img src="./chromium/svg-paint-order-line-marker.png" width="56" alt="svg-paint-order-line-marker"></a>
+<a href="./svg-paint-order-link-inherited.svg" title="svg-paint-order-link-inherited (standalone-svg)"><img src="./chromium/svg-paint-order-link-inherited.png" width="56" alt="svg-paint-order-link-inherited"></a>
+<a href="./svg-paint-order-marker-middle.svg" title="svg-paint-order-marker-middle (standalone-svg)"><img src="./chromium/svg-paint-order-marker-middle.png" width="56" alt="svg-paint-order-marker-middle"></a>
+<a href="./svg-paint-order-marker-source.svg" title="svg-paint-order-marker-source (standalone-svg)"><img src="./chromium/svg-paint-order-marker-source.png" width="56" alt="svg-paint-order-marker-source"></a>
+<a href="./svg-paint-order-mask.svg" title="svg-paint-order-mask (standalone-svg)"><img src="./chromium/svg-paint-order-mask.png" width="56" alt="svg-paint-order-mask"></a>
+<a href="./svg-paint-order-mask-source.svg" title="svg-paint-order-mask-source (standalone-svg)"><img src="./chromium/svg-paint-order-mask-source.png" width="56" alt="svg-paint-order-mask-source"></a>
+<a href="./svg-paint-order-nested-inherited.svg" title="svg-paint-order-nested-inherited (standalone-svg)"><img src="./chromium/svg-paint-order-nested-inherited.png" width="56" alt="svg-paint-order-nested-inherited"></a>
+<a href="./svg-paint-order-nested-viewport.svg" title="svg-paint-order-nested-viewport (standalone-svg)"><img src="./chromium/svg-paint-order-nested-viewport.png" width="56" alt="svg-paint-order-nested-viewport"></a>
+<a href="./svg-paint-order-opacity.svg" title="svg-paint-order-opacity (standalone-svg)"><img src="./chromium/svg-paint-order-opacity.png" width="56" alt="svg-paint-order-opacity"></a>
+<a href="./svg-paint-order-pattern-paint.svg" title="svg-paint-order-pattern-paint (standalone-svg)"><img src="./chromium/svg-paint-order-pattern-paint.png" width="56" alt="svg-paint-order-pattern-paint"></a>
+<a href="./svg-paint-order-pattern-source.svg" title="svg-paint-order-pattern-source (standalone-svg)"><img src="./chromium/svg-paint-order-pattern-source.png" width="56" alt="svg-paint-order-pattern-source"></a>
+<a href="./svg-paint-order-root-inherited.svg" title="svg-paint-order-root-inherited (standalone-svg)"><img src="./chromium/svg-paint-order-root-inherited.png" width="56" alt="svg-paint-order-root-inherited"></a>
+<a href="./svg-paint-order-shape-elements.svg" title="svg-paint-order-shape-elements (standalone-svg)"><img src="./chromium/svg-paint-order-shape-elements.png" width="56" alt="svg-paint-order-shape-elements"></a>
+<a href="./svg-paint-order-token-grammar.svg" title="svg-paint-order-token-grammar (standalone-svg)"><img src="./chromium/svg-paint-order-token-grammar.png" width="56" alt="svg-paint-order-token-grammar"></a>
+<a href="./svg-paint-order-transform-vector-effect.svg" title="svg-paint-order-transform-vector-effect (standalone-svg)"><img src="./chromium/svg-paint-order-transform-vector-effect.png" width="56" alt="svg-paint-order-transform-vector-effect"></a>
+<a href="./svg-paint-order-use-inherited.svg" title="svg-paint-order-use-inherited (standalone-svg)"><img src="./chromium/svg-paint-order-use-inherited.png" width="56" alt="svg-paint-order-use-inherited"></a>
+<a href="./svg-paint-order-use-target.svg" title="svg-paint-order-use-target (standalone-svg)"><img src="./chromium/svg-paint-order-use-target.png" width="56" alt="svg-paint-order-use-target"></a>
+<a href="./svg-paint-order-use-transformed.svg" title="svg-paint-order-use-transformed (standalone-svg)"><img src="./chromium/svg-paint-order-use-transformed.png" width="56" alt="svg-paint-order-use-transformed"></a>
 <a href="./svg-path-arc.svg" title="svg-path-arc (standalone-svg)"><img src="./chromium/svg-path-arc.png" width="56" alt="svg-path-arc"></a>
 <a href="./svg-path-arc-degenerate.svg" title="svg-path-arc-degenerate (standalone-svg)"><img src="./chromium/svg-path-arc-degenerate.png" width="56" alt="svg-path-arc-degenerate"></a>
 <a href="./svg-path-arc-flags.svg" title="svg-path-arc-flags (standalone-svg)"><img src="./chromium/svg-path-arc-flags.png" width="56" alt="svg-path-arc-flags"></a>
@@ -1156,7 +1186,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (230)
+## The refusal register (234)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -1308,6 +1338,11 @@ its row into the cells above.
 | `svg-mask-type-inherit` | declared | skipped svg/rect[2]: unsupported SVG mask: mask-type presentation attribute uses inherit, whose parent computed value is not represented at this Stylo pin |
 | `svg-mask-type-var` | declared | skipped svg/rect[2]: unsupported SVG mask: mask-type presentation attribute uses var(), whose substitution is not represented at this Stylo pin |
 | `svg-mask-var` | declared | skipped svg/rect[2]: unsupported SVG mask: mask presentation attribute uses var(), whose substitution is not represented at this Stylo pin |
+| `svg-paint-order-attribute-attr` | declared | skipped svg/rect[2]: unsupported computed style: paint-order presentation attribute uses attr(), whose computed result is not represented at this Stylo pin |
+| `svg-paint-order-attribute-env` | declared | skipped svg/rect[2]: unsupported computed style: paint-order presentation attribute uses env(), whose computed result is not represented at this Stylo pin |
+| `svg-paint-order-attribute-if` | declared | skipped svg/rect[2]: unsupported computed style: paint-order presentation attribute uses if(), whose computed result is not represented at this Stylo pin |
+| `svg-paint-order-attribute-var` | declared | skipped svg/rect[2]: unsupported computed style: paint-order presentation attribute uses var(), whose computed result is not represented at this Stylo pin |
+| `svg-paint-order-css-property` | declared | declaration ignored at svg/style[1]: a stylesheet declares paint-order, which this cascade does not represent; elements it matches render without it |
 | `svg-path-css-d-property` | declared | declaration ignored at svg/style[1]: a stylesheet declares d, which this cascade does not represent; elements it matches render without it |
 | `svg-pattern-affine-precision` | declared | skipped svg/rect[2]: unsupported fill value "target mapping carries a general rotation or shear at the pinned-backend picture-shader affine precision boundary" |
 | `svg-pattern-css-transform-percentage` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern transform percentage has no proved reference-box basis" |
@@ -1346,7 +1381,6 @@ its row into the cells above.
 | `svg-stroke-dashoffset-percentage-precision-alias` | declared | skipped svg/path[1]: unsupported stroke value "stroke-dashoffset percentage precision alias loses Chromium used-value provenance" |
 | `svg-stroke-dashoffset-sheet-unit` | declared | declaration ignored at svg/style[1]: a stylesheet declares a stroke-dashoffset in ex, which needs a basis this cascade does not have; elements it matches render the wrong dash phase |
 | `svg-stroke-dashoffset-var` | declared | skipped svg/path[1]: unsupported stroke value "a stroke-dashoffset on <path> resolves through var(), an indirection this patrol cannot follow" |
-| `svg-stroke-paint-order` | declared | skipped svg/rect[1]: unsupported rendering attribute paint-order on <rect> (not yet consumed) |
 | `svg-stroke-sheet-unit-width` | declared | declaration ignored at svg/style[1]: a stylesheet declares a stroke-width in ex, which needs a basis this cascade does not have; elements it matches render at the wrong width |
 | `svg-stroke-width-calc-mixed` | declared | skipped svg/rect[1]: unsupported stroke value "a calc() stroke-width mixing lengths and percentages is not consumed" |
 | `svg-stroke-width-font-basis` | declared | skipped svg/rect[1]: unsupported stroke value "a stroke-width in em on <rect> under an authored font-size carrying vw needs a basis this cascade does not have" |

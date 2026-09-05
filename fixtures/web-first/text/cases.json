@@ -305,6 +305,13 @@
       "height": 100
     },
     {
+      "id": "svg-text-paint-order-inert",
+      "source": "svg-text-paint-order-inert.svg",
+      "oracle": "chromium/svg-text-paint-order-inert.png",
+      "width": 100,
+      "height": 100
+    },
+    {
       "id": "svg-text-positioned-chunks",
       "source": "svg-text-positioned-chunks.svg",
       "oracle": "chromium/svg-text-positioned-chunks.png",

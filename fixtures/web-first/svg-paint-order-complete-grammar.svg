@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs><marker id="m" markerUnits="userSpaceOnUse" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="0"><rect width="6" height="6" fill="#dc2626"/></marker></defs>
+  <rect width="64" height="64" fill="#ffffff"/>
+  <g fill="#16a34a" stroke="#2563eb" stroke-width="4" marker-start="url(#m)">
+    <path d="M4 4H12V12H4Z" paint-order="normal"/>
+    <path d="M20 4H28V12H20Z" paint-order="fill"/>
+    <path d="M36 4H44V12H36Z" paint-order="stroke"/>
+    <path d="M52 4H60V12H52Z" paint-order="markers"/>
+    <path d="M4 20H12V28H4Z" paint-order="fill stroke"/>
+    <path d="M20 20H28V28H20Z" paint-order="fill markers"/>
+    <path d="M36 20H44V28H36Z" paint-order="stroke fill"/>
+    <path d="M52 20H60V28H52Z" paint-order="stroke markers"/>
+    <path d="M4 36H12V44H4Z" paint-order="markers fill"/>
+    <path d="M20 36H28V44H20Z" paint-order="markers stroke"/>
+    <path d="M36 36H44V44H36Z" paint-order="fill stroke markers"/>
+    <path d="M52 36H60V44H52Z" paint-order="fill markers stroke"/>
+    <path d="M4 52H12V60H4Z" paint-order="stroke fill markers"/>
+    <path d="M20 52H28V60H20Z" paint-order="stroke markers fill"/>
+    <path d="M36 52H44V60H36Z" paint-order="markers fill stroke"/>
+    <path d="M52 52H60V60H52Z" paint-order="markers stroke fill"/>
+  </g>
+</svg>

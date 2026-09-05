@@ -1102,7 +1102,10 @@ const RENDERING_ATTRIBUTES_NOT_CONSUMED: &[&str] = &[
     // `color` is absent here since the use/defs rung: it is an admitted
     // presentation hint (csscascade), the currentColor basis the paint
     // resolvers already read from the cascade.
-    "paint-order",
+    // `paint-order` is resolved directly at each painted leaf because this
+    // Stylo pin has no Servo longhand for it. Container and resource-root
+    // attributes participate through that inherited walk; authored CSS stays
+    // quarantined by `CASCADE_PROPERTIES_NOT_REPRESENTED` below.
     // The direct marker resolver owns marker-start/mid/end on Chromium's four
     // applicable shapes, including inheritance. Current Chromium drops those
     // attributes on the other admitted shapes, so a global patrol would
@@ -6036,32 +6039,16 @@ impl<'a> ChildWalk<'a> {
         } else {
             None
         };
-        if let Some(outcome) = compilation.outcome {
+        let ShapeCompilation {
+            outcome,
+            marker_positions,
+        } = compilation;
+        if let Some(outcome) = outcome.as_ref() {
             facts.draws = outcome.draws;
             facts.opacity_passes = outcome.opacity_passes;
             facts.has_opacity = outcome.has_opacity;
             facts.has_geometry = outcome.has_geometry;
             facts.transformed = outcome.transformed;
-            match outcome.scope_opacity {
-                Some(opacity) => {
-                    // The shape's fill and stroke composite together through
-                    // one isolated layer — the double-blend fact that made
-                    // element opacity a refusal until this rung.
-                    let scope = scope_item(&mut self.next_id, opacity);
-                    self.items.push(scope);
-                    debug_assert!(!outcome.nodes.is_empty());
-                    self.items
-                        .extend(outcome.nodes.into_iter().map(FrameItem::Node));
-                    self.items.push(FrameItem::ScopeEnd);
-                    facts.draws = 0;
-                    facts.opacity_passes = 0;
-                    facts.has_scope = true;
-                }
-                None => {
-                    self.items
-                        .extend(outcome.nodes.into_iter().map(FrameItem::Node));
-                }
-            }
         }
         let marker_facts = match self.compile_marker_instances(
             el,
@@ -6070,7 +6057,7 @@ impl<'a> ChildWalk<'a> {
             target_box,
             bases,
             &marker_references,
-            &compilation.marker_positions,
+            &marker_positions,
             path,
             depth,
         ) {
@@ -6084,6 +6071,86 @@ impl<'a> ChildWalk<'a> {
                 return Err(error);
             }
         };
+        // Marker instances compile transactionally into the same item stream,
+        // then become one movable operation span. This is still resolved
+        // material: no marker reference or source program crosses the frame.
+        let mut marker_items = self.items.split_off(checkpoint);
+        let has_fill = outcome.as_ref().is_some_and(|outcome| {
+            outcome.has_geometry
+                && tag != "line"
+                && outcome.nodes.iter().any(|node| !node.paints.is_empty())
+        });
+        let has_stroke = outcome.as_ref().is_some_and(|outcome| {
+            outcome.has_geometry && outcome.nodes.iter().any(|node| node.stroke.is_some())
+        });
+        let has_markers = item_span_has_paint(&marker_items);
+        let live_operations =
+            usize::from(has_fill) + usize::from(has_stroke) + usize::from(has_markers);
+        let paint_order = if live_operations > 1 {
+            match resolve_paint_order(el) {
+                Ok(order) => order,
+                Err(error) => {
+                    self.items.truncate(checkpoint);
+                    self.next_id = next_id_checkpoint;
+                    return Err(error);
+                }
+            }
+        } else {
+            SvgPaintOrder::NORMAL
+        };
+
+        if paint_order == SvgPaintOrder::NORMAL {
+            if let Some(outcome) = outcome {
+                match outcome.scope_opacity {
+                    Some(opacity) => {
+                        // The shape's fill and stroke composite together
+                        // through one isolated layer. The default-order route
+                        // deliberately retains the established one-node fact.
+                        let scope = scope_item(&mut self.next_id, opacity);
+                        self.items.push(scope);
+                        debug_assert!(!outcome.nodes.is_empty());
+                        self.items
+                            .extend(outcome.nodes.into_iter().map(FrameItem::Node));
+                        self.items.push(FrameItem::ScopeEnd);
+                        facts.draws = 0;
+                        facts.opacity_passes = 0;
+                        facts.has_scope = true;
+                    }
+                    None => self
+                        .items
+                        .extend(outcome.nodes.into_iter().map(FrameItem::Node)),
+                }
+            }
+            self.items.append(&mut marker_items);
+        } else if let Some(outcome) = outcome {
+            let scope_opacity = outcome.scope_opacity;
+            let (mut fill_items, mut stroke_items, mut paintless_items) =
+                split_shape_paint_channels(outcome.nodes, &mut self.next_id);
+            if let Some(opacity) = scope_opacity {
+                self.items.push(scope_item(&mut self.next_id, opacity));
+            }
+            // Paintless geometry remains in the frame for the same downstream
+            // box/context consumers as before, but it has no painter-order
+            // relation of its own.
+            self.items.append(&mut paintless_items);
+            for operation in paint_order.0 {
+                match operation {
+                    SvgPaintOperation::Fill => self.items.append(&mut fill_items),
+                    SvgPaintOperation::Stroke => self.items.append(&mut stroke_items),
+                    SvgPaintOperation::Markers => self.items.append(&mut marker_items),
+                }
+            }
+            if scope_opacity.is_some() {
+                self.items.push(FrameItem::ScopeEnd);
+                facts.draws = 0;
+                facts.opacity_passes = 0;
+                facts.has_scope = true;
+            }
+        } else {
+            // No shape node can coexist with two live channels, so this is a
+            // defensive marker-only path. It is order-invariant.
+            self.items.append(&mut marker_items);
+        }
         facts.absorb(marker_facts);
         if let Some(filter) = filter {
             facts = self.wrap_span_with_filter(checkpoint, facts, filter);
@@ -11828,6 +11895,289 @@ struct ShapeOutcome {
     /// The element's computed `transform` is not `none` (breaks an
     /// enclosing one-pass route). Set by [`compile_shape`].
     transformed: bool,
+}
+
+/// One of SVG's three paint operations. This stays producer-private: marker
+/// syntax and source channels are flattened into the resolved item stream
+/// before `rframe` sees them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SvgPaintOperation {
+    Fill,
+    Stroke,
+    Markers,
+}
+
+/// The complete normalized `paint-order` value. SVG appends omitted members
+/// in normal fill/stroke/markers order, so every valid value becomes exactly
+/// one of six permutations here.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct SvgPaintOrder([SvgPaintOperation; 3]);
+
+impl SvgPaintOrder {
+    const NORMAL: Self = Self([
+        SvgPaintOperation::Fill,
+        SvgPaintOperation::Stroke,
+        SvgPaintOperation::Markers,
+    ]);
+}
+
+enum AuthoredPaintOrder {
+    Order(SvgPaintOrder),
+    Inherit,
+    Invalid,
+    Function(String),
+}
+
+/// Parse one direct presentation value under CSS token rules. Comments,
+/// escapes, case folding, duplicate rejection, and complete-input checking
+/// therefore follow the same lexical boundary Chromium uses.
+fn parse_authored_paint_order(raw: &str) -> AuthoredPaintOrder {
+    use cssparser::{Parser, ParserInput, Token};
+
+    // Substitution may contribute only a suffix of the final grammar (for
+    // example `stroke var(--tail)`), so patrol the complete top-level token
+    // stream before attempting the ordinary identifier grammar.
+    let substitution_function = {
+        let mut input = ParserInput::new(raw);
+        let mut parser = Parser::new(&mut input);
+        let mut found = None;
+        while let Ok(token) = parser.next() {
+            if let Token::Function(name) = token {
+                let name = name.as_ref().to_ascii_lowercase();
+                if matches!(name.as_str(), "var" | "env" | "attr" | "if") {
+                    found = Some(name);
+                    break;
+                }
+            }
+        }
+        found
+    };
+    if let Some(name) = substitution_function {
+        return AuthoredPaintOrder::Function(name);
+    }
+
+    let mut input = ParserInput::new(raw);
+    let mut parser = Parser::new(&mut input);
+    let identifiers: Result<Vec<String>, cssparser::ParseError<'_, ()>> =
+        parser.parse_entirely(|input| {
+            let mut identifiers = Vec::new();
+            while !input.is_exhausted() {
+                identifiers.push(input.expect_ident_cloned()?.to_string());
+            }
+            Ok(identifiers)
+        });
+    let Ok(identifiers) = identifiers else {
+        return AuthoredPaintOrder::Invalid;
+    };
+    let identifiers = identifiers
+        .into_iter()
+        .map(|ident| ident.to_ascii_lowercase())
+        .collect::<Vec<_>>();
+    if identifiers.len() == 1 {
+        match identifiers[0].as_str() {
+            "normal" | "initial" => {
+                return AuthoredPaintOrder::Order(SvgPaintOrder::NORMAL);
+            }
+            "inherit" | "unset" | "revert" | "revert-layer" => {
+                return AuthoredPaintOrder::Inherit;
+            }
+            _ => {}
+        }
+    }
+    if identifiers.is_empty() || identifiers.len() > 3 {
+        return AuthoredPaintOrder::Invalid;
+    }
+
+    let mut authored = Vec::with_capacity(3);
+    for ident in identifiers {
+        let operation = match ident.as_str() {
+            "fill" => SvgPaintOperation::Fill,
+            "stroke" => SvgPaintOperation::Stroke,
+            "markers" => SvgPaintOperation::Markers,
+            _ => return AuthoredPaintOrder::Invalid,
+        };
+        if authored.contains(&operation) {
+            return AuthoredPaintOrder::Invalid;
+        }
+        authored.push(operation);
+    }
+    for operation in SvgPaintOrder::NORMAL.0 {
+        if !authored.contains(&operation) {
+            authored.push(operation);
+        }
+    }
+    let order: [SvgPaintOperation; 3] = authored
+        .try_into()
+        .expect("the three-member grammar normalizes to three operations");
+    AuthoredPaintOrder::Order(SvgPaintOrder(order))
+}
+
+/// Resolve the inherited direct presentation hint without adding a matcher
+/// beside Stylo. Invalid declarations disappear; inherited CSS-wide values
+/// expose the parent; `initial` resets to normal. The walk stops at the SVG
+/// namespace boundary so an arbitrary HTML attribute cannot become a
+/// presentation hint for an inline SVG.
+fn resolve_paint_order(element: HtmlElement<'_>) -> Result<SvgPaintOrder, CompileError> {
+    let mut current = Some(element);
+    while let Some(candidate) = current {
+        if !candidate.is_svg_element() {
+            break;
+        }
+        if let Some(raw) = get_attr(candidate, "paint-order") {
+            match parse_authored_paint_order(&raw) {
+                AuthoredPaintOrder::Order(order) => return Ok(order),
+                AuthoredPaintOrder::Inherit | AuthoredPaintOrder::Invalid => {}
+                AuthoredPaintOrder::Function(name) => {
+                    return Err(CompileError::UnsupportedStyle(format!(
+                        "paint-order presentation attribute uses {name}(), whose computed result is not represented at this Stylo pin"
+                    )));
+                }
+            }
+        }
+        current = candidate.traversal_parent();
+    }
+    Ok(SvgPaintOrder::NORMAL)
+}
+
+fn item_span_has_paint(items: &[FrameItem]) -> bool {
+    items.iter().any(|item| {
+        matches!(item, FrameItem::Node(node) if !node.paints.is_empty() || node.stroke.is_some())
+    })
+}
+
+/// Split one source node into source-neutral fill and stroke facts. Each fact
+/// owns a distinct product identity while retaining the source node's opaque
+/// provenance; this is the contract-level statement that two ordered facts
+/// came from one source visual.
+fn split_shape_paint_channels(
+    nodes: Vec<FrameNode>,
+    next_id: &mut u64,
+) -> (Vec<FrameItem>, Vec<FrameItem>, Vec<FrameItem>) {
+    let mut fills = Vec::new();
+    let mut strokes = Vec::new();
+    let mut paintless = Vec::new();
+    for node in nodes {
+        match (!node.paints.is_empty(), node.stroke.is_some()) {
+            (true, true) => {
+                let mut fill = node.clone();
+                fill.stroke = None;
+                fills.push(FrameItem::Node(fill));
+
+                let mut stroke = node;
+                stroke.paints = PaintStack::empty();
+                *next_id += 1;
+                stroke.owner = VisualRef::new(Identity::new(*next_id), stroke.owner.provenance());
+                strokes.push(FrameItem::Node(stroke));
+            }
+            (true, false) => fills.push(FrameItem::Node(node)),
+            (false, true) => strokes.push(FrameItem::Node(node)),
+            (false, false) => paintless.push(FrameItem::Node(node)),
+        }
+    }
+    (fills, strokes, paintless)
+}
+
+#[cfg(test)]
+mod paint_order_parser_tests {
+    use super::*;
+
+    fn order(value: &str) -> [SvgPaintOperation; 3] {
+        match parse_authored_paint_order(value) {
+            AuthoredPaintOrder::Order(order) => order.0,
+            _ => panic!("{value:?} did not parse as an order"),
+        }
+    }
+
+    #[test]
+    fn complete_grammar_normalizes_to_the_six_orders() {
+        use SvgPaintOperation::{Fill as F, Markers as M, Stroke as S};
+        for (expected, spellings) in [
+            (
+                [F, S, M],
+                &["normal", "fill", "fill stroke", "fill stroke markers"][..],
+            ),
+            ([F, M, S], &["fill markers", "fill markers stroke"][..]),
+            (
+                [S, F, M],
+                &["stroke", "stroke fill", "stroke fill markers"][..],
+            ),
+            ([S, M, F], &["stroke markers", "stroke markers fill"][..]),
+            (
+                [M, F, S],
+                &["markers", "markers fill", "markers fill stroke"][..],
+            ),
+            ([M, S, F], &["markers stroke", "markers stroke fill"][..]),
+        ] {
+            for spelling in spellings {
+                assert_eq!(order(spelling), expected, "{spelling}");
+            }
+        }
+    }
+
+    #[test]
+    fn css_tokens_carry_comments_escapes_case_and_wide_keywords() {
+        use SvgPaintOperation::{Fill as F, Markers as M, Stroke as S};
+        for spelling in [
+            "MARKERS STROKE",
+            "mar\\6b ers str\\6f ke",
+            "/**/markers/**/stroke/**/",
+            "\nmarkers\tstroke\r",
+        ] {
+            assert_eq!(order(spelling), [M, S, F], "{spelling:?}");
+        }
+        assert!(matches!(
+            parse_authored_paint_order("initial"),
+            AuthoredPaintOrder::Order(SvgPaintOrder::NORMAL)
+        ));
+        for spelling in ["inherit", "unset", "revert", "revert-layer"] {
+            assert!(matches!(
+                parse_authored_paint_order(spelling),
+                AuthoredPaintOrder::Inherit
+            ));
+        }
+    }
+
+    #[test]
+    fn duplicates_residue_and_unknown_members_are_invalid() {
+        for spelling in [
+            "",
+            "   ",
+            "markers, stroke",
+            "markers markers",
+            "normal stroke",
+            "banana",
+            "markers stroke banana",
+            "fill stroke markers fill",
+            "marker\\0 s stroke",
+        ] {
+            assert!(
+                matches!(
+                    parse_authored_paint_order(spelling),
+                    AuthoredPaintOrder::Invalid
+                ),
+                "{spelling:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn live_substitution_functions_keep_their_exact_names() {
+        for name in ["var", "env", "attr", "if"] {
+            let value = format!("stroke {name}(--anything)");
+            assert!(matches!(
+                parse_authored_paint_order(&value),
+                AuthoredPaintOrder::Function(found) if found == name
+            ));
+        }
+        assert!(matches!(
+            parse_authored_paint_order(r"stroke v\61 r(--anything)"),
+            AuthoredPaintOrder::Function(found) if found == "var"
+        ));
+        assert!(matches!(
+            parse_authored_paint_order("unknown(markers)"),
+            AuthoredPaintOrder::Invalid
+        ));
+    }
 }
 
 /// The shared tail of every shape compile: resolve the typed fill and
