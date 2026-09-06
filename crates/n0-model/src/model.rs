@@ -1030,7 +1030,13 @@ impl Default for LinearGradientPaint {
 #[derive(Debug, Clone, PartialEq)]
 pub struct RadialGradientPaint {
     pub active: bool,
+    /// Maps gradient-local coordinates into the target box's normalized space;
+    /// final placement is `scale(width, height) × transform`.
     pub transform: Affine,
+    /// Ordered circles, or the original centered radial when absent: start
+    /// `(0.5, 0.5), r=0`, end `(0.5, 0.5), r=0.5`. Present geometry is preserved
+    /// verbatim, never converted through alignment coordinates or normalized.
+    pub geometry: Option<RadialGradientGeometry>,
     pub stops: Vec<GradientStop>,
     pub opacity: f32,
     pub blend_mode: BlendMode,
@@ -1042,12 +1048,30 @@ impl Default for RadialGradientPaint {
         RadialGradientPaint {
             active: true,
             transform: Affine::IDENTITY,
+            geometry: None,
             stops: vec![],
             opacity: 1.0,
             blend_mode: BlendMode::Normal,
             tile_mode: TileMode::Clamp,
         }
     }
+}
+
+/// One intrinsic gradient-local circle, before paint placement. The direct
+/// `(x, y)` center is finite and unbounded; radius is finite and nonnegative.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RadialGradientCircle {
+    pub center: (f32, f32),
+    pub radius: f32,
+}
+
+/// Offset-zero and offset-one circles, in that order. Zero radii, exterior
+/// centers, a larger start radius, and equal circles are representable facts.
+/// Backends must paint or refuse them, never swap, clamp, or silently drop them.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RadialGradientGeometry {
+    pub start: RadialGradientCircle,
+    pub end: RadialGradientCircle,
 }
 
 #[derive(Debug, Clone, PartialEq)]

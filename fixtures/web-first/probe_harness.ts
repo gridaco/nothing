@@ -60,8 +60,10 @@ export function comparePngs(a: Buffer, b: Buffer): ProbeComparison {
 }
 
 export interface ProbeMatrix {
-  /** id → standalone SVG source. */
+  /** id → source in the declared entry grammar. */
   probes: Record<string, string>;
+  /** Same ingress choice as the baker; standalone SVG remains the default. */
+  entry?: "standalone-svg" | "html-inline-svg";
   /** [left id, right id, what identity/difference would mean]. */
   pairs: Array<[string, string, string]>;
   /** Where captures are written for eyeballing (scratch space). */
@@ -88,7 +90,7 @@ export async function runProbeMatrix(matrix: ProbeMatrix): Promise<void> {
   for (const [id, svg] of Object.entries(matrix.probes)) {
     const page = await context.newPage();
     const capture = {
-      media: "image/svg+xml" as const,
+      media: matrix.entry === "html-inline-svg" ? "text/html" as const : "image/svg+xml" as const,
       source: Buffer.from(svg),
       width,
       height,

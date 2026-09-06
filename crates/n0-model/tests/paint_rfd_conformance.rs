@@ -101,6 +101,8 @@ struct PaintObservation {
 struct GradientObservation {
     kind: PaintKind,
     endpoints: Option<([u32; 2], [u32; 2])>,
+    /// Start center/radius, then end center/radius: order and bits are facts.
+    radial_geometry: Option<([u32; 3], [u32; 3])>,
     tile: Option<Tile>,
     transform_bits: [u32; 6],
     stop_count: usize,
@@ -111,6 +113,13 @@ struct GradientObservation {
     active: bool,
     opacity_bits: u32,
     blend: Blend,
+}
+
+impl GradientObservation {
+    fn with_radial_geometry(mut self, geometry: Option<([u32; 3], [u32; 3])>) -> Self {
+        self.radial_geometry = geometry;
+        self
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -312,6 +321,7 @@ impl Cg {
     ) -> GradientObservation {
         GradientObservation {
             kind,
+            radial_geometry: None,
             endpoints: endpoints.map(|(from, to)| {
                 (
                     [from.0.to_bits(), from.1.to_bits()],
@@ -581,6 +591,7 @@ impl PaintVocabulary for Cg {
         let cg::RadialGradientPaint {
             active: radial_active,
             transform: radial_transform,
+            geometry: radial_geometry,
             stops: radial_stops,
             opacity: radial_opacity,
             blend_mode: radial_blend,
@@ -620,7 +631,21 @@ impl PaintVocabulary for Cg {
                 radial_active,
                 radial_opacity,
                 radial_blend,
-            ),
+            )
+            .with_radial_geometry(radial_geometry.map(|geometry| {
+                (
+                    [
+                        geometry.start.center.0.to_bits(),
+                        geometry.start.center.1.to_bits(),
+                        geometry.start.radius.to_bits(),
+                    ],
+                    [
+                        geometry.end.center.0.to_bits(),
+                        geometry.end.center.1.to_bits(),
+                        geometry.end.radius.to_bits(),
+                    ],
+                )
+            })),
             Self::gradient(
                 PaintKind::Sweep,
                 None,
@@ -674,6 +699,7 @@ impl PaintVocabulary for Cg {
         let cg::RadialGradientPaint {
             active: radial_active,
             transform: radial_transform,
+            geometry: radial_geometry,
             stops: radial_stops,
             opacity: radial_opacity,
             blend_mode: radial_blend,
@@ -681,6 +707,16 @@ impl PaintVocabulary for Cg {
         } = cg::RadialGradientPaint {
             active: false,
             transform,
+            geometry: Some(cg::RadialGradientGeometry {
+                start: cg::RadialGradientCircle {
+                    center: (-2.25, 0.375),
+                    radius: 1.75,
+                },
+                end: cg::RadialGradientCircle {
+                    center: (3.5, -0.625),
+                    radius: 0.0,
+                },
+            }),
             stops: stops.clone(),
             opacity: 0.625,
             blend_mode: cg::BlendMode::SoftLight,
@@ -733,7 +769,21 @@ impl PaintVocabulary for Cg {
                 radial_active,
                 radial_opacity,
                 radial_blend,
-            ),
+            )
+            .with_radial_geometry(radial_geometry.map(|geometry| {
+                (
+                    [
+                        geometry.start.center.0.to_bits(),
+                        geometry.start.center.1.to_bits(),
+                        geometry.start.radius.to_bits(),
+                    ],
+                    [
+                        geometry.end.center.0.to_bits(),
+                        geometry.end.center.1.to_bits(),
+                        geometry.end.radius.to_bits(),
+                    ],
+                )
+            })),
             Self::gradient(
                 PaintKind::Sweep,
                 None,
@@ -1035,6 +1085,7 @@ impl N0 {
     ) -> GradientObservation {
         GradientObservation {
             kind,
+            radial_geometry: None,
             endpoints: endpoints.map(|(from, to)| {
                 (
                     [from.0.to_bits(), from.1.to_bits()],
@@ -1301,6 +1352,7 @@ impl PaintVocabulary for N0 {
         let n::RadialGradientPaint {
             active: radial_active,
             transform: radial_transform,
+            geometry: radial_geometry,
             stops: radial_stops,
             opacity: radial_opacity,
             blend_mode: radial_blend,
@@ -1340,7 +1392,21 @@ impl PaintVocabulary for N0 {
                 radial_active,
                 radial_opacity,
                 radial_blend,
-            ),
+            )
+            .with_radial_geometry(radial_geometry.map(|geometry| {
+                (
+                    [
+                        geometry.start.center.0.to_bits(),
+                        geometry.start.center.1.to_bits(),
+                        geometry.start.radius.to_bits(),
+                    ],
+                    [
+                        geometry.end.center.0.to_bits(),
+                        geometry.end.center.1.to_bits(),
+                        geometry.end.radius.to_bits(),
+                    ],
+                )
+            })),
             Self::gradient(
                 PaintKind::Sweep,
                 None,
@@ -1402,6 +1468,7 @@ impl PaintVocabulary for N0 {
         let n::RadialGradientPaint {
             active: radial_active,
             transform: radial_transform,
+            geometry: radial_geometry,
             stops: radial_stops,
             opacity: radial_opacity,
             blend_mode: radial_blend,
@@ -1409,6 +1476,16 @@ impl PaintVocabulary for N0 {
         } = n::RadialGradientPaint {
             active: false,
             transform,
+            geometry: Some(n::RadialGradientGeometry {
+                start: n::RadialGradientCircle {
+                    center: (-2.25, 0.375),
+                    radius: 1.75,
+                },
+                end: n::RadialGradientCircle {
+                    center: (3.5, -0.625),
+                    radius: 0.0,
+                },
+            }),
             stops: stops.clone(),
             opacity: 0.625,
             blend_mode: n::BlendMode::SoftLight,
@@ -1461,7 +1538,21 @@ impl PaintVocabulary for N0 {
                 radial_active,
                 radial_opacity,
                 radial_blend,
-            ),
+            )
+            .with_radial_geometry(radial_geometry.map(|geometry| {
+                (
+                    [
+                        geometry.start.center.0.to_bits(),
+                        geometry.start.center.1.to_bits(),
+                        geometry.start.radius.to_bits(),
+                    ],
+                    [
+                        geometry.end.center.0.to_bits(),
+                        geometry.end.center.1.to_bits(),
+                        geometry.end.radius.to_bits(),
+                    ],
+                )
+            })),
             Self::gradient(
                 PaintKind::Sweep,
                 None,
@@ -1739,6 +1830,7 @@ fn expected_gradient_defaults() -> Vec<GradientObservation> {
     vec![
         GradientObservation {
             kind: PaintKind::Linear,
+            radial_geometry: None,
             endpoints: Some((
                 [(-1.0_f32).to_bits(), 0.0_f32.to_bits()],
                 [1.0_f32.to_bits(), 0.0_f32.to_bits()],
@@ -1760,6 +1852,7 @@ fn expected_gradient_defaults() -> Vec<GradientObservation> {
         },
         GradientObservation {
             kind: PaintKind::Radial,
+            radial_geometry: None,
             endpoints: None,
             tile: Some(Tile::Clamp),
             transform_bits: [
@@ -1778,6 +1871,7 @@ fn expected_gradient_defaults() -> Vec<GradientObservation> {
         },
         GradientObservation {
             kind: PaintKind::Sweep,
+            radial_geometry: None,
             endpoints: None,
             tile: None,
             transform_bits: [
@@ -1796,6 +1890,7 @@ fn expected_gradient_defaults() -> Vec<GradientObservation> {
         },
         GradientObservation {
             kind: PaintKind::Diamond,
+            radial_geometry: None,
             endpoints: None,
             tile: None,
             transform_bits: [
@@ -1826,6 +1921,7 @@ fn expected_gradient_sentinels() -> Vec<GradientObservation> {
     ];
     let common = |kind, endpoints, tile| GradientObservation {
         kind,
+        radial_geometry: None,
         endpoints,
         tile,
         transform_bits,
@@ -1847,7 +1943,14 @@ fn expected_gradient_sentinels() -> Vec<GradientObservation> {
             )),
             Some(Tile::Mirror),
         ),
-        common(PaintKind::Radial, None, Some(Tile::Decal)),
+        common(PaintKind::Radial, None, Some(Tile::Decal)).with_radial_geometry(Some((
+            [
+                (-2.25_f32).to_bits(),
+                0.375_f32.to_bits(),
+                1.75_f32.to_bits(),
+            ],
+            [3.5_f32.to_bits(), (-0.625_f32).to_bits(), 0.0_f32.to_bits()],
+        ))),
         common(PaintKind::Sweep, None, None),
         common(PaintKind::Diamond, None, None),
     ]

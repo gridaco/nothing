@@ -591,6 +591,7 @@ fn parse_gradient(
             Paint::RadialGradient(RadialGradientPaint {
                 active: common.active,
                 transform,
+                geometry: None,
                 stops,
                 opacity: common.opacity,
                 blend_mode: common.blend_mode,
@@ -2602,13 +2603,20 @@ fn write_gradient(paint: &Paint, depth: usize, out: &mut String) -> Result<(), S
             Some(gradient.tile_mode),
             Some((gradient.xy1, gradient.xy2)),
         ),
-        Paint::RadialGradient(gradient) => (
-            "radial",
-            gradient.transform,
-            gradient.stops.as_slice(),
-            Some(gradient.tile_mode),
-            None,
-        ),
+        Paint::RadialGradient(gradient) => {
+            if gradient.geometry.is_some() {
+                return Err(
+                    "<gradient kind=\"radial\"> ordered circle geometry is not representable in Draft 0".into(),
+                );
+            }
+            (
+                "radial",
+                gradient.transform,
+                gradient.stops.as_slice(),
+                Some(gradient.tile_mode),
+                None,
+            )
+        }
         Paint::SweepGradient(gradient) => (
             "sweep",
             gradient.transform,

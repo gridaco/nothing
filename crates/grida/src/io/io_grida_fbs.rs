@@ -877,6 +877,7 @@ fn decode_paint_item(item: &fbs::PaintStackItem<'_>) -> Option<Paint> {
             Some(Paint::RadialGradient(RadialGradientPaint {
                 active: rgp.active(),
                 transform,
+                geometry: None,
                 stops,
                 opacity: rgp.opacity(),
                 blend_mode: decode_blend_mode(rgp.blend_mode()),
@@ -2355,6 +2356,11 @@ use crate::node::schema::NodeId;
 /// - `id_map`: maps internal `NodeId` → string IDs.
 ///
 /// Returns the encoded bytes (including the `"GRID"` file identifier).
+///
+/// # Panics
+///
+/// Panics if a radial paint carries explicit ordered circles: the frozen
+/// format cannot encode that geometry. It is never silently omitted.
 pub fn encode(
     scene: &Scene,
     scene_id: &str,
@@ -2424,6 +2430,11 @@ pub fn encode(
 /// Each entry is `(scene_id, scene, id_map, position_map)`.
 /// All scenes share the same flat `nodes` vector; each scene's nodes
 /// are prefixed with a scene-type NodeSlot that references `scene_id`.
+///
+/// # Panics
+///
+/// Like [`encode`], refuses explicit radial circles by a named panic because
+/// the frozen format has no representation for them.
 #[allow(clippy::type_complexity)]
 pub fn encode_multi(
     entries: &[(
@@ -2910,6 +2921,10 @@ fn encode_paint_raw<'a, A: flatbuffers::Allocator + 'a>(
             Some((fbs::Paint::LinearGradientPaint, lgp.as_union_value()))
         }
         Paint::RadialGradient(rg) => {
+            assert!(
+                rg.geometry.is_none(),
+                "the frozen .grida format cannot encode explicit radial gradient circles"
+            );
             let stops = encode_gradient_stops(fbb, &rg.stops);
             let transform = encode_affine_to_cg_transform(&rg.transform);
             let rgp = fbs::RadialGradientPaint::create(

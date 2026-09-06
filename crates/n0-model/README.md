@@ -124,6 +124,14 @@ image `src` remains a logical RID and parsing performs no path I/O. Per-paint
 `visible`, `opacity`, and `blend-mode` lower directly to model state. Solid and
 stop opacity intentionally quantize into RGBA8 alpha.
 
+The runtime radial paint can also carry ordered start/end circles in direct
+gradient-local coordinates. Neither Draft 0 nor historical TextIr spells
+this optional geometry: Draft 0 reads the original centered radial and its
+writer refuses every present circle pair, including inactive paints and run
+or stroke paints. Model validation rejects nonfinite centers and nonfinite or
+negative radii, but permits zero, exterior, reversed-size, and equal circles;
+backend support for such facts remains a separate admission check.
+
 Paintable nodes also carry ordered `Vec<Stroke>` state. Each stroke owns its
 own existing `Paints` plus width, alignment, cap, join, miter, and dash
 geometry. Repeated strokes therefore remain independent and lossless; lines

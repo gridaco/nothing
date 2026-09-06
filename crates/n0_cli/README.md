@@ -607,10 +607,10 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete primitive corpus contains 1,157 Chromium-baked cells plus
+  cells. The complete primitive corpus contains 1,284 Chromium-baked cells plus
   16 sampled frames; the text estate contains sixteen exact text pixel cells and
   eight exact-number artifact-geometry witnesses (six Allerta and two
-  Bungee), and the named refusal register has 234 rows. `feFlood`, `feComposite`,
+  Bungee), and the named refusal register has 260 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -871,13 +871,32 @@ cargo run -p n0_cli --bin n0 -- \
   or a non-gradient target); the measured correct nothings — zero stops
   (fallback unfired), a self-cycle, a non-invertible gradient transform, an
   object-bounding-box gradient on zero-area geometry — paint nothing. A
-  zero or negative radial radius and linear endpoints inside the backend's
+  zero or negative concentric radial radius and linear endpoints inside the backend's
   degenerate threshold resolve to the tile-specific measured solid: the last
   stop under `pad`, or the ramp's integral average under `reflect`/`repeat`.
   On zero-area line geometry, object-box paint is nothing before one-stop or
   degenerate classification; user-space one-stop and concentric degenerate
   ramps retain those source-neutral results before the live-gradient boundary.
   Two companion Chromium cells carry the complete unit/ordering split.
+  Radial `fx`/`fy`/`fr` carry signed finite numbers, percentages, and
+  case-insensitive `px` through the same guarded resource-length decoder.
+  Missing focus coordinates default to the final template-resolved `cx`/`cy`;
+  missing or negative `fr` resolves to zero. User-space focus percentages use
+  the viewport axes and `fr` uses its normalized diagonal; object-box values
+  use fraction space. The resolved paint preserves both circles in order,
+  including exterior focus, equal/reversed radii, and a zero end radius.
+  A one-stop explicit radial retains the conical transparent exterior instead
+  of filling the entire target. The default centered leaf remains unchanged.
+  The 127 `svg-radial-start-*` / `html-inline-svg-radial-start` cells cover
+  these branches, templates, mapped viewports, transforms, spread methods,
+  and admitted fill/stroke/resource/effect clients. Eight declare measured
+  one-code-value ramp bounds; the other 119 are byte-exact. This is a split,
+  not closure of the three attribute rows: precision aliases, CSS comments,
+  out-of-range used lengths, and wider computed value/context families still
+  refuse by the exact attribute. The shared paint contract's optional circle
+  pair adds no CSS matcher, external resource access, animation, or frozen
+  `.grida` format support. Direct frame execution carries the new paint;
+  translated preview raster caching refuses it by node before any mutation.
   The `<stop>` presentation attributes are consumed at their listed
   grammars (the stop rung). `stop-color` carries the `color` property's
   `<color>`: hex in all four lengths, named colours, `transparent`,
@@ -890,9 +909,9 @@ cargo run -p n0_cli --bin n0 -- \
   the resolved contract carries that product **unquantized**, because the
   rasterizer interpolates the ramp before it quantizes. `initial`, `unset`
   and `revert` coincide with each attribute's initial and are admitted.
-  What refuses by name: a focal radial (`fx`/`fy` off
-  the center or `fr > 0` — the shared radial leaf is concentric),
-  `color-interpolation: linearRGB`, a degenerate paint server whose
+  What refuses by name: gradient geometry with source-number provenance
+  aliases, CSS comments, CSS-wide values, computed functions, or out-of-range
+  used values; `color-interpolation: linearRGB`; a degenerate paint server whose
   substituted colour does not land on a byte (Chromium keeps a dithering
   shader for those and no flat colour reproduces one — guarded as
   `svg-gradient-degenerate-precision`, and a gradient-geometry gap rather

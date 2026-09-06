@@ -448,7 +448,141 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         DeclaredByBestEffort,
         "attribute x",
     ),
-    ("svg-gradient-focal", DeclaredByBestEffort, "focal"),
+    (
+        "svg-radial-start-fx-decimal-precision",
+        DeclaredByBestEffort,
+        "numeric precision alias",
+    ),
+    (
+        "svg-radial-start-fx-percentage-precision",
+        DeclaredByBestEffort,
+        "numeric precision alias",
+    ),
+    (
+        "svg-radial-start-fx-midpoint-precision",
+        DeclaredByBestEffort,
+        "numeric precision alias",
+    ),
+    (
+        "svg-radial-start-fx-css-comments",
+        DeclaredByBestEffort,
+        "CSS comment",
+    ),
+    (
+        "svg-radial-start-fx-used-range",
+        DeclaredByBestEffort,
+        "admitted Web used-value range",
+    ),
+    (
+        "svg-radial-start-fx-units",
+        DeclaredByBestEffort,
+        "unit whose basis",
+    ),
+    (
+        "svg-radial-start-fx-math",
+        DeclaredByBestEffort,
+        "uses calc()",
+    ),
+    (
+        "svg-radial-start-fx-var",
+        DeclaredByBestEffort,
+        "uses var()",
+    ),
+    (
+        "svg-radial-start-fx-css-wide",
+        DeclaredByBestEffort,
+        "CSS-wide value",
+    ),
+    (
+        "svg-radial-start-fy-decimal-precision",
+        DeclaredByBestEffort,
+        "numeric precision alias",
+    ),
+    (
+        "svg-radial-start-fy-percentage-precision",
+        DeclaredByBestEffort,
+        "numeric precision alias",
+    ),
+    (
+        "svg-radial-start-fy-midpoint-precision",
+        DeclaredByBestEffort,
+        "numeric precision alias",
+    ),
+    (
+        "svg-radial-start-fy-css-comments",
+        DeclaredByBestEffort,
+        "CSS comment",
+    ),
+    (
+        "svg-radial-start-fy-used-range",
+        DeclaredByBestEffort,
+        "admitted Web used-value range",
+    ),
+    (
+        "svg-radial-start-fy-units",
+        DeclaredByBestEffort,
+        "unit whose basis",
+    ),
+    (
+        "svg-radial-start-fy-math",
+        DeclaredByBestEffort,
+        "uses calc()",
+    ),
+    (
+        "svg-radial-start-fy-var",
+        DeclaredByBestEffort,
+        "uses var()",
+    ),
+    (
+        "svg-radial-start-fy-css-wide",
+        DeclaredByBestEffort,
+        "CSS-wide value",
+    ),
+    (
+        "svg-radial-start-fr-decimal-precision",
+        DeclaredByBestEffort,
+        "numeric precision alias",
+    ),
+    (
+        "svg-radial-start-fr-percentage-precision",
+        DeclaredByBestEffort,
+        "numeric precision alias",
+    ),
+    (
+        "svg-radial-start-fr-midpoint-precision",
+        DeclaredByBestEffort,
+        "numeric precision alias",
+    ),
+    (
+        "svg-radial-start-fr-css-comments",
+        DeclaredByBestEffort,
+        "CSS comment",
+    ),
+    (
+        "svg-radial-start-fr-used-range",
+        DeclaredByBestEffort,
+        "admitted Web used-value range",
+    ),
+    (
+        "svg-radial-start-fr-units",
+        DeclaredByBestEffort,
+        "unit whose basis",
+    ),
+    (
+        "svg-radial-start-fr-math",
+        DeclaredByBestEffort,
+        "uses calc()",
+    ),
+    (
+        "svg-radial-start-fr-var",
+        DeclaredByBestEffort,
+        "uses var()",
+    ),
+    (
+        "svg-radial-start-fr-css-wide",
+        DeclaredByBestEffort,
+        "CSS-wide value",
+    ),
     ("svg-gradient-linearrgb", DeclaredByBestEffort, "linearRGB"),
     // Sheet-level: the pinned cascade cannot represent stop-color, so the
     // declaration is named against the sheet and the gradient renders with

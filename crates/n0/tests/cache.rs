@@ -233,6 +233,73 @@ fn doc_dirty_forces_reraster_and_matches_fresh() {
 }
 
 #[test]
+fn radial_circle_preview_cache_refuses_without_changing_canvas_or_retained_state() {
+    let mut doc = scene();
+    let view = Affine::IDENTITY;
+    let context = ctx();
+    let mut cache = SceneCache::new(W, H);
+    let radial = |radius| {
+        Paint::RadialGradient(RadialGradientPaint {
+            geometry: Some(RadialGradientGeometry {
+                start: RadialGradientCircle {
+                    center: (0.25, 0.375),
+                    radius,
+                },
+                end: RadialGradientCircle {
+                    center: (0.5, 0.5),
+                    radius: 0.5,
+                },
+            }),
+            stops: vec![
+                GradientStop {
+                    offset: 0.0,
+                    color: Color(0xffff0000).into(),
+                },
+                GradientStop {
+                    offset: 1.0,
+                    color: Color(0xff0000ff).into(),
+                },
+            ],
+            ..Default::default()
+        })
+    };
+    let original = doc.get(1).fills.clone();
+    let (cold, _) = cached_frame_bytes(&mut cache, &doc, &view, &context, false);
+    doc.get_mut(1).fills = Paints::new([radial(0.125)]);
+    let direct = fresh_frame_bytes(&doc, &view, &context);
+    assert_eq!(direct, fresh_frame_bytes(&doc, &view, &context));
+    let mut surface = surfaces::raster_n32_premul((W, H)).unwrap();
+    surface.canvas().clear(SkColor::MAGENTA);
+    let before = n0::paint::read_pixels(&mut surface, W, H);
+    let error = cache
+        .frame(surface.canvas(), &doc, &opts(), &view, &context, true)
+        .unwrap_err();
+    assert_eq!(
+        error,
+        n0::cache::SceneCacheError::ExplicitRadialGeometry { node: 1 }
+    );
+    assert!(error.to_string().contains("execute the frame directly"));
+    assert_eq!(
+        before,
+        n0::paint::read_pixels(&mut surface, W, H),
+        "refusal precedes painting"
+    );
+    doc.get_mut(1).fills = Paints::new([radial(0.25)]);
+    assert_ne!(
+        direct,
+        fresh_frame_bytes(&doc, &view, &context),
+        "radius change is visible in direct frames"
+    );
+    doc.get_mut(1).fills = original;
+    let (recovered, rerastered) = cached_frame_bytes(&mut cache, &doc, &view, &context, false);
+    assert!(
+        !rerastered,
+        "refusal did not replace the retained source or raster"
+    );
+    assert_eq!(cold, recovered);
+}
+
+#[test]
 fn cache_builds_text_with_the_same_shaping_oracle_as_a_fresh_frame() {
     let doc = text_scene();
     let context = font_ctx();

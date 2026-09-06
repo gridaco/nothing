@@ -2460,47 +2460,67 @@ impl Default for LinearGradientPaint {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// One intrinsic circle in gradient-local coordinates, before paint placement.
+///
+/// The center is a direct `(x, y)` pair, not an alignment point. Both components
+/// must be finite; the radius must be finite and nonnegative. Centers are not
+/// confined to a unit box. Validation belongs to the admitting boundary.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct RadialGradientCircle {
+    pub center: (f32, f32),
+    pub radius: f32,
+}
+
+/// Ordered ramp-boundary circles: offset zero at `start`, offset one at `end`.
+///
+/// Either radius may be zero, the start radius may exceed the end radius, and
+/// equal circles are representable. None of these cases permits swapping or
+/// clamping the circles. Representation does not guarantee backend support:
+/// a consumer must preserve the geometry or explicitly refuse it.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct RadialGradientGeometry {
+    pub start: RadialGradientCircle,
+    pub end: RadialGradientCircle,
+}
+
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct RadialGradientPaint {
     pub active: bool,
-    /// # Radial Gradient Transform Model
-    ///
-    /// ## Coordinate Space
-    /// The radial gradient is defined in **unit gradient space**:
-    /// - Center: `(0.5, 0.5)`
-    /// - Radius: `0.5`
-    ///
-    /// This forms a normalized circle inside a `[0.0, 1.0] x [0.0, 1.0]` box.
-    /// All geometry is defined relative to this unit space.
-    ///
-    /// ## Scaling to Object Space
-    /// The gradient is mapped to the target rectangle by applying a scale matrix derived from its size:
-    ///
-    /// ```text
-    /// local_matrix = scale(width, height) × user_transform
-    /// ```
-    ///
-    /// - `scale(width, height)` transforms the unit circle to match the target rectangle,
-    ///   allowing the gradient to become elliptical if `width ≠ height`.
-    /// - `user_transform` is an additional affine matrix defined in gradient space (centered at 0.5, 0.5).
-    ///
-    /// ## Rendering Behavior
-    /// When passed to Skia, the shader uses:
-    /// - `center = (0.5, 0.5)`
-    /// - `radius = 0.5`
-    ///
-    /// These are interpreted in **local gradient space**, and the `local_matrix` maps device coordinates
-    /// back into that space.
-    ///
-    /// ## Summary
-    /// - The gradient definition is resolution-independent.
-    /// - `width` and `height` determine how unit space is scaled — they do **not** directly affect center or radius.
-    /// - All transforms (e.g. rotation, skew) should be encoded in the `user_transform`, not baked into radius or center.
+    /// Maps gradient-local coordinates to the target box's normalized space.
+    /// Placement is `scale(width, height) × transform`; intrinsic circle values
+    /// are not converted through center-based alignment coordinates.
     pub transform: AffineTransform,
+    /// Explicit ordered circles, or the original centered radial when absent:
+    /// start `(0.5, 0.5), r=0`, end `(0.5, 0.5), r=0.5`.
+    ///
+    /// Absence preserves the original rendering path and serialized field set.
+    /// Present geometry survives copying and serialization without normalization,
+    /// including a present pair numerically equal to those implicit circles.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub geometry: Option<RadialGradientGeometry>,
     pub stops: Vec<GradientStop>,
     pub opacity: f32,
     pub blend_mode: BlendMode,
     pub tile_mode: TileMode,
+}
+
+impl std::fmt::Debug for RadialGradientPaint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut debug = f.debug_struct("RadialGradientPaint");
+        debug
+            .field("active", &self.active)
+            .field("transform", &self.transform);
+        // Keep diagnostics of old paint values stable without hiding new facts.
+        if let Some(geometry) = &self.geometry {
+            debug.field("geometry", geometry);
+        }
+        debug
+            .field("stops", &self.stops)
+            .field("opacity", &self.opacity)
+            .field("blend_mode", &self.blend_mode)
+            .field("tile_mode", &self.tile_mode)
+            .finish()
+    }
 }
 
 impl RadialGradientPaint {
@@ -2524,6 +2544,7 @@ impl Default for RadialGradientPaint {
         Self {
             active: true,
             transform: AffineTransform::default(),
+            geometry: None,
             stops: Vec::new(),
             opacity: 1.0,
             blend_mode: BlendMode::default(),
@@ -2539,8 +2560,8 @@ pub struct DiamondGradientPaint {
     ///
     /// Figma's Diamond Gradient is equivalent to a radial gradient evaluated
     /// using the Manhattan distance metric. The gradient is defined in the same
-    /// unit space as [`RadialGradientPaint`]: center at `(0.5, 0.5)` with a
-    /// nominal radius of `0.5`.
+    /// unit space as the implicit [`RadialGradientPaint`] default: center at
+    /// `(0.5, 0.5)` with a nominal radius of `0.5`.
     ///
     /// Scaling to object space follows the same rule:
     ///

@@ -115,11 +115,10 @@ fn generate() -> String {
 
     writeln!(out, "## Chromium-baked cells ({})\n", suite.fixtures.len()).unwrap();
     out.push_str(
-        "Each renders byte-exact against its committed Chromium oracle\n\
-         (seven curved cells and four gradient ramps carry a declared, bounded\n\
-         tolerance — see [README.md](./README.md)). Every thumbnail below\n\
-         *is* that committed oracle, which byte-exactness makes this\n\
-         engine's own render too; hover for the cell's name, click through\n\
+        "Cells are checked against their committed Chromium oracles using\n\
+         exact bytes unless a manifest entry declares a measured, bounded\n\
+         tolerance — see [README.md](./README.md). Every thumbnail below\n\
+         *is* that committed oracle; hover for the cell's name, click through\n\
          to its fixture source. No new image is committed for this view.\n\n",
     );
     for cell in &suite.fixtures {

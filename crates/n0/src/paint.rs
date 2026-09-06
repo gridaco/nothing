@@ -1175,7 +1175,15 @@ fn radial_gradient_shader_mapped(
     let (colors, positions) = gradient_stops(&paint.stops);
     let stops = gradient(&colors, &positions, sk_tile_mode(paint.tile_mode));
     let matrix = mapped_paint_box_matrix(paint_box, &paint.transform, paint_to_canvas);
-    shaders::radial_gradient(((0.5, 0.5), 0.5), &stops, Some(&matrix))
+    match paint.geometry {
+        None => shaders::radial_gradient(((0.5, 0.5), 0.5), &stops, Some(&matrix)),
+        Some(geometry) => shaders::two_point_conical_gradient(
+            (geometry.start.center, geometry.start.radius),
+            (geometry.end.center, geometry.end.radius),
+            &stops,
+            Some(&matrix),
+        ),
+    }
 }
 
 fn sweep_gradient_shader_mapped(

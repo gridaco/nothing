@@ -14,9 +14,10 @@ format: md
 
 **Status:** Ratified — accepted via
 [gridaco/nothing#33](https://github.com/gridaco/nothing/issues/33)
-(closed by the owner, 2026-07-18). Two items flagged in the body remain
-pinned as follow-up amendments: diamond-gradient extension behavior and
-the tri-state run-fill verification.
+(closed by the owner, 2026-07-18), with the ordered radial-circle
+amendment accepted by the same owner on 2026-09-07. Two items flagged in the
+body remain pinned as proposed follow-up amendments: diamond-gradient
+extension behavior and the tri-state run-fill verification.
 
 This document is written for an engine developer deciding, at promotion
 time, what the shared paint vocabulary is — the leaf-level value types
@@ -70,7 +71,8 @@ Out of scope, each with its owning home:
 | **Paint**              | A self-contained recipe for producing color over a region: one of solid, linear, radial, sweep, diamond gradient, or image.          |
 | **Paint stack**        | An ordered, finite list of paints composited in sequence; entry zero is bottommost.                                                  |
 | **Stroke application** | One stroke geometry — width, align, cap, join, miter limit, dash pattern — carrying its own paint stack. Repeatable per node.        |
-| **Unit gradient space**| The `[0,1] × [0,1]` box in which radial, sweep, and diamond gradients are defined, with implicit center `(0.5, 0.5)`.               |
+| **Gradient-local space** | The coordinate system of intrinsic gradient geometry, before placement into the paint target box. Coordinates are finite but not confined to that box. |
+| **Unit gradient space**| The `[0,1] × [0,1]` reference box used by implicit radial, sweep, and diamond geometry, with center `(0.5, 0.5)`.                  |
 | **Alignment point**    | A point in center-based normalized coordinates over the paint target box: `(-1,-1)` top-left, `(0,0)` center, `(1,1)` bottom-right. |
 | **Stop**               | A pair of a scalar offset in `[0,1]` and a color.                                                                                    |
 | **Quantization policy**| The declared rule a boundary applies when converting a unit-interval scalar channel to an 8-bit channel.                             |
@@ -383,14 +385,14 @@ statements** — declared, testable deviations — instead of silent drops.
 
 ### Evidence
 
-- All three surfaces (production runtime, v2 proof, archive schema)
-  agree on the field sets below with two known pressure points:
-  per-stop opacity and the radial focal point.
+- All three original surfaces (production runtime, v2 proof, archive schema)
+  agreed on the field sets below with two known pressure points:
+  per-stop opacity and radial circle geometry.
 - The SVG import path today drops a source gradient's per-stop opacity
-  and focal point on the way to the engine model — the focal point
-  survives into the import's intermediate representation and is
-  discarded at the packing step; both drops are annotated in-source as
-  model mismatches and are invisible to the user.
+  and off-center start point on the way to the engine model — that point
+  survives into the import's intermediate representation and is discarded at
+  the packing step, while a nonzero start radius is not represented there at
+  all. Both losses are model mismatches and are invisible to the user.
 - Source SVG patterns are mapped to a transparent paint — a silent
   erasure; pattern paint servers are a tracked capability
   ([gridaco/nothing#14](https://github.com/gridaco/nothing/issues/14)).
@@ -400,19 +402,20 @@ statements** — declared, testable deviations — instead of silent drops.
 **Common to all six variants:** active flag, opacity, blend mode
 (decision 3). For solid paints, opacity is the color alpha (decision 1).
 
-**One parameterization rule for gradients.** Every gradient is defined
-in a normalized space over the paint target box and positioned by an
-affine transform composed as `scale(width, height) × user-transform`:
-the gradient definition itself is resolution-independent, and all
-rotation, skew, and offset live in the user transform — never baked
-into intrinsic parameters.
+**One placement rule for gradients.** Every gradient has intrinsic geometry
+in gradient-local space and an affine placement composed as
+`scale(width, height) × user-transform`. The user transform maps gradient-local
+coordinates into the target box's normalized space. Geometry and placement
+remain distinct facts: rotation, skew, and target placement do not mutate the
+intrinsic parameters. Explicit circle coordinates use the same direct scalar
+space as their radii, without an intermediate alignment-point conversion.
 
 | Variant | Intrinsic parameters                                                                 | Stops | Tile mode                     | Transform |
 | ------- | ------------------------------------------------------------------------------------ | ----- | ----------------------------- | --------- |
 | Linear  | Two endpoints as alignment points (defaults: center-left → center-right)              | Yes   | Yes                           | Yes       |
-| Radial  | Implicit center `(0.5, 0.5)`, radius `0.5` in unit gradient space                     | Yes   | Yes                           | Yes       |
+| Radial  | Optional ordered start and end circles; absent means centered start point `(0.5, 0.5)`, radius `0`, and end circle `(0.5, 0.5)`, radius `0.5` | Yes | Yes | Yes |
 | Sweep   | Implicit center `(0.5, 0.5)`; angular domain one full turn, clockwise from 0°         | Yes   | No — the angular domain is closed; a full turn has no exterior to tile | Yes |
-| Diamond | The radial field evaluated under the Manhattan distance metric, same unit space       | Yes   | No — no tile mode is carried on any surface today; beyond-unit clamp behavior is proposed by `AMD-DIAMOND-CLAMP` below | Yes |
+| Diamond | Implicit centered radius-`0.5` field under the Manhattan distance metric in unit gradient space | Yes | No — no tile mode is carried on any surface today; beyond-unit clamp behavior is proposed by `AMD-DIAMOND-CLAMP` below | Yes |
 
 **Stop:** `(offset ∈ [0,1], color)` — recommended without a separate
 opacity field; see the contested point below.
@@ -446,35 +449,37 @@ it is nonconformant. The sub-8-bit precision loss is bounded by half a
 quantization step and is accepted until the wide-gamut successor of
 decision 1 revisits channel depth.
 
-### Contested point B — the radial focal point
+### Contested point B — ordered radial circles
 
-A focal (two-point) radial gradient places the 0-offset point away from
-the circle's center, producing isolines that are non-concentric circles.
-No affine transform of a concentric radial can express this: affine maps
-send concentric circles to concentric ellipses, so the focal family is
-strictly outside the current parameterization. This is why the import
-pipeline can only drop a source focal point today.
+A two-circle radial gradient maps the beginning and end of its ramp to two
+circles. A zero-radius start circle is a focal point; a positive-radius start
+circle maps offset zero to a perimeter. Moving either start center or start
+radius can produce non-concentric isolines and a domain that does not cover
+the whole paint target. No affine transform of a concentric radial can state
+that family: affine maps preserve concentricity. A start circle beside a
+fixed, nonzero end circle is also insufficient: an invertible affine cannot
+collapse the end circle to a point while preserving a live start circle.
 
-| Question                                        | Keep radial concentric-only                                     | Optional focal point in unit gradient space (recommended)         | Full two-point conical (two circles)                       |
-| ----------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------- |
-| Expressive coverage of the domain               | Loses SVG focal gradients permanently                            | Covers SVG focal semantics (focus + one circle)                   | Covers SVG and more (two radii)                            |
-| Backend support                                 | Native everywhere                                                | Native two-point conical exists in the raster backends            | Same                                                       |
-| Cost                                            | None                                                             | One optional field, defaulting to center (degenerate = today)     | Two extra parameters with no current producer              |
-| Design-tool precedent                           | Matches Figma-style radial                                       | Superset; default behavior unchanged                              | No authoring surface wants the second radius today         |
+| Candidate | Expressive boundary | Contract cost | Disposition |
+| --------- | ------------------- | ------------- | ----------- |
+| Concentric-only | No independent start geometry | No additional fact | Insufficient |
+| Optional focal point | Cannot state a positive start radius | One optional point | Insufficient |
+| Optional start circle, fixed end circle | Cannot state a point-sized end alongside a live start | One optional circle | Insufficient |
+| Optional ordered circle pair | States both ramp boundaries, including either point-sized boundary | Two circles as one optional geometry fact | Chosen |
 
-**Recommendation:** extend the canonical radial with an *optional focal
-point*, expressed in unit gradient space and defaulting to the center —
-the default is byte-identical to today's behavior. Until the extension
-is ratified and lands (a schema change, so promotion-program work — the
-seam program forbids schema motion), the **conformance statement** is:
-an importer meeting a source focal point must declare the deviation in
-its import report; silent dropping is nonconformant.
+**Decision:** carry an optional ordered pair of circles in gradient-local
+space. Absence retains the original centered radial. Presence preserves both
+centers and radii exactly, without normalizing either circle to the implicit
+end circle. `AMD-RADIAL-CIRCLES` below fixes the domain. An interchange surface
+that cannot state a present pair must reject that value or report a declared
+deviation; silently replacing it with a concentric radial is nonconformant.
 
 ### Conformance statements (summary)
 
 1. Per-stop opacity: fold into stop alpha; never drop.
-2. Radial focal point: represent once ratified; until then, a declared
-   deviation, never a silent drop.
+2. Ordered radial circles: preserve both centers, both radii, and their order;
+   a boundary that cannot carry any of these facts reports or rejects the
+   deviation, never silently drops it.
 3. Source spread/tile methods on sweep or diamond gradients: not
    representable; declared deviation.
 4. Source pattern paint servers: not representable
@@ -504,20 +509,57 @@ contract the promotion program implements, in vocabulary terms:
   boundary: layout-affecting values remain with the text-resolution
   contract; run fills, decoration color, and text strokes are governed
   by this spec.
-- **Gradients and images** — field sets follow the ratified decisions;
-  the radial focal extension remains proposed, so
-  importers upgrade every silent drop named in
-  decision 5 to its conformance behavior.
+- **Gradients and images** — field sets follow the ratified decisions. The
+  ordered radial-circle extension is part of the shared vocabulary; boundaries
+  that predate it upgrade every silent drop named in decision 5 to an explicit
+  conformance behavior.
 
 ## Pinned amendments
 
-These amendments are **proposed and re-pinned**, not ratified. Their named
-owner is `universe@grida.co`, the
-[consolidation program owner](../consolidation/index.md). Ratification remains
-an owner gate under **AMD**. For a leaf whose conformance depends on an
-amendment, ratification precedes that leaf's D-C disposition and deletion of
-any mapping that depends on it. It does not block D-C dispositions for
-unrelated leaves.
+The named owner of these amendments is `universe@grida.co`, the
+[consolidation program owner](../consolidation/index.md). Each amendment states
+whether it is ratified or proposed. Ratification remains an owner gate under
+**AMD**. For a leaf whose conformance depends on an amendment, ratification
+precedes that leaf's D-C disposition and deletion of any mapping that depends
+on it. It does not block D-C dispositions for unrelated leaves.
+
+### AMD-RADIAL-CIRCLES
+
+**Status:** Ratified by explicit owner GO on 2026-09-07. This replaces the
+start-only proposal: a fixed nonzero end circle excluded point-sized ends,
+which cannot be recovered by invertible placement.
+
+A radial gradient may carry one optional ordered geometry value consisting
+of a start circle and an end circle in gradient-local space:
+
+- absence means start center `(0.5, 0.5)`, radius `0`, and end center
+  `(0.5, 0.5)`, radius `0.5`; it preserves the original centered radial;
+- both present centers are finite direct coordinate pairs and may lie
+  outside the unit square;
+- both present radii are finite and non-negative; either may be zero and
+  the start radius may exceed the end radius;
+- equal circles, including equal point-sized circles, are representable;
+- offset zero maps to the start-circle perimeter and offset one maps to the
+  end-circle perimeter, so the two circles are ordered facts;
+- consumers do not swap circles, clamp a center into another circle, or
+  normalize away a radius; and
+- presence is retained even when a pair numerically equals the implicit
+  geometry. This preserves exact supplied values without a hidden rewrite.
+
+The two circles state intrinsic geometry, not rasterization policy or a
+resource reference. The affine carries placement, scale, rotation, and skew.
+Representation of a numeric pair does not promise every backend can evaluate
+it: a backend must preserve the ordered geometry and its painted domain or
+refuse explicitly, including for equal circles and other degeneracies. A
+constant color ramp does not by itself permit replacing that domain with an
+unbounded solid color. Spread behavior operates on the ordered ramp parameter,
+not by moving the circles.
+
+A serialization or import boundary whose radial representation lacks the
+circle pair preserves the absent form exactly and rejects or declares every
+present form. Schema evolution remains a separate owner decision. The circle
+extension does not widen any earlier source grammar merely because the runtime
+can carry the fact.
 
 ### AMD-DIAMOND-CLAMP
 

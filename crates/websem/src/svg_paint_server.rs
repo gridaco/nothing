@@ -24,21 +24,20 @@
 //!   `currentColor` resolves against the stop's own computed `color`, and
 //!   an unparseable `stop-color` (including the `inherit` keyword) is the
 //!   initial black.
-//! - The degenerate rules are the backend's own. A one-stop ramp is spatially
-//!   constant but retains gradient rasterization; zero/negative radial radius
-//!   and linear endpoints closer than the backend threshold resolve to a
-//!   solid — the last stop under `pad`, the ramp's integral average under
-//!   `reflect`/`repeat`. Resolving those cases here keeps downstream preflight
-//!   inside its checked gradient domain.
+//! - A one-stop ramp retains gradient rasterization. Explicit radial circles
+//!   also retain their conical domain: a constant color does not paint its
+//!   transparent exterior. Only an implicit concentric zero/negative radial
+//!   radius collapses to a solid, like sufficiently close linear endpoints:
+//!   the last stop under `pad`, the integral average under `reflect`/`repeat`.
 //! - `gradientTransform` and an author `transform` declaration are one
 //!   computed value (csscascade hints the attribute), applied about the raw
 //!   origin of the gradient's own space; percentages in it are refused by
 //!   name (Chromium resolves them against the viewport and then applies the
 //!   number in fraction space — an incoherence this slice will not repeat).
 //!
-//! What refuses by name: a focal radial (resolved `fx`/`fy` off the center,
-//! or `fr > 0` — the shared radial leaf is concentric), font-relative or
-//! viewport-relative units in gradient geometry, `color-interpolation:
+//! What refuses by name: source-number provenance aliases, CSS comments,
+//! computed functions, CSS-wide values, out-of-range used lengths, and
+//! font-relative or viewport-relative units in gradient geometry; `color-interpolation:
 //! linearRGB`, author CSS on stops (`stop-color`/`stop-opacity` in a style
 //! attribute), resolved stop alpha or degenerate alpha staging that the RGBA8
 //! paint contract cannot preserve, an external reference, and a user-space
@@ -294,6 +293,7 @@ struct ResolvedStop {
     color: CGColor32F,
 }
 
+#[derive(Clone, Copy)]
 enum GradientKind {
     Linear,
     Radial,
@@ -371,13 +371,15 @@ pub(crate) fn resolve(
         return Ok(ResolvedPaintServer::Nothing);
     }
 
-    if stops.len() == 1 {
+    if stops.len() == 1 && matches!(kind, GradientKind::Linear) {
         // A one-stop ramp is spatially constant but retains the backend's
         // gradient material route (including dithering and paint-alpha
         // staging). Duplicate the sole resolved stop in a source-neutral
-        // constant gradient. Geometry and reference-box mappings are inert for
-        // a constant shader; the transform outcome above still decides the
-        // measured non-invertible nothing before this branch.
+        // constant gradient. Radial start-circle geometry is not inert even
+        // with one stop: Chromium leaves pixels outside the focal cone
+        // untouched, so radial gradients must inspect their geometry first.
+        // The transform outcome above still decides the measured
+        // non-invertible nothing before this branch.
         return Ok(constant_gradient(kind, stops[0].color, paint_opacity));
     }
 
@@ -1344,17 +1346,36 @@ fn resolve_radial(
     });
     let fx = read("fx")?.unwrap_or(cx);
     let fy = read("fy")?.unwrap_or(cy);
-    let fr = read("fr")?.unwrap_or(0.0);
+    // Chromium resolves an erroneous negative radius to zero, preserving the
+    // other circle. Neither an exterior center nor a radius larger than the
+    // other circle is clamped. Preserve both circles in their resolved local
+    // coordinates: normalizing by r cannot represent a zero-radius end and
+    // can change the backend's float/degeneracy classification.
+    let fr = read("fr")?.unwrap_or(0.0).max(0.0);
+    let geometry = (fx != cx || fy != cy || fr > 0.0).then_some(cg::RadialGradientGeometry {
+        start: cg::RadialGradientCircle {
+            center: (fx, fy),
+            radius: fr,
+        },
+        end: cg::RadialGradientCircle {
+            center: (cx, cy),
+            radius: r.max(0.0),
+        },
+    });
 
-    if fx != cx || fy != cy || fr > 0.0 {
-        return Err(
-            "the radial gradient has a focal point or focal radius, which the shared \
-             radial paint leaf cannot state (concentric radials only)"
-                .to_string(),
-        );
+    // Once focal geometry has been proved absent, a one-stop radial is the
+    // same spatially constant gradient this route has always emitted. Keep
+    // this before outer-radius degeneracy so the established one-stop
+    // material and opacity staging remain unchanged.
+    if stops.len() == 1 && geometry.is_none() {
+        return Ok(constant_gradient(
+            GradientKind::Radial,
+            stops[0].color,
+            paint_opacity,
+        ));
     }
 
-    if r <= 0.0 {
+    if r <= 0.0 && geometry.is_none() {
         // A non-positive radius reaches the same tile-specific backend
         // degeneracy as a collapsed linear ramp. Measured at zero: clamp is
         // the last stop, while repeat/reflect are the ramp's integral average.
@@ -1381,8 +1402,8 @@ fn resolve_radial(
         };
     }
 
-    // A non-positive radius is already a source-neutral solid. Only a live
-    // radial needs the context box/space.
+    // Only the implicit non-positive radius became a solid above. An explicit
+    // pair with a zero end still needs the context box/space.
     let Some((reference_box, reference_to_destination)) = reference_space()? else {
         return Ok(ResolvedPaintServer::Nothing);
     };
@@ -1392,11 +1413,15 @@ fn resolve_radial(
         return Ok(ResolvedPaintServer::Nothing);
     }
 
-    // The unit circle (center ½,½, radius ½) maps to the resolved circle
-    // through a similarity; objectBoundingBox composes in fraction space,
-    // user space returns through the box inverse.
-    let scale = 2.0 * r;
-    let similarity = AffineTransform::from_acebdf(scale, 0.0, cx - r, 0.0, scale, cy - r);
+    // The old implicit circle keeps its exact existing similarity. Explicit
+    // ordered circles already carry resolved local coordinates and need only
+    // the resource/client placement, not a second geometry normalization.
+    let similarity = if geometry.is_some() {
+        AffineTransform::identity()
+    } else {
+        let scale = 2.0 * r;
+        AffineTransform::from_acebdf(scale, 0.0, cx - r, 0.0, scale, cy - r)
+    };
     let direct_reference =
         destination_box == reference_box && reference_to_destination == AffineTransform::identity();
     let transform = match units {
@@ -1420,7 +1445,23 @@ fn resolve_radial(
         cg::RadialGradientPaint {
             active: true,
             transform,
-            stops: cg_stops(&stops),
+            geometry,
+            stops: if stops.len() == 1 {
+                // A constant color ramp is not an infinite spatial domain.
+                // Keep the conical shader, including its unpainted exterior.
+                vec![
+                    cg::GradientStop {
+                        offset: 0.0,
+                        color: stops[0].color,
+                    },
+                    cg::GradientStop {
+                        offset: 1.0,
+                        color: stops[0].color,
+                    },
+                ]
+            } else {
+                cg_stops(&stops)
+            },
             opacity: paint_opacity,
             blend_mode: cg::BlendMode::Normal,
             tile_mode,

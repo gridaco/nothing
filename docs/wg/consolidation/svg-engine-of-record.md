@@ -114,19 +114,18 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,157 Chromium-baked primitive cells plus 16 sampled frames,
+- **The corpus** is 1,284 Chromium-baked primitive cells plus 16 sampled frames,
   with a separate sixteen-cell exact text suite whose current cells select
   hash-pinned Ahem and Ahem-derived bytes from explicit family/face
   environments, and eight exact-number artifact-geometry
   witnesses (six Allerta and two Bungee) under the ratified text corpus-growth
   law.
   All byte-exact except seven curved cells carrying a declared, geometrically
-  confined tolerance (the native-oval/conic boundary) and four gradient cells
-  carrying a declared one-code-value ramp-quantization tolerance (one pixel
-  against Chromium's Skia; 18 knife-edge pixels between this engine's own
-  macOS and Linux Skia builds; 336 ramp pixels under an isolated layer's
-  restore; 576 after a masked ramp becomes luminance alpha). The named refusal
-  register has 234 rows.
+  confined tolerance (the native-oval/conic boundary) and twelve gradient cells
+  carrying declared one-code-value ramp-quantization bounds. The measured
+  per-cell counts and causes are listed in the
+  [corpus record](../../../fixtures/web-first/README.md).
+  The named refusal register has 260 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -5581,3 +5580,99 @@ named refusal register moves from 230 to 234. The CSS-property twin, dynamic
 substitutions, wider text painting, external resources, and animation remain
 their own work. No conformance score was produced, and no FLIP record, rule,
 or baseline changed.
+
+## Radial-circle split — 2026-09-07
+
+This rung replaces the broad focal-radial refusal with the bounded admission
+recorded in [the command's statement of record](../../../crates/n0_cli/README.md).
+It closes no checklist row. The complete listed length grammar includes
+Chromium-honored source aliases and CSS comments still refused here, with no
+independent row to carry those gaps: the gridaco/nothing#81/#89/#90 split
+precedent applies. Wider units, calculations, substitution, and CSS-wide
+context retain their own-row precedents. No CSS property matching is added.
+
+### The contract crux
+
+The original start-only proposal assumed an invertible mapping to a fixed
+nonzero end circle. Chromium contradicts that restriction: a zero or negative
+authored outer radius still has a live radial domain when a distinct start
+circle is present. Normalizing by the outer radius cannot state that image.
+The owner-ratified [ordered-circle amendment](../feat-painting/paint-model.md#amd-radial-circles)
+therefore preserves both centers, both nonnegative radii, and their order.
+It does not sort radii, clamp exterior centers, or add resource references to
+the resolved contract. The absent extension preserves the old centered form.
+
+The same investigation found a shipped one-stop escape: treating a single
+color as an infinite spatial domain filled 109 pixels that Chromium leaves
+outside the cone, at maximum channel delta 217. The baked
+`svg-radial-start-one-stop-focal` cell now preserves that exterior under the
+constant ramp; repeat/reflect and zero-end companions discriminate the
+related branches. Zero stops remain inert. The former broad refusal source
+graduates unchanged to `svg-radial-start-graduated-focal`; its assertion of
+inexpressibility is deliberately dropped only after the positive oracle
+re-homes its geometry. The temporary one-stop refusal is likewise replaced
+by positive domain evidence, not deleted without a witness.
+
+### Evidence and retained boundaries
+
+The [corpus record](../../../fixtures/web-first/README.md) identifies 127 new
+cells: defaults, signed length syntax and invalid fallbacks; object-box and
+axis/diagonal user-space percentages; viewBox mapping; independent template
+inheritance and local overrides; transforms; zero, equal, reversed, tangent,
+intersecting, disjoint, and containing circles; all spread modes; stop order
+and alpha; and admitted fill/stroke, instance, pattern, clip, mask, filter,
+nested-viewport, and HTML clients. Of those cells, 119 are byte-exact. Eight
+carry the existing ramp-quantization rule with measured bounds: six singleton
+pixels, 613 masked-ramp pixels, and 1,465 offset-filter restore pixels, all at
+one code value. No existing oracle or tolerance changes; numeric controls
+remain exact.
+
+The nine amplified source aliases are measured against adjacent numeric
+controls before any admission claim. Chromium selects the lower neighbor in
+all nine, while the opposing controls differ by 718–1,024 pixels with maximum
+channel deltas 14–34. Decimal/percentage controls and the radius midpoint pair
+are celled; focus midpoint pairs remain **(measured, not celled)**. The
+existing direct-length provenance patrol now has nine exact-attribute refusal
+fixtures here. Comments, range, units, math, substitution, and CSS-wide
+context add eighteen more. The broad focal row retires, moving the named
+register from 234 to 260 without weakening a remaining guard.
+
+Additional near-equal/tangent and effect-boundary probes are
+**(measured, not celled)** where no committed witness is named. Marker-source
+gradients retain their existing solid/context-solid source-profile refusal.
+A highly magnified diagonal-radius experiment failed to discriminate its
+adjacent Chromium controls and reached the checked shader-construction
+refusal in both command admissions; it proves no new normalization order.
+The diagonal cell proves the correct basis, not equality of invisible float
+bits.
+
+The source-neutral extension crosses both paint consumers without losing any
+of its six scalars. Contract tests guard exact copies, validation, attributed
+preflight, and paint/damage changes. The unchanged frozen `.grida` encoder and
+Draft0 writer cannot represent a present circle pair and reject it instead
+of silently omitting it. The legacy importer is not broadened by this work.
+Direct immutable-frame execution carries the new geometry. The translated
+preview raster cache does not: a native scene exposed two one-code-value
+differences between its offscreen translation and fresh drawing
+**(measured, not celled)**. A typed owner-attributed refusal occurs before
+cache or canvas mutation; its guarding test verifies rejection and recovery.
+This is a cache-policy boundary, not a second semantic interpretation.
+
+### Gate sensitivity
+
+Four deliberate implementation mutations fail the full primitive gate loudly.
+Discarding the start radius fails 79 cells, reaching 3,072 changed pixels and
+maximum channel delta 255; the bounded mask/filter cells also fail well beyond
+their declarations. Reversing the two circles fails 108 cells, reaching all
+4,096 pixels and delta 255. Resolving `fr%` against width instead of the
+normalized diagonal fails both the direct and viewBox-mapped radius cells by
+1,116 pixels at delta 214 each. Restoring the premature one-stop constant fold
+fails four domain cells: three change 109 pixels and the zero-end witness
+changes 1,938, all at delta 217. These are mutation verdicts, not additional
+corpus cells. Each mutation is removed before the final full gate.
+
+The corpus moves from 1,157 to 1,284 primitive cells. The sixteen sampled
+frames, sixteen exact text cells, and eight real-font geometry witnesses are
+unchanged. External I/O, text, marker-source expansion, animation, and the
+separately tracked degenerate-gradient family remain separate work. No
+conformance score or FLIP record, rule, or baseline is touched.

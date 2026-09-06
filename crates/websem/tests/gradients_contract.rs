@@ -680,27 +680,12 @@ fn an_external_reference_refuses_by_name() {
 
 // ─── the named refusals ──────────────────────────────────────────────────
 
-/// The refusal boundary, each by name: a focal radial (the shared radial
-/// leaf is concentric), a focal radius, `color-interpolation: linearRGB`,
+/// The refusal boundary, each by name: `color-interpolation: linearRGB`,
 /// author CSS on a stop's style attribute, and a geometry unit whose basis
 /// this slice does not consume.
 #[test]
 fn the_beyond_slice_gradient_family_refuses_by_name() {
     for (body, needle) in [
-        (
-            format!(
-                r##"  <defs><radialGradient id="g" fx="0.2" fy="0.2">{RAMP}</radialGradient></defs>
-  {RECT}"##
-            ),
-            "focal",
-        ),
-        (
-            format!(
-                r##"  <defs><radialGradient id="g" fr="0.25">{RAMP}</radialGradient></defs>
-  {RECT}"##
-            ),
-            "focal",
-        ),
         (
             format!(
                 r##"  <defs><linearGradient id="g" color-interpolation="linearRGB">{RAMP}</linearGradient></defs>
@@ -729,6 +714,31 @@ fn the_beyond_slice_gradient_family_refuses_by_name() {
         };
         assert!(reason.contains(needle), "{reason} must name {needle}");
     }
+}
+
+/// A one-stop radial is constant only inside its two-circle shader domain.
+/// Chromium leaves the focal cone's exterior untouched, so focal geometry
+/// must survive the concentric-only constant-gradient fold.
+#[test]
+fn a_one_stop_focal_radial_keeps_its_spatial_domain() {
+    let source = document(
+        r##"  <defs><radialGradient id="g" fx=".25" fy=".25" fr=".15"><stop offset=".4" stop-color="#ef4444"/></radialGradient></defs>
+  <rect width="64" height="64" fill="#16a34a"/>
+  <rect x="8" y="8" width="48" height="48" fill="url(#g)"/>"##,
+    );
+    let frame = admit_both(&source);
+    let cg::Paint::RadialGradient(gradient) = frame.nodes()[1].paints.iter().next().unwrap() else {
+        panic!("a constant ramp retains radial geometry");
+    };
+    let geometry = gradient
+        .geometry
+        .expect("the one-stop cone cannot become an infinite solid");
+    assert_eq!(geometry.start.center, (0.25, 0.25));
+    assert_eq!(geometry.start.radius, 0.15);
+    assert_eq!(geometry.end.center, (0.5, 0.5));
+    assert_eq!(geometry.end.radius, 0.5);
+    assert_eq!(gradient.stops.len(), 2);
+    assert_eq!(gradient.stops[0].color, gradient.stops[1].color);
 }
 
 /// A live user-space ramp on a line reaches a zero-height geometry box. The
@@ -828,19 +838,22 @@ fn zero_area_geometry_splits_object_box_from_userspace_constants() {
 }
 
 /// A template's focal attribute makes the referencing gradient focal too:
-/// the refusal runs on the resolved attribute set, because an inherited
+/// the paint carries the resolved attribute set, because an inherited
 /// `fx` does not re-default from an overridden `cx` (measured).
 #[test]
-fn an_inherited_focal_point_still_refuses() {
-    let error = refusal(&document(&format!(
+fn an_inherited_focal_point_survives_a_local_end_center_override() {
+    let frame = admit_both(&document(&format!(
         r##"  <defs>
     <radialGradient id="t" fx="0.15" fy="0.5">{RAMP}</radialGradient>
     <radialGradient id="g" href="#t" cx="0.8" cy="0.5" r="0.45"/>
   </defs>
   {RECT}"##
     )));
-    let CompileError::UnsupportedFill(reason) = error else {
-        panic!("expected a fill refusal, got {error:?}");
+    let cg::Paint::RadialGradient(gradient) = sole_fill(&frame) else {
+        panic!("expected radial paint");
     };
-    assert!(reason.contains("focal"), "{reason}");
+    let geometry = gradient.geometry.unwrap();
+    assert_eq!(geometry.start.center, (0.15, 0.5));
+    assert_eq!(geometry.end.center, (0.8, 0.5));
+    assert_eq!(geometry.end.radius, 0.45);
 }
