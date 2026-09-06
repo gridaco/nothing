@@ -246,6 +246,7 @@ pub(crate) fn linear_gradient() -> Paint {
 
 pub(crate) fn radial_gradient() -> Paint {
     Paint::RadialGradient(RadialGradientPaint {
+        geometry: None,
         active: true,
         transform: AffineTransform::default(),
         stops: vec![

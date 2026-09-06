@@ -56,6 +56,7 @@ pub(crate) fn build() -> Scene {
             }),
             // [2] radial gradient yellow center→transparent
             Paint::RadialGradient(RadialGradientPaint {
+                geometry: None,
                 active: true,
                 transform: AffineTransform::default(),
                 stops: vec![

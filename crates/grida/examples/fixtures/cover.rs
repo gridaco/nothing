@@ -131,6 +131,7 @@ pub(crate) fn build() -> Scene {
                 height: 1100.0,
             },
             fills: Paints::new(vec![Paint::RadialGradient(RadialGradientPaint {
+                geometry: None,
                 active: true,
                 transform: AffineTransform::default(),
                 stops: vec![
@@ -190,6 +191,7 @@ pub(crate) fn build() -> Scene {
                 height: 1000.0,
             },
             fills: Paints::new(vec![Paint::RadialGradient(RadialGradientPaint {
+                geometry: None,
                 active: true,
                 transform: AffineTransform::default(),
                 stops: vec![

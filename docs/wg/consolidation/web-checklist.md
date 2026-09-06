@@ -2483,6 +2483,20 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 - [ ] `fr`
 - [ ] `fx`
 - [ ] `fy`
+
+> **2026-09-07 radial-circle split:** 127 Chromium-baked cells carry the
+> signed number/percentage/`px` slice, independent template defaults, axis and
+> diagonal bases, circle order, exterior focus, zero/equal/reversed radii,
+> one-stop cone domains, spreads, transforms, and admitted paint clients.
+> These three rows remain open: valid source-precision aliases and CSS
+> comments are honored by Chromium but refused here, with no independent
+> checklist row to carry that gap (gridaco/nothing#81/#89/#90). Wider units,
+> computed functions, substitution, and CSS-wide context retain their own-row
+> precedents; those do not excuse the precision/comment split. Twenty-seven
+> exact-attribute refusal fixtures replace the former broad focal row.
+> No CSS-property row changes. See the
+> [radial-circle evidence](./svg-engine-of-record.md#radial-circle-split--2026-09-07).
+
 - [x] `gradientTransform`
 - [x] `gradientUnits`
 - [ ] `href`

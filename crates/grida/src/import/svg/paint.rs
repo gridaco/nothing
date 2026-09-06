@@ -99,6 +99,7 @@ fn svg_radial_gradient_to_paint(
     Paint::RadialGradient(RadialGradientPaint {
         active: true,
         transform: gradient_transform.compose(&alignment),
+        geometry: None,
         stops: radial.stops.clone(),
         opacity,
         blend_mode: BlendMode::Normal,

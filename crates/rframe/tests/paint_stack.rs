@@ -56,6 +56,16 @@ fn visible_gradients_are_admitted_with_their_fields_intact() {
         ..Default::default()
     };
     let radial = RadialGradientPaint {
+        geometry: Some(cg::RadialGradientGeometry {
+            start: cg::RadialGradientCircle {
+                center: (-0.25, 0.375),
+                radius: 0.75,
+            },
+            end: cg::RadialGradientCircle {
+                center: (0.5, 0.625),
+                radius: 0.0,
+            },
+        }),
         stops: ramp(),
         ..Default::default()
     };

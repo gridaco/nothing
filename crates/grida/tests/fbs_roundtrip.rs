@@ -204,6 +204,7 @@ fn linear_gradient() -> Paint {
 
 fn radial_gradient() -> Paint {
     Paint::RadialGradient(RadialGradientPaint {
+        geometry: None,
         active: true,
         transform: AffineTransform::default(),
         stops: vec![
@@ -1343,6 +1344,80 @@ fn gen_all_paint_types() {
 
     let scene = build_scene("AllPaints", None, vec![(1, rect)], HashMap::new(), vec![1]);
     assert_roundtrip_scene(&scene, "s1", "all_paint_types");
+}
+
+#[test]
+fn frozen_format_rejects_explicit_radial_circles_instead_of_losing_them() {
+    let Paint::RadialGradient(mut paint) = radial_gradient() else {
+        unreachable!()
+    };
+    paint.geometry = Some(RadialGradientGeometry {
+        start: RadialGradientCircle {
+            center: (0.25, 0.375),
+            radius: 0.125,
+        },
+        end: RadialGradientCircle {
+            center: (0.5, 0.5),
+            radius: 0.0,
+        },
+    });
+    for (active, in_stroke) in [(true, false), (false, false), (true, true), (false, true)] {
+        let mut paint = paint.clone();
+        paint.active = active;
+        let radial = Paints::new([solid(22, 163, 74, 255), Paint::RadialGradient(paint)]);
+        let node = Node::Rectangle(RectangleNodeRec {
+            active: true,
+            opacity: 1.0,
+            blend_mode: LayerBlendMode::PassThrough,
+            mask: None,
+            transform: AffineTransform::identity(),
+            size: Size {
+                width: 64.0,
+                height: 64.0,
+            },
+            corner_radius: RectangularCornerRadius::default(),
+            corner_smoothing: CornerSmoothing(0.0),
+            fills: if in_stroke {
+                Paints::default()
+            } else {
+                radial.clone()
+            },
+            strokes: if in_stroke { radial } else { Paints::default() },
+            stroke_style: StrokeStyle::default(),
+            stroke_width: StrokeWidth::Uniform(0.0),
+            effects: LayerEffects::default(),
+            layout_child: None,
+        });
+        let scene = build_scene(
+            "RadialCircles",
+            None,
+            vec![(1, node)],
+            HashMap::new(),
+            vec![1],
+        );
+        let mut ids = HashMap::new();
+        let mut positions = HashMap::new();
+        build_maps(&scene, &mut ids, &mut positions);
+        for multi in [false, true] {
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                if multi {
+                    io_grida_fbs::encode_multi(&[("s1", &scene, &ids, &positions)])
+                } else {
+                    io_grida_fbs::encode(&scene, "s1", &ids, &positions)
+                }
+            }));
+            let error = result.expect_err("encoding must not omit circles or drop a paint entry");
+            let reason = error
+                .downcast_ref::<String>()
+                .map(String::as_str)
+                .or_else(|| error.downcast_ref::<&str>().copied())
+                .unwrap_or("");
+            assert_eq!(
+                reason,
+                "the frozen .grida format cannot encode explicit radial gradient circles"
+            );
+        }
+    }
 }
 
 // ─── All effects on a single node ───────────────────────────────────────────

@@ -1384,6 +1384,18 @@ fn compile_paints(paints: &PaintStack, unit_offset: Option<(f32, f32)>) -> Paint
                 Paint::RadialGradient(n0_model::model::RadialGradientPaint {
                     active: gradient.active,
                     transform: compile_gradient_transform(&gradient.transform, unit_offset),
+                    geometry: gradient.geometry.map(|geometry| {
+                        n0_model::model::RadialGradientGeometry {
+                            start: n0_model::model::RadialGradientCircle {
+                                center: geometry.start.center,
+                                radius: geometry.start.radius,
+                            },
+                            end: n0_model::model::RadialGradientCircle {
+                                center: geometry.end.center,
+                                radius: geometry.end.radius,
+                            },
+                        }
+                    }),
                     stops: compile_gradient_stops(&gradient.stops),
                     opacity: gradient.opacity,
                     blend_mode: BlendMode::Normal,
@@ -2448,6 +2460,172 @@ mod tests {
         };
         assert_eq!(owner, RECT_OWNER);
         assert!(reason.contains("invertible"), "unexpected reason: {reason}");
+    }
+
+    fn radial_circle_stack(geometry: cg::RadialGradientGeometry) -> PaintStack {
+        PaintStack::try_from_paints(CgPaints::new([CgPaint::RadialGradient(
+            cg::RadialGradientPaint {
+                geometry: Some(geometry),
+                ..cg::RadialGradientPaint::from_colors(vec![CGColor::RED, CGColor::BLUE])
+            },
+        )]))
+        .unwrap()
+    }
+
+    #[test]
+    fn radial_circles_cross_the_seam_without_normalization_or_reordering() {
+        let geometry = cg::RadialGradientGeometry {
+            start: cg::RadialGradientCircle {
+                center: (-1.25, 2.5),
+                radius: 0.75,
+            },
+            end: cg::RadialGradientCircle {
+                center: (0.375, 0.625),
+                radius: 0.0,
+            },
+        };
+        let compiled = compile_paints(&radial_circle_stack(geometry), None);
+        let Paint::RadialGradient(paint) = &compiled[0] else {
+            panic!("radial paint")
+        };
+        let circles = paint.geometry.unwrap();
+        assert_eq!(circles.start.center, (-1.25, 2.5));
+        assert_eq!(circles.start.radius, 0.75);
+        assert_eq!(circles.end.center, (0.375, 0.625));
+        assert_eq!(circles.end.radius, 0.0);
+    }
+
+    #[test]
+    fn explicit_radial_circles_are_preflighted_at_the_source_owner() {
+        let valid = cg::RadialGradientGeometry {
+            start: cg::RadialGradientCircle {
+                center: (0.25, 0.375),
+                radius: 0.125,
+            },
+            end: cg::RadialGradientCircle {
+                center: (0.5, 0.5),
+                radius: 0.5,
+            },
+        };
+        for geometry in [
+            valid,
+            cg::RadialGradientGeometry {
+                end: cg::RadialGradientCircle {
+                    radius: 0.0,
+                    ..valid.end
+                },
+                ..valid
+            },
+            cg::RadialGradientGeometry {
+                start: valid.end,
+                ..valid
+            },
+        ] {
+            compile(resolved_frame(radial_circle_stack(geometry))).expect("finite ordered circles");
+        }
+        for (center, radius) in [
+            ((f32::NAN, 0.5), 0.125),
+            ((0.25, f32::INFINITY), 0.125),
+            ((0.25, 0.375), -0.125),
+            ((0.25, 0.375), f32::INFINITY),
+        ] {
+            let geometry = cg::RadialGradientGeometry {
+                start: cg::RadialGradientCircle { center, radius },
+                ..valid
+            };
+            let error = compile(resolved_frame(radial_circle_stack(geometry)))
+                .expect_err("invalid circle before any painter call");
+            let BuildError::Paint { owner, reason } = error else {
+                panic!("wrong error: {error:?}")
+            };
+            assert_eq!(owner, RECT_OWNER);
+            assert!(reason.contains("radial"), "{reason}");
+        }
+    }
+
+    #[test]
+    fn retained_radial_circle_frame_matches_fresh_after_other_frames() {
+        let geometry = cg::RadialGradientGeometry {
+            start: cg::RadialGradientCircle {
+                center: (0.25, 0.375),
+                radius: 0.125,
+            },
+            end: cg::RadialGradientCircle {
+                center: (0.5, 0.5),
+                radius: 0.5,
+            },
+        };
+        let build = |geometry| compile(resolved_frame(radial_circle_stack(geometry))).unwrap();
+        let retained = build(geometry);
+        let context = PaintCtx::new(None);
+        let raster = |frame: &FrameProduct| {
+            frame
+                .raster_to_bytes(&AffineTransform::identity(), 64, 48, &context)
+                .unwrap()
+        };
+        let original = raster(&retained);
+        let changed = build(cg::RadialGradientGeometry {
+            start: cg::RadialGradientCircle {
+                radius: 0.25,
+                ..geometry.start
+            },
+            ..geometry
+        });
+        assert_ne!(
+            original,
+            raster(&changed),
+            "the changed frame is a live control"
+        );
+        assert_eq!(original, raster(&retained));
+        assert_eq!(raster(&retained), raster(&build(geometry)));
+    }
+
+    #[test]
+    fn a_radial_circle_change_damages_the_owning_paint() {
+        let geometry = cg::RadialGradientGeometry {
+            start: cg::RadialGradientCircle {
+                center: (0.25, 0.375),
+                radius: 0.125,
+            },
+            end: cg::RadialGradientCircle {
+                center: (0.5, 0.5),
+                radius: 0.5,
+            },
+        };
+        let before = compile(resolved_frame(radial_circle_stack(geometry))).unwrap();
+        for geometry in [
+            cg::RadialGradientGeometry {
+                start: cg::RadialGradientCircle {
+                    center: (0.75, 0.375),
+                    ..geometry.start
+                },
+                ..geometry
+            },
+            cg::RadialGradientGeometry {
+                start: cg::RadialGradientCircle {
+                    radius: 0.25,
+                    ..geometry.start
+                },
+                ..geometry
+            },
+            cg::RadialGradientGeometry {
+                end: cg::RadialGradientCircle {
+                    radius: 0.0,
+                    ..geometry.end
+                },
+                ..geometry
+            },
+        ] {
+            let after = compile(resolved_frame(radial_circle_stack(geometry))).unwrap();
+            assert!(!before.drawlist.raster_eq(&after.drawlist));
+            assert_eq!(
+                diff_frame(&before, &after),
+                Damage {
+                    changed: vec![RECT_OWNER],
+                    union_frame: Some(Rectangle::from_xywh(8.0, 6.0, 20.0, 16.0))
+                }
+            );
+        }
     }
 
     /// The source-neutral seam copies one checked local-space pattern exactly;

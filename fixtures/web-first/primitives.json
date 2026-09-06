@@ -42,6 +42,14 @@
       "height": 64
     },
     {
+      "id": "html-inline-svg-radial-start",
+      "source": "html-inline-svg-radial-start.html",
+      "entry": "html-inline-svg",
+      "oracle": "chromium/html-inline-svg-radial-start.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "html-inline-svg-vector-effect",
       "source": "html-inline-svg-vector-effect.html",
       "entry": "html-inline-svg",
@@ -7698,6 +7706,1054 @@
       "oracle": "chromium/svg-preserve-aspect-ratio-slice-clip.png",
       "width": 64,
       "height": 32
+    },
+    {
+      "id": "svg-radial-start-box-percent",
+      "source": "svg-radial-start-box-percent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-box-percent.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-channel-opacity",
+      "source": "svg-radial-start-client-channel-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-client-channel-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-clip",
+      "source": "svg-radial-start-client-clip.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-client-clip.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-dashes",
+      "source": "svg-radial-start-client-dashes.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-client-dashes.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-ellipse",
+      "source": "svg-radial-start-client-ellipse.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-client-ellipse.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-filter",
+      "source": "svg-radial-start-client-filter.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-client-filter.png",
+      "width": 64,
+      "height": 64,
+      "tolerance": {
+        "kind": "ramp-quantization",
+        "max_differing_pixels": 1465,
+        "max_channel_delta": 1
+      }
+    },
+    {
+      "id": "svg-radial-start-client-group-opacity",
+      "source": "svg-radial-start-client-group-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-client-group-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-mask",
+      "source": "svg-radial-start-client-mask.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-client-mask.png",
+      "width": 64,
+      "height": 64,
+      "tolerance": {
+        "kind": "ramp-quantization",
+        "max_differing_pixels": 613,
+        "max_channel_delta": 1
+      }
+    },
+    {
+      "id": "svg-radial-start-client-nested",
+      "source": "svg-radial-start-client-nested.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-client-nested.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-order",
+      "source": "svg-radial-start-client-order.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-client-order.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-path",
+      "source": "svg-radial-start-client-path.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-client-path.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-pattern",
+      "source": "svg-radial-start-client-pattern.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-client-pattern.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-stroke",
+      "source": "svg-radial-start-client-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-client-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-transform",
+      "source": "svg-radial-start-client-transform.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-client-transform.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-use",
+      "source": "svg-radial-start-client-use.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-client-use.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-default",
+      "source": "svg-radial-start-default.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-default.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-explicit-default",
+      "source": "svg-radial-start-explicit-default.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-explicit-default.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-decimal-higher",
+      "source": "svg-radial-start-fr-decimal-higher.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fr-decimal-higher.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-decimal-lower",
+      "source": "svg-radial-start-fr-decimal-lower.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fr-decimal-lower.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-equal-r",
+      "source": "svg-radial-start-fr-equal-r.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fr-equal-r.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-greater-r",
+      "source": "svg-radial-start-fr-greater-r.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fr-greater-r.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-midpoint-higher",
+      "source": "svg-radial-start-fr-midpoint-higher.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fr-midpoint-higher.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-midpoint-lower",
+      "source": "svg-radial-start-fr-midpoint-lower.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fr-midpoint-lower.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-negative",
+      "source": "svg-radial-start-fr-negative.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fr-negative.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-negative-zero",
+      "source": "svg-radial-start-fr-negative-zero.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fr-negative-zero.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-percentage-higher",
+      "source": "svg-radial-start-fr-percentage-higher.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fr-percentage-higher.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-percentage-lower",
+      "source": "svg-radial-start-fr-percentage-lower.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fr-percentage-lower.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-quarter",
+      "source": "svg-radial-start-fr-quarter.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fr-quarter.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fx-decimal-higher",
+      "source": "svg-radial-start-fx-decimal-higher.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fx-decimal-higher.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fx-decimal-lower",
+      "source": "svg-radial-start-fx-decimal-lower.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fx-decimal-lower.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fx-negative",
+      "source": "svg-radial-start-fx-negative.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fx-negative.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fx-on-end",
+      "source": "svg-radial-start-fx-on-end.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fx-on-end.png",
+      "width": 64,
+      "height": 64,
+      "tolerance": {
+        "kind": "ramp-quantization",
+        "max_differing_pixels": 1,
+        "max_channel_delta": 1
+      }
+    },
+    {
+      "id": "svg-radial-start-fx-outside",
+      "source": "svg-radial-start-fx-outside.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fx-outside.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fx-percentage-higher",
+      "source": "svg-radial-start-fx-percentage-higher.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fx-percentage-higher.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fx-percentage-lower",
+      "source": "svg-radial-start-fx-percentage-lower.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fx-percentage-lower.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fx-quarter",
+      "source": "svg-radial-start-fx-quarter.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fx-quarter.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fxy-fr-quarter",
+      "source": "svg-radial-start-fxy-fr-quarter.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fxy-fr-quarter.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fxy-quarter",
+      "source": "svg-radial-start-fxy-quarter.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fxy-quarter.png",
+      "width": 64,
+      "height": 64,
+      "tolerance": {
+        "kind": "ramp-quantization",
+        "max_differing_pixels": 1,
+        "max_channel_delta": 1
+      }
+    },
+    {
+      "id": "svg-radial-start-fy-decimal-higher",
+      "source": "svg-radial-start-fy-decimal-higher.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fy-decimal-higher.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fy-decimal-lower",
+      "source": "svg-radial-start-fy-decimal-lower.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fy-decimal-lower.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fy-percentage-higher",
+      "source": "svg-radial-start-fy-percentage-higher.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fy-percentage-higher.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fy-percentage-lower",
+      "source": "svg-radial-start-fy-percentage-lower.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fy-percentage-lower.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fy-quarter",
+      "source": "svg-radial-start-fy-quarter.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-fy-quarter.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-graduated-focal",
+      "source": "svg-radial-start-graduated-focal.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-graduated-focal.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fr-comma",
+      "source": "svg-radial-start-grammar-fr-comma.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fr-comma.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fr-exponent",
+      "source": "svg-radial-start-grammar-fr-exponent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fr-exponent.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fr-integer",
+      "source": "svg-radial-start-grammar-fr-integer.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fr-integer.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fr-nbsp",
+      "source": "svg-radial-start-grammar-fr-nbsp.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fr-nbsp.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fr-signed",
+      "source": "svg-radial-start-grammar-fr-signed.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fr-signed.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fr-trailingdot",
+      "source": "svg-radial-start-grammar-fr-trailingdot.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fr-trailingdot.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fr-whitespace",
+      "source": "svg-radial-start-grammar-fr-whitespace.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fr-whitespace.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fx-comma",
+      "source": "svg-radial-start-grammar-fx-comma.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fx-comma.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fx-exponent",
+      "source": "svg-radial-start-grammar-fx-exponent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fx-exponent.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fx-integer",
+      "source": "svg-radial-start-grammar-fx-integer.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fx-integer.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fx-nbsp",
+      "source": "svg-radial-start-grammar-fx-nbsp.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fx-nbsp.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fx-signed",
+      "source": "svg-radial-start-grammar-fx-signed.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fx-signed.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fx-trailingdot",
+      "source": "svg-radial-start-grammar-fx-trailingdot.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fx-trailingdot.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fx-whitespace",
+      "source": "svg-radial-start-grammar-fx-whitespace.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fx-whitespace.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fy-comma",
+      "source": "svg-radial-start-grammar-fy-comma.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fy-comma.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fy-exponent",
+      "source": "svg-radial-start-grammar-fy-exponent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fy-exponent.png",
+      "width": 64,
+      "height": 64,
+      "tolerance": {
+        "kind": "ramp-quantization",
+        "max_differing_pixels": 1,
+        "max_channel_delta": 1
+      }
+    },
+    {
+      "id": "svg-radial-start-grammar-fy-integer",
+      "source": "svg-radial-start-grammar-fy-integer.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fy-integer.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fy-nbsp",
+      "source": "svg-radial-start-grammar-fy-nbsp.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fy-nbsp.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fy-signed",
+      "source": "svg-radial-start-grammar-fy-signed.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fy-signed.png",
+      "width": 64,
+      "height": 64,
+      "tolerance": {
+        "kind": "ramp-quantization",
+        "max_differing_pixels": 1,
+        "max_channel_delta": 1
+      }
+    },
+    {
+      "id": "svg-radial-start-grammar-fy-trailingdot",
+      "source": "svg-radial-start-grammar-fy-trailingdot.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fy-trailingdot.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fy-whitespace",
+      "source": "svg-radial-start-grammar-fy-whitespace.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-grammar-fy-whitespace.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-mapped-viewbox",
+      "source": "svg-radial-start-mapped-viewbox.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-mapped-viewbox.png",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-radial-start-on-end-reflect",
+      "source": "svg-radial-start-on-end-reflect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-on-end-reflect.png",
+      "width": 64,
+      "height": 64,
+      "tolerance": {
+        "kind": "ramp-quantization",
+        "max_differing_pixels": 1,
+        "max_channel_delta": 1
+      }
+    },
+    {
+      "id": "svg-radial-start-on-end-repeat",
+      "source": "svg-radial-start-on-end-repeat.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-on-end-repeat.png",
+      "width": 64,
+      "height": 64,
+      "tolerance": {
+        "kind": "ramp-quantization",
+        "max_differing_pixels": 1,
+        "max_channel_delta": 1
+      }
+    },
+    {
+      "id": "svg-radial-start-one-stop-default",
+      "source": "svg-radial-start-one-stop-default.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-one-stop-default.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-one-stop-exterior-reflect",
+      "source": "svg-radial-start-one-stop-exterior-reflect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-one-stop-exterior-reflect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-one-stop-exterior-repeat",
+      "source": "svg-radial-start-one-stop-exterior-repeat.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-one-stop-exterior-repeat.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-one-stop-focal",
+      "source": "svg-radial-start-one-stop-focal.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-one-stop-focal.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-outer-negative-focal",
+      "source": "svg-radial-start-outer-negative-focal.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-outer-negative-focal.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-outer-zero-focal",
+      "source": "svg-radial-start-outer-zero-focal.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-outer-zero-focal.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-outer-zero-fr",
+      "source": "svg-radial-start-outer-zero-fr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-outer-zero-fr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-outer-zero-fx",
+      "source": "svg-radial-start-outer-zero-fx.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-outer-zero-fx.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-outer-zero-one-stop-focal",
+      "source": "svg-radial-start-outer-zero-one-stop-focal.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-outer-zero-one-stop-focal.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-outside-positive-fr",
+      "source": "svg-radial-start-outside-positive-fr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-outside-positive-fr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-above",
+      "source": "svg-radial-start-relation-above.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-relation-above.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-below",
+      "source": "svg-radial-start-relation-below.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-relation-below.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-containing",
+      "source": "svg-radial-start-relation-containing.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-relation-containing.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-disjoint",
+      "source": "svg-radial-start-relation-disjoint.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-relation-disjoint.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-external-tangent",
+      "source": "svg-radial-start-relation-external-tangent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-relation-external-tangent.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-internal-tangent",
+      "source": "svg-radial-start-relation-internal-tangent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-relation-internal-tangent.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-intersecting",
+      "source": "svg-radial-start-relation-intersecting.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-relation-intersecting.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-left",
+      "source": "svg-radial-start-relation-left.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-relation-left.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-right",
+      "source": "svg-radial-start-relation-right.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-relation-right.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-same-circle-reflect",
+      "source": "svg-radial-start-same-circle-reflect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-same-circle-reflect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-same-circle-repeat",
+      "source": "svg-radial-start-same-circle-repeat.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-same-circle-repeat.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-spread-circle-reflect",
+      "source": "svg-radial-start-spread-circle-reflect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-spread-circle-reflect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-spread-circle-repeat",
+      "source": "svg-radial-start-spread-circle-repeat.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-spread-circle-repeat.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-spread-outside-reflect",
+      "source": "svg-radial-start-spread-outside-reflect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-spread-outside-reflect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-spread-outside-repeat",
+      "source": "svg-radial-start-spread-outside-repeat.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-spread-outside-repeat.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-spread-reversed-reflect",
+      "source": "svg-radial-start-spread-reversed-reflect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-spread-reversed-reflect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-spread-reversed-repeat",
+      "source": "svg-radial-start-spread-reversed-repeat.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-spread-reversed-repeat.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-spread-zero-end-reflect",
+      "source": "svg-radial-start-spread-zero-end-reflect.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-spread-zero-end-reflect.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-spread-zero-end-repeat",
+      "source": "svg-radial-start-spread-zero-end-repeat.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-spread-zero-end-repeat.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-stops-alpha",
+      "source": "svg-radial-start-stops-alpha.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-stops-alpha.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-stops-duplicate",
+      "source": "svg-radial-start-stops-duplicate.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-stops-duplicate.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-stops-edges",
+      "source": "svg-radial-start-stops-edges.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-stops-edges.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-stops-unsorted",
+      "source": "svg-radial-start-stops-unsorted.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-stops-unsorted.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-all",
+      "source": "svg-radial-start-template-all.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-template-all.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-empty-fr",
+      "source": "svg-radial-start-template-empty-fr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-template-empty-fr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-empty-fx",
+      "source": "svg-radial-start-template-empty-fx.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-template-empty-fx.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-empty-fy",
+      "source": "svg-radial-start-template-empty-fy.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-template-empty-fy.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-explicit-focus",
+      "source": "svg-radial-start-template-explicit-focus.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-template-explicit-focus.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-fr-negative",
+      "source": "svg-radial-start-template-fr-negative.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-template-fr-negative.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-fr-zero",
+      "source": "svg-radial-start-template-fr-zero.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-template-fr-zero.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-invalid-fr",
+      "source": "svg-radial-start-template-invalid-fr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-template-invalid-fr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-local-center",
+      "source": "svg-radial-start-template-local-center.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-template-local-center.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-multihop",
+      "source": "svg-radial-start-template-multihop.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-template-multihop.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-override-fr",
+      "source": "svg-radial-start-template-override-fr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-template-override-fr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-override-fx",
+      "source": "svg-radial-start-template-override-fx.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-template-override-fx.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-override-fy",
+      "source": "svg-radial-start-template-override-fy.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-template-override-fy.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-xlink",
+      "source": "svg-radial-start-template-xlink.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-template-xlink.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-transform-rotate",
+      "source": "svg-radial-start-transform-rotate.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-transform-rotate.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-transform-scale",
+      "source": "svg-radial-start-transform-scale.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-transform-scale.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-transform-singular",
+      "source": "svg-radial-start-transform-singular.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-transform-singular.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-transform-skew",
+      "source": "svg-radial-start-transform-skew.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-transform-skew.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-transform-translate",
+      "source": "svg-radial-start-transform-translate.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-transform-translate.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-transparent-cone",
+      "source": "svg-radial-start-transparent-cone.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-transparent-cone.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-user-percent-fr",
+      "source": "svg-radial-start-user-percent-fr.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-user-percent-fr.png",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-radial-start-user-percent-fx",
+      "source": "svg-radial-start-user-percent-fx.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-user-percent-fx.png",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-radial-start-user-percent-fy",
+      "source": "svg-radial-start-user-percent-fy.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-user-percent-fy.png",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-radial-start-user-px",
+      "source": "svg-radial-start-user-px.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-user-px.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-zero-stops-focal",
+      "source": "svg-radial-start-zero-stops-focal.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-radial-start-zero-stops-focal.png",
+      "width": 64,
+      "height": 64
     },
     {
       "id": "svg-rect-rounded",

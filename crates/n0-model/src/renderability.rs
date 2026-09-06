@@ -320,6 +320,20 @@ pub fn validate_paint(paint: &Paint) -> Result<(), RenderabilityError> {
         Paint::RadialGradient(gradient) => {
             validate_opacity(gradient.opacity, "gradient")?;
             validate_affine(gradient.transform, "gradient")?;
+            if let Some(geometry) = gradient.geometry {
+                for (name, circle) in [("start", geometry.start), ("end", geometry.end)] {
+                    if !circle.center.0.is_finite() || !circle.center.1.is_finite() {
+                        return Err(RenderabilityError::new(format!(
+                            "radial gradient {name} circle center must be finite"
+                        )));
+                    }
+                    if !circle.radius.is_finite() || circle.radius < 0.0 {
+                        return Err(RenderabilityError::new(format!(
+                            "radial gradient {name} circle radius must be finite and nonnegative"
+                        )));
+                    }
+                }
+            }
             validate_gradient_stops(&gradient.stops, "gradient")
         }
         Paint::SweepGradient(gradient) => {

@@ -20,10 +20,13 @@
 //! rounded, dashed, translucent, or shaped geometry even when the translation
 //! is an integer. Fractional pan additionally resamples. Accurate static and
 //! exact-time export must execute the immutable frame product directly.
+//! Explicit radial circle pairs are refused by node before cache or canvas
+//! mutation: their measured translated-raster quantization is not admitted
+//! by this preview policy. Direct immutable-frame execution carries them.
 
 use n0_model::animation::SampleError;
 use n0_model::math::Affine;
-use n0_model::model::{Document, NodeKey};
+use n0_model::model::{Document, NodeId, NodeKey};
 use n0_model::properties::{PropertyError, PropertyValues, ValueView};
 use n0_model::resolve::{ResolveOptions, RotationInFlow};
 use skia_safe::{Canvas, Color, FilterMode, Image, ImageInfo, MipmapMode, SamplingOptions};
@@ -47,6 +50,11 @@ pub enum SceneCacheError {
     Property(PropertyError),
     FrameBuild(FrameBuildError),
     FrameExecution(FrameExecutionError),
+    /// Translating the offscreen raster changes this paint's quantization.
+    /// Execute the immutable frame directly instead of using preview policy.
+    ExplicitRadialGeometry {
+        node: NodeId,
+    },
 }
 
 impl std::fmt::Display for SceneCacheError {
@@ -55,6 +63,8 @@ impl std::fmt::Display for SceneCacheError {
             SceneCacheError::Property(error) => error.fmt(f),
             SceneCacheError::FrameBuild(error) => error.fmt(f),
             SceneCacheError::FrameExecution(error) => error.fmt(f),
+            SceneCacheError::ExplicitRadialGeometry { node } => write!(f,
+                "node {node}: the translated preview raster cache does not admit explicit radial gradient circles; execute the frame directly"),
         }
     }
 }
@@ -418,6 +428,18 @@ impl SceneCache {
             .or(self.list.as_ref())
             .expect("a retained raster has one drawlist");
 
+        // The source-neutral geometry remains renderable; only this policy's
+        // +MARGIN raster-and-crop is unproved for it. Refuse before changing
+        // the canvas or any cache field, never silently substitute a raster.
+        // A retained list already passed this guard. Inspect replacements
+        // only: a clean camera pan must not gain an O(items) paint scan.
+        if let Some(node) = replacement
+            .as_ref()
+            .and_then(|input| explicit_radial_owner(&input.list))
+        {
+            return Err(SceneCacheError::ExplicitRadialGeometry { node });
+        }
+
         let dx = view.e - self.ref_view.e;
         let dy = view.f - self.ref_view.f;
         let same_zoom = view.a == self.ref_view.a
@@ -484,6 +506,48 @@ impl SceneCache {
         canvas.draw_image_with_sampling_options(img, (-MARGIN + dx, -MARGIN + dy), sampling, None);
         Ok(reraster)
     }
+}
+
+fn explicit_radial_owner<K: Copy>(list: &crate::drawlist::DrawList<K>) -> Option<K> {
+    use crate::drawlist::ItemKind;
+    use n0_model::model::{Paint, Paints};
+    let contains = |paints: &Paints| {
+        paints.iter().any(
+            |paint| matches!(paint, Paint::RadialGradient(radial) if radial.geometry.is_some()),
+        )
+    };
+    list.items.iter().find_map(|item| {
+        let present = match &item.kind {
+            ItemKind::RectFill { paints, .. }
+            | ItemKind::OvalFill { paints, .. }
+            | ItemKind::PathFill { paints, .. } => contains(paints),
+            ItemKind::TextFill { paints, .. } => {
+                contains(&paints.node) || paints.runs.iter().flatten().flatten().any(contains)
+            }
+            ItemKind::RectStroke { stroke, .. }
+            | ItemKind::OvalStroke { stroke, .. }
+            | ItemKind::AbsoluteDashedOvalStroke { stroke, .. }
+            | ItemKind::LineStroke { stroke, .. }
+            | ItemKind::PathStroke { stroke, .. }
+            | ItemKind::TextStroke { stroke, .. } => contains(&stroke.paints),
+            ItemKind::PatternFill { pattern, .. } | ItemKind::PatternStroke { pattern, .. } => {
+                explicit_radial_owner(&pattern.program).is_some()
+            }
+            ItemKind::BeginOpacity { .. }
+            | ItemKind::BeginIsolatedOpacity { .. }
+            | ItemKind::EndOpacity
+            | ItemKind::BeginClipRect { .. }
+            | ItemKind::BeginClipPath { .. }
+            | ItemKind::EndClip
+            | ItemKind::BeginMaskContent
+            | ItemKind::BeginMaskSource { .. }
+            | ItemKind::EndMaskSource
+            | ItemKind::EndMaskContent
+            | ItemKind::BeginFilter { .. }
+            | ItemKind::EndFilter => false,
+        };
+        present.then_some(item.node)
+    })
 }
 
 /// Render one preview-composited frame to a fresh raster surface and return its

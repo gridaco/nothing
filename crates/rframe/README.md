@@ -69,13 +69,18 @@ helper never understates the mathematical bound.
 
 The vocabulary is deliberately narrower than SVG or CSS. Its ordinary leaves
 are solid, linear-gradient, and radial-gradient paints. A gradient is a
-self-contained normal-blend color ramp stated in the unit square of the
-geometry's own box. The alternative pattern value is likewise resolved: one
+self-contained normal-blend color ramp with intrinsic gradient-local geometry
+and affine placement in the painted geometry's box. A radial leaf may retain
+an explicit ordered start/end circle pair, including exterior centers and
+zero/equal/reversed radii, without renormalizing those six resolved scalars.
+Absence preserves the original centered unit-circle form; the
+[paint amendment](../../docs/wg/feat-painting/paint-model.md#amd-radial-circles)
+states that boundary. The alternative pattern value is likewise resolved: one
 bounded immutable `FrameItems` program in tile-local coordinates, one positive
 tile extent, one finite tile-to-consumer transform, and no lookup key or
 resource handle. A paint that still _references_ an authored pattern, image
-resource, or unresolved context-paint relationship remains inexpressible here;
-so does a focal geometry the shared radial leaf cannot state. Source-level
+resource, or unresolved context-paint relationship remains inexpressible here.
+Source-level
 context paint is not a new render fact: a producer must select and fully rebase
 its eventual no-paint, leaf, or pattern result before this boundary, without
 carrying the context relation or its reference-box ownership into the frame.

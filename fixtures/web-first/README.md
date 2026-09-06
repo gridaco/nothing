@@ -19,8 +19,8 @@ Every root primitive here is a closed enumeration in `primitives.json` with a
 committed Chromium oracle beside it. Text follows the ratified corpus-growth
 law in its own closed [text estate](./text/README.md): sixteen exact text cells and
 eight exact-number real-font artifact-geometry witnesses. The current evidence
-estate is 1,157 primitive cells plus 16 sampled frames, those twenty-four text
-witnesses, and 234 named refusal rows. Pixel cells use byte equality: what each
+estate is 1,284 primitive cells plus 16 sampled frames, those twenty-four text
+witnesses, and 260 named refusal rows. Pixel cells use byte equality: what each
 corpus admits is exactly what the engine renders pixel-for-pixel, except only
 the primitive rows carrying an explicit measured tolerance block. The
 real-font witness grades geometry before rasterization and makes no Chromium
@@ -28,6 +28,10 @@ pixel claim.
 
 | File | Role |
 | --- | --- |
+| `svg-radial-start-{default,explicit-default,fx-*,fy-*,fxy-*,fr-*,outer-*,one-stop-*,zero-stops-focal,same-circle-*}.svg` | Ordered radial-circle evidence: independent focus coordinates, signed/zero/positive start radius, equal/reversed/zero end radii, exterior focus, tile behavior, and one-stop transparent domains. The older focal refusal source graduates unchanged as `svg-radial-start-graduated-focal.svg`; the one-stop witness preserves the previously silent constant-fold escape as positive evidence. |
+| `svg-radial-start-{grammar-*,box-percent,user-*,mapped-viewbox,template-*,transform-*,relation-*,spread-*,stops-*}.svg` | Resource-length grammar/defaults and placement: accepted signed/exponent forms versus invalid whitespace-only, trailing-dot, comma, and non-ASCII-whitespace fallbacks; axis and diagonal percentage bases; mapped user units; per-field template inheritance and local overrides; every spread mode across distinct circle relationships; transforms, stop order, duplicate stops, and alpha. Valid values surrounded by SVG whitespace match their unpadded controls in Chromium and both CLI admissions (measured, not celled). The decimal/percentage adjacent numeric controls and radius midpoint pair are byte-exact. |
+| `svg-radial-start-client-*.svg` · `svg-radial-start-transparent-cone.svg` · `html-inline-svg-radial-start.html` | Paint clients through shapes, path/stroke/dashes, paint order, channel/group opacity, existing `<use>` instances, pattern source, clip, mask, offset filter, nested viewport, transparent exterior, and HTML ingress. This does not expand the marker-source paint profile or external-resource boundary. |
+| *(measured, not celled — radial-circle remainder)* | Twice-deterministic Chromium 149 matrices and both actual CLI admissions cover 35 core, 75 precision/grammar, 262 interaction, 64 boundary, two HTML, and two graduation sources. The nine amplified decimal/percentage/midpoint aliases each select the lower adjacent binary32 control; their opposing controls differ by 718–1,024 pixels at maximum channel deltas 14–34. Comments, wider units, computed functions, substitution, CSS-wide values, and range cases reach the exact-attribute refusals. Marker-source gradients reach the existing solid/context-solid marker-profile refusal. Sampled near-equal and tangent neighbors expose only the existing one-code-value ramp class; this is not a universal precision claim. A separate three-source, highly magnified diagonal-rounding experiment did not discriminate its adjacent Chromium controls and reached the checked shader-construction refusal in both CLI admissions: it establishes no new used-value rounding claim. |
 | `text/` | The closed text estate: sixteen exact pixel cells plus eight artifact-geometry witnesses (six Allerta, two Bungee); see [`text/README.md`](./text/README.md). |
 | `text/svg-text-tspan-paint-ownership.svg` · `text/geometry/svg-text-allerta-tspan-kerning.svg` | T4a's bounded flat `<tspan>` split. The Ahem cell makes parent/child opaque solid fills, inherited paint, whitespace collapse across wrapper boundaries, and one parent anchor byte-exact. The Allerta `ff` geometry witness keeps Chromium's 2330/2355 advances and 4685 total across a paint boundary; shaping the fragments independently would total 4710. Bungee scratch probes establish whole-cluster ownership by the run containing the cluster's first scalar (measured, not celled). Replacing every run paint with the parent changes 1,600px/Δ197, and anchoring the runs independently changes 1,200px/Δ218. Nominal advances and parent-only paint each made `just gate` fail before restoration. Four focused refusal rows retained positioned, shaping-changing, wider-paint/effect, and nested children at that checkpoint. No checklist row closed. |
 | `text/svg-text-positioned-chunks.svg` · `text/geometry/svg-text-allerta-positioned-combining.svg` | T4b's bounded positioned-chunk split. The exact Ahem cell crosses x/y chunk resets, per-chunk middle anchoring, dx/dy lists, omitted members, paint ownership, integer transforms, canonical whitespace, and `<use>`. The Allerta witness distinguishes an absolute shaping split (first `f` advance 2355) from preserved in-chunk kerning (2330/2355), and proves that a `dx` on the combining scalar carries to the following `Z`; Chromium and the projection agree exactly on total 13585 and starts 5000, 8330, 10685, and 15005. Repeated/negative positions, y-only chunks, excess members, and percentage bases are measured, not celled. Three new focused refusal rows retain wider value grammar, whitespace-index ambiguity, and an absolute split inside a combining cluster; parent lists, `rotate`, and `textLength` remain separate. Dropping first-character `dx` made the gate fail by 550 exact Ahem pixels before restoration. No checklist row closes. |
@@ -367,7 +371,7 @@ still fails loudly, and `svg-circle-defaults-clip` shows the bar is not
 unreachable: it bakes byte-exact and declares no tolerance at all.
 
 The gradient cells brought a second tolerance kind, `ramp-quantization`,
-declared on four cells with their measured bounds — always one code value,
+declared on twelve cells with their measured bounds — always one code value,
 never confined to a boundary ring (a ramp has none; none is needed, since a
 wrong gradient moves far more pixels by far more than one code value and
 still fails loudly). `svg-gradient-radial-custom` differs in 1 pixel: an
@@ -383,7 +387,14 @@ found the day the gate learned to sweep the whole suite before failing.
 and the two Skia builds round one code value apart across the ramp — the
 same physics, multiplied by the layer. `svg-mask-gradient-ramp` differs at
 576 pixels by one code value after that dithered ramp is converted into
-luminance alpha. Every other gradient cell — ramps, seams, hard stops, the
+luminance alpha. The radial-circle rung adds eight declarations, never
+changing an existing cell: `svg-radial-start-fxy-quarter`, `fx-on-end`,
+`on-end-repeat`, `on-end-reflect`, `grammar-fy-signed`, and
+`grammar-fy-exponent` each differ at one pixel; `client-mask` differs at 613
+pixels after mask composition, and `client-filter` at 1,465 after an offset
+filter's layer restore. Each of those abbreviated names has the same
+`svg-radial-start-` prefix. Bounds are measured counts, with no headroom;
+adjacent numeric controls remain exact. Every other gradient cell — ramps, seams, hard stops, the
 dither itself, the ramp *under* the fold — is byte-exact.
 
 Render a primitive through the `n0` product command — since

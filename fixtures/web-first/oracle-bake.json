@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "069296201718c43d29efe356fbea893781b73250dca51de3b6d47468d74027b0",
   "suite": "primitives.json",
-  "suite_sha256": "fdd8b6dec491334a09867d0913c75861e2812a6e2cea161b244e4fdd26c5bca2",
+  "suite_sha256": "9cc3c4ad2a2e4e31483b2895e4458618189361e767c55a0b788605d8090ec468",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -61,6 +61,15 @@
       "source_sha256": "e01dc21e24bcb30e8af1cf9ab43f8d5613c56242cba00b06759d04f7ea7eacba",
       "oracle": "chromium/html-inline-svg-pattern.png",
       "oracle_sha256": "0ac29fe0ee43f998a4dc30d0ee0d4764013d4cb7833cf17f4d6df15ef617cf8c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "html-inline-svg-radial-start",
+      "source": "html-inline-svg-radial-start.html",
+      "source_sha256": "e86031f1909d87ec8cd44eb4942d9b7da62c0c02ef1294f7506cfba3eb6dd845",
+      "oracle": "chromium/html-inline-svg-radial-start.png",
+      "oracle_sha256": "431394a51976e5721a7498470d69eedcebabef0c36d96846a734e618fe4c204f",
       "width": 64,
       "height": 64
     },
@@ -8568,6 +8577,1140 @@
       "oracle_sha256": "e2283b2f13964f98791851e7a84a3347b5010ec3b3867c6b36dabe2ee9e231cd",
       "width": 64,
       "height": 32
+    },
+    {
+      "id": "svg-radial-start-box-percent",
+      "source": "svg-radial-start-box-percent.svg",
+      "source_sha256": "4af3e02a80db580d74459115c14ab584501c3d1fe0673452b1cef94e7797a907",
+      "oracle": "chromium/svg-radial-start-box-percent.png",
+      "oracle_sha256": "eae5604f7426036c13116059be0b93adc7c847d73570e0cab073011680c65f8b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-channel-opacity",
+      "source": "svg-radial-start-client-channel-opacity.svg",
+      "source_sha256": "eda98511e873788fae27fa3e8cb19c6cb09d7637c473d094efe45bdaf493a05c",
+      "oracle": "chromium/svg-radial-start-client-channel-opacity.png",
+      "oracle_sha256": "5f948dcda15edcc1361621d2f91965a19c7622ca3d6175ab259a8f6d342b5f9c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-clip",
+      "source": "svg-radial-start-client-clip.svg",
+      "source_sha256": "724794298c2046d18445d28c8e1d68cec5bd6c6643124ae1705ed041f7663b95",
+      "oracle": "chromium/svg-radial-start-client-clip.png",
+      "oracle_sha256": "b40ee0aee40b0ffd441fcf5c56ee124997b11832eea1dd3084d2a7d9cc9581f2",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-dashes",
+      "source": "svg-radial-start-client-dashes.svg",
+      "source_sha256": "cb3711e7554f8756294c921084b196dbc0dc487aab15d22bbd798b56cdec4188",
+      "oracle": "chromium/svg-radial-start-client-dashes.png",
+      "oracle_sha256": "fc9e39903177dee5a9ad6e7260ea5e38eb3eced9ab8ab6be0b07f96861e17207",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-ellipse",
+      "source": "svg-radial-start-client-ellipse.svg",
+      "source_sha256": "0612dedb2a68b73fc809ed8d1aabee17a9790f96af42d0845a8b80c6c4e097fa",
+      "oracle": "chromium/svg-radial-start-client-ellipse.png",
+      "oracle_sha256": "6bf16910508a44ec6185d90bc81564c83de95c3fcd56e52668bc6c56b301fe90",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-filter",
+      "source": "svg-radial-start-client-filter.svg",
+      "source_sha256": "b765ab8ffe8f70d4e8921301de461e1712e7ad861ce0b67828a522b0f64df095",
+      "oracle": "chromium/svg-radial-start-client-filter.png",
+      "oracle_sha256": "4382643475775ebb6e1028c09312cef2ad05d2d7bde65a3d0010f3f87f302312",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-group-opacity",
+      "source": "svg-radial-start-client-group-opacity.svg",
+      "source_sha256": "341afecd8fb4e5c8a8f0343b87615762027aca19742941346626f074e02d4a7d",
+      "oracle": "chromium/svg-radial-start-client-group-opacity.png",
+      "oracle_sha256": "edb010afa22920ac3c885f8e64feee16c1ca2d505a3da2778cecddfaa1514797",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-mask",
+      "source": "svg-radial-start-client-mask.svg",
+      "source_sha256": "d4c9761124fc3bd0ef5623e2602175e99e402fcea54acd6768df148d5eb93046",
+      "oracle": "chromium/svg-radial-start-client-mask.png",
+      "oracle_sha256": "fe3cc50e9ba2a8ecd209f91c4e4dfe4f6e04f5b702e57a7666d495643e23a0cc",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-nested",
+      "source": "svg-radial-start-client-nested.svg",
+      "source_sha256": "b0fce77c0db8e48cc9a11f8ba62eb5ce4d0675af2fb9c9a6d85296c2ed8d61fe",
+      "oracle": "chromium/svg-radial-start-client-nested.png",
+      "oracle_sha256": "531733367de4787c7bcdd02cea7758c6e5884689aa57b7cfb13dba64f79a2f98",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-order",
+      "source": "svg-radial-start-client-order.svg",
+      "source_sha256": "92e8a4715c13ec4e0ea565bce0b46b80d425177d06bdd0250c77045457b586ff",
+      "oracle": "chromium/svg-radial-start-client-order.png",
+      "oracle_sha256": "745ca083ddbef622654e823b7c54e87e4f3820c2a378b1949a673d71633bf4a6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-path",
+      "source": "svg-radial-start-client-path.svg",
+      "source_sha256": "59de0c061638721ceb5c0ac7ccc4d42b572f65cd1b87f873bd1f416a6dbfa280",
+      "oracle": "chromium/svg-radial-start-client-path.png",
+      "oracle_sha256": "b0d2d4c8cf4d3872d51bf1282837daec0290ce948fb3b4b28b6a99a93a49e11a",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-pattern",
+      "source": "svg-radial-start-client-pattern.svg",
+      "source_sha256": "7263e4d83ffe51c34facbc36c8d7e04d39cd166ce8c7f69c4628615ad2a2ba78",
+      "oracle": "chromium/svg-radial-start-client-pattern.png",
+      "oracle_sha256": "70a35490638a5489e11d8205b538e43fd96444b19ee73714a58f60d179613d18",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-stroke",
+      "source": "svg-radial-start-client-stroke.svg",
+      "source_sha256": "389d8db642f5090c72457d69044798189dc484ab3e74aa3bb5ad7d9c1f5a237b",
+      "oracle": "chromium/svg-radial-start-client-stroke.png",
+      "oracle_sha256": "7367248a7fe4540da5c7f54b8946ffedfdc8bab83e919c0c4e2f927c68a1950b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-transform",
+      "source": "svg-radial-start-client-transform.svg",
+      "source_sha256": "b027142733f95ec756761d03dfac749daf8ab0703e883200b3a23766727c0b9b",
+      "oracle": "chromium/svg-radial-start-client-transform.png",
+      "oracle_sha256": "29de8801246f17f78aa4c1f1831b06a78f45c97ebccaf77ce055d0686c190efb",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-client-use",
+      "source": "svg-radial-start-client-use.svg",
+      "source_sha256": "8d0b977e4c4953164b09a6fc857d5cab0ce409d0c25961b2d54eefabe1d0ee3f",
+      "oracle": "chromium/svg-radial-start-client-use.png",
+      "oracle_sha256": "c077dca1df419ade7fded64b6338b936dad687f072fa5315b1ef88a8e42e0f05",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-default",
+      "source": "svg-radial-start-default.svg",
+      "source_sha256": "edee25f315a2c8b9095e419cb63b948325110a561673b3c2da738fbb4dfeed99",
+      "oracle": "chromium/svg-radial-start-default.png",
+      "oracle_sha256": "2521ab1422e4dbf213bb3655ad4efc9470e1bfe41f9f592ce506a8ed846d3a82",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-explicit-default",
+      "source": "svg-radial-start-explicit-default.svg",
+      "source_sha256": "e9b4bbc95c5e153abdba5fb4604a2f11167ade07ee051370f5a171dc8e00a99f",
+      "oracle": "chromium/svg-radial-start-explicit-default.png",
+      "oracle_sha256": "2521ab1422e4dbf213bb3655ad4efc9470e1bfe41f9f592ce506a8ed846d3a82",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-decimal-higher",
+      "source": "svg-radial-start-fr-decimal-higher.svg",
+      "source_sha256": "d290d163d90424c02e59c63dd968c878776db8b0c155662236d7b72aae06a6a2",
+      "oracle": "chromium/svg-radial-start-fr-decimal-higher.png",
+      "oracle_sha256": "666340d8e8634055aeb3e93adefac9a497a0344a3525593dcdce07eaab111d3a",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-decimal-lower",
+      "source": "svg-radial-start-fr-decimal-lower.svg",
+      "source_sha256": "432e2570a0802ddd0d6fd2ecd4289a07cdb17ea10b26b9554f72d9ad443c0a75",
+      "oracle": "chromium/svg-radial-start-fr-decimal-lower.png",
+      "oracle_sha256": "ee3e00b7a496bc55d8f141f77fd03cb5a766c15ed75410312af2ac2c26c9ba95",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-equal-r",
+      "source": "svg-radial-start-fr-equal-r.svg",
+      "source_sha256": "5abae6cc0237a065ad67b93c76800547a620c09a7458f9516c3d6aa3b8677f5d",
+      "oracle": "chromium/svg-radial-start-fr-equal-r.png",
+      "oracle_sha256": "fc9d92604b350638a0d198f01c24a9e15f683ec001e7e03ab28c6d309f83251f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-greater-r",
+      "source": "svg-radial-start-fr-greater-r.svg",
+      "source_sha256": "9e43ebc581f35a202d60903b6cd2329a8b81fb339aa21cc91594157e60c9b9fe",
+      "oracle": "chromium/svg-radial-start-fr-greater-r.png",
+      "oracle_sha256": "65cf78f4fd59ba0bd2c4e6681de3cf7ffde12f147b85563e2e6a55ba3fdf0b06",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-midpoint-higher",
+      "source": "svg-radial-start-fr-midpoint-higher.svg",
+      "source_sha256": "301b48c9e6390754764c5bf1ea4092fdc0d35dc5cf7e8aaf89e9e46dba07bf02",
+      "oracle": "chromium/svg-radial-start-fr-midpoint-higher.png",
+      "oracle_sha256": "093c43915fada446b20e5ca09dfd1bd5aca6ecfb5160886803577aa5fa6b8135",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-midpoint-lower",
+      "source": "svg-radial-start-fr-midpoint-lower.svg",
+      "source_sha256": "32034be42b46297743af033ad304944ebdbac594847b892c139623a7b9b770a7",
+      "oracle": "chromium/svg-radial-start-fr-midpoint-lower.png",
+      "oracle_sha256": "77b6de01604f4575632b931b8e4bcd772fc9f69541daaf966ecb8de5d6b5cbb0",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-negative",
+      "source": "svg-radial-start-fr-negative.svg",
+      "source_sha256": "fb957fa71a676b8afea6e9d53e1d85eefd5675652a989d288f062cc028532449",
+      "oracle": "chromium/svg-radial-start-fr-negative.png",
+      "oracle_sha256": "2521ab1422e4dbf213bb3655ad4efc9470e1bfe41f9f592ce506a8ed846d3a82",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-negative-zero",
+      "source": "svg-radial-start-fr-negative-zero.svg",
+      "source_sha256": "aa3d75e31bc59b75f0fa18e8c104998d94fc53120bbb134719cfd12bd18cf23a",
+      "oracle": "chromium/svg-radial-start-fr-negative-zero.png",
+      "oracle_sha256": "2521ab1422e4dbf213bb3655ad4efc9470e1bfe41f9f592ce506a8ed846d3a82",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-percentage-higher",
+      "source": "svg-radial-start-fr-percentage-higher.svg",
+      "source_sha256": "5b2eec28b16211eb7a10ac553bf51d4b211d0eaa575b7960f406bd3a04753cbd",
+      "oracle": "chromium/svg-radial-start-fr-percentage-higher.png",
+      "oracle_sha256": "13849c6ef93b616263e5cf43f5c5e1c40f4fb8deb8f2c1666552bd8b52bc631a",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-percentage-lower",
+      "source": "svg-radial-start-fr-percentage-lower.svg",
+      "source_sha256": "d2fcb4cb933ce879daf11ff2dc75dd8c51c5921fd363ac31f365081534f453d3",
+      "oracle": "chromium/svg-radial-start-fr-percentage-lower.png",
+      "oracle_sha256": "f78bb8b118b0d02e662d25cb7703496503843369f4b076cbf8ed0eb802e505ce",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fr-quarter",
+      "source": "svg-radial-start-fr-quarter.svg",
+      "source_sha256": "9f0ab74d61a286f1849cae4ef4f54b2cb7cb7206f85164853bf32e1fef88b338",
+      "oracle": "chromium/svg-radial-start-fr-quarter.png",
+      "oracle_sha256": "80a2b84481dc3612b664c8218877abe79a3e6acd87bf49898f7555edb50d84cc",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fx-decimal-higher",
+      "source": "svg-radial-start-fx-decimal-higher.svg",
+      "source_sha256": "c100913c407ab32f8677ddbea5a311079998d388739ac5261bbf82f4bdf79e74",
+      "oracle": "chromium/svg-radial-start-fx-decimal-higher.png",
+      "oracle_sha256": "fdb707ffbb341a3d6f3c1873952e39256e65c651ef1c06fece2551dcde870970",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fx-decimal-lower",
+      "source": "svg-radial-start-fx-decimal-lower.svg",
+      "source_sha256": "c9f7f5a7dcade0c2c3104249fbf728d774547ace51e1076d1fb73c3353375bcf",
+      "oracle": "chromium/svg-radial-start-fx-decimal-lower.png",
+      "oracle_sha256": "0d5301e34192577504096ce24e2701d12f4c87718e5c7eb973c77cd417686788",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fx-negative",
+      "source": "svg-radial-start-fx-negative.svg",
+      "source_sha256": "4b1acadd38d22e820d407a5f7b1c7da84257d7cdd72b85b9961a4db39d42c643",
+      "oracle": "chromium/svg-radial-start-fx-negative.png",
+      "oracle_sha256": "9d487686544f2fc22fdd7226d021ee8981d5d4dc81c4b1360b20b085e08ed301",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fx-on-end",
+      "source": "svg-radial-start-fx-on-end.svg",
+      "source_sha256": "ace61df249dfaebf4f0162ea2f425085b6a15d4f96f94e364158ddf834fe9666",
+      "oracle": "chromium/svg-radial-start-fx-on-end.png",
+      "oracle_sha256": "b46960a20dcbce78b6d2f55c9a3833d62e05b5d7ec4751aa389ebaeb7d15c355",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fx-outside",
+      "source": "svg-radial-start-fx-outside.svg",
+      "source_sha256": "a566f438d8e6c7e9584467d19d9a00e3d74e2e1d3dbfd64093d01891bc44f2d3",
+      "oracle": "chromium/svg-radial-start-fx-outside.png",
+      "oracle_sha256": "14c681e4553c162af59d00e341aef5d70823b7e98d9439508d10178e6dd46edd",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fx-percentage-higher",
+      "source": "svg-radial-start-fx-percentage-higher.svg",
+      "source_sha256": "46a763d9c31e50975962b2824a4a7dd0b942689b20a9a434185e115167811b3a",
+      "oracle": "chromium/svg-radial-start-fx-percentage-higher.png",
+      "oracle_sha256": "3b12d84cc89f39b2c87d222c7899a4cbd0ea40c8062484128a79a081e2ca54bf",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fx-percentage-lower",
+      "source": "svg-radial-start-fx-percentage-lower.svg",
+      "source_sha256": "2c636a1458f627fb95c02de8f6c28d339582115f973b6aacf59340fbf01136da",
+      "oracle": "chromium/svg-radial-start-fx-percentage-lower.png",
+      "oracle_sha256": "0d5301e34192577504096ce24e2701d12f4c87718e5c7eb973c77cd417686788",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fx-quarter",
+      "source": "svg-radial-start-fx-quarter.svg",
+      "source_sha256": "a5c59a017a9c7cfa40c2b13aee92194ae5d9c1767e30806f524d64f860d4d096",
+      "oracle": "chromium/svg-radial-start-fx-quarter.png",
+      "oracle_sha256": "e5334f527f556396ebb58a9f5fd7235304fce458d7b79134553c2fa4f1ad5018",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fxy-fr-quarter",
+      "source": "svg-radial-start-fxy-fr-quarter.svg",
+      "source_sha256": "d02390d8f32df5daa297870d5b164eb28abacbe1ea7a6c72f88634e3bff8415e",
+      "oracle": "chromium/svg-radial-start-fxy-fr-quarter.png",
+      "oracle_sha256": "431394a51976e5721a7498470d69eedcebabef0c36d96846a734e618fe4c204f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fxy-quarter",
+      "source": "svg-radial-start-fxy-quarter.svg",
+      "source_sha256": "ea3500f44977115ebdf3799bd56a1ac95453b862619d4fac21b677f70eb00b3b",
+      "oracle": "chromium/svg-radial-start-fxy-quarter.png",
+      "oracle_sha256": "305ab2f625c42b9a5adfc6acc501687734e98b146b82210c3fc37b1060eea480",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fy-decimal-higher",
+      "source": "svg-radial-start-fy-decimal-higher.svg",
+      "source_sha256": "9e0ccfee412b09700358e386f9e52df41a095b68b412805898b4e7e1a46655e2",
+      "oracle": "chromium/svg-radial-start-fy-decimal-higher.png",
+      "oracle_sha256": "56408367f7f169c4f29dd0a7d5b732d8e10aa5246320300adbc2ad960240a615",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fy-decimal-lower",
+      "source": "svg-radial-start-fy-decimal-lower.svg",
+      "source_sha256": "92a8bd9a160713c65158442c0b9cc80a57c03ec0b1693fced6d8f0f1b85a086a",
+      "oracle": "chromium/svg-radial-start-fy-decimal-lower.png",
+      "oracle_sha256": "0d5301e34192577504096ce24e2701d12f4c87718e5c7eb973c77cd417686788",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fy-percentage-higher",
+      "source": "svg-radial-start-fy-percentage-higher.svg",
+      "source_sha256": "f325e0b9eccdb40a903e302b1e606f90d724c97acc9162cb010c43f5ee6fe6ff",
+      "oracle": "chromium/svg-radial-start-fy-percentage-higher.png",
+      "oracle_sha256": "5542e71d522e5778c99f9115a14f7dbbd2ef690d849f33e9d34ef07c025ac887",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fy-percentage-lower",
+      "source": "svg-radial-start-fy-percentage-lower.svg",
+      "source_sha256": "f17a0bf0cf09e13f2e061f2d8a0c5590b03c09ca425ada5a5eb92f2aa0b40627",
+      "oracle": "chromium/svg-radial-start-fy-percentage-lower.png",
+      "oracle_sha256": "0d5301e34192577504096ce24e2701d12f4c87718e5c7eb973c77cd417686788",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-fy-quarter",
+      "source": "svg-radial-start-fy-quarter.svg",
+      "source_sha256": "c7286f99262d6f32cf271685c8c8c3d1e3596c5cfa31672faef41fca3d8ce480",
+      "oracle": "chromium/svg-radial-start-fy-quarter.png",
+      "oracle_sha256": "f940e782a2f68b2af833fde9870c4c163bd4a121c1d99c691534eb0cce74a0cd",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-graduated-focal",
+      "source": "svg-radial-start-graduated-focal.svg",
+      "source_sha256": "70c417e69bcc76c274f3c73596da711cc60efec8f7262abcb8b5851c4a16d06e",
+      "oracle": "chromium/svg-radial-start-graduated-focal.png",
+      "oracle_sha256": "c1477f001a2a2a7e1bb341cb393627b84e78ef28f25b1029a215b8516aa0e887",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fr-comma",
+      "source": "svg-radial-start-grammar-fr-comma.svg",
+      "source_sha256": "a06a6924b9ffb77ca2f6d9d279f73ef912158f2966a7235c0c9c5fcbde89ed84",
+      "oracle": "chromium/svg-radial-start-grammar-fr-comma.png",
+      "oracle_sha256": "e5334f527f556396ebb58a9f5fd7235304fce458d7b79134553c2fa4f1ad5018",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fr-exponent",
+      "source": "svg-radial-start-grammar-fr-exponent.svg",
+      "source_sha256": "2cf7094a4e3f7d19e3a15d57849b73bf841b22c43ce0c072152327f41190202b",
+      "oracle": "chromium/svg-radial-start-grammar-fr-exponent.png",
+      "oracle_sha256": "ebef51b8e9e7a6be894c1a3809f65ceecbe6d0eca71c61737f064ca163d3d0b5",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fr-integer",
+      "source": "svg-radial-start-grammar-fr-integer.svg",
+      "source_sha256": "1199c54d60ae7f251ec20d56d5c787b82da7f40ac9163a5644ffe1010c157a50",
+      "oracle": "chromium/svg-radial-start-grammar-fr-integer.png",
+      "oracle_sha256": "e5334f527f556396ebb58a9f5fd7235304fce458d7b79134553c2fa4f1ad5018",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fr-nbsp",
+      "source": "svg-radial-start-grammar-fr-nbsp.svg",
+      "source_sha256": "63f9e6d4bdfc4c79b4ec54f3d97c49d8e3743c45f2a81b7c1cda151b4d9bca8e",
+      "oracle": "chromium/svg-radial-start-grammar-fr-nbsp.png",
+      "oracle_sha256": "e5334f527f556396ebb58a9f5fd7235304fce458d7b79134553c2fa4f1ad5018",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fr-signed",
+      "source": "svg-radial-start-grammar-fr-signed.svg",
+      "source_sha256": "962b39030c539bc373c00bc53e40841432582ee70162d5f240db9db0957aa65e",
+      "oracle": "chromium/svg-radial-start-grammar-fr-signed.png",
+      "oracle_sha256": "ebef51b8e9e7a6be894c1a3809f65ceecbe6d0eca71c61737f064ca163d3d0b5",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fr-trailingdot",
+      "source": "svg-radial-start-grammar-fr-trailingdot.svg",
+      "source_sha256": "d3d905b63226ca5401df8254084e02e68c9f81c8724c4be479039bbf84618cd0",
+      "oracle": "chromium/svg-radial-start-grammar-fr-trailingdot.png",
+      "oracle_sha256": "e5334f527f556396ebb58a9f5fd7235304fce458d7b79134553c2fa4f1ad5018",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fr-whitespace",
+      "source": "svg-radial-start-grammar-fr-whitespace.svg",
+      "source_sha256": "593857c97a61bef7093e4219446771ab500390c7bbd1a9b71d64c2b507724278",
+      "oracle": "chromium/svg-radial-start-grammar-fr-whitespace.png",
+      "oracle_sha256": "e5334f527f556396ebb58a9f5fd7235304fce458d7b79134553c2fa4f1ad5018",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fx-comma",
+      "source": "svg-radial-start-grammar-fx-comma.svg",
+      "source_sha256": "550b5c7e79943d010574448e5bda8699043b9c714213e3e43016162d5e646d4a",
+      "oracle": "chromium/svg-radial-start-grammar-fx-comma.png",
+      "oracle_sha256": "917e9e95db49d09af380721d53277dffa4218c4f89b15f0a34dad24cee584bd7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fx-exponent",
+      "source": "svg-radial-start-grammar-fx-exponent.svg",
+      "source_sha256": "53afc6392613cb4602577add797e9c29a940a7637f407ab84a60286187cb980b",
+      "oracle": "chromium/svg-radial-start-grammar-fx-exponent.png",
+      "oracle_sha256": "6534f8dda4e541a71ef65bb7b3ee1455bd361e82cdf591404e3ddd35a37f1227",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fx-integer",
+      "source": "svg-radial-start-grammar-fx-integer.svg",
+      "source_sha256": "ff503adcf180eddc897419974ce9f09f81a6373279c99acdac6cb15baa1eb229",
+      "oracle": "chromium/svg-radial-start-grammar-fx-integer.png",
+      "oracle_sha256": "c64a039ab50019eaa1c7614b8b1e8ba68fa8a81c7f44d7e5728e75ce2cc4e72d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fx-nbsp",
+      "source": "svg-radial-start-grammar-fx-nbsp.svg",
+      "source_sha256": "6413b6beaeae0ce9f7c1a83951d6a558490a672393219d5a020625c63351a950",
+      "oracle": "chromium/svg-radial-start-grammar-fx-nbsp.png",
+      "oracle_sha256": "917e9e95db49d09af380721d53277dffa4218c4f89b15f0a34dad24cee584bd7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fx-signed",
+      "source": "svg-radial-start-grammar-fx-signed.svg",
+      "source_sha256": "831092b1c549586f536c235bcefdbc36ac669ea659604b4ebc48db8d605d71ad",
+      "oracle": "chromium/svg-radial-start-grammar-fx-signed.png",
+      "oracle_sha256": "6534f8dda4e541a71ef65bb7b3ee1455bd361e82cdf591404e3ddd35a37f1227",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fx-trailingdot",
+      "source": "svg-radial-start-grammar-fx-trailingdot.svg",
+      "source_sha256": "ac346555fadbba337168d4bd0eb28d5a8c6cee992800184bb177ddab12e86769",
+      "oracle": "chromium/svg-radial-start-grammar-fx-trailingdot.png",
+      "oracle_sha256": "917e9e95db49d09af380721d53277dffa4218c4f89b15f0a34dad24cee584bd7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fx-whitespace",
+      "source": "svg-radial-start-grammar-fx-whitespace.svg",
+      "source_sha256": "c8deafec16ecacfe3daa99540a6c0d4760c4d4127ad6b3c5bbe2a9ff7575b0a5",
+      "oracle": "chromium/svg-radial-start-grammar-fx-whitespace.png",
+      "oracle_sha256": "917e9e95db49d09af380721d53277dffa4218c4f89b15f0a34dad24cee584bd7",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fy-comma",
+      "source": "svg-radial-start-grammar-fy-comma.svg",
+      "source_sha256": "9eb25501e987e39a4444f3a6e5309d456f96994eb681b6bb3f7cbf38a386c8a7",
+      "oracle": "chromium/svg-radial-start-grammar-fy-comma.png",
+      "oracle_sha256": "e5334f527f556396ebb58a9f5fd7235304fce458d7b79134553c2fa4f1ad5018",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fy-exponent",
+      "source": "svg-radial-start-grammar-fy-exponent.svg",
+      "source_sha256": "524dd36cecb17d7cb2d0f1fc4fe0b7744e8e36dde065df16f49424d36389ba1c",
+      "oracle": "chromium/svg-radial-start-grammar-fy-exponent.png",
+      "oracle_sha256": "305ab2f625c42b9a5adfc6acc501687734e98b146b82210c3fc37b1060eea480",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fy-integer",
+      "source": "svg-radial-start-grammar-fy-integer.svg",
+      "source_sha256": "14ff0306d4a26f7e7f58858fff8acf2d76a9b247770645006aec097a678df8fa",
+      "oracle": "chromium/svg-radial-start-grammar-fy-integer.png",
+      "oracle_sha256": "2b425ae05af82f207be35dc76d4803ec44b5a6a80ddd7e804f54324ca01dab4b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fy-nbsp",
+      "source": "svg-radial-start-grammar-fy-nbsp.svg",
+      "source_sha256": "39e93a2cfc5b667c1e579d50e647ab458561a1ecf674c319fed12b0535b6d60f",
+      "oracle": "chromium/svg-radial-start-grammar-fy-nbsp.png",
+      "oracle_sha256": "e5334f527f556396ebb58a9f5fd7235304fce458d7b79134553c2fa4f1ad5018",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fy-signed",
+      "source": "svg-radial-start-grammar-fy-signed.svg",
+      "source_sha256": "091931ddee48e758835703826499205a214f1d0c53a938d26acd4c3b0dcc3831",
+      "oracle": "chromium/svg-radial-start-grammar-fy-signed.png",
+      "oracle_sha256": "305ab2f625c42b9a5adfc6acc501687734e98b146b82210c3fc37b1060eea480",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fy-trailingdot",
+      "source": "svg-radial-start-grammar-fy-trailingdot.svg",
+      "source_sha256": "69bc7833cb3be8f879d7d700132d7d8c9952c355dfbdd6cf85c0860446af05c9",
+      "oracle": "chromium/svg-radial-start-grammar-fy-trailingdot.png",
+      "oracle_sha256": "e5334f527f556396ebb58a9f5fd7235304fce458d7b79134553c2fa4f1ad5018",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-grammar-fy-whitespace",
+      "source": "svg-radial-start-grammar-fy-whitespace.svg",
+      "source_sha256": "d5f8c6ad9b56ab9a1b84f3c6d0301b114e3b8b93f08e008ae2b2e23a55fc4ad1",
+      "oracle": "chromium/svg-radial-start-grammar-fy-whitespace.png",
+      "oracle_sha256": "e5334f527f556396ebb58a9f5fd7235304fce458d7b79134553c2fa4f1ad5018",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-mapped-viewbox",
+      "source": "svg-radial-start-mapped-viewbox.svg",
+      "source_sha256": "78d1108f8116f8281cce13d3fd3b441a668a03ef75d72d11bd9c647344b0dab3",
+      "oracle": "chromium/svg-radial-start-mapped-viewbox.png",
+      "oracle_sha256": "99b098487564030537529948bf95654428e511ec72e296a64f82eb39db92e5e9",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-radial-start-on-end-reflect",
+      "source": "svg-radial-start-on-end-reflect.svg",
+      "source_sha256": "6737665bced7278e441b47357466f10f04a8ef699288b2857192c8389a4731c8",
+      "oracle": "chromium/svg-radial-start-on-end-reflect.png",
+      "oracle_sha256": "89c8444919f4d818f4af4fe14a82ab7ab7b13c86b6ca74ddce3147624b4cbe53",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-on-end-repeat",
+      "source": "svg-radial-start-on-end-repeat.svg",
+      "source_sha256": "658a63ff138b02afa93fb555372d4ad6fdd8859844b8a38cfa79f623c637f1d7",
+      "oracle": "chromium/svg-radial-start-on-end-repeat.png",
+      "oracle_sha256": "57ee46d50c23446d0d03df7c4ca47808f8b1354bbe1a34f255481010a4c6ea5c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-one-stop-default",
+      "source": "svg-radial-start-one-stop-default.svg",
+      "source_sha256": "621fe484dee548718c0e1389e5536a4b65f460ae0129982574e7d86eff82e663",
+      "oracle": "chromium/svg-radial-start-one-stop-default.png",
+      "oracle_sha256": "55b21ea5b5edbaec8ac477bba6274fa81ca5f4060a0443e4d71e100ffb51ecb9",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-one-stop-exterior-reflect",
+      "source": "svg-radial-start-one-stop-exterior-reflect.svg",
+      "source_sha256": "4e8b7636df56a0d633cc579fc813c2b512f88a3f84743a1596fc461c8f071b4b",
+      "oracle": "chromium/svg-radial-start-one-stop-exterior-reflect.png",
+      "oracle_sha256": "df1860aa6733e26cf277a4a28252f05f859fc61cdeee7e90a9c65a981f508e71",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-one-stop-exterior-repeat",
+      "source": "svg-radial-start-one-stop-exterior-repeat.svg",
+      "source_sha256": "9813b5c76707c77fe9ac20fb0fcb1467b9932a7a959f6b5f9b097d67a5d25ace",
+      "oracle": "chromium/svg-radial-start-one-stop-exterior-repeat.png",
+      "oracle_sha256": "df1860aa6733e26cf277a4a28252f05f859fc61cdeee7e90a9c65a981f508e71",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-one-stop-focal",
+      "source": "svg-radial-start-one-stop-focal.svg",
+      "source_sha256": "f8cea8a66e37633f677d1c33911bb3a8c1d6dff1f55d2d1258954588da8b34bb",
+      "oracle": "chromium/svg-radial-start-one-stop-focal.png",
+      "oracle_sha256": "df1860aa6733e26cf277a4a28252f05f859fc61cdeee7e90a9c65a981f508e71",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-outer-negative-focal",
+      "source": "svg-radial-start-outer-negative-focal.svg",
+      "source_sha256": "329e9d27b0671cdd77b2641470db92642f2bd0ee1aed6b88d67f0339c9efe448",
+      "oracle": "chromium/svg-radial-start-outer-negative-focal.png",
+      "oracle_sha256": "ac74c3bed32526a16ef620dff4610ad854f070130065a4bcac535c843e9ef531",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-outer-zero-focal",
+      "source": "svg-radial-start-outer-zero-focal.svg",
+      "source_sha256": "e5ecb4672323d67126cf042d14763319e0a9b489f204faa588572d6fab37ba97",
+      "oracle": "chromium/svg-radial-start-outer-zero-focal.png",
+      "oracle_sha256": "ac74c3bed32526a16ef620dff4610ad854f070130065a4bcac535c843e9ef531",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-outer-zero-fr",
+      "source": "svg-radial-start-outer-zero-fr.svg",
+      "source_sha256": "a4b19687c4ac2f99085f201b0b795291198e8ad36f71ba5eed024c520b5a1fee",
+      "oracle": "chromium/svg-radial-start-outer-zero-fr.png",
+      "oracle_sha256": "68da8f0feb4b29f520d5159fbdf75cc83e27036828e737fad4ce57ac2683c0db",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-outer-zero-fx",
+      "source": "svg-radial-start-outer-zero-fx.svg",
+      "source_sha256": "500c53da6c77884404273d44b2fe34ac67ad0042bf7b9f84fb79e77e86bfc7f3",
+      "oracle": "chromium/svg-radial-start-outer-zero-fx.png",
+      "oracle_sha256": "6f4bc09437add7d83beb4429ffec5327b45c94ae909eab27f1225d6f82451d29",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-outer-zero-one-stop-focal",
+      "source": "svg-radial-start-outer-zero-one-stop-focal.svg",
+      "source_sha256": "47f0d969aaae043e23b8d4e6cf6a8739f2af1e8b849a769884f6dab4eef25d7f",
+      "oracle": "chromium/svg-radial-start-outer-zero-one-stop-focal.png",
+      "oracle_sha256": "1924a802682cafbcbad1a56367a93306e74fa62754ef5ea5486364ed97a3d6dd",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-outside-positive-fr",
+      "source": "svg-radial-start-outside-positive-fr.svg",
+      "source_sha256": "b473984c137fb3d8823f3733da7390cb7602ad70bf1052830511e1a7ba44de2a",
+      "oracle": "chromium/svg-radial-start-outside-positive-fr.png",
+      "oracle_sha256": "914e90d7e35715efad599840133a97dacf6a21ec5c16d33ae277a0b23616b838",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-above",
+      "source": "svg-radial-start-relation-above.svg",
+      "source_sha256": "8ef770cdca9b6ca502f40e8ad4c255907fba76e3cf5abb80bc9e89ba834b69ed",
+      "oracle": "chromium/svg-radial-start-relation-above.png",
+      "oracle_sha256": "b16b44d438dac193895dd352f169fca5796e8ced683183cddcfaee67e7ed5d2c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-below",
+      "source": "svg-radial-start-relation-below.svg",
+      "source_sha256": "e8cb5906fa2bd8768185f1339695bb0bdc39443cec155a8989f0060d4edaf108",
+      "oracle": "chromium/svg-radial-start-relation-below.png",
+      "oracle_sha256": "4f0eadf498e6ed05d8362f29cf65bbc04d41c4859c80c0cebacb9ffe2f1ae41a",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-containing",
+      "source": "svg-radial-start-relation-containing.svg",
+      "source_sha256": "62a8d29313498b09280ddc8cdac9464d99c5074357ea7e375505fe1cb5f2df74",
+      "oracle": "chromium/svg-radial-start-relation-containing.png",
+      "oracle_sha256": "b6f7aa1f7efabd472aefb2d66477f24f40c642b69c80928448c6be841ae22265",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-disjoint",
+      "source": "svg-radial-start-relation-disjoint.svg",
+      "source_sha256": "151f537a12d993fdca8945fadedf21fb79a02a2ff4285351bc42f71b19b1f6e0",
+      "oracle": "chromium/svg-radial-start-relation-disjoint.png",
+      "oracle_sha256": "77d70ba0147ad931f86144fa91e6fa20a5273ab039217e6246f527a49f083895",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-external-tangent",
+      "source": "svg-radial-start-relation-external-tangent.svg",
+      "source_sha256": "1c5331a52099b7c4b90b6f68772f0695ee4a5337aef3b66896101627fa7b5f5f",
+      "oracle": "chromium/svg-radial-start-relation-external-tangent.png",
+      "oracle_sha256": "3feb78fe38869fd53292d212ca20637f234c1fbf56c285f542b7d2762cca38bc",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-internal-tangent",
+      "source": "svg-radial-start-relation-internal-tangent.svg",
+      "source_sha256": "3c2088f965e781024ca223f875539eabf7b0273f5f2e1b9405a81c6c7dcb990a",
+      "oracle": "chromium/svg-radial-start-relation-internal-tangent.png",
+      "oracle_sha256": "361cfdd770979e42392c0111311b2303fbff151a26f79ad24a66087994117746",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-intersecting",
+      "source": "svg-radial-start-relation-intersecting.svg",
+      "source_sha256": "27fe9450c5bc6cca03c3d0c2bcd40788367a6031c9e300112411e13cca759bf2",
+      "oracle": "chromium/svg-radial-start-relation-intersecting.png",
+      "oracle_sha256": "34ba1e3fa79bf92dea2d1197a269de4bfcd32864504ccefe29c33e1948fa9a6d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-left",
+      "source": "svg-radial-start-relation-left.svg",
+      "source_sha256": "1f293eb11298eeeeab7cc2e0b9048ee913418974221e8804825c4e029b66b027",
+      "oracle": "chromium/svg-radial-start-relation-left.png",
+      "oracle_sha256": "3a664371ccd6fcca8c3c0cb4e19d8ef03c431aed35e2bbccafcdbd093596b051",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-relation-right",
+      "source": "svg-radial-start-relation-right.svg",
+      "source_sha256": "3dc08cb2a7560e9a1dac16394be06b82389f8b4032c4263d2095746409c3cf03",
+      "oracle": "chromium/svg-radial-start-relation-right.png",
+      "oracle_sha256": "ab97caf638fef1190e57dfc4b547a5bf80dea8d235df857a2e6dc2413b76a99d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-same-circle-reflect",
+      "source": "svg-radial-start-same-circle-reflect.svg",
+      "source_sha256": "5e868076070c6fe173335c998f80cb7fe8d653ed15d310bd962764fc94a5d525",
+      "oracle": "chromium/svg-radial-start-same-circle-reflect.png",
+      "oracle_sha256": "4693b5e85e4c51a97270905cfdf2242c746fd4d2397a933791c9724a05e36984",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-same-circle-repeat",
+      "source": "svg-radial-start-same-circle-repeat.svg",
+      "source_sha256": "e5196b827a06dd8114c1410e25fd963040086e15bf2d998f6575235166ef165f",
+      "oracle": "chromium/svg-radial-start-same-circle-repeat.png",
+      "oracle_sha256": "4693b5e85e4c51a97270905cfdf2242c746fd4d2397a933791c9724a05e36984",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-spread-circle-reflect",
+      "source": "svg-radial-start-spread-circle-reflect.svg",
+      "source_sha256": "db4717b2853c41436d0d12a4379660078f8358570957841e59a2f8c44d233fcc",
+      "oracle": "chromium/svg-radial-start-spread-circle-reflect.png",
+      "oracle_sha256": "afad5d6014197fd02ed0c8757ac5bd1e8caa67c3692f1f42471cdce3e9036785",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-spread-circle-repeat",
+      "source": "svg-radial-start-spread-circle-repeat.svg",
+      "source_sha256": "2d370178ee41ef10da5d5f27408fed8f557062b9467f8fd45a1b9d01f619569b",
+      "oracle": "chromium/svg-radial-start-spread-circle-repeat.png",
+      "oracle_sha256": "a4f330f8746e9f7fcc1c5e4c18e7f77c9dd58b8c055560099fc6e27416facf9f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-spread-outside-reflect",
+      "source": "svg-radial-start-spread-outside-reflect.svg",
+      "source_sha256": "51ee436bc421fb0393d84340f66e5b421305767f53dded980a16944feb465f81",
+      "oracle": "chromium/svg-radial-start-spread-outside-reflect.png",
+      "oracle_sha256": "29e0a6237be007419c18d998a449bc471e9cb935ab451a38acc292bb5556a169",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-spread-outside-repeat",
+      "source": "svg-radial-start-spread-outside-repeat.svg",
+      "source_sha256": "70ebadfd58ebd96d38db2938ee9cfdea2174e8cbd985101c2143768faa295bea",
+      "oracle": "chromium/svg-radial-start-spread-outside-repeat.png",
+      "oracle_sha256": "4ab77c7b881a34009e862d601dd239e8aa4526729d0d2cffad196366458a6ccc",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-spread-reversed-reflect",
+      "source": "svg-radial-start-spread-reversed-reflect.svg",
+      "source_sha256": "ea602c3bf8490d1af217006db23f4c28335a10d6f5f07fe4978fee2d000f7295",
+      "oracle": "chromium/svg-radial-start-spread-reversed-reflect.png",
+      "oracle_sha256": "c0291e09565d0a2364f55ec6aa36efdd8f11a60596b0c1057dd9255f90f5e26c",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-spread-reversed-repeat",
+      "source": "svg-radial-start-spread-reversed-repeat.svg",
+      "source_sha256": "596457f8f588892bca1b232ea1f7019004ddfc8466ae4841f53d12e3db94ac6e",
+      "oracle": "chromium/svg-radial-start-spread-reversed-repeat.png",
+      "oracle_sha256": "3f026bf07ca7436a83fc386208981691d898b8b1690cfde9c5b6a68d9dcef5e6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-spread-zero-end-reflect",
+      "source": "svg-radial-start-spread-zero-end-reflect.svg",
+      "source_sha256": "b5f499df2431372624d84c6c9a078cde3f06ee23a87a93308f62c096099bacc5",
+      "oracle": "chromium/svg-radial-start-spread-zero-end-reflect.png",
+      "oracle_sha256": "e7f9bfef44095b456546dce865ace8f27a1a60f80c204d9a6bda855a0308065b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-spread-zero-end-repeat",
+      "source": "svg-radial-start-spread-zero-end-repeat.svg",
+      "source_sha256": "9ffaa0125d07eb43732915493085daa1253d281b0dfbffdfc74170eadf15c72d",
+      "oracle": "chromium/svg-radial-start-spread-zero-end-repeat.png",
+      "oracle_sha256": "1ae3ce11d5cd86740bc91144aa19ea06d2a092a88ae154e259422278326b488d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-stops-alpha",
+      "source": "svg-radial-start-stops-alpha.svg",
+      "source_sha256": "b2ff62a0e49262ffc0213d8e5d37b62136b58ef019cd103680b91959631e59bf",
+      "oracle": "chromium/svg-radial-start-stops-alpha.png",
+      "oracle_sha256": "4c0532e3496d4e1492df0234218efe9d62a2b7512d174c9f43598684510b3bb2",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-stops-duplicate",
+      "source": "svg-radial-start-stops-duplicate.svg",
+      "source_sha256": "3c53a98d5252bf4fc4606c6fa8612ddf03218bab52748545daa8d78385ea92ac",
+      "oracle": "chromium/svg-radial-start-stops-duplicate.png",
+      "oracle_sha256": "e7782de5839d8cffa2454c12ddbc189e9be6c9675eed89dd94a0d9023830d8d6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-stops-edges",
+      "source": "svg-radial-start-stops-edges.svg",
+      "source_sha256": "0850ba587968dc1b32c02e79142708b07820e2c298aa536cfc004aa7499a30f8",
+      "oracle": "chromium/svg-radial-start-stops-edges.png",
+      "oracle_sha256": "0e4d12b58618fb759e3ec51fe41675b31c76adbdfd5c43dee5fc68f3b13d9c65",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-stops-unsorted",
+      "source": "svg-radial-start-stops-unsorted.svg",
+      "source_sha256": "905c239e0a0581c21aa4f628f1b590eeb894730f0442745243fe5ecf21d9ec63",
+      "oracle": "chromium/svg-radial-start-stops-unsorted.png",
+      "oracle_sha256": "7752804bc7de1c6f712a27b16e6e3bfdf410635440a483555aec2af9ef67e5e6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-all",
+      "source": "svg-radial-start-template-all.svg",
+      "source_sha256": "25e2d302ebcec8271104f17f13dba0efdd23e4a5d78d5afa99ebe7ca818147a3",
+      "oracle": "chromium/svg-radial-start-template-all.png",
+      "oracle_sha256": "6852a4292ec18dcc524b95a66d21525fef6bb772859e4ba5bf85b77dfc2ba647",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-empty-fr",
+      "source": "svg-radial-start-template-empty-fr.svg",
+      "source_sha256": "0c07dbdcef5f45accde316aa4fcddb71901047d3a44a299fff44d77930339209",
+      "oracle": "chromium/svg-radial-start-template-empty-fr.png",
+      "oracle_sha256": "6534f8dda4e541a71ef65bb7b3ee1455bd361e82cdf591404e3ddd35a37f1227",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-empty-fx",
+      "source": "svg-radial-start-template-empty-fx.svg",
+      "source_sha256": "97dd74cd44631f41b91fed502d8c01e020735409f5722bfa952b978a3650d1da",
+      "oracle": "chromium/svg-radial-start-template-empty-fx.png",
+      "oracle_sha256": "2d3fd98c7d079cee77cc194a0f9b667e591424655b98aa9647d0801b078ba72f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-empty-fy",
+      "source": "svg-radial-start-template-empty-fy.svg",
+      "source_sha256": "8507edfd6ffb994185d5d1c43b02bc768970749517e35b954ecf2ce9dd58bb81",
+      "oracle": "chromium/svg-radial-start-template-empty-fy.png",
+      "oracle_sha256": "ebef51b8e9e7a6be894c1a3809f65ceecbe6d0eca71c61737f064ca163d3d0b5",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-explicit-focus",
+      "source": "svg-radial-start-template-explicit-focus.svg",
+      "source_sha256": "6c79e250e16d606af381c72e6ac1f9d31d075c11de73aafac6ea5694897dc819",
+      "oracle": "chromium/svg-radial-start-template-explicit-focus.png",
+      "oracle_sha256": "c83ec0ec82c5ef86e6616a8ee3c66cdeeb6ef0cfbdf4479fb630a46aa880a6c6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-fr-negative",
+      "source": "svg-radial-start-template-fr-negative.svg",
+      "source_sha256": "661de9aa0f2e75b7e5a0dd18746e03c59d1a255b05b8abc534b7cb96dd3af837",
+      "oracle": "chromium/svg-radial-start-template-fr-negative.png",
+      "oracle_sha256": "6534f8dda4e541a71ef65bb7b3ee1455bd361e82cdf591404e3ddd35a37f1227",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-fr-zero",
+      "source": "svg-radial-start-template-fr-zero.svg",
+      "source_sha256": "422fa949d37d35ee70ceb30bc3e15819dfccead87f5266360a6f7c5986b65381",
+      "oracle": "chromium/svg-radial-start-template-fr-zero.png",
+      "oracle_sha256": "6534f8dda4e541a71ef65bb7b3ee1455bd361e82cdf591404e3ddd35a37f1227",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-invalid-fr",
+      "source": "svg-radial-start-template-invalid-fr.svg",
+      "source_sha256": "e8aaec17c19df0f9f5886ae98e6567c6d7d9d557002779621da403253d6012ef",
+      "oracle": "chromium/svg-radial-start-template-invalid-fr.png",
+      "oracle_sha256": "6534f8dda4e541a71ef65bb7b3ee1455bd361e82cdf591404e3ddd35a37f1227",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-local-center",
+      "source": "svg-radial-start-template-local-center.svg",
+      "source_sha256": "82a4166d6506d6f71dff61ae3b36e9b70a9c82a6ec9b96748177cdbc16e49312",
+      "oracle": "chromium/svg-radial-start-template-local-center.png",
+      "oracle_sha256": "13fb674aec4eda5e29584853f8df1d8f67b3466342e760cc5df83cf965da9430",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-multihop",
+      "source": "svg-radial-start-template-multihop.svg",
+      "source_sha256": "1e9ef28aa2de31cbf23fbf0db3b9650270474eb4c77d0b3f4b721df093e85346",
+      "oracle": "chromium/svg-radial-start-template-multihop.png",
+      "oracle_sha256": "6852a4292ec18dcc524b95a66d21525fef6bb772859e4ba5bf85b77dfc2ba647",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-override-fr",
+      "source": "svg-radial-start-template-override-fr.svg",
+      "source_sha256": "93b4b8950a846072eaefab48cf19d99252cf078c1ff76df5b0919c704053b9e8",
+      "oracle": "chromium/svg-radial-start-template-override-fr.png",
+      "oracle_sha256": "bf542f4067a8557e9baa211601d28aa4211b17827eb1f50194c623424fc85460",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-override-fx",
+      "source": "svg-radial-start-template-override-fx.svg",
+      "source_sha256": "f33975ddf5cfdb308f6ca8723ff1c5c89e97215a643577c8a49329614831efbf",
+      "oracle": "chromium/svg-radial-start-template-override-fx.png",
+      "oracle_sha256": "1eb93120dfcdcec750e284b6e9df5087f35ba72239243f9c2e22258fdb55cb04",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-override-fy",
+      "source": "svg-radial-start-template-override-fy.svg",
+      "source_sha256": "12e7607c7650ea55f5a5d97160ee3d8555ba3d94417930da0d9431dc5c2e8269",
+      "oracle": "chromium/svg-radial-start-template-override-fy.png",
+      "oracle_sha256": "1572b7f0d48e1e74e21a0440411dbb788e466d7db91d3b1c9040407abd70e02b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-template-xlink",
+      "source": "svg-radial-start-template-xlink.svg",
+      "source_sha256": "80728913316f097d22fad02884c15dddd7db90cfbbee106e7427ed65e385ce15",
+      "oracle": "chromium/svg-radial-start-template-xlink.png",
+      "oracle_sha256": "6852a4292ec18dcc524b95a66d21525fef6bb772859e4ba5bf85b77dfc2ba647",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-transform-rotate",
+      "source": "svg-radial-start-transform-rotate.svg",
+      "source_sha256": "314b5e2223f3e223dcdaf4780d12da40ff95d75cf489c1744ec77fc95d11e684",
+      "oracle": "chromium/svg-radial-start-transform-rotate.png",
+      "oracle_sha256": "fec2d2fb756b3a804a520869f594e7fc546a7c1c6fec3858349d9f55ce61f76b",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-transform-scale",
+      "source": "svg-radial-start-transform-scale.svg",
+      "source_sha256": "67ffcb5f5f8580fc4a1b02bc36ab41bb4d43909aed4d3c875c317297b6675cc4",
+      "oracle": "chromium/svg-radial-start-transform-scale.png",
+      "oracle_sha256": "2dc123861114172f7df4bc4007f7f21cce3e0f02a23ef4e96fc753d01598d176",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-transform-singular",
+      "source": "svg-radial-start-transform-singular.svg",
+      "source_sha256": "32293b5fcd06f70625023e88996dc3e6dbc74298dfa8f1dab7c20114a8f3aded",
+      "oracle": "chromium/svg-radial-start-transform-singular.png",
+      "oracle_sha256": "6f4bc09437add7d83beb4429ffec5327b45c94ae909eab27f1225d6f82451d29",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-transform-skew",
+      "source": "svg-radial-start-transform-skew.svg",
+      "source_sha256": "4d86c97659381d1ae7e0950fa075bf9a35cc8ab43289a529907f649e878d8112",
+      "oracle": "chromium/svg-radial-start-transform-skew.png",
+      "oracle_sha256": "f8d69958c99486194826dc4bbdb56d565d5131b1a382c9f73011f4477e507011",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-transform-translate",
+      "source": "svg-radial-start-transform-translate.svg",
+      "source_sha256": "de502c4f4a8a481cd7805f181236386e40810894a04987b81c0bec5fdc8fae0b",
+      "oracle": "chromium/svg-radial-start-transform-translate.png",
+      "oracle_sha256": "7a3c12e9c0cb258f1fc7700f24c16800ec423225278e579c04f46c6c86e0097d",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-transparent-cone",
+      "source": "svg-radial-start-transparent-cone.svg",
+      "source_sha256": "6fde32b5f7193fb3d04fb5f60db42ddcb4bb6da63952541cc9759bb2f8a753d4",
+      "oracle": "chromium/svg-radial-start-transparent-cone.png",
+      "oracle_sha256": "5499a18296e821d032ca84d0f309a4cf75e7bcc5ce1dbc8a9d5ba6005131edc6",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-user-percent-fr",
+      "source": "svg-radial-start-user-percent-fr.svg",
+      "source_sha256": "9743b6956a95d6f6fd69ce8b9d5088a69f18b453e2c6af3a2cf5ad0b7a7d86b5",
+      "oracle": "chromium/svg-radial-start-user-percent-fr.png",
+      "oracle_sha256": "99b098487564030537529948bf95654428e511ec72e296a64f82eb39db92e5e9",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-radial-start-user-percent-fx",
+      "source": "svg-radial-start-user-percent-fx.svg",
+      "source_sha256": "db38a2dcb28a5a65bcbd2130a4c633d0324b3af7bdde3a75002156c1b452d83f",
+      "oracle": "chromium/svg-radial-start-user-percent-fx.png",
+      "oracle_sha256": "99b098487564030537529948bf95654428e511ec72e296a64f82eb39db92e5e9",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-radial-start-user-percent-fy",
+      "source": "svg-radial-start-user-percent-fy.svg",
+      "source_sha256": "d7a9c23470a71c991492acd7e6ceba640e10e8ec0659ae79f08ca20588554615",
+      "oracle": "chromium/svg-radial-start-user-percent-fy.png",
+      "oracle_sha256": "99b098487564030537529948bf95654428e511ec72e296a64f82eb39db92e5e9",
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "svg-radial-start-user-px",
+      "source": "svg-radial-start-user-px.svg",
+      "source_sha256": "d92eb0081af402a8ed835520d36cb38df7daa822d5216b9f229c2926559087a2",
+      "oracle": "chromium/svg-radial-start-user-px.png",
+      "oracle_sha256": "99a82542cf90d191408c0f560a80e1bd71ae5df5fcbf4535919591c36de2683f",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-radial-start-zero-stops-focal",
+      "source": "svg-radial-start-zero-stops-focal.svg",
+      "source_sha256": "53b3ed6cfed8f5e6a3246108e82f86bb0553bf5bb2451122f401997c4f2192a5",
+      "oracle": "chromium/svg-radial-start-zero-stops-focal.png",
+      "oracle_sha256": "6f4bc09437add7d83beb4429ffec5327b45c94ae909eab27f1225d6f82451d29",
+      "width": 64,
+      "height": 64
     },
     {
       "id": "svg-rect-rounded",
