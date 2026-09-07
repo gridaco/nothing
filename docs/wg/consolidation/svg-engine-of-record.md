@@ -116,7 +116,7 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,378 Chromium-baked primitive cells plus 16 sampled frames,
+- **The corpus** is 1,382 Chromium-baked primitive cells plus 16 sampled frames,
   with a separate sixteen-cell exact text suite whose current cells select
   hash-pinned Ahem and Ahem-derived bytes from explicit family/face
   environments, and eight exact-number artifact-geometry
@@ -5768,8 +5768,10 @@ explicit root isolation; it does not pretend the command paints the HTML page.
 Five additional direct/instance/anchor/mapped-viewport cells and eight
 explicit-Normal-isolation opacity controls cover opaque-backdrop interactions.
 Nineteen further cells cover the actual outer root and redundant isolation
-over translucent backdrops. The rung adds 94 exact primitive/HTML cells,
-taking the corpus from 1,284 to 1,378, and 43 named refusals, taking that
+over translucent backdrops. Four more cross multiply/screen at opacity .123456
+with opaque/translucent source colors over a translucent destination. The rung
+adds 98 exact primitive/HTML cells, taking the corpus from 1,284 to 1,382,
+and 43 named refusals, taking that
 register from 260 to 303. The sixteen
 sampled frames and separate sixteen pixel/eight geometry text witnesses are
 unchanged.
@@ -5808,6 +5810,59 @@ partial backdrop is exact in both admissions **(measured, not celled)**.
 Cross-seam tests separately execute actual
 outer-root multiply/screen frames onto opaque and translucent colored caller
 canvases; removing their initial Normal boundary changes those results.
+
+### Portable byte arithmetic
+
+Hosted x86 testing caught 24 new multiply cells departing by one or two code
+values while the same cells were exact on ARM. In pinned Skia 0.99.0,
+`SkRasterPipeline_opts.h` uses accurate divide-by-255 on NEON but approximate
+`(value + 255) / 256` on x86 for this low-precision operation. For example,
+source green 104 times destination green 101 produces 41 with accurate
+rounding, but 42 with that approximation. This is the same backend arithmetic
+class already established by the filter-blend rung, not a new tolerance.
+
+Multiply restoration now uses explicit byte arithmetic. Sharing only the
+filter blender was insufficient: a runtime blender promotes its surrounding
+pipeline to high precision, so leaving the original float paint opacity in
+place changes normalization order. At opacity .123456 with partial source and
+destination alpha, that prototype changed 1,600 pixels by one code value.
+The four small-opacity cells guard the corrected order: quantize opacity to a
+byte, round each premultiplied source-byte product, then blend. Restore-paint
+alpha stays one, so opacity is not applied twice. Sixteen scratch candidates
+cross multiply/screen, .123456/.499/.501/.999 opacity and opaque/translucent
+sources; all match Chromium through both actual CLI admissions on ARM
+**(measured, not celled)** apart from the four committed .123456 witnesses.
+
+Screen's final blend uses accurate arithmetic, but pinned source inspection
+shows its preceding partial-opacity scale shares the same x86 approximation.
+The ordered helper therefore also carries screen with non-unit opacity.
+The next hosted x86 run passes multiply and all four small-opacity cells, but
+leaves one isolated-rotation cell: 141 pixels at delta 1. Its first differing
+RGBA pixel is `[70,100,134,255]` instead of `[71,101,135,255]`.
+
+This is a second source-over backend path. Pinned `SkBlitRow_opts.h` implements
+the AVX2/SSE2 sprite restore as `s + floor(d * (256 - sa) / 256)`, while NEON
+uses accurate divide-by-255 rounding. A mutation of only the new unit-Normal
+restore to that formula reproduces 141 differing pixels and the same first
+pixel. The raster-pipeline approximation alone produces a different 135-pixel
+signature, so the two backend paths are not conflated. Exact byte source-over
+now carries unit-Normal blend boundaries as well. Partial-opacity Normal keeps
+the established native isolated-opacity operation and its independently
+guarded byte behavior; unit-opacity screen also stays native. No old opacity
+operation is changed. The complete 1,382-cell gate then passes on ARM and
+hosted x86 with the scoped correction, without an oracle or tolerance change.
+
+One compiled effect per mode per thread and at most 256 immutable opacity
+bindings per mode amortize shader construction; this is a code/uniform cache, never a pixel or
+backdrop cache. Frame compilation preflights fallible construction and returns
+an owner-bearing `BuildError::Blend` on failure. It issues no raster commands.
+Execution tests guard the static shader's raster lowering against independent
+integer arithmetic for every opacity byte in multiply/screen and every source
+alpha byte in unit-Normal, distinguish float-first ordering, and prove warm
+binding reuse equals fresh construction. Three effect slots are bounded; the
+Normal slot is used only with unit opacity.
+The group shader enables Skia's optimizer; its exactness is independently
+gated, and the existing filter-blender configuration is unchanged.
 
 ### The precision stop
 
@@ -5850,6 +5905,12 @@ unit, transformed and clipped isolation controls at 1,024 pixels/delta 1.
 Restoring the compiler's exact pre-mutation bytes returns the full gate to
 green. The alpha correction therefore has its own sensitive external witness.
 
+A third mutation replaces accurate division with the x86 approximation in
+only the new ordered group shader. The gate fails 28 blend cells, including
+both small-opacity source profiles in both modes at 1,600 pixels/delta 1 or 2.
+Restoring the exact shader-source bytes returns all 1,382 positive cells and
+303 named refusals to green. This separately guards the portable correction.
+
 On aarch64, baseline and B1 have identical `size_of` results: `FrameItem` and
 `FrameNode` 200 bytes, `ScopeEffect` 64, drawlist `ItemKind` 136 and `Item` 168.
 This is a data-layout observation, not proof of unchanged execution cost.
@@ -5863,8 +5924,12 @@ not measure allocator capacity, Skia-internal allocations or GPU memory.
 The matched CPU-raster measurement used the clean pre-rung revision
 `fd4097f2` and B1 on the same Apple M2 Ultra, 128 GiB host, macOS 26.5.1,
 Rust 1.92.0 aarch64, skia-safe 0.99.0, release builds with tracing off.
-Each process warms 20 replays, then takes 20 source-compile, 80 frame-compile
-and 160 paint samples; three repetitions alternate baseline/current order.
+Each workload records its first frame compile and paint separately, warms five
+replays, then takes 20 source-compile, 80 frame-compile and 40 paint samples;
+three repetitions alternate baseline/current order. This bounded final
+protocol applies equally to baseline and current. Earlier exploratory runs
+used 20 warmups and 160 paint samples; their numbers are not substituted into
+the matched table.
 Cargo startup, file/PNG work, canvas clear and the input clone are outside
 their respective timed loops. Source compilation includes document and cascade
 construction. Other task builds, captures and tests are stopped during the
@@ -5883,32 +5948,52 @@ Numbers below are the median of three within-run p50s, in microseconds.
 
 | Workload | Source compile, B1 | Frame compile, baseline → B1 | Paint, baseline → B1 |
 | --- | ---: | ---: | ---: |
-| 100 neutral groups | 1,463.4 | 17.46 → 17.50 | 47.17 → 47.42 |
-| 1,000 neutral groups | 15,606.1 | 186.33 → 185.54 | 429.21 → 430.67 |
-| 100 neutral groups, depth 48 | 8,414.2 | 17.46 → 17.50 | 47.13 → 47.00 |
-| 100 opacity groups | 1,515.4 | 25.29 → 25.04 | 3,333.29 → 3,336.54 |
-| 100 multiply groups | 1,622.2 | not admitted → 25.92 | not admitted → 4,026.75 |
-| 1,000 multiply groups | 17,120.5 | not admitted → 295.25 | not admitted → 40,038.04 |
-| 100 screen groups | 1,617.0 | not admitted → 25.92 | not admitted → 4,027.50 |
-| One multiply group containing 100 pairs | 1,614.4 | not admitted → 20.17 | not admitted → 104.75 |
+| 100 neutral groups | 1,434.8 | 17.71 → 17.58 | 46.96 → 47.50 |
+| 1,000 neutral groups | 15,509.0 | 185.67 → 186.50 | 428.25 → 432.21 |
+| 100 neutral groups, depth 48 | 8,373.3 | 17.46 → 17.92 | 47.54 → 47.08 |
+| 100 opacity groups | 1,528.0 | 25.46 → 26.79 | 3,329.75 → 3,348.25 |
+| 100 multiply groups | 1,578.6 | not admitted → 27.21 | not admitted → 131,461.92 |
+| 1,000 multiply groups | 16,717.9 | not admitted → 302.71 | not admitted → 1,304,405.25 |
+| 100 screen groups, unit opacity | 1,567.3 | not admitted → 26.46 | not admitted → 5,205.21 |
+| One multiply group containing 100 pairs | 1,555.9 | not admitted → 20.58 | not admitted → 2,531.71 |
 
-The unaffected controls show no repeatable increase above the plan's 5%
-investigation threshold; this is not a universal regression guarantee. One
-100-neutral current repetition is slower than the other two: source,
-frame-compile and paint p50 ranges are 1,443.4–2,152.2, 17.42–21.50 and
-47.04–56.29 µs respectively. The 1,000-neutral current paint p50 range is
-430.21–432.08 µs; multiply-100 is 4,022.04–4,236.71 µs, with the largest
-within-run p95 4,552.21 µs. The raw per-stage p50/p95/p99/min/max distributions
+The old-opacity frame-compile median crosses the plan's 5% investigation
+threshold (25.46 → 26.79 µs). A focused quiet rerun of that unchanged workload,
+with five alternating baseline/current process pairs and the same per-stage
+sampling, gives 25.21 → 25.83 µs; ranges overlap at 25.00–27.50 and
+25.04–27.83 µs. Paint in that rerun is 3,344.71 → 3,351.38 µs. The alert does
+not repeat above the threshold in that follow-up median; the original alert
+is retained, not replaced. Other unaffected stage medians remain below the
+threshold. This is not a universal regression guarantee.
+
+One 100-neutral current repetition is slower: source, frame-compile and paint
+p50 ranges are 1,421.92–2,156.58, 17.42–21.83 and 46.92–58.08 µs; baseline
+paint is 46.75–47.25 µs. The 1,000-neutral current paint range is
+427.79–432.54 µs, versus baseline 427.96–434.79 µs. Multiply-100 is
+130,987.79–131,516.63 µs, with the largest within-run p95 136,350.08 µs.
+The raw per-stage p50/p95/p99/min/max distributions
 are retained in the ignored local execution record; no portable FPS claim is
 drawn from this machine.
 
+The first multiply-100 frame compilation, including the thread's first
+blend-effect construction, takes 671.96–1,021.50 µs, versus a steady median 27.21 µs.
+Its first paint is 131,080.88–133,097.67 µs. These are whole-stage first-use
+samples, not an isolated shader-compilation timer. The portable path is
+substantially slower than the pre-correction native-only experiment (about
+4.03 ms for 100 groups), which was pixel-wrong on x86. An unoptimized portable
+shader took 137.50 ms for that workload in an exploratory repetition; enabling
+the optimizer took 130.52 ms. A transparent-source shortcut instead took
+158.00 ms and was removed. Those exploratory timings are not additional
+matched repetitions. Partial-opacity screen uses the portable helper but was
+not separately timed. The bounded slice is not a claim of realtime throughput.
+
 The redundant-isolation workload uses the same source pairs with explicit
 `isolation:isolate` and no blending descendants. At 100 / 1,000 groups it
-emits 201 / 2,001 frame items and zero blend saves; paint p50 is 47.17 / 431.13
-µs. Source compilation is 1,622.6 / 17,124.9 µs, including cascade and the
+emits 201 / 2,001 frame items and zero blend saves; paint p50 is 47.38 / 432.96
+µs. Source compilation is 1,578.9 / 16,807.0 µs, including cascade and the
 elision ledger. Adding 48 isolated ancestors to the 1,000-group workload
-still emits 2,001 items and zero blend saves, with 430.50 µs paint p50. Its
-90,735.1 µs source compilation includes existing depth-dependent walks;
+still emits 2,001 items and zero blend saves, with 432.04 µs paint p50. Its
+90,182.0 µs source compilation includes existing depth-dependent walks;
 the linear final compaction is not a claim that the entire compiler is linear.
 
 Untimed trace observation makes the cost concrete. Multiply-100 emits 403
@@ -5922,10 +6007,11 @@ surface and non-blend allocations are excluded. Neutral groups report zero
 blend saves, not an estimate of zero total renderer allocation.
 
 With the 100-group source positions held fixed and the canvas changed to
-128×128 or 512×512, paint p50 becomes 1,196.54 or 15,295.17 µs; observed
+128×128 or 512×512, paint p50 becomes 33,014.71 or 524,706.00 µs; observed
 cumulative blend storage becomes 6,619,136 or 105,906,176 bytes. The smaller
 canvas also clips some source draws, so this is an allocation/viewport
-experiment, not pure equal-coverage area scaling. The practical cost is repeated
-active-clip-sized source materialization, not a larger semantic tree. Source
+experiment, not pure equal-coverage area scaling. The practical cost combines
+repeated active-clip-sized source materialization with explicit byte arithmetic
+over those layers, not a larger semantic tree. Source
 extent/precision must be proved before tightening bounds or pooling layers;
 B1 records that cost and leaves the optimization unshipped.

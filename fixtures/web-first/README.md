@@ -19,7 +19,7 @@ Every root primitive here is a closed enumeration in `primitives.json` with a
 committed Chromium oracle beside it. Text follows the ratified corpus-growth
 law in its own closed [text estate](./text/README.md): sixteen exact text cells and
 eight exact-number real-font artifact-geometry witnesses. The current evidence
-estate is 1,378 primitive cells plus 16 sampled frames, those twenty-four text
+estate is 1,382 primitive cells plus 16 sampled frames, those twenty-four text
 witnesses, and 303 named refusal rows. Pixel cells use byte equality: what each
 corpus admits is exactly what the engine renders pixel-for-pixel, except only
 the primitive rows carrying an explicit measured tolerance block. The
@@ -29,6 +29,7 @@ pixel claim.
 | File | Role |
 | --- | --- |
 | `svg-group-blend-{normal,multiply,screen}-{leaf,group,opacity,alpha,transparent,stroke}.svg` · `svg-group-blend-{multiply,screen}-each.svg` | B1's exact group-operation controls: mode-sensitive backdrops, overlapping children, combined opacity, translucency, transparent initial source and fill/stroke composition. Whole-group versus per-child blending changes 576 pixels at maximum deltas 89 (multiply) and 98 (screen). No new tolerance. |
+| `svg-group-blend-{multiply,screen}-opacity-small-{opaque,partial}.svg` | Opacity .123456 with opaque/translucent source colors over a translucent destination. The multiply partial-source cell rejects a float-first opacity prototype at 1,600 pixels/delta 1: byte opacity must be applied before the byte-domain blend. Hosted x86 also guards the low-precision backend's approximate division; no oracle or tolerance is relaxed. |
 | `svg-group-blend-{neutral,isolated,clip,partial,opacity,outer-opacity}.svg` and their `-isolated` controls | Authored clip-path and partial opacity isolate descendants; a neutral group does not. Same-element blend plus opacity differs from an outer opacity group by 2,048 pixels at delta 76. Unit-opacity isolation is a real boundary, not an absent effect. |
 | `svg-group-blend-{translate,scale,rotate,nested-hidden}.svg` and their `-isolated` controls | Ordinary affine transforms and a nested SVG overflow clip do not isolate. Adding isolation changes 2,048 / 1,536 / 2,160 pixels for the transform trio, and 2,048 for the viewport case, all at maximum delta 152. |
 | `svg-group-blend-{linear,pattern,fractional}-{normal,multiply,screen}.svg` · `svg-group-blend-opacity-{0,1,p00392156862745098,p5019607843137255,p6}.svg` | Rectangular source paint/materialization and opacity boundaries, including a linear ramp, an existing repeating-vector paint, fractional rectangle edges, zero/unit opacity and fractional group alpha. This does not admit blending inside the pattern source. |

@@ -301,9 +301,13 @@ mod layer_metrics {
     }
 
     #[test]
-    fn instrumented_execute_matches_the_same_native_operations_without_observation() {
+    fn instrumented_execute_matches_equivalent_operations_without_observation() {
         // Instrumentation equivalence, not an independent Chromium oracle.
-        // The control never calls access_top_layer_pixels.
+        // The control independently spells the ordered byte operations for
+        // Multiply/partial Screen; native lowp restoration is not portable.
+        // Partial Normal retains native opacity. No control operation calls
+        // access_top_layer_pixels or a production blend helper.
+        drain_blend_layers();
         let source = CGColor::from_rgba(205, 104, 67, 153);
         let bounds = rect(8.25, 8.125, 24.5, 24.75);
         for mode in MODES {
@@ -314,18 +318,52 @@ mod layer_metrics {
             ]))
             .unwrap();
             let instrumented = raster(&product, BACKDROP);
+            assert_eq!(drain_blend_layers().len(), 1, "{mode:?} execute observed");
             let mut control = skia_safe::surfaces::raster_n32_premul((SIZE, SIZE)).unwrap();
             let canvas = control.canvas();
             canvas.clear(skia_safe::Color::from_rgb(
                 BACKDROP.r, BACKDROP.g, BACKDROP.b,
             ));
             let mut restore = skia_safe::Paint::default();
-            restore.set_alpha_f(0.5);
-            restore.set_blend_mode(match mode {
-                ScopeBlendMode::Normal => skia_safe::BlendMode::SrcOver,
-                ScopeBlendMode::Multiply => skia_safe::BlendMode::Multiply,
-                ScopeBlendMode::Screen => skia_safe::BlendMode::Screen,
-            });
+            match mode {
+                ScopeBlendMode::Normal => {
+                    restore.set_alpha_f(0.5);
+                    restore.set_blend_mode(skia_safe::BlendMode::SrcOver);
+                }
+                ScopeBlendMode::Multiply | ScopeBlendMode::Screen => {
+                    let expression = match mode {
+                        ScopeBlendMode::Multiply => {
+                            "q(s * (255.0 - d.a) + d * (255.0 - s.a) + s * d)"
+                        }
+                        ScopeBlendMode::Screen => "s + d - q(s * d)",
+                        ScopeBlendMode::Normal => unreachable!(),
+                    };
+                    let shader = format!(
+                        r#"
+uniform float opacity_byte;
+float4 q(float4 value) {{
+    return floor((value + 127.0) / 255.0);
+}}
+half4 main(half4 src, half4 dst) {{
+    float4 s = floor(float4(src) * 255.0 + 0.5);
+    float4 d = floor(float4(dst) * 255.0 + 0.5);
+    s = q(s * opacity_byte);
+    float4 result = {expression};
+    return half4(clamp(result, 0.0, 255.0) / 255.0);
+}}
+"#
+                    );
+                    let effect = skia_safe::RuntimeEffect::make_for_blender(shader, None)
+                        .expect("test control byte blender compiles");
+                    // round(0.5 * 255) = 128. Scale inside the blender once;
+                    // restore paint alpha remains one, avoiding float-first scaling.
+                    restore.set_blender(
+                        effect
+                            .make_blender(skia_safe::Data::new_copy(&128.0_f32.to_ne_bytes()), None)
+                            .expect("test control opacity binding is valid"),
+                    );
+                }
+            }
             canvas.save_layer(&skia_safe::canvas::SaveLayerRec::default().paint(&restore));
             let mut paint = skia_safe::Paint::default();
             paint.set_anti_alias(true);
@@ -342,8 +380,11 @@ mod layer_metrics {
                 read_pixels(&mut control, SIZE, SIZE),
                 "{mode:?}"
             );
+            assert!(
+                drain_blend_layers().is_empty(),
+                "{mode:?} control unobserved"
+            );
         }
-        drain_blend_layers();
     }
 }
 

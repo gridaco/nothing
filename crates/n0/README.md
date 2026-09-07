@@ -308,6 +308,18 @@ the previously blended pixels. `tests/group_blending.rs` pins these consumer
 laws with hand-built frames and exact pixel probes. Those tests do not claim
 Chromium parity or measured performance.
 
+Multiply and partial-opacity Screen restoration explicitly round byte opacity before scaling source
+bytes and applying the byte-domain blend. This avoids pinned Skia's differing
+ARM/x86 low-precision arithmetic and runtime-blender opacity ordering.
+Construction is preflighted without drawing; failure returns an owner-bearing
+`glyphless::BuildError::Blend`. A thread-local cache holds one compiled effect
+per mode and at most 256 immutable opacity bindings per mode, never destination pixels. Tests
+execute every opacity byte against integer arithmetic and prove binding reuse
+equals fresh construction. Unit-Normal restoration also uses exact byte
+source-over to avoid the x86 sprite blitter's separate approximation at
+partial-alpha edges. Partial-opacity Normal retains the existing isolated
+opacity path, and unit-opacity Screen remains native.
+
 With the `trace` feature, `n0::trace::sink::drain_blend_layers()` drains typed
 `BlendLayerMetrics`, separate from duration samples: one aggregate per outermost
 drawlist execution, including recursive resource recording. It counts blend
