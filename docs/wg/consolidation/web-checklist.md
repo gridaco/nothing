@@ -688,6 +688,9 @@ excluded.
 > boundaries, and the [B1 evidence](./svg-engine-of-record.md#b1-svg-group-blending)
 > records the measured split. Partial coverage is not a tick under
 > gridaco/nothing#81/#89/#90.
+> The [B2a source-extent correction](./svg-engine-of-record.md#b2a-linear-gradient-blend-source-extents)
+> adds exact off-phase gradient controls and narrows unproved source
+> combinations by name. It closes a silent-pixel defect, not these rows.
 
 
 ### CSS fonts

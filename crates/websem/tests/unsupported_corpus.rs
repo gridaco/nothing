@@ -47,6 +47,116 @@ use Departure::{BothRefuse, DeclaredByBestEffort};
 /// a bare "does it error" check and fail this one.
 const CORPUS: &[(&str, Departure, &str)] = &[
     (
+        "svg-group-blend-linear-extent-stroke-context-missing",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-stroke-context-none",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-stroke-transparent",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-stroke-opacity-zero",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-stroke-empty-gradient",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-stroke-missing-reference",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-stroke-none-fallback",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-stroke-sibling",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-root-opacity",
+        BothRefuse,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-transform",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-rotation",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-viewport",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-clip",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-child-opacity",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-zero-opacity",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-transparent",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-fill-zero",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-empty-gradient",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-pattern-stroke",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-nested-blend",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-isolation",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-linear-extent-root",
+        BothRefuse,
+        "linear-gradient source-extent",
+    ),
+    (
         "svg-group-blend-root-filter-sibling",
         BothRefuse,
         "image-effect composition",
@@ -1525,6 +1635,19 @@ fn every_unsupported_fixture_departs_by_name_in_both_admissions() {
                     declared.iter().all(|d| !d.path().is_empty()),
                     "{id}: every declaration carries a structural path"
                 );
+                if id.starts_with("svg-group-blend-linear-extent-") {
+                    let path = if id.ends_with("-viewport") {
+                        "svg/svg[1]/g[1]"
+                    } else {
+                        "svg/g[1]"
+                    };
+                    assert!(
+                        declared
+                            .iter()
+                            .any(|d| d.path() == path && d.reason().contains(named)),
+                        "{id}: source-extent refusal must stay at {path}: {declared:?}"
+                    );
+                }
             }
         }
     }

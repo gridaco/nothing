@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (1398)
+## Chromium-baked cells (1423)
 
 Cells are checked against their committed Chromium oracles using
 exact bytes unless a manifest entry declares a measured, bounded
@@ -613,6 +613,31 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-group-blend-css-keyword.svg" title="svg-group-blend-css-keyword (standalone-svg)"><img src="./chromium/svg-group-blend-css-keyword.png" width="56" alt="svg-group-blend-css-keyword"></a>
 <a href="./svg-group-blend-css-var.svg" title="svg-group-blend-css-var (standalone-svg)"><img src="./chromium/svg-group-blend-css-var.png" width="56" alt="svg-group-blend-css-var"></a>
 <a href="./svg-group-blend-css-winner.svg" title="svg-group-blend-css-winner (standalone-svg)"><img src="./chromium/svg-group-blend-css-winner.png" width="56" alt="svg-group-blend-css-winner"></a>
+<a href="./svg-group-blend-extent-multiply-diagonal.svg" title="svg-group-blend-extent-multiply-diagonal (standalone-svg)"><img src="./chromium/svg-group-blend-extent-multiply-diagonal.png" width="56" alt="svg-group-blend-extent-multiply-diagonal"></a>
+<a href="./svg-group-blend-extent-multiply-fractional.svg" title="svg-group-blend-extent-multiply-fractional (standalone-svg)"><img src="./chromium/svg-group-blend-extent-multiply-fractional.png" width="56" alt="svg-group-blend-extent-multiply-fractional"></a>
+<a href="./svg-group-blend-extent-multiply-integer.svg" title="svg-group-blend-extent-multiply-integer (standalone-svg)"><img src="./chromium/svg-group-blend-extent-multiply-integer.png" width="56" alt="svg-group-blend-extent-multiply-integer"></a>
+<a href="./svg-group-blend-extent-multiply-leaf.svg" title="svg-group-blend-extent-multiply-leaf (standalone-svg)"><img src="./chromium/svg-group-blend-extent-multiply-leaf.png" width="56" alt="svg-group-blend-extent-multiply-leaf"></a>
+<a href="./svg-group-blend-extent-multiply-many.svg" title="svg-group-blend-extent-multiply-many (standalone-svg)"><img src="./chromium/svg-group-blend-extent-multiply-many.png" width="56" alt="svg-group-blend-extent-multiply-many"></a>
+<a href="./svg-group-blend-extent-multiply-opacity-half.svg" title="svg-group-blend-extent-multiply-opacity-half (standalone-svg)"><img src="./chromium/svg-group-blend-extent-multiply-opacity-half.png" width="56" alt="svg-group-blend-extent-multiply-opacity-half"></a>
+<a href="./svg-group-blend-extent-multiply-opaque.svg" title="svg-group-blend-extent-multiply-opaque (standalone-svg)"><img src="./chromium/svg-group-blend-extent-multiply-opaque.png" width="56" alt="svg-group-blend-extent-multiply-opaque"></a>
+<a href="./svg-group-blend-extent-multiply-outer-opacity.svg" title="svg-group-blend-extent-multiply-outer-opacity (standalone-svg)"><img src="./chromium/svg-group-blend-extent-multiply-outer-opacity.png" width="56" alt="svg-group-blend-extent-multiply-outer-opacity"></a>
+<a href="./svg-group-blend-extent-multiply-stroke.svg" title="svg-group-blend-extent-multiply-stroke (standalone-svg)"><img src="./chromium/svg-group-blend-extent-multiply-stroke.png" width="56" alt="svg-group-blend-extent-multiply-stroke"></a>
+<a href="./svg-group-blend-extent-multiply-stroke-clear-gradient.svg" title="svg-group-blend-extent-multiply-stroke-clear-gradient (standalone-svg)"><img src="./chromium/svg-group-blend-extent-multiply-stroke-clear-gradient.png" width="56" alt="svg-group-blend-extent-multiply-stroke-clear-gradient"></a>
+<a href="./svg-group-blend-extent-multiply-stroke-none.svg" title="svg-group-blend-extent-multiply-stroke-none (standalone-svg)"><img src="./chromium/svg-group-blend-extent-multiply-stroke-none.png" width="56" alt="svg-group-blend-extent-multiply-stroke-none"></a>
+<a href="./svg-group-blend-extent-normal-fractional.svg" title="svg-group-blend-extent-normal-fractional (standalone-svg)"><img src="./chromium/svg-group-blend-extent-normal-fractional.png" width="56" alt="svg-group-blend-extent-normal-fractional"></a>
+<a href="./svg-group-blend-extent-screen-fill-stroke-gradient.svg" title="svg-group-blend-extent-screen-fill-stroke-gradient (standalone-svg)"><img src="./chromium/svg-group-blend-extent-screen-fill-stroke-gradient.png" width="56" alt="svg-group-blend-extent-screen-fill-stroke-gradient"></a>
+<a href="./svg-group-blend-extent-screen-fractional.svg" title="svg-group-blend-extent-screen-fractional (standalone-svg)"><img src="./chromium/svg-group-blend-extent-screen-fractional.png" width="56" alt="svg-group-blend-extent-screen-fractional"></a>
+<a href="./svg-group-blend-extent-screen-gradient-transform.svg" title="svg-group-blend-extent-screen-gradient-transform (standalone-svg)"><img src="./chromium/svg-group-blend-extent-screen-gradient-transform.png" width="56" alt="svg-group-blend-extent-screen-gradient-transform"></a>
+<a href="./svg-group-blend-extent-screen-integer.svg" title="svg-group-blend-extent-screen-integer (standalone-svg)"><img src="./chromium/svg-group-blend-extent-screen-integer.png" width="56" alt="svg-group-blend-extent-screen-integer"></a>
+<a href="./svg-group-blend-extent-screen-many-reversed.svg" title="svg-group-blend-extent-screen-many-reversed (standalone-svg)"><img src="./chromium/svg-group-blend-extent-screen-many-reversed.png" width="56" alt="svg-group-blend-extent-screen-many-reversed"></a>
+<a href="./svg-group-blend-extent-screen-offscreen.svg" title="svg-group-blend-extent-screen-offscreen (standalone-svg)"><img src="./chromium/svg-group-blend-extent-screen-offscreen.png" width="56" alt="svg-group-blend-extent-screen-offscreen"></a>
+<a href="./svg-group-blend-extent-screen-opacity-near.svg" title="svg-group-blend-extent-screen-opacity-near (standalone-svg)"><img src="./chromium/svg-group-blend-extent-screen-opacity-near.png" width="56" alt="svg-group-blend-extent-screen-opacity-near"></a>
+<a href="./svg-group-blend-extent-screen-opaque.svg" title="svg-group-blend-extent-screen-opaque (standalone-svg)"><img src="./chromium/svg-group-blend-extent-screen-opaque.png" width="56" alt="svg-group-blend-extent-screen-opaque"></a>
+<a href="./svg-group-blend-extent-screen-pattern-sibling.svg" title="svg-group-blend-extent-screen-pattern-sibling (standalone-svg)"><img src="./chromium/svg-group-blend-extent-screen-pattern-sibling.png" width="56" alt="svg-group-blend-extent-screen-pattern-sibling"></a>
+<a href="./svg-group-blend-extent-screen-stroke-gradient.svg" title="svg-group-blend-extent-screen-stroke-gradient (standalone-svg)"><img src="./chromium/svg-group-blend-extent-screen-stroke-gradient.png" width="56" alt="svg-group-blend-extent-screen-stroke-gradient"></a>
+<a href="./svg-group-blend-extent-screen-stroke-transparent-fill.svg" title="svg-group-blend-extent-screen-stroke-transparent-fill (standalone-svg)"><img src="./chromium/svg-group-blend-extent-screen-stroke-transparent-fill.png" width="56" alt="svg-group-blend-extent-screen-stroke-transparent-fill"></a>
+<a href="./svg-group-blend-extent-screen-stroke-zero-width.svg" title="svg-group-blend-extent-screen-stroke-zero-width (standalone-svg)"><img src="./chromium/svg-group-blend-extent-screen-stroke-zero-width.png" width="56" alt="svg-group-blend-extent-screen-stroke-zero-width"></a>
+<a href="./svg-group-blend-extent-screen-use.svg" title="svg-group-blend-extent-screen-use (standalone-svg)"><img src="./chromium/svg-group-blend-extent-screen-use.png" width="56" alt="svg-group-blend-extent-screen-use"></a>
 <a href="./svg-group-blend-fractional-multiply.svg" title="svg-group-blend-fractional-multiply (standalone-svg)"><img src="./chromium/svg-group-blend-fractional-multiply.png" width="56" alt="svg-group-blend-fractional-multiply"></a>
 <a href="./svg-group-blend-fractional-normal.svg" title="svg-group-blend-fractional-normal (standalone-svg)"><img src="./chromium/svg-group-blend-fractional-normal.png" width="56" alt="svg-group-blend-fractional-normal"></a>
 <a href="./svg-group-blend-fractional-screen.svg" title="svg-group-blend-fractional-screen (standalone-svg)"><img src="./chromium/svg-group-blend-fractional-screen.png" width="56" alt="svg-group-blend-fractional-screen"></a>
@@ -1426,7 +1451,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (303)
+## The refusal register (325)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -1544,6 +1569,28 @@ its row into the cells above.
 | `svg-group-blend-elided-mask-partial` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a filter or mask needs its own image-effect composition profile |
 | `svg-group-blend-elided-mask-unit` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a filter or mask needs its own image-effect composition profile |
 | `svg-group-blend-filter` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a filter or mask needs its own image-effect composition profile |
+| `svg-group-blend-linear-extent-child-opacity` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a transformed or nested linear-gradient source needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-clip` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a transformed or nested linear-gradient source needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-empty-gradient` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a non-painted source contributor needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-fill-zero` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a non-painted source contributor needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-isolation` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a transformed or nested linear-gradient source needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-nested-blend` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a transformed or nested linear-gradient source needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-pattern-stroke` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a patterned source stroke needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-root` | **both refuse** | unsupported computed style: mix-blend-mode/isolation with a transformed or nested linear-gradient source needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-root-opacity` | **both refuse** | unsupported computed style: mix-blend-mode/isolation with a transformed or nested linear-gradient source needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-rotation` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a mapped source contributor needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-stroke-context-missing` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a non-painted stroke extent needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-stroke-context-none` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a non-painted stroke extent needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-stroke-empty-gradient` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a non-painted stroke extent needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-stroke-missing-reference` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a non-painted stroke extent needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-stroke-none-fallback` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a non-painted stroke extent needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-stroke-opacity-zero` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a non-painted stroke extent needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-stroke-sibling` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a non-painted stroke extent needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-stroke-transparent` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a non-painted stroke extent needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-transform` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a mapped source contributor needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-transparent` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a non-painted source contributor needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-viewport` | declared | skipped svg/svg[1]/g[1]: unsupported computed style: mix-blend-mode/isolation with a mapped source contributor needs the linear-gradient source-extent profile |
+| `svg-group-blend-linear-extent-zero-opacity` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a non-painted source contributor needs the linear-gradient source-extent profile |
 | `svg-group-blend-mask` | declared | skipped svg/g[1]: unsupported computed style: mix-blend-mode/isolation with a filter or mask needs its own image-effect composition profile |
 | `svg-group-blend-mode-color` | declared | skipped svg/rect[2]: unsupported computed style: mix-blend-mode Color is outside the admitted normal/multiply/screen group profile |
 | `svg-group-blend-mode-color-burn` | declared | skipped svg/rect[2]: unsupported computed style: mix-blend-mode ColorBurn is outside the admitted normal/multiply/screen group profile |

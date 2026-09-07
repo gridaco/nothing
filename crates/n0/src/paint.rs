@@ -4461,6 +4461,333 @@ fn observe_blend_layer(canvas: &Canvas) -> crate::trace::blend_layers::Observati
     }
 }
 
+/// Device-space source extents for the rectangular linear-ramp profile.
+///
+/// A ramp's ordered dither is anchored to its raster device, not the final
+/// canvas. Derive bounds from the actual draw commands and current view, never
+/// the damage envelope. Recompute on execution: raw drawlists are mutable and
+/// the host view is not part of the compiled product. Neutral lists never call
+/// this pass. Websem patrols sources whose local-space extent is not retained
+/// by the resolved stream. Other raw drawlist programs keep their old route.
+fn blend_source_extents<K>(list: &DrawList<K>, view: &Affine) -> Option<Vec<Option<Rect>>> {
+    use skia_safe::RoundOut;
+
+    fn linear(paints: &Paints) -> bool {
+        paints
+            .iter()
+            .any(|paint| matches!(paint, ModelPaint::LinearGradient(_)))
+    }
+    fn stroke_box(w: f32, h: f32, stroke: &Stroke, space: StrokeSpace) -> Option<Rect> {
+        let StrokeWidth::Uniform(width) = stroke.width.normalized() else {
+            return None;
+        };
+        if space != StrokeSpace::Local
+            || stroke.align != StrokeAlign::Center
+            || stroke.cap != StrokeCap::Butt
+            || stroke.join != StrokeJoin::Miter
+            || stroke.dash_array.is_some()
+            || !width.is_finite()
+            || width < 0.0
+        {
+            return None;
+        }
+        let mut rect = Rect::from_wh(w, h);
+        rect.outset((width * 0.5, width * 0.5));
+        Some(rect)
+    }
+    #[derive(Clone, Copy)]
+    enum Kind {
+        Blend(usize, rframe::ScopeBlendMode),
+        Opacity,
+        Clip,
+    }
+    struct Source {
+        kind: Kind,
+        bounds: Option<Rect>,
+        known: bool,
+        ramp: bool,
+    }
+    impl Source {
+        fn add(&mut self, bounds: Option<Rect>, known: bool, ramp: bool) {
+            self.known &= known;
+            self.ramp |= ramp;
+            if let Some(bounds) = bounds {
+                if let Some(accumulated) = &mut self.bounds {
+                    accumulated.join(bounds);
+                } else {
+                    self.bounds = Some(bounds);
+                }
+            }
+        }
+    }
+    if !list.items.iter().any(|item| match &item.kind {
+        ItemKind::RectFill { paints, .. } => linear(paints),
+        ItemKind::RectStroke { stroke, .. } => linear(&stroke.paints),
+        _ => false,
+    }) {
+        return None;
+    }
+    let mut output = vec![None; list.items.len()];
+    let mut stack: Vec<Source> = Vec::new();
+    for (index, item) in list.items.iter().enumerate() {
+        let matrix = skia_matrix(&view.then(&item.world));
+        let mut begin = None;
+        let (bounds, ramp) = match &item.kind {
+            ItemKind::BeginIsolatedBlend { blend } => {
+                begin = Some(Kind::Blend(index, blend.mode()));
+                (None, false)
+            }
+            ItemKind::BeginOpacity { .. } | ItemKind::BeginIsolatedOpacity { .. } => {
+                begin = Some(Kind::Opacity);
+                (None, false)
+            }
+            ItemKind::BeginClipRect { .. } | ItemKind::BeginClipPath { .. } => {
+                begin = Some(Kind::Clip);
+                (None, false)
+            }
+            ItemKind::EndIsolatedBlend | ItemKind::EndOpacity | ItemKind::EndClip => {
+                let source = stack.pop()?;
+                // Chromium accumulates drawable bounds, not clipped ink.
+                // The canvas clip still limits the allocation at execution.
+                if let Kind::Blend(start, mode) = source.kind {
+                    if mode != rframe::ScopeBlendMode::Normal && source.known && source.ramp {
+                        output[start] = source.bounds.map(|bounds| -> Rect { bounds.round_out() });
+                    }
+                }
+                if let Some(parent) = stack.last_mut() {
+                    parent.add(
+                        source.bounds,
+                        source.known,
+                        matches!(source.kind, Kind::Clip) && source.ramp,
+                    );
+                }
+                continue;
+            }
+            ItemKind::RectFill {
+                w,
+                h,
+                corner_radius,
+                paints,
+                ..
+            } if corner_radius.is_zero() => (Some(Rect::from_wh(*w, *h)), linear(paints)),
+            ItemKind::RectStroke {
+                w,
+                h,
+                corner_radius,
+                stroke,
+                space,
+                ..
+            } if corner_radius.is_zero() => {
+                (stroke_box(*w, *h, stroke, *space), linear(&stroke.paints))
+            }
+            ItemKind::PatternFill {
+                geometry: ResolvedPatternGeometry::Rect { x, y, w, h },
+                ..
+            } => (Some(Rect::from_xywh(*x, *y, *w, *h)), false),
+            // These sources need their own materialization profile. In
+            // particular, never turn an effect region into a geometry bound.
+            _ => {
+                if let Some(source) = stack.last_mut() {
+                    source.known = false;
+                }
+                continue;
+            }
+        };
+        if let Some(kind) = begin {
+            stack.push(Source {
+                kind,
+                bounds: None,
+                known: true,
+                ramp: false,
+            });
+        } else if let Some(source) = stack.last_mut() {
+            let bounds = bounds
+                .map(|bounds| matrix.map_rect(bounds).0)
+                .filter(|bounds| bounds.is_finite());
+            source.add(bounds, bounds.is_some(), ramp);
+        }
+    }
+    Some(output)
+}
+
+#[cfg(test)]
+mod blend_source_extent_tests {
+    use super::*;
+    use crate::drawlist::Item;
+
+    fn item(kind: ItemKind) -> Item<()> {
+        Item {
+            node: (),
+            world: Affine::IDENTITY,
+            kind,
+        }
+    }
+
+    fn ramp() -> Item<()> {
+        let mut draw = item(ItemKind::RectFill {
+            w: 38.2,
+            h: 28.4,
+            corner_radius: Default::default(),
+            corner_smoothing: Default::default(),
+            paints: Paints::new([ModelPaint::LinearGradient(LinearGradientPaint::default())]),
+            post_paint_opacity: PostPaintOpacity::IDENTITY,
+        });
+        draw.world = Affine::translate(8.3, 12.7);
+        draw
+    }
+
+    fn scene() -> DrawList<()> {
+        DrawList::from_items(vec![
+            item(ItemKind::BeginIsolatedBlend {
+                blend: rframe::ScopeBlend::new(rframe::ScopeBlendMode::Multiply, None),
+            }),
+            ramp(),
+            item(ItemKind::EndIsolatedBlend),
+        ])
+    }
+
+    fn stroked_scene(width: StrokeWidth, mode: rframe::ScopeBlendMode) -> DrawList<()> {
+        let mut list = scene();
+        list.items[0].kind = ItemKind::BeginIsolatedBlend {
+            blend: rframe::ScopeBlend::new(mode, None),
+        };
+        list.items[1].kind = ItemKind::RectStroke {
+            w: 38.2,
+            h: 28.4,
+            corner_radius: Default::default(),
+            corner_smoothing: Default::default(),
+            stroke: Stroke {
+                paints: Paints::new([ModelPaint::LinearGradient(LinearGradientPaint {
+                    stops: vec![
+                        GradientStop {
+                            offset: 0.0,
+                            color: n0_model::model::Color(0xFFCD_6843).into(),
+                        },
+                        GradientStop {
+                            offset: 1.0,
+                            color: n0_model::model::Color(0x995B_ACE1).into(),
+                        },
+                    ],
+                    ..Default::default()
+                })]),
+                width,
+                align: StrokeAlign::Center,
+                cap: StrokeCap::Butt,
+                join: StrokeJoin::Miter,
+                miter_limit: 4.0,
+                dash_array: None,
+            },
+            space: StrokeSpace::Local,
+            dash_phase: StrokeDashPhase::ZERO,
+            post_paint_opacity: PostPaintOpacity::IDENTITY,
+        };
+        list
+    }
+
+    #[test]
+    fn equal_sided_stroke_spellings_have_identical_extents_and_pixels() {
+        let raster = |list: &DrawList<()>| {
+            let mut surface = skia_safe::surfaces::raster_n32_premul((64, 64)).unwrap();
+            surface.canvas().clear(Color::from_rgb(66, 101, 137));
+            let saves = surface.canvas().save_count();
+            execute_unchecked(
+                surface.canvas(),
+                list,
+                &Affine::IDENTITY,
+                &PaintCtx::new(None),
+            );
+            assert_eq!(surface.canvas().save_count(), saves);
+            read_pixels(&mut surface, 64, 64)
+        };
+        for mode in [
+            rframe::ScopeBlendMode::Multiply,
+            rframe::ScopeBlendMode::Screen,
+        ] {
+            let uniform = stroked_scene(StrokeWidth::Uniform(3.5), mode);
+            let rectangular = stroked_scene(
+                StrokeWidth::Rectangular(RectangularStrokeWidth::all(3.5)),
+                mode,
+            );
+            let expected = blend_source_extents(&uniform, &Affine::IDENTITY).unwrap();
+            assert_eq!(expected[0], Some(Rect::new(6.0, 10.0, 49.0, 43.0)));
+            assert_eq!(
+                blend_source_extents(&rectangular, &Affine::IDENTITY).unwrap(),
+                expected
+            );
+            // Representation equivalence, not a replacement Chromium oracle.
+            let pixels = raster(&uniform);
+            assert!(pixels.chunks_exact(4).any(|pixel| pixel != &pixels[..4]));
+            assert_eq!(raster(&rectangular), pixels);
+        }
+    }
+
+    #[test]
+    fn unequal_and_zero_stroke_widths_do_not_gain_an_extent() {
+        for width in [
+            StrokeWidth::Rectangular(RectangularStrokeWidth {
+                stroke_top_width: 3.5,
+                stroke_right_width: 4.0,
+                stroke_bottom_width: 3.5,
+                stroke_left_width: 3.5,
+            }),
+            StrokeWidth::Rectangular(RectangularStrokeWidth::all(0.0)),
+            StrokeWidth::Uniform(0.0),
+        ] {
+            let list = stroked_scene(width, rframe::ScopeBlendMode::Multiply);
+            assert_eq!(
+                blend_source_extents(&list, &Affine::IDENTITY).unwrap()[0],
+                None
+            );
+        }
+    }
+
+    #[test]
+    fn actual_list_and_current_view_are_the_only_extent_inputs() {
+        let mut list = scene();
+        assert_eq!(
+            blend_source_extents(&list, &Affine::IDENTITY).unwrap()[0],
+            Some(Rect::new(8.0, 12.0, 47.0, 42.0))
+        );
+        assert_eq!(
+            blend_source_extents(&list, &Affine::translate(3.0, 2.0)).unwrap()[0],
+            Some(Rect::new(11.0, 14.0, 50.0, 44.0))
+        );
+        list.items[1].world = Affine::translate(2.0, 5.0);
+        assert_eq!(
+            blend_source_extents(&list, &Affine::IDENTITY).unwrap()[0],
+            Some(Rect::new(2.0, 5.0, 41.0, 34.0))
+        );
+        if let ItemKind::RectFill { paints, .. } = &mut list.items[1].kind {
+            *paints = Paints::default();
+        }
+        assert!(blend_source_extents(&list, &Affine::IDENTITY).is_none());
+    }
+
+    #[test]
+    fn unknown_sibling_does_not_disable_a_separate_known_source() {
+        let mut list = scene();
+        list.items.insert(
+            0,
+            item(ItemKind::OvalFill {
+                w: 48.0,
+                h: 48.0,
+                paints: Paints::default(),
+                post_paint_opacity: PostPaintOpacity::IDENTITY,
+            }),
+        );
+        assert_eq!(
+            blend_source_extents(&list, &Affine::IDENTITY).unwrap()[1],
+            Some(Rect::new(8.0, 12.0, 47.0, 42.0))
+        );
+        let unknown = list.items.remove(0);
+        list.items.insert(2, unknown);
+        assert_eq!(
+            blend_source_extents(&list, &Affine::IDENTITY).unwrap()[0],
+            None
+        );
+    }
+}
+
 /// Replay a raw [`DrawList`] without a frame-environment check.
 ///
 /// This low-level entry exists for engine-owned resource-free glyphless
@@ -4483,6 +4810,7 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
     enum Scope {
         Opacity,
         Blend {
+            source_clip: bool,
             #[cfg(feature = "trace")]
             observed_bytes: u128,
         },
@@ -4497,7 +4825,8 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
     let initial_save_count = canvas.save_count();
     let mut scopes = Vec::new();
     let mut glyph_scratch = GlyphScratch::default();
-    for item in &list.items {
+    let mut blend_sources = None;
+    for (item_index, item) in list.items.iter().enumerate() {
         match &item.kind {
             ItemKind::BeginOpacity { opacity } => {
                 // Copy the current backdrop into the group layer so descendant
@@ -4549,8 +4878,16 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                         rframe::ScopeBlendMode::Multiply => unreachable!(),
                     });
                 }
+                let sources = blend_sources.get_or_insert_with(|| blend_source_extents(list, view));
+                let bounds = sources.as_ref().and_then(|sources| sources[item_index]);
+                if let Some(bounds) = bounds {
+                    canvas.save();
+                    canvas.reset_matrix();
+                    canvas.clip_rect(bounds, None, false);
+                }
                 canvas.save_layer(&SaveLayerRec::default().paint(&restore_paint));
                 scopes.push(Scope::Blend {
+                    source_clip: bounds.is_some(),
                     #[cfg(feature = "trace")]
                     observed_bytes: crate::trace::blend_layers::Execute::begin_layer(
                         observe_blend_layer(canvas),
@@ -4563,8 +4900,14 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 if scope.is_some() {
                     canvas.restore();
                 }
+                if let Some(Scope::Blend {
+                    source_clip: true, ..
+                }) = scope
+                {
+                    canvas.restore();
+                }
                 #[cfg(feature = "trace")]
-                if let Some(Scope::Blend { observed_bytes }) = scope {
+                if let Some(Scope::Blend { observed_bytes, .. }) = scope {
                     crate::trace::blend_layers::Execute::end_layer(observed_bytes);
                 }
             }

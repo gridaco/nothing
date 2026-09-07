@@ -60,7 +60,8 @@ from the dated addenda below:
   `<g>` and `<a>` containers, visibility, isolated element/group/root opacity,
   and HTML-ancestor opacity around the selected inline SVG; bounded static SVG
   group blending/isolation through a combined resolved blend/opacity scope
-  ([B1](#b1-svg-group-blending)); the whole
+  ([B1](#b1-svg-group-blending), with the
+  [B2a source-extent correction](#b2a-linear-gradient-blend-source-extents)); the whole
   `transform` grammar in both spellings (the attribute is a
   presentation hint of the CSS `transform` property, and `gradientTransform`
   is that attribute on gradient elements);
@@ -116,7 +117,7 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,398 Chromium-baked primitive cells plus 16 sampled frames,
+- **The corpus** is 1,423 Chromium-baked primitive cells plus 16 sampled frames,
   with a separate sixteen-cell exact text suite whose current cells select
   hash-pinned Ahem and Ahem-derived bytes from explicit family/face
   environments, and eight exact-number artifact-geometry
@@ -127,7 +128,7 @@ from the dated addenda below:
   carrying declared one-code-value ramp-quantization bounds. The measured
   per-cell counts and causes are listed in the
   [corpus record](../../../fixtures/web-first/README.md).
-  The named refusal register has 303 rows.
+  The named refusal register has 325 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -6113,3 +6114,147 @@ repeated active-clip-sized source materialization with explicit byte arithmetic
 over those layers, not a larger semantic tree. Source
 extent/precision must be proved before tightening bounds or pooling layers;
 B1 records that cost and leaves the optimization unshipped.
+
+## B2a: linear-gradient blend source extents
+
+B2a repairs a silent pixel defect found while preparing B1's bounds work.
+It is correctness work, not general layer-bounds optimization or a completed
+blending grammar. The [admitted-slice record](../../../crates/n0_cli/README.md)
+owns the resulting profile; all three CSS compositing rows remain unchecked.
+The audience for this evidence is a maintainer extending that profile.
+
+### Cause and discriminators
+
+A rectangle at `(8.3,12.7)`, size `(38.2,28.4)`, uses an object-box ramp from
+`#cd6843` to `#5bace1` with last-stop opacity `.6`, over `#426589`.
+Both actual CLI admissions at the unmodified B1 baseline silently differed
+from pinned Chromium by 28 pixels for Multiply and 56 for Screen, maximum
+channel delta 1. The corresponding `svg-group-blend-extent-{multiply,screen}-fractional`
+cells are now exact. Integer placement `(8,12)` also exposed the problem:
+50/84 pixels at delta 1, now guarded by the `-integer` pair. Fractional
+coordinates were not the cause. The normal and opaque-ramp cells separate
+the blend source from ordinary gradient rendering and stop translucency.
+
+The etiology is the temporary raster's origin. Pinned Skia's gradient paint
+enables ordered dithering, whose 8×8 phase uses device coordinates. B1's
+unbounded source layer retained the active clip's origin instead of the
+drawable source origin; its old `(8,8)` gradient cells happened to share the
+same phase. In a separate backend diagnostic, a hard clip with origin `(8,12)`
+made the original Multiply witness exact, whether its far edge was tight or
+extended to the viewport. Changing only the layer size while keeping origin
+`(0,0)` retained all 28 differing pixels **(measured, not celled)**. This
+diagnostic isolated the mechanism; Chromium remained the pixel oracle.
+
+The upstream source explains the wider boundary:
+[SVGDrawingRecorder](https://github.com/chromium/chromium/blob/main/third_party/blink/renderer/core/paint/svg_model_object_painter.h)
+encloses a shape's visual rectangle in local SVG coordinates, and
+[paint-chunk conversion](https://github.com/chromium/chromium/blob/main/third_party/blink/renderer/platform/graphics/compositing/paint_chunks_to_cc_layer.cc)
+maps drawable bounds into each effect's transform space. These are upstream
+source observations, not instrumentation of the pinned browser. The pinned
+capture measurements establish the actual witness verdicts.
+
+### Correction and guarded remainder
+
+The n0 executor derives source bounds from the actual rectangular draw
+commands and current view, including simple stroke outsets and pattern-fill
+contributors. It rounds outward and applies an inert hard clip before the
+existing exact blend restore. It does not use the damage envelope, change
+restore arithmetic, add a raster cache or add a field to `rframe`. The pass
+is lazy: lists without a blend command never call it; lists without a linear
+rectangle paint allocate no extent table. A completed child blend contributes
+an image, not a newly rasterized ramp. Execution tests check balanced saves,
+current-view replay, fresh/retained identity and mutable raw-list recomputation.
+
+The 58-source reduced matrix first proved the simple correction. A separate
+72-source composition matrix and 16 boundary controls then found the limits:
+transformed sources, nested image groups, zero-opacity/transparent/empty-paint
+contributors and patterned strokes can require information absent from the
+resolved draw stream. The original B1 source was restored byte-for-byte before
+the broad baseline rerender; both admissions were run through the actual CLI,
+not just a successful compiler or a backend-only renderer. These wider matrix
+facts are **(measured, not celled)** except for the specific cells below.
+
+Websem now names the `linear-gradient source-extent` boundary before it can
+silently reach the old route. The patrol is deliberately conservative: even
+an exact root-bare-ramp control, a harmless non-painted contributor, or a
+particular exact transformed/clip case does not prove the full source-space
+profile. Fourteen initial registered refusals cover mapped/rotated/viewport sources,
+child clip and opacity, zero element/fill opacity, transparent/empty-gradient
+contributors, pattern stroke, mixed nested blend, explicit isolation and the
+required root boundary with unit or partial opacity. Four root-opacity controls
+at `.5`/`.999` were exact before the conservative guard, not newly found pixel
+defects **(measured, not celled)**. Attributable cases roll back the whole affected group
+and keep named siblings; the root cases refuse in both admissions. Completed
+blend images remain distinct from bare ramps when ancestor facts are combined.
+
+Twenty-five new exact cells cover the off-phase integer/fractional and opaque
+ramps, normal control, fill/stroke routes, combined/outer opacity, sibling
+bounds and order, pattern-fill siblings, gradient direction/transform, leaf
+ownership, an unpositioned local use instance, viewport-edge clipping and the
+four omitted-stroke boundary controls described below.
+They use the unchanged hash-pinned capture module through the common probe
+harness and baker. No existing oracle, tolerance or FLIP record changes.
+The primitive corpus moves from 1,398 to 1,423 and the named refusal register
+from 303 to 325; the sixteen sampled frames, sixteen text-pixel cells and eight
+text-geometry witnesses are unchanged.
+
+Independent TICK/LAW review found a missing contributor the initial patrol
+missed: a selected transparent stroke can enlarge the source bounds while its
+gradient fill remains visible. Sixteen follow-up source controls confirmed
+transparent, zero-opacity and empty-gradient strokes differ at 30 pixels for
+Multiply and 102 for Screen, delta 1. Twelve adjacent controls confirmed
+unresolved/wrong-kind references and explicit `none` fallbacks expose the same
+class, even without an opacity pass. A solid sibling with a dropped stroke
+changes 89/124 pixels at delta 1 **(measured, not celled)**.
+
+`StrokeResolution` therefore carries a producer-private omitted-extent fact
+separate from opacity participation. It survives the visible fill and combines
+with other source contributors before the named guard; no fake paint or
+backend hint enters `rframe`. Six additional refusal witnesses cover these
+branches. Four exact cells distinguish `stroke:none`, resolved zero width,
+a retained all-transparent gradient stroke and transparent fill surrounding
+a live gradient stroke. An unresolved paint server with otherwise inert width
+grammar is conservatively guarded without newly evaluating that grammar.
+
+Eight final context-paint controls found the same 30/102-pixel class when a
+context stroke has no provider or follows a provider selecting `none`
+**(measured, not celled)**. Two more registered refusals guard those early
+returns. One final best-effort render crossed the guard update and is excluded
+from pre-guard pixel evidence; its strict witness and both final guarded
+admissions were independently checked. The original computed stroke kind is
+preserved before context
+selection: resolving a context paint to nothing must not relabel it as
+computed `stroke:none` for the extent decision. This remains a compositing
+gap, covered by the unclosed blending rows; ordinary paint selection outside
+that composition is unchanged.
+
+Gate sensitivity is measured, not inferred from a green run. Disabling only
+the source-extent clip makes `just gate` fail on twenty-three new cells, including
+the original fractional pair at 28/56 pixels and the integer pair at 50/84,
+all at delta 1. The normal and offscreen controls remain exact. Restoring the
+exact source hash returns the primitive gate to green. Separately disabling
+the omitted-stroke extent patrol makes the refusal gate fail on
+`stroke-context-missing`; an actual best-effort CLI render of the context-fill
+source becomes silently wrong at 102 pixels, delta 1. Exact source restoration
+reinstates the named refusal. No oracle changes are involved in either direction.
+
+The full nine-crate affected-path tests, full n0 trace suite, trace-enabled
+Chromium gate, formatting, strict no-dependency Clippy, fixture/status gates
+and link/OSS audits pass locally. No Workflow runner was exposed, so the saved
+verification workflow's independent TICK/LAW and REPRO roles were reproduced
+manually. Both pass after the omitted-stroke finding and final sensitivity
+checks; the code hashes were restored exactly before the final green gates.
+
+Hosted review also caught a raw-drawlist representation mismatch: the painter
+normalizes equal-sided rectangular stroke widths, while the extent helper
+initially matched only the scalar spelling. The helper now uses the same
+normalization. Consumer tests fail before that correction and prove identical
+rounded extents, exact pixels and balanced saves for both spellings in Multiply
+and Screen; unequal sides and zero-width raw strokes gain no extent. This is
+representation-equivalence evidence, not additional Chromium cell coverage.
+
+The follow-on is a source-coordinate-space contract that can carry the missing
+extent facts, before wider geometry or blend modes. This correction does not
+resolve the separate ordinary-opacity findings in gridaco/nothing#136 or
+the generic damage/coverage follow-ups in gridaco/nothing#87/#88. No timing
+improvement is claimed.

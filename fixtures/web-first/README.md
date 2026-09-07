@@ -19,8 +19,8 @@ Every root primitive here is a closed enumeration in `primitives.json` with a
 committed Chromium oracle beside it. Text follows the ratified corpus-growth
 law in its own closed [text estate](./text/README.md): sixteen exact text cells and
 eight exact-number real-font artifact-geometry witnesses. The current evidence
-estate is 1,398 primitive cells plus 16 sampled frames, those twenty-four text
-witnesses, and 303 named refusal rows. Pixel cells use byte equality: what each
+estate is 1,423 primitive cells plus 16 sampled frames, those twenty-four text
+witnesses, and 325 named refusal rows. Pixel cells use byte equality: what each
 corpus admits is exactly what the engine renders pixel-for-pixel, except only
 the primitive rows carrying an explicit measured tolerance block. The
 real-font witness grades geometry before rasterization and makes no Chromium
@@ -28,6 +28,9 @@ pixel claim.
 
 | File | Role |
 | --- | --- |
+| `svg-group-blend-extent-multiply-stroke-{none,clear-gradient}.svg` · `svg-group-blend-extent-screen-stroke-{zero-width,transparent-fill}.svg` | Four exact controls for the review-discovered omitted-stroke extent boundary. A retained all-transparent gradient stroke still supplies its geometry; `none` and zero width create no stroke extent; transparent fill does not lose the surrounding live gradient stroke's extent. Dropped transparent/unresolved stroke paints are separately refused rather than confused with these branches. |
+| `svg-group-blend-extent-{multiply,screen}-{fractional,integer,opaque}.svg` · `svg-group-blend-extent-normal-fractional.svg` | B2a source-origin controls. B1 silently differed at 28/56 pixels for the fractional translucent pair and 50/84 for its integer-position pair, all at delta 1; the new cells are exact. The old gradient origin `(8,8)` hid the device-dither phase error. Normal and opaque-ramp controls separate source materialization from stop translucency. |
+| `svg-group-blend-extent-*.svg` (remaining fourteen cells) | Exact simple stroke/fill, own and outer opacity, sibling union/order, repeating-pattern sibling, gradient direction/transform, leaf blend, local use and offscreen-source controls. The [B2a evidence](../../docs/wg/consolidation/svg-engine-of-record.md#b2a-linear-gradient-blend-source-extents) records the bounded correction and its conservative named refusals. No general source-space or timing claim. |
 | `svg-group-blend-{normal,multiply,screen}-{leaf,group,opacity,alpha,transparent,stroke}.svg` · `svg-group-blend-{multiply,screen}-each.svg` | B1's exact group-operation controls: mode-sensitive backdrops, overlapping children, combined opacity, translucency, transparent initial source and fill/stroke composition. Whole-group versus per-child blending changes 576 pixels at maximum deltas 89 (multiply) and 98 (screen). No new tolerance. |
 | `svg-group-blend-{multiply,screen}-opacity-small-{opaque,partial}.svg` | Opacity .123456 with opaque/translucent source colors over a translucent destination. The multiply partial-source cell rejects a float-first opacity prototype at 1,600 pixels/delta 1: byte opacity must be applied before the byte-domain blend. Hosted x86 also guards the low-precision backend's approximate division; no oracle or tolerance is relaxed. |
 | `svg-group-blend-near-unit-{isolated,plain,screen}-{unit,near,p999,p998}.svg` | Rotated groups at opacity 1, the next smaller f32, .999 and .998. The first three match for isolated blending children and screen; plain isolation instead changes 143 pixels/delta 1 at the unit-to-partial boundary. A byte-255 restore must not erase the authored partial-opacity source layer. The .998 controls discriminate the next opacity byte. |

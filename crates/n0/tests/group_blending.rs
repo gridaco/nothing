@@ -75,17 +75,17 @@ fn frame(items: Vec<FrameItem>) -> Frame {
 }
 
 fn raster(product: &FrameProduct, backdrop: CGColor) -> Vec<u8> {
+    raster_at(product, backdrop, &AffineTransform::identity())
+}
+
+fn raster_at(product: &FrameProduct, backdrop: CGColor, view: &AffineTransform) -> Vec<u8> {
     let mut surface = skia_safe::surfaces::raster_n32_premul((SIZE, SIZE)).unwrap();
     surface.canvas().clear(skia_safe::Color::from_argb(
         backdrop.a, backdrop.r, backdrop.g, backdrop.b,
     ));
     let saves = surface.canvas().save_count();
     product
-        .execute(
-            surface.canvas(),
-            &AffineTransform::identity(),
-            &PaintCtx::new(None),
-        )
+        .execute(surface.canvas(), view, &PaintCtx::new(None))
         .unwrap();
     assert_eq!(
         surface.canvas().save_count(),
@@ -100,10 +100,74 @@ fn at(pixels: &[u8], x: usize, y: usize) -> [u8; 4] {
     pixels[offset..offset + 4].try_into().unwrap()
 }
 
+fn linear_node(id: u64, bounds: Rectangle) -> FrameItem {
+    let gradient = cg::LinearGradientPaint::from_colors(vec![FIRST, SECOND]);
+    let mut source = node(
+        id,
+        bounds,
+        PaintStack::try_from_paints(cg::Paints::new([cg::Paint::LinearGradient(gradient)]))
+            .unwrap(),
+    );
+    source.bounds = math2::rect_transform(bounds, &source.transform);
+    FrameItem::Node(source)
+}
+
+#[test]
+fn linear_source_extent_replay_at_changed_views_matches_fresh() {
+    for mode in [ScopeBlendMode::Multiply, ScopeBlendMode::Screen] {
+        let source = frame(vec![
+            blend(10, mode, Some(0.6)),
+            linear_node(1, rect(8.3, 12.7, 28.2, 18.4)),
+            FrameItem::ScopeEnd,
+        ]);
+        let retained = compile(source.clone()).unwrap();
+        let original = raster(&retained, BACKDROP);
+        for view in [
+            AffineTransform::new(3.0, 2.0, 0.0),
+            AffineTransform::from_acebdf(0.5, 0.0, 5.0, 0.0, 0.5, 3.0),
+            AffineTransform::identity(),
+        ] {
+            let fresh = compile(source.clone()).unwrap();
+            assert_eq!(
+                raster_at(&retained, BACKDROP, &view),
+                raster_at(&fresh, BACKDROP, &view)
+            );
+            assert_eq!(
+                raster(&retained, BACKDROP),
+                original,
+                "a different view must not leave a cached raster origin"
+            );
+        }
+    }
+}
+
 #[cfg(feature = "trace")]
 mod layer_metrics {
     use super::*;
     use n0::trace::{sink::drain_blend_layers, BlendLayerMetrics};
+
+    #[test]
+    fn linear_source_layer_observes_rounded_draw_bounds_not_the_frame_envelope() {
+        drain_blend_layers();
+        let product = compile(frame(vec![
+            blend(10, ScopeBlendMode::Multiply, None),
+            linear_node(1, rect(8.3, 12.7, 28.2, 18.4)),
+            FrameItem::ScopeEnd,
+        ]))
+        .unwrap();
+        raster(&product, BACKDROP);
+        let metrics = drain_blend_layers();
+        assert_eq!(metrics.len(), 1);
+        assert_eq!(metrics[0].observed_raster_bytes, 29 * 20 * 4);
+        assert_eq!(metrics[0].save_layer_calls, 1);
+        raster_at(
+            &product,
+            BACKDROP,
+            &AffineTransform::from_acebdf(0.5, 0.0, 5.0, 0.0, 0.5, 3.0),
+        );
+        let metrics = drain_blend_layers();
+        assert_eq!(metrics[0].observed_raster_bytes, 15 * 10 * 4);
+    }
 
     fn single() -> FrameProduct {
         compile(frame(vec![
