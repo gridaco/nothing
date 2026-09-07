@@ -2635,8 +2635,8 @@ thread_local! {
     // pixels. All checked opacity values map to only 256 byte factors. Compile
     // one effect per mode per painting thread, not one shader per opacity or
     // replay. Unit-opacity Screen remains native.
-    static ISOLATED_BYTE_BLENDERS: RefCell<[Option<IsolatedByteBlenders>; 2]> =
-        const { RefCell::new([None, None]) };
+    static ISOLATED_BYTE_BLENDERS: RefCell<[Option<IsolatedByteBlenders>; 3]> =
+        const { RefCell::new([None, None, None]) };
 }
 
 struct IsolatedByteBlenders {
@@ -2653,9 +2653,10 @@ fn isolated_byte_blender(blend: rframe::ScopeBlend) -> Result<Blender, String> {
     let (slot, expression) = match blend.mode() {
         rframe::ScopeBlendMode::Multiply => (0, UNORM8_MULTIPLY_EXPRESSION),
         rframe::ScopeBlendMode::Screen => (1, "s + d - div255(s * d)"),
-        rframe::ScopeBlendMode::Normal => {
-            return Err("Normal isolation does not use a byte-domain blender".to_string());
-        }
+        // N32 source-over sprite restoration has a separate x86 fast path:
+        // s + ((d * (256 - sa)) >> 8), unlike NEON's accurate /255. Rotated
+        // isolated sources expose it at partial-alpha edge pixels.
+        rframe::ScopeBlendMode::Normal => (2, "s + div255(d * (255.0 - s.a))"),
     };
     ISOLATED_BYTE_BLENDERS.with(|caches| {
         let mut caches = caches.borrow_mut();
@@ -2709,8 +2710,11 @@ pub(crate) fn preflight_isolated_blend(blend: rframe::ScopeBlend) -> Result<(), 
 }
 
 fn uses_isolated_byte_blender(blend: rframe::ScopeBlend) -> bool {
-    blend.mode() == rframe::ScopeBlendMode::Multiply
-        || (blend.mode() == rframe::ScopeBlendMode::Screen && blend.opacity().is_some())
+    match blend.mode() {
+        rframe::ScopeBlendMode::Multiply => true,
+        rframe::ScopeBlendMode::Normal => blend.opacity().is_none(),
+        rframe::ScopeBlendMode::Screen => blend.opacity().is_some(),
+    }
 }
 
 #[cfg(test)]
@@ -2729,6 +2733,10 @@ mod isolated_blend_policy_tests {
     }
 
     fn pixel(blend: rframe::ScopeBlend, float_first: bool) -> Vec<u8> {
+        pixel_with_source_alpha(blend, float_first, 149)
+    }
+
+    fn pixel_with_source_alpha(blend: rframe::ScopeBlend, float_first: bool, alpha: u8) -> Vec<u8> {
         let mut surface = skia_safe::surfaces::raster_n32_premul((1, 1)).unwrap();
         surface.canvas().clear(Color::from_argb(170, 66, 101, 137));
         let mut restore = Paint::default();
@@ -2742,7 +2750,9 @@ mod isolated_blend_policy_tests {
         surface
             .canvas()
             .save_layer(&SaveLayerRec::default().paint(&restore));
-        surface.canvas().clear(Color::from_argb(149, 215, 104, 67));
+        surface
+            .canvas()
+            .clear(Color::from_argb(alpha, 215, 104, 67));
         surface.canvas().restore();
         read_pixels(&mut surface, 1, 1)
     }
@@ -2824,8 +2834,40 @@ mod isolated_blend_policy_tests {
         let warm = pixel(blend, false);
         let _ = pixel(scope(0.6), false);
         assert_eq!(pixel(blend, false), warm);
-        ISOLATED_BYTE_BLENDERS.with(|cache| *cache.borrow_mut() = [None, None]);
+        ISOLATED_BYTE_BLENDERS.with(|cache| *cache.borrow_mut() = [None, None, None]);
         assert_eq!(pixel(blend, false), warm);
+    }
+
+    #[test]
+    fn isolated_normal_raster_matches_integer_math_for_every_source_alpha() {
+        let q = |v: u32| (v + 127) / 255;
+        let destination = [q(66 * 170), q(101 * 170), q(137 * 170), 170];
+        let blend = rframe::ScopeBlend::new(rframe::ScopeBlendMode::Normal, None);
+        assert!(
+            !uses_isolated_byte_blender(rframe::ScopeBlend::new(
+                rframe::ScopeBlendMode::Normal,
+                scope(0.6).opacity(),
+            )),
+            "partial Normal must retain the existing isolated-opacity path"
+        );
+        for alpha in 0..=255_u32 {
+            preflight_isolated_blend(blend).unwrap();
+            assert!(uses_isolated_byte_blender(blend));
+            let source = [q(215 * alpha), q(104 * alpha), q(67 * alpha), alpha];
+            let expected: Vec<_> = source
+                .iter()
+                .zip(destination)
+                .map(|(s, d)| (s + q(d * (255 - source[3]))) as u8)
+                .collect();
+            let warm = pixel_with_source_alpha(blend, false, alpha as u8);
+            assert_eq!(warm, expected, "source alpha byte {alpha}");
+            ISOLATED_BYTE_BLENDERS.with(|cache| cache.borrow_mut()[2] = None);
+            assert_eq!(
+                pixel_with_source_alpha(blend, false, alpha as u8),
+                warm,
+                "fresh binding at source alpha byte {alpha}"
+            );
+        }
     }
 }
 
