@@ -18,12 +18,14 @@
 
 #[path = "support/fixture_fonts.rs"]
 mod fixture_fonts;
+#[path = "support/unsupported_fixture.rs"]
+mod unsupported_fixture;
 
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use websem::{DegradationAction, InitialViewport, SvgFrameSource};
+use websem::DegradationAction;
 
 /// What the two admissions must do with a fixture.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -44,6 +46,217 @@ use Departure::{BothRefuse, DeclaredByBestEffort};
 /// construct itself — a refusal that stopped naming what it refused would pass
 /// a bare "does it error" check and fail this one.
 const CORPUS: &[(&str, Departure, &str)] = &[
+    (
+        "svg-group-blend-root-filter-sibling",
+        BothRefuse,
+        "image-effect composition",
+    ),
+    (
+        "svg-group-blend-source-path",
+        DeclaredByBestEffort,
+        "group-source precision",
+    ),
+    (
+        "svg-group-blend-source-ellipse",
+        DeclaredByBestEffort,
+        "group-source precision",
+    ),
+    (
+        "svg-group-blend-source-clip",
+        DeclaredByBestEffort,
+        "group-source precision",
+    ),
+    (
+        "svg-group-blend-source-isolation",
+        DeclaredByBestEffort,
+        "group-source precision",
+    ),
+    (
+        "svg-group-blend-root-opacity",
+        BothRefuse,
+        "root-layer precision",
+    ),
+    (
+        "svg-group-blend-source-radial",
+        DeclaredByBestEffort,
+        "group-source precision",
+    ),
+    (
+        "svg-group-blend-source-stroke",
+        DeclaredByBestEffort,
+        "group-source precision",
+    ),
+    (
+        "svg-group-blend-source-subpixel-clip",
+        DeclaredByBestEffort,
+        "group-source precision",
+    ),
+    (
+        "svg-group-blend-source-rotated-clip",
+        DeclaredByBestEffort,
+        "group-source precision",
+    ),
+    (
+        "svg-group-blend-mode-overlay",
+        DeclaredByBestEffort,
+        "mix-blend-mode",
+    ),
+    (
+        "svg-group-blend-mode-darken",
+        DeclaredByBestEffort,
+        "mix-blend-mode",
+    ),
+    (
+        "svg-group-blend-mode-lighten",
+        DeclaredByBestEffort,
+        "mix-blend-mode",
+    ),
+    (
+        "svg-group-blend-mode-color-dodge",
+        DeclaredByBestEffort,
+        "mix-blend-mode",
+    ),
+    (
+        "svg-group-blend-mode-color-burn",
+        DeclaredByBestEffort,
+        "mix-blend-mode",
+    ),
+    (
+        "svg-group-blend-mode-hard-light",
+        DeclaredByBestEffort,
+        "mix-blend-mode",
+    ),
+    (
+        "svg-group-blend-mode-soft-light",
+        DeclaredByBestEffort,
+        "mix-blend-mode",
+    ),
+    (
+        "svg-group-blend-mode-difference",
+        DeclaredByBestEffort,
+        "mix-blend-mode",
+    ),
+    (
+        "svg-group-blend-mode-exclusion",
+        DeclaredByBestEffort,
+        "mix-blend-mode",
+    ),
+    (
+        "svg-group-blend-mode-hue",
+        DeclaredByBestEffort,
+        "mix-blend-mode",
+    ),
+    (
+        "svg-group-blend-mode-saturation",
+        DeclaredByBestEffort,
+        "mix-blend-mode",
+    ),
+    (
+        "svg-group-blend-mode-color",
+        DeclaredByBestEffort,
+        "mix-blend-mode",
+    ),
+    (
+        "svg-group-blend-mode-luminosity",
+        DeclaredByBestEffort,
+        "mix-blend-mode",
+    ),
+    (
+        "svg-group-blend-mode-plus-lighter",
+        DeclaredByBestEffort,
+        "mix-blend-mode",
+    ),
+    (
+        "svg-group-blend-filter",
+        DeclaredByBestEffort,
+        "image-effect composition",
+    ),
+    (
+        "svg-group-blend-elided-filter-unit",
+        DeclaredByBestEffort,
+        "image-effect composition",
+    ),
+    (
+        "svg-group-blend-elided-filter-partial",
+        DeclaredByBestEffort,
+        "image-effect composition",
+    ),
+    (
+        "svg-group-blend-elided-mask-unit",
+        DeclaredByBestEffort,
+        "image-effect composition",
+    ),
+    (
+        "svg-group-blend-elided-mask-partial",
+        DeclaredByBestEffort,
+        "image-effect composition",
+    ),
+    (
+        "svg-group-blend-mask",
+        DeclaredByBestEffort,
+        "image-effect composition",
+    ),
+    (
+        "svg-group-blend-resource-pattern-root",
+        DeclaredByBestEffort,
+        "mix-blend-mode/isolation",
+    ),
+    (
+        "svg-group-blend-resource-pattern-child",
+        DeclaredByBestEffort,
+        "mix-blend-mode/isolation",
+    ),
+    (
+        "svg-group-blend-resource-mask-root",
+        DeclaredByBestEffort,
+        "mix-blend-mode/isolation",
+    ),
+    (
+        "svg-group-blend-resource-mask-child",
+        DeclaredByBestEffort,
+        "mix-blend-mode/isolation",
+    ),
+    (
+        "svg-group-blend-resource-clippath-root",
+        DeclaredByBestEffort,
+        "mix-blend-mode/isolation",
+    ),
+    (
+        "svg-group-blend-resource-clippath-child",
+        DeclaredByBestEffort,
+        "mix-blend-mode/isolation",
+    ),
+    (
+        "svg-group-blend-css-animation",
+        DeclaredByBestEffort,
+        "animated group-composition",
+    ),
+    (
+        "svg-group-blend-css-var-animation",
+        DeclaredByBestEffort,
+        "animated group-composition",
+    ),
+    (
+        "html-group-blend-head-animation",
+        DeclaredByBestEffort,
+        "animated group-composition",
+    ),
+    ("html-group-blend-unisolated", BothRefuse, "host backdrop"),
+    (
+        "html-group-blend-ancestor-mix-blend-mode",
+        BothRefuse,
+        "host backdrop",
+    ),
+    (
+        "html-group-blend-ancestor-isolation",
+        BothRefuse,
+        "host backdrop",
+    ),
+    (
+        "svg-group-blend-pattern-root-animation",
+        DeclaredByBestEffort,
+        "document load",
+    ),
     ("svg-clip-path-animation", DeclaredByBestEffort, "animation"),
     (
         "svg-clip-path-basic-shape",
@@ -1246,18 +1459,20 @@ fn corpus_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/web-first/unsupported")
 }
 
-fn viewport() -> InitialViewport {
-    InitialViewport::new(64.0, 64.0)
-}
-
 #[test]
 fn the_corpus_on_disk_is_exactly_the_declared_one() {
     let disk: BTreeSet<String> = fs::read_dir(corpus_root())
         .expect("read the unsupported corpus")
         .filter_map(Result::ok)
         .map(|entry| entry.file_name().to_string_lossy().into_owned())
-        .filter(|name| name.ends_with(".svg"))
-        .map(|name| name.trim_end_matches(".svg").to_string())
+        .filter(|name| name.ends_with(".svg") || name.ends_with(".html"))
+        .map(|name| {
+            Path::new(&name)
+                .file_stem()
+                .unwrap()
+                .to_string_lossy()
+                .into_owned()
+        })
         .collect();
     let declared: BTreeSet<String> = CORPUS.iter().map(|(id, _, _)| (*id).to_string()).collect();
 
@@ -1270,16 +1485,9 @@ fn the_corpus_on_disk_is_exactly_the_declared_one() {
 #[test]
 fn every_unsupported_fixture_departs_by_name_in_both_admissions() {
     for (id, departure, named) in CORPUS {
-        let source = fs::read_to_string(corpus_root().join(format!("{id}.svg")))
-            .unwrap_or_else(|error| panic!("{id}: read: {error}"));
-
-        let strict = SvgFrameSource::from_standalone_svg_with_fonts(
-            source.as_str(),
-            viewport(),
-            fixture_fonts::unsupported_environment(id),
-        )
-        .err()
-        .unwrap_or_else(|| panic!("{id}: strict must refuse an unsupported fixture"));
+        let strict = unsupported_fixture::compile(&corpus_root(), id, false)
+            .err()
+            .unwrap_or_else(|| panic!("{id}: strict must refuse an unsupported fixture"));
         assert!(
             strict.to_string().contains(named),
             "{id}: the strict refusal must name {named:?}; got {strict}"
@@ -1287,27 +1495,19 @@ fn every_unsupported_fixture_departs_by_name_in_both_admissions() {
 
         match departure {
             BothRefuse => {
-                let best = SvgFrameSource::from_standalone_svg_best_effort_with_fonts(
-                    source.as_str(),
-                    viewport(),
-                    fixture_fonts::unsupported_environment(id),
-                )
-                .err()
-                .unwrap_or_else(|| {
-                    panic!("{id}: a document-level contract refuses in both admissions")
-                });
+                let best = unsupported_fixture::compile(&corpus_root(), id, true)
+                    .err()
+                    .unwrap_or_else(|| {
+                        panic!("{id}: a document-level contract refuses in both admissions")
+                    });
                 assert!(
                     best.to_string().contains(named),
                     "{id}: the best-effort refusal must name {named:?}; got {best}"
                 );
             }
             DeclaredByBestEffort => {
-                let best = SvgFrameSource::from_standalone_svg_best_effort_with_fonts(
-                    source.as_str(),
-                    viewport(),
-                    fixture_fonts::unsupported_environment(id),
-                )
-                .unwrap_or_else(|error| panic!("{id}: best-effort compiles: {error}"));
+                let best = unsupported_fixture::compile(&corpus_root(), id, true)
+                    .unwrap_or_else(|error| panic!("{id}: best-effort compiles: {error}"));
                 let declared: Vec<&websem::Degradation> = best
                     .degradations()
                     .iter()

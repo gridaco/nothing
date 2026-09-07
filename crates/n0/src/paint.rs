@@ -890,6 +890,8 @@ pub(crate) fn preflight_gradients<K: Copy>(
             | ItemKind::PatternStroke { .. }
             | ItemKind::BeginOpacity { .. }
             | ItemKind::BeginIsolatedOpacity { .. }
+            | ItemKind::BeginIsolatedBlend { .. }
+            | ItemKind::EndIsolatedBlend
             | ItemKind::EndOpacity
             | ItemKind::BeginClipRect { .. }
             | ItemKind::BeginClipPath { .. }
@@ -1129,6 +1131,8 @@ pub(crate) fn preflight_images(
             | ItemKind::PatternStroke { .. }
             | ItemKind::BeginOpacity { .. }
             | ItemKind::BeginIsolatedOpacity { .. }
+            | ItemKind::BeginIsolatedBlend { .. }
+            | ItemKind::EndIsolatedBlend
             | ItemKind::EndOpacity
             | ItemKind::BeginClipRect { .. }
             | ItemKind::BeginClipPath { .. }
@@ -2508,9 +2512,22 @@ fn deterministic_porter_duff_blender(
 // that use that pipeline over explicit unorm8 values so both CPU families
 // reproduce the committed Chromium bytes. The remaining seven modes use Skia's
 // high-precision path and stay native unless measurement proves otherwise.
-fn exact_unorm8_filter_blend_source(expression: &str) -> String {
+const UNORM8_MULTIPLY_EXPRESSION: &str = "div255(s * (255.0 - d.a) + d * (255.0 - s.a) + s * d)";
+
+fn exact_unorm8_blend_source(expression: &str, source_opacity_uniform: bool) -> String {
+    let declaration = if source_opacity_uniform {
+        "uniform float opacity_byte;"
+    } else {
+        ""
+    };
+    let source_scale = if source_opacity_uniform {
+        "s = div255(s * opacity_byte);"
+    } else {
+        ""
+    };
     format!(
         r#"
+{declaration}
 float div255(float value) {{
     return floor((value + 127.0) / 255.0);
 }}
@@ -2540,6 +2557,7 @@ float hard_light_channel(float s, float d, float sa, float da) {{
 half4 main(half4 src, half4 dst) {{
     float4 s = floor(float4(src) * 255.0 + 0.5);
     float4 d = floor(float4(dst) * 255.0 + 0.5);
+    {source_scale}
     float4 result = {expression};
     return half4(clamp(result, 0.0, 255.0) / 255.0);
 }}
@@ -2581,10 +2599,7 @@ half4 main(half4 src, half4 dst) {{
 fn deterministic_filter_blender(mode: ResolvedFilterBlend) -> Result<Blender, String> {
     let (slot, expression) = match mode {
         ResolvedFilterBlend::Normal => (12, "s + div255(d * (255.0 - s.a))"),
-        ResolvedFilterBlend::Multiply => (
-            13,
-            "div255(s * (255.0 - d.a) + d * (255.0 - s.a) + s * d)",
-        ),
+        ResolvedFilterBlend::Multiply => (13, UNORM8_MULTIPLY_EXPRESSION),
         ResolvedFilterBlend::Screen => (14, "s + d - div255(s * d)"),
         ResolvedFilterBlend::Overlay => (
             15,
@@ -2612,7 +2627,312 @@ fn deterministic_filter_blender(mode: ResolvedFilterBlend) -> Result<Blender, St
         ),
         _ => return Ok(sk_filter_blend_mode(mode).into()),
     };
-    cached_filter_blender(slot, || exact_unorm8_filter_blend_source(expression))
+    cached_filter_blender(slot, || exact_unorm8_blend_source(expression, false))
+}
+
+thread_local! {
+    // Cache shader code and immutable uniform bindings, never destination
+    // pixels. All checked opacity values map to only 256 byte factors. Compile
+    // one effect per mode per painting thread, not one shader per opacity or
+    // replay. Unit-opacity Screen remains native.
+    static ISOLATED_BYTE_BLENDERS: RefCell<[Option<IsolatedByteBlenders>; 3]> =
+        const { RefCell::new([None, None, None]) };
+}
+
+struct IsolatedByteBlenders {
+    effect: skia_safe::RuntimeEffect,
+    by_alpha: Vec<Option<Blender>>,
+}
+
+/// The pinned N32 restore's paint-alpha conversion. Keep route selection and
+/// shader uniforms in the same byte domain without changing the resolved fact.
+fn isolated_opacity_byte(opacity: Option<rframe::ScopeOpacity>) -> u8 {
+    (opacity.map_or(1.0, |opacity| opacity.get()) * 255.0 + 0.5) as u8
+}
+
+fn isolated_byte_blender(blend: rframe::ScopeBlend) -> Result<Blender, String> {
+    // Pinned Skia's N32 lowp sprite restore quantizes the paint opacity first,
+    // then rounds source-byte * opacity-byte / 255. A runtime blender promotes
+    // the surrounding pipeline to highp; leaving paint alpha active would
+    // instead scale by the original float before source quantization.
+    let alpha = isolated_opacity_byte(blend.opacity());
+    let (slot, expression) = match blend.mode() {
+        rframe::ScopeBlendMode::Multiply => (0, UNORM8_MULTIPLY_EXPRESSION),
+        rframe::ScopeBlendMode::Screen => (1, "s + d - div255(s * d)"),
+        // N32 source-over sprite restoration has a separate x86 fast path:
+        // s + ((d * (256 - sa)) >> 8), unlike NEON's accurate /255. Rotated
+        // isolated sources expose it at partial-alpha edge pixels.
+        rframe::ScopeBlendMode::Normal => (2, "s + div255(d * (255.0 - s.a))"),
+    };
+    ISOLATED_BYTE_BLENDERS.with(|caches| {
+        let mut caches = caches.borrow_mut();
+        let cache = &mut caches[slot];
+        if cache.is_none() {
+            let options = skia_safe::runtime_effect::Options {
+                force_unoptimized: false,
+                name: "n0_isolated_byte_blender",
+            };
+            let effect = skia_safe::RuntimeEffect::make_for_blender(
+                exact_unorm8_blend_source(expression, true),
+                Some(&options),
+            )
+            .map_err(|error| {
+                format!("the backend could not compile an isolated byte-domain blender: {error}")
+            })?;
+            *cache = Some(IsolatedByteBlenders {
+                effect,
+                by_alpha: Vec::new(),
+            });
+        }
+        let cache = cache.as_mut().expect("effect initialized above");
+        if let Some(blender) = cache
+            .by_alpha
+            .get(usize::from(alpha))
+            .and_then(Option::as_ref)
+        {
+            return Ok(blender.clone());
+        }
+        let blender = cache
+            .effect
+            .make_blender(Data::new_copy(&f32::from(alpha).to_ne_bytes()), None)
+            .ok_or_else(|| "the backend could not bind isolated blend opacity".to_string())?;
+        if cache.by_alpha.len() <= usize::from(alpha) {
+            cache.by_alpha.resize_with(usize::from(alpha) + 1, || None);
+        }
+        cache.by_alpha[usize::from(alpha)] = Some(blender.clone());
+        Ok(blender)
+    })
+}
+
+/// Validate fallible backend construction before an immutable frame product
+/// exists. The static shader's raster lowering is guarded by execution tests;
+/// preflight itself issues no raster commands.
+pub(crate) fn preflight_isolated_blend(blend: rframe::ScopeBlend) -> Result<(), String> {
+    if uses_isolated_byte_blender(blend) {
+        isolated_byte_blender(blend).map(|_| ())
+    } else {
+        Ok(())
+    }
+}
+
+pub(crate) fn uses_isolated_byte_blender(blend: rframe::ScopeBlend) -> bool {
+    match blend.mode() {
+        rframe::ScopeBlendMode::Multiply => true,
+        // SkPaint::getAlpha() also makes near-unit Some values 255. Those
+        // select the same x86 SrcOver sprite approximation as None. Lower
+        // bytes retain the distinct native global-alpha restore arithmetic.
+        rframe::ScopeBlendMode::Normal => isolated_opacity_byte(blend.opacity()) == 255,
+        rframe::ScopeBlendMode::Screen => blend.opacity().is_some(),
+    }
+}
+
+#[cfg(test)]
+mod isolated_blend_policy_tests {
+    use super::*;
+
+    fn scope(opacity: f32) -> rframe::ScopeBlend {
+        rframe::ScopeBlend::new(
+            rframe::ScopeBlendMode::Multiply,
+            if opacity == 1.0 {
+                None
+            } else {
+                Some(rframe::ScopeOpacity::new(opacity).unwrap())
+            },
+        )
+    }
+
+    fn pixel(blend: rframe::ScopeBlend, float_first: bool) -> Vec<u8> {
+        pixel_with_source_alpha(blend, float_first, 149)
+    }
+
+    fn pixel_with_source_alpha(blend: rframe::ScopeBlend, float_first: bool, alpha: u8) -> Vec<u8> {
+        let mut surface = skia_safe::surfaces::raster_n32_premul((1, 1)).unwrap();
+        surface.canvas().clear(Color::from_argb(170, 66, 101, 137));
+        let mut restore = Paint::default();
+        if float_first {
+            restore.set_alpha_f(blend.opacity().unwrap().get());
+            restore
+                .set_blender(deterministic_filter_blender(ResolvedFilterBlend::Multiply).unwrap());
+        } else {
+            restore.set_blender(isolated_byte_blender(blend).unwrap());
+        }
+        surface
+            .canvas()
+            .save_layer(&SaveLayerRec::default().paint(&restore));
+        surface
+            .canvas()
+            .clear(Color::from_argb(alpha, 215, 104, 67));
+        surface.canvas().restore();
+        read_pixels(&mut surface, 1, 1)
+    }
+
+    #[test]
+    fn isolated_blend_routing_uses_the_native_opacity_byte() {
+        let boundary = 254.5_f32 / 255.0;
+        let values = (0..=255_u32)
+            .map(|alpha| {
+                if alpha == 0 {
+                    0.001
+                } else {
+                    alpha as f32 / 255.0
+                }
+            })
+            .chain([
+                0.123456,
+                0.6,
+                0.998,
+                0.999,
+                1.0_f32.next_down(),
+                boundary.next_down(),
+                boundary,
+                boundary.next_up(),
+            ]);
+        for value in values {
+            let opacity = scope(value).opacity();
+            let mut native = Paint::default();
+            native.set_alpha_f(value);
+            assert_eq!(isolated_opacity_byte(opacity), native.alpha(), "{value}");
+            for (mode, expected) in [
+                (rframe::ScopeBlendMode::Normal, native.alpha() == 255),
+                (rframe::ScopeBlendMode::Multiply, true),
+                (rframe::ScopeBlendMode::Screen, opacity.is_some()),
+            ] {
+                assert_eq!(
+                    uses_isolated_byte_blender(rframe::ScopeBlend::new(mode, opacity)),
+                    expected,
+                    "{mode:?} at {value}"
+                );
+            }
+        }
+        assert_eq!(isolated_opacity_byte(scope(0.998).opacity()), 254);
+        assert_eq!(isolated_opacity_byte(scope(0.999).opacity()), 255);
+    }
+
+    #[test]
+    fn isolated_multiply_raster_matches_ordered_integer_math_for_every_opacity_byte() {
+        let q = |v: u32| (v + 127) / 255;
+        let source = [q(215 * 149), q(104 * 149), q(67 * 149), 149];
+        let destination = [q(66 * 170), q(101 * 170), q(137 * 170), 170];
+        for alpha in 0..=255_u32 {
+            let blend = scope(if alpha == 0 {
+                0.001
+            } else {
+                alpha as f32 / 255.0
+            });
+            preflight_isolated_blend(blend).unwrap();
+            let s = source.map(|v| q(v * alpha));
+            let expected: Vec<_> = s
+                .iter()
+                .zip(destination)
+                .map(|(s_channel, d_channel)| {
+                    q(s_channel * (255 - destination[3])
+                        + d_channel * (255 - s[3])
+                        + s_channel * d_channel) as u8
+                })
+                .collect();
+            assert_eq!(pixel(blend, false), expected, "opacity byte {alpha}");
+        }
+        ISOLATED_BYTE_BLENDERS.with(|cache| {
+            let cache = cache.borrow();
+            let bindings = &cache[0].as_ref().unwrap().by_alpha;
+            assert_eq!(bindings.len(), 256);
+            assert!(bindings.iter().all(Option::is_some));
+        });
+    }
+
+    #[test]
+    fn isolated_multiply_quantizes_opacity_before_scaling_source() {
+        let arbitrary = scope(0.123456);
+        assert_eq!(pixel(arbitrary, false), pixel(scope(31.0 / 255.0), false));
+        assert_ne!(pixel(arbitrary, false), pixel(arbitrary, true));
+    }
+
+    #[test]
+    fn isolated_screen_raster_matches_ordered_integer_math_for_every_opacity_byte() {
+        let q = |v: u32| (v + 127) / 255;
+        let source = [q(215 * 149), q(104 * 149), q(67 * 149), 149];
+        let destination = [q(66 * 170), q(101 * 170), q(137 * 170), 170];
+        for alpha in 0..=255_u32 {
+            let opacity = scope(if alpha == 0 {
+                0.001
+            } else {
+                alpha as f32 / 255.0
+            })
+            .opacity();
+            let blend = rframe::ScopeBlend::new(rframe::ScopeBlendMode::Screen, opacity);
+            preflight_isolated_blend(blend).unwrap();
+            assert_eq!(uses_isolated_byte_blender(blend), opacity.is_some());
+            let source = source.map(|v| q(v * alpha));
+            let expected: Vec<_> = source
+                .iter()
+                .zip(destination)
+                .map(|(s, d)| (s + d - q(s * d)) as u8)
+                .collect();
+            let warm = pixel(blend, false);
+            assert_eq!(warm, expected, "opacity byte {alpha}");
+            ISOLATED_BYTE_BLENDERS.with(|cache| cache.borrow_mut()[1] = None);
+            assert_eq!(
+                pixel(blend, false),
+                warm,
+                "fresh binding at opacity byte {alpha}"
+            );
+        }
+    }
+
+    #[test]
+    fn isolated_multiply_blender_cache_matches_fresh() {
+        let blend = scope(0.123456);
+        let warm = pixel(blend, false);
+        let _ = pixel(scope(0.6), false);
+        assert_eq!(pixel(blend, false), warm);
+        ISOLATED_BYTE_BLENDERS.with(|cache| *cache.borrow_mut() = [None, None, None]);
+        assert_eq!(pixel(blend, false), warm);
+    }
+
+    #[test]
+    fn isolated_normal_raster_matches_integer_math_for_every_source_alpha() {
+        let q = |v: u32| (v + 127) / 255;
+        let destination = [q(66 * 170), q(101 * 170), q(137 * 170), 170];
+        let blend = rframe::ScopeBlend::new(rframe::ScopeBlendMode::Normal, None);
+        assert!(
+            !uses_isolated_byte_blender(rframe::ScopeBlend::new(
+                rframe::ScopeBlendMode::Normal,
+                scope(0.6).opacity(),
+            )),
+            "partial Normal must retain the existing isolated-opacity path"
+        );
+        for alpha in 0..=255_u32 {
+            preflight_isolated_blend(blend).unwrap();
+            assert!(uses_isolated_byte_blender(blend));
+            let source = [q(215 * alpha), q(104 * alpha), q(67 * alpha), alpha];
+            let expected: Vec<_> = source
+                .iter()
+                .zip(destination)
+                .map(|(s, d)| (s + q(d * (255 - source[3]))) as u8)
+                .collect();
+            let warm = pixel_with_source_alpha(blend, false, alpha as u8);
+            assert_eq!(warm, expected, "source alpha byte {alpha}");
+            ISOLATED_BYTE_BLENDERS.with(|cache| cache.borrow_mut()[2] = None);
+            assert_eq!(
+                pixel_with_source_alpha(blend, false, alpha as u8),
+                warm,
+                "fresh binding at source alpha byte {alpha}"
+            );
+            for value in [0.999, 1.0_f32.next_down()] {
+                let alias = rframe::ScopeBlend::new(
+                    rframe::ScopeBlendMode::Normal,
+                    Some(rframe::ScopeOpacity::new(value).unwrap()),
+                );
+                preflight_isolated_blend(alias).unwrap();
+                assert!(uses_isolated_byte_blender(alias));
+                assert_eq!(
+                    pixel_with_source_alpha(alias, false, alpha as u8),
+                    expected,
+                    "opacity {value}, source alpha byte {alpha}"
+                );
+            }
+        }
+    }
 }
 
 fn procedural_filter_blender(
@@ -4109,6 +4429,38 @@ fn text_path<K>(
     builder.snapshot()
 }
 
+#[cfg(feature = "trace")]
+fn observe_blend_layer(canvas: &Canvas) -> crate::trace::blend_layers::Observation {
+    use crate::trace::blend_layers::Observation;
+
+    // An empty saveLayer can retain the prior device. Do not misattribute its
+    // backing storage to a new layer. Failed layer mappings also empty the clip.
+    if canvas.is_clip_empty() {
+        return Observation::EmptyClip;
+    }
+    // In pinned Skia, accessTopLayerPixels -> SkBitmapDevice::onAccessPixels
+    // peeks existing storage and calls notifyPixelsChanged. It does not allocate,
+    // but generation-state perturbation makes this diagnostic instrumentation.
+    // Never read/write the pixel slice or keep it across another canvas call.
+    let Some(top) = canvas.access_top_layer_pixels() else {
+        return Observation::Unavailable;
+    };
+    let (Ok(width), Ok(height)) = (
+        u64::try_from(top.info.width()),
+        u64::try_from(top.info.height()),
+    ) else {
+        return Observation::Unavailable;
+    };
+    let bytes = top.info.compute_byte_size(top.row_bytes);
+    if bytes == usize::MAX {
+        return Observation::Unavailable;
+    }
+    Observation::Raster {
+        bytes,
+        pixels: width * height,
+    }
+}
+
 /// Replay a raw [`DrawList`] without a frame-environment check.
 ///
 /// This low-level entry exists for engine-owned resource-free glyphless
@@ -4124,13 +4476,22 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
     // noise and can move a boundary value across N32 quantization.
     skia_safe::graphics::init();
 
+    #[cfg(feature = "trace")]
+    let _blend_trace = crate::trace::blend_layers::Execute::begin();
+
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum Scope {
         Opacity,
+        Blend {
+            #[cfg(feature = "trace")]
+            observed_bytes: u128,
+        },
         Clip,
         MaskContent,
         MaskSource,
-        Filter { source_preflatten: bool },
+        Filter {
+            source_preflatten: bool,
+        },
     }
 
     let initial_save_count = canvas.save_count();
@@ -4169,6 +4530,43 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 let layer = SaveLayerRec::default().paint(&restore_paint);
                 canvas.save_layer(&layer);
                 scopes.push(Scope::Opacity);
+            }
+            ItemKind::BeginIsolatedBlend { blend } => {
+                // One empty-start layer, one restoration. Nesting an opacity
+                // layer outside a blend would change the blend's backdrop;
+                // nesting it inside would introduce another quantization.
+                let mut restore_paint = Paint::default();
+                if uses_isolated_byte_blender(*blend) {
+                    restore_paint
+                        .set_blender(isolated_byte_blender(*blend).expect(
+                            "isolated blend construction was preflighted at product build",
+                        ));
+                } else {
+                    restore_paint.set_alpha_f(blend.opacity().map_or(1.0, |opacity| opacity.get()));
+                    restore_paint.set_blend_mode(match blend.mode() {
+                        rframe::ScopeBlendMode::Normal => skia_safe::BlendMode::SrcOver,
+                        rframe::ScopeBlendMode::Screen => skia_safe::BlendMode::Screen,
+                        rframe::ScopeBlendMode::Multiply => unreachable!(),
+                    });
+                }
+                canvas.save_layer(&SaveLayerRec::default().paint(&restore_paint));
+                scopes.push(Scope::Blend {
+                    #[cfg(feature = "trace")]
+                    observed_bytes: crate::trace::blend_layers::Execute::begin_layer(
+                        observe_blend_layer(canvas),
+                    ),
+                });
+            }
+            ItemKind::EndIsolatedBlend => {
+                let scope = scopes.pop();
+                debug_assert!(matches!(scope, Some(Scope::Blend { .. })));
+                if scope.is_some() {
+                    canvas.restore();
+                }
+                #[cfg(feature = "trace")]
+                if let Some(Scope::Blend { observed_bytes }) = scope {
+                    crate::trace::blend_layers::Execute::end_layer(observed_bytes);
+                }
             }
             ItemKind::EndOpacity => {
                 let scope = scopes.pop();

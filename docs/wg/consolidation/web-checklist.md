@@ -678,6 +678,17 @@ excluded.
 - [ ] `background-blend-mode`
 - [ ] `isolation`
 
+> B1 admits a bounded static SVG group-composition slice through the existing
+> cascade: normal/multiply/screen and explicit isolation, with one combined
+> group-opacity operation. These are CSS properties, not SVG presentation
+> attributes. All three rows remain open: the other live blend values,
+> source/effect precision profiles, resource programs, animation and HTML
+> exterior-backdrop composition are not complete; `background-blend-mode` is
+> untouched. The [admitted slice](../../../crates/n0_cli/README.md) names the
+> boundaries, and the [B1 evidence](./svg-engine-of-record.md#b1-svg-group-blending)
+> records the measured split. Partial coverage is not a tick under
+> gridaco/nothing#81/#89/#90.
+
 
 ### CSS fonts
 

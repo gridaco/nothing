@@ -121,6 +121,8 @@ use csscascade::cascade::CascadeDriver;
 use csscascade::dom::{DemoDom, DemoNodeData, NodeId};
 
 use style::color::{AbsoluteColor, ColorSpace};
+use style::computed_values::isolation::T as StyloIsolation;
+use style::computed_values::mix_blend_mode::T as StyloBlend;
 use style::computed_values::stroke_linecap::T as StyloLinecap;
 use style::computed_values::stroke_linejoin::T as StyloLinejoin;
 use style::computed_values::visibility::T as Visibility;
@@ -151,8 +153,9 @@ use rframe::{
     FilterInput, FilterLightSource, FilterMorphology, FilterNode, FilterPrimitive, FilterProgram,
     FilterTurbulenceKind, Frame, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry,
     Identity, MAX_FILTER_CONVOLVE_KERNEL_VALUES, Mask, MaskMode, PaintAlphaFactor, PaintStack,
-    PathData, PatternPaint, Provenance, Scope, ScopeEffect, ScopeOpacity, Stroke, StrokeCap,
-    StrokeDash, StrokeDashIntervals, StrokeDashIntervalsError, StrokeJoin, StrokeSpace, VisualRef,
+    PathData, PatternPaint, Provenance, Scope, ScopeBlend, ScopeBlendMode, ScopeEffect,
+    ScopeOpacity, Stroke, StrokeCap, StrokeDash, StrokeDashIntervals, StrokeDashIntervalsError,
+    StrokeJoin, StrokeSpace, VisualRef,
 };
 use std::sync::Arc;
 
@@ -1055,6 +1058,13 @@ fn host_ancestor_opacities(svg: HtmlElement<'_>) -> Result<Vec<f32>, CompileErro
         let data = element
             .borrow_data()
             .ok_or(CompileError::MissingComputedStyle)?;
+        if data.styles.primary().clone_mix_blend_mode() != StyloBlend::Normal
+            || data.styles.primary().clone_isolation() != StyloIsolation::Auto
+        {
+            return Err(CompileError::UnsupportedStyle(
+                "mix-blend-mode/isolation on an HTML ancestor needs the host backdrop and layer graph".to_string()
+            ));
+        }
         let opacity = data.styles.primary().clone_opacity().clamp(0.0, 1.0);
         if opacity < 1.0 {
             inner_to_outer.push(opacity);
@@ -1346,8 +1356,8 @@ const CASCADE_PROPERTIES_NOT_REPRESENTED: &[&str] = &[
     "mask-border-width",
     "mask-border-outset",
     "mask-border-repeat",
-    "mix-blend-mode",
-    "isolation",
+    // mix-blend-mode and isolation are read from the one computed cascade.
+    // Their unadmitted modes and composition contexts have value patrols.
     "paint-order",
     // The gradient rung's sheet-level patrol: Chromium consumes these from
     // the cascade (measured: `stop { stop-color: red }` beats the
@@ -2009,6 +2019,8 @@ fn patrol_style_attribute(
 /// listed property (measured). Whatever is in force is what must be patrolled.
 fn stylesheet_findings(root: HtmlElement<'_>) -> Vec<(String, String)> {
     let mut found = Vec::new();
+    let mut blend_declaration = false;
+    let mut keyframe_sheets = Vec::new();
     // A sheet can declare a stroke-width in `em`/`rem` — an admitted unit whose
     // font-size basis may be poisoned anywhere: in the same sheet, another
     // sheet, or an element's own attributes. The walk visits all of them, so
@@ -2025,6 +2037,11 @@ fn stylesheet_findings(root: HtmlElement<'_>) -> Vec<(String, String)> {
                 if let DemoNodeData::Text(text) = &element.dom().node(*child_id).data {
                     sheet.push_str(text);
                 }
+            }
+            blend_declaration |= css_declares_property(&sheet, "mix-blend-mode")
+                || css_declares_property(&sheet, "isolation");
+            if sheet.to_ascii_lowercase().contains("keyframes") {
+                keyframe_sheets.push(path.clone());
             }
             if sheet.contains('\\') {
                 // An escape can hide a property name or a unit from every scan
@@ -2121,6 +2138,10 @@ fn stylesheet_findings(root: HtmlElement<'_>) -> Vec<(String, String)> {
                 font_poison = stylesheet_font_size_poison(&sheet);
             }
         }
+        if let Some(style) = get_attr(element, "style") {
+            blend_declaration |= css_declares_property(&style, "mix-blend-mode")
+                || css_declares_property(&style, "isolation");
+        }
         if font_poison.is_none() {
             for text in [
                 get_attr(element, "font-size"),
@@ -2148,6 +2169,14 @@ fn stylesheet_findings(root: HtmlElement<'_>) -> Vec<(String, String)> {
         }
         // Depth-first in document order: the stack pops in reverse.
         stack.extend(children.into_iter().rev());
+    }
+    // Static cascade does not apply CSS animation values. Do not match a
+    // second selector tree: keyframes and blend declarations anywhere can
+    // meet through custom properties, including an HTML-head stylesheet.
+    if blend_declaration {
+        for path in keyframe_sheets {
+            found.push(("CSS keyframes with mix-blend-mode/isolation need the animated group-composition profile".to_string(), path));
+        }
     }
     if let (Some((unit, path)), Some(poison)) = (sheet_width_font_relative, font_poison) {
         found.push((
@@ -2257,6 +2286,56 @@ enum RenderDisposition {
 struct ComputedPatrol {
     disposition: RenderDisposition,
     opacity: f32,
+}
+
+/// The computed group fact, not a second declaration parser. CSS attribute
+/// lookalikes are deliberately absent from the presentation-hint inventory.
+fn computed_blend_scope(element: HtmlElement<'_>) -> Result<Option<ScopeBlend>, CompileError> {
+    let data = element
+        .borrow_data()
+        .ok_or(CompileError::MissingComputedStyle)?;
+    let style = data.styles.primary();
+    let mode = match style.clone_mix_blend_mode() {
+        StyloBlend::Normal => ScopeBlendMode::Normal,
+        StyloBlend::Multiply => ScopeBlendMode::Multiply,
+        StyloBlend::Screen => ScopeBlendMode::Screen,
+        other => {
+            return Err(CompileError::UnsupportedStyle(format!(
+                "mix-blend-mode {other:?} is outside the admitted normal/multiply/screen group profile"
+            )));
+        }
+    };
+    if mode == ScopeBlendMode::Normal && style.clone_isolation() == StyloIsolation::Auto {
+        return Ok(None);
+    }
+    let tag = element.local_name_string();
+    if !matches!(
+        tag.as_str(),
+        "svg"
+            | "g"
+            | "a"
+            | "use"
+            | "rect"
+            | "circle"
+            | "ellipse"
+            | "line"
+            | "path"
+            | "polyline"
+            | "polygon"
+    ) {
+        return Err(CompileError::UnsupportedStyle(format!(
+            "mix-blend-mode/isolation on <{tag}> needs its own source composition profile"
+        )));
+    }
+    let opacity = style.clone_opacity().clamp(0.0, 1.0);
+    Ok(Some(ScopeBlend::new(
+        mode,
+        if opacity > 0.0 && opacity < 1.0 {
+            Some(ScopeOpacity::new(opacity).expect("checked computed opacity"))
+        } else {
+            None
+        },
+    )))
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -2870,6 +2949,9 @@ fn patrol_computed_style(
             opacity,
         });
     }
+    // Also patrol resource-root and text consumers which do not enter the
+    // ordinary child walk. They must not silently discard a group fact.
+    computed_blend_scope(element)?;
     // SVG2 makes width/height geometry properties where they apply: a
     // cascaded (stylesheet or style-attribute) value beats both the
     // authored attribute and the auto default in Chromium, while this
@@ -3144,6 +3226,23 @@ fn compile_svg_element(
     // both entries: the root paints nothing itself, and each descendant's
     // own computed (inherited) visibility decides its node.
     let root_patrol = patrol_computed_style(svg, true)?;
+    let root_composite = computed_blend_scope(svg)?;
+    if root_patrol.opacity > 0.0
+        && root_patrol.opacity < 1.0
+        && root_composite.is_some_and(|scope| scope.mode() != ScopeBlendMode::Normal)
+    {
+        return Err(CompileError::UnsupportedStyle(
+            "mix-blend-mode with partial opacity on the root <svg> crosses the root-layer precision boundary".to_string()
+        ));
+    }
+    if initial_viewport.is_none()
+        && root_composite.is_some_and(|scope| scope.mode() != ScopeBlendMode::Normal)
+    {
+        return Err(CompileError::UnsupportedStyle(
+            "mix-blend-mode on an inline <svg> root needs the host backdrop and layer graph"
+                .to_string(),
+        ));
+    }
     let root_disposition = root_patrol.disposition;
     reject_host_or_root_clip_path(svg)?;
     // The root's opacity composites the complete SVG-local raster,
@@ -3289,27 +3388,73 @@ fn compile_svg_element(
         context_paint_transform: viewport,
         fonts,
         items: Vec::new(),
+        elided_blends: Vec::new(),
         top_level_shapes: Vec::new(),
         active_masks: Vec::new(),
         active_patterns: Vec::new(),
         active_markers: Vec::new(),
         next_id: 0,
     };
+    let mut root_facts = SpanFacts::default();
     if root_disposition != RenderDisposition::PrunedSubtree || initial_viewport.is_some() {
         let depth = host_opacities.len() + usize::from(root_patrol.opacity < 1.0);
         if depth > MAX_CONTAINER_DEPTH {
             return Err(CompileError::ContainerTooDeep(MAX_CONTAINER_DEPTH));
         }
-        walk.compile_children(svg, viewport, bases, "svg", depth, 1.0)?;
+        root_facts = walk.compile_children(svg, viewport, bases, "svg", depth, 1.0)?;
     }
+    let adds_root_blend_boundary =
+        root_composite.is_some() || (root_facts.escaping_blend && root_patrol.opacity == 1.0);
+    if adds_root_blend_boundary && root_facts.has_image_effect {
+        return Err(CompileError::UnsupportedStyle(
+            "mix-blend-mode/isolation with a filter or mask needs its own image-effect composition profile".to_string()
+        ));
+    }
+    if initial_viewport.is_none()
+        && root_facts.escaping_blend
+        && root_composite.is_none()
+        && root_patrol.opacity == 1.0
+    {
+        return Err(CompileError::UnsupportedStyle(
+            "unisolated mix-blend-mode in inline SVG needs the host backdrop and layer graph"
+                .to_string(),
+        ));
+    }
+    if adds_root_blend_boundary && let Some(reason) = root_facts.blend_precision_boundary {
+        return Err(blend_precision_refusal(reason));
+    }
+    walk.compact_elided_blends();
     let ChildWalk {
         mut items,
         top_level_shapes,
         mut next_id,
         ..
     } = walk;
-    if root_patrol.opacity < 1.0 && !items.is_empty() {
+    if let Some(composite) = root_composite.filter(|scope| {
+        scope.mode() != ScopeBlendMode::Normal
+            || (scope.opacity().is_none() && root_facts.escaping_blend)
+    }) && !items.is_empty()
+    {
+        items.insert(0, blend_scope_item(&mut next_id, composite));
+        items.push(FrameItem::ScopeEnd);
+    } else if root_patrol.opacity < 1.0 && !items.is_empty() {
         items.insert(0, scope_item(&mut next_id, root_patrol.opacity));
+        items.push(FrameItem::ScopeEnd);
+    }
+    // A standalone SVG's initial backdrop is transparent, not the arbitrary
+    // destination the eventual Frame consumer supplies. Resolve that source
+    // boundary here; never turn every Frame into an implicitly isolated tree.
+    if initial_viewport.is_some()
+        && !items.is_empty()
+        && (root_composite.is_some_and(|scope| scope.mode() != ScopeBlendMode::Normal)
+            || (root_facts.escaping_blend
+                && root_composite.is_none()
+                && root_patrol.opacity == 1.0))
+    {
+        items.insert(
+            0,
+            blend_scope_item(&mut next_id, ScopeBlend::new(ScopeBlendMode::Normal, None)),
+        );
         items.push(FrameItem::ScopeEnd);
     }
     for opacity in host_opacities.iter().rev() {
@@ -3377,6 +3522,16 @@ struct SpanFacts {
     /// transformed container, or a transformed draw, forces the layer; the
     /// scope element's own transform does not).
     transformed: bool,
+    /// Explicit blend/isolation participation, even if its boundary is elided.
+    has_blend: bool,
+    /// A descendant still reads this span's enclosing backdrop. A real
+    /// isolated group consumes this fact; geometric viewport clipping does not.
+    escaping_blend: bool,
+    /// B1 keeps image-effect composition outside its admitted group profile.
+    has_image_effect: bool,
+    /// Classify source material once; adding an isolation/blend later must not
+    /// silently switch its raster origin or its coverage/alpha materialization.
+    blend_precision_boundary: Option<&'static str>,
 }
 
 impl SpanFacts {
@@ -3387,7 +3542,63 @@ impl SpanFacts {
         self.has_opacity |= other.has_opacity;
         self.has_geometry |= other.has_geometry;
         self.transformed |= other.transformed;
+        self.has_blend |= other.has_blend;
+        self.escaping_blend |= other.escaping_blend;
+        self.has_image_effect |= other.has_image_effect;
+        self.blend_precision_boundary = self
+            .blend_precision_boundary
+            .or(other.blend_precision_boundary);
     }
+}
+
+fn blend_precision_refusal(reason: &str) -> CompileError {
+    CompileError::UnsupportedStyle(format!(
+        "mix-blend-mode/isolation {reason} crosses the group-source precision boundary"
+    ))
+}
+
+fn blend_node_precision_boundary(node: &FrameNode) -> Option<&'static str> {
+    if node.paints.is_empty() && node.stroke.is_none() {
+        return None;
+    }
+    if !matches!(node.geometry, Geometry::Rect(_)) {
+        return Some("with non-rectangular source geometry");
+    }
+    if node
+        .paints
+        .iter()
+        .any(|paint| matches!(paint, cg::Paint::RadialGradient(_)))
+    {
+        return Some("with a radial source paint");
+    }
+    if let Some(stroke) = &node.stroke
+        && (stroke.cap() != StrokeCap::Butt
+            || stroke.join() != StrokeJoin::Miter
+            || stroke.dash().is_some()
+            || stroke.dash_intervals().is_some()
+            || stroke.space() != StrokeSpace::Local
+            || stroke
+                .paints()
+                .iter()
+                .any(|paint| matches!(paint, cg::Paint::RadialGradient(_))))
+    {
+        return Some("with a complex source stroke");
+    }
+    None
+}
+
+fn blend_clip_precision_boundary(clip: &ClipPath) -> bool {
+    clip.layers().iter().any(|layer| {
+        layer.geometries().iter().any(|geometry| {
+            let [[a, c, _], [b, d, _]] = geometry.transform().matrix;
+            let bounds = geometry.bounds();
+            !matches!(geometry.geometry(), Geometry::Rect(_))
+                || !((b == 0.0 && c == 0.0) || (a == 0.0 && d == 0.0))
+                || [bounds.x, bounds.y, bounds.width, bounds.height]
+                    .into_iter()
+                    .any(|value| value.fract() != 0.0)
+        })
+    })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -3458,9 +3669,15 @@ impl<'a> PatternCompiler<'a> {
 
         let (chain, external_tail) = self.template_chain(first)?;
         for element in &chain {
+            if let Some(reason) = self.override_skips.get(&element.node_id()) {
+                return Err(format!(
+                    "pattern #{fragment} authored state is overridden at document load: {reason}"
+                ));
+            }
             patrol_rendering_attributes(*element, "pattern", &[])
                 .map_err(|error| error.to_string())?;
             patrol_style_attribute(*element, "pattern").map_err(|error| error.to_string())?;
+            computed_blend_scope(*element).map_err(|error| error.to_string())?;
         }
 
         let content_owner = chain
@@ -3752,6 +3969,7 @@ impl<'a> PatternCompiler<'a> {
             context_paint_transform: content_to_tile,
             fonts: self.fonts,
             items: Vec::new(),
+            elided_blends: Vec::new(),
             top_level_shapes: Vec::new(),
             active_masks: Vec::new(),
             active_patterns: source_active_patterns,
@@ -3769,6 +3987,7 @@ impl<'a> PatternCompiler<'a> {
         .map_err(|error| {
             format!("pattern #{fragment} source cannot compile completely: {error}")
         })?;
+        walk.compact_elided_blends();
         let items = std::mem::take(&mut walk.items);
         drop(walk);
         if let Some(degradation) = degradations.first() {
@@ -4766,7 +4985,7 @@ mod marker_resource {
 /// Geometric `clip-path` wraps a completed span in resolved path coverage;
 /// same-document image masks wrap it in a checked target/source composite,
 /// and resolved filter programs wrap it in an isolated image operation.
-/// `mix-blend-mode` and `isolation` remain patrol refusals.
+/// Computed blending adds only the source boundaries its descendants need.
 struct ChildWalk<'a> {
     values: &'a EffectiveValues,
     mode: CompileMode,
@@ -4821,6 +5040,11 @@ struct ChildWalk<'a> {
     /// name instead of reaching for an ambient face.
     fonts: &'a textlayout::Environment,
     items: Vec<FrameItem>,
+    /// Lazily allocated, identity-indexed tombstones for redundant normal
+    /// isolation. Keeping balanced placeholders during the walk avoids moving
+    /// an entire descendant span for each enclosing isolation. Program exit
+    /// compacts once; identity rewind also truncates this ledger.
+    elided_blends: Vec<bool>,
     /// The materialized nodes that are direct children of the root `<svg>`
     /// — the animation inventory's candidate targets, which it narrows
     /// further to `<rect>`.
@@ -4851,6 +5075,45 @@ struct PaintContext<'d> {
 }
 
 impl<'a> ChildWalk<'a> {
+    fn reset_next_id(&mut self, next_id: u64) {
+        self.next_id = next_id;
+        self.elided_blends.truncate(next_id as usize);
+    }
+
+    fn elide_blend(&mut self, identity: u64) {
+        if self.elided_blends.len() < identity as usize {
+            self.elided_blends.resize(identity as usize, false);
+        }
+        self.elided_blends[identity as usize - 1] = true;
+    }
+
+    fn compact_elided_blends(&mut self) {
+        if self.elided_blends.is_empty() {
+            return;
+        }
+        let mut scopes = Vec::new();
+        self.items.retain(|item| match item {
+            FrameItem::ScopeBegin(scope) => {
+                let elided = self
+                    .elided_blends
+                    .get(scope.owner.identity().get() as usize - 1)
+                    .copied()
+                    .unwrap_or(false);
+                debug_assert!(
+                    !elided
+                        || matches!(scope.effect, ScopeEffect::Blend(blend)
+                    if blend.mode() == ScopeBlendMode::Normal && blend.opacity().is_none())
+                );
+                scopes.push(elided);
+                !elided
+            }
+            FrameItem::ScopeEnd => !scopes.pop().expect("balanced staged scope"),
+            _ => true,
+        });
+        debug_assert!(scopes.is_empty());
+        self.elided_blends.clear();
+    }
+
     fn resolve_clip(
         &self,
         element: HtmlElement<'a>,
@@ -4929,6 +5192,8 @@ impl<'a> ChildWalk<'a> {
             draws: 0,
             opacity_passes: 0,
             has_scope: true,
+            has_image_effect: true,
+            escaping_blend: false,
             ..facts
         };
         facts
@@ -5009,7 +5274,7 @@ impl<'a> ChildWalk<'a> {
         self.degradations.truncate(degradation_checkpoint);
         if let Err(error) = source_result {
             self.items.truncate(checkpoint);
-            self.next_id = source_next_id;
+            self.reset_next_id(source_next_id);
             return Err(error);
         }
 
@@ -5018,6 +5283,8 @@ impl<'a> ChildWalk<'a> {
             draws: 0,
             opacity_passes: 0,
             has_scope: true,
+            has_image_effect: true,
+            escaping_blend: false,
             ..facts
         };
         Ok(facts)
@@ -5054,6 +5321,7 @@ impl<'a> ChildWalk<'a> {
                 opacity_passes: 0,
                 has_scope: materialized,
                 has_opacity: true,
+                escaping_blend: false,
                 ..facts
             };
         }
@@ -5066,14 +5334,45 @@ impl<'a> ChildWalk<'a> {
     fn wrap_span_with_clip(
         &mut self,
         checkpoint: usize,
+        facts: SpanFacts,
+        clip: Option<ClipPath>,
+    ) -> SpanFacts {
+        self.wrap_span_with_clip_boundary(checkpoint, facts, clip, false)
+    }
+
+    fn wrap_span_with_clip_boundary(
+        &mut self,
+        checkpoint: usize,
         mut facts: SpanFacts,
         clip: Option<ClipPath>,
+        isolate_blending: bool,
     ) -> SpanFacts {
         if let Some(clip) = clip
             && (facts.draws > 0 || facts.has_scope)
         {
-            self.items
-                .insert(checkpoint, clip_scope_item(&mut self.next_id, clip));
+            if blend_clip_precision_boundary(&clip) {
+                facts.blend_precision_boundary = facts
+                    .blend_precision_boundary
+                    .or(Some("with curved, subpixel, or rotated clip coverage"));
+            }
+            if isolate_blending && facts.escaping_blend {
+                let blend = blend_scope_item(
+                    &mut self.next_id,
+                    ScopeBlend::new(ScopeBlendMode::Normal, None),
+                );
+                let clip = clip_scope_item(&mut self.next_id, clip);
+                // One exact-size gap shifts the existing clip's suffix once,
+                // not a second time for the added isolation boundary. The
+                // legacy clip walk is still depth-dependent; this is not a
+                // claim that the whole compiler has become linear.
+                self.items.splice(checkpoint..checkpoint, [clip, blend]);
+                self.items.push(FrameItem::ScopeEnd);
+                facts.has_blend = true;
+                facts.escaping_blend = false;
+            } else {
+                self.items
+                    .insert(checkpoint, clip_scope_item(&mut self.next_id, clip));
+            }
             self.items.push(FrameItem::ScopeEnd);
             facts = SpanFacts {
                 draws: 0,
@@ -5083,6 +5382,19 @@ impl<'a> ChildWalk<'a> {
             };
         }
         facts
+    }
+
+    /// Authored SVG clip-path groups blend descendants, unlike the plain
+    /// viewport clip above. Carry the existing escaping-backdrop fact upward
+    /// rather than rescanning descendants or isolating every neutral group.
+    fn wrap_span_with_svg_clip(
+        &mut self,
+        checkpoint: usize,
+        facts: SpanFacts,
+        clip: Option<ClipPath>,
+        already_isolated: bool,
+    ) -> SpanFacts {
+        self.wrap_span_with_clip_boundary(checkpoint, facts, clip, !already_isolated)
     }
 
     /// Compile a parent's children in painter order, accumulating the span
@@ -5197,23 +5509,8 @@ impl<'a> ChildWalk<'a> {
             // its `href` is interaction, not paint), so the two share the
             // one container compiler and its patrols. `<use>` is a
             // container whose children are its expanded shadow content.
-            let result = if tag == "g" || tag == "a" {
-                self.compile_container(c, transform, bases, &path, depth, &tag, replay_opacity)
-            } else if tag == "svg" {
-                self.compile_nested_viewport(c, transform, bases, &path, depth, replay_opacity)
-            } else if tag == "use" {
-                self.compile_use(c, transform, bases, &path, depth, replay_opacity)
-            } else {
-                self.compile_leaf(
-                    c,
-                    transform,
-                    bases,
-                    &path,
-                    depth,
-                    depth == 0,
-                    replay_opacity,
-                )
-            };
+            let result =
+                self.compile_child(c, transform, bases, &path, depth, &tag, replay_opacity);
             match result {
                 Ok(child_facts) => facts.absorb(child_facts),
                 Err(error) => match self.mode {
@@ -5228,6 +5525,134 @@ impl<'a> ChildWalk<'a> {
             child = c.next_element_sibling();
         }
         Ok(facts)
+    }
+
+    /// Append explicit blend boundaries before descending. Default containers
+    /// add no command or subtree rescan. Non-normal blending combines own
+    /// opacity in its final restore. Normal isolation instead preserves the
+    /// established opacity fold/layer route and elides redundant unit scopes.
+    #[allow(clippy::too_many_arguments)]
+    fn compile_child(
+        &mut self,
+        el: HtmlElement<'a>,
+        transform: AffineTransform,
+        bases: PercentBases,
+        path: &str,
+        depth: usize,
+        tag: &str,
+        replay_opacity: f32,
+    ) -> Result<SpanFacts, CompileError> {
+        let composite = computed_blend_scope(el)?;
+        if composite.is_some()
+            && (!self.active_masks.is_empty()
+                || !self.active_patterns.is_empty()
+                || !self.active_markers.is_empty())
+        {
+            return Err(CompileError::UnsupportedStyle(
+                "mix-blend-mode/isolation in a mask, pattern, or marker source needs its own source composition profile".to_string()
+            ));
+        }
+        if composite.is_some() && patrol_computed_style(el, false)?.opacity == 0.0 {
+            return Ok(SpanFacts {
+                has_opacity: true,
+                ..SpanFacts::default()
+            });
+        }
+        let checkpoint = (
+            self.items.len(),
+            self.next_id,
+            self.top_level_shapes.len(),
+            self.degradations.len(),
+        );
+        // Own partial opacity already provides isolation through the existing
+        // measured fold/layer route. Normal isolation must not replace that
+        // route with a blend restore (different alpha rounding).
+        let emitted_composite = composite
+            .filter(|scope| scope.mode() != ScopeBlendMode::Normal || scope.opacity().is_none());
+        if let Some(composite) = emitted_composite {
+            self.items
+                .push(blend_scope_item(&mut self.next_id, composite));
+        }
+        let content_start = self.items.len();
+        let blend_id = self.next_id;
+        let defer = emitted_composite.is_some();
+        let result = if tag == "g" || tag == "a" {
+            self.compile_container(
+                el,
+                transform,
+                bases,
+                path,
+                depth,
+                tag,
+                replay_opacity,
+                defer,
+            )
+        } else if tag == "svg" {
+            self.compile_nested_viewport(el, transform, bases, path, depth, replay_opacity, defer)
+        } else if tag == "use" {
+            self.compile_use(el, transform, bases, path, depth, replay_opacity, defer)
+        } else {
+            self.compile_leaf(
+                el,
+                transform,
+                bases,
+                path,
+                depth,
+                depth == 0,
+                replay_opacity,
+                defer,
+            )
+        };
+        let result = result.and_then(|mut facts| {
+            // Authored participation remains a patrol fact even when normal
+            // isolation needs no materialized boundary. Otherwise an enclosing
+            // image effect could bypass its conservative composition profile.
+            // This does not set has_scope or block the one-pass opacity fold.
+            facts.has_blend |= composite.is_some() && self.items.len() != content_start;
+            if facts.has_blend && facts.has_image_effect {
+                return Err(CompileError::UnsupportedStyle(
+                    "mix-blend-mode/isolation with a filter or mask needs its own image-effect composition profile".to_string()
+                ));
+            }
+            if (composite.is_some() || facts.has_blend) && let Some(reason) = facts.blend_precision_boundary {
+                return Err(blend_precision_refusal(reason));
+            }
+            if let Some(composite) = composite {
+                if facts.has_image_effect {
+                    return Err(CompileError::UnsupportedStyle(
+                        "mix-blend-mode/isolation with a filter or mask needs its own image-effect composition profile".to_string()
+                    ));
+                }
+                if emitted_composite.is_none() {
+                    // The established opacity route already consumed it.
+                } else if self.items.len() == content_start {
+                    self.items.truncate(checkpoint.0);
+                    self.reset_next_id(checkpoint.1);
+                } else {
+                    self.items.push(FrameItem::ScopeEnd);
+                    if composite.mode() == ScopeBlendMode::Normal && !facts.escaping_blend {
+                        self.elide_blend(blend_id);
+                        return Ok(facts);
+                    }
+                    facts.draws = 0;
+                    facts.opacity_passes = 0;
+                    facts.has_scope = true;
+                    facts.has_blend = true;
+                    facts.has_opacity |= composite.opacity().is_some();
+                    facts.escaping_blend = composite.mode() != ScopeBlendMode::Normal;
+                }
+            }
+            Ok(facts)
+        });
+        if result.is_err() {
+            // A named skipped element cannot leave a partially built group or
+            // any of its earlier source draws in the accepted sibling stream.
+            self.items.truncate(checkpoint.0);
+            self.reset_next_id(checkpoint.1);
+            self.top_level_shapes.truncate(checkpoint.2);
+            self.degradations.truncate(checkpoint.3);
+        }
+        result
     }
 
     /// A container element: patrolled like any admitted element, then
@@ -5250,13 +5675,17 @@ impl<'a> ChildWalk<'a> {
         depth: usize,
         element: &str,
         replay_opacity: f32,
+        defer_own_opacity: bool,
     ) -> Result<SpanFacts, CompileError> {
         if depth >= MAX_CONTAINER_DEPTH {
             return Err(CompileError::ContainerTooDeep(MAX_CONTAINER_DEPTH));
         }
         patrol_rendering_attributes(el, element, &[])?;
         patrol_style_attribute(el, element)?;
-        let patrol = patrol_computed_style(el, false)?;
+        let mut patrol = patrol_computed_style(el, false)?;
+        if defer_own_opacity {
+            patrol.opacity = 1.0;
+        }
         match patrol.disposition {
             // `display: none` generates no box: the subtree is pruned —
             // Chromium's correct nothing, not a hole to declare. A *hidden*
@@ -5311,7 +5740,7 @@ impl<'a> ChildWalk<'a> {
         // Chromium's same-element effect order is byte-discriminating here:
         // filter is inside mask, mask is inside opacity, and all three are
         // inside the geometric clip.
-        let facts = self.wrap_span_with_clip(checkpoint, facts?, clip);
+        let facts = self.wrap_span_with_svg_clip(checkpoint, facts?, clip, defer_own_opacity);
         Ok(SpanFacts {
             transformed: facts.transformed || own_transformed,
             ..facts
@@ -5336,6 +5765,7 @@ impl<'a> ChildWalk<'a> {
         path: &str,
         depth: usize,
         replay_opacity: f32,
+        defer_own_opacity: bool,
     ) -> Result<SpanFacts, CompileError> {
         if depth >= MAX_CONTAINER_DEPTH {
             return Err(CompileError::ContainerTooDeep(MAX_CONTAINER_DEPTH));
@@ -5346,7 +5776,10 @@ impl<'a> ChildWalk<'a> {
         // current Blink intentionally excludes them from the viewport's used
         // geometry. Keep that source-provenance split named until the shared
         // sizing row owns it; direct attributes are resolved below.
-        let patrol = patrol_computed_style(el, true)?;
+        let mut patrol = patrol_computed_style(el, true)?;
+        if defer_own_opacity {
+            patrol.opacity = 1.0;
+        }
         if patrol.disposition == RenderDisposition::PrunedSubtree {
             return Ok(SpanFacts::default());
         }
@@ -5419,7 +5852,8 @@ impl<'a> ChildWalk<'a> {
         };
         self.context_paint_transform = previous_context_paint_transform;
 
-        let facts = self.wrap_span_with_clip(checkpoint, facts?, authored_clip);
+        let facts =
+            self.wrap_span_with_svg_clip(checkpoint, facts?, authored_clip, defer_own_opacity);
         let viewport_mapping_is_identity = viewport.x == 0.0
             && viewport.y == 0.0
             && viewport.content_mapping == AffineTransform::identity();
@@ -5461,7 +5895,7 @@ impl<'a> ChildWalk<'a> {
                 // geometry in Chromium, and therefore blocks an enclosing
                 // fold, but its completed visual contribution is nothing.
                 self.items.truncate(checkpoint.0);
-                self.next_id = checkpoint.1;
+                self.reset_next_id(checkpoint.1);
                 self.degradations.truncate(checkpoint.2);
                 facts = SpanFacts {
                     has_opacity: true,
@@ -5477,7 +5911,7 @@ impl<'a> ChildWalk<'a> {
                 // Replay the span with the accumulated factor so the sole
                 // draw can choose its solid-fold or post-paint-alpha route.
                 self.items.truncate(checkpoint.0);
-                self.next_id = checkpoint.1;
+                self.reset_next_id(checkpoint.1);
                 self.degradations.truncate(checkpoint.2);
                 facts = self.compile_children(
                     el,
@@ -5500,6 +5934,7 @@ impl<'a> ChildWalk<'a> {
                     opacity_passes: 0,
                     has_scope: materialized,
                     has_opacity: true,
+                    escaping_blend: false,
                     ..facts
                 };
             }
@@ -5536,6 +5971,7 @@ impl<'a> ChildWalk<'a> {
         path: &str,
         depth: usize,
         replay_opacity: f32,
+        defer_own_opacity: bool,
     ) -> Result<SpanFacts, CompileError> {
         if depth >= MAX_CONTAINER_DEPTH {
             return Err(CompileError::ContainerTooDeep(MAX_CONTAINER_DEPTH));
@@ -5580,7 +6016,10 @@ impl<'a> ChildWalk<'a> {
                 "its referenced <svg> root needs the instance-sized viewport contract".to_string(),
             ));
         }
-        let patrol = patrol_computed_style(el, false)?;
+        let mut patrol = patrol_computed_style(el, false)?;
+        if defer_own_opacity {
+            patrol.opacity = 1.0;
+        }
         match patrol.disposition {
             RenderDisposition::PrunedSubtree => return Ok(SpanFacts::default()),
             RenderDisposition::Renders | RenderDisposition::HiddenPaint => {}
@@ -5641,7 +6080,7 @@ impl<'a> ChildWalk<'a> {
         };
         self.context_paint_transform = previous_context_paint_transform;
         self.paint_contexts.pop();
-        let facts = self.wrap_span_with_clip(checkpoint, facts?, clip);
+        let facts = self.wrap_span_with_svg_clip(checkpoint, facts?, clip, defer_own_opacity);
         // The `x`/`y` translate is part of the use's own transform (SVG2
         // §5.6.2), so like the transform property it stays *on* this
         // element — an enclosing one-pass route is broken only by a transform
@@ -5680,7 +6119,7 @@ impl<'a> ChildWalk<'a> {
         );
         if result.is_err() {
             self.items.truncate(checkpoint);
-            self.next_id = next_id;
+            self.reset_next_id(next_id);
         }
         result
     }
@@ -5898,6 +6337,7 @@ impl<'a> ChildWalk<'a> {
             context_paint_transform: content_to_frame,
             fonts: self.fonts,
             items: Vec::new(),
+            elided_blends: Vec::new(),
             top_level_shapes: Vec::new(),
             active_masks: self.active_masks.clone(),
             active_patterns: self.active_patterns.clone(),
@@ -5917,6 +6357,7 @@ impl<'a> ChildWalk<'a> {
                 "marker #{fragment} source cannot compile completely: {error}"
             ))
         })?;
+        walk.compact_elided_blends();
         let items = std::mem::take(&mut walk.items);
         let next_id = walk.next_id;
         drop(walk);
@@ -5932,7 +6373,7 @@ impl<'a> ChildWalk<'a> {
                 "marker #{fragment} source item stream is invalid: {error}"
             ))
         })?;
-        self.next_id = next_id;
+        self.reset_next_id(next_id);
         Ok(items)
     }
 
@@ -5945,6 +6386,7 @@ impl<'a> ChildWalk<'a> {
         depth: usize,
         top_level: bool,
         replay_opacity: f32,
+        defer_own_opacity: bool,
     ) -> Result<SpanFacts, CompileError> {
         // An admitted shape may resolve to no visual fact at all — a `<path>`
         // whose `d` draws nothing. That is not a hole: the element is
@@ -5989,11 +6431,12 @@ impl<'a> ChildWalk<'a> {
         } else {
             None
         };
-        let deferred_opacity = if mask.is_some() || filter.is_some() || marker_selected {
-            patrol_computed_style(el, tag == "rect")?.opacity
-        } else {
-            1.0
-        };
+        let deferred_opacity =
+            if !defer_own_opacity && (mask.is_some() || filter.is_some() || marker_selected) {
+                patrol_computed_style(el, tag == "rect")?.opacity
+            } else {
+                1.0
+            };
         let compilation = compile_shape(
             el,
             transform,
@@ -6005,7 +6448,7 @@ impl<'a> ChildWalk<'a> {
             &self.active_patterns,
             &self.paint_contexts,
             bases,
-            mask.is_some() || filter.is_some() || marker_selected,
+            defer_own_opacity || mask.is_some() || filter.is_some() || marker_selected,
             replay_opacity,
             self.fonts,
             marker_projection,
@@ -6049,6 +6492,8 @@ impl<'a> ChildWalk<'a> {
             facts.has_opacity = outcome.has_opacity;
             facts.has_geometry = outcome.has_geometry;
             facts.transformed = outcome.transformed;
+            facts.blend_precision_boundary =
+                outcome.nodes.iter().find_map(blend_node_precision_boundary);
         }
         let marker_facts = match self.compile_marker_instances(
             el,
@@ -6067,7 +6512,7 @@ impl<'a> ChildWalk<'a> {
                 // best effort the parent will declare and skip this element;
                 // no already-emitted fill or stroke may survive that skip.
                 self.items.truncate(checkpoint);
-                self.next_id = next_id_checkpoint;
+                self.reset_next_id(next_id_checkpoint);
                 return Err(error);
             }
         };
@@ -6091,7 +6536,7 @@ impl<'a> ChildWalk<'a> {
                 Ok(order) => order,
                 Err(error) => {
                     self.items.truncate(checkpoint);
-                    self.next_id = next_id_checkpoint;
+                    self.reset_next_id(next_id_checkpoint);
                     return Err(error);
                 }
             }
@@ -6175,6 +6620,14 @@ fn scope_item(next_id: &mut u64, opacity: f32) -> FrameItem {
         effect: ScopeEffect::Opacity(
             ScopeOpacity::new(opacity).expect("a computed opacity strictly inside (0, 1)"),
         ),
+    })
+}
+
+fn blend_scope_item(next_id: &mut u64, composite: ScopeBlend) -> FrameItem {
+    *next_id += 1;
+    FrameItem::ScopeBegin(Scope {
+        owner: VisualRef::new(Identity::new(*next_id), Provenance::new(*next_id)),
+        effect: ScopeEffect::Blend(composite),
     })
 }
 
@@ -6694,6 +7147,9 @@ mod clip_path {
         if patrol.disposition != RenderDisposition::Renders {
             return Ok(Contribution::None);
         }
+        if computed_blend_scope(element)?.is_some() {
+            return Err(CompileError::UnsupportedClipPath("mix-blend-mode/isolation on a geometric clip contributor needs its own source profile".to_string()));
+        }
         if element_has_computed_clip_path(element)? {
             return Ok(Contribution::Mask(format!(
                 "a <{tag}> contributor with its own clip-path uses Chromium's raster-mask strategy"
@@ -6725,6 +7181,9 @@ mod clip_path {
         let patrol = patrol_computed_style(element, false)?;
         if patrol.disposition != RenderDisposition::Renders {
             return Ok(Contribution::None);
+        }
+        if computed_blend_scope(element)?.is_some() {
+            return Err(CompileError::UnsupportedClipPath("mix-blend-mode/isolation on a geometric clip contributor needs its own source profile".to_string()));
         }
         if element_has_computed_clip_path(element)? {
             return Ok(Contribution::Mask(
@@ -10090,6 +10549,7 @@ mod mask_resource {
     /// its dedicated decoder below. Everything else the pinned cascade drops
     /// must refuse before source paint can escape.
     fn patrol_resource_style(element: HtmlElement<'_>) -> Result<(), CompileError> {
+        computed_blend_scope(element)?;
         if let Some(style) = get_attr(element, "style")
             && let Some(property) =
                 unrepresented_property_except(&style, &["filter", "mask", "mask-type"])

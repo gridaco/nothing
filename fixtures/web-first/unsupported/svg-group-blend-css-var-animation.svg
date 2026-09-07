@@ -1,0 +1,1 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" ><rect width="64" height="64" fill="#426589"/><style>@keyframes b {from,to{--b:screen}} .s{animation:b 1s paused -1s both}</style><rect x="8" y="8" width="40" height="40" fill="#cd6843" class="s" style="mix-blend-mode:var(--b,normal)"/></svg>

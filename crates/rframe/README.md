@@ -24,7 +24,7 @@ producer (e.g. websem, from SVG)
 | `frame`  | `Frame`, `FrameNode`, `Geometry`, leaf paint stacks or checked repeating vector programs, their post-paint alpha factor, and product identity           |
 | `path`   | `PathData` — checked absolute commands, fill rule, tight bounds solved once                                                                             |
 | `stroke` | `Stroke` — centred width, cap, join, miter limit, optional checked dash pattern, and finite `f64` `outset`                                              |
-| `scope`  | A checked painter-order scope stream: isolated opacity or source-neutral geometric clipping                                                             |
+| `scope`  | Resolved effect scopes: isolated opacity, combined group blend/opacity, geometric clipping, or image filtering                                          |
 | `clip`   | `ClipPath` — bounded path unions intersected in layers, with resolved transforms, conservative bounds, and an explicit anti-aliased or hard edge policy |
 
 Two details are load-bearing enough to state here. A node's `bounds` is the
@@ -44,6 +44,42 @@ byte-distinct group meaning is a `Scope`. Identity is the default, and zero
 resolves the complete stack to no paint. Because a `Stroke` owns the same
 `PaintStack`, fill and stroke cross the contract with one meaning and no
 source-specific duplicate field.
+
+`ScopeEffect::Blend(ScopeBlend)` states one isolated group's final blend and
+opacity. Its children paint in order against transparent black. The completed
+group's premultiplied color and alpha receive the opacity once, then blend and
+composite source-over into the enclosing backdrop in one final operation.
+Fill/stroke overlap is already part of that completed group. A separate outer
+opacity scope around a blend scope states a different nesting and backdrop;
+it is not an equivalent spelling of combined blend and opacity.
+
+`ScopeBlend::new(mode, opacity)` takes `ScopeBlendMode::{Normal, Multiply,
+Screen}` and `Option<ScopeOpacity>`. `mode()` and `opacity()` return those
+facts unchanged. `None` means opacity 1; `Some` reuses the finite, strictly
+between-zero-and-one `ScopeOpacity` check. Zero opacity resolves to no emitted
+group. In particular, `Normal` with `None` **retains isolation**; a group whose
+children should paint directly into the enclosing backdrop has no scope.
+The existing `ScopeEffect::Opacity` still means isolated normal composition
+at its checked opacity, and its constructor still rejects both 0 and 1.
+
+The scope-specific blend enum admits only these three functions. Reusing all
+of `cg::BlendMode` would admit modes beyond this contract; reusing
+`FilterBlend` would confuse a group joining its enclosing backdrop with two
+explicit filter inputs. Leaf paints remain normal-only. Additive composition
+(including plus-lighter), backdrop-preserving group opacity, arbitrary
+compositing operators, and configurable backdrop initialization are not part
+of this scope. Source producers must guard unsupported operations at ingress.
+No layer allocation, backdrop copy, cache policy, or authored tree is implied.
+An unchanged group can produce a different blended result when its enclosing
+backdrop changes; equality of group facts does not remove that dependency.
+
+The existing `FrameItems` validator checks blend scopes using the same balance,
+non-empty-content, and combined scope/mask depth rules as other effects
+(`MAX_SCOPE_DEPTH = 64`). Repeating programs retain checked immutable item
+streams and their separate `MAX_PATTERN_DEPTH = 8` bound. Validation preserves
+the supplied painter order and opaque owners. Independent diagram construction
+and mixed-scope, mask, and repeating-program laws live in
+[`tests/blend_contract.rs`](tests/blend_contract.rs).
 
 `Stroke::outset()` widens only the arithmetic for that derived,
 direction-free bound. The resolved width and miter limit remain exact `f32`

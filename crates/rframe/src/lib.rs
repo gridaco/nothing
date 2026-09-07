@@ -37,7 +37,7 @@ pub use frame::{
 };
 pub use mask::{Mask, MaskMode};
 pub use path::{FillRule, PathCommand, PathData, PathDataError};
-pub use scope::{Scope, ScopeEffect, ScopeOpacity, ScopeOpacityError};
+pub use scope::{Scope, ScopeBlend, ScopeBlendMode, ScopeEffect, ScopeOpacity, ScopeOpacityError};
 pub use stroke::{
     Stroke, StrokeCap, StrokeDash, StrokeDashError, StrokeDashIntervals, StrokeDashIntervalsError,
     StrokeError, StrokeJoin, StrokeSpace,

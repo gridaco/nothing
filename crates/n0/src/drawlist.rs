@@ -416,6 +416,14 @@ pub enum ItemKind {
     BeginIsolatedOpacity {
         opacity: f32,
     },
+    /// The resolved group's children start against transparent black. Blend
+    /// and opacity apply together when that completed source joins the
+    /// enclosing backdrop. Even Normal at unit opacity keeps this boundary.
+    /// The checked scope vocabulary cannot admit arbitrary native leaf blends.
+    BeginIsolatedBlend {
+        blend: rframe::ScopeBlend,
+    },
+    EndIsolatedBlend,
     /// Closes the innermost opacity scope, of either meaning.
     EndOpacity,
     BeginClipRect {
