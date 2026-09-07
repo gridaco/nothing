@@ -6245,6 +6245,14 @@ verification workflow's independent TICK/LAW and REPRO roles were reproduced
 manually. Both pass after the omitted-stroke finding and final sensitivity
 checks; the code hashes were restored exactly before the final green gates.
 
+Hosted review also caught a raw-drawlist representation mismatch: the painter
+normalizes equal-sided rectangular stroke widths, while the extent helper
+initially matched only the scalar spelling. The helper now uses the same
+normalization. Consumer tests fail before that correction and prove identical
+rounded extents, exact pixels and balanced saves for both spellings in Multiply
+and Screen; unequal sides and zero-width raw strokes gain no extent. This is
+representation-equivalence evidence, not additional Chromium cell coverage.
+
 The follow-on is a source-coordinate-space contract that can carry the missing
 extent facts, before wider geometry or blend modes. This correction does not
 resolve the separate ordinary-opacity findings in gridaco/nothing#136 or

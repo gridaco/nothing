@@ -4478,7 +4478,7 @@ fn blend_source_extents<K>(list: &DrawList<K>, view: &Affine) -> Option<Vec<Opti
             .any(|paint| matches!(paint, ModelPaint::LinearGradient(_)))
     }
     fn stroke_box(w: f32, h: f32, stroke: &Stroke, space: StrokeSpace) -> Option<Rect> {
-        let StrokeWidth::Uniform(width) = stroke.width else {
+        let StrokeWidth::Uniform(width) = stroke.width.normalized() else {
             return None;
         };
         if space != StrokeSpace::Local
@@ -4644,6 +4644,101 @@ mod blend_source_extent_tests {
             ramp(),
             item(ItemKind::EndIsolatedBlend),
         ])
+    }
+
+    fn stroked_scene(width: StrokeWidth, mode: rframe::ScopeBlendMode) -> DrawList<()> {
+        let mut list = scene();
+        list.items[0].kind = ItemKind::BeginIsolatedBlend {
+            blend: rframe::ScopeBlend::new(mode, None),
+        };
+        list.items[1].kind = ItemKind::RectStroke {
+            w: 38.2,
+            h: 28.4,
+            corner_radius: Default::default(),
+            corner_smoothing: Default::default(),
+            stroke: Stroke {
+                paints: Paints::new([ModelPaint::LinearGradient(LinearGradientPaint {
+                    stops: vec![
+                        GradientStop {
+                            offset: 0.0,
+                            color: n0_model::model::Color(0xFFCD_6843).into(),
+                        },
+                        GradientStop {
+                            offset: 1.0,
+                            color: n0_model::model::Color(0x995B_ACE1).into(),
+                        },
+                    ],
+                    ..Default::default()
+                })]),
+                width,
+                align: StrokeAlign::Center,
+                cap: StrokeCap::Butt,
+                join: StrokeJoin::Miter,
+                miter_limit: 4.0,
+                dash_array: None,
+            },
+            space: StrokeSpace::Local,
+            dash_phase: StrokeDashPhase::ZERO,
+            post_paint_opacity: PostPaintOpacity::IDENTITY,
+        };
+        list
+    }
+
+    #[test]
+    fn equal_sided_stroke_spellings_have_identical_extents_and_pixels() {
+        let raster = |list: &DrawList<()>| {
+            let mut surface = skia_safe::surfaces::raster_n32_premul((64, 64)).unwrap();
+            surface.canvas().clear(Color::from_rgb(66, 101, 137));
+            let saves = surface.canvas().save_count();
+            execute_unchecked(
+                surface.canvas(),
+                list,
+                &Affine::IDENTITY,
+                &PaintCtx::new(None),
+            );
+            assert_eq!(surface.canvas().save_count(), saves);
+            read_pixels(&mut surface, 64, 64)
+        };
+        for mode in [
+            rframe::ScopeBlendMode::Multiply,
+            rframe::ScopeBlendMode::Screen,
+        ] {
+            let uniform = stroked_scene(StrokeWidth::Uniform(3.5), mode);
+            let rectangular = stroked_scene(
+                StrokeWidth::Rectangular(RectangularStrokeWidth::all(3.5)),
+                mode,
+            );
+            let expected = blend_source_extents(&uniform, &Affine::IDENTITY).unwrap();
+            assert_eq!(expected[0], Some(Rect::new(6.0, 10.0, 49.0, 43.0)));
+            assert_eq!(
+                blend_source_extents(&rectangular, &Affine::IDENTITY).unwrap(),
+                expected
+            );
+            // Representation equivalence, not a replacement Chromium oracle.
+            let pixels = raster(&uniform);
+            assert!(pixels.chunks_exact(4).any(|pixel| pixel != &pixels[..4]));
+            assert_eq!(raster(&rectangular), pixels);
+        }
+    }
+
+    #[test]
+    fn unequal_and_zero_stroke_widths_do_not_gain_an_extent() {
+        for width in [
+            StrokeWidth::Rectangular(RectangularStrokeWidth {
+                stroke_top_width: 3.5,
+                stroke_right_width: 4.0,
+                stroke_bottom_width: 3.5,
+                stroke_left_width: 3.5,
+            }),
+            StrokeWidth::Rectangular(RectangularStrokeWidth::all(0.0)),
+            StrokeWidth::Uniform(0.0),
+        ] {
+            let list = stroked_scene(width, rframe::ScopeBlendMode::Multiply);
+            assert_eq!(
+                blend_source_extents(&list, &Affine::IDENTITY).unwrap()[0],
+                None
+            );
+        }
     }
 
     #[test]
