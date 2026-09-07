@@ -607,10 +607,10 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete primitive corpus contains 1,398 Chromium-baked cells plus
+  cells. The complete primitive corpus contains 1,423 Chromium-baked cells plus
   16 sampled frames; the text estate contains sixteen exact text pixel cells and
   eight exact-number artifact-geometry witnesses (six Allerta and two
-  Bungee), and the named refusal register has 303 rows. `feFlood`, `feComposite`,
+  Bungee), and the named refusal register has 325 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -858,7 +858,21 @@ isolate` have a bounded static SVG group profile. One Stylo computed value
   the resolved stream, independently of the caller's canvas clear color.
   The current group-source profile is sharp-cornered rectangles, including
   solid, linear-gradient and admitted repeating-pattern paints, fractional
-  placement, 2D transforms and simple local butt/miter strokes. Non-rectangular
+  placement and simple local butt/miter strokes. Linear-gradient sources have
+  a narrower source-extent profile: untransformed rectangular draws, including
+  simple strokes, solid/pattern-filled siblings and own Multiply/Screen group
+  opacity. The temporary raster origin follows their outward-rounded
+  drawable bounds. Mapped contributors, nested source scopes/opacity,
+  non-painted geometry contributors, omitted transparent/unresolved/context stroke
+  extents (even beside a live fill), and patterned strokes in a source that
+  also paints a linear ramp retain the named `linear-gradient source-extent`
+  refusal. This conservatively includes otherwise harmless combinations;
+  a completed child blend image is not a bare ramp in its parent. This
+  profile still admits `stroke:none`, resolved zero-width strokes and retained
+  all-transparent gradient strokes whose geometry remains in the frame. The same
+  patrol covers a required root boundary, including root opacity around a
+  mixed ramp/blend source, where both admissions refuse.
+  Solid-only 2D transforms retain their existing admission. Non-rectangular
   source geometry, radial source paints, wider strokes and curved, subpixel or
   rotated clip coverage retain the named `group-source precision` refusal.
   These guards deliberately over-refuse unproved combinations. Eliding a

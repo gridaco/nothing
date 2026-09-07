@@ -23,6 +23,134 @@ fn blends(frame: &Frame) -> Vec<ScopeBlend> {
         .collect()
 }
 const RECT: &str = r#"<rect width="40" height="40" fill="red"/>"#;
+const RAMP: &str = "<defs><linearGradient id='r'><stop stop-color='#cd6843'/><stop offset='1' stop-color='#5bace1' stop-opacity='.6'/></linearGradient></defs>";
+const RAMP_RECT: &str = "<rect x='8.3' y='12.7' width='38.2' height='28.4' fill='url(#r)'/>";
+
+#[test]
+fn linear_source_extent_patrol_is_transactional_and_names_the_owner() {
+    for content in [
+        format!("<g transform='translate(2.5 3.5)'>{RAMP_RECT}</g>"),
+        format!("{RAMP_RECT}<g transform='scale(2)'>{RECT}</g>"),
+        format!("<g opacity='.5'>{RAMP_RECT}{RECT}</g>"),
+        format!("{RAMP_RECT}<g opacity='0'>{RECT}</g>"),
+        format!("{RAMP_RECT}<rect width='12' height='12' fill='transparent'/>"),
+        format!("{RAMP_RECT}<rect width='12' height='12' fill-opacity='0'/>"),
+        format!("{RAMP_RECT}<g style='mix-blend-mode:screen'>{RECT}</g>"),
+        format!("<svg x='3' y='5' width='56' height='48'>{RAMP_RECT}</svg>"),
+        RAMP_RECT.replace("/>", " stroke='transparent' stroke-width='4'/>"),
+        RAMP_RECT.replace("/>", " stroke='red' stroke-opacity='0' stroke-width='4'/>"),
+        format!(
+            "<defs><linearGradient id='empty'/></defs>{}",
+            RAMP_RECT.replace("/>", " stroke='url(#empty)' stroke-width='4'/>")
+        ),
+        format!(
+            "{RAMP_RECT}<rect x='3' y='5' width='13' height='17' stroke='transparent' stroke-width='4'/>"
+        ),
+        RAMP_RECT.replace("/>", " stroke='url(#missing)' stroke-width='4'/>"),
+        RAMP_RECT.replace("/>", " stroke='context-stroke' stroke-width='4'/>"),
+        format!(
+            "<defs>{}</defs><use href='#ctx' fill='none'/>",
+            RAMP_RECT.replace("/>", " id='ctx' stroke='context-fill' stroke-width='4'/>")
+        ),
+        RAMP_RECT.replace("/>", " stroke='url(#missing) none' stroke-width='4'/>"),
+        format!(
+            "<defs><rect id='wrong'/></defs>{}",
+            RAMP_RECT.replace("/>", " stroke='url(#wrong)' stroke-width='4'/>")
+        ),
+    ] {
+        for style in [
+            "mix-blend-mode:multiply",
+            "mix-blend-mode:screen",
+            "isolation:isolate",
+        ] {
+            let source = svg(&format!("{RAMP}<g style='{style}'>{content}</g>{RECT}"));
+            let strict = compile_standalone_svg(&source, InitialViewport::new(64.0, 64.0))
+                .unwrap_err()
+                .to_string();
+            assert!(
+                strict.contains("linear-gradient source-extent"),
+                "{strict}: {source}"
+            );
+            let best = SvgFrameSource::from_standalone_svg_best_effort(
+                source.as_str(),
+                InitialViewport::new(64.0, 64.0),
+            )
+            .unwrap();
+            assert_eq!(
+                best.base_frame().items.len(),
+                1,
+                "the entire failed group is rolled back: {source}"
+            );
+            assert!(
+                best.degradations().iter().any(|d| d.path() == "svg/g[1]"
+                    && d.reason().contains("linear-gradient source-extent")),
+                "{:?}",
+                best.degradations()
+            );
+        }
+    }
+}
+
+#[test]
+fn root_linear_source_extent_refusal_cannot_silently_fall_back() {
+    let base = svg(&format!(
+        "{RAMP}{RAMP_RECT}<g style='mix-blend-mode:screen'>{RECT}</g>"
+    ));
+    for opacity in ["1", ".5", ".999"] {
+        let source = base.replace("width=\"64\"", &format!("opacity='{opacity}' width=\"64\""));
+        for result in [
+            SvgFrameSource::from_standalone_svg(source.as_str(), InitialViewport::new(64.0, 64.0)),
+            SvgFrameSource::from_standalone_svg_best_effort(
+                source.as_str(),
+                InitialViewport::new(64.0, 64.0),
+            ),
+        ] {
+            assert!(
+                result
+                    .unwrap_err()
+                    .to_string()
+                    .contains("linear-gradient source-extent")
+            );
+        }
+    }
+}
+
+#[test]
+fn completed_linear_blend_images_do_not_poison_outer_solid_groups() {
+    for content in [
+        RAMP_RECT.to_string(),
+        format!("<g>{RAMP_RECT}</g>{RECT}"),
+        format!("{RAMP_RECT}<rect width='12' height='12' display='none'/>"),
+    ] {
+        frame(&format!(
+            "{RAMP}<g opacity='.5'><g style='mix-blend-mode:multiply' opacity='.6'>{content}</g></g>"
+        ));
+    }
+    // The new patrol is source-specific; ordinary transformed solids remain
+    // admitted, and an ordinary ramp without blending keeps its old route.
+    frame(&format!(
+        "{RAMP}<g style='mix-blend-mode:screen'>{}</g>",
+        RAMP_RECT.replace(
+            "fill='url(#r)'",
+            "fill='transparent' stroke='url(#r)' stroke-width='4'"
+        )
+    ));
+    for attrs in [
+        "stroke='none' stroke-width='4'",
+        "stroke='transparent' stroke-width='0'",
+    ] {
+        frame(&format!(
+            "{RAMP}<g style='mix-blend-mode:multiply'>{}</g>",
+            RAMP_RECT.replace("/>", &format!(" {attrs}/>"))
+        ));
+    }
+    frame(&format!(
+        "<g style='mix-blend-mode:screen' transform='rotate(15)'>{RECT}</g>"
+    ));
+    frame(&format!(
+        "{RAMP}<g transform='translate(2.5 3.5)'>{RAMP_RECT}</g>"
+    ));
+}
 
 #[test]
 fn neutral_groups_have_no_scope_and_raw_attribute_lookalikes_are_inert() {

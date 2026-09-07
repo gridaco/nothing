@@ -3423,6 +3423,11 @@ fn compile_svg_element(
     if adds_root_blend_boundary && let Some(reason) = root_facts.blend_precision_boundary {
         return Err(blend_precision_refusal(reason));
     }
+    let has_root_blend_source = adds_root_blend_boundary
+        || (root_facts.has_blend && root_patrol.opacity > 0.0 && root_patrol.opacity < 1.0);
+    if has_root_blend_source && let Some(reason) = blend_linear_source_boundary(root_facts) {
+        return Err(blend_linear_source_refusal(reason));
+    }
     walk.compact_elided_blends();
     let ChildWalk {
         mut items,
@@ -3532,6 +3537,11 @@ struct SpanFacts {
     /// Classify source material once; adding an isolation/blend later must not
     /// silently switch its raster origin or its coverage/alpha materialization.
     blend_precision_boundary: Option<&'static str>,
+    /// A linear ramp still painted into this source, not an already completed
+    /// blend image. Its dither origin needs an exact source-space extent.
+    has_linear_source: bool,
+    /// Contributor facts that cannot be recovered from the resolved drawlist.
+    linear_source_boundary: Option<&'static str>,
 }
 
 impl SpanFacts {
@@ -3548,7 +3558,25 @@ impl SpanFacts {
         self.blend_precision_boundary = self
             .blend_precision_boundary
             .or(other.blend_precision_boundary);
+        self.has_linear_source |= other.has_linear_source;
+        self.linear_source_boundary = self.linear_source_boundary.or(other.linear_source_boundary);
     }
+}
+
+fn blend_linear_source_boundary(facts: SpanFacts) -> Option<&'static str> {
+    if !facts.has_linear_source {
+        return None;
+    }
+    facts.linear_source_boundary.or_else(|| {
+        (facts.transformed || facts.has_scope || facts.has_opacity)
+            .then_some("with a transformed or nested linear-gradient source")
+    })
+}
+
+fn blend_linear_source_refusal(reason: &str) -> CompileError {
+    CompileError::UnsupportedStyle(format!(
+        "mix-blend-mode/isolation {reason} needs the linear-gradient source-extent profile"
+    ))
 }
 
 fn blend_precision_refusal(reason: &str) -> CompileError {
@@ -5617,6 +5645,9 @@ impl<'a> ChildWalk<'a> {
             if (composite.is_some() || facts.has_blend) && let Some(reason) = facts.blend_precision_boundary {
                 return Err(blend_precision_refusal(reason));
             }
+            if (composite.is_some() || facts.has_blend) && let Some(reason) = blend_linear_source_boundary(facts) {
+                return Err(blend_linear_source_refusal(reason));
+            }
             if let Some(composite) = composite {
                 if facts.has_image_effect {
                     return Err(CompileError::UnsupportedStyle(
@@ -5640,6 +5671,10 @@ impl<'a> ChildWalk<'a> {
                     facts.has_blend = true;
                     facts.has_opacity |= composite.opacity().is_some();
                     facts.escaping_blend = composite.mode() != ScopeBlendMode::Normal;
+                    // The parent composites a completed image. Do not confuse
+                    // it with a ramp rasterized directly into the parent.
+                    facts.has_linear_source = false;
+                    facts.linear_source_boundary = None;
                 }
             }
             Ok(facts)
@@ -6494,6 +6529,31 @@ impl<'a> ChildWalk<'a> {
             facts.transformed = outcome.transformed;
             facts.blend_precision_boundary =
                 outcome.nodes.iter().find_map(blend_node_precision_boundary);
+            facts.has_linear_source = outcome.nodes.iter().any(|node| {
+                node.paints
+                    .iter()
+                    .chain(node.stroke.iter().flat_map(|stroke| stroke.paints().iter()))
+                    .any(|paint| matches!(paint, cg::Paint::LinearGradient(_)))
+            });
+            facts.linear_source_boundary = if outcome.omitted_stroke_extent {
+                Some("with a non-painted stroke extent")
+            } else if outcome.has_geometry && outcome.draws == 0 {
+                Some("with a non-painted source contributor")
+            } else {
+                outcome.nodes.iter().find_map(|node| {
+                    if node.transform != AffineTransform::identity() {
+                        Some("with a mapped source contributor")
+                    } else if node
+                        .stroke
+                        .as_ref()
+                        .is_some_and(|stroke| stroke.paints().pattern().is_some())
+                    {
+                        Some("with a patterned source stroke")
+                    } else {
+                        None
+                    }
+                })
+            };
         }
         let marker_facts = match self.compile_marker_instances(
             el,
@@ -11608,6 +11668,7 @@ fn compile_tspan_text(
             has_opacity: true,
             has_geometry: true,
             transformed: false,
+            omitted_stroke_extent: false,
         }));
     }
     let one_pass_fold = (replay_opacity < 1.0 && paths.len() == 1).then_some(replay_opacity);
@@ -11654,6 +11715,7 @@ fn compile_tspan_text(
         has_opacity: replay_opacity < 1.0,
         has_geometry: true,
         transformed: false,
+        omitted_stroke_extent: false,
     }))
 }
 
@@ -12343,6 +12405,9 @@ struct ShapeOutcome {
     draws: usize,
     /// Structural paint passes Chromium's element-opacity fold observes.
     opacity_passes: usize,
+    /// A selected stroke can enlarge Chromium's drawable bounds without a
+    /// paint pass. Keep this separate from opacity-fold participation.
+    omitted_stroke_extent: bool,
     /// The shape's own opacity composites fill and stroke through one
     /// isolated layer — the walk wraps the node in a scope.
     scope_opacity: Option<f32>,
@@ -12706,6 +12771,7 @@ fn shape_node(
     };
     let mut stroke = resolved_stroke.stroke;
     let stroke_opacity_pass = resolved_stroke.opacity_pass;
+    let omitted_stroke_extent = resolved_stroke.omitted_extent;
     patrol_mixed_contour_cap(&geometry, stroke.as_ref())?;
 
     debug_assert!(
@@ -12743,6 +12809,7 @@ fn shape_node(
             has_opacity: true,
             has_geometry: true,
             transformed: false,
+            omitted_stroke_extent,
         });
     }
     if opacity < 1.0 && has_geometry {
@@ -12813,6 +12880,7 @@ fn shape_node(
         nodes,
         draws,
         opacity_passes,
+        omitted_stroke_extent,
         scope_opacity,
         has_opacity,
         has_geometry,
@@ -14054,6 +14122,10 @@ fn resolve_stroke_width(
 struct StrokeResolution {
     stroke: Option<Stroke>,
     opacity_pass: bool,
+    /// A non-none selected stroke may still enlarge SVG drawable bounds when
+    /// its paint is transparent or its server is unresolved. The exact extent
+    /// is absent from FrameNode; source-origin-sensitive groups must patrol it.
+    omitted_extent: bool,
 }
 
 /// Blink's `markerUnits="strokeWidth"` scale for a non-scaling-stroke client.
@@ -14179,6 +14251,7 @@ impl StrokeResolution {
         Self {
             stroke: None,
             opacity_pass: false,
+            omitted_extent: false,
         }
     }
 }
@@ -14198,6 +14271,10 @@ fn resolve_stroke(
 ) -> Result<StrokeResolution, CompileError> {
     let data = el.borrow_data().ok_or(CompileError::MissingComputedStyle)?;
     let style: &ComputedValues = data.styles.primary();
+    // Context paint that resolves to no paint is still not computed `none`
+    // for Chromium's stroke bounding box. Preserve that distinction before
+    // following the context relation (which may also have no provider).
+    let computed_stroke_is_none = matches!(style.clone_stroke().kind, SVGPaintKind::None);
 
     // Direct colours, valid paint servers, and invalid-reference fallbacks
     // stage element opacity exactly as [`resolve_fill`] describes.
@@ -14214,7 +14291,11 @@ fn resolve_stroke(
     let Some(selected) = select_paint(el, PaintProperty::Stroke, paint_contexts)
         .map_err(CompileError::UnsupportedStroke)?
     else {
-        return Ok(StrokeResolution::none());
+        return Ok(StrokeResolution {
+            stroke: None,
+            opacity_pass: false,
+            omitted_extent: !computed_stroke_is_none,
+        });
     };
     let owner_data = selected
         .owner
@@ -14232,7 +14313,13 @@ fn resolve_stroke(
         _ => Ok(PaintResolution::none()),
     };
     let paint = match paint.kind {
-        SVGPaintKind::None => return Ok(StrokeResolution::none()),
+        SVGPaintKind::None => {
+            return Ok(StrokeResolution {
+                stroke: None,
+                opacity_pass: false,
+                omitted_extent: !computed_stroke_is_none,
+            });
+        }
         SVGPaintKind::Color(ref color) => {
             admitted_srgb(owner_style.resolve_color(color), solid_opacity)
                 .map(PaintStack::solid)
@@ -14268,7 +14355,15 @@ fn resolve_stroke(
         }
     };
     if !paint.opacity_pass {
-        return Ok(StrokeResolution::none());
+        // Paint-server failure is not computed `stroke:none`. Chromium's
+        // visual rectangle can retain the selected stroke's extent even when
+        // no drawing/opacity pass survives. Conservatively retain that risk;
+        // do not resolve otherwise-inert width grammar solely for this patrol.
+        return Ok(StrokeResolution {
+            stroke: None,
+            opacity_pass: false,
+            omitted_extent: true,
+        });
     }
 
     // A valid transparent paint still records the stroke pass Chromium's
@@ -14281,6 +14376,7 @@ fn resolve_stroke(
         return Ok(StrokeResolution {
             stroke: None,
             opacity_pass: true,
+            omitted_extent: true,
         });
     }
 
@@ -14441,6 +14537,7 @@ fn resolve_stroke(
     Ok(StrokeResolution {
         stroke,
         opacity_pass: true,
+        omitted_extent: false,
     })
 }
 
