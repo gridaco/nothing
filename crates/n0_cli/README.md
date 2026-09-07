@@ -844,7 +844,7 @@ cargo run -p n0_cli --bin n0 -- \
   around the selected inline SVG; explicit `inherit` on the SVG compounds with
   those host scopes rather than flattening them.
   CSS `mix-blend-mode: normal | multiply | screen` and `isolation: auto |
-  isolate` have a bounded static SVG group profile. One Stylo computed value
+isolate` have a bounded static SVG group profile. One Stylo computed value
   decides the operation; raw attribute lookalikes are inert. Neutral/default
   groups add no layer. Normal isolation with no escaping child blend is
   redundant; the compiler elides it and preserves the established opacity
