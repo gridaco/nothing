@@ -116,7 +116,7 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,382 Chromium-baked primitive cells plus 16 sampled frames,
+- **The corpus** is 1,394 Chromium-baked primitive cells plus 16 sampled frames,
   with a separate sixteen-cell exact text suite whose current cells select
   hash-pinned Ahem and Ahem-derived bytes from explicit family/face
   environments, and eight exact-number artifact-geometry
@@ -5770,11 +5770,25 @@ explicit-Normal-isolation opacity controls cover opaque-backdrop interactions.
 Nineteen further cells cover the actual outer root and redundant isolation
 over translucent backdrops. Four more cross multiply/screen at opacity .123456
 with opaque/translucent source colors over a translucent destination. The rung
-adds 98 exact primitive/HTML cells, taking the corpus from 1,284 to 1,382,
+adds 110 exact primitive/HTML cells, taking the corpus from 1,284 to 1,394,
 and 43 named refusals, taking that
 register from 260 to 303. The sixteen
 sampled frames and separate sixteen pixel/eight geometry text witnesses are
 unchanged.
+
+Twelve review-boundary witnesses cross a rotated Normal-isolated group with
+blending children, a plain Normal-isolated group, and a screen group at opacity
+`1`, `0.9999999403953552` (the next smaller `f32`), `.999` and `.998`:
+`svg-group-blend-near-unit-{isolated,plain,screen}-{unit,near,p999,p998}`.
+Chromium gives identical pixels for the first three opacity values in the
+blending-child and screen groups. Against unit, `.998` differs at 2,151 pixels
+(maximum delta 2) and 2,003 pixels (maximum delta 1), respectively. The plain
+group instead differs between unit and either near-unit value at 143 pixels
+(maximum delta 1): even when the final opacity quantizes to byte 255, an
+authored partial-opacity group must keep its source layer. All twelve sources
+match Chromium in both command admissions on ARM. The corresponding four
+multiply probes also match, with unit/near/`.999` identical and `.998`
+differing at 1,013 pixels (maximum delta 1) **(measured, not celled)**.
 
 HTML exterior-backdrop controls differ when isolation is added
 **(measured, not celled)**. That exterior paint is absent from this command's

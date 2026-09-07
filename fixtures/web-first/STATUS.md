@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (1382)
+## Chromium-baked cells (1394)
 
 Cells are checked against their committed Chromium oracles using
 exact bytes unless a manifest entry declares a measured, bounded
@@ -634,6 +634,18 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-group-blend-multiply-opacity-small-partial.svg" title="svg-group-blend-multiply-opacity-small-partial (standalone-svg)"><img src="./chromium/svg-group-blend-multiply-opacity-small-partial.png" width="56" alt="svg-group-blend-multiply-opacity-small-partial"></a>
 <a href="./svg-group-blend-multiply-stroke.svg" title="svg-group-blend-multiply-stroke (standalone-svg)"><img src="./chromium/svg-group-blend-multiply-stroke.png" width="56" alt="svg-group-blend-multiply-stroke"></a>
 <a href="./svg-group-blend-multiply-transparent.svg" title="svg-group-blend-multiply-transparent (standalone-svg)"><img src="./chromium/svg-group-blend-multiply-transparent.png" width="56" alt="svg-group-blend-multiply-transparent"></a>
+<a href="./svg-group-blend-near-unit-isolated-near.svg" title="svg-group-blend-near-unit-isolated-near (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-isolated-near.png" width="56" alt="svg-group-blend-near-unit-isolated-near"></a>
+<a href="./svg-group-blend-near-unit-isolated-p998.svg" title="svg-group-blend-near-unit-isolated-p998 (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-isolated-p998.png" width="56" alt="svg-group-blend-near-unit-isolated-p998"></a>
+<a href="./svg-group-blend-near-unit-isolated-p999.svg" title="svg-group-blend-near-unit-isolated-p999 (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-isolated-p999.png" width="56" alt="svg-group-blend-near-unit-isolated-p999"></a>
+<a href="./svg-group-blend-near-unit-isolated-unit.svg" title="svg-group-blend-near-unit-isolated-unit (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-isolated-unit.png" width="56" alt="svg-group-blend-near-unit-isolated-unit"></a>
+<a href="./svg-group-blend-near-unit-plain-near.svg" title="svg-group-blend-near-unit-plain-near (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-plain-near.png" width="56" alt="svg-group-blend-near-unit-plain-near"></a>
+<a href="./svg-group-blend-near-unit-plain-p998.svg" title="svg-group-blend-near-unit-plain-p998 (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-plain-p998.png" width="56" alt="svg-group-blend-near-unit-plain-p998"></a>
+<a href="./svg-group-blend-near-unit-plain-p999.svg" title="svg-group-blend-near-unit-plain-p999 (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-plain-p999.png" width="56" alt="svg-group-blend-near-unit-plain-p999"></a>
+<a href="./svg-group-blend-near-unit-plain-unit.svg" title="svg-group-blend-near-unit-plain-unit (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-plain-unit.png" width="56" alt="svg-group-blend-near-unit-plain-unit"></a>
+<a href="./svg-group-blend-near-unit-screen-near.svg" title="svg-group-blend-near-unit-screen-near (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-screen-near.png" width="56" alt="svg-group-blend-near-unit-screen-near"></a>
+<a href="./svg-group-blend-near-unit-screen-p998.svg" title="svg-group-blend-near-unit-screen-p998 (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-screen-p998.png" width="56" alt="svg-group-blend-near-unit-screen-p998"></a>
+<a href="./svg-group-blend-near-unit-screen-p999.svg" title="svg-group-blend-near-unit-screen-p999 (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-screen-p999.png" width="56" alt="svg-group-blend-near-unit-screen-p999"></a>
+<a href="./svg-group-blend-near-unit-screen-unit.svg" title="svg-group-blend-near-unit-screen-unit (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-screen-unit.png" width="56" alt="svg-group-blend-near-unit-screen-unit"></a>
 <a href="./svg-group-blend-nested-hidden.svg" title="svg-group-blend-nested-hidden (standalone-svg)"><img src="./chromium/svg-group-blend-nested-hidden.png" width="56" alt="svg-group-blend-nested-hidden"></a>
 <a href="./svg-group-blend-nested-hidden-isolated.svg" title="svg-group-blend-nested-hidden-isolated (standalone-svg)"><img src="./chromium/svg-group-blend-nested-hidden-isolated.png" width="56" alt="svg-group-blend-nested-hidden-isolated"></a>
 <a href="./svg-group-blend-neutral.svg" title="svg-group-blend-neutral (standalone-svg)"><img src="./chromium/svg-group-blend-neutral.png" width="56" alt="svg-group-blend-neutral"></a>
