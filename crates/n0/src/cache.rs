@@ -535,6 +535,8 @@ fn explicit_radial_owner<K: Copy>(list: &crate::drawlist::DrawList<K>) -> Option
             }
             ItemKind::BeginOpacity { .. }
             | ItemKind::BeginIsolatedOpacity { .. }
+            | ItemKind::BeginIsolatedBlend { .. }
+            | ItemKind::EndIsolatedBlend
             | ItemKind::EndOpacity
             | ItemKind::BeginClipRect { .. }
             | ItemKind::BeginClipPath { .. }

@@ -17,6 +17,8 @@ fn tag(k: &ItemKind) -> &'static str {
     match k {
         ItemKind::BeginOpacity { .. } => "opacity-begin",
         ItemKind::BeginIsolatedOpacity { .. } => "isolated-opacity-begin",
+        ItemKind::BeginIsolatedBlend { .. } => "isolated-blend-begin",
+        ItemKind::EndIsolatedBlend => "isolated-blend-end",
         ItemKind::EndOpacity => "opacity-end",
         ItemKind::BeginClipRect { .. } => "clip-begin",
         ItemKind::BeginClipPath { .. } => "path-clip-begin",

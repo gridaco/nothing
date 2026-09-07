@@ -296,6 +296,32 @@ integration is not admitted or implemented yet. This is a source-neutral
 chassis seam, not a general SVG importer; source parsing, cascade, animation
 interpretation, I/O, and clocks remain outside n0.
 
+A resolved `ScopeEffect::Blend` compiles to one empty-start group layer with
+the checked blend and optional opacity applied in one restoration. Unit Normal
+retains isolation. The native authored `BeginOpacity` operation continues to
+copy its backdrop and restore arithmetically; it has a different meaning.
+Blend scopes use the existing opaque owner projection, child coverage union,
+exact drawlist equality, and complete-frame damage policy, including inside
+repeating programs. An unchanged group must still replay against a changed
+earlier backdrop; retained glyphless products reuse immutable commands, never
+the previously blended pixels. `tests/group_blending.rs` pins these consumer
+laws with hand-built frames and exact pixel probes. Those tests do not claim
+Chromium parity or measured performance.
+
+With the `trace` feature, `n0::trace::sink::drain_blend_layers()` drains typed
+`BlendLayerMetrics`, separate from duration samples: one aggregate per outermost
+drawlist execution, including recursive resource recording. It counts blend
+save calls, observed raster pixel-span bytes and area, peak live observed blend
+bytes, inaccessible observations, and empty-clip saves. The latter never count
+the parent surface as a new layer. Skia-internal allocations and later picture
+playback are not counted; recording/GPU storage may be inaccessible. Preflight
+recording can produce separate execute aggregates: one frame operation may
+yield more than one record. Drain before and after the diagnostic frame. The
+pinned raster accessor reads existing
+storage but calls `notifyPixelsChanged`; use an untimed trace-enabled frame,
+not these instrumented observations as default-build allocation or performance
+claims. No layer-bounds optimization is applied.
+
 ## Versioned `.n0.xml` ingestion
 
 There is deliberately no XML-specific engine API. Draft 0 still has the

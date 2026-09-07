@@ -10,7 +10,7 @@
 //! objects, and no serialization.
 //!
 //! It is deliberately minimal (solid- and gradient-filled rectangles,
-//! ellipses, and paths, composited flat or through checked opacity, clip,
+//! ellipses, and paths, composited flat or through checked opacity, group blend, clip,
 //! mask, and image-filter effects) and
 //! **breakable**: the enums grow as real producers force new visual facts, and
 //! the sharing boundary moves *down* (toward the engine's private drawlist)
@@ -526,7 +526,8 @@ pub enum FrameItem {
     /// One resolved painted node.
     Node(FrameNode),
     /// The following items, up to the matching [`FrameItem::ScopeEnd`],
-    /// composite as one isolated group under this scope's effect.
+    /// share this resolved effect. Opacity, blend, and filter isolate the
+    /// group; geometric clipping alone does not.
     ScopeBegin(Scope),
     /// Closes the innermost open scope.
     ScopeEnd,

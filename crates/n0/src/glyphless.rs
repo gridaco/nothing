@@ -4,7 +4,7 @@
 //! authored n0 document, HTML/CSS/SVG syntax, parser binding, backend object,
 //! I/O handle, or clock. This module admits its current solid-, gradient-, and
 //! resolved-pattern-painted rectangle, ellipse, and path slice plus checked
-//! opacity, clip, mask, and image-filter effects, compiles them into n0's one
+//! opacity, group blend, clip, mask, and image-filter effects, compiles them into n0's one
 //! private drawlist, and executes them through n0's one private painter.
 //!
 //! The resulting [`FrameProduct`] is intentionally separate from
@@ -226,6 +226,7 @@ pub struct Damage {
 #[derive(Debug, Clone)]
 enum OpenScopeKind {
     Opacity,
+    Blend,
     Clip {
         bounds: Option<n0_model::math::RectF>,
     },
@@ -293,7 +294,7 @@ fn damage_input(product: &FrameProduct) -> FrameDamageInput<'_, VisualRef, (), G
 /// rectangle) and paths, the contract's admitted `cg` paints (solids, linear
 /// and radial gradients — every gradient preflighted against its resolved
 /// paint box before the product exists), checked repeating vector programs, a
-/// centred stroke over the fill, isolated opacity scopes, resolved geometric
+/// centred stroke over the fill, isolated opacity and blend scopes, resolved geometric
 /// clip scopes, and the frame-bounds clip.
 ///
 /// The contract's item stream is a checked type ([`rframe::FrameItems`]):
@@ -373,6 +374,14 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                         });
                         (OpenScopeKind::Opacity, None)
                     }
+                    ScopeEffect::Blend(blend) => {
+                        items.push(Item {
+                            node: slot,
+                            world: frame_world,
+                            kind: ItemKind::BeginIsolatedBlend { blend: *blend },
+                        });
+                        (OpenScopeKind::Blend, None)
+                    }
                     ScopeEffect::Clip(clip) => {
                         let compiled = Arc::new(compile_clip_path(clip));
                         if !crate::paint::preflight_clip_path(&compiled) {
@@ -429,6 +438,9 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                 let scope = open_scopes.pop().expect("checked stream is balanced");
                 let (coverage, world, end) = match scope.kind {
                     OpenScopeKind::Opacity => (scope.coverage, frame_world, ItemKind::EndOpacity),
+                    OpenScopeKind::Blend => {
+                        (scope.coverage, frame_world, ItemKind::EndIsolatedBlend)
+                    }
                     OpenScopeKind::Clip { bounds } => match (scope.coverage, bounds) {
                         (Some(coverage), Some(bounds)) => (
                             bounded_intersection_rectf(coverage, bounds, resolved.bounds),
@@ -1881,6 +1893,8 @@ mod tests {
             } => Some(*post_paint_opacity),
             ItemKind::BeginOpacity { .. }
             | ItemKind::BeginIsolatedOpacity { .. }
+            | ItemKind::BeginIsolatedBlend { .. }
+            | ItemKind::EndIsolatedBlend
             | ItemKind::EndOpacity
             | ItemKind::BeginClipRect { .. }
             | ItemKind::BeginClipPath { .. }
@@ -3691,6 +3705,74 @@ mod tests {
             product.drawlist.items[1].node, product.drawlist.items[3].node,
             "begin and end are owned by the one scope"
         );
+    }
+
+    /// One checked final operation becomes one pair in the private stream.
+    /// Child paints stay identical, including at unit Normal and at the
+    /// extreme admitted opacity values; there is no per-paint rewrite.
+    #[test]
+    fn blend_projection_retains_one_combined_operation_and_its_owner() {
+        let mut lists = Vec::new();
+        for mode in [
+            rframe::ScopeBlendMode::Normal,
+            rframe::ScopeBlendMode::Multiply,
+            rframe::ScopeBlendMode::Screen,
+        ] {
+            for opacity in [
+                None,
+                Some(f32::from_bits(1)),
+                Some(0.375),
+                Some(1.0_f32.next_down()),
+            ] {
+                let blend = rframe::ScopeBlend::new(
+                    mode,
+                    opacity.map(|value| ScopeOpacity::new(value).unwrap()),
+                );
+                let source = frame_of(
+                    FrameItems::try_new(vec![
+                        FrameItem::ScopeBegin(Scope {
+                            owner: SCOPE_OWNER,
+                            effect: ScopeEffect::Blend(blend),
+                        }),
+                        FrameItem::Node(base_node(PaintStack::solid(CGColor::RED))),
+                        FrameItem::ScopeEnd,
+                    ])
+                    .unwrap(),
+                );
+                let product = compile(source.clone()).unwrap();
+                assert_eq!(product.drawlist, compile(source).unwrap().drawlist);
+                let items = &product.drawlist.items;
+                assert_eq!(
+                    items.len(),
+                    5,
+                    "frame clip, blend, child, blend end, clip end"
+                );
+                assert_eq!(items[1].kind, ItemKind::BeginIsolatedBlend { blend });
+                assert_eq!(items[3].kind, ItemKind::EndIsolatedBlend);
+                assert_eq!(items[1].node, items[3].node);
+                assert_eq!(
+                    product.provenance.get(items[1].node),
+                    Some((
+                        SCOPE_OWNER,
+                        Some(n0_model::math::RectF {
+                            x: 8.0,
+                            y: 6.0,
+                            w: 20.0,
+                            h: 16.0
+                        })
+                    ))
+                );
+                for previous in &lists {
+                    let previous: &DrawList<GlyphlessOwnerSlot> = previous;
+                    assert_ne!(
+                        previous, &product.drawlist,
+                        "mode and opacity affect equality"
+                    );
+                    assert_eq!(previous.items[2], items[2], "the child stays unchanged");
+                }
+                lists.push(product.drawlist);
+            }
+        }
     }
 
     /// A checked filter scope lowers to one private graph layer. The painter

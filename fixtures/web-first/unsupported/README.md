@@ -13,6 +13,9 @@ best-effort as well, and the attributable ones are declared by name at a
 structural path. What that gate defends is the invariant, stated over a whole
 directory — *nothing here renders silently*. Individual constructs are pinned a
 second time, from inline sources, by the contract law that owns each rung.
+The source extension selects the actual ingress: `.svg` uses the standalone
+entry and `.html` the inline-SVG entry. Exactly one source must exist per id;
+the refusal gate and generated status share that dispatch.
 
 The scannable, generated view of this register (beside the baked cells) is
 [../STATUS.md](../STATUS.md), freshness-gated by
@@ -20,6 +23,17 @@ The scannable, generated view of this register (beside the baked cells) is
 
 | File | Required result |
 | --- | --- |
+| `svg-group-blend-mode-{overlay,darken,lighten,color-dodge,color-burn,hard-light,soft-light,difference,exclusion,hue,saturation,color,luminosity,plus-lighter}.svg` | Fourteen live computed values outside B1's normal/multiply/screen profile must name `mix-blend-mode`; best-effort skips the attributed group, never substitutes normal. |
+| `svg-group-blend-{filter,mask}.svg` | Name the unadmitted image-effect composition profile and skip the complete affected group transaction. |
+| `svg-group-blend-elided-{filter,mask}-{unit,partial}.svg` | Eliding redundant Normal isolation must retain its authored participation for an ancestor filter/mask patrol, without inventing a physical layer or blocking the established opacity fold. These four inputs keep the conservative image-effect refusal; they are not claims of measured pixel defects. |
+| `svg-group-blend-resource-{pattern,mask,clippath}-{root,child}.svg` | Six resource-source ingress guards; a generic walk must not accidentally admit resource roots or geometric clip contributors. The failure propagates to the consuming client by name. |
+| `svg-group-blend-{css-animation,css-var-animation}.svg` · `html-group-blend-head-animation.html` | Name the animated group-composition profile in both admissions, including indirect custom-property animation and an HTML-head stylesheet. |
+| `svg-group-blend-pattern-root-animation.svg` | Preserve the existing document-load animation finding when a referenced pattern root would otherwise disappear from the best-effort source walk. |
+| `html-group-blend-{unisolated,ancestor-mix-blend-mode,ancestor-isolation}.html` | Refuse in both admissions: the compiled SVG contribution has no exterior HTML backdrop/layer graph to honor these cases. |
+| `svg-group-blend-source-{path,ellipse,clip,isolation}.svg` | Name the group-source precision boundary exposed by non-rectangular source or coverage materialization; best-effort skips the affected group, not its first offending draw alone. |
+| `svg-group-blend-source-{radial,stroke,subpixel-clip,rotated-clip}.svg` | Conservative extension guards for radial paints, wider source strokes and unproved clip coverage. These are refusal witnesses, not claims that every member has a measured pixel mismatch. |
+| `svg-group-blend-root-opacity.svg` | Refuse the partial-opacity root-blend precision class in both admissions; no root-level fallback can preserve its promised meaning. |
+| `svg-group-blend-root-filter-sibling.svg` | Refuse in both admissions when an escaping blend requires a new standalone-root isolation layer around a separate filtered sibling. An implicit root boundary must not bypass the image-effect composition profile. |
 | `svg-context-paint-fallback-extension.svg` | Refuse Stylo's non-standard context-paint fallback extension by name. SVG2 permits a fallback only after a URL, and Chromium drops `context-fill red` as an invalid paint (measured); the pinned parser accepts it. The standard-track grammar remains the bar under gridaco/nothing#77, so this registered over-refusal cannot hold the four `fill`/`stroke` rows open. Attribute, inline-style, and stylesheet ingresses are guarded. |
 | `svg-viewbox-invalid-token.svg` | Reject the malformed `viewBox`; do not discard the bad token. |
 | `svg-viewbox-repeated-comma.svg` | Reject a repeated comma in the `viewBox` number list; do not filter empty separators. |

@@ -58,7 +58,9 @@ from the dated addenda below:
   geometry, instance, resource-source, paint, and effect routes, normalized to
   one source-neutral fill/stroke/marker item order before the frame closes;
   `<g>` and `<a>` containers, visibility, isolated element/group/root opacity,
-  and HTML-ancestor opacity around the selected inline SVG; the whole
+  and HTML-ancestor opacity around the selected inline SVG; bounded static SVG
+  group blending/isolation through a combined resolved blend/opacity scope
+  ([B1](#b1-svg-group-blending)); the whole
   `transform` grammar in both spellings (the attribute is a
   presentation hint of the CSS `transform` property, and `gradientTransform`
   is that attribute on gradient elements);
@@ -114,7 +116,7 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,284 Chromium-baked primitive cells plus 16 sampled frames,
+- **The corpus** is 1,378 Chromium-baked primitive cells plus 16 sampled frames,
   with a separate sixteen-cell exact text suite whose current cells select
   hash-pinned Ahem and Ahem-derived bytes from explicit family/face
   environments, and eight exact-number artifact-geometry
@@ -125,7 +127,7 @@ from the dated addenda below:
   carrying declared one-code-value ramp-quantization bounds. The measured
   per-cell counts and causes are listed in the
   [corpus record](../../../fixtures/web-first/README.md).
-  The named refusal register has 260 rows.
+  The named refusal register has 303 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -5676,3 +5678,254 @@ frames, sixteen exact text cells, and eight real-font geometry witnesses are
 unchanged. External I/O, text, marker-source expansion, animation, and the
 separately tracked degenerate-gradient family remain separate work. No
 conformance score or FLIP record, rule, or baseline is touched.
+
+## B1: SVG group blending
+
+B1 introduces a bounded static CSS `mix-blend-mode`/`isolation` slice, not a
+completed blending family. Normal, multiply and screen are consumed from the
+existing Stylo computed values; the pin represents both longhands. Raw SVG
+attribute lookalikes are inert, as their Chromium controls demonstrate. No
+second matcher, presentation hint or cascade-pin change is involved.
+`background-blend-mode` is untouched. All three CSS checklist rows remain open
+under gridaco/nothing#81/#89/#90: the remaining honored operations and source
+profiles do not acquire a tick merely because this slice is useful. The
+[command README](../../../crates/n0_cli/README.md) remains the admitted-slice
+statement of record.
+
+### Resolved meaning and the existing tree
+
+The source tree, resolved composition boundaries and backend allocations are
+different structures. The existing balanced `FrameItems` stream carries the
+new boundary without adding an authored tree or a Web-specific painter.
+`ScopeEffect::Blend(ScopeBlend)` holds a checked, private-field normal/multiply/
+screen operation and optional `ScopeOpacity`; absent opacity means one and
+does not erase isolation. Its source starts transparent and its completed
+pixels composite once against the enclosing destination with the same
+element's opacity. Producer-only tests originate this fact independently of
+the SVG compiler. The contract remains backend-free and carries no resource
+reference, backdrop image, layer bound, cache hint or budget.
+
+The renderer lowers that fact to one empty-start layer and one combined
+restore. It does not change native `BeginOpacity`, whose backdrop-preserving
+initialization and interpolation have a different meaning. Per-paint blending
+and `feBlend` remain separate operations. The distinction follows the
+[compositing model](https://www.w3.org/TR/compositing-1/) and is tested with
+overlapping children: distributing the group operation changes the result.
+
+The compiler appends a known explicit boundary before descending and folds
+private source/backdrop facts into its parent once. Neutral/default groups
+emit no new command or layer. Normal isolation with no escaping descendant
+blend is also redundant: balanced temporary scope markers are elided in one
+linear program-exit pass, not by moving every nested descendant span. A lazy
+identity-indexed ledger is truncated with every identity rewind; neutral
+documents allocate no such ledger or compaction stack. Existing opacity
+replay sees the unscoped facts and keeps its measured fold. Own partial
+opacity already isolates, so normal isolation delegates directly to that
+established opacity path. The resolved contract still retains every required
+unit-normal isolation boundary. No new subtree replay discovers blending.
+An implicit clip boundary inserts its opening pair in one suffix move; the
+older clip insertion and opacity-fold machinery are not claimed to have become
+linear in depth. No optimization policy or `DirtyClass` consumer is introduced.
+
+Immutable command replay remains distinct from caching completed blended
+pixels. Consumer tests cover fresh-versus-reused execution over changed caller
+backdrops, source edits, reorder/removal, isolation/opacity changes, scope
+balance and conservative damage. No destination-dependent raster cache is
+added. Standalone SVG initial transparency is resolved by the producer, not
+hardcoded into the source-neutral `FrameProduct` painter.
+
+### Measured boundaries
+
+All probes and bakes use the unchanged hash-pinned `chromium_capture.ts`
+through `probe_harness.ts`, Chromium 149.0.7827.55, with two deterministic
+captures per source. Candidate sources also run through the actual `n0`
+command in strict and best-effort admission. Exact equality here means decoded
+RGBA equality, not equality of PNG encodings. No tolerance is added.
+
+| Chromium pair | Exact verdict | Evidence |
+| --- | --- | --- |
+| Whole-group multiply / per-child multiply | 576 pixels differ, maximum channel delta 89 | `svg-group-blend-multiply-{group,each}` |
+| Whole-group screen / per-child screen | 576 pixels differ, maximum delta 98 | `svg-group-blend-screen-{group,each}` |
+| Same-group blend plus opacity / outer opacity around blend | 2,048 pixels differ, maximum delta 76 | `svg-group-blend-multiply-opacity` / `svg-group-blend-outer-opacity` |
+| Authored full/partial clip / same clip plus explicit isolate | Identical | `svg-group-blend-{clip,partial}` and their `-isolated` controls |
+| Partial-opacity group / same group plus explicit isolate | Identical | `svg-group-blend-opacity{,-isolated}` |
+| Translated/scaled/rotated group / explicit isolate | 2,048 / 1,536 / 2,160 pixels differ, maximum delta 152 | `svg-group-blend-{translate,scale,rotate}` and their `-isolated` controls |
+| Nested viewport overflow clip / explicit isolate | 2,048 pixels differ, maximum delta 152 | `svg-group-blend-nested-hidden{,-isolated}` |
+| Transparent source: normal / multiply | Identical | `svg-group-blend-{normal,multiply}-transparent` |
+| Child normal / child multiply / child multiply with root isolation | Identical | `svg-group-blend-root-{normal,multiply,isolate}` |
+| Actual outer-root normal / multiply / screen | Identical | `svg-group-blend-outer-root-{normal,multiply,screen}` |
+| Opacity .5 or .6 over translucent green: plain / isolated shape, parent or child | Identical | `svg-group-blend-alpha-{half,six-tenths}-{plain,shape,parent,child}` |
+| Multiple translucent draws, own opacity, transform or clip: plain / isolated | Identical | `svg-group-blend-normal-{unit,many-opacity,transform,clip}-{plain,isolate}` |
+
+In particular, authored `clip-path` isolates blending descendants, but a
+nested SVG overflow clip does not. Neither a neutral container nor an ordinary
+2D transform may acquire a layer merely for implementation convenience.
+The rectangle matrix also covers both blend modes against mode-sensitive
+colors, translucent sources, stroke overlap, gradients, repeating paints,
+fractional placement, computed winners, invalid declarations and custom
+properties. The self-contained HTML cell has an SVG-owned background and
+explicit root isolation; it does not pretend the command paints the HTML page.
+Five additional direct/instance/anchor/mapped-viewport cells and eight
+explicit-Normal-isolation opacity controls cover opaque-backdrop interactions.
+Nineteen further cells cover the actual outer root and redundant isolation
+over translucent backdrops. The rung adds 94 exact primitive/HTML cells,
+taking the corpus from 1,284 to 1,378, and 43 named refusals, taking that
+register from 260 to 303. The sixteen
+sampled frames and separate sixteen pixel/eight geometry text witnesses are
+unchanged.
+
+HTML exterior-backdrop controls differ when isolation is added
+**(measured, not celled)**. That exterior paint is absent from this command's
+established SVG-local extraction contract. An escaping inline blend, a
+non-normal inline-root blend, or blend/isolation on an HTML ancestor therefore
+refuses in both admissions. Resource roots/contributors and CSS keyframes are
+patrolled at their actual ingresses, including HTML-head styles and animated
+custom-property indirection. A referenced pattern root's existing document-load
+animation finding also survives best-effort compilation. These are named
+refusals, not fallbacks to normal. Attributable failures roll back the complete
+affected child transaction and retain valid siblings.
+An implicit standalone-root boundary is subject to the same image-effect
+profile as an explicit group: a filtered sibling cannot sneak into that new
+source layer merely by residing outside the blending element. That root-level
+combination refuses in both admissions and has its own registered witness.
+Likewise, elision preserves authored blend/isolation participation separately
+from physical scope and escaping-backdrop facts. Otherwise an ancestor filter
+or mask could lose its conservative patrol when a Normal boundary disappears.
+Four unit/partial-opacity ancestor witnesses guard that distinction; their
+Chromium images equal their non-isolated controls **(measured, not celled)**,
+not evidence of a new pixel defect. Empty/pruned contributions do not poison
+an otherwise admitted ancestor.
+
+The final alpha patrol found a real defect in the initial B1 lowering:
+redundant Normal isolation forced a different opacity restore over a
+translucent green backdrop, changing 1,600 pixels by one code value. The
+compiler correction above preserves the existing opacity fold instead of
+introducing tolerance. Both admissions now match every new alpha cell.
+Additional .375 and .5019607843137255 shape/parent/child controls also match
+**(measured, not celled)**. A twelve-source cross-check of normal/multiply/screen
+with opacity .5/.6, one opaque or two translucent source draws, and the same
+partial backdrop is exact in both admissions **(measured, not celled)**.
+Cross-seam tests separately execute actual
+outer-root multiply/screen frames onto opaque and translucent colored caller
+canvases; removing their initial Normal boundary changes those results.
+
+### The precision stop
+
+Clean rendering did not establish correctness. Before the new guards, an
+ordinary curved path matched Chromium exactly, but multiply changed 93 pixels
+at maximum delta 19 and screen changed 100 at maximum delta 28. A curved clip
+changed 28 pixels at delta 12 for multiply and 28 at delta 18 for screen. A
+blended root with opacity one-half changed all 4,096 pixels at delta 2. These
+pixel comparisons are **(measured, not celled)**; their exact sources become
+named refusal witnesses, not accepted pixel cells.
+
+A causal scratch control adds corner draws to force full-viewport source
+bounds. That removes the large multiply/screen path discrepancies, while
+ordinary isolated-normal still differs at 92 pixels by one code value
+**(measured, not celled)**. This supports a source-extent/raster-materialization
+dependency; it does not prove a complete Skia/Blink precision model. Tightening
+layer bounds or adding tolerance would not resolve the remaining question.
+
+B1 therefore quarantines non-rectangular group sources and wider coverage
+before admitting the rectangular slice. Radial rectangle paints, complex
+strokes and subpixel/rotated clips are conservative extension guards, not
+claims that every such input has a measured mismatch. Root blend/partial
+opacity has a separate document-level guard. Wider image-effect composition,
+resource-program blending and the fourteen other represented modes remain
+registered refusals. The next widening crux is source-bound and intermediate
+precision, not simply another enum value.
+
+### Gate sensitivity and cost discipline
+
+Replacing only the new painter's multiply restore with normal source-over
+makes `just gate` fail. The whole-group witness changes 2,048 pixels at maximum
+delta 152, the leaf witness 1,600 at delta 152, and the combined-opacity witness
+2,048 at delta 76. The mutation is removed, the painter's source hash returns
+exactly to its pre-mutation value, and the complete fixture gate passes again.
+Neither the oracle nor a tolerance changes to accommodate that failure.
+
+A second mutation disables only redundant unit-Normal elision. The gate fails
+five new witnesses: both child-opacity cells at 1,600 pixels/delta 1 and the
+unit, transformed and clipped isolation controls at 1,024 pixels/delta 1.
+Restoring the compiler's exact pre-mutation bytes returns the full gate to
+green. The alpha correction therefore has its own sensitive external witness.
+
+On aarch64, baseline and B1 have identical `size_of` results: `FrameItem` and
+`FrameNode` 200 bytes, `ScopeEffect` 64, drawlist `ItemKind` 136 and `Item` 168.
+This is a data-layout observation, not proof of unchanged execution cost.
+No layer-bounds optimization ships in B1. Trace-only execute aggregates record
+observed raster pixel spans, area and peak live blend bytes separately from
+duration samples. Empty clips and inaccessible storage are explicit outcomes.
+The pinned accessor observes existing raster storage but changes its generation
+state, so allocation observation belongs to a separate untimed frame. It does
+not measure allocator capacity, Skia-internal allocations or GPU memory.
+
+The matched CPU-raster measurement used the clean pre-rung revision
+`fd4097f2` and B1 on the same Apple M2 Ultra, 128 GiB host, macOS 26.5.1,
+Rust 1.92.0 aarch64, skia-safe 0.99.0, release builds with tracing off.
+Each process warms 20 replays, then takes 20 source-compile, 80 frame-compile
+and 160 paint samples; three repetitions alternate baseline/current order.
+Cargo startup, file/PNG work, canvas clear and the input clone are outside
+their respective timed loops. Source compilation includes document and cascade
+construction. Other task builds, captures and tests are stopped during the
+final post-correction measurement. No GPU timing is claimed.
+
+The reproducible workload is a 256×256 SVG with an opaque `#426589` background.
+For each group index `i`, set `x=(i%32)*8`, `y=((i/32)%32)*8`; paint a 6×6
+`#cd6843` rectangle at `(x,y)`, then a 3×3 `#5bace1` rectangle at `(x+2,y+2)`.
+Use 100 or 1,000 sibling groups, optionally inside 16 or 48 nested groups.
+The selected neutral, opacity .5, multiply or screen style applies to each
+group, including the nesting wrappers. The single-large-group control instead
+puts all those pairs inside one multiply group with neutral inner wrappers.
+That is a different semantic workload, **not** a legal group-flattening rewrite.
+
+Numbers below are the median of three within-run p50s, in microseconds.
+
+| Workload | Source compile, B1 | Frame compile, baseline → B1 | Paint, baseline → B1 |
+| --- | ---: | ---: | ---: |
+| 100 neutral groups | 1,463.4 | 17.46 → 17.50 | 47.17 → 47.42 |
+| 1,000 neutral groups | 15,606.1 | 186.33 → 185.54 | 429.21 → 430.67 |
+| 100 neutral groups, depth 48 | 8,414.2 | 17.46 → 17.50 | 47.13 → 47.00 |
+| 100 opacity groups | 1,515.4 | 25.29 → 25.04 | 3,333.29 → 3,336.54 |
+| 100 multiply groups | 1,622.2 | not admitted → 25.92 | not admitted → 4,026.75 |
+| 1,000 multiply groups | 17,120.5 | not admitted → 295.25 | not admitted → 40,038.04 |
+| 100 screen groups | 1,617.0 | not admitted → 25.92 | not admitted → 4,027.50 |
+| One multiply group containing 100 pairs | 1,614.4 | not admitted → 20.17 | not admitted → 104.75 |
+
+The unaffected controls show no repeatable increase above the plan's 5%
+investigation threshold; this is not a universal regression guarantee. One
+100-neutral current repetition is slower than the other two: source,
+frame-compile and paint p50 ranges are 1,443.4–2,152.2, 17.42–21.50 and
+47.04–56.29 µs respectively. The 1,000-neutral current paint p50 range is
+430.21–432.08 µs; multiply-100 is 4,022.04–4,236.71 µs, with the largest
+within-run p95 4,552.21 µs. The raw per-stage p50/p95/p99/min/max distributions
+are retained in the ignored local execution record; no portable FPS claim is
+drawn from this machine.
+
+The redundant-isolation workload uses the same source pairs with explicit
+`isolation:isolate` and no blending descendants. At 100 / 1,000 groups it
+emits 201 / 2,001 frame items and zero blend saves; paint p50 is 47.17 / 431.13
+µs. Source compilation is 1,622.6 / 17,124.9 µs, including cascade and the
+elision ledger. Adding 48 isolated ancestors to the 1,000-group workload
+still emits 2,001 items and zero blend saves, with 430.50 µs paint p50. Its
+90,735.1 µs source compilation includes existing depth-dependent walks;
+the linear final compaction is not a claim that the entire compiler is linear.
+
+Untimed trace observation makes the cost concrete. Multiply-100 emits 403
+frame items and 101 observable 256×256 raster layers including standalone-root
+isolation: 26,476,544 cumulative accessible bytes and 524,288 peak live blend
+bytes. Multiply-1,000 emits 4,003 items and 1,001 layers, 262,406,144 cumulative
+bytes but the same live peak. Depth 16 increases that live peak to 4,718,592
+bytes. The one-large-group workload uses two layers and 524,288 cumulative/peak
+bytes. There are no missing observations in these raster-only workloads; root
+surface and non-blend allocations are excluded. Neutral groups report zero
+blend saves, not an estimate of zero total renderer allocation.
+
+With the 100-group source positions held fixed and the canvas changed to
+128×128 or 512×512, paint p50 becomes 1,196.54 or 15,295.17 µs; observed
+cumulative blend storage becomes 6,619,136 or 105,906,176 bytes. The smaller
+canvas also clips some source draws, so this is an allocation/viewport
+experiment, not pure equal-coverage area scaling. The practical cost is repeated
+active-clip-sized source materialization, not a larger semantic tree. Source
+extent/precision must be proved before tightening bounds or pooling layers;
+B1 records that cost and leaves the optimization unshipped.

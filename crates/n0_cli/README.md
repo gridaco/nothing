@@ -607,10 +607,10 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete primitive corpus contains 1,284 Chromium-baked cells plus
+  cells. The complete primitive corpus contains 1,378 Chromium-baked cells plus
   16 sampled frames; the text estate contains sixteen exact text pixel cells and
   eight exact-number artifact-geometry witnesses (six Allerta and two
-  Bungee), and the named refusal register has 260 rows. `feFlood`, `feComposite`,
+  Bungee), and the named refusal register has 303 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -843,6 +843,41 @@ cargo run -p n0_cli --bin n0 -- \
   entries. Every non-identity HTML ancestor opacity is a distinct outer scope
   around the selected inline SVG; explicit `inherit` on the SVG compounds with
   those host scopes rather than flattening them.
+  CSS `mix-blend-mode: normal | multiply | screen` and `isolation: auto |
+  isolate` have a bounded static SVG group profile. One Stylo computed value
+  decides the operation; raw attribute lookalikes are inert. Neutral/default
+  groups add no layer. Normal isolation with no escaping child blend is
+  redundant; the compiler elides it and preserves the established opacity
+  fold/layer route, including over translucent backdrops. A required isolated
+  group begins transparent and
+  composites its completed source once with the same element's opacity;
+  blending each child separately or adding an outer opacity group is not the
+  same operation. Ordinary 2D transforms and nested viewport overflow clips
+  do not isolate descendants. Authored `clip-path` and existing partial-opacity
+  groups do. A standalone SVG supplies its transparent initial backdrop in
+  the resolved stream, independently of the caller's canvas clear color.
+  The current group-source profile is sharp-cornered rectangles, including
+  solid, linear-gradient and admitted repeating-pattern paints, fractional
+  placement, 2D transforms and simple local butt/miter strokes. Non-rectangular
+  source geometry, radial source paints, wider strokes and curved, subpixel or
+  rotated clip coverage retain the named `group-source precision` refusal.
+  These guards deliberately over-refuse unproved combinations. Eliding a
+  redundant Normal boundary does not admit its contribution beneath an
+  unproved ancestor filter or mask. A root blend with partial opacity has its
+  own `root-layer precision` refusal. Filter/mask
+  composition, blending inside resource source programs or on their roots,
+  text-local blending, and the fourteen other represented blend values remain
+  named refusals. CSS keyframes combined with either property retain the
+  animated-group patrol, including custom-property indirection and HTML-head
+  styles. Existing SMIL source guards are not relaxed.
+  HTML-inline blending is admitted only when the resolved SVG-local isolation
+  or opacity boundary contains its backdrop dependency. An escaping blend,
+  non-normal blend on the selected root, or blend/isolation on an HTML ancestor
+  refuses in both admissions: the command still extracts an SVG contribution,
+  not the exterior HTML page. Attributable unsupported groups are skipped and
+  named at their structural path in best-effort mode, without leaking a partial
+  source into surviving siblings. The CSS blending rows remain unchecked;
+  this does not broaden `feBlend`, per-paint blending, or native-model opacity.
   `<linearGradient>` and `<radialGradient>` paint servers are consumed
   (the gradient rung): `fill`/`stroke` `url(#…)` references resolve through
   a whole-document, first-id-wins gradient table (shadow-content clones

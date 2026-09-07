@@ -170,6 +170,7 @@ fn same_element_order_is_clip_then_opacity_then_mask() {
                 ScopeEffect::Clip(_) => "clip-begin",
                 ScopeEffect::Opacity(_) => "opacity-begin",
                 ScopeEffect::Filter(_) => "filter-begin",
+                ScopeEffect::Blend(_) => "blend-begin",
             },
             FrameItem::MaskBegin(_) => "mask-begin",
             FrameItem::Node(_) => "node",

@@ -93,7 +93,7 @@ fn resolved_filter(frame: &Frame) -> &Filter {
         .find_map(|item| match item {
             FrameItem::ScopeBegin(scope) => match &scope.effect {
                 ScopeEffect::Filter(filter) => Some(filter),
-                ScopeEffect::Opacity(_) | ScopeEffect::Clip(_) => None,
+                ScopeEffect::Opacity(_) | ScopeEffect::Blend(_) | ScopeEffect::Clip(_) => None,
             },
             _ => None,
         })
@@ -117,6 +117,7 @@ fn gaussian_blur_resolves_to_one_source_neutral_checked_graph() {
             FrameItem::ScopeBegin(scope) => match scope.effect {
                 ScopeEffect::Filter(_) => "filter-begin",
                 ScopeEffect::Opacity(_) => "opacity-begin",
+                ScopeEffect::Blend(_) => "blend-begin",
                 ScopeEffect::Clip(_) => "clip-begin",
             },
             FrameItem::ScopeEnd => "scope-end",
@@ -133,7 +134,7 @@ fn gaussian_blur_resolves_to_one_source_neutral_checked_graph() {
         .find_map(|item| match item {
             FrameItem::ScopeBegin(scope) => match &scope.effect {
                 ScopeEffect::Filter(filter) => Some(filter),
-                ScopeEffect::Opacity(_) | ScopeEffect::Clip(_) => None,
+                ScopeEffect::Opacity(_) | ScopeEffect::Blend(_) | ScopeEffect::Clip(_) => None,
             },
             _ => None,
         })
@@ -178,7 +179,7 @@ fn hard_shadow_graph_resolves_zero_one_two_and_n_input_operations() {
         .find_map(|item| match item {
             FrameItem::ScopeBegin(scope) => match &scope.effect {
                 ScopeEffect::Filter(filter) => Some(filter),
-                ScopeEffect::Opacity(_) | ScopeEffect::Clip(_) => None,
+                ScopeEffect::Opacity(_) | ScopeEffect::Blend(_) | ScopeEffect::Clip(_) => None,
             },
             _ => None,
         })
@@ -238,7 +239,7 @@ fn drop_shadow_resolves_to_one_native_checked_operation() {
         .find_map(|item| match item {
             FrameItem::ScopeBegin(scope) => match &scope.effect {
                 ScopeEffect::Filter(filter) => Some(filter),
-                ScopeEffect::Opacity(_) | ScopeEffect::Clip(_) => None,
+                ScopeEffect::Opacity(_) | ScopeEffect::Blend(_) | ScopeEffect::Clip(_) => None,
             },
             _ => None,
         })
@@ -1649,6 +1650,7 @@ fn admitted_effect_order_is_clip_then_opacity_then_mask_then_filter() {
                 ScopeEffect::Clip(_) => "clip-begin",
                 ScopeEffect::Opacity(_) => "opacity-begin",
                 ScopeEffect::Filter(_) => "filter-begin",
+                ScopeEffect::Blend(_) => "blend-begin",
             },
             FrameItem::MaskBegin(_) => "mask-begin",
             FrameItem::Node(_) => "node",

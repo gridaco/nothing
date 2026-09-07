@@ -60,6 +60,7 @@ fn item_tags(frame: &Frame) -> Vec<&'static str> {
                 ScopeEffect::Clip(_) => "clip-begin",
                 ScopeEffect::Filter(_) => "filter-begin",
                 ScopeEffect::Opacity(_) => "opacity-begin",
+                ScopeEffect::Blend(_) => "blend-begin",
             },
             FrameItem::ScopeEnd => "scope-end",
             FrameItem::MaskBegin(_) => "mask-begin",

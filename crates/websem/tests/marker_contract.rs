@@ -95,7 +95,7 @@ fn instances_flatten_to_ordinary_nodes_inside_hard_viewport_clips() {
         .filter_map(|item| match item {
             FrameItem::ScopeBegin(scope) => match &scope.effect {
                 ScopeEffect::Clip(clip) => Some(clip),
-                ScopeEffect::Opacity(_) | ScopeEffect::Filter(_) => None,
+                ScopeEffect::Opacity(_) | ScopeEffect::Blend(_) | ScopeEffect::Filter(_) => None,
             },
             FrameItem::Node(_)
             | FrameItem::ScopeEnd

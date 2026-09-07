@@ -16,13 +16,15 @@
 
 #[path = "support/fixture_fonts.rs"]
 mod fixture_fonts;
+#[path = "support/unsupported_fixture.rs"]
+mod unsupported_fixture;
 
 use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
-use websem::{DegradationAction, InitialViewport, SvgFrameSource};
+use websem::DegradationAction;
 
 #[derive(Debug, Deserialize)]
 struct PrimitiveSuite {
@@ -54,10 +56,6 @@ fn refusal_text_is_literal_inside_the_generated_table() {
     assert_eq!(cell("a | b\nc * d"), r"a \| b c \* d");
 }
 
-fn viewport() -> InitialViewport {
-    InitialViewport::new(64.0, 64.0)
-}
-
 #[test]
 fn the_committed_status_view_is_fresh() {
     let generated = generate();
@@ -85,8 +83,14 @@ fn generate() -> String {
         .expect("read the unsupported corpus")
         .filter_map(Result::ok)
         .map(|entry| entry.file_name().to_string_lossy().into_owned())
-        .filter(|name| name.ends_with(".svg"))
-        .map(|name| name.trim_end_matches(".svg").to_string())
+        .filter(|name| name.ends_with(".svg") || name.ends_with(".html"))
+        .map(|name| {
+            Path::new(&name)
+                .file_stem()
+                .unwrap()
+                .to_string_lossy()
+                .into_owned()
+        })
         .collect();
     refusals.sort();
 
@@ -147,20 +151,10 @@ fn generate() -> String {
          | --- | --- | --- |\n",
     );
     for id in &refusals {
-        let source = fs::read_to_string(root.join("unsupported").join(format!("{id}.svg")))
-            .unwrap_or_else(|error| panic!("{id}: read: {error}"));
-        let strict = SvgFrameSource::from_standalone_svg_with_fonts(
-            source.as_str(),
-            viewport(),
-            fixture_fonts::unsupported_environment(id),
-        )
-        .err()
-        .unwrap_or_else(|| panic!("{id}: an unsupported fixture must refuse under strict"));
-        match SvgFrameSource::from_standalone_svg_best_effort_with_fonts(
-            source.as_str(),
-            viewport(),
-            fixture_fonts::unsupported_environment(id),
-        ) {
+        let strict = unsupported_fixture::compile(&root.join("unsupported"), id, false)
+            .err()
+            .unwrap_or_else(|| panic!("{id}: an unsupported fixture must refuse under strict"));
+        match unsupported_fixture::compile(&root.join("unsupported"), id, true) {
             Err(_) => {
                 writeln!(
                     out,

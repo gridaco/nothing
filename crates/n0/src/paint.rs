@@ -890,6 +890,8 @@ pub(crate) fn preflight_gradients<K: Copy>(
             | ItemKind::PatternStroke { .. }
             | ItemKind::BeginOpacity { .. }
             | ItemKind::BeginIsolatedOpacity { .. }
+            | ItemKind::BeginIsolatedBlend { .. }
+            | ItemKind::EndIsolatedBlend
             | ItemKind::EndOpacity
             | ItemKind::BeginClipRect { .. }
             | ItemKind::BeginClipPath { .. }
@@ -1129,6 +1131,8 @@ pub(crate) fn preflight_images(
             | ItemKind::PatternStroke { .. }
             | ItemKind::BeginOpacity { .. }
             | ItemKind::BeginIsolatedOpacity { .. }
+            | ItemKind::BeginIsolatedBlend { .. }
+            | ItemKind::EndIsolatedBlend
             | ItemKind::EndOpacity
             | ItemKind::BeginClipRect { .. }
             | ItemKind::BeginClipPath { .. }
@@ -4109,6 +4113,38 @@ fn text_path<K>(
     builder.snapshot()
 }
 
+#[cfg(feature = "trace")]
+fn observe_blend_layer(canvas: &Canvas) -> crate::trace::blend_layers::Observation {
+    use crate::trace::blend_layers::Observation;
+
+    // An empty saveLayer can retain the prior device. Do not misattribute its
+    // backing storage to a new layer. Failed layer mappings also empty the clip.
+    if canvas.is_clip_empty() {
+        return Observation::EmptyClip;
+    }
+    // In pinned Skia, accessTopLayerPixels -> SkBitmapDevice::onAccessPixels
+    // peeks existing storage and calls notifyPixelsChanged. It does not allocate,
+    // but generation-state perturbation makes this diagnostic instrumentation.
+    // Never read/write the pixel slice or keep it across another canvas call.
+    let Some(top) = canvas.access_top_layer_pixels() else {
+        return Observation::Unavailable;
+    };
+    let (Ok(width), Ok(height)) = (
+        u64::try_from(top.info.width()),
+        u64::try_from(top.info.height()),
+    ) else {
+        return Observation::Unavailable;
+    };
+    let bytes = top.info.compute_byte_size(top.row_bytes);
+    if bytes == usize::MAX {
+        return Observation::Unavailable;
+    }
+    Observation::Raster {
+        bytes,
+        pixels: width * height,
+    }
+}
+
 /// Replay a raw [`DrawList`] without a frame-environment check.
 ///
 /// This low-level entry exists for engine-owned resource-free glyphless
@@ -4124,13 +4160,22 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
     // noise and can move a boundary value across N32 quantization.
     skia_safe::graphics::init();
 
+    #[cfg(feature = "trace")]
+    let _blend_trace = crate::trace::blend_layers::Execute::begin();
+
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum Scope {
         Opacity,
+        Blend {
+            #[cfg(feature = "trace")]
+            observed_bytes: u128,
+        },
         Clip,
         MaskContent,
         MaskSource,
-        Filter { source_preflatten: bool },
+        Filter {
+            source_preflatten: bool,
+        },
     }
 
     let initial_save_count = canvas.save_count();
@@ -4169,6 +4214,36 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 let layer = SaveLayerRec::default().paint(&restore_paint);
                 canvas.save_layer(&layer);
                 scopes.push(Scope::Opacity);
+            }
+            ItemKind::BeginIsolatedBlend { blend } => {
+                // One empty-start layer, one restoration. Nesting an opacity
+                // layer outside a blend would change the blend's backdrop;
+                // nesting it inside would introduce another quantization.
+                let mut restore_paint = Paint::default();
+                restore_paint.set_alpha_f(blend.opacity().map_or(1.0, |opacity| opacity.get()));
+                restore_paint.set_blend_mode(match blend.mode() {
+                    rframe::ScopeBlendMode::Normal => skia_safe::BlendMode::SrcOver,
+                    rframe::ScopeBlendMode::Multiply => skia_safe::BlendMode::Multiply,
+                    rframe::ScopeBlendMode::Screen => skia_safe::BlendMode::Screen,
+                });
+                canvas.save_layer(&SaveLayerRec::default().paint(&restore_paint));
+                scopes.push(Scope::Blend {
+                    #[cfg(feature = "trace")]
+                    observed_bytes: crate::trace::blend_layers::Execute::begin_layer(
+                        observe_blend_layer(canvas),
+                    ),
+                });
+            }
+            ItemKind::EndIsolatedBlend => {
+                let scope = scopes.pop();
+                debug_assert!(matches!(scope, Some(Scope::Blend { .. })));
+                if scope.is_some() {
+                    canvas.restore();
+                }
+                #[cfg(feature = "trace")]
+                if let Some(Scope::Blend { observed_bytes }) = scope {
+                    crate::trace::blend_layers::Execute::end_layer(observed_bytes);
+                }
             }
             ItemKind::EndOpacity => {
                 let scope = scopes.pop();

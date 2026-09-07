@@ -802,7 +802,7 @@ fn cascade_properties_the_build_cannot_represent_refuse_by_name() {
         ),
         (
             "mix-blend-mode",
-            r##"<rect x="4" y="4" width="8" height="8" style="mix-blend-mode: multiply" fill="#16a34a"/>"##,
+            r##"<rect x="4" y="4" width="8" height="8" style="mix-blend-mode: overlay" fill="#16a34a"/>"##,
             "mix-blend-mode",
         ),
     ] {
