@@ -4946,6 +4946,38 @@
       "height": 64
     },
     {
+      "id": "svg-group-blend-near-unit-bare-near",
+      "source": "svg-group-blend-near-unit-bare-near.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-near-unit-bare-near.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-near-unit-bare-p998",
+      "source": "svg-group-blend-near-unit-bare-p998.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-near-unit-bare-p998.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-near-unit-bare-p999",
+      "source": "svg-group-blend-near-unit-bare-p999.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-near-unit-bare-p999.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-near-unit-bare-unit",
+      "source": "svg-group-blend-near-unit-bare-unit.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-near-unit-bare-unit.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-group-blend-near-unit-isolated-near",
       "source": "svg-group-blend-near-unit-isolated-near.svg",
       "entry": "standalone-svg",

@@ -315,10 +315,15 @@ Construction is preflighted without drawing; failure returns an owner-bearing
 `glyphless::BuildError::Blend`. A thread-local cache holds one compiled effect
 per mode and at most 256 immutable opacity bindings per mode, never destination pixels. Tests
 execute every opacity byte against integer arithmetic and prove binding reuse
-equals fresh construction. Unit-Normal restoration also uses exact byte
+equals fresh construction. Byte-255 Normal restoration also uses exact byte
 source-over to avoid the x86 sprite blitter's separate approximation at
-partial-alpha edges. Partial-opacity Normal retains the existing isolated
-opacity path, and unit-opacity Screen remains native.
+partial-alpha edges. This includes accepted near-unit opacity values whose
+backend byte is 255. An existing `ScopeEffect::Opacity` in that bucket lowers
+to the same checked Normal-blend command, retaining its original opacity,
+owner and one source layer. Lower-byte Normal retains the native isolated
+opacity path, and unit-opacity Screen remains native. The trace counters
+include these promoted opacity layers; promotion changes their restore
+operation, not how many source layers exist.
 
 With the `trace` feature, `n0::trace::sink::drain_blend_layers()` drains typed
 `BlendLayerMetrics`, separate from duration samples: one aggregate per outermost

@@ -135,6 +135,35 @@ mod layer_metrics {
     }
 
     #[test]
+    fn byte_255_opacity_is_observed_as_one_blend_operation_without_erasing_its_layer() {
+        for (value, count) in [(0.998, 0), (0.999, 1), (1.0_f32.next_down(), 1)] {
+            drain_blend_layers();
+            let product = compile(frame(vec![
+                begin(10, ScopeEffect::Opacity(ScopeOpacity::new(value).unwrap())),
+                solid(1, rect(8.0, 8.0, 24.0, 24.0), FIRST),
+                FrameItem::ScopeEnd,
+            ]))
+            .unwrap();
+            assert!(
+                drain_blend_layers().is_empty(),
+                "build issues no raster commands"
+            );
+            raster(&product, BACKDROP);
+            let metrics = drain_blend_layers();
+            assert_eq!(metrics.len(), 1);
+            assert_eq!(metrics[0].save_layer_calls, count, "opacity {value}");
+            assert_eq!(metrics[0].observed_raster_layers, count);
+            assert_eq!(
+                metrics[0].observed_raster_bytes,
+                u128::from(count) * (SIZE * SIZE * 4) as u128
+            );
+            assert_eq!(metrics[0].missing_observations, 0);
+            // Byte 254 still has a native opacity layer; it is deliberately
+            // outside these execute-seam blend-operation counters.
+        }
+    }
+
+    #[test]
     fn nested_and_sequential_layers_have_distinct_live_peaks() {
         let scene = |nested| {
             let first = solid(1, rect(8.0, 8.0, 24.0, 24.0), FIRST);
@@ -616,7 +645,14 @@ fn normal_blend_with_opacity_matches_existing_isolated_opacity() {
         solid(1, rect(4.0, 4.0, 24.0, 24.0), FIRST),
         solid(2, rect(16.0, 16.0, 24.0, 24.0), SECOND),
     ];
-    for opacity in [0.125, 0.375, 0.5, 0.6, 0.999] {
+    let values = (0..=255_u32)
+        .map(|alpha| match alpha {
+            0 => 0.001,
+            255 => 1.0_f32.next_down(),
+            _ => alpha as f32 / 255.0,
+        })
+        .chain([0.125, 0.375, 0.5, 0.6, 0.998, 0.999]);
+    for opacity in values {
         let scene = |effect| {
             let mut items = vec![begin(10, effect)];
             items.extend(children.clone());
@@ -634,7 +670,89 @@ fn normal_blend_with_opacity_matches_existing_isolated_opacity() {
             CGColor::TRANSPARENT,
             CGColor::from_rgba(0, 255, 0, 170),
         ] {
-            assert_eq!(raster(&old, backdrop), raster(&new, backdrop));
+            let pixels = raster(&old, backdrop);
+            assert_eq!(pixels, raster(&new, backdrop), "opacity {opacity:?}");
+            let mut restore = skia_safe::Paint::default();
+            restore.set_alpha_f(opacity.get());
+            if restore.alpha() < 255 {
+                // Lower byte factors must remain exactly the old native
+                // saveLayer operation, not the ordered byte-blender formula.
+                let mut surface = skia_safe::surfaces::raster_n32_premul((SIZE, SIZE)).unwrap();
+                surface.canvas().clear(skia_safe::Color::from_argb(
+                    backdrop.a, backdrop.r, backdrop.g, backdrop.b,
+                ));
+                surface
+                    .canvas()
+                    .save_layer(&skia_safe::canvas::SaveLayerRec::default().paint(&restore));
+                for (x, y, color) in [(4.0, 4.0, FIRST), (16.0, 16.0, SECOND)] {
+                    let mut paint = skia_safe::Paint::default();
+                    paint.set_anti_alias(true);
+                    paint.set_color(skia_safe::Color::from_argb(
+                        color.a, color.r, color.g, color.b,
+                    ));
+                    surface
+                        .canvas()
+                        .draw_rect(skia_safe::Rect::from_xywh(x, y, 24.0, 24.0), &paint);
+                }
+                surface.canvas().restore();
+                assert_eq!(
+                    pixels,
+                    read_pixels(&mut surface, SIZE, SIZE),
+                    "native opacity {opacity:?}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn near_unit_normal_spellings_share_exact_partial_alpha_restore_and_retain_the_frame() {
+    // Both alphas are partial. Unlike an opaque axis-aligned child, this
+    // palette distinguishes exact /255 from x86's native unit sprite /256.
+    let source_color = CGColor::from_rgba(215, 104, 67, 8);
+    let backdrop = CGColor::from_rgba(66, 101, 137, 170);
+    let source = [7_u32, 3, 2, 8];
+    let destination = [44_u32, 67, 91, 170];
+    let expected: [u8; 4] = std::array::from_fn(|i| {
+        (source[i] + (destination[i] * (255 - source[3]) + 127) / 255) as u8
+    });
+    let native_x86: [u8; 4] =
+        std::array::from_fn(|i| (source[i] + destination[i] * (256 - source[3]) / 256) as u8);
+    assert_ne!(
+        expected, native_x86,
+        "the witness must discriminate the rounding routes"
+    );
+    let scene = |effect| {
+        frame(vec![
+            begin(10, effect),
+            solid(1, rect(8.0, 8.0, 24.0, 24.0), source_color),
+            FrameItem::ScopeEnd,
+        ])
+    };
+    let unit = compile(scene(ScopeEffect::Blend(ScopeBlend::new(
+        ScopeBlendMode::Normal,
+        None,
+    ))))
+    .unwrap();
+    let unit_pixels = raster(&unit, backdrop);
+    assert_eq!(at(&unit_pixels, 16, 16), expected);
+    for value in [0.999, 1.0_f32.next_down()] {
+        let opacity = ScopeOpacity::new(value).unwrap();
+        for effect in [
+            ScopeEffect::Opacity(opacity),
+            ScopeEffect::Blend(ScopeBlend::new(ScopeBlendMode::Normal, Some(opacity))),
+        ] {
+            let resolved = scene(effect);
+            let product = compile(resolved.clone()).unwrap();
+            assert_eq!(product.resolved(), &resolved);
+            let retained = product.clone();
+            let pixels = raster(&retained, backdrop);
+            assert_eq!(at(&pixels, 16, 16), expected, "opacity {value}");
+            assert_eq!(
+                pixels, unit_pixels,
+                "same retained isolation topology at {value}"
+            );
+            assert_eq!(pixels, raster(&compile(resolved).unwrap(), backdrop));
         }
     }
 }
@@ -672,6 +790,65 @@ fn changing_blend_or_opacity_damages_only_the_scope_and_its_clipped_child_union(
         let damage = diff_frame(&before, &after);
         assert_eq!(damage.changed, [owner(10)]);
         assert_eq!(damage.union_frame, Some(rect(4.0, 8.0, 20.0, 12.0)));
+    }
+}
+
+#[test]
+fn opacity_byte_254_to_255_keeps_scope_damage_coverage_and_retained_matches_fresh() {
+    for blend_spelling in [false, true] {
+        let scene = |value| {
+            let opacity = ScopeOpacity::new(value).unwrap();
+            let effect = if blend_spelling {
+                ScopeEffect::Blend(ScopeBlend::new(ScopeBlendMode::Normal, Some(opacity)))
+            } else {
+                ScopeEffect::Opacity(opacity)
+            };
+            frame(vec![
+                begin(10, effect),
+                solid(1, rect(4.0, 8.0, 12.0, 12.0), FIRST),
+                begin(11, ScopeEffect::Clip(clip(rect(16.0, 12.0, 8.0, 8.0)))),
+                solid(2, rect(0.0, 0.0, 48.0, 48.0), SECOND),
+                FrameItem::ScopeEnd,
+                FrameItem::ScopeEnd,
+            ])
+        };
+        for (old, new) in [(0.998, 0.999), (0.999, 0.998)] {
+            let before = compile(scene(old)).unwrap();
+            let resolved = scene(new);
+            let retained = compile(resolved.clone()).unwrap().clone();
+            assert_eq!(retained.resolved(), &resolved);
+            let fresh = compile(scene(new)).unwrap();
+            assert!(diff_frame(&retained, &fresh).is_empty());
+            let damage = diff_frame(&before, &retained);
+            assert_eq!(damage.changed, [owner(10)]);
+            assert_eq!(damage.union_frame, Some(rect(4.0, 8.0, 20.0, 12.0)));
+            let before_pixels = raster(&before, BACKDROP);
+            let after_pixels = raster(&retained, BACKDROP);
+            assert_eq!(after_pixels, raster(&fresh, BACKDROP));
+            let union = damage.union_frame.unwrap();
+            let mut changed_pixels = 0;
+            for y in 0..SIZE as usize {
+                for x in 0..SIZE as usize {
+                    if at(&before_pixels, x, y) != at(&after_pixels, x, y) {
+                        changed_pixels += 1;
+                        assert!(
+                            x as f32 >= union.x
+                                && y as f32 >= union.y
+                                && (x + 1) as f32 <= union.x + union.width
+                                && (y + 1) as f32 <= union.y + union.height,
+                            "{old} -> {new}: changed pixel ({x},{y}) escaped {union:?}"
+                        );
+                    }
+                }
+            }
+            assert!(changed_pixels > 0, "byte-route crossing must change pixels");
+        }
+        // Distinct resolved floats in byte 255 remain distinct damage facts,
+        // even though their restoration pixels alias on this backend.
+        let near = compile(scene(1.0_f32.next_down())).unwrap();
+        let alias = compile(scene(0.999)).unwrap();
+        assert_eq!(diff_frame(&near, &alias).changed, [owner(10)]);
+        assert_eq!(raster(&near, BACKDROP), raster(&alias, BACKDROP));
     }
 }
 

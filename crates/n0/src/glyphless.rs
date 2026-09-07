@@ -375,7 +375,22 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                 provenance.owners.push(scope.owner);
                 // Placeholder until the scope closes and its union is known.
                 provenance.coverage.push(None);
-                let (kind, initial_coverage) = match &scope.effect {
+                // Backend byte-255 opacity takes the same exact Normal
+                // restore as a Blend scope. Retain the original resolved
+                // opacity and the layer itself: byte quantization is not
+                // permission to erase this isolation boundary. Both spellings
+                // share preflight, owner coverage, and the matching close.
+                let promoted_opacity = match &scope.effect {
+                    ScopeEffect::Opacity(opacity) => {
+                        let blend =
+                            rframe::ScopeBlend::new(rframe::ScopeBlendMode::Normal, Some(*opacity));
+                        crate::paint::uses_isolated_byte_blender(blend)
+                            .then_some(ScopeEffect::Blend(blend))
+                    }
+                    _ => None,
+                };
+                let effect = promoted_opacity.as_ref().unwrap_or(&scope.effect);
+                let (kind, initial_coverage) = match effect {
                     ScopeEffect::Opacity(opacity) => {
                         items.push(Item {
                             node: slot,
@@ -3723,6 +3738,112 @@ mod tests {
             product.drawlist.items[1].node, product.drawlist.items[3].node,
             "begin and end are owned by the one scope"
         );
+    }
+
+    #[test]
+    fn isolated_opacity_projection_preserves_facts_and_owner_across_byte_routes() {
+        let mut child = None;
+        let values = (0..=255_u32)
+            .map(|alpha| match alpha {
+                0 => (0.001, false),
+                255 => (1.0_f32.next_down(), true),
+                _ => (alpha as f32 / 255.0, false),
+            })
+            .chain([(0.998, false), (0.999, true)]);
+        for (value, promoted) in values {
+            let source = frame_of(
+                FrameItems::try_new(vec![
+                    scope_begin(SCOPE_OWNER, value),
+                    FrameItem::Node(base_node(PaintStack::solid(CGColor::RED))),
+                    FrameItem::ScopeEnd,
+                ])
+                .unwrap(),
+            );
+            #[cfg(feature = "trace")]
+            crate::trace::sink::drain_blend_layers();
+            let product = compile(source.clone()).unwrap();
+            assert_eq!(product.resolved(), &source, "resolved facts at {value}");
+            assert_eq!(product.drawlist, compile(source).unwrap().drawlist);
+            #[cfg(feature = "trace")]
+            assert!(crate::trace::sink::drain_blend_layers().is_empty());
+            let items = &product.drawlist.items;
+            assert_eq!(items.len(), 5, "one scope remains at {value}");
+            let (begin, end) = if promoted {
+                (
+                    ItemKind::BeginIsolatedBlend {
+                        blend: rframe::ScopeBlend::new(
+                            rframe::ScopeBlendMode::Normal,
+                            Some(ScopeOpacity::new(value).unwrap()),
+                        ),
+                    },
+                    ItemKind::EndIsolatedBlend,
+                )
+            } else {
+                (
+                    ItemKind::BeginIsolatedOpacity { opacity: value },
+                    ItemKind::EndOpacity,
+                )
+            };
+            assert_eq!(items[1].kind, begin, "begin at {value}");
+            assert_eq!(items[3].kind, end, "end at {value}");
+            assert_eq!(items[1].node, items[3].node);
+            assert_eq!(
+                product.provenance.get(items[1].node),
+                Some((
+                    SCOPE_OWNER,
+                    Some(n0_model::math::RectF {
+                        x: 8.0,
+                        y: 6.0,
+                        w: 20.0,
+                        h: 16.0,
+                    }),
+                ))
+            );
+            if let Some(child) = &child {
+                assert_eq!(&items[2], child, "the child is not rewritten");
+            } else {
+                child = Some(items[2].clone());
+            }
+        }
+    }
+
+    #[test]
+    fn isolated_opacity_byte_promotion_also_preflights_nested_programs() {
+        for value in [0.999, 1.0_f32.next_down()] {
+            let pattern = rframe::PatternPaint::new(
+                64.0,
+                48.0,
+                AffineTransform::identity(),
+                Arc::new(
+                    FrameItems::try_new(vec![
+                        scope_begin(SCOPE_OWNER, value),
+                        FrameItem::Node(base_node(PaintStack::solid(CGColor::RED))),
+                        FrameItem::ScopeEnd,
+                    ])
+                    .unwrap(),
+                ),
+                1.0,
+            )
+            .unwrap();
+            #[cfg(feature = "trace")]
+            crate::trace::sink::drain_blend_layers();
+            let compiled = compile_pattern(&pattern, RECT_OWNER).unwrap();
+            #[cfg(feature = "trace")]
+            assert!(crate::trace::sink::drain_blend_layers().is_empty());
+            let items = &compiled.program.items;
+            assert_eq!(items.len(), 5);
+            assert_eq!(
+                items[1].kind,
+                ItemKind::BeginIsolatedBlend {
+                    blend: rframe::ScopeBlend::new(
+                        rframe::ScopeBlendMode::Normal,
+                        Some(ScopeOpacity::new(value).unwrap()),
+                    ),
+                }
+            );
+            assert_eq!(items[3].kind, ItemKind::EndIsolatedBlend);
+            assert_eq!(items[1].node, items[3].node);
+        }
     }
 
     /// One checked final operation becomes one pair in the private stream.

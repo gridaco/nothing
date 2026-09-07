@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "069296201718c43d29efe356fbea893781b73250dca51de3b6d47468d74027b0",
   "suite": "primitives.json",
-  "suite_sha256": "1179a0d86cadb59c0b10825941ae2a7ee433031cd6a3f8e9441f54d2752a396c",
+  "suite_sha256": "0fac8f2a916aecd3ee3e975f162c4d73e27b7e0b35fc3fb06eb0dfe8c7745af5",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -5479,6 +5479,42 @@
       "source_sha256": "ab3419aa0ecf48d1d0ea1404677997de46bd5903f3b1194db55253d682edfde1",
       "oracle": "chromium/svg-group-blend-multiply-transparent.png",
       "oracle_sha256": "a36c2a26bfa284913592c9f2903cf39c76496e09e2f5eb3c0b06e31b9ba70211",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-near-unit-bare-near",
+      "source": "svg-group-blend-near-unit-bare-near.svg",
+      "source_sha256": "8f8db269ebdef200ed2c4d316eed6990914aae91c679461f9c924467474eae07",
+      "oracle": "chromium/svg-group-blend-near-unit-bare-near.png",
+      "oracle_sha256": "d1c94cd09b9e33a1a77e79063e0767163f1bfb027db78a8fa35f7bb02e8df024",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-near-unit-bare-p998",
+      "source": "svg-group-blend-near-unit-bare-p998.svg",
+      "source_sha256": "baf874f09357edd4c4db5b40903bdc40d64830007794216281d736f6d91fe144",
+      "oracle": "chromium/svg-group-blend-near-unit-bare-p998.png",
+      "oracle_sha256": "33846d98c6e04bed4fafb819f2815e6111ddb8362a6cce0803f56cd3753029e0",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-near-unit-bare-p999",
+      "source": "svg-group-blend-near-unit-bare-p999.svg",
+      "source_sha256": "b9c5938f544097ed4c1ff36c45fffc9702b4b8bb404da57805e27220ce890659",
+      "oracle": "chromium/svg-group-blend-near-unit-bare-p999.png",
+      "oracle_sha256": "d1c94cd09b9e33a1a77e79063e0767163f1bfb027db78a8fa35f7bb02e8df024",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-near-unit-bare-unit",
+      "source": "svg-group-blend-near-unit-bare-unit.svg",
+      "source_sha256": "b648bdfbb942eef2cfa73413a84b29e22bb398d7d46a9b186e0469c9fc64a3e3",
+      "oracle": "chromium/svg-group-blend-near-unit-bare-unit.png",
+      "oracle_sha256": "9e44a243459ac6f1c2168bbe52c63f045967614006873a3e13f5e964aa52960a",
       "width": 64,
       "height": 64
     },

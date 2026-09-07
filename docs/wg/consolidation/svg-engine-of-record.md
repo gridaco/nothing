@@ -116,7 +116,7 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,394 Chromium-baked primitive cells plus 16 sampled frames,
+- **The corpus** is 1,398 Chromium-baked primitive cells plus 16 sampled frames,
   with a separate sixteen-cell exact text suite whose current cells select
   hash-pinned Ahem and Ahem-derived bytes from explicit family/face
   environments, and eight exact-number artifact-geometry
@@ -5770,7 +5770,7 @@ explicit-Normal-isolation opacity controls cover opaque-backdrop interactions.
 Nineteen further cells cover the actual outer root and redundant isolation
 over translucent backdrops. Four more cross multiply/screen at opacity .123456
 with opaque/translucent source colors over a translucent destination. The rung
-adds 110 exact primitive/HTML cells, taking the corpus from 1,284 to 1,394,
+adds 114 exact primitive/HTML cells, taking the corpus from 1,284 to 1,398,
 and 43 named refusals, taking that
 register from 260 to 303. The sixteen
 sampled frames and separate sixteen pixel/eight geometry text witnesses are
@@ -5789,6 +5789,11 @@ authored partial-opacity group must keep its source layer. All twelve sources
 match Chromium in both command admissions on ARM. The corresponding four
 multiply probes also match, with unit/near/`.999` identical and `.998`
 differing at 1,013 pixels (maximum delta 1) **(measured, not celled)**.
+Four `svg-group-blend-near-unit-bare-{unit,near,p999,p998}` controls remove
+authored isolation from the plain group. Each is pixel-identical to its
+explicitly isolated counterpart in Chromium and both command admissions on
+ARM. The near-unit restore boundary therefore also belongs to ordinary
+group opacity; the open blending rows cannot shelter a gap in that operation.
 
 HTML exterior-backdrop controls differ when isolation is added
 **(measured, not celled)**. That exterior paint is absent from this command's
@@ -5860,11 +5865,57 @@ uses accurate divide-by-255 rounding. A mutation of only the new unit-Normal
 restore to that formula reproduces 141 differing pixels and the same first
 pixel. The raster-pipeline approximation alone produces a different 135-pixel
 signature, so the two backend paths are not conflated. Exact byte source-over
-now carries unit-Normal blend boundaries as well. Partial-opacity Normal keeps
-the established native isolated-opacity operation and its independently
-guarded byte behavior; unit-opacity screen also stays native. No old opacity
-operation is changed. The complete 1,382-cell gate then passes on ARM and
+first carried unit-Normal blend boundaries as well. At that point,
+partial-opacity Normal retained the established native isolated-opacity
+operation; unit-opacity screen also stayed native. The 1,382-cell gate
+passed on ARM and
 hosted x86 with the scoped correction, without an oracle or tolerance change.
+
+Review then exposed the near-unit boundary documented above. Pinned
+`SkPaint::getAlpha()` rounds accepted partial opacities such as `.999` to byte
+255. `ChooseL32` passes that byte into `Sprite_D32_S32`, which omits its global
+alpha flag and selects the same source-over route as unit opacity. Route
+selection and shader bindings now share one n0-owned byte conversion: Normal
+uses the exact restore for byte 255, including a checked partial opacity.
+Bytes below 255 retain the distinct native global-alpha operation; screen's
+separately measured routing is unchanged.
+
+The Web compiler sends own partial Normal through `ScopeEffect::Opacity`,
+not just the new Blend variant. The n0 consumer therefore lowers that existing
+opacity fact into the same Normal-blend command when its backend byte is 255.
+It preserves the original resolved opacity, source layer, owner, child coverage
+union and balanced close. Both spellings share owner-bearing preflight and
+reuse/damage guards. Backend quantization never enters websem or rframe, and
+native backdrop-preserving `BeginOpacity` remains untouched. These promoted
+opacity layers now appear in the trace blend-layer counters and incur the
+exact helper's cost; they are not newly allocated layers.
+
+The pre-correction hosted x86 run fails exactly four of the twelve new
+boundary cells: the isolated blending-child and plain isolated groups at the
+next-smaller `f32` and `.999`. Each has 141 changed pixels at delta 1 and the
+same first-pixel signature above; the unit, `.998` and screen controls pass.
+The four ordinary-opacity controls were added after that run. A deliberate
+AVX2-formula mutation of the corrected Normal restore makes `just gate` fail
+eight cells with that same 141-pixel/delta-1 signature, including both ordinary
+near-unit controls. No oracle or tolerance changes to absorb the failure.
+
+An additional ordinary-opacity regression patrol crosses eighteen rotated
+source controls and six unrotated effect controls at `.999`/`.998`.
+Circles, ellipses, curved paths, round strokes, curved clips and the admitted
+alpha mask remain exact on ARM. Rotated pattern/mask and small-kernel blur
+controls retain their existing named refusals. The radial ramp is silently
+admitted with 1,312/1,307 one-code-value differences, the unrotated pattern
+with one, and the circle-plus-blur control with 25 pixels at maximum delta
+3/2. Every successful output is encoded-byte identical between the retained
+pre-rung `fd4097f2` binary, the pre-follow-up build and the correction.
+These are **(measured, not celled)** controls, not a new tolerance or an exact
+parity claim for those departures. Their causes and disposition are tracked
+separately in [gridaco/nothing#136](https://github.com/gridaco/nothing/issues/136).
+Pre-existence establishes no regression from this correction, not that a
+closed row is unaffected: both opacity rows and `<radialGradient>` are ticked,
+and causal attribution and tick ownership remain unresolved. A proven
+closed-row defect requires repair/refusal and tick reassessment. These
+controls do not widen the authored-blending source profile.
 
 One compiled effect per mode per thread and at most 256 immutable opacity
 bindings per mode amortize shader construction; this is a code/uniform cache, never a pixel or
@@ -5874,7 +5925,7 @@ Execution tests guard the static shader's raster lowering against independent
 integer arithmetic for every opacity byte in multiply/screen and every source
 alpha byte in unit-Normal, distinguish float-first ordering, and prove warm
 binding reuse equals fresh construction. Three effect slots are bounded; the
-Normal slot is used only with unit opacity.
+Normal slot is used only with byte-255 opacity.
 The group shader enables Skia's optimizer; its exactness is independently
 gated, and the existing filter-blender configuration is unchanged.
 
@@ -5935,7 +5986,7 @@ The pinned accessor observes existing raster storage but changes its generation
 state, so allocation observation belongs to a separate untimed frame. It does
 not measure allocator capacity, Skia-internal allocations or GPU memory.
 
-The matched CPU-raster measurement used the clean pre-rung revision
+The first matched CPU-raster measurement, before the near-unit follow-up, used the clean pre-rung revision
 `fd4097f2` and B1 on the same Apple M2 Ultra, 128 GiB host, macOS 26.5.1,
 Rust 1.92.0 aarch64, skia-safe 0.99.0, release builds with tracing off.
 Each workload records its first frame compile and paint separately, warms five
@@ -5947,7 +5998,7 @@ the matched table.
 Cargo startup, file/PNG work, canvas clear and the input clone are outside
 their respective timed loops. Source compilation includes document and cascade
 construction. Other task builds, captures and tests are stopped during the
-final post-correction measurement. No GPU timing is claimed.
+post-correction measurement. No GPU timing is claimed.
 
 The reproducible workload is a 256×256 SVG with an opaque `#426589` background.
 For each group index `i`, set `x=(i%32)*8`, `y=((i/32)%32)*8`; paint a 6×6
@@ -5979,6 +6030,39 @@ sampling, gives 25.21 → 25.83 µs; ranges overlap at 25.00–27.50 and
 not repeat above the threshold in that follow-up median; the original alert
 is retained, not replaced. Other unaffected stage medians remain below the
 threshold. This is not a universal regression guarantee.
+
+The near-unit follow-up uses the same 100-pair, 256×256 workload with ordinary
+group opacity `.999`, `.998`, `.5`, and a neutral control. Before/after builds
+share one dependency lock; the baseline is the pre-follow-up `7d42ab20` and
+the corrected build retains the same public type sizes. The same hardware,
+release/trace-off posture, first-use sample, five warmups, 20/80/40 stage
+samples and three alternating repetitions apply, with other task builds,
+captures and tests stopped. Medians of the three p50s are:
+
+| 100 groups | Frame compile, before → after (µs) | Paint, before → after (µs) |
+| --- | ---: | ---: |
+| Opacity .999, byte 255 | 25.29 → 26.25 | 1,959.50 → 119,690.54 |
+| Opacity .998, byte 254 | 25.08 → 24.83 | 3,348.54 → 3,342.83 |
+| Opacity .5 | 25.13 → 24.83 | 3,350.67 → 3,350.08 |
+| Neutral | 17.42 → 17.21 | 47.54 → 47.08 |
+
+The byte-255 correction has a material CPU cost: near-unit opacity now pays
+for the same explicit exact restore as unit Normal. It is not a performance
+improvement. Its paint p50 spans 119,656.17–119,693.96 µs; maximum within-run
+p95 is 120,200.83 µs. First frame compilation spans 654.58–2,151.42 µs and
+first paint 119,923.29–140,139.42 µs; the high first repetition is retained.
+No control-stage median regresses beyond the 5% investigation threshold in
+this bounded run. Source-compile medians range from 1,405.54 to 1,486.33 µs
+after correction, versus 1,443.88–1,509.63 µs before it; these small changes
+are not a new optimization claim.
+
+Separate untimed trace observation records 100 promoted-opacity restores,
+26,214,400 cumulative accessible raster bytes and 262,144 peak live bytes.
+The `.998` and `.5` opacity layers remain outside these blend-operation
+counters, not absent. Promotion retains the existing source layers rather
+than creating 100 new ones. Reducing active-clip-sized exact-restore work
+requires the same source-extent and intermediate-precision investigation as
+the broader blending profile; no unchecked bounds or native fallback ships.
 
 One 100-neutral current repetition is slower: source, frame-compile and paint
 p50 ranges are 1,421.92–2,156.58, 17.42–21.83 and 46.92–58.08 µs; baseline

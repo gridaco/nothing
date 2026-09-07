@@ -2644,12 +2644,18 @@ struct IsolatedByteBlenders {
     by_alpha: Vec<Option<Blender>>,
 }
 
+/// The pinned N32 restore's paint-alpha conversion. Keep route selection and
+/// shader uniforms in the same byte domain without changing the resolved fact.
+fn isolated_opacity_byte(opacity: Option<rframe::ScopeOpacity>) -> u8 {
+    (opacity.map_or(1.0, |opacity| opacity.get()) * 255.0 + 0.5) as u8
+}
+
 fn isolated_byte_blender(blend: rframe::ScopeBlend) -> Result<Blender, String> {
     // Pinned Skia's N32 lowp sprite restore quantizes the paint opacity first,
     // then rounds source-byte * opacity-byte / 255. A runtime blender promotes
     // the surrounding pipeline to highp; leaving paint alpha active would
     // instead scale by the original float before source quantization.
-    let alpha = (blend.opacity().map_or(1.0, |opacity| opacity.get()) * 255.0 + 0.5) as u8;
+    let alpha = isolated_opacity_byte(blend.opacity());
     let (slot, expression) = match blend.mode() {
         rframe::ScopeBlendMode::Multiply => (0, UNORM8_MULTIPLY_EXPRESSION),
         rframe::ScopeBlendMode::Screen => (1, "s + d - div255(s * d)"),
@@ -2709,10 +2715,13 @@ pub(crate) fn preflight_isolated_blend(blend: rframe::ScopeBlend) -> Result<(), 
     }
 }
 
-fn uses_isolated_byte_blender(blend: rframe::ScopeBlend) -> bool {
+pub(crate) fn uses_isolated_byte_blender(blend: rframe::ScopeBlend) -> bool {
     match blend.mode() {
         rframe::ScopeBlendMode::Multiply => true,
-        rframe::ScopeBlendMode::Normal => blend.opacity().is_none(),
+        // SkPaint::getAlpha() also makes near-unit Some values 255. Those
+        // select the same x86 SrcOver sprite approximation as None. Lower
+        // bytes retain the distinct native global-alpha restore arithmetic.
+        rframe::ScopeBlendMode::Normal => isolated_opacity_byte(blend.opacity()) == 255,
         rframe::ScopeBlendMode::Screen => blend.opacity().is_some(),
     }
 }
@@ -2755,6 +2764,48 @@ mod isolated_blend_policy_tests {
             .clear(Color::from_argb(alpha, 215, 104, 67));
         surface.canvas().restore();
         read_pixels(&mut surface, 1, 1)
+    }
+
+    #[test]
+    fn isolated_blend_routing_uses_the_native_opacity_byte() {
+        let boundary = 254.5_f32 / 255.0;
+        let values = (0..=255_u32)
+            .map(|alpha| {
+                if alpha == 0 {
+                    0.001
+                } else {
+                    alpha as f32 / 255.0
+                }
+            })
+            .chain([
+                0.123456,
+                0.6,
+                0.998,
+                0.999,
+                1.0_f32.next_down(),
+                boundary.next_down(),
+                boundary,
+                boundary.next_up(),
+            ]);
+        for value in values {
+            let opacity = scope(value).opacity();
+            let mut native = Paint::default();
+            native.set_alpha_f(value);
+            assert_eq!(isolated_opacity_byte(opacity), native.alpha(), "{value}");
+            for (mode, expected) in [
+                (rframe::ScopeBlendMode::Normal, native.alpha() == 255),
+                (rframe::ScopeBlendMode::Multiply, true),
+                (rframe::ScopeBlendMode::Screen, opacity.is_some()),
+            ] {
+                assert_eq!(
+                    uses_isolated_byte_blender(rframe::ScopeBlend::new(mode, opacity)),
+                    expected,
+                    "{mode:?} at {value}"
+                );
+            }
+        }
+        assert_eq!(isolated_opacity_byte(scope(0.998).opacity()), 254);
+        assert_eq!(isolated_opacity_byte(scope(0.999).opacity()), 255);
     }
 
     #[test]
@@ -2867,6 +2918,19 @@ mod isolated_blend_policy_tests {
                 warm,
                 "fresh binding at source alpha byte {alpha}"
             );
+            for value in [0.999, 1.0_f32.next_down()] {
+                let alias = rframe::ScopeBlend::new(
+                    rframe::ScopeBlendMode::Normal,
+                    Some(rframe::ScopeOpacity::new(value).unwrap()),
+                );
+                preflight_isolated_blend(alias).unwrap();
+                assert!(uses_isolated_byte_blender(alias));
+                assert_eq!(
+                    pixel_with_source_alpha(alias, false, alpha as u8),
+                    expected,
+                    "opacity {value}, source alpha byte {alpha}"
+                );
+            }
         }
     }
 }

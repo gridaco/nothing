@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (1394)
+## Chromium-baked cells (1398)
 
 Cells are checked against their committed Chromium oracles using
 exact bytes unless a manifest entry declares a measured, bounded
@@ -634,6 +634,10 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-group-blend-multiply-opacity-small-partial.svg" title="svg-group-blend-multiply-opacity-small-partial (standalone-svg)"><img src="./chromium/svg-group-blend-multiply-opacity-small-partial.png" width="56" alt="svg-group-blend-multiply-opacity-small-partial"></a>
 <a href="./svg-group-blend-multiply-stroke.svg" title="svg-group-blend-multiply-stroke (standalone-svg)"><img src="./chromium/svg-group-blend-multiply-stroke.png" width="56" alt="svg-group-blend-multiply-stroke"></a>
 <a href="./svg-group-blend-multiply-transparent.svg" title="svg-group-blend-multiply-transparent (standalone-svg)"><img src="./chromium/svg-group-blend-multiply-transparent.png" width="56" alt="svg-group-blend-multiply-transparent"></a>
+<a href="./svg-group-blend-near-unit-bare-near.svg" title="svg-group-blend-near-unit-bare-near (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-bare-near.png" width="56" alt="svg-group-blend-near-unit-bare-near"></a>
+<a href="./svg-group-blend-near-unit-bare-p998.svg" title="svg-group-blend-near-unit-bare-p998 (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-bare-p998.png" width="56" alt="svg-group-blend-near-unit-bare-p998"></a>
+<a href="./svg-group-blend-near-unit-bare-p999.svg" title="svg-group-blend-near-unit-bare-p999 (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-bare-p999.png" width="56" alt="svg-group-blend-near-unit-bare-p999"></a>
+<a href="./svg-group-blend-near-unit-bare-unit.svg" title="svg-group-blend-near-unit-bare-unit (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-bare-unit.png" width="56" alt="svg-group-blend-near-unit-bare-unit"></a>
 <a href="./svg-group-blend-near-unit-isolated-near.svg" title="svg-group-blend-near-unit-isolated-near (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-isolated-near.png" width="56" alt="svg-group-blend-near-unit-isolated-near"></a>
 <a href="./svg-group-blend-near-unit-isolated-p998.svg" title="svg-group-blend-near-unit-isolated-p998 (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-isolated-p998.png" width="56" alt="svg-group-blend-near-unit-isolated-p998"></a>
 <a href="./svg-group-blend-near-unit-isolated-p999.svg" title="svg-group-blend-near-unit-isolated-p999 (standalone-svg)"><img src="./chromium/svg-group-blend-near-unit-isolated-p999.png" width="56" alt="svg-group-blend-near-unit-isolated-p999"></a>
