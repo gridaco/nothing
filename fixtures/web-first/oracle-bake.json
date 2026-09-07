@@ -5,7 +5,7 @@
   "bake_script_sha256": "2bdb5f933d072a1e87c9a675c3342fcf506c0955c0f5c26e2988f4e8fa37c4f2",
   "capture_module_sha256": "069296201718c43d29efe356fbea893781b73250dca51de3b6d47468d74027b0",
   "suite": "primitives.json",
-  "suite_sha256": "30c19fdf4727f3ba6042b795fe897ba7477a113ad632e1dc1fa252e0fbaa1697",
+  "suite_sha256": "762a6ec537c0c20615b80626e06c9ae2f11168f7a98029dd86f6759d8a7eec60",
   "capture": {
     "device_scale_factor": 1,
     "omit_background": true,
@@ -5447,6 +5447,24 @@
       "height": 64
     },
     {
+      "id": "svg-group-blend-multiply-opacity-small-opaque",
+      "source": "svg-group-blend-multiply-opacity-small-opaque.svg",
+      "source_sha256": "13351bb743d942584382ee7127af77d2e0e3cc524a58805e8d30de44e69022ea",
+      "oracle": "chromium/svg-group-blend-multiply-opacity-small-opaque.png",
+      "oracle_sha256": "e21b47f392f75aed7eea3f307ec61aa7a9da681435e64cdeb5844d66425f0788",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-multiply-opacity-small-partial",
+      "source": "svg-group-blend-multiply-opacity-small-partial.svg",
+      "source_sha256": "1f5508dab04deca5ba0017ba3e9c92b742a2f66a94aadc0b3405b390f34a44e8",
+      "oracle": "chromium/svg-group-blend-multiply-opacity-small-partial.png",
+      "oracle_sha256": "539083523e60b36fd82e240cfb81caa8fec4f6deae2bb01e486b9162ea2d37af",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-group-blend-multiply-stroke",
       "source": "svg-group-blend-multiply-stroke.svg",
       "source_sha256": "146ef0867681a9d2ca22d5851a245350892cde01875a3cbdfb779be919d4a9c1",
@@ -5938,6 +5956,24 @@
       "source_sha256": "aab37c63521e0da12f63ca7bba9d51b031a060e877309336ebb31c8894db7981",
       "oracle": "chromium/svg-group-blend-screen-opacity.png",
       "oracle_sha256": "2a2d24bee3fdbc3f44f7869a39c04e59285bc23e4504ad90a7debb5d468f4b07",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-screen-opacity-small-opaque",
+      "source": "svg-group-blend-screen-opacity-small-opaque.svg",
+      "source_sha256": "38b9fea50a6e624873f33f7bb11eddd65d57cdd059646fb8b4d4d48a3cabec3a",
+      "oracle": "chromium/svg-group-blend-screen-opacity-small-opaque.png",
+      "oracle_sha256": "455d124b2e217a2f4daca6d0c499e090a4987b736fe36b45423d16ef0a4fe510",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-screen-opacity-small-partial",
+      "source": "svg-group-blend-screen-opacity-small-partial.svg",
+      "source_sha256": "9d3c520b293771f211ae0113392641d44bc296360b058a7becdbd19e2a74e3d1",
+      "oracle": "chromium/svg-group-blend-screen-opacity-small-partial.png",
+      "oracle_sha256": "c021a884384583e269afd6279af3dcd9c81632c8c66b1ee1e5e88400c88aea4e",
       "width": 64,
       "height": 64
     },

@@ -93,6 +93,12 @@ pub enum BuildError {
         owner: VisualRef,
         reason: String,
     },
+    /// An isolated group's deterministic backend blender could not be built.
+    /// No product is returned that might silently substitute a native operation.
+    Blend {
+        owner: VisualRef,
+        reason: String,
+    },
 }
 
 impl std::fmt::Display for BuildError {
@@ -143,6 +149,12 @@ impl std::fmt::Display for BuildError {
                 write!(
                     f,
                     "glyphless visual {owner:?} filter preflight failed: {reason}"
+                )
+            }
+            BuildError::Blend { owner, reason } => {
+                write!(
+                    f,
+                    "glyphless visual {owner:?} blend preflight failed: {reason}"
                 )
             }
         }
@@ -375,6 +387,12 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                         (OpenScopeKind::Opacity, None)
                     }
                     ScopeEffect::Blend(blend) => {
+                        crate::paint::preflight_isolated_blend(*blend).map_err(|reason| {
+                            BuildError::Blend {
+                                owner: scope.owner,
+                                reason,
+                            }
+                        })?;
                         items.push(Item {
                             node: slot,
                             world: frame_world,

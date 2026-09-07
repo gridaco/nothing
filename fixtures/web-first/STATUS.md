@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (1378)
+## Chromium-baked cells (1382)
 
 Cells are checked against their committed Chromium oracles using
 exact bytes unless a manifest entry declares a measured, bounded
@@ -630,6 +630,8 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-group-blend-multiply-group.svg" title="svg-group-blend-multiply-group (standalone-svg)"><img src="./chromium/svg-group-blend-multiply-group.png" width="56" alt="svg-group-blend-multiply-group"></a>
 <a href="./svg-group-blend-multiply-leaf.svg" title="svg-group-blend-multiply-leaf (standalone-svg)"><img src="./chromium/svg-group-blend-multiply-leaf.png" width="56" alt="svg-group-blend-multiply-leaf"></a>
 <a href="./svg-group-blend-multiply-opacity.svg" title="svg-group-blend-multiply-opacity (standalone-svg)"><img src="./chromium/svg-group-blend-multiply-opacity.png" width="56" alt="svg-group-blend-multiply-opacity"></a>
+<a href="./svg-group-blend-multiply-opacity-small-opaque.svg" title="svg-group-blend-multiply-opacity-small-opaque (standalone-svg)"><img src="./chromium/svg-group-blend-multiply-opacity-small-opaque.png" width="56" alt="svg-group-blend-multiply-opacity-small-opaque"></a>
+<a href="./svg-group-blend-multiply-opacity-small-partial.svg" title="svg-group-blend-multiply-opacity-small-partial (standalone-svg)"><img src="./chromium/svg-group-blend-multiply-opacity-small-partial.png" width="56" alt="svg-group-blend-multiply-opacity-small-partial"></a>
 <a href="./svg-group-blend-multiply-stroke.svg" title="svg-group-blend-multiply-stroke (standalone-svg)"><img src="./chromium/svg-group-blend-multiply-stroke.png" width="56" alt="svg-group-blend-multiply-stroke"></a>
 <a href="./svg-group-blend-multiply-transparent.svg" title="svg-group-blend-multiply-transparent (standalone-svg)"><img src="./chromium/svg-group-blend-multiply-transparent.png" width="56" alt="svg-group-blend-multiply-transparent"></a>
 <a href="./svg-group-blend-nested-hidden.svg" title="svg-group-blend-nested-hidden (standalone-svg)"><img src="./chromium/svg-group-blend-nested-hidden.png" width="56" alt="svg-group-blend-nested-hidden"></a>
@@ -685,6 +687,8 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-group-blend-screen-group.svg" title="svg-group-blend-screen-group (standalone-svg)"><img src="./chromium/svg-group-blend-screen-group.png" width="56" alt="svg-group-blend-screen-group"></a>
 <a href="./svg-group-blend-screen-leaf.svg" title="svg-group-blend-screen-leaf (standalone-svg)"><img src="./chromium/svg-group-blend-screen-leaf.png" width="56" alt="svg-group-blend-screen-leaf"></a>
 <a href="./svg-group-blend-screen-opacity.svg" title="svg-group-blend-screen-opacity (standalone-svg)"><img src="./chromium/svg-group-blend-screen-opacity.png" width="56" alt="svg-group-blend-screen-opacity"></a>
+<a href="./svg-group-blend-screen-opacity-small-opaque.svg" title="svg-group-blend-screen-opacity-small-opaque (standalone-svg)"><img src="./chromium/svg-group-blend-screen-opacity-small-opaque.png" width="56" alt="svg-group-blend-screen-opacity-small-opaque"></a>
+<a href="./svg-group-blend-screen-opacity-small-partial.svg" title="svg-group-blend-screen-opacity-small-partial (standalone-svg)"><img src="./chromium/svg-group-blend-screen-opacity-small-partial.png" width="56" alt="svg-group-blend-screen-opacity-small-partial"></a>
 <a href="./svg-group-blend-screen-stroke.svg" title="svg-group-blend-screen-stroke (standalone-svg)"><img src="./chromium/svg-group-blend-screen-stroke.png" width="56" alt="svg-group-blend-screen-stroke"></a>
 <a href="./svg-group-blend-screen-transparent.svg" title="svg-group-blend-screen-transparent (standalone-svg)"><img src="./chromium/svg-group-blend-screen-transparent.png" width="56" alt="svg-group-blend-screen-transparent"></a>
 <a href="./svg-group-blend-translate.svg" title="svg-group-blend-translate (standalone-svg)"><img src="./chromium/svg-group-blend-translate.png" width="56" alt="svg-group-blend-translate"></a>
