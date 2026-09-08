@@ -61,7 +61,8 @@ from the dated addenda below:
   and HTML-ancestor opacity around the selected inline SVG; bounded static SVG
   group blending/isolation through a combined resolved blend/opacity scope
   ([B1](#b1-svg-group-blending), with the
-  [B2a source-extent correction](#b2a-linear-gradient-blend-source-extents)); the whole
+  [B2a source-extent correction](#b2a-linear-gradient-blend-source-extents) and
+  [B2b source-domain rung](#b2b-complete-blend-source-domains)); the whole
   `transform` grammar in both spellings (the attribute is a
   presentation hint of the CSS `transform` property, and `gradientTransform`
   is that attribute on gradient elements);
@@ -117,7 +118,7 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,423 Chromium-baked primitive cells plus 16 sampled frames,
+- **The corpus** is 1,467 Chromium-baked primitive cells plus 16 sampled frames,
   with a separate sixteen-cell exact text suite whose current cells select
   hash-pinned Ahem and Ahem-derived bytes from explicit family/face
   environments, and eight exact-number artifact-geometry
@@ -128,7 +129,7 @@ from the dated addenda below:
   carrying declared one-code-value ramp-quantization bounds. The measured
   per-cell counts and causes are listed in the
   [corpus record](../../../fixtures/web-first/README.md).
-  The named refusal register has 325 rows.
+  The named refusal register has 329 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -6258,3 +6259,144 @@ extent facts, before wider geometry or blend modes. This correction does not
 resolve the separate ordinary-opacity findings in gridaco/nothing#136 or
 the generic damage/coverage follow-ups in gridaco/nothing#87/#88. No timing
 improvement is claimed.
+
+## B2b: complete blend-source domains
+
+This rung preserves the missing source fact before relaxing a B2a refusal.
+It does not add a blend mode, widen transformed/nested source composition,
+or tick `mix-blend-mode`, `isolation` or `background-blend-mode`.
+The [command's admitted slice](../../../crates/n0_cli/README.md) remains the
+statement of record.
+
+The necessity test holds the **entire prior Frame** equal, not merely its
+painted nodes. With only the omitted-stroke guard temporarily disabled,
+otherwise identical none/transparent/zero-alpha/zero-width/wider-stroke
+sources compile to equal frames within each mode: owners, bounds, scopes,
+transforms, geometry and paint programs all collapse. Chromium distinguishes
+the positive-width sources. None versus transparent or zero-alpha stroke
+changes 30 pixels for Multiply and 102 for Screen; width eight changes 14/25,
+all at maximum channel delta one. Zero width is identical to none; transparent
+and zero-alpha spellings are identical to each other **(measured, not celled
+as separate pair controls)**. Actual strict and best-effort CLI runs confirm
+the old guarded behavior and the diagnostic's silent mismatches. The temporary
+guard bypass is restored before implementation. Thus private reconstruction
+from that complete old Frame cannot recover the distinction.
+
+An independent contract maintainer supplied the smaller representation:
+[`BlendSourceDomain`](../../../crates/rframe/src/scope.rs), an optional checked
+fact on an existing `ScopeBlend`. It states one complete, already-enclosed
+source-local rectangle and its exact map into the containing stream, before
+the boundary's final blend/opacity operation. It is not a tight geometry box,
+damage envelope, clipping command, supplemental contributor list or backend
+allocation hint. Absence makes no completeness assertion; empty and invalid
+domains refuse construction. Numeric validity does not prove producer
+completeness. Producer-only tests retain distinct local domains/maps even when
+their final enclosing boxes agree, without adding paint, a second tree or
+resource references. Their thirteen tests and the full contract suite passed
+before either consumer was changed.
+
+Web lowering first supplies identity-mapped domains for live rectangular
+linear fills whose fully resolved positive-width solid local stroke disappears
+through zero alpha. It encloses each drawable rectangle's local decorated box,
+including that stroke contribution, before union. The checked declaration
+reaches the existing blend command; geometry bounds, gradient reference boxes,
+paint count and painter order do not change. A redundant elided Normal
+boundary gets no declaration. Completed child images remain distinct from
+bare source draws. Missing/context/empty servers, nonpainted siblings,
+non-scaling invisible strokes and wider source profiles keep named patrols.
+An unrepresented repeating-program sibling cannot make the domain complete.
+
+The glyphless consumer validates its own bounded profile and refuses
+under-enclosing declarations, nonidentity declaration maps, nested source
+effects and declarations inside repeating programs. It honors a declared
+domain as authoritative source material rather than re-deriving it from ink.
+Current-view mapping/device enclosure remain execution work, checked before
+any canvas mutation; invalid views return the domain owner's typed refusal.
+Consumer tests use an independent illustration producer, distinguish raster
+identity from geometry and coverage, and prove changed-view replay equals a
+fresh product with balanced saves. These are contract/execution laws, not
+additional Chromium or timing claims. No cache or extra source layer is added.
+
+Source-order probes challenge broader assumptions **(measured, not celled)**:
+moving a rectangle's coordinates versus applying a fractional translation
+changes 541/647 pixels; own versus inner opacity changes 495/607, all at delta
+one. Moving the same translation/rotation/shear/scale between the group and
+its sole child is identical for these witnesses, as is a redundant nested
+Normal isolation. They do not isolate every transformed arithmetic cause or
+prove a transformed admission. Those cases remain guarded.
+
+Forty-four new exact cells cover transparent/zero-alpha spellings, integer and
+fractional placement, multiple stroke widths and pixel-boundary placement,
+offscreen edges, sibling union/order, own/outer opacity, leaf and neutral-group
+ownership, inherited/current-color and px/percentage strokes, dash/join
+inertness for the omitted paint, multiple ramps, a live stroke contributor,
+ancestor clipping, unpositioned local instances and elided Normal isolation.
+Each candidate was captured through the unchanged hash-pinned Chromium module
+and rendered through the actual command in both admissions before registration.
+No oracle was overwritten and no tolerance was added.
+
+The former `stroke-transparent` and `stroke-opacity-zero` refusal witnesses
+are re-homed respectively as `svg-group-blend-source-multiply-fractional` and
+`svg-group-blend-source-screen-zeroalpha`; only their obsolete unsupported
+assertions are dropped. Six registered witnesses guard
+non-scaling invisible strokes, out-of-range domains, incomplete
+pattern-sibling domains, inward float-enclosure rounding and the unproved root
+linear source described below. The primitive corpus moves from 1,423 to 1,467
+and the named refusal register from 325 to 329. The sixteen sampled frames,
+sixteen text-pixel cells and eight text-geometry witnesses are unchanged.
+
+The last numeric probe exposed a late-rejection seam: `x=8.3`, `width=.7`,
+`stroke-width=.0000001` produces an f32 decorated endpoint of 9, below the
+exact sum of the resolved painted values. The candidate compiled in Web
+lowering but failed the glyphless complete-domain preflight in both actual
+CLI admissions, before emitting pixels **(measured, not celled as a positive
+case)**. The producer now preserves that conservative boundary at the stable
+SVG group path; best-effort rolls it back before reaching the renderer.
+
+Gate sensitivity is explicit: suppressing only consumption of the declared
+domain makes `just gate` fail on thirty-seven new cells, including the original
+30/102-pixel pair. The six sibling-origin/live-stroke controls still derive
+the same origin without the declaration, and the redundant Normal control
+has no materialized source; these seven remain exact. Restoring the painter's
+exact source hash re-enables the declaration. No oracle or tolerance changes
+participate in the mutation.
+
+An untimed consumer trace confirms one source layer both with and without a
+declaration. In its independent illustration, observed raster storage changes
+from the visible 24×24 extent to the declared 32×28 extent, as required by the
+meaning, without an additional layer. This is a bounded storage observation,
+not a benchmark or a timing improvement.
+
+Local verification passes: the full nine-crate affected-path suites, full n0
+trace suite, trace-enabled Chromium gate, `just bake`, restored `just gate`,
+status freshness, formatting, strict no-dependency Clippy, and the link/OSS
+audit. Existing manifest rows and oracle bytes remain unchanged. The broader
+source-space work remains separate from ordinary opacity in
+gridaco/nothing#136 and generic damage/coverage in gridaco/nothing#87/#88.
+
+Independent TICK/LAW review found a root-level escape in the first candidate:
+the omitted-stroke exemption was computed before knowing which boundary would
+consume it, but only `compile_child` attached the complete domain. The outer
+root installed a separate undeclared blend. Multiply and Screen roots over
+the fractional ramp with a transparent width-four stroke each silently differed
+from twice-captured Chromium at 85 pixels, maximum channel delta six, in both
+CLI admissions. A bare no-stroke root control exposes the same underlying
+root-rendering boundary; a full-canvas backdrop makes the witness exact
+**(measured, not celled as positive cases)**. The omission case had previously
+been refused. Merely attaching a domain is not established as a correction.
+
+The root now retains a document-level `linear-gradient source-extent` refusal
+when it would need the child-domain exemption, and for an authored non-normal
+blend over a bare linear source even without an omitted stroke. Both
+admissions refuse; a full-canvas background cannot prove the general root
+profile. Existing child-group cells stay admitted. Root tests fail before
+the guard, and two registered witnesses retain both the newly exposed and
+pre-existing silent cases. An elided Normal root without a missing contribution
+keeps its prior route.
+
+No Workflow runner was exposed, so the saved verification workflow was not
+invoked through a Workflow tool. Its independent TICK/LAW and REPRO roles were
+reproduced manually; both pass after the root finding was applied. The
+reproducer renewed the original matrices and root refusals, verified the exact
+gate and additions-only bake records, and reran status without further diff.
+Post-root full Web compiler/CLI tests, trace pixels and strict Clippy pass.

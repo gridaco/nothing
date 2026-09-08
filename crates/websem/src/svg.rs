@@ -3425,6 +3425,19 @@ fn compile_svg_element(
     }
     let has_root_blend_source = adds_root_blend_boundary
         || (root_facts.has_blend && root_patrol.opacity > 0.0 && root_patrol.opacity < 1.0);
+    // Only compile_child consumes complete source domains. Do not let its
+    // omitted-stroke exemption reach the separately materialized root source.
+    // Even a bare ramp with no omitted stroke exposes a different root raster
+    // profile under authored non-normal blending. A full-canvas background
+    // masking that difference does not establish the general admission.
+    if (has_root_blend_source && root_facts.needs_source_domain)
+        || (root_facts.has_linear_source
+            && root_composite.is_some_and(|scope| scope.mode() != ScopeBlendMode::Normal))
+    {
+        return Err(blend_linear_source_refusal(
+            "with an unproved root linear source",
+        ));
+    }
     if has_root_blend_source && let Some(reason) = blend_linear_source_boundary(root_facts) {
         return Err(blend_linear_source_refusal(reason));
     }
@@ -3542,6 +3555,11 @@ struct SpanFacts {
     has_linear_source: bool,
     /// Contributor facts that cannot be recovered from the resolved drawlist.
     linear_source_boundary: Option<&'static str>,
+    /// Complete local drawable enclosures for the untransformed rectangle
+    /// profile. These are separate from painted geometry and opacity passes.
+    source_domain_bounds: Option<Rectangle>,
+    source_domain_incomplete: bool,
+    needs_source_domain: bool,
 }
 
 impl SpanFacts {
@@ -3560,12 +3578,21 @@ impl SpanFacts {
             .or(other.blend_precision_boundary);
         self.has_linear_source |= other.has_linear_source;
         self.linear_source_boundary = self.linear_source_boundary.or(other.linear_source_boundary);
+        self.source_domain_bounds = match (self.source_domain_bounds, other.source_domain_bounds) {
+            (Some(left), Some(right)) => Some(math2::union(&[left, right])),
+            (left, right) => left.or(right),
+        };
+        self.source_domain_incomplete |= other.source_domain_incomplete;
+        self.needs_source_domain |= other.needs_source_domain;
     }
 }
 
 fn blend_linear_source_boundary(facts: SpanFacts) -> Option<&'static str> {
     if !facts.has_linear_source {
         return None;
+    }
+    if facts.needs_source_domain && facts.source_domain_incomplete {
+        return Some("with an unrepresented rectangular source domain");
     }
     facts.linear_source_boundary.or_else(|| {
         (facts.transformed || facts.has_scope || facts.has_opacity)
@@ -3583,6 +3610,58 @@ fn blend_precision_refusal(reason: &str) -> CompileError {
     CompileError::UnsupportedStyle(format!(
         "mix-blend-mode/isolation {reason} crosses the group-source precision boundary"
     ))
+}
+
+/// The bounded rectangle's local visual enclosure, before source composition.
+/// Blink encloses its local decorated box before effect-space mapping. The
+/// untransformed profile retains that resolved domain without inventing paint.
+/// The integer envelope is restricted so both endpoints and unions remain
+/// exactly representable in f32; wider arithmetic retains the named patrol.
+fn blend_rect_source_domain(node: &FrameNode, omitted_width: Option<f32>) -> Option<Rectangle> {
+    let Geometry::Rect(rect) = node.geometry else {
+        return None;
+    };
+    if node.transform != AffineTransform::identity()
+        || node.paints.pattern().is_some()
+        || blend_node_precision_boundary(node).is_some()
+        || node
+            .stroke
+            .as_ref()
+            .is_some_and(|stroke| stroke.paints().pattern().is_some())
+        || rect.width <= 0.0
+        || rect.height <= 0.0
+    {
+        return None;
+    }
+    let width = omitted_width
+        .or_else(|| node.stroke.as_ref().map(Stroke::width))
+        .unwrap_or(0.0);
+    let half = width / 2.0;
+    let x = rect.x - half;
+    let y = rect.y - half;
+    let right = x + (rect.width + width);
+    let bottom = y + (rect.height + width);
+    if [x, y, right, bottom]
+        .into_iter()
+        .any(|v| !v.is_finite() || v.abs() > 8_388_608.0)
+    {
+        return None;
+    }
+    let (x, y, right, bottom) = (x.floor(), y.floor(), right.ceil(), bottom.ceil());
+    // The consumer's complete-domain contract also requires enclosure of the
+    // painted rectangle. f32 decoration can round an endpoint inward across
+    // an integer even when the authored numbers themselves are unaliased.
+    // Keep that conservative boundary attributable here, not a late renderer
+    // error that best-effort could no longer roll back by SVG owner path.
+    let painted_half = f64::from(node.stroke.as_ref().map_or(0.0, Stroke::width)) / 2.0;
+    if f64::from(rect.x) - painted_half < f64::from(x)
+        || f64::from(rect.y) - painted_half < f64::from(y)
+        || f64::from(rect.x) + f64::from(rect.width) + painted_half > f64::from(right)
+        || f64::from(rect.y) + f64::from(rect.height) + painted_half > f64::from(bottom)
+    {
+        return None;
+    }
+    (right > x && bottom > y).then(|| Rectangle::from_xywh(x, y, right - x, bottom - y))
 }
 
 fn blend_node_precision_boundary(node: &FrameNode) -> Option<&'static str> {
@@ -5665,6 +5744,17 @@ impl<'a> ChildWalk<'a> {
                         self.elide_blend(blend_id);
                         return Ok(facts);
                     }
+                    if facts.needs_source_domain {
+                        let bounds = facts.source_domain_bounds.ok_or_else(|| {
+                            blend_linear_source_refusal("without a complete rectangular source domain")
+                        })?;
+                        let domain = rframe::BlendSourceDomain::new(bounds, AffineTransform::identity())
+                            .map_err(|_| blend_linear_source_refusal("with an unrepresentable rectangular source domain"))?;
+                        let FrameItem::ScopeBegin(scope) = &mut self.items[checkpoint.0] else {
+                            unreachable!("the blend boundary precedes its content")
+                        };
+                        scope.effect = ScopeEffect::Blend(composite.with_source_domain(domain));
+                    }
                     facts.draws = 0;
                     facts.opacity_passes = 0;
                     facts.has_scope = true;
@@ -5675,6 +5765,7 @@ impl<'a> ChildWalk<'a> {
                     // it with a ramp rasterized directly into the parent.
                     facts.has_linear_source = false;
                     facts.linear_source_boundary = None;
+                    facts.needs_source_domain = false;
                 }
             }
             Ok(facts)
@@ -6535,7 +6626,30 @@ impl<'a> ChildWalk<'a> {
                     .chain(node.stroke.iter().flat_map(|stroke| stroke.paints().iter()))
                     .any(|paint| matches!(paint, cg::Paint::LinearGradient(_)))
             });
-            facts.linear_source_boundary = if outcome.omitted_stroke_extent {
+            // Only a live linear fill with a fully resolved local solid stroke
+            // omission earns this domain. Missing/context servers and non-painted
+            // siblings keep their existing, independently named boundary.
+            let retained_omission = outcome.omitted_local_stroke_width.is_some()
+                && facts.has_linear_source
+                && outcome.draws > 0
+                && outcome.nodes.len() == 1
+                && blend_rect_source_domain(&outcome.nodes[0], outcome.omitted_local_stroke_width)
+                    .is_some();
+            facts.needs_source_domain = retained_omission;
+            for node in &outcome.nodes {
+                if outcome.draws > 0 {
+                    match blend_rect_source_domain(node, outcome.omitted_local_stroke_width) {
+                        Some(bounds) => {
+                            facts.source_domain_bounds = Some(match facts.source_domain_bounds {
+                                Some(prior) => math2::union(&[prior, bounds]),
+                                None => bounds,
+                            })
+                        }
+                        None => facts.source_domain_incomplete = true,
+                    }
+                }
+            }
+            facts.linear_source_boundary = if outcome.omitted_stroke_extent && !retained_omission {
                 Some("with a non-painted stroke extent")
             } else if outcome.has_geometry && outcome.draws == 0 {
                 Some("with a non-painted source contributor")
@@ -11669,6 +11783,7 @@ fn compile_tspan_text(
             has_geometry: true,
             transformed: false,
             omitted_stroke_extent: false,
+            omitted_local_stroke_width: None,
         }));
     }
     let one_pass_fold = (replay_opacity < 1.0 && paths.len() == 1).then_some(replay_opacity);
@@ -11716,6 +11831,7 @@ fn compile_tspan_text(
         has_geometry: true,
         transformed: false,
         omitted_stroke_extent: false,
+        omitted_local_stroke_width: None,
     }))
 }
 
@@ -12408,6 +12524,7 @@ struct ShapeOutcome {
     /// A selected stroke can enlarge Chromium's drawable bounds without a
     /// paint pass. Keep this separate from opacity-fold participation.
     omitted_stroke_extent: bool,
+    omitted_local_stroke_width: Option<f32>,
     /// The shape's own opacity composites fill and stroke through one
     /// isolated layer — the walk wraps the node in a scope.
     scope_opacity: Option<f32>,
@@ -12772,6 +12889,7 @@ fn shape_node(
     let mut stroke = resolved_stroke.stroke;
     let stroke_opacity_pass = resolved_stroke.opacity_pass;
     let omitted_stroke_extent = resolved_stroke.omitted_extent;
+    let omitted_local_stroke_width = resolved_stroke.omitted_local_width;
     patrol_mixed_contour_cap(&geometry, stroke.as_ref())?;
 
     debug_assert!(
@@ -12810,6 +12928,7 @@ fn shape_node(
             has_geometry: true,
             transformed: false,
             omitted_stroke_extent,
+            omitted_local_stroke_width,
         });
     }
     if opacity < 1.0 && has_geometry {
@@ -12881,6 +13000,7 @@ fn shape_node(
         draws,
         opacity_passes,
         omitted_stroke_extent,
+        omitted_local_stroke_width,
         scope_opacity,
         has_opacity,
         has_geometry,
@@ -14126,6 +14246,9 @@ struct StrokeResolution {
     /// its paint is transparent or its server is unresolved. The exact extent
     /// is absent from FrameNode; source-origin-sensitive groups must patrol it.
     omitted_extent: bool,
+    /// A resolved local solid stroke's width remains a drawable contribution
+    /// even when zero alpha normalizes its paint to absence.
+    omitted_local_width: Option<f32>,
 }
 
 /// Blink's `markerUnits="strokeWidth"` scale for a non-scaling-stroke client.
@@ -14252,6 +14375,7 @@ impl StrokeResolution {
             stroke: None,
             opacity_pass: false,
             omitted_extent: false,
+            omitted_local_width: None,
         }
     }
 }
@@ -14275,6 +14399,7 @@ fn resolve_stroke(
     // for Chromium's stroke bounding box. Preserve that distinction before
     // following the context relation (which may also have no provider).
     let computed_stroke_is_none = matches!(style.clone_stroke().kind, SVGPaintKind::None);
+    let computed_stroke_is_color = matches!(style.clone_stroke().kind, SVGPaintKind::Color(_));
 
     // Direct colours, valid paint servers, and invalid-reference fallbacks
     // stage element opacity exactly as [`resolve_fill`] describes.
@@ -14295,6 +14420,7 @@ fn resolve_stroke(
             stroke: None,
             opacity_pass: false,
             omitted_extent: !computed_stroke_is_none,
+            omitted_local_width: None,
         });
     };
     let owner_data = selected
@@ -14318,6 +14444,7 @@ fn resolve_stroke(
                 stroke: None,
                 opacity_pass: false,
                 omitted_extent: !computed_stroke_is_none,
+                omitted_local_width: None,
             });
         }
         SVGPaintKind::Color(ref color) => {
@@ -14363,6 +14490,7 @@ fn resolve_stroke(
             stroke: None,
             opacity_pass: false,
             omitted_extent: true,
+            omitted_local_width: None,
         });
     }
 
@@ -14377,6 +14505,11 @@ fn resolve_stroke(
             stroke: None,
             opacity_pass: true,
             omitted_extent: true,
+            // A previously inert vector-effect grammar is not newly admitted:
+            // an unproved spelling simply leaves the composition patrol intact.
+            omitted_local_width: (computed_stroke_is_color
+                && matches!(resolve_vector_effect_space(el), Ok(StrokeSpace::Local)))
+            .then_some(width),
         });
     }
 
@@ -14538,6 +14671,7 @@ fn resolve_stroke(
         stroke,
         opacity_pass: true,
         omitted_extent: false,
+        omitted_local_width: None,
     })
 }
 

@@ -140,6 +140,10 @@ pub enum FrameExecutionError {
     Environment(PaintEnvironmentMismatch),
     Image(crate::paint::ImagePreflightError),
     Pattern(crate::paint::PatternPreflightError),
+    /// A declared source domain cannot be represented under the current view.
+    SourceDomain {
+        owner: rframe::VisualRef,
+    },
 }
 
 impl std::fmt::Display for FrameExecutionError {
@@ -148,6 +152,9 @@ impl std::fmt::Display for FrameExecutionError {
             FrameExecutionError::Environment(error) => error.fmt(f),
             FrameExecutionError::Image(error) => error.fmt(f),
             FrameExecutionError::Pattern(error) => error.fmt(f),
+            FrameExecutionError::SourceDomain { owner } => {
+                write!(f, "blend source domain {owner:?} has an unsupported device enclosure under the current view")
+            }
         }
     }
 }

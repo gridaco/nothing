@@ -1207,3 +1207,130 @@ fn a_source_generating_filter_supplies_blend_pixels_and_scope_coverage() {
     assert_eq!(damage.changed, [owner(10)]);
     assert_eq!(damage.union_frame, Some(region));
 }
+
+#[test]
+fn declared_source_domains_do_not_inherit_the_wider_undeclared_image_profile() {
+    use rframe::{
+        BlendSourceDomain, Filter, FilterColorSpace, FilterNode, FilterPrimitive, FilterProgram,
+    };
+    let region = rect(0.0, 0.0, 48.0, 48.0);
+    let declared = || {
+        begin(
+            10,
+            ScopeEffect::Blend(
+                ScopeBlend::new(ScopeBlendMode::Multiply, None).with_source_domain(
+                    BlendSourceDomain::new(region, AffineTransform::identity()).unwrap(),
+                ),
+            ),
+        )
+    };
+    let source = || solid(1, rect(8.0, 8.0, 24.0, 24.0), FIRST);
+    let reject = |items| {
+        let error = compile(frame(items)).unwrap_err();
+        assert!(
+            matches!(error, BuildError::Blend { owner: value, .. } if value == owner(10)),
+            "{error}"
+        );
+    };
+    // An inherited output clip is distinct from an effect inside the declared
+    // source. The first consumer accepts the former and refuses the latter.
+    compile(frame(vec![
+        begin(11, ScopeEffect::Clip(clip(region))),
+        declared(),
+        source(),
+        FrameItem::ScopeEnd,
+        FrameItem::ScopeEnd,
+    ]))
+    .unwrap();
+    reject(vec![
+        declared(),
+        begin(11, ScopeEffect::Clip(clip(region))),
+        source(),
+        FrameItem::ScopeEnd,
+        FrameItem::ScopeEnd,
+    ]);
+    let mask = || FrameItem::MaskBegin(Mask::new(owner(11), MaskMode::Alpha, clip(region)));
+    reject(vec![
+        declared(),
+        mask(),
+        source(),
+        FrameItem::MaskSource,
+        solid(2, region, CGColor::WHITE),
+        FrameItem::MaskEnd,
+        FrameItem::ScopeEnd,
+    ]);
+    reject(vec![
+        mask(),
+        declared(),
+        source(),
+        FrameItem::ScopeEnd,
+        FrameItem::MaskSource,
+        solid(2, region, CGColor::WHITE),
+        FrameItem::MaskEnd,
+    ]);
+    let program = FilterProgram::new(Arc::from([FilterNode::new(
+        Arc::from([]),
+        region,
+        FilterColorSpace::Srgb,
+        FilterPrimitive::SolidColor {
+            color: FIRST.into(),
+        },
+    )]))
+    .unwrap();
+    let filter = Filter::new(AffineTransform::identity(), region, program).unwrap();
+    reject(vec![
+        begin(11, ScopeEffect::Filter(filter)),
+        declared(),
+        source(),
+        FrameItem::ScopeEnd,
+        FrameItem::ScopeEnd,
+    ]);
+    let tile = FrameItems::try_new(vec![declared(), source(), FrameItem::ScopeEnd]).unwrap();
+    let pattern =
+        PatternPaint::new(48.0, 48.0, AffineTransform::identity(), Arc::new(tile), 1.0).unwrap();
+    let error = compile(frame(vec![FrameItem::Node(node(
+        1,
+        region,
+        PaintStack::from_pattern(pattern),
+    ))]))
+    .unwrap_err();
+    assert!(
+        matches!(error, BuildError::Paint { owner: value, .. } if value == owner(1)),
+        "{error}"
+    );
+    assert!(error.to_string().contains("own execution profile"));
+}
+
+#[cfg(feature = "trace")]
+#[test]
+fn declared_source_changes_observed_extent_without_adding_a_layer() {
+    use n0::trace::sink::drain_blend_layers;
+    for declared in [false, true] {
+        let mut operation = ScopeBlend::new(ScopeBlendMode::Multiply, None);
+        if declared {
+            operation = operation.with_source_domain(
+                rframe::BlendSourceDomain::new(
+                    rect(4.0, 6.0, 32.0, 28.0),
+                    AffineTransform::identity(),
+                )
+                .unwrap(),
+            );
+        }
+        let product = compile(frame(vec![
+            begin(10, ScopeEffect::Blend(operation)),
+            linear_node(1, rect(8.0, 8.0, 24.0, 24.0)),
+            FrameItem::ScopeEnd,
+        ]))
+        .unwrap();
+        drain_blend_layers();
+        raster(&product, BACKDROP);
+        let observed = drain_blend_layers();
+        assert_eq!(observed.len(), 1);
+        assert_eq!(observed[0].save_layer_calls, 1);
+        assert_eq!(observed[0].observed_raster_layers, 1);
+        assert_eq!(
+            observed[0].observed_raster_bytes,
+            if declared { 32 * 28 * 4 } else { 24 * 24 * 4 }
+        );
+    }
+}

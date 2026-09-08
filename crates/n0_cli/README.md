@@ -607,10 +607,10 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete primitive corpus contains 1,423 Chromium-baked cells plus
+  cells. The complete primitive corpus contains 1,467 Chromium-baked cells plus
   16 sampled frames; the text estate contains sixteen exact text pixel cells and
   eight exact-number artifact-geometry witnesses (six Allerta and two
-  Bungee), and the named refusal register has 325 rows. `feFlood`, `feComposite`,
+  Bungee), and the named refusal register has 329 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -862,9 +862,16 @@ isolate` have a bounded static SVG group profile. One Stylo computed value
   a narrower source-extent profile: untransformed rectangular draws, including
   simple strokes, solid/pattern-filled siblings and own Multiply/Screen group
   opacity. The temporary raster origin follows their outward-rounded
-  drawable bounds. Mapped contributors, nested source scopes/opacity,
-  non-painted geometry contributors, omitted transparent/unresolved/context stroke
-  extents (even beside a live fill), and patterned strokes in a source that
+  drawable bounds. A live rectangular linear fill with a resolved positive-width
+  transparent or zero-alpha solid local stroke now retains a complete source
+  domain on its blend scope, without inventing stroke paint. This narrower
+  declaration includes untransformed solid/linear rectangle siblings and simple
+  local painted strokes, enclosing each contributor before union. Its local
+  endpoints must stay within ±8,388,608 and enclose the resolved painted values
+  without inward rounding; a repeating-pattern sibling cannot yet
+  enter that declared domain. Mapped contributors, nested source scopes/opacity,
+  non-painted geometry contributors, omitted unresolved/context stroke extents,
+  non-scaling invisible strokes, and patterned strokes in a source that
   also paints a linear ramp retain the named `linear-gradient source-extent`
   refusal. This conservatively includes otherwise harmless combinations;
   a completed child blend image is not a bare ramp in its parent. This
@@ -872,6 +879,10 @@ isolate` have a bounded static SVG group profile. One Stylo computed value
   all-transparent gradient strokes whose geometry remains in the frame. The same
   patrol covers a required root boundary, including root opacity around a
   mixed ramp/blend source, where both admissions refuse.
+  An authored non-normal root blend over a bare linear source also refuses in
+  both admissions, including without any omitted stroke. A root source cannot
+  borrow the child-boundary complete-domain exemption; elided Normal root
+  isolation without an omitted contribution keeps its established route.
   Solid-only 2D transforms retain their existing admission. Non-rectangular
   source geometry, radial source paints, wider strokes and curved, subpixel or
   rotated clip coverage retain the named `group-source precision` refusal.

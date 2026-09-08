@@ -37,8 +37,11 @@ fn linear_source_extent_patrol_is_transactional_and_names_the_owner() {
         format!("{RAMP_RECT}<rect width='12' height='12' fill-opacity='0'/>"),
         format!("{RAMP_RECT}<g style='mix-blend-mode:screen'>{RECT}</g>"),
         format!("<svg x='3' y='5' width='56' height='48'>{RAMP_RECT}</svg>"),
-        RAMP_RECT.replace("/>", " stroke='transparent' stroke-width='4'/>"),
-        RAMP_RECT.replace("/>", " stroke='red' stroke-opacity='0' stroke-width='4'/>"),
+        RAMP_RECT.replace(
+            "/>",
+            " stroke='transparent' stroke-width='4' vector-effect='non-scaling-stroke'/>",
+        ),
+        RAMP_RECT.replace("/>", " stroke='transparent' stroke-width='100000000'/>"),
         format!(
             "<defs><linearGradient id='empty'/></defs>{}",
             RAMP_RECT.replace("/>", " stroke='url(#empty)' stroke-width='4'/>")
@@ -92,6 +95,176 @@ fn linear_source_extent_patrol_is_transactional_and_names_the_owner() {
 }
 
 #[test]
+fn omitted_solid_stroke_changes_only_the_complete_source_domain() {
+    use math2::{Rectangle, transform::AffineTransform};
+    let source = |attrs: &str| {
+        svg(&format!(
+            "{RAMP}<g style='mix-blend-mode:multiply'>{}</g>",
+            RAMP_RECT.replace("/>", &format!(" {attrs}/>"))
+        ))
+    };
+    let ordinary = compile_standalone_svg(
+        &source("stroke='none' stroke-width='4'"),
+        InitialViewport::new(64.0, 64.0),
+    )
+    .unwrap();
+    for (attrs, expected) in [
+        (
+            "stroke='transparent' stroke-width='4'",
+            Rectangle::from_xywh(6.0, 10.0, 43.0, 34.0),
+        ),
+        (
+            "stroke='red' stroke-opacity='0' stroke-width='4'",
+            Rectangle::from_xywh(6.0, 10.0, 43.0, 34.0),
+        ),
+        (
+            "stroke='transparent' stroke-width='8'",
+            Rectangle::from_xywh(4.0, 8.0, 47.0, 38.0),
+        ),
+    ] {
+        let source = source(attrs);
+        let strict = compile_standalone_svg(&source, InitialViewport::new(64.0, 64.0)).unwrap();
+        let best = SvgFrameSource::from_standalone_svg_best_effort(
+            source.as_str(),
+            InitialViewport::new(64.0, 64.0),
+        )
+        .unwrap();
+        assert_eq!(strict, best.base_frame());
+        assert!(
+            !best
+                .degradations()
+                .iter()
+                .any(|d| d.action() == websem::DegradationAction::Skipped)
+        );
+        assert_eq!(strict.owner, ordinary.owner);
+        assert_eq!(strict.bounds, ordinary.bounds);
+        assert_eq!(
+            strict.nodes(),
+            ordinary.nodes(),
+            "no fake stroke, paint, or geometry bounds"
+        );
+        assert_ne!(
+            strict, ordinary,
+            "the former full-Frame collapse is impossible"
+        );
+        let mut domains = Vec::new();
+        let without_domain = strict
+            .items
+            .iter()
+            .cloned()
+            .map(|item| match item {
+                FrameItem::ScopeBegin(mut scope) => {
+                    if let ScopeEffect::Blend(blend) = scope.effect {
+                        if let Some(domain) = blend.source_domain() {
+                            domains.push(domain);
+                        }
+                        scope.effect =
+                            ScopeEffect::Blend(ScopeBlend::new(blend.mode(), blend.opacity()));
+                    }
+                    FrameItem::ScopeBegin(scope)
+                }
+                item => item,
+            })
+            .collect();
+        assert_eq!(
+            rframe::FrameItems::try_new(without_domain).unwrap(),
+            ordinary.items
+        );
+        assert_eq!(domains.len(), 1, "root isolation makes no declaration");
+        assert_eq!(domains[0].rect(), expected);
+        assert_eq!(domains[0].source_to_stream(), AffineTransform::identity());
+    }
+    let zero = compile_standalone_svg(
+        &source("stroke='transparent' stroke-width='0'"),
+        InitialViewport::new(64.0, 64.0),
+    )
+    .unwrap();
+    assert_eq!(zero, ordinary, "zero width contributes no source extent");
+}
+
+#[test]
+fn source_domain_is_complete_order_independent_and_absent_on_elided_isolation() {
+    let omitted = RAMP_RECT.replace("/>", " stroke='transparent' stroke-width='4'/>");
+    let sibling = "<rect x='3' y='5' width='13' height='17' fill='purple'/>";
+    for content in [
+        format!("{omitted}{sibling}"),
+        format!("{sibling}<g>{omitted}</g>"),
+    ] {
+        let result = frame(&format!(
+            "{RAMP}<g style='mix-blend-mode:screen'>{content}</g>"
+        ));
+        let domain = blends(&result)
+            .into_iter()
+            .find_map(|blend| blend.source_domain())
+            .unwrap();
+        assert_eq!(
+            domain.rect(),
+            math2::Rectangle::from_xywh(3.0, 5.0, 46.0, 39.0)
+        );
+    }
+    for content in [
+        omitted.clone(),
+        format!("<g style='isolation:isolate'>{omitted}</g>"),
+    ] {
+        assert!(blends(&frame(&format!("{RAMP}{content}"))).is_empty());
+    }
+    let result = frame(&format!(
+        "{RAMP}<g opacity='.5'><g style='mix-blend-mode:screen'>{omitted}</g></g>"
+    ));
+    assert_eq!(
+        blends(&result)
+            .into_iter()
+            .filter(|blend| blend.source_domain().is_some())
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn an_omitted_stroke_cannot_make_an_unknown_sibling_domain_complete() {
+    let source = svg(&format!(
+        "{RAMP}<defs><pattern id='p' width='8' height='8' patternUnits='userSpaceOnUse'><rect width='4' height='8'/></pattern></defs><g style='mix-blend-mode:multiply'>{}<rect width='12' height='12' fill='url(#p)'/></g>{RECT}",
+        RAMP_RECT.replace("/>", " stroke='transparent' stroke-width='4'/>")
+    ));
+    let error = compile_standalone_svg(&source, InitialViewport::new(64.0, 64.0))
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("linear-gradient source-extent"), "{error}");
+    let best = SvgFrameSource::from_standalone_svg_best_effort(
+        source.as_str(),
+        InitialViewport::new(64.0, 64.0),
+    )
+    .unwrap();
+    assert_eq!(best.base_frame().items.len(), 1);
+    assert!(best.degradations().iter().any(|d| d.path() == "svg/g[1]" && d.reason().contains("linear-gradient source-extent")));
+}
+
+#[test]
+fn source_enclosure_rounding_refuses_at_the_svg_owner_before_consumer_preflight() {
+    let narrow = RAMP_RECT
+        .replace("width='38.2'", "width='.7'")
+        .replace("/>", " stroke='transparent' stroke-width='.0000001'/>");
+    for mode in ["multiply", "screen"] {
+        let source = svg(&format!(
+            "{RAMP}<g style='mix-blend-mode:{mode}'>{narrow}</g>{RECT}"
+        ));
+        let error = compile_standalone_svg(&source, InitialViewport::new(64.0, 64.0))
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("linear-gradient source-extent"), "{error}");
+        let best = SvgFrameSource::from_standalone_svg_best_effort(
+            source.as_str(),
+            InitialViewport::new(64.0, 64.0),
+        )
+        .unwrap();
+        assert_eq!(best.base_frame().items.len(), 1);
+        assert!(best.degradations().iter().any(
+            |d| d.path() == "svg/g[1]" && d.reason().contains("linear-gradient source-extent")
+        ));
+    }
+}
+
+#[test]
 fn root_linear_source_extent_refusal_cannot_silently_fall_back() {
     let base = svg(&format!(
         "{RAMP}{RAMP_RECT}<g style='mix-blend-mode:screen'>{RECT}</g>"
@@ -113,6 +286,49 @@ fn root_linear_source_extent_refusal_cannot_silently_fall_back() {
             );
         }
     }
+}
+
+#[test]
+fn root_linear_blend_sources_cannot_borrow_the_child_domain_exemption() {
+    for (style, stroke) in [
+        ("mix-blend-mode:multiply", "none"),
+        ("mix-blend-mode:screen", "none"),
+        ("mix-blend-mode:multiply", "transparent"),
+        ("mix-blend-mode:screen", "transparent"),
+        ("isolation:isolate", "transparent"),
+    ] {
+        for backdrop in ["", "<rect width='64' height='64' fill='#426589'/>"] {
+            let source = svg(&format!(
+                "{RAMP}{backdrop}{}",
+                RAMP_RECT.replace("/>", &format!(" stroke='{stroke}' stroke-width='4'/>"))
+            ))
+            .replacen("<svg ", &format!("<svg style='{style}' "), 1);
+            for result in [
+                SvgFrameSource::from_standalone_svg(
+                    source.as_str(),
+                    InitialViewport::new(64.0, 64.0),
+                ),
+                SvgFrameSource::from_standalone_svg_best_effort(
+                    source.as_str(),
+                    InitialViewport::new(64.0, 64.0),
+                ),
+            ] {
+                let error = result.unwrap_err().to_string();
+                assert!(
+                    error.contains("linear-gradient source-extent"),
+                    "{error}: {source}"
+                );
+            }
+        }
+    }
+    // An elided root Normal boundary without a missing source contribution
+    // keeps its existing route; ordinary ramps acquire no new root refusal.
+    frame(&format!("{RAMP}{RAMP_RECT}"));
+    compile_standalone_svg(
+        &svg(&format!("{RAMP}{RAMP_RECT}")).replacen("<svg ", "<svg style='isolation:isolate' ", 1),
+        InitialViewport::new(64.0, 64.0),
+    )
+    .unwrap();
 }
 
 #[test]
