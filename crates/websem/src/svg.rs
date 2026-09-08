@@ -3430,7 +3430,7 @@ fn compile_svg_element(
     // Even a bare ramp with no omitted stroke exposes a different root raster
     // profile under authored non-normal blending. A full-canvas background
     // masking that difference does not establish the general admission.
-    if (has_root_blend_source && root_facts.needs_source_domain)
+    if (has_root_blend_source && root_facts.has_linear_source && root_facts.needs_source_domain)
         || (root_facts.has_linear_source
             && root_composite.is_some_and(|scope| scope.mode() != ScopeBlendMode::Normal))
     {
@@ -3563,6 +3563,16 @@ struct SpanFacts {
 }
 
 impl SpanFacts {
+    /// A valid filter may suppress every command without proving that its
+    /// target is absent from an enclosing source enclosure. Preserve only
+    /// that composition boundary, not fake geometry or an opacity pass.
+    fn filter_hidden() -> Self {
+        Self {
+            linear_source_boundary: Some("with a filter-hidden source contributor"),
+            ..Self::default()
+        }
+    }
+
     fn absorb(&mut self, other: SpanFacts) {
         self.draws += other.draws;
         self.opacity_passes += other.opacity_passes;
@@ -5286,6 +5296,13 @@ impl<'a> ChildWalk<'a> {
         mut facts: SpanFacts,
         mut filter: Filter,
     ) -> SpanFacts {
+        // Effect participation survives command elision: an invisible input
+        // can still change the enclosure used by an enclosing gradient blend.
+        if facts.has_geometry {
+            facts.linear_source_boundary = facts
+                .linear_source_boundary
+                .or(Some("with a filtered source contributor"));
+        }
         if facts.draws == 0 && !facts.has_scope {
             if !filter.program().may_paint_transparent_input() {
                 return facts;
@@ -5321,6 +5338,11 @@ impl<'a> ChildWalk<'a> {
         let Some(invocation) = invocation else {
             return Ok(facts);
         };
+        if facts.has_geometry {
+            facts.linear_source_boundary = facts
+                .linear_source_boundary
+                .or(Some("with a masked source contributor"));
+        }
         if facts.draws == 0 && !facts.has_scope {
             return Ok(facts);
         }
@@ -5454,6 +5476,11 @@ impl<'a> ChildWalk<'a> {
         clip: Option<ClipPath>,
         isolate_blending: bool,
     ) -> SpanFacts {
+        if clip.is_some() && facts.has_geometry {
+            facts.linear_source_boundary = facts
+                .linear_source_boundary
+                .or(Some("with a clipped source contributor"));
+        }
         if let Some(clip) = clip
             && (facts.draws > 0 || facts.has_scope)
         {
@@ -5744,7 +5771,7 @@ impl<'a> ChildWalk<'a> {
                         self.elide_blend(blend_id);
                         return Ok(facts);
                     }
-                    if facts.needs_source_domain {
+                    if facts.needs_source_domain && facts.has_linear_source {
                         let bounds = facts.source_domain_bounds.ok_or_else(|| {
                             blend_linear_source_refusal("without a complete rectangular source domain")
                         })?;
@@ -5832,7 +5859,7 @@ impl<'a> ChildWalk<'a> {
         let clip = self.resolve_clip(el, transform, target_box, bases)?;
         let filter = match self.resolve_filter(el, transform, target_box, bases)? {
             filter_resource::Resolution::None => None,
-            filter_resource::Resolution::Hide => return Ok(SpanFacts::default()),
+            filter_resource::Resolution::Hide => return Ok(SpanFacts::filter_hidden()),
             filter_resource::Resolution::Apply(filter) => Some(filter),
         };
         let mask = self.resolve_mask(el, transform, target_box, bases)?;
@@ -5931,7 +5958,7 @@ impl<'a> ChildWalk<'a> {
         let filter =
             match self.resolve_filter(el, content_to_frame, target_box, viewport.child_bases)? {
                 filter_resource::Resolution::None => None,
-                filter_resource::Resolution::Hide => return Ok(SpanFacts::default()),
+                filter_resource::Resolution::Hide => return Ok(SpanFacts::filter_hidden()),
                 filter_resource::Resolution::Apply(filter) => Some(filter),
             };
         let mask = self.resolve_mask(el, content_to_frame, target_box, viewport.child_bases)?;
@@ -5978,8 +6005,13 @@ impl<'a> ChildWalk<'a> {
         };
         self.context_paint_transform = previous_context_paint_transform;
 
-        let facts =
+        let mut facts =
             self.wrap_span_with_svg_clip(checkpoint, facts?, authored_clip, defer_own_opacity);
+        if facts.has_geometry && facts.draws == 0 {
+            facts.linear_source_boundary = facts
+                .linear_source_boundary
+                .or(Some("with a non-painted nested viewport contributor"));
+        }
         let viewport_mapping_is_identity = viewport.x == 0.0
             && viewport.y == 0.0
             && viewport.content_mapping == AffineTransform::identity();
@@ -6171,7 +6203,7 @@ impl<'a> ChildWalk<'a> {
         let clip = self.resolve_clip(el, transform, reference_box, bases)?;
         let filter = match self.resolve_filter(el, transform, reference_box, bases)? {
             filter_resource::Resolution::None => None,
-            filter_resource::Resolution::Hide => return Ok(SpanFacts::default()),
+            filter_resource::Resolution::Hide => return Ok(SpanFacts::filter_hidden()),
             filter_resource::Resolution::Apply(filter) => Some(filter),
         };
         let mask = self.resolve_mask(el, transform, reference_box, bases)?;
@@ -6542,7 +6574,7 @@ impl<'a> ChildWalk<'a> {
                 if top_level {
                     self.top_level_shapes.push(el.node_id());
                 }
-                return Ok(SpanFacts::default());
+                return Ok(SpanFacts::filter_hidden());
             }
             filter_resource::Resolution::Apply(filter) => Some(filter),
         };
@@ -6626,18 +6658,38 @@ impl<'a> ChildWalk<'a> {
                     .chain(node.stroke.iter().flat_map(|stroke| stroke.paints().iter()))
                     .any(|paint| matches!(paint, cg::Paint::LinearGradient(_)))
             });
-            // Only a live linear fill with a fully resolved local solid stroke
-            // omission earns this domain. Missing/context servers and non-painted
-            // siblings keep their existing, independently named boundary.
+            // A selected paint can record a drawable enclosure without visible
+            // pixels. Structural passes alone are insufficient: a disabled
+            // gradient also remains an opacity pass but has different source
+            // membership. Preserve that private resolution boundary below.
+            // Keep the geometry node and its
+            // opacity facts unchanged; only the complete source domain gains
+            // this contribution. Zero element opacity and unresolved stroke
+            // extents still need their independently guarded source profile.
+            let paintless_rectangle = outcome.nodes.len() == 1
+                && matches!(outcome.nodes[0].geometry, Geometry::Rect(_))
+                && outcome.nodes[0].transform == AffineTransform::identity()
+                && outcome.nodes[0].paints.is_empty()
+                && outcome.nodes[0].stroke.is_none();
+            let source_selected = outcome.has_geometry && outcome.opacity_passes > 0;
             let retained_omission = outcome.omitted_local_stroke_width.is_some()
-                && facts.has_linear_source
-                && outcome.draws > 0
+                && !outcome.has_opacity
                 && outcome.nodes.len() == 1
                 && blend_rect_source_domain(&outcome.nodes[0], outcome.omitted_local_stroke_width)
                     .is_some();
-            facts.needs_source_domain = retained_omission;
+            let retained_paintless = paintless_rectangle
+                && !outcome.has_opacity
+                && (!outcome.omitted_stroke_extent || retained_omission)
+                && (!source_selected
+                    || blend_rect_source_domain(
+                        &outcome.nodes[0],
+                        outcome.omitted_local_stroke_width,
+                    )
+                    .is_some());
+            facts.needs_source_domain =
+                retained_omission || (retained_paintless && source_selected);
             for node in &outcome.nodes {
-                if outcome.draws > 0 {
+                if outcome.draws > 0 || (retained_paintless && source_selected) {
                     match blend_rect_source_domain(node, outcome.omitted_local_stroke_width) {
                         Some(bounds) => {
                             facts.source_domain_bounds = Some(match facts.source_domain_bounds {
@@ -6647,11 +6699,17 @@ impl<'a> ChildWalk<'a> {
                         }
                         None => facts.source_domain_incomplete = true,
                     }
+                } else if !paintless_rectangle {
+                    // The declared-domain consumer independently validates
+                    // every retained node, even one with disabled geometry.
+                    facts.source_domain_incomplete = true;
                 }
             }
-            facts.linear_source_boundary = if outcome.omitted_stroke_extent && !retained_omission {
+            facts.linear_source_boundary = if outcome.unresolved_fill_source_extent {
+                Some("with an unresolved disabled paint-server source extent")
+            } else if outcome.omitted_stroke_extent && !retained_omission {
                 Some("with a non-painted stroke extent")
-            } else if outcome.has_geometry && outcome.draws == 0 {
+            } else if outcome.has_geometry && outcome.draws == 0 && !retained_paintless {
                 Some("with a non-painted source contributor")
             } else {
                 outcome.nodes.iter().find_map(|node| {
@@ -11784,6 +11842,7 @@ fn compile_tspan_text(
             transformed: false,
             omitted_stroke_extent: false,
             omitted_local_stroke_width: None,
+            unresolved_fill_source_extent: false,
         }));
     }
     let one_pass_fold = (replay_opacity < 1.0 && paths.len() == 1).then_some(replay_opacity);
@@ -11832,6 +11891,7 @@ fn compile_tspan_text(
         transformed: false,
         omitted_stroke_extent: false,
         omitted_local_stroke_width: None,
+        unresolved_fill_source_extent: false,
     }))
 }
 
@@ -12525,6 +12585,9 @@ struct ShapeOutcome {
     /// paint pass. Keep this separate from opacity-fold participation.
     omitted_stroke_extent: bool,
     omitted_local_stroke_width: Option<f32>,
+    /// A non-stopless server resolved to no fill. Its opacity pass does not
+    /// establish blend-source membership; retain the named source patrol.
+    unresolved_fill_source_extent: bool,
     /// The shape's own opacity composites fill and stroke through one
     /// isolated layer — the walk wraps the node in a scope.
     scope_opacity: Option<f32>,
@@ -12870,6 +12933,7 @@ fn shape_node(
     )?;
     let mut paints = fill.paints;
     let fill_opacity_pass = fill.opacity_pass;
+    let unresolved_fill_source_extent = fill.source_extent_unresolved;
     let resolved_stroke = match strokable {
         Strokable::Yes => resolve_stroke(
             el,
@@ -12929,6 +12993,7 @@ fn shape_node(
             transformed: false,
             omitted_stroke_extent,
             omitted_local_stroke_width,
+            unresolved_fill_source_extent,
         });
     }
     if opacity < 1.0 && has_geometry {
@@ -13001,6 +13066,7 @@ fn shape_node(
         opacity_passes,
         omitted_stroke_extent,
         omitted_local_stroke_width,
+        unresolved_fill_source_extent,
         scope_opacity,
         has_opacity,
         has_geometry,
@@ -13312,21 +13378,44 @@ fn context_reference_space(
 struct PaintResolution {
     paints: PaintStack,
     opacity_pass: bool,
+    source_extent_unresolved: bool,
 }
 
 impl PaintResolution {
+    /// Absent paint or an invalid reference without fallback records no pass.
     fn none() -> Self {
         Self {
             paints: PaintStack::empty(),
             opacity_pass: false,
+            source_extent_unresolved: false,
         }
     }
 
+    /// A selected paint remains an opacity pass even when its stack is empty.
     fn selected(paints: PaintStack) -> Self {
         Self {
             paints,
             opacity_pass: true,
+            source_extent_unresolved: false,
         }
+    }
+
+    /// Retain a valid server's no-fallback opacity pass while refusing to infer
+    /// its blend-source extent from the missing paint.
+    fn disabled_server() -> Self {
+        Self {
+            source_extent_unresolved: true,
+            ..Self::selected(PaintStack::empty())
+        }
+    }
+
+    /// Attach the post-paint factor without erasing selection or extent provenance.
+    fn with_alpha_factor(mut self, opacity: f32) -> Self {
+        self.paints = self.paints.with_alpha_factor(
+            PaintAlphaFactor::new(opacity)
+                .expect("computed opacity is finite and clamped to [0, 1]"),
+        );
+        self
     }
 }
 
@@ -13400,12 +13489,7 @@ fn resolve_fill(
                 extra_opacity,
                 "fill",
             )? {
-                Some(stack) => Ok(PaintResolution::selected(
-                    stack.with_alpha_factor(
-                        PaintAlphaFactor::new(extra_opacity)
-                            .expect("computed opacity is finite and clamped to [0, 1]"),
-                    ),
-                )),
+                Some(resolved) => Ok(resolved.with_alpha_factor(extra_opacity)),
                 None => fallback(),
             }
         }
@@ -13430,7 +13514,7 @@ fn resolve_paint_server_stack(
     paint_opacity: f32,
     post_paint_opacity: f32,
     property: &str,
-) -> Result<Option<PaintStack>, CompileError> {
+) -> Result<Option<PaintResolution>, CompileError> {
     let refusal = |reason: String| match property {
         "fill" => CompileError::UnsupportedFill(reason),
         _ => CompileError::UnsupportedStroke(reason),
@@ -13465,12 +13549,17 @@ fn resolve_paint_server_stack(
             .map_err(|reason| refusal(format!("url(#{fragment}): {reason}")))?;
             Ok(match resolved {
                 ResolvedPaintServer::Invalid => None,
-                ResolvedPaintServer::Nothing => Some(PaintStack::empty()),
-                ResolvedPaintServer::Solid(color) => Some(PaintStack::solid(color)),
-                ResolvedPaintServer::Gradient(paint) => Some(
+                ResolvedPaintServer::Nothing => Some(PaintResolution::disabled_server()),
+                ResolvedPaintServer::Stopless => {
+                    Some(PaintResolution::selected(PaintStack::empty()))
+                }
+                ResolvedPaintServer::Solid(color) => {
+                    Some(PaintResolution::selected(PaintStack::solid(color)))
+                }
+                ResolvedPaintServer::Gradient(paint) => Some(PaintResolution::selected(
                     PaintStack::try_from_paints(cg::Paints::new([paint]))
                         .map_err(|error| refusal(error.to_string()))?,
-                ),
+                )),
             })
         }
         ClassifiedServer::Pattern(first) => {
@@ -13479,7 +13568,7 @@ fn resolve_paint_server_stack(
             else {
                 // A valid server through a singular context destination paints
                 // nothing and does not select fallback, matching gradients.
-                return Ok(Some(PaintStack::empty()));
+                return Ok(Some(PaintResolution::disabled_server()));
             };
             match patterns
                 .resolve(
@@ -13494,7 +13583,16 @@ fn resolve_paint_server_stack(
                 .map_err(|reason| refusal(format!("url(#{fragment}): {reason}")))?
             {
                 PatternResolution::Invalid => Ok(None),
-                PatternResolution::Paint(pattern) => Ok(Some(PaintStack::from_pattern(pattern))),
+                PatternResolution::Paint(pattern) => {
+                    // Construction erases a zero-opacity pattern. Keep its
+                    // unproved resource-source extent distinct from a selected
+                    // transparent solid, without changing its opacity pass.
+                    let source_extent_unresolved = pattern.opacity() == 0.0;
+                    Ok(Some(PaintResolution {
+                        source_extent_unresolved,
+                        ..PaintResolution::selected(PaintStack::from_pattern(pattern))
+                    }))
+                }
             }
         }
     }
@@ -14468,12 +14566,7 @@ fn resolve_stroke(
                 extra_opacity,
                 "stroke",
             )? {
-                Some(stack) => PaintResolution::selected(
-                    stack.with_alpha_factor(
-                        PaintAlphaFactor::new(extra_opacity)
-                            .expect("computed opacity is finite and clamped to [0, 1]"),
-                    ),
-                ),
+                Some(resolved) => resolved.with_alpha_factor(extra_opacity),
                 None => stroke_fallback()?,
             }
         }

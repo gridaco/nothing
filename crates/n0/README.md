@@ -314,7 +314,15 @@ hint. The first glyphless consumer accepts identity-mapped declarations over
 untransformed solid/linear rectangles and simple local strokes; it rejects
 under-enclosing domains, nested effects within the declaration, nonidentity
 declaration maps, enclosing filter/mask programs, and declarations inside
-repeating programs. Ordinary undeclared scopes keep their existing profile.
+repeating programs. An identity-mapped rectangle with an empty paint stack and
+no stroke retains its geometry and identity without contributing a draw,
+coverage, or source extent, so its geometry need not lie inside the declaration.
+Ordinary finite geometry, exact transformed bounds, and unique-owner validation
+still apply, including to zero-sized paintless rectangles. This exemption does
+not admit mapped or nonrectangular paintless geometry; every painted rectangle,
+including a stroke-only rectangle, must still be enclosed. The glyphless module
+tests pin these rules and byte-identical changed-view replay.
+Ordinary undeclared scopes keep their existing profile.
 The declaration targets the containing stream, independently of a scope item's
 drawing map. Current-view mapping and device enclosure are recalculated for
 every execution. Unsupported device bounds return an owner-bearing

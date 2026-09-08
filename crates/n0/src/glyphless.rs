@@ -966,9 +966,16 @@ fn validate_source_domain_node(
             .paints
             .iter()
             .any(|paint| matches!(paint, CgPaint::RadialGradient(_)))
-        || (node.paints.is_empty() && node.stroke.is_none())
     {
-        return Err("a declared source domain requires unmapped solid/linear painted rectangles");
+        return Err(
+            "a declared source domain requires unmapped rectangles with solid/linear leaves",
+        );
+    }
+    // Ordinary geometry/bounds/identity validation has already run. No paint
+    // contributes no source extent, even when its geometry lies outside the
+    // declaration. Keep the rectangular, identity-mapped profile above intact.
+    if node.paints.is_empty() && node.stroke.is_none() {
+        return Ok(());
     }
     let width = if let Some(stroke) = &node.stroke {
         if stroke.space() != rframe::StrokeSpace::Local
@@ -4434,6 +4441,220 @@ mod tests {
         .unwrap()
     }
 
+    const SOURCE_NODE_OWNER: VisualRef = VisualRef::new(Identity::new(70), Provenance::new(700));
+
+    fn paintless_rectangle(rect: Rectangle) -> FrameNode {
+        FrameNode {
+            owner: SOURCE_NODE_OWNER,
+            transform: AffineTransform::identity(),
+            geometry: Geometry::Rect(rect),
+            bounds: rect,
+            paints: PaintStack::empty(),
+            stroke: None,
+        }
+    }
+
+    fn domain_illustration_with_node(node: FrameNode, mode: rframe::ScopeBlendMode) -> Frame {
+        let frame = domain_illustration(Some(source_domain()), mode);
+        let mut items: Vec<_> = frame.items.iter().cloned().collect();
+        // Insert before the painted child so the private owner slots move too.
+        items.insert(2, FrameItem::Node(node));
+        Frame {
+            items: FrameItems::try_new(items).unwrap(),
+            ..frame
+        }
+    }
+
+    fn paintless_rectangles() -> [Rectangle; 6] {
+        [
+            Rectangle::from_xywh(10.0, 14.0, 2.0, 3.0), // inside the source
+            Rectangle::from_xywh(0.0, 0.0, 64.0, 48.0), // exceeds the source
+            Rectangle::from_xywh(-20.0, -30.0, 4.0, 5.0), // outside the frame
+            Rectangle::from_xywh(50.0, 46.0, 0.0, 0.0), // degenerate, outside source
+            Rectangle::from_xywh(50.0, 46.0, 0.0, 2.0),
+            Rectangle::from_xywh(50.0, 46.0, 2.0, 0.0),
+        ]
+    }
+
+    /// Geometry and identity survive compilation independently of paint. An
+    /// empty node contributes neither commands, source extent, nor damage.
+    #[test]
+    fn declared_source_paintless_rectangles_retain_geometry_without_draws_or_extent() {
+        let mode = rframe::ScopeBlendMode::Multiply;
+        let baseline = compile(domain_illustration(Some(source_domain()), mode)).unwrap();
+        for rect in paintless_rectangles() {
+            let node = paintless_rectangle(rect);
+            let frame = domain_illustration_with_node(node.clone(), mode);
+            let product = compile(frame.clone()).unwrap();
+            assert_eq!(product.resolved(), &frame);
+            assert_eq!(product.resolved().nodes()[1], &node);
+            assert_eq!(product.source_domains, baseline.source_domains);
+            assert!(product.drawlist.raster_eq(&baseline.drawlist));
+            let coverage = |product: &FrameProduct| {
+                product
+                    .provenance
+                    .owners
+                    .iter()
+                    .copied()
+                    .zip(product.provenance.coverage.iter().copied())
+                    .collect::<BTreeMap<_, _>>()
+            };
+            let mut actual = coverage(&product);
+            assert_eq!(actual.remove(&SOURCE_NODE_OWNER), Some(None));
+            assert_eq!(actual, coverage(&baseline));
+            assert_eq!(diff_frame(&baseline, &product), Damage::default());
+        }
+    }
+
+    /// Equivalence law: adding no paint cannot alter any byte, even when the
+    /// current view changes device enclosure and then returns to its start.
+    #[test]
+    fn declared_source_paintless_replay_under_changed_views_matches_fresh() {
+        let context = PaintCtx::new(None);
+        for mode in [
+            rframe::ScopeBlendMode::Normal,
+            rframe::ScopeBlendMode::Multiply,
+            rframe::ScopeBlendMode::Screen,
+        ] {
+            let baseline = compile(domain_illustration(Some(source_domain()), mode)).unwrap();
+            for rect in paintless_rectangles() {
+                let frame = domain_illustration_with_node(paintless_rectangle(rect), mode);
+                let retained = compile(frame.clone()).unwrap();
+                for matrix in [
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+                    [[1.0, 0.0, 3.25], [0.0, 1.0, -2.5]],
+                    [[1.25, 0.0, -4.0], [0.0, 0.75, 2.0]],
+                    [[1.0, 0.2, 0.0], [0.1, 1.0, 0.0]],
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+                ] {
+                    let view = AffineTransform { matrix };
+                    let pixels = retained.raster_to_bytes(&view, 80, 64, &context).unwrap();
+                    assert_eq!(
+                        pixels,
+                        baseline.raster_to_bytes(&view, 80, 64, &context).unwrap(),
+                        "paintless rectangle {rect:?}, mode {mode:?}, view {view:?}"
+                    );
+                    assert_eq!(
+                        pixels,
+                        compile(frame.clone())
+                            .unwrap()
+                            .raster_to_bytes(&view, 80, 64, &context)
+                            .unwrap()
+                    );
+                    let mut surface = surfaces::raster_n32_premul((80, 64)).unwrap();
+                    surface.canvas().clear(skia_safe::Color::WHITE);
+                    let saves = surface.canvas().save_count();
+                    retained.execute(surface.canvas(), &view, &context).unwrap();
+                    assert_eq!(surface.canvas().save_count(), saves);
+                    assert_eq!(crate::paint::read_pixels(&mut surface, 80, 64), pixels);
+                }
+            }
+        }
+    }
+
+    /// No paint exempts only enclosure. The ordinary geometry, exact-bounds,
+    /// finite-transform and unique-owner checks still run before that exemption.
+    #[test]
+    fn declared_source_paintless_rectangles_keep_ordinary_validation() {
+        let node = paintless_rectangle(Rectangle::from_xywh(10.0, 14.0, 2.0, 3.0));
+        for (label, invalid, expected) in [
+            (
+                "geometry",
+                FrameNode {
+                    geometry: Geometry::Rect(Rectangle::from_xywh(10.0, 14.0, -1.0, 3.0)),
+                    ..node.clone()
+                },
+                BuildError::InvalidRectangle(SOURCE_NODE_OWNER),
+            ),
+            (
+                "bounds",
+                FrameNode {
+                    bounds: Rectangle::from_xywh(f32::NAN, 14.0, 2.0, 3.0),
+                    ..node.clone()
+                },
+                BuildError::InvalidVisualBounds(SOURCE_NODE_OWNER),
+            ),
+            (
+                "exact transformed bounds",
+                FrameNode {
+                    bounds: Rectangle::from_xywh(11.0, 14.0, 2.0, 3.0),
+                    ..node.clone()
+                },
+                BuildError::VisualBoundsMismatch(SOURCE_NODE_OWNER),
+            ),
+            (
+                "transform",
+                FrameNode {
+                    transform: AffineTransform {
+                        matrix: [[1.0, 0.0, f32::INFINITY], [0.0, 1.0, 0.0]],
+                    },
+                    ..node.clone()
+                },
+                BuildError::InvalidTransform(SOURCE_NODE_OWNER),
+            ),
+            (
+                "owner",
+                FrameNode {
+                    owner: SCOPE_OWNER,
+                    ..node
+                },
+                BuildError::DuplicateOwner(SCOPE_OWNER),
+            ),
+        ] {
+            let frame = domain_illustration_with_node(invalid, rframe::ScopeBlendMode::Multiply);
+            assert_eq!(compile(frame).unwrap_err(), expected, "{label}");
+        }
+    }
+
+    /// A fill-less stroked rectangle still paints. Both it and a filled
+    /// rectangle must fit exactly; no epsilon or empty-fill shortcut applies.
+    #[test]
+    fn declared_source_enclosure_exemption_requires_no_fill_and_no_stroke() {
+        let mode = rframe::ScopeBlendMode::Multiply;
+        for stroked in [false, true] {
+            let mut node = paintless_rectangle(if stroked {
+                Rectangle::from_xywh(7.0, 11.0, 41.0, 32.0)
+            } else {
+                source_domain().rect()
+            });
+            if stroked {
+                node.stroke = Some(checked_stroke(
+                    2.0,
+                    rframe::StrokeCap::Butt,
+                    rframe::StrokeJoin::Miter,
+                    4.0,
+                    None,
+                ));
+            } else {
+                node.paints = PaintStack::solid(CGColor::BLACK);
+            }
+            compile(domain_illustration_with_node(node.clone(), mode)).unwrap();
+            for edge in 0..4 {
+                let mut outside = node.clone();
+                let Geometry::Rect(rect) = &mut outside.geometry else {
+                    unreachable!()
+                };
+                match edge {
+                    0 => rect.x = f32::from_bits(rect.x.to_bits() - 1),
+                    1 => rect.y = f32::from_bits(rect.y.to_bits() - 1),
+                    2 => rect.width = f32::from_bits(rect.width.to_bits() + 1),
+                    3 => rect.height = f32::from_bits(rect.height.to_bits() + 1),
+                    _ => unreachable!(),
+                }
+                outside.bounds = math2::rect_transform(*rect, &outside.transform);
+                let error = compile(domain_illustration_with_node(outside, mode)).unwrap_err();
+                assert!(matches!(
+                    error,
+                    BuildError::Blend {
+                        owner: SCOPE_OWNER,
+                        ..
+                    }
+                ));
+                assert!(error.to_string().contains("does not enclose"), "{error}");
+            }
+        }
+    }
+
     #[test]
     fn declared_source_domain_is_raster_material_not_geometry_or_an_extra_draw() {
         let ordinary =
@@ -4578,7 +4799,7 @@ mod tests {
                     .collect(),
             );
         }
-        for variant in 0..5 {
+        for variant in 0..6 {
             let mut items: Vec<_> =
                 domain_illustration(Some(source_domain()), rframe::ScopeBlendMode::Multiply)
                     .items
@@ -4612,7 +4833,15 @@ mod tests {
                         Some(vec![2.0, 3.0]),
                     ))
                 }
-                4 => node.paints = PaintStack::empty(),
+                4 => {
+                    node.paints = PaintStack::empty();
+                    node.transform.matrix[0][2] = 1.0;
+                    node.bounds = math2::rect_transform(node.geometry.local_box(), &node.transform);
+                }
+                5 => {
+                    node.paints = PaintStack::empty();
+                    node.geometry = Geometry::Ellipse(node.geometry.local_box());
+                }
                 _ => unreachable!(),
             }
             reject(items);

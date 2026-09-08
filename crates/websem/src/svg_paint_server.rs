@@ -220,7 +220,11 @@ pub(crate) enum ResolvedPaintServer {
     /// The reference is invalid — no gradient carries the id. The authored
     /// fallback decides what paints.
     Invalid,
-    /// A valid reference that paints nothing (measured correct nothings).
+    /// A valid stopless gradient. It paints nothing but still participates in
+    /// the enclosing drawable's source extent, unlike a disabled gradient.
+    Stopless,
+    /// Other valid references that paint nothing (measured correct nothings).
+    /// Their blend-source membership is not implied by an opacity pass.
     Nothing,
     /// A valid reference that losslessly resolves to one RGBA8 solid color.
     Solid(CGColor),
@@ -350,7 +354,14 @@ pub(crate) fn resolve(
         Some(owner) => resolve_stops(owner)?,
     };
     if stops.is_empty() {
-        return Ok(ResolvedPaintServer::Nothing);
+        // Empty paint does not imply a drawable source contribution. A
+        // singular transform disables even a stopless gradient in Chromium.
+        // Preserve standalone no-paint/no-fallback behavior for otherwise
+        // inert, unadmitted transform grammar, but do not claim its extent.
+        return Ok(match resolve_gradient_transform(&chain) {
+            Ok(GradientTransform::Affine(_)) => ResolvedPaintServer::Stopless,
+            Ok(GradientTransform::NonInvertible) | Err(_) => ResolvedPaintServer::Nothing,
+        });
     }
 
     let units = resolve_units(&chain);

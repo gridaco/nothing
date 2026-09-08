@@ -27,14 +27,192 @@ const RAMP: &str = "<defs><linearGradient id='r'><stop stop-color='#cd6843'/><st
 const RAMP_RECT: &str = "<rect x='8.3' y='12.7' width='38.2' height='28.4' fill='url(#r)'/>";
 
 #[test]
+fn paintless_effects_and_disabled_servers_keep_the_source_patrol() {
+    let ghost = "<rect x='3.2' y='5.7' width='13.4' height='17.2' fill='transparent'/>";
+    let definitions = "<defs><filter id='f'><feOffset dx='8' dy='8'/></filter><clipPath id='c'><rect width='2' height='2'/></clipPath><mask id='m'><rect width='64' height='64' fill='white'/></mask><linearGradient id='s' gradientTransform='scale(0)'><stop stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient></defs>";
+    let mut siblings = Vec::new();
+    siblings.push(format!("<defs><pattern id='p' patternUnits='userSpaceOnUse' width='8' height='8'><rect width='8' height='8' fill='lime'/></pattern></defs>{}", ghost.replace("fill='transparent'", "fill='url(#p)' fill-opacity='0'")));
+    for filter in [
+        "<filter id='hide'/>",
+        "<filter id='hide' filterUnits='userSpaceOnUse' width='0' height='64'><feOffset dx='8' dy='8'/></filter>",
+    ] {
+        for target in [
+            ghost.replace("/>", " filter='url(#hide)'/>"),
+            format!("<g filter='url(#hide)'>{ghost}</g>"),
+            format!("<svg width='64' height='64' filter='url(#hide)'>{ghost}</svg>"),
+            format!(
+                "<defs>{}</defs><use href='#ghost' filter='url(#hide)'/>",
+                ghost.replace("<rect ", "<rect id='ghost' ")
+            ),
+        ] {
+            siblings.push(format!("<defs>{filter}</defs>{target}"));
+        }
+    }
+    for effect in ["filter='url(#f)'", "mask='url(#m)'", "clip-path='url(#c)'"] {
+        siblings.push(ghost.replace("/>", &format!(" {effect}/>")));
+        siblings.push(format!("<g {effect}>{ghost}</g>"));
+    }
+    siblings.push(format!("<svg width='2' height='2'>{ghost}</svg>"));
+    siblings.push(format!(
+        "<svg width='2' height='2' overflow='visible'>{ghost}</svg>"
+    ));
+    siblings.push(ghost.replace("fill='transparent'", "fill='url(#s)'"));
+    siblings.push(format!(
+        "<defs><linearGradient id='stopless' gradientTransform='scale(0)'/></defs>{}",
+        ghost.replace("fill='transparent'", "fill='url(#stopless)'")
+    ));
+    // A declared source must also cover every retained painted node, even
+    // when its zero-width geometry paints no pixels.
+    siblings.push(format!(
+        "{}<rect x='-100' y='-100' width='0' height='8' fill='red'/>",
+        RAMP_RECT.replace("/>", " stroke='transparent' stroke-width='4'/>")
+    ));
+    for mode in ["multiply", "screen"] {
+        for sibling in &siblings {
+            let source = svg(&format!(
+                "{RAMP}{definitions}<g style='mix-blend-mode:{mode}'>{RAMP_RECT}{sibling}</g>{RECT}"
+            ));
+            let strict = compile_standalone_svg(&source, InitialViewport::new(64.0, 64.0))
+                .unwrap_err()
+                .to_string();
+            assert!(
+                strict.contains("linear-gradient source-extent"),
+                "{strict}: {source}"
+            );
+            let best = SvgFrameSource::from_standalone_svg_best_effort(
+                source.as_str(),
+                InitialViewport::new(64.0, 64.0),
+            )
+            .unwrap();
+            assert_eq!(
+                best.base_frame().items.len(),
+                1,
+                "complete group rollback: {source}"
+            );
+            assert!(
+                best.degradations().iter().any(|d| d.path() == "svg/g[1]"
+                    && d.reason().contains("linear-gradient source-extent")),
+                "{:?}",
+                best.degradations()
+            );
+        }
+    }
+}
+
+#[test]
+fn nonpainted_sibling_membership_is_independent_of_visible_paint() {
+    for mode in ["multiply", "screen"] {
+        for (attrs, expected) in [
+            ("fill='transparent'", Some((3.0, 5.0, 44.0, 37.0))),
+            ("fill='red' fill-opacity='0'", Some((3.0, 5.0, 44.0, 37.0))),
+            ("fill='url(#empty)'", Some((3.0, 5.0, 44.0, 37.0))),
+            (
+                "fill='none' stroke='transparent' stroke-width='4'",
+                Some((1.0, 3.0, 46.0, 39.0)),
+            ),
+            (
+                "fill='none' stroke='red' stroke-opacity='0' stroke-width='4'",
+                Some((1.0, 3.0, 46.0, 39.0)),
+            ),
+            ("fill='none' stroke='none'", None),
+            ("fill='url(#missing)'", None),
+        ] {
+            let sibling = format!("<rect x='3.2' y='5.7' width='13.4' height='17.2' {attrs}/>");
+            let source = svg(&format!(
+                "{RAMP}<defs><linearGradient id='empty'/></defs><g style='mix-blend-mode:{mode}'>{RAMP_RECT}{sibling}</g>"
+            ));
+            let strict = compile_standalone_svg(&source, InitialViewport::new(64.0, 64.0)).unwrap();
+            let best = SvgFrameSource::from_standalone_svg_best_effort(
+                source.as_str(),
+                InitialViewport::new(64.0, 64.0),
+            )
+            .unwrap();
+            assert_eq!(strict, best.base_frame());
+            assert!(
+                !best
+                    .degradations()
+                    .iter()
+                    .any(|d| d.action() == websem::DegradationAction::Skipped)
+            );
+            let actual = blends(&strict)
+                .into_iter()
+                .find_map(|b| b.source_domain())
+                .map(|d| d.rect());
+            assert_eq!(
+                actual,
+                expected.map(|(x, y, w, h)| math2::Rectangle::from_xywh(x, y, w, h)),
+                "{mode}: {attrs}"
+            );
+            assert_eq!(
+                strict.nodes().len(),
+                2,
+                "retained geometry is not fake paint"
+            );
+            assert_eq!(
+                strict.nodes()[1].geometry,
+                rframe::Geometry::Rect(math2::Rectangle::from_xywh(3.2, 5.7, 13.4, 17.2))
+            );
+            assert!(strict.nodes()[1].paints.is_empty());
+            assert!(strict.nodes()[1].stroke.is_none());
+        }
+    }
+}
+
+#[test]
+fn absent_paint_sibling_does_not_enlarge_an_existing_declared_source() {
+    let omitted = RAMP_RECT.replace("/>", " stroke='transparent' stroke-width='4'/>");
+    for attrs in [
+        "fill='none'",
+        "fill='url(#missing)'",
+        "fill='transparent' width='0'",
+    ] {
+        let sibling = if attrs.contains("width=") {
+            format!("<rect x='-100' y='-100' height='8' {attrs}/>")
+        } else {
+            format!("<rect x='-100' y='-100' width='8' height='8' {attrs}/>")
+        };
+        let result = frame(&format!(
+            "{RAMP}<g style='mix-blend-mode:screen'>{omitted}{sibling}</g>"
+        ));
+        let domain = blends(&result)
+            .into_iter()
+            .find_map(|b| b.source_domain())
+            .unwrap();
+        assert_eq!(
+            domain.rect(),
+            math2::Rectangle::from_xywh(6.0, 10.0, 43.0, 34.0)
+        );
+        assert_eq!(result.nodes().len(), 2);
+    }
+}
+
+#[test]
+fn sibling_contributions_do_not_create_domains_without_a_live_linear_source() {
+    for content in [
+        "<rect width='16' height='16' fill='transparent'/>",
+        "<rect width='16' height='16' stroke='transparent' stroke-width='4'/>",
+    ] {
+        for wrapper in [
+            format!("{content}"),
+            format!("<g style='mix-blend-mode:multiply'>{content}</g>"),
+        ] {
+            let result = frame(&wrapper);
+            assert!(
+                blends(&result)
+                    .into_iter()
+                    .all(|b| b.source_domain().is_none())
+            );
+        }
+    }
+}
+
+#[test]
 fn linear_source_extent_patrol_is_transactional_and_names_the_owner() {
     for content in [
         format!("<g transform='translate(2.5 3.5)'>{RAMP_RECT}</g>"),
         format!("{RAMP_RECT}<g transform='scale(2)'>{RECT}</g>"),
         format!("<g opacity='.5'>{RAMP_RECT}{RECT}</g>"),
         format!("{RAMP_RECT}<g opacity='0'>{RECT}</g>"),
-        format!("{RAMP_RECT}<rect width='12' height='12' fill='transparent'/>"),
-        format!("{RAMP_RECT}<rect width='12' height='12' fill-opacity='0'/>"),
         format!("{RAMP_RECT}<g style='mix-blend-mode:screen'>{RECT}</g>"),
         format!("<svg x='3' y='5' width='56' height='48'>{RAMP_RECT}</svg>"),
         RAMP_RECT.replace(
@@ -45,9 +223,6 @@ fn linear_source_extent_patrol_is_transactional_and_names_the_owner() {
         format!(
             "<defs><linearGradient id='empty'/></defs>{}",
             RAMP_RECT.replace("/>", " stroke='url(#empty)' stroke-width='4'/>")
-        ),
-        format!(
-            "{RAMP_RECT}<rect x='3' y='5' width='13' height='17' stroke='transparent' stroke-width='4'/>"
         ),
         RAMP_RECT.replace("/>", " stroke='url(#missing)' stroke-width='4'/>"),
         RAMP_RECT.replace("/>", " stroke='context-stroke' stroke-width='4'/>"),
