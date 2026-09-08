@@ -53,6 +53,43 @@ Fill/stroke overlap is already part of that completed group. A separate outer
 opacity scope around a blend scope states a different nesting and backdrop;
 it is not an equivalent spelling of combined blend and opacity.
 
+`BlendSourceDomain::new(rect, source_to_stream)` checks one strictly positive,
+already-enclosed source-local rectangle and its map into the containing item
+stream. `ScopeBlend::with_source_domain(domain)` attaches this complete source
+declaration to the existing boundary. `source_domain()` returns it; the ordinary
+`ScopeBlend::new` leaves it absent, making no completeness assertion.
+
+The source materializes against transparent black over the declared domain
+before that boundary's final opacity/blend. Contribution discovery and local
+enclosure have already happened. A consumer must preserve that domain rather
+than reconstruct it from surviving paint, conservatively enlarge it, or enclose
+contributors after mapping. Its transparent margins can distinguish sources
+with identical painted nodes. `rect()` and `source_to_stream()` preserve the
+supplied facts exactly, including when different declarations have the same
+final enclosing box. The map targets frame space in a frame and tile-local
+coordinates in a repeating program. It never becomes an inherited transform
+for the enclosed nodes. Nested declarations stay with their existing boundary
+and completed source; the checked stream remains the only composition order.
+
+This declaration supplies no paint, changes no geometry or gradient paint box,
+and introduces no clip. A hard clip specifies coverage and cannot substitute
+for a complete source domain. Output clipping remains separate. The declaration
+carries no host view, device grid, layer allocation, or cache policy; current-view
+mapping and device enclosure remain execution work. A consumer must refuse a
+declaration it cannot honor rather than silently ignore it. Domain equality
+does not remove the enclosing backdrop dependency.
+
+Construction proves numerical usability, not producer completeness: the local
+rectangle must have finite members, positive extents, and finite, strictly
+ordered endpoints in `f32`. The map must have a finite determinant and a
+supported finite affine inverse, and
+the mapped corners and their enclosing box must remain finite and positive.
+The existing affine inverse's small-determinant refusal applies. No integer
+coordinate rule or enclosure algorithm is imposed on the source's unit system.
+Empty domains are refused; a domain never makes an empty blend scope meaningful.
+Producer-only laws, including independent illustration construction, live in
+[`tests/blend_source_domain.rs`](tests/blend_source_domain.rs).
+
 `ScopeBlend::new(mode, opacity)` takes `ScopeBlendMode::{Normal, Multiply,
 Screen}` and `Option<ScopeOpacity>`. `mode()` and `opacity()` return those
 facts unchanged. `None` means opacity 1; `Some` reuses the finite, strictly
