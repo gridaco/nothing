@@ -13382,6 +13382,7 @@ struct PaintResolution {
 }
 
 impl PaintResolution {
+    /// Absent paint or an invalid reference without fallback records no pass.
     fn none() -> Self {
         Self {
             paints: PaintStack::empty(),
@@ -13390,6 +13391,7 @@ impl PaintResolution {
         }
     }
 
+    /// A selected paint remains an opacity pass even when its stack is empty.
     fn selected(paints: PaintStack) -> Self {
         Self {
             paints,
@@ -13398,6 +13400,8 @@ impl PaintResolution {
         }
     }
 
+    /// Retain a valid server's no-fallback opacity pass while refusing to infer
+    /// its blend-source extent from the missing paint.
     fn disabled_server() -> Self {
         Self {
             source_extent_unresolved: true,
@@ -13405,6 +13409,7 @@ impl PaintResolution {
         }
     }
 
+    /// Attach the post-paint factor without erasing selection or extent provenance.
     fn with_alpha_factor(mut self, opacity: f32) -> Self {
         self.paints = self.paints.with_alpha_factor(
             PaintAlphaFactor::new(opacity)
