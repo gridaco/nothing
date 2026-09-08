@@ -4464,11 +4464,12 @@ fn observe_blend_layer(canvas: &Canvas) -> crate::trace::blend_layers::Observati
 /// Device-space source extents for the rectangular linear-ramp profile.
 ///
 /// A ramp's ordered dither is anchored to its raster device, not the final
-/// canvas. Derive bounds from the actual draw commands and current view, never
-/// the damage envelope. Recompute on execution: raw drawlists are mutable and
+/// canvas. Honor a declared complete source domain before considering private
+/// reconstruction from draw commands. Map either through the current view,
+/// never the damage envelope. Recompute on execution: raw drawlists are mutable and
 /// the host view is not part of the compiled product. Neutral lists never call
 /// this pass. Websem patrols sources whose local-space extent is not retained
-/// by the resolved stream. Other raw drawlist programs keep their old route.
+/// by the resolved stream. Other undeclared raw programs keep their old route.
 fn blend_source_extents<K>(list: &DrawList<K>, view: &Affine) -> Option<Vec<Option<Rect>>> {
     use skia_safe::RoundOut;
 
@@ -4506,12 +4507,13 @@ fn blend_source_extents<K>(list: &DrawList<K>, view: &Affine) -> Option<Vec<Opti
         bounds: Option<Rect>,
         known: bool,
         ramp: bool,
+        declared: bool,
     }
     impl Source {
         fn add(&mut self, bounds: Option<Rect>, known: bool, ramp: bool) {
             self.known &= known;
             self.ramp |= ramp;
-            if let Some(bounds) = bounds {
+            if let Some(bounds) = bounds.filter(|_| !self.declared) {
                 if let Some(accumulated) = &mut self.bounds {
                     accumulated.join(bounds);
                 } else {
@@ -4523,6 +4525,7 @@ fn blend_source_extents<K>(list: &DrawList<K>, view: &Affine) -> Option<Vec<Opti
     if !list.items.iter().any(|item| match &item.kind {
         ItemKind::RectFill { paints, .. } => linear(paints),
         ItemKind::RectStroke { stroke, .. } => linear(&stroke.paints),
+        ItemKind::BeginIsolatedBlend { blend } => blend.source_domain().is_some(),
         _ => false,
     }) {
         return None;
@@ -4550,7 +4553,9 @@ fn blend_source_extents<K>(list: &DrawList<K>, view: &Affine) -> Option<Vec<Opti
                 // Chromium accumulates drawable bounds, not clipped ink.
                 // The canvas clip still limits the allocation at execution.
                 if let Kind::Blend(start, mode) = source.kind {
-                    if mode != rframe::ScopeBlendMode::Normal && source.known && source.ramp {
+                    if source.declared
+                        || (mode != rframe::ScopeBlendMode::Normal && source.known && source.ramp)
+                    {
                         output[start] = source.bounds.map(|bounds| -> Rect { bounds.round_out() });
                     }
                 }
@@ -4594,11 +4599,24 @@ fn blend_source_extents<K>(list: &DrawList<K>, view: &Affine) -> Option<Vec<Opti
             }
         };
         if let Some(kind) = begin {
+            let declared = match &item.kind {
+                ItemKind::BeginIsolatedBlend { blend } => blend.source_domain(),
+                _ => None,
+            };
+            let bounds = declared.map(|domain| {
+                let [[a, c, e], [b, d, f]] = domain.source_to_stream().matrix;
+                let map = view.then(&Affine { a, b, c, d, e, f });
+                let rect = domain.rect();
+                skia_matrix(&map)
+                    .map_rect(Rect::from_xywh(rect.x, rect.y, rect.width, rect.height))
+                    .0
+            });
             stack.push(Source {
                 kind,
-                bounds: None,
+                bounds,
                 known: true,
                 ramp: false,
+                declared: declared.is_some(),
             });
         } else if let Some(source) = stack.last_mut() {
             let bounds = bounds
@@ -4761,6 +4779,53 @@ mod blend_source_extent_tests {
             *paints = Paints::default();
         }
         assert!(blend_source_extents(&list, &Affine::IDENTITY).is_none());
+    }
+
+    #[test]
+    fn declared_domain_is_authoritative_and_never_a_draw_derived_hint() {
+        let domain = rframe::BlendSourceDomain::new(
+            math2::Rectangle::from_xywh(6.0, 10.0, 43.0, 34.0),
+            math2::transform::AffineTransform::identity(),
+        )
+        .unwrap();
+        for mode in [
+            rframe::ScopeBlendMode::Normal,
+            rframe::ScopeBlendMode::Multiply,
+            rframe::ScopeBlendMode::Screen,
+        ] {
+            let mut list = scene();
+            list.items[0].kind = ItemKind::BeginIsolatedBlend {
+                blend: rframe::ScopeBlend::new(mode, None).with_source_domain(domain),
+            };
+            // The declaration targets the stream, not the scope item's local
+            // drawing map. A nonzero frame origin must not be applied twice.
+            list.items[0].world = Affine::translate(100.0, 200.0);
+            assert_eq!(
+                blend_source_extents(&list, &Affine::IDENTITY).unwrap()[0],
+                Some(Rect::new(6.0, 10.0, 49.0, 44.0))
+            );
+            assert_eq!(
+                blend_source_extents(&list, &Affine::translate(3.25, -2.5)).unwrap()[0],
+                Some(Rect::new(9.0, 7.0, 53.0, 42.0))
+            );
+            // An independent producer can use the same fact with solid paint.
+            if let ItemKind::RectFill { paints, .. } = &mut list.items[1].kind {
+                *paints = Paints::new([ModelPaint::Solid(n0_model::model::SolidPaint::new(
+                    n0_model::model::Color(0xFFCD_6843),
+                ))]);
+            }
+            assert_eq!(
+                blend_source_extents(&list, &Affine::IDENTITY).unwrap()[0],
+                Some(Rect::new(6.0, 10.0, 49.0, 44.0))
+            );
+            list.items[0].kind = ItemKind::BeginIsolatedBlend {
+                blend: rframe::ScopeBlend::new(mode, None),
+            };
+            assert!(
+                blend_source_extents(&list, &Affine::IDENTITY).is_none(),
+                "a mutable raw list cannot reuse an old declaration"
+            );
+        }
     }
 
     #[test]

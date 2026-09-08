@@ -175,6 +175,9 @@ pub struct FrameProduct {
     resolved: Frame,
     drawlist: DrawList<GlyphlessOwnerSlot>,
     provenance: ProvenanceProjection,
+    /// Only declared domains need current-view validation. Empty means no
+    /// added execution traversal or allocation for ordinary products.
+    source_domains: Vec<(VisualRef, rframe::BlendSourceDomain)>,
 }
 
 impl FrameProduct {
@@ -191,6 +194,7 @@ impl FrameProduct {
         ctx: &PaintCtx,
     ) -> Result<(), FrameExecutionError> {
         self.assert_provenance_complete();
+        self.preflight_source_domains(view)?;
         crate::paint::preflight_patterns(&self.drawlist, ctx)?;
         crate::paint::execute_unchecked(canvas, &self.drawlist, &to_affine(*view), ctx);
         Ok(())
@@ -206,6 +210,7 @@ impl FrameProduct {
         ctx: &PaintCtx,
     ) -> Result<Vec<u8>, FrameExecutionError> {
         self.assert_provenance_complete();
+        self.preflight_source_domains(view)?;
         crate::paint::preflight_patterns(&self.drawlist, ctx)?;
         Ok(crate::paint::raster_to_bytes_unchecked(
             &self.drawlist,
@@ -214,6 +219,30 @@ impl FrameProduct {
             h,
             ctx,
         ))
+    }
+
+    fn preflight_source_domains(
+        &self,
+        view: &math2::transform::AffineTransform,
+    ) -> Result<(), FrameExecutionError> {
+        for &(owner, domain) in &self.source_domains {
+            // The admitted declaration map is identity. Validate all view
+            // arithmetic before touching the caller's canvas; never ignore a
+            // domain just because its current device bounds cannot be formed.
+            if rframe::BlendSourceDomain::new(domain.rect(), *view).is_err() {
+                return Err(FrameExecutionError::SourceDomain { owner });
+            }
+            let bounds = math2::rect_transform(domain.rect(), view);
+            if bounds
+                .corners()
+                .into_iter()
+                .flatten()
+                .any(|v| v.abs() > 8_388_608.0)
+            {
+                return Err(FrameExecutionError::SourceDomain { owner });
+            }
+        }
+        Ok(())
     }
 
     fn assert_provenance_complete(&self) {
@@ -361,11 +390,19 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
     // scope composites — and a child scope's union folds into its parent's
     // when it closes.
     let mut open_scopes: Vec<OpenScope> = Vec::new();
+    let mut active_source_domain: Option<(VisualRef, rframe::BlendSourceDomain)> = None;
+    let mut source_domains = Vec::new();
 
     for frame_item in resolved.items.iter() {
         let node = match frame_item {
             FrameItem::Node(node) => node,
             FrameItem::ScopeBegin(scope) => {
+                if let Some((owner, _)) = active_source_domain {
+                    return Err(BuildError::Blend {
+                        owner,
+                        reason: "a declared source domain does not yet admit nested effects".into(),
+                    });
+                }
                 if !unique.insert(scope.owner) {
                     return Err(BuildError::DuplicateOwner(scope.owner));
                 }
@@ -402,6 +439,21 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                         (OpenScopeKind::Opacity, None)
                     }
                     ScopeEffect::Blend(blend) => {
+                        if let Some(domain) = blend.source_domain() {
+                            if domain.source_to_stream()
+                                != math2::transform::AffineTransform::identity()
+                                || open_scopes.iter().any(|scope| {
+                                    matches!(
+                                        scope.kind,
+                                        OpenScopeKind::Mask { .. } | OpenScopeKind::Filter { .. }
+                                    )
+                                })
+                            {
+                                return Err(BuildError::Blend { owner: scope.owner, reason: "a declared source domain needs the unmapped, non-image-effect profile".into() });
+                            }
+                            active_source_domain = Some((scope.owner, domain));
+                            source_domains.push((scope.owner, domain));
+                        }
                         crate::paint::preflight_isolated_blend(*blend).map_err(|reason| {
                             BuildError::Blend {
                                 owner: scope.owner,
@@ -492,6 +544,11 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                     ),
                 };
                 let slot = scope.slot;
+                if active_source_domain
+                    .is_some_and(|(owner, _)| provenance.owners[slot.index()] == owner)
+                {
+                    active_source_domain = None;
+                }
                 provenance.coverage[slot.index()] = coverage;
                 if let (Some(coverage), Some(parent)) = (coverage, open_scopes.last_mut()) {
                     parent.coverage = Some(match parent.coverage {
@@ -507,6 +564,13 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                 continue;
             }
             FrameItem::MaskBegin(mask) => {
+                if let Some((owner, _)) = active_source_domain {
+                    return Err(BuildError::Blend {
+                        owner,
+                        reason: "a declared source domain does not yet admit nested image masks"
+                            .into(),
+                    });
+                }
                 if !unique.insert(mask.owner) {
                     return Err(BuildError::DuplicateOwner(mask.owner));
                 }
@@ -622,6 +686,12 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         validate_rect(rect).map_err(|_| BuildError::InvalidRectangle(node.owner))?;
         if node.bounds != math2::rect_transform(rect, &node.transform) {
             return Err(BuildError::VisualBoundsMismatch(node.owner));
+        }
+        if let Some((owner, domain)) = active_source_domain {
+            validate_source_domain_node(node, domain).map_err(|reason| BuildError::Blend {
+                owner,
+                reason: reason.into(),
+            })?;
         }
         // The paint reference box is the geometry's own extent. Ordinary box
         // routes draw at their item origin, so their paint box already starts
@@ -877,7 +947,57 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
         resolved,
         drawlist,
         provenance,
+        source_domains,
     })
+}
+
+/// The first domain consumer has a bounded, independently tested source
+/// profile. Other declarations refuse before compilation returns a product.
+fn validate_source_domain_node(
+    node: &rframe::FrameNode,
+    domain: rframe::BlendSourceDomain,
+) -> Result<(), &'static str> {
+    let Geometry::Rect(rect) = node.geometry else {
+        return Err("a declared source domain requires rectangular source geometry");
+    };
+    if node.transform != math2::transform::AffineTransform::identity()
+        || node.paints.pattern().is_some()
+        || node
+            .paints
+            .iter()
+            .any(|paint| matches!(paint, CgPaint::RadialGradient(_)))
+        || (node.paints.is_empty() && node.stroke.is_none())
+    {
+        return Err("a declared source domain requires unmapped solid/linear painted rectangles");
+    }
+    let width = if let Some(stroke) = &node.stroke {
+        if stroke.space() != rframe::StrokeSpace::Local
+            || stroke.cap() != rframe::StrokeCap::Butt
+            || stroke.join() != rframe::StrokeJoin::Miter
+            || stroke.dash().is_some()
+            || stroke.dash_intervals().is_some()
+            || stroke.paints().pattern().is_some()
+            || stroke
+                .paints()
+                .iter()
+                .any(|paint| matches!(paint, CgPaint::RadialGradient(_)))
+        {
+            return Err("a declared source domain does not yet admit complex strokes");
+        }
+        stroke.width()
+    } else {
+        0.0
+    };
+    let bounds = domain.rect();
+    let half = f64::from(width) / 2.0;
+    if f64::from(rect.x) - half < f64::from(bounds.x)
+        || f64::from(rect.y) - half < f64::from(bounds.y)
+        || f64::from(rect.x) + f64::from(rect.width) + half > f64::from(bounds.x + bounds.width)
+        || f64::from(rect.y) + f64::from(rect.height) + half > f64::from(bounds.y + bounds.height)
+    {
+        return Err("a declared source domain does not enclose its painted rectangle");
+    }
+    Ok(())
 }
 
 /// Project the contract's checked command stream into the engine's resolved
@@ -1395,6 +1515,9 @@ fn compile_pattern(
         owner,
         reason: format!("nested pattern program failed projection: {error}"),
     })?;
+    if !product.source_domains.is_empty() {
+        return Err(BuildError::Paint { owner, reason: "a declared blend source domain inside a repeating program needs its own execution profile".into() });
+    }
     Ok(Arc::new(ResolvedPattern {
         width: pattern.width(),
         height: pattern.height(),
@@ -4253,5 +4376,255 @@ mod tests {
             }
         );
         assert!(diff_frame(&before, &before).is_empty());
+    }
+
+    fn domain_illustration(
+        domain: Option<rframe::BlendSourceDomain>,
+        mode: rframe::ScopeBlendMode,
+    ) -> Frame {
+        let mut blend = rframe::ScopeBlend::new(mode, Some(ScopeOpacity::new(0.75).unwrap()));
+        if let Some(domain) = domain {
+            blend = blend.with_source_domain(domain);
+        }
+        let mut ramp = rect_node(
+            RECT_OWNER,
+            Rectangle::from_xywh(8.3, 12.7, 38.2, 28.4),
+            0xFFCD_6843,
+        );
+        ramp.bounds = math2::rect_transform(ramp.geometry.local_box(), &ramp.transform);
+        ramp.paints = PaintStack::try_from_paints(CgPaints::new([CgPaint::LinearGradient(
+            cg::LinearGradientPaint {
+                stops: vec![
+                    cg::GradientStop {
+                        offset: 0.0,
+                        color: CGColor::from_rgba(205, 104, 67, 255).into(),
+                    },
+                    cg::GradientStop {
+                        offset: 1.0,
+                        color: CGColor::from_rgba(91, 172, 225, 153).into(),
+                    },
+                ],
+                ..Default::default()
+            },
+        )]))
+        .unwrap();
+        frame_of(
+            FrameItems::try_new(vec![
+                FrameItem::Node(rect_node(
+                    OTHER_OWNER,
+                    Rectangle::from_xywh(0.0, 0.0, 64.0, 48.0),
+                    0xFF42_6589,
+                )),
+                FrameItem::ScopeBegin(Scope {
+                    owner: SCOPE_OWNER,
+                    effect: ScopeEffect::Blend(blend),
+                }),
+                FrameItem::Node(ramp),
+                FrameItem::ScopeEnd,
+            ])
+            .unwrap(),
+        )
+    }
+
+    fn source_domain() -> rframe::BlendSourceDomain {
+        rframe::BlendSourceDomain::new(
+            Rectangle::from_xywh(6.0, 10.0, 43.0, 34.0),
+            AffineTransform::identity(),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn declared_source_domain_is_raster_material_not_geometry_or_an_extra_draw() {
+        let ordinary =
+            compile(domain_illustration(None, rframe::ScopeBlendMode::Multiply)).unwrap();
+        let declared = compile(domain_illustration(
+            Some(source_domain()),
+            rframe::ScopeBlendMode::Multiply,
+        ))
+        .unwrap();
+        assert!(ordinary.source_domains.is_empty());
+        assert_eq!(
+            declared.source_domains,
+            vec![(SCOPE_OWNER, source_domain())]
+        );
+        assert_eq!(ordinary.resolved.nodes(), declared.resolved.nodes());
+        assert_eq!(
+            ordinary.provenance.coverage, declared.provenance.coverage,
+            "source material is not damage coverage"
+        );
+        assert_eq!(ordinary.drawlist.items.len(), declared.drawlist.items.len());
+        assert!(!ordinary.drawlist.raster_eq(&declared.drawlist));
+        let context = PaintCtx::new(None);
+        assert_ne!(
+            ordinary
+                .raster_to_bytes(&AffineTransform::identity(), 64, 48, &context)
+                .unwrap(),
+            declared
+                .raster_to_bytes(&AffineTransform::identity(), 64, 48, &context)
+                .unwrap(),
+            "the independent illustration exercises source material, not only field equality"
+        );
+    }
+
+    #[test]
+    fn declared_source_replay_under_changed_views_matches_fresh() {
+        let context = PaintCtx::new(None);
+        for mode in [
+            rframe::ScopeBlendMode::Normal,
+            rframe::ScopeBlendMode::Multiply,
+            rframe::ScopeBlendMode::Screen,
+        ] {
+            let frame = domain_illustration(Some(source_domain()), mode);
+            let retained = compile(frame.clone()).unwrap();
+            for matrix in [
+                [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+                [[1.0, 0.0, 3.25], [0.0, 1.0, -2.5]],
+                [[1.25, 0.0, -4.0], [0.0, 0.75, 2.0]],
+                [[1.0, 0.2, 0.0], [0.1, 1.0, 0.0]],
+                [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+            ] {
+                let view = AffineTransform { matrix };
+                let pixels = retained.raster_to_bytes(&view, 80, 64, &context).unwrap();
+                assert_eq!(
+                    pixels,
+                    compile(frame.clone())
+                        .unwrap()
+                        .raster_to_bytes(&view, 80, 64, &context)
+                        .unwrap()
+                );
+                let mut surface = surfaces::raster_n32_premul((80, 64)).unwrap();
+                surface.canvas().clear(skia_safe::Color::WHITE);
+                let saves = surface.canvas().save_count();
+                retained.execute(surface.canvas(), &view, &context).unwrap();
+                assert_eq!(surface.canvas().save_count(), saves);
+                assert_eq!(crate::paint::read_pixels(&mut surface, 80, 64), pixels);
+            }
+        }
+    }
+
+    #[test]
+    fn unrepresentable_current_source_view_refuses_before_touching_canvas() {
+        let product = compile(domain_illustration(
+            Some(source_domain()),
+            rframe::ScopeBlendMode::Screen,
+        ))
+        .unwrap();
+        let context = PaintCtx::new(None);
+        let mut surface = surfaces::raster_n32_premul((64, 48)).unwrap();
+        surface.canvas().clear(skia_safe::Color::MAGENTA);
+        let before = crate::paint::read_pixels(&mut surface, 64, 48);
+        let saves = surface.canvas().save_count();
+        for matrix in [
+            [[0.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+            [[1.0, 0.0, f32::NAN], [0.0, 1.0, 0.0]],
+            [[1.0, 0.0, 10_000_000.0], [0.0, 1.0, 0.0]],
+            [[f32::MAX, 0.0, 0.0], [0.0, 1.0, 0.0]],
+        ] {
+            let view = AffineTransform { matrix };
+            let error = product
+                .execute(surface.canvas(), &view, &context)
+                .unwrap_err();
+            assert!(matches!(
+                error,
+                FrameExecutionError::SourceDomain { owner: SCOPE_OWNER }
+            ));
+            assert!(error.to_string().contains("blend source domain"));
+            assert!(matches!(
+                product.raster_to_bytes(&view, 64, 48, &context),
+                Err(FrameExecutionError::SourceDomain { owner: SCOPE_OWNER })
+            ));
+            assert_eq!(crate::paint::read_pixels(&mut surface, 64, 48), before);
+            assert_eq!(surface.canvas().save_count(), saves);
+        }
+    }
+
+    #[test]
+    fn declared_source_profile_refuses_unproved_contract_valid_programs() {
+        let reject = |items: Vec<FrameItem>| {
+            let error = compile(frame_of(FrameItems::try_new(items).unwrap()))
+                .err()
+                .expect("unsupported source profile");
+            assert!(
+                matches!(
+                    error,
+                    BuildError::Blend {
+                        owner: SCOPE_OWNER,
+                        ..
+                    }
+                ),
+                "{error}"
+            );
+        };
+        for domain in [
+            rframe::BlendSourceDomain::new(
+                Rectangle::from_xywh(8.0, 12.0, 2.0, 2.0),
+                AffineTransform::identity(),
+            )
+            .unwrap(),
+            rframe::BlendSourceDomain::new(
+                source_domain().rect(),
+                AffineTransform {
+                    matrix: [[1.0, 0.0, 3.0], [0.0, 1.0, 0.0]],
+                },
+            )
+            .unwrap(),
+        ] {
+            reject(
+                domain_illustration(Some(domain), rframe::ScopeBlendMode::Multiply)
+                    .items
+                    .iter()
+                    .cloned()
+                    .collect(),
+            );
+        }
+        for variant in 0..5 {
+            let mut items: Vec<_> =
+                domain_illustration(Some(source_domain()), rframe::ScopeBlendMode::Multiply)
+                    .items
+                    .iter()
+                    .cloned()
+                    .collect();
+            let FrameItem::Node(node) = &mut items[2] else {
+                unreachable!()
+            };
+            match variant {
+                0 => node.geometry = Geometry::Ellipse(node.geometry.local_box()),
+                1 => {
+                    node.transform.matrix[0][2] = 1.0;
+                    node.bounds = math2::rect_transform(node.geometry.local_box(), &node.transform);
+                }
+                2 => {
+                    node.stroke = Some(checked_stroke(
+                        1.0,
+                        rframe::StrokeCap::Round,
+                        rframe::StrokeJoin::Miter,
+                        4.0,
+                        None,
+                    ))
+                }
+                3 => {
+                    node.stroke = Some(checked_stroke(
+                        1.0,
+                        rframe::StrokeCap::Butt,
+                        rframe::StrokeJoin::Miter,
+                        4.0,
+                        Some(vec![2.0, 3.0]),
+                    ))
+                }
+                4 => node.paints = PaintStack::empty(),
+                _ => unreachable!(),
+            }
+            reject(items);
+        }
+        let mut items: Vec<_> =
+            domain_illustration(Some(source_domain()), rframe::ScopeBlendMode::Multiply)
+                .items
+                .iter()
+                .cloned()
+                .collect();
+        items.insert(2, scope_begin(INNER_SCOPE_OWNER, 0.5));
+        items.insert(4, FrameItem::ScopeEnd);
+        reject(items);
     }
 }

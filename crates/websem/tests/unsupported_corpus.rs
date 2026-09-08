@@ -47,6 +47,21 @@ use Departure::{BothRefuse, DeclaredByBestEffort};
 /// a bare "does it error" check and fail this one.
 const CORPUS: &[(&str, Departure, &str)] = &[
     (
+        "svg-group-blend-source-domain-root-transparent",
+        BothRefuse,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-source-domain-root-bare",
+        BothRefuse,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-source-domain-enclosure",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
         "svg-group-blend-linear-extent-stroke-context-missing",
         DeclaredByBestEffort,
         "linear-gradient source-extent",
@@ -57,12 +72,17 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "linear-gradient source-extent",
     ),
     (
-        "svg-group-blend-linear-extent-stroke-transparent",
+        "svg-group-blend-source-domain-non-scaling",
         DeclaredByBestEffort,
         "linear-gradient source-extent",
     ),
     (
-        "svg-group-blend-linear-extent-stroke-opacity-zero",
+        "svg-group-blend-source-domain-range",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-source-domain-pattern-sibling",
         DeclaredByBestEffort,
         "linear-gradient source-extent",
     ),

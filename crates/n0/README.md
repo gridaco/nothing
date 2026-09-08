@@ -308,6 +308,20 @@ the previously blended pixels. `tests/group_blending.rs` pins these consumer
 laws with hand-built frames and exact pixel probes. Those tests do not claim
 Chromium parity or measured performance.
 
+An optional checked `BlendSourceDomain` on that operation is complete,
+already-enclosed source material, not a geometry/damage box or an allocation
+hint. The first glyphless consumer accepts identity-mapped declarations over
+untransformed solid/linear rectangles and simple local strokes; it rejects
+under-enclosing domains, nested effects within the declaration, nonidentity
+declaration maps, enclosing filter/mask programs, and declarations inside
+repeating programs. Ordinary undeclared scopes keep their existing profile.
+The declaration targets the containing stream, independently of a scope item's
+drawing map. Current-view mapping and device enclosure are recalculated for
+every execution. Unsupported device bounds return an owner-bearing
+`FrameExecutionError::SourceDomain` before touching the canvas. There is no
+source-image cache. Consumer tests distinguish raster identity from painted
+geometry and prove changed-view replay equals a fresh product.
+
 Multiply and partial-opacity Screen restoration explicitly round byte opacity before scaling source
 bytes and applying the byte-domain blend. This avoids pinned Skia's differing
 ARM/x86 low-precision arithmetic and runtime-blender opacity ordering.

@@ -20,6 +20,8 @@
 use crate::clip::ClipPath;
 use crate::filter::Filter;
 use crate::frame::VisualRef;
+use math2::Rectangle;
+use math2::transform::AffineTransform;
 
 /// Why an opacity cannot be a scope fact.
 ///
@@ -79,6 +81,140 @@ pub enum ScopeBlendMode {
     Screen,
 }
 
+/// Why a complete blend-source domain cannot cross the resolved contract.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BlendSourceDomainError {
+    /// The local rectangle is non-finite, empty, or has unrepresentable endpoints.
+    InvalidRectangle,
+    /// The map is non-finite or has no supported finite inverse.
+    InvalidTransform,
+    /// Mapped corners or their enclosing rectangle are non-finite or collapse.
+    InvalidMappedBounds,
+}
+
+impl std::fmt::Display for BlendSourceDomainError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::InvalidRectangle => {
+                "a blend-source domain must have finite local bounds with positive extents and ordered endpoints"
+            }
+            Self::InvalidTransform => {
+                "a blend-source domain map must have finite members and a supported finite inverse"
+            }
+            Self::InvalidMappedBounds => {
+                "a blend-source domain must map to finite, strictly positive bounds"
+            }
+        })
+    }
+}
+
+impl std::error::Error for BlendSourceDomainError {}
+
+/// The complete, already-enclosed local domain of one isolated blend source.
+///
+/// The producer has finished discovering contributions and enclosing them in
+/// source-local coordinates. Materialize the isolated source over this domain
+/// against transparent black, then apply the owning [`ScopeBlend`]'s final
+/// opacity and blend. The domain includes the producer's resolved non-painted
+/// extent contributions; it is neither a tight geometry box nor a supplemental
+/// margin. Reconstructing it from visible paints, enlarging it conservatively,
+/// or enclosing contributors after mapping states a different source.
+///
+/// `source_to_stream` maps the already-enclosed rectangle into its containing
+/// [`crate::FrameItems`] coordinates: frame space for a frame, tile-local space
+/// for a repeating program. Child node transforms keep their existing meaning;
+/// this mapping is not an inherited transform. Each nested blend boundary owns
+/// its own declaration and completed source; it does not donate its descendants
+/// as fresh geometry to an enclosing boundary.
+///
+/// This fact supplies no paint and introduces no geometric clip. Output clipping
+/// stays a separate operation. It carries no host view, device grid, allocation,
+/// or raster policy. Current-view mapping and device enclosure remain execution
+/// work. A consumer unable to honor a declaration must refuse it, not ignore it
+/// or replace its map with identity.
+///
+/// Construction checks numerical usability only. It neither performs enclosure
+/// nor proves that the producer's declaration is complete. There is no integer
+/// coordinate requirement: the producer has resolved the enclosure in its own
+/// source space, whose unit need not be a device pixel. Empty domains are not
+/// admitted; absence is represented by [`ScopeBlend::source_domain`] returning
+/// `None`, which makes no completeness assertion.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct BlendSourceDomain {
+    rect: Rectangle,
+    source_to_stream: AffineTransform,
+}
+
+impl BlendSourceDomain {
+    /// Check an already-enclosed rectangle and retain both supplied facts exactly.
+    ///
+    /// Local endpoints must be finite and strictly ordered in `f32`. The map
+    /// must have a finite determinant and an inverse supported by
+    /// [`AffineTransform::inverse`] (including its small-determinant refusal);
+    /// every inverse member must also be finite. Mapped corners and their
+    /// enclosing rectangle must remain finite and strictly positive in `f32`.
+    /// These checks make no promise about a later host view.
+    pub fn new(
+        rect: Rectangle,
+        source_to_stream: AffineTransform,
+    ) -> Result<Self, BlendSourceDomainError> {
+        if !valid_domain_rectangle(rect) {
+            return Err(BlendSourceDomainError::InvalidRectangle);
+        }
+        let [[a, c, _], [b, d, _]] = source_to_stream.matrix;
+        if !source_to_stream
+            .matrix
+            .into_iter()
+            .flatten()
+            .all(f32::is_finite)
+            || !(a * d - b * c).is_finite()
+            || !source_to_stream
+                .inverse()
+                .is_some_and(|inverse| inverse.matrix.into_iter().flatten().all(f32::is_finite))
+        {
+            return Err(BlendSourceDomainError::InvalidTransform);
+        }
+        let corners = rect
+            .corners()
+            .map(|point| math2::vector2::transform(point, &source_to_stream));
+        // Check every corner before bounding: min/max can otherwise hide NaN.
+        if !corners.into_iter().flatten().all(f32::is_finite)
+            || !valid_domain_rectangle(Rectangle::from_points(&corners))
+        {
+            return Err(BlendSourceDomainError::InvalidMappedBounds);
+        }
+        Ok(Self {
+            rect,
+            source_to_stream,
+        })
+    }
+
+    /// The complete already-enclosed rectangle in source-local coordinates.
+    #[must_use]
+    pub const fn rect(self) -> Rectangle {
+        self.rect
+    }
+
+    /// The exact source-local to containing-stream map, without a host view.
+    #[must_use]
+    pub const fn source_to_stream(self) -> AffineTransform {
+        self.source_to_stream
+    }
+}
+
+fn valid_domain_rectangle(rect: Rectangle) -> bool {
+    rect.x.is_finite()
+        && rect.y.is_finite()
+        && rect.width.is_finite()
+        && rect.height.is_finite()
+        && rect.width > 0.0
+        && rect.height > 0.0
+        && (rect.x + rect.width).is_finite()
+        && (rect.y + rect.height).is_finite()
+        && rect.x + rect.width > rect.x
+        && rect.y + rect.height > rect.y
+}
+
 /// One isolated group's combined final blend and optional opacity.
 ///
 /// Children paint in order against transparent black. Their completed
@@ -102,6 +238,12 @@ pub enum ScopeBlendMode {
 /// This names visual meaning, never a layer allocation, backdrop copy, cache
 /// policy, or authored group.
 ///
+/// An optional [`BlendSourceDomain`] states the complete source domain before
+/// this final operation. Absence preserves the existing group meaning without
+/// asserting completeness. A domain neither creates another scope nor makes an
+/// empty group meaningful, and equality of domains does not erase the backdrop
+/// dependency.
+///
 /// ```
 /// use rframe::{ScopeBlend, ScopeBlendMode, ScopeOpacity};
 ///
@@ -118,6 +260,7 @@ pub enum ScopeBlendMode {
 pub struct ScopeBlend {
     mode: ScopeBlendMode,
     opacity: Option<ScopeOpacity>,
+    source_domain: Option<BlendSourceDomain>,
 }
 
 impl ScopeBlend {
@@ -125,7 +268,24 @@ impl ScopeBlend {
     /// `None` means opacity 1; it never means absence of isolation.
     #[must_use]
     pub const fn new(mode: ScopeBlendMode, opacity: Option<ScopeOpacity>) -> Self {
-        Self { mode, opacity }
+        Self {
+            mode,
+            opacity,
+            source_domain: None,
+        }
+    }
+
+    /// Declare the complete source domain without changing the final operation.
+    #[must_use]
+    pub const fn with_source_domain(mut self, domain: BlendSourceDomain) -> Self {
+        self.source_domain = Some(domain);
+        self
+    }
+
+    /// The declared complete source domain, or no completeness assertion.
+    #[must_use]
+    pub const fn source_domain(self) -> Option<BlendSourceDomain> {
+        self.source_domain
     }
 
     /// The blend function used only when the completed group joins its backdrop.

@@ -691,6 +691,10 @@ excluded.
 > The [B2a source-extent correction](./svg-engine-of-record.md#b2a-linear-gradient-blend-source-extents)
 > adds exact off-phase gradient controls and narrows unproved source
 > combinations by name. It closes a silent-pixel defect, not these rows.
+> The [B2b source-domain rung](./svg-engine-of-record.md#b2b-complete-blend-source-domains)
+> now carries a resolved invisible solid stroke's source contribution beside a
+> live rectangular linear fill. Its forty-four exact cells remove two bounded
+> refusals; wider source spaces and blend values still prevent a tick.
 
 
 ### CSS fonts
