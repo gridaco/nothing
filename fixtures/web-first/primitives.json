@@ -5730,6 +5730,566 @@
       "height": 64
     },
     {
+      "id": "svg-group-blend-sibling-multiply-ancestor-clip",
+      "source": "svg-group-blend-sibling-multiply-ancestor-clip.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-ancestor-clip.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-boundary",
+      "source": "svg-group-blend-sibling-multiply-boundary.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-boundary.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-css",
+      "source": "svg-group-blend-sibling-multiply-css.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-css.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-display",
+      "source": "svg-group-blend-sibling-multiply-display.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-display.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-edge",
+      "source": "svg-group-blend-sibling-multiply-edge.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-edge.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-empty-server",
+      "source": "svg-group-blend-sibling-multiply-empty-server.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-empty-server.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-fill-alpha",
+      "source": "svg-group-blend-sibling-multiply-fill-alpha.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-fill-alpha.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-fill-zero",
+      "source": "svg-group-blend-sibling-multiply-fill-zero.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-fill-zero.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-hidden",
+      "source": "svg-group-blend-sibling-multiply-hidden.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-hidden.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-inherited",
+      "source": "svg-group-blend-sibling-multiply-inherited.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-inherited.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-invalid-fallback",
+      "source": "svg-group-blend-sibling-multiply-invalid-fallback.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-invalid-fallback.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-missing",
+      "source": "svg-group-blend-sibling-multiply-missing.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-missing.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-multiple",
+      "source": "svg-group-blend-sibling-multiply-multiple.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-multiple.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-near-opacity",
+      "source": "svg-group-blend-sibling-multiply-near-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-near-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-neutral",
+      "source": "svg-group-blend-sibling-multiply-neutral.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-neutral.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-none",
+      "source": "svg-group-blend-sibling-multiply-none.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-none.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-none-outside-domain",
+      "source": "svg-group-blend-sibling-multiply-none-outside-domain.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-none-outside-domain.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-normal-elided",
+      "source": "svg-group-blend-sibling-multiply-normal-elided.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-normal-elided.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-outer-opacity",
+      "source": "svg-group-blend-sibling-multiply-outer-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-outer-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-own-opacity",
+      "source": "svg-group-blend-sibling-multiply-own-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-own-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-reversed",
+      "source": "svg-group-blend-sibling-multiply-reversed.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-reversed.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-solid-stroke",
+      "source": "svg-group-blend-sibling-multiply-solid-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-solid-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-stroke-dash",
+      "source": "svg-group-blend-sibling-multiply-stroke-dash.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-stroke-dash.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-stroke-only",
+      "source": "svg-group-blend-sibling-multiply-stroke-only.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-stroke-only.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-stroke-percent",
+      "source": "svg-group-blend-sibling-multiply-stroke-percent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-stroke-percent.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-stroke-px",
+      "source": "svg-group-blend-sibling-multiply-stroke-px.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-stroke-px.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-stroke-thin",
+      "source": "svg-group-blend-sibling-multiply-stroke-thin.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-stroke-thin.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-stroke-zero",
+      "source": "svg-group-blend-sibling-multiply-stroke-zero.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-stroke-zero.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-transparent",
+      "source": "svg-group-blend-sibling-multiply-transparent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-transparent.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-two-ramps",
+      "source": "svg-group-blend-sibling-multiply-two-ramps.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-two-ramps.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-use",
+      "source": "svg-group-blend-sibling-multiply-use.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-use.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-multiply-zero-outside-domain",
+      "source": "svg-group-blend-sibling-multiply-zero-outside-domain.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-multiply-zero-outside-domain.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-promoted-empty-server",
+      "source": "svg-group-blend-sibling-promoted-empty-server.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-promoted-empty-server.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-promoted-fill-zero",
+      "source": "svg-group-blend-sibling-promoted-fill-zero.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-promoted-fill-zero.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-promoted-solid-stroke",
+      "source": "svg-group-blend-sibling-promoted-solid-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-promoted-solid-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-promoted-transparent",
+      "source": "svg-group-blend-sibling-promoted-transparent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-promoted-transparent.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-review-multiply-empty-radial",
+      "source": "svg-group-blend-sibling-review-multiply-empty-radial.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-review-multiply-empty-radial.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-review-screen-empty-radial",
+      "source": "svg-group-blend-sibling-review-screen-empty-radial.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-review-screen-empty-radial.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-ancestor-clip",
+      "source": "svg-group-blend-sibling-screen-ancestor-clip.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-ancestor-clip.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-boundary",
+      "source": "svg-group-blend-sibling-screen-boundary.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-boundary.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-css",
+      "source": "svg-group-blend-sibling-screen-css.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-css.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-display",
+      "source": "svg-group-blend-sibling-screen-display.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-display.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-edge",
+      "source": "svg-group-blend-sibling-screen-edge.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-edge.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-empty-server",
+      "source": "svg-group-blend-sibling-screen-empty-server.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-empty-server.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-fill-alpha",
+      "source": "svg-group-blend-sibling-screen-fill-alpha.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-fill-alpha.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-fill-zero",
+      "source": "svg-group-blend-sibling-screen-fill-zero.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-fill-zero.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-hidden",
+      "source": "svg-group-blend-sibling-screen-hidden.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-hidden.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-inherited",
+      "source": "svg-group-blend-sibling-screen-inherited.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-inherited.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-invalid-fallback",
+      "source": "svg-group-blend-sibling-screen-invalid-fallback.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-invalid-fallback.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-missing",
+      "source": "svg-group-blend-sibling-screen-missing.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-missing.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-multiple",
+      "source": "svg-group-blend-sibling-screen-multiple.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-multiple.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-near-opacity",
+      "source": "svg-group-blend-sibling-screen-near-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-near-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-neutral",
+      "source": "svg-group-blend-sibling-screen-neutral.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-neutral.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-none",
+      "source": "svg-group-blend-sibling-screen-none.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-none.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-none-outside-domain",
+      "source": "svg-group-blend-sibling-screen-none-outside-domain.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-none-outside-domain.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-normal-elided",
+      "source": "svg-group-blend-sibling-screen-normal-elided.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-normal-elided.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-outer-opacity",
+      "source": "svg-group-blend-sibling-screen-outer-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-outer-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-own-opacity",
+      "source": "svg-group-blend-sibling-screen-own-opacity.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-own-opacity.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-reversed",
+      "source": "svg-group-blend-sibling-screen-reversed.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-reversed.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-solid-stroke",
+      "source": "svg-group-blend-sibling-screen-solid-stroke.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-solid-stroke.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-stroke-dash",
+      "source": "svg-group-blend-sibling-screen-stroke-dash.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-stroke-dash.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-stroke-only",
+      "source": "svg-group-blend-sibling-screen-stroke-only.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-stroke-only.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-stroke-percent",
+      "source": "svg-group-blend-sibling-screen-stroke-percent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-stroke-percent.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-stroke-px",
+      "source": "svg-group-blend-sibling-screen-stroke-px.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-stroke-px.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-stroke-thin",
+      "source": "svg-group-blend-sibling-screen-stroke-thin.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-stroke-thin.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-stroke-zero",
+      "source": "svg-group-blend-sibling-screen-stroke-zero.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-stroke-zero.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-transparent",
+      "source": "svg-group-blend-sibling-screen-transparent.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-transparent.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-two-ramps",
+      "source": "svg-group-blend-sibling-screen-two-ramps.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-two-ramps.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-use",
+      "source": "svg-group-blend-sibling-screen-use.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-use.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "id": "svg-group-blend-sibling-screen-zero-outside-domain",
+      "source": "svg-group-blend-sibling-screen-zero-outside-domain.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-group-blend-sibling-screen-zero-outside-domain.png",
+      "width": 64,
+      "height": 64
+    },
+    {
       "id": "svg-group-blend-source-multiply-bevel",
       "source": "svg-group-blend-source-multiply-bevel.svg",
       "entry": "standalone-svg",

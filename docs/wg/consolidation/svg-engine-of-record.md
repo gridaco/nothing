@@ -62,7 +62,8 @@ from the dated addenda below:
   group blending/isolation through a combined resolved blend/opacity scope
   ([B1](#b1-svg-group-blending), with the
   [B2a source-extent correction](#b2a-linear-gradient-blend-source-extents) and
-  [B2b source-domain rung](#b2b-complete-blend-source-domains)); the whole
+  [B2b source-domain rung](#b2b-complete-blend-source-domains) and its
+  [sibling-extent follow-on](#b2b-sibling-extent-follow-on)); the whole
   `transform` grammar in both spellings (the attribute is a
   presentation hint of the CSS `transform` property, and `gradientTransform`
   is that attribute on gradient elements);
@@ -118,7 +119,7 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,467 Chromium-baked primitive cells plus 16 sampled frames,
+- **The corpus** is 1,537 Chromium-baked primitive cells plus 16 sampled frames,
   with a separate sixteen-cell exact text suite whose current cells select
   hash-pinned Ahem and Ahem-derived bytes from explicit family/face
   environments, and eight exact-number artifact-geometry
@@ -129,7 +130,7 @@ from the dated addenda below:
   carrying declared one-code-value ramp-quantization bounds. The measured
   per-cell counts and causes are listed in the
   [corpus record](../../../fixtures/web-first/README.md).
-  The named refusal register has 329 rows.
+  The named refusal register has 351 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -6400,3 +6401,125 @@ reproduced manually; both pass after the root finding was applied. The
 reproducer renewed the original matrices and root refusals, verified the exact
 gate and additions-only bake records, and reran status without further diff.
 Post-root full Web compiler/CLI tests, trace pixels and strict Clippy pass.
+
+## B2b sibling-extent follow-on
+
+The same complete-domain contract now distinguishes non-painted rectangle
+siblings that select a paint from those that have no paint. This is a bounded
+source-membership extension, not a new blend mode or a checklist closure.
+The [admitted-slice record](../../../crates/n0_cli/README.md) owns its boundaries.
+
+Pinned Chromium distinguishes a live fractional linear ramp alone from the
+same ramp with a transparent-fill sibling at `(3.2,5.7)`, size `(13.4,17.2)`:
+236 pixels change for Multiply and 342 for Screen, maximum channel delta one.
+Zero fill opacity and a valid stopless gradient fill have the same effect;
+transparent stroke-only siblings of width four change 291/387 pixels. Hidden
+or display-pruned siblings, explicit absent paint, invalid fill references
+without fallback and zero-width geometry match the absent-sibling control.
+These exact pair comparisons are **(measured, not celled as separate pair
+controls)**; the selected positive cases are independently Chromium-baked below.
+Every candidate in that initial matrix also ran through the actual command in
+both admissions under one binary hash per batch. Its unmodified-baseline admissions were exact;
+the other cases reached the existing named source-extent guard.
+
+The cause is source contribution being discarded with visible paint. Selection
+and drawing are different facts: a selected zero-alpha or empty-server paint
+can still supply its rectangle's local drawable enclosure, while absent paint
+does not. Opacity passes are insufficient to establish membership: singular
+gradients also retain a pass but Chromium disables their source contribution.
+The compiler now preserves stopless versus other disabled server resolutions
+privately, alongside the existing opacity facts. Unproved disabled server
+extents retain a named refusal; opacity passes, node geometry, identities and
+paint order are unchanged. Each contributing rectangle
+is locally enclosed before union; a declaration is installed only for an
+actual blend source containing a linear ramp. A solid-filled sibling with an
+omitted resolved solid local stroke retains its decorated enclosure too.
+No paint is invented and no second traversal, source tree or public field is added.
+
+An independent consumer maintainer accepted a narrow relaxation of the existing
+contract: an identity-mapped paintless rectangle remains valid inside a declared
+source even when its noncontributing geometry lies outside the domain. Ordinary
+finite geometry, exact bounds and unique-owner checks still run. Mapped and
+nonrectangular paintless nodes still refuse; any node with fill or stroke must
+remain enclosed. Four consumer tests independently prove retained geometry,
+no added paint/coverage, strict painted enclosure, balanced saves and
+changed-view reuse equal to fresh execution. The existing painter and
+`rframe` vocabulary are unchanged. No timing or memory improvement is claimed.
+
+Seventy new exact cells cover fill-alpha spellings, empty/invalid paint-server
+selection, invisible solid stroke widths and spellings, solid-filled siblings,
+local enclosure and order, multiple contributors, neutral containers,
+inheritance and author CSS, local instances, own/outer group opacity, ancestor
+clipping, multiple ramps and elided Normal isolation. Absent/hidden/pruned
+controls and noncontributing geometry outside an already declared source guard
+the membership boundary. All use the unchanged hash-pinned Chromium capture;
+no existing oracle or tolerance is changed.
+
+Four former refusal witnesses (`transparent`, `fill-zero`, `empty-gradient`,
+and `stroke-sibling` under `svg-group-blend-linear-extent-`) are preserved as
+`svg-group-blend-sibling-promoted-*` cells. Their minimal cleanup removes only
+unused definitions and changes internal id/whitespace spelling; all four
+old/new Chromium pairs are byte-identical, and both actual admissions are exact.
+Only the obsolete refusal assertions are deliberately removed. Four new
+registered siblings retain the mapped, circular, non-scaling invisible-stroke
+and zero-element-opacity boundaries. The primitive corpus grows from 1,467 to
+1,537; twenty-two additional review-regression witnesses bring the named refusal
+register to 351. The sixteen sampled frames,
+sixteen text-pixel cells and eight geometry witnesses are unchanged.
+
+Zero element opacity, a zero-opacity container, and an explicitly isolated
+zero-opacity leaf also change 236/342 pixels in the initial sibling matrix
+**(measured, not celled as positive cases)**. They remove visual nodes and carry
+composition barriers; this rung does not infer their source contribution from
+an empty surviving stream. They remain named refusals, together with mapped or
+nested source effects, unrepresented repeating-program contributions,
+unresolved/context stroke extents and the unproved root linear source. A root
+cannot borrow a child-domain exemption. These composition gaps belong to the
+still-open blending rows, not to a new untick of the opacity or visibility rows.
+
+Independent review found that paintless filter, mask and clip participation
+could disappear with the elided commands, and a singular gradient could be
+confused with a stopless one. The first prototype silently differed from
+Chromium for offset-filter siblings at 236/342 pixels, blur-filter siblings at
+240/350 pixels, and singular-gradient siblings at 236/342 pixels, all at
+maximum channel delta one. The expanded matrix found the singular result also
+holds when the gradient itself has no stops. These are **(measured, not celled
+as positive cases)**, not admitted approximations. Effect and nested-viewport
+participation now survives no-paint elision as private source-profile facts;
+disabled server resolution does not select fallback or change opacity folding.
+An ancestor clip around an already completed blend remains an exact control.
+
+The first thirteen registered review witnesses cover leaf/container filter, mask and
+clip participation, clipped and overflow-visible paintless nested viewports,
+singular gradients with and without stops, and a solid-painted zero-width
+rectangle outside an already declared source. The latter must be refused by
+the producer before consumer preflight, so best-effort can roll back the whole
+blend group at its stable owner path. Regression tests prove that transaction
+and fail on the first prototype. Ordinary stopless radial fills have their own
+two exact cells; no disabled-gradient admission is inferred from those controls.
+
+Further source review found two earlier normalization points: zero-opacity
+patterns become empty stacks, and valid empty filters or zero-sized filter
+regions return `Hide` before the ordinary effect wrapper. The pattern control
+was exact in both CLI admissions, but cannot establish the wider resource-source
+profile. The filter controls silently differed at 236/342 pixels, maximum
+channel delta one, on shapes, groups, local instances and nested viewports
+**(measured, not celled as positive cases)**. Nine more registered witnesses
+preserve these boundaries. Private pattern provenance survives stack
+normalization; all four filter-hide call sites preserve a source-profile fact
+without inventing geometry, paint or opacity passes. Transactional tests guard
+all four callers, not merely the leaf case.
+
+The gate is sensitivity-tested: deliberately excluding only the new paintless
+contributions from source-domain union makes `just gate` fail fifty-one new
+pixel cells, including the original 236/342-pixel transparent-sibling pair.
+Exact source restoration returns the complete primitive, text and refusal
+gate to green. No existing oracle or tolerance is relaxed to obtain that result.
+
+No Workflow runner was exposed, so the saved verification workflow could not
+be invoked through a Workflow tool. Its independent TICK/LAW and REPRO roles
+were reproduced manually; both pass after all findings above were applied.
+The reproducer renewed the captures and 284 CLI executions under one fixed
+binary, verified old records and oracle bytes, and reran the full gate and
+status without further diff. Full relevant tests, trace execution/pixels,
+formatting, strict Clippy and link/OSS checks pass.

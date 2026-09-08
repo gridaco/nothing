@@ -607,10 +607,10 @@ cargo run -p n0_cli --bin n0 -- \
   The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete primitive corpus contains 1,467 Chromium-baked cells plus
+  cells. The complete primitive corpus contains 1,537 Chromium-baked cells plus
   16 sampled frames; the text estate contains sixteen exact text pixel cells and
   eight exact-number artifact-geometry witnesses (six Allerta and two
-  Bungee), and the named refusal register has 329 rows. `feFlood`, `feComposite`,
+  Bungee), and the named refusal register has 351 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -863,14 +863,26 @@ isolate` have a bounded static SVG group profile. One Stylo computed value
   simple strokes, solid/pattern-filled siblings and own Multiply/Screen group
   opacity. The temporary raster origin follows their outward-rounded
   drawable bounds. A live rectangular linear fill with a resolved positive-width
-  transparent or zero-alpha solid local stroke now retains a complete source
-  domain on its blend scope, without inventing stroke paint. This narrower
-  declaration includes untransformed solid/linear rectangle siblings and simple
+  transparent or zero-alpha solid local stroke retains a complete source
+  domain on its blend scope, without inventing stroke paint. At unit element
+  opacity, non-painted rectangle siblings now supply that domain when they
+  select transparent/zero-alpha fill, a stopless gradient with an admitted
+  invertible transform, or a resolved
+  transparent solid local stroke. The same stroke contribution is retained on
+  a solid-filled sibling. Explicit absent paint and an invalid fill reference
+  without fallback contribute no source extent; hidden/display-pruned shapes
+  likewise do not contribute. Empty-painted rectangle nodes retain their
+  geometry and identity without adding a draw, and need not be enclosed when
+  they are not source contributors. This narrower declaration includes
+  untransformed solid/linear rectangle siblings and simple
   local painted strokes, enclosing each contributor before union. Its local
   endpoints must stay within ±8,388,608 and enclose the resolved painted values
   without inward rounding; a repeating-pattern sibling cannot yet
   enter that declared domain. Mapped contributors, nested source scopes/opacity,
-  non-painted geometry contributors, omitted unresolved/context stroke extents,
+  zero-element/container-opacity contributors, paintless filter/mask/clip or
+  nested-viewport contributors (including filter-hidden targets), disabled
+  gradient and zero-opacity pattern fills, wider non-painted geometry,
+  omitted unresolved/context stroke extents,
   non-scaling invisible strokes, and patterned strokes in a source that
   also paints a linear ramp retain the named `linear-gradient source-extent`
   refusal. This conservatively includes otherwise harmless combinations;

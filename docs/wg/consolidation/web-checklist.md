@@ -695,6 +695,10 @@ excluded.
 > now carries a resolved invisible solid stroke's source contribution beside a
 > live rectangular linear fill. Its forty-four exact cells remove two bounded
 > refusals; wider source spaces and blend values still prevent a tick.
+> Its [sibling-extent follow-on](./svg-engine-of-record.md#b2b-sibling-extent-follow-on)
+> distinguishes selected transparent paint from absent paint on non-painted
+> rectangle siblings, with seventy exact cells and four refusal promotions.
+> Zero-element-opacity and wider source profiles remain guarded; no row ticks.
 
 
 ### CSS fonts

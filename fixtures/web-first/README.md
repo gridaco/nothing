@@ -19,15 +19,29 @@ Every root primitive here is a closed enumeration in `primitives.json` with a
 committed Chromium oracle beside it. Text follows the ratified corpus-growth
 law in its own closed [text estate](./text/README.md): sixteen exact text cells and
 eight exact-number real-font artifact-geometry witnesses. The current evidence
-estate is 1,467 primitive cells plus 16 sampled frames, those twenty-four text
-witnesses, and 329 named refusal rows. Pixel cells use byte equality: what each
-corpus admits is exactly what the engine renders pixel-for-pixel, except only
+estate is 1,537 primitive cells plus 16 sampled frames, those twenty-four text
+witnesses, and 351 named refusal rows. Pixel cells require byte equality, except only
 the primitive rows carrying an explicit measured tolerance block. The
 real-font witness grades geometry before rasterization and makes no Chromium
 pixel claim.
 
+The seventy sibling-extent additions below cover unit-opacity, identity-mapped
+rectangle siblings, including paintless geometry with selected transparent
+fill, zero paint alpha or a stopless gradient with an invertible map. Effects
+inside the source, nested viewports, disabled gradient maps and zero element
+opacity retain named refusal witnesses. The
+[sibling-extent evidence](../../docs/wg/consolidation/svg-engine-of-record.md#b2b-sibling-extent-follow-on)
+separates source membership from visible paint and records the bounded profile.
+
 | File | Role |
 | --- | --- |
+| `svg-group-blend-sibling-{multiply,screen}-{transparent,fill-zero,fill-alpha,empty-server,invalid-fallback}.svg` | Ten selected-paint sibling cells: transparent color, zero fill opacity, zero color alpha, a valid stopless linear server and a missing server with transparent fallback retain source contribution without visible fill. |
+| `svg-group-blend-sibling-{multiply,screen}-{stroke-only,stroke-zero,stroke-thin,stroke-px,stroke-percent,stroke-dash,solid-stroke}.svg` | Fourteen decorated-rectangle cells: omitted transparent/zero-alpha solid strokes, width spellings and inert dash/join state retain local source enclosure, including beside a solid-filled sibling. |
+| `svg-group-blend-sibling-{multiply,screen}-{boundary,edge,reversed,multiple,two-ramps}.svg` | Ten enclosure and composition controls: fractional boundaries, offscreen edges, sibling order, multiple paintless contributors and two live ramps. |
+| `svg-group-blend-sibling-{multiply,screen}-{none,missing,hidden,display,none-outside-domain,zero-outside-domain}.svg` | Twelve noncontribution controls: absent or unresolved paint without fallback, hidden/pruned siblings and absent-paint or zero-width geometry outside an already declared source. Retained paintless geometry must not enlarge that domain. |
+| `svg-group-blend-sibling-{multiply,screen}-{neutral,inherited,css,use,own-opacity,near-opacity,outer-opacity,ancestor-clip,normal-elided}.svg` | Eighteen ownership and boundary controls: neutral containers, inherited/computed fill, local instances, the blend's own opacity, outer opacity, an ancestor clip and elided redundant Normal isolation. The sibling itself remains at unit element opacity. |
+| `svg-group-blend-sibling-promoted-{transparent,fill-zero,empty-server,solid-stroke}.svg` | Four preserved refusal witnesses, promoted from `svg-group-blend-linear-extent-{transparent,fill-zero,empty-gradient,stroke-sibling}.svg` respectively. All four old/new Chromium pairs have equal pixels; cleanup changes only unused definitions, resource ids and whitespace. |
+| `svg-group-blend-sibling-review-{multiply,screen}-empty-radial.svg` | Two stopless-radial sibling controls. The ordinary invertible server retains source contribution and both CLI admissions have zero differing pixels against Chromium. Singular stopless maps remain separately quarantined, not positive cells. |
 | `svg-group-blend-source-{multiply,screen}-{fractional,zeroalpha,integer,width-one,width-fractional,pixel-boundary,edge,sibling,sibling-reversed,opacity-half,opacity-near,outer-opacity,leaf,nested-neutral}.svg` | Twenty-eight exact source-domain cells: a live linear fill retains the source contribution of a transparent or zero-alpha solid stroke. Fractional placement, width changes, source union/order, combined versus outer opacity and boundary ownership exercise the complete enclosure without adding visible stroke paint. |
 | `svg-group-blend-source-multiply-{dashed,bevel,width-px,currentcolor,normal-elided}.svg` · `svg-group-blend-source-screen-{round,width-percent,inherited}.svg` · `svg-group-blend-source-{multiply,screen}-{two-ramps,painted-stroke,outer-clip,use}.svg` | Sixteen exact adjacent controls: alternate omitted-stroke spellings, an elided redundant isolation, multiple drawable enclosures, a live stroke contributor, ancestor clipping and unpositioned local instances. The [source-domain evidence](../../docs/wg/consolidation/svg-engine-of-record.md#b2b-complete-blend-source-domains) separates these admissions from the retained source-space refusals. |
 | `svg-group-blend-extent-multiply-stroke-{none,clear-gradient}.svg` · `svg-group-blend-extent-screen-stroke-{zero-width,transparent-fill}.svg` | Four exact controls for the review-discovered omitted-stroke extent boundary. A retained all-transparent gradient stroke still supplies its geometry; `none` and zero width create no stroke extent; transparent fill does not lose the surrounding live gradient stroke's extent. The newer source-domain cells carry resolved transparent solid strokes; unresolved/context omissions remain separately refused. |

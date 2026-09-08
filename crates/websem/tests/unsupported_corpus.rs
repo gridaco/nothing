@@ -47,6 +47,136 @@ use Departure::{BothRefuse, DeclaredByBestEffort};
 /// a bare "does it error" check and fail this one.
 const CORPUS: &[(&str, Departure, &str)] = &[
     (
+        "svg-group-blend-sibling-review-zero-pattern",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-hide-empty-leaf",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-hide-empty-group",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-hide-empty-use",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-hide-empty-viewport",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-hide-zero-region-leaf",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-hide-zero-region-group",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-hide-zero-region-use",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-hide-zero-region-viewport",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-leaf-offset",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-group-offset",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-leaf-blur",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-group-blur",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-leaf-mask",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-group-mask",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-leaf-clip",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-group-clip",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-nested-clipped",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-nested-visible",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-singular",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-stopless-singular",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-review-painted-zero-domain",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-domain-mapped",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-domain-circle",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-domain-non-scaling",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
+        "svg-group-blend-sibling-domain-opacity",
+        DeclaredByBestEffort,
+        "linear-gradient source-extent",
+    ),
+    (
         "svg-group-blend-source-domain-root-transparent",
         BothRefuse,
         "linear-gradient source-extent",
@@ -102,11 +232,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
         "linear-gradient source-extent",
     ),
     (
-        "svg-group-blend-linear-extent-stroke-sibling",
-        DeclaredByBestEffort,
-        "linear-gradient source-extent",
-    ),
-    (
         "svg-group-blend-linear-extent-root-opacity",
         BothRefuse,
         "linear-gradient source-extent",
@@ -138,21 +263,6 @@ const CORPUS: &[(&str, Departure, &str)] = &[
     ),
     (
         "svg-group-blend-linear-extent-zero-opacity",
-        DeclaredByBestEffort,
-        "linear-gradient source-extent",
-    ),
-    (
-        "svg-group-blend-linear-extent-transparent",
-        DeclaredByBestEffort,
-        "linear-gradient source-extent",
-    ),
-    (
-        "svg-group-blend-linear-extent-fill-zero",
-        DeclaredByBestEffort,
-        "linear-gradient source-extent",
-    ),
-    (
-        "svg-group-blend-linear-extent-empty-gradient",
         DeclaredByBestEffort,
         "linear-gradient source-extent",
     ),
