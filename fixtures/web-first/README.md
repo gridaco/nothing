@@ -19,7 +19,7 @@ Every root primitive here is a closed enumeration in `primitives.json` with a
 committed Chromium oracle beside it. Text follows the ratified corpus-growth
 law in its own closed [text estate](./text/README.md): sixteen exact text cells and
 eight exact-number real-font artifact-geometry witnesses. The current evidence
-estate is 1,537 primitive cells plus 16 sampled frames, those twenty-four text
+estate is 1,539 primitive cells plus 16 sampled frames, those twenty-four text
 witnesses, and 351 named refusal rows. Pixel cells require byte equality, except only
 the primitive rows carrying an explicit measured tolerance block. The
 real-font witness grades geometry before rasterization and makes no Chromium
@@ -35,6 +35,7 @@ separates source membership from visible paint and records the bounded profile.
 
 | File | Role |
 | --- | --- |
+| `svg-upstream-resvg-rect-simple-case.svg` · `svg-upstream-resvg-rect-blue-control.svg` | Assertion-harness pilot: the unchanged upstream sharp rectangle and a separate subject-fill color control, captured at a 500×500 initial viewport. Both are exact in strict and best-effort CLI renders; changing only green to blue changes 160,000 Chromium pixels at maximum channel delta 255. Imported from resvg-test-suite revision `d8e064337faf01bc5a9579187a56dbdbe3eacc72`, `tests/shapes/rect/simple-case.svg`, under [its MIT notice](./LICENSE.resvg). These are scene assertions, not a new feature grant. |
 | `svg-group-blend-sibling-{multiply,screen}-{transparent,fill-zero,fill-alpha,empty-server,invalid-fallback}.svg` | Ten selected-paint sibling cells: transparent color, zero fill opacity, zero color alpha, a valid stopless linear server and a missing server with transparent fallback retain source contribution without visible fill. |
 | `svg-group-blend-sibling-{multiply,screen}-{stroke-only,stroke-zero,stroke-thin,stroke-px,stroke-percent,stroke-dash,solid-stroke}.svg` | Fourteen decorated-rectangle cells: omitted transparent/zero-alpha solid strokes, width spellings and inert dash/join state retain local source enclosure, including beside a solid-filled sibling. |
 | `svg-group-blend-sibling-{multiply,screen}-{boundary,edge,reversed,multiple,two-ramps}.svg` | Ten enclosure and composition controls: fractional boundaries, offscreen edges, sibling order, multiple paintless contributors and two live ramps. |
@@ -482,3 +483,12 @@ stale one. Probe *matrices* stay scratch and are never committed; a probe is a
 question asked once, and what it proves lands as cells and README rows, not as
 a shadow corpus. The pre-landing verification ritual is the saved
 `verify-rung` workflow (`.agents/workflows/verify-rung.js`).
+
+`assertions-test` checks the separate assertion-tool contracts;
+`assertions-gate <new-absolute-output-directory>` runs its small actual-CLI pilot
+and fresh Chromium captures. The [SVG assertion tool](../../packages/grida-reftest/svg-assertions/README.md)
+records each described claim, reference decision, both admissions and their
+diagnostics, independent exact image comparisons, and a discrete verdict. A
+verified refusal is not rendering support; unresolved or missing required
+cases cannot silently pass. This supplements the existing corpus gates and
+uses the same capture module. It does not create a score or a second checklist.

@@ -30,6 +30,11 @@ in [the statement of record](../../../crates/n0_cli/README.md), rung history
 in [the D-N register](./svg-engine-of-record.md), and no score is computed
 from this list (FLIP is unratified).
 
+The [SVG assertion harness](../../../packages/grida-reftest/svg-assertions/README.md)
+distinguishes described rendering assertions, named refusals, and unresolved
+observations. None of those individual results substitutes for this checklist's
+full-grammar tick rule.
+
 
 ## HTML
 

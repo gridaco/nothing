@@ -54,6 +54,14 @@ jobs:
             rust-toolchain.toml \
             crates \
             fixtures \
+            packages/grida-reftest/svg-assertions \
+            packages/grida-reftest/package.json \
+            packages/grida-reftest/tsconfig.json \
+            packages/grida-reftest/vitest.config.ts \
+            package.json \
+            pnpm-lock.yaml \
+            pnpm-workspace.yaml \
+            .nvmrc \
             third_party; then
             engine=true
           fi
@@ -158,6 +166,39 @@ jobs:
           cargo test --locked -p websem --test architecture
           cargo test --locked -p rframe --test architecture
           cargo test --locked -p n0 --test architecture
+
+      - name: Setup pnpm for the SVG assertion pilot
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node for the SVG assertion pilot
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install the pinned assertion-tool dependencies and Chromium
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm -C packages/grida-reftest exec playwright install --with-deps chromium
+
+      - name: Verify assertion contracts and the actual n0 CLI pilot
+        env:
+          FORCE_SKIA_BINARIES_DOWNLOAD: "1"
+        run: |
+          pnpm -C packages/grida-reftest exec tsc --noEmit -p svg-assertions/tsconfig.json
+          pnpm -C packages/grida-reftest exec vitest run svg-assertions --passWithNoTests=false
+          pnpm -C packages/grida-reftest exec tsx svg-assertions/cli.ts \
+            --manifest "$GITHUB_WORKSPACE/packages/grida-reftest/svg-assertions/pilot.json" \
+            --out "$GITHUB_WORKSPACE/target/svg-assertion-pilot"
+
+      - name: Upload SVG assertion observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: svg-assertion-pilot-${{ github.run_id }}
+          path: target/svg-assertion-pilot/
+          if-no-files-found: warn
+          retention-days: 7
 
   legacy_pixel_sweep:
     name: legacy pixel sweep
