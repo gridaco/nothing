@@ -12,5 +12,5 @@
     "resolveJsonModule": true,
     "isolatedModules": true
   },
-  "exclude": ["svg-assertions"]
+  "exclude": ["node_modules", "svg-assertions"]
 }

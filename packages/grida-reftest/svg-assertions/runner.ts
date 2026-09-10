@@ -130,6 +130,66 @@ function successful(e: Execution): boolean {
   return e.exit === 0 && !e.signal && !e.error;
 }
 
+export function executionFailure(e: Execution): string {
+  return (
+    e.error ||
+    e.stderr.trim() ||
+    (e.signal
+      ? `signal ${e.signal}`
+      : e.exit === null
+        ? "no exit status"
+        : `exit code ${e.exit}`)
+  );
+}
+
+/** Keep failed capture slots: a second image never masquerades as repeat zero. */
+export async function chromiumObservation(
+  execution: Execution,
+  read: (index: number) => Promise<ImageRecord>
+): Promise<Observation> {
+  const observation: Observation = {
+    samples: [],
+    invocation: execution,
+    problem: successful(execution)
+      ? null
+      : `Chromium capture failed: ${executionFailure(execution)}`,
+  };
+  for (let i = 0; i < 2; i++) {
+    let image: ImageRecord | null = null;
+    try {
+      image = await read(i);
+    } catch (error) {
+      observation.problem ??= `Chromium output unavailable: ${String(error)}`;
+    }
+    observation.samples.push({
+      execution,
+      diagnostics: execution.stderr.trim(),
+      image,
+    });
+  }
+  return observation;
+}
+
+export function firstSampleComparisons(
+  observations: Record<string, Observation>,
+  images: ReadonlyMap<string, Image>
+): Record<string, Comparison> {
+  const result: Record<string, Comparison> = {};
+  const labels = ["strict", "best", "chromium", "baked", "stored", "resvg"];
+  for (let i = 0; i < labels.length; i++) {
+    for (const right of labels.slice(i + 1)) {
+      const left = labels[i];
+      const a = observations[left]?.samples[0]?.image,
+        b = observations[right]?.samples[0]?.image;
+      const leftImage = a ? images.get(a.path) : undefined,
+        rightImage = b ? images.get(b.path) : undefined;
+      if (leftImage && rightImage)
+        result[`${left}-${right}`] = compare(leftImage, rightImage);
+    }
+  }
+  return result;
+}
+
 /** Remove only the CLI's exact known success footer for this invocation.
  * Everything else, including unknown stderr/stdout, remains evidence. */
 export function cliDiagnostics(
@@ -445,24 +505,16 @@ export async function run(options: Options): Promise<Report> {
         String(c.height),
         suite.capture.browser_version,
       ]);
-      chromium.invocation = execution;
-      if (!successful(execution))
-        chromium.problem = `Chromium capture failed: ${execution.error ?? execution.stderr ?? execution.signal}`;
-      for (let i = 0; i < 2; i++) {
-        try {
-          const { record } = await image(
-            join(out, c.id, `chromium-${i}.png`),
-            i === 0 ? images : undefined
-          );
-          chromium.samples.push({
-            execution,
-            diagnostics: execution.stderr.trim(),
-            image: record,
-          });
-        } catch (error) {
-          chromium.problem ??= `Chromium output unavailable: ${String(error)}`;
-        }
-      }
+      observations.chromium = await chromiumObservation(
+        execution,
+        async (i) =>
+          (
+            await image(
+              join(out, c.id, `chromium-${i}.png`),
+              i === 0 ? images : undefined
+            )
+          ).record
+      );
     }
     const resvg: Observation = { samples: [], problem: null };
     observations.resvg = resvg;
@@ -497,19 +549,7 @@ export async function run(options: Options): Promise<Report> {
         });
       }
     if (!resvg.problem) resvg.problem = repeatProblem(resvg);
-    const labels = ["strict", "best", "chromium", "baked", "stored", "resvg"];
-    const pairs = labels.flatMap((left, i) =>
-      labels.slice(i + 1).map((right) => [left, right])
-    );
-    for (const [left, right] of pairs) {
-      const a = observations[left].samples[0]?.image,
-        b = observations[right].samples[0]?.image;
-      if (a && b)
-        result.pairs[`${left}-${right}`] = compare(
-          images.get(a.path)!,
-          images.get(b.path)!
-        );
-    }
+    result.pairs = firstSampleComparisons(observations, images);
   }
   for (const result of results) {
     const c = result.case;

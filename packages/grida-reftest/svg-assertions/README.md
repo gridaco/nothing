@@ -20,6 +20,7 @@ and the Node/pnpm versions pinned by the repository, then:
 pnpm install --frozen-lockfile
 pnpm -C packages/grida-reftest exec playwright install chromium
 just -f fixtures/web-first/justfile assertions-test
+mkdir -p target
 just -f fixtures/web-first/justfile assertions-gate "$PWD/target/svg-assertion-pilot"
 ```
 

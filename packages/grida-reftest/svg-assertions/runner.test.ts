@@ -1,10 +1,83 @@
 import { describe, expect, it } from "vitest";
-import { cliDiagnostics, command, readBounded } from "./runner";
+import {
+  chromiumObservation,
+  cliDiagnostics,
+  command,
+  executionFailure,
+  firstSampleComparisons,
+  readBounded,
+} from "./runner";
+import { repeatProblem, type Execution, type ImageRecord } from "./model";
 import { escapeHtml } from "./report";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
+
+describe("partial Chromium observations", () => {
+  const execution: Execution = {
+    command: ["capture"],
+    exit: 0,
+    signal: null,
+    error: null,
+    stdout: "",
+    stderr: "",
+  };
+  const record: ImageRecord = {
+    path: "chromium-1.png",
+    png_sha256: "a".repeat(64),
+    rgba_sha256: "b".repeat(64),
+    width: 1,
+    height: 1,
+  };
+  it("retains missing repeat zero without promoting repeat one or crashing comparisons", async () => {
+    const partial = await chromiumObservation(execution, async (i) => {
+      if (i === 0) throw new Error("missing first PNG");
+      return record;
+    });
+    expect(partial.samples).toHaveLength(2);
+    expect(partial.samples[0].image).toBeNull();
+    expect(partial.samples[1].image).toBe(record);
+    expect(partial.problem).toContain("missing first PNG");
+    expect(repeatProblem(partial)).not.toBeNull();
+    expect(firstSampleComparisons({ chromium: partial }, new Map())).toEqual(
+      {}
+    );
+  });
+  it("guards absent decoded pixels even when image metadata exists", async () => {
+    const complete = await chromiumObservation(execution, async () => record);
+    expect(
+      firstSampleComparisons(
+        { strict: complete, chromium: complete },
+        new Map()
+      )
+    ).toEqual({});
+    const images = new Map([
+      [record.path, { width: 1, height: 1, rgba: Buffer.alloc(4) }],
+    ]);
+    expect(
+      firstSampleComparisons({ strict: complete, chromium: complete }, images)[
+        "strict-chromium"
+      ].relation
+    ).toBe("exact-rgba");
+  });
+  it("names signal and exit-only failures even with empty stderr", async () => {
+    expect(
+      executionFailure({ ...execution, exit: null, signal: "SIGKILL" })
+    ).toBe("signal SIGKILL");
+    expect(executionFailure({ ...execution, exit: 7, stderr: "  " })).toBe(
+      "exit code 7"
+    );
+    expect(executionFailure({ ...execution, exit: null })).toBe(
+      "no exit status"
+    );
+    const failed = await chromiumObservation(
+      { ...execution, exit: 7 },
+      async () => record
+    );
+    expect(failed.problem).toBe("Chromium capture failed: exit code 7");
+  });
+});
 
 describe("bounded file observations", () => {
   it.skipIf(process.platform === "win32")(

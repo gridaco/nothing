@@ -6572,12 +6572,18 @@ required contract-test invocation fails when no tests are discovered.
 These are instrument protections, not changes to engine semantics or oracles.
 
 The independent reproducer renewed the scratch control, all existing fixture
-gates and STATUS, then ran the final tool against both admissions with fresh
+gates and STATUS, then ran the pilot against both admissions with fresh
 Chromium and separately pinned resvg/stored observations. Both rendering
 assertions and the named-refusal assertion pass, with tool/input identities
-unchanged. Full relevant Rust tests, formatting, strict Clippy, 37 tool-contract
+unchanged. Full relevant Rust tests, formatting, strict Clippy, 40 tool-contract
 tests, typechecks and link/OSS checks pass. No Workflow runner was exposed:
 TICK/LAW and REPRO ran as manual independent roles. Two TICK/LAW audits produced
 the fixes above; a final audit attempt was blocked by a tool-policy error.
-The fixes have local regression checks and final independent REPRO evidence,
+The fixes have local regression checks and independent REPRO evidence,
 but no final independent TICK/LAW approval is claimed.
+
+PR review additionally guards partial Chromium output without losing the
+report: missing repeat zero keeps its empty slot instead of promoting repeat
+one, comparisons check for decoded pixels, and capture failures retain signal
+or exit-code causes even with empty stderr. Regressions exercise those branches;
+the renewed actual-CLI pilot remains exact after the changes.
