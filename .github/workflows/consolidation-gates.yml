@@ -98,7 +98,7 @@ jobs:
     timeout-minutes: 45
     env:
       # Reports are immutable observations, not reusable Cargo build outputs.
-      SVG_ASSERTION_OUT: ${{ runner.temp }}/svg-assertion-pilot-${{ github.run_id }}-${{ github.run_attempt }}
+      SVG_ASSERTION_DIR: svg-assertion-pilot-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Checkout head revision
         uses: actions/checkout@v4
@@ -193,14 +193,14 @@ jobs:
           pnpm -C packages/grida-reftest exec vitest run svg-assertions --passWithNoTests=false
           pnpm -C packages/grida-reftest exec tsx svg-assertions/cli.ts \
             --manifest "$GITHUB_WORKSPACE/packages/grida-reftest/svg-assertions/pilot.json" \
-            --out "$SVG_ASSERTION_OUT"
+            --out "$RUNNER_TEMP/$SVG_ASSERTION_DIR"
 
       - name: Upload SVG assertion observations
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: svg-assertion-pilot-${{ github.run_id }}
-          path: ${{ env.SVG_ASSERTION_OUT }}
+          path: ${{ runner.temp }}/${{ env.SVG_ASSERTION_DIR }}
           if-no-files-found: warn
           retention-days: 7
 
