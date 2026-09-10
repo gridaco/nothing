@@ -59,3 +59,13 @@ status:
 # entry is `standalone-svg` or `html-inline-svg`.
 add id source entry="standalone-svg":
     python3 {{justfile_directory()}}/add_cell.py {{id}} --source {{source}} --entry {{entry}}
+
+# Assertion-tool contracts and deliberately failing synthetic controls; no scores.
+assertions-test:
+    {{node_env}} pnpm -C {{justfile_directory()}}/../../packages/grida-reftest exec tsc --noEmit -p svg-assertions/tsconfig.json
+    {{node_env}} pnpm -C {{justfile_directory()}}/../../packages/grida-reftest exec vitest run svg-assertions --passWithNoTests=false
+
+# Actual CLI pilot + fresh pinned Chromium, with a new absolute output directory.
+# This supplements, and does not replace, the existing full fixture gate.
+assertions-gate out:
+    {{node_env}} {{cargo_env}} pnpm -C {{justfile_directory()}}/../../packages/grida-reftest exec tsx {{justfile_directory()}}/../../packages/grida-reftest/svg-assertions/cli.ts --manifest {{justfile_directory()}}/../../packages/grida-reftest/svg-assertions/pilot.json --out "{{out}}"

@@ -119,7 +119,7 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,537 Chromium-baked primitive cells plus 16 sampled frames,
+- **The corpus** is 1,539 Chromium-baked primitive cells plus 16 sampled frames,
   with a separate sixteen-cell exact text suite whose current cells select
   hash-pinned Ahem and Ahem-derived bytes from explicit family/face
   environments, and eight exact-number artifact-geometry
@@ -6523,3 +6523,67 @@ The reproducer renewed the captures and 284 CLI executions under one fixed
 binary, verified old records and oracle bytes, and reran the full gate and
 status without further diff. Full relevant tests, trace execution/pixels,
 formatting, strict Clippy and link/OSS checks pass.
+
+## 2026-09-09 — assertion-driven SVG harness pilot
+
+The owner-approved [assertion proposal](https://github.com/gridaco/nothing/issues/140)
+adds an observation and regression instrument, not a rendering capability or a
+new support inventory. Its [contract and setup](../../../packages/grida-reftest/svg-assertions/README.md)
+separate input identity, a described claim, renderer observations, the chosen
+reference, and a discrete verdict. A named-refusal assertion cannot be read as
+rendering support; a required unresolved/missing case cannot become a passing
+gate. Image differences remain diagnostic evidence, never a similarity score.
+
+The pilot imports the unchanged resvg-test-suite sharp-rectangle source and a
+separate color-control derivative through the existing primitive workflow,
+with upstream identity and MIT notice retained. Each is exact to its own
+Chromium oracle at a 500×500 initial viewport, in both actual CLI admissions.
+Changing only the subject fill changes 160,000 Chromium pixels at maximum
+channel delta 255, while the decorative frame and underlay remain unchanged.
+The existing geometry-unit refusal witness supplies the separate refusal
+assertion; it is not promoted or duplicated in the refusal register.
+
+The complete primitive corpus now contains 1,539 cells. The 351 refusal rows,
+16 sampled frames, 16 exact text cells and eight geometry witnesses are
+unchanged. No checklist row ticks, existing oracle changes, or new tolerance
+accompanies this instrument. The pinned capture remains the single Chromium
+module, shared by probes, bakes and this runner. Stored upstream PNGs and fresh
+resvg outputs are independent observations, never alternate ways to satisfy a
+declared Chromium assertion. FLIP and legacy-tool retirement remain separate.
+
+For sensitivity, temporarily replacing CSS green with blue at the n0 solid
+paint boundary fails the existing `just gate` on the new upstream rectangle
+with 160,000 differing pixels at maximum delta 255. The assertion pilot also
+fails that rectangle while its blue control and expected-refusal case remain
+passing. The renderer source is restored exactly; no painter change is part
+of the tool. The earlier scratch survey remains **measured, not celled**
+outside these two promoted cases and does not establish a corpus-wide verdict.
+
+Independent review caught an image-decoder contract mismatch before landing:
+the pinned decoder erases hidden RGB for non-palette `tRNS` and accepts a
+replacement PNG header after the initial dimension check. The harness now
+validates bounded chunk framing, CRCs and one leading header before allocation,
+then strict bounded decompression and the exact scanline extent before pixels;
+encodings that cannot preserve this profile's exact RGBA8 meaning explicitly
+refuse. Palette transparency remains lossless and tested. Decoded buffers are
+case-local, repeats retain hashes, and controls reload one verified pair at a
+time. Nonregular file inputs refuse without blocking on a FIFO writer. The
+required contract-test invocation fails when no tests are discovered.
+These are instrument protections, not changes to engine semantics or oracles.
+
+The independent reproducer renewed the scratch control, all existing fixture
+gates and STATUS, then ran the pilot against both admissions with fresh
+Chromium and separately pinned resvg/stored observations. Both rendering
+assertions and the named-refusal assertion pass, with tool/input identities
+unchanged. Full relevant Rust tests, formatting, strict Clippy, 40 tool-contract
+tests, typechecks and link/OSS checks pass. No Workflow runner was exposed:
+TICK/LAW and REPRO ran as manual independent roles. Two TICK/LAW audits produced
+the fixes above; a final audit attempt was blocked by a tool-policy error.
+The fixes have local regression checks and independent REPRO evidence,
+but no final independent TICK/LAW approval is claimed.
+
+PR review additionally guards partial Chromium output without losing the
+report: missing repeat zero keeps its empty slot instead of promoting repeat
+one, comparisons check for decoded pixels, and capture failures retain signal
+or exit-code causes even with empty stderr. Regressions exercise those branches;
+the renewed actual-CLI pilot remains exact after the changes.

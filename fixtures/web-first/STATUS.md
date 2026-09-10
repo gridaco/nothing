@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (1537)
+## Chromium-baked cells (1539)
 
 Cells are checked against their committed Chromium oracles using
 exact bytes unless a manifest entry declares a measured, bounded
@@ -1490,6 +1490,8 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-transform-no-separator.svg" title="svg-transform-no-separator (standalone-svg)"><img src="./chromium/svg-transform-no-separator.png" width="56" alt="svg-transform-no-separator"></a>
 <a href="./svg-transform-runtogether.svg" title="svg-transform-runtogether (standalone-svg)"><img src="./chromium/svg-transform-runtogether.png" width="56" alt="svg-transform-runtogether"></a>
 <a href="./svg-translucent-fill-rgba.svg" title="svg-translucent-fill-rgba (standalone-svg)"><img src="./chromium/svg-translucent-fill-rgba.png" width="56" alt="svg-translucent-fill-rgba"></a>
+<a href="./svg-upstream-resvg-rect-blue-control.svg" title="svg-upstream-resvg-rect-blue-control (standalone-svg)"><img src="./chromium/svg-upstream-resvg-rect-blue-control.png" width="56" alt="svg-upstream-resvg-rect-blue-control"></a>
+<a href="./svg-upstream-resvg-rect-simple-case.svg" title="svg-upstream-resvg-rect-simple-case (standalone-svg)"><img src="./chromium/svg-upstream-resvg-rect-simple-case.png" width="56" alt="svg-upstream-resvg-rect-simple-case"></a>
 <a href="./svg-use.svg" title="svg-use (standalone-svg)"><img src="./chromium/svg-use.png" width="56" alt="svg-use"></a>
 <a href="./svg-use-ancestor-circle.svg" title="svg-use-ancestor-circle (standalone-svg)"><img src="./chromium/svg-use-ancestor-circle.png" width="56" alt="svg-use-ancestor-circle"></a>
 <a href="./svg-use-chain.svg" title="svg-use-chain (standalone-svg)"><img src="./chromium/svg-use-chain.png" width="56" alt="svg-use-chain"></a>

@@ -11857,6 +11857,22 @@
       "height": 64
     },
     {
+      "id": "svg-upstream-resvg-rect-blue-control",
+      "source": "svg-upstream-resvg-rect-blue-control.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-upstream-resvg-rect-blue-control.png",
+      "width": 500,
+      "height": 500
+    },
+    {
+      "id": "svg-upstream-resvg-rect-simple-case",
+      "source": "svg-upstream-resvg-rect-simple-case.svg",
+      "entry": "standalone-svg",
+      "oracle": "chromium/svg-upstream-resvg-rect-simple-case.png",
+      "width": 500,
+      "height": 500
+    },
+    {
       "id": "svg-use",
       "source": "svg-use.svg",
       "entry": "standalone-svg",

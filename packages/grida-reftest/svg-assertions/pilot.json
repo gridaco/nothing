@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "profile": "static-self-contained-svg-v1",
+  "capture": {
+    "sha256": "069296201718c43d29efe356fbea893781b73250dca51de3b6d47468d74027b0",
+    "browser_version": "149.0.7827.55"
+  },
+  "cases": [
+    {
+      "id": "resvg-rect-green",
+      "source": {
+        "path": "../../../fixtures/web-first/svg-upstream-resvg-rect-simple-case.svg",
+        "sha256": "0b487592d89c6e43573eb91eb92cb18b85bd5139c31143f534ba3e43a9dfd0cc"
+      },
+      "description": "The unchanged upstream green rectangle covers the red underlay and matches the declared Chromium raster at a 500x500 initial viewport. This asserts this scene, not the whole rect grammar.",
+      "required": true,
+      "width": 500,
+      "height": 500,
+      "review": {
+        "status": "reviewed",
+        "reason": "Static viewBox-only, self-contained path/rect scene with no text or external resources. Upstream resvg-test-suite d8e064337faf01bc5a9579187a56dbdbe3eacc72, tests/shapes/rect/simple-case.svg; MIT notice in fixtures/web-first/LICENSE.resvg. Only the subject fill differs from its blue control.",
+        "blockers": []
+      },
+      "assertion": {
+        "kind": "render-exact",
+        "reference": {
+          "path": "../../../fixtures/web-first/chromium/svg-upstream-resvg-rect-simple-case.png",
+          "sha256": "4fd110181e80bc6c24e6d9cc2d273ad477d3c82c5fb57bef0fb871f4d08a063c"
+        },
+        "decision": "Pinned Chromium compatibility under the existing Web-first capture; no resvg alternative or tolerance. Source and oracle are registered in primitives.json/oracle-bake.json.",
+        "control": {
+          "case": "resvg-rect-blue",
+          "why": "Changing only the subject rectangle's green fill to blue must change the captured pixels; the decorative frame is unchanged. The probe changes 160000 pixels at maximum channel delta 255."
+        }
+      },
+      "stored": null
+    },
+    {
+      "id": "resvg-rect-blue",
+      "source": {
+        "path": "../../../fixtures/web-first/svg-upstream-resvg-rect-blue-control.svg",
+        "sha256": "18722a00cf6f1b0bfb417dbca3c4a59237b628150f5bebaff467cde54c386b14"
+      },
+      "description": "The separately identified blue-fill derivative renders the same geometry and hides the same red underlay. It must match its own declared Chromium raster, not the green original.",
+      "required": true,
+      "width": 500,
+      "height": 500,
+      "review": {
+        "status": "reviewed",
+        "reason": "Same static self-contained 500x500 profile as resvg-rect-green; derived only by replacing the subject fill with blue. MIT notice in fixtures/web-first/LICENSE.resvg.",
+        "blockers": []
+      },
+      "assertion": {
+        "kind": "render-exact",
+        "reference": {
+          "path": "../../../fixtures/web-first/chromium/svg-upstream-resvg-rect-blue-control.png",
+          "sha256": "6bdaceeba4a8327ece87bea27a7819434563957e8cbcdf0d4c93648aee04460a"
+        },
+        "decision": "Pinned Chromium compatibility for the independent color control, registered in the existing primitive corpus. No resvg alternative or tolerance.",
+        "control": {
+          "case": "resvg-rect-green",
+          "why": "Restoring only the subject fill to green must change the picture while leaving the geometry and decorative frame unchanged."
+        }
+      },
+      "stored": null
+    },
+    {
+      "id": "geometry-unit-refusal",
+      "source": {
+        "path": "../../../fixtures/web-first/unsupported/svg-geometry-unit-values.svg",
+        "sha256": "d86e72339168f894a4cdfe4f6e0b0b8d693db852608be75ab4bbd73e7ad9f6d1"
+      },
+      "description": "Verify the existing cx/cy/r unit-value refusals through the actual CLI: strict rejects the first circle; best effort names each skipped circle. This does not assert rendered support for these units or the correctness of fallback pixels.",
+      "required": true,
+      "width": 64,
+      "height": 64,
+      "review": {
+        "status": "reviewed",
+        "reason": "Existing registered unsupported-corpus witness; static 64x64 source, no external resources or text. The original Rust refusal gate remains authoritative for corpus membership.",
+        "blockers": []
+      },
+      "assertion": {
+        "kind": "refusal",
+        "decision": "Guard the exact existing CLI named-degradation contract, independently from any positive image comparison.",
+        "strict": {
+          "exit": 1,
+          "diagnostics": "error: render failed: attribute cx=\"12pt\" is not a number"
+        },
+        "best": {
+          "exit": 0,
+          "diagnostics": "degraded: skipped svg/circle[1]: attribute cx=\"12pt\" is not a number\ndegraded: skipped svg/circle[2]: attribute cy=\"16px\" is not a number\ndegraded: skipped svg/circle[3]: attribute r=\"8px\" is not a number"
+        }
+      },
+      "stored": null
+    }
+  ]
+}
