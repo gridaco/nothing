@@ -182,8 +182,9 @@ jobs:
           pnpm -C packages/grida-reftest exec playwright install --with-deps chromium
 
       - name: Verify assertion contracts and the actual n0 CLI pilot
-        env:
-          FORCE_SKIA_BINARIES_DOWNLOAD: "1"
+        # The registry crate uses its packaged VCS identity for binary downloads.
+        # FORCE_SKIA_BINARIES_DOWNLOAD selects an upstream-checkout test path
+        # which instead builds Skia from source when no Git checkout exists.
         run: |
           pnpm -C packages/grida-reftest exec tsc --noEmit -p svg-assertions/tsconfig.json
           pnpm -C packages/grida-reftest exec vitest run svg-assertions --passWithNoTests=false
