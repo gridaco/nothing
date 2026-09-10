@@ -294,7 +294,10 @@ export async function run(options: Options): Promise<Report> {
       "--bin",
       "n0",
     ],
-    600000
+    // The pinned Linux GL/SVG/WebP combination has no prebuilt Skia archive;
+    // cold source compilation exceeds ten minutes on hosted CI. This build
+    // budget is separate from the one-minute render/capture process bound.
+    20 * 60000
   );
   tools.n0_build = build;
   let n0Path: string | null = null;

@@ -168,11 +168,17 @@ not interchangeable: the manifest review must establish alignment before
 interpreting this additional comparison.
 
 The runner builds `n0_cli` once and then uses `cargo run -p n0_cli --bin n0`
-for every actual render. Execution is sequential and bounded: ten minutes for
+for every actual render. Execution is sequential and bounded: twenty minutes for
 the build, one minute per render/capture process, and bounded captured output.
 Timeouts terminate the process group. Chromium runs through
 [the sole capture module](../../../fixtures/web-first/chromium_capture.ts)
 in a bounded worker; no capture posture is duplicated here.
+
+The cold-build allowance is for compilation, not slow rendering: the pinned
+Linux Skia GL/SVG/WebP feature combination has no matching prebuilt archive,
+and hosted source compilation exceeded the initial ten-minute build bound.
+The enclosing CI job allows its existing 45 minutes plus 20 for this added
+build. It does not change build features to match a different binary archive.
 
 Run on a stable checkout without concurrent Cargo builds/tests or edits to the
 inputs and tools. Cargo lock contention can consume a render's timeout; changing
