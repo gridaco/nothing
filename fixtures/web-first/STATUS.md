@@ -19,7 +19,7 @@ Not a conformance claim: no score is computed or implied (FLIP is
 unratified), and the corpus enumerates constructs, not the SVG
 surface.
 
-## Chromium-baked cells (1539)
+## Chromium-baked cells (1575)
 
 Cells are checked against their committed Chromium oracles using
 exact bytes unless a manifest entry declares a measured, bounded
@@ -35,6 +35,10 @@ to its fixture source. No new image is committed for this view.
 <a href="./html-inline-svg-pattern.html" title="html-inline-svg-pattern (html-inline-svg)"><img src="./chromium/html-inline-svg-pattern.png" width="56" alt="html-inline-svg-pattern"></a>
 <a href="./html-inline-svg-radial-start.html" title="html-inline-svg-radial-start (html-inline-svg)"><img src="./chromium/html-inline-svg-radial-start.png" width="56" alt="html-inline-svg-radial-start"></a>
 <a href="./html-inline-svg-vector-effect.html" title="html-inline-svg-vector-effect (html-inline-svg)"><img src="./chromium/html-inline-svg-vector-effect.png" width="56" alt="html-inline-svg-vector-effect"></a>
+<a href="./html-opacity-source-host-high.html" title="html-opacity-source-host-high (html-inline-svg)"><img src="./chromium/html-opacity-source-host-high.png" width="56" alt="html-opacity-source-host-high"></a>
+<a href="./html-opacity-source-host-low.html" title="html-opacity-source-host-low (html-inline-svg)"><img src="./chromium/html-opacity-source-host-low.png" width="56" alt="html-opacity-source-host-low"></a>
+<a href="./html-opacity-source-root-high.html" title="html-opacity-source-root-high (html-inline-svg)"><img src="./chromium/html-opacity-source-root-high.png" width="56" alt="html-opacity-source-root-high"></a>
+<a href="./html-opacity-source-root-low.html" title="html-opacity-source-root-low (html-inline-svg)"><img src="./chromium/html-opacity-source-root-low.png" width="56" alt="html-opacity-source-root-low"></a>
 <a href="./html-webpage-mockup.html" title="html-webpage-mockup (html-inline-svg)"><img src="./chromium/html-webpage-mockup.png" width="56" alt="html-webpage-mockup"></a>
 <a href="./svg-anchor-container.svg" title="svg-anchor-container (standalone-svg)"><img src="./chromium/svg-anchor-container.png" width="56" alt="svg-anchor-container"></a>
 <a href="./svg-circle-defaults-clip.svg" title="svg-circle-defaults-clip (standalone-svg)"><img src="./chromium/svg-circle-defaults-clip.png" width="56" alt="svg-circle-defaults-clip"></a>
@@ -1009,6 +1013,38 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-opacity-paintless-stages.svg" title="svg-opacity-paintless-stages (standalone-svg)"><img src="./chromium/svg-opacity-paintless-stages.png" width="56" alt="svg-opacity-paintless-stages"></a>
 <a href="./svg-opacity-rotated-group.svg" title="svg-opacity-rotated-group (standalone-svg)"><img src="./chromium/svg-opacity-rotated-group.png" width="56" alt="svg-opacity-rotated-group"></a>
 <a href="./svg-opacity-selected-empty-paints.svg" title="svg-opacity-selected-empty-paints (standalone-svg)"><img src="./chromium/svg-opacity-selected-empty-paints.png" width="56" alt="svg-opacity-selected-empty-paints"></a>
+<a href="./svg-opacity-source-blur-absent.svg" title="svg-opacity-source-blur-absent (standalone-svg)"><img src="./chromium/svg-opacity-source-blur-absent.png" width="56" alt="svg-opacity-source-blur-absent"></a>
+<a href="./svg-opacity-source-blur-arc.svg" title="svg-opacity-source-blur-arc (standalone-svg)"><img src="./chromium/svg-opacity-source-blur-arc.png" width="56" alt="svg-opacity-source-blur-arc"></a>
+<a href="./svg-opacity-source-blur-high.svg" title="svg-opacity-source-blur-high (standalone-svg)"><img src="./chromium/svg-opacity-source-blur-high.png" width="56" alt="svg-opacity-source-blur-high"></a>
+<a href="./svg-opacity-source-blur-low.svg" title="svg-opacity-source-blur-low (standalone-svg)"><img src="./chromium/svg-opacity-source-blur-low.png" width="56" alt="svg-opacity-source-blur-low"></a>
+<a href="./svg-opacity-source-blur-srgb.svg" title="svg-opacity-source-blur-srgb (standalone-svg)"><img src="./chromium/svg-opacity-source-blur-srgb.png" width="56" alt="svg-opacity-source-blur-srgb"></a>
+<a href="./svg-opacity-source-blur-zero.svg" title="svg-opacity-source-blur-zero (standalone-svg)"><img src="./chromium/svg-opacity-source-blur-zero.png" width="56" alt="svg-opacity-source-blur-zero"></a>
+<a href="./svg-opacity-source-disabled-ellipse-height.svg" title="svg-opacity-source-disabled-ellipse-height (standalone-svg)"><img src="./chromium/svg-opacity-source-disabled-ellipse-height.png" width="56" alt="svg-opacity-source-disabled-ellipse-height"></a>
+<a href="./svg-opacity-source-disabled-ellipse-width.svg" title="svg-opacity-source-disabled-ellipse-width (standalone-svg)"><img src="./chromium/svg-opacity-source-disabled-ellipse-width.png" width="56" alt="svg-opacity-source-disabled-ellipse-width"></a>
+<a href="./svg-opacity-source-disabled-rect.svg" title="svg-opacity-source-disabled-rect (standalone-svg)"><img src="./chromium/svg-opacity-source-disabled-rect.png" width="56" alt="svg-opacity-source-disabled-rect"></a>
+<a href="./svg-opacity-source-disabled-rect-height.svg" title="svg-opacity-source-disabled-rect-height (standalone-svg)"><img src="./chromium/svg-opacity-source-disabled-rect-height.png" width="56" alt="svg-opacity-source-disabled-rect-height"></a>
+<a href="./svg-opacity-source-disabled-rect-width.svg" title="svg-opacity-source-disabled-rect-width (standalone-svg)"><img src="./chromium/svg-opacity-source-disabled-rect-width.png" width="56" alt="svg-opacity-source-disabled-rect-width"></a>
+<a href="./svg-opacity-source-enclosing-clip.svg" title="svg-opacity-source-enclosing-clip (standalone-svg)"><img src="./chromium/svg-opacity-source-enclosing-clip.png" width="56" alt="svg-opacity-source-enclosing-clip"></a>
+<a href="./svg-opacity-source-leaf-stroke.svg" title="svg-opacity-source-leaf-stroke (standalone-svg)"><img src="./chromium/svg-opacity-source-leaf-stroke.png" width="56" alt="svg-opacity-source-leaf-stroke"></a>
+<a href="./svg-opacity-source-linear-simple.svg" title="svg-opacity-source-linear-simple (standalone-svg)"><img src="./chromium/svg-opacity-source-linear-simple.png" width="56" alt="svg-opacity-source-linear-simple"></a>
+<a href="./svg-opacity-source-pattern-absent.svg" title="svg-opacity-source-pattern-absent (standalone-svg)"><img src="./chromium/svg-opacity-source-pattern-absent.png" width="56" alt="svg-opacity-source-pattern-absent"></a>
+<a href="./svg-opacity-source-pattern-fractional.svg" title="svg-opacity-source-pattern-fractional (standalone-svg)"><img src="./chromium/svg-opacity-source-pattern-fractional.png" width="56" alt="svg-opacity-source-pattern-fractional"></a>
+<a href="./svg-opacity-source-pattern-high.svg" title="svg-opacity-source-pattern-high (standalone-svg)"><img src="./chromium/svg-opacity-source-pattern-high.png" width="56" alt="svg-opacity-source-pattern-high"></a>
+<a href="./svg-opacity-source-pattern-low.svg" title="svg-opacity-source-pattern-low (standalone-svg)"><img src="./chromium/svg-opacity-source-pattern-low.png" width="56" alt="svg-opacity-source-pattern-low"></a>
+<a href="./svg-opacity-source-pattern-mirror.svg" title="svg-opacity-source-pattern-mirror (standalone-svg)"><img src="./chromium/svg-opacity-source-pattern-mirror.png" width="56" alt="svg-opacity-source-pattern-mirror"></a>
+<a href="./svg-opacity-source-pattern-stroke.svg" title="svg-opacity-source-pattern-stroke (standalone-svg)"><img src="./chromium/svg-opacity-source-pattern-stroke.png" width="56" alt="svg-opacity-source-pattern-stroke"></a>
+<a href="./svg-opacity-source-pattern-translated.svg" title="svg-opacity-source-pattern-translated (standalone-svg)"><img src="./chromium/svg-opacity-source-pattern-translated.png" width="56" alt="svg-opacity-source-pattern-translated"></a>
+<a href="./svg-opacity-source-radial-absent.svg" title="svg-opacity-source-radial-absent (standalone-svg)"><img src="./chromium/svg-opacity-source-radial-absent.png" width="56" alt="svg-opacity-source-radial-absent"></a>
+<a href="./svg-opacity-source-radial-fractional.svg" title="svg-opacity-source-radial-fractional (standalone-svg)"><img src="./chromium/svg-opacity-source-radial-fractional.png" width="56" alt="svg-opacity-source-radial-fractional"></a>
+<a href="./svg-opacity-source-radial-high.svg" title="svg-opacity-source-radial-high (standalone-svg)"><img src="./chromium/svg-opacity-source-radial-high.png" width="56" alt="svg-opacity-source-radial-high"></a>
+<a href="./svg-opacity-source-radial-low.svg" title="svg-opacity-source-radial-low (standalone-svg)"><img src="./chromium/svg-opacity-source-radial-low.png" width="56" alt="svg-opacity-source-radial-low"></a>
+<a href="./svg-opacity-source-radial-mirror.svg" title="svg-opacity-source-radial-mirror (standalone-svg)"><img src="./chromium/svg-opacity-source-radial-mirror.png" width="56" alt="svg-opacity-source-radial-mirror"></a>
+<a href="./svg-opacity-source-radial-simple.svg" title="svg-opacity-source-radial-simple (standalone-svg)"><img src="./chromium/svg-opacity-source-radial-simple.png" width="56" alt="svg-opacity-source-radial-simple"></a>
+<a href="./svg-opacity-source-radial-stroke.svg" title="svg-opacity-source-radial-stroke (standalone-svg)"><img src="./chromium/svg-opacity-source-radial-stroke.png" width="56" alt="svg-opacity-source-radial-stroke"></a>
+<a href="./svg-opacity-source-radial-translated.svg" title="svg-opacity-source-radial-translated (standalone-svg)"><img src="./chromium/svg-opacity-source-radial-translated.png" width="56" alt="svg-opacity-source-radial-translated"></a>
+<a href="./svg-opacity-source-radial-uniform.svg" title="svg-opacity-source-radial-uniform (standalone-svg)"><img src="./chromium/svg-opacity-source-radial-uniform.png" width="56" alt="svg-opacity-source-radial-uniform"></a>
+<a href="./svg-opacity-source-root-transparent.svg" title="svg-opacity-source-root-transparent (standalone-svg)"><img src="./chromium/svg-opacity-source-root-transparent.png" width="56" alt="svg-opacity-source-root-transparent"></a>
+<a href="./svg-opacity-source-use.svg" title="svg-opacity-source-use (standalone-svg)"><img src="./chromium/svg-opacity-source-use.png" width="56" alt="svg-opacity-source-use"></a>
 <a href="./svg-opacity-stroke-only-fold.svg" title="svg-opacity-stroke-only-fold (standalone-svg)"><img src="./chromium/svg-opacity-stroke-only-fold.png" width="56" alt="svg-opacity-stroke-only-fold"></a>
 <a href="./svg-opacity-times-fill-opacity.svg" title="svg-opacity-times-fill-opacity (standalone-svg)"><img src="./chromium/svg-opacity-times-fill-opacity.png" width="56" alt="svg-opacity-times-fill-opacity"></a>
 <a href="./svg-opacity-transform-below.svg" title="svg-opacity-transform-below (standalone-svg)"><img src="./chromium/svg-opacity-transform-below.png" width="56" alt="svg-opacity-transform-below"></a>
@@ -1567,7 +1603,7 @@ to its fixture source. No new image is committed for this view.
 <a href="./svg-visibility-rule-beats-attribute.svg" title="svg-visibility-rule-beats-attribute (standalone-svg)"><img src="./chromium/svg-visibility-rule-beats-attribute.png" width="56" alt="svg-visibility-rule-beats-attribute"></a>
 <a href="./svg-visibility-unhide.svg" title="svg-visibility-unhide (standalone-svg)"><img src="./chromium/svg-visibility-unhide.png" width="56" alt="svg-visibility-unhide"></a>
 
-## The refusal register (351)
+## The refusal register (368)
 
 What the slice refuses, by name, in the compiler's own words —
 **both refuse** is a document-level contract; **declared** renders
@@ -1809,11 +1845,28 @@ its row into the cells above.
 | `svg-mask-type-inherit` | declared | skipped svg/rect[2]: unsupported SVG mask: mask-type presentation attribute uses inherit, whose parent computed value is not represented at this Stylo pin |
 | `svg-mask-type-var` | declared | skipped svg/rect[2]: unsupported SVG mask: mask-type presentation attribute uses var(), whose substitution is not represented at this Stylo pin |
 | `svg-mask-var` | declared | skipped svg/rect[2]: unsupported SVG mask: mask presentation attribute uses var(), whose substitution is not represented at this Stylo pin |
+| `svg-opacity-source-child-transform` | declared | skipped svg/g[1]: unsupported computed style: opacity source-extent needs its independently transformed contributor profile |
+| `svg-opacity-source-clipped-contributor` | declared | skipped svg/g[1]: unsupported computed style: opacity source-extent needs the non-nested, completely represented source profile |
+| `svg-opacity-source-complex-stroke` | declared | skipped svg/g[1]: unsupported computed style: opacity source-extent needs its complex-stroke enclosure profile |
+| `svg-opacity-source-enclosing-filter` | declared | skipped svg/g[1]: unsupported computed style: opacity source-extent needs its enclosing filter or mask profile |
+| `svg-opacity-source-enclosing-mask` | declared | skipped svg/g[1]: unsupported computed style: opacity source-extent needs its enclosing filter or mask profile |
+| `svg-opacity-source-marker-client` | declared | skipped svg/path[1]: unsupported computed style: opacity source-extent needs its marker-client source profile |
+| `svg-opacity-source-mask-program` | declared | skipped svg/rect[2]: unsupported SVG mask: mask source cannot be compiled completely: unsupported computed style: opacity source-extent needs its mask, pattern, or marker source-program profile |
+| `svg-opacity-source-nested-contributor` | declared | skipped svg/g[1]: unsupported computed style: opacity source-extent needs the non-nested, completely represented source profile |
+| `svg-opacity-source-omitted-stroke` | declared | skipped svg/g[1]: unsupported computed style: opacity source-extent needs the non-nested, completely represented source profile |
+| `svg-opacity-source-path` | declared | skipped svg/g[1]: unsupported computed style: opacity source-extent needs its path-source enclosure profile |
+| `svg-opacity-source-pattern-program` | declared | skipped svg/g[1]/rect[1]: unsupported fill value "url(#p): pattern #p source cannot compile completely: unsupported computed style: opacity source-extent needs its mask, pattern, or marker source-program profile" |
+| `svg-opacity-source-root-path` | **both refuse** | unsupported computed style: opacity source-extent needs its path-source enclosure profile |
+| `svg-opacity-source-shear` | declared | skipped svg/g[1]: unsupported computed style: opacity source-extent needs its shear or unequal-scale source mapping profile |
+| `svg-opacity-source-transparent-contributor` | declared | skipped svg/g[1]: unsupported computed style: opacity source-extent needs the non-nested, completely represented source profile |
+| `svg-opacity-source-unequal-scale` | declared | skipped svg/g[1]: unsupported computed style: opacity source-extent needs its shear or unequal-scale source mapping profile |
 | `svg-paint-order-attribute-attr` | declared | skipped svg/rect[2]: unsupported computed style: paint-order presentation attribute uses attr(), whose computed result is not represented at this Stylo pin |
 | `svg-paint-order-attribute-env` | declared | skipped svg/rect[2]: unsupported computed style: paint-order presentation attribute uses env(), whose computed result is not represented at this Stylo pin |
 | `svg-paint-order-attribute-if` | declared | skipped svg/rect[2]: unsupported computed style: paint-order presentation attribute uses if(), whose computed result is not represented at this Stylo pin |
 | `svg-paint-order-attribute-var` | declared | skipped svg/rect[2]: unsupported computed style: paint-order presentation attribute uses var(), whose computed result is not represented at this Stylo pin |
 | `svg-paint-order-css-property` | declared | declaration ignored at svg/style[1]: a stylesheet declares paint-order, which this cascade does not represent; elements it matches render without it |
+| `svg-paint-server-source-filter` | declared | skipped svg/g[1]: unsupported computed style: paint-server source-extent needs its multi-operation filter or mask profile |
+| `svg-paint-server-source-mask` | declared | skipped svg/g[1]: unsupported computed style: paint-server source-extent needs its multi-operation filter or mask profile |
 | `svg-path-css-d-property` | declared | declaration ignored at svg/style[1]: a stylesheet declares d, which this cascade does not represent; elements it matches render without it |
 | `svg-pattern-affine-precision` | declared | skipped svg/rect[2]: unsupported fill value "target mapping carries a general rotation or shear at the pinned-backend picture-shader affine precision boundary" |
 | `svg-pattern-css-transform-percentage` | declared | skipped svg/rect[2]: unsupported fill value "url(#p): pattern transform percentage has no proved reference-box basis" |

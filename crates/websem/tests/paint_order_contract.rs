@@ -293,7 +293,7 @@ fn element_opacity_encloses_the_complete_reordered_span() {
     assert!(matches!(
         frame.items.iter().next(),
         Some(FrameItem::ScopeBegin(scope))
-            if matches!(scope.effect, ScopeEffect::Opacity(opacity) if opacity.get() == 0.55)
+            if matches!(scope.effect, ScopeEffect::Opacity(opacity) if opacity.opacity().get() == 0.55)
     ));
     assert!(matches!(
         frame.items.iter().last(),

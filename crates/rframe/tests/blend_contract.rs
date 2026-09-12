@@ -14,7 +14,7 @@ use rframe::{
     FilterPrimitive, FilterProgram, Frame, FrameItem, FrameItems, FrameItemsError, FrameNode,
     Geometry, Identity, MAX_PATTERN_DEPTH, MAX_SCOPE_DEPTH, Mask, MaskMode, PaintAlphaFactor,
     PaintStack, PaintStackError, PatternPaint, PatternPaintError, Provenance, Scope, ScopeBlend,
-    ScopeBlendMode, ScopeEffect, ScopeOpacity, VisualRef,
+    ScopeBlendMode, ScopeEffect, ScopeOpacity, ScopeOpacityGroup, VisualRef,
 };
 
 const MODES: [ScopeBlendMode; 3] = [
@@ -202,7 +202,10 @@ fn combined_blend_and_opacity_is_distinct_from_two_nested_operations() {
     )));
     let blended = diagram(Some(ScopeBlend::new(ScopeBlendMode::Multiply, None)));
     let mut nested = blended.clone();
-    let mut items = vec![begin(101, ScopeEffect::Opacity(opacity))];
+    let mut items = vec![begin(
+        101,
+        ScopeEffect::Opacity(ScopeOpacityGroup::new(opacity)),
+    )];
     items.extend(blended.items.iter().cloned());
     items.push(FrameItem::ScopeEnd);
     nested.items = checked(items);
@@ -449,7 +452,10 @@ fn blending_preserves_opacity_clip_filter_and_mask_programs() {
     .unwrap();
     let filter = Filter::new(AffineTransform::identity(), rect(), program).unwrap();
     let legacy = checked(vec![
-        begin(1, ScopeEffect::Opacity(ScopeOpacity::new(0.5).unwrap())),
+        begin(
+            1,
+            ScopeEffect::Opacity(ScopeOpacityGroup::new(ScopeOpacity::new(0.5).unwrap())),
+        ),
         begin(2, ScopeEffect::Clip(clip())),
         begin(3, ScopeEffect::Filter(filter)),
         mask(4, MaskMode::Luminance),

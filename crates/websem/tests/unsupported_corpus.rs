@@ -47,6 +47,91 @@ use Departure::{BothRefuse, DeclaredByBestEffort};
 /// a bare "does it error" check and fail this one.
 const CORPUS: &[(&str, Departure, &str)] = &[
     (
+        "svg-paint-server-source-filter",
+        DeclaredByBestEffort,
+        "paint-server source-extent needs its multi-operation filter or mask profile",
+    ),
+    (
+        "svg-paint-server-source-mask",
+        DeclaredByBestEffort,
+        "paint-server source-extent needs its multi-operation filter or mask profile",
+    ),
+    (
+        "svg-opacity-source-root-path",
+        BothRefuse,
+        "opacity source-extent needs its path-source enclosure profile",
+    ),
+    (
+        "svg-opacity-source-marker-client",
+        DeclaredByBestEffort,
+        "opacity source-extent needs its marker-client source profile",
+    ),
+    (
+        "svg-opacity-source-mask-program",
+        DeclaredByBestEffort,
+        "opacity source-extent needs its mask, pattern, or marker source-program profile",
+    ),
+    (
+        "svg-opacity-source-child-transform",
+        DeclaredByBestEffort,
+        "opacity source-extent needs its independently transformed contributor profile",
+    ),
+    (
+        "svg-opacity-source-clipped-contributor",
+        DeclaredByBestEffort,
+        "opacity source-extent needs the non-nested, completely represented source profile",
+    ),
+    (
+        "svg-opacity-source-complex-stroke",
+        DeclaredByBestEffort,
+        "opacity source-extent needs its complex-stroke enclosure profile",
+    ),
+    (
+        "svg-opacity-source-enclosing-filter",
+        DeclaredByBestEffort,
+        "opacity source-extent needs its enclosing filter or mask profile",
+    ),
+    (
+        "svg-opacity-source-enclosing-mask",
+        DeclaredByBestEffort,
+        "opacity source-extent needs its enclosing filter or mask profile",
+    ),
+    (
+        "svg-opacity-source-nested-contributor",
+        DeclaredByBestEffort,
+        "opacity source-extent needs the non-nested, completely represented source profile",
+    ),
+    (
+        "svg-opacity-source-omitted-stroke",
+        DeclaredByBestEffort,
+        "opacity source-extent needs the non-nested, completely represented source profile",
+    ),
+    (
+        "svg-opacity-source-path",
+        DeclaredByBestEffort,
+        "opacity source-extent needs its path-source enclosure profile",
+    ),
+    (
+        "svg-opacity-source-pattern-program",
+        DeclaredByBestEffort,
+        "opacity source-extent needs its mask, pattern, or marker source-program profile",
+    ),
+    (
+        "svg-opacity-source-shear",
+        DeclaredByBestEffort,
+        "opacity source-extent needs its shear or unequal-scale source mapping profile",
+    ),
+    (
+        "svg-opacity-source-transparent-contributor",
+        DeclaredByBestEffort,
+        "opacity source-extent needs the non-nested, completely represented source profile",
+    ),
+    (
+        "svg-opacity-source-unequal-scale",
+        DeclaredByBestEffort,
+        "opacity source-extent needs its shear or unequal-scale source mapping profile",
+    ),
+    (
         "svg-group-blend-sibling-review-zero-pattern",
         DeclaredByBestEffort,
         "linear-gradient source-extent",

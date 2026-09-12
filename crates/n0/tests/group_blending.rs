@@ -13,7 +13,7 @@ use n0::paint::{read_pixels, PaintCtx};
 use rframe::{
     ClipGeometry, ClipLayer, ClipPath, Frame, FrameItem, FrameItems, FrameNode, Geometry, Identity,
     Mask, MaskMode, PaintStack, PatternPaint, Provenance, Scope, ScopeBlend, ScopeBlendMode,
-    ScopeEffect, ScopeOpacity, Stroke, StrokeCap, StrokeJoin, VisualRef,
+    ScopeEffect, ScopeOpacity, ScopeOpacityGroup, Stroke, StrokeCap, StrokeJoin, VisualRef,
 };
 
 const SIZE: i32 = 48;
@@ -203,7 +203,10 @@ mod layer_metrics {
         for (value, count) in [(0.998, 0), (0.999, 1), (1.0_f32.next_down(), 1)] {
             drain_blend_layers();
             let product = compile(frame(vec![
-                begin(10, ScopeEffect::Opacity(ScopeOpacity::new(value).unwrap())),
+                begin(
+                    10,
+                    ScopeEffect::Opacity(ScopeOpacityGroup::new(ScopeOpacity::new(value).unwrap())),
+                ),
                 solid(1, rect(8.0, 8.0, 24.0, 24.0), FIRST),
                 FrameItem::ScopeEnd,
             ]))
@@ -686,7 +689,10 @@ fn combined_opacity_and_blend_differ_from_an_outer_opacity_scope() {
         ]))
         .unwrap();
         let nested = compile(frame(vec![
-            begin(12, ScopeEffect::Opacity(ScopeOpacity::new(0.6).unwrap())),
+            begin(
+                12,
+                ScopeEffect::Opacity(ScopeOpacityGroup::new(ScopeOpacity::new(0.6).unwrap())),
+            ),
             blend(10, mode, None),
             shape,
             FrameItem::ScopeEnd,
@@ -724,7 +730,7 @@ fn normal_blend_with_opacity_matches_existing_isolated_opacity() {
             compile(frame(items)).unwrap()
         };
         let opacity = ScopeOpacity::new(opacity).unwrap();
-        let old = scene(ScopeEffect::Opacity(opacity));
+        let old = scene(ScopeEffect::Opacity(ScopeOpacityGroup::new(opacity)));
         let new = scene(ScopeEffect::Blend(ScopeBlend::new(
             ScopeBlendMode::Normal,
             Some(opacity),
@@ -803,7 +809,7 @@ fn near_unit_normal_spellings_share_exact_partial_alpha_restore_and_retain_the_f
     for value in [0.999, 1.0_f32.next_down()] {
         let opacity = ScopeOpacity::new(value).unwrap();
         for effect in [
-            ScopeEffect::Opacity(opacity),
+            ScopeEffect::Opacity(ScopeOpacityGroup::new(opacity)),
             ScopeEffect::Blend(ScopeBlend::new(ScopeBlendMode::Normal, Some(opacity))),
         ] {
             let resolved = scene(effect);
@@ -865,7 +871,7 @@ fn opacity_byte_254_to_255_keeps_scope_damage_coverage_and_retained_matches_fres
             let effect = if blend_spelling {
                 ScopeEffect::Blend(ScopeBlend::new(ScopeBlendMode::Normal, Some(opacity)))
             } else {
-                ScopeEffect::Opacity(opacity)
+                ScopeEffect::Opacity(ScopeOpacityGroup::new(opacity))
             };
             frame(vec![
                 begin(10, effect),

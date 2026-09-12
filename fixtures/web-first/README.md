@@ -19,8 +19,8 @@ Every root primitive here is a closed enumeration in `primitives.json` with a
 committed Chromium oracle beside it. Text follows the ratified corpus-growth
 law in its own closed [text estate](./text/README.md): sixteen exact text cells and
 eight exact-number real-font artifact-geometry witnesses. The current evidence
-estate is 1,539 primitive cells plus 16 sampled frames, those twenty-four text
-witnesses, and 351 named refusal rows. Pixel cells require byte equality, except only
+estate is 1,575 primitive cells plus 16 sampled frames, those twenty-four text
+witnesses, and 368 named refusal rows. Pixel cells require byte equality, except only
 the primitive rows carrying an explicit measured tolerance block. The
 real-font witness grades geometry before rasterization and makes no Chromium
 pixel claim.
@@ -35,6 +35,12 @@ separates source membership from visible paint and records the bounded profile.
 
 | File | Role |
 | --- | --- |
+| `svg-opacity-source-disabled-{rect,rect-width,rect-height,ellipse-width,ellipse-height}.svg` | Five zero-area source-membership regressions. Fractionally placed disabled box nodes remain in the frame but cannot enlarge the opacity source; each must equal the existing radial-simple Chromium image. The pre-fix engine changed 315 pixels at maximum delta 1 despite Chromium dropping the disabled geometry (measured, not celled). |
+| `svg-opacity-source-blur-{high,low,absent,arc,srgb,zero}.svg` | Six source-materialization controls: active Gaussian blur over a native circle at group opacity `.999` / `.998` and without opacity, the separately rasterized arc-path source, explicit sRGB and zero blur. All match their own Chromium image exactly; the native ellipse is not replaced by a path. |
+| `svg-opacity-source-pattern-{high,low,absent,translated,mirror,fractional,stroke}.svg` | Seven repeating-paint source-enclosure cells: both near-unit restoration routes, their no-opacity control, translated/reflected and fractionally placed sources, and simple local stroke extent. |
+| `svg-opacity-source-radial-{high,low,absent,translated,mirror,fractional,stroke,simple,uniform}.svg` · `svg-opacity-source-linear-simple.svg` | Ten gradient cells: complete local drawable enclosure precedes the common source map; rotated, translated, reflected, fractional and uniform-scale radial sources plus a linear source remain exact. The `high` / `low` controls cross the byte-alpha route boundary. |
+| `svg-opacity-source-enclosing-clip.svg` · `svg-opacity-source-leaf-stroke.svg` · `svg-opacity-source-root-transparent.svg` · `svg-opacity-source-use.svg` | Four ownership controls: an enclosing geometric clip, leaf fill-plus-stroke opacity, transparent root opacity and a same-document direct instance. Filter/mask enclosure and unresolved resource programs are separately refused. |
+| `html-opacity-source-{root,host}-{high,low}.html` | Four inline-entry cells: SVG root and HTML-ancestor opacity at both `.999` and `.998` share the same source handling without flattening the transparent outer surface. |
 | `svg-upstream-resvg-rect-simple-case.svg` · `svg-upstream-resvg-rect-blue-control.svg` | Assertion-harness pilot: the unchanged upstream sharp rectangle and a separate subject-fill color control, captured at a 500×500 initial viewport. Both are exact in strict and best-effort CLI renders; changing only green to blue changes 160,000 Chromium pixels at maximum channel delta 255. Imported from resvg-test-suite revision `d8e064337faf01bc5a9579187a56dbdbe3eacc72`, `tests/shapes/rect/simple-case.svg`, under [its MIT notice](./LICENSE.resvg). These are scene assertions, not a new feature grant. |
 | `svg-group-blend-sibling-{multiply,screen}-{transparent,fill-zero,fill-alpha,empty-server,invalid-fallback}.svg` | Ten selected-paint sibling cells: transparent color, zero fill opacity, zero color alpha, a valid stopless linear server and a missing server with transparent fallback retain source contribution without visible fill. |
 | `svg-group-blend-sibling-{multiply,screen}-{stroke-only,stroke-zero,stroke-thin,stroke-px,stroke-percent,stroke-dash,solid-stroke}.svg` | Fourteen decorated-rectangle cells: omitted transparent/zero-alpha solid strokes, width spellings and inert dash/join state retain local source enclosure, including beside a solid-filled sibling. |
@@ -486,7 +492,9 @@ a shadow corpus. The pre-landing verification ritual is the saved
 
 `assertions-test` checks the separate assertion-tool contracts;
 `assertions-gate <new-absolute-output-directory>` runs its small actual-CLI pilot
-and fresh Chromium captures. The [SVG assertion tool](../../packages/grida-reftest/svg-assertions/README.md)
+and fresh Chromium captures. `assertions-opacity-gate <new-absolute-output-directory>`
+runs six described blur/pattern/radial rendering claims and two named-refusal
+claims from the ordinary-opacity rung. The [SVG assertion tool](../../packages/grida-reftest/svg-assertions/README.md)
 records each described claim, reference decision, both admissions and their
 diagnostics, independent exact image comparisons, and a discrete verdict. A
 verified refusal is not rendering support; unresolved or missing required

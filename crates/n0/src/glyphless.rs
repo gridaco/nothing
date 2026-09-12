@@ -99,11 +99,22 @@ pub enum BuildError {
         owner: VisualRef,
         reason: String,
     },
+    /// A complete isolated source cannot be honored by this consumer profile.
+    SourceDomain {
+        owner: VisualRef,
+        reason: String,
+    },
 }
 
 impl std::fmt::Display for BuildError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            BuildError::SourceDomain { owner, reason } => {
+                write!(
+                    f,
+                    "glyphless source {owner:?} domain preflight failed: {reason}"
+                )
+            }
             BuildError::InvalidFrameBounds => f.write_str("glyphless frame bounds are invalid"),
             BuildError::InvalidVisualBounds(owner) => {
                 write!(f, "glyphless visual {owner:?} has invalid frame bounds")
@@ -226,13 +237,14 @@ impl FrameProduct {
         view: &math2::transform::AffineTransform,
     ) -> Result<(), FrameExecutionError> {
         for &(owner, domain) in &self.source_domains {
-            // The admitted declaration map is identity. Validate all view
+            // Validate the declaration's map followed by the current view
             // arithmetic before touching the caller's canvas; never ignore a
             // domain just because its current device bounds cannot be formed.
-            if rframe::BlendSourceDomain::new(domain.rect(), *view).is_err() {
+            let mapping = view.compose(&domain.source_to_stream());
+            if rframe::IsolatedSourceDomain::new(domain.rect(), mapping).is_err() {
                 return Err(FrameExecutionError::SourceDomain { owner });
             }
-            let bounds = math2::rect_transform(domain.rect(), view);
+            let bounds = math2::rect_transform(domain.rect(), &mapping);
             if bounds
                 .corners()
                 .into_iter()
@@ -391,12 +403,20 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
     // when it closes.
     let mut open_scopes: Vec<OpenScope> = Vec::new();
     let mut active_source_domain: Option<(VisualRef, rframe::BlendSourceDomain)> = None;
+    let mut active_opacity_source_domain: Option<(VisualRef, rframe::IsolatedSourceDomain)> = None;
     let mut source_domains = Vec::new();
 
     for frame_item in resolved.items.iter() {
         let node = match frame_item {
             FrameItem::Node(node) => node,
             FrameItem::ScopeBegin(scope) => {
+                if let Some((owner, _)) = active_opacity_source_domain {
+                    return Err(BuildError::SourceDomain {
+                        owner,
+                        reason: "an opacity source declaration does not yet admit nested effects"
+                            .into(),
+                    });
+                }
                 if let Some((owner, _)) = active_source_domain {
                     return Err(BuildError::Blend {
                         owner,
@@ -412,6 +432,22 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                 provenance.owners.push(scope.owner);
                 // Placeholder until the scope closes and its union is known.
                 provenance.coverage.push(None);
+                let opacity_domain = match &scope.effect {
+                    ScopeEffect::Opacity(group) => group.source_domain(),
+                    _ => None,
+                };
+                if let Some(domain) = opacity_domain {
+                    if open_scopes.iter().any(|scope| {
+                        matches!(
+                            scope.kind,
+                            OpenScopeKind::Mask { .. } | OpenScopeKind::Filter { .. }
+                        )
+                    }) {
+                        return Err(BuildError::SourceDomain { owner: scope.owner, reason: "an opacity source declaration inside an image effect needs its own materialization profile".into() });
+                    }
+                    active_opacity_source_domain = Some((scope.owner, domain));
+                    source_domains.push((scope.owner, domain));
+                }
                 // Backend byte-255 opacity takes the same exact Normal
                 // restore as a Blend scope. Retain the original resolved
                 // opacity and the layer itself: byte quantization is not
@@ -419,8 +455,13 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                 // share preflight, owner coverage, and the matching close.
                 let promoted_opacity = match &scope.effect {
                     ScopeEffect::Opacity(opacity) => {
-                        let blend =
-                            rframe::ScopeBlend::new(rframe::ScopeBlendMode::Normal, Some(*opacity));
+                        let mut blend = rframe::ScopeBlend::new(
+                            rframe::ScopeBlendMode::Normal,
+                            Some(opacity.opacity()),
+                        );
+                        if let Some(domain) = opacity_domain {
+                            blend = blend.with_source_domain(domain);
+                        }
                         crate::paint::uses_isolated_byte_blender(blend)
                             .then_some(ScopeEffect::Blend(blend))
                     }
@@ -433,13 +474,16 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                             node: slot,
                             world: frame_world,
                             kind: ItemKind::BeginIsolatedOpacity {
-                                opacity: opacity.get(),
+                                opacity: opacity.opacity().get(),
+                                source_domain: opacity_domain,
                             },
                         });
                         (OpenScopeKind::Opacity, None)
                     }
                     ScopeEffect::Blend(blend) => {
-                        if let Some(domain) = blend.source_domain() {
+                        if let Some(domain) =
+                            blend.source_domain().filter(|_| opacity_domain.is_none())
+                        {
                             if domain.source_to_stream()
                                 != math2::transform::AffineTransform::identity()
                                 || open_scopes.iter().any(|scope| {
@@ -544,6 +588,11 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                     ),
                 };
                 let slot = scope.slot;
+                if active_opacity_source_domain
+                    .is_some_and(|(owner, _)| provenance.owners[slot.index()] == owner)
+                {
+                    active_opacity_source_domain = None;
+                }
                 if active_source_domain
                     .is_some_and(|(owner, _)| provenance.owners[slot.index()] == owner)
                 {
@@ -564,6 +613,14 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
                 continue;
             }
             FrameItem::MaskBegin(mask) => {
+                if let Some((owner, _)) = active_opacity_source_domain {
+                    return Err(BuildError::SourceDomain {
+                        owner,
+                        reason:
+                            "an opacity source declaration does not yet admit nested image masks"
+                                .into(),
+                    });
+                }
                 if let Some((owner, _)) = active_source_domain {
                     return Err(BuildError::Blend {
                         owner,
@@ -691,6 +748,14 @@ pub fn compile(resolved: Frame) -> Result<FrameProduct, BuildError> {
             validate_source_domain_node(node, domain).map_err(|reason| BuildError::Blend {
                 owner,
                 reason: reason.into(),
+            })?;
+        }
+        if let Some((owner, domain)) = active_opacity_source_domain {
+            validate_opacity_source_domain_node(node, domain).map_err(|reason| {
+                BuildError::SourceDomain {
+                    owner,
+                    reason: reason.into(),
+                }
             })?;
         }
         // The paint reference box is the geometry's own extent. Ordinary box
@@ -1003,6 +1068,55 @@ fn validate_source_domain_node(
         || f64::from(rect.y) + f64::from(rect.height) + half > f64::from(bounds.y + bounds.height)
     {
         return Err("a declared source domain does not enclose its painted rectangle");
+    }
+    Ok(())
+}
+
+/// A complete opacity source may contain co-mapped rectangles and ellipses.
+/// The declaration is authoritative; this only checks that live coverage fits
+/// and that the consumer can honor the source-space materialization profile.
+fn validate_opacity_source_domain_node(
+    node: &rframe::FrameNode,
+    domain: rframe::IsolatedSourceDomain,
+) -> Result<(), &'static str> {
+    let rect = match node.geometry {
+        Geometry::Rect(rect) | Geometry::Ellipse(rect) => rect,
+        Geometry::Path(_) => {
+            return Err("an opacity source declaration requires rectangular or elliptical geometry")
+        }
+    };
+    if node.transform != domain.source_to_stream() {
+        return Err("an opacity source declaration requires co-mapped geometry");
+    }
+    // A zero-area box without a stroke cannot paint outside the declaration.
+    // Its retained geometry is not a drawable source contribution.
+    if (rect.width == 0.0 || rect.height == 0.0) && node.stroke.is_none() {
+        return Ok(());
+    }
+    if node.paints.is_empty() && node.stroke.is_none() {
+        return Ok(());
+    }
+    let width = if let Some(stroke) = &node.stroke {
+        if stroke.space() != rframe::StrokeSpace::Local
+            || stroke.cap() != rframe::StrokeCap::Butt
+            || stroke.join() != rframe::StrokeJoin::Miter
+            || stroke.dash().is_some()
+            || stroke.dash_intervals().is_some()
+        {
+            return Err("an opacity source declaration requires a simple local stroke");
+        }
+        stroke.width()
+    } else {
+        0.0
+    };
+    let half = f64::from(width) / 2.0;
+    let bounds = domain.rect();
+    if f64::from(rect.x) - half < f64::from(bounds.x)
+        || f64::from(rect.y) - half < f64::from(bounds.y)
+        || f64::from(rect.x) + f64::from(rect.width) + half > f64::from(bounds.x + bounds.width)
+        || f64::from(rect.y) + f64::from(rect.height) + half > f64::from(bounds.y + bounds.height)
+    {
+        return Err("an opacity source declaration does not enclose its painted geometry");
     }
     Ok(())
 }
@@ -1523,7 +1637,7 @@ fn compile_pattern(
         reason: format!("nested pattern program failed projection: {error}"),
     })?;
     if !product.source_domains.is_empty() {
-        return Err(BuildError::Paint { owner, reason: "a declared blend source domain inside a repeating program needs its own execution profile".into() });
+        return Err(BuildError::Paint { owner, reason: "a declared isolated source domain inside a repeating program needs its own execution profile".into() });
     }
     Ok(Arc::new(ResolvedPattern {
         width: pattern.width(),
@@ -2253,9 +2367,9 @@ mod tests {
     fn scope_begin(owner: VisualRef, opacity: f32) -> FrameItem {
         FrameItem::ScopeBegin(Scope {
             owner,
-            effect: ScopeEffect::Opacity(
+            effect: ScopeEffect::Opacity(rframe::ScopeOpacityGroup::new(
                 ScopeOpacity::new(opacity).expect("test opacity is a scope fact"),
-            ),
+            )),
         })
     }
 
@@ -3846,7 +3960,10 @@ mod tests {
                     corner_radius: RectangularCornerRadius::default(),
                     corner_smoothing: CornerSmoothing::default(),
                 }),
-                std::mem::discriminant(&ItemKind::BeginIsolatedOpacity { opacity: 0.5 }),
+                std::mem::discriminant(&ItemKind::BeginIsolatedOpacity {
+                    opacity: 0.5,
+                    source_domain: None
+                }),
                 std::mem::discriminant(&ItemKind::RectFill {
                     w: 0.0,
                     h: 0.0,
@@ -3860,7 +3977,7 @@ mod tests {
             ],
             "frame clip, then the scope enclosing its span"
         );
-        let ItemKind::BeginIsolatedOpacity { opacity } = product.drawlist.items[1].kind else {
+        let ItemKind::BeginIsolatedOpacity { opacity, .. } = product.drawlist.items[1].kind else {
             panic!("second item begins the opacity scope");
         };
         assert_eq!(opacity, 0.5);
@@ -3910,7 +4027,10 @@ mod tests {
                 )
             } else {
                 (
-                    ItemKind::BeginIsolatedOpacity { opacity: value },
+                    ItemKind::BeginIsolatedOpacity {
+                        opacity: value,
+                        source_domain: None,
+                    },
                     ItemKind::EndOpacity,
                 )
             };

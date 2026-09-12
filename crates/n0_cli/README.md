@@ -602,15 +602,15 @@ cargo run -p n0_cli --bin n0 -- \
   tolerance. The forty-one-cell convolution rung keeps the complete 741-cell
   gate byte-exact on ARM and hosted x86 without a new tolerance. The
   seventy-one-cell diffuse-lighting rung keeps the complete 812-cell gate
-  byte-exact without a new tolerance. All four hundred fifty-three
+  byte-exact without a new tolerance. All four hundred fifty-nine
   Chromium-baked filter cells are exact.
-  The filter estate contains 26 chassis/blur cells, 60 shadow-graph, 28 native
+  The filter estate contains 32 chassis/blur cells, 60 shadow-graph, 28 native
   drop-shadow, 27 color-matrix, 34 component-transfer, 38 blend, 37 morphology,
   91 turbulence/displacement, 41 convolution-rung, and 71 diffuse-lighting
-  cells. The complete primitive corpus contains 1,539 Chromium-baked cells plus
+  cells. The complete primitive corpus contains 1,575 Chromium-baked cells plus
   16 sampled frames; the text estate contains sixteen exact text pixel cells and
   eight exact-number artifact-geometry witnesses (six Allerta and two
-  Bungee), and the named refusal register has 351 rows. `feFlood`, `feComposite`,
+  Bungee), and the named refusal register has 368 rows. `feFlood`, `feComposite`,
   `feMerge`, `feMergeNode`, `feDropShadow`, `feColorMatrix`,
   `feComponentTransfer`, `feBlend`, `feMorphology`, `feConvolveMatrix`,
   `feDiffuseLighting`, `feDistantLight`, `fePointLight`, `feSpotLight`,
@@ -831,8 +831,9 @@ cargo run -p n0_cli --bin n0 -- \
   interior paints nothing. Default fill plus stroke therefore composites
   through the isolated post-coverage layer in direct, inline/stylesheet CSS,
   inherited-container, `<a>`, and `<use>` routes; explicit `fill="none"`
-  leaves the single stroke fold. Both opacity checklist rows are closed and
-  the former line-coverage refusal has graduated.
+  leaves the single stroke fold. The former line-coverage refusal has
+  graduated; both opacity checklist rows are open again for the isolated
+  paint-server source profile below.
   Everything that is genuinely a group composites through a real isolated
   layer: a shape's fill and stroke together, a group of several draws, nested
   opacities (which quantize per layer and never flatten to a product — measured
@@ -843,6 +844,26 @@ cargo run -p n0_cli --bin n0 -- \
   entries. Every non-identity HTML ancestor opacity is a distinct outer scope
   around the selected inline SVG; explicit `inherit` on the SVG compounds with
   those host scopes rather than flattening them.
+  Ordinary isolated ramp/pattern sources carry a complete local drawable
+  enclosure across `rframe`, separate from geometry and damage. The current
+  producer profile is co-mapped rectangles/ellipses and simple local strokes,
+  with translation, rotation/reflection and uniform scale. It encloses each
+  drawable locally before applying the group map. Both near-unit restoration
+  routes consume that source fact; root and HTML-ancestor opacity use it too.
+  Retained zero-area rectangles/ellipses without resolved strokes contribute
+  no drawable source area; fractional coordinates do not turn them into
+  nonempty enclosure cells.
+  Independently mapped contributors, shear/unequal scale, paths, complex
+  strokes, unresolved or omitted contributors, nested source effects, enclosing
+  filter/mask placement, resource-program placement and combined marker clients
+  retain named `opacity source-extent` refusals. An affected element is skipped transactionally
+  in best effort; a root/host source failure is document-level in both admissions.
+  These gaps do not narrow the numeric `<alpha-value>` parser or add a matcher.
+  They prevent a broad opacity claim while the source-composition work remains
+  open in [gridaco/nothing#136](https://github.com/gridaco/nothing/issues/136).
+  A bare multi-operation paint-server source feeding a filter or mask also
+  refuses by the separate `paint-server source-extent` name, even at element
+  opacity one. Completed child images are not bare paint-server passes.
   CSS `mix-blend-mode: normal | multiply | screen` and `isolation: auto |
 isolate` have a bounded static SVG group profile. One Stylo computed value
   decides the operation; raw attribute lookalikes are inert. Neutral/default

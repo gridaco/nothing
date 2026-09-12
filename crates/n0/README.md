@@ -322,7 +322,19 @@ still apply, including to zero-sized paintless rectangles. This exemption does
 not admit mapped or nonrectangular paintless geometry; every painted rectangle,
 including a stroke-only rectangle, must still be enclosed. The glyphless module
 tests pin these rules and byte-identical changed-view replay.
-Ordinary undeclared scopes keep their existing profile.
+`ScopeOpacityGroup` can carry the same checked `IsolatedSourceDomain` fact
+without attaching an enclosure to the reusable numeric opacity factor.
+Its glyphless profile additionally accepts co-mapped rectangles and ellipses,
+including radial and repeating paints, with simple local strokes. A declared
+opacity source rejects under-enclosure, independently mapped contributors,
+paths, complex strokes, nested effects, enclosing filter/mask programs and
+repeating-program placement with an owner-bearing error. Completed groups may
+still sit inside ordinary opacity or geometric clipping. Both native opacity
+restoration and the byte-255 Normal promotion consume the declaration;
+neither widens geometry or reuses a previous source image.
+`tests/opacity_source_domain.rs` independently tests this contract, changed-view
+replay and rejection before destination mutation. These are consumer laws, not
+browser pixel assertions. Ordinary undeclared scopes keep their existing profile.
 The declaration targets the containing stream, independently of a scope item's
 drawing map. Current-view mapping and device enclosure are recalculated for
 every execution. Unsupported device bounds return an owner-bearing
