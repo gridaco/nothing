@@ -188,7 +188,7 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm -C packages/grida-reftest exec playwright install --with-deps chromium
 
-      - name: Verify assertion contracts and the actual n0 CLI pilot
+      - name: Verify assertion contracts and the actual n0 CLI suites
         # The registry crate uses its packaged VCS identity for binary downloads.
         # FORCE_SKIA_BINARIES_DOWNLOAD selects an upstream-checkout test path
         # which instead builds Skia from source when no Git checkout exists.
@@ -198,6 +198,9 @@ jobs:
           pnpm -C packages/grida-reftest exec tsx svg-assertions/cli.ts \
             --manifest "$GITHUB_WORKSPACE/packages/grida-reftest/svg-assertions/pilot.json" \
             --out "$RUNNER_TEMP/$SVG_ASSERTION_DIR"
+          pnpm -C packages/grida-reftest exec tsx svg-assertions/cli.ts \
+            --manifest "$GITHUB_WORKSPACE/packages/grida-reftest/svg-assertions/opacity-source.json" \
+            --out "$RUNNER_TEMP/$SVG_ASSERTION_DIR/opacity-source"
 
       - name: Upload SVG assertion observations
         if: always()

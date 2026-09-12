@@ -38,8 +38,9 @@ pub use frame::{
 pub use mask::{Mask, MaskMode};
 pub use path::{FillRule, PathCommand, PathData, PathDataError};
 pub use scope::{
-    BlendSourceDomain, BlendSourceDomainError, Scope, ScopeBlend, ScopeBlendMode, ScopeEffect,
-    ScopeOpacity, ScopeOpacityError,
+    BlendSourceDomain, BlendSourceDomainError, IsolatedSourceDomain, IsolatedSourceDomainError,
+    Scope, ScopeBlend, ScopeBlendMode, ScopeEffect, ScopeOpacity, ScopeOpacityError,
+    ScopeOpacityGroup,
 };
 pub use stroke::{
     Stroke, StrokeCap, StrokeDash, StrokeDashError, StrokeDashIntervals, StrokeDashIntervalsError,

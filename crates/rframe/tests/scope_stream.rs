@@ -12,7 +12,8 @@ use math2::transform::AffineTransform;
 use rframe::{
     Filter, FilterColorSpace, FilterInput, FilterNode, FilterPrimitive, FilterProgram,
     FilterTurbulenceKind, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry, Identity,
-    MAX_SCOPE_DEPTH, PaintStack, Provenance, Scope, ScopeEffect, ScopeOpacity, VisualRef,
+    MAX_SCOPE_DEPTH, PaintStack, Provenance, Scope, ScopeEffect, ScopeOpacity, ScopeOpacityGroup,
+    VisualRef,
 };
 use std::sync::Arc;
 
@@ -35,7 +36,9 @@ fn node(id: u64) -> FrameItem {
 fn begin(id: u64) -> FrameItem {
     FrameItem::ScopeBegin(Scope {
         owner: owner(id),
-        effect: ScopeEffect::Opacity(ScopeOpacity::new(0.5).expect("0.5 is a scope fact")),
+        effect: ScopeEffect::Opacity(ScopeOpacityGroup::new(
+            ScopeOpacity::new(0.5).expect("0.5 is a scope fact"),
+        )),
     })
 }
 

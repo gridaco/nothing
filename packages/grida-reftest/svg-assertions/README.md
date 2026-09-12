@@ -47,6 +47,24 @@ own committed Chromium reference, not the other color's image. The refusal
 witness checks the exact current CLI declarations for geometry units; a pass
 there is labelled **expected refusal**, never rendering support.
 
+## Ordinary-opacity regression suite
+
+[opacity-source.json](./opacity-source.json) applies the same instrument to
+six described rendering claims and two expected refusals from
+[gridaco/nothing#136](https://github.com/gridaco/nothing/issues/136).
+The blur, repeating-pattern and radial-gradient scenes each pair group
+opacity `.999` with `.998`: a one-pixel discrepancy still fails the complete
+scene, and each control must change Chromium's pixels. Sheared group and
+root-path cases check named refusals separately, not fallback-image accuracy.
+
+```sh
+just -f fixtures/web-first/justfile assertions-opacity-gate "$PWD/target/svg-assertion-opacity"
+```
+
+This uses a fresh output directory under the same setup and immutable-output
+rules as the pilot. CI runs both suites and retains both reports. No resvg
+reference, new tolerance, or claim of complete opacity support is introduced.
+
 ## A case is not its filename
 
 ```text

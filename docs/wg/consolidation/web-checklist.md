@@ -581,7 +581,7 @@ excluded.
 - [ ] `color-scheme`
 - [ ] `dynamic-range-limit`
 - [ ] `forced-color-adjust`
-- [x] `opacity`
+- [ ] `opacity`
 - [ ] `print-color-adjust`
 
 > **2026-08-31 close:** the property closes at its complete admitted
@@ -596,6 +596,14 @@ excluded.
 > exact attribute and CSS cells carry the repaired line route; the existing
 > grammar, root, host, group, gradient, transform, and instance cells carry the
 > rest. The former line-coverage refusal graduates.
+
+> **2026-09-13 reopen:** the numeric grammar remains admitted, but ordinary
+> isolated paint-server sources need a complete drawable enclosure. The
+> [source-precision repair](https://github.com/gridaco/nothing/issues/136)
+> restores the retained circle/pattern/radial examples and guards the wider
+> source profiles by name. Honored path and nested-source combinations remain
+> refused without an independent source-composition row, so the property is
+> partial under the existing full-applicability rule.
 
 
 ### CSS images
@@ -2274,7 +2282,7 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > A valid empty source always hides its target; opaque black hides in luminance
 > mode and reveals under `mask-type="alpha"`.
 
-- [x] `opacity`
+- [ ] `opacity`
 
 > **2026-08-31 close:** the presentation-attribute twin closes independently
 > through direct shape, inherited container, `<a>`, and `<use>` routes. Four
@@ -2285,6 +2293,13 @@ for attributes the platform ships ahead of the SVG 2 indexes.
 > visible-draw proxy makes the gate fail by 294–840 pixels. The complete corpus
 > is now 1,051 primitive cells plus 16 sampled frames, and the named refusal
 > register has 197 rows. No new tolerance is used.
+
+> **2026-09-13 reopen:** this spelling shares the same isolated-source gap as
+> the CSS property above. Fixing the retained examples does not establish
+> complete applicability: path, nested and incompletely represented source
+> combinations still refuse by `opacity source-extent`. The attribute stays
+> open independently; the numeric parser and former line repair are unchanged.
+
 - [ ] `overflow`
 - [x] `paint-order`
 

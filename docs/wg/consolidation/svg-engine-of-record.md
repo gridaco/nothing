@@ -119,7 +119,7 @@ from the dated addenda below:
   carrying admitted repeating-pattern paint and admitted source/target filter
   composition.
   `crates/n0_cli/README.md` is the statement of record.
-- **The corpus** is 1,539 Chromium-baked primitive cells plus 16 sampled frames,
+- **The corpus** is 1,575 Chromium-baked primitive cells plus 16 sampled frames,
   with a separate sixteen-cell exact text suite whose current cells select
   hash-pinned Ahem and Ahem-derived bytes from explicit family/face
   environments, and eight exact-number artifact-geometry
@@ -130,7 +130,7 @@ from the dated addenda below:
   carrying declared one-code-value ramp-quantization bounds. The measured
   per-cell counts and causes are listed in the
   [corpus record](../../../fixtures/web-first/README.md).
-  The named refusal register has 351 rows.
+  The named refusal register has 368 rows.
 - **Not claimed:** no conformance score exists or may be computed — FLIP is
   unratified. The FLIP record and identity-changing review are prepared, but
   only the owner act on gridaco/nothing#49 may authorize them and the first
@@ -6587,3 +6587,137 @@ report: missing repeat zero keeps its empty slot instead of promoting repeat
 one, comparisons check for decoded pixels, and capture failures retain signal
 or exit-code causes even with empty stderr. Regressions exercise those branches;
 the renewed actual-CLI pilot remains exact after the changes.
+
+## 2026-09-13 — ordinary-opacity source precision
+
+This rung repairs the retained cases in
+[gridaco/nothing#136](https://github.com/gridaco/nothing/issues/136) without
+claiming complete opacity applicability. It follows the etiology ladder to a
+source-materialization policy defect and a missing resolved contract fact,
+not an ellipse-geometry replacement or a blanket pixel tolerance.
+
+On unchanged main, twice-repeated actual CLI renders in both admissions
+reproduced the retained differences against the sole pinned Chromium capture:
+
+| Source | Group opacity | Differing pixels | Maximum channel delta |
+| --- | --- | --- | --- |
+| Native circle into Gaussian blur | `.999` / `.998` | 25 / 25 | 3 / 2 |
+| Repeating-pattern circle plus sibling | `.999` / `.998` | 1 / 1 | 1 / 1 |
+| Rotated radial circle plus sibling | `.999` / `.998` | 1,312 / 1,307 | 1 / 1 |
+
+Those original observations are **measured, not celled**; the reduced sources
+now have separately registered exact Chromium cells. Pattern and radial
+opacity-one/absent controls were exact. Blur without opacity still differed
+by 30 pixels at delta 1, and explicit sRGB by 37 at delta 1. Replacing the
+native circle with an arc path changed Chromium itself by 25 pixels at delta
+3; changing geometry would therefore be the wrong repair. These source
+reductions are now celled, including absent opacity, arc-path, sRGB and zero
+blur controls, each against its own image.
+
+**Completed source before blur.** Active source-dependent Gaussian blur now
+uses the existing one-per-source materialization policy. It does not allocate
+one layer per primitive, request a source image for generated inputs, or
+activate for zero blur or an unreachable blur branch. Contract tests exercise
+those distinctions. This repairs the independent no-opacity native-source
+defect as well as its surrounding group-opacity examples.
+
+**Complete local enclosure across the seam.** Blink's
+[SVG drawing recorder](https://github.com/chromium/chromium/blob/149.0.7827.55/third_party/blink/renderer/core/paint/svg_model_object_painter.h)
+encloses its local visual rect; its
+[paint-chunk converter](https://github.com/chromium/chromium/blob/149.0.7827.55/third_party/blink/renderer/platform/graphics/compositing/paint_chunks_to_cc_layer.cc)
+maps and accumulates drawable bounds into effect space. Controlled enclosure
+experiments made the pattern and radial defects disappear without changing
+their paint or geometry (**measured, not celled**).
+The [resolved contract](../../../crates/rframe/README.md) now carries an
+optional complete source-local rectangle and map on ordinary opacity groups.
+The numeric opacity factor remains separate, and the prior blend-domain
+compatibility names remain available. An independent contract maintainer
+designed that boundary before producer and consumer adaptation.
+
+The domain states complete local drawable source, not visible ink, geometry,
+damage, a clip, a viewport, or an allocation hint. The producer encloses local
+drawables before applying their common map. The consumer validates enclosure,
+scope placement and the changed-view mapping before drawing, then uses the
+domain on both ordinary-opacity routes: byte-alpha-255 Normal restoration and
+the lower-alpha isolated layer. Source-domain edits do not rewrite geometry.
+Changed-view reuse remains byte-identical to fresh rendering.
+
+The 36 new positive cells cover both near-unit routes, native blur and its
+controls, repeating and gradient sources, shared mapping and simple strokes,
+an enclosing geometric clip, a same-document instance, transparent root
+opacity and HTML-ancestor opacity, plus disabled-box source membership.
+Root and host opacity use the same source helper.
+The [corpus table](../../../fixtures/web-first/README.md) names each cell's role;
+the [CLI record](../../../crates/n0_cli/README.md) alone defines admission.
+
+**Remaining combinations refuse, and both opacity rows reopen.** Seventeen
+new registered witnesses guard incomplete/omitted or nested contributors,
+paths and complex strokes, independent child maps, shear/unequal scale,
+enclosing image effects, resource programs and combined marker clients.
+Root/host source failures are document-level in both admissions; attributable
+clients roll back as whole transactions. A bare multi-operation paint-server
+source feeding a filter or mask also refuses, including at opacity one.
+Completed child images are not reclassified as bare paint-server sources.
+
+The discoveries behind these additional patrols are **measured, not celled**:
+radial shear differed by 97 pixels at delta 3 only with opacity; a gradient
+marker client by 1,408 at delta 1; filter/mask sources without partial opacity
+by 297 at delta 2 and 923 at delta 1. Removing those image effects produces
+exact admitted controls. Unequal-scale ellipse controls retained the same
+three differing pixels with opacity absent, so this is not a claimed opacity
+cause or a repair of gridaco/nothing#88. Mapped-root and positioned-instance
+explorations were exact but remain **measured, not celled**.
+
+The CSS property and presentation-attribute `opacity` rows reopen: these
+honored in-grammar combinations have no narrower own row that excuses their
+refusal, following the gridaco/nothing#81/#89/#90 split precedent. The radial
+element retains its tick because the composition gap now belongs to the open
+opacity row under gridaco/nothing#75/#80. No row gains a tick, no existing
+oracle is replaced, and no tolerance or FLIP rule changes.
+
+The evidence estate is now 1,575 primitive cells and 368 named refusals;
+16 sampled frames, 16 exact text cells and eight geometry witnesses are
+unchanged. Six new blur controls bring the filter estate to 459 cells.
+The assertion harness gains six scene-specific rendering claims and two
+expected refusals, separately labelled and run through the actual CLI.
+It uses the same immutable sources, exact decoded RGBA and sole Chromium
+module; it adds no second oracle or conformance measure.
+
+**Sensitivity.** Disabling active blur source preparation makes `just gate`
+fail the new absent/high/low/sRGB cells with 30/25/25/37 differing pixels;
+the focused assertion suite fails both blur claims. In the initial 31-cell
+set, bypassing the opacity source declaration fails nineteen cells, including the
+single-pixel pattern pair and all four root/host HTML cases. The assertion
+suite fails all four pattern/radial rendering claims and both named-refusal
+claims under that mutation. Both source files were restored byte-for-byte;
+neither experiment changes an oracle or a tolerance.
+
+Independent review identified disabled box nodes as a false source contributor.
+At fractional coordinates, enclosing a zero width or height fabricated a
+nonempty source cell. A nine-source probe confirmed that every disabled shape
+leaves Chromium's base image unchanged, while the retained rectangle/ellipse
+cases changed 315 engine pixels at maximum delta 1. A zero-radius circle was
+already removed before this stage and remained exact. These pre-fix CLI
+observations are **measured, not celled**.
+The producer and consumer now keep unstroked zero-area box geometry and
+identity without treating it as drawable source area; this is not a geometry
+pruning or damage-policy change. The review also corrected the radial
+high/low control's description to its actual maximum channel delta 1.
+Five committed zero-area box cells guard the source-membership repair;
+the zero-circle and authored-stroke variants remain **measured, not celled**.
+Disabling only that membership exclusion makes all five new cells fail by
+315 pixels at delta 1 each. Byte-for-byte restoration preserves their retained
+geometry and returns their exact Chromium result.
+
+The renewed independent TICK/LAW audit and manual REPRO both pass with no
+remaining must-fix or should-fix items. REPRO repeated six matrices containing
+95 sources through fresh Chromium and 380 actual CLI executions, verified
+stable identities and complete refusal-owner rollback, and renewed the full
+fixture gate and STATUS. The six rendering assertions and two expected
+refusals pass, as does the original three-case pilot; both reports have empty
+integrity-error lists. The known unequal-scale no-opacity control remains
+outside the claimed repair. Full relevant Rust tests, post-audit producer and
+consumer tests including trace/reuse, formatting, strict Clippy, 40 assertion
+tool-contract tests, typechecks and link/OSS checks pass. No Workflow runner
+was exposed; the saved workflow was not invoked, and these independent roles
+are the explicit manual fallback.

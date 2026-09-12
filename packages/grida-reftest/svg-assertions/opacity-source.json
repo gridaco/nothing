@@ -1,0 +1,242 @@
+{
+  "schema_version": 1,
+  "profile": "static-self-contained-svg-v1",
+  "capture": {
+    "sha256": "069296201718c43d29efe356fbea893781b73250dca51de3b6d47468d74027b0",
+    "browser_version": "149.0.7827.55"
+  },
+  "cases": [
+    {
+      "id": "svg-opacity-source-blur-high",
+      "source": {
+        "path": "../../../fixtures/web-first/svg-opacity-source-blur-high.svg",
+        "sha256": "13ef0ffd637c39634aafb490ad92ea3d3b63f0761f6be9c364d1dbef5c86654f"
+      },
+      "description": "This 64×64 blur scene at group opacity .999 matches its declared Chromium raster. The native circle is materialized before the active Gaussian blur. This asserts the scene, not the complete opacity grammar.",
+      "required": true,
+      "width": 64,
+      "height": 64,
+      "review": {
+        "status": "reviewed",
+        "reason": "Static self-contained source without text or external resources; registered and baked through the Web-first fixture workflow. The paired control changes only the group opacity across the byte-alpha boundary.",
+        "blockers": []
+      },
+      "assertion": {
+        "kind": "render-exact",
+        "reference": {
+          "path": "../../../fixtures/web-first/chromium/svg-opacity-source-blur-high.png",
+          "sha256": "ca8265e2622176253634aa18b9cb6b06963085fb65b1b66779199a59a2a2ece7"
+        },
+        "decision": "Pinned Chromium compatibility; exact decoded RGBA, no alternative oracle or tolerance.",
+        "control": {
+          "case": "svg-opacity-source-blur-low",
+          "why": "Changing only .999 to .998 changes 2835 Chromium pixels (maximum channel delta 2); both sides must independently match their own raster."
+        }
+      },
+      "stored": null
+    },
+    {
+      "id": "svg-opacity-source-blur-low",
+      "source": {
+        "path": "../../../fixtures/web-first/svg-opacity-source-blur-low.svg",
+        "sha256": "2c7031c1cfce30ee1f57e976f45be92eb61942f2e5b42fc47250c80f697b3571"
+      },
+      "description": "This 64×64 blur scene at group opacity .998 matches its declared Chromium raster. The native circle is materialized before the active Gaussian blur. This asserts the scene, not the complete opacity grammar.",
+      "required": true,
+      "width": 64,
+      "height": 64,
+      "review": {
+        "status": "reviewed",
+        "reason": "Static self-contained source without text or external resources; registered and baked through the Web-first fixture workflow. The paired control changes only the group opacity across the byte-alpha boundary.",
+        "blockers": []
+      },
+      "assertion": {
+        "kind": "render-exact",
+        "reference": {
+          "path": "../../../fixtures/web-first/chromium/svg-opacity-source-blur-low.png",
+          "sha256": "9a8bfb34bcf72448d60e30bdbba21ea680743153c3d9d8df68d42a26b899f1fe"
+        },
+        "decision": "Pinned Chromium compatibility; exact decoded RGBA, no alternative oracle or tolerance.",
+        "control": {
+          "case": "svg-opacity-source-blur-high",
+          "why": "Changing only .999 to .998 changes 2835 Chromium pixels (maximum channel delta 2); both sides must independently match their own raster."
+        }
+      },
+      "stored": null
+    },
+    {
+      "id": "svg-opacity-source-pattern-high",
+      "source": {
+        "path": "../../../fixtures/web-first/svg-opacity-source-pattern-high.svg",
+        "sha256": "015ce0ad83bdc07dbc536d76ba9d75867b6e6a9d2ce65846f4d3eaead40ae783"
+      },
+      "description": "This 64×64 pattern scene at group opacity .999 matches its declared Chromium raster. The multi-operation paint-server source retains its complete local drawable enclosure. This asserts the scene, not the complete opacity grammar.",
+      "required": true,
+      "width": 64,
+      "height": 64,
+      "review": {
+        "status": "reviewed",
+        "reason": "Static self-contained source without text or external resources; registered and baked through the Web-first fixture workflow. The paired control changes only the group opacity across the byte-alpha boundary.",
+        "blockers": []
+      },
+      "assertion": {
+        "kind": "render-exact",
+        "reference": {
+          "path": "../../../fixtures/web-first/chromium/svg-opacity-source-pattern-high.png",
+          "sha256": "bcc2d082c4500ff2810e4f5b3f76d1b8fb268e69178b9b9af796d81569dc26bb"
+        },
+        "decision": "Pinned Chromium compatibility; exact decoded RGBA, no alternative oracle or tolerance.",
+        "control": {
+          "case": "svg-opacity-source-pattern-low",
+          "why": "Changing only .999 to .998 changes 2020 Chromium pixels (maximum channel delta 1); both sides must independently match their own raster."
+        }
+      },
+      "stored": null
+    },
+    {
+      "id": "svg-opacity-source-pattern-low",
+      "source": {
+        "path": "../../../fixtures/web-first/svg-opacity-source-pattern-low.svg",
+        "sha256": "6f507d8cbf920300d7de6df474d58d43c8a3cb0270fa24d976b80b734c28822b"
+      },
+      "description": "This 64×64 pattern scene at group opacity .998 matches its declared Chromium raster. The multi-operation paint-server source retains its complete local drawable enclosure. This asserts the scene, not the complete opacity grammar.",
+      "required": true,
+      "width": 64,
+      "height": 64,
+      "review": {
+        "status": "reviewed",
+        "reason": "Static self-contained source without text or external resources; registered and baked through the Web-first fixture workflow. The paired control changes only the group opacity across the byte-alpha boundary.",
+        "blockers": []
+      },
+      "assertion": {
+        "kind": "render-exact",
+        "reference": {
+          "path": "../../../fixtures/web-first/chromium/svg-opacity-source-pattern-low.png",
+          "sha256": "58e26bfff7b9c5a6c58f9029baf5a1f0d5427b8050037de501a5285beb00ce6c"
+        },
+        "decision": "Pinned Chromium compatibility; exact decoded RGBA, no alternative oracle or tolerance.",
+        "control": {
+          "case": "svg-opacity-source-pattern-high",
+          "why": "Changing only .999 to .998 changes 2020 Chromium pixels (maximum channel delta 1); both sides must independently match their own raster."
+        }
+      },
+      "stored": null
+    },
+    {
+      "id": "svg-opacity-source-radial-high",
+      "source": {
+        "path": "../../../fixtures/web-first/svg-opacity-source-radial-high.svg",
+        "sha256": "5c033c6c331560e458baf77431779f219d952528508ba9245a2681bc67a4151e"
+      },
+      "description": "This 64×64 radial scene at group opacity .999 matches its declared Chromium raster. The multi-operation paint-server source retains its complete local drawable enclosure. This asserts the scene, not the complete opacity grammar.",
+      "required": true,
+      "width": 64,
+      "height": 64,
+      "review": {
+        "status": "reviewed",
+        "reason": "Static self-contained source without text or external resources; registered and baked through the Web-first fixture workflow. The paired control changes only the group opacity across the byte-alpha boundary.",
+        "blockers": []
+      },
+      "assertion": {
+        "kind": "render-exact",
+        "reference": {
+          "path": "../../../fixtures/web-first/chromium/svg-opacity-source-radial-high.png",
+          "sha256": "66a0511bdc15a8d2c743d145c9910b3a8777c228e36f4b84111a39a5acdaa305"
+        },
+        "decision": "Pinned Chromium compatibility; exact decoded RGBA, no alternative oracle or tolerance.",
+        "control": {
+          "case": "svg-opacity-source-radial-low",
+          "why": "Changing only .999 to .998 changes 1969 Chromium pixels (maximum channel delta 1); both sides must independently match their own raster."
+        }
+      },
+      "stored": null
+    },
+    {
+      "id": "svg-opacity-source-radial-low",
+      "source": {
+        "path": "../../../fixtures/web-first/svg-opacity-source-radial-low.svg",
+        "sha256": "3438c3e447d6259e55f69d4712a798a674b7f849871fb8cdf9e53ee3da1e67ce"
+      },
+      "description": "This 64×64 radial scene at group opacity .998 matches its declared Chromium raster. The multi-operation paint-server source retains its complete local drawable enclosure. This asserts the scene, not the complete opacity grammar.",
+      "required": true,
+      "width": 64,
+      "height": 64,
+      "review": {
+        "status": "reviewed",
+        "reason": "Static self-contained source without text or external resources; registered and baked through the Web-first fixture workflow. The paired control changes only the group opacity across the byte-alpha boundary.",
+        "blockers": []
+      },
+      "assertion": {
+        "kind": "render-exact",
+        "reference": {
+          "path": "../../../fixtures/web-first/chromium/svg-opacity-source-radial-low.png",
+          "sha256": "e527d69274043c8a5021d22fcd8af5b7b51aef335045e68c1fa5e2dd5eea5d99"
+        },
+        "decision": "Pinned Chromium compatibility; exact decoded RGBA, no alternative oracle or tolerance.",
+        "control": {
+          "case": "svg-opacity-source-radial-high",
+          "why": "Changing only .999 to .998 changes 1969 Chromium pixels (maximum channel delta 1); both sides must independently match their own raster."
+        }
+      },
+      "stored": null
+    },
+    {
+      "id": "svg-opacity-source-shear",
+      "source": {
+        "path": "../../../fixtures/web-first/unsupported/svg-opacity-source-shear.svg",
+        "sha256": "7dffe09b862c4b5a31cb87caf7922dd6764c8158a27499518065cfb0c380b0da"
+      },
+      "description": "A sheared multi-operation gradient source refuses at its complete group; best effort names and skips that group. This is expected refusal, not rendered support.",
+      "required": true,
+      "width": 64,
+      "height": 64,
+      "review": {
+        "status": "reviewed",
+        "reason": "Registered static self-contained refusal witness. Exact diagnostics and stable group attribution were measured through both actual CLI admissions, twice.",
+        "blockers": []
+      },
+      "assertion": {
+        "kind": "refusal",
+        "decision": "Guard named degradation independently from positive pixel comparisons; fallback pixels do not certify rendering support.",
+        "strict": {
+          "exit": 1,
+          "diagnostics": "error: render failed: unsupported computed style: opacity source-extent needs its shear or unequal-scale source mapping profile"
+        },
+        "best": {
+          "exit": 0,
+          "diagnostics": "degraded: skipped svg/g[1]: unsupported computed style: opacity source-extent needs its shear or unequal-scale source mapping profile"
+        }
+      },
+      "stored": null
+    },
+    {
+      "id": "svg-opacity-source-root-path",
+      "source": {
+        "path": "../../../fixtures/web-first/unsupported/svg-opacity-source-root-path.svg",
+        "sha256": "b06147e4334d8f036d1cd843dca1dd93717b214eb9143c1eed1b29e9d85cc292"
+      },
+      "description": "A root opacity source containing a gradient path refuses at document level in both admissions. This is expected refusal, not rendered support.",
+      "required": true,
+      "width": 64,
+      "height": 64,
+      "review": {
+        "status": "reviewed",
+        "reason": "Registered static self-contained refusal witness. Exact diagnostics and stable group attribution were measured through both actual CLI admissions, twice.",
+        "blockers": []
+      },
+      "assertion": {
+        "kind": "refusal",
+        "decision": "Guard named degradation independently from positive pixel comparisons; fallback pixels do not certify rendering support.",
+        "strict": {
+          "exit": 1,
+          "diagnostics": "error: render failed: unsupported computed style: opacity source-extent needs its path-source enclosure profile"
+        },
+        "best": {
+          "exit": 1,
+          "diagnostics": "error: render failed: unsupported computed style: opacity source-extent needs its path-source enclosure profile"
+        }
+      },
+      "stored": null
+    }
+  ]
+}
