@@ -493,7 +493,7 @@ a shadow corpus. The pre-landing verification ritual is the saved
 `assertions-test` checks the separate assertion-tool contracts;
 `assertions-gate <new-absolute-output-directory>` runs its small actual-CLI pilot
 and fresh Chromium captures. `assertions-opacity-gate <new-absolute-output-directory>`
-runs six described blur/pattern/radial rendering claims and two named-refusal
+runs seven described blur/pattern/radial rendering claims and two named-refusal
 claims from the ordinary-opacity rung. The [SVG assertion tool](../../packages/grida-reftest/svg-assertions/README.md)
 records each described claim, reference decision, both admissions and their
 diagnostics, independent exact image comparisons, and a discrete verdict. A

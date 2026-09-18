@@ -6678,7 +6678,7 @@ oracle is replaced, and no tolerance or FLIP rule changes.
 The evidence estate is now 1,575 primitive cells and 368 named refusals;
 16 sampled frames, 16 exact text cells and eight geometry witnesses are
 unchanged. Six new blur controls bring the filter estate to 459 cells.
-The assertion harness gains six scene-specific rendering claims and two
+The assertion harness gains seven scene-specific rendering claims and two
 expected refusals, separately labelled and run through the actual CLI.
 It uses the same immutable sources, exact decoded RGBA and sole Chromium
 module; it adds no second oracle or conformance measure.
@@ -6713,7 +6713,7 @@ The renewed independent TICK/LAW audit and manual REPRO both pass with no
 remaining must-fix or should-fix items. REPRO repeated six matrices containing
 95 sources through fresh Chromium and 380 actual CLI executions, verified
 stable identities and complete refusal-owner rollback, and renewed the full
-fixture gate and STATUS. The six rendering assertions and two expected
+fixture gate and STATUS. The six initial rendering assertions and two expected
 refusals pass, as does the original three-case pilot; both reports have empty
 integrity-error lists. The known unequal-scale no-opacity control remains
 outside the claimed repair. Full relevant Rust tests, post-audit producer and
@@ -6721,3 +6721,23 @@ consumer tests including trace/reuse, formatting, strict Clippy, 40 assertion
 tool-contract tests, typechecks and link/OSS checks pass. No Workflow runner
 was exposed; the saved workflow was not invoked, and these independent roles
 are the explicit manual fallback.
+
+### Cross-platform landing boundary
+
+The verification above is local ARM evidence, not an all-platform verdict.
+Hosted Linux capture exposed repeat-stable Chromium source-over rounding
+differences in the three near-unit controls; the exact upstream NEON and x86
+formulas explain their complete images (**measured, not celled**). The
+[reference-environment finding](https://github.com/gridaco/nothing/issues/140#issuecomment-5660399997)
+separates portable engine correctness from reproduction of one declared
+external capture environment. The original images and capture posture remain
+unchanged; no tolerance or feature tick follows from that finding.
+
+A separate full Linux engine gate fails the authored-arc blur cell by 25
+pixels at maximum channel delta 3. Its retained failure signature matches
+the local native-circle/arc distinction, but that alone does not establish a
+cause. The existing arc cell now has a seventh actual-CLI rendering assertion
+and failure artifacts preserve resolved geometry and pixels. This is an open
+landing blocker, not a reference-policy exemption. Browser identity recording
+and an observe-only ARM CI candidate prepare attestation; neither replaces the
+Linux gates or constitutes an enforced canonical profile.

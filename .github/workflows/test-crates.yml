@@ -148,4 +148,14 @@ jobs:
       - name: Run cargo tests
         env:
           FORCE_SKIA_BINARIES_DOWNLOAD: "1"
+          N0_REFTEST_ARTIFACTS: ${{ runner.temp }}/n0-reftest-${{ github.run_id }}-${{ github.run_attempt }}
         run: cargo test --workspace --exclude grida-canvas-wasm
+
+      - name: Preserve exact-reference failure diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: n0-reftest-failures-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/n0-reftest-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: ignore
+          retention-days: 14

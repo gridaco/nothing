@@ -211,6 +211,48 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  svg_arm_capture_candidate:
+    # Attestation candidate, not a replacement for the Linux engine gates.
+    # Until its exact identity is reviewed/pinned, this job certifies no gate.
+    name: SVG ARM capture candidate
+    needs: scope
+    if: needs.scope.outputs.engine == 'true'
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.92.0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: svg-arm-capture
+          cache-on-failure: true
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install capture and build dependencies
+        run: |
+          brew install ninja
+          pnpm install --frozen-lockfile
+          pnpm -C packages/grida-reftest exec playwright install chromium
+      - name: Observe immutable opacity references and retain browser identity
+        run: |
+          pnpm -C packages/grida-reftest exec tsx svg-assertions/cli.ts \
+            --manifest "$GITHUB_WORKSPACE/packages/grida-reftest/svg-assertions/opacity-source.json" \
+            --out "$RUNNER_TEMP/svg-arm-capture" --observe
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: svg-arm-capture-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/svg-arm-capture
+          if-no-files-found: error
+          retention-days: 14
+
   legacy_pixel_sweep:
     name: legacy pixel sweep
     needs: scope

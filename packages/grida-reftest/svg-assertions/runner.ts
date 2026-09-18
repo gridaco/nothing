@@ -272,6 +272,7 @@ export async function run(options: Options): Promise<Report> {
       "runner.ts",
       "report.ts",
       "capture-worker.ts",
+      "capture-identity.ts",
       "cli.ts",
     ].map((name) => join(toolDir, name)),
   ]) {

@@ -50,11 +50,13 @@ there is labelled **expected refusal**, never rendering support.
 ## Ordinary-opacity regression suite
 
 [opacity-source.json](./opacity-source.json) applies the same instrument to
-six described rendering claims and two expected refusals from
+seven described rendering claims and two expected refusals from
 [gridaco/nothing#136](https://github.com/gridaco/nothing/issues/136).
 The blur, repeating-pattern and radial-gradient scenes each pair group
 opacity `.999` with `.998`: a one-pixel discrepancy still fails the complete
-scene, and each control must change Chromium's pixels. Sheared group and
+scene, and each control must change Chromium's pixels. A separate authored-arc
+blur case retains its own reference and uses the native circle as its control;
+it guards the geometry distinction exposed by Linux CI. Sheared group and
 root-path cases check named refusals separately, not fallback-image accuracy.
 
 ```sh
@@ -64,6 +66,17 @@ just -f fixtures/web-first/justfile assertions-opacity-gate "$PWD/target/svg-ass
 This uses a fresh output directory under the same setup and immutable-output
 rules as the pilot. CI runs both suites and retains both reports. No resvg
 reference, new tolerance, or claim of complete opacity support is introduced.
+
+Captures retain `chromium-identity.json`: actual browser executable hash and
+architecture, browser revision, host OS identity, and reported raster backend.
+This passive record changes no launch flags or screenshot posture. It is not
+yet an enforced canonical-environment profile. The ARM candidate CI job is
+observe-only; it does not replace or satisfy the existing Linux gates.
+
+For the full Rust primitive gate, `N0_REFTEST_ARTIFACTS` may name a new directory
+whose parent exists. Exact-cell divergences retain source, resolved frame,
+actual PNG and reference PNG there. Existing output directories/files refuse
+overwrites. CI uploads these diagnostics even when the test fails.
 
 ## A case is not its filename
 

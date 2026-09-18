@@ -7,6 +7,35 @@
   },
   "cases": [
     {
+      "id": "svg-opacity-source-blur-arc",
+      "source": {
+        "path": "../../../fixtures/web-first/svg-opacity-source-blur-arc.svg",
+        "sha256": "0bf9a3406281d362f05026282221fb9d9416029b9ed923d0ec2ff6958a685650"
+      },
+      "description": "The authored arc path feeding Gaussian blur at group opacity .999 matches its own Chromium reference, not the native-circle control. This preserves the geometry distinction through the actual CLI on every tested platform.",
+      "required": true,
+      "width": 64,
+      "height": 64,
+      "review": {
+        "status": "reviewed",
+        "reason": "Existing immutable registered cell; self-contained and static. The arc and native-circle controls differ by 25 Chromium pixels at maximum channel delta 3. A known Linux engine failure must remain visible until repaired.",
+        "blockers": []
+      },
+      "assertion": {
+        "kind": "render-exact",
+        "reference": {
+          "path": "../../../fixtures/web-first/chromium/svg-opacity-source-blur-arc.png",
+          "sha256": "5d781e8dc2f645b2f51b6e2a1e118d3d6d7a8114ea20a2ab81beb617790ac71d"
+        },
+        "decision": "The arc retains its own external reference; no geometry substitution or platform-specific expectation.",
+        "control": {
+          "case": "svg-opacity-source-blur-high",
+          "why": "Native circle and authored arcs are distinct Chromium raster branches: 25 pixels differ at maximum channel delta 3. Each must match its own complete image."
+        }
+      },
+      "stored": null
+    },
+    {
       "id": "svg-opacity-source-blur-high",
       "source": {
         "path": "../../../fixtures/web-first/svg-opacity-source-blur-high.svg",
