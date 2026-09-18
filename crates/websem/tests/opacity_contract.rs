@@ -95,7 +95,7 @@ fn scope_opacities(frame: &rframe::Frame) -> Vec<f32> {
                 let ScopeEffect::Opacity(opacity) = scope.effect else {
                     panic!("opacity fixture emitted a non-opacity scope");
                 };
-                Some(opacity.get())
+                Some(opacity.opacity().get())
             }
             _ => None,
         })

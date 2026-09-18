@@ -1,6 +1,7 @@
 /** Bounded by the parent process. No alternate Chromium capture posture. */
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { captureIdentity } from "./capture-identity";
 import {
   captureFirstSvg,
   deterministicContext,
@@ -16,6 +17,11 @@ async function main(): Promise<void> {
       throw new Error(
         `Chromium version drift: ${browser.version()} != ${version}`
       );
+    await writeFile(
+      join(out, "chromium-identity.json"),
+      JSON.stringify(await captureIdentity(browser), null, 2),
+      { flag: "wx" }
+    );
     const context = await deterministicContext(browser);
     try {
       const page = await context.newPage();

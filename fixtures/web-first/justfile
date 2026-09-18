@@ -69,3 +69,7 @@ assertions-test:
 # This supplements, and does not replace, the existing full fixture gate.
 assertions-gate out:
     {{node_env}} {{cargo_env}} pnpm -C {{justfile_directory()}}/../../packages/grida-reftest exec tsx {{justfile_directory()}}/../../packages/grida-reftest/svg-assertions/cli.ts --manifest {{justfile_directory()}}/../../packages/grida-reftest/svg-assertions/pilot.json --out "{{out}}"
+
+# Ordinary-opacity precision claims and named boundaries through the actual CLI.
+assertions-opacity-gate out:
+    {{node_env}} {{cargo_env}} pnpm -C {{justfile_directory()}}/../../packages/grida-reftest exec tsx {{justfile_directory()}}/../../packages/grida-reftest/svg-assertions/cli.ts --manifest {{justfile_directory()}}/../../packages/grida-reftest/svg-assertions/opacity-source.json --out "{{out}}"

@@ -45,9 +45,33 @@ function rendering(id = "subject", control = "control"): Case {
 }
 function suite(): Suite {
   return {
-    schema_version: 1,
+    schema_version: 2,
     profile: "static-self-contained-svg-v1",
-    capture: { sha256: hash, browser_version: "test-version" },
+    capture: {
+      sha256: hash,
+      browser_version: "test-version",
+      environment: {
+        schema_version: 1,
+        host: {
+          platform: "test",
+          arch: "test",
+          release: "test",
+          version: "test",
+        },
+        browser: {
+          product: "test",
+          revision: "test",
+          arch: "test",
+          sha256: hash,
+        },
+        raster: {
+          feature_status: { rasterization: "disabled_software" },
+          gl_implementation: "test",
+          gl_renderer: "test",
+          gl_version: "test",
+        },
+      },
+    },
     cases: [rendering(), rendering("control", "subject")],
   };
 }
@@ -118,12 +142,14 @@ function evidence(): Evidence {
     strict: observation(),
     best: observation(),
     chromium: observation(),
+    reference_problem: null,
     pairs: {
       "strict-baked": compare(original, original),
       "best-baked": compare(original, original),
       "chromium-baked": compare(original, original),
       "strict-best": compare(original, original),
       "chromium-control": compare(original, changed),
+      "baked-control": compare(original, changed),
     },
   };
 }
@@ -326,6 +352,29 @@ describe("exact pixels, not image grades", () => {
   });
 });
 describe("assertion verdicts", () => {
+  it("keeps portable engine success separate from canonical reproduction", () => {
+    const e = evidence();
+    e.reference_problem = "reference-environment-mismatch: browser";
+    e.pairs["chromium-baked"] = compare(original, changed);
+    expect(evaluate(rendering(), e, "engine").status).toBe("PASS");
+    expect(evaluate(rendering(), e).status).toBe("UNRESOLVED");
+    e.reference_problem = null;
+    expect(evaluate(rendering(), e).status).toBe("FAIL");
+    e.pairs["strict-baked"] = compare(original, changed);
+    expect(evaluate(rendering(), e, "engine").status).toBe("FAIL");
+    expect(evaluate(rendering(), e).status).toBe("FAIL");
+  });
+  it("requires an effective immutable control even for engine-only verification", () => {
+    const e = evidence();
+    delete e.pairs["baked-control"];
+    expect(evaluate(rendering(), e, "engine").status).toBe("UNRESOLVED");
+    expect(evaluate(rendering(), e).status).toBe("UNRESOLVED");
+  });
+  it("requires explicit reference identity even if every pixel matches", () => {
+    const e = evidence();
+    e.reference_problem = undefined as unknown as string;
+    expect(evaluate(rendering(), e).status).toBe("UNRESOLVED");
+  });
   it("accepts a fully evidenced exact assertion", () =>
     expect(evaluate(rendering(), evidence()).status).toBe("PASS"));
   it("does not let a matching second opinion rescue a declared-reference mismatch", () => {

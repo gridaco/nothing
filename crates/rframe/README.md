@@ -53,11 +53,24 @@ Fill/stroke overlap is already part of that completed group. A separate outer
 opacity scope around a blend scope states a different nesting and backdrop;
 it is not an equivalent spelling of combined blend and opacity.
 
-`BlendSourceDomain::new(rect, source_to_stream)` checks one strictly positive,
+`ScopeEffect::Opacity(ScopeOpacityGroup)` states ordinary isolated opacity.
+`ScopeOpacityGroup::new(opacity)` takes the existing checked `ScopeOpacity`
+factor. Its children paint in order against transparent black; the completed
+source's premultiplied color and alpha receive the factor once before normal
+source-over composition. `opacity()` returns that exact factor. A group cannot
+be used as `ScopeBlend`'s optional opacity: `ScopeOpacity` stays numeric, so a
+blend has only its own source declaration. Ordinary opacity retains its own
+effect variant and does not become an explicit normal blend.
+
+`IsolatedSourceDomain::new(rect, source_to_stream)` checks one strictly positive,
 already-enclosed source-local rectangle and its map into the containing item
-stream. `ScopeBlend::with_source_domain(domain)` attaches this complete source
-declaration to the existing boundary. `source_domain()` returns it; the ordinary
-`ScopeBlend::new` leaves it absent, making no completeness assertion.
+stream. Both `ScopeOpacityGroup::with_source_domain(domain)` and
+`ScopeBlend::with_source_domain(domain)` attach this complete source declaration
+to their existing boundary. Their `source_domain()` returns it; both ordinary
+constructors leave it absent, making no completeness assertion. Attachment adds
+no nested scope or extra final operation. `BlendSourceDomain` and
+`BlendSourceDomainError` remain compatibility aliases for `IsolatedSourceDomain`
+and `IsolatedSourceDomainError`; the numerical checks are unchanged.
 
 The source materializes against transparent black over the declared domain
 before that boundary's final opacity/blend. Contribution discovery and local
@@ -86,9 +99,11 @@ supported finite affine inverse, and
 the mapped corners and their enclosing box must remain finite and positive.
 The existing affine inverse's small-determinant refusal applies. No integer
 coordinate rule or enclosure algorithm is imposed on the source's unit system.
-Empty domains are refused; a domain never makes an empty blend scope meaningful.
+Empty domains are refused; a domain never makes an empty opacity or blend scope
+meaningful.
 Producer-only laws, including independent illustration construction, live in
-[`tests/blend_source_domain.rs`](tests/blend_source_domain.rs).
+[`tests/blend_source_domain.rs`](tests/blend_source_domain.rs) and
+[`tests/opacity_source_domain.rs`](tests/opacity_source_domain.rs).
 
 `ScopeBlend::new(mode, opacity)` takes `ScopeBlendMode::{Normal, Multiply,
 Screen}` and `Option<ScopeOpacity>`. `mode()` and `opacity()` return those
@@ -96,8 +111,9 @@ facts unchanged. `None` means opacity 1; `Some` reuses the finite, strictly
 between-zero-and-one `ScopeOpacity` check. Zero opacity resolves to no emitted
 group. In particular, `Normal` with `None` **retains isolation**; a group whose
 children should paint directly into the enclosing backdrop has no scope.
-The existing `ScopeEffect::Opacity` still means isolated normal composition
-at its checked opacity, and its constructor still rejects both 0 and 1.
+`ScopeOpacity::new` still rejects both 0 and 1. To construct an ordinary opacity
+effect, wrap that factor in `ScopeOpacityGroup::new` before passing it to
+`ScopeEffect::Opacity`; read the factor through the group's `opacity().get()`.
 
 The scope-specific blend enum admits only these three functions. Reusing all
 of `cg::BlendMode` would admit modes beyond this contract; reusing
@@ -133,6 +149,10 @@ helper never understates the mathematical bound.
   format is `format/grida.fbs`.
 - **Not a renderer.** The crate is backend-free, and a test locks that: no Skia,
   no canvas, no paint call can enter it.
+- **Not a source enclosure resolver.** An isolated source domain is a complete
+  producer declaration. Numerical validation cannot establish completeness or
+  recover non-painted contributions. Geometry bounds, damage bounds, clips,
+  host views, device grids, and allocation hints cannot stand in for that fact.
 - **Not a second engine's contract.** It has exactly one consumer. The
   source-neutrality claim is checked by a canary that feeds the kernel from a
   second, independent producer (`crates/n0/tests/glyphless_canary.rs`) — the

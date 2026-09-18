@@ -5,7 +5,8 @@ use math2::Rectangle;
 use math2::transform::AffineTransform;
 use rframe::{
     ClipGeometry, ClipLayer, ClipPath, FrameItem, FrameItems, FrameItemsError, FrameNode, Geometry,
-    Identity, Mask, MaskMode, PaintStack, Provenance, Scope, ScopeEffect, ScopeOpacity, VisualRef,
+    Identity, Mask, MaskMode, PaintStack, Provenance, Scope, ScopeEffect, ScopeOpacity,
+    ScopeOpacityGroup, VisualRef,
 };
 
 fn owner(id: u64) -> VisualRef {
@@ -36,7 +37,9 @@ fn mask(id: u64, mode: MaskMode) -> FrameItem {
 fn scope(id: u64) -> FrameItem {
     FrameItem::ScopeBegin(Scope {
         owner: owner(id),
-        effect: ScopeEffect::Opacity(ScopeOpacity::new(0.5).expect("0.5 is a scope fact")),
+        effect: ScopeEffect::Opacity(ScopeOpacityGroup::new(
+            ScopeOpacity::new(0.5).expect("0.5 is a scope fact"),
+        )),
     })
 }
 

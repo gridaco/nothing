@@ -46,7 +46,10 @@ impl std::fmt::Display for ScopeOpacityError {
 
 impl std::error::Error for ScopeOpacityError {}
 
-/// A checked group opacity: finite and strictly between 0 and 1.
+/// A checked group opacity factor: finite and strictly between 0 and 1.
+///
+/// This is numeric only. The ordinary isolated group is [`ScopeOpacityGroup`];
+/// a [`ScopeBlend`] reuses this factor but owns its own source declaration.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ScopeOpacity(f32);
 
@@ -81,9 +84,9 @@ pub enum ScopeBlendMode {
     Screen,
 }
 
-/// Why a complete blend-source domain cannot cross the resolved contract.
+/// Why a complete isolated-source domain cannot cross the resolved contract.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum BlendSourceDomainError {
+pub enum IsolatedSourceDomainError {
     /// The local rectangle is non-finite, empty, or has unrepresentable endpoints.
     InvalidRectangle,
     /// The map is non-finite or has no supported finite inverse.
@@ -92,30 +95,31 @@ pub enum BlendSourceDomainError {
     InvalidMappedBounds,
 }
 
-impl std::fmt::Display for BlendSourceDomainError {
+impl std::fmt::Display for IsolatedSourceDomainError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
             Self::InvalidRectangle => {
-                "a blend-source domain must have finite local bounds with positive extents and ordered endpoints"
+                "an isolated-source domain must have finite local bounds with positive extents and ordered endpoints"
             }
             Self::InvalidTransform => {
-                "a blend-source domain map must have finite members and a supported finite inverse"
+                "an isolated-source domain map must have finite members and a supported finite inverse"
             }
             Self::InvalidMappedBounds => {
-                "a blend-source domain must map to finite, strictly positive bounds"
+                "an isolated-source domain must map to finite, strictly positive bounds"
             }
         })
     }
 }
 
-impl std::error::Error for BlendSourceDomainError {}
+impl std::error::Error for IsolatedSourceDomainError {}
 
-/// The complete, already-enclosed local domain of one isolated blend source.
+/// The complete, already-enclosed local domain of one isolated group source.
 ///
 /// The producer has finished discovering contributions and enclosing them in
 /// source-local coordinates. Materialize the isolated source over this domain
-/// against transparent black, then apply the owning [`ScopeBlend`]'s final
-/// opacity and blend. The domain includes the producer's resolved non-painted
+/// against transparent black, then apply the owning [`ScopeOpacityGroup`]'s
+/// final opacity or [`ScopeBlend`]'s combined final opacity and blend.
+/// The domain includes the producer's resolved non-painted
 /// extent contributions; it is neither a tight geometry box nor a supplemental
 /// margin. Reconstructing it from visible paints, enlarging it conservatively,
 /// or enclosing contributors after mapping states a different source.
@@ -123,7 +127,7 @@ impl std::error::Error for BlendSourceDomainError {}
 /// `source_to_stream` maps the already-enclosed rectangle into its containing
 /// [`crate::FrameItems`] coordinates: frame space for a frame, tile-local space
 /// for a repeating program. Child node transforms keep their existing meaning;
-/// this mapping is not an inherited transform. Each nested blend boundary owns
+/// this mapping is not an inherited transform. Each nested isolation boundary owns
 /// its own declaration and completed source; it does not donate its descendants
 /// as fresh geometry to an enclosing boundary.
 ///
@@ -137,15 +141,16 @@ impl std::error::Error for BlendSourceDomainError {}
 /// nor proves that the producer's declaration is complete. There is no integer
 /// coordinate requirement: the producer has resolved the enclosure in its own
 /// source space, whose unit need not be a device pixel. Empty domains are not
-/// admitted; absence is represented by [`ScopeBlend::source_domain`] returning
-/// `None`, which makes no completeness assertion.
+/// admitted; absence is represented by [`ScopeOpacityGroup::source_domain`] or
+/// [`ScopeBlend::source_domain`] returning `None`, which makes no completeness
+/// assertion.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct BlendSourceDomain {
+pub struct IsolatedSourceDomain {
     rect: Rectangle,
     source_to_stream: AffineTransform,
 }
 
-impl BlendSourceDomain {
+impl IsolatedSourceDomain {
     /// Check an already-enclosed rectangle and retain both supplied facts exactly.
     ///
     /// Local endpoints must be finite and strictly ordered in `f32`. The map
@@ -157,9 +162,9 @@ impl BlendSourceDomain {
     pub fn new(
         rect: Rectangle,
         source_to_stream: AffineTransform,
-    ) -> Result<Self, BlendSourceDomainError> {
+    ) -> Result<Self, IsolatedSourceDomainError> {
         if !valid_domain_rectangle(rect) {
-            return Err(BlendSourceDomainError::InvalidRectangle);
+            return Err(IsolatedSourceDomainError::InvalidRectangle);
         }
         let [[a, c, _], [b, d, _]] = source_to_stream.matrix;
         if !source_to_stream
@@ -172,7 +177,7 @@ impl BlendSourceDomain {
                 .inverse()
                 .is_some_and(|inverse| inverse.matrix.into_iter().flatten().all(f32::is_finite))
         {
-            return Err(BlendSourceDomainError::InvalidTransform);
+            return Err(IsolatedSourceDomainError::InvalidTransform);
         }
         let corners = rect
             .corners()
@@ -181,7 +186,7 @@ impl BlendSourceDomain {
         if !corners.into_iter().flatten().all(f32::is_finite)
             || !valid_domain_rectangle(Rectangle::from_points(&corners))
         {
-            return Err(BlendSourceDomainError::InvalidMappedBounds);
+            return Err(IsolatedSourceDomainError::InvalidMappedBounds);
         }
         Ok(Self {
             rect,
@@ -202,6 +207,12 @@ impl BlendSourceDomain {
     }
 }
 
+/// Compatibility name for [`IsolatedSourceDomain`], shared by blend and opacity.
+pub use IsolatedSourceDomain as BlendSourceDomain;
+
+/// Compatibility name for [`IsolatedSourceDomainError`].
+pub use IsolatedSourceDomainError as BlendSourceDomainError;
+
 fn valid_domain_rectangle(rect: Rectangle) -> bool {
     rect.x.is_finite()
         && rect.y.is_finite()
@@ -213,6 +224,79 @@ fn valid_domain_rectangle(rect: Rectangle) -> bool {
         && (rect.y + rect.height).is_finite()
         && rect.x + rect.width > rect.x
         && rect.y + rect.height > rect.y
+}
+
+/// One isolated group's final opacity and optional complete source domain.
+///
+/// Children paint in stream order against transparent black. Apply the checked
+/// opacity once to the completed source's premultiplied color and alpha, then
+/// composite source-over into the enclosing backdrop. The factor is never
+/// distributed over child paints, fills, or strokes.
+///
+/// An optional [`IsolatedSourceDomain`] declares where that completed source
+/// materializes before final opacity. It adds no nested operation, paint, clip,
+/// or inherited transform, and cannot make an empty group meaningful. Absence
+/// makes no completeness assertion. Numerical checks do not prove completeness;
+/// the producer establishes it, and a consumer must honor the declaration or
+/// refuse it. Backdrop-preserving opacity and execution policy are inexpressible.
+///
+/// [`ScopeOpacity`] remains the numeric factor shared with [`ScopeBlend`]. A
+/// blend's optional opacity cannot carry a competing source declaration:
+///
+/// ```compile_fail
+/// use rframe::{ScopeBlend, ScopeBlendMode, ScopeOpacity, ScopeOpacityGroup};
+/// let group = ScopeOpacityGroup::new(ScopeOpacity::new(0.5).unwrap());
+/// let blend = ScopeBlend::new(ScopeBlendMode::Multiply, Some(group));
+/// ```
+///
+/// ```
+/// use math2::{Rectangle, transform::AffineTransform};
+/// use rframe::{IsolatedSourceDomain, ScopeEffect, ScopeOpacity, ScopeOpacityGroup};
+/// let factor = ScopeOpacity::new(0.375)?;
+/// let source = IsolatedSourceDomain::new(
+///     Rectangle::from_xywh(-2.0, -3.0, 24.0, 20.0),
+///     AffineTransform::identity(),
+/// )?;
+/// let group = ScopeOpacityGroup::new(factor).with_source_domain(source);
+/// assert_eq!(group.opacity(), factor);
+/// assert_eq!(group.source_domain(), Some(source));
+/// let effect = ScopeEffect::Opacity(group);
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ScopeOpacityGroup {
+    opacity: ScopeOpacity,
+    source_domain: Option<IsolatedSourceDomain>,
+}
+
+impl ScopeOpacityGroup {
+    /// State ordinary isolated opacity with no source completeness assertion.
+    #[must_use]
+    pub const fn new(opacity: ScopeOpacity) -> Self {
+        Self {
+            opacity,
+            source_domain: None,
+        }
+    }
+
+    /// Declare the complete source domain without changing the final operation.
+    #[must_use]
+    pub const fn with_source_domain(mut self, domain: IsolatedSourceDomain) -> Self {
+        self.source_domain = Some(domain);
+        self
+    }
+
+    /// The final factor, applied once to the completed source.
+    #[must_use]
+    pub const fn opacity(self) -> ScopeOpacity {
+        self.opacity
+    }
+
+    /// The declared complete source domain, or no completeness assertion.
+    #[must_use]
+    pub const fn source_domain(self) -> Option<IsolatedSourceDomain> {
+        self.source_domain
+    }
 }
 
 /// One isolated group's combined final blend and optional opacity.
@@ -238,7 +322,7 @@ fn valid_domain_rectangle(rect: Rectangle) -> bool {
 /// This names visual meaning, never a layer allocation, backdrop copy, cache
 /// policy, or authored group.
 ///
-/// An optional [`BlendSourceDomain`] states the complete source domain before
+/// An optional [`IsolatedSourceDomain`] states the complete source domain before
 /// this final operation. Absence preserves the existing group meaning without
 /// asserting completeness. A domain neither creates another scope nor makes an
 /// empty group meaningful, and equality of domains does not erase the backdrop
@@ -260,7 +344,7 @@ fn valid_domain_rectangle(rect: Rectangle) -> bool {
 pub struct ScopeBlend {
     mode: ScopeBlendMode,
     opacity: Option<ScopeOpacity>,
-    source_domain: Option<BlendSourceDomain>,
+    source_domain: Option<IsolatedSourceDomain>,
 }
 
 impl ScopeBlend {
@@ -277,14 +361,14 @@ impl ScopeBlend {
 
     /// Declare the complete source domain without changing the final operation.
     #[must_use]
-    pub const fn with_source_domain(mut self, domain: BlendSourceDomain) -> Self {
+    pub const fn with_source_domain(mut self, domain: IsolatedSourceDomain) -> Self {
         self.source_domain = Some(domain);
         self
     }
 
     /// The declared complete source domain, or no completeness assertion.
     #[must_use]
-    pub const fn source_domain(self) -> Option<BlendSourceDomain> {
+    pub const fn source_domain(self) -> Option<IsolatedSourceDomain> {
         self.source_domain
     }
 
@@ -304,8 +388,9 @@ impl ScopeBlend {
 /// The compositing effect a scope applies to its group's composite.
 #[derive(Clone, Debug, PartialEq)]
 pub enum ScopeEffect {
-    /// The group composites at this opacity through one isolated layer.
-    Opacity(ScopeOpacity),
+    /// Materialize one isolated source, optionally over its declared complete
+    /// domain, then apply final opacity once and composite source-over.
+    Opacity(ScopeOpacityGroup),
     /// Isolate the group, then blend its completed composite with the enclosing
     /// backdrop at the optional opacity in one final operation. Normal blend
     /// at unit opacity still retains this scope's isolation boundary.

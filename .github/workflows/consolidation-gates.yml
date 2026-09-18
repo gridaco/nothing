@@ -188,7 +188,7 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm -C packages/grida-reftest exec playwright install --with-deps chromium
 
-      - name: Verify assertion contracts and the actual n0 CLI pilot
+      - name: Verify assertion contracts and the actual n0 CLI suites
         # The registry crate uses its packaged VCS identity for binary downloads.
         # FORCE_SKIA_BINARIES_DOWNLOAD selects an upstream-checkout test path
         # which instead builds Skia from source when no Git checkout exists.
@@ -197,7 +197,10 @@ jobs:
           pnpm -C packages/grida-reftest exec vitest run svg-assertions --passWithNoTests=false
           pnpm -C packages/grida-reftest exec tsx svg-assertions/cli.ts \
             --manifest "$GITHUB_WORKSPACE/packages/grida-reftest/svg-assertions/pilot.json" \
-            --out "$RUNNER_TEMP/$SVG_ASSERTION_DIR"
+            --out "$RUNNER_TEMP/$SVG_ASSERTION_DIR" --obligation engine
+          pnpm -C packages/grida-reftest exec tsx svg-assertions/cli.ts \
+            --manifest "$GITHUB_WORKSPACE/packages/grida-reftest/svg-assertions/opacity-source.json" \
+            --out "$RUNNER_TEMP/$SVG_ASSERTION_DIR/opacity-source" --obligation engine
 
       - name: Upload SVG assertion observations
         if: always()
@@ -207,6 +210,53 @@ jobs:
           path: ${{ runner.temp }}/${{ env.SVG_ASSERTION_DIR }}
           if-no-files-found: warn
           retention-days: 7
+
+  svg_reference:
+    # macos-26 provisions a candidate; the manifest's exact runtime identity
+    # decides whether it is the reference environment. Drift fails closed.
+    # Linux still must match these SAME immutable references independently.
+    name: SVG canonical reference
+    needs: scope
+    if: needs.scope.outputs.engine == 'true'
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          ref: ${{ needs.scope.outputs.head }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.92.0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: svg-arm-capture
+          cache-on-failure: true
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install capture and build dependencies
+        run: |
+          brew install ninja
+          pnpm install --frozen-lockfile
+          pnpm -C packages/grida-reftest exec playwright install chromium
+      - name: Require canonical reproduction and ARM engine pixels
+        run: |
+          pnpm -C packages/grida-reftest exec tsx svg-assertions/cli.ts \
+            --manifest "$GITHUB_WORKSPACE/packages/grida-reftest/svg-assertions/pilot.json" \
+            --out "$RUNNER_TEMP/svg-arm-capture"
+          pnpm -C packages/grida-reftest exec tsx svg-assertions/cli.ts \
+            --manifest "$GITHUB_WORKSPACE/packages/grida-reftest/svg-assertions/opacity-source.json" \
+            --out "$RUNNER_TEMP/svg-arm-capture/opacity-source"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: svg-arm-capture-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/svg-arm-capture
+          if-no-files-found: error
+          retention-days: 14
 
   legacy_pixel_sweep:
     name: legacy pixel sweep
@@ -437,6 +487,7 @@ jobs:
       - scope
       - lock_additions_only
       - seam_architecture
+      - svg_reference
       - legacy_pixel_sweep
       - n0_gate
       - scoreboard_shape
@@ -448,6 +499,7 @@ jobs:
           ENGINE_SCOPE: ${{ needs.scope.outputs.engine }}
           LOCK_RESULT: ${{ needs.lock_additions_only.result }}
           SEAM_RESULT: ${{ needs.seam_architecture.result }}
+          REFERENCE_RESULT: ${{ needs.svg_reference.result }}
           PIXEL_RESULT: ${{ needs.legacy_pixel_sweep.result }}
           N0_RESULT: ${{ needs.n0_gate.result }}
           SCOREBOARD_RESULT: ${{ needs.scoreboard_shape.result }}
@@ -457,6 +509,7 @@ jobs:
           fi
           if [[ "$ENGINE_SCOPE" == true ]] && \
              [[ "$SEAM_RESULT" != success || \
+                "$REFERENCE_RESULT" != success || \
                 "$PIXEL_RESULT" != success || \
                 "$N0_RESULT" != success || \
                 "$SCOREBOARD_RESULT" != success ]]; then

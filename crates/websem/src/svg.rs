@@ -3456,8 +3456,17 @@ fn compile_svg_element(
         items.insert(0, blend_scope_item(&mut next_id, composite));
         items.push(FrameItem::ScopeEnd);
     } else if root_patrol.opacity < 1.0 && !items.is_empty() {
-        items.insert(0, scope_item(&mut next_id, root_patrol.opacity));
+        let scope = opacity_source_scope_item(
+            &mut next_id,
+            root_patrol.opacity,
+            &items,
+            viewport,
+            root_facts,
+            &[],
+        )?;
+        items.insert(0, scope);
         items.push(FrameItem::ScopeEnd);
+        root_facts.has_opacity_source_paint = false;
     }
     // A standalone SVG's initial backdrop is transparent, not the arbitrary
     // destination the eventual Frame consumer supplies. Resolve that source
@@ -3477,8 +3486,17 @@ fn compile_svg_element(
     }
     for opacity in host_opacities.iter().rev() {
         if !items.is_empty() {
-            items.insert(0, scope_item(&mut next_id, *opacity));
+            let scope = opacity_source_scope_item(
+                &mut next_id,
+                *opacity,
+                &items,
+                viewport,
+                root_facts,
+                &[],
+            )?;
+            items.insert(0, scope);
             items.push(FrameItem::ScopeEnd);
+            root_facts.has_opacity_source_paint = false;
         }
     }
 
@@ -3560,6 +3578,14 @@ struct SpanFacts {
     source_domain_bounds: Option<Rectangle>,
     source_domain_incomplete: bool,
     needs_source_domain: bool,
+    /// An authored contributor was resolved away without a complete drawable
+    /// enclosure. It must not disappear from a later opacity source declaration.
+    opacity_source_incomplete: bool,
+    /// Bare ramp/pattern draws, consumed when their image is completed. This
+    /// bottom-up fact keeps neutral/solid opacity spans off the enclosure walk.
+    has_opacity_source_paint: bool,
+    /// A descendant's checked opacity enclosure remains in the item stream.
+    has_opacity_source_domain: bool,
 }
 
 impl SpanFacts {
@@ -3569,6 +3595,7 @@ impl SpanFacts {
     fn filter_hidden() -> Self {
         Self {
             linear_source_boundary: Some("with a filter-hidden source contributor"),
+            opacity_source_incomplete: true,
             ..Self::default()
         }
     }
@@ -3594,6 +3621,9 @@ impl SpanFacts {
         };
         self.source_domain_incomplete |= other.source_domain_incomplete;
         self.needs_source_domain |= other.needs_source_domain;
+        self.opacity_source_incomplete |= other.opacity_source_incomplete;
+        self.has_opacity_source_paint |= other.has_opacity_source_paint;
+        self.has_opacity_source_domain |= other.has_opacity_source_domain;
     }
 }
 
@@ -5192,6 +5222,39 @@ struct PaintContext<'d> {
 }
 
 impl<'a> ChildWalk<'a> {
+    fn opacity_scope(
+        &mut self,
+        start: usize,
+        opacity: f32,
+        source_to_stream: AffineTransform,
+        facts: &mut SpanFacts,
+    ) -> Result<FrameItem, CompileError> {
+        if facts.has_opacity_source_paint
+            && (!self.active_patterns.is_empty()
+                || !self.active_masks.is_empty()
+                || !self.active_markers.is_empty())
+        {
+            return Err(opacity_source_refusal(
+                "needs its mask, pattern, or marker source-program profile",
+            ));
+        }
+        let scope = opacity_source_scope_item(
+            &mut self.next_id,
+            opacity,
+            &self.items[start..],
+            source_to_stream,
+            *facts,
+            &self.elided_blends,
+        )?;
+        if let FrameItem::ScopeBegin(scope) = &scope
+            && matches!(scope.effect, ScopeEffect::Opacity(group) if group.source_domain().is_some())
+        {
+            facts.has_opacity_source_domain = true;
+        }
+        facts.has_opacity_source_paint = false;
+        Ok(scope)
+    }
+
     fn reset_next_id(&mut self, next_id: u64) {
         self.next_id = next_id;
         self.elided_blends.truncate(next_id as usize);
@@ -5295,7 +5358,13 @@ impl<'a> ChildWalk<'a> {
         checkpoint: usize,
         mut facts: SpanFacts,
         mut filter: Filter,
-    ) -> SpanFacts {
+    ) -> Result<SpanFacts, CompileError> {
+        if facts.has_opacity_source_domain {
+            return Err(opacity_source_refusal(
+                "needs its enclosing filter or mask profile",
+            ));
+        }
+        patrol_image_source_extent(facts)?;
         // Effect participation survives command elision: an invisible input
         // can still change the enclosure used by an enclosing gradient blend.
         if facts.has_geometry {
@@ -5305,7 +5374,7 @@ impl<'a> ChildWalk<'a> {
         }
         if facts.draws == 0 && !facts.has_scope {
             if !filter.program().may_paint_transparent_input() {
-                return facts;
+                return Ok(facts);
             }
             filter = filter.with_transparent_source();
         }
@@ -5317,10 +5386,11 @@ impl<'a> ChildWalk<'a> {
             opacity_passes: 0,
             has_scope: true,
             has_image_effect: true,
+            has_opacity_source_paint: false,
             escaping_blend: false,
             ..facts
         };
-        facts
+        Ok(facts)
     }
 
     /// Wrap a completed target span in a resolved image mask, then compile the
@@ -5338,6 +5408,12 @@ impl<'a> ChildWalk<'a> {
         let Some(invocation) = invocation else {
             return Ok(facts);
         };
+        if facts.has_opacity_source_domain {
+            return Err(opacity_source_refusal(
+                "needs its enclosing filter or mask profile",
+            ));
+        }
+        patrol_image_source_extent(facts)?;
         if facts.has_geometry {
             facts.linear_source_boundary = facts
                 .linear_source_boundary
@@ -5413,6 +5489,7 @@ impl<'a> ChildWalk<'a> {
             opacity_passes: 0,
             has_scope: true,
             has_image_effect: true,
+            has_opacity_source_paint: false,
             escaping_blend: false,
             ..facts
         };
@@ -5427,9 +5504,18 @@ impl<'a> ChildWalk<'a> {
         checkpoint: usize,
         mut facts: SpanFacts,
         opacity: f32,
-    ) -> SpanFacts {
+    ) -> Result<SpanFacts, CompileError> {
         let has_subject =
             facts.has_geometry || facts.opacity_passes > 0 || facts.has_scope || facts.has_opacity;
+        // Filters and masks consume the bare-source fact when they finish
+        // their image. A marker client still has separate fill/stroke/marker
+        // operations here; treating those as a completed image loses its
+        // paint-server source enclosure.
+        if opacity > 0.0 && opacity < 1.0 && has_subject && facts.has_opacity_source_paint {
+            return Err(opacity_source_refusal(
+                "needs its marker-client source profile",
+            ));
+        }
         if opacity == 0.0 && has_subject {
             self.items.truncate(checkpoint);
             facts = SpanFacts {
@@ -5454,7 +5540,7 @@ impl<'a> ChildWalk<'a> {
                 ..facts
             };
         }
-        facts
+        Ok(facts)
     }
 
     /// Wrap a completed target span in its geometric clip. The insertion point
@@ -5791,6 +5877,7 @@ impl<'a> ChildWalk<'a> {
                     // The parent composites a completed image. Do not confuse
                     // it with a ramp rasterized directly into the parent.
                     facts.has_linear_source = false;
+                    facts.has_opacity_source_paint = false;
                     facts.linear_source_boundary = None;
                     facts.needs_source_domain = false;
                 }
@@ -5872,10 +5959,10 @@ impl<'a> ChildWalk<'a> {
                 self.compile_children(el, transform, bases, path, depth + 1, replay_opacity);
             facts.and_then(|mut facts| {
                 if let Some(filter) = filter {
-                    facts = self.wrap_span_with_filter(checkpoint, facts, filter);
+                    facts = self.wrap_span_with_filter(checkpoint, facts, filter)?;
                 }
                 facts = self.wrap_span_with_mask(checkpoint, facts, mask, path, depth)?;
-                Ok(self.wrap_masked_span_with_opacity(checkpoint, facts, patrol.opacity))
+                self.wrap_masked_span_with_opacity(checkpoint, facts, patrol.opacity)
             })
         } else {
             self.compile_span_with_opacity(
@@ -5986,10 +6073,10 @@ impl<'a> ChildWalk<'a> {
             facts.and_then(|mut facts| {
                 facts = self.wrap_span_with_clip(checkpoint, facts, viewport_clip);
                 if let Some(filter) = filter {
-                    facts = self.wrap_span_with_filter(checkpoint, facts, filter);
+                    facts = self.wrap_span_with_filter(checkpoint, facts, filter)?;
                 }
                 facts = self.wrap_span_with_mask(checkpoint, facts, mask, path, depth)?;
-                Ok(self.wrap_masked_span_with_opacity(checkpoint, facts, patrol.opacity))
+                self.wrap_masked_span_with_opacity(checkpoint, facts, patrol.opacity)
             })
         } else {
             self.compile_span_with_opacity(
@@ -6083,7 +6170,8 @@ impl<'a> ChildWalk<'a> {
             } else {
                 let materialized = facts.draws > 0 || facts.has_scope;
                 if materialized {
-                    let scope = scope_item(&mut self.next_id, own_opacity);
+                    let scope =
+                        self.opacity_scope(checkpoint.0, own_opacity, transform, &mut facts)?;
                     self.items.insert(checkpoint.0, scope);
                     self.items.push(FrameItem::ScopeEnd);
                 }
@@ -6219,10 +6307,10 @@ impl<'a> ChildWalk<'a> {
                 self.compile_children(el, transform, bases, path, depth + 1, replay_opacity);
             facts.and_then(|mut facts| {
                 if let Some(filter) = filter {
-                    facts = self.wrap_span_with_filter(checkpoint, facts, filter);
+                    facts = self.wrap_span_with_filter(checkpoint, facts, filter)?;
                 }
                 facts = self.wrap_span_with_mask(checkpoint, facts, mask, path, depth)?;
-                Ok(self.wrap_masked_span_with_opacity(checkpoint, facts, patrol.opacity))
+                self.wrap_masked_span_with_opacity(checkpoint, facts, patrol.opacity)
             })
         } else {
             self.compile_span_with_opacity(
@@ -6645,6 +6733,10 @@ impl<'a> ChildWalk<'a> {
             marker_positions,
         } = compilation;
         if let Some(outcome) = outcome.as_ref() {
+            facts.has_opacity_source_paint = outcome.nodes.iter().any(opacity_source_paint);
+            facts.opacity_source_incomplete = outcome.unresolved_fill_source_extent
+                || outcome.omitted_stroke_extent
+                || (outcome.has_geometry && outcome.draws == 0 && outcome.opacity_passes > 0);
             facts.draws = outcome.draws;
             facts.opacity_passes = outcome.opacity_passes;
             facts.has_opacity = outcome.has_opacity;
@@ -6783,11 +6875,16 @@ impl<'a> ChildWalk<'a> {
                         // The shape's fill and stroke composite together
                         // through one isolated layer. The default-order route
                         // deliberately retains the established one-node fact.
-                        let scope = scope_item(&mut self.next_id, opacity);
-                        self.items.push(scope);
+                        let source_start = self.items.len();
                         debug_assert!(!outcome.nodes.is_empty());
                         self.items
                             .extend(outcome.nodes.into_iter().map(FrameItem::Node));
+                        let own_has_opacity = facts.has_opacity;
+                        facts.has_opacity = false;
+                        let scope =
+                            self.opacity_scope(source_start, opacity, target_to_frame, &mut facts)?;
+                        facts.has_opacity = own_has_opacity;
+                        self.items.insert(source_start, scope);
                         self.items.push(FrameItem::ScopeEnd);
                         facts.draws = 0;
                         facts.opacity_passes = 0;
@@ -6801,11 +6898,9 @@ impl<'a> ChildWalk<'a> {
             self.items.append(&mut marker_items);
         } else if let Some(outcome) = outcome {
             let scope_opacity = outcome.scope_opacity;
+            let source_start = self.items.len();
             let (mut fill_items, mut stroke_items, mut paintless_items) =
                 split_shape_paint_channels(outcome.nodes, &mut self.next_id);
-            if let Some(opacity) = scope_opacity {
-                self.items.push(scope_item(&mut self.next_id, opacity));
-            }
             // Paintless geometry remains in the frame for the same downstream
             // box/context consumers as before, but it has no painter-order
             // relation of its own.
@@ -6817,7 +6912,13 @@ impl<'a> ChildWalk<'a> {
                     SvgPaintOperation::Markers => self.items.append(&mut marker_items),
                 }
             }
-            if scope_opacity.is_some() {
+            if let Some(opacity) = scope_opacity {
+                let own_has_opacity = facts.has_opacity;
+                facts.has_opacity = false;
+                let scope =
+                    self.opacity_scope(source_start, opacity, target_to_frame, &mut facts)?;
+                facts.has_opacity = own_has_opacity;
+                self.items.insert(source_start, scope);
                 self.items.push(FrameItem::ScopeEnd);
                 facts.draws = 0;
                 facts.opacity_passes = 0;
@@ -6830,10 +6931,10 @@ impl<'a> ChildWalk<'a> {
         }
         facts.absorb(marker_facts);
         if let Some(filter) = filter {
-            facts = self.wrap_span_with_filter(checkpoint, facts, filter);
+            facts = self.wrap_span_with_filter(checkpoint, facts, filter)?;
         }
         facts = self.wrap_span_with_mask(checkpoint, facts, mask, path, depth)?;
-        facts = self.wrap_masked_span_with_opacity(checkpoint, facts, deferred_opacity);
+        facts = self.wrap_masked_span_with_opacity(checkpoint, facts, deferred_opacity)?;
         facts = self.wrap_span_with_clip(checkpoint, facts, clip);
         if top_level {
             self.top_level_shapes.push(el.node_id());
@@ -6849,10 +6950,185 @@ fn scope_item(next_id: &mut u64, opacity: f32) -> FrameItem {
     *next_id += 1;
     FrameItem::ScopeBegin(Scope {
         owner: VisualRef::new(Identity::new(scope_id), Provenance::new(scope_id)),
-        effect: ScopeEffect::Opacity(
+        effect: ScopeEffect::Opacity(rframe::ScopeOpacityGroup::new(
             ScopeOpacity::new(opacity).expect("a computed opacity strictly inside (0, 1)"),
-        ),
+        )),
     })
+}
+
+fn opacity_source_refusal(reason: &str) -> CompileError {
+    CompileError::UnsupportedStyle(format!("opacity source-extent {reason}"))
+}
+
+/// Multiple bare passes (or a bare server beside a completed child image)
+/// expose the same missing source enclosure without any element opacity.
+/// Their filter/mask source materialization remains a separate guarded profile.
+fn patrol_image_source_extent(facts: SpanFacts) -> Result<(), CompileError> {
+    if facts.has_opacity_source_paint && (facts.opacity_passes > 1 || facts.has_scope) {
+        return Err(CompileError::UnsupportedStyle(
+            "paint-server source-extent needs its multi-operation filter or mask profile"
+                .to_string(),
+        ));
+    }
+    Ok(())
+}
+
+fn opacity_source_paint(node: &FrameNode) -> bool {
+    std::iter::once(&node.paints)
+        .chain(node.stroke.iter().map(Stroke::paints))
+        .any(|paints| {
+            paints.pattern().is_some()
+                || paints.iter().any(|paint| {
+                    matches!(
+                        paint,
+                        cg::Paint::LinearGradient(_) | cg::Paint::RadialGradient(_)
+                    )
+                })
+        })
+}
+
+/// Resolve the complete source of a bare paint-server opacity group in the
+/// group's own coordinate space. Local drawable enclosure precedes the group's
+/// map. This is not the geometry inventory, clipped ink, or a damage envelope.
+/// Completed child images are not reclassified as bare ramp/pattern draws.
+fn opacity_source_scope_item(
+    next_id: &mut u64,
+    opacity: f32,
+    items: &[FrameItem],
+    source_to_stream: AffineTransform,
+    facts: SpanFacts,
+    elided_blends: &[bool],
+) -> Result<FrameItem, CompileError> {
+    if !facts.has_opacity_source_paint {
+        return Ok(scope_item(next_id, opacity));
+    }
+    if facts.has_scope || facts.has_opacity || facts.opacity_source_incomplete {
+        return Err(opacity_source_refusal(
+            "needs the non-nested, completely represented source profile",
+        ));
+    }
+    // Rotation/reflection plus uniform scale preserves this source profile.
+    // Shear has an opacity-only precision departure; unequal scales also have
+    // an independent no-opacity departure. Do not silently extend the profile.
+    let [[a, c, _], [b, d, _]] = source_to_stream.matrix.map(|row| row.map(f64::from));
+    if a * c + b * d != 0.0 || a * a + b * b != c * c + d * d {
+        return Err(opacity_source_refusal(
+            "needs its shear or unequal-scale source mapping profile",
+        ));
+    }
+    let mut bounds: Option<Rectangle> = None;
+    let mut elided_depth = 0;
+    for item in items {
+        match item {
+            FrameItem::ScopeBegin(scope)
+                if elided_blends
+                    .get(scope.owner.identity().get() as usize - 1)
+                    .copied()
+                    .unwrap_or(false) =>
+            {
+                elided_depth += 1;
+                continue;
+            }
+            FrameItem::ScopeEnd if elided_depth > 0 => {
+                elided_depth -= 1;
+                continue;
+            }
+            _ => {}
+        }
+        let FrameItem::Node(node) = item else {
+            return Err(opacity_source_refusal(
+                "cannot include an unresolved source operation",
+            ));
+        };
+        let rect = match node.geometry {
+            Geometry::Rect(rect) | Geometry::Ellipse(rect) => rect,
+            Geometry::Path(_) => {
+                return Err(opacity_source_refusal(
+                    "needs its path-source enclosure profile",
+                ));
+            }
+        };
+        if node.transform != source_to_stream {
+            return Err(opacity_source_refusal(
+                "needs its independently transformed contributor profile",
+            ));
+        }
+        // A retained disabled box has no fill or stroke coverage. Enclosing
+        // its fractional zero extent would fabricate a nonempty source cell.
+        // Keep its geometry/identity, but do not make it source membership.
+        if (rect.width == 0.0 || rect.height == 0.0) && node.stroke.is_none() {
+            continue;
+        }
+        if node.paints.is_empty() && node.stroke.is_none() {
+            continue;
+        }
+        let width = if let Some(stroke) = &node.stroke {
+            if stroke.space() != StrokeSpace::Local
+                || stroke.cap() != StrokeCap::Butt
+                || stroke.join() != StrokeJoin::Miter
+                || stroke.dash().is_some()
+                || stroke.dash_intervals().is_some()
+            {
+                return Err(opacity_source_refusal(
+                    "needs its complex-stroke enclosure profile",
+                ));
+            }
+            stroke.width()
+        } else {
+            0.0
+        };
+        let half = width / 2.0;
+        let x = rect.x - half;
+        let y = rect.y - half;
+        let right = x + (rect.width + width);
+        let bottom = y + (rect.height + width);
+        if [x, y, right, bottom]
+            .into_iter()
+            .any(|v| !v.is_finite() || v.abs() > 8_388_608.0)
+        {
+            return Err(opacity_source_refusal(
+                "has an unrepresentable source enclosure",
+            ));
+        }
+        let (x, y, right, bottom) = (x.floor(), y.floor(), right.ceil(), bottom.ceil());
+        let exact_half = f64::from(width) / 2.0;
+        if f64::from(rect.x) - exact_half < f64::from(x)
+            || f64::from(rect.y) - exact_half < f64::from(y)
+            || f64::from(rect.x) + f64::from(rect.width) + exact_half > f64::from(right)
+            || f64::from(rect.y) + f64::from(rect.height) + exact_half > f64::from(bottom)
+        {
+            return Err(opacity_source_refusal(
+                "has an inward-rounded source enclosure",
+            ));
+        }
+        let next = Rectangle::from_xywh(x, y, right - x, bottom - y);
+        bounds = Some(bounds.map_or(next, |old| math2::union(&[old, next])));
+    }
+    let domain = rframe::IsolatedSourceDomain::new(
+        bounds.ok_or_else(|| opacity_source_refusal("has no complete source enclosure"))?,
+        source_to_stream,
+    )
+    .map_err(|_| opacity_source_refusal("has an unrepresentable source mapping"))?;
+    let mapped = math2::rect_transform(domain.rect(), &source_to_stream);
+    if mapped
+        .corners()
+        .into_iter()
+        .flatten()
+        .any(|v| v.abs() > 8_388_608.0)
+    {
+        return Err(opacity_source_refusal(
+            "has an out-of-range mapped source enclosure",
+        ));
+    }
+    let mut item = scope_item(next_id, opacity);
+    let FrameItem::ScopeBegin(scope) = &mut item else {
+        unreachable!()
+    };
+    let ScopeEffect::Opacity(group) = scope.effect else {
+        unreachable!()
+    };
+    scope.effect = ScopeEffect::Opacity(group.with_source_domain(domain));
+    Ok(item)
 }
 
 fn blend_scope_item(next_id: &mut u64, composite: ScopeBlend) -> FrameItem {

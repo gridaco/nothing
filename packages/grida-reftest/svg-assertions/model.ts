@@ -3,6 +3,10 @@
 import { createHash } from "node:crypto";
 import { PNG } from "pngjs";
 import { crc32, inflateSync } from "node:zlib";
+import {
+  parseEnvironment,
+  type ReferenceEnvironment,
+} from "./reference-environment";
 
 export type FileIdentity = { path: string; sha256: string };
 export type Assertion =
@@ -34,9 +38,13 @@ export interface Case {
   stored: FileIdentity | null;
 }
 export interface Suite {
-  schema_version: 1;
+  schema_version: 2;
   profile: "static-self-contained-svg-v1";
-  capture: { sha256: string; browser_version: string };
+  capture: {
+    sha256: string;
+    browser_version: string;
+    environment: ReferenceEnvironment;
+  };
   cases: Case[];
 }
 export const sha256 = (bytes: Uint8Array | string): string =>
@@ -113,9 +121,9 @@ function assertion(value: unknown): Assertion | null {
 }
 export function parseSuite(value: unknown): Suite {
   const s = object(value, ["schema_version", "profile", "capture", "cases"]);
-  if (s.schema_version !== 1 || s.profile !== "static-self-contained-svg-v1")
+  if (s.schema_version !== 2 || s.profile !== "static-self-contained-svg-v1")
     throw new Error("unsupported manifest profile/version");
-  const cap = object(s.capture, ["sha256", "browser_version"]);
+  const cap = object(s.capture, ["sha256", "browser_version", "environment"]);
   if (!Array.isArray(s.cases) || !s.cases.length || s.cases.length > 128)
     throw new Error("declare 1..128 cases");
   const cases = s.cases.map((value) => {
@@ -171,11 +179,12 @@ export function parseSuite(value: unknown): Suite {
       throw new Error(`${c.id}: missing or self-referential control`);
   }
   return {
-    schema_version: 1,
+    schema_version: 2,
     profile: "static-self-contained-svg-v1",
     capture: {
       sha256: hash(cap.sha256),
       browser_version: text(cap.browser_version),
+      environment: parseEnvironment(cap.environment),
     },
     cases,
   };
@@ -399,6 +408,7 @@ export interface Evidence {
   strict: Observation;
   best: Observation;
   chromium: Observation;
+  reference_problem: string | null;
   pairs: Record<string, Comparison>;
 }
 function sameImage(a: ImageRecord | null, b: ImageRecord | null): boolean {
@@ -443,7 +453,12 @@ function rendered(o: Observation, c: Case): boolean {
     )
   );
 }
-export function evaluate(c: Case, e: Evidence): Verdict {
+export type Obligation = "engine" | "engine-and-reference";
+export function evaluate(
+  c: Case,
+  e: Evidence,
+  obligation: Obligation = "engine-and-reference"
+): Verdict {
   const kind = c.assertion?.kind ?? "observation";
   if (!c.assertion)
     return {
@@ -453,6 +468,7 @@ export function evaluate(c: Case, e: Evidence): Verdict {
     };
   if (
     e.problems.length ||
+    (obligation === "engine-and-reference" && e.reference_problem !== null) ||
     c.review.status !== "reviewed" ||
     c.review.blockers.length
   )
@@ -461,11 +477,21 @@ export function evaluate(c: Case, e: Evidence): Verdict {
       kind,
       reasons: [
         ...e.problems,
+        ...(obligation === "engine-and-reference" &&
+        e.reference_problem !== null
+          ? [e.reference_problem ?? "reference environment not attested"]
+          : []),
         ...c.review.blockers,
         ...(c.review.status !== "reviewed" ? ["claim not reviewed"] : []),
       ],
     };
   const reasons: string[] = [];
+  if (obligation === "engine-and-reference" && !rendered(e.chromium, c))
+    return {
+      status: "UNRESOLVED",
+      kind,
+      reasons: ["Chromium reference observation unavailable or unstable"],
+    };
   if (c.assertion.kind === "refusal") {
     for (const admission of ["strict", "best"] as const) {
       const o = e[admission],
@@ -490,24 +516,19 @@ export function evaluate(c: Case, e: Evidence): Verdict {
   } else {
     if (!rendered(e.strict, c) || !rendered(e.best, c))
       reasons.push("n0 did not render repeatably without degradation");
-    if (!rendered(e.chromium, c))
-      return {
-        status: "UNRESOLVED",
-        kind,
-        reasons: [
-          ...reasons,
-          "Chromium reference observation unavailable or unstable",
-        ],
-      };
     for (const pair of [
       "strict-baked",
       "best-baked",
-      "chromium-baked",
       "strict-best",
+      ...(obligation === "engine-and-reference" ? ["chromium-baked"] : []),
     ])
       if (e.pairs[pair]?.relation !== "exact-rgba")
         reasons.push(`${pair}: exact assertion violated or comparison missing`);
-    if (e.pairs["chromium-control"]?.relation !== "different-rgba")
+    if (
+      e.pairs["baked-control"]?.relation !== "different-rgba" ||
+      (obligation === "engine-and-reference" &&
+        e.pairs["chromium-control"]?.relation !== "different-rgba")
+    )
       return {
         status: "UNRESOLVED",
         kind,

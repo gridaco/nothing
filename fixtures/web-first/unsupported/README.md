@@ -21,7 +21,7 @@ The scannable, generated view of this register (beside the baked cells) is
 [../STATUS.md](../STATUS.md), freshness-gated by
 `crates/websem/tests/capability_status.rs`.
 
-The inventory contains 351 named refusal sources, including twenty-two
+The inventory contains 368 named refusal sources, including twenty-two
 sibling-review witnesses. The
 [sibling-extent follow-on](../../../docs/wg/consolidation/svg-engine-of-record.md#b2b-sibling-extent-follow-on)
 preserves four former refusal witnesses as positive cells: `transparent`,
@@ -33,6 +33,12 @@ memberships are removed.
 
 | File | Required result |
 | --- | --- |
+| `svg-opacity-source-child-transform.svg` · `svg-opacity-source-shear.svg` · `svg-opacity-source-unequal-scale.svg` | Bound opacity source mapping: contributors must share the group map, which currently carries rotation/reflection, uniform scale and translation. Shear's opacity-only precision departure is quarantined; the independently observed no-opacity unequal-scale ellipse departure is not repaired by this rung. |
+| `svg-opacity-source-path.svg` · `svg-opacity-source-root-path.svg` · `svg-opacity-source-complex-stroke.svg` | Refuse source enclosures for paths or complex strokes. Root ownership refuses in both admissions; an attributable group is skipped as a whole. Geometry boxes are not substituted for a complete drawable source. |
+| `svg-opacity-source-omitted-stroke.svg` · `svg-opacity-source-transparent-contributor.svg` · `svg-opacity-source-nested-contributor.svg` · `svg-opacity-source-clipped-contributor.svg` | Refuse when omitted paint or nested effects make the bare source incomplete. No partial child image escapes the rejected owner. |
+| `svg-opacity-source-enclosing-filter.svg` · `svg-opacity-source-enclosing-mask.svg` | Refuse an enclosing image effect around a newly declared opacity source domain until that separate composition profile is supported. An enclosing geometric clip is separately celled as admitted. |
+| `svg-opacity-source-pattern-program.svg` · `svg-opacity-source-mask-program.svg` · `svg-opacity-source-marker-client.svg` | Bound resource-program and combined marker-client sources. A gradient-painted marker client differed by 1,408 pixels at maximum delta 1 before its patrol (measured, not celled); the complete client now skips by name. The mask-program witness uses `.57`, whose Chromium image differs from opacity one by 2,344 pixels at maximum delta 65 (measured, not celled). |
+| `svg-paint-server-source-filter.svg` · `svg-paint-server-source-mask.svg` | Refuse a multi-operation bare paint-server source feeding an image filter or mask, even without partial element opacity. The measured pre-patrol differences were 297 pixels at maximum delta 2 and 923 at delta 1 respectively (measured, not celled). Both admissions name the source profile; best effort skips the complete group. |
 | `svg-group-blend-sibling-domain-{mapped,circle,non-scaling,opacity}.svg` | Four boundaries around the unit-opacity, identity-mapped rectangle profile: a mapped sibling, nonrectangular paintless geometry, an invisible non-scaling stroke and zero element opacity must retain the named `linear-gradient source-extent` refusal. |
 | `svg-group-blend-sibling-review-{leaf,group}-{offset,blur,mask,clip}.svg` | Eight review witnesses for effects on a paintless sibling or its enclosing container inside the blend source. Name the source-extent boundary and skip the affected group; an effect's completed contribution cannot be inferred from the surviving paintless rectangle. These required refusals make no unmeasured per-witness pixel claim. |
 | `svg-group-blend-sibling-review-{nested-clipped,nested-visible}.svg` | Two nested-viewport review witnesses, with default clipping and explicit visible overflow. Retain the named source-extent boundary; neither nesting route inherits the neutral-container exemption. |

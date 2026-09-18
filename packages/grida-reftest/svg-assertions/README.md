@@ -47,6 +47,66 @@ own committed Chromium reference, not the other color's image. The refusal
 witness checks the exact current CLI declarations for geometry units; a pass
 there is labelled **expected refusal**, never rendering support.
 
+## Ordinary-opacity regression suite
+
+[opacity-source.json](./opacity-source.json) applies the same instrument to
+seven described rendering claims and two expected refusals from
+[gridaco/nothing#136](https://github.com/gridaco/nothing/issues/136).
+The blur, repeating-pattern and radial-gradient scenes each pair group
+opacity `.999` with `.998`: a one-pixel discrepancy still fails the complete
+scene, and each control must change Chromium's pixels. A separate authored-arc
+blur case retains its own reference and uses the native circle as its control;
+it guards the geometry distinction exposed by Linux CI. Sheared group and
+root-path cases check named refusals separately, not fallback-image accuracy.
+
+```sh
+just -f fixtures/web-first/justfile assertions-opacity-gate "$PWD/target/svg-assertion-opacity"
+```
+
+This uses a fresh output directory under the same setup and immutable-output
+rules as the pilot. CI runs both suites and retains both reports. No resvg
+reference, new tolerance, or claim of complete opacity support is introduced.
+
+Captures retain `chromium-identity.json`: actual browser executable hash and
+architecture, browser revision, host kernel identity, and reported raster backend.
+This record changes no launch flags or screenshot posture. Manifest version 2
+declares the complete required identity in `capture.environment`. Missing,
+unknown or changed fields fail reference reproduction closed, even when pixels
+match. The Node version, dependency lock, capture module and tool hashes are
+also recorded; the unchanged capture module still owns all launch settings.
+
+There are two obligations, never two references:
+
+- **Engine:** both actual CLI admissions and repeats match the same immutable
+  baked pixels on every tested platform, with an effective baked control and
+  exact refusal diagnostics. `--obligation engine` selects only this obligation.
+- **Engine and reference (default):** additionally, fresh repeated Chromium
+  captures in the declared environment reproduce those pixels and the active
+  control. A different Chromium environment is an observation, not an alternate
+  oracle or a reason to change n0 pixels.
+
+Reports always retain both verdicts. `engine_ready` describes the first;
+`gate_ready` always describes the combined obligation, regardless of the
+selected command-line obligation. Engine-only output is explicitly labelled.
+The required Linux seam job checks engine portability. The separately required
+ARM reference job checks both obligations; aggregate CI refuses a missing,
+skipped or failing applicable reference job. `macos-26` is a provisioner, not
+the pin: runtime fingerprint drift fails until separately reviewed and attested.
+
+The declared ARM software target preserves the existing independently baked
+references. Attestation in [CI run 35314071984](https://github.com/gridaco/nothing/actions/runs/35314071984)
+reproduced all seven opacity scenes and both refusal assertions, with the same
+identity across every capture (measured, not celled). This is new reproduction
+evidence, not retroactive provenance for earlier bakes. Kernel updates require
+a new explicit attestation; matching pictures alone never select the profile.
+Other-host local runs should use `--obligation engine` through the CLI, or expect
+the default combined obligation to report an environment mismatch.
+
+For the full Rust primitive gate, `N0_REFTEST_ARTIFACTS` may name a new directory
+whose parent exists. Exact-cell divergences retain source, resolved frame,
+actual PNG and reference PNG there. Existing output directories/files refuse
+overwrites. CI uploads these diagnostics even when the test fails.
+
 ## A case is not its filename
 
 ```text
@@ -62,7 +122,7 @@ Input identity + declared environment + described claim
 ```
 
 [pilot.json](./pilot.json) is a complete manifest example. All fields are
-mandatory, including explicit `null` where an optional reference or assertion
+mandatory, including the reference environment and explicit `null` where an optional reference or assertion
 does not exist. Unknown fields, duplicate IDs, missing controls, invalid hashes,
 and empty suites are errors. Paths are relative to the manifest, not the shell.
 Source bytes and any baked/stored PNG are SHA-256 pinned. The manifest and tool
@@ -198,8 +258,9 @@ The source corpus and
 authoritative evidence and work queue; this pilot is not another support list.
 
 Consolidation's seam job runs the synthetic contract tests (zero discovered
-tests is a failure) and real CLI pilot
-on a clean checkout, then retains its report for review. Changes to this tool
+tests is a failure) and both real CLI suites' engine obligations
+on a clean checkout; the canonical-reference job runs both combined obligations.
+Both retain reports for review. Changes to this tool
 or its dependency pins activate that gate. Existing Rust pixel/refusal tests
 continue to run independently. Legacy runner retirement, WPT adapters, wider
 resource/font profiles, a general consensus rule, and FLIP are not implemented.

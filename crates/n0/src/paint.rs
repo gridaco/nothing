@@ -3111,6 +3111,16 @@ fn build_filter(filter: &ResolvedFilter) -> Result<BuiltFilter, String> {
             _ => inherited_color_restore,
         };
         let source_preflatten = inputs.iter().any(|input| input.source_preflatten)
+            // Active blur consumes a completed source image. Drawing a native
+            // ellipse straight into the filtered saveLayer instead changes its
+            // coverage materialization (including with no enclosing opacity).
+            // Reuse the existing one-per-source preparation, not a layer per
+            // primitive. Zero blur and generated inputs need no source image.
+            || matches!(
+                &node.primitive,
+                ResolvedFilterPrimitive::GaussianBlur { sigma_x, sigma_y }
+                    if source_dependent && (*sigma_x > 0.0 || *sigma_y > 0.0)
+            )
             || matches!(
                 &node.primitive,
                 ResolvedFilterPrimitive::ColorMatrix { matrix }
@@ -3902,6 +3912,74 @@ mod filter_policy_tests {
         let generated = build_filter(&generated).expect("generated table builds");
         assert!(!generated.source_preflatten);
         assert!(generated.restore_blender.is_none());
+    }
+
+    #[test]
+    fn only_live_source_dependent_blur_preflattens_its_source() {
+        let blur = |input, sigma_x, sigma_y, color_space| ResolvedFilterNode {
+            inputs: Arc::from([input]),
+            region: REGION,
+            color_space,
+            primitive: ResolvedFilterPrimitive::GaussianBlur { sigma_x, sigma_y },
+        };
+        let graph = |nodes: Vec<_>| ResolvedFilter {
+            region: REGION,
+            nodes: Arc::from(nodes),
+            may_paint_transparent_input: false,
+            source_is_transparent: false,
+        };
+        let generated = || ResolvedFilterNode {
+            inputs: Arc::from([]),
+            region: REGION,
+            color_space: ResolvedFilterColorSpace::Srgb,
+            primitive: ResolvedFilterPrimitive::SolidColor {
+                color: Color32F::new(0.2, 0.4, 0.8, 0.5).unwrap(),
+            },
+        };
+        for space in [
+            ResolvedFilterColorSpace::Srgb,
+            ResolvedFilterColorSpace::LinearRgb,
+        ] {
+            for input in [
+                ResolvedFilterInput::Source,
+                ResolvedFilterInput::SourceAlpha,
+            ] {
+                for (x, y, expected) in [(4.0, 4.0, true), (0.0, 4.0, true), (0.0, 0.0, false)] {
+                    assert_eq!(
+                        build_filter(&graph(vec![blur(input, x, y, space)]))
+                            .unwrap()
+                            .source_preflatten,
+                        expected
+                    );
+                }
+            }
+            assert!(
+                !build_filter(&graph(vec![
+                    generated(),
+                    blur(ResolvedFilterInput::Node(0), 4.0, 4.0, space)
+                ]))
+                .unwrap()
+                .source_preflatten
+            );
+            assert!(
+                !build_filter(&graph(vec![
+                    blur(ResolvedFilterInput::Source, 4.0, 4.0, space),
+                    generated()
+                ]))
+                .unwrap()
+                .source_preflatten,
+                "an unreachable blur cannot request source preparation"
+            );
+            assert!(
+                build_filter(&graph(vec![
+                    blur(ResolvedFilterInput::Source, 4.0, 4.0, space),
+                    blur(ResolvedFilterInput::Node(0), 0.0, 0.0, space)
+                ]))
+                .unwrap()
+                .source_preflatten,
+                "a zero operation preserves a live input's preparation"
+            );
+        }
     }
 
     #[test]
@@ -4874,6 +4952,9 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum Scope {
         Opacity,
+        IsolatedOpacity {
+            source_clip: bool,
+        },
         Blend {
             source_clip: bool,
             #[cfg(feature = "trace")]
@@ -4912,18 +4993,35 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
                 canvas.save_layer(&layer);
                 scopes.push(Scope::Opacity);
             }
-            ItemKind::BeginIsolatedOpacity { opacity } => {
+            ItemKind::BeginIsolatedOpacity {
+                opacity,
+                source_domain,
+            } => {
                 // The Web's isolated group: the layer starts empty (no
                 // backdrop copy), contents blend among themselves, and the
                 // restore composites the layer source-over modulated by the
-                // opacity — the plain Skia layer Chromium itself restores
-                // through, which is what makes the quantization match the
-                // oracle byte-for-byte.
+                // opacity. A declared source enclosure additionally fixes the
+                // raster domain; the layer alone does not establish parity.
                 let mut restore_paint = Paint::default();
                 restore_paint.set_alpha_f(opacity.clamp(0.0, 1.0));
+                if let Some(domain) = source_domain {
+                    use skia_safe::RoundOut;
+                    let [[a, c, e], [b, d, f]] = domain.source_to_stream().matrix;
+                    let mapping = view.then(&Affine { a, b, c, d, e, f });
+                    let rect = domain.rect();
+                    let bounds: Rect = skia_matrix(&mapping)
+                        .map_rect(Rect::from_xywh(rect.x, rect.y, rect.width, rect.height))
+                        .0
+                        .round_out();
+                    canvas.save();
+                    canvas.reset_matrix();
+                    canvas.clip_rect(bounds, None, false);
+                }
                 let layer = SaveLayerRec::default().paint(&restore_paint);
                 canvas.save_layer(&layer);
-                scopes.push(Scope::Opacity);
+                scopes.push(Scope::IsolatedOpacity {
+                    source_clip: source_domain.is_some(),
+                });
             }
             ItemKind::BeginIsolatedBlend { blend } => {
                 // One empty-start layer, one restoration. Nesting an opacity
@@ -4978,8 +5076,14 @@ pub fn execute_unchecked<K>(canvas: &Canvas, list: &DrawList<K>, view: &Affine, 
             }
             ItemKind::EndOpacity => {
                 let scope = scopes.pop();
-                debug_assert_eq!(scope, Some(Scope::Opacity));
+                debug_assert!(matches!(
+                    scope,
+                    Some(Scope::Opacity | Scope::IsolatedOpacity { .. })
+                ));
                 if scope.is_some() {
+                    canvas.restore();
+                }
+                if matches!(scope, Some(Scope::IsolatedOpacity { source_clip: true })) {
                     canvas.restore();
                 }
             }

@@ -24,6 +24,7 @@ mod support;
 
 use std::collections::BTreeSet;
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use n0::paint::PaintCtx;
@@ -285,6 +286,12 @@ fn primitive_oracle_provenance_is_current() {
 #[test]
 fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
     let root = fixture_root();
+    // Opt-in CI diagnostics. A fresh directory and create_new files preserve
+    // earlier failures; diagnostics never replace or relax an oracle.
+    let artifacts = std::env::var_os("N0_REFTEST_ARTIFACTS").map(PathBuf::from);
+    if let Some(path) = &artifacts {
+        fs::create_dir(path).expect("create new reftest artifact directory");
+    }
     let mut divergences: Vec<String> = Vec::new();
     for fixture in suite().fixtures {
         let source = fs::read_to_string(root.join(&fixture.source))
@@ -413,6 +420,23 @@ fn every_primitive_is_pixel_exact_to_chromium_and_deterministic() {
             fixture.id
         );
         let first_png = render_png_through_n0(&frame, fixture.width, fixture.height);
+        if differing_pixels != 0
+            && fixture.tolerance.is_none()
+            && let Some(path) = &artifacts
+        {
+            let directory = path.join(&fixture.id);
+            fs::create_dir(&directory).expect("create new failed-case directory");
+            for (name, bytes) in [
+                ("actual.png", first_png.clone()),
+                ("reference.png", oracle_bytes.clone()),
+                ("source.txt", source.as_bytes().to_vec()),
+                ("frame.txt", format!("{frame:#?}").into_bytes()),
+            ] {
+                fs::File::create_new(directory.join(name))
+                    .and_then(|mut file| file.write_all(&bytes))
+                    .expect("preserve failed-case artifact without overwriting");
+            }
+        }
         let second_png = render_png_through_n0(&frame, fixture.width, fixture.height);
         assert!(
             first_png == second_png,

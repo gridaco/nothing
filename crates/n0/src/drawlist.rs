@@ -415,6 +415,7 @@ pub enum ItemKind {
     /// meaning and not a flag.
     BeginIsolatedOpacity {
         opacity: f32,
+        source_domain: Option<rframe::IsolatedSourceDomain>,
     },
     /// The resolved group's children start against transparent black. Blend
     /// and opacity apply together when that completed source joins the

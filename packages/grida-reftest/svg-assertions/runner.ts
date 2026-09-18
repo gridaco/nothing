@@ -19,11 +19,13 @@ import {
   type Image,
   type ImageRecord,
   type Observation,
+  type Obligation,
   type Sample,
   type Suite,
   type Verdict,
 } from "./model";
 import { renderReport } from "./report";
+import { environmentProblem } from "./reference-environment";
 
 export const toolDir = dirname(fileURLToPath(import.meta.url));
 export const repoDir = resolve(toolDir, "../../..");
@@ -224,9 +226,12 @@ export interface CaseResult {
   observations: Record<string, Observation>;
   pairs: Record<string, Comparison>;
   verdict: Verdict;
+  engine_verdict: Verdict;
+  reference_identity: unknown;
+  reference_problem: string | null;
 }
 export interface Report {
-  schema_version: 1;
+  schema_version: 2;
   kind: "svg-assertion-observations";
   manifest: Suite;
   manifest_sha256: string;
@@ -235,10 +240,13 @@ export interface Report {
   integrity: string[];
   cases: CaseResult[];
   gate_ready: boolean;
+  engine_ready: boolean;
+  obligation: Obligation;
 }
 export interface Options {
   manifest: string;
   out: string;
+  obligation?: Obligation;
   resvg?: { executable: string; sha256: string; version: string };
 }
 
@@ -267,11 +275,14 @@ export async function run(options: Options): Promise<Report> {
   };
   for (const path of [
     capturePath,
+    join(repoDir, "pnpm-lock.yaml"),
     ...[
       "model.ts",
       "runner.ts",
       "report.ts",
       "capture-worker.ts",
+      "capture-identity.ts",
+      "reference-environment.ts",
       "cli.ts",
     ].map((name) => join(toolDir, name)),
   ]) {
@@ -419,6 +430,13 @@ export async function run(options: Options): Promise<Report> {
       observations,
       pairs: {},
       verdict: { status: "OBSERVATION", kind: "observation", reasons: [] },
+      engine_verdict: {
+        status: "OBSERVATION",
+        kind: "observation",
+        reasons: [],
+      },
+      reference_identity: null,
+      reference_problem: "reference-environment-unavailable",
     };
     results.push(result);
     const sourcePath = join(out, c.id, "source.svg");
@@ -518,6 +536,19 @@ export async function run(options: Options): Promise<Report> {
             )
           ).record
       );
+      try {
+        const identityPath = join(out, c.id, "chromium-identity.json");
+        const bytes = await readBounded(identityPath, 65536);
+        watched.set(identityPath, sha256(bytes));
+        inputLimits.set(identityPath, 65536);
+        result.reference_identity = JSON.parse(bytes.toString("utf8"));
+        result.reference_problem = environmentProblem(
+          suite.capture.environment,
+          result.reference_identity
+        );
+      } catch (error) {
+        result.reference_problem = `reference-environment-unavailable: ${String(error)}`;
+      }
     }
     const resvg: Observation = { samples: [], problem: null };
     observations.resvg = resvg;
@@ -559,37 +590,42 @@ export async function run(options: Options): Promise<Report> {
     if (c.assertion?.kind === "render-exact") {
       const id = c.assertion.control.case,
         control = results.find((r) => r.case.id === id);
-      const a = result.observations.chromium.samples[0]?.image,
-        b = control?.observations.chromium.samples[0]?.image;
-      if (
-        a &&
-        b &&
-        control &&
-        !control.problems.length &&
-        control.case.review.status === "reviewed" &&
-        !control.case.review.blockers.length &&
-        !repeatProblem(control.observations.chromium) &&
-        control.observations.chromium.samples.every(
-          (s) =>
-            successful(s.execution) && !s.diagnostics && !s.execution.stdout
-        )
-      ) {
-        try {
-          const reload = async (record: ImageRecord): Promise<Image> => {
-            const bytes = await readBounded(
-              join(out, record.path),
-              MAX_PNG_BYTES
+      for (const label of ["baked", "chromium"] as const) {
+        const a = result.observations[label].samples[0]?.image,
+          b = control?.observations[label].samples[0]?.image;
+        if (
+          a &&
+          b &&
+          control &&
+          !control.problems.length &&
+          control.case.review.status === "reviewed" &&
+          !control.case.review.blockers.length &&
+          (label === "baked" ||
+            (!repeatProblem(control.observations.chromium) &&
+              control.reference_problem === null)) &&
+          !control.observations[label].problem &&
+          control.observations[label].samples.every(
+            (s) =>
+              successful(s.execution) && !s.diagnostics && !s.execution.stdout
+          )
+        ) {
+          try {
+            const reload = async (record: ImageRecord): Promise<Image> => {
+              const bytes = await readBounded(
+                join(out, record.path),
+                MAX_PNG_BYTES
+              );
+              if (sha256(bytes) !== record.png_sha256)
+                throw new Error(`control output changed: ${record.path}`);
+              return decode(bytes);
+            };
+            result.pairs[`${label}-control`] = compare(
+              await reload(a),
+              await reload(b)
             );
-            if (sha256(bytes) !== record.png_sha256)
-              throw new Error(`control output changed: ${record.path}`);
-            return decode(bytes);
-          };
-          result.pairs["chromium-control"] = compare(
-            await reload(a),
-            await reload(b)
-          );
-        } catch (error) {
-          result.problems.push(String(error));
+          } catch (error) {
+            result.problems.push(String(error));
+          }
         }
       }
     }
@@ -612,19 +648,22 @@ export async function run(options: Options): Promise<Report> {
     }
   }
   for (const result of results) {
-    result.verdict = evaluate(result.case, {
+    const evidence = {
       problems: [...integrity, ...result.problems],
       strict: result.observations.strict,
       best: result.observations.best,
       chromium: result.observations.chromium,
+      reference_problem: result.reference_problem,
       pairs: result.pairs,
-    });
+    };
+    result.verdict = evaluate(result.case, evidence);
+    result.engine_verdict = evaluate(result.case, evidence, "engine");
   }
   const verdicts = Object.fromEntries(
     results.map((r) => [r.case.id, r.verdict])
   );
   const report: Report = {
-    schema_version: 1,
+    schema_version: 2,
     kind: "svg-assertion-observations",
     manifest: suite,
     manifest_sha256: sha256(manifestBytes),
@@ -633,6 +672,12 @@ export async function run(options: Options): Promise<Report> {
     integrity,
     cases: results,
     gate_ready: gateReady(suite.cases, verdicts, integrity),
+    engine_ready: gateReady(
+      suite.cases,
+      Object.fromEntries(results.map((r) => [r.case.id, r.engine_verdict])),
+      integrity
+    ),
+    obligation: options.obligation ?? "engine-and-reference",
   };
   await write("report.json", `${JSON.stringify(report, null, 2)}\n`);
   await write("index.html", renderReport(report));
