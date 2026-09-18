@@ -197,10 +197,10 @@ jobs:
           pnpm -C packages/grida-reftest exec vitest run svg-assertions --passWithNoTests=false
           pnpm -C packages/grida-reftest exec tsx svg-assertions/cli.ts \
             --manifest "$GITHUB_WORKSPACE/packages/grida-reftest/svg-assertions/pilot.json" \
-            --out "$RUNNER_TEMP/$SVG_ASSERTION_DIR"
+            --out "$RUNNER_TEMP/$SVG_ASSERTION_DIR" --obligation engine
           pnpm -C packages/grida-reftest exec tsx svg-assertions/cli.ts \
             --manifest "$GITHUB_WORKSPACE/packages/grida-reftest/svg-assertions/opacity-source.json" \
-            --out "$RUNNER_TEMP/$SVG_ASSERTION_DIR/opacity-source"
+            --out "$RUNNER_TEMP/$SVG_ASSERTION_DIR/opacity-source" --obligation engine
 
       - name: Upload SVG assertion observations
         if: always()
@@ -211,10 +211,11 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  svg_arm_capture_candidate:
-    # Attestation candidate, not a replacement for the Linux engine gates.
-    # Until its exact identity is reviewed/pinned, this job certifies no gate.
-    name: SVG ARM capture candidate
+  svg_reference:
+    # macos-26 provisions a candidate; the manifest's exact runtime identity
+    # decides whether it is the reference environment. Drift fails closed.
+    # Linux still must match these SAME immutable references independently.
+    name: SVG canonical reference
     needs: scope
     if: needs.scope.outputs.engine == 'true'
     runs-on: macos-26
@@ -223,6 +224,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
+          ref: ${{ needs.scope.outputs.head }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.92.0
@@ -240,11 +242,14 @@ jobs:
           brew install ninja
           pnpm install --frozen-lockfile
           pnpm -C packages/grida-reftest exec playwright install chromium
-      - name: Observe immutable opacity references and retain browser identity
+      - name: Require canonical reproduction and ARM engine pixels
         run: |
           pnpm -C packages/grida-reftest exec tsx svg-assertions/cli.ts \
+            --manifest "$GITHUB_WORKSPACE/packages/grida-reftest/svg-assertions/pilot.json" \
+            --out "$RUNNER_TEMP/svg-arm-capture"
+          pnpm -C packages/grida-reftest exec tsx svg-assertions/cli.ts \
             --manifest "$GITHUB_WORKSPACE/packages/grida-reftest/svg-assertions/opacity-source.json" \
-            --out "$RUNNER_TEMP/svg-arm-capture" --observe
+            --out "$RUNNER_TEMP/svg-arm-capture/opacity-source"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -482,6 +487,7 @@ jobs:
       - scope
       - lock_additions_only
       - seam_architecture
+      - svg_reference
       - legacy_pixel_sweep
       - n0_gate
       - scoreboard_shape
@@ -493,6 +499,7 @@ jobs:
           ENGINE_SCOPE: ${{ needs.scope.outputs.engine }}
           LOCK_RESULT: ${{ needs.lock_additions_only.result }}
           SEAM_RESULT: ${{ needs.seam_architecture.result }}
+          REFERENCE_RESULT: ${{ needs.svg_reference.result }}
           PIXEL_RESULT: ${{ needs.legacy_pixel_sweep.result }}
           N0_RESULT: ${{ needs.n0_gate.result }}
           SCOREBOARD_RESULT: ${{ needs.scoreboard_shape.result }}
@@ -502,6 +509,7 @@ jobs:
           fi
           if [[ "$ENGINE_SCOPE" == true ]] && \
              [[ "$SEAM_RESULT" != success || \
+                "$REFERENCE_RESULT" != success || \
                 "$PIXEL_RESULT" != success || \
                 "$N0_RESULT" != success || \
                 "$SCOREBOARD_RESULT" != success ]]; then

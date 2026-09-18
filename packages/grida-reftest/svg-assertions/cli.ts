@@ -15,6 +15,7 @@ async function main(): Promise<void> {
       ![
         "--manifest",
         "--out",
+        "--obligation",
         "--resvg",
         "--resvg-sha256",
         "--resvg-version",
@@ -27,12 +28,16 @@ async function main(): Promise<void> {
   }
   if (!values.get("--manifest") || !values.get("--out"))
     throw new Error(
-      "usage: cli.ts --manifest FILE --out NEW_DIRECTORY [--observe] [--resvg FILE --resvg-sha256 HASH --resvg-version TEXT]"
+      "usage: cli.ts --manifest FILE --out NEW_DIRECTORY [--obligation engine|engine-and-reference] [--observe] [--resvg FILE --resvg-sha256 HASH --resvg-version TEXT]"
     );
   const options: Options = {
     manifest: resolve(values.get("--manifest")!),
     out: resolve(values.get("--out")!),
   };
+  const obligation = values.get("--obligation") ?? "engine-and-reference";
+  if (obligation !== "engine" && obligation !== "engine-and-reference")
+    throw new Error("unknown assertion obligation");
+  options.obligation = obligation;
   if (
     ["--resvg", "--resvg-sha256", "--resvg-version"].some((key) =>
       values.has(key)
@@ -48,9 +53,16 @@ async function main(): Promise<void> {
     options.resvg = { executable, sha256, version };
   }
   const report = await run(options);
-  for (const r of report.cases)
+  console.log(`Obligation: ${report.obligation}`);
+  for (const r of report.cases) {
+    const verdict = obligation === "engine" ? r.engine_verdict : r.verdict;
     console.log(
-      `${r.verdict.status} ${r.case.id} [${r.verdict.kind}]: ${r.verdict.reasons.join("; ")}`
+      `${verdict.status} ${r.case.id} [${verdict.kind}; ${obligation}]: ${verdict.reasons.join("; ")}`
+    );
+  }
+  if (obligation === "engine")
+    console.log(
+      "ENGINE ONLY: canonical reference reproduction is a separate required job; full reference gate_ready remains recorded independently."
     );
   console.log(`Observations: ${options.out}/index.html`);
   if (observe) {
@@ -58,7 +70,10 @@ async function main(): Promise<void> {
       "OBSERVE ONLY: this invocation does not certify a required gate."
     );
     if (report.integrity.length) process.exitCode = 1;
-  } else if (!report.gate_ready) process.exitCode = 1;
+  } else if (
+    !(obligation === "engine" ? report.engine_ready : report.gate_ready)
+  )
+    process.exitCode = 1;
 }
 main().catch((error) => {
   console.error(error instanceof Error ? error.message : String(error));

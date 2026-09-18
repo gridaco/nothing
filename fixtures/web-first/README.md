@@ -498,5 +498,9 @@ claims from the ordinary-opacity rung. The [SVG assertion tool](../../packages/g
 records each described claim, reference decision, both admissions and their
 diagnostics, independent exact image comparisons, and a discrete verdict. A
 verified refusal is not rendering support; unresolved or missing required
-cases cannot silently pass. This supplements the existing corpus gates and
+cases cannot silently pass. The default obligation also requires the manifest's
+exact canonical Chromium environment; other hosts can explicitly run the CLI's
+`--obligation engine` against the same immutable references. Reports retain
+engine-only and combined verdicts separately, and CI requires both Linux engine
+portability and canonical ARM reproduction. This supplements the existing corpus gates and
 uses the same capture module. It does not create a score or a second checklist.

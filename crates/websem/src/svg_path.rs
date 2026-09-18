@@ -1255,8 +1255,8 @@ fn resolve_arc_like_skia(
     unit_end.0 -= center.0;
     unit_end.1 -= center.1;
 
-    let theta1 = unit_start.1.atan2(unit_start.0);
-    let theta2 = unit_end.1.atan2(unit_end.0);
+    let theta1 = raster_arc_angle(unit_start.1, unit_start.0);
+    let theta2 = raster_arc_angle(unit_end.1, unit_end.0);
     let mut theta_arc = theta2 - theta1;
     let tau = std::f32::consts::PI * 2.0;
     if theta_arc < 0.0 && sweep {
@@ -1317,6 +1317,21 @@ fn resolve_arc_like_skia(
     ArcResolution::Conics(conics)
 }
 
+/// Preserve the declared ARM Chromium arc boundary on every engine host.
+/// Its `atan2f(+-0, negative finite)` is +-0x40490fda, one ULP below Rust's
+/// PI constant (and Linux libm's answer). That difference survives arc-span
+/// subtraction into conic weights; rounding weights or substituting an oval
+/// changes filtered pixels. `f32::atan2` explicitly has unspecified precision.
+/// This fixes the measured axis boundary, not all platform transcendental math.
+/// The existing `svg-opacity-source-blur-arc` oracle guards the complete image.
+fn raster_arc_angle(y: f32, x: f32) -> f32 {
+    if y == 0.0 && x.is_finite() && x < 0.0 {
+        f32::from_bits(0x4049_0fda).copysign(y)
+    } else {
+        y.atan2(x)
+    }
+}
+
 fn skia_sin_cos(degrees: f32) -> (f32, f32) {
     skia_sin_cos_radians(degrees * (std::f32::consts::PI / 180.0))
 }
@@ -1349,6 +1364,37 @@ fn finite_point(point: (f32, f32)) -> bool {
 #[cfg(test)]
 mod marker_tests {
     use super::*;
+
+    #[test]
+    fn raster_arc_negative_axis_is_not_host_libm_pi() {
+        for x in [-f32::MIN_POSITIVE, -1.0, -20.0, -f32::MAX] {
+            assert_eq!(raster_arc_angle(0.0, x).to_bits(), 0x4049_0fda);
+            assert_eq!(raster_arc_angle(-0.0, x).to_bits(), 0xc049_0fda);
+        }
+        assert_eq!(raster_arc_angle(0.0, 1.0).to_bits(), 0);
+        assert_eq!(raster_arc_angle(-0.0, 1.0).to_bits(), 0x8000_0000);
+        assert_eq!(raster_arc_angle(1.0, 0.0), std::f32::consts::FRAC_PI_2);
+        assert_eq!(raster_arc_angle(-1.0, 0.0), -std::f32::consts::FRAC_PI_2);
+        assert!(raster_arc_angle(f32::NAN, -1.0).is_nan());
+    }
+
+    #[test]
+    fn raster_semicircle_retains_reference_conic_weights_on_every_host() {
+        for (start, end, expected) in [
+            ((10.0, 30.0), (50.0, 30.0), 0x3f35_04f2),
+            ((50.0, 30.0), (10.0, 30.0), 0x3f35_04f4),
+        ] {
+            let ArcResolution::Conics(conics) =
+                resolve_arc_like_skia(start, (20.0, 20.0), 0.0, true, true, end)
+            else {
+                panic!("expected resolved semicircle");
+            };
+            assert_eq!(conics.len(), 2);
+            for (_, _, weight) in conics {
+                assert_eq!(weight.to_bits(), expected);
+            }
+        }
+    }
 
     fn assert_position(actual: MarkerPosition, kind: MarkerType, origin: (f32, f32), angle: f32) {
         assert_eq!(actual.kind, kind);

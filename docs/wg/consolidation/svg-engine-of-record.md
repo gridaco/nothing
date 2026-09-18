@@ -6733,11 +6733,27 @@ separates portable engine correctness from reproduction of one declared
 external capture environment. The original images and capture posture remain
 unchanged; no tolerance or feature tick follows from that finding.
 
-A separate full Linux engine gate fails the authored-arc blur cell by 25
-pixels at maximum channel delta 3. Its retained failure signature matches
-the local native-circle/arc distinction, but that alone does not establish a
-cause. The existing arc cell now has a seventh actual-CLI rendering assertion
-and failure artifacts preserve resolved geometry and pixels. This is an open
-landing blocker, not a reference-policy exemption. Browser identity recording
-and an observe-only ARM CI candidate prepare attestation; neither replaces the
-Linux gates or constitutes an enforced canonical profile.
+A separate full Linux engine gate exposed 25 differing pixels at maximum
+channel delta 3 in the authored-arc blur cell. Retained resolved geometry
+then isolated different conic weights with identical control points. The
+existing arc cell now has a seventh actual-CLI rendering assertion and failure
+artifacts preserve resolved geometry and pixels. Its engine obligation cannot
+be waived by the reference policy. Browser identity recording
+initially prepared attestation without replacing the Linux gates. The declared
+reference contract now separates engine portability from canonical browser
+reproduction: all engine hosts compare against the same immutable pixels;
+fresh browser captures certify reproduction only with the complete declared
+runtime identity. Both obligations are independently required by CI. A runner
+label is provisioning, not a reference pin. The
+[assertion harness contract](../../../packages/grida-reftest/svg-assertions/README.md#ordinary-opacity-regression-suite)
+owns the binding and attestation evidence. Original bake provenance remains
+untouched; this is not a new oracle or a tolerance.
+
+The arc failure has a separate producer cause: the reference environment's
+single-precision angle function returns one bit below the usual constant on
+the negative horizontal axis. The resulting unequal half-circle conic weights
+are visible after blur. The resolver carries that measured axis boundary
+explicitly on every engine host; it does not round curve weights, replace the
+authored arc with an oval, or change the painter. The existing exact arc cell
+and numeric boundary tests guard this distinction. This is not a claim that
+all transcendental operations are platform-independent.

@@ -1,9 +1,45 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "profile": "static-self-contained-svg-v1",
   "capture": {
     "sha256": "069296201718c43d29efe356fbea893781b73250dca51de3b6d47468d74027b0",
-    "browser_version": "149.0.7827.55"
+    "browser_version": "149.0.7827.55",
+    "environment": {
+      "schema_version": 1,
+      "host": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "release": "25.6.0",
+        "version": "Darwin Kernel Version 25.6.0: Fri Jul 31 19:16:43 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_VMAPPLE"
+      },
+      "browser": {
+        "product": "HeadlessChrome/149.0.7827.55",
+        "revision": "@3188f8a607ae7e067593be8aab7f02d2451fec07",
+        "arch": "arm64",
+        "sha256": "11e393326c7d20a7c56641a7c65def33ea9c280da3b0b74cf8563b07989a0ee3"
+      },
+      "raster": {
+        "feature_status": {
+          "2d_canvas": "unavailable_software",
+          "direct_rendering_display_compositor": "disabled_off_ok",
+          "gpu_compositing": "disabled_software",
+          "multiple_raster_threads": "disabled_off",
+          "opengl": "disabled_off",
+          "rasterization": "disabled_software",
+          "raw_draw": "disabled_off_ok",
+          "skia_graphite": "disabled_off",
+          "trees_in_viz": "disabled_off",
+          "video_decode": "disabled_software",
+          "video_encode": "disabled_software",
+          "webgl": "unavailable_software",
+          "webgpu": "unavailable_software",
+          "webnn": "unavailable_software"
+        },
+        "gl_implementation": "(gl=egl-angle,angle=swiftshader)",
+        "gl_renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+        "gl_version": "OpenGL ES 3.0 (ANGLE 2.1.27736 git hash: ded782bca9d5)"
+      }
+    }
   },
   "cases": [
     {

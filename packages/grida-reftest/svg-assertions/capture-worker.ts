@@ -17,8 +17,11 @@ async function main(): Promise<void> {
       throw new Error(
         `Chromium version drift: ${browser.version()} != ${version}`
       );
-    await writeFile(join(out, "chromium-identity.json"),
-      JSON.stringify(await captureIdentity(browser), null, 2), { flag: "wx" });
+    await writeFile(
+      join(out, "chromium-identity.json"),
+      JSON.stringify(await captureIdentity(browser), null, 2),
+      { flag: "wx" }
+    );
     const context = await deterministicContext(browser);
     try {
       const page = await context.newPage();

@@ -84,7 +84,11 @@ cargo run -p n0_cli --bin n0 -- \
   before a syntax error survives; an empty prefix paints nothing; ordinary
   non-finite derived verbs invalidate the path while an extreme arc may append
   no segment and preserve prior ink; and elliptical arcs resolve through the
-  pinned Skia conic construction. Six new `d` cells plus one companion cell
+  pinned Skia conic construction. Its negative-horizontal-axis angle boundary
+  is explicit across engine hosts, preserving the declared ARM Chromium
+  reference's conic weights rather than a host math library's last-bit choice;
+  the filtered authored-arc cell guards the resulting pixels. This is not a
+  blanket guarantee about platform transcendental math. Six new `d` cells plus one companion cell
   for the shared `points` scanner carry those boundaries. The CSS `d` property
   remains a named refusal because the pinned
   cascade has no corresponding longhand. Also admitted are `<line>`, `<polygon>`
